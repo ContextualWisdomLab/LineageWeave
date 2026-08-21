@@ -49,7 +49,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T18:06:44Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T18:09:21Z` from the
 GitHub API. Checkpoint types are `merge_commit`, `head`, and
 `closed_without_merge`; the latter records a closed PR's exact `head` when
 `merged_at` and `merge_commit_sha` are both absent. A merged commit is
@@ -285,18 +285,19 @@ Observed at `2026-08-21T18:06:44Z` on PR #389's exact head
   merge commit remain absent. This remains an open stacked fix, not a resolved
   production gap.
 
-Observed at `2026-08-21T17:49:48Z` on PR #387's exact head
+Observed at `2026-08-21T18:09:21Z` on PR #387's exact head
 `4bf061314516a6d824dcc41b24a021ca69661aa4`:
 
 - The Event Lineage channel-evidence persistence check now budgets one
   half-quantum per six-decimal contribution plus a small floating-point guard,
   so normal three- and four-channel edges cannot abort rebuild/import solely
   because of storage rounding.
-- A four-channel regression covers the former failure boundary. Local
-  verification passed 14 focused ingestion/evidence tests and `git diff --check`;
-  the async rebuild now offloads synchronous reconstruction and the visible
-  graph bounds evidence reads to visible endpoint IDs. Hosted Checks were
-  queued and no independent approval or merge commit was present.
+- A four-channel regression covers the former failure boundary. The async
+  rebuild now offloads synchronous reconstruction and the visible graph bounds
+  evidence reads to visible endpoint IDs. Local verification on this exact
+  head passed 769 backend tests with 17 environment skips; hosted Checks still
+  had non-terminal work and no independent approval or merge commit was
+  present.
 
 Observed at `2026-08-21T17:32:25Z` on PR #349's exact head
 `979b4290bc62ab83668aab99cc09c2a297db8464`:
