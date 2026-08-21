@@ -3,21 +3,6 @@ import { splitPostBody, type PostBodySegment } from "./postBodyDisplay";
 import { t } from "./i18n";
 import type { PostContentUnit, PostImageContent, PostImageRegion } from "./api";
 
-function hasPersistedOverlayBox(region: PostImageRegion): boolean {
-  const { x_ratio, y_ratio, width_ratio, height_ratio } = region;
-  if (![x_ratio, y_ratio, width_ratio, height_ratio].every((value) => Number.isFinite(value))) {
-    return false;
-  }
-  if (x_ratio < 0 || y_ratio < 0 || width_ratio <= 0 || height_ratio <= 0) {
-    return false;
-  }
-  return x_ratio + width_ratio <= 1 && y_ratio + height_ratio <= 1;
-}
-
-function regionBuyerLabel(region: PostImageRegion): string {
-  return region.caption || region.extracted_text || t("Unknown");
-}
-
 function parsePipeDelimitedTable(text: string): string[][] | null {
   const rows = text
     .split(/\r?\n/)
@@ -64,6 +49,22 @@ function renderImageText(text: string) {
 
 const SAFE_EMBEDDED_IMAGE_SOURCE =
   /^data:image\/(?:png|jpe?g|gif|webp|avif|bmp|x-icon|vnd\.microsoft\.icon);base64,[A-Za-z0-9+/]+={0,2}$/i;
+const RATIO_EPSILON = 1e-9;
+
+function hasPersistedOverlayBox(region: PostImageRegion): boolean {
+  const { x_ratio, y_ratio, width_ratio, height_ratio } = region;
+  if (![x_ratio, y_ratio, width_ratio, height_ratio].every((value) => Number.isFinite(value))) {
+    return false;
+  }
+  if (x_ratio < 0 || y_ratio < 0 || width_ratio <= 0 || height_ratio <= 0) {
+    return false;
+  }
+  return x_ratio + width_ratio <= 1 + RATIO_EPSILON && y_ratio + height_ratio <= 1 + RATIO_EPSILON;
+}
+
+function regionBuyerLabel(region: PostImageRegion): string {
+  return region.caption || region.extracted_text || t("Unknown");
+}
 
 function ImageEvidenceFigure({
   imageContent,

@@ -326,6 +326,17 @@ describe("PostBody", () => {
                 caption: "Overflow panel",
                 tags: [],
               },
+              {
+                region_index: 2,
+                x_ratio: 0.7,
+                y_ratio: 0.6,
+                width_ratio: 0.30000000000000004,
+                height_ratio: 0.4,
+                status_code: "described",
+                extracted_text: "Edge region OCR",
+                caption: "Edge panel",
+                tags: [],
+              },
             ],
           },
         ]}
@@ -339,6 +350,7 @@ describe("PostBody", () => {
       width: "30%",
       height: "40%",
     });
+    expect(screen.getByRole("button", { name: "Image region: Edge panel" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Overflow panel/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Invented box must not render/)).not.toBeInTheDocument();
@@ -348,6 +360,10 @@ describe("PostBody", () => {
     expect(overlay).toHaveFocus();
     await user.click(overlay);
     expect(screen.getByText("Current image region: Main panel")).toBeInTheDocument();
+    expect(overlay).toHaveAttribute("aria-pressed", "true");
+    await user.click(overlay);
+    expect(screen.queryByText("Current image region: Main panel")).not.toBeInTheDocument();
+    expect(overlay).toHaveAttribute("aria-pressed", "false");
   });
 
   it("keeps invalid persisted boxes list-only and does not create overlay controls", () => {
