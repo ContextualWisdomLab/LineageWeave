@@ -69,6 +69,7 @@ flowchart LR
 | `rankweave_client.py` | Fail-closed RankWeave ranking port (`weighted_reciprocal_rank_fuse` in-process; never invent a fused score or a theta) |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
 | `lineage_persistence.py` | Flattens reconstruct trees into `post_lineage_edge` row specs (parent, child, fused_score) |
+| `lineage_contract.py` | Versioned, store-agnostic provider boundary for bounded authorized evidence and opaque-reference results |
 | `knowledge_graph.py` | Random-walk-with-restart relevance + per-node adaptive related-node cutoff (Tong et al., 2006) -- pure graph math, no Postgres |
 | `keyman_extraction.py` | Pluggable LLM extraction of two-sided (our-side/counterparty) person mentions + N:N org affiliations from a post |
 | `entity_relationship_classification.py` | Pluggable LLM classification of a named organization's relationship to the post author (`rel_voc`/`rel_vom`/`rel_vop`/`rel_vocc`/`rel_voco`/`rel_vos`) |
@@ -282,10 +283,11 @@ Keycloak issued; `src/App.tsx` renders a git-branch SVG of
 `GET /api/lineage` (click a node to open that post; `post_admin` can
 rebuild), the post list with a named Weekly VOC ISO-8601 week filter
 (ADR 0092; opening that filtered post focuses Event Lineage, ADR 0093),
-Calendar commitments use the same Event Lineage focus path (ADR 0094),
+Calendar commitments use the same Event Lineage focus path (ADR 0134),
 Customer master related posts use the same Event Lineage focus path
 (ADR 0095). Ask Agent cited posts use the same Event Lineage focus path
 (ADR 0096), and the full detail popup includes Korean
+and the full detail popup includes Korean
 summary/key-events/R&R, VOC evidence excerpts, an Event Lineage panel
 (direct vs. indirect links; a link opens that post), the Keyman
 affiliate tree (resolved ancestors plus unresolved org roots), Keyman +
