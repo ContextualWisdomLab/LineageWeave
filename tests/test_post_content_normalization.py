@@ -9,9 +9,15 @@ tests/test_image_content.py and does not need re-proving here.
 from __future__ import annotations
 
 import base64
+import time
 from threading import Lock
 
-from lineageweave.image_content import ImageDescription, ImageRegion
+from lineageweave.chunking import Chunk
+from lineageweave.image_content import (
+    ImageDescription,
+    ImageRegion,
+    NullImageContentClient,
+)
 from lineageweave.llm_context import current_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 
@@ -49,14 +55,86 @@ class _MetadataCapturingVisionClient(_FakeVisionClient):
         return super().describe(image_bytes, mime_type)
 
 
-class _RegionVisionClient(_FakeVisionClient):
+class _FullImageRegionVisionClient(_FakeVisionClient):
     def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
         return (ImageRegion(0.0, 0.0, 1.0, 1.0),)
 
 
 class _PartialRegionVisionClient(_FakeVisionClient):
+    def __init__(self, description: ImageDescription, fail_on_call: int | None = None) -> None:
+        super().__init__(description)
+        self.describe_calls = 0
+        self.fail_on_call = fail_on_call
+
+    def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
+        self.describe_calls += 1
+        if self.describe_calls == self.fail_on_call:
+            raise RuntimeError("synthetic parent-image provider outage")
+        return super().describe(image_bytes, mime_type)
+
     def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
         return (ImageRegion(0.25, 0.25, 0.25, 0.25),)
+
+
+class _MixedValidityRegionVisionClient(_PartialRegionVisionClient):
+    def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
+        return (
+            ImageRegion(0.25, 0.25, 0.25, 0.25),
+            ImageRegion(-0.1, 0.0, 0.5, 0.5),
+            ImageRegion(0.0, 0.0, float("nan"), 0.5),
+            ImageRegion(None, 0.0, 0.5, 0.5),  # type: ignore[arg-type]
+            object(),  # type: ignore[arg-type]
+        )
+
+
+class _LocatorFailureVisionClient(_FakeVisionClient):
+    def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
+        raise RuntimeError("synthetic locator outage")
+
+
+class _EmptyLocatorVisionClient(_FakeVisionClient):
+    def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
+        return None  # type: ignore[return-value]
+
+
+class _MalformedLocatorVisionClient(_FakeVisionClient):
+    def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
+        return object()  # type: ignore[return-value]
+
+
+class _PartialRegionFailureVisionClient(_FakeVisionClient):
+    def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
+        return (ImageRegion(0.25, 0.25, 0.25, 0.25),)
+
+    def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
+        raise RuntimeError("synthetic region and parent outage")
+
+
+class _ConcurrencyTrackingVisionClient(_FakeVisionClient):
+    """Record provider overlap so one post cannot fan out nested calls."""
+
+    def __init__(self, description: ImageDescription) -> None:
+        super().__init__(description)
+        self._lock = Lock()
+        self._active_calls = 0
+        self.max_active_calls = 0
+
+    def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
+        return (
+            ImageRegion(0.0, 0.0, 0.25, 0.25),
+            ImageRegion(0.5, 0.5, 0.25, 0.25),
+        )
+
+    def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
+        with self._lock:
+            self._active_calls += 1
+            self.max_active_calls = max(self.max_active_calls, self._active_calls)
+        try:
+            time.sleep(0.01)
+            return super().describe(image_bytes, mime_type)
+        finally:
+            with self._lock:
+                self._active_calls -= 1
 
 
 def test_plain_text_passes_through_unchanged() -> None:
@@ -116,22 +194,130 @@ def test_image_is_described_and_placed_at_its_document_position_not_dropped() ->
     assert result.image_descriptions == (description,)
 
 
-def test_image_regions_are_cropped_and_described_as_independent_evidence() -> None:
+def test_single_full_image_locator_response_keeps_parent_evidence_without_region() -> None:
     b64 = base64.b64encode(_PNG_1X1).decode("ascii")
     html = f'<p>Before.</p><img src="data:image/png;base64,{b64}"/><p>After.</p>'
     description = ImageDescription(
         extracted_text="panel text", caption="one visual panel", tags=("panel",)
     )
 
-    result = normalize_post_body(html, vision_client=_RegionVisionClient(description))
+    result = normalize_post_body(html, vision_client=_FullImageRegionVisionClient(description))
 
     assert result.image_results[0].status_code == "described"
-    assert result.image_results[0].regions[0].region == ImageRegion(0.0, 0.0, 1.0, 1.0)
-    assert result.image_results[0].regions[0].description == description
+    assert result.image_results[0].regions == ()
+    assert result.image_results[0].description == description
     assert "panel text" in result.text
 
 
-def test_parallel_image_analysis_preserves_post_scoped_llm_metadata() -> None:
+def test_image_without_ocr_uses_caption_only_and_preserves_image_result() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+    description = ImageDescription(extracted_text="", caption="a blank chart", tags=())
+
+    result = normalize_post_body(
+        f'<img src="data:image/png;base64,{b64}"/>',
+        vision_client=_FakeVisionClient(description),
+    )
+
+    assert result.text == "[image: a blank chart]"
+    assert result.image_results[0].status_code == "described"
+
+
+def test_unavailable_vision_channel_keeps_an_explicit_image_outcome() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+
+    result = normalize_post_body(
+        f'<img src="data:image/png;base64,{b64}"/>',
+        vision_client=NullImageContentClient(),
+    )
+
+    assert result.text == "[image: content unavailable]"
+    assert result.image_results[0].status_code == "unavailable"
+
+
+def test_available_client_with_missing_image_bytes_keeps_unavailable_outcome() -> None:
+    from lineageweave.post_content_normalization import _describe_image_chunk
+
+    result, description, placeholder = _describe_image_chunk(
+        Chunk(text="", unit_type="image", index=0, label="image/png", image_data=None),
+        _FakeVisionClient(ImageDescription(extracted_text="", caption="unused", tags=())),
+    )
+
+    assert result.status_code == "unavailable"
+    assert description is None
+    assert placeholder == "[image: content unavailable]"
+
+
+def test_locator_failure_falls_back_to_parent_image_evidence() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+    description = ImageDescription(extracted_text="parent", caption="whole image", tags=())
+
+    result = normalize_post_body(
+        f'<img src="data:image/png;base64,{b64}"/>',
+        vision_client=_LocatorFailureVisionClient(description),
+    )
+
+    assert result.image_results[0].status_code == "described"
+    assert result.image_results[0].regions == ()
+    assert result.image_results[0].description == description
+
+
+def test_empty_locator_result_falls_back_to_parent_image_evidence() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+    description = ImageDescription(extracted_text="parent", caption="whole image", tags=())
+
+    result = normalize_post_body(
+        f'<img src="data:image/png;base64,{b64}"/>',
+        vision_client=_EmptyLocatorVisionClient(description),
+    )
+
+    assert result.image_results[0].status_code == "described"
+    assert result.image_results[0].regions == ()
+    assert result.image_results[0].description == description
+
+
+def test_non_iterable_locator_result_falls_back_to_parent_image_evidence() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+    description = ImageDescription(extracted_text="parent", caption="whole image", tags=())
+
+    result = normalize_post_body(
+        f'<img src="data:image/png;base64,{b64}"/>',
+        vision_client=_MalformedLocatorVisionClient(description),
+    )
+
+    assert result.image_results[0].status_code == "described"
+    assert result.image_results[0].regions == ()
+    assert result.image_results[0].description == description
+
+
+def test_partial_locator_with_no_successful_description_fails_closed() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+
+    result = normalize_post_body(
+        f'<img src="data:image/png;base64,{b64}"/>',
+        vision_client=_PartialRegionFailureVisionClient(
+            ImageDescription(extracted_text="unused", caption="unused", tags=())
+        ),
+    )
+
+    assert result.image_results[0].status_code == "failed"
+    assert result.text == "[image: content unavailable]"
+
+
+def test_unknown_chunk_kinds_are_not_leaked_into_buyer_text(monkeypatch) -> None:
+    from lineageweave import post_content_normalization
+
+    monkeypatch.setattr(
+        post_content_normalization,
+        "chunk_by_dom",
+        lambda _body: [Chunk(text="hidden", unit_type="unknown", index=0)],
+    )
+
+    result = normalize_post_body("<div>ignored by the synthetic chunker</div>")
+
+    assert result.text == ""
+
+
+def test_image_analysis_preserves_post_scoped_llm_metadata() -> None:
     b64 = base64.b64encode(_PNG_1X1).decode("ascii")
     html = (
         f'<img src="data:image/png;base64,{b64}"/>'
@@ -152,17 +338,75 @@ def test_parallel_image_analysis_preserves_post_scoped_llm_metadata() -> None:
     assert all(seen == metadata for seen in client.seen_metadata)
 
 
-def test_partial_region_response_falls_back_to_full_image_evidence() -> None:
+def test_image_analysis_serializes_provider_calls_per_post() -> None:
     b64 = base64.b64encode(_PNG_1X1).decode("ascii")
-    html = f'<img src="data:image/png;base64,{b64}"/>'
-    result = normalize_post_body(
-        html,
-        vision_client=_PartialRegionVisionClient(
-            ImageDescription(extracted_text="whole image", caption="whole", tags=())
-        ),
+    html = f'<img src="data:image/png;base64,{b64}"/><img src="data:image/png;base64,{b64}"/>'
+    client = _ConcurrencyTrackingVisionClient(
+        ImageDescription(extracted_text="panel", caption="chart", tags=("chart",))
     )
 
-    assert result.image_results[0].regions[0].region == ImageRegion(0.0, 0.0, 1.0, 1.0)
+    result = normalize_post_body(html, vision_client=client)
+
+    assert len(result.image_results) == 2
+    assert client.max_active_calls == 1
+
+
+def test_partial_region_response_retains_panel_and_parent_evidence() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+    html = f'<img src="data:image/png;base64,{b64}"/>'
+    client = _PartialRegionVisionClient(
+        ImageDescription(extracted_text="whole image", caption="whole", tags=())
+    )
+    result = normalize_post_body(html, vision_client=client)
+
+    assert result.image_results[0].regions[0].region == ImageRegion(0.25, 0.25, 0.25, 0.25)
+    assert client.describe_calls == 2
+
+
+def test_partial_region_parent_failure_keeps_successful_panel_evidence() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+    client = _PartialRegionVisionClient(
+        ImageDescription(extracted_text="panel", caption="panel", tags=()),
+        fail_on_call=2,
+    )
+
+    result = normalize_post_body(
+        f'<img src="data:image/png;base64,{b64}"/>',
+        vision_client=client,
+    )
+
+    assert result.image_results[0].status_code == "described"
+    assert result.image_results[0].regions[0].description is not None
+    assert result.image_results[0].description is not None
+
+
+def test_partial_region_analysis_discards_unbounded_locator_regions() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+    client = _MixedValidityRegionVisionClient(
+        ImageDescription(extracted_text="whole", caption="whole", tags=())
+    )
+
+    result = normalize_post_body(
+        f'<img src="data:image/png;base64,{b64}"/>',
+        vision_client=client,
+    )
+
+    assert len(result.image_results[0].regions) == 1
+    assert result.image_results[0].regions[0].region == ImageRegion(0.25, 0.25, 0.25, 0.25)
+
+
+def test_non_iterable_locator_result_falls_back_to_parent_evidence() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+    description = ImageDescription(extracted_text="parent", caption="whole", tags=())
+
+    result = normalize_post_body(
+        f'<img src="data:image/png;base64,{b64}"/>',
+        vision_client=_MalformedLocatorVisionClient(description),
+    )
+
+    assert result.image_results[0].status_code == "described"
+    assert result.image_results[0].regions == ()
+    assert result.image_results[0].description == description
 
 
 def test_comparison_operators_in_plain_text_are_not_treated_as_html() -> None:

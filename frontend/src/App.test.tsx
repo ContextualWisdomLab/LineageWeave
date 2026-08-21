@@ -121,6 +121,8 @@ describe("App, authenticated", () => {
       visibility_label?: string;
       created_at: string;
     }[];
+    staleSummary?: boolean;
+    contentAfterSummary?: boolean;
   }): ReturnType<typeof vi.fn> & {
     releaseMe: () => void;
     releaseSecondAsk: () => void;
@@ -151,6 +153,7 @@ describe("App, authenticated", () => {
     let createdPendingLineage: Record<string, unknown> | null = null;
     let createdPendingTepp: Record<string, unknown> | null = null;
     let resolvedHintCode: string | null = null;
+    let contentRequests = 0;
 
     let releaseMe = () => {};
     const meReady = options?.deferMe
@@ -188,6 +191,9 @@ describe("App, authenticated", () => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
+      if (url.endsWith("/api/settings")) {
+        return Promise.resolve(jsonResponse({ brandName: "LineageWeave" }));
+      }
       if (url.endsWith("/api/me/preferences") && method === "PATCH") {
         const body = JSON.parse(String(init?.body));
         return Promise.resolve(jsonResponse({ preferred_locale: body.preferred_locale }));
@@ -1181,7 +1187,28 @@ describe("App, authenticated", () => {
         );
       }
       if (postOneUrl.pathname === "/api/posts/post-1/content") {
-        return Promise.resolve(jsonResponse({ images: [] }));
+        contentRequests += 1;
+        return Promise.resolve(
+          jsonResponse({
+            status: "ready",
+            images: [],
+            units:
+              options?.contentAfterSummary && contentRequests > 1
+                ? [
+                    {
+                      unit_index: 0,
+                      unit_kind_code: "plain_text",
+                      unit_label: "p",
+                      unit_text: "Freshly processed source paragraph.",
+                      indent_level: 0,
+                      indent_source_code: "explicit",
+                      indent_confidence: 1,
+                      indent_evidence: "HTML paragraph boundary",
+                    },
+                  ]
+                : [],
+          }),
+        );
       }
       if (url.endsWith("/api/posts/post-2")) {
         if (options?.evidenceUnavailable) {
@@ -1225,6 +1252,9 @@ describe("App, authenticated", () => {
           jsonResponse({
             post_id: "post-1",
             korean_summary: "이것은 요약입니다.",
+            ...(options?.staleSummary
+              ? { summary_status: "stale", summary_contract_version: 4 }
+              : {}),
             key_events: ["첫 번째 이벤트"],
             roles_and_responsibilities: [
               {
@@ -1800,6 +1830,23 @@ describe("App, authenticated", () => {
     });
   }
 
+  async function expectGnbKeymanFocus(postTitle: string) {
+    await waitFor(() => expect(document.getElementById("post-keyman")).toHaveFocus());
+    const lineageNext = screen.getByRole("status", { name: "Event Lineage next action" });
+    expect(lineageNext).toHaveTextContent(
+      `${postTitle} is current in Event Lineage. Read Keyman and evaluation next.`,
+    );
+    const keyman = screen.getByRole("heading", { name: "Keymen" });
+    expect(lineageNext.compareDocumentPosition(keyman) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  }
+
+  async function expectHomeListSkipsGnbKeymanFocus() {
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Keymen" })).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(document.getElementById("post-keyman")).not.toHaveFocus();
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+  }
+
   it("renders safe Ask Agent evidence under each cited post", async () => {
     stubBackend();
     render(<App />);
@@ -2124,20 +2171,16 @@ describe("App, authenticated", () => {
     await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).toHaveFocus();
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Public post");
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
     await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
-    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    await expectHomeListSkipsGnbKeymanFocus();
   });
 
-  it("does not scroll Calendar users away from Event Lineage when related evidence lands", async () => {
+  it("never runs the report-member Ask auto-land chain for a Calendar open (ADR 0100)", async () => {
     const scrolledIds: string[] = [];
     const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
     HTMLElement.prototype.scrollIntoView = function () {
@@ -2153,8 +2196,8 @@ describe("App, authenticated", () => {
         within(calendar).getByRole("button", { name: "Open commitment for: Public post" }),
       );
 
-      await screen.findByRole("status", { name: "Ask next action" });
-      expect(document.getElementById("post-event-lineage")).toHaveFocus();
+      await expectGnbKeymanFocus("Public post");
+      expect(screen.queryByRole("status", { name: "Ask next action" })).not.toBeInTheDocument();
       expect(scrolledIds).not.toContain("post-ask");
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
@@ -2175,17 +2218,13 @@ describe("App, authenticated", () => {
     );
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).toHaveFocus();
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Public post");
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     const board = screen.getByRole("region", { name: "Board" });
     await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
-    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    await expectHomeListSkipsGnbKeymanFocus();
   });
 
   it("opening a Customer master related post focuses Event Lineage; a home list open does not", async () => {
@@ -2203,10 +2242,7 @@ describe("App, authenticated", () => {
     );
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).toHaveFocus();
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Public post");
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     const boardAfterCustomer = screen.getByRole("region", { name: "Board" });
@@ -2214,8 +2250,7 @@ describe("App, authenticated", () => {
       within(boardAfterCustomer).getByRole("button", { name: "View post: Public post" }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
-    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    await expectHomeListSkipsGnbKeymanFocus();
   });
 
   it("keeps the current Customer master loading state when an older request finishes", async () => {
@@ -2256,17 +2291,13 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
-    expect(document.getElementById("post-event-lineage")).toHaveFocus();
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Linked post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Linked post");
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     const boardAfterAsk = screen.getByRole("region", { name: "Board" });
     await userEvent.click(within(boardAfterAsk).getByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
-    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    await expectHomeListSkipsGnbKeymanFocus();
   });
 
   it("ignores a stale summary after Event Lineage navigation changes the selected post", async () => {
@@ -2307,16 +2338,11 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Linked post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Linked post");
 
     await userEvent.click(screen.getByLabelText("Open post: Public post"));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).toHaveFocus();
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Public post");
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     const boardAfterAsk = screen.getByRole("region", { name: "Board" });
@@ -2326,8 +2352,7 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
-    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
-    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    await expectHomeListSkipsGnbKeymanFocus();
   });
 
   it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {
@@ -2542,6 +2567,48 @@ describe("App, authenticated", () => {
     expect(affiliate.compareDocumentPosition(keyman) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     const ask = within(popup as HTMLElement).getByRole("heading", { name: "Ask about this lineage" });
     expect(keyman.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  });
+
+  it("labels a stale summary and retries the semantic refresh on request", async () => {
+    const fetchMock = stubBackend({ staleSummary: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() =>
+      expect(screen.getByText("Last saved summary shown. Retry semantic refresh.")).toBeInTheDocument(),
+    );
+    const summaryCallsBeforeRetry = fetchMock.mock.calls.filter(([input]) =>
+      String(input).endsWith("/api/posts/post-1/summary"),
+    ).length;
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry summary refresh" }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/api/posts/post-1/summary"))
+          .length,
+      ).toBeGreaterThan(summaryCallsBeforeRetry),
+    );
+    expect(screen.getByRole("button", { name: "Retry summary refresh" })).toBeInTheDocument();
+  });
+
+  it("requests one summary per post open and keeps retry as the only second request", async () => {
+    const fetchMock = stubBackend();
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("이것은 요약입니다.")).toBeInTheDocument());
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/api/posts/post-1/summary")),
+    ).toHaveLength(1);
+  });
+
+  it("refreshes newly processed source content after summary generation", async () => {
+    stubBackend({ contentAfterSummary: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    expect(await screen.findByText("Freshly processed source paragraph.")).toBeInTheDocument();
   });
 
   it("shows a seeded Ask exchange without an orchestrator round-trip", async () => {

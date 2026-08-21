@@ -68,6 +68,10 @@ _DOM_BLOCK_TAGS = frozenset(
         "ul",
         "ol",
         "li",
+        "footnote",
+        "endnote",
+        "w:footnote",
+        "w:endnote",
         "tr",
         "blockquote",
         "h1",
@@ -100,6 +104,32 @@ _LIST_ITEM_START = re.compile(
 _FOOTNOTE_START = re.compile(r"^(?:[*†‡](?=\S)|\[\d{1,3}\]\s+\S)")
 
 
+def _is_footnote_block(tag: str, attrs: list[tuple[str, str | None]]) -> bool:
+    """Recognize semantic footnote markup emitted by HTML and Word exports."""
+    if tag.casefold().rsplit(":", 1)[-1] in {"footnote", "endnote"}:
+        return True
+    values = " ".join(
+        value or ""
+        for name, value in attrs
+        if name.casefold() in {"class", "id", "role", "data-role"}
+    ).casefold()
+    return "footnote" in values or "endnote" in values
+
+
+def _is_footnote_reference(attrs: list[tuple[str, str | None]]) -> bool:
+    """Recognize a Word footnote-definition backlink, not its body citation."""
+    values = {
+        name.casefold(): (value or "").casefold()
+        for name, value in attrs
+        if name.casefold() in {"href", "id", "name"}
+    }
+    href = values.get("href", "")
+    anchor_values = (values.get("id", ""), values.get("name", ""))
+    return "ftnref" in href and any(
+        "ftn" in value and "ftnref" not in value for value in anchor_values
+    )
+
+
 def normalize_semantic_text(text: str) -> str:
     """Remove visual hanging-indent breaks without changing source content."""
     lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
@@ -128,7 +158,11 @@ def _source_indent_width(text: str) -> int:
 
 def _length_to_indent_units(value: str) -> int:
     """Convert common CSS/XML lengths to a comparable eight-pixel unit."""
-    match = re.fullmatch(r"\s*([+-]?(?:\d+\.?\d*|\.\d+))\s*(px|pt|em|rem|in|cm|mm|%)?\s*", value, re.I)
+    match = re.fullmatch(
+        r"\s*([+-]?(?:\d+\.?\d*|\.\d+))\s*(px|pt|em|rem|in|cm|mm|%)?\s*",
+        value,
+        re.IGNORECASE,
+    )
     if match is None:
         return 0
     amount = float(match.group(1))
@@ -170,7 +204,7 @@ def _declared_indent_width(tag: str, attrs: list[tuple[str, str | None]]) -> int
     for match in re.finditer(
         r"(?:^|;)\s*(?:margin-left|padding-left|padding-inline-start|text-indent)\s*:\s*([^;]+)",
         style,
-        re.I,
+        re.IGNORECASE,
     ):
         width += _length_to_indent_units(match.group(1))
     # A real editor (Word paste, Outlook compose) declares indentation with
@@ -179,7 +213,9 @@ def _declared_indent_width(tag: str, attrs: list[tuple[str, str | None]]) -> int
     # every nested <li> in a real body used only the shorthand, so its
     # indentation silently read as 0 and every nesting level collapsed flat
     # (live bug, 2026-08-19).
-    for match in re.finditer(r"(?:^|;)\s*(?:margin|padding)\s*:\s*([^;]+)", style, re.I):
+    for match in re.finditer(
+        r"(?:^|;)\s*(?:margin|padding)\s*:\s*([^;]+)", style, re.IGNORECASE
+    ):
         width += _length_to_indent_units(_shorthand_left_value(match.group(1)))
     for name, value in attrs:
         if name in {"w:left", "w:start", "w:firstline"} and value:
@@ -225,6 +261,9 @@ class Chunk:
         indent_width: source indentation in semantic units, retained as
             structural metadata while presentation whitespace is removed from
             ``text``.
+        declared_indent_width: indentation declared by HTML/CSS/OOXML or a
+            nested list container. Source-only leading spaces are excluded so
+            callers can distinguish authored structure from visual alignment.
     """
 
     text: str
@@ -234,6 +273,7 @@ class Chunk:
     image_data: bytes | None = field(default=None, compare=True)
     style: str | None = None
     indent_width: int = 0
+    declared_indent_width: int = 0
 
 
 def chunk_by_paragraph(text: str) -> list[Chunk]:
@@ -301,36 +341,41 @@ class _BlockTextExtractor(HTMLParser):
 
     def __init__(self) -> None:
         super().__init__()
-        self._stack: list[tuple[str, list[str], str | None, int]] = []
+        self._stack: list[tuple[str, list[str], str | None, int, bool]] = []
         self._unscoped_buffer: list[str] = []
         # Each entry is ("text", str, tag_name, style) or
         # ("image", (mime_type, bytes), "", None) -- a single sequence in
         # true document order, so an image's index among its siblings
         # reflects where it actually sat.
-        self._finished: list[tuple[str, object, str, str | None, int]] = []
+        self._finished: list[tuple[str, object, str, str | None, int, int]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Collect relevant text state when an HTML start tag is encountered."""
         if tag == "img":
-            if self._stack:
-                self._flush_current_buffer()
             src = next((value for name, value in attrs if name == "src" and value), None)
-            if src:
-                decoded = _decode_data_uri_image(src)
-                if decoded is not None:
-                    self._finished.append(("image", decoded, "", None, 0))
+            decoded = _decode_data_uri_image(src) if src else None
+            if decoded is None:
+                return
+            if self._stack and not any(entry[0] in _TABLE_ROW_TAGS for entry in self._stack):
+                self._flush_current_buffer()
+            self._finished.append(("image", decoded, "", None, 0, 0))
             return
         if tag in {"br", "w:br"} and self._stack:
             self._stack[-1][1].append("\n")
             return
         if tag == "w:ind" and self._stack:
-            tag_name, buffer, style, indent_width = self._stack[-1]
+            tag_name, buffer, style, indent_width, is_footnote = self._stack[-1]
             self._stack[-1] = (
                 tag_name,
                 buffer,
                 style,
                 indent_width + _declared_indent_width(tag, attrs),
+                is_footnote,
             )
+            return
+        if tag == "a" and self._stack and _is_footnote_reference(attrs):
+            tag_name, buffer, style, indent_width, _ = self._stack[-1]
+            self._stack[-1] = (tag_name, buffer, style, indent_width, True)
             return
         if tag in _TABLE_CELL_TAGS:
             if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS and self._stack[-1][1]:
@@ -345,7 +390,12 @@ class _BlockTextExtractor(HTMLParser):
             if self._stack:
                 self._flush_current_buffer()
             style = next((value for name, value in attrs if name == "style" and value), None)
-            self._stack.append((tag, [], style, _declared_indent_width(tag, attrs)))
+            is_footnote = _is_footnote_block(tag, attrs) or any(
+                entry[4] for entry in self._stack
+            )
+            self._stack.append(
+                (tag, [], style, _declared_indent_width(tag, attrs), is_footnote)
+            )
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Handle self-closing block tags without losing XML indentation state."""
@@ -357,24 +407,30 @@ class _BlockTextExtractor(HTMLParser):
         """Close the relevant text state when an HTML end tag is encountered."""
         if tag in _DOM_BLOCK_TAGS and self._stack and self._stack[-1][0] == tag:
             declared_width = sum(entry[3] for entry in self._stack)
-            tag_name, buffer, style, _ = self._stack.pop()
-            self._finish_block(tag_name, buffer, style, declared_width)
+            tag_name, buffer, style, _, is_footnote = self._stack.pop()
+            self._finish_block(tag_name, buffer, style, declared_width, is_footnote)
 
     def _flush_current_buffer(self) -> None:
         """Emit direct parent text before a nested block or embedded image."""
-        tag_name, buffer, style, _ = self._stack[-1]
+        tag_name, buffer, style, indent_width, is_footnote = self._stack[-1]
         if not buffer:
             return
-        self._stack[-1] = (tag_name, [], style, self._stack[-1][3])
+        self._stack[-1] = (tag_name, [], style, indent_width, is_footnote)
         self._finish_block(
             tag_name,
             buffer,
             style,
             sum(entry[3] for entry in self._stack),
+            is_footnote,
         )
 
     def _finish_block(
-        self, tag_name: str, buffer: list[str], style: str | None, declared_width: int
+        self,
+        tag_name: str,
+        buffer: list[str],
+        style: str | None,
+        declared_width: int,
+        is_footnote: bool = False,
     ) -> None:
         """Emit one block buffer, including a block closed only at EOF."""
         raw_text = "".join(buffer)
@@ -382,9 +438,16 @@ class _BlockTextExtractor(HTMLParser):
             text = normalize_semantic_text(raw_unit)
             if text:
                 indent_width = declared_width + source_indent
-                label = "footnote" if _FOOTNOTE_START.match(text) else tag_name
+                label = "footnote" if is_footnote or _FOOTNOTE_START.match(text) else tag_name
                 self._finished.append(
-                    ("text", text, label, style, indent_width)
+                    (
+                        "text",
+                        text,
+                        label,
+                        style,
+                        indent_width,
+                        declared_width,
+                    )
                 )
 
     def handle_data(self, data: str) -> None:
@@ -402,16 +465,18 @@ class _BlockTextExtractor(HTMLParser):
         elif text.strip() or had_nbsp:
             self._unscoped_buffer.append(text)
 
-    def finished(self) -> list[tuple[str, object, str, str | None, int]]:
+    def finished(self) -> list[tuple[str, object, str, str | None, int, int]]:
         """Return the normalized records collected from the HTML fragment."""
         while self._stack:
             declared_width = sum(entry[3] for entry in self._stack)
-            tag_name, buffer, style, _ = self._stack.pop()
-            self._finish_block(tag_name, buffer, style, declared_width)
+            tag_name, buffer, style, _, is_footnote = self._stack.pop()
+            self._finish_block(tag_name, buffer, style, declared_width, is_footnote)
         if not self._finished:
             fallback = normalize_semantic_text("".join(self._unscoped_buffer))
             if fallback:
-                return [("text", fallback, "", None, _source_indent_width(fallback))]
+                return [
+                    ("text", fallback, "", None, _source_indent_width(fallback), 0)
+                ]
         return self._finished
 
 
@@ -520,7 +585,14 @@ def chunk_by_dom(html: str) -> list[Chunk]:
     parser.feed(html)
     entries = parser.finished()
     chunks: list[Chunk] = []
-    for index, (kind, value, tag_name, style, indent_width) in enumerate(entries):
+    for index, (
+        kind,
+        value,
+        tag_name,
+        style,
+        indent_width,
+        declared_indent_width,
+    ) in enumerate(entries):
         if kind == "text":
             chunks.append(
                 Chunk(
@@ -530,6 +602,7 @@ def chunk_by_dom(html: str) -> list[Chunk]:
                     label=tag_name,
                     style=style,
                     indent_width=indent_width,
+                    declared_indent_width=declared_indent_width,
                 )
             )
         else:
@@ -558,6 +631,7 @@ def chunk_by_source_body(body: str) -> list[Chunk]:
             index=index,
             label=label,
             indent_width=indent_width,
+            declared_indent_width=0,
         )
         for index, (text, indent_width, label) in enumerate(_split_plain_text_units(body))
     ]

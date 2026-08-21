@@ -38,10 +38,21 @@ const hierarchy: CustomerMasterEntity[] = [
 ];
 
 const meta = {
-  title: "Customers/CustomerMasterTree",
+  title: "Product/Customer Master/Three Pane Workspace",
   component: CustomerMasterTree,
+  parameters: {
+    layout: "fullscreen",
+  },
+  decorators: [
+    (Story) => (
+      <div style={{ maxWidth: 1440, margin: "0 auto", padding: 24 }}>
+        <Story />
+      </div>
+    ),
+  ],
   args: {
     entities: hierarchy,
+    initialSelectedEntityId: "company-grid",
     loadRelated: async (entityId: string) => [
       {
         node_id: `post-${entityId}`,
@@ -60,14 +71,38 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const GroupCompanyPlant: Story = {};
+export const DesktopThreePane: Story = {};
+
+export const PhoneStackedSteps: Story = {
+  parameters: {
+    viewport: {
+      defaultViewport: "mobile1",
+    },
+  },
+};
 
 export const MalformedRelationsRemainVisible: Story = {
   args: {
+    initialSelectedEntityId: "orphan",
     entities: [
-      { ...hierarchy[1], corporate_entity_id: "cycle-a", entity_name: "Cycle A", parent_entity_id: "cycle-b" },
-      { ...hierarchy[1], corporate_entity_id: "cycle-b", entity_name: "Cycle B", parent_entity_id: "cycle-a" },
-      { ...hierarchy[1], corporate_entity_id: "orphan", entity_name: "Missing visible parent", parent_entity_id: "outside-scope" },
+      {
+        ...hierarchy[1],
+        corporate_entity_id: "cycle-a",
+        entity_name: "Cycle A",
+        parent_entity_id: "cycle-b",
+      },
+      {
+        ...hierarchy[1],
+        corporate_entity_id: "cycle-b",
+        entity_name: "Cycle B",
+        parent_entity_id: "cycle-a",
+      },
+      {
+        ...hierarchy[1],
+        corporate_entity_id: "orphan",
+        entity_name: "Missing visible parent",
+        parent_entity_id: "outside-scope",
+      },
     ],
   },
 };

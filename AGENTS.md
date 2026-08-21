@@ -139,6 +139,10 @@ contextual-orchestrator owns model discovery and selection.
   signals with contextual-orchestrator adjudication when evidence conflicts;
   heuristics are not authoritative and must not be the only fallback for an
   unresolved structure decision.
+- Source-system codes may be enriched with catalog display names under ADR
+  0117. Pass those names to contextual-orchestrator as labeled lookup hints
+  only; never promote them to an entity binding, customer fact, project fact,
+  or imported-author affiliation without post evidence.
 - Remove presentation-only visual line alignment inside a paragraph (for
   example continuation lines manually aligned after `-`, `*`, `1.`, or `.`)
   from derived semantic text, while retaining the source body and meaningful
@@ -173,10 +177,12 @@ Opening a Calendar commitment uses the same focus path (ADR 0094). Do not
 invent a week, a theta, a cutoff body, or a CalDAV event.
 Opening a Customer master related post uses the same focus path (ADR 0095).
 Do not invent a week, a theta, a cutoff body, a CalDAV event, or a customer.
-Opening an Ask Agent cited post uses the same focus path (ADR 0096). Do not
-invent a cited post.
-A linked Event Lineage node opened from that focused popup keeps the
-originating flags (ADR 0097). Do not invent a cited post.
+ Opening an Ask Agent cited post uses the same focus path (ADR 0096).
+ Do not invent a cited post.
+ A linked Event Lineage node opened from that focused popup keeps the
+ originating flags (ADR 0097). That open then focuses Keyman as the named
+next read (ADR 0100). Do not invent a week, a theta, a cutoff body,
+ a CalDAV event, a customer, or a cited post.
 
 
 ## Tests

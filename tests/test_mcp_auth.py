@@ -142,7 +142,10 @@ def test_jwks_cache_fetch_validation_and_failures(monkeypatch: pytest.MonkeyPatc
         raise OSError("down")
 
     monkeypatch.setattr(auth, "get_json", unavailable)
-    with pytest.raises(HTTPException, match="could not fetch JWKS"):
+    with pytest.raises(
+        HTTPException,
+        match="could not fetch OIDC JWKS from the configured identity provider",
+    ):
         auth._jwks(cfg)
 
 
@@ -163,12 +166,12 @@ def test_decode_access_token_requires_exact_kid_and_resource_audience(
 
     wrong_aud, wrong_jwks = signed_token(audience="https://other.example/mcp")
     monkeypatch.setattr(auth, "_jwks", lambda _: wrong_jwks)
-    with pytest.raises(HTTPException, match="invalid token"):
+    with pytest.raises(HTTPException, match="invalid access token"):
         auth.decode_access_token(wrong_aud, cfg, audience=cfg.mcp_audience)
 
     no_exp_token, no_exp_jwks = signed_token(audience=cfg.mcp_audience, include_exp=False)
     monkeypatch.setattr(auth, "_jwks", lambda _: no_exp_jwks)
-    with pytest.raises(HTTPException, match="exp"):
+    with pytest.raises(HTTPException, match="invalid access token"):
         auth.decode_access_token(no_exp_token, cfg, audience=cfg.mcp_audience)
 
 
