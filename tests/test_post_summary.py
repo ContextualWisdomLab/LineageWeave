@@ -30,8 +30,8 @@ from lineageweave.post_summary import (
     NullPostSummaryClient,
     RoleResponsibility,
     _parse_optional_project_key,
-    _parse_plain_summary_details,
     _parse_plain_summary_response,
+    _parse_plain_summary_details,
     parse_summary_response,
 )
 
@@ -338,6 +338,24 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
     assert "PU/business-unit value" in details_prompt
     assert summary.roles_and_responsibilities[0].actor_name == "Jordan Hale"
     assert summary.project_mentions[0].canonical_name == "hvdc-pilot"
+
+
+def test_summary_request_accepts_provider_response_without_key_events(monkeypatch) -> None:
+    """A provider may have no event evidence and omit the optional marker."""
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        prompt = payload["messages"][0]["content"]
+        content = "ROLES:\nNONE\nPROJECTS:\nNONE" if "ROLES:" in prompt else "본문 근거 요약"
+        return {"choices": [{"message": {"content": content}}]}
+
+    monkeypatch.setattr("lineageweave.post_summary.post_json", fake_post_json)
+    summary = ContextualOrchestratorPostSummaryClient(
+        "https://orchestrator.test", "token"
+    ).summarize("Synthetic title", "Synthetic body")
+
+    assert summary.korean_summary == "본문 근거 요약"
+    assert summary.key_events == ()
+    assert summary.key_event_details == ()
 
 
 def test_summary_details_parse_failure_does_not_expose_provider_response(monkeypatch) -> None:
