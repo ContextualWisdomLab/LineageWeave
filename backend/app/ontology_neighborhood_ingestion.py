@@ -402,6 +402,8 @@ async def visible_ontology_neighborhood(
         raise OntologyNeighborhoodError(
             "unknown_node_type", f"unknown node type {focus_node_type_code!r}"
         )
+    if not focus_node_id or focus_node_id.strip() != focus_node_id:
+        raise OntologyNeighborhoodError("invalid_focus_id", "focus node id is empty or malformed")
     if not await focus_catalog_exists(conn, focus_node_type_code, focus_node_id):
         raise OntologyNeighborhoodError("unknown_node_type", "focus node not found")
     visible_post_ids = await visible_post_ids_for_focus(
@@ -472,6 +474,12 @@ async def visible_ontology_neighborhood(
         )
         if name:
             labels[(NODE_TEAM, focus_node_id)] = name
+    facts = [
+        fact
+        for fact in facts
+        if (fact.source_node_type_code, fact.source_node_id) in labels
+        and (fact.target_node_type_code, fact.target_node_id) in labels
+    ]
     node_metadata = await _load_node_metadata(
         conn,
         facts,

@@ -1977,9 +1977,10 @@ async def read_ontology_neighborhood(
                 knowledge_cutoff=cutoff_clock,
                 cursor=cursor,
             )
-        return neighborhood_to_payload(neighborhood)
+            payload = neighborhood_to_payload(neighborhood)
     except OntologyNeighborhoodError as exc:
         raise HTTPException(neighborhood_error_http_status(exc), str(exc)) from exc
+    return payload
 
 
 @app.get("/api/posts/{post_id}/counterparties")

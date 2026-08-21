@@ -105,6 +105,8 @@ def test_post_mentions_person_affiliated_with_corporate_entity_round_trips() -> 
     mentions = next(edge for edge in neighborhood.edges if edge.property_code == PROPERTY_MENTIONS)
     assert mentions.ontology_property_iri == str(LW.mentions)
     assert mentions.truth_status_code == TRUTH_OBSERVED
+    person = next(node for node in neighborhood.nodes if node.node_id == PERSON_ID)
+    assert person.evidence_count == 1
     document = neighborhood.jsonld_document()
     assert document["@context"]["lw"] == str(LW)
     iris = {node.ontology_class_iri for node in neighborhood.nodes}
