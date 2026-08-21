@@ -603,6 +603,21 @@ async def visible_ontology_neighborhood(
             if fact not in facts:
                 facts.append(fact)
         loaded_post_ids = candidate_post_ids
+    else:
+        # The last expansion can add endpoints after the final visibility pass.
+        # Recheck them before the authorization cache turns an unseen endpoint
+        # into a silently dropped edge.
+        endpoint_keys = {
+            (fact.source_node_type_code, fact.source_node_id)
+            for fact in facts
+        } | {
+            (fact.target_node_type_code, fact.target_node_id)
+            for fact in facts
+        }
+        if endpoint_keys:
+            visible_by_node = await _visible_post_ids_by_nodes(
+                conn, endpoint_keys, can_see_post
+            )
     corp_ids = [
         fact.source_node_id if fact.source_node_type_code == NODE_CORPORATE_ENTITY else fact.target_node_id
         for fact in facts

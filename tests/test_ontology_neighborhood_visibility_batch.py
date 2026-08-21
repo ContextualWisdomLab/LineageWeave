@@ -15,10 +15,17 @@ from lineageweave.knowledge_graph import (
     NODE_POST,
     NODE_TEAM,
 )
-from lineageweave.ontology_neighborhood import fact_from_knowledge_graph_edge, skos_broader_fact
+from lineageweave.ontology_neighborhood import (
+    PROPERTY_MENTIONS_TEAM,
+    TRUTH_OBSERVED,
+    NeighborhoodFact,
+    fact_from_knowledge_graph_edge,
+    skos_broader_fact,
+)
 
 POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1"
 SECOND_POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2"
+THIRD_POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3"
 PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1"
 CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1"
 TEAM_ID = "dddddddd-dddd-dddd-dddd-ddddddddddd1"
@@ -100,8 +107,8 @@ def test_endpoint_visibility_is_batched_by_node_type() -> None:
     assert conn.fetch_ids == [[POST_ID], [PERSON_ID], [CORP_ID], [TEAM_ID]]
 
 
-def test_visible_neighbor_evidence_expands_the_second_hop(monkeypatch: Any) -> None:
-    """A visible person's own evidence may authorize a depth-two affiliation."""
+def test_visible_neighbor_evidence_keeps_final_depth_endpoint_authorized(monkeypatch: Any) -> None:
+    """A final expansion cannot silently drop a newly discovered endpoint."""
     mention = fact_from_knowledge_graph_edge(
         source_node_type_code=NODE_PERSON,
         source_node_id=PERSON_ID,
@@ -120,6 +127,16 @@ def test_visible_neighbor_evidence_expands_the_second_hop(monkeypatch: Any) -> N
         recorded_at=T0,
         evidence_references=(SECOND_POST_ID,),
     )
+    final_depth_fact = NeighborhoodFact(
+        source_node_type_code=NODE_PERSON,
+        source_node_id=PERSON_ID,
+        target_node_type_code=NODE_TEAM,
+        target_node_id=TEAM_ID,
+        property_code=PROPERTY_MENTIONS_TEAM,
+        truth_status_code=TRUTH_OBSERVED,
+        recorded_at=T0,
+        evidence_references=(THIRD_POST_ID,),
+    )
     fact_calls: list[tuple[str, ...]] = []
 
     async def fake_exists(*_args: object) -> bool:
@@ -137,6 +154,8 @@ def test_visible_neighbor_evidence_expands_the_second_hop(monkeypatch: Any) -> N
         facts = [mention]
         if SECOND_POST_ID in post_ids:
             facts.append(affiliation)
+        if THIRD_POST_ID in post_ids:
+            facts.append(final_depth_fact)
         return ingestion._LoadedFactWindow(facts)  # type: ignore[attr-defined]
 
     async def fake_visible_nodes(
@@ -145,11 +164,14 @@ def test_visible_neighbor_evidence_expands_the_second_hop(monkeypatch: Any) -> N
         _can_see_post: object,
     ) -> dict[tuple[str, str], list[str]]:
         return {
-            key: (
-                [SECOND_POST_ID]
-                if key in {(NODE_PERSON, PERSON_ID), (NODE_CORPORATE_ENTITY, CORP_ID)}
-                else [POST_ID]
-            )
+            key: [THIRD_POST_ID]
+            if key in {
+                (NODE_CORPORATE_ENTITY, CORP_ID),
+                (NODE_TEAM, TEAM_ID),
+            }
+            else [SECOND_POST_ID]
+            if key == (NODE_PERSON, PERSON_ID)
+            else [POST_ID]
             for key in keys
         }
 
@@ -161,6 +183,7 @@ def test_visible_neighbor_evidence_expands_the_second_hop(monkeypatch: Any) -> N
             (NODE_POST, POST_ID): "Focus",
             (NODE_PERSON, PERSON_ID): "Person",
             (NODE_CORPORATE_ENTITY, CORP_ID): "Organization",
+            (NODE_TEAM, TEAM_ID): "Team",
         }
 
     async def fake_metadata(*_args: object, **_kwargs: object) -> dict[object, object]:
@@ -188,10 +211,15 @@ def test_visible_neighbor_evidence_expands_the_second_hop(monkeypatch: Any) -> N
         )
     )
 
-    assert fact_calls == [(POST_ID,), (POST_ID, SECOND_POST_ID)]
+    assert fact_calls == [
+        (POST_ID,),
+        (POST_ID, SECOND_POST_ID),
+        (POST_ID, SECOND_POST_ID, THIRD_POST_ID),
+    ]
     assert {edge.property_code for edge in neighborhood.edges} == {
         "mentions",
         "affiliatedWith",
+        PROPERTY_MENTIONS_TEAM,
     }
 
 
