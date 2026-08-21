@@ -418,6 +418,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Text detected in image": "이미지에서 인식된 텍스트",
     "Image regions": "이미지 영역",
     "Image tags": "이미지 태그",
+    "Region location": "영역 위치",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
       "첨부 이미지를 해독할 수 없습니다. 원문을 다시 내보내고 다시 여세요.",
     "What happened between these events?": "이 사건들 사이에 무슨 일이 있었나요?",
@@ -873,6 +874,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Text detected in image": "图像中识别的文字",
     "Image regions": "图像区域",
     "Image tags": "图像标签",
+    "Region location": "区域位置",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
       "无法解码嵌入图像。请重新导出原始文章后再打开。",
     "What happened between these events?": "这些事件之间发生了什么？",
@@ -1294,6 +1296,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Text detected in image": "画像から認識されたテキスト",
     "Image regions": "画像領域",
     "Image tags": "画像タグ",
+    "Region location": "領域位置",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
       "埋め込み画像をデコードできませんでした。原文を再エクスポートして、もう一度開いてください。",
     "What happened between these events?": "これらのイベントの間に何が起きましたか？",
@@ -1700,6 +1703,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Text detected in image": "Văn bản nhận dạng trong hình ảnh",
     "Image regions": "Các vùng trong hình ảnh",
     "Image tags": "Thẻ hình ảnh",
+    "Region location": "Vị trí vùng",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
       "Không thể giải mã hình ảnh nhúng. Hãy xuất lại bài viết gốc rồi mở lại.",
     "What happened between these events?": "Điều gì đã xảy ra giữa các sự kiện này?",

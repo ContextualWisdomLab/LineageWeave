@@ -270,6 +270,7 @@ describe("PostBody", () => {
     expect(screen.getByText("A process diagram")).toBeInTheDocument();
     expect(screen.getByText("diagram, process")).toBeInTheDocument();
     expect(screen.getByText("Main panel")).toBeInTheDocument();
+    expect(screen.getByText("Region location: 0%, 0% - 100%, 100%")).toBeInTheDocument();
     expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
   });
 
