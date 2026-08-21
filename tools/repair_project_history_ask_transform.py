@@ -67,7 +67,7 @@ def add_exact_post_chat_cutoff() -> None:
     """Persist the retrieval cutoff instead of reconstructing it from write time."""
 
     write_new(
-        "migrations/0053_post_chat_knowledge_cutoff.sql",
+        "migrations/0054_post_chat_knowledge_cutoff.sql",
         """
 alter table post_chat_result
     add column if not exists knowledge_cutoff timestamptz;
@@ -100,7 +100,7 @@ comment on column post_chat_result.knowledge_cutoff is
 """,
     )
     write_new(
-        "migrations/rollback/0053_post_chat_knowledge_cutoff.sql",
+        "migrations/rollback/0054_post_chat_knowledge_cutoff.sql",
         """
 alter table post_chat_result
     drop constraint if exists post_chat_result_knowledge_cutoff_check;
@@ -111,8 +111,8 @@ alter table post_chat_result
     )
     replace_once(
         "docker/postgres-init/migrate.sh",
-        "        0051_*|0052_*) ;;\n",
         "        0051_*|0052_*|0053_*) ;;\n",
+        "        0051_*|0052_*|0053_*|0054_*) ;;\n",
     )
     replace_once(
         "backend/app/post_chat_ingestion.py",
