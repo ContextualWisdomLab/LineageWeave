@@ -86,4 +86,11 @@ describe("design tokens", () => {
       expect(appCss, `${selector} must keep a buyer-facing style`).toContain(selector);
     }
   });
+
+  it("keeps the evidence panel above the sticky header layer", () => {
+    expect(lightBlock).toContain("--z-header: 100;");
+    expect(lightBlock).toContain("--z-evidence-panel: 250;");
+    expect(appCss).toContain(".evidence-panel");
+    expect(appCss).toContain("z-index: var(--z-evidence-panel);");
+  });
 });
