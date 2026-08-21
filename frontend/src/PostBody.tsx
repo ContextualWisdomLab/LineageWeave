@@ -142,13 +142,15 @@ function ImageEvidenceFigure({
             {regions.map((region) => (
               <li key={region.region_index}>
                 {region.caption ? <p>{region.caption}</p> : null}
-                {region.extracted_text ? (
+                {region.extracted_text && parsePipeDelimitedTable(region.extracted_text) ? (
                   <div className="post-image-region-text">
                     {renderImageText(region.extracted_text)}
                   </div>
-                ) : region.caption ? null : (
+                ) : !region.caption && region.extracted_text ? (
+                  <p>{region.extracted_text}</p>
+                ) : !region.caption ? (
                   t("Unknown")
-                )}
+                ) : null}
                 {region.tags.length ? (
                   <small>
                     {t("Image tags")}: {region.tags.join(", ")}
