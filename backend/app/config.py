@@ -16,6 +16,24 @@ def _csv_setting(name: str, default: str = "") -> list[str]:
     return [value.strip() for value in os.environ.get(name, default).split(",") if value.strip()]
 
 
+def _bounded_int_setting(
+    name: str,
+    default: int,
+    *,
+    minimum: int,
+    maximum: int,
+) -> int:
+    """Read one base-10 integer and fail closed outside its configured bounds."""
+    raw_value = os.environ.get(name, str(default))
+    try:
+        value = int(raw_value, 10)
+    except ValueError as exc:
+        raise ValueError(f"{name} must be a base-10 integer") from exc
+    if not minimum <= value <= maximum:
+        raise ValueError(f"{name} must be between {minimum} and {maximum}")
+    return value
+
+
 def _home_dotenv_values(names: set[str]) -> dict[str, str]:
     """Read only requested runtime setting names from the user's home dotenv."""
     try:
@@ -99,6 +117,9 @@ class Settings:
         default_factory=lambda: ["localhost:*", "127.0.0.1:*", "mcp:8001"]
     )
     mcp_allowed_origins: list[str] = field(default_factory=list)
+    # A 4,000-character tool question fits comfortably inside this default.
+    # The ASGI boundary enforces the bytes before OAuth or SDK JSON parsing.
+    mcp_max_request_bytes: int = 65_536
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -195,4 +216,10 @@ def load_settings() -> Settings:
             "MCP_ALLOWED_HOSTS", "localhost:*,127.0.0.1:*,mcp:8001"
         ),
         mcp_allowed_origins=_csv_setting("MCP_ALLOWED_ORIGINS"),
+        mcp_max_request_bytes=_bounded_int_setting(
+            "MCP_MAX_REQUEST_BYTES",
+            65_536,
+            minimum=8_192,
+            maximum=1_048_576,
+        ),
     )

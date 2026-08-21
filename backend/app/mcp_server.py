@@ -7,6 +7,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass
 from typing import Annotated, Any, Literal
+from urllib.parse import urlsplit
 
 from mcp.server import MCPServer
 from mcp.server.auth.middleware.auth_context import get_access_token
@@ -20,6 +21,7 @@ from mcp.server.transport_security import (
 from mcp.shared.exceptions import MCPError
 from mcp.types import CallToolResult, ImageContent, TextContent, ToolAnnotations
 from pydantic import AnyHttpUrl, BaseModel, Field
+from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.types import ASGIApp, Receive, Scope, Send
 
@@ -34,6 +36,7 @@ from backend.app.global_ask_verification import (
     NullGlobalAskExternalVerifier,
     SearxngOrchestratorGlobalAskVerifier,
 )
+from backend.app.mcp_admission import BoundedRequestBodyApp
 from backend.app.mcp_auth import KeycloakMcpTokenVerifier
 from backend.app.mcp_rate_limit import (
     McpRateLimitExceeded,
@@ -115,6 +118,8 @@ class PreAuthTransportSecurityApp:
             is_post=request.method == "POST",
         )
         if rejection is not None:
+            if request.headers.get("origin") is not None:
+                rejection.headers.add_vary_header("Origin")
             await rejection(scope, receive, send)
             return
         await self._app(scope, receive, send)
@@ -125,6 +130,27 @@ AccountResolver = Callable[[Any, str], Awaitable[CurrentAccount]]
 Answerer = Callable[..., Awaitable[GlobalAskAnswer]]
 AccessTokenProvider = Callable[[], AccessToken | None]
 RateLimiterFactory = Callable[[str], ValkeyMcpRateLimiter]
+
+
+def _validate_mcp_allowed_origins(origins: list[str]) -> None:
+    """Require browser allowlist entries to be exact HTTP(S) origins."""
+    for origin in origins:
+        parsed = urlsplit(origin)
+        invalid = (
+            origin in {"*", "null"}
+            or parsed.scheme not in {"http", "https"}
+            or not parsed.netloc
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.path != ""
+            or parsed.query != ""
+            or parsed.fragment != ""
+        )
+        if invalid:
+            raise ValueError(
+                "MCP_ALLOWED_ORIGINS entries must be exact HTTP(S) origins "
+                "without wildcard, credentials, path, query, or fragment"
+            )
 
 
 def _chat_client(settings: Settings) -> PostChatClient:
@@ -290,14 +316,39 @@ def build_mcp_http_app(
     server: MCPServer[McpAppContext],
     settings: Settings,
 ) -> ASGIApp:
-    """Build the Streamable HTTP app with transport checks outside OAuth."""
+    """Build exact-origin, byte-bounded Streamable HTTP outside OAuth."""
+    _validate_mcp_allowed_origins(settings.mcp_allowed_origins)
     transport_security = TransportSecuritySettings(
         enable_dns_rebinding_protection=True,
         allowed_hosts=settings.mcp_allowed_hosts,
         allowed_origins=settings.mcp_allowed_origins,
     )
     sdk_app = server.streamable_http_app(transport_security=transport_security)
-    return PreAuthTransportSecurityApp(sdk_app, transport_security)
+    cors_app = CORSMiddleware(
+        sdk_app,
+        allow_origins=settings.mcp_allowed_origins,
+        allow_methods=["GET", "POST", "DELETE"],
+        allow_headers=[
+            "Accept",
+            "Authorization",
+            "Content-Type",
+            "Last-Event-ID",
+            "MCP-Protocol-Version",
+            "Mcp-Session-Id",
+        ],
+        expose_headers=[
+            "MCP-Protocol-Version",
+            "Mcp-Session-Id",
+            "WWW-Authenticate",
+        ],
+        allow_credentials=False,
+        max_age=600,
+    )
+    bounded_app = BoundedRequestBodyApp(
+        cors_app,
+        maximum_bytes=settings.mcp_max_request_bytes,
+    )
+    return PreAuthTransportSecurityApp(bounded_app, transport_security)
 
 
 _settings = load_settings()
