@@ -18,7 +18,7 @@ All notable changes to this project are documented here. Format follows
 
 - Global Ask now reuses the already-materialized authorized corporate-entity
   identifiers on the final cutoff-bounded source query instead of re-listing the
-  original input (ADR 0125).
+  original input (ADR 0126).
 
 ## [2.20.0] - 2026-08-21
 
@@ -41,7 +41,7 @@ All notable changes to this project are documented here. Format follows
 - Recovered the credential-free TEPP project-history validation boundary on top of
   the canonical Buyer timeline. TEPP may return only cutoff-safe temporal
   associations over the exact authorized events; the timeline remains readable
-  when TEPP is absent, and no result is labelled as a cause (ADR 0112).
+  when TEPP is absent, and no result is labelled as a cause (ADR 0127).
 
 ## [2.18.0] - 2026-08-20
 

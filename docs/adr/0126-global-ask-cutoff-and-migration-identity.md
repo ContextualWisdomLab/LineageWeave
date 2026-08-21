@@ -1,4 +1,4 @@
-# ADR 0125 — Bind Global Ask cutoffs and keep migration identities unique
+# ADR 0126 — Bind Global Ask cutoffs and keep migration identities unique
 
 **Decision status:** Accepted on the PR #342 repair branch  
 **Date:** 2026-08-21  
