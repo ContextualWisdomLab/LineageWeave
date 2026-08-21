@@ -96,7 +96,7 @@ Open PRs at the same observation:
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
 - PR #387: `head` `df2519c09b224f05ac84e6997abd3b4f1bb94cb6`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #388: `head` `f145b83f68731d6f31c3e1b1de59fd7be8f62001`, base
+- PR #388: `head` `146cc56e07db9479ab8dba93aedb0ffd06d2e795`, base
   `feat/event-lineage-channel-evidence`
   (`4faf9a31371195c5ec63fca42a5afbb93a95369b`).
 
@@ -230,15 +230,17 @@ Observed at `2026-08-21T17:10:21Z` on PR #387's exact head
   the orchestrated rebuild/import boundary. Hosted Checks are queued and no
   independent approval or merge commit is claimed.
 
-Observed at `2026-08-21T17:20:10Z` on PR #388's exact head
-`f145b83f68731d6f31c3e1b1de59fd7be8f62001`:
+Observed at `2026-08-21T17:41:55Z` on PR #388's exact head
+`146cc56e07db9479ab8dba93aedb0ffd06d2e795`:
 
 - The browser fallback preserves footnote roles for synthetic HTML footnote
   lists, Word `MsoFootnoteText`, and OOXML footnote containers. Anchor tags no
-  longer become false leading indentation in this path.
-- Local frontend verification passed lint, 144 Vitest tests, and the
-  production build. Hosted Checks were queued and no independent approval or
-  merge commit was present.
+  longer become false leading indentation in this path. The stacked follow-up
+  also closes HTML footnote containers reliably and suppresses an empty
+  container's internal control marker.
+- Local frontend verification passed the targeted footnote suite (13 tests),
+  all 144 Vitest tests, lint, and the production build. Hosted Checks were
+  queued and no independent approval or merge commit was present.
 
 Observed at `2026-08-21T17:25:46Z` on PR #387's exact head
 `df2519c09b224f05ac84e6997abd3b4f1bb94cb6`:
