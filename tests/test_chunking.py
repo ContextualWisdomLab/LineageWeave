@@ -4,9 +4,9 @@ from lineageweave.chunking import (
     ConversationTurn,
     chunk_by_conversation_turn,
     chunk_by_dom,
-    chunk_by_source_body,
     chunk_by_paragraph,
     chunk_by_sentence,
+    chunk_by_source_body,
     normalize_semantic_text,
 )
 
