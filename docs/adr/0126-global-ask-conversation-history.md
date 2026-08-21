@@ -49,3 +49,9 @@ requires a separate ADR and upstream orchestrator contract.
   unusable conversation; the reader retries after the source boundary settles.
 * The UI can select an existing conversation or start a new one without
   changing the existing `/api/ask` evidence contract.
+
+## References (APA 7th)
+
+PostgreSQL Global Development Group. (n.d.). *Explicit locking: PostgreSQL 18
+documentation*. Retrieved August 22, 2026, from
+https://www.postgresql.org/docs/current/explicit-locking.html
