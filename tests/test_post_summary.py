@@ -340,25 +340,41 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
     assert summary.project_mentions[0].canonical_name == "hvdc-pilot"
 
 
-def test_summary_parser_error_does_not_expose_provider_response(monkeypatch) -> None:
-    provider_secret = "provider-secret-and-hidden-prompt"
-    calls = 0
+def test_summary_details_parse_failure_does_not_expose_provider_response(monkeypatch) -> None:
+    """Malformed provider output gets a stable parser error, never raw text."""
+    responses = iter(
+        (
+            {
+                "choices": [
+                    {"message": {"content": "본문 근거 요약\nKEY EVENTS: 후속 확인"}}
+                ]
+            },
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": "provider-secret-and-gateway-prompt"
+                        }
+                    }
+                ]
+            },
+        )
+    )
 
-    def fake_post_json(url, payload, *, headers, timeout):
-        nonlocal calls
-        calls += 1
-        content = "본문 근거 요약\nKEY EVENTS: 확인" if calls == 1 else provider_secret
-        return {"choices": [{"message": {"content": content}}]}
+    monkeypatch.setattr(
+        "lineageweave.post_summary.post_json",
+        lambda *args, **kwargs: next(responses),
+    )
 
-    monkeypatch.setattr("lineageweave.post_summary.post_json", fake_post_json)
+    with pytest.raises(
+        ValueError,
+        match="summary semantic response did not match the required format",
+    ) as exc_info:
+        ContextualOrchestratorPostSummaryClient("https://orchestrator.test", "token").summarize(
+            "Synthetic title", "Synthetic body"
+        )
 
-    with pytest.raises(ValueError) as error:
-        ContextualOrchestratorPostSummaryClient(
-            "https://orchestrator.test", "token"
-        ).summarize("Synthetic title", "Synthetic body")
-
-    assert str(error.value) == "summary semantic response did not match the required format"
-    assert provider_secret not in str(error.value)
+    assert "provider-secret-and-gateway-prompt" not in str(exc_info.value)
 
 
 def test_title_match_can_supply_explicit_project_evidence_but_not_a_guess() -> None:
