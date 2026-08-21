@@ -94,6 +94,7 @@ describe("App, authenticated", () => {
     deferPosts?: boolean;
     meFailed?: boolean;
     postBody?: string;
+    vocTypeOptions?: { code: string; label: string }[];
     manyCustomerHints?: number;
     customerEntityHierarchy?: boolean;
     customerScopeFacets?: boolean;
@@ -1084,8 +1085,10 @@ describe("App, authenticated", () => {
                   limit: 50,
                   offset: 0,
                   voc_type_options: [
-                    { code: "voc", label: "Voice of Customer" },
-                    { code: "vop", label: "Voice of Partner" },
+                    ...(options?.vocTypeOptions ?? [
+                      { code: "voc", label: "Voice of Customer" },
+                      { code: "vop", label: "Voice of Partner" },
+                    ]),
                   ],
                   visibility_options: [{ code: "public", label: "Public" }],
                 },
@@ -2184,7 +2187,7 @@ describe("App, authenticated", () => {
     expect(within(board).getByLabelText("Search semantic evidence")).toHaveAttribute("type", "search");
     expect(within(board).getByRole("list", { name: "Board posts" })).toBeInTheDocument();
     expect(within(board).getByText(/Posts shown:/)).toBeInTheDocument();
-    expect(within(board).getByLabelText("Voice of Partner")).toBeInTheDocument();
+    expect(within(board).getByRole("checkbox", { name: /VOP.*Voice of Partner/ })).toBeInTheDocument();
 
     await userEvent.selectOptions(within(board).getByLabelText("Sort posts"), "title");
     await waitFor(() =>
@@ -2196,6 +2199,35 @@ describe("App, authenticated", () => {
     expect(within(board).getByRole("status")).toHaveTextContent("No posts match the current filters.");
     await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
     expect(within(board).getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+  });
+
+  it("uses canonical VOC acronyms with explanatory accessible names", async () => {
+    stubBackend({
+      vocTypeOptions: [
+        { code: "voc", label: "legacy customer label" },
+        { code: "vocc", label: "legacy customer-customer label" },
+        { code: "voco", label: "legacy competitor label" },
+        { code: "vom", label: "legacy market label" },
+        { code: "vop", label: "legacy partner label" },
+      ],
+    });
+    render(<App showLabPanels />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    for (const code of ["VOC", "VOCC", "VOCO", "VOM", "VOP"]) {
+      expect(within(board).getByText(code, { selector: ".board-voc-type-code" })).toBeInTheDocument();
+    }
+    expect(within(board).getByRole("checkbox", { name: "VOC — Voice of Customer" })).toBeInTheDocument();
+    expect(
+      within(board).getByRole("checkbox", { name: "VOCC — Voice of Customer's Customer" }),
+    ).toBeInTheDocument();
+
+    setLocale("ko");
+    await waitFor(() =>
+      expect(
+        within(board).getByRole("checkbox", { name: "VOC — 고객의 소리 (Voice of Customer)" }),
+      ).toBeInTheDocument(),
+    );
   });
 
   it("opens a post from a DAG node click", async () => {
