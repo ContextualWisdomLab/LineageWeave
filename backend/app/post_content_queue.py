@@ -480,7 +480,7 @@ async def republish_queued_post_content_jobs(
                    post_content_ingestion_job.source_body_sha256
             from post_content_ingestion_job
             join source_post post on post.post_id = post_content_ingestion_job.post_id
-            where coalesce(btrim(post.source_detail_state_code), '') <> 'W'
+            where coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'
               and (
                     (
                         post_content_ingestion_job.status_code = $1
