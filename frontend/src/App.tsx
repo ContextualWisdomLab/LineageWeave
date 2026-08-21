@@ -102,7 +102,6 @@ import {
   useLocale,
 } from "./i18n";
 import { isoWeekFromCreatedAt, latestIsoWeek } from "./isoWeek";
-import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
