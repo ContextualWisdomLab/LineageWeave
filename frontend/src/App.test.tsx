@@ -85,6 +85,7 @@ describe("App, authenticated", () => {
     pendingTeppRun?: boolean;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
+    deferSecondAsk?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
@@ -122,6 +123,7 @@ describe("App, authenticated", () => {
     contentAfterSummary?: boolean;
   }): ReturnType<typeof vi.fn> & {
     releaseMe: () => void;
+    releaseSecondAsk: () => void;
     releaseGroupRelated: () => void;
     releaseDemoRelated: () => void;
   } {
@@ -156,6 +158,13 @@ describe("App, authenticated", () => {
           releaseMe = resolve;
         })
       : Promise.resolve();
+    let releaseSecondAsk = () => {};
+    const secondAskReady = options?.deferSecondAsk
+      ? new Promise<void>((resolve) => {
+          releaseSecondAsk = resolve;
+        })
+      : Promise.resolve();
+    let askRequestCount = 0;
     let releaseGroupRelated = () => {};
     let releaseDemoRelated = () => {};
     const groupRelatedReady = options?.deferCustomerRelated
@@ -247,6 +256,9 @@ describe("App, authenticated", () => {
       }
       if (url.endsWith("/api/posts/post-1/activity") && method === "GET") {
         return Promise.resolve(jsonResponse({ events }));
+      }
+      if (url.endsWith("/api/posts/post-2/activity") && method === "GET") {
+        return Promise.resolve(jsonResponse({ events: [] }));
       }
       if (url.endsWith("/api/posts/post-1/derive-commitment") && method === "POST") {
         if (options?.chatUnavailable) {
@@ -1278,6 +1290,17 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/posts/post-2/summary")) {
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-2",
+            korean_summary: "연결된 글입니다.",
+            key_events: [],
+            roles_and_responsibilities: [],
+            project_mentions: [],
+          }),
+        );
+      }
       if (url.endsWith("/api/posts/post-1/keymen")) {
         return Promise.resolve(
           jsonResponse({
@@ -1588,6 +1611,15 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/posts/post-2/lineage")) {
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-2",
+            direct: [{ post_id: "post-1", post_title: "Public post" }],
+            indirect: [],
+          }),
+        );
+      }
       if (url.endsWith("/api/posts/post-1/chat") && method === "GET") {
         return Promise.resolve(
           jsonResponse({
@@ -1638,7 +1670,13 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/ask") && method === "POST") {
-        return Promise.resolve(
+        askRequestCount += 1;
+        const ready =
+          options?.deferSecondAsk && askRequestCount === 2
+            ? secondAskReady
+            : Promise.resolve();
+        return ready.then(() =>
+          Promise.resolve(
           jsonResponse({
             answer_text: "The cited project is supported by the stored semantic evidence.",
             cited_post_ids: ["post-2"],
@@ -1654,6 +1692,7 @@ describe("App, authenticated", () => {
             ],
             source_post_ids: ["post-1", "post-2"],
           }),
+          ),
         );
       }
       if (url.endsWith("/api/customer-master") && method === "GET") {
@@ -1751,6 +1790,7 @@ describe("App, authenticated", () => {
     vi.stubGlobal("fetch", fetchMock);
     return Object.assign(fetchMock, {
       releaseMe,
+      releaseSecondAsk,
       releaseGroupRelated,
       releaseDemoRelated,
     });
@@ -1768,6 +1808,42 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
+
+  it("hides previous Ask evidence while a new answer is pending", async () => {
+    const fetchMock = stubBackend({ deferSecondAsk: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    const question = within(ask).getByRole("textbox", { name: "Ask a question" });
+    await userEvent.type(question, "Which project?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+    expect(
+      await within(ask).findByText(
+        "The cited project is supported by the stored semantic evidence.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(ask).getByLabelText("Next action")).toBeInTheDocument();
+
+    await userEvent.clear(question);
+    await userEvent.type(question, "Which person?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+
+    expect(within(ask).getByRole("button", { name: "Asking..." })).toBeDisabled();
+    expect(
+      within(ask).queryByText(
+        "The cited project is supported by the stored semantic evidence.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(within(ask).queryByLabelText("Next action")).not.toBeInTheDocument();
+
+    fetchMock.releaseSecondAsk();
+    expect(
+      await within(ask).findByText(
+        "The cited project is supported by the stored semantic evidence.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
@@ -2136,6 +2212,35 @@ describe("App, authenticated", () => {
     expect(
       await within(customers).findByRole("button", { name: "Open related post: Public post" }),
     ).toBeInTheDocument();
+  });
+
+  it("opening an Ask Agent cited post focuses Event Lineage; a home list open does not", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    await userEvent.type(within(ask).getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+    expect(await within(ask).findByLabelText("Next action")).toHaveTextContent(
+      "Authorized cited posts are current. Open a cited post to read Event Lineage.",
+    );
+    await userEvent.click(within(ask).getByRole("button", { name: "Open cited post: Linked post" }));
+
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+    expect(document.getElementById("post-event-lineage")).toHaveFocus();
+    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
+      "Linked post is current in Event Lineage. Read Keyman and evaluation next.",
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    const boardAfterAsk = screen.getByRole("region", { name: "Board" });
+    await userEvent.click(within(boardAfterAsk).getByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
   });
 
   it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {
