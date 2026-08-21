@@ -103,6 +103,7 @@ import {
   tf,
   useLocale,
 } from "./i18n";
+import { isoWeekFromCreatedAt, latestIsoWeek } from "./isoWeek";
 import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import "./App.css";
 
@@ -2582,6 +2583,7 @@ type SelectPostOptions = {
   liveAfterCutoff?: boolean;
   knowledgeCutoff?: string;
   fromReportMember?: boolean;
+  fromWeeklyVoc?: boolean;
   /** Set when re-entering a post from a popstate (browser back/forward) so
    * the handler doesn't push a duplicate history entry for a navigation
    * the browser already performed. */
@@ -3648,6 +3650,7 @@ function PostList({
   const [openedGroupingLabel, setOpenedGroupingLabel] = useState<string | null>(null);
   const [landOnComparison, setLandOnComparison] = useState(false);
   const [openedFromReportMember, setOpenedFromReportMember] = useState(false);
+  const [openedFromWeeklyVoc, setOpenedFromWeeklyVoc] = useState(false);
   const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
   const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
   const [totalPosts, setTotalPosts] = useState(0);
@@ -3657,6 +3660,8 @@ function PostList({
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [vocTypeFilterOptions, setVocTypeFilterOptions] = useState<PostFilterOption[]>([]);
+  const [weekFilter, setWeekFilter] = useState("all");
+  const [isoWeekFilterOptions, setIsoWeekFilterOptions] = useState<string[]>([]);
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
@@ -3718,6 +3723,7 @@ function PostList({
     setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
+    setOpenedFromWeeklyVoc(Boolean(options?.fromWeeklyVoc));
     if (!options?.fromPopState) {
       const url = new URL(window.location.href);
       if (url.searchParams.get("post") !== postId) {
@@ -3754,6 +3760,7 @@ function PostList({
     setOpenedAfterCutoff(false);
     setOpenedCutoffIso(null);
     setOpenedFromReportMember(false);
+    setOpenedFromWeeklyVoc(false);
     const url = new URL(window.location.href);
     if (url.searchParams.has("post")) {
       url.searchParams.delete("post");
@@ -3783,12 +3790,14 @@ function PostList({
         typeFilter.length > 0 ? typeFilter : undefined,
         visibilityFilter === "all" ? undefined : visibilityFilter,
         sort,
+        weekFilter === "all" ? undefined : weekFilter,
       );
       if (requestId !== postsRequest.current) return;
       setPosts(response.posts);
       setTotalPosts(response.total_count);
       setVocTypeFilterOptions(response.voc_type_options ?? []);
       setVisibilityFilterOptions(response.visibility_options ?? []);
+      setIsoWeekFilterOptions(response.iso_week_options ?? []);
       setCurrentPage(page);
     } catch (err) {
       if (requestId !== postsRequest.current) return;
@@ -3796,7 +3805,7 @@ function PostList({
     } finally {
       if (requestId === postsRequest.current) setLoadingPage(false);
     }
-  }, [accessToken, searchQuery, sortOrder, typeFilter, visibilityFilter]);
+  }, [accessToken, searchQuery, sortOrder, typeFilter, visibilityFilter, weekFilter]);
 
   useEffect(() => {
     void loadPostPage(1);
@@ -3869,7 +3878,9 @@ function PostList({
     .filter((post) => {
       const matchesType = typeFilter.length === 0 || typeFilter.includes(post.voc_type_code);
       const matchesVisibility = visibilityFilter === "all" || post.visibility_code === visibilityFilter;
-      return matchesType && matchesVisibility;
+      const matchesWeek =
+        weekFilter === "all" || isoWeekFromCreatedAt(post.created_at) === weekFilter;
+      return matchesType && matchesVisibility && matchesWeek;
     })
     .sort((left, right) => {
       if (sortOrder === "title") {
@@ -3878,7 +3889,46 @@ function PostList({
       const direction = sortOrder === "newest" ? -1 : 1;
       return direction * left.created_at.localeCompare(right.created_at);
     });
-  const hasBoardFilters = Boolean(searchInput.trim()) || Boolean(searchQuery) || typeFilter.length > 0 || visibilityFilter !== "all";
+  const weeklyVocActive =
+    typeFilter.length === 1 && typeFilter[0] === "voc" && weekFilter !== "all";
+  const weekOptions = isoWeekFilterOptions.length
+    ? isoWeekFilterOptions
+    : Array.from(
+        new Set(
+          loadedPosts
+            .map((post) => isoWeekFromCreatedAt(post.created_at))
+            .filter((week): week is string => Boolean(week)),
+        ),
+      ).sort((left, right) => right.localeCompare(left));
+  const applyWeeklyVoc = async () => {
+    try {
+      const latestVocPage = await fetchPosts(
+        accessToken,
+        1,
+        0,
+        undefined,
+        ["voc"],
+        undefined,
+        "newest",
+      );
+      const vocWeek = latestIsoWeek(
+        latestVocPage.posts.map((post) => isoWeekFromCreatedAt(post.created_at)),
+      );
+      setTypeFilter(["voc"]);
+      setWeekFilter(vocWeek ?? "all");
+      setSortOrder("newest");
+      setCurrentPage(1);
+      setError(null);
+    } catch (err) {
+      setError(String(err));
+    }
+  };
+  const hasBoardFilters =
+    Boolean(searchInput.trim()) ||
+    Boolean(searchQuery) ||
+    typeFilter.length > 0 ||
+    visibilityFilter !== "all" ||
+    weekFilter !== "all";
   const totalPages = Math.max(1, Math.ceil(totalPosts / POST_PAGE_SIZE));
   const pageItems: Array<number | "ellipsis"> =
     totalPages <= 7
@@ -3928,6 +3978,7 @@ function PostList({
               setSearchInput("");
               setSearchQuery("");
               setTypeFilter([]);
+              setWeekFilter("all");
               setVisibilityFilter("all");
               setSortOrder("newest");
             }}
@@ -3967,6 +4018,29 @@ function PostList({
                   </label>
                 ))}
               </fieldset>
+              <button
+                type="button"
+                className="board-weekly-voc"
+                aria-pressed={weeklyVocActive}
+                onClick={applyWeeklyVoc}
+              >
+                {t("Weekly VOC")}
+              </button>
+              <label>
+                {t("Filter by ISO week")}
+                <select
+                  value={weekFilter}
+                  onChange={(event) => setWeekFilter(event.target.value)}
+                  aria-label={t("Filter by ISO week")}
+                >
+                  <option value="all">{t("All weeks")}</option>
+                  {weekOptions.map((week) => (
+                    <option key={week} value={week}>
+                      {week}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label>
                 {t("Filter by visibility")}
                 <select
@@ -4001,6 +4075,14 @@ function PostList({
               )}
             </div>
           </form>
+          {weeklyVocActive ? (
+            <p className="board-next-action" role="status" aria-label={t("Next action")}>
+              {tf(
+                "Voice of Customer posts for {week} are current. Open a post to read Event Lineage.",
+                { week: weekFilter },
+              )}
+            </p>
+          ) : null}
           {posts.length === 0 ? (
             <p className="board-empty" role="status">
               {hasBoardFilters
@@ -4019,7 +4101,12 @@ function PostList({
                     <button
                       className="post-list-item"
                       aria-label={`${t("View post:")} ${post.post_title}`}
-                      onClick={() => selectPost(post.post_id)}
+                      onClick={() =>
+                        selectPost(
+                          post.post_id,
+                          weeklyVocActive ? { fromWeeklyVoc: true } : undefined,
+                        )
+                      }
                     >
                       <span className="post-card-main">
                         <span className="post-title">{post.post_title}</span>
@@ -4162,7 +4249,7 @@ function PostList({
             openedAfterCutoff ? analysisRunOpenedBodyWarning(openedCutoffIso) : null
           }
           knowledgeCutoff={openedAfterCutoff ? openedCutoffIso : null}
-          focusEventLineage={openedFromReportMember}
+          focusEventLineage={openedFromReportMember || openedFromWeeklyVoc}
           onClose={closeSelectedPost}
           onSelectPost={selectPost}
           onSearch={searchBoard}

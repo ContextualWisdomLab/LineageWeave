@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { setLocale } from "./i18n";
+import { isoWeekFromCreatedAt } from "./isoWeek";
 
 const signinRedirect = vi.fn();
 const signoutRedirect = vi.fn();
@@ -103,6 +104,34 @@ describe("App, authenticated", () => {
     postBody?: string;
     manyCustomerHints?: number;
     customerEntityHierarchy?: boolean;
+    boardPosts?: {
+      post_id: string;
+      post_title: string;
+      voc_type_code: string;
+      voc_type_label?: string;
+      visibility_code?: string;
+      visibility_label?: string;
+      created_at: string;
+    }[];
+    latestVocPost?: {
+      post_id: string;
+      post_title: string;
+      voc_type_code: string;
+      voc_type_label?: string;
+      visibility_code?: string;
+      visibility_label?: string;
+      created_at: string;
+    };
+    isoWeekOptions?: string[];
+    weekFilteredPosts?: {
+      post_id: string;
+      post_title: string;
+      voc_type_code: string;
+      voc_type_label?: string;
+      visibility_code?: string;
+      visibility_label?: string;
+      created_at: string;
+    }[];
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePosts: () => void } {
@@ -1066,22 +1095,38 @@ describe("App, authenticated", () => {
       }
       const postsUrl = new URL(url, "https://backend.test");
       if (postsUrl.pathname === "/api/posts") {
+        const vocRequest = postsUrl.searchParams.get("voc_type") === "voc";
+        const boardPosts = vocRequest && options?.latestVocPost
+          ? [options.latestVocPost]
+          : [
+              {
+                post_id: "post-1",
+                post_title: "Public post",
+                voc_type_code: "voc",
+                voc_type_label: "Voice of Customer",
+                visibility_code: "public",
+                visibility_label: "Public",
+                created_at: "2026-01-01T00:00:00Z",
+              },
+              ...(options?.boardPosts ?? []),
+            ];
+        const isoWeekOptions = options?.isoWeekOptions ?? Array.from(
+          new Set(
+            boardPosts
+              .map((post) => isoWeekFromCreatedAt(post.created_at))
+              .filter((week): week is string => Boolean(week)),
+          ),
+        ).sort((left, right) => right.localeCompare(left));
+        const responsePosts =
+          postsUrl.searchParams.get("iso_week") && options?.weekFilteredPosts
+            ? options.weekFilteredPosts
+            : boardPosts;
         return postsReady.then(() =>
           jsonResponse(
             postsUrl.searchParams.get("search")
               ? []
               : {
-                  posts: [
-                    {
-                      post_id: "post-1",
-                      post_title: "Public post",
-                      voc_type_code: "voc",
-                      voc_type_label: "Voice of Customer",
-                      visibility_code: "public",
-                      visibility_label: "Public",
-                      created_at: "2026-01-01T00:00:00Z",
-                    },
-                  ],
+                  posts: responsePosts,
                   total_count: 1,
                   limit: 50,
                   offset: 0,
@@ -1090,6 +1135,7 @@ describe("App, authenticated", () => {
                     { code: "vop", label: "Voice of Partner" },
                   ],
                   visibility_options: [{ code: "public", label: "Public" }],
+                  iso_week_options: isoWeekOptions,
                 },
           ),
         );
@@ -1841,6 +1887,149 @@ describe("App, authenticated", () => {
     const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
     expect(searchInput).toHaveValue("Semantic project");
     expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+  });
+
+  it("clicking Weekly VOC keeps the 2026-W01 Voice of Customer post and names Event Lineage as the next action", async () => {
+    stubBackend({
+      boardPosts: [
+        {
+          post_id: "post-vom-w01",
+          post_title: "Internal memo",
+          voc_type_code: "vom",
+          voc_type_label: "Voice of Market",
+          visibility_code: "internal",
+          visibility_label: "Internal",
+          created_at: "2026-01-02T00:00:00Z",
+        },
+        {
+          post_id: "post-voc-w52",
+          post_title: "Older Voice of Customer",
+          voc_type_code: "voc",
+          voc_type_label: "Voice of Customer",
+          visibility_code: "public",
+          visibility_label: "Public",
+          created_at: "2025-12-22T00:00:00Z",
+        },
+      ],
+    });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(within(board).getByRole("button", { name: "View post: Internal memo" })).toBeInTheDocument();
+    expect(within(board).getByRole("button", { name: "View post: Older Voice of Customer" })).toBeInTheDocument();
+
+    const weeklyVoc = within(board).getByRole("button", { name: "Weekly VOC" });
+    await userEvent.selectOptions(within(board).getByLabelText("Sort posts"), "title");
+    expect(weeklyVoc).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(weeklyVoc);
+
+    expect(weeklyVoc).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() => expect(within(board).getByLabelText("Sort posts")).toHaveValue("newest"));
+    expect(within(board).getByLabelText("Filter by ISO week")).toHaveValue("2026-W01");
+    expect(within(board).getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    expect(within(board).queryByRole("button", { name: "View post: Internal memo" })).not.toBeInTheDocument();
+    expect(
+      within(board).queryByRole("button", { name: "View post: Older Voice of Customer" }),
+    ).not.toBeInTheDocument();
+    expect(within(board).getByLabelText("Next action")).toHaveTextContent(
+      "Voice of Customer posts for 2026-W01 are current. Open a post to read Event Lineage.",
+    );
+
+    await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
+    expect(weeklyVoc).toHaveAttribute("aria-pressed", "false");
+    expect(within(board).getByRole("button", { name: "View post: Internal memo" })).toBeInTheDocument();
+    expect(within(board).getByRole("button", { name: "View post: Older Voice of Customer" })).toBeInTheDocument();
+  });
+
+  it("shows authorized ISO weeks supplied by the API even when a week is outside the loaded page", async () => {
+    const fetchMock = stubBackend({
+      isoWeekOptions: ["2026-W08", "2026-W01"],
+      weekFilteredPosts: [
+        {
+          post_id: "post-voc-w08",
+          post_title: "Older page Voice of Customer",
+          voc_type_code: "voc",
+          voc_type_label: "Voice of Customer",
+          visibility_code: "public",
+          visibility_label: "Public",
+          created_at: "2026-02-18T00:00:00Z",
+        },
+      ],
+    });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    await userEvent.selectOptions(within(board).getByLabelText("Filter by ISO week"), "2026-W08");
+    await waitFor(() =>
+      expect(within(board).getByRole("button", { name: "View post: Older page Voice of Customer" })).toBeInTheDocument(),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("iso_week=2026-W08"),
+      expect.anything(),
+    );
+  });
+
+  it("gets the Weekly VOC week from the authorized newest VOC post, not the loaded page", async () => {
+    const fetchMock = stubBackend({
+      boardPosts: [
+        {
+          post_id: "post-voc-old",
+          post_title: "Older Voice of Customer",
+          voc_type_code: "voc",
+          voc_type_label: "Voice of Customer",
+          visibility_code: "public",
+          visibility_label: "Public",
+          created_at: "2025-12-22T00:00:00Z",
+        },
+      ],
+      latestVocPost: {
+        post_id: "post-voc-new",
+        post_title: "Newest Voice of Customer",
+        voc_type_code: "voc",
+        voc_type_label: "Voice of Customer",
+        visibility_code: "public",
+        visibility_label: "Public",
+        created_at: "2026-02-18T00:00:00Z",
+      },
+    });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    await userEvent.click(within(board).getByRole("button", { name: "Weekly VOC" }));
+
+    await waitFor(() => expect(within(board).getByLabelText("Filter by ISO week")).toHaveValue("2026-W08"));
+    expect(within(board).getByRole("button", { name: "View post: Newest Voice of Customer" })).toBeInTheDocument();
+    expect(within(board).queryByRole("button", { name: "View post: Older Voice of Customer" })).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("limit=1"),
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: "Bearer test-access-token" }) }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("voc_type=voc"),
+      expect.anything(),
+    );
+  });
+
+  it("opening a Weekly VOC post focuses Event Lineage; a home list open does not", async () => {
+    stubBackend();
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    await userEvent.click(within(board).getByRole("button", { name: "Weekly VOC" }));
+    await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
+
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).toHaveFocus();
+    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
+      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
+    await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
   });
 
   it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {

@@ -39,6 +39,7 @@ export interface PostPage {
   offset: number;
   voc_type_options?: PostFilterOption[];
   visibility_options?: PostFilterOption[];
+  iso_week_options?: string[];
 }
 
 export interface PostFilterOption {
@@ -596,6 +597,7 @@ export function fetchPosts(
   vocTypes?: string[],
   visibility?: string,
   sort?: PostSortOrder,
+  isoWeek?: string,
 ): Promise<PostPage> {
   const params = new URLSearchParams();
   if (limit !== undefined) {
@@ -613,6 +615,9 @@ export function fetchPosts(
   }
   if (sort) {
     params.set("sort", sort);
+  }
+  if (isoWeek) {
+    params.set("iso_week", isoWeek);
   }
   const query = params.toString();
   return backendFetch<PostPage | PostSummary[]>(`/api/posts${query ? `?${query}` : ""}`, accessToken).then(

@@ -170,6 +170,11 @@ adjudication does -- never a raw LLM API. Demo TEPP seed goes through
 envelope is Failed (`tepp_not_available` / `tepp_result_not_persisted`),
 never a fabricated theta or a local psychometric substitute.
 
+Buyer Board **Weekly VOC** is an ISO-8601 week list filter (ADR 0092).
+Opening that filtered post focuses Event Lineage (ADR 0093). Do not
+invent a week, a theta, or a cutoff body.
+
+
 ## Tests
 
 ```bash
