@@ -110,6 +110,7 @@ function safeIndentLevel(value: unknown): number | undefined {
   if (
     typeof value !== "number" ||
     !Number.isFinite(value) ||
+    !Number.isInteger(value) ||
     value <= 0 ||
     value > MAX_RENDERABLE_INDENT_LEVEL
   ) {
@@ -155,12 +156,6 @@ function structuredTableCells(unit: PostContentUnit): string[] {
   return unit.unit_text.split(/\s*\|\s*/);
 }
 
-/**
- * Match a persisted unit to its source-rendering counterpart without relying
- * on ordinal position. A table row can occupy a persisted non-text unit while
- * its source display is still one text segment, so ordinal matching shifts
- * indentation for every later unresolved unit.
- */
 function normalizedUnitText(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
@@ -209,6 +204,7 @@ function renderStructuredUnits(
     (segment): segment is Extract<PostBodySegment, { kind: "text" }> => segment.kind === "text",
   );
   const consumedSourceText = new Set<number>();
+  /** Match persisted text to an unconsumed source segment, not by ordinal. */
   const sourceTextForUnit = (unitText: string) => {
     const expected = normalizedUnitText(unitText);
     const sourceIndex = sourceTextSegments.findIndex(

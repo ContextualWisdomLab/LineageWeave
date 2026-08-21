@@ -103,6 +103,27 @@ describe("PostBody", () => {
     expect(paragraph).not.toHaveAttribute("style");
   });
 
+  it("drops fractional indentation before it reaches CSS", () => {
+    render(
+      <PostBody
+        body="<p>Fractional indent</p>"
+        structureUnits={[{
+          unit_index: 0,
+          unit_kind_code: "dom",
+          unit_text: "Fractional indent",
+          indent_level: 0.5,
+          indent_source_code: "explicit",
+          indent_confidence: 1,
+          indent_evidence: "untrusted fixture",
+        }]}
+      />,
+    );
+
+    const paragraph = screen.getByText("Fractional indent");
+    expect(paragraph).toHaveAttribute("data-indent-level", "0");
+    expect(paragraph).not.toHaveAttribute("style");
+  });
+
   it("uses persisted indentation for ordinary paragraphs without table markers", () => {
     render(
       <PostBody
