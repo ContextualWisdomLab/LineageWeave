@@ -2,13 +2,20 @@
 
 ## 0. Current exact-head evidence
 
-- PR #349 remains open and unmerged at code head `eb84dea51f961417e269f4059b26f8e657ebeedb`,
-  based on `main` at `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`. The current
-  repair hardens OIDC return-url validation, corrects the OWL-Time maturity
-  citation, accumulates cursor pages in the ontology explorer, and preserves
-  fail-closed LLM and ontology direction contracts.
-- Validation at that code head is `uv run pytest -q`: `812 passed, 17 skipped,
-  4 warnings`; frontend `pnpm run lint`, `pnpm run test` (`168 passed` in 20
+- PR #349 remains open and unmerged at code head
+  `e88f3862215e76d0702204f29aba75ddc902d19f`, based on `main` at
+  `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`. Its current repair hardens OIDC
+  return-url validation, corrects the OWL-Time maturity citation, accumulates
+  cursor pages in the ontology explorer, and preserves fail-closed LLM and
+  ontology direction contracts.
+- PR #369 is stacked on PR #349 at exact code head
+  `50debab4424be5e71fca8ff95c6f2c73d0521e73`, based on
+  `e88f3862215e76d0702204f29aba75ddc902d19f`. It seals continuation windows
+  to the cursor snapshot and edge creation time, preserves the raw SQL key for
+  the last displayed edge, rechecks continuation endpoint authorization, and
+  retains expanded-window truncation.
+- Validation at these code heads is `uv run pytest -q`: `826 passed, 17 skipped,
+  4 warnings`; frontend `pnpm run lint`, `pnpm run test` (`170 passed` in 20
   files), `pnpm run build`, and `pnpm run build-storybook` all passed. Hosted
   checks, independent approval, and merge remain open external gates.
 - Repository artifacts use synthetic case labels only; private source records
