@@ -18,6 +18,7 @@ from backend.app.tepp_project_history import (
 )
 from lineageweave.tepp_project_history import (
     TeppProjectHistoryClient,
+    TeppProjectHistoryInvalidResponse,
     TeppProjectHistoryUnavailable,
 )
 
@@ -155,8 +156,7 @@ def test_mapper_uses_opaque_actor_references_and_bounded_source_evidence() -> No
         projection=projection,
         tenant_workspace_id=workspace,
     )
-    wire = request
-    encoded = json.dumps(wire, ensure_ascii=False)
+    encoded = json.dumps(request, ensure_ascii=False)
 
     assert workspace == tenant_workspace_reference(["tenant-a", "tenant-b"])
     assert "Synthetic Owner" not in encoded
@@ -164,11 +164,11 @@ def test_mapper_uses_opaque_actor_references_and_bounded_source_evidence() -> No
     assert "Demo Org" not in encoded
     assert all(
         actor.startswith("lw-actor-")
-        for event in wire["events"]
+        for event in request["events"]
         for actor in event["actor_ids"]
     )
-    assert wire["events"][0]["available_at"] == wire["events"][0]["occurred_at"]
-    assert wire["events"][0]["evidence_text"].startswith("Synthetic contract awarded")
+    assert request["events"][0]["available_at"] == request["events"][0]["occurred_at"]
+    assert request["events"][0]["evidence_text"].startswith("Synthetic contract awarded")
 
 
 def test_strict_client_accepts_tepp_159_and_rejects_authority_or_evidence_drift() -> None:
@@ -196,7 +196,7 @@ def test_strict_client_accepts_tepp_159_and_rejects_authority_or_evidence_drift(
         response["inference_status"] = "causal"
         return response
 
-    with pytest.raises(TeppProjectHistoryUnavailable):
+    with pytest.raises(TeppProjectHistoryInvalidResponse):
         TeppProjectHistoryClient(
             "https://tepp.example", transport=causal_transport
         ).project(request)
@@ -207,9 +207,39 @@ def test_strict_client_accepts_tepp_159_and_rejects_authority_or_evidence_drift(
         response["events"][0]["evidence_text"] = "changed"
         return response
 
-    with pytest.raises(TeppProjectHistoryUnavailable):
+    with pytest.raises(TeppProjectHistoryInvalidResponse):
         TeppProjectHistoryClient(
             "https://tepp.example", transport=changed_evidence_transport
+        ).project(request)
+
+
+def test_strict_client_rejects_unknown_or_duplicate_finding_references() -> None:
+    request = build_tepp_project_history_request(
+        projection=_canonical_projection(),
+        tenant_workspace_id=tenant_workspace_reference(["tenant-a"]),
+    )
+
+    def unknown_finding_transport(url, payload, headers, timeout):
+        del url, headers, timeout
+        response = _tepp_response(payload)
+        response["findings"][0]["finding_code"] = "provider_authored_conclusion"
+        return response
+
+    with pytest.raises(TeppProjectHistoryInvalidResponse):
+        TeppProjectHistoryClient(
+            "https://tepp.example", transport=unknown_finding_transport
+        ).project(request)
+
+    def duplicate_reference_transport(url, payload, headers, timeout):
+        del url, headers, timeout
+        response = _tepp_response(payload)
+        event_id = response["findings"][0]["related_event_ids"][0]
+        response["findings"][0]["related_event_ids"] = [event_id, event_id]
+        return response
+
+    with pytest.raises(TeppProjectHistoryInvalidResponse):
+        TeppProjectHistoryClient(
+            "https://tepp.example", transport=duplicate_reference_transport
         ).project(request)
 
 
@@ -237,6 +267,19 @@ def test_validation_fails_closed_without_hiding_canonical_history(monkeypatch) -
         transport_url="https://tepp.example",
     )
     assert unavailable["status"] == "unavailable"
+    assert projection["event_count"] == 3
+
+    def invalid_project(self, request):
+        del self, request
+        raise TeppProjectHistoryInvalidResponse("synthetic invalid response")
+
+    monkeypatch.setattr(TeppProjectHistoryClient, "project", invalid_project)
+    invalid = validate_project_history_with_tepp(
+        projection=projection,
+        tenant_workspace_id=tenant_workspace_reference([]),
+        transport_url="https://tepp.example",
+    )
+    assert invalid["status"] == "invalid_evidence"
     assert projection["event_count"] == 3
 
 
