@@ -9,9 +9,9 @@ client and never receives provider credentials or an end-user bearer token.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-import re
 from typing import Any
 from urllib.parse import urlencode, urlparse
 
