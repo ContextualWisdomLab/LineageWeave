@@ -10,13 +10,13 @@ import pytest
 _LINEAGE_EVIDENCE_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
-    / "0053_lineage_edge_channel_score.sql"
+    / "0055_lineage_edge_channel_score.sql"
 )
 
 
 @pytest.fixture(autouse=True)
 def apply_lineage_evidence_migration(request: pytest.FixtureRequest):
-    """Apply migration 0053 before any test consumes ``seeded_db``.
+    """Apply migration 0055 before any test consumes ``seeded_db``.
 
     ``backend.tests.test_api.seeded_db`` owns the full base migration chain.
     Keeping this additive slice here avoids duplicating that very large fixture

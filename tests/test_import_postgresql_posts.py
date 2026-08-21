@@ -165,6 +165,19 @@ def test_importer_has_no_unknown_publication_state_bypass() -> None:
         _parser().parse_args(["--allow-unknown-publication-state"])
 
 
+def test_importer_rebuilds_lineage_inside_the_target_write_transaction() -> None:
+    """A failed rebuild must roll back source replacement and its audit rows."""
+    source = Path("scripts/import_postgresql_posts.py").read_text(encoding="utf-8")
+
+    transaction_start = source.index("await transaction.start()")
+    rebuild = source.index("edges = await rebuild_lineage(target)")
+    commit = source.index("await transaction.commit()")
+    rollback = source.index("await transaction.rollback()")
+
+    assert source.index("transaction = target.transaction()") < transaction_start < rebuild < commit
+    assert rollback > commit
+
+
 def test_importer_rejects_demo_scope_without_explicit_test_override() -> None:
     with pytest.raises(ValueError, match="non-DEMO corporate entity code"):
         _validate_corporate_entity_scope("DEMO-CORP-01", allow_demo=False)

@@ -378,7 +378,11 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
     target = await asyncpg.connect(args.target_dsn)
     imported = 0
     skipped = 0
+    transaction = target.transaction()
+    transaction_started = False
     try:
+        await transaction.start()
+        transaction_started = True
         rows = await source.fetch(query)
         _validate_source_rows(
             rows,
@@ -536,6 +540,8 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             imported += 1
         cleanup = await cleanup_synthetic_seed(target, apply=True)
         edges = await rebuild_lineage(target)
+        await transaction.commit()
+        transaction_started = False
         return {
             "source_rows": len(rows),
             "imported_rows": imported,
@@ -543,6 +549,10 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             "lineage_edges": len(edges),
             **cleanup,
         }
+    except BaseException:
+        if transaction_started:
+            await transaction.rollback()
+        raise
     finally:
         await source.close()
         await target.close()
