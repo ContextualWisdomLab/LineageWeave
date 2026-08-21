@@ -38,6 +38,11 @@ describe("AdminPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Tenant settings/ }));
     expect(screen.getByRole("heading", { name: "Tenant settings" })).toBeInTheDocument();
-    expect(screen.getByRole("textbox", { name: "Tenant brand name" })).toHaveValue("LineageWeave");
+    const brandInput = screen.getByRole("textbox", { name: "Tenant brand name" });
+    expect(brandInput).toHaveValue("LineageWeave");
+    // The visible "*" is decorative (aria-hidden); a screen reader must
+    // still hear this field is required, which only the required attribute
+    // guarantees regardless of how the accessible name was computed.
+    expect(brandInput).toBeRequired();
   });
 });

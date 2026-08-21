@@ -245,7 +245,10 @@ export function AdminPanel({ currentBrandName, onBrandNameChange, accessToken, c
             <h2 id="admin-settings-title">{t("Tenant settings")}</h2>
             <form onSubmit={handleSave} className="admin-form">
               <label htmlFor="brandNameInput">
-                <strong>* {t("Tenant brand name")}</strong>
+                <strong>
+                  <span className="required-mark" aria-hidden="true">*</span>
+                  {t("Tenant brand name")}
+                </strong>
                 <span className="admin-field-help">{t("This name is used in the authenticated workspace shell.")}</span>
               </label>
               <input
@@ -254,6 +257,7 @@ export function AdminPanel({ currentBrandName, onBrandNameChange, accessToken, c
                 value={draftName}
                 onChange={(e) => setDraftName(e.target.value)}
                 aria-label={t("Tenant brand name")}
+                required
                 disabled={saving}
               />
               <div className="admin-form-actions">
