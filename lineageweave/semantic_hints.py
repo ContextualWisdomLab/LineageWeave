@@ -48,12 +48,15 @@ def format_semantic_hints(
     source_author_name: str | None = None,
     source_company_code: str | None = None,
     source_company_name: str | None = None,
+    source_company_catalog_name: str | None = None,
     source_business_unit_code: str | None = None,
     source_process_unit_name: str | None = None,
+    source_process_unit_catalog_name: str | None = None,
     source_sales_pool_code: str | None = None,
     source_sales_pool_name: str | None = None,
     source_customer_code: str | None = None,
     source_customer_name: str | None = None,
+    source_customer_catalog_name: str | None = None,
     source_project_code: str | None = None,
     source_project_name: str | None = None,
     source_context_present: bool = False,
@@ -128,6 +131,33 @@ def format_semantic_hints(
         if source_customer_name_value == "none"
         else customer_hint_trust(source_customer_code, source_customer_name)
     )
+    catalog_hints = [
+        f"{label}={_value(name)} [source_lookup={lookup_table}.{lookup_column}]"
+        for label, code, name, lookup_table, lookup_column in (
+            (
+                "source_company_catalog_name",
+                source_company_code,
+                source_company_catalog_name,
+                "corporate_entity",
+                "corporate_entity_code",
+            ),
+            (
+                "source_process_unit_catalog_name",
+                source_business_unit_code,
+                source_process_unit_catalog_name,
+                "process_unit",
+                "process_unit_code",
+            ),
+            (
+                "source_customer_catalog_name",
+                source_customer_code,
+                source_customer_catalog_name,
+                "corporate_entity",
+                "corporate_entity_code",
+            ),
+        )
+        if code is not None and str(code).strip()
+    ]
     return "; ".join(
         (
             f"author_account_id={_value(account_id)} [source_field=source_post.author_account_id]",
@@ -153,5 +183,6 @@ def format_semantic_hints(
             f"source_customer_name_hint_trust={source_customer_name_trust}",
             f"source_project_code={_value(source_project_code)} [source_field=source_post.source_project_code]",
             f"source_project_name={_value(source_project_name)} [source_field=source_post.source_project_name]",
+            *catalog_hints,
         )
     )

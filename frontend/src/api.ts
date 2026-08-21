@@ -220,6 +220,8 @@ export interface ProjectEvidence {
 export interface PostAiSummary {
   post_id: string;
   korean_summary: string;
+  summary_status?: "current" | "stale";
+  summary_contract_version?: number | null;
   key_events: string[];
   key_event_details?: PostKeyEvent[];
   roles_and_responsibilities: PostRoleResponsibility[];
@@ -1047,4 +1049,29 @@ export interface RankingList {
 
 export function fetchRankings(accessToken: string): Promise<RankingList> {
   return backendFetch("/api/rankings", accessToken);
+}
+
+export async function fetchTenantConfig(accessToken: string): Promise<{ brandName: string }> {
+  const response = await fetch(`${config.backendBaseUrl}/api/settings`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch tenant config: ${response.status}`);
+  }
+  return response.json();
+}
+
+export async function updateTenantConfig(accessToken: string, brandName: string): Promise<{ brandName: string }> {
+  const response = await fetch(`${config.backendBaseUrl}/api/settings`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ brandName }),
+  });
+  if (!response.ok) {
+    throw new Error(`Failed to update tenant config: ${response.status}`);
+  }
+  return response.json();
 }
