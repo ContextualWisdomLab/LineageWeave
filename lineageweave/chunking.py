@@ -134,7 +134,7 @@ def _is_footnote_reference(attrs: list[tuple[str, str | None]]) -> bool:
 
 def normalize_semantic_text(text: str) -> str:
     """Remove visual hanging-indent breaks without changing source content."""
-    text = _normalize_plain_metric_scripts(text)
+    text = _normalize_metric_markup(_normalize_plain_metric_scripts(text))
     lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
     normalized: list[str] = []
     for line in lines:
@@ -621,13 +621,13 @@ def _markdown_table_entries(text: str) -> list[tuple[str, str]]:
 
         found_table = True
         flush_pending()
-        entries.append(("markdown_tr", " | ".join(header)))
+        entries.append(("markdown_tr", " | ".join(normalize_semantic_text(cell) for cell in header)))
         index += 2
         while index < len(lines) and lines[index].strip():
             cells = _markdown_cells(lines[index])
             if cells is None:
                 break
-            entries.append(("markdown_tr", " | ".join(cells)))
+            entries.append(("markdown_tr", " | ".join(normalize_semantic_text(cell) for cell in cells)))
             index += 1
 
     flush_pending()
@@ -647,7 +647,10 @@ def _is_markdown_table_row(line: str) -> bool:
 
 def _render_markdown_table_row(line: str) -> str:
     """Keep Markdown table columns as searchable row evidence."""
-    return " | ".join(cell.strip() for cell in line.strip().strip("|").split("|"))
+    return " | ".join(
+        normalize_semantic_text(cell.strip())
+        for cell in line.strip().strip("|").split("|")
+    )
 
 
 def _split_plain_text_units(text: str) -> list[tuple[str, int, str]]:

@@ -265,7 +265,7 @@ function markdownCells(line: string): string[] | null {
   const value = line.trim().replace(/^\|/, "").replace(/(?<!\\)\|$/, "");
   if (!value.includes("|")) return null;
   const cells = value.split(/(?<!\\)\|/).map((cell) => cell.trim().replace(/\\\|/g, "|"));
-  return cells.length >= 2 && cells.every(Boolean) ? cells : null;
+  return cells.length >= 2 && cells.every(Boolean) ? cells.map(normalizeMetricMarkup) : null;
 }
 
 function isMarkdownSeparatorRow(cells: string[] | null): boolean {

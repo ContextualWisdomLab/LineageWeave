@@ -124,6 +124,12 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("normalizes metric scripts inside Markdown table cells", () => {
+    expect(
+      splitMarkdownTableBody("| Metric | Index |\n| --- | --- |\n| 5m^3 | m<sub>3</sub> |"),
+    ).toEqual([{ kind: "table", rows: [["Metric", "Index"], ["5m³", "m₃"]] }]);
+  });
+
   it("unescapes pipe characters inside Markdown cells without accepting a short delimiter", () => {
     expect(
       splitMarkdownTableBody(

@@ -218,6 +218,18 @@ def test_chunk_by_source_body_normalizes_plain_metric_scripts() -> None:
     ]
 
 
+def test_chunk_by_source_body_normalizes_metric_scripts_in_markdown_table_cells() -> None:
+    """Markdown table cells retain the same searchable metric semantics as prose."""
+    chunks = chunk_by_source_body(
+        "| Metric | Index |\n| --- | --- |\n| 5m^3 | m_3 |"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "Metric | Index"),
+        ("tr", "5m³ | m₃"),
+    ]
+
+
 def test_chunk_by_dom_preserves_nested_list_order_and_depth() -> None:
     """Nested list items retain source order and increasing depth."""
     chunks = chunk_by_dom(
