@@ -127,6 +127,9 @@ describe("App, authenticated", () => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
+      if (url.endsWith("/api/settings")) {
+        return Promise.resolve(jsonResponse({ brandName: "LineageWeave" }));
+      }
       if (url.endsWith("/api/me/preferences") && method === "PATCH") {
         const body = JSON.parse(String(init?.body));
         return Promise.resolve(jsonResponse({ preferred_locale: body.preferred_locale }));
