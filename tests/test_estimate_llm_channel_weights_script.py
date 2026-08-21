@@ -33,10 +33,12 @@ def test_shared_judge_prompt_and_confidence_parse_round_trip() -> None:
     assert "Record A: Record about pricing" in prompt
     assert "Record B: Follow-up record" in prompt
     assert parse_confidence("0.85") == 0.85
-    assert parse_confidence("confidence: 0.4 maybe") == 0.4
+    with pytest.raises(HttpClientError):
+        parse_confidence("confidence: 0.4 maybe")
     with pytest.raises(HttpClientError):
         parse_confidence("no number here")
-    assert parse_confidence("1.7") == 1.0
+    with pytest.raises(HttpClientError):
+        parse_confidence("1.7")
 
 
 def test_errored_judgments_stay_unjudged_instead_of_becoming_zero() -> None:
