@@ -191,7 +191,7 @@ def test_chunk_by_dom_does_not_treat_non_numeric_superscript_as_footnote() -> No
     ]
 
 
-def test_chunk_by_dom_preserves_explicit_metric_superscripts() -> None:
+def test_chunk_by_dom_preserves_explicit_metric_superscripts_as_unicode() -> None:
     """A unit exponent remains searchable mathematical evidence."""
     chunks = chunk_by_dom("<p>Volume: 5m<sup>3</sup>.</p>")
 
@@ -200,7 +200,7 @@ def test_chunk_by_dom_preserves_explicit_metric_superscripts() -> None:
     ]
 
 
-def test_chunk_by_dom_preserves_explicit_metric_subscripts() -> None:
+def test_chunk_by_dom_preserves_explicit_metric_subscripts_as_unicode() -> None:
     """A unit subscript is retained without changing ordinary footnotes."""
     chunks = chunk_by_dom("<p>Index m<sub>3</sub> is measured.</p>")
 

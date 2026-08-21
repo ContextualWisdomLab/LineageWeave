@@ -5,7 +5,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-import lineageweave.lineage_contract as contract
+from lineageweave import lineage_contract as contract
 from lineageweave.adjudication_client import NullAdjudicationClient
 from lineageweave.lineage_contract import (
     EmailEvidence,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-import lineageweave.adjudication_client as module
+from lineageweave import adjudication_client as module
 from lineageweave.adjudication_client import (
     AdjudicationClientError,
     ContextualOrchestratorAdjudicationClient,
