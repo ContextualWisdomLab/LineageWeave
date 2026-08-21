@@ -4584,24 +4584,40 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   }
 
   if (auth.error) {
-    return <p className="error">Authentication error: {auth.error.message}</p>;
+    return <p className="error">{t(auth.error.message)}</p>;
   }
 
   if (!auth.isAuthenticated) {
     return (
-      <main className="centered">
-        <h1>LineageWeave</h1>
-        <LanguageSwitcher />
-          <button
-            onClick={() => {
-              const returnUrl = returnUrlFromLocation();
-              rememberOidcReturnUrl(returnUrl);
-              void auth.signinRedirect({ state: { returnUrl } });
-            }}
-          >
-            {t("Log in")}
-          </button>
-      </main>
+      <div className="app-shell">
+        <main className="login-screen">
+          <div className="login-card">
+            <div className="login-header">
+              <h1>LineageWeave</h1>
+              <p className="login-subtitle">Marketing & Operational Lineage Intelligence</p>
+            </div>
+            <div className="login-controls">
+              <button className="btn-primary" onClick={() => {
+                const returnUrl = window.location.pathname + window.location.search;
+                void auth.signinRedirect({ state: { returnUrl } });
+              }}>
+                {t("Log in")}
+              </button>
+            </div>
+            <div className="login-help">
+              <small>Enterprise SSO Authentication</small>
+            </div>
+          </div>
+        </main>
+        <footer className="app-footer" role="contentinfo">
+          <div className="app-footer-title">
+            <span className="app-footer-logo">LineageWeave</span>
+          </div>
+          <div className="app-footer-copyright">
+            <p>Copyright &copy; {new Date().getFullYear()} by BRAND. All rights reserved.</p>
+          </div>
+        </footer>
+      </div>
     );
   }
 
@@ -4610,12 +4626,14 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   }
 
   return (
-    <main>
+    <div className="app-shell">
       <header className="app-header">
-        <h1>LineageWeave</h1>
-        <div>
-          <span>{auth.user?.profile.preferred_username}</span>
-          <button onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
+        <div className="app-header-logo">
+          <h1 className="app-header-title">LineageWeave</h1>
+        </div>
+        <div className="app-header-top-menu">
+          <span className="app-user-profile">{auth.user?.profile.preferred_username}</span>
+          <button className="btn-secondary" onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
         </div>
       </header>
       <BuyerNav
@@ -4623,41 +4641,51 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         onChange={setDestination}
         tools={<LanguageSwitcher accessToken={accessToken} />}
       />
-      {destination === "board" ? (
-        <PostList
-          accessToken={accessToken}
-          showLabPanels={testOnlyLabPanels}
-          postIdToOpen={postToOpen}
-          onPostOpened={() => setPostToOpen(null)}
-        />
-      ) : null}
-      {destination === "customers" ? (
-        <CustomerMasterPanel
-          accessToken={accessToken}
-          onOpenPost={(postId) => {
-            setPostToOpen(postId);
-            setDestination("board");
-          }}
-        />
-      ) : null}
-      {destination === "calendar" ? (
-        <CalendarPanel
-          accessToken={accessToken}
-          onSelectPost={(postId) => {
-            setPostToOpen(postId);
-            setDestination("board");
-          }}
-        />
-      ) : null}
-      {destination === "ask" ? (
-        <AskAgentPanel
-          accessToken={accessToken}
-          onOpenPost={(postId) => {
-            setPostToOpen(postId);
-            setDestination("board");
-          }}
-        />
-      ) : null}
-    </main>
+      <main>
+        {destination === "board" ? (
+          <PostList
+            accessToken={accessToken}
+            showLabPanels={testOnlyLabPanels}
+            postIdToOpen={postToOpen}
+            onPostOpened={() => setPostToOpen(null)}
+          />
+        ) : null}
+        {destination === "customers" ? (
+          <CustomerMasterPanel
+            accessToken={accessToken}
+            onOpenPost={(postId) => {
+              setPostToOpen(postId);
+              setDestination("board");
+            }}
+          />
+        ) : null}
+        {destination === "calendar" ? (
+          <CalendarPanel
+            accessToken={accessToken}
+            onSelectPost={(postId) => {
+              setPostToOpen(postId);
+              setDestination("board");
+            }}
+          />
+        ) : null}
+        {destination === "ask" ? (
+          <AskAgentPanel
+            accessToken={accessToken}
+            onOpenPost={(postId) => {
+              setPostToOpen(postId);
+              setDestination("board");
+            }}
+          />
+        ) : null}
+      </main>
+      <footer className="app-footer" role="contentinfo">
+        <div className="app-footer-title">
+          <span className="app-footer-logo">LineageWeave</span>
+        </div>
+        <div className="app-footer-copyright">
+          <p>Copyright &copy; {new Date().getFullYear()} by BRAND. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
   );
 }
