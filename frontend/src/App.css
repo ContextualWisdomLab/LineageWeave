@@ -297,6 +297,15 @@
 }
 
 /* Button Standards (§4.3) */
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-focus-border);
+  outline-offset: 2px;
+}
+
 .btn-primary {
   background: var(--color-btn-primary-bg);
   color: var(--color-btn-primary-text);
