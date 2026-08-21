@@ -230,6 +230,7 @@ describe("OntologyExplorer", () => {
         focusNodeId={POST_ID}
         neighborhood={neighborhood({
           edges: [{ ...neighborhood().edges[0], truth_status_code: "truth_rejected" }],
+          exact_value_rows: [{ ...neighborhood().exact_value_rows[0], truth_status_code: "truth_rejected" }],
         })}
         status="rejected"
       />,
