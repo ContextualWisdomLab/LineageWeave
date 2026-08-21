@@ -185,6 +185,7 @@ from backend.app.demo_scope import (
     has_real_source_context,
 )
 from lineageweave.http_client import HttpClientError
+from lineageweave.observability import configure_telemetry
 
 _POST_READ = "post_read"
 _POST_ADMIN = "post_admin"
@@ -194,6 +195,7 @@ _POST_ADMIN = "post_admin"
 async def lifespan(app: FastAPI):
     """Open one asyncpg pool and one Valkey client for the process, and
     close both on shutdown."""
+    configure_telemetry("lineageweave")
     settings = load_settings()
     app.state.pool = await create_pool(settings.database_url)
     app.state.valkey = create_valkey_client(settings.valkey_url)
@@ -2646,6 +2648,11 @@ async def chat_about_post(
         with use_llm_metadata(post_metadata):
             answer = await asyncio.to_thread(client.answer, question, sources)
     except (HttpClientError, KeyError, OSError, RuntimeError, ValueError) as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
+        ) from exc
+    except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
