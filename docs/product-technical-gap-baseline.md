@@ -45,7 +45,7 @@
   translation key, with the same operation note covered across all five
   product locales. PR #397 merged into the non-main stack branch; the
   protected `main` branch still depends on the separate parent PR #392.
-- **Current follow-up at PR #398 head `5822948f`:** the settings upsert now
+- **Current follow-up at PR #398 head `f101ab93`:** the settings upsert now
   refreshes `tenant_settings.updated_at`, and clearing the numeric copyright
   year stays visibly blank and blocks submission instead of coercing the
   draft to a valid-looking value. Local backend and frontend evidence is
@@ -411,6 +411,19 @@ earlier sections remain historical evidence.
   warnings`, frontend `22 files, 207 passed`, lint, and production build.
   The warnings are existing deprecations and a test-only short HMAC warning;
   they are not a failed product check.
+
+### 4.8 Current exact-head follow-up
+
+Observed at `2026-08-21T20:57:23Z` from the GitHub REST API and the current
+follow-up worktree. PR #398 is now at exact head
+`f101ab938f844ea12fa78b1cdf4ea1adaf07e962`, based on stack head `2e51a777`.
+The follow-up includes the review repair that separates an empty numeric input
+from the `0` value and retains the whitespace-only no-op save guard. Its
+frontend suite is `208 passed` with lint and production build passing; the
+backend evidence remains `864 passed, 17 skipped, 14 warnings`. Hosted Checks
+restarted and remain pending, with no independent approval, so merge is not
+authorized. Parent PR #392 is currently at `a6d754a7` and baseline PR #368 at
+`a6e3a681`; both remain open and blocked by their respective merge gates.
 
 ## 5. Local Buyer-Surface Verification
 
