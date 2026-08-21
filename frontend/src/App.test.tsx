@@ -1827,12 +1827,12 @@ describe("App, authenticated", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "View post: Public post" }));
     expect(await screen.findByLabelText("A-100 lineage")).toBeInTheDocument();
-    expect(screen.getByLabelText("Open post: Pricing renegotiation follow-up")).toHaveClass(
-      "lineage-dag-branch",
-    );
-    expect(screen.getByLabelText("Open post: Unrelated: annual account review")).toHaveClass(
-      "lineage-dag-root",
-    );
+    expect(
+      screen.getByLabelText("Open post: Pricing renegotiation follow-up (Branch point)"),
+    ).toHaveClass("lineage-dag-branch");
+    expect(
+      screen.getByLabelText("Open post: Unrelated: annual account review (Root record)"),
+    ).toHaveClass("lineage-dag-root");
   });
 
   it("renders the board landmark and functional post controls", async () => {
@@ -2000,7 +2000,9 @@ describe("App, authenticated", () => {
     expect(relatedPosts).toHaveTextContent("Linked post");
     // The Event Lineage DAG belongs to the opened post, not the list surface.
     expect(screen.getAllByLabelText("A-100 lineage")).toHaveLength(1);
-    expect(screen.getAllByLabelText("Open post: Pricing renegotiation follow-up")).toHaveLength(1);
+    expect(
+      screen.getAllByLabelText("Open post: Pricing renegotiation follow-up (Branch point)"),
+    ).toHaveLength(1);
     expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
     expect(document.getElementById("post-ask")).not.toHaveFocus();
     expect(
@@ -2977,7 +2979,9 @@ describe("App, authenticated", () => {
       ).toHaveLength(1);
       const popup = document.querySelector(".popup-panel");
       expect(popup).not.toBeNull();
-      const currentNode = within(popup as HTMLElement).getByLabelText("Open post: Public post");
+      const currentNode = within(popup as HTMLElement).getByLabelText(
+        "Open post: Public post (Current record, Root record)",
+      );
       expect(currentNode).toHaveAttribute("aria-current", "true");
       const lineageNext = screen.getByRole("status", { name: "Event Lineage next action" });
       expect(lineageNext).toHaveTextContent(
