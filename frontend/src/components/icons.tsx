@@ -42,3 +42,22 @@ export function CloseIcon() {
     </svg>
   );
 }
+
+export function SendIcon() {
+  return (
+    <svg
+      width="1.1em"
+      height="1.1em"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 11.5 21 3l-8.5 18-2.7-7.8L3 11.5Z" />
+      <path d="m9.8 13.2 4.8-4.8" />
+    </svg>
+  );
+}

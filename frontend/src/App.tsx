@@ -88,7 +88,7 @@ import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
-import { MenuIcon, CloseIcon } from "./components/icons";
+import { MenuIcon, CloseIcon, SendIcon } from "./components/icons";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
@@ -356,6 +356,7 @@ function ChatPanel({
             aria-label={t("What happened between these events?")}
           />
           <button onClick={() => handleAsk()} disabled={loading || !question.trim()}>
+            <SendIcon />
             {loading ? t("Asking...") : t("Ask")}
           </button>
         </div>
@@ -4564,6 +4565,7 @@ function AskAgentPanel({
         />
       </label>
       <button className="btn-primary ask-agent-submit" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
+        <SendIcon />
         {asking ? t("Asking...") : t("Ask")}
       </button>
       {answer && (
