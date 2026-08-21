@@ -1,0 +1,553 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contextualwisdomlab.github.io/lineageweave/schemas/event_intelligence_dossier_v1.schema.json",
+  "title": "LineageWeave Event Intelligence Dossier v1",
+  "description": "A cutoff-safe, evidence-bound composition of LineageWeave knowledge graph and ontology, TEPP temporal/topic evidence, fast-mlsirm psychometrics, and contextual-orchestrator judgment.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "event_id",
+    "event_title",
+    "source_snapshot_id",
+    "temporal_context",
+    "event_ontology",
+    "evidence",
+    "knowledge_graph",
+    "tepp",
+    "fast_mlsirm",
+    "contextual_orchestrator",
+    "claims",
+    "dossier_sha256"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": 1
+    },
+    "event_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "event_title": {
+      "$ref": "#/$defs/identifier"
+    },
+    "source_snapshot_id": {
+      "$ref": "#/$defs/identifier"
+    },
+    "temporal_context": {
+      "$ref": "#/$defs/temporal_context"
+    },
+    "event_ontology": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/ontology_reference"
+      },
+      "uniqueItems": true
+    },
+    "evidence": {
+      "description": "Evidence IDs are unique by runtime contract; every input path must invoke the production validator.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/evidence_reference"
+      }
+    },
+    "knowledge_graph": {
+      "$ref": "#/$defs/knowledge_graph"
+    },
+    "tepp": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/unavailable_channel"
+        },
+        {
+          "$ref": "#/$defs/tepp_artifact"
+        }
+      ]
+    },
+    "fast_mlsirm": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/unavailable_channel"
+        },
+        {
+          "$ref": "#/$defs/psychometric_artifact"
+        }
+      ]
+    },
+    "contextual_orchestrator": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/unavailable_channel"
+        },
+        {
+          "$ref": "#/$defs/judge_decision"
+        }
+      ]
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/grounded_claim"
+      },
+      "uniqueItems": true
+    },
+    "dossier_sha256": {
+      "$ref": "#/$defs/sha256"
+    }
+  },
+  "$defs": {
+    "nonempty_string": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8192,
+      "pattern": "\\S"
+    },
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "pattern": "\\S"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$"
+    },
+    "evidence_id_list": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/nonempty_string"
+      }
+    },
+    "temporal_context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_start",
+        "event_end",
+        "assertion_time",
+        "document_time",
+        "available_time",
+        "knowledge_cutoff"
+      ],
+      "properties": {
+        "event_start": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "event_end": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/timestamp"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "assertion_time": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "document_time": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "available_time": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "knowledge_cutoff": {
+          "$ref": "#/$defs/timestamp"
+        }
+      }
+    },
+    "ontology_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "term_iri",
+        "preferred_label",
+        "vocabulary_version",
+        "semantic_role_code"
+      ],
+      "properties": {
+        "term_iri": {
+          "type": "string",
+          "format": "uri",
+          "pattern": "^https?://"
+        },
+        "preferred_label": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "vocabulary_version": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "semantic_role_code": {
+          "$ref": "#/$defs/nonempty_string"
+        }
+      }
+    },
+    "evidence_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_id",
+        "source_system",
+        "source_uri",
+        "content_sha256",
+        "available_time",
+        "recorded_time"
+      ],
+      "properties": {
+        "evidence_id": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "source_system": {
+          "enum": [
+            "lineageweave_knowledge_graph",
+            "lineageweave_ontology",
+            "tepp",
+            "fast_mlsirm",
+            "contextual_orchestrator",
+            "source_document"
+          ]
+        },
+        "source_uri": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "content_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "available_time": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "recorded_time": {
+          "$ref": "#/$defs/timestamp"
+        }
+      }
+    },
+    "relevance_measurement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "method_code",
+        "method_version",
+        "authority_system",
+        "estimate",
+        "uncertainty_lower",
+        "uncertainty_upper",
+        "evidence_ids"
+      ],
+      "properties": {
+        "method_code": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "method_version": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "authority_system": {
+          "enum": [
+            "lineageweave_knowledge_graph",
+            "tepp",
+            "fast_mlsirm"
+          ]
+        },
+        "estimate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "uncertainty_lower": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "uncertainty_upper": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/evidence_id_list"
+        }
+      }
+    },
+    "graph_node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "node_id",
+        "node_type_code",
+        "label",
+        "ontology",
+        "relevance",
+        "evidence_ids"
+      ],
+      "properties": {
+        "node_id": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "node_type_code": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "label": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "ontology": {
+          "$ref": "#/$defs/ontology_reference"
+        },
+        "relevance": {
+          "$ref": "#/$defs/relevance_measurement"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/evidence_id_list"
+        }
+      }
+    },
+    "graph_edge": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_node_id",
+        "target_node_id",
+        "edge_type_code",
+        "ontology",
+        "evidence_ids"
+      ],
+      "properties": {
+        "source_node_id": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "target_node_id": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "edge_type_code": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "ontology": {
+          "$ref": "#/$defs/ontology_reference"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/evidence_id_list"
+        }
+      }
+    },
+    "knowledge_graph": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status_code",
+        "nodes",
+        "edges"
+      ],
+      "properties": {
+        "status_code": {
+          "const": "available"
+        },
+        "nodes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/graph_node"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "edges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/graph_edge"
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "unavailable_channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status_code"
+      ],
+      "properties": {
+        "status_code": {
+          "const": "unavailable"
+        }
+      }
+    },
+    "tepp_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status_code",
+        "remote_run_id",
+        "artifact_id",
+        "snapshot_id",
+        "knowledge_cutoff",
+        "model_contract_version",
+        "engine_version",
+        "artifact_digest_sha256",
+        "topic_relevance",
+        "evidence_ids"
+      ],
+      "properties": {
+        "status_code": {
+          "const": "available"
+        },
+        "remote_run_id": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "artifact_id": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "snapshot_id": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "knowledge_cutoff": {
+          "$ref": "#/$defs/timestamp"
+        },
+        "model_contract_version": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "engine_version": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "artifact_digest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "topic_relevance": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/relevance_measurement"
+          },
+          "uniqueItems": true
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/evidence_id_list"
+        }
+      }
+    },
+    "psychometric_artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status_code",
+        "artifact_id",
+        "model_contract_version",
+        "engine_version",
+        "artifact_digest_sha256",
+        "scale_code",
+        "estimate",
+        "standard_error",
+        "evidence_ids"
+      ],
+      "properties": {
+        "status_code": {
+          "const": "available"
+        },
+        "artifact_id": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "model_contract_version": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "engine_version": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "artifact_digest_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "scale_code": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "estimate": {
+          "type": "number"
+        },
+        "standard_error": {
+          "type": "number",
+          "minimum": 0
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/evidence_id_list"
+        }
+      }
+    },
+    "judge_decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status_code",
+        "trace_id",
+        "operation_code",
+        "policy_version",
+        "prompt_sha256",
+        "verdict_code",
+        "confidence",
+        "rationale",
+        "evidence_ids"
+      ],
+      "properties": {
+        "status_code": {
+          "const": "available"
+        },
+        "trace_id": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "operation_code": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "policy_version": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "prompt_sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "verdict_code": {
+          "enum": [
+            "supported",
+            "refuted",
+            "insufficient_evidence"
+          ]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "rationale": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/evidence_id_list"
+        }
+      }
+    },
+    "grounded_claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "claim_id",
+        "claim_text",
+        "claim_type_code",
+        "evidence_ids"
+      ],
+      "properties": {
+        "claim_id": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "claim_text": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "claim_type_code": {
+          "$ref": "#/$defs/nonempty_string"
+        },
+        "evidence_ids": {
+          "$ref": "#/$defs/evidence_id_list"
+        }
+      }
+    }
+  }
+}

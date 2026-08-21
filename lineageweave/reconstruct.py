@@ -16,7 +16,11 @@ from collections import defaultdict
 import rankweave as rw
 import threadweave as tw
 
-from .adjudication_client import AdjudicationClient, NullAdjudicationClient
+from .adjudication_client import (
+    AdjudicationClient,
+    AdjudicationUnavailableError,
+    NullAdjudicationClient,
+)
 from .channels import secondary_key_match_score, temporal_score, text_similarity_score
 from .models import Edge, Record, Tree
 
@@ -24,7 +28,12 @@ from .models import Edge, Record, Tree
 # because it is the only channel that actually reasons about the content
 # instead of approximating it; the rest renormalize when llm is unavailable
 # (see active_weights()).
-DEFAULT_CHANNEL_WEIGHTS = {"temporal": 0.15, "secondary_key": 0.15, "text": 0.30, "llm": 0.40}
+DEFAULT_CHANNEL_WEIGHTS = {
+    "temporal": 0.15,
+    "secondary_key": 0.15,
+    "text": 0.30,
+    "llm": 0.40,
+}
 
 # ponytail: only the most recent WINDOW prior records in a group are
 # considered as candidate parents, bounding per-group cost to O(n*window)
@@ -71,10 +80,15 @@ def _best_parent(
     """Implement the _best_parent operation for this channel."""
     if not candidates:
         return None
-    channel_results: dict[str, list[tuple[str, float]]] = {"temporal": [], "secondary_key": [], "text": []}
+    channel_results: dict[str, list[tuple[str, float]]] = {
+        "temporal": [],
+        "secondary_key": [],
+        "text": [],
+    }
     if "llm" in weights:
         channel_results["llm"] = []
     per_candidate_scores: dict[str, dict[str, float]] = defaultdict(dict)
+    llm_available = "llm" in weights
 
     for candidate in candidates:
         scores = {
@@ -82,13 +96,29 @@ def _best_parent(
             "secondary_key": secondary_key_match_score(candidate, record),
             "text": text_similarity_score(candidate, record),
         }
-        if "llm" in weights:
-            scores["llm"] = llm.judge(candidate.label, record.label)
+        if llm_available:
+            try:
+                scores["llm"] = llm.judge(candidate.label, record.label)
+            except AdjudicationUnavailableError:
+                llm_available = False
+                channel_results.pop("llm")
+                for previous_scores in per_candidate_scores.values():
+                    previous_scores.pop("llm", None)
         for channel, score in scores.items():
             channel_results[channel].append((candidate.record_id, score))
             per_candidate_scores[candidate.record_id][channel] = score
 
-    fused = rw.weighted_convex_fuse(channel_results, weights, limit=1)
+    effective_weights = weights
+    if "llm" not in channel_results and "llm" in weights:
+        total = sum(weight for channel, weight in weights.items() if channel != "llm")
+        if total == 0:
+            return None
+        effective_weights = {
+            channel: weight / total
+            for channel, weight in weights.items()
+            if channel != "llm"
+        }
+    fused = rw.weighted_convex_fuse(channel_results, effective_weights, limit=1)
     if not fused or fused[0].score < min_score:
         return None
     winner_id = fused[0].item_id
@@ -122,7 +152,11 @@ def _reconstruct_group(
                     channel_scores=channel_scores,
                 )
             )
-        messages.append(tw.Message(message_id=record.record_id, references=references, payload=record))
+        messages.append(
+            tw.Message(
+                message_id=record.record_id, references=references, payload=record
+            )
+        )
     return tw.thread_messages(messages), edges
 
 

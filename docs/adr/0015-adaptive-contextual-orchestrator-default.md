@@ -13,7 +13,10 @@ Ordinary LineageWeave LLM consumers request `mode="auto"`.
 
 The orchestration plane owns provider/model selection, test-time compute, workflow depth, verification, fallback, and known-price optimization. Quality sufficiency is the first constraint; cost is minimized among execution paths that satisfy it. Unpriced models are not treated as free.
 
-Explicit `verify` remains for the citation-bearing post-chat and lineage adjudication paths because those are deliberate checked-judgment contracts, not product defaults. Explicit route or conduct modes may be used only for documented ablation, incident response, or a bounded domain requirement.
+Checked post-chat and lineage-adjudication paths retain strict evidence and
+output contracts while using `mode="auto"` under ADR 0079 and their
+consumer-specific ADRs. Explicit route or conduct modes may be used only for
+documented ablation, incident response, or a bounded domain requirement.
 
 LineageWeave continues to own strict output parsing, evidence identifiers, IRT projection, and fail-closed domain validation.
 

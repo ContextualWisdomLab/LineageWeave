@@ -1,0 +1,106 @@
+@prefix : <https://contextualwisdomlab.github.io/lineageweave/event-intelligence/shapes#> .
+@prefix ei: <https://contextualwisdomlab.github.io/lineageweave/event-intelligence#> .
+@prefix lw: <https://contextualwisdomlab.github.io/lineageweave/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix time: <http://www.w3.org/2006/time#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://contextualwisdomlab.github.io/lineageweave/event-intelligence/shapes>
+    a owl:Ontology ;
+    owl:versionIRI <https://contextualwisdomlab.github.io/lineageweave/event-intelligence/shapes/1.0.0> ;
+    owl:versionInfo "1.0.0" ;
+    owl:imports <https://contextualwisdomlab.github.io/lineageweave/event-intelligence/1.0.0> ;
+    rdfs:label "LineageWeave Event Intelligence SHACL shapes"@en .
+
+:DossierGenerationActivityShape
+    a sh:NodeShape ;
+    sh:targetClass ei:DossierGenerationActivity ;
+    sh:class prov:Activity ;
+    sh:property [
+        sh:path ei:usesEvidenceBundle ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class ei:EvidenceBundle
+    ] ;
+    sh:property [
+        sh:path ei:usesEventAssertion ;
+        sh:minCount 1 ;
+        sh:class ei:EventAssertion
+    ] ;
+    sh:property [
+        sh:path ei:generatesDossier ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class ei:EventIntelligenceDossier
+    ] .
+
+:EventAssertionShape
+    a sh:NodeShape ;
+    sh:targetClass ei:EventAssertion ;
+    sh:class prov:Entity ;
+    sh:property [
+        sh:path ei:assertsEvent ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class ei:EventEpisode
+    ] ;
+    sh:property [
+        sh:path ei:supportedBySource ;
+        sh:minCount 1 ;
+        sh:class lw:Post
+    ] ;
+    sh:property [
+        sh:path ei:assertionTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime
+    ] ;
+    sh:property [
+        sh:path ei:documentTime ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime
+    ] .
+
+:EventEpisodeShape
+    a sh:NodeShape ;
+    sh:targetClass ei:EventEpisode ;
+    sh:class prov:Entity ;
+    sh:property [
+        sh:path ei:hasTemporalExtent ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class time:Interval
+    ] ;
+    sh:property [
+        sh:path ei:eventStart ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime
+    ] ;
+    sh:property [
+        sh:path ei:eventEnd ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime
+    ] .
+
+:EvidenceBundleShape
+    a sh:NodeShape ;
+    sh:targetClass ei:EvidenceBundle ;
+    sh:class prov:Entity ;
+    sh:property [
+        sh:path ei:knowledgeCutoff ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:datatype xsd:dateTime
+    ] ;
+    sh:property [
+        sh:path ei:hasKnowledgeCutoffInstant ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class time:Instant
+    ] .

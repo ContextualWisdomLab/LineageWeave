@@ -1,0 +1,219 @@
+{
+  "claims": [
+    {
+      "claim_id": "claim-1",
+      "claim_text": "The renewal escalation was already knowable by the cutoff.",
+      "claim_type_code": "temporal_event_summary",
+      "evidence_ids": [
+        "source-post",
+        "tepp-artifact",
+        "judge-trace"
+      ]
+    }
+  ],
+  "contextual_orchestrator": {
+    "confidence": 0.88,
+    "evidence_ids": [
+      "source-post",
+      "tepp-artifact",
+      "psychometric-artifact",
+      "judge-trace"
+    ],
+    "operation_code": "event_evidence_adjudication",
+    "policy_version": "event-judge-v1",
+    "prompt_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "rationale": "The dated request and event interval support the same episode.",
+    "status_code": "available",
+    "trace_id": "orchestrator-trace-1",
+    "verdict_code": "supported"
+  },
+  "contract_version": 1,
+  "dossier_sha256": "4902081d00a1015f40a8d31a011e367b7b61f8f6753dafb447bbb5ad2c68b7c3",
+  "event_id": "event-1",
+  "event_ontology": [
+    {
+      "preferred_label": "EventEpisode",
+      "semantic_role_code": "event_type",
+      "term_iri": "https://contextualwisdomlab.github.io/lineageweave/event-intelligence#EventEpisode",
+      "vocabulary_version": "1.0.0"
+    }
+  ],
+  "event_title": "Contract renewal escalation",
+  "evidence": [
+    {
+      "available_time": "2026-08-19T10:00:00Z",
+      "content_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "evidence_id": "source-post",
+      "recorded_time": "2026-08-19T10:01:00Z",
+      "source_system": "source_document",
+      "source_uri": "urn:test:source-post"
+    },
+    {
+      "available_time": "2026-08-19T10:00:00Z",
+      "content_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "evidence_id": "graph-projection",
+      "recorded_time": "2026-08-19T10:01:00Z",
+      "source_system": "lineageweave_knowledge_graph",
+      "source_uri": "urn:test:graph-projection"
+    },
+    {
+      "available_time": "2026-08-19T10:00:00Z",
+      "content_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "evidence_id": "ontology-profile",
+      "recorded_time": "2026-08-19T10:01:00Z",
+      "source_system": "lineageweave_ontology",
+      "source_uri": "urn:test:ontology-profile"
+    },
+    {
+      "available_time": "2026-08-19T10:00:00Z",
+      "content_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "evidence_id": "tepp-artifact",
+      "recorded_time": "2026-08-19T10:01:00Z",
+      "source_system": "tepp",
+      "source_uri": "urn:test:tepp-artifact"
+    },
+    {
+      "available_time": "2026-08-19T10:00:00Z",
+      "content_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "evidence_id": "psychometric-artifact",
+      "recorded_time": "2026-08-19T10:01:00Z",
+      "source_system": "fast_mlsirm",
+      "source_uri": "urn:test:psychometric-artifact"
+    },
+    {
+      "available_time": "2026-08-19T10:00:00Z",
+      "content_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "evidence_id": "judge-trace",
+      "recorded_time": "2026-08-19T10:01:00Z",
+      "source_system": "contextual_orchestrator",
+      "source_uri": "urn:test:judge-trace"
+    }
+  ],
+  "fast_mlsirm": {
+    "artifact_digest_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "artifact_id": "fast-mlsirm-artifact-1",
+    "engine_version": "0.12.0",
+    "estimate": 0.62,
+    "evidence_ids": [
+      "source-post",
+      "psychometric-artifact"
+    ],
+    "model_contract_version": "event-relevance-scale-v1",
+    "scale_code": "event_relevance_theta",
+    "standard_error": 0.08,
+    "status_code": "available"
+  },
+  "knowledge_graph": {
+    "edges": [
+      {
+        "edge_type_code": "edge_evidences_event",
+        "evidence_ids": [
+          "source-post",
+          "graph-projection",
+          "ontology-profile"
+        ],
+        "ontology": {
+          "preferred_label": "evidencesEvent",
+          "semantic_role_code": "edge_type",
+          "term_iri": "https://contextualwisdomlab.github.io/lineageweave/event-intelligence#evidencesEvent",
+          "vocabulary_version": "1.0.0"
+        },
+        "source_node_id": "post-1",
+        "target_node_id": "event-1"
+      }
+    ],
+    "nodes": [
+      {
+        "evidence_ids": [
+          "source-post",
+          "graph-projection",
+          "ontology-profile"
+        ],
+        "label": "Contract renewal escalation",
+        "node_id": "event-1",
+        "node_type_code": "node_event_episode",
+        "ontology": {
+          "preferred_label": "EventEpisode",
+          "semantic_role_code": "event_type",
+      "term_iri": "https://contextualwisdomlab.github.io/lineageweave/event-intelligence#EventEpisode",
+      "vocabulary_version": "1.0.0"
+        },
+        "relevance": {
+          "authority_system": "lineageweave_knowledge_graph",
+          "estimate": 0.91,
+          "evidence_ids": [
+            "graph-projection"
+          ],
+          "method_code": "knowledge_graph_rwr",
+          "method_version": "1.0.0",
+          "uncertainty_lower": 0.91,
+          "uncertainty_upper": 0.91
+        }
+      },
+      {
+        "evidence_ids": [
+          "source-post",
+          "graph-projection",
+          "ontology-profile"
+        ],
+        "label": "Customer requested renewal date",
+        "node_id": "post-1",
+        "node_type_code": "node_post",
+        "ontology": {
+          "preferred_label": "Post",
+          "semantic_role_code": "node_type",
+          "term_iri": "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+          "vocabulary_version": "lineageweave-kg-v1"
+        },
+        "relevance": {
+          "authority_system": "lineageweave_knowledge_graph",
+          "estimate": 0.74,
+          "evidence_ids": [
+            "graph-projection"
+          ],
+          "method_code": "knowledge_graph_rwr",
+          "method_version": "1.0.0",
+          "uncertainty_lower": 0.74,
+          "uncertainty_upper": 0.74
+        }
+      }
+    ],
+    "status_code": "available"
+  },
+  "source_snapshot_id": "snapshot-1",
+  "temporal_context": {
+    "assertion_time": "2026-08-18T10:30:00+09:00",
+    "available_time": "2026-08-19T10:00:00Z",
+    "document_time": "2026-08-18T11:00:00+09:00",
+    "event_end": "2026-08-18T10:00:00+09:00",
+    "event_start": "2026-08-18T09:00:00+09:00",
+    "knowledge_cutoff": "2026-08-19T12:00:00Z"
+  },
+  "tepp": {
+    "artifact_digest_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "artifact_id": "tepp-artifact-1",
+    "engine_version": "0.1.0",
+    "evidence_ids": [
+      "source-post",
+      "tepp-artifact"
+    ],
+    "knowledge_cutoff": "2026-08-19T12:00:00Z",
+    "model_contract_version": "temporal-topic-v1",
+    "remote_run_id": "tepp-run-1",
+    "snapshot_id": "snapshot-1",
+    "status_code": "available",
+    "topic_relevance": [
+      {
+        "authority_system": "tepp",
+        "estimate": 0.83,
+        "evidence_ids": [
+          "tepp-artifact"
+        ],
+        "method_code": "temporal_event_topic_posterior",
+        "method_version": "1.0.0",
+        "uncertainty_lower": 0.76,
+        "uncertainty_upper": 0.89
+      }
+    ]
+  }
+}
