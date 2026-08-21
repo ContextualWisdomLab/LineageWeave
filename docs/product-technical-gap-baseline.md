@@ -80,6 +80,11 @@ rerun for the resulting PR head.
   records the resulting PR head below; hosted Checks and review state remain
   external evidence.
 
+- **#366 current-head frontend gate:** at `fbffec488a7db4029682b19bf22f4818ae17037e`,
+  `pnpm run lint`, `pnpm run test` (`177 passed` in 19 files), `pnpm run build`,
+  and `pnpm run build-storybook` all passed. Storybook emitted only the existing
+  post-build bundle-size advisory; no build failure was observed.
+
 - **Canonical ontology explorer PR:** PR #349 remains open and unmerged at
   exact head `1cb9f7000224aec55e4df184044d04e170b5960e`, based on `main` at
   `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`. Its latest stabilization fixes
