@@ -12,8 +12,9 @@ from __future__ import annotations
 
 import asyncio
 from collections import defaultdict
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, Mapping
+from typing import Any
 
 import asyncpg
 
@@ -116,6 +117,24 @@ async def persist_lineage_edges(conn: asyncpg.Connection, edges: list[Edge]) -> 
         )
 
 
+async def _load_lineage_records(conn: asyncpg.Connection) -> list[Record]:
+    """Load the eligible source snapshot used by one reconstruction."""
+    rows = await conn.fetch(
+        "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
+        "process_unit_id, thread_group_key, secondary_grouping_key "
+        f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
+    )
+    return records_from_source_posts(rows)
+
+
+async def _reconstruct_lineage_records(
+    records: list[Record],
+    llm: AdjudicationClient | None,
+) -> list[Edge]:
+    """Run the CPU/provider reconstruction without blocking the event loop."""
+    return await asyncio.to_thread(lineage_edge_specs, records, llm=llm)
+
+
 async def rebuild_lineage(
     conn: asyncpg.Connection,
     *,
@@ -127,26 +146,30 @@ async def rebuild_lineage(
     optional LLM channel is recorded when available; ``None`` preserves the
     fail-closed three-channel rebuild.
     """
-    # Keep the pooled connection out of an open transaction while the
-    # optional orchestrator evaluates the whole corpus. Only the destructive
-    # replacement is transactional, so a slow model call cannot hold an idle
-    # database transaction open.
-    rows = await conn.fetch(
-        "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
-        "process_unit_id, thread_group_key, secondary_grouping_key "
-        f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
-    )
-    records = records_from_source_posts(rows)
-    edges = await asyncio.to_thread(lineage_edge_specs, records, llm=llm)
+    records = await _load_lineage_records(conn)
+    edges = await _reconstruct_lineage_records(records, llm)
     async with conn.transaction():
         await persist_lineage_edges(conn, edges)
     return edges
 
 
-def _isoformat(value: object) -> str:
-    if hasattr(value, "isoformat"):
-        return value.isoformat()  # type: ignore[no-any-return]
-    return str(value)
+async def rebuild_lineage_from_pool(
+    pool: asyncpg.Pool,
+    *,
+    llm: AdjudicationClient | None = None,
+) -> list[Edge]:
+    """Reconstruct without holding a pooled connection during provider work.
+
+    The source snapshot is read and released first. Only the replacement
+    writes run in a transaction, preserving ADR 0124 atomicity without an
+    idle-in-transaction connection during CPU or orchestrator calls.
+    """
+    async with pool.acquire() as conn:
+        records = await _load_lineage_records(conn)
+    edges = await _reconstruct_lineage_records(records, llm)
+    async with pool.acquire() as conn, conn.transaction():
+        await persist_lineage_edges(conn, edges)
+    return edges
 
 
 async def visible_lineage_graph(
@@ -202,13 +225,11 @@ async def visible_lineage_graph(
             neighbors.setdefault(child_id, set()).add(parent_id)
 
         component_ids: set[str] = set()
-        frontier = [focus_id] if focus_visible else []
+        frontier = {focus_id} if focus_visible else set()
         while frontier:
             current_id = frontier.pop()
-            if current_id in component_ids:
-                continue
             component_ids.add(current_id)
-            frontier.extend(neighbors.get(current_id, set()) - component_ids)
+            frontier.update(neighbors.get(current_id, set()) - component_ids)
 
         # An isolated post has no DAG to render; the post-lineage endpoint
         # still reports its empty direct/indirect lists.
@@ -279,7 +300,7 @@ async def visible_lineage_graph(
         rebuild = rebuild_rows[0]
         reconstruction = {
             "reconstruction_version": rebuild["reconstruction_version"],
-            "generated_at": _isoformat(rebuild["generated_at"]),
+            "generated_at": rebuild["generated_at"].isoformat(),
             "min_fused_score": float(rebuild["min_fused_score"]),
             "candidate_window": int(rebuild["candidate_window"]),
             "active_weights": [

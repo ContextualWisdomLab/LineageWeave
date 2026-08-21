@@ -6,8 +6,9 @@ import asyncio
 from datetime import datetime, timezone
 
 from backend.app.lineage_ingestion import (
-    rebuild_lineage,
     persist_lineage_edges,
+    rebuild_lineage,
+    rebuild_lineage_from_pool,
     reconstruct_group_key,
     records_from_source_posts,
     visible_lineage_graph,
@@ -69,16 +70,90 @@ def test_rebuild_passes_the_configured_adjudication_client(monkeypatch) -> None:
         captured["offloaded_function"] = function
         return function(*args, **kwargs)
 
-    import backend.app.lineage_ingestion as ingestion
-
-    monkeypatch.setattr(ingestion, "lineage_edge_specs", fake_lineage_edge_specs)
-    monkeypatch.setattr(ingestion, "persist_lineage_edges", fake_persist_lineage_edges)
+    monkeypatch.setattr(
+        "backend.app.lineage_ingestion.lineage_edge_specs", fake_lineage_edge_specs
+    )
+    monkeypatch.setattr(
+        "backend.app.lineage_ingestion.persist_lineage_edges", fake_persist_lineage_edges
+    )
     monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
     asyncio.run(rebuild_lineage(FakeConnection(), llm=client))
 
     assert captured["llm"] is client
     assert captured["offloaded_function"] is fake_lineage_edge_specs
     assert events == ["fetch", "reconstruct", "transaction_enter", "persist", "transaction_exit"]
+
+
+def test_pooled_rebuild_releases_the_connection_during_reconstruction(monkeypatch) -> None:
+    """Keep provider work outside the pool and transaction, then replace atomically."""
+    events: list[str] = []
+
+    class FakeTransaction:
+        async def __aenter__(self):
+            events.append("transaction-enter")
+
+        async def __aexit__(self, *_args):
+            events.append("transaction-exit")
+
+    class FakeConnection:
+        async def fetch(self, _query: str, *_args):
+            events.append("fetch")
+            return []
+
+        def transaction(self):
+            return FakeTransaction()
+
+    class FakeAcquire:
+        def __init__(self, pool):
+            self.pool = pool
+
+        async def __aenter__(self):
+            self.pool.active += 1
+            events.append("acquire")
+            return self.pool.connection
+
+        async def __aexit__(self, *_args):
+            self.pool.active -= 1
+            events.append("release")
+
+    class FakePool:
+        def __init__(self):
+            self.active = 0
+            self.connection = FakeConnection()
+
+        def acquire(self):
+            return FakeAcquire(self)
+
+    pool = FakePool()
+
+    async def fake_to_thread(function, *args, **kwargs):
+        assert pool.active == 0
+        events.append("reconstruct")
+        return function(*args, **kwargs)
+
+    async def fake_persist(_conn, _edges):
+        assert pool.active == 1
+        assert events[-1] == "transaction-enter"
+        events.append("persist")
+
+    monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
+    monkeypatch.setattr(
+        "backend.app.lineage_ingestion.persist_lineage_edges", fake_persist
+    )
+
+    asyncio.run(rebuild_lineage_from_pool(pool))
+
+    assert events == [
+        "acquire",
+        "fetch",
+        "release",
+        "reconstruct",
+        "acquire",
+        "transaction-enter",
+        "persist",
+        "transaction-exit",
+        "release",
+    ]
 
 
 def test_records_fall_back_to_corporate_entity_when_thread_keys_are_empty() -> None:

@@ -165,7 +165,10 @@ from backend.app.knowledge_graph import (
     visible_mention_post_ids,
     visible_team_mention_post_ids,
 )
-from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
+from backend.app.lineage_ingestion import (
+    rebuild_lineage_from_pool,
+    visible_lineage_graph,
+)
 from backend.app.post_chat_ingestion import (
     fetch_persisted_chat,
     fetch_persisted_chats,
@@ -183,7 +186,6 @@ from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
     has_real_source_context,
-    is_demo_scope,
 )
 from lineageweave.http_client import HttpClientError
 
@@ -1110,8 +1112,7 @@ async def rebuild_lineage_graph(
     post_admin only: this is a corpus-wide write. Reads stay ABAC-gated.
     """
     _require_post_admin(account)
-    async with pool.acquire() as conn:
-        edges = await rebuild_lineage(conn, llm=_adjudication_client())
+    edges = await rebuild_lineage_from_pool(pool, llm=_adjudication_client())
     return {"edge_count": len(edges)}
 
 
