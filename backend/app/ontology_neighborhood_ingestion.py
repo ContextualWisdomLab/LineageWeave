@@ -529,5 +529,5 @@ async def visible_ontology_neighborhood(
         maximum_edges=maximum_edges,
         allowed_property_codes=allowed_property_codes,
         cursor=cursor,
-        source_truncated=fact_window.truncated,
+        source_truncated=bool(getattr(fact_window, "truncated", False)),
     )
