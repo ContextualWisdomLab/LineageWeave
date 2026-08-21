@@ -409,12 +409,79 @@ nesting in the buyer view.
 
 - Decision record: ADR 0103
 - Implementation: PR #319, stacked on the adjacent-table correction in PR #317
-- Local evidence: backend `731 passed, 16 skipped`; frontend `134 passed`, lint,
+- Local evidence: backend `734 passed, 16 skipped`; frontend `136 passed`, lint,
   build, and Storybook build passed.
 - Integration status: PR #319 is not protected-main truth; exact parent head,
   formal review, terminal Checks, and post-merge browser evidence remain
   required.
 
+## Partial visual-region checkpoint: 2026-08-20
+
+The visual locator contract may return valid salient panels without complete
+image coverage. The normalizer now keeps those panel coordinates for
+region-level OCR and embeddings, then analyzes the original parent image once
+so uncovered text is not silently lost. Empty or invalid locator output keeps
+the existing whole-image fallback.
+
+- Decision record: ADR 0104
+- Implementation: PR #320, stacked on PR #319
+- Local evidence: backend `734 passed, 16 skipped`; focused image/normalization
+  tests `13 passed`; frontend lint, `136 passed`, build, and Storybook build
+  passed.
+- Integration status: PR #320 is not protected-main truth; exact stack heads,
+  formal review, terminal Checks, and authorized post-merge image evidence
+  remain required.
+
+## Current exact-head audit: 2026-08-20 continuation
+
+The protected GitHub state was re-read after the embedding and visual-region
+checkpoints. These are gate observations, not merge claims. A blank review
+decision means no independent approval was observed; `UNSTABLE` and `BLOCKED`
+are not release evidence.
+
+| PR | Base -> head | Exact head | Review/check state |
+|---|---|---|---|
+| #258 | `main` -> `feat/analysis-run-name-evidence-lineage` | `49804b0fef503be1697b8be61919b022b615ef2f` | `REVIEW_REQUIRED`, `BLOCKED`; no independent approval observed |
+| #323 | `main` -> `fix/tepp-request-contract-validation` | `1a27efec6863cd3439a4c6023e1c625ce4d7abf2` | `REVIEW_REQUIRED`, `BLOCKED`; required Checks queued |
+| #322 | `fix/stale-summary-buyer-continuity` -> `feat/orchestrator-owned-embedding-consumer` | `a6a1d8fe8b17ad095e507f5d16b93c984e6de5db` | `UNSTABLE`; Full test and frontend Checks queued |
+| #320 | `codex/normalize-source-indent-semantics` -> `codex/preserve-partial-image-regions` | `41d164c570fe232cc1e38a766439e4093d80cb84` | `UNSTABLE`; stacked visual evidence change |
+| #324 | `codex/preserve-partial-image-regions` -> `fix/validate-partial-image-regions` | `a4627d6e1d04b4782a696c74d67303e1143038e0` | `UNSTABLE`; Full test and frontend Checks queued |
+| #789 | `main` -> contextual-orchestrator embedding capability branch | `3a80d91b8c879e57d30ab87af664546b8712fb15` | `REVIEW_REQUIRED`, `BLOCKED`; upstream Checks queued |
+
+The current implementation checkpoints are local/branch evidence only:
+LineageWeave embedding model discovery is recorded in ADR 0118, and visual
+locator validation is stacked in #324. Exact-head OpenCode review requests were
+issued for #258, #322, #323, #324, and upstream #789. No protected branch was
+approved, force-pushed, or merged from this audit.
+
+This update supersedes neither the historical PR table nor the closure
+criteria above; it supplies the current gate snapshot needed before the next
+review -> fix -> Checks -> merge decision.
+
+## Locator-bound validation checkpoint: 2026-08-20
+
+The partial-region path now rejects non-finite, zero-sized, negative, and
+out-of-bounds locator boxes before crop or persistence. Valid panels remain
+independently searchable; if every returned box is invalid, the existing
+parent-image fallback preserves an honest image-level outcome.
+
+- Decision record: ADR 0104
+- Implementation: PR #324, stacked on PR #320
+- Local evidence: normalization module branch coverage `100%`; focused image,
+  persistence-edge, and normalization tests `52 passed`.
+- Integration status: PR #324 is not protected-main truth; its exact current
+  head, formal review, terminal Checks, and browser evidence remain required.
+
+## Exact-head refresh: 2026-08-20 23:41 KST
+
+PR #324 advanced to exact head
+`b1d1b106419488a0e9f9b608bab98fc1004972c8` after the malformed-locator
+fallback and the duplicate baseline-status note were corrected. The local
+documentation invariant confirms that the PR #320 integration-status note
+appears exactly once. Earlier Python, frontend, build, and Storybook evidence
+continues to apply to the unchanged visual-locator implementation. GitHub's
+required PR Checks are running for this exact head and no formal approval is
+bound to it, so this is not a merge or release claim.
 ## Image locator and buyer table checkpoint: 2026-08-20
 
 A first bounded private reprocessing run completed five parent-image
