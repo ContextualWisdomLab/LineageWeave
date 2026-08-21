@@ -11,10 +11,8 @@ membership, run, scope, and the first Pending event atomically. It
 records lineage only. It does not reconstruct lineage, accept a TEPP
 kind, or invent a score. ``enqueue_pending_analysis_run`` then
 ``deliver_queued_analysis_run`` later reconstruct lineage (ADR 0021 /
-ADR 0023) or submit TEPP through ``tepp_client`` (ADR 0022 / ADR 0035).
-A published accepted acknowledgement is stored as aggregate transport
-evidence; neither path invents a TEPP score or stamps Succeeded from
-that ack.
+ADR 0023) or submit TEPP through ``tepp_client`` (ADR 0022). Neither
+path invents a TEPP score.
 """
 
 from __future__ import annotations
@@ -28,9 +26,10 @@ from uuid import UUID
 
 import asyncpg
 
+from backend.app.demo_scope import has_real_source_context, is_demo_scope
 from backend.app.knowledge_graph import labels_for_codes
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave import __version__ as PACKAGE_VERSION
-from lineageweave.tepp_result import tepp_accepted_evidence_sha256
 
 _LINEAGE_RUN_KIND = "analysis_run_lineage"
 _TEPP_RUN_KIND = "analysis_run_tepp"
@@ -42,7 +41,7 @@ _KIND_SCHEMA_VERSION = {
     "analysis_run_tepp": "tepp-run-v1",
 }
 
-_RUN_LIST_SQL = """
+_RUN_LIST_SQL = f"""
     select
       run.analysis_run_id,
       run.run_kind_code,
@@ -56,6 +55,7 @@ _RUN_LIST_SQL = """
       scope.process_unit_id,
       scope.scope_key,
       corp.entity_name as scope_entity_name,
+      corp.corporate_entity_code as scope_entity_code,
       status.status_code,
       status.failure_code
     from analysis_run run
@@ -84,6 +84,7 @@ _RUN_LIST_SQL = """
           select 1 from source_post p
           where p.thread_group_key = scope.scope_key
             and p.created_at <= run.knowledge_cutoff
+            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="p")}
             and (
               p.visibility_code = 'public'
               or p.corporate_entity_id = any($2::uuid[])
@@ -93,7 +94,7 @@ _RUN_LIST_SQL = """
     order by run.requested_at desc
 """
 
-_RUN_DETAIL_SQL = """
+_RUN_DETAIL_SQL = f"""
     select
       run.analysis_run_id,
       run.run_kind_code,
@@ -134,9 +135,10 @@ _RUN_DETAIL_SQL = """
           scope.scope_kind_code = 'analysis_scope_thread_group'
           and exists (
             select 1 from source_post p
-            where p.thread_group_key = scope.scope_key
-              and p.created_at <= run.knowledge_cutoff
-              and (
+          where p.thread_group_key = scope.scope_key
+            and p.created_at <= run.knowledge_cutoff
+            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="p")}
+            and (
                 p.visibility_code = 'public'
                 or p.corporate_entity_id = any($2::uuid[])
               )
@@ -186,62 +188,6 @@ def live_write_after_cutoff(updated_at: datetime, knowledge_cutoff: datetime) ->
     return _as_utc(updated_at) > _as_utc(knowledge_cutoff)
 
 
-async def _tepp_accepted_by_run(
-    conn: asyncpg.Connection,
-    run_ids: list[str],
-) -> dict[str, asyncpg.Record]:
-    """Load published TEPP accepted evidence for the given authorized runs.
-
-    Missing ``analysis_run_tepp_accepted`` means migration 0029 is not
-    applied. Treat that as no stored transport evidence rather than 500.
-    Hidden runs never appear in ``run_ids``.
-    """
-    if not run_ids:
-        return {}
-    try:
-        rows = await conn.fetch(
-            """
-            select analysis_run_id, contract_version, accepted_run_id,
-                   run_state, idempotency_key, evidence_sha256,
-                   received_at, recorded_at
-            from analysis_run_tepp_accepted
-            where analysis_run_id = any($1::uuid[])
-            """,
-            run_ids,
-        )
-    except asyncpg.UndefinedTableError:
-        return {}
-    return {str(row["analysis_run_id"]): row for row in rows}
-
-
-def project_tepp_transport_evidence(row: Any) -> dict[str, Any] | None:
-    """Project accepted evidence only when the stored digest recomputes.
-
-    Counts, theta, topics, and completed-artifact identity stay omitted.
-    A digest mismatch fails closed so a substituted row is not shown.
-    """
-    expected = tepp_accepted_evidence_sha256(
-        contract_version=int(row["contract_version"]),
-        accepted_run_id=str(row["accepted_run_id"]),
-        run_state=str(row["run_state"]),
-        idempotency_key=str(row["idempotency_key"]),
-    )
-    stored = str(row["evidence_sha256"])
-    if stored != expected:
-        return None
-    return {
-        "tepp_evidence_kind": "aggregate transport evidence",
-        "tepp_contract_version": int(row["contract_version"]),
-        "tepp_accepted_run_id": str(row["accepted_run_id"]),
-        "tepp_run_state": str(row["run_state"]),
-        "tepp_idempotency_key": str(row["idempotency_key"]),
-        "tepp_evidence_sha256": stored,
-        "tepp_received_at": _iso(row["received_at"]),
-        "tepp_recorded_at": _iso(row["recorded_at"]),
-        "tepp_completed_artifact_available": False,
-    }
-
-
 async def _counts_by_run(
     conn: asyncpg.Connection,
     run_ids: list[str],
@@ -249,8 +195,9 @@ async def _counts_by_run(
     """Load aggregate snapshot counts for the given runs."""
     if not run_ids:
         return {}
-    rows = await conn.fetch(
-        """
+    # Safe SQL: this immutable aggregate query has closed schema text; run ids are bound below.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
         select run.analysis_run_id, counts.count_type_code, counts.count_value
         from analysis_run run
         join analysis_source_count counts
@@ -341,9 +288,7 @@ async def _serialize_runs(
     """Project registry rows into the authorized buyer-facing payload."""
     if not rows:
         return []
-    run_ids = [str(row["analysis_run_id"]) for row in rows]
-    count_rows = await _counts_by_run(conn, run_ids)
-    tepp_rows = await _tepp_accepted_by_run(conn, run_ids)
+    count_rows = await _counts_by_run(conn, [str(row["analysis_run_id"]) for row in rows])
     labels = await labels_for_codes(
         conn,
         [row["run_kind_code"] for row in rows]
@@ -389,11 +334,6 @@ async def _serialize_runs(
         grouping_key = scope_grouping_key(row)
         if grouping_key:
             item["scope_grouping_key"] = grouping_key
-        tepp = tepp_rows.get(run_id)
-        if tepp is not None:
-            projected = project_tepp_transport_evidence(tepp)
-            if projected is not None:
-                item.update(projected)
         payload.append(item)
     return payload
 
@@ -403,12 +343,20 @@ async def fetch_visible_analysis_runs(
     account_id: str,
     affiliated_entity_ids: list[str],
 ) -> list[dict[str, Any]]:
-    """Runs the account requested or whose scope they may already walk."""
-    rows = await conn.fetch(
+    """Runs the account requested or whose scope they may already walk.
+
+    Once real source-import evidence is visible, the synthetic `make seed`
+    Demo Corp runs stop appearing here -- a buyer must not mistake that
+    fabricated narrative for real evidence (ADR 0001 / ADR 0042).
+    """
+    # Safe SQL: this immutable module query contains only closed schema SQL; request values remain bound below.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         _RUN_LIST_SQL,
         account_id,
         affiliated_entity_ids,
     )
+    if rows and await has_real_source_context(conn, affiliated_entity_ids):
+        rows = [row for row in rows if not is_demo_scope(row["scope_entity_code"])]
     return await _serialize_runs(conn, rows)
 
 
@@ -419,7 +367,8 @@ async def fetch_visible_analysis_run(
     affiliated_entity_ids: list[str],
 ) -> dict[str, Any] | None:
     """One visible run, or None when it is missing or hidden."""
-    rows = await conn.fetch(
+    # Safe SQL: this immutable module query contains only closed schema SQL; request values remain bound below.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         _RUN_DETAIL_SQL,
         account_id,
         affiliated_entity_ids,
@@ -502,8 +451,9 @@ async def fetch_reconstructed_edges(
         return None, []
     if header is None:
         return None, []
-    rows = await conn.fetch(
-        """
+    # Safe SQL: eligibility fragments are immutable schema predicates; the run id remains a bound parameter.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
         select
           edge.parent_post_id,
           parent_post.post_title as parent_post_title,
@@ -515,8 +465,12 @@ async def fetch_reconstructed_edges(
           child_post.corporate_entity_id as child_corporate_entity_id,
           edge.fused_score
         from analysis_run_lineage_edge edge
-        join source_post parent_post on parent_post.post_id = edge.parent_post_id
-        join source_post child_post on child_post.post_id = edge.child_post_id
+        join source_post parent_post
+          on parent_post.post_id = edge.parent_post_id
+         and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="parent_post")}
+        join source_post child_post
+          on child_post.post_id = edge.child_post_id
+         and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="child_post")}
         where edge.analysis_run_id = $1
         order by parent_post.post_title, child_post.post_title
         """,
@@ -584,36 +538,44 @@ async def fetch_visible_scope_posts(
         "post_id, post_title, visibility_code, corporate_entity_id, updated_at"
     )
     if scope_kind_code == "analysis_scope_corporate_entity" and corporate_entity_id:
-        rows = await conn.fetch(
+        # Safe SQL: the selected columns and eligibility predicate are closed constants; ids are bound.
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"select {columns} "
             "from source_post where corporate_entity_id = $1 "
             "and created_at <= $2 "
+            f"and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')} "
             "order by created_at, post_title",
             corporate_entity_id,
             knowledge_cutoff,
         )
     elif scope_kind_code == "analysis_scope_process_unit" and process_unit_id:
-        rows = await conn.fetch(
+        # Safe SQL: the selected columns and eligibility predicate are closed constants; ids are bound.
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"select {columns} "
             "from source_post where process_unit_id = $1 "
             "and created_at <= $2 "
+            f"and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')} "
             "order by created_at, post_title",
             process_unit_id,
             knowledge_cutoff,
         )
     elif scope_kind_code == "analysis_scope_thread_group" and scope_key:
-        rows = await conn.fetch(
+        # Safe SQL: the selected columns and eligibility predicate are closed constants; keys are bound.
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"select {columns} "
             "from source_post where thread_group_key = $1 "
             "and created_at <= $2 "
+            f"and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')} "
             "order by created_at, post_title",
             scope_key,
             knowledge_cutoff,
         )
     elif scope_kind_code == "analysis_scope_all_visible":
-        rows = await conn.fetch(
+        # Safe SQL: the selected columns and eligibility predicate are closed constants; cutoff is bound.
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"select {columns} "
             "from source_post where created_at <= $1 "
+            f"and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')} "
             "order by created_at, post_title",
             knowledge_cutoff,
         )
@@ -808,12 +770,12 @@ async def create_pending_analysis_run(
             "Request a corporate-entity run. Other scopes are not available yet.",
         )
     cutoff_explicit = knowledge_cutoff is not None
+    database_now = await conn.fetchval("select clock_timestamp()")
     if knowledge_cutoff is None:
-        knowledge_cutoff = datetime.now(timezone.utc)
+        knowledge_cutoff = database_now
     elif knowledge_cutoff.tzinfo is None:
         knowledge_cutoff = knowledge_cutoff.replace(tzinfo=timezone.utc)
-    now = datetime.now(timezone.utc)
-    if knowledge_cutoff > now:
+    if knowledge_cutoff > database_now:
         raise AnalysisRunCreateError(
             422,
             "Choose a knowledge cutoff at or before now, then request the run again.",
@@ -831,12 +793,15 @@ async def create_pending_analysis_run(
         key,
     )
 
-    rows = await conn.fetch(
-        """
+    # Safe SQL: the eligibility predicate is an immutable schema fragment; corporate id and cutoff are bound.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
         select post_id, post_title, thread_group_key, created_at,
                visibility_code, corporate_entity_id
         from source_post
-        where corporate_entity_id = $1 and created_at <= $2
+        where corporate_entity_id = $1
+          and created_at <= $2
+          and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")}
         order by created_at, post_title
         """,
         corp_id,
@@ -884,14 +849,13 @@ async def create_pending_analysis_run(
         insert into analysis_source_snapshot
             (snapshot_sha256, source_contract_version,
              maximum_available_time, captured_at, created_at)
-        values ($1, $2, $3, $4, $4)
+        values ($1, $2, $3, clock_timestamp(), clock_timestamp())
         on conflict (snapshot_sha256) do nothing
         returning analysis_source_snapshot_id
         """,
         capture.snapshot_sha256,
         _CAPTURE_CONTRACT_VERSION,
         capture.maximum_available_time,
-        now,
     )
     if snapshot_id is None:
         snapshot_id = await conn.fetchval(
@@ -933,7 +897,7 @@ async def create_pending_analysis_run(
                  requested_by_account_id, knowledge_cutoff,
                  configuration_schema_version, configuration_sha256,
                  code_revision_sha, requested_at)
-            values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            values ($1, $2, $3, $4, $5, $6, $7, $8, clock_timestamp())
             returning analysis_run_id
             """,
             snapshot_id,
@@ -944,7 +908,6 @@ async def create_pending_analysis_run(
             capture.configuration_schema_version,
             capture.configuration_sha256,
             capture.code_revision_sha,
-            now,
         )
     except asyncpg.UniqueViolationError:
         raced = await conn.fetchrow(
@@ -985,10 +948,9 @@ async def create_pending_analysis_run(
         """
         insert into analysis_run_status_event
             (analysis_run_id, status_ordinal, status_code, occurred_at)
-        values ($1, 1, 'analysis_status_pending', $2)
+        values ($1, 1, 'analysis_status_pending', clock_timestamp())
         """,
         run_id,
-        now,
     )
     created = await fetch_visible_analysis_run(
         conn,

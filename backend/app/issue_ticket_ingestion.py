@@ -18,6 +18,9 @@ from typing import Any
 import asyncpg
 
 from .knowledge_graph import labels_for_codes
+from .post_eligibility import source_context_present_sql
+
+_SOURCE_CONTEXT_PRESENT_SQL = source_context_present_sql("p")
 
 
 def _parse_due_date(due_date: str | None) -> date | None:
@@ -135,7 +138,8 @@ async def fetch_upcoming_commitments(conn: asyncpg.Connection) -> list[dict[str,
         "issue_ticket.assigned_account_id, issue_ticket.due_date, "
         "issue_ticket.commitment_summary, issue_ticket.created_at, "
         "issue_ticket.updated_at, "
-        "p.post_title, p.visibility_code, p.corporate_entity_id "
+        "p.post_title, p.visibility_code, p.corporate_entity_id, "
+        f"({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context "
         "from issue_ticket "
         "join source_post p on p.post_id = issue_ticket.post_id "
         "where issue_ticket.due_date is not null "
@@ -150,6 +154,7 @@ async def fetch_upcoming_commitments(conn: asyncpg.Connection) -> list[dict[str,
                 "post_title": row["post_title"],
                 "visibility_code": row["visibility_code"],
                 "corporate_entity_id": str(row["corporate_entity_id"]),
+                "has_real_source_context": bool(row["has_real_source_context"]),
             }
             for row in rows
         ],

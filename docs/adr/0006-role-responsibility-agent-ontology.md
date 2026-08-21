@@ -62,7 +62,7 @@ resolve to a Keyman row.
 Persistence: `post_summary_role` gains `actor_type_code` (FK to
 `common_lookup_value`, default `prov_person`) and
 `affiliated_organization_name`; `person_name` is renamed to
-`actor_name` via `migrations/0012_role_responsibility_agent_type.sql`'s
+`actor_name` via `migrations/0060_role_responsibility_agent_type.sql`'s
 `ALTER TABLE ... RENAME COLUMN` (preserves every existing row's data,
 unlike a drop/recreate) plus the two new `ADD COLUMN IF NOT EXISTS`
 statements, with `migrations/0001_initial_schema.sql` updated directly

@@ -64,7 +64,7 @@ flowchart LR
 | `chunking.py` | Splits a document into meaning-identifiable units (paragraph, sentence, DOM, conversation-turn) plus embedded-image extraction, in document order |
 | `embedding_client.py` | Pluggable text-embedding channel (`Null` default, `OpenAiCompatible` real impl) + `chunked_max_similarity` |
 | `adjudication_client.py` | Pluggable LLM-judgment channel (`Null` default, `ContextualOrchestrator` real impl) |
-| `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl). The product popup (`frontend/src/PostBody.tsx`) and `extract_base64_images` parse with the same HTML rules as `chunk_by_dom` (ADR 0031) so invoice-like `alt` values still show the picture; GET does not call the vision client. |
+| `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl). The product popup (`frontend/src/PostBody.tsx`) renders each `data:image` payload in document order so the buyer sees the picture, not the base64 string; GET does not call the vision client. |
 | `tepp_client.py` | TEPP's published `AnalysisRunRequest` wire contract, pluggable transport |
 | `rankweave_client.py` | Fail-closed RankWeave ranking port (`weighted_reciprocal_rank_fuse` in-process; never invent a fused score or a theta) |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
@@ -81,8 +81,8 @@ flowchart LR
 | `ontology.py` | Loads `docs/ontology/lineageweave-kg.ttl`, the formal OWL 2/RDFS/SKOS vocabulary for the Knowledge Graph's node/edge types (ADR 0004) |
 | `period_report.py` | Fit GRM/GPCM on persisted IRT rows, FIPC-select, EAP-score a period (ADR 0003 slice 3; Bock & Mislevy, 1982) |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |
-| `server.py` | Stdlib HTTP server: `GET /api/lineage` (JSON graph) + static viewer |
-| `web/index.html` | Self-contained SVG DAG viewer, no build step, no external script dependency |
+| `server.py` | Legacy stdlib HTTP server for the library-level synthetic fixture demo; production uses FastAPI/PostgreSQL |
+| `web/index.html` | Legacy self-contained SVG DAG viewer; production UI is the React/Vite frontend |
 
 > **Known local-test-environment limitation:** `adjudication_client.py`'s
 > `mode="verify"` call depends on contextual-orchestrator's
@@ -122,12 +122,13 @@ flowchart LR
   `rankweave_client.py`'s default transport raises
   `RankWeaveNotAvailable`. `GET /api/rankings` then returns
   `rankweave_not_available` and an empty ranking list. Hidden posts
-  are omitted from every channel. See ADR 0030.
+  are omitted from every channel. See ADR 0024.
 
 ## Standards and citations
 
-See [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md)
-for the full APA 7th reference list this design is grounded in.
+See [ADR 0084](docs/adr/0084-lineage-research-grounding.md) for the normative
+research-grounding policy and [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md)
+for the full APA 7th reference list and supporting aggregate evidence.
 
 ## Product schema (Phase 1 of a larger roadmap)
 
@@ -496,9 +497,6 @@ Event Lineage panel as that run's tree.
 `make seed` also records a TEPP measurement run through
 `tepp_client` on that same snapshot; the default transport is
 unavailable, so that run is Failed rather than a fabricated score.
-A second Demo Corp TEPP run uses an in-process published accepted
-acknowledgement and stays Failed / `tepp_completed_result_unsupported`
-with aggregate transport evidence (ADR 0035).
 The home list is clickable: `GET /api/analysis-runs/{id}` fills a
 labeled detail (cutoff, requested date, 12-character digest prefixes
 with full digests on hover, counts, status history)
@@ -514,9 +512,7 @@ measurement service) so `tepp_not_available` is not mistaken for a
 calibrated negative result. A failed lineage row tells the operator
 to retry reconstruction, not to connect TEPP. A failed period-report
 row tells the operator to rebuild the report. A pending TEPP row
-does not claim a calibrated measurement and does not say
-reconstruction. The list button accessible name includes the
-next-action sentence; detail repeats it (ADR 0014). A pending lineage row
+does not claim a calibrated measurement. A pending lineage row
 says reconstruction has not started yet; open it and start
 reconstruction. The
 payload is lookup labels plus non-negative aggregate counts -- never
@@ -524,11 +520,8 @@ source SQL, a DSN, a raw record, or a provider body. After `make seed`,
 Demo Analyst and Demo Admin see "Lineage reconstruction · Succeeded ·
 Demo Corp" with "3 documents" and Pending / Running / Succeeded times,
 the designed A-100 fork as clickable reconstructed edges, Claimed
-then Delivered outbox times, "TEPP measurement · Failed · Demo
-Corp" whose detail history ends in Failed / `tepp_not_available`,
-and a second "TEPP measurement · Failed · Demo Corp" whose detail
-shows Measurement evidence for the published accepted acknowledgement
-(ADR 0035).
+then Delivered outbox times, and "TEPP measurement · Failed · Demo
+Corp" whose detail history ends in Failed / `tepp_not_available`.
 Seed also records "Period report · Succeeded · Demo Corp" on that
 same snapshot after the calibrated report tables are written
 (ADR 0024). Open that row to confirm the cutoff posts; mean θ stays
@@ -537,10 +530,7 @@ A run-bearing registry is emptied only after an unrevoked
 `analysis_run_retention_grant` and `GRANT analysis_run_retention_admin`,
 then `purge_analysis_run_registry('approved-retention-purge')`
 (ADR 0020); a raw `DELETE` and a runtime role that only knows the
-public phrase stay rejected. When start reconstruction has persisted
-run-scoped edges, that same call empties those children instead of
-stopping on an immutable-trigger or foreign-key error (ADR 0032).
-Repeated chip and close controls use
+public phrase stay rejected. Repeated chip and close controls use
 `frontend/src/styles/tokens.css` and the Storybook inventory.
 
 ## Phase 6a: fast-mlsirm dependency + Rust toolchain (infra only)
@@ -598,7 +588,7 @@ on those same fixed parameters (Kim, 2006 FIPC). After scoring,
 `information_polytomous` ranks the shared-bank items by Fisher
 information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
-residual SVD leftover pairs (Jeon et al., 2021; ADR 0028) persist to
+residual SVD leftover pairs (Jeon et al., 2021; ADR 0017) persist to
 `report_leftover_pair`. Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
@@ -706,15 +696,13 @@ when absent) alongside its text -- `_BlockTextExtractor` tracks it
 through the existing start/end-tag stack rather than adding a second
 pass over the document.
 
-Wiring: `backend/app/config.py` gained `Settings.vision_model` (env
-`VISION_MODEL`) -- empty means the vision channel is unavailable, the
-same "no fake channel" discipline as every other pluggable client, not a
-guessed default model. `backend/app/main.py`'s `_vision_client()` factory
+Wiring: `backend/app/main.py`'s `_vision_client()` factory
 returns a real `OpenAiCompatibleVisionClient` (via
 `orchestrator_vision_client`, which appends `/v1` so the same
 `ORCHESTRATOR_BASE_URL` other channels use lands on
-`/v1/chat/completions`) only when base URL, API key, and model are all
-set, else `NullImageContentClient()`; it is
+`/v1/chat/completions`) when base URL and API key are set, else
+`NullImageContentClient()`. The request omits `model`; contextual-orchestrator
+selects the registered vision-capable agent. It is
 called at all three raw-`post_body`-reading endpoints (`extract-keymen`,
 post summary, commitment derivation) and threaded through
 `post_chat_ingestion.gather_chat_sources()` so every RAG source document
@@ -800,7 +788,7 @@ subclasses of the real external PROV-O classes (imported via the
 `prov:` namespace), kept distinct from the ontology's existing `:Person`
 (node_type's cataloged Keyman with a stable `person_id`) since an R&R
 actor is a free-text name with no cataloged identity of its own.
-`migrations/0012_role_responsibility_agent_type.sql` renames the
+`migrations/0060_role_responsibility_agent_type.sql` renames the
 `post_summary_role` column via `RENAME COLUMN` (preserves existing
 rows) rather than a drop/recreate. The popup's R&R list shows a
 Person/Organization badge and the inferred affiliation; only a person
@@ -968,15 +956,3 @@ so it also covers the multi-entity opposite-order case a per-name lock
 would still deadlock on. Every already-cataloged entity still resolves
 through the unchanged, lock-free similarity-matching fast path; only
 the rare creation branch serializes.
-
-## Phase 14: customer-group tree plus Searxng abbreviation cross-check
-
-Operators navigate the authorized Group / Company / Plant catalog
-(`GET /api/customer-group-tree`), not only the post-scoped affiliate
-tree or the flat `/api/me` corp list. Abbreviations on a post are
-cross-checked against that tree through the existing Searxng client
-(`abbreviation_tree_corroboration`). A unique corroborated node binds;
-a down, empty, or tied search stays unbound and does not invent a
-parent or AUTO row. See
-[ADR 0033](docs/adr/0033-customer-group-tree-abbreviation-corroboration.md).
-This path does not reimplement ADR 0008 or ADR 0010.

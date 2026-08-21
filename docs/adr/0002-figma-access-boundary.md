@@ -2,6 +2,8 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-13
+**Figma File ID:** `1Su3lDRmiZdcUs47t1QwIX`
+**Figma File URL:** https://www.figma.com/design/1Su3lDRmiZdcUs47t1QwIX
 
 ## Context
 
@@ -37,6 +39,10 @@ referenced Figma file's actual content. No real organizational detail,
 statistic, or internal identifier observed while checking the file's
 metadata is repeated anywhere in this repository, in code, in docs, or
 in commit history.
+
+The newly created file identified above is the safe design-system boundary
+for LineageWeave's buyer surface. It currently contains no copied source
+organization content; future token or component work must keep that boundary.
 
 ## Rationale
 

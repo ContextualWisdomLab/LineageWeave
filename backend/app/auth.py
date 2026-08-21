@@ -1,12 +1,14 @@
-"""OIDC-validated login. A bearer access token is verified against
-Keycloak's own live JWKS (real signature verification, not a shared-secret
-shortcut) and resolved to a user_account row via external_subject_id --
+"""OIDC-validated login. A bearer access token is verified against the
+configured provider's live JWKS (Keyverse in production, local Keycloak in
+Compose development; never a shared-secret shortcut) and resolved to a
+user_account row via external_subject_id --
 corp_code/pu_code are attributes read from the DB's account_affiliation,
 never trusted directly off the token, per the schema's design (see
 migrations/0001_initial_schema.sql).
 
-JWKS is fetched through ``lineageweave.http_client.get_json`` (http(s)
-allowlist) so a mis-set KEYCLOAK_BASE_URL cannot become a file-scheme read.
+JWKS is fetched through OIDC discovery or an explicit JWKS URI using
+``lineageweave.http_client.get_json``. The HTTP client rejects non-http(s)
+schemes, so provider configuration cannot become a file-scheme read.
 """
 
 from __future__ import annotations
@@ -25,32 +27,81 @@ from backend.app.db import get_pool
 from lineageweave.http_client import HttpClientError, get_json
 
 _bearer_scheme = HTTPBearer(auto_error=True)
-_jwks_cache: dict[str, dict] = {}
+_jwks_cache: dict[tuple[str, str, str], dict] = {}
 
 
-def _jwks(settings: Settings) -> dict:
-    """Return the realm JWKS, cached per URI for the process lifetime."""
-    cached = _jwks_cache.get(settings.keycloak_jwks_uri)
+def _jwks_cache_key(settings: Settings) -> tuple[str, str, str]:
+    """Bind cached keys to the exact issuer and key-discovery configuration."""
+    return (
+        settings.oidc_issuer,
+        settings.oidc_discovery_uri,
+        settings.oidc_jwks_uri_override,
+    )
+
+
+def _jwks(settings: Settings, *, force_refresh: bool = False) -> dict:
+    """Return provider JWKS, refreshing explicitly when signing keys rotate."""
+    cache_key = _jwks_cache_key(settings)
+    cached = None if force_refresh else _jwks_cache.get(cache_key)
     if cached is None:
         try:
-            cached = get_json(settings.keycloak_jwks_uri, timeout=10)
+            if settings.oidc_jwks_uri_override:
+                jwks_uri = settings.oidc_jwks_uri_override
+            else:
+                metadata = get_json(settings.oidc_discovery_uri, timeout=10)
+                jwks_uri = metadata.get("jwks_uri")
+                if not isinstance(jwks_uri, str) or not jwks_uri.strip():
+                    raise ValueError("OIDC discovery document has no jwks_uri")
+            cached = get_json(jwks_uri, timeout=10)
         except (HttpClientError, OSError, ValueError) as exc:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                f"could not fetch JWKS from {settings.keycloak_jwks_uri}: {exc}",
+                f"could not fetch OIDC JWKS for {settings.oidc_issuer}: {exc}",
             ) from exc
-        _jwks_cache[settings.keycloak_jwks_uri] = cached
+        _jwks_cache[cache_key] = cached
     return cached
 
 
 def _signing_key_from_jwks(jwks: dict, token: str):
-    """Pick the JWKS RSA key that matches the JWT kid, without urllib."""
-    header = jwt.get_unverified_header(token)
+    """Require a non-empty JWT ``kid`` and an exact acceptable RSA key match."""
+    try:
+        header = jwt.get_unverified_header(token)
+    except jwt.PyJWTError as exc:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid access-token header") from exc
+    if header.get("alg") != "RS256":
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token must use RS256")
     kid = header.get("kid")
+    if not isinstance(kid, str) or not kid.strip():
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token must include a non-empty kid")
     for key in jwks.get("keys", []):
-        if kid is None or key.get("kid") == kid:
+        if not isinstance(key, dict) or key.get("kid") != kid:
+            continue
+        if key.get("kty") != "RSA":
+            continue
+        if key.get("alg") not in (None, "RS256"):
+            continue
+        if key.get("use") not in (None, "sig"):
+            continue
+        key_ops = key.get("key_ops")
+        if key_ops is not None and (
+            not isinstance(key_ops, list) or "verify" not in key_ops
+        ):
+            continue
+        try:
             return RSAAlgorithm.from_jwk(json.dumps(key))
+        except (KeyError, TypeError, ValueError) as exc:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "matching JWKS key is invalid") from exc
     raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"no JWKS key matched kid={kid!r}")
+
+
+def _signing_key(settings: Settings, token: str):
+    """Resolve a signing key and refresh JWKS once when a new ``kid`` appears."""
+    try:
+        return _signing_key_from_jwks(_jwks(settings), token)
+    except HTTPException as exc:
+        if not str(exc.detail).startswith("no JWKS key matched kid="):
+            raise
+    return _signing_key_from_jwks(_jwks(settings, force_refresh=True), token)
 
 
 @dataclass(frozen=True)
@@ -60,6 +111,7 @@ class CurrentAccount:
     user_account_id: str
     external_subject_id: str
     display_name: str
+    preferred_locale: str | None
     corporate_entity_ids: frozenset[str]
     permission_codes: frozenset[str]
 
@@ -69,17 +121,24 @@ class CurrentAccount:
 
 
 def _decode_access_token(token: str, settings: Settings) -> dict:
+    """Validate signature, issuer, resource audience, time claims, and subject."""
     try:
-        signing_key = _signing_key_from_jwks(_jwks(settings), token)
-        return jwt.decode(
+        claims = jwt.decode(
             token,
-            key=signing_key,
+            key=_signing_key(settings, token),
             algorithms=["RS256"],
-            issuer=settings.keycloak_issuer,
-            options={"verify_aud": False},
+            issuer=settings.oidc_issuer,
+            audience=settings.oidc_audience,
+            leeway=settings.oidc_clock_skew_seconds,
         )
+    except HTTPException:
+        raise
     except jwt.PyJWTError as exc:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"invalid token: {exc}") from exc
+    subject = claims.get("sub")
+    if not isinstance(subject, str) or not subject.strip():
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token has no subject")
+    return claims
 
 
 async def get_current_account(
@@ -93,7 +152,7 @@ async def get_current_account(
 
     async with pool.acquire() as conn:
         account_row = await conn.fetchrow(
-            "select user_account_id, display_name from user_account where external_subject_id = $1",
+            "select user_account_id, display_name, preferred_locale from user_account where external_subject_id = $1",
             subject,
         )
         if account_row is None:
@@ -121,6 +180,7 @@ async def get_current_account(
         user_account_id=str(account_row["user_account_id"]),
         external_subject_id=subject,
         display_name=account_row["display_name"],
+        preferred_locale=account_row["preferred_locale"],
         corporate_entity_ids=frozenset(str(row["corporate_entity_id"]) for row in entity_rows),
         permission_codes=frozenset(row["permission_code"] for row in permission_rows),
     )

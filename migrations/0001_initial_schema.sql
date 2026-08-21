@@ -212,7 +212,7 @@ create table post_summary_event (
     primary key (post_id, event_ordinal)
 );
 
--- actor_type_code: R&R Ontology, see migrations/0012_role_responsibility_agent_type.sql
+-- actor_type_code: R&R Ontology, see migrations/0060_role_responsibility_agent_type.sql
 -- and ADR 0006 -- a named actor is not always a person (an organization
 -- can act in its own name, e.g. "당사," "Demo Corp"), so this is not folded
 -- into person_name's own meaning.
@@ -325,7 +325,7 @@ create table report_item_information (
     check (item_rank >= 1)
 );
 
--- Leftover interaction map pairs after IRT main effects (ADR 0028).
+-- Leftover interaction map pairs after IRT main effects (ADR 0017).
 -- Closest / farthest post–criterion Euclidean distances on the residual
 -- biplot (Jeon et al., 2021). Cascade with the period score. The pair
 -- post must be a member of this report; the criterion must be a CAT
@@ -620,25 +620,5 @@ create table organization_name_resolution (
 
 comment on table organization_name_resolution is
     'Caches LLM-proposed canonical names for abbreviated/slang organization mentions (e.g. AGP -> Aurora Grid Power), cross-verified via external search before being trusted.';
-
--- Searxng cross-check of a post abbreviation against an existing
--- customer-group tree node (ADR 0033). This is not ADR 0008's LLM
--- expansion and does not insert a corporate_entity row. A missing or
--- tied Searxng result leaves corporate_entity_id null.
-create table abbreviation_tree_corroboration (
-    abbreviation_tree_corroboration_id uuid primary key default uuid_generate_v4(),
-    raw_organization_name text not null unique,
-    corporate_entity_id uuid references corporate_entity (corporate_entity_id),
-    verification_status_code text not null references common_lookup_value (lookup_code),
-    verification_evidence_url text,
-    corroborated_at timestamptz not null default now()
-);
-
-create index abbreviation_tree_corroboration_entity_idx
-    on abbreviation_tree_corroboration (corporate_entity_id)
-    where corporate_entity_id is not null;
-
-comment on table abbreviation_tree_corroboration is
-    'Caches Searxng corroboration of a raw organization mention against an existing customer-group tree node. Fail-closed: no parent and no AUTO row when search is down, empty, or tied.';
 
 commit;

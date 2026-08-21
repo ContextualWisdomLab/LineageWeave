@@ -44,7 +44,10 @@ from lineageweave.knowledge_graph import (
 from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
     ACTOR_TYPE_PERSON,
+    KeyEvent,
+    MajorEventAction,
     PostSummary,
+    ProjectMention,
     RoleResponsibility,
 )
 
@@ -52,6 +55,49 @@ _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
 )
 _MIGRATION_PATH = Path(__file__).resolve().parents[1] / "migrations" / "0001_initial_schema.sql"
+_SEMANTIC_PROJECT_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0031_semantic_project_mentions.sql"
+)
+_POST_SUMMARY_CONTRACT_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0040_post_summary_contract.sql"
+)
+_SUMMARY_FIVE_W1H_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0048_post_summary_five_w1h.sql"
+)
+_MAJOR_EVENT_ACTION_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0100_major_event_action.sql"
+)
+_PROJECT_BOUND_ACTION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0101_project_bound_major_event_action.sql"
+)
+_PROJECT_BOUND_EVENT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0102_project_bound_summary_event.sql"
+)
+_SEMANTIC_SEARCH_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0032_semantic_search_trigram.sql"
+)
+_SOURCE_STATE_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0033_source_state_provenance.sql"
+)
+_SOURCE_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0034_source_context_provenance.sql"
+)
+_NORMALIZED_BODY_SEARCH_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0036_normalized_body_search.sql"
+)
+_SOURCE_RECORD_IDENTITY_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0037_source_record_identity.sql"
+)
+_SOURCE_NAMED_HINTS_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0038_source_named_hints.sql"
+)
+_SOURCE_ORG_NAMED_HINTS_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0039_source_org_named_hints.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -106,6 +152,19 @@ def projection_database() -> str:
         try:
             with connection.cursor() as cursor:
                 cursor.execute(_MIGRATION_PATH.read_text(encoding="utf-8"))
+                cursor.execute(_SEMANTIC_PROJECT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SEMANTIC_SEARCH_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SOURCE_STATE_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SOURCE_CONTEXT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_NORMALIZED_BODY_SEARCH_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SOURCE_RECORD_IDENTITY_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SOURCE_NAMED_HINTS_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SOURCE_ORG_NAMED_HINTS_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_POST_SUMMARY_CONTRACT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SUMMARY_FIVE_W1H_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(
                     """
                     insert into common_lookup_value
@@ -208,14 +267,50 @@ async def _exercise_projection_contract(
             post_id,
             PostSummary(
                 korean_summary="합성 요약",
+                key_event_details=(
+                    KeyEvent(event_text="합성 프로젝트 검토", project_key="Synthetic Project"),
+                ),
                 roles_and_responsibilities=(
                     RoleResponsibility(
                         actor_name="Summary Person",
                         responsibility="검토",
                     ),
                 ),
+                major_event_actions=(
+                    MajorEventAction(
+                        action_text="합성 프로젝트 검토 요청",
+                        requester_actor_name="Summary Person",
+                        processor_actor_name=None,
+                        evidence_text="합성 본문에 프로젝트 검토 요청이 기록됨",
+                        project_key="Synthetic Project",
+                    ),
+                    MajorEventAction(
+                        action_text="연결되지 않은 프로젝트 요청",
+                        requester_actor_name=None,
+                        processor_actor_name=None,
+                        evidence_text="프로젝트 연결 근거가 없음",
+                        project_key="unsupported-project",
+                    ),
+                ),
+                project_mentions=(
+                    ProjectMention(
+                        project_name="Synthetic Project",
+                        canonical_name="Synthetic Project",
+                        evidence="합성 본문에 프로젝트명이 있음",
+                        confidence=0.9,
+                    ),
+                ),
             ),
         )
+        summary_payload = await fetch_persisted_summary(connection, post_id)
+        assert summary_payload is not None
+        assert [
+            action["project_name"]
+            for action in summary_payload["major_event_actions"]
+        ] == ["Synthetic Project", None]
+        assert summary_payload["key_event_details"] == [
+            {"event_text": "합성 프로젝트 검토", "project_name": "Synthetic Project"}
+        ]
 
         keyman_rows = await connection.fetch(
             "select person_id from post_person_mention where post_id = $1",
@@ -346,8 +441,9 @@ def test_cross_post_identity_upgrade_keeps_keyman_mention_context(
                 ),
             )
             cursor.execute(
-                "insert into post_summary_result (post_id, korean_summary) values (%s, %s)",
-                (post_id, "합성 요약"),
+                "insert into post_summary_result "
+                "(post_id, korean_summary, summary_contract_version) values (%s, %s, %s)",
+                (post_id, "합성 요약", 1),
             )
             cursor.execute(
                 """
