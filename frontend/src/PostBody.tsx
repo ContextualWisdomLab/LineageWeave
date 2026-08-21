@@ -87,24 +87,36 @@ function renderImageEvidence(
   );
 }
 
+const MAX_RENDERABLE_INDENT_LEVEL = 64;
+
+function safeIndentLevel(value: unknown): number | undefined {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    value <= 0 ||
+    value > MAX_RENDERABLE_INDENT_LEVEL
+  ) {
+    return undefined;
+  }
+  return value;
+}
+
 function renderSegment(segment: PostBodySegment, index: number, imageContent?: PostImageContent) {
   switch (segment.kind) {
-    case "text":
+    case "text": {
+      const indentLevel = safeIndentLevel(segment.indentLevel);
       return (
         <p
           key={`post-body-text-${index}`}
           className={`post-body-text${segment.role === "footnote" ? " post-body-footnote" : ""}`}
           data-content-kind={segment.role ?? "text"}
-          data-indent-level={segment.indentLevel ?? 0}
-          style={
-            segment.indentLevel
-              ? { paddingInlineStart: `${segment.indentLevel}em` }
-              : undefined
-          }
+          data-indent-level={indentLevel ?? 0}
+          style={indentLevel ? { paddingInlineStart: `${indentLevel}em` } : undefined}
         >
           {segment.text}
         </p>
       );
+    }
     case "image":
       return renderImageEvidence(index, imageContent, segment);
     default: {
@@ -193,10 +205,11 @@ function renderStructuredUnits(
       continue;
     }
     const sourceText = sourceTextForUnit(unit.unit_text);
+    const candidateIndent = safeIndentLevel(unit.indent_level);
     const persistedIndent =
-      unit.indent_level > 0 &&
+      candidateIndent &&
       (unit.indent_source_code === "explicit" || unit.indent_source_code === "llm")
-        ? unit.indent_level
+        ? candidateIndent
         : undefined;
     rendered.push(
       renderSegment(

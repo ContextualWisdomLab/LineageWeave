@@ -79,6 +79,30 @@ describe("PostBody", () => {
     expect(screen.getByText("- 설치 확인")).toHaveAttribute("data-indent-level", "2");
   });
 
+  it("drops hostile or unbounded indentation before it reaches CSS", () => {
+    render(
+      <PostBody
+        body="<p>Untrusted indent</p>"
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "dom",
+            unit_text: "Untrusted indent",
+            // Runtime JSON is untrusted even though the generated type is numeric.
+            indent_level: "0; color: red" as unknown as number,
+            indent_source_code: "explicit",
+            indent_confidence: 1,
+            indent_evidence: "untrusted fixture",
+          },
+        ]}
+      />,
+    );
+
+    const paragraph = screen.getByText("Untrusted indent");
+    expect(paragraph).toHaveAttribute("data-indent-level", "0");
+    expect(paragraph).not.toHaveAttribute("style");
+  });
+
   it("uses persisted indentation for ordinary paragraphs without table markers", () => {
     render(
       <PostBody
