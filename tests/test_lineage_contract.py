@@ -5,6 +5,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
+import lineageweave.lineage_contract as contract
 from lineageweave.lineage_contract import (
     EmailEvidence,
     LineageAnalysisPolicy,
@@ -13,6 +14,7 @@ from lineageweave.lineage_contract import (
     LineageProjectHint,
     analyze_lineage,
 )
+from lineageweave.models import Edge, Record, Tree
 
 BASE_TIME = datetime(2026, 1, 1, 9, tzinfo=UTC)
 
@@ -38,13 +40,13 @@ def evidence(
 
 def request(records: tuple[LineageEvidenceRecord, ...], **kwargs) -> LineageAnalysisRequest:
     """Build a valid synthetic request with explicit authorization scope."""
-    return LineageAnalysisRequest(
-        analysis_id="analysis-001",
-        authorization_scope_ref="scope-opaque-001",
-        knowledge_cutoff=BASE_TIME + timedelta(hours=1),
-        evidence=records,
-        **kwargs,
-    )
+    values = {
+        "analysis_id": "analysis-001",
+        "authorization_scope_ref": "scope-opaque-001",
+        "knowledge_cutoff": BASE_TIME + timedelta(hours=1),
+    }
+    values.update(kwargs)
+    return LineageAnalysisRequest(evidence=records, **values)
 
 
 def test_request_json_keeps_email_protocol_evidence_separate_and_deterministic() -> None:
@@ -61,6 +63,53 @@ def test_request_json_keeps_email_protocol_evidence_separate_and_deterministic()
     assert payload["contract_version"] == "lineage-analysis/v1"
     assert payload["evidence"][0]["email"]["rfc_message_id"] == "<synthetic-001@example.invalid>"
     assert "truth_status" not in payload["evidence"][0]["email"]
+
+
+def test_request_rejects_empty_and_oversized_text() -> None:
+    """Opaque identifiers and text fields stay bounded at the trust boundary."""
+    with pytest.raises(ValueError, match="analysis_id must be a non-empty string"):
+        request((evidence("text-001"),), analysis_id="").validate()
+    with pytest.raises(ValueError, match="analysis_id exceeds"):
+        request((evidence("text-001"),), analysis_id="x" * 201).validate()
+    too_long_body = LineageEvidenceRecord(**{**evidence("text-002").__dict__, "body_text": "x" * 4_001})
+    with pytest.raises(ValueError, match="body_text exceeds"):
+        request((too_long_body,)).validate()
+    too_long_secondary = LineageEvidenceRecord(**{**evidence("text-003").__dict__, "secondary_key": "x" * 201})
+    with pytest.raises(ValueError, match="secondary_key exceeds"):
+        request((too_long_secondary,)).validate()
+
+
+def test_request_rejects_unbound_hints_excess_records_and_policy_budget() -> None:
+    """Hints and work budgets cannot escape the submitted authorization scope."""
+    with pytest.raises(ValueError, match="outside the request"):
+        request(
+            (evidence("hint-001"),),
+            project_hints=(LineageProjectHint("missing-001", "project-001", "Missing"),),
+        ).validate()
+    with pytest.raises(ValueError, match="exceeds max_evidence_records"):
+        request(
+            (evidence("count-001"), evidence("count-002")),
+            policy=LineageAnalysisPolicy(max_evidence_records=1),
+        ).validate()
+    with pytest.raises(ValueError, match="max_body_chars must be between"):
+        request((evidence("policy-001"),), policy=LineageAnalysisPolicy(max_body_chars=8_001)).validate()
+
+
+def test_request_validates_email_collections_and_policy_lower_bound() -> None:
+    """Participant, attachment, and lower-bound policy values remain valid inputs."""
+    record = evidence("email-collections")
+    record = LineageEvidenceRecord(
+        **{
+            **record.__dict__,
+            "body_text": "",
+            "email": EmailEvidence(
+                references=("<parent@example.invalid>",),
+                participant_refs=("participant-001",),
+                attachment_refs=("attachment-001",),
+            ),
+        }
+    )
+    request((record,), policy=LineageAnalysisPolicy(max_body_chars=0)).validate()
 
 
 def test_analyze_lineage_excludes_late_evidence_and_exposes_unavailable_llm() -> None:
@@ -94,6 +143,8 @@ def test_analyze_lineage_maps_edges_to_opaque_refs_and_project_hints_stay_non_au
         and edge.child_evidence_ref in {"source-001", "source-002"}
         for edge in result.edges
     )
+    assert result.edges
+    assert json.loads(result.to_json())["edges"]
     assert any(item.code == "project_hints_are_non_authoritative" for item in result.limitations)
 
 
@@ -115,3 +166,23 @@ def test_policy_rejects_unbounded_record_budget() -> None:
     """A provider request cannot silently opt into unbounded work."""
     with pytest.raises(ValueError, match="between 1 and 5000"):
         request((evidence("bounded-001"),), policy=LineageAnalysisPolicy(max_evidence_records=0)).validate()
+
+
+def test_analyze_lineage_drops_an_unexpected_edge_reference(monkeypatch) -> None:
+    """The response boundary cannot leak an edge outside cutoff-eligible refs."""
+    def fake_reconstruct(records: list[Record], *, llm) -> list[Tree]:
+        """Return a deliberately malformed internal edge for boundary testing."""
+        return [
+            Tree(
+                group_key=records[0].group_key,
+                records={record.record_id: record for record in records},
+                edges=[Edge("late-001", records[0].record_id, 0.9, {"text": 0.9})],
+                roots=[],
+                children_of={},
+            )
+        ]
+
+    monkeypatch.setattr(contract, "reconstruct", fake_reconstruct)
+    result = analyze_lineage(request((evidence("early-001"),)))
+
+    assert result.edges == ()

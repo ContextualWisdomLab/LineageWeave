@@ -19,7 +19,6 @@ from .reconstruct import reconstruct
 CONTRACT_VERSION = "lineage-analysis/v1"
 _MAX_REFERENCE_LENGTH = 200
 _MAX_TEXT_LENGTH = 8_000
-_TRUTH_STATUSES = frozenset({"observed", "inferred", "proposed", "unavailable"})
 
 
 def _required_text(value: str, field_name: str, *, maximum: int = _MAX_REFERENCE_LENGTH) -> str:
