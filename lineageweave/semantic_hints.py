@@ -26,7 +26,9 @@ _WEAK_CUSTOMER_VALUES = frozenset(
 )
 
 
-def _value(value: str | None) -> str:
+def _value(value: str | int | None) -> str:
+    if isinstance(value, int):
+        return str(value)
     return value.strip() if isinstance(value, str) and value.strip() else "none"
 
 
