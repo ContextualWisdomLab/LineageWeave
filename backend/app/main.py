@@ -186,6 +186,7 @@ from backend.app.demo_scope import (
     is_demo_scope,
 )
 from lineageweave.http_client import HttpClientError
+from lineageweave.observability import configure_telemetry
 
 _POST_READ = "post_read"
 _POST_ADMIN = "post_admin"
@@ -195,6 +196,7 @@ _POST_ADMIN = "post_admin"
 async def lifespan(app: FastAPI):
     """Open one asyncpg pool and one Valkey client for the process, and
     close both on shutdown."""
+    configure_telemetry("lineageweave")
     settings = load_settings()
     app.state.pool = await create_pool(settings.database_url)
     app.state.valkey = create_valkey_client(settings.valkey_url)
