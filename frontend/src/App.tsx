@@ -3615,7 +3615,7 @@ function PostList({
 
   useEffect(() => {
     if (focusSearchRequest > 0) searchInputRef.current?.focus();
-  }, [focusSearchRequest]);
+  }, [focusSearchRequest, posts]);
 
   function openReportFromAnalysisRun(
     periodCode: string,

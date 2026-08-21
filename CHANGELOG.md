@@ -11,6 +11,9 @@ All notable changes to this project are documented here. Format follows
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
+- The buyer Event Lineage global Search action now retries focus after the
+  board finishes loading, so navigation from Customer master, Calendar, or
+  Ask Agent lands the cursor in the search box.
 
 ## [2.12.6] - 2026-08-20
 

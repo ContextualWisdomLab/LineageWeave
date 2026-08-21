@@ -3535,9 +3535,13 @@ describe("App, authenticated", () => {
     expect(appHeader).not.toBeNull();
     expect(within(appHeader as HTMLElement).getByLabelText("Language")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Buyer navigation" })).not.toHaveTextContent("Language");
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
     await userEvent.click(
       within(appHeader as HTMLElement).getByRole("button", { name: "Search" }),
     );
-    expect(screen.getByRole("searchbox", { name: "Search semantic evidence" })).toHaveFocus();
+    await waitFor(() =>
+      expect(screen.getByRole("searchbox", { name: "Search semantic evidence" })).toHaveFocus(),
+    );
   });
 });
