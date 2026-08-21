@@ -99,6 +99,9 @@ Open PRs at the same observation:
 - PR #388: `head` `146cc56e07db9479ab8dba93aedb0ffd06d2e795`, base
   `feat/event-lineage-channel-evidence`
   (`4faf9a31371195c5ec63fca42a5afbb93a95369b`).
+- PR #389: `head` `1ebacdf534a2cbc639020a964ac2c7a760e1a774`, base
+  `feat/post-body-footnote-display`
+  (`146cc56e07db9479ab8dba93aedb0ffd06d2e795`).
 
 The open queue remains subject to exact-current-head Checks, formal independent
 approval, and protected mergeability. Green Checks alone do not prove that a
@@ -242,6 +245,17 @@ Observed at `2026-08-21T17:41:55Z` on PR #388's exact head
   all 144 Vitest tests, lint, and the production build. Hosted Checks were
   queued and no independent approval or merge commit was present.
 
+Observed at `2026-08-21T17:47:52Z` on PR #389's exact head
+`1ebacdf534a2cbc639020a964ac2c7a760e1a774`:
+
+- The buyer-facing fallback now renders a pipe-delimited Markdown table in a
+  normal source body, including an empty cell, while retaining the existing
+  image-OCR table renderer.
+- Local frontend verification passed 147 Vitest tests, lint, and the
+  production build. Hosted Checks were queued and no independent approval or
+  merge commit was present. This remains an open stacked fix, not a resolved
+  production gap.
+
 Observed at `2026-08-21T17:25:46Z` on PR #387's exact head
 `df2519c09b224f05ac84e6997abd3b4f1bb94cb6`:
 
@@ -283,8 +297,8 @@ it has no independent approval, so PR #383 is not reported green or mergeable.
 
 ## 7. Next Implementation Order
 
-1. Revalidate open PRs #258, #349, #355, #368, #373, #383, #384, #387, and
-   #388 at
+1. Revalidate open PRs #258, #349, #355, #368, #373, #383, #384, #387, #388,
+   and #389 at
    their exact current heads as Checks and formal independent approvals arrive;
    process stacked parents only after their child merge commits are observed.
    Verify the synthetic footnote/table cases in the authenticated browser and
