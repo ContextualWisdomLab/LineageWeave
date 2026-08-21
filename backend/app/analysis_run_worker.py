@@ -12,6 +12,7 @@ import redis.asyncio as redis
 from uuid import UUID
 
 from lineageweave.adjudication_client import AdjudicationClient
+from lineageweave.observability import traced
 from lineageweave.tepp_client import TeppClient
 
 from backend.app.analysis_run_outbox import OUTBOX_STREAM_KEY
@@ -31,7 +32,15 @@ async def consume_analysis_run_stream_once(
     Invalid or stale entries are acknowledged by advancing the cursor; the
     durable PostgreSQL outbox remains available for a later explicit retry.
     """
-    batches = await client.xread({OUTBOX_STREAM_KEY: last_id}, count=10, block=1000)
+    with traced(
+        "lineageweave.valkey.analysis_outbox_xread",
+        {
+            "db.system": "redis",
+            "db.operation.name": "xread",
+            "lineageweave.stream.kind": "analysis_outbox",
+        },
+    ):
+        batches = await client.xread({OUTBOX_STREAM_KEY: last_id}, count=10, block=1000)
     for _stream_name, entries in batches:
         for entry_id, fields in entries:
             analysis_run_id = str(fields.get("analysis_run_id", "")).strip()
