@@ -155,7 +155,7 @@ function stripHtmlTags(text: string): string {
         return "\n\n";
       }
       if (closing) return "\n\n";
-      const nestedListIndent = name === "li" ? Math.max(0, listDepth - 1) * 4 : 0;
+      const nestedListIndent = !closing && listDepth > 0 ? Math.max(0, listDepth - 1) * 4 : 0;
       return `\n\n${indentMarker(declaredIndentWidth(tag) + nestedListIndent)}`;
     })
     .replace(WORD_INDENT_TAG, (tag) => indentMarker(declaredIndentWidth(tag)));

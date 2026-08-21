@@ -71,6 +71,18 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("preserves nested list depth when item text is wrapped in a block child", () => {
+    expect(
+      splitPostBody(
+        "<ol><li><p>Parent</p><ol><li><p>Child</p></li></ol></li><li><p>Sibling</p></li></ol>",
+      ),
+    ).toEqual([
+      { kind: "text", text: "Parent" },
+      { kind: "text", text: "Child", indentLevel: 1 },
+      { kind: "text", text: "Sibling" },
+    ]);
+  });
+
   it("labels HTML, Word, and OOXML footnotes in the fallback renderer", () => {
     expect(
       splitPostBody(
