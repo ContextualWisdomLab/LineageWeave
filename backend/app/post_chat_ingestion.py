@@ -400,7 +400,7 @@ async def gather_chat_sources(
         "source_company_code, source_company_name, source_process_unit_code, "
         "source_process_unit_name, source_sales_pool_code, source_sales_pool_name, "
         "source_order_pool_code, source_sales_order_code, source_sales_order_item_number, "
-        "source_inspection_point_code, source_stage_code, source_detail_state_code, source_deleted_flag, "
+        "source_inspection_point_code, source_stage_code, source_deleted_flag, "
         "source_customer_code, source_customer_name, "
         "source_project_code, source_project_name "
         "from source_post where post_id = any($1::uuid[]) "
