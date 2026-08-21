@@ -38,10 +38,8 @@ _PROJECT_BOUND_ACTION_MIGRATION = (
     / "migrations"
     / "0101_project_bound_major_event_action.sql"
 )
-_PROJECT_BOUND_EVENT_MIGRATION = (
-    Path(__file__).resolve().parents[1]
-    / "migrations"
-    / "0102_project_bound_summary_event.sql"
+_CHANNEL_EVIDENCE_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0105_post_lineage_edge_signal.sql"
 )
 
 
@@ -79,6 +77,7 @@ def schema_db():
                 cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
+                cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -116,6 +115,9 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "knowledge_graph_edge_evidence",
         "issue_ticket",
         "post_lineage_edge",
+        "post_lineage_edge_signal",
+        "event_lineage_rebuild",
+        "event_lineage_rebuild_channel",
         "post_evaluation_response",
         "report_period_score",
         "report_member_score",
@@ -171,6 +173,55 @@ def test_leftover_pair_references_member_and_item_rows(schema_db) -> None:
     assert "report_item_information" in targets
     assert "report_period_score" in targets
 
+
+def test_lineage_channel_evidence_is_cascaded_and_lookup_controlled(schema_db) -> None:
+    """Signal rows cannot outlive their edge or name an unknown channel."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select pg_get_constraintdef(oid)
+            from pg_constraint
+            where conrelid = 'post_lineage_edge_signal'::regclass
+            order by conname
+            """
+        )
+        definitions = " ".join(row[0].casefold() for row in cur.fetchall())
+        assert "references post_lineage_edge" in definitions
+        assert "on delete cascade" in definitions
+        assert "references common_lookup_value" in definitions
+        cur.execute(
+            "select lookup_code from common_lookup_value "
+            "where lookup_category = 'lineage_signal' order by display_order"
+        )
+        assert [row[0] for row in cur.fetchall()] == [
+            "lineage_signal_temporal",
+            "lineage_signal_secondary_key",
+            "lineage_signal_text",
+            "lineage_signal_llm",
+        ]
+        cur.execute(
+            """
+            select data_type, numeric_precision, numeric_scale
+            from information_schema.columns
+            where table_name = 'post_lineage_edge_signal'
+              and column_name in ('signal_score', 'signal_weight', 'signal_contribution')
+            """
+        )
+        for data_type, precision, scale in cur.fetchall():
+            assert data_type == "numeric"
+            assert precision == 8
+            assert scale == 6
+        cur.execute(
+            """
+            select column_name from information_schema.columns
+            where table_name in (
+                'post_lineage_edge_signal',
+                'event_lineage_rebuild',
+                'event_lineage_rebuild_channel'
+            ) and data_type = 'jsonb'
+            """
+        )
+        assert cur.fetchall() == []
 
 
 def test_corporate_hierarchy_recursive_query_returns_correct_shape(schema_db) -> None:

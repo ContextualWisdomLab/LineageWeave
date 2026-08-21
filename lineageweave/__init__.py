@@ -11,7 +11,12 @@ from .affiliate_tree import build_affiliate_forest
 from .corporate_hierarchy_resolution import resolve_corporate_entity
 from .entity_relationship_classification import OrganizationRelationship
 from .knowledge_graph import random_walk_with_restart, select_related_nodes
-from .lineage_persistence import lineage_edge_specs
+from .lineage_persistence import (
+    CHANNEL_EVIDENCE_TOLERANCE,
+    lineage_edge_specs,
+    rank_channel_evidence,
+    reconstruction_version,
+)
 from .models import Edge, Record, Tree
 from .post_chat import ChatAnswer, cited_post_summaries
 from .post_summary import PostSummary
@@ -47,12 +52,15 @@ __all__ = [
     "Tree",
     "build_affiliate_forest",
     "cited_post_summaries",
+    "CHANNEL_EVIDENCE_TOLERANCE",
     "lineage_edge_specs",
+    "rank_channel_evidence",
     "random_walk_with_restart",
     "reconstruct",
+    "reconstruction_version",
     "resolve_corporate_entity",
     "select_related_nodes",
     "sentence_excerpts",
 ]
 
-__version__ = "2.12.6"
+__version__ = "2.14.0"

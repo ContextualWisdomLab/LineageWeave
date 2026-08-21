@@ -36,6 +36,10 @@ describe("i18n", () => {
     "Page",
     "Answer",
     "Showing the first {shown} of {total} posts known at this cutoff.",
+    "Connection evidence",
+    "Each connection is inferred from independent signals. It is not a causal claim.",
+    "No LLM adjudication participated in this connection.",
+    "Temporal proximity",
   ] as const;
 
   it("supports the five product locales", () => {

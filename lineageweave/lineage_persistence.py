@@ -1,28 +1,62 @@
-"""Flatten ``reconstruct()`` trees into the rows ``post_lineage_edge`` stores.
+"""Flatten ``reconstruct()`` trees into the rows Event Lineage persists.
 
 The reconstruction algorithm stays in ``reconstruct.py``. This module is
-only the persistence contract: one ``Edge`` becomes one
-``(parent_post_id, child_post_id, fused_score)`` row. Seed scripts and a
-future rebuild endpoint share this so they cannot drift from what the
-Event Lineage panel reads.
+the persistence contract shared by seed scripts and the live rebuild
+writer so they cannot drift from what the Event Lineage panel reads.
+
+Each parent→child edge is still one ``post_lineage_edge`` row. The
+winning edge's active channel scores are persisted beside it as
+``post_lineage_edge_signal`` rows (ADR 0124). A missing LLM channel is
+dropped, never fabricated. Contribution is ``weight * score`` and must
+reconcile with ``fused_score`` within :data:`CHANNEL_EVIDENCE_TOLERANCE`.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from decimal import ROUND_HALF_EVEN, Decimal
 
 from .adjudication_client import AdjudicationClient
 from .models import Edge, Record
-from .reconstruct import reconstruct
+from .reconstruct import (
+    DEFAULT_CANDIDATE_WINDOW,
+    DEFAULT_CHANNEL_WEIGHTS,
+    DEFAULT_MIN_FUSED_SCORE,
+    reconstruct,
+)
+
+RECONSTRUCTION_VERSION_PREFIX = "lineageweave.reconstruct"
+CHANNEL_EVIDENCE_TOLERANCE = 1e-6
+SIGNAL_QUANTUM = Decimal("0.000001")
+
+LINEAGE_SIGNAL_ORDER = ("temporal", "secondary_key", "text", "llm")
+
+LINEAGE_SIGNAL_LOOKUP_CODES = {
+    "temporal": "lineage_signal_temporal",
+    "secondary_key": "lineage_signal_secondary_key",
+    "text": "lineage_signal_text",
+    "llm": "lineage_signal_llm",
+}
+
+LINEAGE_SIGNAL_LABELS = {
+    "temporal": "Temporal proximity",
+    "secondary_key": "Secondary key match",
+    "text": "Text similarity",
+    "llm": "LLM adjudication",
+}
+
+LOOKUP_CODE_TO_SIGNAL = {code: name for name, code in LINEAGE_SIGNAL_LOOKUP_CODES.items()}
 
 
 def lineage_edge_specs(records: Sequence[Record], *, llm: AdjudicationClient | None = None) -> list[Edge]:
     """Run reconstruct and return every resulting parent→child edge.
 
-    Callers persist these as ``post_lineage_edge`` rows. Record ids must
-    already be the ids the database will store (UUIDs for product posts,
-    fixture ids for the library-only demo) -- this function does not
-    invent or rewrite identifiers.
+    Callers persist these as ``post_lineage_edge`` rows plus matching
+    ``post_lineage_edge_signal`` rows. Record ids must already be the ids
+    the database will store (UUIDs for product posts, fixture ids for the
+    library-only demo) -- this function does not invent or rewrite
+    identifiers.
 
     ``llm`` defaults to ``None``, which ``reconstruct()`` treats as the
     unavailable :class:`~lineageweave.adjudication_client.NullAdjudicationClient`
@@ -32,3 +66,190 @@ def lineage_edge_specs(records: Sequence[Record], *, llm: AdjudicationClient | N
     """
     trees = reconstruct(list(records), llm=llm)
     return [edge for tree in trees for edge in tree.edges]
+
+
+def reconstruction_version(package_version: str | None = None) -> str:
+    """Return the reconstruction identity stored on ``event_lineage_rebuild``.
+
+    PostgreSQL remains the authority for live Event Lineage. This string
+    names the reconstruct implementation that produced the current graph
+    so a later rebuild cannot silently rewrite historic evidence.
+    """
+    if package_version is None:
+        from lineageweave import __version__ as package_version
+    return f"{RECONSTRUCTION_VERSION_PREFIX}/{package_version}"
+
+
+def quantize_signal_value(value: float) -> float:
+    """Quantize a score, weight, or contribution onto the persisted numeric scale."""
+    quantized = Decimal(str(value)).quantize(SIGNAL_QUANTUM, rounding=ROUND_HALF_EVEN)
+    return float(quantized)
+
+
+def weights_for_channel_scores(channel_scores: Mapping[str, float]) -> dict[str, float]:
+    """Return the normalized active weights implied by recorded channel scores.
+
+    Channels absent from ``channel_scores`` (including ``llm`` when the
+    adjudication client was unavailable) are dropped and the remainder is
+    renormalized. This is the same rule ``reconstruct.active_weights``
+    applies at fusion time.
+    """
+    active = {
+        name: DEFAULT_CHANNEL_WEIGHTS[name]
+        for name in channel_scores
+        if name in DEFAULT_CHANNEL_WEIGHTS
+    }
+    total = sum(active.values())
+    if total <= 0:
+        return {}
+    return {name: weight / total for name, weight in active.items()}
+
+
+def default_no_llm_weights() -> dict[str, float]:
+    """Normalized default weights when the LLM channel did not participate."""
+    return weights_for_channel_scores(
+        {name: 0.0 for name in LINEAGE_SIGNAL_ORDER if name != "llm"}
+    )
+
+
+@dataclass(frozen=True)
+class LineageRebuildSpec:
+    """Rows one atomic Event Lineage rebuild writes besides the edge list."""
+
+    reconstruction_version: str
+    min_fused_score: float
+    candidate_window: int
+    channel_weights: tuple[tuple[str, float], ...]
+    signal_rows: tuple[dict[str, object], ...]
+
+
+def channel_signal_rows(
+    edge: Edge,
+    weights: Mapping[str, float] | None = None,
+) -> list[dict[str, object]]:
+    """Build persistable signal rows for one reconstructed edge.
+
+    One row per active channel. The LLM channel is omitted when it did
+    not participate. ``signal_weight`` is the normalized active weight
+    actually used. ``signal_contribution`` is ``weight * score``.
+
+    Raises:
+        ValueError: if recorded contributions do not reconcile with
+            ``edge.fused_score`` within :data:`CHANNEL_EVIDENCE_TOLERANCE`.
+    """
+    active_weights = dict(weights) if weights is not None else weights_for_channel_scores(edge.channel_scores)
+    rows: list[dict[str, object]] = []
+    contribution_sum = 0.0
+    for channel in LINEAGE_SIGNAL_ORDER:
+        if channel not in edge.channel_scores or channel not in active_weights:
+            continue
+        score = quantize_signal_value(float(edge.channel_scores[channel]))
+        weight = quantize_signal_value(float(active_weights[channel]))
+        contribution = quantize_signal_value(float(active_weights[channel]) * float(edge.channel_scores[channel]))
+        contribution_sum += contribution
+        rows.append(
+            {
+                "parent_post_id": edge.parent_id,
+                "child_post_id": edge.child_id,
+                "signal_code": LINEAGE_SIGNAL_LOOKUP_CODES[channel],
+                "channel_name": channel,
+                "signal_score": score,
+                "signal_weight": weight,
+                "signal_contribution": contribution,
+            }
+        )
+    residual = abs(contribution_sum - float(edge.fused_score))
+    if rows and residual > CHANNEL_EVIDENCE_TOLERANCE:
+        raise ValueError(
+            f"channel contributions {contribution_sum} do not reconcile with "
+            f"fused_score {edge.fused_score} (tolerance {CHANNEL_EVIDENCE_TOLERANCE})"
+        )
+    return rows
+
+
+def rank_channel_evidence(rows: Sequence[Mapping[str, object]]) -> list[dict[str, object]]:
+    """Project persisted signal rows onto the additive API collection.
+
+    Ordering is contribution descending, then the controlled signal order
+    ``temporal``, ``secondary_key``, ``text``, ``llm``. Rank is 1-based.
+    The payload never includes prompts, responses, credentials, or source
+    text.
+    """
+
+    def sort_key(row: Mapping[str, object]) -> tuple[float, int]:
+        channel = _channel_name(row)
+        order = LINEAGE_SIGNAL_ORDER.index(channel) if channel in LINEAGE_SIGNAL_ORDER else len(LINEAGE_SIGNAL_ORDER)
+        return (-float(row["signal_contribution"]), order)
+
+    evidence: list[dict[str, object]] = []
+    for rank, row in enumerate(sorted(rows, key=sort_key), start=1):
+        channel = _channel_name(row)
+        label = str(row["signal_label"]) if row.get("signal_label") else LINEAGE_SIGNAL_LABELS.get(channel, channel)
+        evidence.append(
+            {
+                "signal_code": channel,
+                "signal_label": label,
+                "score": float(row["signal_score"]),
+                "weight": float(row["signal_weight"]),
+                "contribution": float(row["signal_contribution"]),
+                "rank": rank,
+            }
+        )
+    return evidence
+
+
+def llm_participated(evidence: Sequence[Mapping[str, object]]) -> bool:
+    """Return whether the optional LLM channel is present in ``evidence``."""
+    return any(item.get("signal_code") == "llm" for item in evidence)
+
+
+def lineage_rebuild_spec(
+    edges: Sequence[Edge],
+    *,
+    weights: Mapping[str, float] | None = None,
+    min_fused_score: float = DEFAULT_MIN_FUSED_SCORE,
+    candidate_window: int = DEFAULT_CANDIDATE_WINDOW,
+    package_version: str | None = None,
+) -> LineageRebuildSpec:
+    """Assemble the rebuild metadata and signal rows for ``edges``.
+
+    ``weights`` defaults to the normalized active weights implied by the
+    first edge that recorded channel scores, or the no-LLM default when
+    the rebuild produced no edges. Every signal row uses that same
+    profile so a later audit can see the weights that actually fused the
+    graph.
+    """
+    active_weights = dict(weights) if weights is not None else {}
+    if not active_weights:
+        for edge in edges:
+            inferred = weights_for_channel_scores(edge.channel_scores)
+            if inferred:
+                active_weights = inferred
+                break
+    if not active_weights:
+        active_weights = default_no_llm_weights()
+
+    signal_rows: list[dict[str, object]] = []
+    for edge in edges:
+        signal_rows.extend(channel_signal_rows(edge, active_weights))
+
+    ordered_weights = tuple(
+        (LINEAGE_SIGNAL_LOOKUP_CODES[name], quantize_signal_value(active_weights[name]))
+        for name in LINEAGE_SIGNAL_ORDER
+        if name in active_weights
+    )
+    return LineageRebuildSpec(
+        reconstruction_version=reconstruction_version(package_version),
+        min_fused_score=min_fused_score,
+        candidate_window=candidate_window,
+        channel_weights=ordered_weights,
+        signal_rows=tuple(signal_rows),
+    )
+
+
+def _channel_name(row: Mapping[str, object]) -> str:
+    stored = row.get("channel_name")
+    if isinstance(stored, str) and stored:
+        return stored
+    lookup = str(row.get("signal_code") or "")
+    return LOOKUP_CODE_TO_SIGNAL.get(lookup, lookup)

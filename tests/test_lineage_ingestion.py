@@ -6,6 +6,7 @@ import asyncio
 from datetime import datetime, timezone
 
 from backend.app.lineage_ingestion import (
+    persist_lineage_edges,
     reconstruct_group_key,
     records_from_source_posts,
     visible_lineage_graph,
@@ -133,7 +134,13 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
             {"parent_post_id": "post-a", "child_post_id": "post-b", "fused_score": 0.8}
         ]
 
-        async def fetch(self, query: str):
+        async def fetch(self, query: str, *_args):
+            if "post_lineage_edge_signal" in query:
+                return getattr(self, "signals", [])
+            if "event_lineage_rebuild_channel" in query:
+                return getattr(self, "rebuild_channels", [])
+            if "event_lineage_rebuild" in query:
+                return getattr(self, "rebuilds", [])
             return self.edges if "post_lineage_edge" in query else self.posts
 
     connection = FakeConnection()
@@ -149,4 +156,214 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
     assert {node["id"] for node in focused["nodes"]} == {"post-a", "post-b"}
     assert len(focused["edges"]) == 1
     assert focused["truncated"] is False
-    assert isolated == {"nodes": [], "edges": [], "truncated": False}
+    assert isolated["nodes"] == []
+    assert isolated["edges"] == []
+    assert isolated["truncated"] is False
+    assert isolated["reconstruction"] is None
+    assert focused["edges"][0]["channel_evidence"] == []
+
+
+class _RecordingConnection:
+    def __init__(self) -> None:
+        self.statements: list[tuple[str, tuple]] = []
+
+    async def execute(self, query: str, *args):
+        self.statements.append((query, args))
+
+    async def fetch(self, query: str, *_args):
+        return []
+
+
+def test_visible_graph_attaches_ranked_channel_evidence() -> None:
+    class FakeConnection:
+        posts = [
+            {
+                "post_id": "post-a",
+                "post_title": "A",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-a",
+                "created_at": datetime(2026, 1, 1),
+            },
+            {
+                "post_id": "post-b",
+                "post_title": "B",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-a",
+                "created_at": datetime(2026, 1, 2),
+            },
+        ]
+        edges = [{"parent_post_id": "post-a", "child_post_id": "post-b", "fused_score": 0.7}]
+        signals = [
+            {
+                "parent_post_id": "post-a",
+                "child_post_id": "post-b",
+                "signal_code": "lineage_signal_text",
+                "signal_score": 0.5,
+                "signal_weight": 0.5,
+                "signal_contribution": 0.25,
+            },
+            {
+                "parent_post_id": "post-a",
+                "child_post_id": "post-b",
+                "signal_code": "lineage_signal_temporal",
+                "signal_score": 0.8,
+                "signal_weight": 0.25,
+                "signal_contribution": 0.2,
+            },
+            {
+                "parent_post_id": "post-a",
+                "child_post_id": "post-b",
+                "signal_code": "lineage_signal_secondary_key",
+                "signal_score": 1.0,
+                "signal_weight": 0.25,
+                "signal_contribution": 0.25,
+            },
+        ]
+        rebuilds = [
+            {
+                "reconstruction_version": "lineageweave.reconstruct/2.14.0",
+                "generated_at": datetime(2026, 8, 21, 12, 0, 0),
+                "min_fused_score": 0.3,
+                "candidate_window": 50,
+            }
+        ]
+        rebuild_channels = [
+            {"signal_code": "lineage_signal_temporal", "signal_weight": 0.25},
+            {"signal_code": "lineage_signal_text", "signal_weight": 0.5},
+        ]
+
+        async def fetch(self, query: str, *_args):
+            if "post_lineage_edge_signal" in query:
+                return self.signals
+            if "event_lineage_rebuild_channel" in query:
+                return self.rebuild_channels
+            if "event_lineage_rebuild" in query:
+                return self.rebuilds
+            return self.edges if "post_lineage_edge" in query else self.posts
+
+    graph = asyncio.run(visible_lineage_graph(FakeConnection(), lambda row: True))
+    evidence = graph["edges"][0]["channel_evidence"]
+    assert [item["signal_code"] for item in evidence] == ["secondary_key", "text", "temporal"]
+    assert [item["rank"] for item in evidence] == [1, 2, 3]
+    assert "llm" not in {item["signal_code"] for item in evidence}
+    assert graph["reconstruction"]["reconstruction_version"] == "lineageweave.reconstruct/2.14.0"
+    assert graph["reconstruction"]["active_weights"][0]["signal_code"] == "temporal"
+
+
+def test_abac_never_reveals_channel_evidence_for_an_invisible_endpoint() -> None:
+    class FakeConnection:
+        posts = [
+            {
+                "post_id": "post-public",
+                "post_title": "Public",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-a",
+                "created_at": datetime(2026, 1, 1),
+            },
+            {
+                "post_id": "post-secret",
+                "post_title": "Secret",
+                "voc_type_code": "voc",
+                "visibility_code": "restricted",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-a",
+                "created_at": datetime(2026, 1, 2),
+            },
+        ]
+        edges = [
+            {"parent_post_id": "post-public", "child_post_id": "post-secret", "fused_score": 0.8}
+        ]
+        signals = [
+            {
+                "parent_post_id": "post-public",
+                "child_post_id": "post-secret",
+                "signal_code": "lineage_signal_text",
+                "signal_score": 0.9,
+                "signal_weight": 0.5,
+                "signal_contribution": 0.45,
+            }
+        ]
+        rebuilds = []
+        rebuild_channels = []
+
+        async def fetch(self, query: str, *_args):
+            if "post_lineage_edge_signal" in query:
+                return self.signals
+            if "event_lineage_rebuild_channel" in query:
+                return self.rebuild_channels
+            if "event_lineage_rebuild" in query:
+                return self.rebuilds
+            return self.edges if "post_lineage_edge" in query else self.posts
+
+    graph = asyncio.run(
+        visible_lineage_graph(FakeConnection(), lambda row: row["post_id"] == "post-public")
+    )
+    assert [node["id"] for node in graph["nodes"]] == ["post-public"]
+    assert graph["edges"] == []
+    serialized = str(graph)
+    assert "post-secret" not in serialized
+    assert "0.45" not in serialized
+    assert "lineage_signal_text" not in serialized
+
+
+def test_persist_lineage_edges_replaces_signals_atomically_without_llm() -> None:
+    from lineageweave.lineage_persistence import lineage_rebuild_spec
+    from lineageweave.models import Edge
+
+    scores = {"temporal": 0.8, "secondary_key": 1.0, "text": 0.5}
+    weights = {"temporal": 0.25, "secondary_key": 0.25, "text": 0.5}
+    fused = sum(weights[name] * scores[name] for name in scores)
+    edge = Edge(
+        "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        fused,
+        scores,
+    )
+    connection = _RecordingConnection()
+    asyncio.run(persist_lineage_edges(connection, [edge]))
+    statements = [sql.casefold() for sql, _args in connection.statements]
+    assert statements[0].startswith("delete from post_lineage_edge")
+    assert any("delete from event_lineage_rebuild" in sql for sql in statements)
+    assert any("insert into post_lineage_edge_signal" in sql for sql in statements)
+    inserted_codes = [
+        args[2]
+        for sql, args in connection.statements
+        if "insert into post_lineage_edge_signal" in sql.casefold()
+    ]
+    assert inserted_codes == [
+        "lineage_signal_temporal",
+        "lineage_signal_secondary_key",
+        "lineage_signal_text",
+    ]
+    spec = lineage_rebuild_spec([edge], package_version="2.14.0")
+    assert spec.reconstruction_version == "lineageweave.reconstruct/2.14.0"
+
+
+def test_duplicate_rebuild_replays_the_same_delete_insert_sequence() -> None:
+    from lineageweave.models import Edge
+
+    scores = {"temporal": 0.8, "secondary_key": 1.0, "text": 0.5}
+    weights = {"temporal": 0.25, "secondary_key": 0.25, "text": 0.5}
+    fused = sum(weights[name] * scores[name] for name in scores)
+    edge = Edge(
+        "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        fused,
+        scores,
+    )
+    first = _RecordingConnection()
+    second = _RecordingConnection()
+    asyncio.run(persist_lineage_edges(first, [edge]))
+    asyncio.run(persist_lineage_edges(second, [edge]))
+    assert [sql for sql, _args in first.statements] == [sql for sql, _args in second.statements]
+    assert [args for _sql, args in first.statements] == [args for _sql, args in second.statements]
