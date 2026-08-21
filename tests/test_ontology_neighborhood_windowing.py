@@ -292,11 +292,24 @@ def test_source_continuation_uses_sealed_snapshot_and_rechecks_page_endpoints(mo
     load_snapshots: list[datetime | None] = []
     load_after_keys: list[OntologySourceKey | None] = []
     verify_modes: list[bool] = []
+    minted_keys: list[OntologySourceKey] = []
+    display_edge_key = (
+        fact.property_code,
+        fact.source_node_type_code,
+        fact.source_node_id,
+        fact.target_node_type_code,
+        fact.target_node_id,
+    )
 
     async def fake_load_facts(*_args, snapshot_at=None, after_key=None, **_kwargs):
         load_snapshots.append(snapshot_at)
         load_after_keys.append(after_key)
-        return ingestion._LoadedFactWindow([fact], truncated=True, last_source_key=last_key)
+        return ingestion._LoadedFactWindow(
+            [fact],
+            truncated=True,
+            last_source_key=last_key,
+            source_keys_by_edge={display_edge_key: last_key},
+        )
 
     async def fake_visible_post_ids(*_args, **_kwargs):
         return [POST_ID]
@@ -321,6 +334,10 @@ def test_source_continuation_uses_sealed_snapshot_and_rechecks_page_endpoints(mo
         verify_modes.append(kwargs["validate_eligibility"])
         return claims
 
+    def fake_mint(**kwargs):
+        minted_keys.append(kwargs["last_key"])
+        return "src.v1.next"
+
     monkeypatch.setattr(ingestion, "focus_catalog_exists", fake_focus_exists)
     monkeypatch.setattr(ingestion, "visible_post_ids_for_focus", fake_visible_post_ids)
     monkeypatch.setattr(ingestion, "_load_facts", fake_load_facts)
@@ -329,6 +346,7 @@ def test_source_continuation_uses_sealed_snapshot_and_rechecks_page_endpoints(mo
     monkeypatch.setattr(ingestion, "_load_labels", fake_labels)
     monkeypatch.setattr(ingestion, "_load_node_metadata", fake_metadata)
     monkeypatch.setattr(ingestion, "verify_source_cursor", fake_verify)
+    monkeypatch.setattr(ingestion, "mint_source_cursor", fake_mint)
 
     result = asyncio.run(
         ingestion.visible_ontology_neighborhood(
@@ -348,4 +366,5 @@ def test_source_continuation_uses_sealed_snapshot_and_rechecks_page_endpoints(mo
     assert verify_modes == [False, True]
     assert load_snapshots == [T0, T0]
     assert load_after_keys == [None, last_key]
+    assert minted_keys == [last_key]
     assert result.edges
