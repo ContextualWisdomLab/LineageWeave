@@ -62,6 +62,14 @@ rerun for the resulting PR head.
   Devin Review is pending, CodeRabbit is successful, and the three known
   review threads are resolved; no independent approval or merge is claimed.
 
+- **Latest #366 review repair before this documentation commit:** code head
+  `e2ebd156c89fb810de44207c25a57a92372ab5d2` removes the discarded pre-filter
+  hierarchy pass and centralizes the public-or-authorized-corporate-entity SQL
+  projection used by post lists, filter options, source hints, and observed
+  organization enrichment. The focused PostgreSQL/API regression set passed
+  `3 passed` and the shared SQL contract test passed; full API-file execution
+  remains unclaimed because its external integration setup did not terminate.
+
 ## 2. UI/UX Standard Guide v3.0 comparison
 
 ### 2.1 Satisfied or substantially present
@@ -209,7 +217,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Noto Sans, palette, table/form/button conventions, modal 50% mask and keyboard semantics | ADR 0118, token CSS, popup dialog implementation, frontend tests | source + unit |
 | Keyverse/OIDC login with real account | `auth.py`, OIDC discovery/JWKS boundary, local redirect check | source + local-integration; Keyverse open |
 | Authenticated corp/PU attributes | `/api/me` returns DB-backed codes; backend integration test covers `TEST-CORP`/`TEST-PU` and header displays them | source + local-integration |
-| RBAC/ABAC, public/private visibility, tenant isolation | `_can_see_post`, API authorization tests, aggregate-only runtime checks | source + local-integration |
+| RBAC/ABAC, public/private visibility, tenant isolation | `_can_see_post`, shared `SOURCE_POST_VISIBILITY_SQL`, API authorization tests, aggregate-only runtime checks | source + unit + local-integration |
 | React product surface and PostgreSQL boundary | React routes/components, asyncpg API, Compose stack | source + local-integration |
 | Authorized PostgreSQL export import mapping | `scripts/import_postgresql_posts.py`, ADR 0121, hash-verified RFC 2557 MHTML resolver, and synthetic preflight/import tests; authorized relation has artifact-path metadata but no body/content/HTML field | source + unit + local-integration partial; operator artifact files and authorized live import open |
 | Bounded large-body search migration | `0035_body_search_prefix.sql`, `0036_normalized_body_search.sql`; live replay completed after bounded rendered-text indexing | source + local-integration |
