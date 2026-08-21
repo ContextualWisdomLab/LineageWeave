@@ -115,6 +115,14 @@ from backend.app.analysis_run_start import (
     enqueue_pending_analysis_run,
 )
 from backend.app.analysis_run_worker import run_analysis_run_worker
+from backend.app.lineage_rebuild_queue import (
+    enqueue_lineage_rebuild,
+    load_lineage_rebuild_job,
+    publish_lineage_rebuild_event,
+    serialize_rebuild_job,
+    cancel_lineage_rebuild_job,
+)
+from backend.app.lineage_rebuild_worker import run_lineage_rebuild_worker
 from backend.app.post_content_queue import (
     ensure_post_content_job,
     post_content_api_status,
@@ -179,7 +187,10 @@ from backend.app.knowledge_graph import (
     visible_mention_post_ids,
     visible_team_mention_post_ids,
 )
-from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
+from backend.app.lineage_ingestion import (
+    records_from_source_posts,
+    visible_lineage_graph,
+)
 from backend.app.post_chat_ingestion import (
     ensure_global_ask_session,
     fetch_persisted_chat,
@@ -236,14 +247,23 @@ async def lifespan(app: FastAPI):
             structure_factory=_post_structure_client,
         )
     )
+    app.state.lineage_rebuild_worker = asyncio.create_task(
+        run_lineage_rebuild_worker(
+            app.state.valkey,
+            app.state.pool,
+            adjudication_factory=_adjudication_client,
+        )
+    )
     try:
         yield
     finally:
         app.state.analysis_run_worker.cancel()
         app.state.post_content_worker.cancel()
+        app.state.lineage_rebuild_worker.cancel()
         await asyncio.gather(
             app.state.analysis_run_worker,
             app.state.post_content_worker,
+            app.state.lineage_rebuild_worker,
             return_exceptions=True,
         )
         await app.state.pool.close()
@@ -351,10 +371,10 @@ def _adjudication_client():
 
     reconstruct.py's DEFAULT_CHANNEL_WEIGHTS gives this channel the most
     weight (0.40) of the four -- it is the only one that reasons about
-    content instead of approximating it (ADR 0064) -- but nothing ever
-    passed a real client through lineage_edge_specs() to reconstruct(),
-    so every lineage reconstruction had silently run on the weaker
-    3-channel fallback since the feature was built.
+    content instead of approximating it (ADR 0064). Corpus-wide rebuild
+    enqueues that client for a durable worker (ADR 0107); analysis-run
+    start already passes it on the cutoff bag. A missing client stays
+    unavailable and is dropped, never faked as a zero score.
     """
     settings = load_settings()
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
@@ -1170,25 +1190,76 @@ async def read_lineage_graph(
 
 @app.post("/api/lineage/rebuild")
 async def rebuild_lineage_graph(
+    llm: bool = Query(True),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
     valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
-    """Run reconstruct over every source_post and persist post_lineage_edge.
+    """Enqueue a corpus-wide reconstruct. post_admin only.
 
-    post_admin only: this is a corpus-wide write. Reads stay ABAC-gated.
+    HTTP does not call contextual-orchestrator. The durable worker runs
+    ``lineage_edge_specs`` off the event loop (ADR 0107).
     """
+    _require_post_admin(account)
+    client = _adjudication_client()
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            # Safe SQL: the eligibility predicate is an immutable schema fragment; no user SQL is interpolated.
+            rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+                "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
+                "process_unit_id, thread_group_key, secondary_grouping_key "
+                f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
+            )
+            queued = await enqueue_lineage_rebuild(
+                conn,
+                account_id=account.user_account_id,
+                records=records_from_source_posts(rows),
+                llm_channel_requested=llm,
+                llm_available=bool(getattr(client, "available", False)),
+            )
+    if queued.should_publish:
+        await publish_lineage_rebuild_event(
+            valkey,
+            lineage_rebuild_job_id=str(queued.job["lineage_rebuild_job_id"]),
+        )
+        await publish_operation_event(
+            valkey,
+            account.user_account_id,
+            "lineage_rebuild_queued",
+            "Lineage rebuild queued",
+        )
+    return serialize_rebuild_job(queued.job)
+
+
+@app.get("/api/lineage/rebuild/{lineage_rebuild_job_id}")
+async def read_lineage_rebuild_job(
+    lineage_rebuild_job_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Read one rebuild job. post_admin only."""
+    _require_post_admin(account)
+    async with pool.acquire() as conn:
+        row = await load_lineage_rebuild_job(conn, lineage_rebuild_job_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="lineage_rebuild_job_not_found")
+    return serialize_rebuild_job(row)
+
+
+@app.post("/api/lineage/rebuild/{lineage_rebuild_job_id}/cancel")
+async def cancel_lineage_rebuild(
+    lineage_rebuild_job_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Cancel a queued rebuild. post_admin only."""
     _require_post_admin(account)
     async with pool.acquire() as conn:
         async with conn.transaction():
-            edges = await rebuild_lineage(conn)
-    await publish_operation_event(
-        valkey,
-        account.user_account_id,
-        "lineage_rebuilt",
-        "Lineage rebuilt",
-    )
-    return {"edge_count": len(edges)}
+            row = await cancel_lineage_rebuild_job(conn, lineage_rebuild_job_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="lineage_rebuild_job_not_found")
+    return serialize_rebuild_job(row)
 
 
 @app.get("/api/posts")

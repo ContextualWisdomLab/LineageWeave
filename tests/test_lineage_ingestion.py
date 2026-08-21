@@ -133,8 +133,12 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
             {"parent_post_id": "post-a", "child_post_id": "post-b", "fused_score": 0.8}
         ]
 
-        async def fetch(self, query: str):
-            return self.edges if "post_lineage_edge" in query else self.posts
+        async def fetch(self, query: str, *arguments):
+            if "lineage_edge_channel_score" in query:
+                return []
+            if "post_lineage_edge" in query:
+                return self.edges
+            return self.posts
 
     connection = FakeConnection()
     landing = asyncio.run(visible_lineage_graph(connection, lambda row: True, limit=1))
@@ -148,5 +152,6 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
     assert [node["id"] for node in landing["nodes"]] == ["post-c"]
     assert {node["id"] for node in focused["nodes"]} == {"post-a", "post-b"}
     assert len(focused["edges"]) == 1
+    assert focused["edges"][0]["channel_scores"] == {}
     assert focused["truncated"] is False
     assert isolated == {"nodes": [], "edges": [], "truncated": False}

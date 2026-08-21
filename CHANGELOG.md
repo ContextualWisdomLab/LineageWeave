@@ -4,6 +4,17 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.22.0] - 2026-08-20
+
+### Added
+
+- Rebuild lineage now queues a durable job instead of calling
+  contextual-orchestrator on the HTTP path. A configured LLM channel is
+  used off the event loop; when that channel is unavailable, skipped, or
+  failed, the three-channel Event Lineage still lands and no LLM score is
+  invented. Open Event Lineage after the job succeeds. No TEPP theta is
+  invented (ADR 0100 / ADR 0064 / ADR 0016).
+
 ## [2.19.0] - 2026-08-20
 
 ### Added
@@ -12,9 +23,9 @@ All notable changes to this project are documented here. Format follows
   related post, or Ask Agent cited post now keeps Event Lineage current
   and focuses Keyman as the named next read. A linked Event Lineage DAG
   walk from that popup keeps the same Keyman focus. A home-list open
-  does not add that focus or copy. No TEPP theta is invented. No cited
-  post, customer, week, or cutoff body is invented (ADR 0100 / ADR 0097
-  / ADR 0016).
+ does not add that focus or copy. No TEPP theta is invented. No cited
+ post, customer, week, or cutoff body is invented (ADR 0100 / ADR 0097
+ / ADR 0016).
 
 ## [2.17.0] - 2026-08-19
 

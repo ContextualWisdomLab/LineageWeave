@@ -216,8 +216,13 @@ contextual-orchestrator; persist is `backend/app/keyman_ingestion.py`.
 (`{nodes, edges}`) from persisted `post_lineage_edge` rows. Each node
 includes `group` from the same `reconstruct_group_key()` rebuild uses
 (persisted `thread_group_key`, else process unit, else corp).
-`POST /api/lineage/rebuild` (`post_admin`) re-runs `reconstruct()` over
-every `source_post` and rewrites those edges. Reconstruct grouping is
+`POST /api/lineage/rebuild` (`post_admin`) enqueues a durable
+`lineage_rebuild_job` (ADR 0107). HTTP does not call
+contextual-orchestrator. A worker runs `lineage_edge_specs` off the
+event loop and rewrites `post_lineage_edge` once the selected
+reconstruction completes. A missing, skipped, or failed LLM channel is
+dropped and the three-channel path remains available; absence is never
+stored as a zero score. Reconstruct grouping is
 stored on the post as `thread_group_key` / `secondary_grouping_key`
 (not derived from process unit or voc type).
 

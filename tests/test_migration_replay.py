@@ -70,3 +70,15 @@ def test_migrate_sh_replays_verified_organization_label_search_migration() -> No
     ).read_text(encoding="utf-8")
 
     assert "0055_*" in script
+
+
+def test_migrate_sh_replays_lineage_rebuild_job_migration() -> None:
+    """Existing volumes must receive the durable lineage rebuild job."""
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "migrate.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "0056_*" in script

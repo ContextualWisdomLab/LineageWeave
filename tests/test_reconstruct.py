@@ -4,6 +4,7 @@ from datetime import datetime
 
 from lineageweave import Record, reconstruct
 from lineageweave.fixtures import sample_records
+from lineageweave.reconstruct import estimate_candidate_pairs
 
 
 def test_reconstruct_finds_the_designed_branch_point() -> None:
@@ -76,3 +77,11 @@ def test_candidate_window_bounds_which_priors_are_considered() -> None:
         parent_index = int(edge.parent_id[1:])
         child_index = int(edge.child_id[1:])
         assert child_index - parent_index == 1
+
+
+def test_estimate_candidate_pairs_matches_the_bounded_window() -> None:
+    records = [
+        Record(f"r{i}", "G", f"record {i}", datetime(2026, 1, 1, i), "") for i in range(5)
+    ]
+    assert estimate_candidate_pairs(records, candidate_window=1) == 4
+    assert estimate_candidate_pairs(records, candidate_window=50) == 10

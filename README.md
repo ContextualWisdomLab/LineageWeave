@@ -170,7 +170,8 @@ from the list and 403s on direct fetch.
 is a real client, not mocked or static: `react-oidc-context` drives an
 actual Authorization Code redirect through Keycloak, the home page
 draws the reconstructed lineage as a git-branch SVG (`GET /api/lineage`;
-`post_admin` can rebuild), and the post list / detail popup call the
+`post_admin` can queue a durable rebuild that uses the LLM channel off
+the HTTP path and names Event Lineage as the next read), and the post list / detail popup call the
 FastAPI backend over real `fetch()` with the token Keycloak issued.
 
 ```bash

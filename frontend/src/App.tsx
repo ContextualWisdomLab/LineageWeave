@@ -18,6 +18,7 @@ import {
   fetchCustomerMaster,
   resolveCustomerHint,
   fetchLineageGraph,
+  fetchLineageRebuild,
   fetchMe,
   fetchPost,
   fetchPostContent,
@@ -50,6 +51,7 @@ import {
   type ActivityEvent,
   type AskAgentResponse,
   type AffiliateNode,
+  type LineageRebuildJob,
   type AnalysisRun,
   type CalendarResponse,
   type ChatAnswer,
@@ -3711,6 +3713,8 @@ function PostList({
   const [canRebuild, setCanRebuild] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
+  const [rebuildJob, setRebuildJob] = useState<LineageRebuildJob | null>(null);
+  const [useLlmChannel, setUseLlmChannel] = useState(true);
   const [reportPeriod, setReportPeriod] = useState("2026-W02");
   const [reportGrouping, setReportGrouping] = useState("process_unit");
   const [openedGroupingKey, setOpenedGroupingKey] = useState<string | null>(null);
@@ -3895,14 +3899,66 @@ function PostList({
     setRebuilding(true);
     setRebuildError(null);
     try {
-      await rebuildLineage(accessToken);
-      setGraph(await fetchLineageGraph(accessToken));
+      const job = await rebuildLineage(accessToken, useLlmChannel);
+      setRebuildJob(job);
+      if (job.status_code === "lineage_rebuild_succeeded") {
+        setGraph(await fetchLineageGraph(accessToken));
+        setRebuilding(false);
+      } else if (
+        job.status_code === "lineage_rebuild_failed" ||
+        job.status_code === "lineage_rebuild_cancelled"
+      ) {
+        setRebuilding(false);
+      }
     } catch (err) {
       setRebuildError(String(err));
-    } finally {
       setRebuilding(false);
     }
   }
+
+  useEffect(() => {
+    const statusCode = rebuildJob?.status_code;
+    const jobId = rebuildJob?.lineage_rebuild_job_id;
+    if (
+      !jobId ||
+      (statusCode !== "lineage_rebuild_queued" && statusCode !== "lineage_rebuild_running")
+    ) {
+      return;
+    }
+    let active = true;
+    let timer: number | undefined;
+    const stopPolling = () => {
+      active = false;
+      if (timer !== undefined) window.clearInterval(timer);
+    };
+    const poll = () => {
+      void fetchLineageRebuild(accessToken, jobId)
+        .then(async (nextJob) => {
+          if (!active) return;
+          setRebuildJob(nextJob);
+          if (nextJob.status_code === "lineage_rebuild_succeeded") {
+            setGraph(await fetchLineageGraph(accessToken));
+            setRebuilding(false);
+          } else if (
+            nextJob.status_code === "lineage_rebuild_failed" ||
+            nextJob.status_code === "lineage_rebuild_cancelled"
+          ) {
+            setRebuilding(false);
+          }
+        })
+        .catch((err) => {
+          if (!active) return;
+          stopPolling();
+          setRebuildError(String(err));
+          setRebuilding(false);
+        });
+    };
+    poll();
+    timer = window.setInterval(poll, 1000);
+    return () => {
+      stopPolling();
+    };
+  }, [accessToken, rebuildJob?.lineage_rebuild_job_id, rebuildJob?.status_code]);
 
   const loadedPosts = posts ?? [];
   const visibilityOptions = visibilityFilterOptions.length
@@ -4252,6 +4308,20 @@ function PostList({
                   {rebuilding ? t("Rebuilding...") : t("Rebuild lineage")}
                 </button>
               </div>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={useLlmChannel}
+                  onChange={(event) => setUseLlmChannel(event.target.checked)}
+                  disabled={rebuilding}
+                />
+                {t("Use the LLM channel")}
+              </label>
+              {rebuildJob && (
+                <p className="post-meta" role="status">
+                  {t(rebuildJob.next_action)}
+                </p>
+              )}
               {rebuildError && <p className="error">{rebuildError}</p>}
             </section>
           )}

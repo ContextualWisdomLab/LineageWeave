@@ -589,8 +589,34 @@ export function resolveCustomerHint(
   });
 }
 
-export function rebuildLineage(accessToken: string): Promise<{ edge_count: number }> {
-  return backendFetch("/api/lineage/rebuild", accessToken, { method: "POST" });
+export interface LineageRebuildJob {
+  lineage_rebuild_job_id: string;
+  status_code: string;
+  llm_channel_requested: boolean;
+  llm_channel_status_code: string;
+  pair_estimate: number;
+  pair_limit: number;
+  edge_count: number | null;
+  result_sha256: string | null;
+  failure_code: string | null;
+  knowledge_cutoff: string;
+  source_snapshot_sha256: string;
+  next_action: string;
+}
+
+export function rebuildLineage(
+  accessToken: string,
+  llmChannelRequested = true,
+): Promise<LineageRebuildJob> {
+  const params = new URLSearchParams({ llm: llmChannelRequested ? "true" : "false" });
+  return backendFetch(`/api/lineage/rebuild?${params.toString()}`, accessToken, { method: "POST" });
+}
+
+export function fetchLineageRebuild(
+  accessToken: string,
+  lineageRebuildJobId: string,
+): Promise<LineageRebuildJob> {
+  return backendFetch(`/api/lineage/rebuild/${lineageRebuildJobId}`, accessToken);
 }
 
 export function fetchPosts(

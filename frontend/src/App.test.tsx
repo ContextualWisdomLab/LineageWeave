@@ -87,6 +87,9 @@ describe("App, authenticated", () => {
     deferMe?: boolean;
     deferPostOneSummary?: boolean;
     deferSecondAsk?: boolean;
+    queuedRebuild?: boolean;
+    failedRebuild?: boolean;
+    pollingFailed?: boolean;
     invalidAskSessionOnce?: boolean;
     meFailed?: boolean;
     postBody?: string;
@@ -219,8 +222,57 @@ describe("App, authenticated", () => {
           });
         });
       }
-      if (url.endsWith("/api/lineage/rebuild") && method === "POST") {
-        return Promise.resolve(jsonResponse({ edge_count: 4 }));
+      if (url.includes("/api/lineage/rebuild/") && method === "GET") {
+        if (options?.pollingFailed) {
+          return Promise.reject(new Error("lineage rebuild polling unavailable"));
+        }
+        return Promise.resolve(
+          jsonResponse({
+            lineage_rebuild_job_id: "job-1",
+            status_code: "lineage_rebuild_succeeded",
+            llm_channel_requested: true,
+            llm_channel_status_code: "lineage_llm_unavailable",
+            pair_estimate: 3,
+            pair_limit: 10000,
+            edge_count: 4,
+            result_sha256: "ab".repeat(32),
+            failure_code: null,
+            knowledge_cutoff: "2026-01-12T00:00:00Z",
+            source_snapshot_sha256: "cd".repeat(32),
+            next_action:
+              "Rebuild succeeded on three channels. Open Event Lineage, then connect contextual-orchestrator to use the LLM channel.",
+          }),
+        );
+      }
+      if (url.includes("/api/lineage/rebuild") && method === "POST") {
+        return Promise.resolve(
+          jsonResponse({
+            lineage_rebuild_job_id: "job-1",
+            status_code: options?.failedRebuild
+              ? "lineage_rebuild_failed"
+              : options?.queuedRebuild
+                ? "lineage_rebuild_queued"
+                : "lineage_rebuild_succeeded",
+            llm_channel_requested: true,
+            llm_channel_status_code: options?.failedRebuild
+              ? "lineage_llm_failed"
+              : options?.queuedRebuild
+                ? "lineage_llm_requested"
+                : "lineage_llm_unavailable",
+            pair_estimate: 3,
+            pair_limit: 10000,
+            edge_count: options?.queuedRebuild || options?.failedRebuild ? null : 4,
+            result_sha256: options?.queuedRebuild || options?.failedRebuild ? null : "ab".repeat(32),
+            failure_code: options?.failedRebuild ? "lineage_rebuild_failed" : null,
+            knowledge_cutoff: "2026-01-12T00:00:00Z",
+            source_snapshot_sha256: "cd".repeat(32),
+            next_action: options?.failedRebuild
+              ? "Rebuild failed. Retry rebuild. No LLM score was invented."
+              : options?.queuedRebuild
+                ? "Rebuild is queued. Event Lineage updates when it succeeds."
+                : "Rebuild succeeded on three channels. Open Event Lineage, then connect contextual-orchestrator to use the LLM channel.",
+          }),
+        );
       }
       if (url.endsWith("/api/posts/post-1/tickets") && method === "GET") {
         return Promise.resolve(jsonResponse({ tickets }));
@@ -2485,6 +2537,7 @@ describe("App, authenticated", () => {
     const fetchMock = stubBackend({ admin: true });
     render(<App showLabPanels />);
     await userEvent.click(await screen.findByText("Advanced review tools"));
+    expect(await screen.findByText("Use the LLM channel")).toBeInTheDocument();
     await userEvent.click(await screen.findByRole("button", { name: /rebuild lineage/i }));
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
@@ -2492,6 +2545,63 @@ describe("App, authenticated", () => {
         expect.objectContaining({ method: "POST" }),
       ),
     );
+    expect(
+      await screen.findByText(
+        "Rebuild succeeded on three channels. Open Event Lineage, then connect contextual-orchestrator to use the LLM channel.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("re-enables lineage rebuild after an immediate terminal failure", async () => {
+    stubBackend({ admin: true, failedRebuild: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByText("Advanced review tools"));
+    const rebuildButton = await screen.findByRole("button", { name: /rebuild lineage/i });
+
+    await userEvent.click(rebuildButton);
+
+    expect(await screen.findByText("Rebuild failed. Retry rebuild. No LLM score was invented.")).toBeInTheDocument();
+    expect(rebuildButton).not.toBeDisabled();
+  });
+
+  it("polls a queued lineage rebuild until Event Lineage is ready", async () => {
+    const fetchMock = stubBackend({ admin: true, queuedRebuild: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByText("Advanced review tools"));
+    await userEvent.click(await screen.findByRole("button", { name: /rebuild lineage/i }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/lineage/rebuild?"),
+        expect.objectContaining({ method: "POST" }),
+      ),
+    );
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining("/api/lineage/rebuild/job-1"),
+        expect.not.objectContaining({ method: "POST" }),
+      ),
+    );
+    expect(
+      await screen.findByText(
+        "Rebuild succeeded on three channels. Open Event Lineage, then connect contextual-orchestrator to use the LLM channel.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("stops polling after a queued lineage status request fails", async () => {
+    const clearInterval = vi.spyOn(window, "clearInterval");
+    const fetchMock = stubBackend({ admin: true, queuedRebuild: true, pollingFailed: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByText("Advanced review tools"));
+    await userEvent.click(await screen.findByRole("button", { name: /rebuild lineage/i }));
+
+    await waitFor(() => expect(clearInterval).toHaveBeenCalled());
+    const statusRequests = fetchMock.mock.calls.filter(([input]) =>
+      String(input).includes("/api/lineage/rebuild/job-1"),
+    );
+    expect(statusRequests).toHaveLength(1);
+    expect(await screen.findByText("Error: lineage rebuild polling unavailable")).toBeInTheDocument();
+    clearInterval.mockRestore();
   });
 
   it("shows the advanced-review section to post_admin without the test-only prop", async () => {
