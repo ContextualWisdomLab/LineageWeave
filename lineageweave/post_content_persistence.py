@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import logging
 import math
 from typing import Any, TypeVar
 
@@ -16,18 +17,25 @@ from .chunking import Chunk, chunk_by_source_body
 from .embedding_client import EmbeddingClient
 from .image_content import ImageContentClient, ImageDescription
 from .post_content_normalization import ImageContentResult, normalize_post_body
-from .post_structure import NullPostStructureClient, PostStructureClient, StructureDecision
+from .post_structure import (
+    NullPostStructureClient,
+    PostStructureClient,
+    StructureDecision,
+)
 
 _LLM_BATCH_MAX_UNITS = 32
 _LLM_BATCH_MAX_CHARS = 24_000
 _STRUCTURE_UNIT_MAX_CHARS = 8_000
 _BatchKey = TypeVar("_BatchKey")
+_LOGGER = logging.getLogger(__name__)
 
 
-def _bounded_unit_batches(units: list[tuple[_BatchKey, str]]) -> list[list[tuple[_BatchKey, str]]]:
+def _bounded_unit_batches(  # noqa: UP047 - retain Python 3.10 compatibility.
+    units: list[tuple[_BatchKey, str]],
+) -> list[list[tuple[_BatchKey, str]]]:
     """Keep provider requests bounded without changing persisted source units."""
-    batches: list[list[tuple[int, str]]] = []
-    batch: list[tuple[int, str]] = []
+    batches: list[list[tuple[_BatchKey, str]]] = []
+    batch: list[tuple[_BatchKey, str]] = []
     batch_chars = 0
     for unit in units:
         unit_chars = len(unit[1])
@@ -123,21 +131,29 @@ async def persist_post_content(
         if chunk.unit_type != "image" and unit_text
     ]
     explicit_widths = sorted(
-        {int(chunk.indent_width) for chunk in text_chunks if int(chunk.indent_width) > 0}
+        {
+            int(chunk.declared_indent_width)
+            for chunk in text_chunks
+            if int(chunk.declared_indent_width) > 0
+        }
     )
     # CSS/XML indentation values are presentation widths, not semantic depth.
-    # Rank the observed widths instead of dividing by a gcd: 56px and 80px
-    # are two nesting levels even when their pixel-unit gcd is 1.
+    # Rank declared widths instead of dividing by a gcd: 56px and 80px are two
+    # nesting levels even when their pixel-unit gcd is 1. Leading source
+    # whitespace is deliberately excluded: editors use it for visual alignment
+    # and it is not authoritative hierarchy without an orchestrator decision.
     explicit_levels = {width: level for level, width in enumerate(explicit_widths, start=1)}
-    unresolved = [chunk for chunk in text_chunks if int(chunk.indent_width) <= 0]
+    unresolved = [
+        chunk for chunk in text_chunks if int(chunk.declared_indent_width) <= 0
+    ]
     unresolved_indexes = {chunk.index for chunk in unresolved}
     structure_by_index: dict[int, StructureDecision] = {}
     for chunk in text_chunks:
-        width = int(chunk.indent_width)
+        width = int(chunk.declared_indent_width)
         if width > 0:
             structure_by_index[chunk.index] = StructureDecision(
                 unit_index=chunk.index,
-                    indent_level=explicit_levels[width],
+                indent_level=explicit_levels[width],
                 confidence=1.0,
                 evidence="Explicit HTML, CSS, or OOXML indentation.",
                 source_code="explicit",
@@ -166,8 +182,15 @@ async def persist_post_content(
                 for decision in decisions:
                     if decision.unit_index in unresolved_indexes:
                         structure_by_index[decision.unit_index] = decision
-            except Exception:  # noqa: BLE001 - failed batches remain unresolved for retry.
-                continue
+            except (OSError, RuntimeError, ValueError) as exc:
+                _LOGGER.warning(
+                    "post content structure batch unavailable",
+                    extra={
+                        "post_id": post_id,
+                        "batch_size": len(batch),
+                        "exception_type": type(exc).__name__,
+                    },
+                )
     for chunk in unresolved:
         structure_by_index.setdefault(
             chunk.index,
@@ -204,8 +227,15 @@ async def persist_post_content(
                         for value in vector
                     ):
                         vectors[embedding_key] = [float(value) for value in vector]
-            except Exception:  # noqa: BLE001 - failed batches remain absent for retry.
-                continue
+            except (OSError, RuntimeError, ValueError) as exc:
+                _LOGGER.warning(
+                    "post content embedding batch unavailable",
+                    extra={
+                        "post_id": post_id,
+                        "batch_size": len(batch),
+                        "exception_type": type(exc).__name__,
+                    },
+                )
 
     async with conn.transaction():
         if image_ocr_by_sha256:

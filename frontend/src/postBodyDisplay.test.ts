@@ -67,10 +67,38 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("limits numeric superscript footnote roles to their source paragraph", () => {
+    expect(
+      splitPostBody(
+        "<p>Evidence remains attached to the source.</p>" +
+          "<p><sup>1</sup> Source note.</p>" +
+          "<p>Continue with the next source action.</p>",
+      ),
+    ).toEqual([
+      { kind: "text", text: "Evidence remains attached to the source." },
+      { kind: "text", text: "1 Source note.", role: "footnote" },
+      { kind: "text", text: "Continue with the next source action." },
+    ]);
+  });
+
   it("keeps exporter list containers in the visible nesting hierarchy", () => {
     expect(splitPostBody("<oi><li>Parent<ul><li>Child</li></ul></li></oi>")).toEqual([
       { kind: "text", text: "Parent", indentLevel: 1 },
       { kind: "text", text: "Child", indentLevel: 2 },
+    ]);
+  });
+
+  it("resets indentation between separate top-level lists", () => {
+    expect(splitPostBody("<ul><li>First</li></ul><ul><li>Second</li></ul>")).toEqual([
+      { kind: "text", text: "First", indentLevel: 1 },
+      { kind: "text", text: "Second", indentLevel: 1 },
+    ]);
+  });
+
+  it("keeps list items separate when optional closing tags are omitted", () => {
+    expect(splitPostBody("<ul><li>First<li>Second</ul>")).toEqual([
+      { kind: "text", text: "First", indentLevel: 1 },
+      { kind: "text", text: "Second", indentLevel: 1 },
     ]);
   });
 
