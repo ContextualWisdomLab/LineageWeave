@@ -1,19 +1,25 @@
+import { useId } from "react";
+
 import type { Locale } from "../i18n";
 import { useLocale } from "../i18n";
-import type { TeppProjectHistoryValidation } from "../projectHistory";
+import type {
+  TeppProjectHistoryFindingCode,
+  TeppProjectHistoryValidation,
+} from "../projectHistory";
 import "./TeppProjectHistoryEvidence.css";
 
 interface Copy {
   heading: string;
   eyebrow: string;
   boundary: string;
-  participants: (count: number) => string;
+  participants: string;
   span: string;
   findings: string;
   noFindings: string;
   openEvidence: (label: string) => string;
+  unnamedEvidence: (index: number) => string;
   status: Record<Exclude<TeppProjectHistoryValidation["status"], "validated">, string>;
-  findingLabels: Record<string, string>;
+  findingLabels: Record<TeppProjectHistoryFindingCode, string>;
 }
 
 const COPY: Record<Locale, Copy> = {
@@ -21,11 +27,12 @@ const COPY: Record<Locale, Copy> = {
     heading: "TEPP temporal validation",
     eyebrow: "TEPP-connected evidence",
     boundary: "Temporal association only; this does not identify a cause.",
-    participants: (count) => `${count} participants in the supplied evidence`,
+    participants: "Participants in supplied evidence",
     span: "Validated history span",
     findings: "TEPP findings",
     noFindings: "TEPP ordered the explicit events and returned no additional finding.",
     openEvidence: (label) => `Open evidence: ${label}`,
+    unnamedEvidence: (index) => `Evidence record ${index}`,
     status: {
       not_configured: "Configure the TEPP project-history endpoint, then retry this timeline.",
       unavailable: "TEPP is unavailable. Read the canonical timeline now and retry validation later.",
@@ -45,11 +52,12 @@ const COPY: Record<Locale, Copy> = {
     heading: "TEPP 시간 검증",
     eyebrow: "TEPP 연계 근거",
     boundary: "시간적 연관만 제시하며 원인을 식별한 결과가 아닙니다.",
-    participants: (count) => `제공된 근거의 참여자 ${count}명`,
+    participants: "제공된 근거의 참여자",
     span: "검증된 이력 구간",
     findings: "TEPP 검토 결과",
     noFindings: "TEPP가 명시적 이벤트를 정렬했으며 추가 검토 결과는 없습니다.",
     openEvidence: (label) => `근거 열기: ${label}`,
+    unnamedEvidence: (index) => `근거 기록 ${index}`,
     status: {
       not_configured: "TEPP 프로젝트 이력 엔드포인트를 설정한 뒤 이 타임라인을 다시 검증하세요.",
       unavailable: "TEPP를 사용할 수 없습니다. 현재는 기준 타임라인을 읽고 나중에 검증을 다시 실행하세요.",
@@ -69,11 +77,12 @@ const COPY: Record<Locale, Copy> = {
     heading: "TEPP 时间验证",
     eyebrow: "TEPP 关联证据",
     boundary: "仅表示时间关联，不等于识别了原因。",
-    participants: (count) => `所提供证据中的参与者：${count} 人`,
+    participants: "所提供证据中的参与者",
     span: "已验证的历史区间",
     findings: "TEPP 结果",
     noFindings: "TEPP 已对明确事件排序，未返回其他结果。",
     openEvidence: (label) => `打开证据：${label}`,
+    unnamedEvidence: (index) => `证据记录 ${index}`,
     status: {
       not_configured: "请配置 TEPP 项目历史端点，然后重新验证此时间线。",
       unavailable: "TEPP 当前不可用。请先阅读标准时间线，稍后重试验证。",
@@ -92,11 +101,12 @@ const COPY: Record<Locale, Copy> = {
     heading: "TEPP 時間検証",
     eyebrow: "TEPP 連携根拠",
     boundary: "時間的関連のみを示し、原因を特定した結果ではありません。",
-    participants: (count) => `提供根拠の参加者 ${count} 名`,
+    participants: "提供根拠の参加者",
     span: "検証済み履歴期間",
     findings: "TEPP の結果",
     noFindings: "TEPP は明示的イベントを並べ替え、追加の結果は返しませんでした。",
     openEvidence: (label) => `根拠を開く: ${label}`,
+    unnamedEvidence: (index) => `根拠記録 ${index}`,
     status: {
       not_configured: "TEPP プロジェクト履歴エンドポイントを設定し、このタイムラインを再検証してください。",
       unavailable: "TEPP は利用できません。標準タイムラインを読み、後で検証を再試行してください。",
@@ -115,11 +125,12 @@ const COPY: Record<Locale, Copy> = {
     heading: "Xác thực thời gian TEPP",
     eyebrow: "Bằng chứng liên kết TEPP",
     boundary: "Chỉ thể hiện mối liên hệ theo thời gian; kết quả này không xác định nguyên nhân.",
-    participants: (count) => `${count} chủ thể trong bằng chứng đã cung cấp`,
+    participants: "Chủ thể trong bằng chứng đã cung cấp",
     span: "Khoảng lịch sử đã xác thực",
     findings: "Kết quả TEPP",
     noFindings: "TEPP đã sắp xếp các sự kiện tường minh và không trả về kết quả bổ sung.",
     openEvidence: (label) => `Mở bằng chứng: ${label}`,
+    unnamedEvidence: (index) => `Bản ghi bằng chứng ${index}`,
     status: {
       not_configured: "Hãy cấu hình điểm cuối lịch sử dự án TEPP rồi xác thực lại dòng thời gian này.",
       unavailable: "TEPP hiện không khả dụng. Hãy đọc dòng thời gian chuẩn và thử xác thực lại sau.",
@@ -153,30 +164,32 @@ export function TeppProjectHistoryEvidence({
 }) {
   const locale = useLocale();
   const copy = COPY[locale];
-  const history = validation.project_history;
+  const headingId = useId();
+  const findingsHeadingId = useId();
 
-  if (validation.status !== "validated" || history === null) {
+  if (validation.status !== "validated") {
     return (
-      <section className="tepp-project-evidence tepp-project-evidence-status" aria-label={copy.heading}>
-        <h4>{copy.heading}</h4>
+      <section className="tepp-project-evidence tepp-project-evidence-status" aria-labelledby={headingId}>
+        <h4 id={headingId}>{copy.heading}</h4>
         <p role="status">{copy.status[validation.status]}</p>
       </section>
     );
   }
 
+  const history = validation.project_history;
   return (
-    <section className="tepp-project-evidence" aria-labelledby="tepp-project-evidence-heading">
+    <section className="tepp-project-evidence" aria-labelledby={headingId}>
       <header>
         <div>
           <p className="section-eyebrow">{copy.eyebrow}</p>
-          <h4 id="tepp-project-evidence-heading">{copy.heading}</h4>
+          <h4 id={headingId}>{copy.heading}</h4>
         </div>
         <span className="post-badge">TEPP · v{history.contract_version}</span>
       </header>
       <p className="tepp-project-evidence-boundary">{copy.boundary}</p>
       <dl>
         <div>
-          <dt>{copy.participants(history.participant_count)}</dt>
+          <dt>{copy.participants}</dt>
           <dd>{history.participant_count}</dd>
         </div>
         <div>
@@ -186,17 +199,19 @@ export function TeppProjectHistoryEvidence({
           </dd>
         </div>
       </dl>
-      <section aria-labelledby="tepp-project-findings-heading">
-        <h5 id="tepp-project-findings-heading">{copy.findings}</h5>
+      <section aria-labelledby={findingsHeadingId}>
+        <h5 id={findingsHeadingId}>{copy.findings}</h5>
         {history.findings.length === 0 ? <p>{copy.noFindings}</p> : null}
         {history.findings.length > 0 ? (
           <ul>
             {history.findings.map((finding) => (
-              <li key={`${finding.finding_code}:${finding.related_event_ids.join(":")}`}>
-                <p>{copy.findingLabels[finding.finding_code] ?? finding.summary}</p>
+              <li
+                key={`${finding.finding_code}:${finding.related_event_ids.join(":")}:${finding.evidence_post_ids.join(":")}`}
+              >
+                <p>{copy.findingLabels[finding.finding_code]}</p>
                 <div className="tepp-project-evidence-links">
-                  {finding.evidence_post_ids.map((postId) => {
-                    const label = sourceLabels[postId] ?? postId;
+                  {finding.evidence_post_ids.map((postId, index) => {
+                    const label = sourceLabels[postId] ?? copy.unnamedEvidence(index + 1);
                     return (
                       <button
                         key={postId}
