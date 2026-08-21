@@ -45,7 +45,9 @@ describe("TeppProjectHistoryEvidence", () => {
     expect(screen.getByText(/does not identify a cause/i)).toBeInTheDocument();
     expect(screen.getByText(/participants in supplied evidence/i)).toBeInTheDocument();
     expect(screen.getByText("2", { selector: "dd" })).toBeInTheDocument();
-    expect(screen.queryByText(validation.project_history.findings[0].summary)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("An explicit specification-change event precedes the focus event."),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole("button", { name: /open evidence: Synthetic specification changed/i }),
