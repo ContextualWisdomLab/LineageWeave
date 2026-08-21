@@ -18,8 +18,9 @@ that endpoint exists, instead of a redesign.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 
 class TeppNotAvailable(RuntimeError):
@@ -80,4 +81,9 @@ class TeppClient:
 
     def submit_analysis_run(self, request: AnalysisRunRequest) -> dict[str, Any]:
         """Submit a request; returns TEPP's ``AnalysisRunAccepted`` envelope."""
-        return self._transport(request.to_json())
+        try:
+            return self._transport(request.to_json())
+        except TeppNotAvailable:
+            raise
+        except Exception as exc:
+            raise TeppNotAvailable("TEPP transport request failed") from exc
