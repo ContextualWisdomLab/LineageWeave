@@ -34,19 +34,22 @@
   header and footer rendered one configured `brandName` and the footer used
   the browser's current year. This observation remains historical and is not
   a claim about the current stacked head.
-- **Current exact-source mitigation at stacked PR #397 head `8988fe71`:**
+- **Current exact-source mitigation at the merged stack change `2e51a777`:**
   `tenant_settings` now persists separate `brandName`, `systemName`,
   `copyrightYear`, and `copyrightHolder` values. The header renders brand and
   system name separately, the footer uses the persisted year and rights
   holder, and the admin form validates the four-field contract through the
   `post_admin` boundary. The migration is replayable through Compose and the
-  old brand-only PATCH shape remains compatible. The latest review also fixed
+  old brand-only PATCH shape remains compatible. The merged change also fixed
   the asynchronous draft synchronization race and the Korean operation-note
   translation key, with the same operation note covered across all five
-  product locales. The latest parent stack was fast-forwarded to #392 head
-  `fc040997`, then `51aab854`, and #397 was restacked with normal merge
-  commits as the parent advanced. The current exact upstream stack base is
-  `259ce60a`. This is an open, unmerged PR.
+  product locales. PR #397 merged into the non-main stack branch; the
+  protected `main` branch still depends on the separate parent PR #392.
+- **Current follow-up at PR #398 head `5822948f`:** the settings upsert now
+  refreshes `tenant_settings.updated_at`, and clearing the numeric copyright
+  year stays visibly blank and blocks submission instead of coercing the
+  draft to a valid-looking value. Local backend and frontend evidence is
+  recorded below; hosted Checks and independent approval remain required.
 - **Remaining UI governance gap:** no approved CI/BI image asset or usage
   permission was supplied, so the implementation deliberately remains text
   based. Production release still requires the approved asset and legal
@@ -57,6 +60,10 @@
 
 Observed at `2026-08-21T20:17:13Z` from the GitHub API and local worktree
 `/private/tmp/lineageweave-identity-restack`:
+
+This subsection is a historical checkpoint. The current exact-head state is
+recorded in Section 4.7; the older PR #397 open-state wording below is not a
+current merge claim.
 
 - PR [#397](https://github.com/ContextualWisdomLab/LineageWeave/pull/397) is
   open and ready at head `8988fe7175c8b03e27c9ea6fe3a554955eb350a4`, based on
@@ -376,6 +383,34 @@ blocked by its merge gates. No merge is claimed for any of these PRs.
   blank or out-of-range identity values, plus worker-supervision changes from
   the parent stack. Local verification passed migration/worker tests (`22
   passed`) and the full backend suite (`864 passed, 17 skipped`).
+
+### 4.7 Current exact-head audit snapshot
+
+Observed at `2026-08-21T20:50:15Z` from the GitHub REST API and the current
+follow-up worktree. This supersedes the earlier checkpoint wording above; the
+earlier sections remain historical evidence.
+
+- PR #397 merged into the non-main stack branch at head `77e2edee`; the stack
+  now contains the resulting commit `2e51a777`. This is not a protected-main
+  merge.
+- PR #398 is open at exact head `5822948fe915542f1f916618d8905c3b4715d676`,
+  based on stack head `2e51a777`, with `mergeable=true` and
+  `mergeable_state=unstable`. Devin Review and the frontend/full-test Checks
+  are pending, and no independent approval is recorded. It is not authorized
+  to merge.
+- PR #392 is open at exact head `7882bfc32ead971d27877558ca216a95cbaeb6e0`,
+  targets protected `main`, and remains blocked with no formal review
+  decision. PR #368 is open at `3d0adbb9c4bbef938584b1b1e79bf3f34a34df6e`,
+  targets `main`, and remains blocked without formal approval.
+- PR #383 remains open at `4eaa07172fde827f4ad89580326a0d2db5ceb0e4`; its
+  current `osv-scan` failure is the previously documented central workflow
+  result-path defect, while its source/security checks otherwise pass. PR
+  #387 remains open at `16f6341a0feec262904c1ad9275ed73449444cf5`; its major
+  checks pass, but it still lacks the required independent approval.
+- Follow-up local evidence for #398 is backend `864 passed, 17 skipped, 14
+  warnings`, frontend `22 files, 207 passed`, lint, and production build.
+  The warnings are existing deprecations and a test-only short HMAC warning;
+  they are not a failed product check.
 
 ## 5. Local Buyer-Surface Verification
 
