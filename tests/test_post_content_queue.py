@@ -432,6 +432,7 @@ def test_recovery_republishes_due_rows_in_queued_at_order() -> None:
 
     assert published == 2
     assert client.events == [("first", "a" * 64), ("second", "b" * 64)]
+    assert "coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'" in connection.query
     assert "queued_at <= now() - $2::interval" in connection.query
     assert "order by post_content_ingestion_job.queued_at" in connection.query
     assert connection.args == (QUEUED, POST_CONTENT_RETRY_INTERVAL, RUNNING, STALE_RUNNING_INTERVAL, 2)
