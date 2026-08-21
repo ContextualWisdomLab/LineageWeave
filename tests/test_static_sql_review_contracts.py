@@ -145,7 +145,10 @@ def test_real_source_identity_context_is_preserved_in_operator_scope(relative_pa
     [
         ("backend/app/post_content_worker.py", "p.source_detail_state_code"),
         ("backend/app/post_content_queue.py", "post.source_detail_state_code"),
+        ("scripts/backfill_post_content.py", "post.source_detail_state_code"),
+        ("scripts/backfill_post_keymen.py", "post.source_detail_state_code"),
         ("scripts/queue_post_content_backfill.py", "post.source_detail_state_code"),
+        ("scripts/requeue_failed_post_content.py", "post.source_detail_state_code"),
     ],
 )
 def test_post_content_writing_state_gates_are_case_insensitive(

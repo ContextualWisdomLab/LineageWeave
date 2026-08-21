@@ -58,6 +58,7 @@ async def _select_posts(
                  where post.post_id = $1
                    and nullif(btrim(post.source_draft_code), '') is null
                    and nullif(btrim(post.source_deleted_flag), '') is null
+                   and coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'
                    and not (
                        (
                            nullif(btrim(post.source_system_code), '') is null
@@ -114,6 +115,7 @@ async def _select_posts(
               from source_post post
              where nullif(btrim(post.source_draft_code), '') is null
                and nullif(btrim(post.source_deleted_flag), '') is null
+               and coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'
                and not (
                    (
                        nullif(btrim(post.source_system_code), '') is null
