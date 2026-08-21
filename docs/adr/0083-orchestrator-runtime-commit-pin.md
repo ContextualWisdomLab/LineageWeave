@@ -15,8 +15,8 @@ multi-agent.
 ## Decision
 
 `docker/contextual-orchestrator/Dockerfile` pins the downloaded archive to
-commit `6db772e`, the pushed head of contextual-orchestrator PR #765. The pin
-remains explicit and immutable until the protected PR merges; it is not a
+commit `7df051ac2b929e5910071ac1848d0447c5d6744e`. The pin remains explicit
+and immutable until the reviewed upstream change is superseded; it is not a
 moving `main` reference and it is not a LineageWeave monkey patch.
 
 The runtime contract is:
@@ -44,4 +44,4 @@ The runtime contract is:
   implementation.
 - Rebuilding the image is required after the upstream pin changes.
 - Protected-branch review and merge remain external gates; this pin does not
-  bypass PR #765.
+  bypass upstream review.
