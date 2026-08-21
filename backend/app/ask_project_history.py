@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any, Protocol
 from uuid import UUID
 
@@ -120,25 +120,28 @@ def ask_knowledge_cutoff(value: object | None = None) -> datetime:
     """Return an offset-aware UTC cutoff from a datetime or ISO text."""
 
     if value is None:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
     if isinstance(value, datetime):
         parsed = value
     elif isinstance(value, str) and value.strip():
         try:
-            parsed = datetime.fromisoformat(value.strip().replace("Z", "+00:00"))
+            normalized = value.strip()
+            if normalized.endswith("Z"):
+                normalized = f"{normalized[:-1]}+00:00"
+            parsed = datetime.fromisoformat(normalized)
         except ValueError as exc:
             raise ValueError("knowledge cutoff must be ISO-8601") from exc
     else:
         raise ValueError("knowledge cutoff must be a datetime or ISO-8601 text")
     if parsed.tzinfo is None or parsed.utcoffset() is None:
         raise ValueError("knowledge cutoff must include an offset")
-    return parsed.astimezone(timezone.utc)
+    return parsed.astimezone(UTC)
 
 
 def _cutoff_text(value: datetime) -> str:
     """Serialize one validated cutoff as canonical UTC RFC 3339 text."""
 
-    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+    return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
 
 
 def _bounded_citations(

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
@@ -18,8 +18,7 @@ from backend.app.ask_project_history import (
 from backend.app.auth import CurrentAccount
 from backend.app.post_chat_ingestion import gather_global_chat_sources
 
-
-CUTOFF = datetime(2026, 8, 20, 12, 0, tzinfo=timezone.utc)
+CUTOFF = datetime(2026, 8, 20, 12, 0, tzinfo=UTC)
 
 
 class _EvidenceConnection:
