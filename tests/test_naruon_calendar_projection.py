@@ -58,8 +58,14 @@ def test_client_sends_only_service_credential_and_parses_projection(monkeypatch)
         *,
         headers: dict[str, str],
         timeout: float,
+        maximum_response_bytes: int | None,
     ) -> dict[str, object]:
-        received.update(url=url, headers=headers, timeout=timeout)
+        received.update(
+            url=url,
+            headers=headers,
+            timeout=timeout,
+            maximum_response_bytes=maximum_response_bytes,
+        )
         return _page()
 
     monkeypatch.setattr(
@@ -94,6 +100,7 @@ def test_client_sends_only_service_credential_and_parses_projection(monkeypatch)
         "accept": NARUON_CALENDAR_MEDIA_TYPE,
     }
     assert received["timeout"] == 7
+    assert received["maximum_response_bytes"] == 1_048_576
     assert page.projection_revision == "projection_001"
     assert page.next_cursor == "cursor_002"
     assert page.events[0].occurrence_reference == "occ_001"
@@ -107,10 +114,12 @@ def test_client_sends_only_service_credential_and_parses_projection(monkeypatch)
         "https://user:secret@naruon.example",
         "https://naruon.example?token=secret",
         "https://naruon.example#events",
+        "https://naruon.example/private path",
+        "https://naruon.example/private\tpath",
     ],
 )
 def test_client_rejects_unsafe_base_urls(base_url: str) -> None:
-    with pytest.raises(ValueError):
+    with pytest.raises((ValueError, NaruonCalendarContractError)):
         NaruonCalendarProjectionClient(base_url, "service-secret")
 
 
@@ -123,23 +132,26 @@ def test_client_rejects_missing_control_or_whitespace_tokens(token: str) -> None
         NaruonCalendarProjectionClient("https://naruon.example", token)
 
 
-@pytest.mark.parametrize("maximum_events", [0, 201])
-def test_client_rejects_invalid_page_bounds(maximum_events: int) -> None:
+@pytest.mark.parametrize("maximum_events", [0, 201, True, 1.5])
+def test_client_rejects_invalid_page_bounds(maximum_events: object) -> None:
     with pytest.raises(ValueError, match="maximum_events"):
         NaruonCalendarProjectionClient(
             "https://naruon.example",
             "service-secret",
-            maximum_events=maximum_events,
+            maximum_events=maximum_events,  # type: ignore[arg-type]
         )
 
 
-@pytest.mark.parametrize("timeout", [0, 31])
-def test_client_rejects_invalid_timeouts(timeout: float) -> None:
+@pytest.mark.parametrize(
+    "timeout",
+    [0, 31, True, float("nan"), float("inf")],
+)
+def test_client_rejects_invalid_timeouts(timeout: object) -> None:
     with pytest.raises(ValueError, match="timeout"):
         NaruonCalendarProjectionClient(
             "https://naruon.example",
             "service-secret",
-            timeout=timeout,
+            timeout=timeout,  # type: ignore[arg-type]
         )
 
 
@@ -243,8 +255,12 @@ def test_parser_rejects_over_limit_pages_and_invalid_parser_bounds() -> None:
     events = [_event(occurrence_reference=f"occ_{index}") for index in range(3)]
     with pytest.raises(NaruonCalendarContractError, match="page size"):
         parse_naruon_calendar_page(_page(*events), maximum_events=2)
-    with pytest.raises(ValueError, match="maximum_events"):
-        parse_naruon_calendar_page(_page(), maximum_events=0)
+    for invalid in (0, True, 1.5):
+        with pytest.raises(ValueError, match="maximum_events"):
+            parse_naruon_calendar_page(
+                _page(),
+                maximum_events=invalid,  # type: ignore[arg-type]
+            )
 
 
 def test_parser_allows_terminal_page_without_cursor() -> None:
@@ -271,16 +287,18 @@ def test_parser_rejects_whitespace_in_opaque_references() -> None:
 
 
 def test_client_omits_cursor_when_not_requested(monkeypatch) -> None:
-    received: dict[str, str] = {}
+    received: dict[str, object] = {}
 
     def fake_get_json(
         url: str,
         *,
         headers: dict[str, str],
         timeout: float,
+        maximum_response_bytes: int | None,
     ) -> dict[str, object]:
         del headers, timeout
         received["url"] = url
+        received["maximum_response_bytes"] = maximum_response_bytes
         return _page()
 
     monkeypatch.setattr(
@@ -294,7 +312,8 @@ def test_client_omits_cursor_when_not_requested(monkeypatch) -> None:
 
     client.list_events("2026-08-01T00:00:00Z", "2026-08-02T00:00:00Z")
 
-    assert "cursor" not in parse_qs(urlparse(received["url"]).query)
+    assert "cursor" not in parse_qs(urlparse(str(received["url"])).query)
+    assert received["maximum_response_bytes"] == 1_048_576
 
 
 def test_json_schema_matches_parser_contract() -> None:
@@ -314,6 +333,9 @@ def test_json_schema_matches_parser_contract() -> None:
     }
     assert occurrence_schema["properties"]["truth_status_code"]["const"] == (
         "observed"
+    )
+    assert schema["$defs"]["opaque_reference"]["pattern"] == (
+        r"^(?!.*://)[^\s\u0000-\u001F\u007F]+$"
     )
 
 
