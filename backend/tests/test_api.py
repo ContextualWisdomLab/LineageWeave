@@ -1450,7 +1450,7 @@ def test_customer_master_returns_authorized_catalog_contract(
     # confirm this is a real common_lookup_value label, not the code echoed back.
     assert entity["entity_level_code"] == "company"
     assert entity["entity_level_label"] not in ("", "company")
-    assert entity["scope_facets"] == ["authorized_own", "observed_hierarchy", "observed_organization"]
+    assert entity["scope_facets"] == ["authorized_own", "observed_organization"]
     parent = next(item for item in body["corporate_entities"] if item["entity_name"] == "Test Group")
     assert parent["scope_facets"] == ["authorized_granted", "observed_hierarchy"]
     granted = next(item for item in body["corporate_entities"] if item["entity_name"] == "Granted Corp")

@@ -823,7 +823,6 @@ def _observed_hierarchy_ids(rows: list[asyncpg.Record]) -> set[str]:
             continue
         if row["parent_entity_id"] is None:
             continue
-        hierarchy_ids.add(str(row["corporate_entity_id"]))
         parent_id = row["parent_entity_id"]
         while parent_id is not None:
             parent_key = str(parent_id)
