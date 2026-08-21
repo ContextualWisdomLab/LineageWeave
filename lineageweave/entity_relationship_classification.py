@@ -27,7 +27,7 @@ import re
 from dataclasses import dataclass
 from typing import Protocol
 
-from .http_client import post_json
+from .http_client import chat_completion_content, post_json
 
 # post_counterparty_entity.relationship_type_code values (common_lookup_value,
 # category "entity_relationship_type"). VOC/VOM/VOP/VOCC/VOCO are the
@@ -192,5 +192,5 @@ class ContextualOrchestratorEntityRelationshipClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = body["choices"][0]["message"]["content"]
+        content = chat_completion_content(body)
         return parse_classification_response(content, organization_names)
