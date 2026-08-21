@@ -17,4 +17,10 @@ describe("LineageDag CSS contracts", () => {
   it("does not override each edge's instance-specific SVG marker", () => {
     expect(appCss).not.toContain('marker-end: url("#lineage-dag-arrow");');
   });
+
+  it("uses each localized cell label in the mobile evidence layout", () => {
+    expect(appCss).toContain("content: attr(data-label);");
+    expect(appCss).not.toContain('content: "Graph relation";');
+    expect(appCss).not.toContain('content: "Evidence (fused_score)";');
+  });
 });

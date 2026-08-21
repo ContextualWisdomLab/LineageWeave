@@ -1084,23 +1084,12 @@
   }
 
   .lineage-dag-evidence td::before {
+    content: attr(data-label);
     display: block;
     margin-bottom: 0.15rem;
     color: var(--text-muted);
     font-size: 0.75rem;
     font-weight: 700;
-  }
-
-  .lineage-dag-evidence td:nth-child(1)::before {
-    content: "Graph relation";
-  }
-
-  .lineage-dag-evidence td:nth-child(2)::before {
-    content: "When";
-  }
-
-  .lineage-dag-evidence td:nth-child(3)::before {
-    content: "Evidence (fused_score)";
   }
 
   .app-footer {

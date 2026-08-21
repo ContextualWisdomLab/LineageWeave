@@ -3525,7 +3525,11 @@ describe("App, authenticated", () => {
     const mobileMenu = screen.getByRole("button", { name: "Open navigation" });
     expect(mobileMenu).toHaveAttribute("aria-expanded", "false");
     await userEvent.click(mobileMenu);
-    expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Close Workspace navigation" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(1);
     expect(document.getElementById("mobile-workspace-navigation")).toBeInTheDocument();
     const drawerClose = document.querySelector<HTMLButtonElement>(".mobile-drawer-close");
     expect(drawerClose).not.toBeNull();
@@ -3537,9 +3541,15 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("navigation", { name: "Workspace navigation" })).not.toHaveTextContent("Language");
     await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
     expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
     await userEvent.click(
       within(appHeader as HTMLElement).getByRole("button", { name: "Search" }),
     );
+    expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    expect(document.getElementById("mobile-workspace-navigation")).not.toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByRole("searchbox", { name: "Search semantic evidence" })).toHaveFocus(),
     );
@@ -3575,5 +3585,14 @@ describe("App, authenticated", () => {
       expect(fetchMock.mock.calls.some(([url]) => String(url).includes("sort=title"))).toBe(true);
       expect(sort).toHaveFocus();
     });
+
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    const boardButton = screen.getByRole("button", { name: "Board" });
+    await userEvent.click(boardButton);
+    const remountedSearchInput = await screen.findByRole("searchbox", {
+      name: "Search semantic evidence",
+    });
+    await waitFor(() => expect(boardButton).toHaveFocus());
+    expect(remountedSearchInput).not.toHaveFocus();
   });
 });

@@ -1144,18 +1144,20 @@ def test_me_reflects_the_authenticated_account(client, demo_analyst_token, seede
     try:
         with admin_conn.cursor() as cur:
             cur.execute(
-                "select corporate_entity_id, user_account_id from account_affiliation limit 1"
+                "select user_account_id from account_affiliation where corporate_entity_id = %s",
+                (seeded_db["own_corp_id"],),
             )
-            corporate_entity_id, account_id = cur.fetchone()
+            account_id = cur.fetchone()[0]
             cur.execute(
                 "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
                 "values (%s, 'TEST-PU', 'Test PU') returning process_unit_id",
-                (corporate_entity_id,),
+                (seeded_db["own_corp_id"],),
             )
             process_unit_id = cur.fetchone()[0]
             cur.execute(
-                "update account_affiliation set process_unit_id = %s where user_account_id = %s",
-                (process_unit_id, account_id),
+                "update account_affiliation set process_unit_id = %s "
+                "where user_account_id = %s and corporate_entity_id = %s",
+                (process_unit_id, account_id, seeded_db["own_corp_id"]),
             )
         admin_conn.commit()
     finally:
@@ -1169,16 +1171,19 @@ def test_me_reflects_the_authenticated_account(client, demo_analyst_token, seede
     assert any(
         entity["entity_name"] == "Test Corp" for entity in body["corporate_entities"]
     )
-    assert body["account_affiliations"] == [
-        {
-            "corporate_entity_id": body["corporate_entities"][0]["corporate_entity_id"],
-            "corporate_entity_code": "TEST-CORP",
-            "entity_name": "Test Corp",
-            "process_unit_id": body["account_affiliations"][0]["process_unit_id"],
-            "process_unit_code": "TEST-PU",
-            "process_unit_name": "Test PU",
-        }
-    ]
+    affiliation = next(
+        row
+        for row in body["account_affiliations"]
+        if row["corporate_entity_id"] == seeded_db["own_corp_id"]
+    )
+    assert affiliation == {
+        "corporate_entity_id": seeded_db["own_corp_id"],
+        "corporate_entity_code": "TEST-CORP",
+        "entity_name": "Test Corp",
+        "process_unit_id": affiliation["process_unit_id"],
+        "process_unit_code": "TEST-PU",
+        "process_unit_name": "Test PU",
+    }
 
 
 def test_healthz_is_a_public_liveness_probe(client) -> None:

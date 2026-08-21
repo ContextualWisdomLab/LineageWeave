@@ -3580,12 +3580,14 @@ function PostList({
   postIdToOpen = null,
   onPostOpened,
   focusSearchRequest = 0,
+  onSearchFocusHandled,
 }: {
   accessToken: string;
   showLabPanels?: boolean;
   postIdToOpen?: string | null;
   onPostOpened?: () => void;
   focusSearchRequest?: number;
+  onSearchFocusHandled?: () => void;
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [graph, setGraph] = useState<LineageGraph | null>(null);
@@ -3617,20 +3619,14 @@ function PostList({
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
   const postsRequest = useRef(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const lastFocusedSearchRequest = useRef(0);
 
   useEffect(() => {
-    if (
-      focusSearchRequest <= 0 ||
-      focusSearchRequest === lastFocusedSearchRequest.current
-    ) {
-      return;
-    }
+    if (focusSearchRequest <= 0) return;
     const input = searchInputRef.current;
     if (!input) return;
     input.focus();
-    lastFocusedSearchRequest.current = focusSearchRequest;
-  }, [focusSearchRequest, posts]);
+    onSearchFocusHandled?.();
+  }, [focusSearchRequest, onSearchFocusHandled, posts]);
 
   function openReportFromAnalysisRun(
     periodCode: string,
@@ -4696,7 +4692,9 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         <button
           type="button"
           className="mobile-drawer-trigger"
-          aria-label={mobileMenuOpen ? t("Close") : t("Open navigation")}
+          aria-label={
+            mobileMenuOpen ? `${t("Close")} ${t("Workspace navigation")}` : t("Open navigation")
+          }
           aria-expanded={mobileMenuOpen}
           aria-controls="mobile-workspace-navigation"
           onClick={() => setMobileMenuOpen((open) => !open)}
@@ -4715,7 +4713,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             type="button"
             className="btn-secondary app-header-search"
             onClick={() => {
-              setDestination("board");
+              changeDestination("board");
               setSearchFocusRequest((request) => request + 1);
             }}
           >
@@ -4729,7 +4727,6 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         <div className="mobile-drawer-backdrop" onClick={() => setMobileMenuOpen(false)}>
           <aside
             className="mobile-drawer"
-            aria-label={t("Workspace navigation")}
             onClick={(event) => event.stopPropagation()}
           >
             <button
@@ -4757,6 +4754,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             postIdToOpen={postToOpen}
             onPostOpened={() => setPostToOpen(null)}
             focusSearchRequest={searchFocusRequest}
+            onSearchFocusHandled={() => setSearchFocusRequest(0)}
           />
         ) : null}
         {destination === "customers" ? (
