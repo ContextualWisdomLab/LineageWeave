@@ -6,7 +6,7 @@
 > this repository, screenshots, tests, logs, or buyer evidence.
 
 ## 1. Known Parsing & Frontend Display Gaps
-- **Footnote Parsing**: synthetic case `case-footnote-01` exercises numbered footnote recognition; PR #367 adds parser coverage, while authorized production/browser evidence remains pending.
+- **Footnote Parsing**: synthetic case `case-footnote-01` exercises numbered footnote recognition; PR #367 merged the parser coverage, while authorized production/browser evidence remains pending.
 - **Table Parsing**: synthetic case `case-table-01` exercises malformed row boundaries and empty cells; image tables and browser rendering remain open.
 - **Indentation**: synthetic cases `case-indent-01` and `case-indent-02` retain incorrect indentation rendering coverage gaps.
 - **Image/Table OCR**: synthetic case `case-image-table-01` still needs region-aware table OCR, markdown rendering, and sufficiently detailed buyer-safe image evidence.
@@ -35,22 +35,57 @@
 The following states are evidence-bound and must not be changed to `merged` or
 `resolved` from intent alone:
 
-Observed at `2026-08-21T11:16:36Z` from the GitHub API. A merged commit is
+Observed at `2026-08-21T12:42:34Z` from the GitHub API. A merged commit is
 identified as `merge_commit`; an open PR is identified by its exact `head`.
 
 - LineageWeave PR #344: `merge_commit`
   `497ac120c2ea22f97ef2e4a4bcd15fc2a3610046`, merged at
   `2026-08-21T10:23:02Z`; focused tests passed before merge, while the
   authorized-runtime browser result remains open.
-- LineageWeave PR #367: `head`
-  `5194d267b90430d7a27a9752a49d73617cb5756c`, base
-  `f66991699506ef14607de5946da1efcfd20ae6da`; focused parser tests passed,
-  while required Checks and independent approval remain external gates.
+- LineageWeave PR #367: `merge_commit`
+  `7a0d025215fbd9f6510727c7139885b561296149`, merged at
+  `2026-08-21T11:56:07Z`; focused parser tests passed before merge, while
+  authorized production/browser evidence remains open.
+- LineageWeave PR #349: `head`
+  `539b65287da5ac4635f6965c6dc21d7437dede9c`, base `main`; ontology
+  provenance explorer remains open and required Checks and independent
+  approval remain external gates.
+- LineageWeave PR #368: `head`
+  `f45fcdebfd54bf236b55f5d892aeb6091b51ba5b`, base `main`; this baseline
+  checkpoint is updated by the stacked documentation PR for the newer queue
+  evidence below.
 - LineageWeave PR #366: `head`
-  `696f8d46372ef6f5af9eb1b2dbc30fff4e9c9f6c`, base
+  `588dc91f5689d77281cd6bbd10a8e922f9eaa159`, base
   `8bed77e7e7b91b633bb92d3a82d0187c387206af`; customer-master authorization
   scope is implemented, while required Checks and independent approval remain
   external gates.
+- LineageWeave PR #369: `head`
+  `eb9e520cbac412b7f85f8ceddd86624515bb29cb`, base
+  `e88f3862215e76d0702204f29aba75ddc902d19f`; ontology source-window
+  continuation is open and required Checks and independent approval remain
+  external gates.
+- LineageWeave PR #370: `head`
+  `74b92eb95360b14c7e4f2bc2679f580f4ce249f8`, base
+  `8bed77e7e7b91b633bb92d3a82d0187c387206af`; its runtime boundary fixes are
+  stacked in PR #376.
+- LineageWeave PR #374: `head`
+  `f6ce19f8e10aa7ec2b0a95f3adbbea816bd39594`, base
+  `0a5a5799b444c44dc2952edc7227b1b96b97457e`; its post-chat atomic
+  reauthorization fix is stacked in PR #377.
+- LineageWeave PR #376: `head`
+  `21880e937eedff6c314cb7af3d99ddca2792597f`, base `docs/customer-master-scope-adr`;
+  migration, relation-boundary, image-job transaction, and overflow-test fixes
+  are locally verified; required Checks and independent approval remain
+  external gates.
+- LineageWeave PR #377: `head`
+  `16ab01a9ab7d88487a3c984e192709857f6cfd1c`, base
+  `repair/global-ask-atomic-rollback-v2203`; post-chat rollback and test
+  cleanup are locally verified; required Checks and independent approval
+  remain external gates.
+- LineageWeave PR #371: `closed_without_merge`
+  head `4c3e43f9e96ecc2d868657dd9b0ce5524a15c76c`, closed at
+  `2026-08-21T11:59:57Z`; no merge commit exists, so ontology publication is
+  not claimed as delivered by this checkpoint.
 - LineageWeave PR #345: `merge_commit`
   `9316d281ae396cc1bc33ac3ba470a9e3afd41a90`, merged at
   `2026-08-21T09:08:31Z`; application and Valkey caller OpenTelemetry spans
@@ -76,8 +111,10 @@ GRC evidence subjects.
 
 ## 6. Next Implementation Order
 
-1. Complete PR #367's protected Checks and verify the synthetic footnote/table
-   cases in the authenticated browser; use the protected external corpus only
+1. Let the protected Checks and independent approvals complete for stacked PRs
+   #376 and #377, then revalidate their parent PRs #370 and #374 at the exact
+   current head; PR #367 is already merged. Verify the synthetic footnote/table
+   cases in the authenticated browser and use the protected external corpus only
    for aggregate, non-identifying runtime evidence.
 2. Resolve image DOM-region recognition, OCR, semantic table rendering, and
    buyer-facing caption separation through contextual-orchestrator VISION.
