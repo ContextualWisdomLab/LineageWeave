@@ -3401,7 +3401,7 @@ def test_live_chat_answer_publishes_an_activity_event(
     it must publish to the post's activity feed too. A stored/seeded
     answer (no live call made) must not.
     """
-    from lineageweave.post_chat import ChatAnswer
+    from lineageweave.post_chat import ChatAnswer, normalize_chat_question
 
     _grant_post_admin(seeded_db["dsn"])
 
@@ -3581,6 +3581,55 @@ def test_global_ask_failed_reauthorization_rolls_back_and_session_continues(
             assert cur.fetchone()[0] == 0
     finally:
         verify_conn.close()
+
+
+def test_post_chat_failed_reauthorization_rolls_back_persisted_answer(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """A post-chat citation race must not leave an unreadable stored answer."""
+    from backend.app.ask_project_history import AskEvidenceProjection
+    from lineageweave.post_chat import ChatAnswer, normalize_chat_question
+
+    class _FakeChatClient:
+        available = True
+
+        def answer(self, question: str, sources) -> ChatAnswer:
+            del question, sources
+            return ChatAnswer(
+                answer_text="Synthetic post answer that must be rolled back",
+                cited_post_ids=(seeded_db["public_post_id"],),
+            )
+
+    async def hidden_after_persist(*_args, **_kwargs) -> AskEvidenceProjection:
+        return AskEvidenceProjection(
+            all_citations_visible=False,
+            cited_posts=(),
+            project_histories=(),
+            project_histories_truncated=False,
+            knowledge_cutoff="2026-08-21T00:00:00Z",
+        )
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _FakeChatClient())
+    monkeypatch.setattr("backend.app.main.read_authorized_ask_evidence", hidden_after_persist)
+
+    question = "What happened before the post authorization race?"
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/chat",
+        json={"question": question},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert response.status_code == 503
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "select count(*) from post_chat_result where post_id = %s and question_norm = %s",
+                (seeded_db["own_private_post_id"], normalize_chat_question(question)),
+            )
+            assert cur.fetchone()[0] == 0
+    finally:
+        conn.close()
 
 
 def test_keymen_provider_error_does_not_leak_raw_error(

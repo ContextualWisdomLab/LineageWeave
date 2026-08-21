@@ -2788,25 +2788,26 @@ async def chat_about_post(
         ) from exc
     cited_ids = list(answer.cited_post_ids)
     async with pool.acquire() as conn:
-        await persist_post_chat(
-            conn,
-            post_id,
-            question,
-            answer.answer_text,
-            cited_ids,
-            knowledge_cutoff=knowledge_cutoff,
-        )
-        answer_evidence = await read_authorized_ask_evidence(
-            conn,
-            cited_post_ids=cited_ids,
-            corporate_entity_ids=account.corporate_entity_ids,
-            knowledge_cutoff=knowledge_cutoff,
-        )
-    if not answer_evidence.all_citations_visible:
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Post chat evidence changed before the answer could be returned",
-        )
+        async with conn.transaction():
+            await persist_post_chat(
+                conn,
+                post_id,
+                question,
+                answer.answer_text,
+                cited_ids,
+                knowledge_cutoff=knowledge_cutoff,
+            )
+            answer_evidence = await read_authorized_ask_evidence(
+                conn,
+                cited_post_ids=cited_ids,
+                corporate_entity_ids=account.corporate_entity_ids,
+                knowledge_cutoff=knowledge_cutoff,
+            )
+            if not answer_evidence.all_citations_visible:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Post chat evidence changed before the answer could be returned",
+                )
     await publish_activity_event(
         valkey,
         post_id,
