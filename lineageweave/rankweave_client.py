@@ -224,11 +224,11 @@ class LibraryRankWeaveTransport:
                 )
             except Exception as exc:
                 raise RankWeaveNotAvailable(
-                    "rankweave_not_available: weighted_reciprocal_rank_fuse failed"
+                    f"rankweave_not_available: weighted_reciprocal_rank_fuse failed ({exc})"
                 ) from exc
         except Exception as exc:
             raise RankWeaveNotAvailable(
-                "rankweave_not_available: weighted_reciprocal_rank_fuse failed"
+                f"rankweave_not_available: weighted_reciprocal_rank_fuse failed ({exc})"
             ) from exc
         projected: list[dict[str, Any]] = []
         for hit in hits:
@@ -268,7 +268,7 @@ class RankWeaveClient:
             raise
         except Exception as exc:
             raise RankWeaveNotAvailable(
-                "rankweave_not_available: ranking transport failed"
+                f"rankweave_not_available: ranking transport failed ({exc})"
             ) from exc
         return project_ranking_list(raw, titles_by_id)
 

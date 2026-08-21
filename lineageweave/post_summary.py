@@ -59,7 +59,7 @@ PROJECT_MENTION_CONFIDENCE_THRESHOLD = 0.7
 FIVE_W1H_EVIDENCE_SLOTS = frozenset({"when", "where", "why", "how"})
 # Stored rows without this contract version are legacy summaries and must be
 # regenerated from the current source body before the popup treats them as evidence.
-POST_SUMMARY_CONTRACT_VERSION = 5
+POST_SUMMARY_CONTRACT_VERSION = 6
 
 
 @dataclass(frozen=True)
@@ -109,6 +109,7 @@ class MajorEventAction:
     requester_actor_name: str | None
     processor_actor_name: str | None
     evidence_text: str
+    project_key: str | None = None
 
     def __post_init__(self) -> None:
         if not self.action_text.strip() or not self.evidence_text.strip():
@@ -116,6 +117,7 @@ class MajorEventAction:
         for field_name, value in (
             ("requester_actor_name", self.requester_actor_name),
             ("processor_actor_name", self.processor_actor_name),
+            ("project_key", self.project_key),
         ):
             if value is not None and not value.strip():
                 raise ValueError(f"{field_name} must be non-empty when provided")
@@ -135,6 +137,20 @@ class ProjectMention:
             raise ValueError("project mentions require names and evidence")
         if not math.isfinite(self.confidence) or not 0 <= self.confidence <= 1:
             raise ValueError("project mention confidence must be between 0 and 1")
+
+
+@dataclass(frozen=True)
+class KeyEvent:
+    """One source-grounded event, optionally bound to a named project."""
+
+    event_text: str
+    project_key: str | None = None
+
+    def __post_init__(self) -> None:
+        if not self.event_text.strip():
+            raise ValueError("key events require event text")
+        if self.project_key is not None and not self.project_key.strip():
+            raise ValueError("project_key must be non-empty when provided")
 
 
 @dataclass(frozen=True)
@@ -158,12 +174,23 @@ def normalize_project_key(project_name: str) -> str:
     return re.sub(r"[^\w]+", "-", normalized, flags=re.UNICODE).strip("-")
 
 
+def _parse_optional_project_key(value: object) -> str | None:
+    """Normalize an explicitly named project, rejecting empty sentinel values."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    project_key = normalize_project_key(value)
+    if project_key in {"", "none", "null", "unknown", "n-a", "na"}:
+        return None
+    return project_key
+
+
 @dataclass(frozen=True)
 class PostSummary:
     """The popup summary panel's full content for one post."""
 
     korean_summary: str
     key_events: tuple[str, ...] = field(default_factory=tuple)
+    key_event_details: tuple[KeyEvent, ...] = field(default_factory=tuple)
     roles_and_responsibilities: tuple[RoleResponsibility, ...] = field(default_factory=tuple)
     major_event_actions: tuple[MajorEventAction, ...] = field(default_factory=tuple)
     project_mentions: tuple[ProjectMention, ...] = field(default_factory=tuple)
@@ -203,7 +230,7 @@ class NullPostSummaryClient:
 
 _SUMMARY_PROMPT_TEMPLATE = """\
 Read the post below (it may be in English, Korean, or mixed) and produce
-four things:
+five things:
 
 Do not output a reasoning trace. Return the JSON object immediately.
 
@@ -226,6 +253,7 @@ Do not output a reasoning trace. Return the JSON object immediately.
    do not force a team's name into an organization slot: a team is a
    sub-unit of a company, not the company itself -- decide which of the
    three each actor is, and say which.
+   Name every person and organization by their actual stated name whenever the text gives one (e.g. "홍길동 PM, 김철수 PM이 참석했다" instead of a collective "PM들이 참석했다").
    When the actor is a person and the text names or clearly implies who
    they work for, also give that organization's name -- a bare person
    name without their employer is hard to place. When the actor is a
@@ -242,6 +270,8 @@ Do not output a reasoning trace. Return the JSON object immediately.
    topic. Keep ambiguous candidates with confidence below 0.7 so the UI can
    show uncertainty, but they must not be used as a report grouping.
 
+5. A list of 5W1H evidence items. Explicitly extract specific 'when', 'where', 'why', and 'how' facts from the text. For each fact, return the slot code, the extracted value, and the exact supporting phrase. Do not infer anything not in the text.
+
 Structured context hints (hints, not proof): {context_hints}
 Treat a customer value such as 기타, 미등록고객, unknown, or other as a
 weak hint; it cannot confirm a project by itself.
@@ -253,7 +283,9 @@ phrase short. Return an empty array when the post supports no item.
 Reply with ONLY a JSON object (no markdown fences, no prose) with exactly
 these fields:
   "korean_summary": string
-  "key_events": array of strings
+  "key_events": array of objects, each with:
+    "event_text": string,
+    "project_name": string (the name of the project this event belongs to, or null if unassigned)
   "roles_and_responsibilities": array of objects, each with:
     "actor_name": string
     "responsibility": string
@@ -326,9 +358,11 @@ Acme Electronics 제3공장에서 케이블 배선 설계 누락이 발견되어
 설계팀이 다음 주까지 수정 도면을 제출하기로 했다.
 
 Then write a new line beginning KEY EVENTS: followed by up to four short
-event phrases separated by semicolons. If the evidence covers multiple
-distinct matters, include events from each of them, not only the first
-or most prominent one. If there are no events, write NONE.
+event phrases separated by semicolons. When a project or matter is named,
+write each event as `project canonical key :: event phrase`; use `NONE ::`
+only when the event is not attributable to a named project. If the evidence
+covers multiple distinct matters, include events from each of them, not only
+the first or most prominent one. If there are no events, write NONE.
 Context hints are weak evidence only: {context_hints}
 Post title: {title}
 Post body: {body}
@@ -367,15 +401,16 @@ PROJECTS:
 project name | canonical name | shortest supporting evidence | confidence from 0 to 1
 
 ACTIONS:
-major event or action | requester actor name or NONE | processor actor name or NONE | shortest supporting evidence
+major event or action | project canonical key or NONE | requester actor name or NONE | processor actor name or NONE | shortest supporting evidence
 
 EVIDENCE:
 slot (when, where, why, or how) | value stated in the post | shortest supporting phrase
 
 Use NONE on the line after a marker when the evidence supports no item. Keep
-each row short. For ACTIONS, requester and processor must be actor names also
-present in ROLES. Use NONE only when the post does not name that actor. Do not
-invent actors, projects, affiliations, actions, or confidence.
+each row short. For ACTIONS, the project canonical key must exactly match a
+canonical name in PROJECTS or be NONE. Requester and processor must be actor
+names also present in ROLES. Use NONE only when the post does not name that
+actor. Do not invent actors, projects, affiliations, actions, or confidence.
 Only write EVIDENCE rows when the post explicitly supports the value; do not
 turn the record's filing timestamp into an event time and do not infer a
 place, reason, or method from a title alone.
@@ -399,7 +434,9 @@ def _strip_code_fence(content: str) -> str:
     return match.group(1) if match else content
 
 
-def _parse_plain_summary_response(content: str) -> tuple[str, tuple[str, ...]] | None:
+def _parse_plain_summary_response(
+    content: str,
+) -> tuple[str, tuple[str, ...], tuple[KeyEvent, ...]] | None:
     """Parse the provider-compatible plain summary and event marker."""
     plain = _strip_code_fence(content).strip()
     match = re.search(r"(?im)^\s*KEY EVENTS\s*:\s*", plain)
@@ -407,12 +444,24 @@ def _parse_plain_summary_response(content: str) -> tuple[str, tuple[str, ...]] |
         return (plain, ()) if plain else None
     summary = plain[: match.start()].strip()
     raw_events = plain[match.end() :].strip()
-    events = tuple(
-        event.strip(" -*\t")
-        for event in re.split(r";|\n", raw_events)
-        if event.strip(" -*\t") and event.strip(" -*\t").upper() != "NONE"
-    )
-    return (summary, events) if summary else None
+    events: list[str] = []
+    details: list[KeyEvent] = []
+    for raw_event in re.split(r";|\n", raw_events):
+        event = raw_event.strip(" -*\t")
+        if not event or event.upper() == "NONE":
+            continue
+        if "::" in event:
+            project_raw, event_text = (part.strip() for part in event.split("::", 1))
+            event_text = event_text.strip(" -*\t")
+            project_key = _parse_optional_project_key(project_raw)
+        else:
+            event_text = event
+            project_key = None
+        if not event_text or event_text.upper() == "NONE":
+            continue
+        events.append(event_text)
+        details.append(KeyEvent(event_text=event_text, project_key=project_key))
+    return (summary, tuple(events), tuple(details)) if summary else None
 
 
 _HINT_VALUE_PATTERN = re.compile(r"(?:^|;)\s*author_account_name=([^;\[]+?)\s*(?:\[|;|$)")
@@ -560,15 +609,29 @@ def _parse_plain_summary_details(
         except (TypeError, ValueError):
             continue
     actions: list[MajorEventAction] = []
+    role_names = {role.actor_name.casefold() for role in roles}
+
+    def _is_actor_field(value: str) -> bool:
+        """Recognize the actor columns required by the five-column contract."""
+        return value.casefold() in empty_values or value.casefold() in role_names
+
     for raw_row in sections.get("ACTIONS", "").splitlines():
         row = raw_row.strip().lstrip("-* ").strip()
         if not row or row.casefold() in empty_values:
             continue
-        parts = [part.strip() for part in row.split("|", 3)]
-        if len(parts) != 4:
+        parts = [part.strip() for part in row.split("|", 4)]
+        if len(parts) == 5 and _is_actor_field(parts[2]) and _is_actor_field(parts[3]):
+            action_text, project_key_raw, requester, processor, evidence_text = parts
+            project_key = _parse_optional_project_key(project_key_raw)
+        else:
+            legacy_parts = [part.strip() for part in row.split("|", 3)]
+            if len(legacy_parts) != 4:
+                continue
+            action_text, requester, processor, evidence_text = legacy_parts
+            project_key = None
+        if not action_text:
             continue
-        action_text, requester, processor, evidence_text = parts
-        if not action_text or evidence_text.casefold() in empty_values:
+        if evidence_text.casefold() in empty_values:
             continue
         requester_name = None if requester.casefold() in empty_values else requester
         processor_name = None if processor.casefold() in empty_values else processor
@@ -579,6 +642,7 @@ def _parse_plain_summary_details(
                     requester_actor_name=requester_name,
                     processor_actor_name=processor_name,
                     evidence_text=evidence_text,
+                    project_key=project_key,
                 )
             )
         except ValueError:
@@ -619,9 +683,29 @@ def parse_summary_response(content: str) -> PostSummary | None:
         return None
 
     key_events_raw = parsed.get("key_events") or []
-    key_events = tuple(e.strip() for e in key_events_raw if isinstance(e, str) and e.strip()) if isinstance(
-        key_events_raw, list
-    ) else ()
+    key_events: list[str] = []
+    key_event_details: list[KeyEvent] = []
+    if isinstance(key_events_raw, list):
+        for entry in key_events_raw:
+            if isinstance(entry, str) and entry.strip():
+                parsed_event = _parse_plain_summary_response(f"summary\nKEY EVENTS: {entry}")
+                if parsed_event is not None:
+                    _summary, events, details = parsed_event
+                    key_events.extend(events)
+                    key_event_details.extend(details)
+            elif isinstance(entry, dict):
+                event_text = entry.get("event_text") or entry.get("event")
+                if not isinstance(event_text, str) or not event_text.strip():
+                    continue
+                project_key = _parse_optional_project_key(
+                    entry.get("project_key") or entry.get("project_name")
+                )
+                try:
+                    detail = KeyEvent(event_text=event_text.strip(), project_key=project_key)
+                except ValueError:
+                    continue
+                key_events.append(detail.event_text)
+                key_event_details.append(detail)
 
     rr_raw = parsed.get("roles_and_responsibilities") or []
     roles: list[RoleResponsibility] = []
@@ -699,6 +783,9 @@ def parse_summary_response(content: str) -> PostSummary | None:
             evidence_text = entry.get("evidence_text") or entry.get("evidence")
             requester = entry.get("requester_actor_name")
             processor = entry.get("processor_actor_name")
+            project_key = _parse_optional_project_key(
+                entry.get("project_key") or entry.get("project_name")
+            )
             if not isinstance(action_text, str) or not isinstance(evidence_text, str):
                 continue
             requester_name = requester.strip() if isinstance(requester, str) and requester.strip() else None
@@ -710,6 +797,7 @@ def parse_summary_response(content: str) -> PostSummary | None:
                         requester_actor_name=requester_name,
                         processor_actor_name=processor_name,
                         evidence_text=evidence_text.strip(),
+                        project_key=project_key,
                     )
                 )
             except ValueError:
@@ -734,7 +822,8 @@ def parse_summary_response(content: str) -> PostSummary | None:
 
     return PostSummary(
         korean_summary=korean_summary.strip(),
-        key_events=key_events,
+        key_events=tuple(key_events),
+        key_event_details=tuple(key_event_details),
         roles_and_responsibilities=tuple(roles),
         major_event_actions=tuple(actions),
         project_mentions=tuple(project_mentions),
@@ -864,7 +953,7 @@ class ContextualOrchestratorPostSummaryClient:
         parsed = _parse_plain_summary_response(content)
         if parsed is None:
             raise ValueError(f"summary response did not match the required format: {content!r}")
-        korean_summary, key_events = parsed
+        korean_summary, key_events, key_event_details = parsed
         details_body = post_json(
             f"{self._base_url}/v1/chat/completions",
             {
@@ -899,6 +988,7 @@ class ContextualOrchestratorPostSummaryClient:
         return PostSummary(
             korean_summary=korean_summary,
             key_events=key_events,
+            key_event_details=key_event_details,
             roles_and_responsibilities=roles,
             major_event_actions=actions,
             project_mentions=projects,

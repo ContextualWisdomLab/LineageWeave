@@ -584,6 +584,36 @@ async def _post_filter_options(
 
 
 @app.get("/healthz")
+
+@app.get("/api/settings", response_model=dict)
+async def read_tenant_settings(
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+):
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT brand_name FROM tenant_settings WHERE id = 1")
+    if not row:
+        return {"brandName": "LineageWeave"}
+    return {"brandName": row["brand_name"]}
+
+@app.patch("/api/settings", response_model=dict)
+async def update_tenant_settings(
+    payload: dict,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+):
+    # Only admins can change settings
+    _require_post_admin(account)
+    brand_name = payload.get("brandName", "LineageWeave")
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO tenant_settings (id, brand_name) VALUES (1, $1) "
+            "ON CONFLICT (id) DO UPDATE SET brand_name = $1",
+            brand_name
+        )
+    return {"brandName": brand_name}
+
+
 async def healthz() -> dict[str, str]:
     """Liveness probe: the process is up. Does not touch Postgres."""
     return {"status": "ok"}
@@ -1034,7 +1064,7 @@ async def resolve_customer_master_hint(
                 _relation_verification_client(),
                 request.hint_code,
             )
-        except (HttpClientError, OSError, KeyError, TypeError, ValueError, RuntimeError) as exc:
+        except (HttpClientError, OSError) as exc:
             # resolve_and_verify_organization_name's resolution/verification
             # calls raise on a failed request rather than silently returning
             # "unresolved" -- a failed call is not the same claim as "the
@@ -1621,12 +1651,15 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
                post.source_author_name,
                post.source_company_code,
                post.source_company_name,
+               source_company.entity_name as source_company_catalog_name,
                post.source_process_unit_code,
                post.source_process_unit_name,
+               source_process_unit.process_unit_name as source_process_unit_catalog_name,
                post.source_sales_pool_code,
                post.source_sales_pool_name,
                post.source_customer_code,
                post.source_customer_name,
+               source_customer.entity_name as source_customer_catalog_name,
                post.source_project_code,
                post.source_project_name,
                post.secondary_grouping_key as project_field,
@@ -1635,6 +1668,12 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
           from source_post post
           join user_account author on author.user_account_id = post.author_account_id
           left join corporate_entity customer on customer.corporate_entity_id = post.corporate_entity_id
+          left join corporate_entity source_company
+            on source_company.corporate_entity_code = nullif(btrim(post.source_company_code), '')
+          left join process_unit source_process_unit
+            on source_process_unit.process_unit_code = nullif(btrim(post.source_process_unit_code), '')
+          left join corporate_entity source_customer
+            on source_customer.corporate_entity_code = nullif(btrim(post.source_customer_code), '')
           left join account_affiliation account_aff
             on account_aff.user_account_id = post.author_account_id
           left join corporate_entity affiliated
@@ -1683,12 +1722,15 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
         source_author_name=source_author_name,
         source_company_code=first["source_company_code"],
         source_company_name=first["source_company_name"],
+        source_company_catalog_name=first["source_company_catalog_name"],
         source_business_unit_code=first["source_process_unit_code"],
         source_process_unit_name=first["source_process_unit_name"],
+        source_process_unit_catalog_name=first["source_process_unit_catalog_name"],
         source_sales_pool_code=first["source_sales_pool_code"],
         source_sales_pool_name=first["source_sales_pool_name"],
         source_customer_code=first["source_customer_code"],
         source_customer_name=first["source_customer_name"],
+        source_customer_catalog_name=first["source_customer_catalog_name"],
         source_project_code=first["source_project_code"],
         source_project_name=first["source_project_name"],
         source_context_present=source_context_present,
@@ -1967,7 +2009,7 @@ async def verify_post_entity_relationships(
                 post_id,
                 visible_corporate_entity_ids=account.corporate_entity_ids,
             )
-        except (HttpClientError, OSError, KeyError, TypeError, ValueError, RuntimeError) as exc:
+        except (HttpClientError, OSError) as exc:
             # verify_post_relations() deliberately raises on a failed search
             # (a failed search is not "searched and found nothing" -- see
             # its docstring); this is the one caller, so it is the right
@@ -2389,9 +2431,12 @@ async def read_post_summary(
         stored = await fetch_persisted_summary(conn, post_id)
         if stored is not None:
             return stored
+        stale = await fetch_persisted_summary(conn, post_id, allow_stale=True)
         with use_llm_metadata(post_metadata):
             client = _post_summary_client()
             if not client.available:
+                if stale is not None:
+                    return stale
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
@@ -2407,7 +2452,9 @@ async def read_post_summary(
                     )
                 else:
                     summary = await asyncio.to_thread(client.summarize, post["post_title"], normalized_body)
-            except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+            except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
+                if stale is not None:
+                    return stale
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
@@ -2541,7 +2588,7 @@ async def chat_about_post(
     try:
         with use_llm_metadata(post_metadata):
             answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+    except (HttpClientError, KeyError, OSError, ValueError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
@@ -2600,10 +2647,10 @@ async def ask_agent(
         }
     try:
         answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+    except (HttpClientError, KeyError, OSError, ValueError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
+            f"Ask Agent is unavailable: {exc}",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
     return {

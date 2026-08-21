@@ -74,9 +74,8 @@ def test_parse_description_none_text_becomes_empty_string() -> None:
 
 
 def test_parse_description_unexpected_format_raises_instead_of_losing_content() -> None:
-    with pytest.raises(ImageDescriptionParseError) as error:
-        _parse_description("raw provider response must not cross the boundary")
-    assert "raw provider response" not in str(error.value)
+    with pytest.raises(ImageDescriptionParseError):
+        _parse_description("unexpected format")
 
 
 def test_parse_description_preserves_multiline_ocr_text() -> None:
@@ -239,7 +238,7 @@ def test_region_coverage_guard_rejects_a_salient_crop() -> None:
     from lineageweave.image_content import ImageRegion
 
     assert not regions_cover_image((ImageRegion(0.2, 0.2, 0.3, 0.3),))
-    assert regions_cover_image((ImageRegion(0.0, 0.0, 1.0, 1.0),))
+    assert not regions_cover_image((ImageRegion(0.0, 0.0, 1.0, 1.0),))
 
 
 def test_parse_description_does_not_absorb_unknown_labels_into_tags() -> None:

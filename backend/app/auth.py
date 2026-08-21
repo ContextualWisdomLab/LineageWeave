@@ -56,7 +56,7 @@ def _jwks(settings: Settings, *, force_refresh: bool = False) -> dict:
         except (HttpClientError, OSError, ValueError) as exc:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
-                "could not fetch OIDC JWKS from the configured identity provider",
+                f"could not fetch OIDC JWKS for {settings.oidc_issuer}: {exc}",
             ) from exc
         _jwks_cache[cache_key] = cached
     return cached
@@ -91,7 +91,7 @@ def _signing_key_from_jwks(jwks: dict, token: str):
             return RSAAlgorithm.from_jwk(json.dumps(key))
         except (KeyError, TypeError, ValueError) as exc:
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "matching JWKS key is invalid") from exc
-    raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token signing key is not recognized")
+    raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"no JWKS key matched kid={kid!r}")
 
 
 def _signing_key(settings: Settings, token: str):
@@ -99,7 +99,7 @@ def _signing_key(settings: Settings, token: str):
     try:
         return _signing_key_from_jwks(_jwks(settings), token)
     except HTTPException as exc:
-        if str(exc.detail) != "access token signing key is not recognized":
+        if not str(exc.detail).startswith("no JWKS key matched kid="):
             raise
     return _signing_key_from_jwks(_jwks(settings, force_refresh=True), token)
 
@@ -134,7 +134,7 @@ def _decode_access_token(token: str, settings: Settings) -> dict:
     except HTTPException:
         raise
     except jwt.PyJWTError as exc:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid access token") from exc
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, f"invalid token: {exc}") from exc
     subject = claims.get("sub")
     if not isinstance(subject, str) or not subject.strip():
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token has no subject")

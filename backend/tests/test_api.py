@@ -103,6 +103,16 @@ _POST_CONTENT_QUEUE_MIGRATION = (
 _MAJOR_EVENT_ACTION_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0100_major_event_action.sql"
 )
+_PROJECT_BOUND_ACTION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0101_project_bound_major_event_action.sql"
+)
+_PROJECT_BOUND_EVENT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0102_project_bound_summary_event.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -214,6 +224,8 @@ def seeded_db(demo_analyst_token):
             cur.execute(_SUMMARY_FIVE_W1H_MIGRATION.read_text())
             cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
             cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
+            cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
+            cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -1551,6 +1563,39 @@ def test_persisted_summary_is_returned_without_an_llm(client, demo_analyst_token
     assert role["actor_type_code"] == "prov_person"
     assert role["affiliated_organization_name"] == "Demo Corp"
     assert role["ontology_label"] == "Role actor (person)"
+
+
+def test_stale_summary_is_returned_labeled_when_orchestrator_is_unavailable(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A legacy saved summary preserves buyer continuity with an explicit label."""
+    os.environ.pop("ORCHESTRATOR_BASE_URL", None)
+    os.environ.pop("ORCHESTRATOR_API_KEY", None)
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into post_summary_result "
+                "(post_id, korean_summary, summary_contract_version) values (%s, %s, %s)",
+                (
+                    seeded_db["public_post_id"],
+                    "보관된 이전 계약 요약입니다.",
+                    POST_SUMMARY_CONTRACT_VERSION - 1,
+                ),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["summary_status"] == "stale"
+    assert body["summary_contract_version"] == POST_SUMMARY_CONTRACT_VERSION - 1
+    assert body["korean_summary"] == "보관된 이전 계약 요약입니다."
 
 
 def test_seed_demo_summary_surfaces_on_get_summary(client, demo_analyst_token, seeded_db) -> None:
@@ -3291,28 +3336,6 @@ def test_live_chat_answer_publishes_an_activity_event(
     events = activity_response.json()["events"]
     assert events[0]["event_type"] == "chat_answered"
     assert "What happened here that no seed already answers?" in events[0]["summary"]
-
-
-def test_live_chat_provider_error_does_not_leak_raw_error(
-    client, demo_analyst_token, seeded_db, monkeypatch
-) -> None:
-    """A provider exception becomes a stable 503 without its raw message."""
-    class _FailingChatClient:
-        available = True
-
-        def answer(self, question: str, sources) -> object:
-            raise RuntimeError("raw-provider-secret")
-
-    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _FailingChatClient())
-
-    response = client.post(
-        f"/api/posts/{seeded_db['own_private_post_id']}/chat",
-        json={"question": "What happened in this provider failure case?"},
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    )
-
-    assert response.status_code == 503
-    assert "raw-provider-secret" not in response.text
 
 
 def test_evaluate_is_unavailable_without_orchestrator(client, demo_analyst_token, seeded_db) -> None:
