@@ -23,4 +23,11 @@
 - **Security & Compliance**: PII masking cannot break the system. Need SOC 2 and CSAP compliance alternatives to blind PII masking.
 - **LLM Orchestration**: Ensure ALL LLM calls route through `contextual-orchestrator` utilizing API keys (BYTEZ, NVIDIA, OPENROUTER, OPENAI) with auto model discovery and optimal reasoning effort allocation (Fugu/Conductor/TRINITY research).
 
+## 4. Current Stacked PR Product-Surface Gaps
+- **Customer Master relationship composition — PR #262**: (Resolved on the current feature branch) The hierarchy, selected customer, and linked evidence were previously stacked vertically, so the selected customer scrolled away while the user inspected relationships and source posts. ADR 0125 and Figma frames `313:2` / `314:2` define a customer-centered three-pane workspace that preserves the WAI-ARIA tree, keeps the selected customer stable, and places source-backed evidence in a separate pane.
+- **Responsive Customer Master flow — PR #262**: (Resolved on the current feature branch) PC uses three horizontal panes, tablet uses two columns plus full-width evidence, and phone preserves the semantic order hierarchy → selected customer → evidence at the shared 1024 px / 768 px breakpoints.
+- **Effective-dated relationship authority**: (Open) The current Customer Master projection still owns only one `parent_entity_id`. Legal ownership, operating structure, sales roll-up, billing hierarchy, historical roles, and multiple simultaneous relationship types require a normalized, effective-dated relation model before they can be shown as authoritative facts.
+- **Unresolved hierarchy repair workflow**: (Open) Cycle, self-parent, and missing-visible-parent members remain safely visible and marked unresolved, but operators still need a source-data quality queue, evidence review, and approved correction workflow.
+- **Customer relationship exact-value export**: (Open) The three-pane workspace is accessible and source-backed, but an auditable CSV/JSON export of the selected customer, visible relations, truth status, effective interval, and evidence references remains a later product slice.
+
 *This document is continuously updated by the hourly automated agent loop.*
