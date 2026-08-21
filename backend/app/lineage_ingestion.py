@@ -127,6 +127,10 @@ async def rebuild_lineage(
     optional LLM channel is recorded when available; ``None`` preserves the
     fail-closed three-channel rebuild.
     """
+    # Keep the pooled connection out of an open transaction while the
+    # optional orchestrator evaluates the whole corpus. Only the destructive
+    # replacement is transactional, so a slow model call cannot hold an idle
+    # database transaction open.
     rows = await conn.fetch(
         "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
         "process_unit_id, thread_group_key, secondary_grouping_key "
@@ -134,7 +138,8 @@ async def rebuild_lineage(
     )
     records = records_from_source_posts(rows)
     edges = await asyncio.to_thread(lineage_edge_specs, records, llm=llm)
-    await persist_lineage_edges(conn, edges)
+    async with conn.transaction():
+        await persist_lineage_edges(conn, edges)
     return edges
 
 

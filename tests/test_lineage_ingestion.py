@@ -36,9 +36,22 @@ def test_records_use_persisted_thread_keys_not_process_unit_or_voc_type() -> Non
 
 
 def test_rebuild_passes_the_configured_adjudication_client(monkeypatch) -> None:
+    events: list[str] = []
+
+    class FakeTransaction:
+        async def __aenter__(self):
+            events.append("transaction_enter")
+
+        async def __aexit__(self, *_args):
+            events.append("transaction_exit")
+
     class FakeConnection:
         async def fetch(self, _query: str, *_args):
+            events.append("fetch")
             return []
+
+        def transaction(self):
+            return FakeTransaction()
 
     client = object()
     captured: dict[str, object] = {}
@@ -48,9 +61,11 @@ def test_rebuild_passes_the_configured_adjudication_client(monkeypatch) -> None:
         return []
 
     async def fake_persist_lineage_edges(_conn, _edges):
+        events.append("persist")
         return None
 
     async def fake_to_thread(function, *args, **kwargs):
+        events.append("reconstruct")
         captured["offloaded_function"] = function
         return function(*args, **kwargs)
 
@@ -63,6 +78,7 @@ def test_rebuild_passes_the_configured_adjudication_client(monkeypatch) -> None:
 
     assert captured["llm"] is client
     assert captured["offloaded_function"] is fake_lineage_edge_specs
+    assert events == ["fetch", "reconstruct", "transaction_enter", "persist", "transaction_exit"]
 
 
 def test_records_fall_back_to_corporate_entity_when_thread_keys_are_empty() -> None:
