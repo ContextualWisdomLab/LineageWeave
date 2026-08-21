@@ -80,6 +80,30 @@ describe("PostBody", () => {
     expect(screen.getByText("- 설치 확인")).toHaveAttribute("data-indent-level", "2");
   });
 
+  it("drops hostile or unbounded indentation before it reaches CSS", () => {
+    render(
+      <PostBody
+        body="<p>Untrusted indent</p>"
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "dom",
+            unit_text: "Untrusted indent",
+            // Runtime JSON is untrusted even though the generated type is numeric.
+            indent_level: "0; color: red" as unknown as number,
+            indent_source_code: "explicit",
+            indent_confidence: 1,
+            indent_evidence: "untrusted fixture",
+          },
+        ]}
+      />,
+    );
+
+    const paragraph = screen.getByText("Untrusted indent");
+    expect(paragraph).toHaveAttribute("data-indent-level", "0");
+    expect(paragraph).not.toHaveAttribute("style");
+  });
+
   it("uses persisted indentation for ordinary paragraphs without table markers", () => {
     render(
       <PostBody
@@ -470,6 +494,44 @@ describe("PostBody", () => {
     expect(screen.getByRole("table")).toBeInTheDocument();
     expect(screen.getAllByRole("row")).toHaveLength(2);
     expect(screen.getByText("Panel")).toBeInTheDocument();
+  });
+
+  it("keeps escaped pipes and does not invent headers for unmarked region OCR", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "| Item | State |\n| --- | --- |\n| Review \\| approve | Ready |",
+            caption: "A table image",
+            tags: [],
+            regions: [
+              {
+                region_index: 0,
+                x_ratio: 0,
+                y_ratio: 0,
+                width_ratio: 1,
+                height_ratio: 1,
+                status_code: "described",
+                extracted_text: "| 1 | Panel |\n| 2 | Ready |",
+                caption: "An OCR region without a Markdown header marker.",
+                tags: [],
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Review | approve")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Item" })).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "1" })).not.toBeInTheDocument();
+    expect(document.querySelector(".post-image-region-text p")?.textContent).toBe(
+      "| 1 | Panel |\n| 2 | Ready |",
+    );
   });
 
   it("keeps source-image placement while showing persisted OCR and caption evidence", () => {

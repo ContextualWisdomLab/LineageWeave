@@ -14,6 +14,9 @@ vi.mock("react-oidc-context", () => ({
 
 beforeEach(() => {
   setLocale("en");
+  window.history.replaceState({}, "", "/");
+  window.sessionStorage.clear();
+  window.localStorage.clear();
   signinRedirect.mockReset();
   signoutRedirect.mockReset();
   mockAuth = {
@@ -27,19 +30,26 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  window.history.replaceState({}, "", "/");
+  window.sessionStorage.clear();
+  window.localStorage.clear();
   vi.unstubAllGlobals();
 });
 
 describe("App, unauthenticated", () => {
   it("shows a login button that starts the real OIDC redirect", async () => {
+    window.history.replaceState({}, "", "/?post=buyer-evidence#summary");
     render(<App showLabPanels />);
     const button = screen.getByRole("button", { name: /log in/i });
     await userEvent.click(button);
     expect(signinRedirect).toHaveBeenCalledTimes(1);
     expect(signinRedirect).toHaveBeenCalledWith(
       expect.objectContaining({
-        state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
+        state: expect.objectContaining({ returnUrl: "/?post=buyer-evidence#summary" }),
       }),
+    );
+    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toBe(
+      "/?post=buyer-evidence#summary",
     );
   });
 });
@@ -1172,6 +1182,7 @@ describe("App, authenticated", () => {
               ? { summary_status: "stale", summary_contract_version: 4 }
               : {}),
             key_events: ["첫 번째 이벤트"],
+            key_event_details: [{ event_text: "첫 번째 이벤트", project_name: "Sample project" }],
             roles_and_responsibilities: [
               {
                 actor_name: "Ada West",
@@ -1210,6 +1221,15 @@ describe("App, authenticated", () => {
                 confidence: 0.9,
                 ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Project",
                 extraction_method: "contextual_orchestrator_semantic",
+              },
+            ],
+            major_event_actions: [
+              {
+                action_text: "출하 일정 확인",
+                requester_actor_name: "Ada West",
+                processor_actor_name: "Priya Nair",
+                evidence_text: "source body",
+                project_name: "Sample project",
               },
             ],
           }),
@@ -1966,6 +1986,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("contextual_orchestrator_semantic")).not.toBeInTheDocument();
     expect(screen.queryByText("https://contextualwisdomlab.github.io/lineageweave/ontology#Project")).not.toBeInTheDocument();
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
+    expect(screen.getByText("Sample project: 출하 일정 확인")).toBeInTheDocument();
     expect(screen.getByText(/우리 측 후속/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "R&R Keyman: Ada West" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "R&R person: Priya Nair" })).toBeInTheDocument();
