@@ -63,6 +63,7 @@ def _row(status: str, attempt_count: int, *, started_at: object = None) -> dict[
         "job_attempt_count": attempt_count,
         "job_started_at": started_at,
         "job_queued_at": "queued-at",
+        "source_detail_state_code": "A",
         "post_body": "A synthetic post body with a retrieval unit.",
         "post_title": "Synthetic post title",
     }
@@ -80,6 +81,22 @@ def test_worker_starts_after_historical_stream_tail() -> None:
 
 def test_terminal_failed_job_ignores_a_stale_duplicate_wakeup() -> None:
     connection = _Connection(_row(FAILED, POST_CONTENT_MAX_ATTEMPTS))
+
+    claimed = asyncio.run(
+        post_content_worker._claim_job(
+            _Pool(connection),
+            "00000000-0000-0000-0000-000000000001",
+            "a" * 64,
+            embedding_model_code="",
+        )
+    )
+
+    assert claimed is None
+    assert connection.executed == []
+
+
+def test_worker_drops_a_writing_post_even_if_a_stale_job_row_leaks_through() -> None:
+    connection = _Connection({**_row(QUEUED, 0), "source_detail_state_code": "W"})
 
     claimed = asyncio.run(
         post_content_worker._claim_job(
