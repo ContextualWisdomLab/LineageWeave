@@ -111,6 +111,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | APA 7 doctoring and Zotero OA records | baseline bibliography, local Zotero API reachable, known metadata found | source + local-integration; OA attachment audit open |
 | Browser E2E from login through evidence | anonymous OIDC redirect verified at 390px; authenticated account flow not executed | partial; open |
 | Storybook scenes/edge events and design-token coverage | `LineageDag.stories.tsx`, inventory, Storybook build | source + unit |
+| Hourly PR review/repair/merge loop | Central `ContextualWisdomLab/.github` scheduler owns `*/15 * * * *` sweep and `0 * * * *` heartbeat; no duplicate repo-local scheduler is required | boundary accepted; current-head runtime open |
 | 100% coverage/docstrings/edge-case/release gates | current checks and coverage evidence are not complete on PR #350 | open |
 
 ## 4. Supplied parsing and semantic cases
