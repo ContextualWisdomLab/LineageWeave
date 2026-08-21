@@ -106,12 +106,15 @@ def post_json(
     *,
     headers: dict[str, str],
     timeout: float,
+    service_peer_name: str = "contextual-orchestrator",
 ) -> dict:
     """POST ``payload`` as JSON to ``url`` and return the decoded object.
 
     Raises:
         ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
         HttpClientError: the server responded with HTTP >= 400 or non-JSON.
+
+    ``service_peer_name`` is a bounded service name used for the request span.
     """
     request_payload = payload
     request_metadata = current_llm_metadata()
@@ -136,7 +139,7 @@ def post_json(
             "http.request.method": "POST",
             "server.address": hostname,
             "url.path": parsed.path or "/",
-            "service.peer.name": "contextual-orchestrator",
+            "service.peer.name": service_peer_name,
         },
     ) as span:
         inject_trace_context(request_headers)

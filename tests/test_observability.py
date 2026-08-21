@@ -1,10 +1,11 @@
 """Tests for prompt-safe session propagation and tracing boundaries."""
 
-from lineageweave import http_client
+from lineageweave import http_client, observability
 from lineageweave.llm_context import use_llm_metadata
 from lineageweave.observability import (
     _otlp_trace_endpoint,
     current_session_id,
+    shutdown_telemetry,
     traced,
 )
 
@@ -56,3 +57,26 @@ def test_otlp_base_endpoint_gets_trace_signal_path():
     """A configured collector base URL receives the HTTP traces signal path."""
     assert _otlp_trace_endpoint("http://collector:4318") == "http://collector:4318/v1/traces"
     assert _otlp_trace_endpoint("http://collector:4318/v1/traces/") == "http://collector:4318/v1/traces"
+
+
+def test_shutdown_telemetry_flushes_configured_providers(monkeypatch):
+    """Application shutdown flushes traces and metrics without a raw error."""
+    calls = []
+
+    class _Provider:
+        def __init__(self, name):
+            self.name = name
+
+        def shutdown(self):
+            calls.append(self.name)
+
+    monkeypatch.setattr(observability, "_TRACE_PROVIDER", _Provider("trace"))
+    monkeypatch.setattr(observability, "_METER_PROVIDER", _Provider("metric"))
+    monkeypatch.setattr(observability, "_FAILURE_COUNTER", object())
+
+    shutdown_telemetry()
+
+    assert calls == ["trace", "metric"]
+    assert observability._TRACE_PROVIDER is None
+    assert observability._METER_PROVIDER is None
+    assert observability._FAILURE_COUNTER is None

@@ -188,6 +188,7 @@ from lineageweave.http_client import HttpClientError
 from lineageweave.observability import (
     configure_telemetry,
     record_server_failure,
+    shutdown_telemetry,
     traced,
 )
 
@@ -233,8 +234,11 @@ async def lifespan(app: FastAPI):
             app.state.post_content_worker,
             return_exceptions=True,
         )
-        await app.state.pool.close()
-        await app.state.valkey.aclose()
+        try:
+            await app.state.pool.close()
+            await app.state.valkey.aclose()
+        finally:
+            shutdown_telemetry()
 
 
 app = FastAPI(title="LineageWeave API", lifespan=lifespan)

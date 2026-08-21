@@ -29,6 +29,8 @@ _LOGGER = logging.getLogger(__name__)
 _CONFIGURED = False
 _TRACER_NAME = "lineageweave"
 _FAILURE_COUNTER: Any = None
+_TRACE_PROVIDER: Any = None
+_METER_PROVIDER: Any = None
 _SERVER_FAILURE_OUTCOMES = {"provider_unavailable", "internal_error"}
 
 
@@ -90,7 +92,7 @@ def _safe_attributes(
 
 def configure_telemetry(service_name: str = "lineageweave") -> None:
     """Configure OTLP traces and bounded failure metrics when enabled."""
-    global _CONFIGURED
+    global _CONFIGURED, _TRACE_PROVIDER, _METER_PROVIDER
     if _CONFIGURED or os.getenv("OTEL_SDK_DISABLED", "").lower() == "true":
         return
     endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip()
@@ -118,6 +120,7 @@ def configure_telemetry(service_name: str = "lineageweave") -> None:
         )
     )
     trace.set_tracer_provider(provider)
+    _TRACE_PROVIDER = provider
     _CONFIGURED = True
     if metrics is None:
         return
@@ -130,16 +133,37 @@ def configure_telemetry(service_name: str = "lineageweave") -> None:
     except ImportError:  # pragma: no cover - guarded by the runtime extra
         _LOGGER.warning("OpenTelemetry metric SDK/exporter is unavailable")
         return
-    metrics.set_meter_provider(
-        MeterProvider(
-            resource=resource,
-            metric_readers=[
-                PeriodicExportingMetricReader(
-                    OTLPMetricExporter(endpoint=_otlp_metric_endpoint(endpoint))
-                )
-            ],
-        )
+    meter_provider = MeterProvider(
+        resource=resource,
+        metric_readers=[
+            PeriodicExportingMetricReader(
+                OTLPMetricExporter(endpoint=_otlp_metric_endpoint(endpoint))
+            )
+        ],
     )
+    metrics.set_meter_provider(meter_provider)
+    _METER_PROVIDER = meter_provider
+
+
+def shutdown_telemetry() -> None:
+    """Flush configured OTLP providers without masking application shutdown."""
+    global _TRACE_PROVIDER, _METER_PROVIDER, _FAILURE_COUNTER
+    for provider_name, provider in (
+        ("trace", _TRACE_PROVIDER),
+        ("metric", _METER_PROVIDER),
+    ):
+        if provider is None:
+            continue
+        try:
+            provider.shutdown()
+        except Exception:  # noqa: BLE001 - telemetry must not mask shutdown
+            _LOGGER.warning(
+                "telemetry.provider_shutdown_failed provider=%s",
+                provider_name,
+            )
+    _TRACE_PROVIDER = None
+    _METER_PROVIDER = None
+    _FAILURE_COUNTER = None
 
 
 def _failure_counter() -> Any:

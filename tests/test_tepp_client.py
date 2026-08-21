@@ -55,8 +55,21 @@ def test_custom_transport_receives_the_exact_wire_payload() -> None:
 def test_configured_transport_sends_optional_bearer_key(monkeypatch: pytest.MonkeyPatch) -> None:
     received = {}
 
-    def fake_post_json(url: str, payload: dict, *, headers: dict, timeout: float) -> dict:
-        received.update(url=url, payload=payload, headers=headers, timeout=timeout)
+    def fake_post_json(
+        url: str,
+        payload: dict,
+        *,
+        headers: dict,
+        timeout: float,
+        service_peer_name: str,
+    ) -> dict:
+        received.update(
+            url=url,
+            payload=payload,
+            headers=headers,
+            timeout=timeout,
+            service_peer_name=service_peer_name,
+        )
         return {"status": "accepted"}
 
     monkeypatch.setattr("backend.app.analysis_run_start.post_json", fake_post_json)
@@ -66,3 +79,4 @@ def test_configured_transport_sends_optional_bearer_key(monkeypatch: pytest.Monk
 
     assert received["headers"] == {"authorization": "Bearer test-key"}
     assert received["payload"] == _sample_request().to_json()
+    assert received["service_peer_name"] == "tepp"
