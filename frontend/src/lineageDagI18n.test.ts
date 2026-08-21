@@ -8,7 +8,7 @@ afterEach(() => {
 
 describe("lineageDagText", () => {
   it.each(["ko", "zh", "ja", "vi"] as const)(
-    "translates the lineage meaning boundary in %s",
+    "translates the lineage meaning and next-action boundary in %s",
     (locale) => {
       setLocale(locale);
       expect(lineageDagText("Lineage legend")).not.toBe("Lineage legend");
@@ -22,6 +22,13 @@ describe("lineageDagText", () => {
         ),
       ).not.toBe(
         "Reconstructed edges suggest continuation; they do not prove causality or authoritative fact.",
+      );
+      expect(
+        lineageDagText(
+          "No reconstructed lineage yet. Add eligible source records, then rebuild Event Lineage.",
+        ),
+      ).not.toBe(
+        "No reconstructed lineage yet. Add eligible source records, then rebuild Event Lineage.",
       );
     },
   );
