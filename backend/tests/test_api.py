@@ -1243,10 +1243,9 @@ def test_me_reflects_the_authenticated_account(client, demo_analyst_token, seede
     assert any(
         entity["entity_name"] == "Test Corp" for entity in body["corporate_entities"]
     )
-    assert any(
-        row["corporate_entity_code"] == "TEST-CORP"
-        for row in body["account_affiliations"]
-    )
+    assert {
+        row["corporate_entity_code"] for row in body["account_affiliations"]
+    } == {"TEST-CORP", "GRANTED-CORP"}
     affiliation = next(
         row
         for row in body["account_affiliations"]
