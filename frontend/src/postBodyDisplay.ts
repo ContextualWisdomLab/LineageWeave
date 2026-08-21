@@ -172,13 +172,36 @@ function stripHtmlTags(text: string): string {
 function splitSemanticParagraphs(text: string): string[] {
   const paragraphs: string[] = [];
   let lines: string[] = [];
+  let pipeTableRows: string[] = [];
   const flush = () => {
     const paragraph = lines.join(" ").trimEnd();
     if (paragraph.trim()) paragraphs.push(paragraph);
     lines = [];
   };
+  const flushPipeTableRows = () => {
+    const hasSeparator = pipeTableRows.some((row) => {
+      const cells = row.trim().replace(/^\|/, "").replace(/\|$/, "").split("|");
+      return cells.length >= 2 && cells.every((cell) => /^\s*:?-{3,}:?\s*$/.test(cell));
+    });
+    if (pipeTableRows.length >= 2 && hasSeparator) {
+      flush();
+      paragraphs.push(pipeTableRows.map((row) => row.trim()).join("\n"));
+    } else {
+      lines.push(...pipeTableRows);
+    }
+    pipeTableRows = [];
+  };
 
   for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed.includes("|")) {
+      const cells = trimmed.replace(/^\|/, "").replace(/\|$/, "").split("|");
+      if (cells.length >= 2 && cells.some((cell) => cell.trim())) {
+        pipeTableRows.push(line);
+        continue;
+      }
+    }
+    if (pipeTableRows.length > 0) flushPipeTableRows();
     if (!line.trim()) {
       flush();
       continue;
@@ -186,6 +209,7 @@ function splitSemanticParagraphs(text: string): string[] {
     if (lines.length > 0 && LIST_ITEM_START.test(line)) flush();
     lines.push(lines.length === 0 ? line.replace(/[ \t]+$/g, "") : line.trim());
   }
+  if (pipeTableRows.length > 0) flushPipeTableRows();
   flush();
   return paragraphs;
 }
