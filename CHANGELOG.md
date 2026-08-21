@@ -27,6 +27,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- Related-node chips now show authorized business context: a unique
+  affiliation, a truthful `multiple organizations` signal, or the
+  cataloged entity level. Post chips retain the source title only.
+- The plural-affiliation panel tells the buyer to read the complete
+  Keyman list before continuing the graph walk, preserving every
+  membership instead of inventing a primary organization.
 - Renamed "Buyer" terminology to reader/workspace naming across the frontend
   shell, backend evidence helpers, and living docs (ADR 0119). Historical ADRs
   and changelog entries retain their point-in-time wording.

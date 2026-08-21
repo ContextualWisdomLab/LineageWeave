@@ -196,6 +196,11 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Event Lineage": "이벤트 계보",
     "Lineage evidence": "계보 근거",
     "Related posts": "관련 글",
+    "multiple organizations": "여러 조직",
+    "Multiple organizations are recorded. Read every organization in the Keyman list above, then continue the walk.":
+      "여러 조직이 기록되어 있습니다. 위 Keyman 목록에서 모든 조직을 확인한 뒤 탐색을 계속하세요.",
+    "Multiple organizations are recorded. Extract Keymen to list every organization, then continue the walk.":
+      "여러 조직이 기록되어 있습니다. 모든 조직을 표시하려면 Keyman을 추출한 뒤 탐색을 계속하세요.",
     "Open navigation": "탐색 메뉴 열기",
     "Skip to main content": "본문으로 바로가기",
     "Lineage legend": "계보 범례",
@@ -560,6 +565,11 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Event Lineage": "事件谱系",
     "Lineage evidence": "谱系证据",
     "Related posts": "相关文章",
+    "multiple organizations": "多个组织",
+    "Multiple organizations are recorded. Read every organization in the Keyman list above, then continue the walk.":
+      "已记录多个组织。请先查看上方关键联系人列表中的所有组织，然后继续浏览。",
+    "Multiple organizations are recorded. Extract Keymen to list every organization, then continue the walk.":
+      "已记录多个组织。请先提取关键联系人以列出所有组织，然后继续浏览。",
     "Related to": "相关对象：",
     "Graph relation": "图谱关联",
     "Loading related nodes...": "正在加载相关节点...",
@@ -948,6 +958,11 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Event Lineage": "イベント系譜",
     "Lineage evidence": "系譜の証拠",
     "Related posts": "関連する投稿",
+    "multiple organizations": "複数の組織",
+    "Multiple organizations are recorded. Read every organization in the Keyman list above, then continue the walk.":
+      "複数の組織が記録されています。上のキーパーソン一覧ですべての組織を確認してから、探索を続けてください。",
+    "Multiple organizations are recorded. Extract Keymen to list every organization, then continue the walk.":
+      "複数の組織が記録されています。すべての組織を表示するにはキーパーソンを抽出してから、探索を続けてください。",
     "Related to": "関連対象：",
     "Graph relation": "グラフ関連",
     "Loading related nodes...": "関連ノードを読み込んでいます...",
@@ -1312,6 +1327,11 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Event Lineage": "Dòng sự kiện",
     "Lineage evidence": "Bằng chứng dòng sự kiện",
     "Related posts": "Bài viết liên quan",
+    "multiple organizations": "nhiều tổ chức",
+    "Multiple organizations are recorded. Read every organization in the Keyman list above, then continue the walk.":
+      "Đã ghi nhận nhiều tổ chức. Hãy đọc tất cả tổ chức trong danh sách nhân sự chủ chốt ở trên, rồi tiếp tục khám phá.",
+    "Multiple organizations are recorded. Extract Keymen to list every organization, then continue the walk.":
+      "Đã ghi nhận nhiều tổ chức. Hãy trích xuất nhân sự chủ chốt để liệt kê tất cả tổ chức, rồi tiếp tục khám phá.",
     "Related to": "Liên quan đến:",
     "Graph relation": "Liên kết đồ thị",
     "Loading related nodes...": "Đang tải các nút liên quan...",

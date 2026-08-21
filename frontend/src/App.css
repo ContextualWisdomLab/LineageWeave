@@ -1,3 +1,5 @@
+@import "./relatedNodeTokens.css";
+
 /* App-level Shell Layout */
 .app-shell {
   display: flex;

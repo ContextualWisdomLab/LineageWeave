@@ -94,6 +94,8 @@ import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
+import { RelatedNodeChip } from "./RelatedNodeChip";
+import { relatedAffiliationNextAction } from "./relatedNodeCaption";
 import {
   isSupportedLocale,
   LOCALE_LABELS,
@@ -1099,6 +1101,11 @@ function KeymanPanel({
           </ol>
         </div>
       ) : null}
+      {related !== null && related.some((node) => node.affiliation_ambiguous) ? (
+        <p className="related-affiliation-hint">
+          {relatedAffiliationNextAction(Boolean(keymen && keymen.length > 0))}
+        </p>
+      ) : null}
       {related === null ? (
         <p>{t("Loading related nodes...")}</p>
       ) : related.length === 0 ? (
@@ -1140,42 +1147,38 @@ function KeymanPanel({
               case NODE_PERSON:
                 return (
                   <li key={key}>
-                    <button
-                      className="keyman-select"
-                      aria-label={tf("Related nodes for {name}", { name: caption })}
-                      aria-current={
-                        landFirstRelated && related[0]?.node_id === node.node_id
-                          ? "true"
-                          : undefined
+                    <RelatedNodeChip
+                      node={node}
+                      action="walk_person"
+                      current={landFirstRelated && related[0]?.node_id === node.node_id}
+                      onSelect={(selected) =>
+                        handleSelect(selected.node_id, selected.label ?? selected.node_id)
                       }
-                      onClick={() => handleSelect(node.node_id, node.label ?? node.node_id)}
-                    >
-                      {caption}
-                    </button>
+                    />
                   </li>
                 );
               case NODE_CORPORATE_ENTITY:
                 return (
                   <li key={key}>
-                    <button
-                      className="keyman-select"
-                      aria-label={tf("Related nodes for {name}", { name: node.label ?? node.node_id })}
-                      onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
-                    >
-                      {caption}
-                    </button>
+                    <RelatedNodeChip
+                      node={node}
+                      action="walk_entity"
+                      onSelect={(selected) =>
+                        handleSelectEntity(selected.node_id, selected.label ?? selected.node_id)
+                      }
+                    />
                   </li>
                 );
               case NODE_TEAM:
                 return (
                   <li key={key}>
-                    <button
-                      className="keyman-select"
-                      aria-label={tf("Related nodes for {name}", { name: node.label ?? node.node_id })}
-                      onClick={() => handleSelectTeam(node.node_id, node.label ?? node.node_id)}
-                    >
-                      {caption}
-                    </button>
+                    <RelatedNodeChip
+                      node={node}
+                      action="walk_team"
+                      onSelect={(selected) =>
+                        handleSelectTeam(selected.node_id, selected.label ?? selected.node_id)
+                      }
+                    />
                   </li>
                 );
               default: {
