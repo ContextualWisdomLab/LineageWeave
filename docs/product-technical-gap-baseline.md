@@ -352,13 +352,14 @@ GRC evidence subjects.
 
 The remaining PR #383 `osv-scan` failure is a central workflow defect: the scan
 exited successfully, but the follow-up treated a missing baseline result file
-as failure after the head checkout. Central `.github` PR #1158 is the broader
-source-provenance repair at exact head
-`c24ce16ab72c5b372d2c397f0af8f84dc1b63d2f`; central PR #1002 independently
-adds the minimal result-preservation and review-placeholder repair at exact
-head `a5163b4db0f25c0f2463fdeb075a74c8c0f2f6bf`. Both remain open with non-terminal
-Checks and no independent approval, so PR #383 is not reported green or
-mergeable from this historical failure alone.
+as failure after the head checkout. Central `.github` PR #1158 now contains the
+direct-source result-file repair (`--output-file`) at observed exact head
+`c24ce16ab72c5b372d2c397f0af8f84dc1b63d2f`; its provenance, Python contracts,
+and exact-head policy checks pass while the remaining security/queue checks are
+still non-terminal. Central PR #1002 independently remains open at observed
+exact head `a5163b4db0f25c0f2463fdeb075a74c8c0f2f6bf` with the required checks
+still running. Neither PR has independent approval, so PR #383 is not reported
+green or mergeable from this historical failure alone.
 
 ## 7. Next Implementation Order
 
