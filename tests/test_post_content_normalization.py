@@ -12,7 +12,11 @@ import base64
 from threading import Lock
 
 from lineageweave.chunking import Chunk
-from lineageweave.image_content import ImageDescription, ImageRegion, NullImageContentClient
+from lineageweave.image_content import (
+    ImageDescription,
+    ImageRegion,
+    NullImageContentClient,
+)
 from lineageweave.llm_context import current_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 
@@ -348,6 +352,20 @@ def test_partial_region_analysis_discards_unbounded_locator_regions() -> None:
 
     assert len(result.image_results[0].regions) == 1
     assert result.image_results[0].regions[0].region == ImageRegion(0.25, 0.25, 0.25, 0.25)
+
+
+def test_non_iterable_locator_result_falls_back_to_parent_evidence() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+    description = ImageDescription(extracted_text="parent", caption="whole", tags=())
+
+    result = normalize_post_body(
+        f'<img src="data:image/png;base64,{b64}"/>',
+        vision_client=_MalformedLocatorVisionClient(description),
+    )
+
+    assert result.image_results[0].status_code == "described"
+    assert result.image_results[0].regions == ()
+    assert result.image_results[0].description == description
 
 
 def test_comparison_operators_in_plain_text_are_not_treated_as_html() -> None:
