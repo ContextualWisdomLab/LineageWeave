@@ -6,6 +6,9 @@ import "./AdminPanel.css";
 
 export type AdminBoardTool = "advanced" | "lineage" | "rankings" | "analysis" | "reports";
 
+const COPYRIGHT_YEAR_MIN = 1900;
+const COPYRIGHT_YEAR_MAX = 2100;
+
 type AdminSection =
   | "overview"
   | "post-operations"
@@ -202,7 +205,14 @@ export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessTo
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (draftConfig.brandName.trim() && draftConfig.systemName.trim() && draftConfig.copyrightHolder.trim() && Number.isInteger(draftConfig.copyrightYear)) {
+    if (
+      draftConfig.brandName.trim()
+      && draftConfig.systemName.trim()
+      && draftConfig.copyrightHolder.trim()
+      && Number.isInteger(draftConfig.copyrightYear)
+      && draftConfig.copyrightYear >= COPYRIGHT_YEAR_MIN
+      && draftConfig.copyrightYear <= COPYRIGHT_YEAR_MAX
+    ) {
       setSaving(true);
       setError(null);
       try {
@@ -314,8 +324,8 @@ export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessTo
                 value={draftConfig.copyrightYear}
                 onChange={(e) => setDraftConfig({ ...draftConfig, copyrightYear: Number(e.target.value) })}
                 aria-label={t("Tenant copyright year")}
-                min={1900}
-                max={2100}
+                min={COPYRIGHT_YEAR_MIN}
+                max={COPYRIGHT_YEAR_MAX}
                 required
                 disabled={saving}
               />
@@ -329,8 +339,8 @@ export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessTo
                     || !draftConfig.systemName.trim()
                     || !draftConfig.copyrightHolder.trim()
                     || !Number.isInteger(draftConfig.copyrightYear)
-                    || draftConfig.copyrightYear < 1900
-                    || draftConfig.copyrightYear > 2100
+                    || draftConfig.copyrightYear < COPYRIGHT_YEAR_MIN
+                    || draftConfig.copyrightYear > COPYRIGHT_YEAR_MAX
                     || (
                       draftConfig.brandName === currentTenantConfig.brandName
                       && draftConfig.systemName === currentTenantConfig.systemName

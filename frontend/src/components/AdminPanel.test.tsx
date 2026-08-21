@@ -90,6 +90,22 @@ describe("AdminPanel", () => {
     expect(JSON.parse(String(request?.[1]?.body))).toEqual(responseConfig);
   });
 
+  it("rejects a copyright year outside the approved range in the submit handler", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<AdminPanel {...baseProps} />);
+    fireEvent.click(screen.getByRole("button", { name: /Tenant settings/ }));
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Tenant copyright year" }), {
+      target: { value: "1899" },
+    });
+
+    const saveButton = screen.getByRole("button", { name: "Save settings" });
+    expect(saveButton).toBeDisabled();
+    fireEvent.submit(saveButton.closest("form")!);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("refreshes the draft when the fetched tenant config arrives", () => {
     const { rerender } = render(<AdminPanel {...baseProps} />);
 
