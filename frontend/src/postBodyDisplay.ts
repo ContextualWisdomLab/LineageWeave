@@ -30,6 +30,17 @@ const INDENT_MARKER_END = "\u0002";
 const INDENT_MARKER_PATTERN = /lw-indent:(\d+)/g;
 const NUMERIC_FOOTNOTE_MARKER = "\u0003lw-numeric-footnote\u0004";
 const NUMERIC_SUPERSCRIPT = /<sup\b[^>]*>\s*(\d{1,3})\s*<\/sup>/gi;
+const SUPERSCRIPT_DIGITS = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+const SUBSCRIPT_DIGITS = "₀₁₂₃₄₅₆₇₈₉";
+const METRIC_MARKUP =
+  /((?<![A-Za-z])(?:\d+(?:\.\d+)?\s*)?(?:km|cm|mm|kg|m))\s*<(sup|sub)\b[^>]*>\s*(\d{1,3})\s*<\/\2>/gi;
+
+function normalizeMetricMarkup(raw: string): string {
+  return raw.replace(METRIC_MARKUP, (_match, base: string, kind: string, digits: string) => {
+    const table = kind.toLowerCase() === "sup" ? SUPERSCRIPT_DIGITS : SUBSCRIPT_DIGITS;
+    return `${base}${[...digits].map((digit) => table[Number(digit)]).join("")}`;
+  });
+}
 
 function stripIndentMarkers(value: string): string {
   return value
@@ -218,7 +229,7 @@ function isDecodableBase64(raw: string): boolean {
 
 function pushText(segments: PostBodySegment[], raw: string, indentUnit: number): void {
   const text = stripHtmlTags(
-    raw.replace(NUMERIC_SUPERSCRIPT, `${NUMERIC_FOOTNOTE_MARKER}$1`),
+    normalizeMetricMarkup(raw).replace(NUMERIC_SUPERSCRIPT, `${NUMERIC_FOOTNOTE_MARKER}$1`),
   );
   for (const paragraph of splitSemanticParagraphs(text)) {
     const hasNumericSuperscriptMarker = paragraph.includes(NUMERIC_FOOTNOTE_MARKER);

@@ -67,6 +67,12 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("preserves explicit metric superscripts and subscripts", () => {
+    expect(splitPostBody("<p>Volume: 5m<sup>3</sup>, index m<sub>3</sub>.</p>")).toEqual([
+      { kind: "text", text: "Volume: 5m³, index m₃." },
+    ]);
+  });
+
   it("limits numeric superscript footnote roles to their source paragraph", () => {
     expect(
       splitPostBody(

@@ -191,6 +191,24 @@ def test_chunk_by_dom_does_not_treat_non_numeric_superscript_as_footnote() -> No
     ]
 
 
+def test_chunk_by_dom_preserves_explicit_metric_superscripts() -> None:
+    """A unit exponent remains searchable mathematical evidence."""
+    chunks = chunk_by_dom("<p>Volume: 5m<sup>3</sup>.</p>")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Volume: 5m³."),
+    ]
+
+
+def test_chunk_by_dom_preserves_explicit_metric_subscripts() -> None:
+    """A unit subscript is retained without changing ordinary footnotes."""
+    chunks = chunk_by_dom("<p>Index m<sub>3</sub> is measured.</p>")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Index m₃ is measured."),
+    ]
+
+
 def test_chunk_by_dom_preserves_nested_list_order_and_depth() -> None:
     """Nested list items retain source order and increasing depth."""
     chunks = chunk_by_dom(

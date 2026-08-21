@@ -256,6 +256,22 @@ def chunk_by_paragraph(text: str) -> list[Chunk]:
 
 
 _SENTENCE_BOUNDARY = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9가-힣])")
+_SUPERSCRIPT_DIGITS = str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹")
+_SUBSCRIPT_DIGITS = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
+_METRIC_MARKUP = re.compile(
+    r"(?P<base>(?<![A-Za-z])(?:\d+(?:\.\d+)?\s*)?(?:km|cm|mm|kg|m))\s*"
+    r"<(?P<kind>sup|sub)\b[^>]*>\s*(?P<digits>\d{1,3})\s*</(?P=kind)>",
+    re.IGNORECASE,
+)
+
+
+def _normalize_metric_markup(html: str) -> str:
+    """Keep explicit metric superscript/subscript digits in semantic text."""
+    def replace(match: re.Match[str]) -> str:
+        table = _SUPERSCRIPT_DIGITS if match.group("kind").lower() == "sup" else _SUBSCRIPT_DIGITS
+        return f"{match.group('base')}{match.group('digits').translate(table)}"
+
+    return _METRIC_MARKUP.sub(replace, html)
 
 
 def chunk_by_sentence(text: str) -> list[Chunk]:
@@ -622,7 +638,7 @@ def chunk_by_dom(html: str) -> list[Chunk]:
             ]
 
     parser = _BlockTextExtractor()
-    parser.feed(html)
+    parser.feed(_normalize_metric_markup(html))
     entries = parser.finished()
     chunks: list[Chunk] = []
     for index, (kind, value, tag_name, style, indent_width) in enumerate(entries):
