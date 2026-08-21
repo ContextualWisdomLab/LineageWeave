@@ -11,11 +11,13 @@
 Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
-Current PR exact head observed before this documentation update:
-`e254a2b13f28df9ce6eda813ce4a214311df4b49`. The authenticated browser
-evidence below used the frontend image rebuilt from this source head; this
-documentation update will create the next exact head and therefore requires
-the protected checks to rerun.
+Current source/test exact head observed before this documentation update:
+`344ee14e542e6d7269973a1d4152bcb3f0ed6c47`. The authenticated browser
+evidence below used the rebuilt stack at its immediate parent before the final
+one-line lineage accessibility compatibility fix; that fix changes only the
+visible inference-boundary label and its test contract. This documentation
+update will create the next exact head and therefore requires the protected
+checks to rerun.
 
 - **Implemented in source:** PostgreSQL-backed API boundaries, Keyverse/OIDC
   identity boundary, workspace navigation, post popup, ABAC/RBAC surfaces, Korean
@@ -28,6 +30,10 @@ the protected checks to rerun.
   health checks are recorded separately and are not corpus proof.
 - **Figma reference:** ADR 0118 records file `1Su3lDRmiZdcUs47t1QwIX`; the
   inspected Event Lineage frames are desktop `5:14` and mobile `5:15`.
+- **Local quality evidence at the source/test head:** backend `uv run pytest -q`
+  passed `760` tests with `16` skips; frontend Vitest passed `161` tests in `17`
+  files, frontend lint/build passed, and Storybook build completed. These are
+  local checks, not hosted protected-gate or independent-review evidence.
 - **Current PR gate:** PR #350 is open and review-required; its required
   OpenCode/Noema reviews and product/security checks were cancelled by a later
   push and must rerun for the current head. The prior PR #347 merged at
@@ -93,6 +99,15 @@ the protected checks to rerun.
   the raw indexes are dropped by migration 0036. After reclaiming only Docker
   build cache (never the PostgreSQL volume), the live migration completed with
   exit 0 and the bounded function/index aggregate was verified.
+- **Tenant settings replay — fixed in this worktree:** the idempotent migration
+  runner stopped at `0102`, so existing volumes returned a misleading CORS
+  symptom for `/api/settings` while the table was absent. The allowlist now
+  replays `0103_tenant_settings.sql`; the existing PostgreSQL volume applied it
+  with exit 0 and contains one tenant-settings row.
+- **Metric superscript/subscript display — partially fixed in this worktree:**
+  bounded metric markup such as `m<sup>3</sup>` and `m<sub>3</sub>` is now
+  normalized consistently in the backend semantic parser and React renderer,
+  with focused tests. Arbitrary mathematical formula semantics remain open.
 
 ### 2.3 Authenticated runtime evidence
 
@@ -112,6 +127,11 @@ real React client rendered the protected board. Aggregate evidence only:
   no body/content/HTML column. The existing import adapter requires an
   explicitly mapped body column, so this is source-mapping evidence only; no
   real-corpus import or multimodal backfill is claimed from this relation.
+- After replaying the tenant-settings migration on the existing PostgreSQL
+  volume, authenticated `/api/settings` returned HTTP 200 and the fresh React
+  browser session recorded zero console errors and zero warnings. At 390×958,
+  the document had no horizontal overflow (`scrollWidth=390`) and the protected
+  board rendered the authenticated content surface.
 - All 11 supplied post cases opened a popup with a loaded title and zero popup
   error elements. The footnote case rendered one footnote, the table case one
   semantic table, the known lineage case one DAG, and the image-table case
@@ -151,7 +171,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | React product surface and PostgreSQL boundary | React routes/components, asyncpg API, Compose stack | source + local-integration |
 | Authorized PostgreSQL export import mapping | bounded source-schema inspection found 43,814 rows and artifact-path metadata but no body/content/HTML field; the existing adapter rejects an absent body mapping | source + local-integration partial; approved artifact-to-body mapping open |
 | Bounded large-body search migration | `0035_body_search_prefix.sql`, `0036_normalized_body_search.sql`; live replay completed after bounded rendered-text indexing | source + local-integration |
-| Public Compose liveness and tenant settings boundary | health-probe regression test, `0103_tenant_settings.sql`, rebuilt backend `/healthz` HTTP 200 | source + unit + local-integration |
+| Public Compose liveness and tenant settings boundary | health-probe regression test, `0103_tenant_settings.sql`, replayed existing volume, one tenant-settings row, rebuilt backend `/healthz` and authenticated `/api/settings` HTTP 200 | source + unit + local-integration |
 | Post list/detail popup, Korean summary, 5W1H, R&R, tickets/calendar | API routes, popup panels, backend/frontend tests | source + unit |
 | Keyman on both sides, titles, affiliations, related KG nodes | Keyman/affiliate-tree/related-node routes and popup | source + unit; live extraction open |
 | Ontology, semantic layer, provenance, W3C PROV-O projection | normalized schema, provenance modules, ADRs, evidence UI | source; corpus verification open |
@@ -162,7 +182,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | PU/team/project weekly/monthly reports | report API/UI and grouping controls | source + unit; TEPP-backed live report open |
 | TEPP calibrated measurement, dichotomous items, multilevel/MMM/time model | published import/REST boundary and TEPP ADR/PRD references | boundary-only; live-external open |
 | contextual-orchestrator routing, VISION, embedding, schema repair | clients and provenance/session boundary; synthetic authenticated route returned a judge score of `0.98`, OCR succeeded, and region location returned five regions | source + local-integration partial; corpus backfill, capability/readiness evidence, and schema-repair workflow open |
-| HTML semantic units, tables, indentation, footnotes, formulas | parser modules and synthetic tests; 11-case authenticated popup sweep had no popup errors and rendered the supplied footnote/table cases | source + unit + local-integration partial; formula/semantic correctness open |
+| HTML semantic units, tables, indentation, footnotes, formulas | parser modules and synthetic tests; 11-case authenticated popup sweep had no popup errors and rendered the supplied footnote/table cases; bounded metric superscript/subscript normalization has backend/frontend focused coverage | source + unit + local-integration partial; arbitrary formula/semantic correctness open |
 | Base64/file image regions and multimodal evidence | image-region schema and VISION client boundary; live aggregate has 12,823 images, 22 described images/regions, and 422 failed images; current synthetic VISION route returned five regions | source + local-integration partial; supplied image-table case re-backfill and complete corpus coverage open |
 | Abbreviation/multilingual alias/entity disambiguation | catalog hints and resolver boundary | source; live corroboration open |
 | SearXNG/internal relation fact check | verification endpoint and unavailable handling; local SearXNG health and JSON query both returned HTTP 200, while some upstream engines reported rate-limit/CAPTCHA results | source + local-integration partial; corroboration policy and reliable external coverage open |
@@ -170,7 +190,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | 3NF, hot partitions, locks, read/write contention | migrations and documented boundaries | source; operational evidence open |
 | Rust/GPU/CPU psychometric computation | delegated to TEPP, not reimplemented here | boundary accepted; live TEPP evidence open |
 | APA 7 doctoring and Zotero OA records | baseline bibliography, local Zotero API reachable, known metadata found | source + local-integration; OA attachment audit open |
-| Browser E2E from login through evidence | authenticated local OIDC login, protected list, drawer/search, popup sweep, and aggregate evidence checks at 390x958 on current exact head `e254a2b13f28df9ce6eda813ce4a214311df4b49`; `htmlLang=zh`, localized drawer/scope/logout, popup, summary, Event Lineage, and zero popup errors | source + local-integration; external provider/runtime evidence remains open |
+| Browser E2E from login through evidence | authenticated local OIDC login, protected list, drawer/search, popup sweep, and aggregate evidence checks at 390x958; post-migration fresh session had `htmlLang=zh`, localized protected shell, zero console errors/warnings, no horizontal overflow, popup, summary, and Event Lineage | source + local-integration; external provider/runtime evidence remains open |
 | Storybook scenes/edge events and design-token coverage | `LineageDag.stories.tsx`, inventory, Storybook build | source + unit |
 | External email/project lineage package boundary | PR #343 publishes strict v1.0.0 bounded request/result types, available-time cutoff handling, observed/inferred/proposed truth states, pair-budget enforcement, and no source/provider access | source + focused unit; exact-head hosted gates, independent review, and immutable release open |
 | Naruon calendar projection boundary | PR #337 defines a strict read projection contract without making LineageWeave a CalDAV provider | source + focused unit; Naruon endpoint, runtime wiring, restack, and review open |
@@ -192,8 +212,10 @@ The following user-reported cases remain tracked without storing real post IDs:
   organization evidence rather than an unqualified collective label.
 - `case-r-and-r-01`: requester, assignee, action, and cost/payment owner must
   remain explicit in R&R evidence.
-- `case-math-01`: units such as m³ need superscript-preserving source/semantic
-  representations and ontology-safe rendering.
+- `case-math-01`: bounded metric units such as m³ now have
+  superscript/subscript-preserving source/semantic normalization in backend and
+  frontend tests; arbitrary formula parsing, ontology-safe formula semantics,
+  and the authorized runtime case remain open.
 
 These are not “resolved” merely because a prompt or heuristic was changed.
 Each requires synthetic unit coverage plus an authorized runtime reproduction
@@ -208,6 +230,10 @@ or an explicit unavailable result.
   metadata, region evidence, and provenance must remain separate from embedding
   text; transparent/unsupported image conversion and multimodal processing need
   live verification.
+- **Metric/formula semantics — partially fixed:** bounded metric markup is now
+  preserved across the backend parser and React renderer. Full formula AST,
+  units, exponents, and ontology mapping remain an evidence-backed follow-up,
+  not a claim of mathematical completeness.
 - **Authorized source mapping — open:** the inspected export relation exposes
   metadata and artifact paths but no body/content/HTML field. Do not map an
   unrelated metadata column as body; connect the approved artifact parser or
