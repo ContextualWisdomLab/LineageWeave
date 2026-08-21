@@ -38,7 +38,7 @@ Evidence becoming available after the cutoff is excluded even when it describes 
 - RFC reply/thread evidence stays distinguishable from semantic lineage.
 - Caller-observed children are never disclosed to an optional model merely to calculate an inferred edge that would be discarded.
 - The optional LLM channel is explicit as `not_requested`, `unavailable`, or `completed`; missing output is never zero.
-- Every result is deterministic for the same semantic request and carries a SHA-256 digest.
+- Canonical serialization and SHA-256 digesting are deterministic for a given request or result. Repeatability of model-backed scores additionally requires a pinned LineageWeave release, adjudicator implementation, provider/model revision, and model-side determinism policy.
 - Explicit parent cycles and analysis work above the caller-approved pair budget fail closed before inference.
 - Project evidence can inform Naruon without mutating authoritative project/task/provider state.
 - The single generic secondary key reflects the current core kernel. Multiple independent typed secondary-key channels remain a future contract revision rather than being silently flattened.
