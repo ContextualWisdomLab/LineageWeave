@@ -59,12 +59,14 @@ def test_client_sends_only_service_credential_and_parses_projection(monkeypatch)
         headers: dict[str, str],
         timeout: float,
         maximum_response_bytes: int | None,
+        expected_response_media_type: str | None,
     ) -> dict[str, object]:
         received.update(
             url=url,
             headers=headers,
             timeout=timeout,
             maximum_response_bytes=maximum_response_bytes,
+            expected_response_media_type=expected_response_media_type,
         )
         return _page()
 
@@ -101,6 +103,9 @@ def test_client_sends_only_service_credential_and_parses_projection(monkeypatch)
     }
     assert received["timeout"] == 7
     assert received["maximum_response_bytes"] == 1_048_576
+    assert received["expected_response_media_type"] == (
+        NARUON_CALENDAR_MEDIA_TYPE
+    )
     assert page.projection_revision == "projection_001"
     assert page.next_cursor == "cursor_002"
     assert page.events[0].occurrence_reference == "occ_001"
@@ -295,10 +300,12 @@ def test_client_omits_cursor_when_not_requested(monkeypatch) -> None:
         headers: dict[str, str],
         timeout: float,
         maximum_response_bytes: int | None,
+        expected_response_media_type: str | None,
     ) -> dict[str, object]:
         del headers, timeout
         received["url"] = url
         received["maximum_response_bytes"] = maximum_response_bytes
+        received["expected_response_media_type"] = expected_response_media_type
         return _page()
 
     monkeypatch.setattr(
@@ -314,6 +321,9 @@ def test_client_omits_cursor_when_not_requested(monkeypatch) -> None:
 
     assert "cursor" not in parse_qs(urlparse(str(received["url"])).query)
     assert received["maximum_response_bytes"] == 1_048_576
+    assert received["expected_response_media_type"] == (
+        NARUON_CALENDAR_MEDIA_TYPE
+    )
 
 
 def test_json_schema_matches_parser_contract() -> None:
