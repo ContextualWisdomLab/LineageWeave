@@ -1,3 +1,5 @@
+import { AdminPanel } from "./components/AdminPanel";
+
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
@@ -78,6 +80,7 @@ import {
   type RelatedNode,
   type RelatedNodeType,
   type VocEvidence,
+  fetchTenantConfig,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
@@ -98,7 +101,6 @@ import {
   tf,
   useLocale,
 } from "./i18n";
-import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -4547,6 +4549,7 @@ function AskAgentPanel({
 
 export default function App({ showLabPanels = false }: { showLabPanels?: boolean } = {}) {
   useLocale();
+  const [brandName, setBrandName] = useState("LineageWeave");
   const auth = useAuth();
   const [destination, setDestination] = useState<BuyerDestination>("board");
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
@@ -4559,6 +4562,14 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   // post_admin check (`canRebuild`), not on this caller-supplied prop.
   const testOnlyLabPanels = import.meta.env.MODE === "test" && showLabPanels;
   const accessToken = auth.user?.access_token;
+
+  useEffect(() => {
+    if (accessToken) {
+      fetchTenantConfig(accessToken).then((config) => {
+        if (config.brandName) setBrandName(config.brandName);
+      }).catch(console.error);
+    }
+  }, [accessToken]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -4584,24 +4595,40 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   }
 
   if (auth.error) {
-    return <p className="error">Authentication error: {auth.error.message}</p>;
+    return <p className="error">{t(auth.error.message)}</p>;
   }
 
   if (!auth.isAuthenticated) {
     return (
-      <main className="centered">
-        <h1>LineageWeave</h1>
-        <LanguageSwitcher />
-          <button
-            onClick={() => {
-              const returnUrl = returnUrlFromLocation();
-              rememberOidcReturnUrl(returnUrl);
-              void auth.signinRedirect({ state: { returnUrl } });
-            }}
-          >
-            {t("Log in")}
-          </button>
+      <div className="app-shell">
+        <main className="login-screen">
+          <div className="login-card">
+            <div className="login-header">
+              <h1>{brandName}</h1>
+              <p className="login-subtitle">Marketing & Operational Lineage Intelligence</p>
+            </div>
+            <div className="login-controls">
+              <button className="btn-primary" onClick={() => {
+                const returnUrl = window.location.pathname + window.location.search;
+                void auth.signinRedirect({ state: { returnUrl } });
+              }}>
+                {t("Log in")}
+              </button>
+            </div>
+            <div className="login-help">
+              <small>Enterprise SSO Authentication</small>
+            </div>
+          </div>
       </main>
+        <footer className="app-footer" role="contentinfo">
+          <div className="app-footer-title">
+            <span className="app-footer-logo">{brandName}</span>
+          </div>
+          <div className="app-footer-copyright">
+            <p>Copyright &copy; {new Date().getFullYear()} by {brandName}. All rights reserved.</p>
+          </div>
+        </footer>
+      </div>
     );
   }
 
@@ -4610,12 +4637,14 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   }
 
   return (
-    <main>
+    <div className="app-shell">
       <header className="app-header">
-        <h1>LineageWeave</h1>
-        <div>
-          <span>{auth.user?.profile.preferred_username}</span>
-          <button onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
+        <div className="app-header-logo">
+          <h1 className="app-header-title">{brandName}</h1>
+        </div>
+        <div className="app-header-top-menu">
+          <span className="app-user-profile">{auth.user?.profile.preferred_username}</span>
+          <button className="btn-secondary" onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
         </div>
       </header>
       <BuyerNav
@@ -4623,41 +4652,52 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         onChange={setDestination}
         tools={<LanguageSwitcher accessToken={accessToken} />}
       />
-      {destination === "board" ? (
-        <PostList
-          accessToken={accessToken}
-          showLabPanels={testOnlyLabPanels}
-          postIdToOpen={postToOpen}
-          onPostOpened={() => setPostToOpen(null)}
-        />
-      ) : null}
-      {destination === "customers" ? (
-        <CustomerMasterPanel
-          accessToken={accessToken}
-          onOpenPost={(postId) => {
-            setPostToOpen(postId);
-            setDestination("board");
-          }}
-        />
-      ) : null}
-      {destination === "calendar" ? (
-        <CalendarPanel
-          accessToken={accessToken}
-          onSelectPost={(postId) => {
-            setPostToOpen(postId);
-            setDestination("board");
-          }}
-        />
-      ) : null}
-      {destination === "ask" ? (
-        <AskAgentPanel
-          accessToken={accessToken}
-          onOpenPost={(postId) => {
-            setPostToOpen(postId);
-            setDestination("board");
-          }}
-        />
-      ) : null}
-    </main>
+      <main>
+        {destination === "board" ? (
+          <PostList
+            accessToken={accessToken}
+            showLabPanels={testOnlyLabPanels}
+            postIdToOpen={postToOpen}
+            onPostOpened={() => setPostToOpen(null)}
+          />
+        ) : null}
+        {destination === "customers" ? (
+          <CustomerMasterPanel
+            accessToken={accessToken}
+            onOpenPost={(postId) => {
+              setPostToOpen(postId);
+              setDestination("board");
+            }}
+          />
+        ) : null}
+        {destination === "calendar" ? (
+          <CalendarPanel
+            accessToken={accessToken}
+            onSelectPost={(postId) => {
+              setPostToOpen(postId);
+              setDestination("board");
+            }}
+          />
+        ) : null}
+        {destination === "ask" ? (
+          <AskAgentPanel
+            accessToken={accessToken}
+            onOpenPost={(postId) => {
+              setPostToOpen(postId);
+              setDestination("board");
+            }}
+          />
+        ) : null}
+        {destination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
+      </main>
+      <footer className="app-footer" role="contentinfo">
+        <div className="app-footer-title">
+          <span className="app-footer-logo">{brandName}</span>
+        </div>
+        <div className="app-footer-copyright">
+          <p>Copyright &copy; {new Date().getFullYear()} by {brandName}. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
   );
 }

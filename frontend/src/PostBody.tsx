@@ -22,10 +22,20 @@ function parsePipeDelimitedTable(text: string): string[][] | null {
 function renderImageText(text: string) {
   const rows = parsePipeDelimitedTable(text);
   if (!rows) return <p>{text}</p>;
+  const [header, ...bodyRows] = rows;
   return (
     <table className="post-body-table post-image-text-table">
+      <thead>
+        <tr>
+          {header.map((cell, cellIndex) => (
+            <th key={`post-image-text-header-${cellIndex}`} scope="col">
+              {cell}
+            </th>
+          ))}
+        </tr>
+      </thead>
       <tbody>
-        {rows.map((row, rowIndex) => (
+        {bodyRows.map((row, rowIndex) => (
           <tr key={`post-image-text-row-${rowIndex}`}>
             {row.map((cell, cellIndex) => (
               <td key={`post-image-text-cell-${rowIndex}-${cellIndex}`}>{cell}</td>
@@ -72,7 +82,14 @@ function renderImageEvidence(
           <ol>
             {imageContent.regions.map((region) => (
               <li key={region.region_index}>
-                <span>{region.caption || region.extracted_text || t("Unknown")}</span>
+                {region.caption ? <p>{region.caption}</p> : null}
+                {region.extracted_text ? (
+                  <div className="post-image-region-text">
+                    {renderImageText(region.extracted_text)}
+                  </div>
+                ) : region.caption ? null : (
+                  t("Unknown")
+                )}
                 {region.tags.length ? (
                   <small>
                     {t("Image tags")}: {region.tags.join(", ")}
@@ -148,6 +165,30 @@ function normalizedUnitText(value: string): string {
   return value.replace(/\s+/g, " ").trim();
 }
 
+/**
+ * Return direct row counts for each source table in document order.
+ *
+ * Persisted rows do not currently carry a table identifier. The source body
+ * is therefore the smallest trustworthy boundary for adjacent tables; when
+ * its row count disagrees with persisted rows, the renderer falls back to the
+ * old consecutive-row grouping instead of guessing.
+ */
+function sourceTableRowGroupSizes(body: string): number[] {
+  const document = new DOMParser().parseFromString(body, "text/html");
+  return Array.from(document.querySelectorAll("table"))
+    .map((table) =>
+      Array.from(table.children).reduce((count, child) => {
+        const tagName = child.tagName.toLowerCase();
+        if (tagName === "tr") return count + 1;
+        if (tagName !== "thead" && tagName !== "tbody" && tagName !== "tfoot") return count;
+        return count + Array.from(child.children).filter(
+          (row) => row.tagName.toLowerCase() === "tr",
+        ).length;
+      }, 0),
+    )
+    .filter((rowCount) => rowCount > 0);
+}
+
 function renderStructuredUnits(
   body: string,
   structureUnits: PostContentUnit[],
@@ -158,6 +199,12 @@ function renderStructuredUnits(
   );
   const rendered: ReactNode[] = [];
   let imageOrdinal = 0;
+  const sourceTableGroups = sourceTableRowGroupSizes(body);
+  const persistedTableRowCount = structureUnits.filter(isStructuredTableRow).length;
+  const hasTrustworthyTableGroups =
+    sourceTableGroups.length > 0 &&
+    sourceTableGroups.reduce((total, rowCount) => total + rowCount, 0) === persistedTableRowCount;
+  let tableGroupOrdinal = 0;
   const sourceTextSegments = splitPostBody(body).filter(
     (segment): segment is Extract<PostBodySegment, { kind: "text" }> => segment.kind === "text",
   );
@@ -189,7 +236,14 @@ function renderStructuredUnits(
     }
     if (isStructuredTableRow(unit)) {
       const rows: PostContentUnit[] = [];
-      while (index < structureUnits.length && isStructuredTableRow(structureUnits[index])) {
+      const expectedRowCount = hasTrustworthyTableGroups
+        ? sourceTableGroups[tableGroupOrdinal++]
+        : undefined;
+      while (
+        index < structureUnits.length &&
+        isStructuredTableRow(structureUnits[index]) &&
+        (expectedRowCount === undefined || rows.length < expectedRowCount)
+      ) {
         rows.push(structureUnits[index]);
         index += 1;
       }
