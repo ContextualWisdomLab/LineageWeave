@@ -35,7 +35,7 @@
 The following states are evidence-bound and must not be changed to `merged` or
 `resolved` from intent alone:
 
-Observed at `2026-08-21T13:49:32Z` from the GitHub API. A merged commit is
+Observed at `2026-08-21T14:01:29Z` from the GitHub API. A merged commit is
 identified as `merge_commit`; an open PR is identified by its exact `head`.
 
 - LineageWeave PR #344: `merge_commit`
@@ -134,7 +134,7 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   `feat/calendar-open-focus-event-lineage-v2140`; it remains unmerged and
   separately gated.
 - Legacy open PR #287: `head`
-  `b693377ed849a3a15b7bd363e519fa4564503983`, base
+  `9d2a536d7fba14f87a9fe4c9e7e578c16f97aea9`, base
   `feat/global-ask-public-claim-verification-v2200`; it is conflicting and
   remains unmerged.
 - LineageWeave PR #371: `closed_without_merge`
@@ -145,14 +145,14 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   `9316d281ae396cc1bc33ac3ba470a9e3afd41a90`, merged at
   `2026-08-21T09:08:31Z`; application and Valkey caller OpenTelemetry spans
   are merged, while raw telemetry remains outside buyer evidence.
-- contextual-orchestrator PR #802: `head`
-  `b2fe47e78ade89b13aa4c239c71562c65af5f12e`, base
-  `f1b0cd48271e870571b022463e1ec2c857ae4a8a`; request session context is
-  propagated through local batch workers and approval is not recorded.
-- contextual-orchestrator PR #805: `head`
-  `1d11e7d40dc52121d440991969be2967adf2136e`, base
-  `f1b0cd48271e870571b022463e1ec2c857ae4a8a`; structured Responses and
-  JSON-schema orchestration remain a separate open merge prerequisite.
+- contextual-orchestrator PR #802: `merge_commit`
+  `407747626598d763a127509f81d23c2ad8aaee23`, merged at
+  `2026-08-21T11:42:06Z`; request session context is delivered through local
+  batch workers.
+- contextual-orchestrator PR #805: `merge_commit`
+  `537915715c4b050d4b5fa18ce2b7559080c675ba`, merged at
+  `2026-08-21T11:45:58Z`; structured Responses and JSON-schema orchestration
+  are delivered in the merged upstream boundary.
 
 ## 5. Local Buyer-Surface Verification
 
