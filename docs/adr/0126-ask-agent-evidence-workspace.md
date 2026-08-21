@@ -5,6 +5,7 @@
 **Figma File ID:** `1Su3lDRmiZdcUs47t1QwIX`
 **Figma desktop frame:** `11:2` (`Ask Agent / Desktop / Answered`)
 **Figma mobile frame:** `11:3` (`Ask Agent / Mobile / Answered`)
+**Figma primary-action component set:** `21:10` (`Controls / Primary Button`)
 **Stack placement:** This change is a direct child of PR #264 head `39f21261052a9d2ae82c4b851a54831eaf909805`.
 
 ## Context
@@ -38,9 +39,12 @@ and forbids copying confidential source-organization material.
    tokens. Define responsive breakpoints at 1024px and 768px; the phone state
    uses a single column and a full-width primary action.
 6. Keep editable answered-state desktop and mobile specifications in the Figma
-   frames recorded above. Inventory Empty, Loading, Answered, Unavailable, and
-   Phone Answered executable scenes in Storybook so state and edge-event review
-   remains coupled to the production component.
+   frames recorded above. Implement the repeated Ask action as the token-bound
+   Figma component set recorded above, with Default, Hover, Disabled, and
+   Loading variants and desktop/mobile instances.
+7. Inventory Empty, Loading, Answered, Unavailable, and Phone Answered
+   executable scenes in Storybook so state and edge-event review remains
+   coupled to the production component.
 
 ## Consequences
 
@@ -51,6 +55,8 @@ and forbids copying confidential source-organization material.
   integration tests and downstream stacked PRs.
 - Figma and CSS share named color, radius, and spacing concepts while Storybook
   remains the executable source for loading, unavailable, and responsive states.
+- The Figma frames and primary-action component carry shared implementation,
+  Storybook, PR, parent-stack, exact-head, and ADR traceability metadata.
 - This ADR does not claim the unmerged stack is protected-main behavior.
 
 ## Verification
@@ -61,5 +67,5 @@ and forbids copying confidential source-organization material.
   Event Lineage focus regressions.
 - Frontend lint, production build, complete Vitest suite, and Storybook build.
 - Desktop and mobile Figma screenshots checked for clipping, overflow, action
-  prominence, and source-evidence hierarchy.
+  prominence, source-evidence hierarchy, and component-instance consistency.
 - Responsive and focus-visible CSS review against the UI/UX guide.
