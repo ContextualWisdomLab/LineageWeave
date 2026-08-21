@@ -76,6 +76,7 @@ export function OntologyExplorer({
   const [focusType, setFocusType] = useState(focusNodeType);
   const [focusId, setFocusId] = useState(focusNodeId);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [pageRetry, setPageRetry] = useState(0);
   const [liveFocus, setLiveFocus] = useState(false);
 
   function clearSelection() {
@@ -88,6 +89,7 @@ export function OntologyExplorer({
     setFocusType(focusNodeType);
     setFocusId(focusNodeId);
     setCursor(undefined);
+    setPageRetry(0);
     setLiveFocus(false);
     clearSelection();
   }, [focusNodeType, focusNodeId]);
@@ -133,7 +135,7 @@ export function OntologyExplorer({
     return () => {
       cancelled = true;
     };
-  }, [accessToken, focusType, focusId, knowledgeCutoff, cursor, provided, providedStatus, liveFocus]);
+  }, [accessToken, focusType, focusId, knowledgeCutoff, cursor, pageRetry, provided, providedStatus, liveFocus]);
 
   const visible = useMemo(() => filterNeighborhood(loaded, query), [loaded, query]);
   const layout = useMemo(() => (visible ? layoutOntologyNeighborhood(visible) : null), [visible]);
@@ -144,6 +146,7 @@ export function OntologyExplorer({
     setFocusType(focusNodeType);
     setFocusId(focusNodeId);
     setCursor(undefined);
+    setPageRetry(0);
     setSelectedNodeKey(null);
     setSelectedEdgeId(null);
     setQuery("");
@@ -151,6 +154,10 @@ export function OntologyExplorer({
 
   function loadNextPage() {
     if (!loaded?.next_cursor) return;
+    if (cursor === loaded.next_cursor) {
+      setPageRetry((attempt) => attempt + 1);
+      return;
+    }
     setCursor(loaded.next_cursor);
   }
 
