@@ -491,6 +491,7 @@ class NaruonCalendarProjectionClient:
             },
             timeout=self._timeout,
             maximum_response_bytes=_MAX_RESPONSE_BYTES,
+            expected_response_media_type=NARUON_CALENDAR_MEDIA_TYPE,
         )
         return parse_naruon_calendar_page(
             payload,
