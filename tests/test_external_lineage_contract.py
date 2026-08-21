@@ -658,6 +658,33 @@ def test_result_rejects_missing_channels_and_contribution_mismatch() -> None:
     assert mismatch.value.code == "channel_contribution_mismatch"
 
 
+def test_result_rejects_channel_sum_that_does_not_equal_fused_score() -> None:
+    """The fused score must reconcile with all otherwise valid contributions."""
+
+    edge = LineageEdgeResult(
+        "record:001",
+        "record:002",
+        "reconstructed_continuation",
+        "inferred",
+        0.5,
+        (
+            ChannelEvidence("text", 0.2, 0.5, 0.1),
+            ChannelEvidence("temporal", 0.2, 0.5, 0.1),
+        ),
+    )
+    with pytest.raises(LineageContractError) as captured:
+        serialize_lineage_analysis_result(
+            replace(
+                _result_fixture(),
+                included_evidence_refs=("record:001", "record:002"),
+                edges=(edge,),
+                result_digest="sha256:" + "0" * 64,
+            )
+        )
+
+    assert captured.value.code == "channel_contribution_mismatch"
+
+
 def test_result_rejects_duplicate_project_evidence_references() -> None:
     project = ProjectProjection(
         "workspace:one",

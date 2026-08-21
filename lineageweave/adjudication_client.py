@@ -26,6 +26,10 @@ class AdjudicationClient(Protocol):
     def judge(self, candidate_label: str, record_label: str) -> float: ...
 
 
+class AdjudicationClientError(RuntimeError):
+    """The provider returned an unusable adjudication response."""
+
+
 class NullAdjudicationClient:
     """No LLM orchestrator configured -- the llm channel is skipped."""
 
@@ -35,7 +39,20 @@ class NullAdjudicationClient:
         raise RuntimeError("NullAdjudicationClient has no llm channel; check .available first")
 
 
-_CONFIDENCE_PATTERN = re.compile(r"([01](?:\.\d+)?)")
+_CONFIDENCE_PATTERN = re.compile(r"(?:0(?:\.\d+)?|1(?:\.0+)?)")
+
+
+def parse_confidence_response(content: object) -> float:
+    """Parse the provider's number-only confidence response strictly."""
+
+    if not isinstance(content, str):
+        raise AdjudicationClientError("provider confidence response was not text")
+    normalized = content.strip()
+    if _CONFIDENCE_PATTERN.fullmatch(normalized) is None:
+        raise AdjudicationClientError(
+            "provider confidence response was not a number in 0..1"
+        )
+    return float(normalized)
 
 
 class ContextualOrchestratorAdjudicationClient:
@@ -74,8 +91,10 @@ class ContextualOrchestratorAdjudicationClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = body["choices"][0]["message"]["content"]
-        match = _CONFIDENCE_PATTERN.search(content)
-        if match is None:
-            return 0.0
-        return max(0.0, min(1.0, float(match.group(1))))
+        try:
+            content = body["choices"][0]["message"]["content"]
+        except (IndexError, KeyError, TypeError) as exc:
+            raise AdjudicationClientError(
+                "provider response did not contain one chat message"
+            ) from exc
+        return parse_confidence_response(content)

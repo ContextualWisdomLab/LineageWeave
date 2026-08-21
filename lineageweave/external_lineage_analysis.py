@@ -12,7 +12,11 @@ import math
 from collections import defaultdict
 from dataclasses import replace
 
-from .adjudication_client import AdjudicationClient, NullAdjudicationClient
+from .adjudication_client import (
+    AdjudicationClient,
+    AdjudicationClientError,
+    NullAdjudicationClient,
+)
 from .external_lineage_contract import (
     CONTRACT_VERSION,
     ChannelEvidence,
@@ -35,6 +39,43 @@ def _contract_error(code: str, message: str, field: str | None = None) -> None:
     """Raise a stable execution-time contract error."""
 
     raise LineageContractError(code, message, field=field)
+
+
+class _BoundedAdjudicationClient:
+    """Keep provider channel scores inside the fusion contract boundary."""
+
+    available = True
+
+    def __init__(self, client: AdjudicationClient) -> None:
+        """Wrap one available client without changing its provider behavior."""
+
+        self._client = client
+
+    def judge(self, candidate_label: str, record_label: str) -> float:
+        """Return one finite unit-interval score or fail with a stable code."""
+
+        try:
+            score = self._client.judge(candidate_label, record_label)
+        except AdjudicationClientError as exc:
+            raise LineageContractError(
+                "llm_channel_error",
+                "LLM channel returned an unusable provider response",
+                field="llm",
+            ) from exc
+        if isinstance(score, bool) or not isinstance(score, (int, float)):
+            _contract_error(
+                "channel_score_out_of_bounds",
+                "LLM channel score must be finite and within 0..1",
+                "llm",
+            )
+        number = float(score)
+        if not math.isfinite(number) or not 0.0 <= number <= 1.0:
+            _contract_error(
+                "channel_score_out_of_bounds",
+                "LLM channel score must be finite and within 0..1",
+                "llm",
+            )
+        return number
 
 
 def _validated_request(request: LineageAnalysisRequest) -> LineageAnalysisRequest:
@@ -110,7 +151,7 @@ def _selected_llm(
         return NullAdjudicationClient(), "not_requested"
     if llm is None or not getattr(llm, "available", False):
         return NullAdjudicationClient(), "unavailable"
-    return llm, "completed"
+    return _BoundedAdjudicationClient(llm), "completed"
 
 
 def _included_records(

@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from lineageweave.external_lineage_analysis import analyze_external_lineage
+from lineageweave.external_lineage_analysis import (
+    _channel_evidence,
+    analyze_external_lineage,
+)
 from lineageweave.external_lineage_contract import (
     LineageContractError,
     parse_lineage_analysis_request,
@@ -37,6 +40,30 @@ class InvalidLlm:
         """Return an intentionally invalid value."""
 
         return 2.0
+
+
+class TextLlm:
+    """Available client returning a non-numeric score."""
+
+    available = True
+
+    def judge(self, candidate_label: str, record_label: str) -> str:
+        """Return an intentionally malformed score."""
+
+        return "unknown"
+
+
+class BrokenProviderLlm:
+    """Available client surfacing a malformed raw provider response."""
+
+    available = True
+
+    def judge(self, candidate_label: str, record_label: str) -> float:
+        """Raise the raw provider-response error used by the adapter."""
+
+        from lineageweave.adjudication_client import AdjudicationClientError
+
+        raise AdjudicationClientError("malformed provider response")
 
 
 class CountingLlm:
@@ -502,6 +529,49 @@ def test_invalid_llm_score_fails_closed_before_result_projection() -> None:
 
     with pytest.raises(LineageContractError) as captured:
         analyze_external_lineage(request, llm=InvalidLlm())
+
+    assert captured.value.code == "channel_score_out_of_bounds"
+
+
+def test_non_numeric_llm_score_fails_closed_at_the_contract_boundary() -> None:
+    """A provider score with the wrong type becomes a stable contract error."""
+
+    request = _request(
+        [
+            _record("email:001", "Phoenix one", "2026-08-20T09:00:00Z"),
+            _record("email:002", "Phoenix two", "2026-08-20T09:01:00Z"),
+        ],
+        allow_llm=True,
+    )
+
+    with pytest.raises(LineageContractError) as captured:
+        analyze_external_lineage(request, llm=TextLlm())
+
+    assert captured.value.code == "channel_score_out_of_bounds"
+
+
+def test_raw_provider_response_error_is_stable_at_the_contract_boundary() -> None:
+    """A raw provider parsing failure is not exposed as an arbitrary exception."""
+
+    request = _request(
+        [
+            _record("email:001", "Phoenix one", "2026-08-20T09:00:00Z"),
+            _record("email:002", "Phoenix two", "2026-08-20T09:01:00Z"),
+        ],
+        allow_llm=True,
+    )
+
+    with pytest.raises(LineageContractError) as captured:
+        analyze_external_lineage(request, llm=BrokenProviderLlm())
+
+    assert captured.value.code == "llm_channel_error"
+
+
+def test_channel_evidence_rejects_invalid_score_before_serialization() -> None:
+    """Defense in depth keeps direct channel projection fail-closed."""
+
+    with pytest.raises(LineageContractError) as captured:
+        _channel_evidence({"text": 2.0}, {"text": 1.0})
 
     assert captured.value.code == "channel_score_out_of_bounds"
 
