@@ -125,10 +125,12 @@ describe("AskAgentWorkspaceView keyboard contract", () => {
     render(
       <AskAgentWorkspaceView
         question="Which project?"
+        knowledgeCutoff=""
         answer={null}
         error={null}
         asking={false}
         onQuestionChange={() => undefined}
+        onKnowledgeCutoffChange={() => undefined}
         onSubmit={onSubmit}
         onOpenPost={() => undefined}
       />,
@@ -147,10 +149,12 @@ describe("AskAgentWorkspaceView keyboard contract", () => {
     render(
       <AskAgentWorkspaceView
         question="Which project?"
+        knowledgeCutoff=""
         answer={null}
         error="Ask Agent is temporarily unavailable. Saved evidence is still available."
         asking={false}
         onQuestionChange={() => undefined}
+        onKnowledgeCutoffChange={() => undefined}
         onSubmit={() => undefined}
         onOpenPost={() => undefined}
       />,

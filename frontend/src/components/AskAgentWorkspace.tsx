@@ -66,28 +66,56 @@ function askAgentErrorMessage(error: unknown): string {
   return String(error);
 }
 
+function askCitedNextAction(answer: AskAgentResponse): string {
+  if (answer.grounding_status === "fully_cutoff_grounded") {
+    return (
+      answer.next_action ||
+      "This answer is fully grounded at the requested cutoff. Open a cited post to compare the retained body."
+    );
+  }
+  if (answer.grounding_status === "partially_cutoff_grounded") {
+    return (
+      answer.next_action ||
+      "This answer is only partly grounded at the requested cutoff. Open a cited post to see which historical bodies were retained."
+    );
+  }
+  return "Authorized cited posts are current. Open a cited post to read Event Lineage.";
+}
+
+function toKnowledgeCutoffIso(value: string): string | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const parsed = new Date(trimmed);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+}
+
 export type AskAgentRequest = (
   accessToken: string,
   question: string,
   sessionId?: string,
+  knowledgeCutoff?: string,
 ) => Promise<AskAgentResponse>;
 
 export interface AskAgentWorkspaceViewProps {
   question: string;
+  knowledgeCutoff: string;
   answer: AskAgentResponse | null;
   error: string | null;
   asking: boolean;
   onQuestionChange: (question: string) => void;
+  onKnowledgeCutoffChange: (knowledgeCutoff: string) => void;
   onSubmit: () => void;
   onOpenPost: (postId: string) => void;
 }
 
 export function AskAgentWorkspaceView({
   question,
+  knowledgeCutoff,
   answer,
   error,
   asking,
   onQuestionChange,
+  onKnowledgeCutoffChange,
   onSubmit,
   onOpenPost,
 }: AskAgentWorkspaceViewProps) {
@@ -131,6 +159,16 @@ export function AskAgentWorkspaceView({
               onChange={(event) => onQuestionChange(event.target.value)}
               onKeyDown={handleQuestionKeyDown}
               rows={7}
+              disabled={asking}
+            />
+          </label>
+          <label className="ask-agent-source">
+            <span>{t("Knowledge cutoff (optional)")}</span>
+            <input
+              type="datetime-local"
+              aria-label={t("Knowledge cutoff (optional)")}
+              value={knowledgeCutoff}
+              onChange={(event) => onKnowledgeCutoffChange(event.target.value)}
               disabled={asking}
             />
           </label>
@@ -182,7 +220,7 @@ export function AskAgentWorkspaceView({
                 <h3>{t("Answer")}</h3>
               </header>
               {answer.answer_text ? <p className="ask-agent-answer-text">{answer.answer_text}</p> : null}
-              {answer.next_action ? (
+              {answer.next_action && !(answer.cited_posts && answer.cited_posts.length > 0) ? (
                 <p className="board-next-action" aria-label={t("Next action")}>
                   {t(answer.next_action)}
                 </p>
@@ -211,10 +249,31 @@ export function AskAgentWorkspaceView({
                 </section>
               ) : null}
 
+              {answer.limitations && answer.limitations.length > 0 ? (
+                <section
+                  className="ask-agent-result-section"
+                  aria-label={t("Historical evidence limitations")}
+                >
+                  <h4>{t("Historical evidence limitations")}</h4>
+                  <ul className="post-evidence-list">
+                    {answer.limitations.map((limitation) => {
+                      const timelinePost = answer.timeline?.find(
+                        (event) => event.post_id === limitation.post_id,
+                      );
+                      return timelinePost ? (
+                        <li key={limitation.post_id}>
+                          <strong>{timelinePost.post_title}</strong>: {t("Historical body unavailable for this cited post. The live body was not used.")}
+                        </li>
+                      ) : null;
+                    })}
+                  </ul>
+                </section>
+              ) : null}
+
               {answer.cited_posts && answer.cited_posts.length > 0 ? (
                 <section className="ask-agent-result-section">
                   <p className="board-next-action" role="status" aria-label={t("Next action")}>
-                    {t("Authorized cited posts are current. Open a cited post to read Event Lineage.")}
+                    {t(askCitedNextAction(answer))}
                   </p>
                   <h4>{t("Cited posts")}</h4>
                   <ul className="ask-agent-citations">
@@ -232,6 +291,14 @@ export function AskAgentWorkspaceView({
                           >
                             <span>{post.post_title}</span>
                           </button>
+                          {post.historical_body_unavailable ? (
+                            <p className="post-meta">
+                              {t("Historical body unavailable for this cited post. The live body was not used.")}
+                            </p>
+                          ) : null}
+                          {post.live_after_cutoff ? (
+                            <p className="post-meta">{t("This live source changed after the cutoff.")}</p>
+                          ) : null}
                           {evidence?.facts.length ? (
                             <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
                               {evidence.facts.map((fact, index) => (
@@ -268,6 +335,7 @@ export function AskAgentWorkspace({
   storage?: Storage | null;
 }) {
   const [question, setQuestion] = useState("");
+  const [knowledgeCutoff, setKnowledgeCutoff] = useState("");
   const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
@@ -277,6 +345,7 @@ export function AskAgentWorkspace({
   async function handleAsk() {
     const normalized = question.trim();
     if (!normalized || asking) return;
+    const normalizedKnowledgeCutoff = toKnowledgeCutoffIso(knowledgeCutoff);
     const ordinal = ++requestOrdinal.current;
     setAsking(true);
     setError(null);
@@ -284,14 +353,18 @@ export function AskAgentWorkspace({
     try {
       let nextAnswer: AskAgentResponse;
       try {
-        nextAnswer = await request(accessToken, normalized, sessionId);
+        nextAnswer = normalizedKnowledgeCutoff
+          ? await request(accessToken, normalized, sessionId, normalizedKnowledgeCutoff)
+          : await request(accessToken, normalized, sessionId);
       } catch (requestError) {
         if (!(requestError instanceof BackendError) || requestError.status !== 404 || !sessionId) {
           throw requestError;
         }
         setSessionId(undefined);
         clearSession(storage);
-        nextAnswer = await request(accessToken, normalized);
+        nextAnswer = normalizedKnowledgeCutoff
+          ? await request(accessToken, normalized, undefined, normalizedKnowledgeCutoff)
+          : await request(accessToken, normalized);
       }
       if (ordinal !== requestOrdinal.current) return;
       setAnswer(nextAnswer);
@@ -309,10 +382,12 @@ export function AskAgentWorkspace({
   return (
     <AskAgentWorkspaceView
       question={question}
+      knowledgeCutoff={knowledgeCutoff}
       answer={answer}
       error={error}
       asking={asking}
       onQuestionChange={setQuestion}
+      onKnowledgeCutoffChange={setKnowledgeCutoff}
       onSubmit={() => void handleAsk()}
       onOpenPost={onOpenPost}
     />

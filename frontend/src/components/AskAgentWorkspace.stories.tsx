@@ -42,10 +42,12 @@ const meta = {
   parameters: { layout: "fullscreen" },
   args: {
     question: "",
+    knowledgeCutoff: "",
     answer: null,
     error: null,
     asking: false,
     onQuestionChange: () => undefined,
+    onKnowledgeCutoffChange: () => undefined,
     onSubmit: () => undefined,
     onOpenPost: () => undefined,
   },
