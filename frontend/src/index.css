@@ -3,7 +3,10 @@
 :root {
   --text: var(--color-text);
   --text-h: var(--color-text-heading);
+  --text-muted: var(--color-text);
   --bg: var(--color-background);
+  --surface: var(--color-background);
+  --surface-muted: var(--color-palette-gray-100);
   --border: var(--color-border);
   --code-bg: var(--color-code-background);
   --accent: var(--color-accent);
@@ -18,12 +21,13 @@
   --shadow:
     rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
+  /* Standard System Fonts (§4.2 – 노토산스 기본 적용) */
+  --sans: "Noto Sans KR", "Noto Sans", "Nanum Gothic", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --heading: "Noto Sans KR", "Noto Sans", "Nanum Gothic", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
+  font: 16px/150% var(--sans);
+  letter-spacing: -0.01em;
   color-scheme: light dark;
   color: var(--text);
   background: var(--bg);
@@ -32,8 +36,12 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
+  /* Responsive font scaling (§2.1.2) */
   @media (max-width: 1024px) {
-    font-size: 16px;
+    font-size: 15px;
+  }
+  @media (max-width: 768px) {
+    font-size: 14px;
   }
 }
 
@@ -41,7 +49,10 @@
   :root {
     --text: var(--color-text);
     --text-h: var(--color-text-heading);
+    --text-muted: var(--color-text);
     --bg: var(--color-background);
+    --surface: var(--color-background);
+    --surface-muted: #1f2028;
     --border: var(--color-border);
     --code-bg: var(--color-code-background);
     --accent: var(--color-accent);
@@ -57,47 +68,59 @@
   }
 }
 
+/* Shell container – 1920px max width (§2.1.1) */
 #root {
-  width: 1126px;
-  max-width: 100%;
+  width: 100%;
+  max-width: var(--layout-max-width);
   margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 body {
   margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
 }
 
+/* Heading Standards (§4.2 – Gothic bold) */
 h1,
-h2 {
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--heading);
-  font-weight: 500;
+  font-weight: 700;
   color: var(--text-h);
+  letter-spacing: -0.02em;
 }
 
 h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
+  font-size: 2rem;
+  line-height: 1.25;
+  margin: 1rem 0;
   @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
+    font-size: 1.75rem;
+  }
+  @media (max-width: 768px) {
+    font-size: 1.5rem;
   }
 }
+
 h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
+  font-size: 1.35rem;
+  line-height: 1.3;
+  margin: 0 0 0.5rem;
   @media (max-width: 1024px) {
-    font-size: 20px;
+    font-size: 1.2rem;
   }
 }
+
 p {
   margin: 0;
 }
@@ -111,8 +134,71 @@ code,
 }
 
 code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
+  font-size: 0.9em;
+  line-height: 1.4;
+  padding: 2px 6px;
   background: var(--code-bg);
+}
+
+/* Base Form & Input Standards (§3.1.4) */
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  box-sizing: border-box;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid var(--color-focus-border);
+  outline-offset: 1px;
+}
+
+/* Base Table Standards (§3.1 공통) */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* §3.1.2 – table title center aligned, bold */
+th {
+  background-color: var(--color-table-th-bg);
+  color: var(--color-table-th-text);
+  font-weight: 700;
+  text-align: center;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid var(--color-table-border);
+}
+
+td {
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--color-table-border);
+  text-align: left;
+}
+
+/* §3.1.5 – Table content alignment rules */
+td.text-number,
+td.align-right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+td.text-code,
+td.align-center {
+  text-align: center;
+}
+
+/* §3.1.7 – Required field indicator */
+.required-mark {
+  color: var(--color-required);
+  font-weight: 700;
+  margin-right: 0.2em;
+}
+
+/* §3.1.6 – Number formatting */
+.format-currency {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
 }

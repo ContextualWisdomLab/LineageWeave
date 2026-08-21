@@ -22,6 +22,7 @@ describe("i18n", () => {
     "unresolved",
     "Keymen",
     "Unknown",
+    "Image tags",
     "Counterparties",
     "due",
     "Activity",
@@ -46,6 +47,8 @@ describe("i18n", () => {
     "This answer is only partly grounded at the requested cutoff. Open a cited post to see which historical bodies were retained.",
     "Historical body unavailable for this cited post. The live body was not used.",
     "This live source changed after the cutoff.",
+    "Event Lineage timeline",
+    "Open timeline post:",
   ] as const;
 
   it("supports the five product locales", () => {

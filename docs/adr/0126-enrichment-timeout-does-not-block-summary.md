@@ -1,4 +1,4 @@
-# ADR 0104 — Enrichment timeout does not block source-grounded summary
+# ADR 0126 — Enrichment timeout does not block source-grounded summary
 
 **Decision status:** Accepted on active PR
 **Date:** 2026-08-20

@@ -87,6 +87,7 @@ describe("App, authenticated", () => {
     deferMe?: boolean;
     deferPostOneSummary?: boolean;
     deferSecondAsk?: boolean;
+    invalidAskSessionOnce?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
@@ -120,6 +121,8 @@ describe("App, authenticated", () => {
       visibility_label?: string;
       created_at: string;
     }[];
+    staleSummary?: boolean;
+    contentAfterSummary?: boolean;
   }): ReturnType<typeof vi.fn> & {
     releaseMe: () => void;
     releaseSecondAsk: () => void;
@@ -150,6 +153,7 @@ describe("App, authenticated", () => {
     let createdPendingLineage: Record<string, unknown> | null = null;
     let createdPendingTepp: Record<string, unknown> | null = null;
     let resolvedHintCode: string | null = null;
+    let contentRequests = 0;
 
     let releaseMe = () => {};
     const meReady = options?.deferMe
@@ -187,6 +191,9 @@ describe("App, authenticated", () => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
+      if (url.endsWith("/api/settings")) {
+        return Promise.resolve(jsonResponse({ brandName: "LineageWeave" }));
+      }
       if (url.endsWith("/api/me/preferences") && method === "PATCH") {
         const body = JSON.parse(String(init?.body));
         return Promise.resolve(jsonResponse({ preferred_locale: body.preferred_locale }));
@@ -1180,7 +1187,28 @@ describe("App, authenticated", () => {
         );
       }
       if (postOneUrl.pathname === "/api/posts/post-1/content") {
-        return Promise.resolve(jsonResponse({ images: [] }));
+        contentRequests += 1;
+        return Promise.resolve(
+          jsonResponse({
+            status: "ready",
+            images: [],
+            units:
+              options?.contentAfterSummary && contentRequests > 1
+                ? [
+                    {
+                      unit_index: 0,
+                      unit_kind_code: "plain_text",
+                      unit_label: "p",
+                      unit_text: "Freshly processed source paragraph.",
+                      indent_level: 0,
+                      indent_source_code: "explicit",
+                      indent_confidence: 1,
+                      indent_evidence: "HTML paragraph boundary",
+                    },
+                  ]
+                : [],
+          }),
+        );
       }
       if (url.endsWith("/api/posts/post-2")) {
         if (options?.evidenceUnavailable) {
@@ -1224,6 +1252,9 @@ describe("App, authenticated", () => {
           jsonResponse({
             post_id: "post-1",
             korean_summary: "이것은 요약입니다.",
+            ...(options?.staleSummary
+              ? { summary_status: "stale", summary_contract_version: 4 }
+              : {}),
             key_events: ["첫 번째 이벤트"],
             roles_and_responsibilities: [
               {
@@ -1652,7 +1683,16 @@ describe("App, authenticated", () => {
         const askBody = JSON.parse(String(init?.body ?? "{}")) as {
           question?: string;
           knowledge_cutoff?: string;
+          session_id?: string;
         };
+        if (options?.invalidAskSessionOnce && askRequestCount === 1 && askBody.session_id) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "Global Ask session not found" }), {
+              status: 404,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         const ready =
           options?.deferSecondAsk && askRequestCount === 2
             ? secondAskReady
@@ -1661,7 +1701,7 @@ describe("App, authenticated", () => {
         return ready.then(() =>
           Promise.resolve(
           jsonResponse({
-            session_id: "ask-session-1",
+            session_id: "session-1",
             answer_text: cutoffGrounded
               ? "By the cutoff Phoenix was still the January kickoff."
               : "The cited project is supported by the stored semantic evidence.",
@@ -1892,6 +1932,26 @@ describe("App, authenticated", () => {
         "The cited project is supported by the stored semantic evidence.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("replaces an invalid saved Ask session without requiring storage cleanup", async () => {
+    window.sessionStorage.setItem("lineageweave.globalAskSessionId", "stale-session");
+    const fetchMock = stubBackend({ invalidAskSessionOnce: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    await userEvent.type(within(ask).getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+
+    expect(
+      await within(ask).findByText("The cited project is supported by the stored semantic evidence."),
+    ).toBeInTheDocument();
+    const askBodies = fetchMock.mock.calls
+      .filter(([url]) => String(url).endsWith("/api/ask"))
+      .map(([, init]) => JSON.parse(String((init as RequestInit).body)) as { session_id?: string });
+    expect(askBodies.map((body) => body.session_id)).toEqual(["stale-session", undefined]);
+    expect(window.sessionStorage.getItem("lineageweave.globalAskSessionId")).toBe("session-1");
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
@@ -2219,7 +2279,7 @@ describe("App, authenticated", () => {
     expect(within(customers).getByLabelText("Next action")).toHaveTextContent(
       "Authorized customer entities are current. Open a related post to read Event Lineage.",
     );
-    await userEvent.click(within(customers).getByRole("button", { name: /Demo Corp/ }));
+    await userEvent.click(within(customers).getByRole("treeitem", { name: /Demo Corp/ }));
     await userEvent.click(
       await within(customers).findByRole("button", { name: "Open related post: Public post" }),
     );
@@ -2249,8 +2309,8 @@ describe("App, authenticated", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
     const customers = await screen.findByRole("region", { name: "Customer master" });
-    await userEvent.click(within(customers).getByRole("button", { name: /Demo Group/ }));
-    await userEvent.click(within(customers).getByRole("button", { name: /Demo Corp/ }));
+    await userEvent.click(within(customers).getByRole("treeitem", { name: /Demo Group/ }));
+    await userEvent.click(within(customers).getByRole("treeitem", { name: /Demo Corp/ }));
 
     fetchMock.releaseGroupRelated();
     await waitFor(() => expect(within(customers).getByText("Loading related posts...")).toBeInTheDocument());
@@ -2564,6 +2624,37 @@ describe("App, authenticated", () => {
     expect(affiliate.compareDocumentPosition(keyman) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     const ask = within(popup as HTMLElement).getByRole("heading", { name: "Ask about this lineage" });
     expect(keyman.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  });
+
+  it("labels a stale summary and retries the semantic refresh on request", async () => {
+    const fetchMock = stubBackend({ staleSummary: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() =>
+      expect(screen.getByText("Last saved summary shown. Retry semantic refresh.")).toBeInTheDocument(),
+    );
+    const summaryCallsBeforeRetry = fetchMock.mock.calls.filter(([input]) =>
+      String(input).endsWith("/api/posts/post-1/summary"),
+    ).length;
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry summary refresh" }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/api/posts/post-1/summary"))
+          .length,
+      ).toBeGreaterThan(summaryCallsBeforeRetry),
+    );
+    expect(screen.getByRole("button", { name: "Retry summary refresh" })).toBeInTheDocument();
+  });
+
+  it("refreshes newly processed source content after summary generation", async () => {
+    stubBackend({ contentAfterSummary: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    expect(await screen.findByText("Freshly processed source paragraph.")).toBeInTheDocument();
   });
 
   it("shows a seeded Ask exchange without an orchestrator round-trip", async () => {

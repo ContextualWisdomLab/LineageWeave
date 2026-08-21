@@ -47,6 +47,7 @@ from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
     ACTOR_TYPE_PERSON,
     ACTOR_TYPE_TEAM,
+    KeyEvent,
     PostSummary,
     POST_SUMMARY_CONTRACT_VERSION,
     normalize_project_key,
@@ -77,13 +78,18 @@ def require_summary_source_body(body: str | None) -> str:
 
 
 async def fetch_persisted_summary(
-    conn: asyncpg.Connection, post_id: str
+    conn: asyncpg.Connection,
+    post_id: str,
+    *,
+    allow_stale: bool = False,
 ) -> dict[str, Any] | None:
-    """Return the stored summary payload, or None when none has been written.
+    """Return the stored summary payload, or None when none is usable.
 
     ``catalog_node_id`` comes from the role row's catalog foreign keys
     (ADR 0019 / 0027). This function does not join ``corporate_entity``
-    by ``entity_name``. Person chips read ``cataloged_person_id``.
+    by ``entity_name``. Person chips read ``cataloged_person_id``. A stale
+    row is returned only when ``allow_stale`` is explicit so a caller can
+    preserve buyer continuity without presenting old semantics as current.
     """
     header = await conn.fetchrow(
         "select korean_summary, summary_contract_version "
@@ -92,10 +98,19 @@ async def fetch_persisted_summary(
     )
     if header is None:
         return None
-    if header["summary_contract_version"] != POST_SUMMARY_CONTRACT_VERSION:
+    summary_contract_version = header["summary_contract_version"]
+    if summary_contract_version != POST_SUMMARY_CONTRACT_VERSION and not allow_stale:
         return None
     events = await conn.fetch(
-        "select event_text from post_summary_event where post_id = $1 order by event_ordinal",
+        """
+        select event.event_text, event.project_key, mention.project_name
+          from post_summary_event event
+          left join post_project_mention mention
+            on mention.post_id = event.post_id
+           and mention.project_key = event.project_key
+         where event.post_id = $1
+         order by event.event_ordinal
+        """,
         post_id,
     )
     roles = await conn.fetch(
@@ -123,10 +138,15 @@ async def fetch_persisted_summary(
     )
     actions = await conn.fetch(
         """
-        select action_text, requester_actor_name, processor_actor_name, evidence_text
-          from post_summary_action
-         where post_id = $1
-         order by action_ordinal
+        select action.action_text, action.requester_actor_name,
+               action.processor_actor_name, action.evidence_text,
+               mention.project_name
+          from post_summary_action action
+          left join post_project_mention mention
+            on mention.post_id = action.post_id
+           and mention.project_key = action.project_key
+         where action.post_id = $1
+         order by action.action_ordinal
         """,
         post_id,
     )
@@ -157,7 +177,20 @@ async def fetch_persisted_summary(
     return {
         "post_id": post_id,
         "korean_summary": header["korean_summary"],
+        "summary_status": (
+            "current"
+            if summary_contract_version == POST_SUMMARY_CONTRACT_VERSION
+            else "stale"
+        ),
+        "summary_contract_version": summary_contract_version,
         "key_events": [row["event_text"] for row in events],
+        "key_event_details": [
+            {
+                "event_text": row["event_text"],
+                "project_name": row.get("project_name"),
+            }
+            for row in events
+        ],
         "roles_and_responsibilities": payload_roles,
         "major_event_actions": [
             {
@@ -165,6 +198,7 @@ async def fetch_persisted_summary(
                 "requester_actor_name": row["requester_actor_name"],
                 "processor_actor_name": row["processor_actor_name"],
                 "evidence_text": row["evidence_text"],
+                "project_name": row["project_name"],
             }
             for row in actions
         ],
@@ -321,13 +355,30 @@ async def _replace_summary_projection(
             project.confidence,
             str(LW.Project),
         )
-    for ordinal, event_text in enumerate(summary.key_events):
+    event_details = summary.key_event_details or tuple(
+        KeyEvent(event_text=event_text) for event_text in summary.key_events
+    )
+    project_keys = {
+        normalize_project_key(project.canonical_name)
+        for project in summary.project_mentions
+        if normalize_project_key(project.canonical_name)
+    }
+    for ordinal, event in enumerate(event_details):
+        normalized_event_project_key = (
+            normalize_project_key(event.project_key) if event.project_key else None
+        )
+        project_key = (
+            normalized_event_project_key
+            if normalized_event_project_key in project_keys
+            else None
+        )
         await conn.execute(
-            "insert into post_summary_event (post_id, event_ordinal, event_text) "
-            "values ($1, $2, $3)",
+            "insert into post_summary_event (post_id, event_ordinal, event_text, project_key) "
+            "values ($1, $2, $3, $4)",
             post_id,
             ordinal,
-            event_text,
+            event.event_text,
+            project_key,
         )
     for ordinal, claim in enumerate(summary.five_w1h_evidence):
         await conn.execute(
@@ -400,16 +451,29 @@ async def _replace_summary_projection(
                 cataloged_person_id,
             )
     role_names = {role.actor_name for role in summary.roles_and_responsibilities}
+    project_keys = {
+        normalize_project_key(project.canonical_name)
+        for project in summary.project_mentions
+        if normalize_project_key(project.canonical_name)
+    }
     for ordinal, action in enumerate(summary.major_event_actions):
         actor_names = (action.requester_actor_name, action.processor_actor_name)
         if any(name is not None and name not in role_names for name in actor_names):
             continue
+        normalized_action_project_key = (
+            normalize_project_key(action.project_key) if action.project_key else None
+        )
+        project_key = (
+            normalized_action_project_key
+            if normalized_action_project_key in project_keys
+            else None
+        )
         await conn.execute(
             """
             insert into post_summary_action
                 (post_id, action_ordinal, action_text, requester_actor_name,
-                 processor_actor_name, evidence_text)
-            values ($1, $2, $3, $4, $5, $6)
+                 processor_actor_name, evidence_text, project_key)
+            values ($1, $2, $3, $4, $5, $6, $7)
             """,
             post_id,
             ordinal,
@@ -417,6 +481,7 @@ async def _replace_summary_projection(
             action.requester_actor_name,
             action.processor_actor_name,
             action.evidence_text,
+            project_key,
         )
     await persist_edges_for_post(conn, post_id)
 
