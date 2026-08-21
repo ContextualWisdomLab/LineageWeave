@@ -1329,6 +1329,10 @@ async def list_posts(
     """List authorized posts, with semantic evidence search when requested."""
     _require_post_read(account)
     search_term = search.strip() if search and search.strip() else None
+    normalized_voc_types = [code.strip() for code in voc_type or [] if code.strip()]
+    normalized_detail_states = [
+        code.strip().upper() for code in source_detail_state or [] if code.strip()
+    ]
     async with pool.acquire() as conn:
         voc_type_options, source_detail_state_options, visibility_options = await _post_filter_options(
             conn, account
@@ -1632,10 +1636,8 @@ async def list_posts(
             """,
             search_term,
             list(account.corporate_entity_ids),
-            [code.strip() for code in voc_type if code.strip()] if voc_type else None,
-            [code.strip().upper() for code in source_detail_state if code.strip()]
-            if source_detail_state
-            else None,
+            normalized_voc_types or None,
+            normalized_detail_states or None,
             visibility.strip() if visibility and visibility.strip() else None,
             body_search_ids,
             offset,
