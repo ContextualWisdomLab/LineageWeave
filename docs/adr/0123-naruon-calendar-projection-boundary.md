@@ -1,0 +1,151 @@
+# ADR 0123: Consume calendar observations through Naruon, not provider CalDAV
+
+- Status: Proposed
+- Date: 2026-08-21
+- Issue: #336
+- Stack parent: #261
+- Related authority: `ContextualWisdomLab/naruon#978`, `ContextualWisdomLab/naruon#998`
+
+## Context
+
+LineageWeave derives customer commitments from authorized post evidence and
+stores them as issue tickets with due dates. The Buyer Calendar can therefore
+show two different kinds of records:
+
+1. LineageWeave-authoritative commitments and To Do records; and
+2. external calendar events observed in a customer-owned provider.
+
+ADR 0038 correctly separated these collections but named a custom JSON
+`GET {CALDAV_BASE_URL}/events` feed as CalDAV. That endpoint does not implement
+RFC 4791 discovery, WebDAV REPORT, iCalendar recurrence or VTIMEZONE, RFC 6578
+synchronization, ETag reconciliation, scheduling, or provider authorization.
+The name therefore overstates the shipped product.
+
+Naruon is the CWL authority for customer-owned mail, calendar, contact, and file
+provider interaction. Its scheduling contract owns typed Event/Commitment
+semantics, DAV capability discovery, synchronization, provider revisions,
+writeback, retries, and reconciliation. Reimplementing those responsibilities
+inside LineageWeave would duplicate credentials and provider state and would
+turn LineageWeave into a second calendar product.
+
+## Decision
+
+LineageWeave will consume a **read-only, versioned Naruon calendar projection**.
+It will not connect to a CalDAV provider directly.
+
+The contract is implemented by:
+
+- `lineageweave.naruon_calendar_projection`;
+- `docs/contracts/naruon-calendar-projection-v1.schema.json`; and
+- exact parser/transport tests in `tests/test_naruon_calendar_projection.py`.
+
+The projection endpoint is conceptually:
+
+```text
+GET {Naruon base}/api/calendar/events
+  ?window_start=<RFC3339>
+  &window_end=<RFC3339>
+  &limit=<1..200>
+  [&cursor=<opaque>]
+```
+
+The request uses an audience-scoped **service credential** configured for the
+LineageWeave deployment. It does not forward a browser or end-user bearer token,
+and it never receives provider credentials.
+
+Each occurrence carries only:
+
+```text
+event_reference
+occurrence_reference
+source_reference
+provider_revision
+display_text
+starts_at
+ends_at
+all_day
+time_zone
+status_code
+disclosure_code
+truth_status_code = observed
+observed_at
+```
+
+Naruon applies tenant, source, participant, and disclosure policy before the
+response crosses the service boundary. `busy_only` rows contain only safe
+Naruon-supplied display text. Attendees, descriptions, provider URLs, private
+conflict reasons, access tokens, and raw DAV payloads are outside this contract.
+
+LineageWeave keeps the two truth domains separate:
+
+```text
+LineageWeave commitment
+- authoritative post-derived work record
+- issue/todo identity
+- source-post evidence and ontology/provenance
+
+Naruon event projection
+- observed provider occurrence
+- opaque Naruon source/event/occurrence identity
+- provider revision and observation time
+```
+
+An observed external event is never promoted into an internal commitment merely
+because it appears in the same Calendar screen.
+
+## Validation and failure posture
+
+The LineageWeave consumer rejects:
+
+- non-HTTP(S), userinfo-bearing, query-bearing, or fragment-bearing base URLs;
+- missing or control-bearing service credentials;
+- windows longer than 366 days;
+- pages larger than 200 events;
+- unknown fields, schema versions, status, disclosure, or truth vocabularies;
+- naive timestamps, invalid intervals, and duplicate occurrence references;
+- URL-shaped opaque references and cursors.
+
+The adapter follows no redirects through the current shared HTTP client. Errors
+identify the configured host but never include the service credential.
+
+Until Naruon ships the matching read endpoint and service-audience contract,
+LineageWeave runtime wiring remains fail-closed. Existing internal commitments
+remain available even when the external event channel is unavailable.
+
+## Consequences
+
+### Positive
+
+- Product language no longer implies a CalDAV implementation that does not
+  exist.
+- Provider credentials, sync cursors, ETags, recurrence reconciliation, and
+  scheduling remain in one authority.
+- LineageWeave gains a strict, bounded ontology/provenance-compatible event
+  observation contract without creating another event store.
+- Calendar commitments and external observations remain auditable and cannot be
+  silently conflated.
+
+### Costs and limitations
+
+- The Buyer Calendar will not show external events until Naruon implements and
+  releases the corresponding read projection.
+- The two repositories require consumer/provider contract tests before runtime
+  activation.
+- This PR establishes the consumer and contract only; it does not claim provider
+  interoperability, CalDAV conformance, or a completed Naruon connector.
+
+## Merge and activation gate
+
+This ADR remains Proposed and the PR remains Draft until:
+
+1. #258 → #260 → #261 are integrated or this stack is restacked on their
+   protected descendants;
+2. Naruon publishes the matching endpoint, media type, service audience, and
+   conformance fixtures;
+3. LineageWeave wires configuration and the Buyer API without forwarding an
+   end-user token;
+4. exact-head tests, security checks, and independent review pass.
+
+## References
+
+See `docs/doctoring/NARUON_CALENDAR_PROJECTION_REFERENCES.md`.
