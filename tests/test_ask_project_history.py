@@ -193,12 +193,18 @@ def test_global_source_retrieval_applies_cutoff_and_publication_eligibility() ->
     )
 
     candidate_queries = [query for query, _args in calls if "matched_in" in query]
-    source_queries = [query for query, _args in calls if "array_position($2::uuid[], post_id)" in query]
+    source_calls = [
+        (query, args)
+        for query, args in calls
+        if "array_position($2::uuid[], post_id)" in query
+    ]
     assert candidate_queries
     assert all("source_draft_code" in query and "created_at <= $3" in query for query in candidate_queries)
-    assert source_queries
-    assert "source_deleted_flag" in source_queries[0]
-    assert "created_at <= $4" in source_queries[0]
+    assert source_calls
+    source_query, source_args = source_calls[0]
+    assert "source_deleted_flag" in source_query
+    assert "created_at <= $4" in source_query
+    assert source_args[3] == CUTOFF
 
 
 class _Acquire:
