@@ -50,13 +50,19 @@ def test_rebuild_passes_the_configured_adjudication_client(monkeypatch) -> None:
     async def fake_persist_lineage_edges(_conn, _edges):
         return None
 
+    async def fake_to_thread(function, *args, **kwargs):
+        captured["offloaded_function"] = function
+        return function(*args, **kwargs)
+
     import backend.app.lineage_ingestion as ingestion
 
     monkeypatch.setattr(ingestion, "lineage_edge_specs", fake_lineage_edge_specs)
     monkeypatch.setattr(ingestion, "persist_lineage_edges", fake_persist_lineage_edges)
+    monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
     asyncio.run(rebuild_lineage(FakeConnection(), llm=client))
 
     assert captured["llm"] is client
+    assert captured["offloaded_function"] is fake_lineage_edge_specs
 
 
 def test_records_fall_back_to_corporate_entity_when_thread_keys_are_empty() -> None:
@@ -284,6 +290,9 @@ def test_visible_graph_attaches_ranked_channel_evidence() -> None:
     assert "llm" not in {item["signal_code"] for item in evidence}
     assert graph["reconstruction"]["reconstruction_version"] == "lineageweave.reconstruct/2.14.0"
     assert graph["reconstruction"]["active_weights"][0]["signal_code"] == "temporal"
+    signal_query = next(query for query in connection.queries if "post_lineage_edge_signal" in query)
+    assert "parent_post_id = any($1::uuid[])" in signal_query
+    assert "child_post_id = any($2::uuid[])" in signal_query
     weight_query = next(query for query in connection.queries if "event_lineage_rebuild_channel" in query)
     assert "join common_lookup_value as lookup" in weight_query
     assert "order by lookup.display_order, channel.signal_code" in weight_query

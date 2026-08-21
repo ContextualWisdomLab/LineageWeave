@@ -8,7 +8,8 @@ Each parent→child edge is still one ``post_lineage_edge`` row. The
 winning edge's active channel scores are persisted beside it as
 ``post_lineage_edge_signal`` rows (ADR 0124). A missing LLM channel is
 dropped, never fabricated. Contribution is ``weight * score`` and must
-reconcile with ``fused_score`` within :data:`CHANNEL_EVIDENCE_TOLERANCE`.
+reconcile with ``fused_score`` within the base tolerance plus the bounded
+persistence quantization budget.
 """
 
 from __future__ import annotations
@@ -135,7 +136,8 @@ def channel_signal_rows(
 
     Raises:
         ValueError: if recorded contributions do not reconcile with
-            ``edge.fused_score`` within :data:`CHANNEL_EVIDENCE_TOLERANCE`.
+            ``edge.fused_score`` after accounting for one half quantum per
+            persisted channel and a small floating-point guard.
     """
     active_weights = dict(weights) if weights is not None else weights_for_channel_scores(edge.channel_scores)
     rows: list[dict[str, object]] = []
@@ -158,11 +160,16 @@ def channel_signal_rows(
                 "signal_contribution": contribution,
             }
         )
+    # Each numeric(8,6) contribution can differ from its exact product by
+    # half a quantum. A fixed tolerance fails valid 3/4-channel edges when
+    # those independent rounding errors accumulate.
+    rounding_budget = len(rows) * float(SIGNAL_QUANTUM) / 2 + float(SIGNAL_QUANTUM)
+    reconciliation_tolerance = max(CHANNEL_EVIDENCE_TOLERANCE, rounding_budget)
     residual = abs(contribution_sum - float(edge.fused_score))
-    if rows and residual > CHANNEL_EVIDENCE_TOLERANCE:
+    if rows and residual > reconciliation_tolerance:
         raise ValueError(
             f"channel contributions {contribution_sum} do not reconcile with "
-            f"fused_score {edge.fused_score} (tolerance {CHANNEL_EVIDENCE_TOLERANCE})"
+            f"fused_score {edge.fused_score} (tolerance {reconciliation_tolerance})"
         )
     return rows
 
