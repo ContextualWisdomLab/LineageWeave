@@ -15,7 +15,7 @@ function parsePipeDelimitedTable(text: string, requireSeparator = true): string[
   const separatorIndex = rawRows.findIndex(
     (row) => row.length > 1 && row.every((cell) => /^:?-{3,}:?$/.test(cell)),
   );
-  if (requireSeparator && separatorIndex < 1) return null;
+  if (requireSeparator && separatorIndex !== 1) return null;
   const rows = rawRows
     .filter((_row, rowIndex) => rowIndex !== separatorIndex)
     .filter((row) => row.length > 1 && row.some(Boolean));

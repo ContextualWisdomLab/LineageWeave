@@ -179,7 +179,11 @@ function splitSemanticParagraphs(text: string): string[] {
     lines = [];
   };
   const flushPipeTableRows = () => {
-    if (pipeTableRows.length >= 2) {
+    const hasSeparator = pipeTableRows.some((row) => {
+      const cells = row.trim().replace(/^\|/, "").replace(/\|$/, "").split("|");
+      return cells.length >= 2 && cells.every((cell) => /^\s*:?-{3,}:?\s*$/.test(cell));
+    });
+    if (pipeTableRows.length >= 2 && hasSeparator) {
       flush();
       paragraphs.push(pipeTableRows.map((row) => row.trim()).join("\n"));
     } else {
@@ -193,7 +197,6 @@ function splitSemanticParagraphs(text: string): string[] {
     if (trimmed.includes("|")) {
       const cells = trimmed.replace(/^\|/, "").replace(/\|$/, "").split("|");
       if (cells.length >= 2 && cells.some((cell) => cell.trim())) {
-        if (lines.length > 0) flush();
         pipeTableRows.push(line);
         continue;
       }

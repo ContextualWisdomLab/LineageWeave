@@ -110,6 +110,18 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("keeps a stray pipe line inside its surrounding paragraph", () => {
+    expect(splitPostBody("<p>Before<br>ratio A | B<br>After</p>")).toEqual([
+      { kind: "text", text: "Before ratio A | B After" },
+    ]);
+  });
+
+  it("space-joins consecutive pipe prose when no Markdown separator exists", () => {
+    expect(splitPostBody("Alice | manager\nBob | engineer")).toEqual([
+      { kind: "text", text: "Alice | manager Bob | engineer" },
+    ]);
+  });
+
   it("leaves a plain-text post unchanged so existing popups keep their wording", () => {
     expect(splitPostBody("The full body text.")).toEqual([
       { kind: "text", text: "The full body text." },
