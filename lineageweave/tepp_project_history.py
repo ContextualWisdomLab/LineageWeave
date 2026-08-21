@@ -138,7 +138,11 @@ def _code(value: Any, name: str) -> str:
     """Return a bounded lower-snake contract code."""
 
     code = _text(value, name, 96)
-    if not all(character.isascii() and (character.islower() or character.isdigit() or character == "_") for character in code):
+    if not all(
+        character.isascii()
+        and (character.islower() or character.isdigit() or character == "_")
+        for character in code
+    ):
         raise TeppProjectHistoryUnavailable(f"{name} must be lower snake case")
     return code
 
@@ -238,7 +242,9 @@ def _finding(
     finding_code = _code(payload["finding_code"], "finding_code")
     if finding_code not in _ALLOWED_FINDING_CODES:
         raise TeppProjectHistoryUnavailable("finding code is not in the published vocabulary")
-    if len(related_ids) != len(set(related_ids)) or len(evidence_ids) != len(set(evidence_ids)):
+    if len(related_ids) != len(set(related_ids)) or len(evidence_ids) != len(
+        set(evidence_ids)
+    ):
         raise TeppProjectHistoryUnavailable("finding references must be unique")
     return {
         "finding_code": finding_code,
@@ -295,7 +301,10 @@ def validate_tepp_project_history_projection(
         raise TeppProjectHistoryUnavailable("participant count is not evidence-derived")
     _, span_start = parse_rfc3339_utc(payload["history_span_start"], "history_span_start")
     _, span_end = parse_rfc3339_utc(payload["history_span_end"], "history_span_end")
-    if span_start != response_events[0]["occurred_at"] or span_end != response_events[-1]["occurred_at"]:
+    if (
+        span_start != response_events[0]["occurred_at"]
+        or span_end != response_events[-1]["occurred_at"]
+    ):
         raise TeppProjectHistoryUnavailable("history span does not match ordered events")
     raw_findings = payload["findings"]
     if not isinstance(raw_findings, list):
@@ -392,7 +401,13 @@ class TeppProjectHistoryClient:
     ) -> Any:
         """Post one bounded JSON exchange through the shared HTTP client."""
 
-        return post_json(url, payload, headers=headers, timeout=timeout)
+        return post_json(
+            url,
+            payload,
+            headers=headers,
+            timeout=timeout,
+            include_llm_metadata=False,
+        )
 
     def project(self, request: Any) -> dict[str, Any]:
         """Return a validated non-causal projection or fail closed."""
@@ -410,6 +425,8 @@ class TeppProjectHistoryClient:
         except TeppProjectHistoryUnavailable:
             raise
         except (HttpClientError, OSError, TypeError, ValueError) as exc:
+            raise TeppProjectHistoryUnavailable("TEPP project-history request failed") from exc
+        except Exception as exc:
             raise TeppProjectHistoryUnavailable("TEPP project-history request failed") from exc
         try:
             return validate_tepp_project_history_projection(response, request=payload)
