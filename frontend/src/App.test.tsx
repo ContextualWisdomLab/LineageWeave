@@ -2055,6 +2055,9 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("Related to Priya Nair")).not.toBeInTheDocument();
     const popup = document.querySelector(".popup-panel");
     expect(popup).not.toBeNull();
+    expect(screen.getByRole("dialog", { name: "Public post" })).toBe(popup);
+    expect(popup).toHaveAttribute("aria-modal", "true");
+    expect(popup).toHaveAttribute("aria-labelledby", "post-detail-title");
     const evaluation = within(popup as HTMLElement).getByRole("heading", {
       name: "Post quality (IRT)",
     });
@@ -2070,6 +2073,26 @@ describe("App, authenticated", () => {
     expect(affiliate.compareDocumentPosition(keyman) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     const ask = within(popup as HTMLElement).getByRole("heading", { name: "Ask about this lineage" });
     expect(keyman.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  });
+
+  it("keeps the post popup keyboard-contained and restores the opener after Escape", async () => {
+    const user = userEvent.setup();
+    stubBackend();
+    render(<App showLabPanels />);
+
+    const opener = await screen.findByRole("button", { name: "View post: Public post" });
+    await user.click(opener);
+    const dialog = await screen.findByRole("dialog", { name: "Public post" });
+    await waitFor(() => expect(dialog).toHaveFocus());
+
+    await user.keyboard("{Tab}");
+    expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
+    await user.keyboard("{Shift>}{Tab}{/Shift}");
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(opener).toHaveFocus();
   });
 
   it("labels a stale summary and retries the semantic refresh on request", async () => {
