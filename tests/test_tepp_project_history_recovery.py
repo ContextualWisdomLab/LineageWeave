@@ -255,6 +255,24 @@ def test_strict_client_rejects_unknown_or_duplicate_finding_references() -> None
         ).project(request)
 
 
+def test_strict_client_normalizes_raw_provider_errors() -> None:
+    request = build_tepp_project_history_request(
+        projection=_canonical_projection(),
+        tenant_workspace_id=tenant_workspace_reference(["tenant-a"]),
+    )
+
+    def provider_failure(url, payload, headers, timeout):
+        del url, payload, headers, timeout
+        raise RuntimeError("provider stack trace must not cross the boundary")
+
+    with pytest.raises(TeppProjectHistoryUnavailable, match="request failed") as error:
+        TeppProjectHistoryClient(
+            "https://tepp.example", transport=provider_failure
+        ).project(request)
+
+    assert "provider stack trace" not in str(error.value)
+
+
 def test_validation_fails_closed_without_hiding_canonical_history(monkeypatch) -> None:
     projection = _canonical_projection()
     unconfigured = validate_project_history_with_tepp(

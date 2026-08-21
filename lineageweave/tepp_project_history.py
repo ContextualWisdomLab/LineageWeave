@@ -426,6 +426,8 @@ class TeppProjectHistoryClient:
             raise
         except (HttpClientError, OSError, TypeError, ValueError) as exc:
             raise TeppProjectHistoryUnavailable("TEPP project-history request failed") from exc
+        except Exception as exc:
+            raise TeppProjectHistoryUnavailable("TEPP project-history request failed") from exc
         try:
             return validate_tepp_project_history_projection(response, request=payload)
         except TeppProjectHistoryUnavailable as exc:
