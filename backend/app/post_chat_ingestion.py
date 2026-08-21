@@ -746,6 +746,7 @@ async def gather_global_chat_sources(
         list(authorized_corporate_entity_ids),
         candidate_ids,
         limit,
+        cutoff,
     )
     visible_rows = [row for row in rows if can_see_post(row)][:limit]
     visible_ids = [str(row["post_id"]) for row in visible_rows]

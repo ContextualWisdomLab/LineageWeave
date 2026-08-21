@@ -113,7 +113,7 @@ _GLOBAL_ASK_CONTEXT_MIGRATION = (
 _POST_CHAT_CUTOFF_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
-    / "0053_post_chat_knowledge_cutoff.sql"
+    / "0054_post_chat_knowledge_cutoff.sql"
 )
 _MAJOR_EVENT_ACTION_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0100_major_event_action.sql"
