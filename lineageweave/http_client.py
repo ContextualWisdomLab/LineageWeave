@@ -105,15 +105,20 @@ def post_json(
     *,
     headers: dict[str, str],
     timeout: float,
+    include_llm_metadata: bool = True,
 ) -> dict:
     """POST ``payload`` as JSON to ``url`` and return the decoded object.
+
+    ``include_llm_metadata`` preserves contextual-orchestrator enrichment by
+    default. Closed non-LLM wire contracts must set it to ``False`` so an active
+    LLM context cannot add an unpublished ``metadata`` member.
 
     Raises:
         ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
         HttpClientError: the server responded with HTTP >= 400 or non-JSON.
     """
     request_payload = payload
-    request_metadata = current_llm_metadata()
+    request_metadata = current_llm_metadata() if include_llm_metadata else None
     if request_metadata:
         request_payload = dict(payload)
         existing_metadata = request_payload.get("metadata")
