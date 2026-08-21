@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import logging
 import math
 from typing import Any, TypeVar
@@ -31,14 +32,19 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _bounded_unit_batches(  # noqa: UP047 - retain Python 3.10 compatibility.
-    units: list[tuple[_BatchKey, str]],
-) -> list[list[tuple[_BatchKey, str]]]:
+    units: list[tuple[_BatchKey, str | dict[str, object]]],
+) -> list[list[tuple[_BatchKey, str | dict[str, object]]]]:
     """Keep provider requests bounded without changing persisted source units."""
-    batches: list[list[tuple[_BatchKey, str]]] = []
-    batch: list[tuple[_BatchKey, str]] = []
+    batches: list[list[tuple[_BatchKey, str | dict[str, object]]]] = []
+    batch: list[tuple[_BatchKey, str | dict[str, object]]] = []
     batch_chars = 0
     for unit in units:
-        unit_chars = len(unit[1])
+        payload = unit[1]
+        unit_chars = (
+            len(payload)
+            if isinstance(payload, str)
+            else len(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
+        )
         if batch and (
             len(batch) >= _LLM_BATCH_MAX_UNITS
             or batch_chars + unit_chars > _LLM_BATCH_MAX_CHARS
@@ -151,12 +157,22 @@ async def persist_post_content(
         structure_units = [
             (
                 chunk.index,
-                chunk.text[:_STRUCTURE_UNIT_MAX_CHARS]
-                + (
-                    "\n[truncated for structure adjudication]"
-                    if len(chunk.text) > _STRUCTURE_UNIT_MAX_CHARS
-                    else ""
-                ),
+                {
+                    "unit_index": chunk.index,
+                    "text": chunk.text[:_STRUCTURE_UNIT_MAX_CHARS]
+                    + (
+                        "\n[truncated for structure adjudication]"
+                        if len(chunk.text) > _STRUCTURE_UNIT_MAX_CHARS
+                        else ""
+                    ),
+                    "label": chunk.label,
+                    "style": formatting.get(chunk.index),
+                    "source_indent_width": max(
+                        0,
+                        int(chunk.indent_width) - int(chunk.declared_indent_width),
+                    ),
+                    "declared_indent_width": int(chunk.declared_indent_width),
+                },
             )
             for chunk in unresolved
         ]
@@ -165,7 +181,7 @@ async def persist_post_content(
                 decisions = await asyncio.to_thread(
                     client.infer,
                     post_title,
-                    [{"unit_index": index, "text": text} for index, text in batch],
+                    [payload for _index, payload in batch],
                 )
                 for decision in decisions:
                     if decision.unit_index in unresolved_indexes:

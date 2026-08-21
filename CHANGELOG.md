@@ -8,6 +8,9 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Structure adjudication now rejects malformed or duplicate unit indexes before
+  calling the orchestrator, and buyer rendering keeps internal indentation
+  evidence out of the DOM.
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
