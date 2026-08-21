@@ -308,3 +308,18 @@ runtime note into a shipped/live claim.
   that a preceding event is related in time, not that it caused the VOC.
 - The next stacked slice attaches this same canonical timeline and TEPP metadata to
   Global Ask and post-scoped Ask without re-retrieving hidden evidence.
+
+## Ask-to-project-history integration (2026-08-21)
+
+- Post-scoped Ask and Global Ask return structured project-history links only for exact
+  project identities on their currently authorized cited posts.
+- Opening a link lazily calls the canonical Project history endpoint with the answer
+  knowledge cutoff and cited focus post; no second timeline, classifier, or TEPP query is
+  implemented in either Ask surface.
+- Source publication eligibility and cutoff are applied before Ask retrieval. Persisted
+  answers are withheld when any citation loses visibility, and a Global Ask session with
+  stale citations must start a new session before prior answer prose is reused.
+- The response bounds citation and project counts, discloses truncated project links, and
+  keeps answers readable when a timeline or TEPP validation is unavailable.
+- Remaining causal-analysis work is explicitly outside this slice: temporal association
+  and evidence navigation do not identify why a VOC occurred.

@@ -126,6 +126,18 @@ def test_authorized_ask_evidence_fails_closed_when_any_citation_is_hidden() -> N
     assert result.project_histories == ()
 
 
+def test_authorized_ask_evidence_rejects_non_uuid_citations_before_sql() -> None:
+    with pytest.raises(ValueError, match="UUIDs"):
+        asyncio.run(
+            read_authorized_ask_evidence(
+                _EvidenceConnection([]),
+                cited_post_ids=["not-a-uuid"],
+                corporate_entity_ids=["tenant-a"],
+                knowledge_cutoff=CUTOFF,
+            )
+        )
+
+
 def test_global_ask_session_reauthorizes_every_persisted_citation() -> None:
     class SessionConnection:
         def __init__(self) -> None:
@@ -284,3 +296,48 @@ def test_global_ask_rejects_stale_session_context_before_reusing_hidden_prose(mo
 
     assert exc_info.value.status_code == 409
     assert "start a new session" in str(exc_info.value.detail).lower()
+
+
+def test_global_ask_hides_unexpected_provider_errors(monkeypatch) -> None:
+    class ProviderFailure:
+        available = True
+
+        def answer(self, *args, **kwargs):
+            del args, kwargs
+            raise RuntimeError("raw provider trace must not reach the buyer")
+
+    async def ensure_session(*_args, **_kwargs):
+        return "00000000-0000-4000-8000-000000000010"
+
+    async def authorized(*_args, **_kwargs):
+        return True
+
+    async def load_context(*_args, **_kwargs):
+        return SimpleNamespace(
+            session_id="00000000-0000-4000-8000-000000000010",
+            summary="",
+            recent_turns=(),
+            compress_turns=(),
+        )
+
+    async def sources(*_args, **_kwargs):
+        return [object()]
+
+    monkeypatch.setattr(main, "_post_chat_client", lambda: ProviderFailure())
+    monkeypatch.setattr(main, "ensure_global_ask_session", ensure_session)
+    monkeypatch.setattr(main, "global_ask_session_citations_authorized", authorized)
+    monkeypatch.setattr(main, "load_global_ask_context", load_context)
+    monkeypatch.setattr(main, "gather_global_chat_sources", sources)
+
+    with pytest.raises(HTTPException) as exc_info:
+        asyncio.run(
+            main.ask_agent(
+                request=main.GlobalAskRequest(question="What happened?"),
+                account=_account(),
+                pool=_Pool(object()),
+                valkey=SimpleNamespace(),
+            )
+        )
+
+    assert exc_info.value.status_code == 503
+    assert "raw provider trace" not in str(exc_info.value.detail)
