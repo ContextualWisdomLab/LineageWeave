@@ -30,7 +30,7 @@ const validation: TeppProjectHistoryValidation = {
 };
 
 describe("TeppProjectHistoryEvidence", () => {
-  it("shows the TEPP contract boundary and opens only supplied source evidence", () => {
+  it("shows controlled TEPP copy and opens only supplied source evidence", () => {
     const onOpenPost = vi.fn();
     render(
       <TeppProjectHistoryEvidence
@@ -43,7 +43,9 @@ describe("TeppProjectHistoryEvidence", () => {
     expect(screen.getByRole("heading", { name: /TEPP temporal validation/i })).toBeInTheDocument();
     expect(screen.getByText(/temporal association only/i)).toBeInTheDocument();
     expect(screen.getByText(/does not identify a cause/i)).toBeInTheDocument();
-    expect(screen.getByText(/2 participants/i)).toBeInTheDocument();
+    expect(screen.getByText(/participants in supplied evidence/i)).toBeInTheDocument();
+    expect(screen.getByText("2", { selector: "dd" })).toBeInTheDocument();
+    expect(screen.queryByText(validation.project_history.findings[0].summary)).not.toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole("button", { name: /open evidence: Synthetic specification changed/i }),
@@ -65,6 +67,29 @@ describe("TeppProjectHistoryEvidence", () => {
     );
 
     expect(screen.getByRole("status")).toHaveTextContent(/configure the TEPP project-history endpoint/i);
-    expect(screen.queryByText(/participants/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/participants in supplied evidence/i)).not.toBeInTheDocument();
+  });
+
+  it("uses unique labelled-region ids when more than one evidence panel is present", () => {
+    render(
+      <>
+        <TeppProjectHistoryEvidence
+          validation={validation}
+          onOpenPost={vi.fn()}
+          sourceLabels={{ "post-spec": "Synthetic specification changed" }}
+        />
+        <TeppProjectHistoryEvidence
+          validation={validation}
+          onOpenPost={vi.fn()}
+          sourceLabels={{ "post-spec": "Synthetic specification changed" }}
+        />
+      </>,
+    );
+
+    const headings = screen.getAllByRole("heading", { name: /TEPP temporal validation/i });
+    const regions = headings.map((heading) => heading.closest("section"));
+    expect(headings[0].id).not.toBe(headings[1].id);
+    expect(regions[0]).toHaveAttribute("aria-labelledby", headings[0].id);
+    expect(regions[1]).toHaveAttribute("aria-labelledby", headings[1].id);
   });
 });
