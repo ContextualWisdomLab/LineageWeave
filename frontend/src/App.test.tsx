@@ -88,6 +88,8 @@ describe("App, authenticated", () => {
     postBody?: string;
     manyCustomerHints?: number;
     customerEntityHierarchy?: boolean;
+    staleSummary?: boolean;
+    contentAfterSummary?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -112,6 +114,7 @@ describe("App, authenticated", () => {
     let createdPendingLineage: Record<string, unknown> | null = null;
     let createdPendingTepp: Record<string, unknown> | null = null;
     let resolvedHintCode: string | null = null;
+    let contentRequests = 0;
 
     let releaseMe = () => {};
     const meReady = options?.deferMe
@@ -124,6 +127,9 @@ describe("App, authenticated", () => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
+      if (url.endsWith("/api/settings")) {
+        return Promise.resolve(jsonResponse({ brandName: "LineageWeave" }));
+      }
       if (url.endsWith("/api/me/preferences") && method === "PATCH") {
         const body = JSON.parse(String(init?.body));
         return Promise.resolve(jsonResponse({ preferred_locale: body.preferred_locale }));
@@ -1097,7 +1103,28 @@ describe("App, authenticated", () => {
         );
       }
       if (postOneUrl.pathname === "/api/posts/post-1/content") {
-        return Promise.resolve(jsonResponse({ images: [] }));
+        contentRequests += 1;
+        return Promise.resolve(
+          jsonResponse({
+            status: "ready",
+            images: [],
+            units:
+              options?.contentAfterSummary && contentRequests > 1
+                ? [
+                    {
+                      unit_index: 0,
+                      unit_kind_code: "plain_text",
+                      unit_label: "p",
+                      unit_text: "Freshly processed source paragraph.",
+                      indent_level: 0,
+                      indent_source_code: "explicit",
+                      indent_confidence: 1,
+                      indent_evidence: "HTML paragraph boundary",
+                    },
+                  ]
+                : [],
+          }),
+        );
       }
       if (url.endsWith("/api/posts/post-2")) {
         if (options?.evidenceUnavailable) {
@@ -1141,6 +1168,9 @@ describe("App, authenticated", () => {
           jsonResponse({
             post_id: "post-1",
             korean_summary: "이것은 요약입니다.",
+            ...(options?.staleSummary
+              ? { summary_status: "stale", summary_contract_version: 4 }
+              : {}),
             key_events: ["첫 번째 이벤트"],
             key_event_details: [{ event_text: "첫 번째 이벤트", project_name: "Sample project" }],
             roles_and_responsibilities: [
@@ -1989,6 +2019,37 @@ describe("App, authenticated", () => {
     expect(affiliate.compareDocumentPosition(keyman) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     const ask = within(popup as HTMLElement).getByRole("heading", { name: "Ask about this lineage" });
     expect(keyman.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  });
+
+  it("labels a stale summary and retries the semantic refresh on request", async () => {
+    const fetchMock = stubBackend({ staleSummary: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() =>
+      expect(screen.getByText("Last saved summary shown. Retry semantic refresh.")).toBeInTheDocument(),
+    );
+    const summaryCallsBeforeRetry = fetchMock.mock.calls.filter(([input]) =>
+      String(input).endsWith("/api/posts/post-1/summary"),
+    ).length;
+
+    await userEvent.click(screen.getByRole("button", { name: "Retry summary refresh" }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/api/posts/post-1/summary"))
+          .length,
+      ).toBeGreaterThan(summaryCallsBeforeRetry),
+    );
+    expect(screen.getByRole("button", { name: "Retry summary refresh" })).toBeInTheDocument();
+  });
+
+  it("refreshes newly processed source content after summary generation", async () => {
+    stubBackend({ contentAfterSummary: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    expect(await screen.findByText("Freshly processed source paragraph.")).toBeInTheDocument();
   });
 
   it("shows a seeded Ask exchange without an orchestrator round-trip", async () => {
