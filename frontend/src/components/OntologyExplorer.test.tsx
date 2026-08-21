@@ -150,9 +150,12 @@ describe("OntologyExplorer", () => {
       />,
     );
 
-    await userEvent.click(await screen.findByRole("button", { name: "Load next relation page" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Select node: Post Demo public post" }));
+    expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
     expect(await screen.findByText("Ontology neighborhood is unavailable. Open a visible post next.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
     expect(fetchNeighborhood).toHaveBeenNthCalledWith(
       2,
       "synthetic-access-token",
