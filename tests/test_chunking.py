@@ -167,6 +167,30 @@ def test_chunk_by_dom_keeps_numbered_footnote_backlinks_in_body_paragraphs() -> 
     ]
 
 
+def test_chunk_by_dom_labels_colon_separated_footnote_ids() -> None:
+    html = (
+        '<p>Body cites <a href="#fn:1" id="fnref:1">[1]</a>.</p>'
+        '<p><a href="#_ftnref1_body" name="_ftn1_body">[1]</a> Definition.</p>'
+    )
+
+    chunks = chunk_by_dom(html)
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Body cites [1]."),
+        ("footnote", "[1] Definition."),
+    ]
+
+
+def test_chunk_by_dom_labels_bare_word_footnote_backlinks() -> None:
+    html = '<p><a href="#_ftnref" name="_ftn1_body">[1]</a> Definition.</p>'
+
+    chunks = chunk_by_dom(html)
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("footnote", "[1] Definition."),
+    ]
+
+
 def test_chunk_by_dom_preserves_empty_table_cells_as_columns() -> None:
     html = "<table><tr><td></td><td>Company</td><td></td><td>Result</td></tr></table>"
 

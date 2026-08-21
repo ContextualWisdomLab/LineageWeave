@@ -103,7 +103,7 @@ _LIST_ITEM_START = re.compile(
 )
 _FOOTNOTE_START = re.compile(r"^[*†‡](?=\S)")
 _FOOTNOTE_IDENTIFIER = re.compile(
-    r"^(?:fn|ftn|en|endnote)[-_]?\d+$",
+    r"^(?:fn|ftn|en|endnote)[:_-]?\d+(?:[:_-][a-z0-9]+)*$",
     re.IGNORECASE,
 )
 
@@ -140,7 +140,7 @@ def _is_footnote_reference(attrs: list[tuple[str, str | None]]) -> bool:
     }
     href = values.get("href", "")
     anchor_values = (values.get("id", ""), values.get("name", ""))
-    href_is_reference = bool(re.search(r"(?:fn|ftn)ref[-_]?\d+", href))
+    href_is_reference = bool(re.search(r"(?:fn|ftn)ref[:_-]?\d+(?:[:_-][a-z0-9]+)*|(?:fn|ftn)ref", href))
     return href_is_reference and any(
         _is_footnote_identifier(value) for value in anchor_values
     )
