@@ -194,7 +194,7 @@ function splitSemanticParagraphs(text: string): string[] {
 
   for (const line of text.split("\n")) {
     const trimmed = line.trim();
-    if (trimmed.includes("|")) {
+    if (trimmed.includes("|") && !LIST_ITEM_START.test(line)) {
       const cells = trimmed.replace(/^\|/, "").replace(/\|$/, "").split("|");
       if (cells.length >= 2 && cells.some((cell) => cell.trim())) {
         pipeTableRows.push(line);

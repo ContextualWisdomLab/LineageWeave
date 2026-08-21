@@ -136,6 +136,13 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("keeps pipe-bearing list items as separate semantic segments", () => {
+    expect(splitPostBody("- Owner | Alice\n- Reviewer | Bob")).toEqual([
+      { kind: "text", text: "- Owner | Alice" },
+      { kind: "text", text: "- Reviewer | Bob" },
+    ]);
+  });
+
   it("leaves a plain-text post unchanged so existing popups keep their wording", () => {
     expect(splitPostBody("The full body text.")).toEqual([
       { kind: "text", text: "The full body text." },
