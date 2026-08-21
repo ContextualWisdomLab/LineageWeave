@@ -22,6 +22,9 @@ All notable changes to this project are documented here. Format follows
   apply node-level ABAC, omit unlabeled endpoints, preserve catalog-owned node
   metadata, and keep typed endpoint IDs unambiguous. Workspace CSV and JSON-LD
   exports now represent the same filtered graph.
+- All OpenAI-compatible chat-completion consumers now validate the shared
+  response envelope before parsing it, preventing malformed provider bodies
+  from escaping as raw `KeyError` or response-shape details.
 
 ## [2.12.6] - 2026-08-20
 

@@ -30,7 +30,7 @@ import re
 from dataclasses import dataclass
 from typing import Protocol
 
-from .http_client import post_json
+from .http_client import chat_completion_content, post_json
 
 
 @dataclass(frozen=True)
@@ -165,7 +165,7 @@ class ContextualOrchestratorCommitmentExtractionClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = body["choices"][0]["message"]["content"]
+        content = chat_completion_content(body)
         commitment = parse_commitment_response(content)
         if commitment is None:
             raise ValueError(f"commitment response did not match the required format: {content!r}")
