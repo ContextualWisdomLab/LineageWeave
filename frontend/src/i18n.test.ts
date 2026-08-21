@@ -37,6 +37,18 @@ describe("i18n", () => {
     "Answer",
     "Showing the first {shown} of {total} posts known at this cutoff.",
   ] as const;
+  const eventLineageLabels = [
+    "Authorized scope",
+    "Open navigation",
+    "Lineage legend",
+    "Root record",
+    "Branch point",
+    "Current record",
+    "Parent to child",
+    "Inference boundary",
+    "Edges explain reconstructed continuation only. They are not causal or authoritative facts.",
+    "Evidence (fused_score)",
+  ] as const;
 
   it("supports the five product locales", () => {
     expect(SUPPORTED_LOCALES).toEqual(["en", "ko", "zh", "ja", "vi"]);
@@ -48,6 +60,16 @@ describe("i18n", () => {
     (locale) => {
       setLocale(locale);
       for (const key of requiredWorkspaceLabels) {
+        expect(t(key), `${locale}:${key}`).not.toBe(key);
+      }
+    },
+  );
+
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "translates Event Lineage and authorization labels in %s",
+    (locale) => {
+      setLocale(locale);
+      for (const key of eventLineageLabels) {
         expect(t(key), `${locale}:${key}`).not.toBe(key);
       }
     },

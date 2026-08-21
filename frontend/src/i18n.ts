@@ -707,6 +707,17 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "显示按文章数排序的 {total} 位已观察来源作者中的前 {shown} 位。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "交互式提问暂不可用；已保存的证据仍可查看。",
+    "Authorized scope": "授权范围",
+    "Open navigation": "打开导航菜单",
+    "Lineage legend": "谱系图例",
+    "Root record": "根记录",
+    "Branch point": "分支点",
+    "Current record": "当前记录",
+    "Parent to child": "从父级到子级",
+    "Inference boundary": "推断边界",
+    "Edges explain reconstructed continuation only. They are not causal or authoritative facts.":
+      "连接线仅说明重建的连续性，不表示因果关系或权威事实。",
+    "Evidence (fused_score)": "证据（fused_score）",
   },
   ja: {
     "Unknown": "不明",
@@ -1046,6 +1057,17 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "投稿数順に、観測された{total}名の元投稿者のうち上位{shown}名を表示しています。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "対話形式の質問は現在利用できません。保存された証拠は確認できます。",
+    "Authorized scope": "権限範囲",
+    "Open navigation": "ナビゲーションを開く",
+    "Lineage legend": "系譜の凡例",
+    "Root record": "ルート記録",
+    "Branch point": "分岐点",
+    "Current record": "現在の記録",
+    "Parent to child": "親から子へ",
+    "Inference boundary": "推論境界",
+    "Edges explain reconstructed continuation only. They are not causal or authoritative facts.":
+      "接続線は再構築された連続性のみを示し、因果関係や権威ある事実を示すものではありません。",
+    "Evidence (fused_score)": "証拠（fused_score）",
   },
   vi: {
     "Unknown": "Không rõ",
@@ -1385,6 +1407,17 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Đang hiển thị {shown} tác giả nguồn hàng đầu trong số {total} tác giả đã quan sát, xếp theo số bài viết.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "Câu hỏi tương tác hiện không khả dụng; bằng chứng đã lưu vẫn có thể xem.",
+    "Authorized scope": "Phạm vi được cấp quyền",
+    "Open navigation": "Mở menu điều hướng",
+    "Lineage legend": "Chú giải dòng sự kiện",
+    "Root record": "Bản ghi gốc",
+    "Branch point": "Điểm phân nhánh",
+    "Current record": "Bản ghi hiện tại",
+    "Parent to child": "Từ nút cha đến nút con",
+    "Inference boundary": "Ranh giới suy luận",
+    "Edges explain reconstructed continuation only. They are not causal or authoritative facts.":
+      "Các đường nối chỉ giải thích tính liên tục được tái dựng; chúng không phải là quan hệ nhân quả hay sự thật có thẩm quyền.",
+    "Evidence (fused_score)": "Bằng chứng (fused_score)",
   },
 };
 
