@@ -20,7 +20,7 @@
 | Post correlation | Existing ADR 0071 session metadata plus `X-LineageWeave-Session-Id` | Correlation only; not identity or authorization |
 | LLM/VISION/embedding transport | `lineageweave.http_client.post_json` | Method, peer, bounded path, status; no body or credential |
 | Valkey queue | `backend/app/*worker.py` and stream producers | Operation and logical stream kind; no stream key or event content |
-| Export | `OTEL_EXPORTER_OTLP_ENDPOINT` | Disabled by default; operator supplies collector |
+| Export | OTEL_EXPORTER_OTLP_ENDPOINT | Disabled by default; base URL normalized to /v1/traces |
 
 The GRC repository remains the organization control and evidence owner. This
 repository emits operational signals and does not copy GRC tables or persist

@@ -26,6 +26,14 @@ _CONFIGURED = False
 _TRACER_NAME = "lineageweave"
 
 
+def _otlp_trace_endpoint(endpoint: str) -> str:
+    """Turn an OTLP base endpoint into the explicit HTTP traces endpoint."""
+    normalized = endpoint.rstrip("/")
+    if normalized.casefold().endswith("/v1/traces"):
+        return normalized
+    return f"{normalized}/v1/traces"
+
+
 def current_session_id() -> str | None:
     """Return the current post-scoped session without exposing other metadata."""
     from .llm_context import current_llm_metadata
@@ -82,7 +90,11 @@ def configure_telemetry(service_name: str = "lineageweave") -> None:
         "service.namespace": "contextualwisdomlab",
     })
     provider = TracerProvider(resource=resource)
-    provider.add_span_processor(BatchSpanProcessor(OTLPSpanExporter(endpoint=endpoint)))
+    provider.add_span_processor(
+        BatchSpanProcessor(
+            OTLPSpanExporter(endpoint=_otlp_trace_endpoint(endpoint))
+        )
+    )
     trace.set_tracer_provider(provider)
 
 

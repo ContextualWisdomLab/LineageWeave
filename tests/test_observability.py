@@ -2,7 +2,11 @@
 
 from lineageweave import http_client
 from lineageweave.llm_context import use_llm_metadata
-from lineageweave.observability import current_session_id, traced
+from lineageweave.observability import (
+    _otlp_trace_endpoint,
+    current_session_id,
+    traced,
+)
 
 
 def test_post_json_sends_post_session_header(monkeypatch):
@@ -41,3 +45,9 @@ def test_traced_rethrows_provider_errors():
         assert str(exc) == "provider failure"
     else:  # pragma: no cover
         raise AssertionError("traced must preserve operation failures")
+
+
+def test_otlp_base_endpoint_gets_trace_signal_path():
+    """A configured collector base URL receives the HTTP traces signal path."""
+    assert _otlp_trace_endpoint("http://collector:4318") == "http://collector:4318/v1/traces"
+    assert _otlp_trace_endpoint("http://collector:4318/v1/traces/") == "http://collector:4318/v1/traces"

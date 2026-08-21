@@ -15,9 +15,11 @@ control contract in [ADR 0009](https://github.com/ContextualWisdomLab/governance
 ## Decision
 
 1. LineageWeave uses the OpenTelemetry Python API and SDK and exports OTLP only
-   when `OTEL_EXPORTER_OTLP_ENDPOINT` is explicitly configured. The service
-   resource name is `lineageweave` unless the operator overrides it with the
-   standard `OTEL_SERVICE_NAME` variable.
+   when OTEL_EXPORTER_OTLP_ENDPOINT is explicitly configured. The exporter
+   treats that value as a base URL and sends traces to its normalized
+   /v1/traces signal endpoint. The service resource name is lineageweave
+   unless the operator overrides it with the standard OTEL_SERVICE_NAME
+   variable.
 2. Every contextual-orchestrator POST carries the existing
    `lineageweave_post_session_id` as `X-LineageWeave-Session-Id`. The
    orchestrator binds it to the request context and adds it to provider spans,
