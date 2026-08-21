@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from lineageweave import Record, reconstruct
+from lineageweave.adjudication_client import AdjudicationClientError
 from lineageweave.fixtures import sample_records
 
 
@@ -63,6 +64,25 @@ def test_llm_channel_is_used_and_scored_when_a_client_is_supplied() -> None:
 
     assert stub.calls > 0
     assert all("llm" in edge.channel_scores for edge in tree_a.edges)
+
+
+class _MalformedAdjudicationClient:
+    """Available client that returns an unusable provider response."""
+
+    available = True
+
+    def judge(self, candidate_label: str, record_label: str) -> float:
+        """Raise the typed provider-response error for one candidate pair."""
+        raise AdjudicationClientError("synthetic malformed confidence")
+
+
+def test_malformed_llm_confidence_degrades_one_pair_without_aborting_reconstruction() -> None:
+    """Optional LLM parsing failure must not discard deterministic lineage."""
+    trees = reconstruct(sample_records(), llm=_MalformedAdjudicationClient())
+    tree_a = next(tree for tree in trees if tree.group_key == "A-100")
+
+    assert tree_a.edges
+    assert all(edge.channel_scores["llm"] == 0.0 for edge in tree_a.edges)
 
 
 def test_candidate_window_bounds_which_priors_are_considered() -> None:

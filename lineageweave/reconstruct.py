@@ -16,7 +16,11 @@ from collections import defaultdict
 import rankweave as rw
 import threadweave as tw
 
-from .adjudication_client import AdjudicationClient, NullAdjudicationClient
+from .adjudication_client import (
+    AdjudicationClient,
+    AdjudicationClientError,
+    NullAdjudicationClient,
+)
 from .channels import secondary_key_match_score, temporal_score, text_similarity_score
 from .models import Edge, Record, Tree
 
@@ -83,7 +87,12 @@ def _best_parent(
             "text": text_similarity_score(candidate, record),
         }
         if "llm" in weights:
-            scores["llm"] = llm.judge(candidate.label, record.label)
+            try:
+                scores["llm"] = llm.judge(candidate.label, record.label)
+            except AdjudicationClientError:
+                # A malformed provider response invalidates only this optional
+                # pair; deterministic channels still produce the edge.
+                scores["llm"] = 0.0
         for channel, score in scores.items():
             channel_results[channel].append((candidate.record_id, score))
             per_candidate_scores[candidate.record_id][channel] = score
