@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { t } from "../i18n";
 import { updateTenantConfig, type CurrentUser, type TenantConfig } from "../api";
 import type { WorkspaceDestination } from "./WorkspaceNav";
@@ -195,6 +195,10 @@ export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessTo
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setDraftConfig(currentTenantConfig);
+  }, [currentTenantConfig]);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();

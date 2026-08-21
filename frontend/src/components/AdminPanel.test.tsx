@@ -89,4 +89,26 @@ describe("AdminPanel", () => {
     const request = fetchMock.mock.calls.find(([url]) => String(url).endsWith("/api/settings"));
     expect(JSON.parse(String(request?.[1]?.body))).toEqual(responseConfig);
   });
+
+  it("refreshes the draft when the fetched tenant config arrives", () => {
+    const { rerender } = render(<AdminPanel {...baseProps} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Tenant settings/ }));
+    rerender(
+      <AdminPanel
+        {...baseProps}
+        currentTenantConfig={{
+          brandName: "Fetched Brand",
+          systemName: "Fetched System",
+          copyrightYear: 2025,
+          copyrightHolder: "Fetched Rights Holder",
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("textbox", { name: "Tenant brand name" })).toHaveValue("Fetched Brand");
+    expect(screen.getByRole("textbox", { name: "Tenant system name" })).toHaveValue("Fetched System");
+    expect(screen.getByRole("spinbutton", { name: "Tenant copyright year" })).toHaveValue(2025);
+    expect(screen.getByRole("textbox", { name: "Tenant copyright holder" })).toHaveValue("Fetched Rights Holder");
+  });
 });

@@ -529,7 +529,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Rebuild period report": "기간 리포트 재구축",
     "Rebuild a period report from the persisted report inputs.": "저장된 리포트 입력으로 기간 리포트를 재구축합니다.",
     "Update tenant settings": "테넌트 설정 변경",
-    "Persist the tenant brand name used by the workspace shell.": "워크스페이스 셸에 사용하는 테넌트 브랜드명을 저장합니다.",
+    "Persist the brand, system, and copyright metadata used by the workspace shell.": "워크스페이스 셸에 사용하는 브랜드·시스템·저작권 메타데이터를 저장합니다.",
     "Open post operations": "게시물 작업 열기",
     Account: "계정",
     Permissions: "권한",
