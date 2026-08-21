@@ -113,6 +113,11 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     / "migrations"
     / "0102_project_bound_summary_event.sql"
 )
+_TENANT_SETTINGS_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0103_tenant_settings.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -226,6 +231,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
+            cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -1167,6 +1173,49 @@ def test_me_reflects_the_authenticated_account(client, demo_analyst_token, seede
             "process_unit_name": "Test PU",
         }
     ]
+
+
+def test_healthz_is_a_public_liveness_probe(client) -> None:
+    """Regression test: a dangling ``@app.get("/healthz")`` decorator once
+    attached to ``read_tenant_settings`` instead of the liveness probe,
+    requiring auth on ``/healthz`` and leaving the real ``healthz()``
+    handler undecorated. Docker's own healthcheck (docker-compose.yml)
+    calls this route unauthenticated, so any auth requirement here breaks
+    container health and cascades into the whole compose dependency graph.
+    """
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_settings_get_requires_auth_and_returns_brand_name(client, demo_analyst_token) -> None:
+    unauthenticated = client.get("/api/settings")
+    assert unauthenticated.status_code == 401
+
+    response = client.get("/api/settings", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert response.status_code == 200
+    assert response.json()["brandName"]
+
+
+def test_settings_patch_requires_post_admin(client, demo_analyst_token, seeded_db) -> None:
+    denied = client.patch(
+        "/api/settings",
+        json={"brandName": "Should not apply"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert denied.status_code == 403
+
+    _grant_post_admin(seeded_db["dsn"])
+    allowed = client.patch(
+        "/api/settings",
+        json={"brandName": "LineageWeave Demo"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert allowed.status_code == 200
+    assert allowed.json() == {"brandName": "LineageWeave Demo"}
+
+    confirm = client.get("/api/settings", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert confirm.json() == {"brandName": "LineageWeave Demo"}
 
 
 def test_customer_master_returns_authorized_catalog_contract(client, demo_analyst_token, seeded_db) -> None:
