@@ -1,3 +1,5 @@
+import { CloseIcon } from "./icons";
+
 export type PopupCloseButtonProps = {
   onClose: () => void;
   label: string;
@@ -16,7 +18,7 @@ export function PopupCloseButton({ onClose, label }: PopupCloseButtonProps) {
       onClick={onClose}
       aria-label={label}
     >
-      &times;
+      <CloseIcon />
     </button>
   );
 }

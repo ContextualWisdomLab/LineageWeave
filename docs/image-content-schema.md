@@ -93,7 +93,7 @@ picture sat relative to the surrounding paragraphs."
 The demo popup does not yet read these tables. It splits the live
 `post_body` the same way `extract_base64_images` does: each
 `data:image/...;base64,...` payload becomes an `<img>` at its original
-character offset, and the surrounding HTML is shown as text. A buyer who
+character offset, and the surrounding HTML is shown as text. A reader who
 opens the post sees the picture that sat between the paragraphs, not the
 base64 wall. Remote `src="https://..."` tags are stripped, never fetched.
 OCR, caption, and tag search still require the vision client on extract /

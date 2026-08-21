@@ -25,10 +25,10 @@ from lineageweave.fixtures import (
     sample_records,
 )
 from lineageweave.post_summary import (
-    _SUMMARY_REQUEST_PROMPT_TEMPLATE,
     ContextualOrchestratorPostSummaryClient,
     NullPostSummaryClient,
     RoleResponsibility,
+    _SUMMARY_REQUEST_PROMPT_TEMPLATE,
     _parse_optional_project_key,
     _parse_plain_summary_details,
     _parse_plain_summary_response,
