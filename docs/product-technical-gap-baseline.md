@@ -311,6 +311,9 @@ runtime note into a shipped/live claim.
 
 ## Ask-to-project-history integration (2026-08-21)
 
+- Protected-stack checkpoint: PR #342 current head `ab489d81af9b48cf6adc7ae7ff22f84001cf20e2`
+  is based on PR #339 head `43262dc76622928fdf90b922653949b4ac7c6631`; both remain
+  review/check gated and are not represented as merged production behavior.
 - Post-scoped Ask and Global Ask return structured project-history links only for exact
   project identities on their currently authorized cited posts.
 - Opening a link lazily calls the canonical Project history endpoint with the answer
