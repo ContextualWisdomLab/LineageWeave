@@ -29,20 +29,25 @@ probability of causation, or an authoritative assignment record.
    the canonical timeline explicitly declares it as the current fallback clock. The UI
    continues to disclose that limitation.
 4. Actor names and local actor keys do not cross the service boundary. TEPP receives a
-   deterministic opaque SHA-256 reference scoped to the authorized workspace.
+   deterministic opaque SHA-256 reference scoped to the authorized workspace. This is a
+   data-minimizing pseudonymous reference, not a claim of irreversible anonymization.
 5. Evidence text is bounded and composed from the event title and persisted source-state
    fields. Post bodies, browser tokens, review credentials, provider keys, and
    `TEPP_API_KEY` are not forwarded.
 6. The client requires the exact versioned field set, exact event cardinality and content,
    deterministic chronological ordering, unchanged project/focus/cutoff identity, and
    evidence-derived participant counts. Unknown fields or changed evidence fail closed.
-7. `temporal_association_only` is the only accepted inference status. Buyer copy states
+7. Accepted findings are limited to the six published TEPP #159 finding codes. Duplicate
+   event or evidence references are rejected. Buyer UI copy is owned by LineageWeave and
+   keyed by those codes; provider-authored summary prose is retained for contract
+   validation but is not rendered as the interpretation.
+8. `temporal_association_only` is the only accepted inference status. Buyer copy states
    that the result does not identify a cause.
-8. TEPP availability is optional. `not_configured`, `unavailable`, and `invalid_evidence`
-   states leave the canonical timeline readable and tell the operator or Buyer what to do
-   next.
-9. Global Ask and post-scoped Ask are a subsequent stacked slice and must reuse this same
-   canonical projection and TEPP envelope.
+9. A transport outage is distinct from an invalid response. `not_configured`,
+   `unavailable`, and `invalid_evidence` states leave the canonical timeline readable and
+   tell the operator or Buyer what to do next.
+10. Global Ask and post-scoped Ask are a subsequent stacked slice and must reuse this same
+    canonical projection and TEPP envelope.
 
 ## Consequences
 
@@ -50,6 +55,7 @@ probability of causation, or an authoritative assignment record.
   duplicate stack.
 - A TEPP outage cannot remove or alter authorized LineageWeave evidence.
 - TEPP findings remain inspectable through exact source-post references.
+- An unrecognized finding vocabulary cannot introduce provider-authored Buyer claims.
 - The product does not answer “what caused the VOC?” as a causal claim. It answers which
   explicit prior records are temporally associated and provides evidence for human review.
 - A future distinct event-time or available-time source can replace the current fallback
@@ -65,6 +71,8 @@ probability of causation, or an authoritative assignment record.
   temporal contract and expand the privacy boundary.
 - **Render a separate TEPP timeline.** Duplicate timelines can disagree and obscure which
   system owns evidence selection.
+- **Render arbitrary TEPP summary prose.** The provider may validate time, but it does not
+  own Buyer-facing interpretation or an open-ended claim vocabulary.
 - **Describe preceding events as causes.** Event order alone does not identify causality.
 
 ## References
