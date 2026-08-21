@@ -2645,12 +2645,13 @@ async def read_post_summary(
                     and load_settings().orchestrator_api_key
                 ),
             )
-            job = await ensure_post_content_job(
-                conn,
-                post_id,
-                raw_body,
-                content_complete=content_complete,
-            )
+            async with conn.transaction():
+                job = await ensure_post_content_job(
+                    conn,
+                    post_id,
+                    raw_body,
+                    content_complete=content_complete,
+                )
             if job.should_publish:
                 queue_event = (job.post_id, job.source_body_sha256)
             summary_waiting_for_images = not await post_content_summary_is_ready(conn, post_id)
