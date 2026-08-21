@@ -56,6 +56,16 @@ different, complementary standard from ADR 0006/0007's PROV-O/ORG
 classes: SKOS here labels the *string identity* relationship between
 two names for the same thing, not the *type* of the named actor.
 
+Global Ask treats only search-corroborated rows as a multilingual label
+projection. A raw abbreviation, local-language name, or translated name that
+has actually appeared in a post context can therefore nominate the same posts
+as its canonical corporate-entity name. The projection joins the corroborated
+`resolved_organization_name` back to `corporate_entity`; pending and
+uncorroborated rows remain invisible. It does not generate translations or
+infer aliases at query time. This preserves the source-observed label and the
+SKOS preferred/alternative-label distinction while applying the document-level
+context required by multilingual entity linking (De Cao et al., 2022).
+
 Only a search-corroborated resolution is ever substituted in for
 downstream entity matching (`resolve_corporate_entity`) -- an
 LLM-proposed name with no corroboration, or with verification itself
@@ -111,6 +121,10 @@ canonical form too rather than reintroducing the raw abbreviation.
 - Context-sensitive caching follows entity-linking evidence that ambiguous
   mentions must be disambiguated with document-level semantic context, not a
   name-only lookup (Rama-Maneiro, Vidal, & Lama, 2020).
+- Search can cross language and abbreviation boundaries only after the existing
+  contextual-orchestrator plus SearXNG evidence path corroborates that label
+  pair. An unseen or unverified translation remains unavailable rather than
+  becoming a guessed catalog alias.
 
 ## Related
 
@@ -125,6 +139,8 @@ stage rather than duplicating it.
 Miles, A., & Bechhofer, S. (Eds.). (2009). *SKOS simple knowledge organization system reference*. World Wide Web Consortium. https://www.w3.org/TR/skos-reference/
 
 Bhattacharya, I., & Getoor, L. (2007). Collective entity resolution in relational data. *ACM Transactions on Knowledge Discovery from Data*, 1(1), Article 5. https://doi.org/10.1145/1217299.1217304
+
+De Cao, N., Wu, L., Popat, K., Artetxe, M., Goyal, N., Plekhanov, M., Zettlemoyer, L., & Riedel, S. (2022). Multilingual autoregressive entity linking. *Transactions of the Association for Computational Linguistics, 10*, 274–290. https://doi.org/10.1162/tacl_a_00460
 
 Rama-Maneiro, E., Vidal, J. C., & Lama, M. (2020). Collective disambiguation in entity linking based on topic coherence in semantic graphs. *Knowledge-Based Systems, 199*, Article 105967. https://doi.org/10.1016/j.knosys.2020.105967
 
