@@ -447,6 +447,21 @@ def test_chunk_by_source_body_splits_plain_lists_and_markdown_tables() -> None:
     ]
 
 
+def test_chunk_by_source_body_unescapes_pipes_in_markdown_table_cells() -> None:
+    """A literal pipe in a plain-text cell must not create a fake column."""
+    body = """| Field | Value\\|with\\|pipes |
+| --- | --- |
+| Owner | Buyer |
+"""
+
+    chunks = chunk_by_source_body(body)
+
+    assert [chunk.text for chunk in chunks] == [
+        "Field | Value|with|pipes",
+        "Owner | Buyer",
+    ]
+
+
 def test_chunk_by_source_body_keeps_a_single_pipe_row_as_plain_text() -> None:
     """One pipe-delimited row alone is not enough evidence of a table."""
     chunks = chunk_by_source_body("Only | one row")

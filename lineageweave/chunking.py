@@ -647,6 +647,9 @@ def _is_markdown_table_row(line: str) -> bool:
 
 def _render_markdown_table_row(line: str) -> str:
     """Keep Markdown table columns as searchable row evidence."""
+    cells = _markdown_cells(line)
+    if cells is not None:
+        return " | ".join(normalize_semantic_text(cell) for cell in cells)
     return " | ".join(
         normalize_semantic_text(cell.strip())
         for cell in line.strip().strip("|").split("|")
