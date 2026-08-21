@@ -472,6 +472,17 @@ with aggregate-only assertions:
   path and error boundary only; it does not prove complete summary or VISION
   readiness.
 
+Observed at `2026-08-21T20:59:49Z` across the same authenticated browser
+session at the three guide breakpoints:
+
+- At 1280, 800, and 390 CSS pixels, `scrollWidth` equaled `innerWidth` and
+  the header top offset was zero. The phone viewport exposed the drawer
+  trigger; its drawer opened and its in-drawer close control closed it.
+- The desktop and tablet viewports retained the desktop navigation treatment,
+  consistent with the guide's adaptive-web rule for tablets. This proves the
+  observed responsive shell behavior only; protected-corpus content parity
+  remains a separate partial gap.
+
 Observed at `2026-08-21T16:01:40Z` in a fresh local Compose browser session:
 
 - OIDC login, an authorized post click, popup close, and the phone-width menu
