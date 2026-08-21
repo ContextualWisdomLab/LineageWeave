@@ -1650,8 +1650,49 @@ def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, 
     assert public["voc_type_label"] == "Voice of Customer"
     assert public["visibility_label"] == "Public"
     assert {option["code"] for option in payload["voc_type_options"]} == {"voc"}
+    assert payload["source_detail_state_options"] == []
     assert {option["code"] for option in payload["visibility_options"]} == {"public", "private"}
     assert next(option for option in payload["visibility_options"] if option["code"] == "public")["label"] == "Public"
+
+
+def test_post_list_filters_and_lists_source_detail_state_codes(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                update source_post
+                   set source_detail_state_code = case post_title
+                       when 'Public post' then 'W'
+                       when 'Own-corp private post' then 'D'
+                       when 'Late own-corp private post' then 'A'
+                       when 'Edited own-corp private post' then 'W'
+                       else source_detail_state_code
+                   end
+                 where post_title in (
+                    'Public post', 'Own-corp private post',
+                    'Late own-corp private post', 'Edited own-corp private post'
+                 )
+                """
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    listed = client.get("/api/posts", headers=headers)
+    assert listed.status_code == 200, listed.text
+    assert {
+        option["code"] for option in listed.json()["source_detail_state_options"]
+    } == {"A", "D", "W"}
+
+    filtered = client.get("/api/posts?source_detail_state=D", headers=headers)
+    assert filtered.status_code == 200, filtered.text
+    assert [post["post_title"] for post in filtered.json()["posts"]] == [
+        "Own-corp private post"
+    ]
 
 
 def test_post_list_supports_bounded_offset_pages(client, demo_analyst_token, seeded_db) -> None:

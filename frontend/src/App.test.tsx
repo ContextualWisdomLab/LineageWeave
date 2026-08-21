@@ -95,6 +95,8 @@ describe("App, authenticated", () => {
     meFailed?: boolean;
     postBody?: string;
     vocTypeOptions?: { code: string; label: string }[];
+    sourceDetailStateCode?: string;
+    sourceDetailStateOptions?: { code: string; label: string }[];
     manyCustomerHints?: number;
     customerEntityHierarchy?: boolean;
     customerScopeFacets?: boolean;
@@ -1076,6 +1078,7 @@ describe("App, authenticated", () => {
                       post_title: "Public post",
                       voc_type_code: "voc",
                       voc_type_label: "Voice of Customer",
+                      source_detail_state_code: options?.sourceDetailStateCode,
                       visibility_code: "public",
                       visibility_label: "Public",
                       created_at: "2026-01-01T00:00:00Z",
@@ -1090,6 +1093,7 @@ describe("App, authenticated", () => {
                       { code: "vop", label: "Voice of Partner" },
                     ]),
                   ],
+                  source_detail_state_options: options?.sourceDetailStateOptions ?? [],
                   visibility_options: [{ code: "public", label: "Public" }],
                 },
           ),
@@ -1105,6 +1109,7 @@ describe("App, authenticated", () => {
             post_body: options?.postBody ?? "The full body text.",
             voc_type_code: "voc",
             voc_type_label: "Voice of Customer",
+            source_detail_state_code: options?.sourceDetailStateCode,
             visibility_code: "public",
             visibility_label: "Public",
             project_evidence: [
@@ -2226,6 +2231,46 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(
         within(board).getByRole("checkbox", { name: "VOC — 고객의 소리 (Voice of Customer)" }),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("explains and filters source detail state codes", async () => {
+    const fetchMock = stubBackend({
+      sourceDetailStateCode: "D",
+      sourceDetailStateOptions: [
+        { code: "W", label: "W" },
+        { code: "D", label: "D" },
+        { code: "A", label: "A" },
+      ],
+    });
+    render(<App showLabPanels />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(
+      within(board).getByRole("group", { name: "Filter by source detail state" }),
+    ).toBeInTheDocument();
+    expect(
+      within(board).getByRole("checkbox", { name: "W — Writing in progress" }),
+    ).toBeInTheDocument();
+    expect(
+      within(board).getByRole("checkbox", { name: "D — Pending approval" }),
+    ).toBeInTheDocument();
+    expect(
+      within(board).getByRole("checkbox", { name: "A — Approved" }),
+    ).toBeInTheDocument();
+    expect(within(board).getByText("D", { selector: ".board-source-detail-state-code" })).toBeInTheDocument();
+    expect(within(board).getByText("Pending approval", { selector: ".board-source-detail-state-description" })).toBeInTheDocument();
+
+    await userEvent.click(within(board).getByRole("checkbox", { name: "D — Pending approval" }));
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes("source_detail_state=D"))).toBe(true),
+    );
+
+    setLocale("ko");
+    await waitFor(() =>
+      expect(
+        within(board).getByRole("checkbox", { name: "D — 결재 중 (Pending approval)" }),
       ).toBeInTheDocument(),
     );
   });

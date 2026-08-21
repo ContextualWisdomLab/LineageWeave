@@ -552,7 +552,7 @@ async def _lookup_post_labels(conn: asyncpg.Connection, rows: list[asyncpg.Recor
 
 async def _post_filter_options(
     conn: asyncpg.Connection, corporate_entity_ids: frozenset[str]
-) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+) -> tuple[list[dict[str, str]], list[dict[str, str]], list[dict[str, str]]]:
     """Return every authorized filter value, not only values on the current page."""
     visibility_sql = f"""
         select distinct post.visibility_code as code,
@@ -580,6 +580,16 @@ async def _post_filter_options(
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
     """
+    detail_state_sql = f"""
+        select distinct post.source_detail_state_code as code,
+               post.source_detail_state_code as label
+          from source_post post
+         where (post.visibility_code = 'public'
+            or post.corporate_entity_id::text = any($1::text[]))
+           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+           and nullif(btrim(post.source_detail_state_code), '') is not null
+         order by code
+    """
     # Safe SQL: both query strings are closed lookup statements; entity ids remain asyncpg parameters.
     visibility_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         visibility_sql, list(corporate_entity_ids)
@@ -588,8 +598,15 @@ async def _post_filter_options(
     type_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         type_sql, list(corporate_entity_ids)
     )
+    # Detail-state codes intentionally remain raw here; the UI owns the
+    # product-language explanation and preserves unknown source codes.
+    # Safe SQL: a closed lookup statement identical in shape to visibility_sql/type_sql above; entity ids remain asyncpg parameters.
+    detail_state_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        detail_state_sql, list(corporate_entity_ids)
+    )
     return (
         [{"code": row["code"], "label": row["label"]} for row in type_rows],
+        [{"code": row["code"], "label": row["label"]} for row in detail_state_rows],
         [{"code": row["code"], "label": row["label"]} for row in visibility_rows],
     )
 
@@ -1223,6 +1240,7 @@ async def list_posts(
     offset: int = Query(0, ge=0),
     search: str | None = Query(None, max_length=200),
     voc_type: list[str] | None = Query(None, max_length=80),
+    source_detail_state: list[str] | None = Query(None, max_length=80),
     visibility: str | None = Query(None, max_length=80),
     sort: Literal["newest", "oldest", "title"] = Query("newest"),
     account: CurrentAccount = Depends(get_current_account),
@@ -1232,7 +1250,7 @@ async def list_posts(
     _require_post_read(account)
     search_term = search.strip() if search and search.strip() else None
     async with pool.acquire() as conn:
-        voc_type_options, visibility_options = await _post_filter_options(
+        voc_type_options, source_detail_state_options, visibility_options = await _post_filter_options(
             conn, account.corporate_entity_ids
         )
         body_search_ids: list[str] = []
@@ -1278,7 +1296,7 @@ async def list_posts(
                        case
                            when $1::text is null then 0
                            when lower(coalesce(post.post_title, '')) like '%' || lower($1) || '%' then 0
-                           when post.post_id = any($5::uuid[]) then 1
+                           when post.post_id = any($6::uuid[]) then 1
                            else 2
                        end as search_priority,
                        count(*) over() as total_count
@@ -1342,7 +1360,7 @@ async def list_posts(
                             ) >= 0.45
                         )
                     )
-                    or post.post_id = any($5::uuid[])
+                    or post.post_id = any($6::uuid[])
                     or exists (
                         select 1 from post_project_mention project
                          where project.post_id = post.post_id
@@ -1452,19 +1470,20 @@ async def list_posts(
                     )
                )
                and ($3::text[] is null or post.voc_type_code = any($3::text[]))
-               and ($4::text is null or post.visibility_code = $4)
+               and ($4::text[] is null or post.source_detail_state_code = any($4::text[]))
+               and ($5::text is null or post.visibility_code = $5)
                  order by
                     search_priority asc,
                     case
-                        when $1::text is not null and post.post_id = any($5::uuid[])
-                        then array_position($5::uuid[], post.post_id)
+                        when $1::text is not null and post.post_id = any($6::uuid[])
+                        then array_position($6::uuid[], post.post_id)
                     end asc,
-                    case when $8::text = 'title' then lower(coalesce(post.post_title, '')) end asc,
-                    case when $8::text = 'oldest' then post.created_at end asc,
-                    case when $8::text in ('newest', 'title') then post.created_at end desc,
+                    case when $9::text = 'title' then lower(coalesce(post.post_title, '')) end asc,
+                    case when $9::text = 'oldest' then post.created_at end asc,
+                    case when $9::text in ('newest', 'title') then post.created_at end desc,
                     post.post_id desc
-                   offset $6
-                   limit $7
+                   offset $7
+                   limit $8
             )
             select page.*,
                    case
@@ -1511,16 +1530,19 @@ async def list_posts(
                 case when $1::text is not null then page.search_priority end asc,
                 case
                     when $1::text is not null and page.search_priority = 1
-                    then array_position($5::uuid[], page.post_id)
+                    then array_position($6::uuid[], page.post_id)
                 end asc,
-                case when $8::text = 'title' then lower(coalesce(page.post_title, '')) end asc,
-                case when $8::text = 'oldest' then page.created_at end asc,
-                case when $8::text in ('newest', 'title') then page.created_at end desc,
+                case when $9::text = 'title' then lower(coalesce(page.post_title, '')) end asc,
+                case when $9::text = 'oldest' then page.created_at end asc,
+                case when $9::text in ('newest', 'title') then page.created_at end desc,
                 page.post_id desc
             """,
             search_term,
             list(account.corporate_entity_ids),
             [code.strip() for code in voc_type if code.strip()] if voc_type else None,
+            [code.strip() for code in source_detail_state if code.strip()]
+            if source_detail_state
+            else None,
             visibility.strip() if visibility and visibility.strip() else None,
             body_search_ids,
             offset,
@@ -1536,6 +1558,7 @@ async def list_posts(
         "limit": limit,
         "offset": offset,
         "voc_type_options": voc_type_options,
+        "source_detail_state_options": source_detail_state_options,
         "visibility_options": visibility_options,
     }
 

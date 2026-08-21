@@ -1237,20 +1237,30 @@
   text-transform: none;
 }
 
-.board-voc-type-option {
-  min-height: 2rem;
+.board-voc-type-option,
+.board-choice-option {
+  min-height: var(--size-control-min);
   padding: 0.3rem 0.45rem;
   border: 1px solid transparent;
   border-radius: var(--radius-chip);
 }
 
-.board-voc-type-option:hover {
+.board-voc-type-option:hover,
+.board-choice-option:hover {
   background: var(--color-accent-background);
 }
 
-.board-voc-type-option:focus-within {
+.board-voc-type-option:focus-within,
+.board-choice-option:focus-within {
   border-color: var(--color-accent-border);
   box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.board-source-detail-state-help {
+  flex: 0 0 100%;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
 }
 
 .board-voc-type-filter input {

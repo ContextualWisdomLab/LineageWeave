@@ -39,6 +39,7 @@ export interface PostPage {
   limit: number;
   offset: number;
   voc_type_options?: PostFilterOption[];
+  source_detail_state_options?: PostFilterOption[];
   visibility_options?: PostFilterOption[];
 }
 
@@ -712,6 +713,7 @@ export function fetchPosts(
   offset?: number,
   search?: string,
   vocTypes?: string[],
+  sourceDetailStates?: string[],
   visibility?: string,
   sort?: PostSortOrder,
 ): Promise<PostPage> {
@@ -725,6 +727,9 @@ export function fetchPosts(
   }
   for (const vocType of vocTypes ?? []) {
     params.append("voc_type", vocType);
+  }
+  for (const sourceDetailState of sourceDetailStates ?? []) {
+    params.append("source_detail_state", sourceDetailState);
   }
   if (visibility) {
     params.set("visibility", visibility);

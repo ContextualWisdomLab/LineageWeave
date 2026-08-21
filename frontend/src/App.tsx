@@ -2510,7 +2510,14 @@ function PostDetailPopup({
                   {post.source_detail_state_code ? (
                     <>
                       <dt>{t("Source detail state")}</dt>
-                      <dd>{post.source_detail_state_code}</dd>
+                      {(() => {
+                        const presentation = presentSourceDetailState(post.source_detail_state_code);
+                        return (
+                          <dd aria-label={presentation.accessibleName}>
+                            <strong className="board-source-detail-state-code">{presentation.code}</strong> · {presentation.description}
+                          </dd>
+                        );
+                      })()}
                     </>
                   ) : null}
                   {post.source_draft_code ? (
@@ -3970,6 +3977,30 @@ function presentVocType(option: PostFilterOption): {
   };
 }
 
+const SOURCE_DETAIL_STATE_PRESENTATIONS: Record<string, string> = {
+  W: "Writing in progress",
+  D: "Pending approval",
+  A: "Approved",
+};
+
+function presentSourceDetailState(code: string): {
+  code: string;
+  description: string;
+  accessibleName: string;
+} {
+  const normalizedCode = code.trim().toUpperCase();
+  const englishLabel = SOURCE_DETAIL_STATE_PRESENTATIONS[normalizedCode] ?? "Unmapped source detail state";
+  const description = t(englishLabel);
+  return {
+    code: normalizedCode || code,
+    description,
+    accessibleName:
+      description === englishLabel
+        ? `${normalizedCode || code} — ${englishLabel}`
+        : `${normalizedCode || code} — ${description} (${englishLabel})`,
+  };
+}
+
 function PostList({
   accessToken,
   showLabPanels = false,
@@ -4018,6 +4049,8 @@ function PostList({
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [vocTypeFilterOptions, setVocTypeFilterOptions] = useState<PostFilterOption[]>([]);
+  const [sourceDetailStateFilter, setSourceDetailStateFilter] = useState<string[]>([]);
+  const [sourceDetailStateFilterOptions, setSourceDetailStateFilterOptions] = useState<PostFilterOption[]>([]);
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
@@ -4166,6 +4199,7 @@ function PostList({
         (page - 1) * POST_PAGE_SIZE,
         query,
         typeFilter.length > 0 ? typeFilter : undefined,
+        sourceDetailStateFilter.length > 0 ? sourceDetailStateFilter : undefined,
         visibilityFilter === "all" ? undefined : visibilityFilter,
         sort,
       );
@@ -4173,6 +4207,7 @@ function PostList({
       setPosts(response.posts);
       setTotalPosts(response.total_count);
       setVocTypeFilterOptions(response.voc_type_options ?? []);
+      setSourceDetailStateFilterOptions(response.source_detail_state_options ?? []);
       setVisibilityFilterOptions(response.visibility_options ?? []);
       setCurrentPage(page);
     } catch (err) {
@@ -4181,7 +4216,7 @@ function PostList({
     } finally {
       if (requestId === postsRequest.current) setLoadingPage(false);
     }
-  }, [accessToken, searchQuery, sortOrder, typeFilter, visibilityFilter]);
+  }, [accessToken, searchQuery, sortOrder, typeFilter, sourceDetailStateFilter, visibilityFilter]);
 
   useEffect(() => {
     void loadPostPage(1);
@@ -4250,11 +4285,27 @@ function PostList({
           code,
           label: loadedPosts.find((post) => post.voc_type_code === code)?.voc_type_label ?? code,
         }));
+  const sourceDetailStateOptions = sourceDetailStateFilterOptions.length
+    ? sourceDetailStateFilterOptions
+    : Array.from(
+        new Set(
+          loadedPosts
+            .map((post) => post.source_detail_state_code)
+            .filter((code): code is string => Boolean(code?.trim())),
+        ),
+      )
+        .sort()
+        .map((code) => ({ code, label: code }));
   const filteredPosts = loadedPosts
     .filter((post) => {
       const matchesType = typeFilter.length === 0 || typeFilter.includes(post.voc_type_code);
+      const matchesSourceDetailState =
+        sourceDetailStateFilter.length === 0 ||
+        (post.source_detail_state_code !== null &&
+          post.source_detail_state_code !== undefined &&
+          sourceDetailStateFilter.includes(post.source_detail_state_code));
       const matchesVisibility = visibilityFilter === "all" || post.visibility_code === visibilityFilter;
-      return matchesType && matchesVisibility;
+      return matchesType && matchesSourceDetailState && matchesVisibility;
     })
     .sort((left, right) => {
       if (sortOrder === "title") {
@@ -4263,7 +4314,12 @@ function PostList({
       const direction = sortOrder === "newest" ? -1 : 1;
       return direction * left.created_at.localeCompare(right.created_at);
     });
-  const hasBoardFilters = Boolean(searchInput.trim()) || Boolean(searchQuery) || typeFilter.length > 0 || visibilityFilter !== "all";
+  const hasBoardFilters =
+    Boolean(searchInput.trim()) ||
+    Boolean(searchQuery) ||
+    typeFilter.length > 0 ||
+    sourceDetailStateFilter.length > 0 ||
+    visibilityFilter !== "all";
   const totalPages = Math.max(1, Math.ceil(totalPosts / POST_PAGE_SIZE));
   const pageItems: Array<number | "ellipsis"> =
     totalPages <= 7
@@ -4313,6 +4369,7 @@ function PostList({
               setSearchInput("");
               setSearchQuery("");
               setTypeFilter([]);
+              setSourceDetailStateFilter([]);
               setVisibilityFilter("all");
               setSortOrder("newest");
             }}
@@ -4345,6 +4402,33 @@ function PostList({
                         aria-label={presentation.accessibleName}
                         onChange={(event) =>
                           setTypeFilter((current) =>
+                            event.target.checked
+                              ? [...current, option.code]
+                              : current.filter((code) => code !== option.code),
+                          )
+                        }
+                      />
+                      <span className="board-voc-type-code">{presentation.code}</span>
+                      <span className="board-voc-type-description">{presentation.description}</span>
+                    </label>
+                  );
+                })}
+              </fieldset>
+              <fieldset className="board-voc-type-filter board-source-detail-state-filter">
+                <legend>{t("Filter by source detail state")}</legend>
+                <p className="board-source-detail-state-help">
+                  {t("W = writing in progress · D = pending approval · A = approved")}
+                </p>
+                {sourceDetailStateOptions.map((option) => {
+                  const presentation = presentSourceDetailState(option.code);
+                  return (
+                    <label key={option.code} className="board-choice-option">
+                      <input
+                        type="checkbox"
+                        checked={sourceDetailStateFilter.includes(option.code)}
+                        aria-label={presentation.accessibleName}
+                        onChange={(event) =>
+                          setSourceDetailStateFilter((current) =>
                             event.target.checked
                               ? [...current, option.code]
                               : current.filter((code) => code !== option.code),
@@ -4403,7 +4487,11 @@ function PostList({
             </p>
           ) : (
             <ul className="post-list" aria-label={t("Board posts")}>
-              {filteredPosts.map((post) => (
+              {filteredPosts.map((post) => {
+                const sourceDetailState = post.source_detail_state_code
+                  ? presentSourceDetailState(post.source_detail_state_code)
+                  : null;
+                return (
                 <li key={post.post_id}>
                   <article className="post-card">
                     <button
@@ -4452,16 +4540,17 @@ function PostList({
                       <span className="post-card-badges">
                         <span className="post-badge">{t(post.voc_type_label ?? post.voc_type_code)}</span>
                         <span className="post-badge">{t(post.visibility_label ?? post.visibility_code)}</span>
-                        {post.source_detail_state_code ? (
-                          <span className="post-badge">
-                            {t("Source detail state")}: {post.source_detail_state_code}
+                        {sourceDetailState ? (
+                          <span className="post-badge" aria-label={`${t("Source detail state")}: ${sourceDetailState.accessibleName}`}>
+                            {t("Source detail state")}: <strong className="board-source-detail-state-code">{sourceDetailState.code}</strong> · <span className="board-source-detail-state-description">{sourceDetailState.description}</span>
                           </span>
                         ) : null}
                       </span>
                     </button>
                   </article>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
           {totalPages > 1 && (
