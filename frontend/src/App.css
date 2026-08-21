@@ -297,7 +297,7 @@
   background: var(--surface);
   color: var(--text-h);
   font: inherit;
-  font-size: 0.82rem;
+  font-size: max(16px, 0.82rem);
   cursor: pointer;
 }
 

@@ -140,12 +140,16 @@ code {
   background: var(--code-bg);
 }
 
-/* Base Form & Input Standards (§3.1.4) */
+/* Base Form & Input Standards (§3.1.4)
+   font-size floors at 16px regardless of the responsive body scale above:
+   a focused control under 16px makes iOS Safari zoom the whole viewport,
+   which has nothing to do with the body-text density this app is tuned
+   for elsewhere. */
 input,
 select,
 textarea {
   font-family: inherit;
-  font-size: inherit;
+  font-size: max(16px, 1em);
   box-sizing: border-box;
 }
 
