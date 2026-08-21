@@ -2323,6 +2323,17 @@ describe("App, authenticated", () => {
     );
   });
 
+  it("does not show an empty source detail state filter", async () => {
+    const fetchMock = stubBackend({ sourceDetailStateOptions: [] });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(
+      within(board).queryByRole("group", { name: "Filter by source detail state" }),
+    ).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalled();
+  });
+
   it("opens a post from a DAG node click", async () => {
     stubBackend();
     render(<App showLabPanels />);

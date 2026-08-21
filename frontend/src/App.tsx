@@ -4475,33 +4475,35 @@ function PostList({
                   );
                 })}
               </fieldset>
-              <fieldset className="board-voc-type-filter board-source-detail-state-filter">
-                <legend>{t("Filter by source detail state")}</legend>
-                <p className="board-source-detail-state-help">
-                  {t("W = writing in progress · D = pending approval · A = approved")}
-                </p>
-                {sourceDetailStateOptions.map((option) => {
-                  const presentation = presentSourceDetailState(option.code);
-                  return (
-                    <label key={option.code} className="board-choice-option">
-                      <input
-                        type="checkbox"
-                        checked={sourceDetailStateFilter.includes(option.code)}
-                        aria-label={presentation.accessibleName}
-                        onChange={(event) =>
-                          setSourceDetailStateFilter((current) =>
-                            event.target.checked
-                              ? [...current, option.code]
-                              : current.filter((code) => code !== option.code),
-                          )
-                        }
-                      />
-                      <span className="board-voc-type-code">{presentation.code}</span>
-                      <span className="board-voc-type-description">{presentation.description}</span>
-                    </label>
-                  );
-                })}
-              </fieldset>
+              {sourceDetailStateOptions.length > 0 ? (
+                <fieldset className="board-voc-type-filter board-source-detail-state-filter">
+                  <legend>{t("Filter by source detail state")}</legend>
+                  <p className="board-source-detail-state-help">
+                    {t("W = writing in progress · D = pending approval · A = approved")}
+                  </p>
+                  {sourceDetailStateOptions.map((option) => {
+                    const presentation = presentSourceDetailState(option.code);
+                    return (
+                      <label key={option.code} className="board-choice-option">
+                        <input
+                          type="checkbox"
+                          checked={sourceDetailStateFilter.includes(option.code)}
+                          aria-label={presentation.accessibleName}
+                          onChange={(event) =>
+                            setSourceDetailStateFilter((current) =>
+                              event.target.checked
+                                ? [...current, option.code]
+                                : current.filter((code) => code !== option.code),
+                            )
+                          }
+                        />
+                        <span className="board-voc-type-code">{presentation.code}</span>
+                        <span className="board-voc-type-description">{presentation.description}</span>
+                      </label>
+                    );
+                  })}
+                </fieldset>
+              ) : null}
               <label>
                 {t("Filter by visibility")}
                 <select
