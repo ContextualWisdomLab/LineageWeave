@@ -4,6 +4,9 @@ The reconstruction algorithm stays in :mod:`lineageweave.reconstruct`. This
 module carries both selected edges and the normalized active weight profile so
 a database writer can persist the exact evidence used for one reconstruction
 run without recomputing or guessing missing channels.
+run without recomputing or guessing missing channels. Seed scripts, the
+analysis-run worker, and the durable ``POST /api/lineage/rebuild`` job share
+this contract so they cannot drift from what the Event Lineage panel reads.
 """
 
 from __future__ import annotations

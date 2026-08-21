@@ -2,6 +2,7 @@ from pathlib import Path
 
 
 def test_shared_metric_migration_does_not_narrow_later_report_dimensions() -> None:
+    """The shared metric migration preserves later team and project dimensions."""
     sql = (
         Path(__file__).resolve().parents[1]
         / "migrations"
@@ -48,6 +49,7 @@ def test_migrate_sh_replays_context_scoped_name_cache_migration() -> None:
 
 
 def test_migrate_sh_replays_global_ask_context_migration() -> None:
+    """Existing volumes must receive the Global Ask context migration."""
     script = (
         Path(__file__).resolve().parents[1]
         / "docker"
@@ -56,3 +58,27 @@ def test_migrate_sh_replays_global_ask_context_migration() -> None:
     ).read_text(encoding="utf-8")
 
     assert "0052_*" in script
+
+
+def test_migrate_sh_replays_verified_organization_label_search_migration() -> None:
+    """Existing volumes must receive multilingual organization search indexes."""
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "migrate.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "0055_*" in script
+
+
+def test_migrate_sh_replays_lineage_rebuild_job_migration() -> None:
+    """Existing volumes must receive the durable lineage rebuild job."""
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "migrate.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "0056_*" in script

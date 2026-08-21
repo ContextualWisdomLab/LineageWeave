@@ -288,6 +288,27 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Next page": "다음 페이지",
     Page: "페이지",
     "Rebuild lineage": "계보 다시 만들기",
+    "Use the LLM channel": "LLM 채널 사용",
+    "Rebuild is queued. Event Lineage updates when it succeeds.":
+      "계보 다시 만들기가 대기 중입니다. 완료되면 이벤트 계보가 갱신됩니다.",
+    "Rebuild is using the LLM channel. Read Event Lineage after it succeeds.":
+      "LLM 채널로 계보를 다시 만들고 있습니다. 완료된 뒤 이벤트 계보를 읽으세요.",
+    "Rebuild is using the three-channel path. Read Event Lineage after it succeeds.":
+      "세 개 채널로 계보를 다시 만들고 있습니다. 완료된 뒤 이벤트 계보를 읽으세요.",
+    "Rebuild succeeded with the LLM channel. Open Event Lineage to read the inferred links.":
+      "LLM 채널로 계보를 다시 만들었습니다. 이벤트 계보를 열어 추론된 연결을 읽으세요.",
+    "Rebuild succeeded without the LLM channel. Open Event Lineage, or retry with a smaller corpus.":
+      "LLM 채널 없이 계보를 다시 만들었습니다. 이벤트 계보를 열거나 더 작은 말뭉치로 다시 시도하세요.",
+    "Rebuild succeeded on three channels. Open Event Lineage, then connect contextual-orchestrator to use the LLM channel.":
+      "세 개 채널로 계보를 다시 만들었습니다. 이벤트 계보를 연 다음, LLM 채널을 쓰려면 contextual-orchestrator를 연결하세요.",
+    "Rebuild succeeded on three channels after the LLM channel failed. Open Event Lineage, then retry when the orchestrator is healthy.":
+      "LLM 채널이 실패한 뒤 세 개 채널로 계보를 다시 만들었습니다. 이벤트 계보를 연 다음, 오케스트레이터가 정상이면 다시 시도하세요.",
+    "Rebuild succeeded. Open Event Lineage to read the inferred links.":
+      "계보를 다시 만들었습니다. 이벤트 계보를 열어 추론된 연결을 읽으세요.",
+    "Rebuild failed. Retry rebuild. No LLM score was invented.":
+      "계보 다시 만들기가 실패했습니다. 다시 시도하세요. LLM 점수는 만들지 않았습니다.",
+    "Rebuild was cancelled. Queue a new rebuild to update Event Lineage.":
+      "계보 다시 만들기가 취소되었습니다. 이벤트 계보를 갱신하려면 새로 대기열에 넣으세요.",
     "Extracting...": "도출 중...",
     "Extract Keymen": "Keyman 도출",
     Resolve: "해결",
@@ -657,6 +678,27 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Next page": "下一页",
     Page: "第",
     "Rebuild lineage": "重建谱系",
+    "Use the LLM channel": "使用 LLM 通道",
+    "Rebuild is queued. Event Lineage updates when it succeeds.":
+      "谱系重建已排队。完成后会更新事件谱系。",
+    "Rebuild is using the LLM channel. Read Event Lineage after it succeeds.":
+      "正在使用 LLM 通道重建谱系。完成后请阅读事件谱系。",
+    "Rebuild is using the three-channel path. Read Event Lineage after it succeeds.":
+      "正在使用三通道路径重建谱系。完成后请阅读事件谱系。",
+    "Rebuild succeeded with the LLM channel. Open Event Lineage to read the inferred links.":
+      "已使用 LLM 通道完成谱系重建。打开事件谱系阅读推断出的连接。",
+    "Rebuild succeeded without the LLM channel. Open Event Lineage, or retry with a smaller corpus.":
+      "未使用 LLM 通道完成谱系重建。打开事件谱系，或用更小的语料重试。",
+    "Rebuild succeeded on three channels. Open Event Lineage, then connect contextual-orchestrator to use the LLM channel.":
+      "已用三个通道完成谱系重建。打开事件谱系，然后连接 contextual-orchestrator 以使用 LLM 通道。",
+    "Rebuild succeeded on three channels after the LLM channel failed. Open Event Lineage, then retry when the orchestrator is healthy.":
+      "LLM 通道失败后已用三个通道完成谱系重建。打开事件谱系，并在编排器正常后重试。",
+    "Rebuild succeeded. Open Event Lineage to read the inferred links.":
+      "谱系重建已完成。打开事件谱系阅读推断出的连接。",
+    "Rebuild failed. Retry rebuild. No LLM score was invented.":
+      "谱系重建失败。请重试。没有编造 LLM 分数。",
+    "Rebuild was cancelled. Queue a new rebuild to update Event Lineage.":
+      "谱系重建已取消。请重新排队以更新事件谱系。",
     "Extracting...": "正在提取...",
     "Extract Keymen": "刷新关键联系人",
     Resolve: "解析",
@@ -1041,6 +1083,27 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Next page": "次のページ",
     Page: "ページ",
     "Rebuild lineage": "系譜を再構築",
+    "Use the LLM channel": "LLMチャネルを使う",
+    "Rebuild is queued. Event Lineage updates when it succeeds.":
+      "系譜の再構築は待機中です。完了するとイベント系譜が更新されます。",
+    "Rebuild is using the LLM channel. Read Event Lineage after it succeeds.":
+      "LLMチャネルで系譜を再構築しています。完了後にイベント系譜を読んでください。",
+    "Rebuild is using the three-channel path. Read Event Lineage after it succeeds.":
+      "3つのチャネルで系譜を再構築しています。完了後にイベント系譜を読んでください。",
+    "Rebuild succeeded with the LLM channel. Open Event Lineage to read the inferred links.":
+      "LLMチャネルで系譜を再構築しました。イベント系譜を開いて推論された接続を読んでください。",
+    "Rebuild succeeded without the LLM channel. Open Event Lineage, or retry with a smaller corpus.":
+      "LLMチャネルなしで系譜を再構築しました。イベント系譜を開くか、より小さいコーパスで再試行してください。",
+    "Rebuild succeeded on three channels. Open Event Lineage, then connect contextual-orchestrator to use the LLM channel.":
+      "3つのチャネルで系譜を再構築しました。イベント系譜を開き、LLMチャネルを使うにはcontextual-orchestratorを接続してください。",
+    "Rebuild succeeded on three channels after the LLM channel failed. Open Event Lineage, then retry when the orchestrator is healthy.":
+      "LLMチャネルの失敗後、3つのチャネルで系譜を再構築しました。イベント系譜を開き、オーケストレータが正常なら再試行してください。",
+    "Rebuild succeeded. Open Event Lineage to read the inferred links.":
+      "系譜を再構築しました。イベント系譜を開いて推論された接続を読んでください。",
+    "Rebuild failed. Retry rebuild. No LLM score was invented.":
+      "系譜の再構築に失敗しました。再試行してください。LLMスコアは作成していません。",
+    "Rebuild was cancelled. Queue a new rebuild to update Event Lineage.":
+      "系譜の再構築は取り消されました。イベント系譜を更新するには新たに待機させてください。",
     "Extracting...": "抽出中...",
     "Extract Keymen": "キーパーソンを更新",
     Resolve: "解決",
@@ -1410,6 +1473,27 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Next page": "Trang sau",
     Page: "Trang",
     "Rebuild lineage": "Xây dựng lại dòng sự kiện",
+    "Use the LLM channel": "Dùng kênh LLM",
+    "Rebuild is queued. Event Lineage updates when it succeeds.":
+      "Yêu cầu xây dựng lại dòng sự kiện đang chờ. Dòng sự kiện sẽ cập nhật khi hoàn tất.",
+    "Rebuild is using the LLM channel. Read Event Lineage after it succeeds.":
+      "Đang dùng kênh LLM để xây dựng lại. Hãy đọc Dòng sự kiện sau khi hoàn tất.",
+    "Rebuild is using the three-channel path. Read Event Lineage after it succeeds.":
+      "Đang dùng ba kênh để xây dựng lại. Hãy đọc Dòng sự kiện sau khi hoàn tất.",
+    "Rebuild succeeded with the LLM channel. Open Event Lineage to read the inferred links.":
+      "Đã xây dựng lại bằng kênh LLM. Mở Dòng sự kiện để đọc các liên kết suy ra.",
+    "Rebuild succeeded without the LLM channel. Open Event Lineage, or retry with a smaller corpus.":
+      "Đã xây dựng lại không dùng kênh LLM. Mở Dòng sự kiện, hoặc thử lại với ngữ liệu nhỏ hơn.",
+    "Rebuild succeeded on three channels. Open Event Lineage, then connect contextual-orchestrator to use the LLM channel.":
+      "Đã xây dựng lại bằng ba kênh. Mở Dòng sự kiện, rồi kết nối contextual-orchestrator để dùng kênh LLM.",
+    "Rebuild succeeded on three channels after the LLM channel failed. Open Event Lineage, then retry when the orchestrator is healthy.":
+      "Kênh LLM thất bại nên đã xây dựng lại bằng ba kênh. Mở Dòng sự kiện, rồi thử lại khi bộ điều phối khỏe.",
+    "Rebuild succeeded. Open Event Lineage to read the inferred links.":
+      "Đã xây dựng lại dòng sự kiện. Mở Dòng sự kiện để đọc các liên kết suy ra.",
+    "Rebuild failed. Retry rebuild. No LLM score was invented.":
+      "Xây dựng lại thất bại. Hãy thử lại. Không bịa điểm LLM.",
+    "Rebuild was cancelled. Queue a new rebuild to update Event Lineage.":
+      "Đã hủy xây dựng lại. Đưa yêu cầu mới vào hàng đợi để cập nhật Dòng sự kiện.",
     "Extracting...": "Đang trích xuất...",
     "Extract Keymen": "Làm mới người liên hệ chính",
     Resolve: "Xử lý",

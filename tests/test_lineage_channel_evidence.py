@@ -359,3 +359,4 @@ def test_channel_score_migration_is_normalized_bounded_versioned_and_reversible(
     assert "drop table if exists lineage_reconstruction_run_channel" in rollback
     assert "drop table if exists lineage_reconstruction_run" in rollback
     assert "0055_*" in docker_migrate
+    assert "0056_*" in docker_migrate
