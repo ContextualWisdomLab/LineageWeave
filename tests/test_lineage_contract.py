@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 import lineageweave.lineage_contract as contract
+from lineageweave.adjudication_client import NullAdjudicationClient
 from lineageweave.lineage_contract import (
     EmailEvidence,
     LineageAnalysisPolicy,
@@ -95,6 +96,39 @@ def test_request_rejects_unbound_hints_excess_records_and_policy_budget() -> Non
         request((evidence("policy-001"),), policy=LineageAnalysisPolicy(max_body_chars=8_001)).validate()
 
 
+def test_request_rejects_unbounded_nested_collections() -> None:
+    """Nested evidence collections cannot bypass the request work budget."""
+    with pytest.raises(ValueError, match="project_hints exceeds max_project_hints"):
+        request(
+            (evidence("hint-budget-001"),),
+            project_hints=(
+                LineageProjectHint("hint-budget-001", "project-001", "one"),
+                LineageProjectHint("hint-budget-001", "project-002", "two"),
+            ),
+            policy=LineageAnalysisPolicy(max_project_hints=1),
+        ).validate()
+
+    record = LineageEvidenceRecord(
+        **{
+            **evidence("email-budget-001").__dict__,
+            "email": EmailEvidence(references=("ref-001", "ref-002")),
+        }
+    )
+    with pytest.raises(ValueError, match="evidence.email.references exceeds the 1-item limit"):
+        request((record,), policy=LineageAnalysisPolicy(max_email_refs_per_record=1)).validate()
+
+
+def test_policy_rejects_nested_collection_limits_above_contract_ceiling() -> None:
+    """Policy fields cannot raise the nested collection ceilings at runtime."""
+    with pytest.raises(ValueError, match="max_project_hints must be between"):
+        request((evidence("hint-ceiling-001"),), policy=LineageAnalysisPolicy(max_project_hints=501)).validate()
+    with pytest.raises(ValueError, match="max_email_refs_per_record must be between"):
+        request(
+            (evidence("email-ceiling-001"),),
+            policy=LineageAnalysisPolicy(max_email_refs_per_record=65),
+        ).validate()
+
+
 def test_request_validates_email_collections_and_policy_lower_bound() -> None:
     """Participant, attachment, and lower-bound policy values remain valid inputs."""
     record = evidence("email-collections")
@@ -126,6 +160,31 @@ def test_analyze_lineage_excludes_late_evidence_and_exposes_unavailable_llm() ->
         edge.parent_evidence_ref != "late-001" and edge.child_evidence_ref != "late-001"
         for edge in result.edges
     )
+
+
+def test_analyze_lineage_reports_an_explicitly_unavailable_llm() -> None:
+    """An explicit unavailable client follows the same fail-closed path as no client."""
+    result = analyze_lineage(
+        request((evidence("explicit-null-llm-001"),)),
+        llm=NullAdjudicationClient(),
+    )
+
+    assert any(item.code == "llm_channel_unavailable" for item in result.limitations)
+
+
+def test_analyze_lineage_accepts_an_available_llm_without_candidates() -> None:
+    """An available client is not marked unavailable when no judgment is needed."""
+    class AvailableClient:
+        """Minimal available client for the one-record no-candidate path."""
+
+        available = True
+
+    result = analyze_lineage(
+        request((evidence("available-llm-001"),)),
+        llm=AvailableClient(),
+    )
+
+    assert not any(item.code == "llm_channel_unavailable" for item in result.limitations)
 
 
 def test_analyze_lineage_excludes_events_that_occur_after_the_cutoff() -> None:

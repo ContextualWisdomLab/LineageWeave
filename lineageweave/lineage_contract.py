@@ -19,6 +19,8 @@ from .reconstruct import reconstruct
 CONTRACT_VERSION = "lineage-analysis/v1"
 _MAX_REFERENCE_LENGTH = 200
 _MAX_TEXT_LENGTH = 8_000
+_MAX_PROJECT_HINTS = 500
+_MAX_EMAIL_REFS_PER_RECORD = 64
 
 
 def _required_text(value: str, field_name: str, *, maximum: int = _MAX_REFERENCE_LENGTH) -> str:
@@ -105,7 +107,7 @@ class LineageEvidenceRecord:
     body_text: str = ""
     email: EmailEvidence | None = None
 
-    def validate(self, *, max_body_chars: int) -> None:
+    def validate(self, *, max_body_chars: int, max_email_refs_per_record: int) -> None:
         """Validate identity, content bounds, and both independent clocks."""
         _required_text(self.evidence_ref, "evidence.evidence_ref")
         _required_text(self.group_key, "evidence.group_key")
@@ -127,6 +129,11 @@ class LineageEvidenceRecord:
                 if value is not None:
                     _required_text(value, f"evidence.email.{field_name}", maximum=_MAX_TEXT_LENGTH)
             for field_name in ("references", "participant_refs", "attachment_refs"):
+                if len(getattr(self.email, field_name)) > max_email_refs_per_record:
+                    raise ValueError(
+                        f"evidence.email.{field_name} exceeds the "
+                        f"{max_email_refs_per_record}-item limit"
+                    )
                 for value in getattr(self.email, field_name):
                     _required_text(value, f"evidence.email.{field_name}")
 
@@ -150,6 +157,8 @@ class LineageAnalysisPolicy:
 
     max_evidence_records: int = 500
     max_body_chars: int = 4_000
+    max_project_hints: int = 500
+    max_email_refs_per_record: int = _MAX_EMAIL_REFS_PER_RECORD
 
     def validate(self) -> None:
         """Reject unbounded or nonsensical request budgets."""
@@ -157,12 +166,21 @@ class LineageAnalysisPolicy:
             raise ValueError("max_evidence_records must be between 1 and 5000")
         if not 0 <= self.max_body_chars <= _MAX_TEXT_LENGTH:
             raise ValueError(f"max_body_chars must be between 0 and {_MAX_TEXT_LENGTH}")
+        if not 0 <= self.max_project_hints <= _MAX_PROJECT_HINTS:
+            raise ValueError(f"max_project_hints must be between 0 and {_MAX_PROJECT_HINTS}")
+        if not 0 <= self.max_email_refs_per_record <= _MAX_EMAIL_REFS_PER_RECORD:
+            raise ValueError(
+                "max_email_refs_per_record must be between "
+                f"0 and {_MAX_EMAIL_REFS_PER_RECORD}"
+            )
 
     def to_dict(self) -> dict[str, int]:
         """Return the policy values included in request identity."""
         return {
             "max_evidence_records": self.max_evidence_records,
             "max_body_chars": self.max_body_chars,
+            "max_project_hints": self.max_project_hints,
+            "max_email_refs_per_record": self.max_email_refs_per_record,
         }
 
 
@@ -185,9 +203,14 @@ class LineageAnalysisRequest:
         self.policy.validate()
         if len(self.evidence) > self.policy.max_evidence_records:
             raise ValueError("evidence exceeds max_evidence_records")
+        if len(self.project_hints) > self.policy.max_project_hints:
+            raise ValueError("project_hints exceeds max_project_hints")
         evidence_refs: set[str] = set()
         for record in self.evidence:
-            record.validate(max_body_chars=self.policy.max_body_chars)
+            record.validate(
+                max_body_chars=self.policy.max_body_chars,
+                max_email_refs_per_record=self.policy.max_email_refs_per_record,
+            )
             if record.evidence_ref in evidence_refs:
                 raise ValueError("evidence_ref values must be unique")
             evidence_refs.add(record.evidence_ref)

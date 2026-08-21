@@ -21,7 +21,7 @@ adapter can be added without changing reconstruction.
 
 - Requests carry an opaque caller-owned `evidence_ref`, an opaque
   `authorization_scope_ref`, separate occurred/available clocks, bounded text,
-  optional separate RFC/provider email evidence, and non-authoritative project
+  bounded email reference collections, and bounded non-authoritative project
   hints.
 - A request is valid only when evidence references are unique, clocks are
   timezone-aware, payload budgets are bounded, and hints point to submitted
