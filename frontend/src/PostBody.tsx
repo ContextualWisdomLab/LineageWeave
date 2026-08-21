@@ -4,14 +4,16 @@ import type { PostContentUnit, PostImageContent } from "./api";
 import type { ReactNode } from "react";
 
 function parsePipeDelimitedTable(text: string): string[][] | null {
-  const rows = text
+  const parsedRows = text
     .split(/\r?\n/)
     .map((row) => {
-      const cells = row.split("|").map((cell) => cell.trim());
+      const cells = row.split(/(?<!\\)\|/).map((cell) => cell.trim().replace(/\\\|/g, "|"));
       if (cells[0] === "") cells.shift();
       if (cells[cells.length - 1] === "") cells.pop();
       return cells;
-    })
+    });
+  if (!parsedRows.some((row) => row.every((cell) => /^:?-{3,}:?$/.test(cell)))) return null;
+  const rows = parsedRows
     .filter((row) => !row.every((cell) => /^:?-{3,}:?$/.test(cell)))
     .filter((row) => row.length > 1 && row.some(Boolean));
   if (rows.length < 2 || rows.some((row) => row.length !== rows[0].length)) return null;
