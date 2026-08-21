@@ -49,9 +49,6 @@ Thread-group run list visibility requires at least one ABAC-visible
   organization chip.
 - A later public post in a thread group no longer lists a January run
   that could not have known that post.
-- A 404 on that hidden row stays generic: do not name the thread or
-  the cutoff. After that 404, re-read the authorized home list so the
-  stale row does not stay clickable (ADR 0014).
 
 ## References
 

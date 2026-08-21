@@ -23,11 +23,7 @@ import redis
 
 from lineageweave.http_client import HttpClientError, get_json, post_form
 from lineageweave.knowledge_graph import knowledge_graph_edges_for_post
-from lineageweave.tepp_client import TeppClient
-from lineageweave.tepp_result import (
-    accepted_tepp_seed_envelope,
-    tepp_accepted_evidence_sha256,
-)
+from lineageweave.post_summary import POST_SUMMARY_CONTRACT_VERSION
 
 _POSTGRES_ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"
@@ -50,11 +46,72 @@ _OUTBOX_MIGRATION = (
 _REVISION_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0024_source_post_revision.sql"
 )
-_TEPP_RESULT_MIGRATION = (
-    Path(__file__).resolve().parents[2] / "migrations" / "0028_analysis_run_tepp_result.sql"
+_POST_CONTENT_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0026_post_content_artifacts.sql"
 )
-_TEPP_ACCEPTED_MIGRATION = (
-    Path(__file__).resolve().parents[2] / "migrations" / "0029_analysis_run_tepp_accepted.sql"
+_TEPP_RESULT_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0027_analysis_run_tepp_result.sql"
+)
+_INTERNAL_RELATION_EVIDENCE_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0028_internal_relation_evidence.sql"
+)
+_PROJECT_GROUPING_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0030_report_project_grouping.sql"
+)
+_SEMANTIC_PROJECT_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0031_semantic_project_mentions.sql"
+)
+_SEMANTIC_SEARCH_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0032_semantic_search_trigram.sql"
+)
+_SOURCE_STATE_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0033_source_state_provenance.sql"
+)
+_SOURCE_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0034_source_context_provenance.sql"
+)
+_NORMALIZED_BODY_SEARCH_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0036_normalized_body_search.sql"
+)
+_SOURCE_RECORD_IDENTITY_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0037_source_record_identity.sql"
+)
+_SOURCE_NAMED_HINTS_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0038_source_named_hints.sql"
+)
+_SOURCE_ORG_NAMED_HINTS_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0039_source_org_named_hints.sql"
+)
+_MEMBER_LOCALE_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0044_member_locale_preference.sql"
+)
+_IMAGE_REGION_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0045_post_content_image_regions.sql"
+)
+_POST_CONTENT_STRUCTURE_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0046_post_content_structure_evidence.sql"
+)
+_IMAGE_REGION_EMBEDDING_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0047_post_content_image_region_embeddings.sql"
+)
+_SUMMARY_FIVE_W1H_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0048_post_summary_five_w1h.sql"
+)
+_POST_CONTENT_QUEUE_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0050_post_content_ingestion_queue.sql"
+)
+_MAJOR_EVENT_ACTION_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0100_major_event_action.sql"
+)
+_PROJECT_BOUND_ACTION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0101_project_bound_major_event_action.sql"
+)
+_PROJECT_BOUND_EVENT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0102_project_bound_summary_event.sql"
 )
 _STATUS_WRITE_CLOCK_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0030_analysis_run_status_write_clock.sql"
@@ -147,8 +204,31 @@ def seeded_db(demo_analyst_token):
             cur.execute(_SNAPSHOT_MEMBER_MIGRATION.read_text())
             cur.execute(_OUTBOX_MIGRATION.read_text())
             cur.execute(_REVISION_MIGRATION.read_text())
+            cur.execute(_POST_CONTENT_MIGRATION.read_text())
             cur.execute(_TEPP_RESULT_MIGRATION.read_text())
-            cur.execute(_TEPP_ACCEPTED_MIGRATION.read_text())
+            cur.execute(_INTERNAL_RELATION_EVIDENCE_MIGRATION.read_text())
+            cur.execute(_PROJECT_GROUPING_MIGRATION.read_text())
+            cur.execute(_SEMANTIC_PROJECT_MIGRATION.read_text())
+            cur.execute(_SEMANTIC_SEARCH_MIGRATION.read_text())
+            cur.execute(_SOURCE_STATE_MIGRATION.read_text())
+            cur.execute(_SOURCE_CONTEXT_MIGRATION.read_text())
+            cur.execute(_NORMALIZED_BODY_SEARCH_MIGRATION.read_text())
+            cur.execute(_SOURCE_RECORD_IDENTITY_MIGRATION.read_text())
+            cur.execute(_SOURCE_NAMED_HINTS_MIGRATION.read_text())
+            cur.execute(_SOURCE_ORG_NAMED_HINTS_MIGRATION.read_text())
+            cur.execute(
+                (Path(__file__).resolve().parents[2] / "migrations" / "0040_post_summary_contract.sql")
+                .read_text()
+            )
+            cur.execute(_MEMBER_LOCALE_MIGRATION.read_text())
+            cur.execute(_IMAGE_REGION_MIGRATION.read_text())
+            cur.execute(_POST_CONTENT_STRUCTURE_MIGRATION.read_text())
+            cur.execute(_IMAGE_REGION_EMBEDDING_MIGRATION.read_text())
+            cur.execute(_SUMMARY_FIVE_W1H_MIGRATION.read_text())
+            cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
+            cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
+            cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
+            cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
             cur.execute(_STATUS_WRITE_CLOCK_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
@@ -201,12 +281,6 @@ def seeded_db(demo_analyst_token):
                 (own_group_id,),
             )
             own_corp_id = cur.fetchone()[0]
-            cur.execute(
-                "insert into corporate_entity (parent_entity_id, corporate_entity_code, entity_name, entity_level_code) "
-                "values (%s, 'TEST-PLANT', 'Test Plant', 'plant') returning corporate_entity_id",
-                (own_corp_id,),
-            )
-            own_plant_id = cur.fetchone()[0]
             cur.execute(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
                 "values ('OTHER-CORP', 'Other Corp', 'group') returning corporate_entity_id"
@@ -477,7 +551,6 @@ def seeded_db(demo_analyst_token):
             "public_post_id": public_post_id,
             "own_group_id": str(own_group_id),
             "own_corp_id": str(own_corp_id),
-            "own_plant_id": str(own_plant_id),
             "other_corp_id": str(other_corp_id),
             "own_private_post_id": own_private_post_id,
             "late_own_private_post_id": late_own_private_post_id,
@@ -577,9 +650,6 @@ def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert hidden.status_code == 404
-    assert "tepp_evidence_sha256" not in hidden.text
-    assert "accepted_run_id" not in hidden.text
-    assert "aggregate transport evidence" not in hidden.text
 
     unauthenticated = client.get("/api/analysis-runs")
     assert unauthenticated.status_code == 401
@@ -811,7 +881,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
                         '2026-02-15T00:00:00Z', '2026-02-15T00:05:00Z')
                 returning analysis_source_snapshot_id
                 """,
-                ("b" * 64,),
+                ("f" * 64,),
             )
             tepp_snapshot_id = cur.fetchone()[0]
             cur.execute(
@@ -826,7 +896,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
                         '2026-02-15T12:30:00Z')
                 returning analysis_run_id
                 """,
-                (tepp_snapshot_id, requester_id, "c" * 64, "d" * 40),
+                (tepp_snapshot_id, requester_id, "a" * 64, "b" * 40),
             )
             tepp_run_id = str(cur.fetchone()[0])
             cur.execute(
@@ -1061,110 +1131,6 @@ def test_start_analysis_run_recovers_the_a100_fork(
     assert "Pricing renegotiation: revised quote sent" in children
 
 
-def test_tepp_start_persists_published_accepted_evidence(
-    client, demo_analyst_token, seeded_db, monkeypatch
-) -> None:
-    """A published accepted ack is stored as transport evidence, never Succeeded."""
-    idempotency_key = "buyer-start-tepp-accepted"
-    monkeypatch.setattr(
-        "backend.app.main.configured_tepp_client",
-        lambda _url="": TeppClient(
-            transport=lambda _payload: accepted_tepp_seed_envelope(
-                idempotency_key=idempotency_key
-            )
-        ),
-    )
-    admin_conn = psycopg2.connect(seeded_db["dsn"])
-    admin_conn.autocommit = True
-    try:
-        with admin_conn.cursor() as cur:
-            cur.execute(
-                "select requested_by_account_id from analysis_run "
-                "where analysis_run_id = %s",
-                (seeded_db["visible_run_id"],),
-            )
-            requester_id = cur.fetchone()[0]
-            cur.execute(
-                """
-                insert into analysis_source_snapshot
-                    (snapshot_sha256, source_contract_version,
-                     maximum_available_time, captured_at)
-                values (%s, 'source-contract-v1',
-                        '2026-02-15T00:00:00Z', '2026-02-15T00:05:00Z')
-                returning analysis_source_snapshot_id
-                """,
-                ("8" * 64,),
-            )
-            snapshot_id = cur.fetchone()[0]
-            cur.execute(
-                """
-                insert into analysis_run
-                    (analysis_source_snapshot_id, run_kind_code, idempotency_key,
-                     requested_by_account_id, knowledge_cutoff,
-                     configuration_schema_version, configuration_sha256,
-                     code_revision_sha, requested_at)
-                values (%s, 'analysis_run_tepp', 'buyer-start-tepp-accepted',
-                        %s, '2026-02-15T00:00:00Z', 'tepp-run-v1', %s, %s,
-                        '2026-02-15T12:30:00Z')
-                returning analysis_run_id
-                """,
-                (snapshot_id, requester_id, "7" * 64, "6" * 40),
-            )
-            tepp_run_id = str(cur.fetchone()[0])
-            cur.execute(
-                """
-                insert into analysis_run_scope
-                    (analysis_run_id, scope_kind_code, corporate_entity_id)
-                values (%s, 'analysis_scope_corporate_entity', %s)
-                """,
-                (tepp_run_id, seeded_db["own_corp_id"]),
-            )
-            cur.execute(
-                """
-                insert into analysis_run_status_event
-                    (analysis_run_id, status_ordinal, status_code, occurred_at)
-                values (%s, 1, 'analysis_status_pending', '2026-02-15T12:31:00Z')
-                """,
-                (tepp_run_id,),
-            )
-    finally:
-        admin_conn.close()
-
-    measured = client.post(
-        f"/api/analysis-runs/{tepp_run_id}/start",
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    )
-    assert measured.status_code == 200, measured.text
-    body = measured.json()
-    assert body["status_label"] == "Failed"
-    assert body["failure_code"] == "tepp_completed_result_unsupported"
-    assert body["tepp_evidence_kind"] == "aggregate transport evidence"
-    assert body["tepp_run_state"] == "accepted"
-    assert body["tepp_accepted_run_id"] == "demo-tepp-accepted-opaque"
-    assert body["tepp_completed_artifact_available"] is False
-    expected = tepp_accepted_evidence_sha256(
-        contract_version=1,
-        accepted_run_id="demo-tepp-accepted-opaque",
-        run_state="accepted",
-        idempotency_key=idempotency_key,
-    )
-    assert body["tepp_evidence_sha256"] == expected
-    assert "tepp_affiliation_count" not in body
-    assert "theta" not in str(body).lower()
-
-    listed = client.get(
-        "/api/analysis-runs",
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    )
-    assert listed.status_code == 200
-    listed_run = next(
-        run for run in listed.json()["analysis_runs"] if run["analysis_run_id"] == tepp_run_id
-    )
-    assert listed_run["status_label"] == "Failed"
-    assert listed_run["tepp_evidence_sha256"] == expected
-    assert "tepp_affiliation_count" not in listed_run
-
-
 def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> None:
     response = client.get("/api/me", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200
@@ -1176,19 +1142,275 @@ def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> No
     )
 
 
+def test_customer_master_returns_authorized_catalog_contract(client, demo_analyst_token, seeded_db) -> None:
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "update source_post set source_customer_code = %s, source_author_code = %s, source_author_name = %s where post_id = %s",
+                ("TEST-CUSTOMER-001", "TEST-AUTHOR-001", "Test Author", seeded_db["public_post_id"]),
+            )
+            # SOURCE_POST_ELIGIBILITY_SQL treats a post with no source_*
+            # context as ineligible once any other post has real context
+            # (the demo-vs-real-data lifecycle rule). source_project_code
+            # isn't read by the customer/author hint queries, so setting
+            # it keeps this post eligible for relationship_network
+            # without adding a second source_customer_hints/
+            # source_author_hints row to the exact-list assertions below.
+            cur.execute(
+                "update source_post set source_project_code = %s where post_id = %s",
+                ("TEST-PROJECT-001", seeded_db["own_private_post_id"]),
+            )
+            cur.execute(
+                "insert into post_summary_result (post_id, korean_summary, summary_contract_version) "
+                "values (%s, %s, %s)",
+                (seeded_db["public_post_id"], "stored summary", POST_SUMMARY_CONTRACT_VERSION),
+            )
+            cur.execute(
+                "insert into post_summary_role "
+                "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name, cataloged_person_id) "
+                "values (%s, %s, %s, %s, %s, %s)",
+                (
+                    seeded_db["public_post_id"],
+                    "Ada West",
+                    "account lead",
+                    "prov_person",
+                    "Test Corp",
+                    seeded_db["our_person_id"],
+                ),
+            )
+            # A real counterparty can hold more than one role over its
+            # lifetime -- one post classifies "Northridge Grid" as a
+            # customer, a different visible post classifies the same
+            # name as a competitor. relationship_network must surface
+            # both, not just the most recent/frequent one.
+            cur.execute(
+                "insert into post_counterparty_entity "
+                "(post_id, counterparty_entity_name, relationship_type_code, verification_status_code) "
+                "values (%s, 'Northridge Grid', 'rel_voc', 'verify_pending'), "
+                "       (%s, 'Northridge Grid', 'rel_voco', 'verify_pending'), "
+                "       (%s, 'Solo Role Corp', 'rel_vos', 'verify_pending')",
+                (
+                    seeded_db["public_post_id"],
+                    seeded_db["own_private_post_id"],
+                    seeded_db["public_post_id"],
+                ),
+            )
+        admin_conn.commit()
+    finally:
+        admin_conn.close()
+    response = client.get(
+        "/api/customer-master",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert set(body) == {
+        "corporate_entities", "keymen", "source_customer_hints", "source_author_hints",
+        "relationship_network",
+    }
+    entity = next(item for item in body["corporate_entities"] if item["entity_name"] == "Test Corp")
+    assert {
+        "corporate_entity_id", "corporate_entity_code", "entity_name",
+        "entity_level_code", "entity_level_label", "parent_entity_id",
+    } <= set(entity)
+    # Live UI finding (2026-08-19): the corporate entity list rendered
+    # the raw entity_level_code ("company") instead of a human label --
+    # confirm this is a real common_lookup_value label, not the code echoed back.
+    assert entity["entity_level_code"] == "company"
+    assert entity["entity_level_label"] not in ("", "company")
+    assert isinstance(body["keymen"], list)
+    ada_west = next(item for item in body["keymen"] if item["person_name"] == "Ada West")
+    assert ada_west["person_side_code"] == "our_side"
+    # Live UI finding (2026-08-19): the Customer Master Keymen list falls
+    # back to person_side_label, not the raw code, whenever
+    # last_known_job_title is null -- confirm the label is actually a
+    # human label from common_lookup_value, not the bare code repeated.
+    assert ada_west["person_side_label"] not in ("", "our_side")
+
+    network = {row["counterparty_entity_name"]: row for row in body["relationship_network"]}
+    northridge = network["Northridge Grid"]
+    assert northridge["multi_role"] is True
+    assert {rel["relationship_type_code"] for rel in northridge["relationships"]} == {"rel_voc", "rel_voco"}
+    for rel in northridge["relationships"]:
+        assert rel["post_count"] == 1
+        assert rel["relationship_label"] not in ("", rel["relationship_type_code"])
+    solo = network["Solo Role Corp"]
+    assert solo["multi_role"] is False
+    assert [rel["relationship_type_code"] for rel in solo["relationships"]] == ["rel_vos"]
+    # Neither counterparty name matches a cataloged corporate_entity in
+    # this fixture -- resolution stays null rather than guessing.
+    assert northridge["corporate_entity_id"] is None
+    assert solo["corporate_entity_id"] is None
+    assert body["source_customer_hints"] == [
+        {
+            "customer_code": "TEST-CUSTOMER-001",
+            "customer_name": None,
+            "post_count": 1,
+            "related_posts": [{
+                "post_id": seeded_db["public_post_id"],
+                "post_title": "Public post",
+            }],
+            "resolution_status": "hint_only",
+            "hint_trust": "normal",
+            "provenance": "source_post.source_customer_code/source_post.source_customer_name",
+        }
+    ]
+    author_hint = body["source_author_hints"]
+    assert len(author_hint) == 1
+    assert author_hint[0]["author_code"] == "TEST-AUTHOR-001"
+    assert author_hint[0]["author_name"] == "Test Author"
+    assert author_hint[0]["author_account_id"]
+    assert author_hint[0]["account_display_name"] == "Test Analyst"
+    assert author_hint[0]["keyman_hints"] == [
+        {
+            "person_id": seeded_db["our_person_id"],
+            "person_name": "Ada West",
+            "person_side_code": "our_side",
+            "last_known_job_title": None,
+            "mention_count": 1,
+                "provenance": "post_person_mention.person_id|post_summary_role.cataloged_person_id/source_post.author_account_id",
+        }
+    ]
+    assert author_hint[0]["related_posts"] == [
+        {
+            "post_id": seeded_db["public_post_id"],
+            "post_title": "Public post",
+        }
+    ]
+    assert author_hint[0]["resolution_status"] == "our_side_context_only"
+    assert any(
+        affiliation["entity_name"] == "Test Corp"
+        for affiliation in author_hint[0]["account_affiliations"]
+    )
+    assert "account_affiliation.corporate_entity_id" in author_hint[0]["provenance"]
+
+
+def test_resolve_customer_hint_creates_and_links_a_corroborated_entity(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """A Customer Master hint (an opaque source_customer_code with no name)
+    must resolve to a real corporate_entity only once external search
+    corroborates the proposed name -- deterministic fake resolution/
+    verification clients (not a real LLM or Searxng call) so this is
+    CI-stable; the point under test is the resolve-then-persist wiring.
+    """
+    from lineageweave.relation_verification import STATUS_CORROBORATED, RelationVerificationResult
+
+    _grant_post_admin(seeded_db["dsn"])
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            # corporate_entity_id is NOT NULL: a bulk-imported real record
+            # defaults to whatever entity its author account is affiliated
+            # with, never to a null "unresolved" sentinel. own_private_post_id
+            # already sits at that exact default (its author's own
+            # account_affiliation row) -- the case this endpoint reclaims.
+            cur.execute(
+                "update source_post set source_customer_code = %s where post_id = %s",
+                ("HINT-CODE-001", seeded_db["own_private_post_id"]),
+            )
+
+        class _FakeResolutionClient:
+            available = True
+
+            def resolve(self, hint_code: str, context_text: str) -> str | None:
+                assert hint_code == "HINT-CODE-001"
+                return "Northridge Grid"
+
+        class _FakeVerificationClient:
+            available = True
+
+            def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:
+                assert organization_name == "Northridge Grid"
+                return RelationVerificationResult(
+                    status_code=STATUS_CORROBORATED, evidence_url="https://example.org/northridge"
+                )
+
+        monkeypatch.setattr(
+            "backend.app.main._customer_hint_resolution_client", lambda: _FakeResolutionClient()
+        )
+        monkeypatch.setattr(
+            "backend.app.main._relation_verification_client", lambda: _FakeVerificationClient()
+        )
+
+        response = client.post(
+            "/api/customer-master/resolve-hint",
+            json={"hint_code": "HINT-CODE-001"},
+            headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        )
+        assert response.status_code == 200, response.text
+        body = response.json()
+        assert body["entity_name"] == "Northridge Grid"
+        assert body["linked_post_count"] == 1
+
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select entity_name, corporate_entity_code from corporate_entity where corporate_entity_id = %s",
+                (body["corporate_entity_id"],),
+            )
+            entity_row = cur.fetchone()
+            assert entity_row == ("Northridge Grid", "HINT-HINT-CODE-001")
+            cur.execute(
+                "select corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            assert str(cur.fetchone()[0]) == body["corporate_entity_id"]
+    finally:
+        admin_conn.close()
+
+
+def test_resolve_customer_hint_requires_post_admin(client, demo_analyst_token, seeded_db) -> None:
+    response = client.post(
+        "/api/customer-master/resolve-hint",
+        json={"hint_code": "HINT-CODE-001"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
 def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, demo_analyst_token, seeded_db) -> None:
     response = client.get("/api/posts", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200
-    titles = {post["post_title"] for post in response.json()}
+    payload = response.json()
+    titles = {post["post_title"] for post in payload["posts"]}
     assert titles == {
         "Public post",
         "Own-corp private post",
         "Late own-corp private post",
         "Edited own-corp private post",
     }
-    public = next(post for post in response.json() if post["post_title"] == "Public post")
+    public = next(post for post in payload["posts"] if post["post_title"] == "Public post")
     assert public["voc_type_label"] == "Voice of Customer"
     assert public["visibility_label"] == "Public"
+    assert {option["code"] for option in payload["voc_type_options"]} == {"voc"}
+    assert {option["code"] for option in payload["visibility_options"]} == {"public", "private"}
+    assert next(option for option in payload["visibility_options"] if option["code"] == "public")["label"] == "Public"
+
+
+def test_post_list_supports_bounded_offset_pages(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        "/api/posts?limit=1&offset=1",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert response.status_code == 200, response.text
+    assert len(response.json()["posts"]) == 1
+    assert response.json()["total_count"] == 4
+
+    title_sorted = client.get(
+        "/api/posts?limit=1&offset=0&sort=title",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert title_sorted.status_code == 200, title_sorted.text
+    assert title_sorted.json()["posts"][0]["post_title"] == "Edited own-corp private post"
+
+    invalid_sort = client.get(
+        "/api/posts?sort=unsupported",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert invalid_sort.status_code == 422
 
 
 def test_post_detail_uses_lookup_labels_not_raw_codes(client, demo_analyst_token, seeded_db) -> None:
@@ -1202,6 +1424,61 @@ def test_post_detail_uses_lookup_labels_not_raw_codes(client, demo_analyst_token
     assert body["voc_type_label"] == "Voice of Customer"
     assert body["visibility_code"] == "public"
     assert body["visibility_label"] == "Public"
+
+
+def test_post_detail_exposes_explicit_and_semantic_project_evidence(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "update source_post set source_project_code = %s where post_id = %s",
+                ("SOURCE-PROJECT-001", seeded_db["public_post_id"]),
+            )
+            cur.execute(
+                """
+                insert into post_project_mention
+                    (post_id, project_key, project_name, evidence_text, confidence,
+                     ontology_iri, extraction_method)
+                values (%s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    seeded_db["public_post_id"],
+                    "semantic-project",
+                    "Semantic project",
+                    "project was described in the body",
+                    0.82,
+                    "https://contextualwisdomlab.github.io/lineageweave/ontology#Project",
+                    "contextual_orchestrator_semantic",
+                ),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+    response = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    evidence = response.json()["project_evidence"]
+    source = next(row for row in evidence if row["extraction_method"] == "source_field_hint")
+    semantic = next(row for row in evidence if row["extraction_method"] == "contextual_orchestrator_semantic")
+    assert source["resolution_status"] == "hint_only"
+    assert source["confidence"] is None
+    assert semantic["resolution_status"] == "semantic_candidate"
+    assert semantic["ontology_label"] == "Project"
+
+    listed = client.get(
+        "/api/posts?search=semantic-project",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert listed.status_code == 200, listed.text
+    listed_post = next(
+        post for post in listed.json()["posts"] if post["post_id"] == seeded_db["public_post_id"]
+    )
+    assert listed_post["project_evidence"][0]["project_name"] == "Semantic project"
+    assert listed_post["project_evidence"][0]["provenance"] == "post_project_mention.evidence_text"
 
 
 def test_post_detail_as_of_returns_the_cutoff_known_body(
@@ -1253,8 +1530,13 @@ def test_persisted_summary_is_returned_without_an_llm(client, demo_analyst_token
     try:
         with admin_conn.cursor() as cur:
             cur.execute(
-                "insert into post_summary_result (post_id, korean_summary) values (%s, %s)",
-                (seeded_db["public_post_id"], "저장된 한국어 요약입니다."),
+                "insert into post_summary_result "
+                "(post_id, korean_summary, summary_contract_version) values (%s, %s, %s)",
+                (
+                    seeded_db["public_post_id"],
+                    "저장된 한국어 요약입니다.",
+                    POST_SUMMARY_CONTRACT_VERSION,
+                ),
             )
             cur.execute(
                 "insert into post_summary_event (post_id, event_ordinal, event_text) "
@@ -1285,6 +1567,39 @@ def test_persisted_summary_is_returned_without_an_llm(client, demo_analyst_token
     assert role["actor_type_code"] == "prov_person"
     assert role["affiliated_organization_name"] == "Demo Corp"
     assert role["ontology_label"] == "Role actor (person)"
+
+
+def test_stale_summary_is_returned_labeled_when_orchestrator_is_unavailable(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A legacy saved summary preserves buyer continuity with an explicit label."""
+    os.environ.pop("ORCHESTRATOR_BASE_URL", None)
+    os.environ.pop("ORCHESTRATOR_API_KEY", None)
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into post_summary_result "
+                "(post_id, korean_summary, summary_contract_version) values (%s, %s, %s)",
+                (
+                    seeded_db["public_post_id"],
+                    "보관된 이전 계약 요약입니다.",
+                    POST_SUMMARY_CONTRACT_VERSION - 1,
+                ),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["summary_status"] == "stale"
+    assert body["summary_contract_version"] == POST_SUMMARY_CONTRACT_VERSION - 1
+    assert body["korean_summary"] == "보관된 이전 계약 요약입니다."
 
 
 def test_seed_demo_summary_surfaces_on_get_summary(client, demo_analyst_token, seeded_db) -> None:
@@ -1677,6 +1992,10 @@ def test_own_corp_post_keymen_are_readable(client, demo_analyst_token, seeded_db
         "Northridge Grid",
         "Northridge Holdings",
     }
+    context = response.json()["source_author_context"]
+    assert context["account_display_name"] == "Test Analyst"
+    assert context["resolution_status"] == "our_side_context_only"
+    assert any(affiliation["entity_name"] == "Test Corp" for affiliation in context["account_affiliations"])
 
 
 def test_other_corp_private_post_keymen_are_forbidden(client, demo_analyst_token, seeded_db) -> None:
@@ -1708,122 +2027,6 @@ def test_affiliate_tree_walks_ancestors_and_keeps_unresolved_orgs(client, demo_a
     unresolved = [node for node in trees if node["resolved"] is False]
     assert {node["entity_name"] for node in unresolved} == {"Northridge Grid", "Northridge Holdings"}
     assert all(person["person_name"] == "Priya Nair" for node in unresolved for person in node["people"])
-
-
-def test_customer_group_tree_walks_authorized_ancestors_and_descendants(
-    client, demo_analyst_token, seeded_db
-) -> None:
-    """Operators navigate Group → Company → Plant, not a flat corp list."""
-    response = client.get(
-        "/api/customer-group-tree",
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    )
-    assert response.status_code == 200, response.text
-    trees = response.json()["trees"]
-    assert [node["entity_name"] for node in trees] == ["Test Group"]
-    assert trees[0]["entity_id"] == seeded_db["own_group_id"]
-    assert trees[0]["entity_level_label"] == "Group"
-    children = trees[0]["children"]
-    assert [child["entity_name"] for child in children] == ["Test Corp"]
-    assert children[0]["entity_id"] == seeded_db["own_corp_id"]
-    assert children[0]["entity_level_label"] == "Company"
-    plants = children[0]["children"]
-    assert [plant["entity_name"] for plant in plants] == ["Test Plant"]
-    assert plants[0]["entity_id"] == seeded_db["own_plant_id"]
-    assert plants[0]["entity_level_label"] == "Plant"
-    assert "Other Corp" not in str(trees)
-
-
-def test_corroborate_abbreviations_requires_post_admin(
-    client, demo_analyst_token, seeded_db
-) -> None:
-    response = client.post(
-        f"/api/posts/{seeded_db['own_private_post_id']}/corroborate-abbreviations",
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    )
-    assert response.status_code == 403
-
-
-def test_corroborate_abbreviations_is_unavailable_without_searxng(
-    client, demo_analyst_token, seeded_db
-) -> None:
-    _grant_post_admin(seeded_db["dsn"])
-    response = client.post(
-        f"/api/posts/{seeded_db['own_private_post_id']}/corroborate-abbreviations",
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    )
-    assert response.status_code == 503
-    assert "SEARXNG_BASE_URL" in response.json()["detail"]
-
-
-def test_corroborate_abbreviations_binds_a_unique_tree_node(
-    client, demo_analyst_token, seeded_db, monkeypatch
-) -> None:
-    """Searxng must corroborate TC against Test Corp; a miss invents nothing."""
-    from lineageweave.relation_verification import STATUS_CORROBORATED, RelationVerificationResult
-
-    _grant_post_admin(seeded_db["dsn"])
-    admin_conn = psycopg2.connect(seeded_db["dsn"])
-    admin_conn.autocommit = True
-    try:
-        with admin_conn.cursor() as cur:
-            cur.execute(
-                "insert into person_affiliation (person_id, affiliated_organization_name) "
-                "values (%s, 'TC')",
-                (seeded_db["our_person_id"],),
-            )
-    finally:
-        admin_conn.close()
-
-    class _FakeVerificationClient:
-        available = True
-
-        def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:
-            if organization_name == "Test Corp" and relationship_label == "TC":
-                return RelationVerificationResult(
-                    STATUS_CORROBORATED, "https://example.test/test-corp-tc"
-                )
-            return RelationVerificationResult("verify_uncorroborated", None)
-
-    monkeypatch.setattr("backend.app.main._relation_verification_client", lambda: _FakeVerificationClient())
-    response = client.post(
-        f"/api/posts/{seeded_db['own_private_post_id']}/corroborate-abbreviations",
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    )
-    assert response.status_code == 200, response.text
-    matches = {row["raw_organization_name"]: row for row in response.json()["matches"]}
-    assert matches["TC"]["corporate_entity_id"] == seeded_db["own_corp_id"]
-    assert matches["TC"]["verification_status_code"] == "verify_corroborated"
-    assert "Test Corp" not in matches
-    for unresolved_name in ("Northridge Grid", "Northridge Holdings"):
-        if unresolved_name in matches:
-            assert matches[unresolved_name]["corporate_entity_id"] is None
-            assert matches[unresolved_name]["verification_status_code"] == "verify_uncorroborated"
-
-    cached = client.get(
-        f"/api/posts/{seeded_db['own_private_post_id']}/abbreviation-tree-matches",
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    )
-    assert cached.status_code == 200
-    cached_matches = {row["raw_organization_name"]: row for row in cached.json()["matches"]}
-    assert cached_matches["TC"]["corporate_entity_id"] == seeded_db["own_corp_id"]
-
-    tree = client.get(
-        "/api/customer-group-tree",
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    )
-    company = tree.json()["trees"][0]["children"][0]
-    assert [alias["raw_organization_name"] for alias in company["abbreviations"]] == ["TC"]
-
-
-def test_other_corp_private_abbreviation_cross_check_is_forbidden(
-    client, demo_analyst_token, seeded_db
-) -> None:
-    listed = client.get(
-        f"/api/posts/{seeded_db['other_private_post_id']}/abbreviation-tree-matches",
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
-    )
-    assert listed.status_code == 403
 
 
 def test_other_corp_private_affiliate_tree_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
@@ -1910,6 +2113,96 @@ def test_related_keymen_use_rwr_and_hide_invisible_posts(client, demo_analyst_to
     assert counterpart["person_side_label"] == "Counterparty"
     own_post = by_id[seeded_db["own_private_post_id"]]
     assert own_post["ontology_label"] == "Post"
+
+
+def test_related_keymen_includes_chronological_role_history(client, demo_analyst_token, seeded_db) -> None:
+    """Feature request (2026-08-19): clicking a Keyman should show which
+    company they were affiliated with and how their responsibility
+    changed over time, not just the RWR-related node list.
+    """
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with admin_conn.cursor() as cur:
+            # Two visible posts, given a known chronological order, each
+            # classifying a different role/organization for the same
+            # cataloged person -- simulating a real job change.
+            cur.execute(
+                "update source_post set created_at = %s where post_id = %s",
+                ("2026-01-01T00:00:00+00:00", seeded_db["own_private_post_id"]),
+            )
+            cur.execute(
+                "update source_post set created_at = %s where post_id = %s",
+                ("2026-06-01T00:00:00+00:00", seeded_db["public_post_id"]),
+            )
+            for post_id, summary in (
+                (seeded_db["own_private_post_id"], "early summary"),
+                (seeded_db["public_post_id"], "later summary"),
+            ):
+                cur.execute(
+                    "insert into post_summary_result (post_id, korean_summary, summary_contract_version) "
+                    "values (%s, %s, %s)",
+                    (post_id, summary, POST_SUMMARY_CONTRACT_VERSION),
+                )
+            cur.execute(
+                "insert into post_summary_role "
+                "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name, cataloged_person_id) "
+                "values (%s, %s, %s, %s, %s, %s)",
+                (
+                    seeded_db["own_private_post_id"],
+                    "Ada West",
+                    "junior account rep",
+                    "prov_person",
+                    "Northwind Labs",
+                    seeded_db["our_person_id"],
+                ),
+            )
+            cur.execute(
+                "insert into post_summary_role "
+                "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name, cataloged_person_id) "
+                "values (%s, %s, %s, %s, %s, %s)",
+                (
+                    seeded_db["public_post_id"],
+                    "Ada West",
+                    "account lead",
+                    "prov_person",
+                    "Test Corp",
+                    seeded_db["our_person_id"],
+                ),
+            )
+        admin_conn.commit()
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/keymen/{seeded_db['our_person_id']}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    history = body["role_history"]
+    assert [row["post_id"] for row in history] == [
+        seeded_db["own_private_post_id"],
+        seeded_db["public_post_id"],
+    ]
+    assert history[0]["responsibility"] == "junior account rep"
+    assert history[0]["affiliated_organization_name"] == "Northwind Labs"
+    assert history[1]["responsibility"] == "account lead"
+    assert history[1]["affiliated_organization_name"] == "Test Corp"
+    assert history[0]["created_at"] < history[1]["created_at"]
+
+
+def test_related_keymen_role_history_is_empty_without_any_role_classification(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """No post_summary_role rows for this person -- an empty history is
+    the correct, non-fabricated answer, not an error.
+    """
+    response = client.get(
+        f"/api/keymen/{seeded_db['our_person_id']}/related",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["role_history"] == []
 
 
 def test_related_corporate_entity_uses_rwr_and_hides_invisible_posts(
@@ -2009,8 +2302,120 @@ def test_extract_keymen_requires_post_admin(client, demo_analyst_token, seeded_d
     assert response.status_code == 403
 
 
+def test_extract_keymen_and_verify_relations_publish_activity_events(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Live gap (2026-08-19): extract-keymen and verify-relations are real,
+    consequential write actions (an LLM call, an external-search call) but
+    never published anything to the post's activity feed -- only ticket
+    mutations did. An operator reviewing a post's history had no way to
+    see that Keymen extraction or relation verification ever ran on it.
+    """
+    from lineageweave.keyman_extraction import OUR_SIDE, PersonMention
+    from lineageweave.relation_verification import STATUS_UNCORROBORATED, RelationVerificationResult
+
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FakeKeymanClient:
+        available = True
+
+        def extract(self, post_title: str, post_body: str) -> list[PersonMention]:
+            return [PersonMention(person_name="Kim Cheolsu", person_side_code=OUR_SIDE)]
+
+    class _FakeRelationshipClient:
+        available = True
+
+        def classify(self, post_title: str, post_body: str, organization_names: list[str]):
+            return []
+
+    class _FakeVerificationClient:
+        available = True
+
+        def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:
+            return RelationVerificationResult(status_code=STATUS_UNCORROBORATED, evidence_url=None)
+
+    monkeypatch.setattr("backend.app.main._keyman_extraction_client", lambda: _FakeKeymanClient())
+    monkeypatch.setattr("backend.app.main._entity_relationship_client", lambda: _FakeRelationshipClient())
+    monkeypatch.setattr("backend.app.main._relation_verification_client", lambda: _FakeVerificationClient())
+
+    post_id = seeded_db["own_private_post_id"]
+    extract_response = client.post(
+        f"/api/posts/{post_id}/extract-keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert extract_response.status_code == 200, extract_response.text
+
+    verify_response = client.post(
+        f"/api/posts/{post_id}/verify-relations",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert verify_response.status_code == 200, verify_response.text
+
+    activity_response = client.get(
+        f"/api/posts/{post_id}/activity",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    events = activity_response.json()["events"]
+    event_types = [event["event_type"] for event in events]
+    # XREVRANGE returns newest first: verify-relations ran second.
+    assert event_types == ["relations_verified", "keymen_extracted"]
+    assert "1 mention" in events[1]["summary"]
+
+
 _ORCHESTRATOR_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL")
 _ORCHESTRATOR_API_KEY = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY")
+
+
+def test_extract_keymen_never_classifies_an_org_named_only_by_our_side_mentions(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Live bug (2026-08-19): an organization affiliated ONLY with an
+    our_side person (our own factory, our own affiliate) got fed into the
+    counterparty-relationship classifier the same as any external org --
+    forced to pick from six codes that all assume an external
+    counterparty, it had no correct answer and landed on the closest
+    wrong one (observed live as "Partner"). Only a counterparty-side
+    mention's affiliated organizations may reach that classifier.
+    """
+    from lineageweave.keyman_extraction import COUNTERPARTY, OUR_SIDE, PersonMention
+
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FakeKeymanClient:
+        available = True
+
+        def extract(self, post_title: str, post_body: str) -> list[PersonMention]:
+            return [
+                PersonMention(
+                    person_name="Kim Cheolsu",
+                    person_side_code=OUR_SIDE,
+                    affiliated_organization_names=("Our Own Factory",),
+                ),
+                PersonMention(
+                    person_name="Lee Younghee",
+                    person_side_code=COUNTERPARTY,
+                    affiliated_organization_names=("Acme Corp",),
+                ),
+            ]
+
+    classified_names: list[str] = []
+
+    class _FakeRelationshipClient:
+        available = True
+
+        def classify(self, post_title: str, post_body: str, organization_names: list[str]):
+            classified_names.extend(organization_names)
+            return []
+
+    monkeypatch.setattr("backend.app.main._keyman_extraction_client", lambda: _FakeKeymanClient())
+    monkeypatch.setattr("backend.app.main._entity_relationship_client", lambda: _FakeRelationshipClient())
+
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/extract-keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    assert classified_names == ["Acme Corp"]
 
 
 def test_extract_keymen_does_not_merge_same_name_people_with_conflicting_titles(
@@ -2859,6 +3264,84 @@ def test_evaluation_is_empty_before_a_judge_run(client, demo_analyst_token, seed
     assert response.json()["responses"] == []
 
 
+def test_evaluate_publishes_an_activity_event(client, demo_analyst_token, seeded_db, monkeypatch) -> None:
+    """Live gap (2026-08-19): evaluate is a real, consequential write
+    action (an LLM-as-a-Judge call), same discipline as extract-keymen --
+    it must publish to the post's activity feed too, not only those two.
+    """
+    from backend.app.post_evaluation_ingestion import PersistedEvaluation
+
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FakeEvaluationClient:
+        available = True
+
+    async def _fake_ingest_post_evaluation(conn, client, post_id, post_title, post_body):
+        return [
+            PersistedEvaluation(
+                criterion_code="specificity",
+                criterion_label="Specificity",
+                response_category=2,
+                rubric_version="v1",
+            )
+        ]
+
+    monkeypatch.setattr("backend.app.main._post_evaluation_client", lambda: _FakeEvaluationClient())
+    monkeypatch.setattr("backend.app.main.ingest_post_evaluation", _fake_ingest_post_evaluation)
+
+    post_id = seeded_db["own_private_post_id"]
+    response = client.post(
+        f"/api/posts/{post_id}/evaluate",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+
+    activity_response = client.get(
+        f"/api/posts/{post_id}/activity",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    events = activity_response.json()["events"]
+    assert events[0]["event_type"] == "post_evaluated"
+    assert "1 rubric criterion response" in events[0]["summary"]
+
+
+def test_live_chat_answer_publishes_an_activity_event(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Live gap (2026-08-20): a live (non-cached) chat answer is a real,
+    consequential LLM call, same discipline as extract-keymen/evaluate --
+    it must publish to the post's activity feed too. A stored/seeded
+    answer (no live call made) must not.
+    """
+    from lineageweave.post_chat import ChatAnswer
+
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FakeChatClient:
+        available = True
+
+        def answer(self, question: str, sources) -> ChatAnswer:
+            return ChatAnswer(answer_text="a live answer", cited_post_ids=())
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _FakeChatClient())
+
+    post_id = seeded_db["own_private_post_id"]
+    response = client.post(
+        f"/api/posts/{post_id}/chat",
+        json={"question": "What happened here that no seed already answers?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+
+    activity_response = client.get(
+        f"/api/posts/{post_id}/activity",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    events = activity_response.json()["events"]
+    assert events[0]["event_type"] == "chat_answered"
+    assert "What happened here that no seed already answers?" in events[0]["summary"]
+
+
 def test_evaluate_is_unavailable_without_orchestrator(client, demo_analyst_token, seeded_db) -> None:
     os.environ.pop("ORCHESTRATOR_BASE_URL", None)
     os.environ.pop("ORCHESTRATOR_API_KEY", None)
@@ -3026,6 +3509,8 @@ def test_post_lineage_surfaces_indirect_link_via_shared_keyman(client, demo_anal
     assert body["direct"] == []
     indirect_ids = {post["post_id"] for post in body["indirect"]}
     assert indirect_ids == {seeded_db["public_post_id"]}
+    assert body["indirect"][0]["post_body_excerpt"]
+    assert "post_body_truncated" in body["indirect"][0]
 
 
 def test_other_corp_private_post_summary_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
@@ -3158,6 +3643,15 @@ def test_post_chat_cites_a_post_linked_only_via_a_shared_keyman(client, demo_ana
     assert post_b in body_json["cited_post_ids"]
     cited_by_id = {row["post_id"]: row["post_title"] for row in body_json["cited_posts"]}
     assert cited_by_id[post_b] == "Bid follow-up"
+    cited_evidence = next(row for row in body_json["cited_post_evidence"] if row["post_id"] == post_b)
+    assert any(
+        fact["kind"] == "semantic_keyman" and "Shared Keyman" in fact["text"]
+        for fact in cited_evidence["facts"]
+    )
+    assert all(
+        "ontology_iri" not in fact["text"] and "contextual_orchestrator" not in fact["text"]
+        for fact in cited_evidence["facts"]
+    )
 
 
 def test_rebuild_lineage_requires_post_admin(client, demo_analyst_token) -> None:
@@ -3532,6 +4026,48 @@ def test_calendar_hides_other_corp_private_commitments_and_sorts_by_due_date(
     assert commitments[0]["commitment_summary"] == "Send the revised quote"
     assert "visibility_code" not in commitments[0]
     assert "corporate_entity_id" not in commitments[0]
+
+
+def test_calendar_keeps_real_ticket_when_demo_code_is_shared(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A shared DEMO code must filter pure seed tickets row by row."""
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "update corporate_entity set corporate_entity_code = 'DEMO-SHARED' where corporate_entity_id = %s",
+                (seeded_db["own_corp_id"],),
+            )
+            cur.execute(
+                "update source_post set source_author_code = null, source_company_code = null, "
+                "source_process_unit_code = null, source_sales_pool_code = null, "
+                "source_customer_code = null, source_project_code = null where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            cur.execute(
+                "update source_post set source_author_code = 'REAL-AUTHOR', source_company_code = 'REAL-COMPANY' "
+                "where post_id = %s",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "insert into issue_ticket (post_id, ticket_status_code, ticket_title, due_date, commitment_summary) "
+                "values (%s, 'open', 'Synthetic commitment', '2026-01-01', 'seed')",
+                (seeded_db["own_private_post_id"],),
+            )
+            cur.execute(
+                "insert into issue_ticket (post_id, ticket_status_code, ticket_title, due_date, commitment_summary) "
+                "values (%s, 'open', 'Real commitment', '2026-02-01', 'source-backed')",
+                (seeded_db["public_post_id"],),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get("/api/calendar", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert response.status_code == 200
+    titles = [commitment["ticket_title"] for commitment in response.json()["commitments"]]
+    assert titles == ["Real commitment"]
 
 
 def test_calendar_excludes_closed_tickets_and_includes_manual_due_dates(
@@ -4409,3 +4945,35 @@ def test_shared_metric_ranks_two_process_units(client, demo_analyst_token, seede
         assert [item["rank"] for item in selected] == [1, 2, 3]
         assert all(item["information"] > 0.0 for item in selected)
         assert {item["item_code"] for item in selected} == set(CRITERION_CODES)
+
+
+def test_post_search_matches_source_record_key_and_one_character_typo(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """The board searches preserved source identity, not only the internal UUID."""
+    source_system = "synthetic-source"
+    source_key = "SYNTHETIC-SOURCE-REC-001"
+    conn = psycopg2.connect(seeded_db["dsn"])
+    conn.autocommit = True
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "update source_post set source_system_code = %s, source_record_key = %s where post_id = %s",
+                (source_system, source_key, seeded_db["own_private_post_id"]),
+            )
+    finally:
+        conn.close()
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    exact = client.get("/api/posts", params={"search": source_key}, headers=headers)
+    assert exact.status_code == 200, exact.text
+    exact_row = next(
+        post for post in exact.json()["posts"] if post["post_id"] == seeded_db["own_private_post_id"]
+    )
+    assert exact_row["source_system_code"] == source_system
+    assert exact_row["source_record_key"] == source_key
+
+    typo = source_key[:-1] + "2"
+    fuzzy = client.get("/api/posts", params={"search": typo}, headers=headers)
+    assert fuzzy.status_code == 200, fuzzy.text
+    assert any(post["post_id"] == seeded_db["own_private_post_id"] for post in fuzzy.json()["posts"])

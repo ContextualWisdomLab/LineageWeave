@@ -17,12 +17,14 @@ from lineageweave.period_report import (
 from lineageweave.post_evaluation import CRITERION_CODES, RUBRIC_VERSION
 
 from .knowledge_graph import labels_for_codes
+from .post_eligibility import source_context_present_sql
 
-GROUPING_KINDS = frozenset({"process_unit", "corporate_entity", "thread_group"})
+GROUPING_KINDS = frozenset({"process_unit", "corporate_entity", "thread_group", "team", "project"})
 SHARED_METRIC_KIND = "shared_metric"
 SHARED_METRIC_KEY = "all"
 _WEEK_PERIOD = re.compile(r"^(\d{4})-W(\d{2})$")
 _MONTH_PERIOD = re.compile(r"^(\d{4})-(\d{2})$")
+_SOURCE_CONTEXT_PRESENT_SQL = source_context_present_sql("p")
 
 
 def parse_period_code(period_code: str) -> tuple[str, int, int]:
@@ -48,8 +50,14 @@ def grouping_value(kind: str, row: asyncpg.Record) -> str | None:
         value = row["process_unit_id"]
     elif kind == "corporate_entity":
         value = row["corporate_entity_id"]
-    else:
+    elif kind == "thread_group":
         value = row["thread_group_key"]
+    elif kind == "team":
+        value = row["team_id"]
+    elif kind == "project":
+        value = row["secondary_grouping_key"]
+    else:
+        return None
     if value is None:
         return None
     text = str(value).strip()
@@ -59,6 +67,7 @@ def grouping_value(kind: str, row: asyncpg.Record) -> str | None:
 _EVAL_ROWS_WEEK = """
         select e.post_id, e.criterion_code, e.response_category,
                p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               p.secondary_grouping_key,
                p.visibility_code, p.post_title
         from post_evaluation_response e
         join source_post p on p.post_id = e.post_id
@@ -68,9 +77,84 @@ _EVAL_ROWS_WEEK = """
 _EVAL_ROWS_MONTH = """
         select e.post_id, e.criterion_code, e.response_category,
                p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               p.secondary_grouping_key,
                p.visibility_code, p.post_title
         from post_evaluation_response e
         join source_post p on p.post_id = e.post_id
+        where e.rubric_version = $1
+          and to_char(p.created_at at time zone 'UTC', 'YYYY-MM') = $2
+        """
+_EVAL_ROWS_TEAM_WEEK = """
+        select e.post_id, e.criterion_code, e.response_category,
+               p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               p.secondary_grouping_key,
+               p.visibility_code, p.post_title, team.team_id
+        from post_evaluation_response e
+        join source_post p on p.post_id = e.post_id
+        join post_team_mention mention on mention.post_id = p.post_id
+        join cataloged_team team on team.team_id = mention.team_id
+        where e.rubric_version = $1
+          and to_char(p.created_at at time zone 'UTC', 'IYYY-"W"IW') = $2
+        """
+_EVAL_ROWS_TEAM_MONTH = """
+        select e.post_id, e.criterion_code, e.response_category,
+               p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               p.secondary_grouping_key,
+               p.visibility_code, p.post_title, team.team_id
+        from post_evaluation_response e
+        join source_post p on p.post_id = e.post_id
+        join post_team_mention mention on mention.post_id = p.post_id
+        join cataloged_team team on team.team_id = mention.team_id
+        where e.rubric_version = $1
+          and to_char(p.created_at at time zone 'UTC', 'YYYY-MM') = $2
+        """
+_EVAL_ROWS_PROJECT_WEEK = """
+        select e.post_id, e.criterion_code, e.response_category,
+               p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               p.secondary_grouping_key,
+               p.visibility_code, p.post_title
+        from post_evaluation_response e
+        join source_post p on p.post_id = e.post_id
+        left join corporate_entity customer on customer.corporate_entity_id = p.corporate_entity_id
+        where e.rubric_version = $1
+          and to_char(p.created_at at time zone 'UTC', 'IYYY-"W"IW') = $2
+          and nullif(p.secondary_grouping_key, '') is not null
+          and replace(lower(coalesce(customer.entity_name, '')), ' ', '') not in
+              ('기타', '기타고객', '미등록', '미등록고객', 'unknown', 'unregistered', 'other')
+        union all
+        select e.post_id, e.criterion_code, e.response_category,
+               p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               mention.project_key as secondary_grouping_key,
+               p.visibility_code, p.post_title
+        from post_evaluation_response e
+        join source_post p on p.post_id = e.post_id
+        join post_project_mention mention on mention.post_id = p.post_id
+                                           and mention.confidence >= 0.7
+        where e.rubric_version = $1
+          and to_char(p.created_at at time zone 'UTC', 'IYYY-"W"IW') = $2
+        """
+_EVAL_ROWS_PROJECT_MONTH = """
+        select e.post_id, e.criterion_code, e.response_category,
+               p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               p.secondary_grouping_key,
+               p.visibility_code, p.post_title
+        from post_evaluation_response e
+        join source_post p on p.post_id = e.post_id
+        left join corporate_entity customer on customer.corporate_entity_id = p.corporate_entity_id
+        where e.rubric_version = $1
+          and to_char(p.created_at at time zone 'UTC', 'YYYY-MM') = $2
+          and nullif(p.secondary_grouping_key, '') is not null
+          and replace(lower(coalesce(customer.entity_name, '')), ' ', '') not in
+              ('기타', '기타고객', '미등록', '미등록고객', 'unknown', 'unregistered', 'other')
+        union all
+        select e.post_id, e.criterion_code, e.response_category,
+               p.process_unit_id, p.corporate_entity_id, p.thread_group_key,
+               mention.project_key as secondary_grouping_key,
+               p.visibility_code, p.post_title
+        from post_evaluation_response e
+        join source_post p on p.post_id = e.post_id
+        join post_project_mention mention on mention.post_id = p.post_id
+                                           and mention.confidence >= 0.7
         where e.rubric_version = $1
           and to_char(p.created_at at time zone 'UTC', 'YYYY-MM') = $2
         """
@@ -139,8 +223,16 @@ async def load_period_evaluation_rows(
 ) -> list[asyncpg.Record]:
     """Evaluation cells whose post falls in ``period_code``."""
     kind, _, _ = parse_period_code(period_code)
-    query = _EVAL_ROWS_WEEK if kind == "week" else _EVAL_ROWS_MONTH
-    return await conn.fetch(query, RUBRIC_VERSION, period_code)
+    if grouping_kind == "team":
+        query = _EVAL_ROWS_TEAM_WEEK if kind == "week" else _EVAL_ROWS_TEAM_MONTH
+    elif grouping_kind == "project":
+        query = _EVAL_ROWS_PROJECT_WEEK if kind == "week" else _EVAL_ROWS_PROJECT_MONTH
+    else:
+        query = _EVAL_ROWS_WEEK if kind == "week" else _EVAL_ROWS_MONTH
+    # Safe SQL: query is selected only from immutable module constants; period values are bound.
+    return await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        query, RUBRIC_VERSION, period_code
+    )
 
 
 async def load_shared_item_bank(
@@ -152,7 +244,8 @@ async def load_shared_item_bank(
     header_sql = (
         _SHARED_BANK_HEADER_WEEK if kind == "week" else _SHARED_BANK_HEADER_MONTH
     )
-    header = await conn.fetchrow(
+    # Safe SQL: header_sql is selected only from immutable module constants; keys are bound.
+    header = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         header_sql,
         SHARED_METRIC_KIND,
         SHARED_METRIC_KEY,
@@ -193,7 +286,8 @@ async def load_previous_group_mean(
 ) -> float | None:
     """Mean θ of the latest earlier period for this grouping key."""
     kind, _, _ = parse_period_code(period_code)
-    header = await conn.fetchrow(
+    # Safe SQL: the period query is selected only from immutable module constants; keys are bound.
+    header = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         _PREVIOUS_MEAN_WEEK if kind == "week" else _PREVIOUS_MEAN_MONTH,
         grouping_kind,
         grouping_key,
@@ -213,7 +307,8 @@ async def load_anchor_item_bank(
 ) -> tuple[ItemBank, float] | None:
     """Latest earlier period's item bank and mean θ, if one exists."""
     kind, _, _ = parse_period_code(period_code)
-    header = await conn.fetchrow(
+    # Safe SQL: the period query is selected only from immutable module constants; keys are bound.
+    header = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         _ANCHOR_HEADER_WEEK if kind == "week" else _ANCHOR_HEADER_MONTH,
         grouping_kind,
         grouping_key,
@@ -366,7 +461,11 @@ async def persist_period_report(
 def _groups_from_rows(
     kind: str, rows: list[asyncpg.Record]
 ) -> dict[str, tuple[list[str], list[tuple[str, str, int]]]]:
-    """Partition evaluation rows into FIPC groups for one grouping kind."""
+    """Partition evaluation rows into FIPC groups for one grouping kind.
+
+    Team rows come from ``post_team_mention``. A post may therefore occur in
+    more than one returned group without being duplicated inside one group.
+    """
     by_group: dict[str, list[asyncpg.Record]] = defaultdict(list)
     for row in rows:
         key = grouping_value(kind, row)
@@ -398,10 +497,10 @@ async def rebuild_period_reports(
     if grouping_kind not in GROUPING_KINDS:
         raise ValueError(f"unknown grouping_kind {grouping_kind!r}")
     parse_period_code(period_code)
-    rows = await load_period_evaluation_rows(conn, grouping_kind, period_code)
     item_bank = await load_shared_item_bank(conn, period_code)
     reports: list[PeriodReport] = []
-    for kind in ("process_unit", "corporate_entity", "thread_group"):
+    for kind in ("process_unit", "corporate_entity", "thread_group", "team", "project"):
+        rows = await load_period_evaluation_rows(conn, kind, period_code)
         groups = _groups_from_rows(kind, rows)
         if not groups:
             continue
@@ -448,10 +547,12 @@ async def fetch_period_reports(
         period_code,
         RUBRIC_VERSION,
     )
-    members = await conn.fetch(
-        """
+    # Safe SQL: the source-context expression is an immutable schema fragment; report keys are bound.
+    members = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
         select m.grouping_key, m.post_id, m.theta_eap, m.theta_sd, p.post_title,
                p.visibility_code, p.corporate_entity_id,
+               ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context,
                t.due_date as ticket_due_date, t.ticket_title, t.ticket_status_code
         from report_member_score m
         join source_post p on p.post_id = m.post_id
@@ -496,11 +597,13 @@ async def fetch_period_reports(
         period_code,
         RUBRIC_VERSION,
     )
-    leftover = await conn.fetch(
-        """
+    # Safe SQL: the source-context expression is an immutable schema fragment; report keys are bound.
+    leftover = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
         select lp.grouping_key, lp.pair_kind, lp.post_id, lp.criterion_code,
                lp.leftover_distance, lp.leftover_residual, p.post_title,
-               p.visibility_code, p.corporate_entity_id
+               p.visibility_code, p.corporate_entity_id,
+               ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_leftover_pair lp
         join source_post p on p.post_id = lp.post_id
         where lp.grouping_kind = $1 and lp.period_code = $2 and lp.rubric_version = $3
@@ -561,6 +664,7 @@ async def fetch_period_reports(
                         "theta_sd": float(row["theta_sd"]),
                         "visibility_code": row["visibility_code"],
                         "corporate_entity_id": str(row["corporate_entity_id"]),
+                        "has_real_source_context": bool(row["has_real_source_context"]),
                         "ticket_due_date": (
                             None
                             if row["ticket_due_date"] is None
@@ -596,6 +700,7 @@ async def fetch_period_reports(
                         "leftover_residual": float(row["leftover_residual"]),
                         "visibility_code": row["visibility_code"],
                         "corporate_entity_id": str(row["corporate_entity_id"]),
+                        "has_real_source_context": bool(row["has_real_source_context"]),
                     }
                     for row in leftover_by_group.get(header["grouping_key"], [])
                 ],
@@ -623,9 +728,11 @@ async def list_period_report_summaries(
         grouping_kind,
         RUBRIC_VERSION,
     )
-    members = await conn.fetch(
-        """
+    # Safe SQL: the source-context expression is an immutable schema fragment; report keys are bound.
+    members = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
         select m.grouping_key, m.period_code, p.visibility_code, p.corporate_entity_id
+               , ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_member_score m
         join source_post p on p.post_id = m.post_id
         where m.grouping_kind = $1 and m.rubric_version = $2
@@ -676,6 +783,7 @@ async def list_period_report_summaries(
                 {
                     "visibility_code": member["visibility_code"],
                     "corporate_entity_id": str(member["corporate_entity_id"]),
+                    "has_real_source_context": bool(member["has_real_source_context"]),
                 }
                 for member in members_by_key.get((row["grouping_key"], row["period_code"]), [])
             ],
@@ -685,7 +793,7 @@ async def list_period_report_summaries(
 
 
 async def resolve_grouping_label(conn: asyncpg.Connection, grouping_kind: str, grouping_key: str) -> str:
-    """Human-readable name for a grouping key (process unit / corp / thread)."""
+    """Human-readable name for a process unit, corp, thread, team, or project key."""
     if grouping_kind == "process_unit":
         row = await conn.fetchrow(
             "select process_unit_name from process_unit where process_unit_id::text = $1",
@@ -700,6 +808,21 @@ async def resolve_grouping_label(conn: asyncpg.Connection, grouping_kind: str, g
         )
         if row is not None:
             return str(row["entity_name"])
+    elif grouping_kind == "team":
+        row = await conn.fetchrow(
+            "select team_name from cataloged_team where team_id::text = $1",
+            grouping_key,
+        )
+        if row is not None:
+            return str(row["team_name"])
+    elif grouping_kind == "project":
+        row = await conn.fetchrow(
+            "select project_name from post_project_mention "
+            "where project_key = $1 order by confidence desc, project_name limit 1",
+            grouping_key,
+        )
+        if row is not None:
+            return str(row["project_name"])
     return grouping_key
 
 
@@ -707,7 +830,7 @@ async def fetch_period_comparison(
     conn: asyncpg.Connection,
     period_code: str,
 ) -> list[dict[str, Any]]:
-    """Every PU / corp / thread scored on the shared metric for one period."""
+    """Every PU / corp / thread / team / project scored on the shared metric."""
     parse_period_code(period_code)
     rows = await conn.fetch(
         """
@@ -721,9 +844,11 @@ async def fetch_period_comparison(
         RUBRIC_VERSION,
         list(GROUPING_KINDS),
     )
-    members = await conn.fetch(
-        """
+    # Safe SQL: the source-context expression is an immutable schema fragment; grouping filters are bound.
+    members = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
         select m.grouping_kind, m.grouping_key, p.visibility_code, p.corporate_entity_id
+               , ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_member_score m
         join source_post p on p.post_id = m.post_id
         where m.period_code = $1 and m.rubric_version = $2
@@ -751,6 +876,7 @@ async def fetch_period_comparison(
                     {
                         "visibility_code": member["visibility_code"],
                         "corporate_entity_id": str(member["corporate_entity_id"]),
+                        "has_real_source_context": bool(member["has_real_source_context"]),
                     }
                     for member in members_by_key.get((row["grouping_kind"], row["grouping_key"]), [])
                 ],
