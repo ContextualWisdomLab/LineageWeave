@@ -84,6 +84,18 @@ def neighborhood_error_http_status(error: OntologyNeighborhoodError) -> int:
     return 422
 
 
+def neighborhood_error_detail(error: OntologyNeighborhoodError) -> str:
+    """Return a stable detail that does not reveal focus-node existence.
+
+    Hidden, missing, and dangling focus nodes are intentionally indistinguishable
+    at the HTTP boundary. Next action: let the buyer choose another authorized
+    focus instead of probing catalog membership through response details.
+    """
+    if error.code in NOT_FOUND_NEIGHBORHOOD_CODES:
+        return "focus node is unavailable"
+    return str(error)
+
+
 def parse_allowed_property_query(values: Sequence[str] | None) -> list[str] | None:
     """Split repeated or comma-separated property filters into codes."""
     if values is None:

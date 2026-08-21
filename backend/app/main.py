@@ -168,6 +168,7 @@ from backend.app.knowledge_graph import (
 )
 from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
 from backend.app.ontology_neighborhood_ingestion import (
+    neighborhood_error_detail,
     neighborhood_error_http_status,
     neighborhood_to_payload,
     parse_allowed_property_query,
@@ -1988,7 +1989,7 @@ async def read_ontology_neighborhood(
             )
             payload = neighborhood_to_payload(neighborhood)
     except OntologyNeighborhoodError as exc:
-        raise HTTPException(neighborhood_error_http_status(exc), str(exc)) from exc
+        raise HTTPException(neighborhood_error_http_status(exc), neighborhood_error_detail(exc)) from None
     return payload
 
 

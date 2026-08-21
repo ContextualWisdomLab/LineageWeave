@@ -13,6 +13,7 @@ from backend.app.ontology_neighborhood_ingestion import (
     _load_node_metadata,
     _load_skos_facts,
     focus_catalog_exists,
+    neighborhood_error_detail,
     neighborhood_error_http_status,
     neighborhood_to_payload,
     parse_allowed_property_query,
@@ -103,6 +104,16 @@ def test_neighborhood_error_http_status_is_fail_closed() -> None:
     assert neighborhood_error_http_status(OntologyNeighborhoodError("invalid_focus_id", "x")) == 422
     assert neighborhood_error_http_status(OntologyNeighborhoodError("unbounded_request", "x")) == 422
     assert neighborhood_error_http_status(OntologyNeighborhoodError("stale_snapshot", "x")) == 422
+
+
+def test_neighborhood_error_detail_hides_focus_existence() -> None:
+    for code in ("focus_hidden", "focus_not_visible", "unknown_node_type", "dangling_endpoint"):
+        assert neighborhood_error_detail(OntologyNeighborhoodError(code, "catalog-secret")) == (
+            "focus node is unavailable"
+        )
+    assert neighborhood_error_detail(OntologyNeighborhoodError("invalid_focus_id", "malformed")) == (
+        "malformed"
+    )
 
 
 def test_focus_catalog_exists_rejects_unknown_and_non_uuid() -> None:
