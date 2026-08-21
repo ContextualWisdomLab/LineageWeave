@@ -4,8 +4,8 @@
   --text: var(--color-text);
   --text-h: var(--color-text-heading);
   --text-muted: var(--color-text);
-  --bg: var(--color-background);
-  --surface: var(--color-background);
+  --bg: #f5f7fb;
+  --surface: var(--color-palette-white);
   --surface-muted: var(--color-palette-gray-100);
   --border: var(--color-border);
   --code-bg: var(--color-code-background);
@@ -205,4 +205,18 @@ td.align-center {
 .format-currency {
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+/* Respect a reduced-motion preference: near-instant instead of fully
+   removed, so state changes (e.g. the skip link, the evidence-panel
+   slide-in) are still perceptible, just without the motion itself. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

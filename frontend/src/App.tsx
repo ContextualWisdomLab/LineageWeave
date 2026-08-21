@@ -3858,70 +3858,74 @@ function PostList({
               setSortOrder("newest");
             }}
           >
-            <label>
-              {t("Search semantic evidence")}
-              <input
-                ref={searchInputRef}
-                type="search"
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder={t("Search semantic evidence")}
-                aria-label={t("Search semantic evidence")}
-              />
-            </label>
-            <button type="submit">{t("Search")}</button>
+            <div className="board-search-row">
+              <label>
+                {t("Search semantic evidence")}
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={searchInput}
+                  onChange={(event) => setSearchInput(event.target.value)}
+                  placeholder={t("Search semantic evidence")}
+                  aria-label={t("Search semantic evidence")}
+                />
+              </label>
+              <button type="submit" className="btn-primary">{t("Search")}</button>
+            </div>
             <p className="board-search-help post-meta">{t("Search includes post text and semantic evidence.")}</p>
-            <fieldset className="board-voc-type-filter">
-              <legend>{t("Filter by VOC type")}</legend>
-              {vocTypeOptions.map((option) => (
-                <label key={option.code}>
-                  <input
-                    type="checkbox"
-                    checked={typeFilter.includes(option.code)}
-                    onChange={(event) =>
-                      setTypeFilter((current) =>
-                        event.target.checked
-                          ? [...current, option.code]
-                          : current.filter((code) => code !== option.code),
-                      )
-                    }
-                  />
-                  {t(option.label)}
-                </label>
-              ))}
-            </fieldset>
-            <label>
-              {t("Filter by visibility")}
-              <select
-                value={visibilityFilter}
-                onChange={(event) => setVisibilityFilter(event.target.value)}
-                aria-label={t("Filter by visibility")}
-              >
-                <option value="all">{t("All visibility")}</option>
-                {visibilityOptions.map((option) => (
-                  <option key={option.code} value={option.code}>
+            <div className="board-filter-row">
+              <fieldset className="board-voc-type-filter">
+                <legend>{t("Filter by VOC type")}</legend>
+                {vocTypeOptions.map((option) => (
+                  <label key={option.code}>
+                    <input
+                      type="checkbox"
+                      checked={typeFilter.includes(option.code)}
+                      onChange={(event) =>
+                        setTypeFilter((current) =>
+                          event.target.checked
+                            ? [...current, option.code]
+                            : current.filter((code) => code !== option.code),
+                        )
+                      }
+                    />
                     {t(option.label)}
-                  </option>
+                  </label>
                 ))}
-              </select>
-            </label>
-            <label>
-              {t("Sort posts")}
-              <select
-                value={sortOrder}
-                onChange={(event) => setSortOrder(event.target.value as BoardSortOrder)}
-                aria-label={t("Sort posts")}
-              >
-                <option value="newest">{t("Newest first")}</option>
-                <option value="oldest">{t("Oldest first")}</option>
-                <option value="title">{t("Title A-Z")}</option>
-              </select>
-            </label>
-            {hasBoardFilters && (
-              <button type="reset" className="board-reset">
-                {t("Reset filters")}
-              </button>
-            )}
+              </fieldset>
+              <label>
+                {t("Filter by visibility")}
+                <select
+                  value={visibilityFilter}
+                  onChange={(event) => setVisibilityFilter(event.target.value)}
+                  aria-label={t("Filter by visibility")}
+                >
+                  <option value="all">{t("All visibility")}</option>
+                  {visibilityOptions.map((option) => (
+                    <option key={option.code} value={option.code}>
+                      {t(option.label)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                {t("Sort posts")}
+                <select
+                  value={sortOrder}
+                  onChange={(event) => setSortOrder(event.target.value as BoardSortOrder)}
+                  aria-label={t("Sort posts")}
+                >
+                  <option value="newest">{t("Newest first")}</option>
+                  <option value="oldest">{t("Oldest first")}</option>
+                  <option value="title">{t("Title A-Z")}</option>
+                </select>
+              </label>
+              {hasBoardFilters && (
+                <button type="reset" className="board-reset btn-secondary">
+                  {t("Reset filters")}
+                </button>
+              )}
+            </div>
           </form>
           {posts.length === 0 ? (
             <p className="board-empty" role="status">
