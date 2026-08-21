@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: one-shot-tepp-project-history-recovery
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   recover:
