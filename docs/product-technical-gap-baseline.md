@@ -12,9 +12,10 @@ Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
 Current source/test exact head observed before this documentation update:
-`0e63ba0a2e23949630f8997cbe001b6e13b2d274`, the squash merge of PR #350.
-This documentation update will create the next exact head and therefore
-requires the protected checks to rerun.
+`8bed77e7e7b91b633bb92d3a82d0187c387206af`, the squash merge of PR #364
+(docs-only) on top of PR #350. The runtime source was last tested at
+`0e63ba0a2e23949630f8997cbe001b6e13b2d274`; this ADR/docs update creates the
+next exact head and therefore requires the protected checks to rerun.
 
 - **Implemented in source:** PostgreSQL-backed API boundaries, Keyverse/OIDC
   identity boundary, workspace navigation, post popup, ABAC/RBAC surfaces, Korean
@@ -39,9 +40,11 @@ requires the protected checks to rerun.
 - **Current PR gate:** PR #350 merged at
   `0e63ba0a2e23949630f8997cbe001b6e13b2d274` after its source head
   `819ef876270212305c89743e5443b3ce0b871e66` was reviewed and squashed into
-  `feat/lineage-dag-regression`. This docs-only follow-up requires its own
-  protected checks and independent approval; neither is claimed yet. The
-  prior PR #347 merged at `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`.
+  `feat/lineage-dag-regression`; PR #364 then merged the evidence-only
+  baseline at `8bed77e7e7b91b633bb92d3a82d0187c387206af`. This ADR/docs
+  follow-up requires its own protected checks and independent approval;
+  neither is claimed yet. The prior PR #347 merged at
+  `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`.
 
 ## 2. UI/UX Standard Guide v3.0 comparison
 
