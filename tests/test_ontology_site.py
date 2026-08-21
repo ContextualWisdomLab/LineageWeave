@@ -95,7 +95,7 @@ def test_render_term_uses_skos_preferred_label_without_rdfs_label() -> None:
 
     rendered = builder._render_term(graph, term, {term})
 
-    assert ">Human label</h3>" in rendered
+    assert "Human label</h3>" in rendered
     assert 'aria-label="Link to Human label"' in rendered
 
 
