@@ -19,6 +19,11 @@ retaining the original exception only as an in-process chained cause for
 operator logging. Provider response parsers use generic validation errors and
 never interpolate the raw response into an exception message.
 
+The browser API client is a second trust boundary: HTTP 5xx details are
+discarded, and transport failures become a stable status-0 client error
+before any UI handler can render them. Client-error details remain available
+only for actionable validation or authorization responses.
+
 Missing or malformed evidence remains unavailable; it is never converted into
 a fabricated negative result. Existing input-validation errors outside a
 provider boundary retain their client-actionable 422 detail.
@@ -27,6 +32,8 @@ provider boundary retain their client-actionable 422 detail.
 
 - API clients receive a safe retry/configuration action rather than provider
   internals.
+- Browser clients cannot turn an upstream 5xx detail or transport exception
+  into buyer-visible provider diagnostics.
 - Server-side debugging keeps exception chaining without exposing it to buyers.
 - Regression tests exercise unexpected exceptions, not only known transport
   subclasses, and assert that provider secrets do not appear in responses.
