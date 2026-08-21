@@ -68,12 +68,26 @@ _PROJECTION_FIELDS = frozenset(
 _FINDING_FIELDS = frozenset(
     {"finding_code", "summary", "related_event_ids", "evidence_post_ids"}
 )
+_ALLOWED_FINDING_CODES = frozenset(
+    {
+        "contract_award_before_focus",
+        "specification_change_before_focus",
+        "delivery_before_focus",
+        "handoff_before_focus",
+        "rebid_after_focus",
+        "specification_change_and_handoff_before_focus",
+    }
+)
 
 Transport = Callable[[str, dict[str, Any], dict[str, str], float], Any]
 
 
 class TeppProjectHistoryUnavailable(RuntimeError):
     """TEPP was absent or returned a response outside the public contract."""
+
+
+class TeppProjectHistoryInvalidResponse(TeppProjectHistoryUnavailable):
+    """TEPP returned a response that violated the validated evidence contract."""
 
 
 def _exact_object(value: Any, fields: frozenset[str], name: str) -> Mapping[str, Any]:
@@ -221,8 +235,13 @@ def _finding(
         or not set(evidence_ids).issubset(source_post_ids)
     ):
         raise TeppProjectHistoryUnavailable("finding cites evidence outside the bundle")
+    finding_code = _code(payload["finding_code"], "finding_code")
+    if finding_code not in _ALLOWED_FINDING_CODES:
+        raise TeppProjectHistoryUnavailable("finding code is not in the published vocabulary")
+    if len(related_ids) != len(set(related_ids)) or len(evidence_ids) != len(set(evidence_ids)):
+        raise TeppProjectHistoryUnavailable("finding references must be unique")
     return {
-        "finding_code": _code(payload["finding_code"], "finding_code"),
+        "finding_code": finding_code,
         "summary": _text(payload["summary"], "finding summary", 4096),
         "related_event_ids": related_ids,
         "evidence_post_ids": evidence_ids,
@@ -392,4 +411,9 @@ class TeppProjectHistoryClient:
             raise
         except (HttpClientError, OSError, TypeError, ValueError) as exc:
             raise TeppProjectHistoryUnavailable("TEPP project-history request failed") from exc
-        return validate_tepp_project_history_projection(response, request=payload)
+        try:
+            return validate_tepp_project_history_projection(response, request=payload)
+        except TeppProjectHistoryUnavailable as exc:
+            raise TeppProjectHistoryInvalidResponse(
+                "TEPP project-history response violated its contract"
+            ) from exc

@@ -10,6 +10,7 @@ from typing import Any
 from lineageweave.tepp_project_history import (
     PROJECT_HISTORY_CONTRACT_VERSION,
     TeppProjectHistoryClient,
+    TeppProjectHistoryInvalidResponse,
     TeppProjectHistoryUnavailable,
     parse_rfc3339_utc,
     validate_tepp_project_history_request,
@@ -187,6 +188,12 @@ def validate_project_history_with_tepp(
         }
     try:
         validated = TeppProjectHistoryClient(transport_url).project(request)
+    except TeppProjectHistoryInvalidResponse:
+        return {
+            "status": "invalid_evidence",
+            "project_history": None,
+            "next_action_code": "open_source_evidence",
+        }
     except TeppProjectHistoryUnavailable:
         return {
             "status": "unavailable",
