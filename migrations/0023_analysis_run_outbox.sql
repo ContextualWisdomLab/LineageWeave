@@ -155,17 +155,15 @@ begin
         end if;
         if to_regclass('public.analysis_run_lineage_edge') is not null then
             delete from analysis_run_lineage_edge;
-        end if;
-        if to_regclass('public.analysis_run_reconstruction') is not null then
             delete from analysis_run_reconstruction;
+        end if;
+        if to_regclass('public.analysis_source_snapshot_member') is not null then
+            delete from analysis_source_snapshot_member;
         end if;
         delete from analysis_run_status_event;
         delete from analysis_run_scope;
         delete from analysis_run;
         delete from analysis_source_count;
-        if to_regclass('public.analysis_source_snapshot_member') is not null then
-            delete from analysis_source_snapshot_member;
-        end if;
         delete from analysis_source_snapshot;
     exception
         when others then

@@ -1,4 +1,5 @@
 import { PostBody } from "../PostBody";
+import { t } from "../i18n";
 
 export type CutoffKnownBodyProps = {
   /** Title current at the run cutoff. */
@@ -28,11 +29,10 @@ export function CutoffKnownBody({
   cutoff,
 }: CutoffKnownBodyProps) {
   return (
-    <section className="cutoff-known-body" aria-label="Body this run knew">
-      <h3>Body this run knew</h3>
+    <section className="cutoff-known-body" aria-label={t("Body this run knew")}>
+      <h3>{t("Body this run knew")}</h3>
       <p className="post-meta">
-        {title} · written {clockDate(writtenAt)}, known at cutoff{" "}
-        {clockDate(cutoff)}. Compare this text with the live body below.
+        {title} · {t("written")} {clockDate(writtenAt)}, {t("known at cutoff")} {clockDate(cutoff)}. {t("Compare this text with the live body below.")}
       </p>
       <PostBody body={body} />
     </section>

@@ -27,7 +27,7 @@ from lineageweave.ontology import (
     load_ontology,
     ontology_annotations,
 )
-from rdflib.namespace import RDFS, SKOS
+from rdflib.namespace import OWL, RDF, RDFS, SKOS, XSD
 
 _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo_data.py"
 
@@ -38,7 +38,7 @@ _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo
 # prov_team), 0016 (ADR 0009: node_team/edge_mention_team/
 # edge_team_affiliation/edge_mention_organization).
 _ADDITIONAL_LOOKUP_MIGRATION_PATHS = (
-    Path(__file__).resolve().parents[1] / "migrations" / "0012_role_responsibility_agent_type.sql",
+    Path(__file__).resolve().parents[1] / "migrations" / "0060_role_responsibility_agent_type.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0014_role_responsibility_team_actor_type.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0016_cross_post_actor_identity.sql",
 )
@@ -118,7 +118,7 @@ def test_knowledge_graph_lookup_constants_are_declared_in_the_ontology() -> None
 
 
 def test_iri_for_lookup_code_resolves_a_real_term() -> None:
-    assert iri_for_lookup_code("edge_mention") == str(LW.mentions)
+    assert iri_for_lookup_code("edge_mention") == str(LW.mentionedIn)
     assert iri_for_lookup_code("rel_voc") == str(LW.hasVocRelationship)
 
 
@@ -142,12 +142,12 @@ def test_ontology_annotations_are_empty_for_an_undeclared_code() -> None:
     assert ontology_annotations("open") == {}
 
 
-def test_mentions_property_domain_and_range_match_the_schema() -> None:
-    """`mentions` goes Post -> Person, matching post_person_mention's
-    actual foreign keys -- not just any two classes."""
+def test_mentioned_in_property_matches_canonical_edge_direction() -> None:
+    """`mentionedIn` goes Person -> Post, matching stored KG triples."""
     graph = load_ontology()
-    assert (LW.mentions, RDFS.domain, LW.Post) in graph
-    assert (LW.mentions, RDFS.range, LW.Person) in graph
+    assert (LW.mentionedIn, RDFS.domain, LW.Person) in graph
+    assert (LW.mentionedIn, RDFS.range, LW.Post) in graph
+    assert (LW.mentions, OWL.inverseOf, LW.mentionedIn) in graph
 
 
 def test_prov_agent_type_terms_resolve_and_subclass_real_prov_o() -> None:
@@ -199,3 +199,15 @@ def test_actor_mentions_follow_stored_edge_direction() -> None:
     assert (LW.mentionsTeam, RDFS.range, LW.Post) in graph
     assert (LW.mentionsOrganization, RDFS.domain, LW.CorporateEntity) in graph
     assert (LW.mentionsOrganization, RDFS.range, LW.Post) in graph
+
+
+def test_semantic_project_terms_preserve_post_evidence_and_confidence() -> None:
+    """ADR 0036's project vocabulary must remain machine-checkable."""
+    graph = load_ontology()
+    assert (LW.Project, RDF.type, OWL.Class) in graph
+    assert (LW.ProjectMention, RDF.type, OWL.Class) in graph
+    assert (LW.mentionsProject, RDFS.domain, LW.Post) in graph
+    assert (LW.mentionsProject, RDFS.range, LW.Project) in graph
+    assert (LW.projectEvidence, RDFS.domain, LW.ProjectMention) in graph
+    assert (LW.projectEvidence, RDFS.range, XSD.string) in graph
+    assert (LW.semanticConfidence, RDFS.range, XSD.decimal) in graph

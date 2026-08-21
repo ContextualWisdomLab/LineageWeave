@@ -1,0 +1,48 @@
+# ADR 0082: Bounded Keyman backfill through the contextual-orchestrator boundary
+
+- Status: Accepted
+- Date: 2026-08-20
+
+## Context
+
+The buyer Customer Master can use source-author/account information as a hint,
+but a source-author code is not a person identity. Actual Keyman evidence must
+come from the existing Keyman extraction and persistence projection. Imported
+real data has many posts without a `post_person_mention` row, so relying only
+on the per-post operator button leaves the author-group view mostly empty.
+
+## Decision
+
+Provide `scripts/backfill_post_keymen.py` as an operator-only, bounded runner.
+It will:
+
+- select eligible, non-deleted, non-draft posts that have no existing
+  `post_person_mention`, or one explicit `--post-id`;
+- normalize HTML, OOXML-derived text, embedded images, and image regions with
+  the existing VISION normalization path before extraction;
+- pass source author, account, PU, sales-pool, customer, company, and project
+  context through the existing semantic-hints loader as priors, never facts;
+- call `ContextualOrchestratorKeymanExtractionClient` and the existing
+  `ingest_post_keymen` write path, including catalog identity and graph
+  reconciliation;
+- carry `build_post_llm_metadata` and `use_llm_metadata` across all LLM/VISION
+  calls for one post, yielding the same deterministic post session id;
+- default to one post and require explicit `--all --limit N` for a batch.
+- enforce a per-post timeout, returning a typed failure count instead of
+  allowing a provider workflow to hold an operator process indefinitely.
+
+Gateway credentials are read from runtime-injected environment variables. The
+script never reads or copies `~/.env`, and it is not exposed as a buyer HTTP
+route. No analysis-run registry tables are modified.
+
+## Consequences
+
+- Keyman coverage can be increased incrementally with a bounded cost and
+  auditable operator output.
+- Empty extraction remains a real empty result; the script does not create a
+  placeholder person or retry indefinitely through an implicit attempt table.
+- Re-running a selected post is idempotent through `ingest_post_keymen`'s
+  replacement semantics, while the default selector may revisit an empty
+  extraction because no evidence row exists.
+- A provider workflow that exceeds the timeout is recorded as unavailable for
+  that attempt; it is not converted into an empty Keyman result.

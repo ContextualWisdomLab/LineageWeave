@@ -29,6 +29,7 @@ from lineageweave.corporate_hierarchy_resolution import (
     CorporateEntityCandidate,
     score_corporate_entity,
 )
+from lineageweave.http_client import HttpClientError
 from lineageweave.relation_verification import (
     STATUS_CORROBORATED,
     RelationVerificationClient,
@@ -37,19 +38,6 @@ from lineageweave.relation_verification import (
 _AUTO_CODE_PREFIX = "AUTO-"
 _MAX_HIERARCHY_DEPTH = 4
 _CREATION_LOCK_KEY = "lineageweave:corporate_entity_creation"
-
-# The post-lock re-check exists only to catch a genuine concurrent
-# duplicate CREATE of this exact name (see get_or_create_corporate_entity's
-# docstring) -- never a fuzzy resolution against an unrelated-but-similar
-# sibling or parent. score_corporate_entity's default 0.6 threshold is
-# deliberately loose for real mention resolution (an abbreviation, a
-# trailing legal suffix), but that same looseness is wrong here: a child
-# whose name contains its own just-created parent's name as a prefix
-# ("Acme" -> "Acme Gwangju Plant") scores ~0.7 against that parent alone,
-# so a loose re-check would silently bind the child TO the parent instead
-# of creating its own row. 1.0 (post-normalization exact match) is the
-# only threshold that means "this really is the same entity."
-_EXACT_MATCH_SIMILARITY = 1.0
 
 
 def _auto_entity_code(organization_name: str) -> str:
@@ -151,19 +139,33 @@ async def get_or_create_corporate_entity(
     if _depth >= _MAX_HIERARCHY_DEPTH or not inference_client.available:
         return None
 
-    proposal = await asyncio.to_thread(
-        inference_client.infer,
-        normalized_name,
-        context_text,
-    )
+    try:
+        proposal = await asyncio.to_thread(
+            inference_client.infer,
+            normalized_name,
+            context_text,
+        )
+    except (HttpClientError, OSError, TimeoutError):
+        # A provider timeout is an unavailable enrichment channel, not a
+        # reason to discard the source-grounded summary. Keep the actor
+        # unbound and let an explicit retry attempt catalog enrichment later.
+        return None
     if proposal is None or not verification_client.available:
         return None
 
-    placement_result = await asyncio.to_thread(
-        verification_client.verify,
-        normalized_name,
-        _hierarchy_verification_label(proposal),
-    )
+    try:
+        placement_result = await asyncio.to_thread(
+            verification_client.verify,
+            normalized_name,
+            _hierarchy_verification_label(proposal),
+        )
+    except (HttpClientError, OSError):
+        # A transient search-provider failure (DNS, timeout, non-2xx) here
+        # must not crash the caller (extract-keymen / post summary
+        # ingestion) -- treat it the same as "not corroborated this run":
+        # the entity simply isn't auto-created, same conservative outcome
+        # as a real search that found nothing.
+        return None
     if placement_result.status_code != STATUS_CORROBORATED:
         return None
 
@@ -173,11 +175,16 @@ async def get_or_create_corporate_entity(
         normalized_parent = proposal.parent_name.strip()
         if not normalized_parent or normalized_parent.casefold() in visited_names:
             return None
-        parent_result = await asyncio.to_thread(
-            verification_client.verify,
-            normalized_parent,
-            f"immediate parent of {normalized_name}",
-        )
+        try:
+            parent_result = await asyncio.to_thread(
+                verification_client.verify,
+                normalized_parent,
+                f"immediate parent of {normalized_name}",
+            )
+        except (HttpClientError, OSError):
+            # Same fail-closed-without-crashing behavior as the placement
+            # verification above.
+            return None
         if parent_result.status_code != STATUS_CORROBORATED:
             return None
         parent_entity_id = await get_or_create_corporate_entity(
@@ -198,15 +205,14 @@ async def get_or_create_corporate_entity(
             "select pg_advisory_xact_lock(hashtext($1))",
             _CREATION_LOCK_KEY,
         )
-        # Exact match only (see _EXACT_MATCH_SIMILARITY): this re-check's
-        # sole purpose is catching a genuine concurrent duplicate CREATE of
-        # THIS name, not re-resolving against a merely-similar candidate --
-        # the parent this call may have just created above is now in the
-        # reloaded pool and must not be mistaken for this (distinct) entity.
+        # ponytail: the lock recheck is exact-only; fuzzy matching here can
+        # mistake an inferred child for the parent just created above. The
+        # initial lookup remains fuzzy, while this check only prevents a
+        # concurrent insert of the same normalized name.
         fresh = score_corporate_entity(
             normalized_name,
             await _reload_candidates(conn),
-            min_similarity=_EXACT_MATCH_SIMILARITY,
+            min_similarity=1.0,
         )
         if fresh.kind == RESOLUTION_UNIQUE and fresh.catalog_id is not None:
             _remember_candidate(candidates, fresh.catalog_id, normalized_name)

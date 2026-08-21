@@ -2,9 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime, timezone
 
-from backend.app.lineage_ingestion import reconstruct_group_key, records_from_source_posts
+from backend.app.lineage_ingestion import (
+    reconstruct_group_key,
+    records_from_source_posts,
+    visible_lineage_graph,
+)
 from lineageweave.fixtures import sample_records
 from lineageweave.lineage_persistence import lineage_edge_specs
 
@@ -88,3 +93,60 @@ def test_seed_shaped_rows_rebuild_to_the_designed_a100_fork() -> None:
     assert ("rec-002", "rec-003") in pairs
     assert ("rec-002", "rec-004") in pairs
     assert "rec-006" not in {edge.child_id for edge in edges}
+
+
+def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
+    class FakeConnection:
+        posts = [
+            {
+                "post_id": "post-a",
+                "post_title": "A",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-a",
+                "created_at": datetime(2026, 1, 1),
+            },
+            {
+                "post_id": "post-b",
+                "post_title": "B",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-a",
+                "created_at": datetime(2026, 1, 2),
+            },
+            {
+                "post_id": "post-c",
+                "post_title": "C",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-c",
+                "created_at": datetime(2026, 1, 3),
+            },
+        ]
+        edges = [
+            {"parent_post_id": "post-a", "child_post_id": "post-b", "fused_score": 0.8}
+        ]
+
+        async def fetch(self, query: str):
+            return self.edges if "post_lineage_edge" in query else self.posts
+
+    connection = FakeConnection()
+    landing = asyncio.run(visible_lineage_graph(connection, lambda row: True, limit=1))
+    focused = asyncio.run(
+        visible_lineage_graph(connection, lambda row: True, limit=1, focus_post_id="post-a")
+    )
+    isolated = asyncio.run(
+        visible_lineage_graph(connection, lambda row: True, limit=1, focus_post_id="post-c")
+    )
+
+    assert [node["id"] for node in landing["nodes"]] == ["post-c"]
+    assert {node["id"] for node in focused["nodes"]} == {"post-a", "post-b"}
+    assert len(focused["edges"]) == 1
+    assert focused["truncated"] is False
+    assert isolated == {"nodes": [], "edges": [], "truncated": False}

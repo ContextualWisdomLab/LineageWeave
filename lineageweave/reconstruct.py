@@ -54,6 +54,7 @@ def active_weights(
 
 
 def _group_by(records: list[Record]) -> dict[str, list[Record]]:
+    """Implement the _group_by operation for this channel."""
     groups: dict[str, list[Record]] = defaultdict(list)
     for record in records:
         groups[record.group_key].append(record)
@@ -67,6 +68,7 @@ def _best_parent(
     weights: dict[str, float],
     min_score: float,
 ) -> tuple[Record, float, dict[str, float]] | None:
+    """Implement the _best_parent operation for this channel."""
     if not candidates:
         return None
     channel_results: dict[str, list[tuple[str, float]]] = {"temporal": [], "secondary_key": [], "text": []}
@@ -101,6 +103,7 @@ def _reconstruct_group(
     window: int,
     min_score: float,
 ) -> tuple[list[tw.Container], list[Edge]]:
+    """Implement the _reconstruct_group operation for this channel."""
     ordered = sorted(records, key=lambda r: r.occurred_at)
     messages: list[tw.Message] = []
     edges: list[Edge] = []

@@ -54,16 +54,14 @@ class TextLlm:
 
 
 class BrokenProviderLlm:
-    """Available client surfacing a malformed raw provider response."""
+    """Available client surfacing an unexpected raw provider failure."""
 
     available = True
 
     def judge(self, candidate_label: str, record_label: str) -> float:
-        """Raise the raw provider-response error used by the adapter."""
+        """Raise a raw provider message that must not cross the contract."""
 
-        from lineageweave.adjudication_client import AdjudicationClientError
-
-        raise AdjudicationClientError("malformed provider response")
+        raise RuntimeError("provider secret response body")
 
 
 class CountingLlm:
@@ -551,7 +549,7 @@ def test_non_numeric_llm_score_fails_closed_at_the_contract_boundary() -> None:
 
 
 def test_raw_provider_response_error_is_stable_at_the_contract_boundary() -> None:
-    """A raw provider parsing failure is not exposed as an arbitrary exception."""
+    """A raw provider failure is not exposed as an arbitrary exception."""
 
     request = _request(
         [
@@ -565,6 +563,7 @@ def test_raw_provider_response_error_is_stable_at_the_contract_boundary() -> Non
         analyze_external_lineage(request, llm=BrokenProviderLlm())
 
     assert captured.value.code == "llm_channel_error"
+    assert "provider secret" not in str(captured.value)
 
 
 def test_channel_evidence_rejects_invalid_score_before_serialization() -> None:

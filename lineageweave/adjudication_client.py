@@ -4,8 +4,8 @@
 The default :class:`NullAdjudicationClient` makes the channel unavailable.
 :class:`ContextualOrchestratorAdjudicationClient` calls a running
 `contextual-orchestrator <https://github.com/ContextualWisdomLab/contextual-orchestrator>`_
-instance's ``mode="verify"`` completion (one worker call plus one checked
-verifier judgment -- see that repo's ``TaskOrchestrator.route_and_verify``)
+instance's ``mode="auto"`` completion. The orchestrator selects the supported
+route and records its verification metadata
 so this channel gets a reasoned, checked verdict rather than a bare
 similarity score, without paying for a full multi-step workflow per pair.
 """
@@ -23,7 +23,9 @@ class AdjudicationClient(Protocol):
 
     available: bool
 
-    def judge(self, candidate_label: str, record_label: str) -> float: ...
+    def judge(self, candidate_label: str, record_label: str) -> float:
+        """Score the candidate and record labels for semantic adjudication."""
+        raise NotImplementedError
 
 
 class AdjudicationClientError(RuntimeError):
@@ -36,6 +38,7 @@ class NullAdjudicationClient:
     available = False
 
     def judge(self, candidate_label: str, record_label: str) -> float:  # pragma: no cover
+        """Score the candidate and record labels for semantic adjudication."""
         raise RuntimeError("NullAdjudicationClient has no llm channel; check .available first")
 
 
@@ -56,18 +59,16 @@ def parse_confidence_response(content: object) -> float:
 
 
 class ContextualOrchestratorAdjudicationClient:
-    """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="verify"``.
+    """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="auto"``.
 
-    Reasoning effort defaults to ``"high"`` -- an adjudication call is
-    exactly the low-volume, judgment-heavy case Fugu/Conductor/TRINITY-style
-    test-time-compute allocation argues for spending more effort on
-    (contextual-orchestrator's ``reasoning_effort`` request field).
+    Reasoning effort defaults to ``"auto"`` so contextual-orchestrator owns
+    test-time-compute allocation; callers may still request an explicit level.
     """
 
     available = True
 
     def __init__(
-        self, base_url: str, api_key: str, *, reasoning_effort: str = "high", timeout: float = 60.0
+        self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float = 180.0
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -75,6 +76,7 @@ class ContextualOrchestratorAdjudicationClient:
         self._timeout = timeout
 
     def judge(self, candidate_label: str, record_label: str) -> float:
+        """Score the candidate and record labels for semantic adjudication."""
         prompt = (
             "On a scale from 0.0 (definitely unrelated) to 1.0 (definitely the same "
             "thread, B directly follows from A), how confident are you that record B "
@@ -85,7 +87,7 @@ class ContextualOrchestratorAdjudicationClient:
             f"{self._base_url}/v1/chat/completions",
             {
                 "messages": [{"role": "user", "content": prompt}],
-                "mode": "verify",
+                "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},

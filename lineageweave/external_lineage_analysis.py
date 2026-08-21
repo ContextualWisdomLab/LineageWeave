@@ -14,7 +14,6 @@ from dataclasses import replace
 
 from .adjudication_client import (
     AdjudicationClient,
-    AdjudicationClientError,
     NullAdjudicationClient,
 )
 from .external_lineage_contract import (
@@ -56,7 +55,7 @@ class _BoundedAdjudicationClient:
 
         try:
             score = self._client.judge(candidate_label, record_label)
-        except AdjudicationClientError as exc:
+        except Exception as exc:
             raise LineageContractError(
                 "llm_channel_error",
                 "LLM channel returned an unusable provider response",

@@ -27,6 +27,7 @@ class TeppNotAvailable(RuntimeError):
 
 
 def _no_transport(request: dict[str, Any]) -> dict[str, Any]:
+    """Implement the _no_transport operation for this channel."""
     raise TeppNotAvailable(
         "TEPP has no live HTTP endpoint yet (Rust-crate-only as of this writing). "
         "Pass a transport= callable to TeppClient once one exists, or consume TEPP "
@@ -51,6 +52,7 @@ class AnalysisRunRequest:
     contract_version: int = 1
 
     def to_json(self) -> dict[str, Any]:
+        """Serialize the accepted TEPP result into its wire representation."""
         return {
             "contract_version": self.contract_version,
             "idempotency_key": self.idempotency_key,
@@ -77,10 +79,5 @@ class TeppClient:
         self._transport = transport
 
     def submit_analysis_run(self, request: AnalysisRunRequest) -> dict[str, Any]:
-        """Submit a request; returns TEPP's published ``AnalysisRunAccepted`` envelope.
-
-        That acknowledgement is not a completed measurement. LineageWeave
-        stores it as aggregate transport evidence and never stamps
-        Succeeded from ``run_state=accepted``.
-        """
+        """Submit a request; returns TEPP's ``AnalysisRunAccepted`` envelope."""
         return self._transport(request.to_json())
