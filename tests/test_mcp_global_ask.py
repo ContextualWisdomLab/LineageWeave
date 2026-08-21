@@ -97,6 +97,17 @@ def test_validate_global_question_rejects_blank_and_oversized() -> None:
         global_ask.validate_global_question("x" * 2001)
 
 
+def test_timeline_keeps_malformed_timestamps_after_valid_events() -> None:
+    sources = [
+        ChatSourceDocument("malformed", "Malformed", "evidence", occurred_at="not-a-timestamp"),
+        ChatSourceDocument("valid", "Valid", "evidence", occurred_at="2026-01-01T00:00:00+00:00"),
+    ]
+
+    timeline = global_ask._timeline(sources)
+
+    assert [event["post_id"] for event in timeline] == ["valid", "malformed"]
+
+
 @pytest.mark.asyncio
 async def test_global_ask_reuses_rbac_abac_bounds_sources_and_filters_citations(
     monkeypatch: pytest.MonkeyPatch,
