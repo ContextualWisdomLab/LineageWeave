@@ -49,8 +49,9 @@ from lineageweave.ontology_source_cursor import (
     verify_source_cursor,
 )
 
-FORBIDDEN_NEIGHBORHOOD_CODES = frozenset({"focus_hidden", "focus_not_visible"})
-NOT_FOUND_NEIGHBORHOOD_CODES = frozenset({"unknown_node_type", "dangling_endpoint"})
+NOT_FOUND_NEIGHBORHOOD_CODES = frozenset(
+    {"focus_hidden", "focus_not_visible", "unknown_node_type", "dangling_endpoint"}
+)
 
 
 class _LoadedFactWindow(list[NeighborhoodFact]):
@@ -78,8 +79,6 @@ def neighborhood_error_http_status(error: OntologyNeighborhoodError) -> int:
     Next action: return this status from GET /api/ontology/neighborhood
     and name the buyer's next visible focus rather than leaking counts.
     """
-    if error.code in FORBIDDEN_NEIGHBORHOOD_CODES:
-        return 403
     if error.code in NOT_FOUND_NEIGHBORHOOD_CODES:
         return 404
     return 422

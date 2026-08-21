@@ -126,7 +126,7 @@ export function OntologyExplorer({
       .catch((error: unknown) => {
         if (cancelled) return;
         if (!cursor) setLoaded(null);
-        if (error instanceof BackendError && error.status === 403) {
+        if (error instanceof BackendError && (error.status === 403 || error.status === 404)) {
           setStatus("denied");
           return;
         }
@@ -141,6 +141,7 @@ export function OntologyExplorer({
   const layout = useMemo(() => (visible ? layoutOntologyNeighborhood(visible) : null), [visible]);
   const selectedNode = visible?.nodes.find((node) => nodeKey(node) === selectedNodeKey) ?? null;
   const selectedEdge = visible?.edges.find((edge) => edge.edge_id === selectedEdgeId) ?? null;
+  const canLoadNextPage = Boolean(loaded?.next_cursor && accessToken && !provided);
 
   function resetFocus() {
     setFocusType(focusNodeType);
@@ -209,8 +210,8 @@ export function OntologyExplorer({
           aria-label={t("Search within this neighborhood")}
         />
       </label>
-      {statusMessage(status, loaded)}
-      {loaded?.next_cursor && accessToken && !provided && status !== "loading" ? (
+      {statusMessage(status, loaded, canLoadNextPage)}
+      {canLoadNextPage && status !== "loading" ? (
         <div className="ontology-explorer-actions">
           <button type="button" onClick={loadNextPage}>
             {ontologyExplorerText("Load next relation page")}
@@ -218,7 +219,7 @@ export function OntologyExplorer({
         </div>
       ) : null}
       <OntologyLegend />
-      {layout && visible && status !== "denied" && status !== "loading" ? (
+      {layout && visible && status !== "denied" && (status !== "loading" || Boolean(loaded)) ? (
         <>
           <div className="ontology-graph-desktop">
             <OntologyGraph
@@ -281,21 +282,25 @@ function statusFromPayload(
   knowledgeCutoff?: string,
 ): OntologyExplorerStatus {
   if (payload.limitation_code === "neighborhood_empty") return "empty";
-  if (payload.truncated || payload.limitation_code === "neighborhood_truncated") return "truncated";
   if (payload.edges.some((edge) => edge.truth_status_code === "truth_rejected")) return "rejected";
   if (knowledgeCutoff) return "stale";
+  if (payload.truncated || payload.limitation_code === "neighborhood_truncated") return "truncated";
   return "ready";
 }
 
-function statusMessage(status: OntologyExplorerStatus, payload: OntologyNeighborhoodPayload | null) {
-  if (status === "truncated" && payload?.next_cursor) {
+function statusMessage(
+  status: OntologyExplorerStatus,
+  payload: OntologyNeighborhoodPayload | null,
+  canLoadNextPage: boolean,
+) {
+  if (status === "truncated" && payload?.next_cursor && canLoadNextPage) {
     return (
       <p className="ontology-status ontology-status-truncated" role="status">
         {ontologyExplorerText("Neighborhood truncated. Load the next relation page or inspect one edge.")}
       </p>
     );
   }
-  if (status === "truncated" && payload && !payload.next_cursor) {
+  if (status === "truncated" && payload && !canLoadNextPage) {
     return (
       <p className="ontology-status ontology-status-truncated" role="status">
         {ontologyExplorerText(

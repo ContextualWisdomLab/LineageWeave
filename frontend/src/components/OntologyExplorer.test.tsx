@@ -138,9 +138,14 @@ function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): Ont
 describe("OntologyExplorer", () => {
   it("keeps loaded pages visible when a continuation page fails", async () => {
     const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+    let rejectContinuation!: (error: BackendError) => void;
     fetchNeighborhood
       .mockResolvedValueOnce(neighborhood({ truncated: true, next_cursor: "page-2" }))
-      .mockRejectedValueOnce(new BackendError("/api/ontology/neighborhood", 500));
+      .mockImplementationOnce(
+        () => new Promise((_resolve, reject) => {
+          rejectContinuation = reject;
+        }),
+      );
 
     render(
       <OntologyExplorer
@@ -153,6 +158,9 @@ describe("OntologyExplorer", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Select node: Post Demo public post" }));
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
+    expect(await screen.findByText("Loading ontology neighborhood...")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
+    rejectContinuation(new BackendError("/api/ontology/neighborhood", 500));
     expect(await screen.findByText("Ontology neighborhood is unavailable. Open a visible post next.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Select node: Post Demo public post" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
@@ -189,6 +197,28 @@ describe("OntologyExplorer", () => {
       "synthetic-access-token",
       expect.objectContaining({ cursor: "page-2" }),
     );
+  });
+
+  it.each([403, 404])("uses one fail-closed surface for hidden and missing focus responses (%s)", async (status) => {
+    const fetchNeighborhood = vi.mocked(fetchOntologyNeighborhood);
+    fetchNeighborhood.mockClear();
+    fetchNeighborhood.mockRejectedValueOnce(
+      new BackendError("/api/ontology/neighborhood", status),
+    );
+
+    render(
+      <OntologyExplorer
+        accessToken="synthetic-access-token"
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+      />,
+    );
+
+    expect(
+      await screen.findByText(
+        "Access denied for this ontology neighborhood. Open a visible post next.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("lets keyboard users open node and edge evidence", async () => {
@@ -264,6 +294,51 @@ describe("OntologyExplorer", () => {
       />,
     );
     expect(screen.getByText("Rejected proposal. Open the evidence and do not treat it as authoritative.")).toBeInTheDocument();
+  });
+
+  it("does not hide rejected or cutoff warnings behind truncation", () => {
+    const rejected = neighborhood({
+      truncated: true,
+      next_cursor: "page-2",
+      edges: [{ ...neighborhood().edges[0], truth_status_code: "truth_rejected" }],
+    });
+    const { rerender } = render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={rejected}
+      />,
+    );
+    expect(screen.getByText("Rejected proposal. Open the evidence and do not treat it as authoritative.")).toBeInTheDocument();
+    expect(screen.queryByText(/Load the next relation page or inspect one edge/)).not.toBeInTheDocument();
+
+    rerender(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood({ truncated: true, next_cursor: "page-2" })}
+        knowledgeCutoff="2026-01-15T12:00:00Z"
+      />,
+    );
+    expect(
+      screen.getByText("This neighborhood is bound to a knowledge cutoff. Compare with live evidence next."),
+    ).toBeInTheDocument();
+  });
+
+  it("does not promise paging for a static truncated neighborhood", () => {
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood({ truncated: true, next_cursor: "page-2" })}
+      />,
+    );
+    expect(
+      screen.getByText(
+        "Neighborhood reached the authorized query bound. Narrow the property filter or reduce traversal depth.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Load next relation page" })).not.toBeInTheDocument();
   });
 
   it("searches the loaded graph without inventing omitted counts", async () => {

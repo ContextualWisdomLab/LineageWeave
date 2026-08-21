@@ -36,3 +36,7 @@ https://www.w3.org/TR/shacl/
 
 World Wide Web Consortium. (2024). *Web content accessibility guidelines
 (WCAG) 2.2* (W3C Recommendation). https://www.w3.org/TR/WCAG22/
+
+Open Worldwide Application Security Project. (2023). *API1:2023 broken object
+level authorization*.
+https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/

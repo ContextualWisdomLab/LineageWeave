@@ -12,6 +12,8 @@
 1. PostgreSQL remains authoritative. OWL/RDF/JSON-LD is a governed projection, not a second mutable store.
 2. `GET /api/ontology/neighborhood` returns a bounded typed neighborhood with explicit `focus_node_type`, `focus_node_id`, depth/node/edge bounds, property filter, `knowledge_cutoff`, and opaque `after:` cursor.
 3. RBAC/ABAC and source eligibility run before any node, edge, label, count, or path enters the response. A hidden endpoint removes the edge. Truncation never reports how many neighbors were omitted. Corporate hierarchy parents use the same visible-post evidence gate as other corporate-entity endpoints; a visible child alone does not reveal a hidden parent label.
+   A missing and a non-visible focus return the same not-found status and buyer
+   surface, so the response cannot become a catalog-existence oracle.
 4. Truth status is one of `truth_authoritative`, `truth_observed`, `truth_inferred`, `truth_proposed`, `truth_superseded`, `truth_rejected`. Display never promotes inference to authority.
    Node truth and `recorded_at` are catalog-owned metadata. A missing catalog
    value is omitted from JSON-LD and represented as `null` in the typed API;
@@ -48,3 +50,6 @@ Kellogg, G., Champin, P.-A., & Longley, D. (Eds.). (2020). *JSON-LD 1.1* (W3C Re
 Knublauch, H., & Kontokostas, D. (Eds.). (2017). *Shapes constraint language (SHACL)* (W3C Recommendation). World Wide Web Consortium. https://www.w3.org/TR/shacl/
 
 World Wide Web Consortium. (2024). *Web content accessibility guidelines (WCAG) 2.2* (W3C Recommendation). https://www.w3.org/TR/WCAG22/
+
+Open Worldwide Application Security Project. (2023). *API1:2023 broken object
+level authorization*. https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/
