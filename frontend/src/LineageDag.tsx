@@ -189,6 +189,7 @@ export function LineageDag({
             {group.edges.length > 0 ? (
               <>
                 <p className="lineage-dag-boundary lineage-dag-inference-note" role="note">
+                  <strong>{t("Inference boundary")}</strong>{" "}
                   {lineageDagText(
                     "Reconstructed edges suggest continuation; they do not prove causality or authoritative fact.",
                   )}
