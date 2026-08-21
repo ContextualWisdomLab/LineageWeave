@@ -281,10 +281,12 @@ rebuild), the post list with a named Weekly VOC ISO-8601 week filter
 Calendar commitments use the same Event Lineage focus path (ADR 0094).
 Customer master related posts use the same Event Lineage focus path
 (ADR 0095). Ask Agent cited posts use the same Event Lineage focus path
-(ADR 0096). A linked Event Lineage node opened from a focused popup
-keeps those flags (ADR 0097) and then focuses Keyman as the named next
-read (ADR 0100).
-The full detail popup includes Korean
+(ADR 0096). A linked Event Lineage node opened from a focused popup keeps
+those flags (ADR 0097). Ask Agent accepts an optional knowledge cutoff
+and uses retained `source_post_revision` bodies for that clock (ADR 0135);
+a live query is never labeled as-of. The full detail popup includes Korean
+and focuses Keyman as the named next read (ADR 0100). The full detail
+popup includes Korean
 summary/key-events/R&R, VOC evidence excerpts, an Event Lineage panel
 (direct vs. indirect links; a link opens that post), the Keyman
 affiliate tree (resolved ancestors plus unresolved org roots), Keyman +
@@ -371,7 +373,9 @@ close the one product-brief item with a schema table (`issue_ticket`)
 but no implementation through Phase 4. Deliberately plain CRUD, not a
 pluggable-LLM channel like `keyman_ingestion.py` -- ticket status is a
 closed enum in `common_lookup_value`, and opening or updating a ticket
-is a direct user action, not something extracted from text.
+is a direct user action, not something extracted from text. Ticket writes
+also require `post_admin` plus authorship or corporate affiliation with the
+owning post; public visibility is read access only (ADR 0122).
 `frontend/src/App.tsx`'s `IssueTicketPanel` is the popup's real
 list/create/status-update UI for it. Status options show
 `common_lookup_value` labels (`Open` / `In progress` / `Closed`)

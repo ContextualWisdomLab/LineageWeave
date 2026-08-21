@@ -9,13 +9,70 @@ explicit WAI-ARIA ownership; final-head hosted Checks and independent approval r
 requirements, technical contracts, implementation evidence, and active PRs.
 An active PR is proposed work, not shipped behavior.
 
-## 2. LLM Extraction & Knowledge Graph Gaps
-- **Multiple Project Extraction**: (Resolved) LLM prompt updated to request key_events as objects with project_name, separating events correctly.
-- **5W1H Missing**: (Resolved) LLM prompt updated to explicitly request 5W1H evidence items in the JSON output array.
-- **R&R and Keyman Missing**: (Resolved) LLM prompt updated to explicitly instruct using actual stated names rather than collective titles.
-- **Entity Resolution / Searxng**: Abbreviations like "한전" and "한국전력" are not mapped properly using Searxng and KG corroboration.
-- **Meso-level Team Mapping**: (Resolved) Checked extraction logic; `team` mapping logic is present and correct, but LLM needed better explicit instruction which is covered by R&R resolution.
-- **Base64 Image Omni-modal**: Current text-only embedding fails on images. Omni-modal LLM processing is required for images to capture layout, font size, colors, and spatial meaning.
+## 1. Known Parsing & Frontend Display Gaps
+- **Footnote and table parsing**: rich-text exports still require synthetic regression cases for footnote ownership, merged-cell boundaries, table-row grouping, and nested list semantics.
+- **Indentation**: mixed source whitespace, CSS, and OOXML indentation must remain distinguishable so visual alignment cannot manufacture hierarchy; browser evidence remains required for continuation-line normalization.
+- **Image/table OCR**: partial visual regions, table text, markdown-like source, and image captions require persisted, position-aware evidence or an explicit unavailable state.
+- **Math/superscripts**: superscript and formula-like source needs a semantic-unit grammar that preserves the original text and exposes normalized search text.
+- **Lineage navigation**: the Event Lineage DAG must complement Project History rather than replace it, with source focus and the next actionable step preserved across Board, Project History, Global Ask, Customer Master, Calendar, and Admin routes.
+
+Exact private runtime identifiers are intentionally omitted; the authorized
+runtime and synthetic fixtures retain the reproducibility detail.
+
+## Historical exact-head checkpoint (2026-08-20 19:14 Asia/Seoul)
+
+The following is the current GitHub observation used for this branch. It
+supersedes the historical 17:08 snapshot and does not claim protected-main
+behavior. GitHub reports 24 open PRs from #190 through #309; none of the
+`#258`-and-later stack has an independent `APPROVED` review at this checkpoint.
+
+| PR group | Exact observed heads | Merge observation |
+|---|---|---|
+| #258-#266 | `#258 f8d2fa98`, `#260 dfd95d9c`, `#261 bd1b4d2f`, `#262 80445b8a`, `#263 d670acd5`, `#264 d5dbdf71`, `#266 26a6d9c6` | `BLOCKED`, review required |
+| #270-#276 | `#270 c58aef89`, `#275 35035783`, `#276 55679fa2` | `BLOCKED`, review required or draft |
+| #282-#287 | `#282 6eeaf89d`, `#285 cbb959ce`, `#286 65a461de`, `#287 554efb9b` | `UNSTABLE`/`UNKNOWN`/`BLOCKED`; not merge-ready |
+| #298-#303 | `#298 49c9976f`, `#301 59ccdf91`, `#302 40b0a8ea`, `#303 fe0a4f26` | `UNKNOWN`/`CLEAN`/`UNSTABLE`; independent review pending |
+| #306-#309 | `#306 e0dbc386`, `#307 313d38a4`, `#308 42e6230c`, `#309 e6fd907e` | `UNSTABLE`; independent review pending |
+
+PR #285 received concurrent remote commits through `cbb959ce` while its local
+Buyer wiring was under review. Those commits were incorporated with a normal
+merge; no force push is permitted. The current change adds the missing API/GNB
+connection, exact-input validation, source-name whitespace fallback, a shared
+timeline entry point, Storybook-compatible truth rendering, and live
+PostgreSQL/API regressions. The final exact head and Checks must be recorded
+after the ordinary push.
+
+## Historical exact-head refresh (2026-08-20 19:50 Asia/Seoul)
+
+This refresh supersedes the 19:14 checkpoint for the PRs it names. It records
+GitHub observations, not protected-main behavior. The repository has 25 open
+PRs; no approval or queued Check is treated as merge evidence.
+
+| PR | Exact observed head | Current observation |
+|---|---|---|
+| #258 | `f8d2fa98` | `BLOCKED`, review required |
+| #260-#266 | `dfd95d9c`, `bd1b4d2f`, `80445b8a`, `d670acd5`, `d5dbdf71`, `26a6d9c6` | stacked, review required; #264 is `DIRTY` |
+| #282 | `6eeaf89d` | `CLEAN`, no formal approval |
+| #285 | `30dae74a` | `UNSTABLE`, exact-head Checks queued, no formal approval |
+| #287 | `26fa7346` | `UNKNOWN`, review required, exact-head Checks queued |
+| #298-#303 | `49c9976f`, `59ccdf91`, `40b0a8ea`, `b7e6e82d` | mixed `DIRTY`/`CLEAN`/`UNSTABLE`, review pending |
+| #306-#311 | `e0dbc386`, `a4d1de59`, `42e6230c`, `e6fd907e`, `d8b7f561` | `CLEAN`/`UNSTABLE`, review pending |
+
+The #285 exact head includes the independent review repairs for case-preserving
+project identity, route-specific bounds, and sibling-project match isolation;
+the local tree recorded `741 passed, 16 skipped`. The #287 exact head removes
+the Semgrep dynamic-SQL findings and aligns public claim adjudication with the
+contextual-orchestrator `mode=auto` strict structured contract; its local tree
+recorded `791 passed, 16 skipped`. Both remain open until current-head Checks
+and protected approval are observed.
+
+The organization-owned `.github` repository already provides the hourly
+commercial-readiness coordinator at cron `7 * * * *` and the review/merge
+scheduler's hourly fallback. This repository does not add a competing local
+timer; the central OpenCode/scheduler credential boundary remains authoritative
+and `COPILOT_GITHUB_TOKEN` is not used.
+
+## PRD
 
 ## 3. General Architecture Gaps
 - **DB Architecture**: Ensure PostgreSQL is strictly used (no file DBs), 3rd normal form is maintained, and Hot Partitions are handled. DB locks must be managed (or use read/write replicas).

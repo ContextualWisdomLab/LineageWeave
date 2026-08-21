@@ -184,6 +184,11 @@ Do not invent a week, a theta, a cutoff body, a CalDAV event, or a customer.
 next read (ADR 0100). Do not invent a week, a theta, a cutoff body,
  a CalDAV event, a customer, or a cited post.
 
+Ask Agent accepts an optional knowledge cutoff (ADR 0135). A dated
+question uses retained revisions and never substitutes a live body. A
+live query is never labeled as-of. Do not invent a cutoff body or a
+TEPP theta.
+
 
 ## Tests
 

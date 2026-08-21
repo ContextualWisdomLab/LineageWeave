@@ -4,6 +4,30 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.23.0] - 2026-08-20
+
+### Added
+
+- Ask Agent now accepts an optional knowledge cutoff. A dated question
+  matches retained source-post revisions from that clock and never
+  substitutes a live body or live rewrite text. Fully, partly, and
+  live-only answers are named separately. No TEPP theta is invented. No
+  as-of label is applied to a live query (ADR 0135 / ADR 0016 / ADR 0025).
+
+### Fixed
+
+- Partial cutoff answers now show which historical bodies were unavailable,
+  and commitment-derived ticket writes enforce the owning-post authorization
+  boundary before provider work.
+
+## [2.18.0] - 2026-08-20
+
+### Added
+
+- Added a Buyer Project history destination and post-detail entry point for
+  bounded, authorized exact-project chronology. The release remains pending
+  protected-main review and Checks (ADR 0111).
+
 ## [2.19.0] - 2026-08-20
 
 ### Added

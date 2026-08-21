@@ -1,7 +1,7 @@
 import { t } from "../i18n";
 import type { ReactNode } from "react";
 
-export type BuyerDestination = "board" | "customers" | "calendar" | "ask" | "admin";
+export type BuyerDestination = "board" | "customers" | "calendar" | "ask" | "project-history" | "admin";
 
 export type BuyerNavProps = {
   destination: BuyerDestination;
@@ -9,11 +9,12 @@ export type BuyerNavProps = {
   tools?: ReactNode;
 };
 
-const ITEMS: BuyerDestination[] = ["board", "customers", "calendar", "ask", "admin"];
+const ITEMS: BuyerDestination[] = ["board", "customers", "project-history", "calendar", "ask", "admin"];
 
 const LABELS: Record<BuyerDestination, string> = {
   board: "Board",
   customers: "Customer master",
+  "project-history": "Project history",
   calendar: "Calendar",
   ask: "Ask Agent",
   admin: "Admin",

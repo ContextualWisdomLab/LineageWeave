@@ -23,7 +23,7 @@ import asyncio
 import json
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Literal
 from uuid import UUID
 
@@ -73,8 +73,12 @@ from lineageweave.post_chat import (
     ChatSourceDocument,
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
+    ask_grounding_status,
+    ask_next_action,
+    cited_post_citations,
     cited_post_evidence,
     cited_post_summaries,
+    historical_body_limitations,
     render_global_ask_context,
 )
 from lineageweave.post_content_normalization import normalize_post_body
@@ -187,6 +191,16 @@ from backend.app.post_summary_ingestion import (
     require_summary_source_body,
 )
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.project_history import (
+    PROJECT_HISTORY_DEFAULT_LIMIT,
+    PROJECT_HISTORY_MAXIMUM_LIMIT,
+    PROJECT_INDEX_DEFAULT_LIMIT,
+    PROJECT_INDEX_MAXIMUM_LIMIT,
+    ProjectHistoryNotFound,
+    fetch_project_history_index,
+    fetch_project_history_projection,
+)
+from lineageweave.project_history import normalize_project_key
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
     has_real_source_context,
@@ -257,6 +271,22 @@ def _require_post_admin(account: CurrentAccount) -> None:
     """Raise 403 when the account has no ``post_admin`` permission at all."""
     if not account.has_permission(_POST_ADMIN):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "account lacks the post_admin permission")
+
+
+def _require_ticket_post_access(account: CurrentAccount, post: asyncpg.Record) -> None:
+    """Require ticket mutation access to the owning post, not visibility alone.
+
+    ``post_admin`` is necessary but intentionally not sufficient: a public post
+    can be read by every account, while ticket state is still a write to the
+    authoring account's corporate work area.
+    """
+    is_author = str(post["author_account_id"]) == account.user_account_id
+    is_affiliated = str(post["corporate_entity_id"]) in account.corporate_entity_ids
+    if not (is_author or is_affiliated):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "account is not authorized to modify tickets on this post",
+        )
 
 
 def _keyman_extraction_client():
@@ -2637,6 +2667,7 @@ class GlobalAskRequest(BaseModel):
 
     question: str
     session_id: str | None = None
+    knowledge_cutoff: str | None = None
 
 
 def global_ask_timeline(sources: list[ChatSourceDocument]) -> list[dict[str, str | None]]:
@@ -2772,6 +2803,15 @@ async def ask_agent(
             UUID(request.session_id)
         except ValueError:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Global Ask session not found") from None
+    knowledge_cutoff = None
+    if request.knowledge_cutoff is not None and request.knowledge_cutoff.strip():
+        try:
+            knowledge_cutoff = parse_as_of_clock(request.knowledge_cutoff)
+        except ValueError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "knowledge_cutoff must be an ISO-8601 timestamp",
+            ) from exc
     client = _post_chat_client()
     if not client.available:
         raise HTTPException(
@@ -2790,6 +2830,7 @@ async def ask_agent(
             lambda row: _can_see_post(account, row),
             account.corporate_entity_ids,
             question=question,
+            knowledge_cutoff=knowledge_cutoff,
         )
     if conversation.compress_turns:
         compressor = getattr(client, "compress_context", None)
@@ -2821,7 +2862,11 @@ async def ask_agent(
         conversation.summary,
         conversation.recent_turns,
     )
-    if not sources:
+    grounding_status = ask_grounding_status(sources, knowledge_cutoff)
+    limitations = historical_body_limitations(sources)
+    cutoff_text = knowledge_cutoff.isoformat() if knowledge_cutoff is not None else None
+    llm_sources = [source for source in sources if not source.historical_body_unavailable]
+    if not llm_sources:
         async with pool.acquire() as conn:
             await persist_global_ask_turn(conn, conversation.session_id, question, "", ())
         await publish_operation_event(
@@ -2834,17 +2879,24 @@ async def ask_agent(
             "session_id": conversation.session_id,
             "answer_text": "",
             "cited_post_ids": [],
-            "cited_posts": [],
-            "source_post_ids": [],
+            "cited_posts": cited_post_citations(sources, [source.post_id for source in sources]),
+            "source_post_ids": [source.post_id for source in sources],
             "cited_post_evidence": [],
-            "timeline": [],
-            "next_action": "No authorized source posts are available for this question.",
+            "timeline": global_ask_timeline(sources),
+            "knowledge_cutoff": cutoff_text,
+            "grounding_status": grounding_status,
+            "limitations": limitations,
+            "next_action": ask_next_action(
+                grounding_status,
+                has_sources=bool(sources),
+                has_retained_bodies=bool(llm_sources),
+            ),
         }
     try:
         answer = await asyncio.to_thread(
             client.answer,
             question,
-            sources,
+            llm_sources,
             conversation_context=conversation_context,
         )
     except (HttpClientError, KeyError, OSError, RuntimeError, ValueError) as exc:
@@ -2876,10 +2928,22 @@ async def ask_agent(
         "session_id": conversation.session_id,
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
-        "cited_posts": cited_post_summaries(sources, cited_ids),
-        "cited_post_evidence": cited_post_evidence(sources, cited_ids),
+        "cited_posts": cited_post_citations(llm_sources, cited_ids),
+        "cited_post_evidence": cited_post_evidence(llm_sources, cited_ids),
+        # The timeline is the complete authorized retrieval boundary. A
+        # source without a retained cutoff body is still a real timeline
+        # event and must remain navigable, even though it is excluded from
+        # the LLM evidence bundle.
         "source_post_ids": [source.post_id for source in sources],
         "timeline": global_ask_timeline(sources),
+        "knowledge_cutoff": cutoff_text,
+        "grounding_status": grounding_status,
+        "limitations": limitations,
+        "next_action": ask_next_action(
+            grounding_status,
+            has_sources=True,
+            has_retained_bodies=bool(llm_sources),
+        ),
     }
 
 
@@ -2978,7 +3042,8 @@ async def create_post_ticket(
     a ticket is a write action, same discipline as extract-keymen.
     """
     _require_post_admin(account)
-    await _load_visible_post(post_id, account, pool)
+    post = await _load_visible_post(post_id, account, pool)
+    _require_ticket_post_access(account, post)
     async with pool.acquire() as conn:
         try:
             ticket = await create_ticket(
@@ -3039,7 +3104,8 @@ async def patch_ticket(
         post_id = await fetch_ticket_post_id(conn, issue_ticket_id)
         if post_id is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "ticket not found")
-    await _load_visible_post(post_id, account, pool)
+    post = await _load_visible_post(post_id, account, pool)
+    _require_ticket_post_access(account, post)
     async with pool.acquire() as conn:
         try:
             ticket = await update_ticket(
@@ -3100,6 +3166,7 @@ async def derive_post_commitment(
     """
     _require_post_admin(account)
     post = await _load_visible_post(post_id, account, pool)
+    _require_ticket_post_access(account, post)
     post_metadata = build_post_llm_metadata(post_id, post)
     with use_llm_metadata(post_metadata):
         client = _commitment_extraction_client()
@@ -3369,6 +3436,76 @@ async def read_calendar(
             "caldav_next_action": caldav_next_action,
         },
     }
+
+
+@app.get("/api/project-history/projects")
+async def read_project_history_projects(
+    limit: int = Query(PROJECT_INDEX_DEFAULT_LIMIT, ge=1, le=PROJECT_INDEX_MAXIMUM_LIMIT),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return exact project identities available to the signed-in buyer."""
+
+    _require_post_read(account)
+    knowledge_cutoff = datetime.now(timezone.utc)
+    async with pool.acquire() as conn:
+        return await fetch_project_history_index(
+            conn,
+            knowledge_cutoff=knowledge_cutoff,
+            corporate_entity_ids=list(account.corporate_entity_ids),
+            limit=limit,
+        )
+
+
+@app.get("/api/project-history")
+async def read_project_history(
+    project_key: str = Query(..., min_length=1),
+    focus_post_id: str | None = Query(None),
+    knowledge_cutoff: str | None = Query(None),
+    limit: int = Query(PROJECT_HISTORY_DEFAULT_LIMIT, ge=1, le=PROJECT_HISTORY_MAXIMUM_LIMIT),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return one exact, authorized project history for the Buyer timeline."""
+
+    _require_post_read(account)
+    try:
+        normalized_project_key = normalize_project_key(project_key)
+    except ValueError as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "project_key must contain a non-empty exact identity",
+        ) from exc
+    if focus_post_id is not None:
+        try:
+            UUID(focus_post_id)
+        except ValueError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "focus_post_id must be a UUID",
+            ) from exc
+    if knowledge_cutoff is None:
+        cutoff = datetime.now(timezone.utc)
+    else:
+        try:
+            cutoff = parse_as_of_clock(knowledge_cutoff)
+        except ValueError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "knowledge_cutoff must be an ISO-8601 timestamp",
+            ) from exc
+    async with pool.acquire() as conn:
+        try:
+            return await fetch_project_history_projection(
+                conn,
+                project_key=project_key,
+                focus_post_id=focus_post_id,
+                knowledge_cutoff=cutoff,
+                corporate_entity_ids=list(account.corporate_entity_ids),
+                limit=limit,
+            )
+        except ProjectHistoryNotFound as exc:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "project history not found") from exc
 
 
 @app.get("/api/rankings")

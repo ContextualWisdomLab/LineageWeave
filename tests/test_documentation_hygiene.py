@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import re
+import tomllib
 from collections import Counter
 from pathlib import Path
 
@@ -18,6 +20,35 @@ _FORBIDDEN_MARKERS = (
     "PLACEHOLDER_DO_NOT_WRITE",
     "TODO_WRITE_ADR",
 )
+
+
+def test_release_versions_are_consistent() -> None:
+    """Python, frontend, runtime, and changelog expose one release version."""
+    project_version = tomllib.loads((_ROOT / "pyproject.toml").read_text(encoding="utf-8"))[
+        "project"
+    ]["version"]
+    frontend_version = json.loads(
+        (_ROOT / "frontend" / "package.json").read_text(encoding="utf-8")
+    )["version"]
+    locked_project = next(
+        package
+        for package in tomllib.loads((_ROOT / "uv.lock").read_text(encoding="utf-8"))["package"]
+        if package["name"] == "lineageweave"
+    )
+    runtime_source = (_ROOT / "lineageweave" / "__init__.py").read_text(encoding="utf-8")
+    runtime_match = re.search(r'^__version__ = "([^"]+)"$', runtime_source, re.MULTILINE)
+    changelog_source = (_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    changelog_match = re.search(r"^## \[([^]]+)]", changelog_source, re.MULTILINE)
+
+    assert runtime_match is not None
+    assert changelog_match is not None
+    assert {
+        project_version,
+        frontend_version,
+        locked_project["version"],
+        runtime_match.group(1),
+        changelog_match.group(1),
+    } == {project_version}
 
 
 def test_adr_numbers_are_unique_and_documents_are_not_placeholders() -> None:
