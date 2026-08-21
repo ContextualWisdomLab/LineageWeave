@@ -442,6 +442,24 @@ export function fetchLineageGraph(accessToken: string, postId?: string): Promise
   return backendFetch<LineageGraph>(`/api/lineage${query}`, accessToken);
 }
 
+export function fetchProjectHistoryIndex(
+  accessToken: string,
+): Promise<import("./projectHistory").ProjectHistoryIndex> {
+  return backendFetch("/api/project-history/projects", accessToken);
+}
+
+export function fetchProjectHistory(
+  accessToken: string,
+  projectKey: string,
+  knowledgeCutoff?: string,
+  focusPostId?: string,
+): Promise<import("./projectHistory").ProjectHistoryProjection> {
+  const query = new URLSearchParams({ project_key: projectKey });
+  if (knowledgeCutoff) query.set("knowledge_cutoff", knowledgeCutoff);
+  if (focusPostId) query.set("focus_post_id", focusPostId);
+  return backendFetch(`/api/project-history?${query.toString()}`, accessToken);
+}
+
 export interface CorporateEntityRef {
   corporate_entity_id: string;
   entity_name: string;

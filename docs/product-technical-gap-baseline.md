@@ -10,20 +10,69 @@ requirements, technical contracts, implementation evidence, and active PRs.
 An active PR is proposed work, not shipped behavior.
 
 ## 1. Known Parsing & Frontend Display Gaps
-- **Footnote parsing**: authorized source samples still need coverage for nested ordered and unordered notes.
-- **Table parsing**: authorized source samples still need coverage for merged cells and table boundaries.
-- **Indentation**: continuation-line normalization needs browser evidence for mixed list and paragraph content.
-- **Image/table OCR**: image-region extraction needs acceptance evidence for tabular text and spatial context.
-- **Math/superscripts**: formula-preserving semantic units need an explicit grammar contract and fixtures.
-- **Lineage navigation**: a buyer-facing graph view remains a product gap where a timeline is insufficient.
+- **Footnote and table parsing**: rich-text exports still require synthetic regression cases for footnote ownership, merged-cell boundaries, table-row grouping, and nested list semantics.
+- **Indentation**: mixed source whitespace, CSS, and OOXML indentation must remain distinguishable so visual alignment cannot manufacture hierarchy; browser evidence remains required for continuation-line normalization.
+- **Image/table OCR**: partial visual regions, table text, markdown-like source, and image captions require persisted, position-aware evidence or an explicit unavailable state.
+- **Math/superscripts**: superscript and formula-like source needs a semantic-unit grammar that preserves the original text and exposes normalized search text.
+- **Lineage navigation**: the Event Lineage DAG must complement Project History rather than replace it, with source focus and the next actionable step preserved across Board, Project History, Global Ask, Customer Master, Calendar, and Admin routes.
 
-## 2. LLM Extraction & Knowledge Graph Gaps
-- **Multiple Project Extraction**: (Resolved) LLM prompt updated to request key_events as objects with project_name, separating events correctly.
-- **5W1H Missing**: (Resolved) LLM prompt updated to explicitly request 5W1H evidence items in the JSON output array.
-- **R&R and Keyman Missing**: (Resolved) LLM prompt updated to explicitly instruct using actual stated names rather than collective titles.
-- **Entity Resolution / Searxng**: Abbreviations like "한전" and "한국전력" are not mapped properly using Searxng and KG corroboration.
-- **Meso-level Team Mapping**: (Resolved) Checked extraction logic; `team` mapping logic is present and correct, but LLM needed better explicit instruction which is covered by R&R resolution.
-- **Base64 Image Omni-modal**: Current text-only embedding fails on images. Omni-modal LLM processing is required for images to capture layout, font size, colors, and spatial meaning.
+Exact private runtime identifiers are intentionally omitted; the authorized
+runtime and synthetic fixtures retain the reproducibility detail.
+
+## Historical exact-head checkpoint (2026-08-20 19:14 Asia/Seoul)
+
+The following is the current GitHub observation used for this branch. It
+supersedes the historical 17:08 snapshot and does not claim protected-main
+behavior. GitHub reports 24 open PRs from #190 through #309; none of the
+`#258`-and-later stack has an independent `APPROVED` review at this checkpoint.
+
+| PR group | Exact observed heads | Merge observation |
+|---|---|---|
+| #258-#266 | `#258 f8d2fa98`, `#260 dfd95d9c`, `#261 bd1b4d2f`, `#262 80445b8a`, `#263 d670acd5`, `#264 d5dbdf71`, `#266 26a6d9c6` | `BLOCKED`, review required |
+| #270-#276 | `#270 c58aef89`, `#275 35035783`, `#276 55679fa2` | `BLOCKED`, review required or draft |
+| #282-#287 | `#282 6eeaf89d`, `#285 cbb959ce`, `#286 65a461de`, `#287 554efb9b` | `UNSTABLE`/`UNKNOWN`/`BLOCKED`; not merge-ready |
+| #298-#303 | `#298 49c9976f`, `#301 59ccdf91`, `#302 40b0a8ea`, `#303 fe0a4f26` | `UNKNOWN`/`CLEAN`/`UNSTABLE`; independent review pending |
+| #306-#309 | `#306 e0dbc386`, `#307 313d38a4`, `#308 42e6230c`, `#309 e6fd907e` | `UNSTABLE`; independent review pending |
+
+PR #285 received concurrent remote commits through `cbb959ce` while its local
+Buyer wiring was under review. Those commits were incorporated with a normal
+merge; no force push is permitted. The current change adds the missing API/GNB
+connection, exact-input validation, source-name whitespace fallback, a shared
+timeline entry point, Storybook-compatible truth rendering, and live
+PostgreSQL/API regressions. The final exact head and Checks must be recorded
+after the ordinary push.
+
+## Historical exact-head refresh (2026-08-20 19:50 Asia/Seoul)
+
+This refresh supersedes the 19:14 checkpoint for the PRs it names. It records
+GitHub observations, not protected-main behavior. The repository has 25 open
+PRs; no approval or queued Check is treated as merge evidence.
+
+| PR | Exact observed head | Current observation |
+|---|---|---|
+| #258 | `f8d2fa98` | `BLOCKED`, review required |
+| #260-#266 | `dfd95d9c`, `bd1b4d2f`, `80445b8a`, `d670acd5`, `d5dbdf71`, `26a6d9c6` | stacked, review required; #264 is `DIRTY` |
+| #282 | `6eeaf89d` | `CLEAN`, no formal approval |
+| #285 | `30dae74a` | `UNSTABLE`, exact-head Checks queued, no formal approval |
+| #287 | `26fa7346` | `UNKNOWN`, review required, exact-head Checks queued |
+| #298-#303 | `49c9976f`, `59ccdf91`, `40b0a8ea`, `b7e6e82d` | mixed `DIRTY`/`CLEAN`/`UNSTABLE`, review pending |
+| #306-#311 | `e0dbc386`, `a4d1de59`, `42e6230c`, `e6fd907e`, `d8b7f561` | `CLEAN`/`UNSTABLE`, review pending |
+
+The #285 exact head includes the independent review repairs for case-preserving
+project identity, route-specific bounds, and sibling-project match isolation;
+the local tree recorded `741 passed, 16 skipped`. The #287 exact head removes
+the Semgrep dynamic-SQL findings and aligns public claim adjudication with the
+contextual-orchestrator `mode=auto` strict structured contract; its local tree
+recorded `791 passed, 16 skipped`. Both remain open until current-head Checks
+and protected approval are observed.
+
+The organization-owned `.github` repository already provides the hourly
+commercial-readiness coordinator at cron `7 * * * *` and the review/merge
+scheduler's hourly fallback. This repository does not add a competing local
+timer; the central OpenCode/scheduler credential boundary remains authoritative
+and `COPILOT_GITHUB_TOKEN` is not used.
+
+## PRD
 
 ## 3. General Architecture Gaps
 - **DB Architecture**: Ensure PostgreSQL is strictly used (no file DBs), 3rd normal form is maintained, and Hot Partitions are handled. DB locks must be managed (or use read/write replicas).
@@ -268,5 +317,27 @@ ADRs remain normative. This document is the product/technical traceability
 projection: update the affected FR/NFR row and Gap closure evidence when an ADR
 or PR changes product behavior. Never turn a PR title, green unit test, or old
 runtime note into a shipped/live claim.
+
+## Current stacked PR product-surface gaps
+
+- **Customer Master relationship composition — PR #262**: Resolved on the
+  current feature branch. ADR 0125 and Figma frames `313:2` / `314:2` define a
+  customer-centered three-pane workspace that keeps the selected customer
+  stable while the user inspects relationships and source posts.
+- **Responsive Customer Master flow — PR #262**: Resolved on the current
+  feature branch. PC uses three horizontal panes, tablet uses two columns plus
+  full-width evidence, and phone preserves the semantic order hierarchy →
+  selected customer → evidence at the shared 1024 px / 768 px breakpoints.
+- **Effective-dated relationship authority**: Open. The current projection
+  still owns one `parent_entity_id`; legal ownership, operating structure,
+  sales roll-up, billing hierarchy, historical roles, and simultaneous
+  relationship types require a normalized effective-dated relation model.
+- **Unresolved hierarchy repair workflow**: Open. Cycle, self-parent, and
+  missing-visible-parent members remain visible and unresolved, but operators
+  still need a source-data quality queue, evidence review, and approved
+  correction workflow.
+- **Customer relationship exact-value export**: Open. An auditable CSV/JSON
+  export of the selected customer, visible relations, truth status, effective
+  interval, and evidence references remains a later product slice.
 
 *This document is continuously updated by the hourly automated agent loop.*

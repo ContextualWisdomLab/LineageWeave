@@ -348,6 +348,28 @@ def test_chunk_by_dom_interleaves_image_inside_a_block_with_text() -> None:
     ]
 
 
+def test_chunk_by_dom_keeps_an_inline_table_image_from_splitting_the_row() -> None:
+    tiny_png_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+    html = (
+        "<table><tr><td>Before "
+        f'<img src="data:image/png;base64,{tiny_png_b64}">'
+        "After</td><td>Second cell</td></tr></table>"
+    )
+
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.text for chunk in chunks if chunk.unit_type == "dom"] == [
+        "Before After | Second cell",
+    ]
+    assert [chunk.unit_type for chunk in chunks].count("image") == 1
+
+
+def test_chunk_by_dom_does_not_split_text_for_an_undecodable_inline_image() -> None:
+    chunks = chunk_by_dom('<p>Before<img src="https://example.test/image.png">After</p>')
+
+    assert [(chunk.unit_type, chunk.text) for chunk in chunks] == [("dom", "BeforeAfter")]
+
+
 def test_chunk_by_dom_labels_text_chunks_with_their_tag_name() -> None:
     html = "<article><p>A paragraph.</p></article><aside>Sidebar.</aside>"
     chunks = chunk_by_dom(html)
