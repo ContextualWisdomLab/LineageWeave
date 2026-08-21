@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from lineageweave.chunking import chunk_by_dom
-from lineageweave.image_content import ImageRegion
+from lineageweave.image_content import ImageRegion, buyer_safe_image_caption
 from lineageweave.post_content_normalization import (
     FormattingHint,
     ImageContentResult,
@@ -159,6 +159,34 @@ def test_render_image_text_preserves_unavailable_and_caption_variants() -> None:
     )
 
 
+def test_internal_image_instruction_is_not_searchable_caption() -> None:
+    """Prompt guidance is not buyer evidence or embedding content."""
+    assert buyer_safe_image_caption("A process diagram") == "A process diagram"
+    legitimate_korean_caption = "이 이미지는 텍스트가 포함된 다이어그램을 보여줍니다"
+    assert buyer_safe_image_caption(legitimate_korean_caption) == legitimate_korean_caption
+    assert (
+        buyer_safe_image_caption(
+            "이 글의 이미지입니다. Keyman을 추출하거나 질문해 이미지 안의 텍스트를 읽으세요."
+        )
+        == ""
+    )
+    assert (
+        _render_image_text(
+            ImageContentResult(
+                0,
+                "image/png",
+                "described",
+                SimpleNamespace(
+                    caption="This post is an image. Ask questions to read its text.",
+                    extracted_text="Visible OCR",
+                    tags=(),
+                ),
+            )
+        )
+        == "[image: no caption available | text: Visible OCR]"
+    )
+
+
 def test_persists_image_tags_formatting_and_embeddings() -> None:
     body = '<p style="color:red">before</p><img src="data:image/png;base64,aGVsbG8="><p>after</p>'
     chunks = chunk_by_dom(body)
@@ -178,7 +206,11 @@ def test_persists_image_tags_formatting_and_embeddings() -> None:
                         0,
                         ImageRegion(0.0, 0.0, 1.0, 1.0),
                         "described",
-                        SimpleNamespace(caption="panel", extracted_text="panel OCR", tags=("panel",)),
+                        SimpleNamespace(
+                            caption="이 글의 이미지입니다. Keyman을 추출하거나 질문해 이미지 안의 텍스트를 읽으세요.",
+                            extracted_text="panel OCR",
+                            tags=("panel",),
+                        ),
                     ),
                     ImageRegionResult(
                         1,
@@ -204,7 +236,11 @@ def test_persists_image_tags_formatting_and_embeddings() -> None:
 
     assert count == len(chunks)
     assert embedder.async_calls == 1
-    assert "[image: panel | text: panel OCR]" in embedder.texts
+    assert "[image: no caption available | text: panel OCR]" in embedder.texts
+    assert any(
+        "post_content_image_region" in query and args[-1] is None
+        for query, args in conn.fetchvals
+    )
     assert any("post_content_image" in query for query, _args in conn.fetchvals)
     assert sum("post_content_image_tag" in query for query, _args in conn.executed) == 2
     assert any("post_content_image_region_embedding" in query for query, _args in conn.fetchvals)

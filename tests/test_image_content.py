@@ -5,12 +5,12 @@ import base64
 import pytest
 
 from lineageweave.image_content import (
+    _REGION_RESPONSE_FORMAT,
+    _RESPONSE_FORMAT,
     ImageContentClient,
     ImageDescriptionParseError,
     NullImageContentClient,
     OpenAiCompatibleVisionClient,
-    _RESPONSE_FORMAT,
-    _REGION_RESPONSE_FORMAT,
     _parse_description,
     extract_base64_images,
     orchestrator_vision_client,
@@ -74,8 +74,9 @@ def test_parse_description_none_text_becomes_empty_string() -> None:
 
 
 def test_parse_description_unexpected_format_raises_instead_of_losing_content() -> None:
-    with pytest.raises(ImageDescriptionParseError):
-        _parse_description("unexpected format")
+    with pytest.raises(ImageDescriptionParseError) as error:
+        _parse_description("provider-secret response")
+    assert "provider-secret" not in str(error.value)
 
 
 def test_parse_description_preserves_multiline_ocr_text() -> None:
@@ -174,26 +175,47 @@ def test_vision_client_rejects_plain_http_by_default() -> None:
     """
     with pytest.raises(ValueError, match="requires https://"):
         OpenAiCompatibleVisionClient(
-            base_url="http://127.0.0.1:8000/v1",
+            base_url="http://orchestrator:8000/v1",
             api_key="unused",
             model="unused",
         )
 
 
-def test_vision_client_allows_http_with_explicit_insecure_opt_in() -> None:
+def test_vision_client_allows_named_http_service_with_explicit_insecure_opt_in() -> None:
     http_client = OpenAiCompatibleVisionClient(
-        base_url="http://127.0.0.1:8000/v1",
+        base_url="http://orchestrator:8000/v1",
         api_key="unused",
         model="unused",
         allow_insecure_http=True,
     )
-    assert http_client._base_url == "http://127.0.0.1:8000/v1"
+    assert http_client._base_url == "http://orchestrator:8000/v1"
 
 
-def test_orchestrator_vision_client_appends_v1_and_allows_local_http() -> None:
-    client = orchestrator_vision_client("http://127.0.0.1:8000", "key", "vision-model")
+@pytest.mark.parametrize(
+    "base_url",
+    (
+        "http://127.0.0.1:8000/v1",
+        "http://169.254.169.254/latest/meta-data",
+        "http://localhost:8000/v1",
+        "http://metadata.google.internal/v1",
+    ),
+)
+def test_vision_client_rejects_internal_destinations_even_with_insecure_opt_in(
+    base_url: str,
+) -> None:
+    with pytest.raises(ValueError, match="private, loopback, link-local, or metadata"):
+        OpenAiCompatibleVisionClient(
+            base_url=base_url,
+            api_key="unused",
+            model="unused",
+            allow_insecure_http=True,
+        )
+
+
+def test_orchestrator_vision_client_appends_v1_and_allows_named_local_http() -> None:
+    client = orchestrator_vision_client("http://orchestrator:8000", "key", "vision-model")
     assert isinstance(client, OpenAiCompatibleVisionClient)
-    assert client._base_url == "http://127.0.0.1:8000/v1"
+    assert client._base_url == "http://orchestrator:8000/v1"
 
 
 def test_orchestrator_vision_client_does_not_double_v1() -> None:
