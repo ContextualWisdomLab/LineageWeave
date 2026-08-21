@@ -72,7 +72,7 @@ async def fetch_known_at_revision(
     cutoff label when no revision covers the clock.
     """
     row = await conn.fetchrow(
-        "select post_title, post_body, written_at "
+        "select source_post_revision_id, post_title, post_body, written_at "
         "from source_post_revision "
         "where post_id = $1 "
         "and written_at <= $2 "
@@ -85,8 +85,45 @@ async def fetch_known_at_revision(
     if row is None:
         return None
     return {
+        "source_post_revision_id": str(row["source_post_revision_id"]),
         "post_title": row["post_title"],
         "post_body": row["post_body"],
         "written_at": _iso(row["written_at"]),
         "as_of": _iso(as_of),
     }
+
+
+async def fetch_cutoff_revisions(
+    conn: "asyncpg.Connection",
+    post_ids: list[str],
+    as_of: datetime,
+) -> dict[str, dict[str, str]]:
+    """Return covering revisions keyed by post id.
+
+    A missing cover is omitted. Callers must not fall back to the live
+    body under a cutoff label.
+    """
+    if not post_ids:
+        return {}
+    rows = await conn.fetch(
+        "select source_post_revision_id, post_id, post_title, post_body, written_at "
+        "from source_post_revision "
+        "where post_id = any($1::uuid[]) "
+        "and written_at <= $2 "
+        "and (superseded_at is null or superseded_at > $2) "
+        "order by written_at desc",
+        post_ids,
+        as_of,
+    )
+    revisions: dict[str, dict[str, str]] = {}
+    for row in rows:
+        post_id = str(row["post_id"])
+        if post_id in revisions:
+            continue
+        revisions[post_id] = {
+            "source_revision_id": str(row["source_post_revision_id"]),
+            "post_title": row["post_title"],
+            "post_body": row["post_body"],
+            "written_at": _iso(row["written_at"]),
+        }
+    return revisions

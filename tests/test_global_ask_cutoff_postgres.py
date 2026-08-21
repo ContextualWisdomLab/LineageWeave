@@ -36,6 +36,7 @@ def test_final_global_source_query_binds_the_cutoff_in_real_postgresql() -> None
                     visibility_code text,
                     corporate_entity_id uuid,
                     created_at timestamptz,
+                    updated_at timestamptz,
                     source_system_code text,
                     source_record_key text,
                     source_author_code text,

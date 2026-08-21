@@ -50,6 +50,7 @@ from .ask_project_history import (
     POST_ASK_HISTORY_EXCHANGE_LIMIT,
 )
 from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from .source_post_revision import fetch_cutoff_revisions
 from lineageweave.ontology import ontology_annotations
 
 
@@ -246,13 +247,15 @@ async def persist_global_ask_turn(
 async def _normalize_post_body_text(
     body: str,
     vision_client: ImageContentClient,
+    *,
+    session_id: str | None = None,
+    metadata: dict[str, str] | None = None,
 ) -> str:
     """Normalize one source body without blocking the request event loop."""
-    normalized = await asyncio.to_thread(
-        normalize_post_body,
-        body,
-        vision_client=vision_client,
-    )
+    kwargs: dict[str, Any] = {"vision_client": vision_client}
+    if session_id is not None or metadata:
+        kwargs.update(session_id=session_id, metadata=metadata)
+    normalized = await asyncio.to_thread(normalize_post_body, body, **kwargs)
     return normalized.text
 
 
@@ -348,7 +351,7 @@ _SOURCE_HINT_FIELDS = (
 )
 
 _GLOBAL_ASK_TERM_PATTERN = re.compile(r"[^\W_]+(?:-[^\W_]+)*", re.UNICODE)
-_POST_CHAT_SOURCE_LIMIT = 8
+_POST_CHAT_SOURCE_LIMIT = 6
 _POST_CHAT_CANDIDATE_LIMIT = 32
 _SOURCE_ELIGIBILITY = SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")
 
@@ -475,49 +478,66 @@ async def gather_chat_sources(
     vision_client: ImageContentClient | None = None,
     *,
     knowledge_cutoff: datetime | None = None,
+    session_id: str | None = None,
+    metadata: dict[str, str] | None = None,
 ) -> list[ChatSourceDocument]:
-    """Post `post_id` plus a bounded, deterministic linked-source window.
+    """Assemble a bounded source window without loading hidden post bodies.
 
-    Direct Event Lineage neighbors precede indirect Knowledge Graph
-    neighbors; both groups are identifier-sorted before ABAC filtering. The
-    current post plus at most seven visible linked posts become the numbered
-    source set that `post_chat` citations refer back to. Every source's body
-    is normalized (HTML tags/base64 images never reach the reason-and-cite
-    LLM call raw) before becoming a `ChatSourceDocument` -- see
-    `lineageweave.post_content_normalization`. `vision_client` defaults
-    to unavailable (embedded images become an explicit placeholder, not
-    a dropped or raw-base64 source) so this function stays callable
-    without a live provider.
+    Metadata is authorized first. Only the anchor and linked rows that pass
+    ``can_see_post`` enter the second body query and any vision/LLM work.
     """
     if vision_client is None:
         vision_client = NullImageContentClient()
-    cutoff = _ask_cutoff(knowledge_cutoff)
-
-    this_post = await conn.fetchrow(
-        "select post_id, post_title, post_body, created_at, source_system_code, source_record_key, "
+    cutoff = _ask_cutoff(knowledge_cutoff) if knowledge_cutoff is not None else None
+    anchor_sql = (
+        "select post_id, post_title, visibility_code, corporate_entity_id, created_at, "
+        "source_system_code, source_record_key, "
+        "source_author_code, source_author_name, source_company_code, source_company_name, "
+        "source_process_unit_code, source_process_unit_name, "
+        "source_sales_pool_code, source_sales_pool_name, "
+        "source_customer_code, source_customer_name, source_project_code, "
+        f"source_project_name from source_post where post_id = $1 and {_SOURCE_ELIGIBILITY}"
+        if cutoff is None
+        else "select post_id, post_title, visibility_code, corporate_entity_id, created_at, "
+        "source_system_code, source_record_key, "
         "source_author_code, source_author_name, source_company_code, source_company_name, "
         "source_process_unit_code, source_process_unit_name, "
         "source_sales_pool_code, source_sales_pool_name, "
         "source_customer_code, source_customer_name, source_project_code, "
         f"source_project_name from source_post where post_id = $1 "
-        f"and created_at <= $2 and {_SOURCE_ELIGIBILITY}",
-        post_id,
-        cutoff,
+        f"and created_at <= $2 and {_SOURCE_ELIGIBILITY}"
     )
-    if this_post is None:
+    anchor = (
+        await conn.fetchrow(anchor_sql, post_id)
+        if cutoff is None
+        else await conn.fetchrow(anchor_sql, post_id, cutoff)
+    )
+    if anchor is None or not can_see_post(anchor):
         return []
-    source_id = str(this_post["post_id"])
+    anchor_body = await conn.fetchval(
+        "select post_body from source_post where post_id = $1",
+        post_id,
+    )
+    if anchor_body is None:
+        return []
+    source_id = str(anchor["post_id"])
     semantic_facts = await _semantic_facts_for_posts(conn, [source_id])
+    source_metadata = dict(metadata or {})
+    source_metadata["source_post_id"] = source_id
     normalized_body = await _normalize_post_body_text(
-        this_post["post_body"],
+        anchor_body,
         vision_client,
+        session_id=session_id,
+        metadata=source_metadata,
     )
     sources = [
         ChatSourceDocument(
             source_id,
-            this_post["post_title"],
+            anchor["post_title"],
             normalized_body,
-            evidence_facts=_source_hint_facts(this_post) + semantic_facts.get(source_id, ()),
+            evidence_facts=_source_hint_facts(anchor) + semantic_facts.get(source_id, ()),
+            occurred_at=_timestamp_text(anchor),
+            lineage_relation="anchor",
         )
     ]
 
@@ -529,29 +549,47 @@ async def gather_chat_sources(
     if not candidate_ids:
         return sources
 
-    rows = await conn.fetch(
-        "select post_id, post_title, post_body, visibility_code, corporate_entity_id, "
+    linked_sql = (
+        "select post_id, post_title, visibility_code, corporate_entity_id, created_at, "
         "source_system_code, source_record_key, source_author_code, source_author_name, "
         "source_company_code, source_company_name, source_process_unit_code, "
         "source_process_unit_name, source_sales_pool_code, source_sales_pool_name, "
         "source_customer_code, source_customer_name, "
-        "source_project_code, source_project_name, created_at "
+        "source_project_code, source_project_name "
+        f"from source_post where post_id = any($1::uuid[]) and {_SOURCE_ELIGIBILITY} "
+        "order by array_position($1::uuid[], post_id)"
+        if cutoff is None
+        else "select post_id, post_title, visibility_code, corporate_entity_id, created_at, "
+        "source_system_code, source_record_key, source_author_code, source_author_name, "
+        "source_company_code, source_company_name, source_process_unit_code, "
+        "source_process_unit_name, source_sales_pool_code, source_sales_pool_name, "
+        "source_customer_code, source_customer_name, "
+        "source_project_code, source_project_name "
         f"from source_post where post_id = any($1::uuid[]) "
         f"and created_at <= $3 and {_SOURCE_ELIGIBILITY} "
-        "order by array_position($1::uuid[], post_id) limit $2",
-        candidate_ids,
-        _POST_CHAT_CANDIDATE_LIMIT,
-        cutoff,
+        "order by array_position($1::uuid[], post_id) limit $2"
     )
-    visible_source_ids = [post_id]
-    visible_rows: list[asyncpg.Record] = []
-    for row in rows:
-        if not can_see_post(row):
-            continue
-        visible_rows.append(row)
-        visible_source_ids.append(str(row["post_id"]))
-        if len(visible_rows) >= _POST_CHAT_SOURCE_LIMIT - 1:
-            break
+    rows = (
+        await conn.fetch(linked_sql, candidate_ids)
+        if cutoff is None
+        else await conn.fetch(
+            linked_sql,
+            candidate_ids,
+            _POST_CHAT_CANDIDATE_LIMIT,
+            cutoff,
+        )
+    )
+    admitted_rows = [row for row in rows if can_see_post(row)]
+    direct_rows = sorted(
+        (row for row in admitted_rows if str(row["post_id"]) in linked.direct),
+        key=lambda row: str(row["post_id"]),
+    )
+    indirect_rows = sorted(
+        (row for row in admitted_rows if str(row["post_id"]) in linked.indirect),
+        key=lambda row: str(row["post_id"]),
+    )
+    visible_rows = (direct_rows + indirect_rows)[: _POST_CHAT_SOURCE_LIMIT - 1]
+    visible_source_ids = [source_id, *(str(row["post_id"]) for row in visible_rows)]
 
     semantic_facts = await _semantic_facts_for_posts(conn, visible_source_ids)
     graph_facts = await _graph_facts_for_posts(conn, visible_source_ids)
@@ -561,20 +599,140 @@ async def gather_chat_sources(
         sources[0].post_body,
         graph_facts=graph_facts,
         evidence_facts=sources[0].evidence_facts,
+        occurred_at=sources[0].occurred_at,
+        lineage_relation=sources[0].lineage_relation,
     )
+    selected_ids = [row["post_id"] for row in visible_rows]
+    body_rows = await conn.fetch(
+        "select post_id, post_body from source_post where post_id = any($1::uuid[])",
+        selected_ids,
+    )
+    bodies = {str(row["post_id"]): row["post_body"] for row in body_rows}
     for row in visible_rows:
-        normalized_body = await _normalize_post_body_text(row["post_body"], vision_client)
+        selected_post_id = str(row["post_id"])
+        body = bodies.get(selected_post_id)
+        if body is None:
+            continue
+        source_metadata = dict(metadata or {})
+        source_metadata["source_post_id"] = selected_post_id
+        normalized_body = await _normalize_post_body_text(
+            body,
+            vision_client,
+            session_id=session_id,
+            metadata=source_metadata,
+        )
         sources.append(
             ChatSourceDocument(
-                str(row["post_id"]),
+                selected_post_id,
                 row["post_title"],
                 normalized_body,
                 evidence_facts=_source_hint_facts(row)
-                + semantic_facts.get(str(row["post_id"]), ()),
+                + semantic_facts.get(selected_post_id, ()),
+                occurred_at=_timestamp_text(row),
+                lineage_relation=(
+                    "direct_lineage"
+                    if selected_post_id in linked.direct
+                    else "indirect_knowledge_graph"
+                ),
             )
         )
 
     return sources
+
+
+def _row_value(row: Any, key: str, default: Any = None) -> Any:
+    getter = getattr(row, "get", None)
+    if callable(getter):
+        return getter(key, default)
+    try:
+        return row[key]
+    except (KeyError, Exception):
+        return default
+
+
+def _clock_iso(value: datetime) -> str:
+    return value.isoformat()
+
+
+def _global_ask_candidate_sql(*, knowledge_cutoff: bool) -> str:
+    if not knowledge_cutoff:
+        eligibility = SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")
+        return f"""
+            select post_id, matched_in
+              from (
+                   (select post_id, created_at, 'title' as matched_in
+                      from source_post
+                     where {eligibility}
+                       and post_title ilike '%' || $1 || '%'
+                     limit 32)
+                    union all
+                   (select post_id, created_at, 'body' as matched_in
+                      from source_post
+                     where {eligibility}
+                       and lower(left(source_post_search_text(post_body), 16384))
+                               like '%' || lower($1) || '%'
+                     limit 32)
+                    union all
+                   (select post_id, created_at, 'body' as matched_in
+                      from source_post
+                     where {eligibility}
+                       and to_tsvector('simple', source_post_search_text(post_body))
+                               @@ plainto_tsquery('simple', $1)
+                     limit 32)
+                    union all
+                   (select post_id, created_at, 'source_field' as matched_in
+                      from source_post
+                     where {eligibility}
+                       and concat_ws(' ', source_system_code, source_record_key,
+                                      source_author_code, source_author_name,
+                                      source_company_code, source_company_name,
+                                      source_process_unit_code, source_process_unit_name,
+                                      source_sales_pool_code, source_sales_pool_name,
+                                      source_customer_code, source_customer_name,
+                                      source_project_code, source_project_name)
+                               ilike '%' || $1 || '%'
+                     limit 32)
+                   ) matches
+             order by created_at desc, post_id desc
+            limit 32
+            """
+    eligibility = SOURCE_POST_ELIGIBILITY_SQL.format(alias="sp")
+    covering = (
+        "spr.written_at <= $3 "
+        "and (spr.superseded_at is null or spr.superseded_at > $3) "
+        "and sp.created_at <= $3 "
+        "and (sp.visibility_code = 'public' or sp.corporate_entity_id::text = any($2::text[])) "
+        f"and {eligibility}"
+    )
+    return f"""
+            select post_id, matched_in
+              from (
+                   (select sp.post_id, sp.created_at, 'title' as matched_in
+                      from source_post_revision spr
+                      join source_post sp on sp.post_id = spr.post_id
+                     where {covering}
+                       and spr.post_title ilike '%' || $1 || '%'
+                     limit 32)
+                    union all
+                   (select sp.post_id, sp.created_at, 'body' as matched_in
+                      from source_post_revision spr
+                      join source_post sp on sp.post_id = spr.post_id
+                     where {covering}
+                       and lower(left(source_post_search_text(spr.post_body), 16384))
+                               like '%' || lower($1) || '%'
+                     limit 32)
+                    union all
+                   (select sp.post_id, sp.created_at, 'body' as matched_in
+                      from source_post_revision spr
+                      join source_post sp on sp.post_id = spr.post_id
+                     where {covering}
+                       and to_tsvector('simple', source_post_search_text(spr.post_body))
+                               @@ plainto_tsquery('simple', $1)
+                     limit 32)
+                   ) matches
+             order by created_at desc, post_id desc
+            limit 32
+            """
 
 
 async def gather_global_chat_sources(
@@ -592,6 +750,8 @@ async def gather_global_chat_sources(
     The source set is intentionally bounded until retrieval/reranking is
     needed for a much larger corpus; every selected body still uses the same
     image normalization and persisted graph evidence as post-scoped chat.
+    A knowledge cutoff uses retained revisions (ADR 0135) and never
+    substitutes a live body for a missing historical one.
     """
     if limit <= 0:
         return []
@@ -640,63 +800,14 @@ async def gather_global_chat_sources(
     # loosely related posts in a live reproduction of this bug.
     _MATCH_WEIGHT = {"title": 3.0, "body": 1.0, "source_field": 1.0}
     candidate_scores: dict[str, float] = {}
+    candidate_sql = _global_ask_candidate_sql(knowledge_cutoff=knowledge_cutoff is not None)
     for term in search_terms:
-        candidate_rows = await conn.fetch(
-            f"""
-            select post_id, matched_in
-              from (
-                   (select post_id, created_at, 'title' as matched_in
-                      from source_post
-                     where (visibility_code = 'public'
-                            or corporate_entity_id::text = any($2::text[]))
-                       and created_at <= $3
-                       and {_SOURCE_ELIGIBILITY}
-                       and post_title ilike '%' || $1 || '%'
-                     limit 32)
-                    union all
-                   (select post_id, created_at, 'body' as matched_in
-                      from source_post
-                     where (visibility_code = 'public'
-                            or corporate_entity_id::text = any($2::text[]))
-                       and created_at <= $3
-                       and {_SOURCE_ELIGIBILITY}
-                       and lower(left(source_post_search_text(post_body), 16384))
-                               like '%' || lower($1) || '%'
-                     limit 32)
-                    union all
-                   (select post_id, created_at, 'body' as matched_in
-                      from source_post
-                     where (visibility_code = 'public'
-                            or corporate_entity_id::text = any($2::text[]))
-                       and created_at <= $3
-                       and {_SOURCE_ELIGIBILITY}
-                       and to_tsvector('simple', source_post_search_text(post_body))
-                               @@ plainto_tsquery('simple', $1)
-                     limit 32)
-                    union all
-                   (select post_id, created_at, 'source_field' as matched_in
-                      from source_post
-                     where (visibility_code = 'public'
-                            or corporate_entity_id::text = any($2::text[]))
-                       and created_at <= $3
-                       and {_SOURCE_ELIGIBILITY}
-                       and concat_ws(' ', source_system_code, source_record_key,
-                                      source_author_code, source_author_name,
-                                      source_company_code, source_company_name,
-                                      source_process_unit_code, source_process_unit_name,
-                                      source_sales_pool_code, source_sales_pool_name,
-                                      source_customer_code, source_customer_name,
-                                      source_project_code, source_project_name)
-                               ilike '%' || $1 || '%'
-                     limit 32)
-                   ) matches
-             order by created_at desc, post_id desc
-            limit 32
-            """,
-            term,
-            authorized_entity_ids,
-            cutoff,
+        candidate_args: tuple[object, ...] = (
+            (term, authorized_entity_ids, cutoff)
+            if knowledge_cutoff is not None
+            else (term, authorized_entity_ids)
         )
+        candidate_rows = await conn.fetch(candidate_sql, *candidate_args)
         for row in candidate_rows:
             post_id = str(row["post_id"])
             candidate_scores[post_id] = candidate_scores.get(post_id, 0.0) + _MATCH_WEIGHT[row["matched_in"]]
@@ -714,11 +825,23 @@ async def gather_global_chat_sources(
     lineage_neighbor_ids: list[str] = []
     lineage_anchor_id = candidate_ids[0] if candidate_ids else None
     if lineage_anchor_id:
-        lineage_rows = await conn.fetch(
-            "select child_post_id as other_id from post_lineage_edge where parent_post_id = $1 "
-            "union select parent_post_id as other_id from post_lineage_edge where child_post_id = $1",
-            lineage_anchor_id,
-        )
+        if knowledge_cutoff is not None:
+            lineage_rows = await conn.fetch(
+                "select child_post_id as other_id from post_lineage_edge "
+                "join source_post on source_post.post_id = child_post_id "
+                "where parent_post_id = $1 and source_post.created_at <= $2 "
+                "union select parent_post_id as other_id from post_lineage_edge "
+                "join source_post on source_post.post_id = parent_post_id "
+                "where child_post_id = $1 and source_post.created_at <= $2",
+                lineage_anchor_id,
+                cutoff,
+            )
+        else:
+            lineage_rows = await conn.fetch(
+                "select child_post_id as other_id from post_lineage_edge where parent_post_id = $1 "
+                "union select parent_post_id as other_id from post_lineage_edge where child_post_id = $1",
+                lineage_anchor_id,
+            )
         lineage_neighbor_ids = sorted(
             {
                 str(row["other_id"])
@@ -736,7 +859,7 @@ async def gather_global_chat_sources(
     rows = await conn.fetch(
         f"""
         select post_id, post_title, post_body, visibility_code, corporate_entity_id,
-               created_at,
+               created_at, updated_at,
                source_system_code, source_record_key, source_author_code, source_author_name,
                source_company_code, source_company_name, source_process_unit_code,
                source_process_unit_name, source_sales_pool_code, source_sales_pool_name,
@@ -759,31 +882,74 @@ async def gather_global_chat_sources(
     visible_rows = [row for row in rows if can_see_post(row)][:limit]
     visible_ids = [str(row["post_id"]) for row in visible_rows]
     anchor_is_visible = lineage_anchor_id in visible_ids
-    semantic_facts = await _semantic_facts_for_posts(conn, visible_ids)
-    graph_facts = (await _graph_facts_for_posts(conn, visible_ids))[:16]
+    cutoff_revisions = (
+        await fetch_cutoff_revisions(conn, visible_ids, cutoff)
+        if knowledge_cutoff is not None
+        else {}
+    )
+    semantic_facts = (
+        {}
+        if knowledge_cutoff is not None
+        else await _semantic_facts_for_posts(conn, visible_ids)
+    )
+    graph_facts = (
+        ()
+        if knowledge_cutoff is not None
+        else (await _graph_facts_for_posts(conn, visible_ids))[:16]
+    )
+    cutoff_text = _clock_iso(knowledge_cutoff) if knowledge_cutoff is not None else None
     sources: list[ChatSourceDocument] = []
     for index, row in enumerate(visible_rows):
-        normalized_body = await _normalize_post_body_text(row["post_body"], vision_client)
-        if len(normalized_body) > 4000:
-            normalized_body = (
-                normalized_body[:4000]
-                + "\n[Source body truncated for Global Ask; open the cited post for the full body.]"
-            )
         post_id = str(row["post_id"])
         lineage_fact = (
             (f"Event Lineage: reconstructed timeline neighbor of post_id={lineage_anchor_id}",)
             if post_id in lineage_neighbor_id_set and anchor_is_visible
             else ()
         )
+        revision = cutoff_revisions.get(post_id) if knowledge_cutoff is not None else None
+        historical_body_unavailable = knowledge_cutoff is not None and revision is None
+        if historical_body_unavailable:
+            title = row["post_title"]
+            normalized_body = ""
+            evidence_facts: tuple[str, ...] = lineage_fact
+            source_revision_id = None
+            evidence_available_at = None
+        elif revision is not None:
+            title = revision["post_title"]
+            normalized_body = await _normalize_post_body_text(
+                revision["post_body"], vision_client
+            )
+            evidence_facts = lineage_fact
+            source_revision_id = revision["source_revision_id"]
+            evidence_available_at = revision["written_at"]
+        else:
+            title = row["post_title"]
+            normalized_body = await _normalize_post_body_text(row["post_body"], vision_client)
+            evidence_facts = _source_hint_facts(row) + semantic_facts.get(post_id, ()) + lineage_fact
+            source_revision_id = None
+            evidence_available_at = None
+        if len(normalized_body) > 4000:
+            normalized_body = (
+                normalized_body[:4000]
+                + "\n[Source body truncated for Global Ask; open the cited post for the full body.]"
+            )
+        updated_at = _row_value(row, "updated_at")
+        live_after_cutoff = False
+        if knowledge_cutoff is not None and updated_at is not None:
+            live_clock = updated_at
+            if getattr(updated_at, "tzinfo", None) is None:
+                live_clock = updated_at.replace(tzinfo=timezone.utc)
+            try:
+                live_after_cutoff = live_clock > cutoff
+            except TypeError:
+                live_after_cutoff = False
         sources.append(
             ChatSourceDocument(
                 post_id,
-                row["post_title"],
+                title,
                 normalized_body,
                 graph_facts=graph_facts if index == 0 else (),
-                evidence_facts=_source_hint_facts(row)
-                + semantic_facts.get(post_id, ())
-                + lineage_fact,
+                evidence_facts=evidence_facts,
                 occurred_at=_timestamp_text(row),
                 timeline_kind=(
                     "lineage_neighbor"
@@ -792,6 +958,11 @@ async def gather_global_chat_sources(
                     if post_id == lineage_anchor_id
                     else "keyword_match"
                 ),
+                source_revision_id=source_revision_id,
+                evidence_available_at=evidence_available_at,
+                knowledge_cutoff=cutoff_text,
+                live_after_cutoff=bool(live_after_cutoff),
+                historical_body_unavailable=historical_body_unavailable,
             )
         )
     return sources

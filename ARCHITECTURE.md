@@ -45,7 +45,7 @@ flowchart LR
 
     subgraph External services, all optional
         EMB[Embedding provider<br/>swap in for the text channel]
-        ORC[contextual-orchestrator<br/>mode=verify, llm channel]
+        ORC[contextual-orchestrator<br/>mode=auto, llm and vision channels]
         TEPP[TEPP<br/>AnalysisRunRequest v1,<br/>calibrated measurement]
     end
 
@@ -82,19 +82,15 @@ flowchart LR
 | `period_report.py` | Fit GRM/GPCM on persisted IRT rows, FIPC-select, EAP-score a period (ADR 0003 slice 3; Bock & Mislevy, 1982) |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |
 | `server.py` | Legacy stdlib HTTP server for the library-level synthetic fixture demo; production uses FastAPI/PostgreSQL |
+| `backend/app/mcp_server.py` | OAuth-protected Streamable HTTP MCP resource server exposing read-only, evidence-grounded Global Ask |
 | `web/index.html` | Legacy self-contained SVG DAG viewer; production UI is the React/Vite frontend |
 
-> **Known local-test-environment limitation:** `adjudication_client.py`'s
-> `mode="verify"` call depends on contextual-orchestrator's
-> `TaskOrchestrator.route_and_verify`, which as of this writing is still
-> an open, unmerged upstream PR
-> (`ContextualWisdomLab/contextual-orchestrator#149`). Until it merges,
-> the four adjudication/chat tests that exercise `mode="verify"` against
-> a real orchestrator fail with `invalid_mode` (the deployed `main` only
-> accepts `auto`/`route`/`conduct`) -- confirmed by reproducing the same
-> `400` directly against the orchestrator's own `/v1/chat/completions`,
-> not caused by anything in this repo. `mode="route"` (every other
-> pluggable client) is unaffected.
+> **Contextual-orchestrator contract:** Post Ask and MCP Global Ask use
+> `mode="auto"` and `reasoning_effort="auto"`; the gateway owns model
+> discovery, provider protocol, and multi-agent reasoning. Requests carry a
+> stable post-scoped session id and non-secret evidence metadata. Structured
+> responses use `json_schema`. LineageWeave never calls a provider directly
+> or falls back to the rejected legacy `verify` mode.
 
 ## Design decisions worth naming
 
@@ -286,12 +282,16 @@ HTML. `src/api.ts` calls the FastAPI backend directly with the token
 Keycloak issued; `src/App.tsx` renders a git-branch SVG of
 `GET /api/lineage` (click a node to open that post; `post_admin` can
 rebuild), the post list with a named Weekly VOC ISO-8601 week filter
-(ADR 0092; opening that filtered post focuses Event Lineage, ADR 0093),
-Calendar commitments use the same Event Lineage focus path (ADR 0094),
+(ADR 0092; opening that filtered post focuses Event Lineage, ADR 0093).
+Calendar commitments use the same Event Lineage focus path (ADR 0094).
 Customer master related posts use the same Event Lineage focus path
 (ADR 0095). Ask Agent cited posts use the same Event Lineage focus path
 (ADR 0096). A linked Event Lineage node opened from a focused popup keeps
-those flags (ADR 0097), and the full detail popup includes Korean
+those flags (ADR 0097). Ask Agent accepts an optional knowledge cutoff
+and uses retained `source_post_revision` bodies for that clock (ADR 0135);
+a live query is never labeled as-of. The full detail popup includes Korean
+and focuses Keyman as the named next read (ADR 0100). The full detail
+popup includes Korean
 summary/key-events/R&R, VOC evidence excerpts, an Event Lineage panel
 (direct vs. indirect links; a link opens that post), the Keyman
 affiliate tree (resolved ancestors plus unresolved org roots), Keyman +
@@ -378,7 +378,9 @@ close the one product-brief item with a schema table (`issue_ticket`)
 but no implementation through Phase 4. Deliberately plain CRUD, not a
 pluggable-LLM channel like `keyman_ingestion.py` -- ticket status is a
 closed enum in `common_lookup_value`, and opening or updating a ticket
-is a direct user action, not something extracted from text.
+is a direct user action, not something extracted from text. Ticket writes
+also require `post_admin` plus authorship or corporate affiliation with the
+owning post; public visibility is read access only (ADR 0122).
 `frontend/src/App.tsx`'s `IssueTicketPanel` is the popup's real
 list/create/status-update UI for it. Status options show
 `common_lookup_value` labels (`Open` / `In progress` / `Closed`)

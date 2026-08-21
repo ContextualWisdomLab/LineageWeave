@@ -177,10 +177,17 @@ Opening a Calendar commitment uses the same focus path (ADR 0094). Do not
 invent a week, a theta, a cutoff body, or a CalDAV event.
 Opening a Customer master related post uses the same focus path (ADR 0095).
 Do not invent a week, a theta, a cutoff body, a CalDAV event, or a customer.
-Opening an Ask Agent cited post uses the same focus path (ADR 0096). Do not
-invent a cited post.
-A linked Event Lineage node opened from that focused popup keeps the
-originating flags (ADR 0097). Do not invent a cited post.
+ Opening an Ask Agent cited post uses the same focus path (ADR 0096).
+ Do not invent a cited post.
+ A linked Event Lineage node opened from that focused popup keeps the
+ originating flags (ADR 0097). That open then focuses Keyman as the named
+next read (ADR 0100). Do not invent a week, a theta, a cutoff body,
+ a CalDAV event, a customer, or a cited post.
+
+Ask Agent accepts an optional knowledge cutoff (ADR 0135). A dated
+question uses retained revisions and never substitutes a live body. A
+live query is never labeled as-of. Do not invent a cutoff body or a
+TEPP theta.
 
 
 ## Tests
