@@ -11,11 +11,11 @@
 Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
-Current PR exact head observed during this audit: `0937a9848df1e637e9478cbfca1cd35c4e2024e3`.
-The local Compose image used for the authenticated runtime sweep was rebuilt
-from predecessor head `5b727e736c23d3f918eebcd624342105a9d30ee5`; the later
-terminology and locale commits are source-only deltas for this runtime evidence,
-so a current-head image rebuild remains an acceptance step.
+Current PR exact head observed before this documentation update:
+`f74df9e09d4fe77b1d723575220e46dd47d808f2`. The backend image was rebuilt from
+the health-probe fix commit in this stack; the frontend container also contains
+concurrent uncommitted workspace UI changes, so a clean current-head image
+rebuild remains an acceptance step.
 
 - **Implemented in source:** PostgreSQL-backed API boundaries, Keyverse/OIDC
   identity boundary, workspace navigation, post popup, ABAC/RBAC surfaces, Korean
@@ -96,6 +96,10 @@ real React client rendered the protected board. Aggregate evidence only:
   persisted post-lineage edges, and 1,929 posts participating in those edges.
   This is evidence of a sparse current relationship projection, not evidence
   that the Event Lineage product goal is complete.
+- After the health-probe correction, the rebuilt backend returned unauthenticated
+  `/healthz` HTTP 200. The focused representative case in the later mixed
+  workspace image returned no DAG, so the earlier single-case DAG observation
+  must not be generalized to corpus coverage.
 
 ## 3. Requirement traceability
 
@@ -119,10 +123,11 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Authenticated corp/PU attributes | `/api/me` returns DB-backed codes; backend integration test covers `TEST-CORP`/`TEST-PU` and header displays them | source + local-integration |
 | RBAC/ABAC, public/private visibility, tenant isolation | `_can_see_post`, API authorization tests, aggregate-only runtime checks | source + local-integration |
 | React product surface and PostgreSQL boundary | React routes/components, asyncpg API, Compose stack | source + local-integration |
+| Public Compose liveness and tenant settings boundary | health-probe regression test, `0103_tenant_settings.sql`, rebuilt backend `/healthz` HTTP 200 | source + unit + local-integration |
 | Post list/detail popup, Korean summary, 5W1H, R&R, tickets/calendar | API routes, popup panels, backend/frontend tests | source + unit |
 | Keyman on both sides, titles, affiliations, related KG nodes | Keyman/affiliate-tree/related-node routes and popup | source + unit; live extraction open |
 | Ontology, semantic layer, provenance, W3C PROV-O projection | normalized schema, provenance modules, ADRs, evidence UI | source; corpus verification open |
-| Branching Event Lineage DAG with evidence trail | `LineageDag.tsx`, Storybook story, Figma frames, frontend tests; one supplied runtime case rendered a DAG while an isolated case rendered the honest empty state | source + unit + local-integration partial |
+| Branching Event Lineage DAG with evidence trail | `LineageDag.tsx`, Storybook story, Figma frames, frontend tests; runtime cases include both a rendered DAG and honest empty states, while current corpus coverage remains sparse | source + unit + local-integration partial |
 | Customer master and hierarchy tree | `/api/customer-master`, affiliate tree, catalog migrations | source + unit; live resolution open |
 | VOC/VOM/VOP/VOCC/VOCO/VOS role classification | common lookup values and relationship APIs | source + unit; live classification open |
 | Evidence-grounded chat and source navigation | `/chat`, `/ask`, citation/evidence UI | source + unit; orchestrator runtime open |
@@ -189,6 +194,11 @@ or an explicit unavailable result.
   behavior, lock boundaries, Valkey event delivery, multithreaded server
   behavior, retention grants, and read/write contention on the local Compose
   stack.
+- **Lineage coverage — open:** the persisted graph has 1,308 post-lineage edges
+  across 1,929 participating posts, while the bounded current view exposed one
+  edge and some focused posts had no component. Add a rebuild/coverage gate that
+  distinguishes genuinely isolated posts from missing extraction or grouping
+  evidence before presenting a buyer-facing branching DAG as complete.
 - **Literature/Zotero — open:** record APA 7 references and verify Local Zotero
   API availability before claiming synchronization. The repository must retain
   only metadata/citations appropriate for public artifacts.
