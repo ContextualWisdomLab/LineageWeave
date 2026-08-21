@@ -26,6 +26,9 @@ All notable changes to this project are documented here. Format follows
   Ask Agent lands the cursor in the search box.
 - Event Lineage SVG edges now retain their instance-specific direction markers,
   so parent-to-child arrows remain visible when multiple lineage groups render.
+- All OpenAI-compatible chat-completion consumers now validate the shared
+  response envelope before parsing it, preventing malformed provider bodies
+  from escaping as raw `KeyError` or response-shape details.
 
 ## [2.12.6] - 2026-08-20
 
