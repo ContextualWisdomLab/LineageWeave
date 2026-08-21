@@ -49,7 +49,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T16:28:12Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T16:37:48Z` from the
 GitHub API. Checkpoint types are `merge_commit`, `head`, and
 `closed_without_merge`; the latter records a closed PR's exact `head` when
 `merged_at` and `merge_commit_sha` are both absent. A merged commit is
@@ -71,16 +71,16 @@ Recently merged into the protected repository:
 
 Open PRs at the same observation:
 
-- PR #258: `head` `53ce1a53612c190f77bf584bb526e884d590dc60`, base `main`
+- PR #258: `head` `a3cf51e9fe34097fab41c2d160bf93c4ad48ddb0`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #349: `head` `df125094b93454cc61679a16b4b1c122c3f355ae`, base `main`
+- PR #349: `head` `129d505bfde6cd3a1d74581e6d7870cca62f5a3b`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #355: `head` `b606c2553f877fa85968d90dc46598ce16897fbf`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`). The overlap with PR #379's
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `0056e9c3406dc554489ab7d040f19779fa2daacd`, base `main`
+- PR #368: `head` `a1550c96abbb1d545c632980be00ac60bb589cc5`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `6b84bea10881e2f82fb676d5b01cf56f7d8f4adb`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
@@ -152,7 +152,7 @@ These observations are runtime evidence, not a claim that the corresponding
 PRs are merged. The image-processing state and protected-corpus parsing cases
 remain open gaps.
 
-Observed at `2026-08-21T16:28:12Z` after one bounded operator retry through
+Observed at `2026-08-21T16:37:48Z` after one bounded operator retry through
 the real Compose backend, Valkey, and orchestrator boundary:
 
 - One terminal image-ingestion job completed with `succeeded` after roughly
@@ -165,6 +165,12 @@ the real Compose backend, Valkey, and orchestrator boundary:
 - The remaining aggregate image state was 421 `failed` and 12,377
   `unavailable` images. Do not bulk retry until provider throughput, bounded
   retry policy, and buyer-visible failure/retry UX are separately accepted.
+- PR #258's exact head `a3cf51e9fe34097fab41c2d160bf93c4ad48ddb0` now
+  restarts a whole lineage group when an optional LLM adjudication channel
+  fails mid-group, preventing mixed LLM and deterministic edge scores. Local
+  verification at that head passed 976 backend tests (17 environment skips),
+  221 frontend tests, lint, and production build; hosted Checks remain queued
+  and no independent approval or merge commit is present.
 
 Observed at `2026-08-21T16:16:02Z` in a fresh local Compose browser session
 against the authenticated React surface:
@@ -185,10 +191,11 @@ against the authenticated React surface:
   The content-ingestion job registry had 18 failed and zero queued/running
   jobs; no live image-summary completion is claimed.
 - PR #384's popup CSS was then reduced to the standard three responsive tiers
-  by removing its extra 1280px media query; the focused CSS contract, full
-  frontend test suite (199 tests), lint, TypeScript, and production build all
-  passed locally. The change is pushed at the exact PR head recorded above;
-  hosted Checks and independent approval remain open.
+  by removing its extra 1280px media query. The focused CSS contract, lint,
+  TypeScript, and production build passed locally after the final concurrent
+  head was reconciled; the earlier 199-test full-suite result preceded that
+  concurrent commit and is not claimed as final-head evidence. Hosted Checks
+  and independent approval remain open.
 
 ## 6. Organization OpenTelemetry Evidence Boundary
 
