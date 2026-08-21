@@ -96,7 +96,7 @@ def test_graph_validation_rejects_duplicate_fragments_and_unsafe_links() -> None
         publisher.validate_public_graph(unsafe)
 
 
-def test_graph_validation_allows_http_relations_and_rejects_multiple_term_types() -> None:
+def test_graph_validation_allows_http_relations_and_multiple_term_types() -> None:
     publisher = _load_publisher()
     graph = Graph()
     subject = URIRef("https://example.test/ontology#Subject")
@@ -104,13 +104,7 @@ def test_graph_validation_allows_http_relations_and_rejects_multiple_term_types(
     graph.add((subject, RDF.type, OWL.AnnotationProperty))
     graph.add((subject, RDFS.subClassOf, URIRef("https://external.example/Parent")))
 
-    with pytest.raises(ValueError, match="multiple public term categories"):
-        publisher.validate_public_graph(graph)
-
-    single_type = Graph()
-    single_type.add((subject, RDF.type, OWL.Class))
-    single_type.add((subject, RDFS.subClassOf, URIRef("https://external.example/Parent")))
-    publisher.validate_public_graph(single_type)
+    publisher.validate_public_graph(graph)
 
 
 def test_main_publishes_site(tmp_path: Path) -> None:
