@@ -1,8 +1,8 @@
 """Strict consumer contract for Naruon-owned calendar event projections.
 
-LineageWeave owns post-grounded customer commitments and issue tickets. Naruon
-owns customer calendar provider access, CalDAV synchronization, provider
-revision handling, and policy filtering. This module consumes only a bounded,
+LineageWeave owns post-grounded commitments and issue tickets. Naruon owns
+customer calendar provider access, CalDAV synchronization, provider revisions,
+writeback, retry, and reconciliation. This module consumes only a bounded,
 already-authorized Naruon read projection; it is deliberately not a CalDAV
 client and never receives provider credentials or an end-user bearer token.
 """
@@ -33,6 +33,23 @@ _ALLOWED_TRUTH_STATUS_CODES = frozenset({"observed"})
 _RFC3339_PATTERN = re.compile(
     r"^[0-9]{4}-[0-9]{2}-[0-9]{2}[Tt][0-9]{2}:"
     r"[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?(?:[Zz]|[+-][0-9]{2}:[0-9]{2})$"
+)
+_OCCURRENCE_FIELDS = frozenset(
+    {
+        "event_reference",
+        "occurrence_reference",
+        "source_reference",
+        "provider_revision",
+        "display_text",
+        "starts_at",
+        "ends_at",
+        "all_day",
+        "time_zone",
+        "status_code",
+        "disclosure_code",
+        "truth_status_code",
+        "observed_at",
+    }
 )
 
 
@@ -76,7 +93,7 @@ def _strict_object(
     required: frozenset[str],
     optional: frozenset[str] = frozenset(),
 ) -> dict[str, Any]:
-    """Return a mapping with exactly the admitted required/optional fields."""
+    """Return a mapping containing exactly the admitted fields."""
 
     if not isinstance(value, dict):
         raise NaruonCalendarContractError(f"{field_name} must be an object")
@@ -101,36 +118,36 @@ def _bounded_text(
     *,
     field_name: str,
     maximum_length: int,
-    allow_whitespace: bool = True,
+    allow_internal_whitespace: bool = True,
     allow_url_shape: bool = True,
 ) -> str:
-    """Validate one bounded text field without disclosing its value in errors."""
+    """Validate exact bounded text without silently normalizing identity."""
 
     if not isinstance(value, str):
         raise NaruonCalendarContractError(f"{field_name} must be a string")
-    normalized = value.strip()
-    if not normalized or len(normalized) > maximum_length:
+    if value != value.strip():
+        raise NaruonCalendarContractError(
+            f"{field_name} must not contain surrounding whitespace"
+        )
+    if not value or len(value) > maximum_length:
         raise NaruonCalendarContractError(
             f"{field_name} must contain 1..{maximum_length} characters"
         )
-    if any(
-        ord(character) < 32 or ord(character) == 127
-        for character in normalized
-    ):
+    if any(ord(character) < 32 or ord(character) == 127 for character in value):
         raise NaruonCalendarContractError(
             f"{field_name} contains control characters"
         )
-    if not allow_whitespace and any(
-        character.isspace() for character in normalized
+    if not allow_internal_whitespace and any(
+        character.isspace() for character in value
     ):
         raise NaruonCalendarContractError(
-            f"{field_name} must be an opaque token"
+            f"{field_name} must be an opaque token without whitespace"
         )
-    if not allow_url_shape and "://" in normalized:
+    if not allow_url_shape and "://" in value:
         raise NaruonCalendarContractError(
             f"{field_name} must not contain a URL"
         )
-    return normalized
+    return value
 
 
 def _bounded_integer(
@@ -140,7 +157,7 @@ def _bounded_integer(
     minimum: int,
     maximum: int,
 ) -> int:
-    """Return one true integer inside an inclusive contract range."""
+    """Return one true integer inside an inclusive range."""
 
     if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError(f"{field_name} must be an integer")
@@ -156,44 +173,42 @@ def _bounded_timeout(value: Any) -> float:
 
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError("timeout must be a finite number")
-    normalized = float(value)
-    if not math.isfinite(normalized) or not 0 < normalized <= 30:
+    timeout = float(value)
+    if not math.isfinite(timeout) or not 0 < timeout <= 30:
         raise ValueError(
             "timeout must be greater than 0 and at most 30 seconds"
         )
-    return normalized
+    return timeout
 
 
 def _opaque_reference(value: Any, *, field_name: str) -> str:
-    """Validate an opaque non-URL reference token."""
+    """Validate a bounded opaque non-URL token."""
 
     return _bounded_text(
         value,
         field_name=field_name,
         maximum_length=256,
-        allow_whitespace=False,
+        allow_internal_whitespace=False,
         allow_url_shape=False,
     )
 
 
 def _parse_rfc3339(value: Any, *, field_name: str) -> datetime:
-    """Parse one offset-aware RFC 3339 instant."""
+    """Parse one exact offset-aware RFC 3339 instant."""
 
     text = _bounded_text(
         value,
         field_name=field_name,
         maximum_length=64,
+        allow_internal_whitespace=False,
     )
     if _RFC3339_PATTERN.fullmatch(text) is None:
         raise NaruonCalendarContractError(
             f"{field_name} must be RFC 3339"
         )
-    normalized_text = text[:10] + "T" + text[11:]
-    normalized = (
-        f"{normalized_text[:-1]}+00:00"
-        if normalized_text.endswith(("Z", "z"))
-        else normalized_text
-    )
+    normalized = text[:10] + "T" + text[11:]
+    if normalized.endswith(("Z", "z")):
+        normalized = f"{normalized[:-1]}+00:00"
     try:
         parsed = datetime.fromisoformat(normalized)
     except ValueError as exc:
@@ -213,13 +228,13 @@ def _controlled_code(
     field_name: str,
     allowed: frozenset[str],
 ) -> str:
-    """Validate one closed vocabulary value."""
+    """Validate one closed-vocabulary code."""
 
     code = _bounded_text(
         value,
         field_name=field_name,
         maximum_length=64,
-        allow_whitespace=False,
+        allow_internal_whitespace=False,
     )
     if code not in allowed:
         raise NaruonCalendarContractError(
@@ -228,67 +243,54 @@ def _controlled_code(
     return code
 
 
-def _parse_occurrence(
-    value: Any,
-    *,
-    index: int,
-) -> NaruonCalendarOccurrence:
-    """Parse one strict calendar occurrence from a projection page."""
+def _parse_occurrence(value: Any, *, index: int) -> NaruonCalendarOccurrence:
+    """Parse one strict occurrence from a projection page."""
 
     field_name = f"events[{index}]"
     row = _strict_object(
         value,
         field_name=field_name,
-        required=frozenset(
-            {
-                "event_reference",
-                "occurrence_reference",
-                "source_reference",
-                "provider_revision",
-                "display_text",
-                "starts_at",
-                "ends_at",
-                "all_day",
-                "time_zone",
-                "status_code",
-                "disclosure_code",
-                "truth_status_code",
-                "observed_at",
-            }
-        ),
+        required=_OCCURRENCE_FIELDS,
     )
     if not isinstance(row["all_day"], bool):
         raise NaruonCalendarContractError(
             f"{field_name}.all_day must be a boolean"
         )
-    starts_at = _parse_rfc3339(
+    starts_text = _bounded_text(
         row["starts_at"],
         field_name=f"{field_name}.starts_at",
+        maximum_length=64,
+        allow_internal_whitespace=False,
     )
-    ends_at = _parse_rfc3339(
+    ends_text = _bounded_text(
         row["ends_at"],
         field_name=f"{field_name}.ends_at",
+        maximum_length=64,
+        allow_internal_whitespace=False,
     )
+    observed_text = _bounded_text(
+        row["observed_at"],
+        field_name=f"{field_name}.observed_at",
+        maximum_length=64,
+        allow_internal_whitespace=False,
+    )
+    starts_at = _parse_rfc3339(starts_text, field_name=f"{field_name}.starts_at")
+    ends_at = _parse_rfc3339(ends_text, field_name=f"{field_name}.ends_at")
+    _parse_rfc3339(observed_text, field_name=f"{field_name}.observed_at")
     if ends_at <= starts_at:
         raise NaruonCalendarContractError(
             f"{field_name}.ends_at must be after starts_at"
         )
-    _parse_rfc3339(
-        row["observed_at"],
-        field_name=f"{field_name}.observed_at",
-    )
     return NaruonCalendarOccurrence(
         event_reference=_opaque_reference(
-            row["event_reference"],
-            field_name=f"{field_name}.event_reference",
+            row["event_reference"], field_name=f"{field_name}.event_reference"
         ),
         occurrence_reference=_opaque_reference(
             row["occurrence_reference"],
             field_name=f"{field_name}.occurrence_reference",
         ),
         source_reference=_opaque_reference(
-            row["source_reference"],
-            field_name=f"{field_name}.source_reference",
+            row["source_reference"], field_name=f"{field_name}.source_reference"
         ),
         provider_revision=_bounded_text(
             row["provider_revision"],
@@ -301,14 +303,14 @@ def _parse_occurrence(
             field_name=f"{field_name}.display_text",
             maximum_length=512,
         ),
-        starts_at=str(row["starts_at"]).strip(),
-        ends_at=str(row["ends_at"]).strip(),
+        starts_at=starts_text,
+        ends_at=ends_text,
         all_day=row["all_day"],
         time_zone=_bounded_text(
             row["time_zone"],
             field_name=f"{field_name}.time_zone",
             maximum_length=128,
-            allow_whitespace=False,
+            allow_internal_whitespace=False,
         ),
         status_code=_controlled_code(
             row["status_code"],
@@ -325,7 +327,7 @@ def _parse_occurrence(
             field_name=f"{field_name}.truth_status_code",
             allowed=_ALLOWED_TRUTH_STATUS_CODES,
         ),
-        observed_at=str(row["observed_at"]).strip(),
+        observed_at=observed_text,
     )
 
 
@@ -334,11 +336,7 @@ def parse_naruon_calendar_page(
     *,
     maximum_events: int = 200,
 ) -> NaruonCalendarPage:
-    """Validate and convert one Naruon calendar projection page.
-
-    The parser rejects unknown fields and vocabulary values so provider or
-    policy changes cannot silently broaden what LineageWeave exposes.
-    """
+    """Validate and convert one Naruon calendar projection page."""
 
     admitted_maximum = _bounded_integer(
         maximum_events,
@@ -372,26 +370,25 @@ def parse_naruon_calendar_page(
             "calendar_page.events exceeds the admitted page size"
         )
     events = tuple(
-        _parse_occurrence(row, index=index)
-        for index, row in enumerate(rows)
+        _parse_occurrence(row, index=index) for index, row in enumerate(rows)
     )
-    occurrence_references = [
-        event.occurrence_reference for event in events
-    ]
+    occurrence_references = [event.occurrence_reference for event in events]
     if len(occurrence_references) != len(set(occurrence_references)):
         raise NaruonCalendarContractError(
             "calendar_page contains duplicate occurrence references"
         )
     next_cursor_value = root.get("next_cursor")
-    next_cursor = None
-    if next_cursor_value is not None:
-        next_cursor = _bounded_text(
+    next_cursor = (
+        None
+        if next_cursor_value is None
+        else _bounded_text(
             next_cursor_value,
             field_name="calendar_page.next_cursor",
             maximum_length=1024,
-            allow_whitespace=False,
+            allow_internal_whitespace=False,
             allow_url_shape=False,
         )
+    )
     return NaruonCalendarPage(
         schema_version=NARUON_CALENDAR_SCHEMA_VERSION,
         projection_revision=projection_revision,
@@ -401,7 +398,7 @@ def parse_naruon_calendar_page(
 
 
 class NaruonCalendarProjectionClient:
-    """Read a bounded Naruon calendar projection with one service credential."""
+    """Read a bounded Naruon calendar projection with a service credential."""
 
     def __init__(
         self,
@@ -417,7 +414,7 @@ class NaruonCalendarProjectionClient:
             base_url,
             field_name="base_url",
             maximum_length=2048,
-            allow_whitespace=False,
+            allow_internal_whitespace=False,
         )
         parsed = urlparse(normalized_base)
         if parsed.scheme not in {"http", "https"} or not parsed.hostname:
@@ -427,28 +424,24 @@ class NaruonCalendarProjectionClient:
         if parsed.username is not None or parsed.password is not None:
             raise ValueError("base_url must not contain userinfo")
         if parsed.query or parsed.fragment:
-            raise ValueError(
-                "base_url must not contain a query or fragment"
-            )
+            raise ValueError("base_url must not contain a query or fragment")
         token = _bounded_text(
             service_access_token,
             field_name="service_access_token",
             maximum_length=4096,
-            allow_whitespace=False,
+            allow_internal_whitespace=False,
         )
-        admitted_maximum = _bounded_integer(
+        self._events_url = (
+            f"{normalized_base.rstrip('/')}{NARUON_CALENDAR_EVENTS_PATH}"
+        )
+        self._service_access_token = token
+        self._maximum_events = _bounded_integer(
             maximum_events,
             field_name="maximum_events",
             minimum=1,
             maximum=200,
         )
-        admitted_timeout = _bounded_timeout(timeout)
-        self._events_url = (
-            f"{normalized_base.rstrip('/')}{NARUON_CALENDAR_EVENTS_PATH}"
-        )
-        self._service_access_token = token
-        self._maximum_events = admitted_maximum
-        self._timeout = admitted_timeout
+        self._timeout = _bounded_timeout(timeout)
 
     def list_events(
         self,
@@ -459,21 +452,27 @@ class NaruonCalendarProjectionClient:
     ) -> NaruonCalendarPage:
         """Return one authorized event page within an offset-aware window."""
 
-        starts_at = _parse_rfc3339(
+        start_text = _bounded_text(
             window_start,
             field_name="window_start",
+            maximum_length=64,
+            allow_internal_whitespace=False,
         )
-        ends_at = _parse_rfc3339(
+        end_text = _bounded_text(
             window_end,
             field_name="window_end",
+            maximum_length=64,
+            allow_internal_whitespace=False,
         )
+        starts_at = _parse_rfc3339(start_text, field_name="window_start")
+        ends_at = _parse_rfc3339(end_text, field_name="window_end")
         if ends_at <= starts_at:
             raise ValueError("window_end must be after window_start")
         if ends_at - starts_at > _MAX_WINDOW:
             raise ValueError("calendar window must not exceed 366 days")
         fields = {
-            "window_start": window_start.strip(),
-            "window_end": window_end.strip(),
+            "window_start": start_text,
+            "window_end": end_text,
             "limit": str(self._maximum_events),
         }
         if cursor is not None:
@@ -481,7 +480,7 @@ class NaruonCalendarProjectionClient:
                 cursor,
                 field_name="cursor",
                 maximum_length=1024,
-                allow_whitespace=False,
+                allow_internal_whitespace=False,
                 allow_url_shape=False,
             )
         payload = get_json(
