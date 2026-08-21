@@ -6,7 +6,7 @@ import {
 } from "./postBodyDisplay";
 import { t } from "./i18n";
 import type { PostContentUnit, PostImageContent } from "./api";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
 
 function parsePipeDelimitedTable(text: string): string[][] | null {
   const parsedRows = text
@@ -291,10 +291,24 @@ function renderStructuredUnits(
   return rendered;
 }
 
-function renderMarkdownBlocks(blocks: MarkdownBodyBlock[]): ReactNode[] {
+function renderMarkdownBlocks(
+  blocks: MarkdownBodyBlock[],
+  imageContent: PostImageContent[],
+): ReactNode[] {
+  let imageOrdinal = 0;
   return blocks.map((block, blockIndex) => {
     if (block.kind === "prose") {
-      return <p key={`post-body-markdown-prose-${blockIndex}`}>{block.text}</p>;
+      return (
+        <Fragment key={`post-body-markdown-prose-${blockIndex}`}>
+          {splitPostBody(block.text).map((segment, segmentIndex) =>
+            renderSegment(
+              segment,
+              blockIndex * 1000 + segmentIndex,
+              segment.kind === "image" ? imageContent[imageOrdinal++] : undefined,
+            ),
+          )}
+        </Fragment>
+      );
     }
     const [header, ...rows] = block.rows;
     return (
@@ -340,7 +354,7 @@ export function PostBody({
   }
   const markdownBlocks = !hasPersistedStructuralUnits ? splitMarkdownTableBody(body) : null;
   if (markdownBlocks) {
-    return <div className="post-body">{renderMarkdownBlocks(markdownBlocks)}</div>;
+    return <div className="post-body">{renderMarkdownBlocks(markdownBlocks, imageContent)}</div>;
   }
   return (
     <div className="post-body">

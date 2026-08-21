@@ -287,7 +287,6 @@ Calendar commitments use the same Event Lineage focus path (ADR 0134),
 Customer master related posts use the same Event Lineage focus path
 (ADR 0095). Ask Agent cited posts use the same Event Lineage focus path
 (ADR 0096), and the full detail popup includes Korean
-and the full detail popup includes Korean
 summary/key-events/R&R, VOC evidence excerpts, an Event Lineage panel
 (direct vs. indirect links; a link opens that post), the Keyman
 affiliate tree (resolved ancestors plus unresolved org roots), Keyman +
