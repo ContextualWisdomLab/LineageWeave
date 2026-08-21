@@ -27,6 +27,9 @@ from lineageweave.lineage_persistence import (
     rank_channel_evidence,
 )
 from lineageweave.models import Edge, Record
+from lineageweave.reconstruct import DEFAULT_CANDIDATE_WINDOW
+
+MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS = 5_000
 
 
 def _occurred_at(value: datetime) -> datetime:
@@ -132,6 +135,14 @@ async def _reconstruct_lineage_records(
     llm: AdjudicationClient | None,
 ) -> list[Edge]:
     """Run the CPU/provider reconstruction without blocking the event loop."""
+    pair_count = 0
+    records_per_group: defaultdict[str, int] = defaultdict(int)
+    for record in records:
+        pair_count += min(records_per_group[record.group_key], DEFAULT_CANDIDATE_WINDOW)
+        if pair_count > MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS:
+            llm = None
+            break
+        records_per_group[record.group_key] += 1
     return await asyncio.to_thread(lineage_edge_specs, records, llm=llm)
 
 
@@ -142,9 +153,10 @@ async def rebuild_lineage(
 ) -> list[Edge]:
     """Reconstruct lineage for every ``source_post`` and persist the edges.
 
-    A configured contextual-orchestrator client is passed through so the
-    optional LLM channel is recorded when available; ``None`` preserves the
-    fail-closed three-channel rebuild.
+    A configured contextual-orchestrator client is passed through only when
+    the exact candidate-pair work fits the ADR 0124 budget. Larger snapshots
+    drop the optional channel before any provider call and preserve one
+    fail-closed three-channel profile across the rebuild.
     """
     records = await _load_lineage_records(conn)
     edges = await _reconstruct_lineage_records(records, llm)

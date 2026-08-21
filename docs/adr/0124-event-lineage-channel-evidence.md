@@ -45,8 +45,11 @@ authoritative; PROV-O/RDF export is a projection.
    separate immutable run-scoped table.
    The administrator-triggered live rebuild and PostgreSQL import pass the
    configured contextual-orchestrator adjudication client through the same
-   reconstruction boundary; when it is unavailable, the LLM channel is
-   dropped and the remaining weights are renormalized.
+   reconstruction boundary only when the exact candidate-pair count is at
+   most 5,000. Larger snapshots drop the LLM channel before any provider call
+   and renormalize the remaining weights. This is an operational work bound,
+   not a model-quality or provider-ranking heuristic. One rebuild never mixes
+   LLM and non-LLM weight profiles across edges.
 5. `GET /api/lineage` returns an additive `channel_evidence` collection
    on each visible edge (`signal_code`, `signal_label`, `score`,
    `weight`, `contribution`, `rank`) ordered by contribution, then

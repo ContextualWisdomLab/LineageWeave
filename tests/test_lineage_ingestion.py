@@ -6,6 +6,7 @@ import asyncio
 from datetime import datetime, timezone
 
 from backend.app.lineage_ingestion import (
+    _reconstruct_lineage_records,
     persist_lineage_edges,
     rebuild_lineage,
     rebuild_lineage_from_pool,
@@ -15,6 +16,7 @@ from backend.app.lineage_ingestion import (
 )
 from lineageweave.fixtures import sample_records
 from lineageweave.lineage_persistence import lineage_edge_specs
+from lineageweave.models import Record
 
 
 def test_records_use_persisted_thread_keys_not_process_unit_or_voc_type() -> None:
@@ -82,6 +84,31 @@ def test_rebuild_passes_the_configured_adjudication_client(monkeypatch) -> None:
     assert captured["llm"] is client
     assert captured["offloaded_function"] is fake_lineage_edge_specs
     assert events == ["fetch", "reconstruct", "transaction_enter", "persist", "transaction_exit"]
+
+
+def test_rebuild_drops_llm_before_candidate_pair_budget_is_exceeded(monkeypatch) -> None:
+    """Keep a large live rebuild from issuing unbounded provider calls."""
+
+    records = [
+        Record(f"record-{index}", "shared-group", f"Record {index}", datetime(2026, 1, index + 1))
+        for index in range(3)
+    ]
+    captured: dict[str, object] = {}
+
+    def fake_lineage_edge_specs(_records, *, llm=None):
+        captured["llm"] = llm
+        return []
+
+    monkeypatch.setattr(
+        "backend.app.lineage_ingestion.MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS", 1
+    )
+    monkeypatch.setattr(
+        "backend.app.lineage_ingestion.lineage_edge_specs", fake_lineage_edge_specs
+    )
+
+    asyncio.run(_reconstruct_lineage_records(records, object()))
+
+    assert captured["llm"] is None
 
 
 def test_pooled_rebuild_releases_the_connection_during_reconstruction(monkeypatch) -> None:

@@ -16,6 +16,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Full-corpus Event Lineage rebuilds now count candidate pairs before provider
+  work and omit the optional LLM channel above the 5,000-pair ADR budget,
+  preventing millions of synchronous orchestrator calls while retaining one
+  auditable weight profile for the entire rebuild.
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
