@@ -66,14 +66,14 @@
 - Modify: `lineageweave/__init__.py`
 - Create: `docs/adr/0124-external-email-project-lineage-contract.md`
 - Create: `docs/doctoring/EXTERNAL_LINEAGE_CONTRACT_REFERENCES.md`
-- Create: `CHANGELOG.d/2.12.5-external-lineage-contract.md`
+- Create: `CHANGELOG.d/external-lineage-contract.md`
 
 **Interfaces:**
 - Produces: a supported package API for consumer contract tests.
 
 - [ ] Export the contract types, parser/serializer/digest functions, error type, and `analyze_external_lineage` from `lineageweave`.
 - [ ] Record the LineageWeave/Naruon authority split, truth statuses, cutoff semantics, model-disclosure minimization, and packaging boundary in the ADR.
-- [ ] Record APA 7th sources and a changelog fragment.
+- [ ] Record APA 7th sources and one consolidated changelog fragment.
 - [ ] Run `uvx ruff check` on changed Python and test files.
 - [ ] Run focused statement/branch coverage with `--fail-under=100` for both new production modules.
 - [ ] Run documentation hygiene, schema JSON parsing, Python compileall, and `git diff --check`.
