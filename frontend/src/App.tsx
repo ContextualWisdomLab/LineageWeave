@@ -80,6 +80,7 @@ import {
   type RelatedNode,
   type RelatedNodeType,
   type VocEvidence,
+  fetchTenantConfig,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
@@ -4564,6 +4565,14 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   const accessToken = auth.user?.access_token;
 
   useEffect(() => {
+    if (accessToken) {
+      fetchTenantConfig(accessToken).then((config) => {
+        if (config.brandName) setBrandName(config.brandName);
+      }).catch(console.error);
+    }
+  }, [accessToken]);
+
+  useEffect(() => {
     if (!accessToken) return;
     const postId = new URLSearchParams(window.location.search).get("post");
     if (postId) setPostToOpen(postId);
@@ -4611,7 +4620,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               <small>Enterprise SSO Authentication</small>
             </div>
           </div>
-          {destination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} /> : null}
+          {destination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
       </main>
         <footer className="app-footer" role="contentinfo">
           <div className="app-footer-title">
@@ -4681,7 +4690,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             }}
           />
         ) : null}
-        {destination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} /> : null}
+        {destination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
       </main>
       <footer className="app-footer" role="contentinfo">
         <div className="app-footer-title">

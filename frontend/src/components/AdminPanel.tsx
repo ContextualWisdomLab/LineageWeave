@@ -1,21 +1,34 @@
 import { useState } from "react";
 import { t } from "../i18n";
+import { updateTenantConfig } from "../api";
 
 export type AdminPanelProps = {
   currentBrandName: string;
   onBrandNameChange: (newName: string) => void;
+  accessToken: string;
 };
 
-export function AdminPanel({ currentBrandName, onBrandNameChange }: AdminPanelProps) {
+export function AdminPanel({ currentBrandName, onBrandNameChange, accessToken }: AdminPanelProps) {
   const [draftName, setDraftName] = useState(currentBrandName);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function handleSave(e: React.FormEvent) {
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (draftName.trim()) {
-      onBrandNameChange(draftName.trim());
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      setSaving(true);
+      setError(null);
+      try {
+        const config = await updateTenantConfig(accessToken, draftName.trim());
+        onBrandNameChange(config.brandName);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      } catch (err: any) {
+        setError(err.message || "Failed to update settings");
+      } finally {
+        setSaving(false);
+      }
     }
   }
 
@@ -35,12 +48,14 @@ export function AdminPanel({ currentBrandName, onBrandNameChange }: AdminPanelPr
           onChange={(e) => setDraftName(e.target.value)}
           style={{ padding: "0.5rem", width: "100%", maxWidth: "400px", marginBottom: "1rem" }}
           aria-label={t("Tenant brand name")}
+          disabled={saving}
         />
         <div>
-          <button type="submit" className="btn-primary" disabled={!draftName.trim() || draftName === currentBrandName}>
-            {t("Save settings")}
+          <button type="submit" className="btn-primary" disabled={saving || !draftName.trim() || draftName === currentBrandName}>
+            {saving ? t("Saving...") : t("Save settings")}
           </button>
           {saved && <span style={{ marginLeft: "1rem", color: "green" }}>{t("Settings saved!")}</span>}
+          {error && <span style={{ marginLeft: "1rem", color: "red" }}>{t(error)}</span>}
         </div>
       </form>
     </div>
