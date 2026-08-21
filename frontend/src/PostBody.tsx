@@ -3,6 +3,50 @@ import { t } from "./i18n";
 import type { PostContentUnit, PostImageContent } from "./api";
 import type { ReactNode } from "react";
 
+function parsePipeDelimitedTable(text: string): string[][] | null {
+  const rows = text
+    .split(/\r?\n/)
+    .map((row) => {
+      const cells = row.split("|").map((cell) => cell.trim());
+      if (cells[0] === "") cells.shift();
+      if (cells[cells.length - 1] === "") cells.pop();
+      return cells;
+    })
+    .filter((row) => !row.every((cell) => /^:?-{3,}:?$/.test(cell)))
+    .filter((row) => row.length > 1 && row.some(Boolean));
+  if (rows.length < 2 || rows.some((row) => row.length !== rows[0].length)) return null;
+  if (rows[0].length < 2) return null;
+  return rows;
+}
+
+function renderImageText(text: string) {
+  const rows = parsePipeDelimitedTable(text);
+  if (!rows) return <p>{text}</p>;
+  const [header, ...bodyRows] = rows;
+  return (
+    <table className="post-body-table post-image-text-table">
+      <thead>
+        <tr>
+          {header.map((cell, cellIndex) => (
+            <th key={`post-image-text-header-${cellIndex}`} scope="col">
+              {cell}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {bodyRows.map((row, rowIndex) => (
+          <tr key={`post-image-text-row-${rowIndex}`}>
+            {row.map((cell, cellIndex) => (
+              <td key={`post-image-text-cell-${rowIndex}-${cellIndex}`}>{cell}</td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 const SAFE_EMBEDDED_IMAGE_SOURCE =
   /^data:image\/(?:png|jpe?g|gif|webp|avif|bmp|x-icon|vnd\.microsoft\.icon);base64,[A-Za-z0-9+/]+={0,2}$/i;
 
@@ -29,7 +73,7 @@ function renderImageEvidence(
       {imageContent?.extracted_text ? (
         <details className="post-image-text">
           <summary>{t("Text detected in image")}</summary>
-          <p>{imageContent.extracted_text}</p>
+          {renderImageText(imageContent.extracted_text)}
         </details>
       ) : null}
       {imageContent?.regions?.length ? (
@@ -38,7 +82,14 @@ function renderImageEvidence(
           <ol>
             {imageContent.regions.map((region) => (
               <li key={region.region_index}>
-                <span>{region.caption || region.extracted_text || t("Unknown")}</span>
+                {region.caption ? <p>{region.caption}</p> : null}
+                {region.extracted_text ? (
+                  <div className="post-image-region-text">
+                    {renderImageText(region.extracted_text)}
+                  </div>
+                ) : region.caption ? null : (
+                  t("Unknown")
+                )}
                 {region.tags.length ? (
                   <small>
                     {t("Image tags")}: {region.tags.join(", ")}
@@ -88,6 +139,40 @@ function isStructuredTableRow(unit: PostContentUnit): boolean {
   );
 }
 
+/**
+ * Match a persisted unit to its source-rendering counterpart without relying
+ * on ordinal position. A table row can occupy a persisted non-text unit while
+ * its source display is still one text segment, so ordinal matching shifts
+ * indentation for every later unresolved unit.
+ */
+function normalizedUnitText(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Return direct row counts for each source table in document order.
+ *
+ * Persisted rows do not currently carry a table identifier. The source body
+ * is therefore the smallest trustworthy boundary for adjacent tables; when
+ * its row count disagrees with persisted rows, the renderer falls back to the
+ * old consecutive-row grouping instead of guessing.
+ */
+function sourceTableRowGroupSizes(body: string): number[] {
+  const document = new DOMParser().parseFromString(body, "text/html");
+  return Array.from(document.querySelectorAll("table"))
+    .map((table) =>
+      Array.from(table.children).reduce((count, child) => {
+        const tagName = child.tagName.toLowerCase();
+        if (tagName === "tr") return count + 1;
+        if (tagName !== "thead" && tagName !== "tbody" && tagName !== "tfoot") return count;
+        return count + Array.from(child.children).filter(
+          (row) => row.tagName.toLowerCase() === "tr",
+        ).length;
+      }, 0),
+    )
+    .filter((rowCount) => rowCount > 0);
+}
+
 function renderStructuredUnits(
   body: string,
   structureUnits: PostContentUnit[],
@@ -98,10 +183,27 @@ function renderStructuredUnits(
   );
   const rendered: ReactNode[] = [];
   let imageOrdinal = 0;
-  let textOrdinal = 0;
+  const sourceTableGroups = sourceTableRowGroupSizes(body);
+  const persistedTableRowCount = structureUnits.filter(isStructuredTableRow).length;
+  const hasTrustworthyTableGroups =
+    sourceTableGroups.length > 0 &&
+    sourceTableGroups.reduce((total, rowCount) => total + rowCount, 0) === persistedTableRowCount;
+  let tableGroupOrdinal = 0;
   const sourceTextSegments = splitPostBody(body).filter(
     (segment): segment is Extract<PostBodySegment, { kind: "text" }> => segment.kind === "text",
   );
+  const consumedSourceText = new Set<number>();
+  const sourceTextForUnit = (unitText: string) => {
+    const expected = normalizedUnitText(unitText);
+    const sourceIndex = sourceTextSegments.findIndex(
+      (segment, candidateIndex) =>
+        !consumedSourceText.has(candidateIndex) &&
+        normalizedUnitText(segment.text) === expected,
+    );
+    if (sourceIndex < 0) return undefined;
+    consumedSourceText.add(sourceIndex);
+    return sourceTextSegments[sourceIndex];
+  };
   let index = 0;
   while (index < structureUnits.length) {
     const unit = structureUnits[index];
@@ -118,7 +220,14 @@ function renderStructuredUnits(
     }
     if (isStructuredTableRow(unit)) {
       const rows: PostContentUnit[] = [];
-      while (index < structureUnits.length && isStructuredTableRow(structureUnits[index])) {
+      const expectedRowCount = hasTrustworthyTableGroups
+        ? sourceTableGroups[tableGroupOrdinal++]
+        : undefined;
+      while (
+        index < structureUnits.length &&
+        isStructuredTableRow(structureUnits[index]) &&
+        (expectedRowCount === undefined || rows.length < expectedRowCount)
+      ) {
         rows.push(structureUnits[index]);
         index += 1;
       }
@@ -137,7 +246,7 @@ function renderStructuredUnits(
       );
       continue;
     }
-    const sourceText = sourceTextSegments[textOrdinal++];
+    const sourceText = sourceTextForUnit(unit.unit_text);
     const persistedIndent =
       unit.indent_level > 0 &&
       (unit.indent_source_code === "explicit" || unit.indent_source_code === "llm")

@@ -78,13 +78,18 @@ def require_summary_source_body(body: str | None) -> str:
 
 
 async def fetch_persisted_summary(
-    conn: asyncpg.Connection, post_id: str
+    conn: asyncpg.Connection,
+    post_id: str,
+    *,
+    allow_stale: bool = False,
 ) -> dict[str, Any] | None:
-    """Return the stored summary payload, or None when none has been written.
+    """Return the stored summary payload, or None when none is usable.
 
     ``catalog_node_id`` comes from the role row's catalog foreign keys
     (ADR 0019 / 0027). This function does not join ``corporate_entity``
-    by ``entity_name``. Person chips read ``cataloged_person_id``.
+    by ``entity_name``. Person chips read ``cataloged_person_id``. A stale
+    row is returned only when ``allow_stale`` is explicit so a caller can
+    preserve buyer continuity without presenting old semantics as current.
     """
     header = await conn.fetchrow(
         "select korean_summary, summary_contract_version "
@@ -93,7 +98,8 @@ async def fetch_persisted_summary(
     )
     if header is None:
         return None
-    if header["summary_contract_version"] != POST_SUMMARY_CONTRACT_VERSION:
+    summary_contract_version = header["summary_contract_version"]
+    if summary_contract_version != POST_SUMMARY_CONTRACT_VERSION and not allow_stale:
         return None
     events = await conn.fetch(
         """
@@ -171,6 +177,12 @@ async def fetch_persisted_summary(
     return {
         "post_id": post_id,
         "korean_summary": header["korean_summary"],
+        "summary_status": (
+            "current"
+            if summary_contract_version == POST_SUMMARY_CONTRACT_VERSION
+            else "stale"
+        ),
+        "summary_contract_version": summary_contract_version,
         "key_events": [row["event_text"] for row in events],
         "key_event_details": [
             {
