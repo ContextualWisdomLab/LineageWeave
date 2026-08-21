@@ -398,7 +398,7 @@ ADR 0115. PR #311 remains an active stacked delivery candidate; its required
 checks and formal approval must be rechecked at the exact current head before
 any protected merge claim.
 
- ## Source-only indentation checkpoint: 2026-08-20
+## Source-only indentation checkpoint: 2026-08-20
 
 The semantic-unit parser now keeps source leading whitespace and declared
 HTML/CSS/OOXML or list-container indentation as separate evidence. Visual
@@ -415,7 +415,7 @@ nesting in the buyer view.
   formal review, terminal Checks, and post-merge browser evidence remain
   required.
 
- ## Image locator and buyer table checkpoint: 2026-08-20
+## Image locator and buyer table checkpoint: 2026-08-20
 
 A first bounded private reprocessing run completed five parent-image
 descriptions and five region embeddings, but aggregate inspection found five
