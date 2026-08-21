@@ -90,6 +90,7 @@ import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
+import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
 import {
@@ -101,7 +102,6 @@ import {
   tf,
   useLocale,
 } from "./i18n";
-import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -4621,7 +4621,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               <small>Enterprise SSO Authentication</small>
             </div>
           </div>
-          {destination === "admin" && accessToken ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
+           {destination === "admin" && accessToken ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
       </main>
         <footer className="app-footer" role="contentinfo">
           <div className="app-footer-title">

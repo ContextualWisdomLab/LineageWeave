@@ -16,7 +16,11 @@ import shutil
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote
+
+try:
+    from scripts.ontology_site_contract import public_fragment
+except ModuleNotFoundError:  # direct execution with ``scripts`` as sys.path[0]
+    from ontology_site_contract import public_fragment
 
 from rdflib import Graph, Literal, URIRef
 from rdflib.compare import to_canonical_graph
@@ -113,7 +117,7 @@ def _write_serializations(graph: Graph, ontology_dir: Path) -> None:
 def _term_href(value: URIRef, ontology_subjects: set[URIRef]) -> str:
     """Return a local fragment for local terms and an absolute IRI otherwise."""
     if value in ontology_subjects:
-        return f"#{quote(_fragment(value), safe='-._~')}"
+        return f"#{public_fragment(_fragment(value))}"
     return str(value)
 
 
@@ -146,11 +150,12 @@ def _render_relation_rows(
 
 def _render_term(graph: Graph, subject: URIRef, ontology_subjects: set[URIRef]) -> str:
     """Render one fragment-addressable ontology term section."""
-    fragment = _fragment(subject)
+    raw_fragment = _fragment(subject)
+    fragment = public_fragment(raw_fragment)
     label = (
         _preferred_literal(graph, subject, RDFS.label)
         or _preferred_literal(graph, subject, SKOS.prefLabel)
-        or fragment
+        or raw_fragment
     )
     comment = _preferred_literal(graph, subject, RDFS.comment)
     lookup_predicate = URIRef(
@@ -171,7 +176,7 @@ def _render_term(graph: Graph, subject: URIRef, ontology_subjects: set[URIRef]) 
     )
     return (
         f'<article class="term-card" id="{html.escape(fragment, quote=True)}">'
-        f'<h3><a class="fragment-link" href="#{quote(fragment, safe="-._~")}" '
+        f'<h3><a class="fragment-link" href="#{html.escape(fragment, quote=True)}" '
         f'aria-label="Link to {html.escape(label, quote=True)}">#</a> '
         f"{html.escape(label)}</h3>"
         f'<p class="iri"><code>{html.escape(str(subject))}</code></p>'
@@ -411,7 +416,10 @@ def build_site(repository_root: Path, output_dir: Path) -> None:
         raise FileNotFoundError(f"PROV-O support profile is missing: {prov_profile}")
 
     if output.exists():
-        shutil.rmtree(output)
+        raise FileExistsError(
+            "refusing to replace an existing output directory; "
+            "use publish_ontology_site for marked replacement"
+        )
     ontology_dir = output / "ontology"
     ontology_dir.mkdir(parents=True)
 

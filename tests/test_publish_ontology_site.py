@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 import importlib.util
 from pathlib import Path
 
@@ -22,6 +23,24 @@ def _load_publisher():
     return module
 
 
+def test_publisher_supports_direct_script_import_context(monkeypatch) -> None:
+    """The CLI fallback imports the sibling contract when not package-loaded."""
+    monkeypatch.syspath_prepend(str(SCRIPT.parent))
+    original_import = builtins.__import__
+
+    def block_package_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "scripts.ontology_site_contract":
+            raise ModuleNotFoundError(name=name)
+        return original_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", block_package_import)
+    spec = importlib.util.spec_from_file_location("publish_ontology_site_direct", SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.public_fragment("Safety/한국어 term") == "Safety%2F%ED%95%9C%EA%B5%AD%EC%96%B4%20term"
+
+
 def _repository_fixture(tmp_path: Path) -> Path:
     repository = tmp_path / "repository"
     ontology_dir = repository / "docs" / "ontology"
@@ -32,6 +51,9 @@ def _repository_fixture(tmp_path: Path) -> Path:
         (ontology_dir / name).write_bytes((ROOT / "docs" / "ontology" / name).read_bytes())
     (scripts_dir / "build_ontology_site.py").write_bytes(
         (ROOT / "scripts" / "build_ontology_site.py").read_bytes()
+    )
+    (scripts_dir / "ontology_site_contract.py").write_bytes(
+        (ROOT / "scripts" / "ontology_site_contract.py").read_bytes()
     )
     return repository
 

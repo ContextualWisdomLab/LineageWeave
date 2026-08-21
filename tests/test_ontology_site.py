@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import builtins
 import hashlib
 import importlib.util
 import json
+import shutil
 from pathlib import Path
 
 from rdflib import Graph
@@ -21,6 +23,24 @@ def _load_builder():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def test_builder_supports_direct_script_import_context(monkeypatch) -> None:
+    """The CLI fallback imports the sibling contract when not package-loaded."""
+    monkeypatch.syspath_prepend(str(SCRIPT.parent))
+    original_import = builtins.__import__
+
+    def block_package_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "scripts.ontology_site_contract":
+            raise ModuleNotFoundError(name=name)
+        return original_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr(builtins, "__import__", block_package_import)
+    spec = importlib.util.spec_from_file_location("build_ontology_site_direct", SCRIPT)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module.public_fragment("Safety/한국어 term") == "Safety%2F%ED%95%9C%EA%B5%AD%EC%96%B4%20term"
 
 
 def _tree_hashes(root: Path) -> dict[str, str]:
@@ -99,6 +119,18 @@ def test_render_term_uses_skos_preferred_label_without_rdfs_label() -> None:
     assert 'aria-label="Link to Human label"' in rendered
 
 
+def test_render_term_uses_one_encoded_fragment_for_id_and_href() -> None:
+    builder = _load_builder()
+    graph = Graph()
+    term = builder.URIRef("https://example.test/ontology#Safety/한국어 term")
+    graph.add((term, builder.RDF.type, builder.OWL.Class))
+
+    rendered = builder._render_term(graph, term, {term})
+
+    assert 'id="Safety%2F%ED%95%9C%EA%B5%AD%EC%96%B4%20term"' in rendered
+    assert 'href="#Safety%2F%ED%95%9C%EA%B5%AD%EC%96%B4%20term"' in rendered
+
+
 def test_serializations_round_trip_to_the_source_graph(tmp_path: Path) -> None:
     builder = _load_builder()
     output = tmp_path / "site"
@@ -173,7 +205,7 @@ def test_render_term_sections_keeps_one_anchor_for_multi_typed_terms() -> None:
     assert term_count == 1
 
 
-def test_builder_fails_closed_for_missing_sources_and_replaces_output(tmp_path: Path) -> None:
+def test_builder_fails_closed_for_missing_sources_and_rejects_existing_output(tmp_path: Path) -> None:
     builder = _load_builder()
     repository = tmp_path / "repository"
     output = tmp_path / "site"
@@ -201,8 +233,17 @@ def test_builder_fails_closed_for_missing_sources_and_replaces_output(tmp_path: 
         raise AssertionError("missing PROV-O profile was accepted")
 
     (ontology_dir / "prov-o-support-profile.ttl").write_text("", encoding="utf-8")
+
+    try:
+        builder.build_site(repository, output)
+    except FileExistsError as exc:
+        assert "publish_ontology_site" in str(exc)
+    else:
+        raise AssertionError("direct builder replaced an existing output")
+    assert (output / "stale.txt").is_file()
+    shutil.rmtree(output)
     builder.build_site(repository, output)
-    assert not (output / "stale.txt").exists()
+    assert (output / "ontology" / "index.html").is_file()
 
 
 def test_cli_main_and_module_entrypoint(tmp_path: Path, monkeypatch) -> None:
