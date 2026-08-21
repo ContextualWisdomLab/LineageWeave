@@ -29,7 +29,7 @@ const demoNeighborhood: OntologyNeighborhoodPayload = {
       node_id: PERSON_ID,
       node_type_code: "node_person",
       ontology_class_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Person",
-        display_label: "Test Person",
+      display_label: "Test Person",
       truth_status_code: "truth_observed",
       valid_from: null,
       valid_to: null,
@@ -143,11 +143,25 @@ const truncatedNeighborhood: OntologyNeighborhoodPayload = {
   exact_value_rows: [demoNeighborhood.exact_value_rows[0]],
 };
 
+const partialNeighborhood: OntologyNeighborhoodPayload = {
+  ...demoNeighborhood,
+  nodes: demoNeighborhood.nodes.slice(0, 2),
+  edges: [demoNeighborhood.edges[0]],
+  exact_value_rows: [demoNeighborhood.exact_value_rows[0]],
+  limitation_code: null,
+};
+
 const rejectedNeighborhood: OntologyNeighborhoodPayload = {
   ...demoNeighborhood,
   edges: [
     {
       ...demoNeighborhood.edges[1],
+      truth_status_code: "truth_rejected",
+    },
+  ],
+  exact_value_rows: [
+    {
+      ...demoNeighborhood.exact_value_rows[1],
       truth_status_code: "truth_rejected",
     },
   ],
@@ -170,6 +184,9 @@ type Story = StoryObj<typeof meta>;
 export const DesktopNeighborhood: Story = {};
 
 export const NarrowExactValue: Story = {
+  globals: {
+    viewport: { value: "mobile1", isRotated: false },
+  },
   decorators: [
     (Story) => (
       <div style={{ maxWidth: 420 }}>
@@ -227,8 +244,8 @@ export const Truncated: Story = {
 
 export const Partial: Story = {
   args: {
-    neighborhood: truncatedNeighborhood,
-    status: "truncated",
+    neighborhood: partialNeighborhood,
+    status: "ready",
   },
 };
 
