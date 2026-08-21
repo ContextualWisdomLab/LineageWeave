@@ -688,6 +688,7 @@ async def gather_global_chat_sources(
          where (visibility_code = 'public'
             or corporate_entity_id::text = any($1::text[]))
            and (not $4::boolean or post_id = any($2::uuid[]))
+           and (not $4::boolean or post_id = any($2::uuid[]))
          order by array_position($2::uuid[], post_id) nulls last,
                   created_at desc, post_id desc
          limit $3
