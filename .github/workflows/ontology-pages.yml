@@ -6,17 +6,25 @@ on:
     paths:
       - "docs/ontology/**"
       - "scripts/build_ontology_site.py"
+      - "scripts/publish_ontology_site.py"
       - "tests/test_ontology.py"
       - "tests/test_ontology_site.py"
+      - "tests/test_publish_ontology_site.py"
       - ".github/workflows/ontology-pages.yml"
+      - "pyproject.toml"
+      - "uv.lock"
   push:
     branches: [main]
     paths:
       - "docs/ontology/**"
       - "scripts/build_ontology_site.py"
+      - "scripts/publish_ontology_site.py"
       - "tests/test_ontology.py"
       - "tests/test_ontology_site.py"
+      - "tests/test_publish_ontology_site.py"
       - ".github/workflows/ontology-pages.yml"
+      - "pyproject.toml"
+      - "uv.lock"
   workflow_dispatch:
 
 permissions:
@@ -54,22 +62,23 @@ jobs:
         run: |
           uv run --frozen python -m pytest -q tests/test_ontology.py
           uv run --frozen python -m coverage run --branch \
-            -m pytest -q tests/test_ontology_site.py
+            -m pytest -q tests/test_ontology_site.py tests/test_publish_ontology_site.py
           uv run --frozen python -m coverage report \
-            --include=scripts/build_ontology_site.py \
+            --include=scripts/build_ontology_site.py,scripts/publish_ontology_site.py \
             --fail-under=100
 
       - name: Build static ontology site
-        run: uv run --frozen python scripts/build_ontology_site.py --output-dir _site
+        run: uv run --frozen python scripts/publish_ontology_site.py --output-dir _site
 
       - name: Compile owned Python surface
         run: >-
           uv run --frozen python -m compileall -q
-          scripts/build_ontology_site.py tests/test_ontology_site.py
+          scripts/build_ontology_site.py scripts/publish_ontology_site.py
+          tests/test_ontology_site.py tests/test_publish_ontology_site.py
 
   publish:
     name: Publish ontology to GitHub Pages
-    if: github.event_name != 'pull_request'
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
     concurrency:
       group: ontology-pages-publication
       cancel-in-progress: false
@@ -105,13 +114,13 @@ jobs:
         run: |
           uv run --frozen python -m pytest -q tests/test_ontology.py
           uv run --frozen python -m coverage run --branch \
-            -m pytest -q tests/test_ontology_site.py
+            -m pytest -q tests/test_ontology_site.py tests/test_publish_ontology_site.py
           uv run --frozen python -m coverage report \
-            --include=scripts/build_ontology_site.py \
+            --include=scripts/build_ontology_site.py,scripts/publish_ontology_site.py \
             --fail-under=100
 
       - name: Build deterministic publication artifact
-        run: uv run --frozen python scripts/build_ontology_site.py --output-dir _site
+        run: uv run --frozen python scripts/publish_ontology_site.py --output-dir _site
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
