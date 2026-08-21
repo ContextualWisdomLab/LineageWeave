@@ -83,6 +83,18 @@ def test_custom_transport_receives_the_exact_wire_payload() -> None:
     assert received["snapshot_id"] == "demo-snapshot-1"
 
 
+def test_custom_transport_provider_errors_are_not_exposed() -> None:
+    """Provider response text stays behind the stable unavailable error."""
+
+    def broken_transport(_payload: dict) -> dict:
+        raise RuntimeError("provider secret response body")
+
+    with pytest.raises(TeppNotAvailable, match="transport request failed") as error:
+        TeppClient(transport=broken_transport).submit_analysis_run(_sample_request())
+
+    assert "provider secret" not in str(error.value)
+
+
 def test_configured_transport_sends_optional_bearer_key(monkeypatch: pytest.MonkeyPatch) -> None:
     received = {}
 
@@ -97,3 +109,22 @@ def test_configured_transport_sends_optional_bearer_key(monkeypatch: pytest.Monk
 
     assert received["headers"] == {"authorization": "Bearer test-key"}
     assert received["payload"] == _sample_request().to_json()
+
+
+def test_configured_transport_provider_errors_are_not_exposed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The configured provider boundary does not return raw transport text."""
+
+    def broken_post_json(*args, **kwargs):
+        del args, kwargs
+        raise RuntimeError("provider secret response body")
+
+    monkeypatch.setattr("backend.app.analysis_run_start.post_json", broken_post_json)
+
+    with pytest.raises(TeppNotAvailable, match="transport request failed") as error:
+        configured_tepp_client("https://tepp.example/v1/analysis-runs").submit_analysis_run(
+            _sample_request()
+        )
+
+    assert "provider secret" not in str(error.value)
