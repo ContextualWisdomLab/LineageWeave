@@ -134,6 +134,9 @@ describe("AdminPanel", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Tenant brand name" }), {
       target: { value: "  LineageWeave  " },
     });
+    fireEvent.change(screen.getByRole("textbox", { name: "Tenant system name" }), {
+      target: { value: "  LineageWeave Intelligence  " },
+    });
 
     expect(screen.getByRole("button", { name: "Save settings" })).toBeDisabled();
   });
