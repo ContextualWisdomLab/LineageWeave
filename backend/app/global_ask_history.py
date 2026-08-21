@@ -40,20 +40,8 @@ async def list_conversations(
     before_updated_at: datetime | None = None,
     before_conversation_id: UUID | None = None,
 ) -> dict[str, Any]:
-    cursor_clause = ""
-    arguments: list[Any] = [user_account_id]
-    if before_updated_at is not None and before_conversation_id is not None:
-        cursor_clause = """
-           and (
-               session.updated_at < $2
-               or (session.updated_at = $2 and session.global_ask_session_id < $3)
-           )
+    rows = await conn.fetch(  # nosemgrep: placeholders bind all values; SQL text is static.
         """
-        arguments.extend([before_updated_at, before_conversation_id])
-    arguments.append(limit + 1)
-    limit_placeholder = f"${len(arguments)}"
-    rows = await conn.fetch(
-        f"""
         select session.global_ask_session_id,
                coalesce(
                    (select left(turn.question_text, 80)
@@ -66,15 +54,23 @@ async def list_conversations(
                session.updated_at,
                count(turn.turn_ordinal)::int as turn_count
           from global_ask_session session
-          left join global_ask_turn turn
+         left join global_ask_turn turn
             on turn.global_ask_session_id = session.global_ask_session_id
          where session.user_account_id = $1
-               {cursor_clause}
+           and (
+               $2 is null
+               or $3 is null
+               or session.updated_at < $2
+               or (session.updated_at = $2 and session.global_ask_session_id < $3)
+           )
          group by session.global_ask_session_id, session.updated_at
          order by session.updated_at desc, session.global_ask_session_id desc
-         limit {limit_placeholder}
+         limit $4
         """,
-        *arguments,
+        user_account_id,
+        before_updated_at,
+        before_conversation_id,
+        limit + 1,
     )
     page_rows = rows[:limit]
     next_cursor = None
@@ -106,23 +102,36 @@ async def _visible_post_ids(
     *,
     source: bool,
 ) -> tuple[list[str], dict[str, asyncpg.Record]]:
-    table = "global_ask_turn_source" if source else "global_ask_turn_citation"
-    id_column = "source_post_id" if source else "cited_post_id"
-    ordinal_column = "source_ordinal" if source else "citation_ordinal"
-    rows = await conn.fetch(
-        f"""
-        select relation.{id_column}::text as post_id, relation.{ordinal_column} as ordinal,
+    if source:
+        rows = await conn.fetch(  # nosemgrep: identifiers are fixed literals in this branch.
+            """
+        select relation.source_post_id::text as post_id, relation.source_ordinal as ordinal,
                post.post_title, post.visibility_code, post.corporate_entity_id,
                post.author_account_id, post.source_detail_state_code
-          from {table} relation
-          join source_post post on post.post_id = relation.{id_column}
+          from global_ask_turn_source relation
+          join source_post post on post.post_id = relation.source_post_id
          where relation.global_ask_session_id = $1
            and relation.turn_ordinal = $2
-         order by relation.{ordinal_column}
+         order by relation.source_ordinal
         """,
-        conversation_id,
-        turn_ordinal,
-    )
+            conversation_id,
+            turn_ordinal,
+        )
+    else:
+        rows = await conn.fetch(  # nosemgrep: identifiers are fixed literals in this branch.
+            """
+        select relation.cited_post_id::text as post_id, relation.citation_ordinal as ordinal,
+               post.post_title, post.visibility_code, post.corporate_entity_id,
+               post.author_account_id, post.source_detail_state_code
+          from global_ask_turn_citation relation
+          join source_post post on post.post_id = relation.cited_post_id
+         where relation.global_ask_session_id = $1
+           and relation.turn_ordinal = $2
+         order by relation.citation_ordinal
+        """,
+            conversation_id,
+            turn_ordinal,
+        )
     visible = [row for row in rows if can_see_post(row)]
     return [str(row["post_id"]) for row in visible], {str(row["post_id"]): row for row in visible}
 
@@ -159,7 +168,7 @@ async def fetch_conversation(
         conversation_id,
     )
     if before_turn_ordinal is None:
-        turns = await conn.fetch(
+        turns = await conn.fetch(  # nosemgrep: placeholders bind all values; SQL text is static.
             """
         select turn_ordinal, question_text, answer_text, next_action
           from global_ask_turn
@@ -171,7 +180,7 @@ async def fetch_conversation(
             turn_limit + 1,
         )
     else:
-        turns = await conn.fetch(
+        turns = await conn.fetch(  # nosemgrep: placeholders bind all values; SQL text is static.
             """
         select turn_ordinal, question_text, answer_text, next_action
           from global_ask_turn
