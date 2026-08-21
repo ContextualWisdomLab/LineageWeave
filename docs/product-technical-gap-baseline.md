@@ -30,6 +30,14 @@
   permission are not present; no-JavaScript fallback is not proven; phone and
   site-map behavior need protected runtime evidence; and Figma parity does not
   prove complete authorized-corpus image/table evidence.
+- **Exact-source UI audit at PR #392 head `a046da4e`:** the header and footer
+  currently render the configured `brandName` as text only. The settings
+  contract exposes no approved CI/BI asset, copyright-holder, or system
+  opening-year field; the footer therefore uses the browser's current year and
+  remains short of the guide's immutable CI/BI and opening-year requirement.
+  This is intentionally left open rather than inventing a brand asset or
+  historical year. The React-only entry point also has no proven no-JavaScript
+  fallback.
 
 ## 2. LLM Extraction & Knowledge Graph Gaps
 - **Multiple Project Extraction**: A structured `key_events.project_name` implementation exists, but separate-event behavior still requires protected authorized-corpus evidence.
@@ -148,6 +156,36 @@ failed Checks on the eight open LineageWeave PRs. PR #387 advanced to
 `a046da4e52c484807fc28111bd813d1acbc00816`; the baseline PR itself is at
 `7855f2af0c516a0a4f6228e0b9230e6062d326be`. All had no independent approval;
 the green-only PRs remain unmerged under the protected-main policy.
+
+Queue refresh at `2026-08-21T19:16:15Z`: the open queue changed after the
+previous checkpoint. PR #393 is open at exact head
+`859e03674cd65f790594cffe8cd19f4de443ba0c`; #392 remains at
+`a046da4e52c484807fc28111bd813d1acbc00816`; #387 at
+`eaea56d3b2f07f89a5dfcc7d81b032148048982d`; #383 at
+`b1d32a93632164cf1379f24fc9aca71c5d29b746`; #373 at
+`151fe6e177416a5d83b5539a73d97737c12d1ce4`; #368 at
+`9d6b7af2ca123d39f6f8b4c299ceff8cd17a86b3`; #355 at
+`b606c2553f877fa85968d90dc46598ce16897fbf`; #349 at
+`bfb3760403f6d6af22db3950f3d4d472a97edd4e`; and #258 at
+`6621eb116a4e92eb33eeae989c70fbc602450c51`. All target `main` and are
+blocked by the protected merge gates. Checks had no failures for #393, #392,
+#387, #373, #368, #355, #349, or #258; #383 had one failed `osv-scan`, with
+15 passing, 2 pending, and 8 skipped checks. The failed job ran the central
+OSV workflow with deprecated `--output=new-results.json` and then asserted
+that `new-results.json` and `old-results.json` existed, although the scanner
+exited zero without creating those files. This is a shared-workflow defect,
+not a dependency-vulnerability verdict. Central `.github` PR #1158 is now at
+exact head `c45a776f9ec3be8b35ee105e966100c80b95c2cc`, with no failed checks
+but 16 pending checks and no independent approval; it remains the upstream
+repair path. No PR was merged from this observation.
+
+Exact-head local verification at `2026-08-21T19:16:46Z` on the working
+checkout at PR #392 head `a046da4e52c484807fc28111bd813d1acbc00816` passed
+846 backend tests with 17 environment skips, 200 frontend tests, frontend
+lint, TypeScript/production build, and Storybook build. Build output emitted
+only the existing chunk-size warning. This validates the current checkout;
+it does not turn the open PR into a protected-main merge or prove the
+authorized-corpus UI and image evidence gaps above.
 
 Closed without merge at the same observation:
 
