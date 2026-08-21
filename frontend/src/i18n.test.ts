@@ -29,6 +29,7 @@ describe("i18n", () => {
     "Refresh",
     "Close",
     "Post body",
+    "Post",
     "Summary",
     "Calendar",
     "Board",
@@ -66,6 +67,16 @@ describe("i18n", () => {
     expect(getLocale()).toBe(locale);
     expect(t("Related posts")).toBe(expected);
     expect(document.documentElement.lang).toBe(locale);
+  });
+
+  it.each([
+    ["ko", "글"],
+    ["zh", "文章"],
+    ["ja", "投稿"],
+    ["vi", "Bài viết"],
+  ] as const)("translates the ontology Post node label in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Post")).toBe(expected);
   });
 
   it.each([

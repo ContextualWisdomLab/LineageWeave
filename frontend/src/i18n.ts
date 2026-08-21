@@ -77,7 +77,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     Team: "팀",
     Person: "사람",
     Organization: "조직",
-    Post: "글",
     Project: "프로젝트",
     "Body this run knew": "이 실행이 알고 있던 본문",
     written: "작성일",
@@ -359,6 +358,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "대화형 질문을 지금 사용할 수 없습니다. 저장된 근거는 계속 확인할 수 있습니다.",
     "Inspect ontology neighborhood": "온톨로지 이웃 검사",
     "Ontology neighborhood": "온톨로지 이웃",
+    Post: "글",
     "Typed relations, not Event Lineage": "유형 관계이며 이벤트 계보가 아닙니다",
     "This is an ontology neighborhood, not Event Lineage.":
       "이벤트 계보가 아니라 온톨로지 이웃입니다.",
@@ -475,7 +475,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     Team: "团队",
     Person: "人员",
     Organization: "组织",
-    Post: "文章",
     Project: "项目",
     "Body this run knew": "此运行已知的正文",
     written: "撰写于",
@@ -756,6 +755,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "交互式提问暂不可用；已保存的证据仍可查看。",
     "Inspect ontology neighborhood": "检查本体邻域",
     "Ontology neighborhood": "本体邻域",
+    Post: "文章",
     "Typed relations, not Event Lineage": "这是类型化关系，不是事件谱系",
     "This is an ontology neighborhood, not Event Lineage.": "这是本体邻域，不是事件谱系。",
     "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, and posts.":
@@ -895,7 +895,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     Team: "チーム",
     Person: "人物",
     Organization: "組織",
-    Post: "投稿",
     Project: "プロジェクト",
     "Body this run knew": "この実行が把握していた本文",
     written: "作成日",
@@ -1152,6 +1151,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "対話形式の質問は現在利用できません。保存された証拠は確認できます。",
     "Inspect ontology neighborhood": "オントロジー近傍を調べる",
     "Ontology neighborhood": "オントロジー近傍",
+    Post: "投稿",
     "Typed relations, not Event Lineage": "型付き関係であり、イベント系譜ではありません",
     "This is an ontology neighborhood, not Event Lineage.":
       "これはイベント系譜ではなく、オントロジー近傍です。",
@@ -1292,7 +1292,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     Team: "Nhóm",
     Person: "Người",
     Organization: "Tổ chức",
-    Post: "Bài viết",
     Project: "Dự án",
     "Body this run knew": "Nội dung mà lần chạy này đã biết",
     written: "được viết",
@@ -1549,6 +1548,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Câu hỏi tương tác hiện không khả dụng; bằng chứng đã lưu vẫn có thể xem.",
     "Inspect ontology neighborhood": "Kiểm tra lân cận bản thể",
     "Ontology neighborhood": "Lân cận bản thể",
+    Post: "Bài viết",
     "Typed relations, not Event Lineage": "Quan hệ có kiểu, không phải Dòng sự kiện",
     "This is an ontology neighborhood, not Event Lineage.":
       "Đây là lân cận bản thể, không phải Dòng sự kiện.",

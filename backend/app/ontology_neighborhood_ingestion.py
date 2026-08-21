@@ -27,8 +27,10 @@ from lineageweave.ontology_neighborhood import (
     DEFAULT_MAXIMUM_DEPTH,
     DEFAULT_MAXIMUM_EDGES,
     DEFAULT_MAXIMUM_NODES,
+    HARD_MAXIMUM_EDGES,
     KNOWN_NODE_TYPES,
     NeighborhoodFact,
+    OntologyNodeMetadata,
     OntologyNeighborhood,
     OntologyNeighborhoodError,
     assemble_ontology_neighborhood,
@@ -125,34 +127,80 @@ async def focus_catalog_exists(
 async def _load_facts(
     conn: asyncpg.Connection,
     visible_post_ids: list[str],
+    *,
+    focus_node_type_code: str = NODE_POST,
+    focus_node_id: str = "",
+    maximum_depth: int = DEFAULT_MAXIMUM_DEPTH,
     maximum_edges: int = DEFAULT_MAXIMUM_EDGES,
 ) -> list[NeighborhoodFact]:
     if not visible_post_ids:
         return []
     rows = await conn.fetch(
         """
-        select edge.source_node_type_code,
-               edge.source_node_id,
-               edge.target_node_type_code,
-               edge.target_node_id,
-               edge.edge_type_code,
-               min(post.created_at) as available_at,
-               array_agg(evidence.evidence_post_id::text order by evidence.evidence_post_id)
-                   as evidence_ids
-          from knowledge_graph_edge edge
-          join knowledge_graph_edge_evidence evidence
-            on evidence.knowledge_graph_edge_id = edge.knowledge_graph_edge_id
-          join source_post post
-            on post.post_id = evidence.evidence_post_id
-         where evidence.evidence_post_id = any($1::uuid[])
-         group by edge.source_node_type_code, edge.source_node_id,
-                  edge.target_node_type_code, edge.target_node_id,
-                  edge.edge_type_code
-         order by edge.edge_type_code, edge.source_node_id, edge.target_node_id
-         limit $2
+        with recursive candidate_facts as (
+            select edge.source_node_type_code,
+                   edge.source_node_id::text as source_node_id,
+                   edge.target_node_type_code,
+                   edge.target_node_id::text as target_node_id,
+                   edge.edge_type_code,
+                   min(post.created_at) as available_at,
+                   array_agg(evidence.evidence_post_id::text order by evidence.evidence_post_id)
+                       as evidence_ids
+              from knowledge_graph_edge edge
+              join knowledge_graph_edge_evidence evidence
+                on evidence.knowledge_graph_edge_id = edge.knowledge_graph_edge_id
+              join source_post post
+                on post.post_id = evidence.evidence_post_id
+             where evidence.evidence_post_id = any($1::uuid[])
+             group by edge.source_node_type_code, edge.source_node_id,
+                      edge.target_node_type_code, edge.target_node_id,
+                      edge.edge_type_code
+        ), reachable(node_type_code, node_id, depth) as (
+            values ($2::text, $3::text, 0)
+            union
+            select case when candidate.source_node_type_code = reachable.node_type_code
+                        and candidate.source_node_id = reachable.node_id
+                        then candidate.target_node_type_code
+                        else candidate.source_node_type_code end,
+                   case when candidate.source_node_type_code = reachable.node_type_code
+                        and candidate.source_node_id = reachable.node_id
+                        then candidate.target_node_id
+                        else candidate.source_node_id end,
+                   reachable.depth + 1
+              from candidate_facts candidate
+              join reachable
+                on (candidate.source_node_type_code = reachable.node_type_code
+                    and candidate.source_node_id = reachable.node_id)
+                or (candidate.target_node_type_code = reachable.node_type_code
+                    and candidate.target_node_id = reachable.node_id)
+             where reachable.depth < $4::integer
+        )
+        select distinct candidate.source_node_type_code,
+                        candidate.source_node_id,
+                        candidate.target_node_type_code,
+                        candidate.target_node_id,
+                        candidate.edge_type_code,
+                        candidate.available_at,
+                        candidate.evidence_ids
+          from candidate_facts candidate
+          join reachable
+            on ((candidate.source_node_type_code = reachable.node_type_code
+                 and candidate.source_node_id = reachable.node_id)
+             or (candidate.target_node_type_code = reachable.node_type_code
+                 and candidate.target_node_id = reachable.node_id))
+           and reachable.depth < $4::integer
+         order by candidate.edge_type_code,
+                  candidate.source_node_type_code,
+                  candidate.source_node_id,
+                  candidate.target_node_type_code,
+                  candidate.target_node_id
+         limit $5::integer
         """,
         visible_post_ids,
-        maximum_edges,
+        focus_node_type_code,
+        focus_node_id,
+        maximum_depth,
+        min(HARD_MAXIMUM_EDGES, maximum_edges * (maximum_depth + 1) + 1),
     )
     facts: list[NeighborhoodFact] = []
     for row in rows:
@@ -199,50 +247,94 @@ async def _load_skos_facts(
 async def _load_labels(
     conn: asyncpg.Connection, facts: list[NeighborhoodFact]
 ) -> dict[tuple[str, str], str]:
-    person_ids: list[str] = []
-    post_ids: list[str] = []
-    corp_ids: list[str] = []
-    team_ids: list[str] = []
-    for fact in facts:
-        for node_type, node_id in (
-            (fact.source_node_type_code, fact.source_node_id),
-            (fact.target_node_type_code, fact.target_node_id),
-        ):
-            if node_type == NODE_PERSON:
-                person_ids.append(node_id)
-            elif node_type == NODE_POST:
-                post_ids.append(node_id)
-            elif node_type == NODE_CORPORATE_ENTITY:
-                corp_ids.append(node_id)
-            elif node_type == NODE_TEAM:
-                team_ids.append(node_id)
+    ids_by_type = _node_ids_by_type(facts)
+    person_ids = ids_by_type[NODE_PERSON]
+    post_ids = ids_by_type[NODE_POST]
+    corp_ids = ids_by_type[NODE_CORPORATE_ENTITY]
+    team_ids = ids_by_type[NODE_TEAM]
     labels: dict[tuple[str, str], str] = {}
     if person_ids:
         for row in await conn.fetch(
             "select person_id, person_name from cataloged_person where person_id = any($1::uuid[])",
             person_ids,
         ):
-            labels[(NODE_PERSON, str(row["person_id"]))] = row["person_name"]
+            if row["person_name"]:
+                labels[(NODE_PERSON, str(row["person_id"]))] = str(row["person_name"])
     if post_ids:
         for row in await conn.fetch(
             "select post_id, post_title from source_post where post_id = any($1::uuid[])",
             post_ids,
         ):
-            labels[(NODE_POST, str(row["post_id"]))] = row["post_title"]
+            if row["post_title"]:
+                labels[(NODE_POST, str(row["post_id"]))] = str(row["post_title"])
     if corp_ids:
         for row in await conn.fetch(
             "select corporate_entity_id, entity_name from corporate_entity "
             "where corporate_entity_id = any($1::uuid[])",
             corp_ids,
         ):
-            labels[(NODE_CORPORATE_ENTITY, str(row["corporate_entity_id"]))] = row["entity_name"]
+            if row["entity_name"]:
+                labels[(NODE_CORPORATE_ENTITY, str(row["corporate_entity_id"]))] = str(row["entity_name"])
     if team_ids:
         for row in await conn.fetch(
             "select team_id, team_name from cataloged_team where team_id = any($1::uuid[])",
             team_ids,
         ):
-            labels[(NODE_TEAM, str(row["team_id"]))] = row["team_name"]
+            if row["team_name"]:
+                labels[(NODE_TEAM, str(row["team_id"]))] = str(row["team_name"])
     return labels
+
+
+def _node_ids_by_type(
+    facts: list[NeighborhoodFact],
+    focus_node_type_code: str | None = None,
+    focus_node_id: str | None = None,
+) -> dict[str, list[str]]:
+    """Collect unique catalog ids needed by labels and metadata queries."""
+    ids_by_type = {node_type: [] for node_type in KNOWN_NODE_TYPES}
+    seen: set[tuple[str, str]] = set()
+    endpoints = [
+        (fact.source_node_type_code, fact.source_node_id)
+        for fact in facts
+    ] + [
+        (fact.target_node_type_code, fact.target_node_id)
+        for fact in facts
+    ]
+    if focus_node_type_code and focus_node_id:
+        endpoints.append((focus_node_type_code, focus_node_id))
+    for node_type, node_id in endpoints:
+        key = (node_type, node_id)
+        if node_type in ids_by_type and key not in seen:
+            ids_by_type[node_type].append(node_id)
+            seen.add(key)
+    return ids_by_type
+
+
+async def _load_node_metadata(
+    conn: asyncpg.Connection,
+    facts: list[NeighborhoodFact],
+    *,
+    focus_node_type_code: str,
+    focus_node_id: str,
+) -> dict[tuple[str, str], OntologyNodeMetadata]:
+    """Load node timestamps from catalogs without deriving them from edges."""
+    ids_by_type = _node_ids_by_type(facts, focus_node_type_code, focus_node_id)
+    metadata: dict[tuple[str, str], OntologyNodeMetadata] = {}
+    queries = (
+        (NODE_PERSON, "select person_id, created_at from cataloged_person where person_id = any($1::uuid[])", "person_id"),
+        (NODE_POST, "select post_id, created_at from source_post where post_id = any($1::uuid[])", "post_id"),
+        (NODE_CORPORATE_ENTITY, "select corporate_entity_id, created_at from corporate_entity where corporate_entity_id = any($1::uuid[])", "corporate_entity_id"),
+        (NODE_TEAM, "select team_id, created_at from cataloged_team where team_id = any($1::uuid[])", "team_id"),
+    )
+    for node_type, query, id_column in queries:
+        ids = ids_by_type[node_type]
+        if not ids:
+            continue
+        for row in await conn.fetch(query, ids):
+            metadata[(node_type, str(row[id_column]))] = OntologyNodeMetadata(
+                recorded_at=row["created_at"]
+            )
+    return metadata
 
 
 def neighborhood_to_payload(neighborhood: OntologyNeighborhood) -> dict[str, Any]:
@@ -262,7 +354,7 @@ def neighborhood_to_payload(neighborhood: OntologyNeighborhood) -> dict[str, Any
                 "truth_status_code": node.truth_status_code,
                 "valid_from": node.valid_from.isoformat() if node.valid_from else None,
                 "valid_to": node.valid_to.isoformat() if node.valid_to else None,
-                "recorded_at": node.recorded_at.isoformat(),
+                "recorded_at": node.recorded_at.isoformat() if node.recorded_at else None,
                 "evidence_count": node.evidence_count,
                 "shape_code": node.shape_code,
             }
@@ -271,7 +363,9 @@ def neighborhood_to_payload(neighborhood: OntologyNeighborhood) -> dict[str, Any
         "edges": [
             {
                 "edge_id": edge.edge_id,
+                "source_node_type_code": edge.source_node_type_code,
                 "source_node_id": edge.source_node_id,
+                "target_node_type_code": edge.target_node_type_code,
                 "target_node_id": edge.target_node_id,
                 "property_code": edge.property_code,
                 "ontology_property_iri": edge.ontology_property_iri,
@@ -317,7 +411,14 @@ async def visible_ontology_neighborhood(
     )
     if not visible_post_ids:
         raise OntologyNeighborhoodError("focus_not_visible", "focus node is not visible")
-    facts = await _load_facts(conn, visible_post_ids, maximum_edges)
+    facts = await _load_facts(
+        conn,
+        visible_post_ids,
+        focus_node_type_code=focus_node_type_code,
+        focus_node_id=focus_node_id,
+        maximum_depth=maximum_depth,
+        maximum_edges=maximum_edges,
+    )
     corp_ids = [
         fact.source_node_id if fact.source_node_type_code == NODE_CORPORATE_ENTITY else fact.target_node_id
         for fact in facts
@@ -326,6 +427,29 @@ async def visible_ontology_neighborhood(
     if focus_node_type_code == NODE_CORPORATE_ENTITY:
         corp_ids.append(focus_node_id)
     facts.extend(await _load_skos_facts(conn, list(dict.fromkeys(corp_ids))))
+    hidden_node_keys: set[str] = set()
+    authorized_facts: list[NeighborhoodFact] = []
+    visibility_cache: dict[tuple[str, str], bool] = {
+        (focus_node_type_code, focus_node_id): True,
+    }
+    for fact in facts:
+        endpoints = (
+            (fact.source_node_type_code, fact.source_node_id),
+            (fact.target_node_type_code, fact.target_node_id),
+        )
+        authorized = True
+        for node_type, node_id in endpoints:
+            node_key = (node_type, node_id)
+            if node_key not in visibility_cache:
+                visibility_cache[node_key] = bool(
+                    await visible_post_ids_for_focus(conn, node_type, node_id, can_see_post)
+                )
+            if not visibility_cache[node_key]:
+                hidden_node_keys.add(f"{node_type}:{node_id}")
+                authorized = False
+        if authorized:
+            authorized_facts.append(fact)
+    facts = authorized_facts
     labels = await _load_labels(conn, facts)
     if focus_node_type_code == NODE_POST:
         title = await conn.fetchval("select post_title from source_post where post_id = $1", focus_node_id)
@@ -356,11 +480,19 @@ async def visible_ontology_neighborhood(
         if (fact.source_node_type_code, fact.source_node_id) in labels
         and (fact.target_node_type_code, fact.target_node_id) in labels
     ]
+    node_metadata = await _load_node_metadata(
+        conn,
+        facts,
+        focus_node_type_code=focus_node_type_code,
+        focus_node_id=focus_node_id,
+    )
     return assemble_ontology_neighborhood(
         focus_node_type_code=focus_node_type_code,
         focus_node_id=focus_node_id,
         facts=facts,
         labels=labels,
+        hidden_node_keys=frozenset(hidden_node_keys),
+        node_metadata=node_metadata,
         knowledge_cutoff=knowledge_cutoff,
         maximum_depth=maximum_depth,
         maximum_nodes=maximum_nodes,

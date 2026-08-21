@@ -5,6 +5,8 @@ from __future__ import annotations
 import asyncio
 
 from backend.app.ontology_neighborhood_ingestion import _load_facts
+from lineageweave.knowledge_graph import NODE_POST
+from lineageweave.ontology_neighborhood import HARD_MAXIMUM_EDGES
 
 
 class _EmptyConnection:
@@ -27,6 +29,11 @@ def test_load_facts_passes_the_request_edge_cap_to_sql() -> None:
     assert asyncio.run(_load_facts(conn, ["post-1"], maximum_edges=7)) == []
 
     normalized_query = " ".join(conn.query.lower().split())
-    assert "order by edge.edge_type_code, edge.source_node_id, edge.target_node_id" in normalized_query
-    assert "limit $2" in normalized_query
-    assert conn.arguments == (["post-1"], 7)
+    assert "with recursive candidate_facts" in normalized_query
+    assert "order by candidate.edge_type_code" in normalized_query
+    assert "limit $5::integer" in normalized_query
+    assert conn.arguments[:3] == (["post-1"], NODE_POST, "")
+    assert conn.arguments[-1] == min(
+        HARD_MAXIMUM_EDGES,
+        7 * (conn.arguments[-2] + 1) + 1,
+    )

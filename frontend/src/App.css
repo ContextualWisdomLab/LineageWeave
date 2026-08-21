@@ -899,6 +899,11 @@
   stroke-width: 2.5;
 }
 
+.ontology-node:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .ontology-edge {
   fill: none;
   stroke: var(--color-accent-silver);
@@ -921,8 +926,14 @@
   cursor: pointer;
 }
 
-.ontology-node:focus-visible,
+.ontology-node:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .ontology-edge-hit:focus-visible {
+  stroke: var(--color-primary);
+  stroke-width: 3;
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
