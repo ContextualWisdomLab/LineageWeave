@@ -1,15 +1,19 @@
 # Event Intelligence research and standards traceability
 
-**Reviewed:** 2026-08-20
-**Applies to:** ADR 0120, `lineageweave.event_intelligence`, and
-`docs/ontology/event-intelligence-profile.ttl`
+**Reviewed:** 2026-08-21
+**Applies to:** ADR 0120, `lineageweave.event_intelligence`,
+`docs/ontology/event-intelligence-profile.ttl`, and
+`docs/ontology/event-intelligence-profile.shacl.ttl`
 
 ## Design traceability
 
 | Requirement | Product decision | Evidence |
 |---|---|---|
 | Separate event occurrence from reporting and availability | Preserve event, assertion, document, available, recorded, and cutoff clocks | ISO-TimeML; TEPP temporal contract |
-| Express instants, intervals, and ordering | Use OWL-Time temporal entities and typed forward/retrospective relations | W3C/OGC OWL-Time |
+| Express instants, intervals, and ordering | Use OWL-Time `Interval` and `Instant` resources plus typed forward/retrospective relations | W3C/OGC OWL-Time |
+| Keep a generated artifact distinct from the process that generated it | Model `EventIntelligenceDossier` as `prov:Entity` and `DossierGenerationActivity` as `prov:Activity`; bind `prov:used` and `prov:generated` only through the activity | W3C PROV-O |
+| Keep source evidence distinct from the real-world event | Model `EventAssertion` between the source post and `EventEpisode`; specialize `prov:wasDerivedFrom` for source support and keep the compact `evidencesEvent` projection outside PROV influence | W3C PROV-O; evidence-grounding contract |
+| Publish interoperable closed-world graph constraints | Version a SHACL shapes graph for activity, assertion, evidence-bundle, and temporal cardinalities | W3C SHACL |
 | Preserve source/model provenance across products | Every artifact and claim cites immutable evidence IDs and SHA-256 digests | W3C PROV-O; TEPP export manifest |
 | Treat event detection/tracking as multiple tasks | Keep graph/link evidence, event/topic artifacts, and claims separate | NIST Topic Detection and Tracking |
 | Combine neural extraction with symbolic event schemas | Compose LLM judgment with typed ontology and source provenance rather than allowing prose-only output | CHRONOS |
@@ -34,6 +38,9 @@
   and Fugu/TRINITY/Conductor contract tests.
 - `ContextualWisdomLab/LineageWeave`, ADR 0004 and
   `docs/ontology/lineageweave-kg.ttl`: current graph and semantic vocabulary.
+- `ContextualWisdomLab/LineageWeave`, ADR 0065 and
+  `docs/PROV_O_IMPLEMENTATION.md`: standards-complete PROV-O persistence and
+  deterministic materialization boundary.
 
 ## APA 7th references
 
@@ -50,8 +57,8 @@ Roukos, S. (2024). CHRONOS: A schema-based event understanding and prediction
 system. *Proceedings of the AAAI Conference on Artificial Intelligence,
 38*(21), 22871–22877. https://doi.org/10.1609/aaai.v38i21.30323
 
-Cox, S. J. D., & Little, C. (Eds.). (2017). *Time ontology in OWL*.
-World Wide Web Consortium. https://www.w3.org/TR/2017/REC-owl-time-20171019/
+Cox, S. J. D., & Little, C. (Eds.). (2022). *Time ontology in OWL*.
+World Wide Web Consortium. https://www.w3.org/TR/owl-time/
 
 Fiscus, J. G., & Doddington, G. R. (2002). Topic detection and tracking
 evaluation overview. In J. Allan (Ed.), *Topic detection and tracking:
@@ -62,6 +69,9 @@ International Organization for Standardization. (2012). *Language resource
 management—Semantic annotation framework (SemAF)—Part 1: Time and events
 (SemAF-Time, ISO-TimeML) (ISO 24617-1:2012).* The standard was confirmed in
 2023. https://www.iso.org/standard/37331.html
+
+Knublauch, H., & Kontokostas, D. (Eds.). (2017). *Shapes constraint language
+(SHACL).* World Wide Web Consortium. https://www.w3.org/TR/shacl/
 
 Lebo, T., Sahoo, S., McGuinness, D., Belhajjame, K., Cheney, J., Corsar, D.,
 Garijo, D., Soiland-Reyes, S., Zednik, S., & Zhao, J. (Eds.). (2013).
@@ -88,8 +98,9 @@ https://doi.org/10.1162/tacl_a_00744
 ## Interpretation limits
 
 These sources support typed temporal representation, event detection/tracking,
-provenance, temporal topic artifacts, neuro-symbolic event schemas, and LLMs as
-complementary evaluators. They do **not** establish that a LineageWeave dossier
-is a causal model, that an LLM verdict is ground truth, or that outputs from
-different numerical scales can be averaged. ADR 0120 therefore preserves each
-authority and uncertainty instead of making those claims.
+provenance, closed-world RDF validation, temporal topic artifacts,
+neuro-symbolic event schemas, and LLMs as complementary evaluators. They do
+**not** establish that a LineageWeave dossier is a causal model, that an LLM
+verdict is ground truth, or that outputs from different numerical scales can
+be averaged. ADR 0120 therefore preserves each authority and uncertainty
+instead of making those claims.
