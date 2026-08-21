@@ -960,8 +960,9 @@ async def read_customer_master(
                 select corporate_entity_id,
                        array_agg(distinct affiliation_scope_code)
                            filter (where affiliation_scope_code is not null) as scope_codes
-                  from account_affiliation
+                 from account_affiliation
                  where user_account_id = $2
+                   and corporate_entity_id = any($1::uuid[])
                  group by corporate_entity_id
             ), observed as (
                 select org_mention.corporate_entity_id
