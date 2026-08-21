@@ -87,24 +87,36 @@ function renderImageEvidence(
   );
 }
 
+const MAX_RENDERABLE_INDENT_LEVEL = 64;
+
+function safeIndentLevel(value: unknown): number | undefined {
+  if (
+    typeof value !== "number" ||
+    !Number.isFinite(value) ||
+    value <= 0 ||
+    value > MAX_RENDERABLE_INDENT_LEVEL
+  ) {
+    return undefined;
+  }
+  return value;
+}
+
 function renderSegment(segment: PostBodySegment, index: number, imageContent?: PostImageContent) {
   switch (segment.kind) {
-    case "text":
+    case "text": {
+      const indentLevel = safeIndentLevel(segment.indentLevel);
       return (
         <p
           key={`post-body-text-${index}`}
           className={`post-body-text${segment.role === "footnote" ? " post-body-footnote" : ""}`}
           data-content-kind={segment.role ?? "text"}
-          data-indent-level={segment.indentLevel ?? 0}
-          style={
-            segment.indentLevel
-              ? { paddingInlineStart: `${segment.indentLevel}em` }
-              : undefined
-          }
+          data-indent-level={indentLevel ?? 0}
+          style={indentLevel ? { paddingInlineStart: `${indentLevel}em` } : undefined}
         >
           {segment.text}
         </p>
       );
+    }
     case "image":
       return renderImageEvidence(index, imageContent, segment);
     default: {
@@ -120,6 +132,10 @@ function isStructuredTableRow(unit: PostContentUnit): boolean {
     unit.unit_label === "w:tr" ||
     unit.unit_kind_code === "table_row"
   );
+}
+
+function structuredTableCells(unit: PostContentUnit): string[] {
+  return unit.unit_text.split(/\s*\|\s*/);
 }
 
 /**
@@ -214,12 +230,17 @@ function renderStructuredUnits(
         rows.push(structureUnits[index]);
         index += 1;
       }
+      for (const row of rows) {
+        for (const cell of structuredTableCells(row)) {
+          sourceTextForUnit(cell);
+        }
+      }
       rendered.push(
         <table className="post-body-table" key={`post-body-table-${index}`}>
           <tbody>
             {rows.map((row, rowIndex) => (
               <tr key={`post-body-table-row-${row.unit_index}-${rowIndex}`}>
-                {row.unit_text.split(/\s*\|\s*/).map((cell, cellIndex) => (
+                {structuredTableCells(row).map((cell, cellIndex) => (
                   <td key={`post-body-table-cell-${row.unit_index}-${cellIndex}`}>{cell}</td>
                 ))}
               </tr>
@@ -230,10 +251,11 @@ function renderStructuredUnits(
       continue;
     }
     const sourceText = sourceTextForUnit(unit.unit_text);
+    const candidateIndent = safeIndentLevel(unit.indent_level);
     const persistedIndent =
-      unit.indent_level > 0 &&
+      candidateIndent &&
       (unit.indent_source_code === "explicit" || unit.indent_source_code === "llm")
-        ? unit.indent_level
+        ? candidateIndent
         : undefined;
     rendered.push(
       renderSegment(
@@ -273,7 +295,6 @@ export function PostBody({
     <div className="post-body">
       {splitPostBody(body).map((segment, index) => {
         const content = segment.kind === "image" ? imageContent[imageOrdinal++] : undefined;
-        if (segment.kind !== "text") return renderSegment(segment, index, content);
         return renderSegment(segment, index, content);
       })}
     </div>
