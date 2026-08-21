@@ -43,6 +43,41 @@ All notable changes to this project are documented here. Format follows
   Event Lineage. Reset filters returns every VOC type and every week.
   No TEPP theta is invented (ADR 0092).
 
+## [Unreleased]
+
+### Fixed
+
+- Removed the completed one-shot Global Ask package-manager repair workflow;
+  normal product CI remains the only branch validation path.
+- `make smoke` and `make seed` now run through the locked project `uv`
+  environment, so local OIDC and synthetic-data workflows resolve the same
+  pinned dependencies as CI.
+
+## [2.12.6] - 2026-08-20
+
+### Added
+
+- Production OIDC can now use a real Keyverse issuer through
+  `KEYVERSE_ISSUER` and `KEYVERSE_CLIENT_ID`. The backend discovers the
+  provider's JWKS and verifies the issuer; Compose keeps local Keycloak only
+  as an explicit development fallback and does not emulate Keyverse.
+- Relation verification now preserves a separately authorized internal source
+  post containing normalized organization and relationship context. Open that
+  evidence from the counterparty popup without treating it as an external URL.
+- Large corpora now use bounded post and Event Lineage landing projections so
+  buyers can open complete post-specific detail from a responsive first view.
+
+## [2.11.0] - 2026-08-18
+
+### Added
+
+- Relation verification now preserves a separately authorized internal source
+  post containing normalized organization and relationship context. The
+  counterparty popup can open that evidence without treating it as an
+  external-search URL or changing the external verification status.
+- Large corpora now use bounded post and Event Lineage landing projections so
+  the React screen remains usable before opening complete post-specific detail.
+
 ## [2.10.0] - 2026-08-18
 
 ### Added
@@ -52,16 +87,204 @@ All notable changes to this project are documented here. Format follows
   provider's JWKS and verifies the issuer; Compose keeps local Keycloak only
   as an explicit development fallback and does not emulate Keyverse.
 
-## [2.11.0] - 2026-08-18
+## [2.12.5] - 2026-08-18
+
+### Fixed
+
+- Migrations 0019 and 0025 (R&R role-catalog identity backfills) both
+  used `min(uuid_column)` to pick "the" value from a `having count(*)
+  = 1` group -- Postgres has no built-in `min(uuid)` aggregate, so
+  both failed outright the first time either was actually run against
+  a real, non-trivial dataset. Fixed to
+  `min(uuid_column::text)::uuid`, safe given the query's own
+  `having count(*) = 1` already guarantees exactly one value per
+  group. Applying the full migration set 0001-0029 against a real,
+  long-lived dataset also surfaced that this database's original
+  bootstrap had left several *earlier* migrations (0001, 0016)
+  partially applied -- specific tables/indexes/backfills their own
+  later statements defined were missing even though their initial
+  `create table` statements had run. All 29 migrations are now
+  confirmed genuinely, fully applied end to end against a real
+  43,814-post dataset; every table/index any migration defines is now
+  present, verified via direct schema comparison, not assumption.
+
+### Known issue (not fixed here, flagged for follow-up)
+
+- `backend/tests/test_api.py::test_start_analysis_run_recovers_the_a100_fork`
+  and `::test_tepp_start_persists_published_accepted_evidence`
+  deterministically fail against a real live PostgreSQL/Keycloak/Valkey
+  stack (this whole test module is `skipif`-guarded and never runs in
+  CI) with `CheckViolationError` on `analysis_run_status_time_check`
+  (`occurred_at <= recorded_at`): the row's `occurred_at`
+  (`datetime.now(timezone.utc)`, captured in `backend/app/analysis_run_start.py`)
+  reproducibly lands ~15-20ms *after* `recorded_at`
+  (`clock_timestamp()`, evaluated later, at actual insert time, inside
+  a `before insert` trigger) -- the wrong direction, given
+  `recorded_at` is evaluated strictly after `occurred_at` is captured
+  in every code path. Confirmed via a direct clock-sync measurement
+  (5 samples, Python vs. Postgres `clock_timestamp()` interleaved)
+  that there is no measurable systemic clock drift between the test
+  process and this Postgres instance under normal conditions, and
+  confirmed the failure is 100% reproducible in isolation (not a
+  concurrency/load artifact) and entirely pre-existing (verified via
+  `git diff` that no file in this change touches
+  `analysis_run_start.py` or the 0018 migration that defines this
+  constraint). Root cause not yet conclusively identified; deferred
+  as out of scope for this migration-catchup change (a different
+  feature area -- analysis-run/TEPP lifecycle, not R&R/summary/
+  verification) rather than rushed. 553 other tests unaffected.
+
+- `get_or_create_corporate_entity`'s post-lock duplicate-create re-check
+  fuzzy-matched against every cataloged entity, not just an exact
+  concurrent duplicate of the entity being created. A newly-created
+  parent whose name is a prefix of the child now being created (e.g.
+  "Acme" as parent of "Acme Gwangju Plant") scored ~0.7 similarity
+  against that child under the shared 0.6 threshold, so the child was
+  silently bound to its own parent's id instead of getting its own
+  catalog row -- undermining exactly the "통합 고객사 계열 tree AI"
+  (integrated customer affiliate tree) hierarchy the feature exists
+  for. The re-check now requires an exact post-normalization match
+  (`min_similarity=1.0`); real mention resolution against the full
+  candidate set is unchanged. Caught locally by
+  `test_first_mention_of_a_new_counterparty_creates_a_real_corporate_entity`,
+  which requires a live PostgreSQL/Keycloak/Valkey stack and is
+  therefore skipped in CI (`make up` required) -- confirmed CI's own
+  "Full test suite" run has never actually executed this assertion.
+- `test_start_analysis_run_recovers_the_a100_fork` seeded
+  `snapshot_sha256`/`configuration_sha256`/`code_revision_sha` with
+  `"t"`/`"u"`/`"v"`-repeated literals; none are valid hex characters,
+  so the very first insert failed its own `analysis_source_snapshot`
+  check constraint every time this test actually ran. Same CI-blind
+  gap as above -- fixed to valid hex placeholders matching this file's
+  existing convention.
+
+## [2.12.3] - 2026-08-18
 
 ### Added
 
-- Relation verification now preserves a separately authorized internal source
-  post containing the normalized organization and relationship context. The
-  counterparty popup can open that evidence without treating it as an
-  external-search URL or changing the external verification status.
-- Large corpora now use bounded post and Event Lineage landing projections so
-  the React screen remains usable before opening complete post-specific detail.
+- `make seed` inserts Late Demo public post (2026-01-13) so the
+  January 12 Demo Corp lineage and TEPP runs' knowledge cutoff is
+  falsifiable: Demo public post still opens; Late Demo does not.
+  The live post list still shows Late Demo. The cutoff filter
+  itself already lives on this stack (ADR 0016). TEPP honesty is
+  unchanged: accepted acks stay Failed transport evidence, not
+  Succeeded. Never invent a theta.
+
+## [2.12.2] - 2026-08-18
+
+### Fixed
+
+- Accepted TEPP transport evidence now stores **received** (transport
+  response) and **recorded** (row write) as distinct clocks when those
+  instants differ (ADR 0035 follow-up). After `make seed`, Demo Analyst
+  opens **TEPP measurement · Failed · Demo Corp** Measurement evidence
+  and sees one Received clock when seed receipt and persist share an
+  instant. A later start that persists in a later minute shows both
+  clocks. Digest recomputation is unchanged. Hidden runs stay 404.
+  Never invent a theta.
+
+## [2.12.1] - 2026-08-17
+
+### Fixed
+
+- A published TEPP **accepted** acknowledgement is stored as
+  **aggregate transport evidence** and stays Failed /
+  `tepp_completed_result_unsupported` (ADR 0035). After `make seed`,
+  Demo Analyst opens that Failed Demo Corp row to read contract
+  version, accepted run id, clocks, and a copyable SHA-256. The
+  section says completed-artifact identity is unavailable until TEPP
+  publishes a versioned completed-result contract. A
+  LineageWeave-local `time_multilevel_multi_affiliation` envelope, or
+  any other unpublished completed shape, stays Failed /
+  `tepp_result_not_persisted` and must not stamp Succeeded. Missing
+  `TEPP_TRANSPORT_URL` stays Failed / `tepp_not_available`. Never
+  invent a theta.
+
+## [2.12.0] - 2026-08-17
+
+### Added
+
+- A persistable TEPP **time / multilevel / multi-affiliation** result
+  is stored on the analysis-run and marked Succeeded (ADR 0034). After
+  `make seed`, Demo Analyst sees **TEPP measurement · Succeeded · Demo
+  Corp** next to the Failed missing-transport row. Home list and detail
+  show measured clocks and affiliation counts. A screen reader on that
+  Succeeded row hears open the run to read those aggregates, not only
+  the title. An `accepted` ack or an envelope this product cannot store
+  stays Failed / `tepp_result_not_persisted`. Missing
+  `TEPP_TRANSPORT_URL` stays Failed / `tepp_not_available`. Never
+  invent a theta.
+
+## [2.11.0] - 2026-08-17
+
+### Added
+
+- Home now shows the authorized customer-group tree (Group / Company /
+  Plant) instead of only a flat corp list. After `make seed`, Demo
+  Analyst walks Demo Group → Demo Corp → Demo Plant; a click opens that
+  entity as the corporate-entity report grouping. The post-scoped
+  affiliate tree is unchanged (ADR 0033).
+- Abbreviations on a post are cross-checked against that tree through
+  the existing Searxng client. A unique corroborated hit binds; a down,
+  empty, or tied search stays unbound and does not invent a parent or
+  AUTO row. Seeded `DC` on Demo Corp is synthetic Demo Corp only.
+
+## [2.10.4] - 2026-08-17
+
+### Fixed
+
+- After a Demo Corp lineage reconstruction has started, the same
+  granted retention purge empties `analysis_run_lineage_edge`,
+  `analysis_run_reconstruction`, and `analysis_source_snapshot_member`
+  when those tables exist, including their delete-reject triggers
+  (ADR 0032). Follow the same grant + admin + phrase path — do not
+  `DISABLE TRIGGER` as superuser.
+
+## [2.10.3] - 2026-08-17
+
+### Fixed
+
+- Opening a listed analysis-run that then 404s drops that stale row
+  from the home list after an authorized re-read. The next action is
+  announced as a status alert: open a remaining visible run, or
+  request a lineage reconstruction. The message still does not name
+  the thread or the cutoff (ADR 0014 / ADR 0018).
+
+## [2.10.2] - 2026-08-17
+
+### Fixed
+
+- Opening a post whose embedded picture uses invoice-like HTML
+  (`alt="Invoice > 1000"`, unquoted `width`, newlines in the base64)
+  now shows the picture. The raw payload no longer returns when a
+  remote-only or SVG tag is the whole body. Re-export as PNG or JPEG
+  if the type is rejected. The popup, `extract_base64_images`, and
+  `chunk_by_dom` share one raster allowlist (ADR 0031).
+
+## [2.10.1] - 2026-08-17
+
+### Fixed
+
+- Analysis-run list buttons now include the kind-specific next-action
+  sentence in the accessible name (WCAG 2.2 SC 4.1.2). Open a Failed
+  TEPP row: a screen reader hears connect the measurement service, not
+  only the run title. `aria-label` replaces button contents (ADR 0014).
+  No TEPP theta is invented.
+
+## [2.10.0] - 2026-08-17
+
+### Added
+
+- Home Rankings panel fuses visible posts through `RankWeaveClient`
+  (ADR 0030). After login with the port disabled or the library
+  missing, Demo Analyst sees **Rankings · RankWeave not available**.
+  An accepted hit lists the title; click opens that post. A hidden
+  post is omitted. Never invent a fused score or a theta.
+- Period reports now persist closest and farthest leftover
+  post–criterion pairs after the IRT main effects (Jeon leftover
+  map, ADR 0028 / 0029). After `make seed`, leftover pairs sit above
+  the member list; clicking a pair opens that post. A leftover pair
+  for a hidden post is omitted the same way a hidden member is.
 
 ## [2.9.0] - 2026-08-17
 
@@ -712,25 +935,6 @@ All notable changes to this project are documented here. Format follows
 - The offline synthetic-batch script's own re-implementation of Keyman
   affiliation persistence was missing `role_title` entirely (a stale
   copy that predated that feature) -- fixed alongside this change.
-## [0.75.0] - 2026-08-17
-
-### Added
-
-- Home Rankings panel fuses visible posts through `RankWeaveClient`
-  (ADR 0024). After login with the port disabled or the library
-  missing, Demo Analyst sees **Rankings · RankWeave not available**.
-  An accepted hit lists the title; click opens that post. A hidden
-  post is omitted. Never invent a fused score or a theta.
-
-## [0.71.2] - 2026-08-17
-
-### Added
-
-- Period reports now persist closest and farthest leftover
-  post–criterion pairs after the IRT main effects (Jeon leftover
-  map). After `make seed`, leftover pairs sit above the member
-  list; clicking a pair opens that post. A leftover pair for a
-  hidden post is omitted the same way a hidden member is.
 
 ## [0.71.0] - 2026-08-14
 
