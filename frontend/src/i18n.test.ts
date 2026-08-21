@@ -44,6 +44,13 @@ describe("i18n", () => {
     "Use the LLM channel",
     "Rebuild is queued. Event Lineage updates when it succeeds.",
     "Rebuild succeeded on three channels. Open Event Lineage, then connect contextual-orchestrator to use the LLM channel.",
+    "No authorized source posts are available for this question.",
+    "Enable public verification to check eligible public claims.",
+    "Configure public search and contextual-orchestrator, then retry.",
+    "Inspect the internal cited posts; no public claim was eligible.",
+    "Inspect public evidence separately before any governed graph review.",
+    "Collect stronger authoritative evidence before accepting the claim.",
+    "Inspect the authorized cited posts and their evidence.",
   ] as const;
 
   it("supports the five product locales", () => {
