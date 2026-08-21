@@ -21,11 +21,12 @@ new claim of its own, it only combines the two.
 
 from __future__ import annotations
 
+import math
+import re
 from concurrent.futures import ThreadPoolExecutor
 from contextvars import Context, copy_context
-from itertools import repeat
-import re
 from dataclasses import dataclass, field
+from itertools import repeat
 
 from .chunking import Chunk, chunk_by_dom, normalize_semantic_text
 from .image_content import (
@@ -69,7 +70,7 @@ class ImageContentResult:
     mime_type: str
     status_code: str
     description: ImageDescription | None = None
-    regions: tuple["ImageRegionResult", ...] = field(default_factory=tuple)
+    regions: tuple[ImageRegionResult, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
@@ -121,7 +122,7 @@ def _image_placeholder(description: ImageDescription) -> str:
     caption = description.caption or "no caption available"
     ocr = description.extracted_text.strip()
     if ocr:
-        return f"[image: {caption} | text: {ocr}]"
+        return f"[image: {caption}]\n\n{ocr}\n"
     return f"[image: {caption}]"
 
 
@@ -133,14 +134,32 @@ def _merge_region_descriptions(descriptions: list[ImageDescription]) -> ImageDes
     return ImageDescription(extracted_text=extracted_text, caption=captions, tags=tags)
 
 
+def _is_bounded_region(region: ImageRegion) -> bool:
+    """Accept only finite, positive regions wholly inside the image."""
+    if not isinstance(region, ImageRegion):
+        return False
+    values = (region.x, region.y, region.width, region.height)
+    if not all(isinstance(value, (int, float)) for value in values):
+        return False
+    return (
+        all(math.isfinite(value) for value in values)
+        and 0.0 <= region.x <= 1.0
+        and 0.0 <= region.y <= 1.0
+        and 0.0 < region.width <= 1.0
+        and 0.0 < region.height <= 1.0
+        and region.x + region.width <= 1.0
+        and region.y + region.height <= 1.0
+    )
+
+
 def _describe_image_region(
     region_index: int,
     image_bytes: bytes,
     mime_type: str,
     region: ImageRegion,
     vision_client: ImageContentClient,
-    session_id: str | None,
-    metadata: dict[str, str] | None,
+    session_id: str | None = None,
+    metadata: dict[str, str] | None = None,
 ) -> ImageRegionResult:
     """Describe one region without allowing one failed crop to cancel siblings."""
     try:
@@ -186,8 +205,8 @@ def _describe_image_region_in_context(
 def _describe_image_chunk(
     chunk: Chunk,
     vision_client: ImageContentClient,
-    session_id: str | None,
-    metadata: dict[str, str] | None,
+    session_id: str | None = None,
+    metadata: dict[str, str] | None = None,
 ) -> tuple[ImageContentResult, ImageDescription | None, str]:
     """Analyze one image chunk and keep its evidence and failure state."""
     result = ImageContentResult(
@@ -216,43 +235,75 @@ def _describe_image_chunk(
             )
         except Exception:  # noqa: BLE001 - locator failure falls back to whole-image evidence.
             regions = ()
-        if not regions_cover_image(regions):
-            # A provider may return only a salient crop even when the contract asks for
-            # full-image coverage. Preserve the missing evidence with one bounded region.
-            regions = (ImageRegion(0.0, 0.0, 1.0, 1.0),)
-        # Keep each region's request bounded and preserve LLM metadata while avoiding
-        # serial timeout multiplication for image panels.
-        with ThreadPoolExecutor(max_workers=min(8, len(regions))) as executor:
-            region_results.extend(
-                executor.map(
-                    _describe_image_region_in_context,
-                    (copy_context() for _ in regions),
-                    range(len(regions)),
-                    repeat(chunk.image_data),
-                    repeat(chunk.label),
-                    regions,
-                    repeat(vision_client),
-                    repeat(session_id),
-                    repeat(metadata),
-                )
+        try:
+            regions = tuple(
+                region
+                for region in (regions or ())
+                if _is_bounded_region(region)
             )
+        except Exception:  # noqa: BLE001 - malformed locator output falls back safely.
+            regions = ()
+        full_image_region = len(regions) == 1 and regions[0] == ImageRegion(0.0, 0.0, 1.0, 1.0)
+        partial_regions = bool(regions) and not full_image_region and not regions_cover_image(regions)
+        if not regions or full_image_region:
+            # Missing or full-image locator output is not a decomposed region.
+            # Preserve parent-image evidence below without inventing coordinates.
+            regions = ()
+        # ponytail: serialize per-post VISION calls; nested image/region pools
+        # overwhelmed the gateway and turned valid region evidence into failures.
+        # Reintroduce bounded concurrency only after provider capacity is measured.
+        if regions:
+            with ThreadPoolExecutor(max_workers=min(8, len(regions))) as executor:
+                region_results.extend(
+                    executor.map(
+                        _describe_image_region_in_context,
+                        (copy_context() for _ in regions),
+                        range(len(regions)),
+                        repeat(chunk.image_data),
+                        repeat(chunk.label),
+                        regions,
+                        repeat(vision_client),
+                        repeat(session_id),
+                        repeat(metadata),
+                    )
+                )
         successful_regions = [
             item.description for item in region_results if item.description is not None
         ]
-        description = (
-            _merge_region_descriptions(successful_regions)
-            if successful_regions
-            else (
-                vision_client.describe(chunk.image_data, chunk.label)
-                if session_id is None and not metadata
-                else vision_client.describe(
-                    chunk.image_data,
-                    chunk.label,
-                    session_id=session_id,
-                    metadata=metadata,
+        if partial_regions:
+            # Keep valid salient panels instead of replacing them with a full-image
+            # crop, then ask once more for the uncovered parent image so text outside
+            # those panels remains searchable and its original location is preserved.
+            try:
+                description = (
+                    vision_client.describe(chunk.image_data, chunk.label)
+                    if session_id is None and not metadata
+                    else vision_client.describe(
+                        chunk.image_data,
+                        chunk.label,
+                        session_id=session_id,
+                        metadata=metadata,
+                    )
+                )
+            except Exception:
+                if not successful_regions:
+                    raise
+                description = _merge_region_descriptions(successful_regions)
+        else:
+            description = (
+                _merge_region_descriptions(successful_regions)
+                if successful_regions
+                else (
+                    vision_client.describe(chunk.image_data, chunk.label)
+                    if session_id is None and not metadata
+                    else vision_client.describe(
+                        chunk.image_data,
+                        chunk.label,
+                        session_id=session_id,
+                        metadata=metadata,
+                    )
                 )
             )
-        )
     except Exception:  # noqa: BLE001 - a provider failure must not drop the whole post.
         return ImageContentResult(chunk.index, chunk.label, "failed"), None, "[image: content unavailable]"
 

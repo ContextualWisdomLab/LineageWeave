@@ -76,11 +76,12 @@ def test_library_transport_fails_closed_when_rankweave_missing(
 
     monkeypatch.setattr("lineageweave.rankweave_client._import_rankweave", boom)
     client = RankWeaveClient(transport=LibraryRankWeaveTransport())
-    with pytest.raises(RankWeaveNotAvailable, match="rankweave_not_available"):
+    with pytest.raises(RankWeaveNotAvailable, match="rankweave_not_available") as error:
         client.fuse_rankings(
             {"temporal": ["post-1"], "lexical": ["post-1"]},
             {"post-1": "Public post"},
         )
+    assert "duplicate identifiers" not in str(error.value)
     assert (
         client.as_api_payload([PUBLIC], can_see_post=lambda _row: True)["rankings"]
         == []

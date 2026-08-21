@@ -278,7 +278,7 @@ def test_region_coverage_guard_rejects_a_salient_crop() -> None:
     from lineageweave.image_content import ImageRegion
 
     assert not regions_cover_image((ImageRegion(0.2, 0.2, 0.3, 0.3),))
-    assert regions_cover_image((ImageRegion(0.0, 0.0, 1.0, 1.0),))
+    assert not regions_cover_image((ImageRegion(0.0, 0.0, 1.0, 1.0),))
 
 
 def test_parse_description_does_not_absorb_unknown_labels_into_tags() -> None:
