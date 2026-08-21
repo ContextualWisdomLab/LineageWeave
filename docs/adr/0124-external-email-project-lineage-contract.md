@@ -20,7 +20,9 @@ The initial implementation is a store-agnostic Python package boundary. It perfo
 
 The caller supplies opaque evidence references, bounded text labels, occurrence and availability clocks, an optional secondary key, an optional project reference, and an optional caller-observed parent relation. Explicit observed parent relations replace an inferred parent for the same child and must form an acyclic graph. Reconstructed continuation remains `inferred`. Project groupings remain `proposed`.
 
-The caller also supplies `maximum_pair_evaluations` in the bounded policy. The package computes the exact candidate-parent pair count after knowledge-cutoff filtering and rejects work above the declared budget before any optional LLM/provider call. Contract v1 caps the declared budget at 5,000 pairs.
+An admitted child with an explicit observed parent is not rescored for an alternative inferred parent and consumes no optional LLM/provider call or inferred-pair budget. The record remains in temporal history and may still be an eligible candidate parent for a later record. This preserves observed authority without weakening downstream lineage reconstruction.
+
+The caller also supplies `maximum_pair_evaluations` in the bounded policy. The package computes the exact inferred candidate-parent pair count after knowledge-cutoff filtering, excluding children whose parent is already caller-observed, and rejects work above the declared budget before any optional LLM/provider call. Contract v1 caps the declared budget at 5,000 pairs.
 
 Historical requests include evidence only when:
 
@@ -34,6 +36,7 @@ Evidence becoming available after the cutoff is excluded even when it describes 
 
 - Naruon can eventually consume a released artifact without exposing credentials or application tables.
 - RFC reply/thread evidence stays distinguishable from semantic lineage.
+- Caller-observed children are never disclosed to an optional model merely to calculate an inferred edge that would be discarded.
 - The optional LLM channel is explicit as `not_requested`, `unavailable`, or `completed`; missing output is never zero.
 - Every result is deterministic for the same semantic request and carries a SHA-256 digest.
 - Explicit parent cycles and analysis work above the caller-approved pair budget fail closed before inference.
