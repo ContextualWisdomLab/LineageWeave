@@ -67,7 +67,7 @@ async def _claim_job(
                 join source_post p on p.post_id = j.post_id
                 where j.post_id = $1::uuid
                   and j.source_body_sha256 = $2
-                  and coalesce(btrim(p.source_detail_state_code), '') <> 'W'
+                  and coalesce(upper(btrim(p.source_detail_state_code)), '') <> 'W'
                 for update of j, p
                 """,
                 post_id,

@@ -2323,6 +2323,27 @@ describe("App, authenticated", () => {
     );
   });
 
+  it("does not request derived analysis for a writing-state post", async () => {
+    const fetchMock = stubBackend({ sourceDetailStateCode: " w " });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    expect(await screen.findByText("Summary is not created for writing posts.")).toBeInTheDocument();
+
+    const requestedPaths = fetchMock.mock.calls.map(([url]) =>
+      new URL(String(url), "https://backend.test").pathname,
+    );
+    expect(requestedPaths).not.toContain("/api/posts/post-1/summary");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/evaluation");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/five-w1h");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/keymen");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/counterparties");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/lineage");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/knowledge-graph");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/affiliate-tree");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/voc-evidence");
+  });
+
   it("does not show an empty source detail state filter", async () => {
     const fetchMock = stubBackend({ sourceDetailStateOptions: [] });
     render(<App />);

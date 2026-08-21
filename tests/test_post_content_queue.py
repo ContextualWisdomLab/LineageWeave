@@ -120,7 +120,8 @@ def test_republish_query_recovers_due_queue_and_stale_running_leases() -> None:
             assert "status_code = $1" in query
             assert "status_code = $3" in query
             assert "join source_post post" in query
-            assert "upper(btrim(post.source_detail_state_code))" in query
+            assert "source_detail_state_code" in query
+            assert "coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'" in query
             assert "started_at < now() - $4::interval" in query
             assert args[0] == QUEUED
             assert args[2] == RUNNING
@@ -432,8 +433,8 @@ def test_recovery_republishes_due_rows_in_queued_at_order() -> None:
 
     assert published == 2
     assert client.events == [("first", "a" * 64), ("second", "b" * 64)]
-    assert "coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'" in connection.query
     assert "queued_at <= now() - $2::interval" in connection.query
+    assert "coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'" in connection.query
     assert "order by post_content_ingestion_job.queued_at" in connection.query
     assert connection.args == (QUEUED, POST_CONTENT_RETRY_INTERVAL, RUNNING, STALE_RUNNING_INTERVAL, 2)
 
