@@ -252,10 +252,10 @@ describe("PostBody", () => {
             regions: [
               {
                 region_index: 0,
-                x_ratio: 0,
-                y_ratio: 0,
-                width_ratio: 1,
-                height_ratio: 1,
+                x_ratio: 0.1,
+                y_ratio: 0.1,
+                width_ratio: 0.9000000000000001,
+                height_ratio: 0.9000000000000001,
                 status_code: "described",
                 extracted_text: "Region OCR",
                 caption: "Main panel",
@@ -270,7 +270,7 @@ describe("PostBody", () => {
     expect(screen.getByText("A process diagram")).toBeInTheDocument();
     expect(screen.getByText("diagram, process")).toBeInTheDocument();
     expect(screen.getByText("Main panel")).toBeInTheDocument();
-    expect(screen.getByText("Region location: 0%, 0% – 100%, 100%")).toBeInTheDocument();
+    expect(screen.getByText("Region location: 10%, 10% – 100%, 100%")).toBeInTheDocument();
     expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
   });
 

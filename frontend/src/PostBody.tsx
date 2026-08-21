@@ -46,8 +46,8 @@ function formatImageRegionLocation(region: PostImageRegion): string | null {
   const bottom = region.y_ratio + region.height_ratio;
   if (
     values.some((value) => !Number.isFinite(value) || value < 0 || value > 1) ||
-    right > 1 ||
-    bottom > 1
+    right > 1 + Number.EPSILON * 4 ||
+    bottom > 1 + Number.EPSILON * 4
   ) {
     return null;
   }
