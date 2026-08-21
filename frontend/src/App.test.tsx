@@ -1900,6 +1900,9 @@ describe("App, authenticated", () => {
 
     expect(screen.getByRole("log", { name: "Conversation" })).toHaveAttribute("aria-busy", "false");
     expect(screen.getByText("Start with a question about the evidence")).toBeInTheDocument();
+    expect(screen.getByText("Evidence workspace")).toBeInTheDocument();
+    expect(screen.getByText("Authorized evidence")).toBeInTheDocument();
+    expect(screen.getByText("Switch between saved questions and source links.")).toBeInTheDocument();
     const input = screen.getByRole("textbox", { name: "Ask a question" });
     const send = screen.getByRole("button", { name: "Ask" });
     expect(send).toBeDisabled();
@@ -1920,6 +1923,7 @@ describe("App, authenticated", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "New conversation" }));
     expect(screen.getByText("Start with a question about the evidence")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Ask a question" })).toHaveFocus();
     await userEvent.click(savedConversation);
     expect(await screen.findByText("Which project was saved?", { exact: true })).toBeInTheDocument();
   });
@@ -4000,6 +4004,33 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("heading", { name: "Customer master" })).toBeInTheDocument();
     expect(searchButton).toHaveFocus();
     expect(screen.queryByRole("searchbox", { name: "Search semantic evidence" })).not.toBeInTheDocument();
+  });
+
+  it("restores the workspace from the URL and responds to browser navigation", async () => {
+    stubBackend();
+    window.history.replaceState({}, "", "/?workspace=calendar");
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "Calendar" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Calendar" })).toHaveAttribute("aria-current", "page");
+
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    expect(new URL(window.location.href).searchParams.get("workspace")).toBe("ask");
+
+    window.history.replaceState({}, "", "/?workspace=calendar");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    expect(await screen.findByRole("heading", { name: "Calendar" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Calendar" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("does not expose the admin workspace from an unauthorized deep link", async () => {
+    stubBackend();
+    window.history.replaceState({}, "", "/?workspace=admin");
+    render(<App />);
+
+    expect(await screen.findByRole("region", { name: "Board" })).toBeInTheDocument();
+    await waitFor(() => expect(new URL(window.location.href).searchParams.has("workspace")).toBe(false));
+    expect(screen.queryByText("Admin endpoint catalog")).not.toBeInTheDocument();
   });
 
   it("submits global search only after an explicit query", async () => {

@@ -445,20 +445,28 @@
 }
 
 .ask-agent-workspace {
-  width: 100%;
-  max-width: none;
-  min-height: calc(100vh - 12.25rem);
-  margin: 0;
+  width: min(100%, 1480px);
+  max-width: 1480px;
+  min-height: min(760px, calc(100vh - 10rem));
+  margin: 0 auto;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-panel);
   background: var(--surface);
 }
 
+.ask-agent-workspace-empty {
+  min-height: 0;
+}
+
 .ask-agent-layout {
   display: grid;
   grid-template-columns: 16rem minmax(0, 1fr);
   min-height: inherit;
+}
+
+.ask-agent-workspace-empty .ask-agent-layout {
+  min-height: 0;
 }
 
 .ask-agent-main {
@@ -477,64 +485,42 @@
   background: var(--surface-muted);
 }
 
-.ask-agent-history-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  padding: 0.2rem 0.35rem 1.25rem;
-}
-
-.ask-agent-history-mark {
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.65rem;
-  background: var(--color-primary);
-  color: var(--color-btn-primary-text);
-  font-size: 0.65rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-}
-
-.ask-agent-history-brand div {
+.ask-agent-history-context {
   min-width: 0;
   display: grid;
-  gap: 0.1rem;
+  gap: 0.25rem;
+  padding: 0.2rem 0.35rem 0.85rem;
+  border-bottom: 1px solid var(--border);
 }
 
-.ask-agent-history-brand strong {
+.ask-agent-history-context .section-eyebrow {
+  margin: 0;
+}
+
+.ask-agent-history-context strong {
   color: var(--text-h);
   font-size: 0.88rem;
 }
 
-.ask-agent-history-brand span:last-child {
-  overflow: hidden;
-  color: var(--text-muted);
-  font-size: 0.68rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .ask-agent-history-header {
   display: grid;
-  gap: 0.7rem;
-  margin-bottom: 0.8rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.6rem;
+  margin: 1rem 0 0.75rem;
   padding: 0 0.35rem;
 }
 
-.ask-agent-history-header h3 {
+.ask-agent-history-header p {
   margin: 0;
-  color: var(--text-h);
-  font-size: 0.76rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
 }
 
 .ask-agent-new {
-  width: 100%;
-  min-height: 2.7rem;
+  width: auto;
+  min-height: var(--size-control-min);
   padding: 0.55rem 0.65rem;
   border: 1px solid var(--color-accent-border);
   border-radius: var(--radius-control);
@@ -604,6 +590,17 @@
   line-height: 1.5;
 }
 
+.ask-agent-history-empty {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.35rem;
+}
+
+.ask-agent-history-empty strong {
+  color: var(--text-h);
+  font-size: 0.76rem;
+}
+
 .ask-agent-history-error {
   display: grid;
   gap: 0.65rem;
@@ -649,35 +646,39 @@
 .ask-agent-header {
   flex: 0 0 auto;
   margin: 0;
-  padding: 1.25rem 2rem 1.1rem;
+  padding: 1.15rem 1.5rem 1rem;
   border-bottom: 1px solid var(--border);
   background: var(--surface);
 }
 
-.ask-agent-header-identity {
+.ask-agent-header-topline {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-}
-
-.ask-agent-header-mark {
-  width: 2.35rem;
-  height: 2.35rem;
-  border-radius: 0.75rem;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .ask-agent-header .section-eyebrow {
-  margin: 0 0 0.1rem;
+  margin: 0;
 }
 
 .ask-agent-header h2 {
-  margin: 0;
-  font-size: 1.15rem;
-  letter-spacing: -0.02em;
+  margin: 0.15rem 0 0;
+  font-size: 1.25rem;
+  letter-spacing: -0.03em;
+}
+
+.ask-agent-scope {
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--color-accent-border);
+  border-radius: var(--radius-chip);
+  color: var(--color-primary);
+  font: 0.7rem var(--mono);
+  white-space: nowrap;
 }
 
 .ask-agent-header .workspace-destination-intro {
-  margin: 0.75rem 0 0 3.1rem;
+  margin: 0.55rem 0 0;
   font-size: 0.78rem;
 }
 
@@ -687,55 +688,61 @@
   box-sizing: border-box;
   min-height: 0;
   overflow-y: auto;
-  padding: 2rem 1.5rem 9.5rem;
+  padding: 1.25rem 1.5rem 8.5rem;
   scroll-behavior: smooth;
 }
 
-.ask-agent-empty {
-  min-height: min(54vh, 30rem);
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  padding: 2rem;
-  color: var(--text-muted);
-  text-align: center;
+.ask-agent-main-empty .ask-agent-thread {
+  flex: 0 0 auto;
+  overflow: visible;
+  padding: 1rem 1.5rem 0;
 }
 
-.ask-agent-mark {
-  display: grid;
-  place-items: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 1rem;
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 0.8rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  box-shadow: 0 8px 20px rgba(42, 98, 239, 0.22);
+.ask-agent-empty {
+  width: min(100%, 54rem);
+  margin: 0 auto;
+  padding: 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+.ask-agent-empty-kicker,
+.ask-agent-starter-label {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
 .ask-agent-empty h3 {
-  margin: 1rem 0 0.35rem;
+  margin: 0.35rem 0 0.35rem;
   color: var(--text-h);
-  font-size: 1.1rem;
+  font-size: 1.2rem;
 }
 
 .ask-agent-empty p {
-  max-width: 28rem;
-  margin-bottom: 1.2rem;
+  margin-bottom: 0;
+}
+
+.ask-agent-starter-group {
+  margin-top: 1.25rem;
 }
 
 .ask-agent-starters {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 0.6rem;
-  width: min(100%, 46rem);
+  margin-top: 0.45rem;
 }
 
 .ask-agent-starter {
-  min-height: 3.3rem;
-  padding: 0.7rem 0.8rem;
+  min-height: var(--size-control-min);
+  flex: 1 1 12rem;
+  padding: 0.65rem 0.8rem;
   border: 1px solid var(--border);
   border-radius: var(--radius-control);
   background: var(--surface);
@@ -758,6 +765,8 @@
   gap: 0.75rem;
   width: min(100%, 52rem);
   margin: 0 auto 1.5rem;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 180px;
 }
 
 .ask-agent-message-row {
@@ -911,6 +920,15 @@
   background: var(--surface);
 }
 
+.ask-agent-main-empty .ask-agent-composer {
+  position: static;
+  width: min(100%, 54rem);
+  margin: 0 auto;
+  padding: 0.9rem 1.5rem 1.5rem;
+  border-top: 0;
+  background: transparent;
+}
+
 .ask-agent-composer:focus-within {
   border-top-color: var(--color-focus-border);
 }
@@ -924,6 +942,32 @@
   border-radius: 1.25rem;
   background: var(--surface);
   box-shadow: 0 8px 24px rgba(16, 24, 40, 0.1);
+}
+
+.ask-agent-composer-field:focus-within {
+  border-color: var(--color-focus-border);
+  outline: 2px solid var(--color-focus-ring);
+  outline-offset: 2px;
+}
+
+.ask-agent-composer-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 0 0.4rem 0.35rem;
+}
+
+.ask-agent-composer-label {
+  color: var(--text-h);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.ask-agent-composer-label-row span {
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  text-align: right;
 }
 
 .ask-agent-composer textarea {
@@ -2271,6 +2315,10 @@
     border-radius: var(--radius-control);
   }
 
+  .ask-agent-workspace-empty {
+    min-height: 0;
+  }
+
   .ask-agent-layout {
     display: flex;
     flex-direction: column;
@@ -2289,7 +2337,11 @@
     min-height: calc(100vh - 17rem);
   }
 
-  .ask-agent-history-brand {
+  .ask-agent-workspace-empty .ask-agent-main {
+    min-height: 0;
+  }
+
+  .ask-agent-history-context {
     padding-bottom: 0.7rem;
   }
 
@@ -2313,7 +2365,7 @@
   }
 
   .ask-agent-header .workspace-destination-intro {
-    margin-left: 3.1rem;
+    margin-top: 0.5rem;
   }
 
   .ask-agent-thread {
@@ -2339,8 +2391,8 @@
   }
 
   .ask-agent-starters {
+    display: grid;
     grid-template-columns: 1fr;
-    width: min(100%, 24rem);
   }
 
   .ask-agent-citation {
@@ -2351,6 +2403,21 @@
 
   .ask-agent-composer {
     padding: 0.75rem 0.9rem 0.9rem;
+  }
+
+  .ask-agent-main-empty .ask-agent-composer {
+    padding: 0.75rem 0.9rem 1rem;
+  }
+
+  .ask-agent-composer-label-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.15rem;
+    margin-left: 0.2rem;
+  }
+
+  .ask-agent-composer-label-row span {
+    text-align: left;
   }
 
   /* Fixed height + no-wrap pushed the search/language/logout controls

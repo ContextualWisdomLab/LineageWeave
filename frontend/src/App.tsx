@@ -1,4 +1,4 @@
-import { AdminPanel } from "./components/AdminPanel";
+import { AdminPanel, type AdminBoardTool } from "./components/AdminPanel";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
@@ -153,11 +153,13 @@ function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
 function SiteMapUtility({
   destination,
   onChange,
+  showAdmin,
   open,
   onToggle,
 }: {
   destination: WorkspaceDestination;
   onChange: (destination: WorkspaceDestination) => void;
+  showAdmin: boolean;
   open: boolean;
   onToggle: () => void;
 }) {
@@ -175,7 +177,7 @@ function SiteMapUtility({
       </button>
       {open ? (
         <div id="site-map-menu" className="site-map-menu" role="region" aria-label={t("Site map")}>
-          <WorkspaceNav destination={destination} onChange={onChange} id="site-map-navigation" />
+          <WorkspaceNav destination={destination} onChange={onChange} showAdmin={showAdmin} id="site-map-navigation" />
         </div>
       ) : null}
     </div>
@@ -2128,6 +2130,7 @@ function PostDetailPopup({
                       <h4>{t("Key events")}</h4>
                       <ul>
                         {(() => {
+                          const summarySnapshot = summary;
                           function renderKeyEventBody(event: PostKeyEvent, index: number): ReactNode {
                             return (
                               <>
@@ -2136,10 +2139,10 @@ function PostDetailPopup({
                                     {t("Evidence")}: {event.evidence_text}
                                   </small>
                                 ) : null}
-                                {summary.event_clues?.filter((clue) => clue.event_index === index).length ? (
+                                {summarySnapshot.event_clues?.filter((clue) => clue.event_index === index).length ? (
                                   <div className="summary-event-clues">
                                     <small>{t("Connected clues")}</small>
-                                    {summary.event_clues
+                                    {summarySnapshot.event_clues
                                       .filter((clue) => clue.event_index === index)
                                       .map((clue, clueIndex) => (
                                         <span className="post-badge" key={`${clue.clue_type_code}:${clueIndex}`}>
@@ -3950,6 +3953,8 @@ function PostList({
   onSearchFocusHandled,
   globalSearchRequest = null,
   onGlobalSearchHandled,
+  adminTool = null,
+  onAdminToolHandled,
 }: {
   accessToken: string;
   showLabPanels?: boolean;
@@ -3959,6 +3964,8 @@ function PostList({
   onSearchFocusHandled?: () => void;
   globalSearchRequest?: { id: number; query: string } | null;
   onGlobalSearchHandled?: () => void;
+  adminTool?: AdminBoardTool | null;
+  onAdminToolHandled?: () => void;
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [graph, setGraph] = useState<LineageGraph | null>(null);
@@ -3992,6 +3999,7 @@ function PostList({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const lastFocusedSearchRequest = useRef(0);
   const lastGlobalSearchRequest = useRef(0);
+  const advancedReviewRef = useRef<HTMLDetailsElement>(null);
 
   useEffect(() => {
     if (focusSearchRequest <= 0) {
@@ -4019,6 +4027,17 @@ function PostList({
     searchBoard(globalSearchRequest.query);
     onGlobalSearchHandled?.();
   }, [globalSearchRequest, onGlobalSearchHandled]);
+
+  useEffect(() => {
+    if (!adminTool || !posts || !advancedReviewRef.current) return;
+    const details = advancedReviewRef.current;
+    details.open = true;
+    const target = adminTool === "advanced" || adminTool === "lineage"
+      ? details
+      : details.querySelector<HTMLElement>(`[data-admin-surface="${adminTool}"]`) ?? details;
+    window.requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block: "start" }));
+    onAdminToolHandled?.();
+  }, [adminTool, onAdminToolHandled, posts]);
 
   function openReportFromAnalysisRun(
     periodCode: string,
@@ -4453,7 +4472,7 @@ function PostList({
         </>
       )}
       {(showLabPanels || canRebuild) && (
-        <details className="advanced-review-tools">
+        <details ref={advancedReviewRef} className="advanced-review-tools">
           <summary>{t("Advanced review tools")}</summary>
           {canRebuild && (
             <section className="popup-section">
@@ -4467,29 +4486,33 @@ function PostList({
             </section>
           )}
           <CalendarPanel accessToken={accessToken} onSelectPost={selectPost} />
-          <RankingsPanel accessToken={accessToken} onSelectPost={selectPost} />
-          <AnalysisRunsPanel
-            accessToken={accessToken}
-            currentReportPeriod={reportPeriod}
-            onSelectPost={selectPost}
-            onSelectReportPeriod={openReportFromAnalysisRun}
-            corporateEntities={corporateEntities}
-            entitiesLoadError={entitiesLoadError}
-          />
-          <ReportsPanel
-            accessToken={accessToken}
-            canRebuild={canRebuild}
-            onSelectPost={selectPost}
-            period={reportPeriod}
-            onSelectPeriod={selectReportPeriod}
-            grouping={reportGrouping}
-            onSelectGrouping={selectReportGrouping}
-            openedGroupingKey={openedGroupingKey}
-            openedGroupingLabel={openedGroupingLabel}
-            onOpenGrouping={openComparedGrouping}
-            landOnComparison={landOnComparison}
-            selectedPostId={selectedPostId}
-          />
+          <div data-admin-surface="rankings"><RankingsPanel accessToken={accessToken} onSelectPost={selectPost} /></div>
+          <div data-admin-surface="analysis">
+            <AnalysisRunsPanel
+              accessToken={accessToken}
+              currentReportPeriod={reportPeriod}
+              onSelectPost={selectPost}
+              onSelectReportPeriod={openReportFromAnalysisRun}
+              corporateEntities={corporateEntities}
+              entitiesLoadError={entitiesLoadError}
+            />
+          </div>
+          <div data-admin-surface="reports">
+            <ReportsPanel
+              accessToken={accessToken}
+              canRebuild={canRebuild}
+              onSelectPost={selectPost}
+              period={reportPeriod}
+              onSelectPeriod={selectReportPeriod}
+              grouping={reportGrouping}
+              onSelectGrouping={selectReportGrouping}
+              openedGroupingKey={openedGroupingKey}
+              openedGroupingLabel={openedGroupingLabel}
+              onOpenGrouping={openComparedGrouping}
+              landOnComparison={landOnComparison}
+              selectedPostId={selectedPostId}
+            />
+          </div>
         </details>
       )}
       {selectedPostId && (
@@ -4985,7 +5008,7 @@ function toAskAgentExchanges(conversation: Awaited<ReturnType<typeof fetchAskCon
   }));
 }
 
-function AskAgentPanel({
+export function AskAgentPanel({
   accessToken,
   onOpenPost,
 }: {
@@ -5132,6 +5155,7 @@ function AskAgentPanel({
     setHistoryError(null);
     setOlderTurnCursor(null);
     setOlderTurnsError(false);
+    inputRef.current?.focus();
   }
 
   function chooseStarter(prompt: string) {
@@ -5174,24 +5198,27 @@ function AskAgentPanel({
     }
   }
 
+  const showEmptyState = !historyLoading && !historyError && exchanges.length === 0;
+
   return (
-    <section className="workspace-destination ask-agent-workspace" aria-labelledby="ask-agent-heading">
+    <section className={`workspace-destination ask-agent-workspace${showEmptyState ? " ask-agent-workspace-empty" : ""}`} aria-labelledby="ask-agent-heading">
       <div className="ask-agent-layout">
         <aside className="ask-agent-history" aria-label={t("Conversation history")}>
-          <div className="ask-agent-history-brand">
-            <span className="ask-agent-history-mark" aria-hidden="true">LW</span>
+          <div className="ask-agent-history-context">
             <div>
-              <strong>{t("Ask Agent")}</strong>
-              <span>{t("Evidence-grounded questions")}</span>
+              <p className="section-eyebrow">{t("Ask Agent")}</p>
+              <strong>{t("Conversation history")}</strong>
             </div>
           </div>
           <div className="ask-agent-history-header">
-            <h3>{t("Conversation history")}</h3>
+            <p>{t("Switch between saved questions and source links.")}</p>
             <button type="button" className="ask-agent-new" onClick={startNewConversation} disabled={asking || historyLoading || historyLoadingMore || olderTurnsLoading}>
               {t("New conversation")}
             </button>
           </div>
-          {historyError && conversations.length === 0 ? (
+          {historyLoading && conversations.length === 0 ? (
+            <p className="ask-agent-history-loading" role="status">{t("Loading conversation history...")}</p>
+          ) : historyError && conversations.length === 0 ? (
             <div className="ask-agent-history-error">
               <p>{historyError}</p>
               <button type="button" className="ask-agent-retry" onClick={() => void loadInitialHistory()} disabled={historyLoading}>
@@ -5238,18 +5265,21 @@ function AskAgentPanel({
               ) : null}
             </ul>
           ) : (
-            <p className="ask-agent-history-empty">{t("No saved conversations yet.")}</p>
+            <div className="ask-agent-history-empty">
+              <strong>{t("No saved conversations yet.")}</strong>
+              <span>{t("Ask a question to save your first conversation.")}</span>
+            </div>
           )}
         </aside>
 
-        <div className="ask-agent-main">
+        <div className={`ask-agent-main${showEmptyState ? " ask-agent-main-empty" : ""}`}>
           <header className="ask-agent-header">
-            <div className="ask-agent-header-identity">
-              <span className="ask-agent-mark ask-agent-header-mark" aria-hidden="true">LW</span>
+            <div className="ask-agent-header-topline">
               <div>
                 <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
                 <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
               </div>
+              <span className="ask-agent-scope">{t("Authorized evidence")}</span>
             </div>
             <p className="workspace-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
           </header>
@@ -5274,16 +5304,19 @@ function AskAgentPanel({
           </button>
         ) : null}
         {exchanges.length === 0 ? (
-          <div className="ask-agent-empty" hidden={historyLoading || Boolean(historyError)}>
-            <span className="ask-agent-mark" aria-hidden="true">LW</span>
+          <div className="ask-agent-empty" hidden={!showEmptyState}>
+            <p className="ask-agent-empty-kicker">{t("Evidence workspace")}</p>
             <h3>{t("Start with a question about the evidence")}</h3>
             <p>{t("Ask about an event, decision, or source post.")}</p>
-            <div className="ask-agent-starters" aria-label={t("Suggested questions")}>
+            <div className="ask-agent-starter-group">
+              <p className="ask-agent-starter-label">{t("Suggested questions")}</p>
+              <div className="ask-agent-starters" aria-label={t("Suggested questions")}>
               {ASK_AGENT_STARTERS.map((prompt) => (
                 <button key={prompt} type="button" className="ask-agent-starter" onClick={() => chooseStarter(prompt)}>
                   {t(prompt)}
                 </button>
               ))}
+              </div>
             </div>
           </div>
         ) : exchanges.map((exchange) => {
@@ -5346,12 +5379,16 @@ function AskAgentPanel({
           void handleAsk();
         }}
       >
-        <label className="sr-only" htmlFor="ask-agent-input">{t("Ask a question")}</label>
+        <div className="ask-agent-composer-label-row">
+          <label className="ask-agent-composer-label" htmlFor="ask-agent-input">{t("Ask a question")}</label>
+          <span>{t("Answers cite authorized posts when available.")}</span>
+        </div>
         <div className="ask-agent-composer-field">
           <textarea
             id="ask-agent-input"
             ref={inputRef}
             aria-label={t("Ask a question")}
+            aria-describedby="ask-agent-input-help"
             placeholder={t("What happened between these events?")}
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
@@ -5367,7 +5404,7 @@ function AskAgentPanel({
             <SendIcon />
           </button>
         </div>
-        <p className="ask-agent-composer-help">{t("Enter to send. Shift+Enter for a new line.")}</p>
+        <p id="ask-agent-input-help" className="ask-agent-composer-help">{t("Enter to send. Shift+Enter for a new line.")}</p>
       </form>
         </div>
       </div>
@@ -5375,11 +5412,46 @@ function AskAgentPanel({
   );
 }
 
+const WORKSPACE_QUERY_PARAM = "workspace";
+const WORKSPACE_DESTINATIONS: readonly WorkspaceDestination[] = [
+  "board",
+  "customers",
+  "calendar",
+  "ask",
+  "admin",
+];
+
+function workspaceDestinationFromLocation(
+  location: Pick<Location, "search"> = window.location,
+): WorkspaceDestination {
+  const candidate = new URLSearchParams(location.search).get(WORKSPACE_QUERY_PARAM);
+  return WORKSPACE_DESTINATIONS.includes(candidate as WorkspaceDestination)
+    ? (candidate as WorkspaceDestination)
+    : "board";
+}
+
+function updateWorkspaceLocation(
+  destination: WorkspaceDestination,
+  mode: "push" | "replace" = "push",
+): void {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  if (destination === "board") {
+    url.searchParams.delete(WORKSPACE_QUERY_PARAM);
+  } else {
+    url.searchParams.set(WORKSPACE_QUERY_PARAM, destination);
+  }
+  const nextUrl = `${url.pathname}${url.search}${url.hash}`;
+  const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  if (nextUrl === currentUrl) return;
+  window.history[mode === "replace" ? "replaceState" : "pushState"]({}, "", nextUrl);
+}
+
 export default function App({ showLabPanels = false }: { showLabPanels?: boolean } = {}) {
   useLocale();
   const [brandName, setBrandName] = useState("LineageWeave");
   const auth = useAuth();
-  const [destination, setDestination] = useState<WorkspaceDestination>("board");
+  const [destination, setDestination] = useState<WorkspaceDestination>(() => workspaceDestinationFromLocation());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [siteMapOpen, setSiteMapOpen] = useState(false);
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
@@ -5387,6 +5459,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   const [searchFocusRequest, setSearchFocusRequest] = useState(0);
   const [globalSearchRequest, setGlobalSearchRequest] = useState<{ id: number; query: string } | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+  const [boardAdminTool, setBoardAdminTool] = useState<AdminBoardTool | null>(null);
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("post");
@@ -5397,12 +5470,41 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   // post_admin check (`canRebuild`), not on this caller-supplied prop.
   const testOnlyLabPanels = import.meta.env.MODE === "test" && showLabPanels;
   const accessToken = auth.user?.access_token;
+  const canAdmin = Boolean(currentUser?.permission_codes.includes("post_admin"));
+  const activeDestination = destination === "admin" && !canAdmin ? "board" : destination;
   const changeDestination = (nextDestination: WorkspaceDestination) => {
+    if (nextDestination === "admin" && !canAdmin) return;
     setDestination(nextDestination);
+    updateWorkspaceLocation(nextDestination);
+    if (nextDestination !== "board") setBoardAdminTool(null);
     setMobileMenuOpen(false);
     setSiteMapOpen(false);
     setGlobalSearchOpen(false);
     if (nextDestination !== "board") setSearchFocusRequest(0);
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setDestination(workspaceDestinationFromLocation());
+      setBoardAdminTool(null);
+      setMobileMenuOpen(false);
+      setSiteMapOpen(false);
+      setGlobalSearchOpen(false);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (currentUser && destination === "admin" && !canAdmin) {
+      setDestination("board");
+      updateWorkspaceLocation("board", "replace");
+    }
+  }, [canAdmin, currentUser, destination]);
+
+  const openAdminBoardTool = (tool: AdminBoardTool) => {
+    setBoardAdminTool(tool);
+    changeDestination("board");
   };
 
   function openGlobalSearch() {
@@ -5565,15 +5667,16 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             onSubmit={submitGlobalSearch}
           />
           <SiteMapUtility
-            destination={destination}
+            destination={activeDestination}
             onChange={changeDestination}
+            showAdmin={canAdmin}
             open={siteMapOpen}
             onToggle={() => setSiteMapOpen((open) => !open)}
           />
           <button className="btn-secondary" onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
         </div>
       </header>
-      <WorkspaceNav destination={destination} onChange={changeDestination} />
+      <WorkspaceNav destination={activeDestination} onChange={changeDestination} showAdmin={canAdmin} />
       {mobileMenuOpen ? (
         <div className="mobile-drawer-backdrop" onClick={() => setMobileMenuOpen(false)}>
           <aside
@@ -5590,15 +5693,16 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             </button>
             <WorkspaceNav
               id="mobile-workspace-navigation"
-              destination={destination}
+              destination={activeDestination}
               onChange={changeDestination}
+              showAdmin={canAdmin}
               drawer
             />
           </aside>
         </div>
       ) : null}
       <main id="main-content" tabIndex={-1}>
-        {destination === "board" ? (
+        {activeDestination === "board" ? (
           <PostList
             accessToken={accessToken}
             showLabPanels={testOnlyLabPanels}
@@ -5608,9 +5712,11 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             onSearchFocusHandled={() => setSearchFocusRequest(0)}
             globalSearchRequest={globalSearchRequest}
             onGlobalSearchHandled={() => setGlobalSearchRequest(null)}
+            adminTool={boardAdminTool}
+            onAdminToolHandled={() => setBoardAdminTool(null)}
           />
         ) : null}
-        {destination === "customers" ? (
+        {activeDestination === "customers" ? (
           <CustomerMasterPanel
             accessToken={accessToken}
             onOpenPost={(postId) => {
@@ -5619,7 +5725,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             }}
           />
         ) : null}
-        {destination === "calendar" ? (
+        {activeDestination === "calendar" ? (
           <CalendarPanel
             accessToken={accessToken}
             onSelectPost={(postId) => {
@@ -5628,7 +5734,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             }}
           />
         ) : null}
-        {destination === "ask" ? (
+        {activeDestination === "ask" ? (
           <AskAgentPanel
             accessToken={accessToken}
             onOpenPost={(postId) => {
@@ -5637,7 +5743,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             }}
           />
         ) : null}
-        {destination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
+        {activeDestination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} currentUser={currentUser} onNavigate={changeDestination} onOpenBoardTool={openAdminBoardTool} /> : null}
       </main>
       <footer className="app-footer" role="contentinfo">
         <div className="app-footer-title">
