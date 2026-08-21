@@ -53,3 +53,29 @@ def test_json_helpers_accept_optional_headers(monkeypatch: pytest.MonkeyPatch) -
     assert http_client.get_json("https://gateway.example", timeout=1) == {}
     assert http_client.post_form("https://gateway.example", {}, timeout=1) == {}
     assert len(calls) == 2
+
+
+def test_request_hides_raw_provider_transport_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+    class _BrokenConnection:
+        sock = None
+
+        def __init__(self, *args, **kwargs) -> None:
+            return None
+
+        def request(self, *args, **kwargs) -> None:
+            raise TimeoutError("provider secret must not escape")
+
+        def close(self) -> None:
+            return None
+
+    monkeypatch.setattr(http_client.http.client, "HTTPConnection", _BrokenConnection)
+    with pytest.raises(http_client.HttpClientError, match="provider transport unavailable") as error:
+        http_client.post_json(
+            "http://gateway.example/v1/chat/completions",
+            {"messages": []},
+            headers={},
+            timeout=1,
+        )
+    assert "provider secret" not in str(error.value)
+    assert error.value.__cause__ is None
+    assert error.value.__context__ is None
