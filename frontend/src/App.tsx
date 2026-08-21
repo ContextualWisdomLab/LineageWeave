@@ -1,3 +1,5 @@
+import { AdminPanel } from "./components/AdminPanel";
+
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
@@ -4547,7 +4549,7 @@ function AskAgentPanel({
 
 export default function App({ showLabPanels = false }: { showLabPanels?: boolean } = {}) {
   useLocale();
-  const brandName = "LineageWeave"; // TODO: Fetch from admin/tenant config
+  const [brandName, setBrandName] = useState("LineageWeave");
   const auth = useAuth();
   const [destination, setDestination] = useState<BuyerDestination>("board");
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
@@ -4609,7 +4611,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               <small>Enterprise SSO Authentication</small>
             </div>
           </div>
-        </main>
+          {destination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} /> : null}
+      </main>
         <footer className="app-footer" role="contentinfo">
           <div className="app-footer-title">
             <span className="app-footer-logo">{brandName}</span>
@@ -4678,6 +4681,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             }}
           />
         ) : null}
+        {destination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} /> : null}
       </main>
       <footer className="app-footer" role="contentinfo">
         <div className="app-footer-title">
