@@ -30,14 +30,40 @@
   permission are not present; no-JavaScript fallback is not proven; phone and
   site-map behavior need protected runtime evidence; and Figma parity does not
   prove complete authorized-corpus image/table evidence.
-- **Exact-source UI audit at PR #392 head `a046da4e`:** the header and footer
-  currently render the configured `brandName` as text only. The settings
-  contract exposes no approved CI/BI asset, copyright-holder, or system
-  opening-year field; the footer therefore uses the browser's current year and
-  remains short of the guide's immutable CI/BI and opening-year requirement.
-  This is intentionally left open rather than inventing a brand asset or
-  historical year. The React-only entry point also has no proven no-JavaScript
-  fallback.
+- **Historical exact-source UI audit at PR #392 ancestor `a046da4e`:** the
+  header and footer rendered one configured `brandName` and the footer used
+  the browser's current year. This observation remains historical and is not
+  a claim about the current stacked head.
+- **Current exact-source mitigation at stacked PR #397 head `48fe6e36`:**
+  `tenant_settings` now persists separate `brandName`, `systemName`,
+  `copyrightYear`, and `copyrightHolder` values. The header renders brand and
+  system name separately, the footer uses the persisted year and rights
+  holder, and the admin form validates the four-field contract through the
+  `post_admin` boundary. The migration is replayable through Compose and the
+  old brand-only PATCH shape remains compatible. This is an open, unmerged PR;
+  the exact upstream stack base is `4fdd3032`.
+- **Remaining UI governance gap:** no approved CI/BI image asset or usage
+  permission was supplied, so the implementation deliberately remains text
+  based. Production release still requires the approved asset and legal
+  metadata; no asset or real organization identity is invented in this repo.
+  The React-only entry point also has no proven no-JavaScript fallback.
+
+### 1.1.1 Exact implementation evidence for tenant identity metadata
+
+Observed at `2026-08-21T19:50:57Z` from the GitHub API and local worktree
+`/private/tmp/lineageweave-identity-metadata.8NPveY`:
+
+- PR [#397](https://github.com/ContextualWisdomLab/LineageWeave/pull/397) is
+  open and draft at head `48fe6e36bd150c28a6372233a17435b95cbd20d0`, based on
+  exact stack branch head `4fdd3032de21d490767cf9aa24b25191ad8a814a`; it is
+  `CLEAN` but has no formal review decision yet.
+- Local verification at that head passed backend `850 passed, 17 skipped`,
+  frontend `201 passed`, frontend lint, production build, and Storybook build.
+  The focused API tests cover authentication, full metadata, legacy
+  brand-only PATCH compatibility, blank values, and copyright-year bounds.
+- PR #392 remains open at head `4fdd3032de21d490767cf9aa24b25191ad8a814a`,
+  targets `main`, and is `BLOCKED` with `REVIEW_REQUIRED`; #397 is a stacked
+  follow-up and must not be described as a protected-main merge.
 
 ## 2. LLM Extraction & Knowledge Graph Gaps
 - **Multiple Project Extraction**: A structured `key_events.project_name` implementation exists, but separate-event behavior still requires protected authorized-corpus evidence.
