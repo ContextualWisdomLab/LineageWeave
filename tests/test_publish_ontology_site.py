@@ -33,6 +33,9 @@ def _repository_fixture(tmp_path: Path) -> Path:
     (scripts_dir / "build_ontology_site.py").write_bytes(
         (ROOT / "scripts" / "build_ontology_site.py").read_bytes()
     )
+    (scripts_dir / "ontology_site_contract.py").write_bytes(
+        (ROOT / "scripts" / "ontology_site_contract.py").read_bytes()
+    )
     return repository
 
 

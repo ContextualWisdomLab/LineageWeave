@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import shutil
 from collections.abc import Iterable
 from pathlib import Path
 from types import ModuleType
@@ -17,6 +18,11 @@ from urllib.parse import urlsplit
 
 from rdflib import Graph, URIRef
 from rdflib.namespace import OWL, RDF, RDFS, SKOS
+
+try:
+    from scripts.ontology_site_contract import public_fragment
+except ModuleNotFoundError:  # direct execution with ``scripts`` as sys.path[0]
+    from ontology_site_contract import public_fragment
 
 OUTPUT_MARKER = ".lineageweave-ontology-site"
 SOURCE_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg.ttl")
@@ -75,7 +81,7 @@ def validate_public_graph(graph: Graph) -> None:
     subjects = _public_subjects(graph)
     fragment_owner: dict[str, URIRef] = {}
     for subject in sorted(subjects, key=str):
-        fragment = _fragment(subject)
+        fragment = public_fragment(_fragment(subject))
         owner = fragment_owner.setdefault(fragment, subject)
         if owner != subject:
             raise ValueError(
@@ -122,6 +128,8 @@ def publish_site(repository_root: Path, output_dir: Path) -> None:
     validate_public_graph(graph)
 
     renderer = _load_renderer(root)
+    if output.exists():
+        shutil.rmtree(output)
     renderer.build_site(root, output)
     (output / OUTPUT_MARKER).write_text("", encoding="utf-8")
 
