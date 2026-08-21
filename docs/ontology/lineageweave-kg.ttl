@@ -10,37 +10,32 @@
 #################################################################
 # LineageWeave Knowledge Graph Ontology
 #
-# The formal OWL 2 / RDFS / SKOS / W3C ORG vocabulary for the
+# The formal OWL 2 / RDFS / SKOS vocabulary for the
 # `knowledge_graph_edge` table's node/edge types, the
 # `entity_relationship_type` / `person_side` / `corporate_entity_level`
 # controlled vocabularies in migrations/0001_initial_schema.sql, and
-# `post_summary_role.actor_type_code`.
+# `post_summary_role.actor_type_code` (migrations/0012).
 #
 # `knowledge_graph_edge` (source_node_type_code, source_node_id) --
-# [edge_type_code] --> (target_node_type_code, target_node_id) has an
-# RDF triple shape, while PostgreSQL remains the source of record. The
-# ontology publishes meaning and interoperability constraints; the
-# companion SHACL graph publishes the closed-world cardinalities that
-# OWL/RDFS intentionally do not enforce.
+# [edge_type_code] --> (target_node_type_code, target_node_id) is
+# already an RDF triple in shape (Cyganiak, Wood, & Lanthaler, 2014);
+# this file is the formal semantic layer over it -- PostgreSQL stays
+# the source of record. See docs/adr/0004-knowledge-graph-ontology.md
+# for the KG design rationale, docs/adr/0006-role-responsibility-agent-ontology.md
+# for the R&R actor-type rationale (grounded in W3C PROV-O), and
+# tests/test_ontology.py for the round-trip check that every code below
+# actually exists as a common_lookup_value row, and vice versa.
 #
-# Every custom controlled-vocabulary term carries a :lookupCode
-# annotation naming the exact `common_lookup_value.lookup_code` stored
-# by the relational schema.
+# Every custom term carries a :lookupCode annotation naming the exact
+# `common_lookup_value.lookup_code` it corresponds to -- that literal
+# string, not the IRI fragment, is what the relational schema stores.
 #################################################################
 
-<https://contextualwisdomlab.github.io/lineageweave/ontology>
-    a owl:Ontology ;
-    owl:versionIRI <https://contextualwisdomlab.github.io/lineageweave/ontology/1.0.0> ;
-    owl:versionInfo "1.0.0" ;
-    owl:imports
-        <http://www.w3.org/ns/org>,
-        <http://www.w3.org/ns/prov-o>,
-        <http://www.w3.org/2004/02/skos/core> ;
+<https://contextualwisdomlab.github.io/lineageweave/ontology> a owl:Ontology ;
     rdfs:label "LineageWeave Knowledge Graph Ontology" ;
-    rdfs:comment "Formal OWL 2 / RDFS / SKOS / W3C ORG vocabulary for LineageWeave navigation nodes, relations, organization containment, classification levels, and role-actor types." .
+    rdfs:comment "Formal OWL 2 / RDFS / SKOS vocabulary for LineageWeave's knowledge_graph_edge node and edge types, entity_relationship_type, person_side, corporate_entity_level, and post_summary_role.actor_type_code controlled vocabularies." .
 
-:lookupCode
-    a owl:AnnotationProperty ;
+:lookupCode a owl:AnnotationProperty ;
     rdfs:label "lookup code" ;
     rdfs:comment "The exact common_lookup_value.lookup_code string this ontology term corresponds to." .
 
@@ -48,211 +43,156 @@
 # Classes -- node_type
 #################################################################
 
-:Post
-    a owl:Class ;
+:Post a owl:Class ;
     rdfs:label "Post" ;
     rdfs:comment "A source_post row: one VOC/VOM/VOP/VOCC/VOCO/VOS record." ;
     :lookupCode "node_post" .
 
-:Person
-    a owl:Class ;
+:Person a owl:Class ;
     rdfs:label "Person" ;
     rdfs:comment "A cataloged_person row: a Keyman mentioned in one or more posts." ;
     :lookupCode "node_person" .
 
-:OurSidePerson
-    a owl:Class ;
+:OurSidePerson a owl:Class ;
     rdfs:subClassOf :Person ;
     rdfs:label "Our-side person" ;
     :lookupCode "our_side" .
 
-:CounterpartyPerson
-    a owl:Class ;
+:CounterpartyPerson a owl:Class ;
     rdfs:subClassOf :Person ;
     rdfs:label "Counterparty person" ;
     :lookupCode "counterparty" .
 
-:CorporateEntity
-    a owl:Class ;
-    rdfs:subClassOf org:Organization ;
+:CorporateEntity a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
     rdfs:label "Corporate entity" ;
-    rdfs:comment "A real corporate_entity row, modeled as a W3C ORG organization. Its classification level is a separate SKOS concept reached through hasEntityLevel." ;
+    rdfs:comment "A corporate_entity row. Also a skos:Concept so the self-referencing parent_entity_id hierarchy (e.g. Group -> Company -> Plant) is expressible with skos:broader/skos:narrower on instances." ;
     :lookupCode "node_corporate_entity" .
 
-:Team
-    a owl:Class ;
+:Team a owl:Class ;
     rdfs:subClassOf org:OrganizationalUnit ;
     rdfs:label "Team" ;
-    rdfs:comment "A cataloged_team row: a named organizational unit with a stable team_id, distinct from the per-summary RoleActorTeam classification." ;
+    rdfs:comment "A cataloged_team row: a named company sub-unit (ADR 0009) with a stable team_id, distinct from :RoleActorTeam (ADR 0007's per-row actor_type_code classification) the same way :Person is distinct from :RoleActorPerson." ;
     :lookupCode "node_team" .
-
-#################################################################
-# W3C ORG -- real organization containment and unit membership
-#################################################################
-
-:subOrganizationOf
-    a owl:ObjectProperty ;
-    rdfs:subPropertyOf org:subOrganizationOf ;
-    rdfs:domain :CorporateEntity ;
-    rdfs:range :CorporateEntity ;
-    rdfs:label "sub-organization of" ;
-    rdfs:comment "The semantic projection of corporate_entity.parent_entity_id. This is real organizational containment, not SKOS concept hierarchy." .
-
-:hasSubOrganization
-    a owl:ObjectProperty ;
-    rdfs:subPropertyOf org:hasSubOrganization ;
-    owl:inverseOf :subOrganizationOf ;
-    rdfs:domain :CorporateEntity ;
-    rdfs:range :CorporateEntity ;
-    rdfs:label "has sub-organization" .
 
 #################################################################
 # Object properties -- edge_type (knowledge_graph_edge.edge_type_code)
 #################################################################
 
-:mentionedIn
-    a owl:ObjectProperty ;
+:mentionedIn a owl:ObjectProperty ;
     rdfs:domain :Person ;
     rdfs:range :Post ;
     rdfs:label "mentioned in" ;
-    rdfs:comment "A person is named by a post; this is the canonical direction stored by knowledge_graph_edge." ;
+    rdfs:comment "A person is named by a post (post_person_mention); this is the canonical direction stored by knowledge_graph_edge." ;
     :lookupCode "edge_mention" .
 
-:mentions
-    a owl:ObjectProperty ;
+# Keep the natural-language inverse available to RDF consumers without
+# assigning the relational lookup code to two different properties.
+:mentions a owl:ObjectProperty ;
     rdfs:domain :Post ;
     rdfs:range :Person ;
     rdfs:label "mentions" ;
     owl:inverseOf :mentionedIn .
 
-:affiliatedWith
-    a owl:ObjectProperty ;
+:affiliatedWith a owl:ObjectProperty ;
     rdfs:domain :Person ;
     rdfs:range :CorporateEntity ;
     rdfs:label "affiliated with" ;
-    rdfs:comment "A person's many-to-many organizational affiliation." ;
+    rdfs:comment "A person's N:N organizational affiliation (person_affiliation)." ;
     :lookupCode "edge_affiliation" .
 
-:coMentionedWith
-    a owl:ObjectProperty, owl:SymmetricProperty ;
+:coMentionedWith a owl:ObjectProperty, owl:SymmetricProperty ;
     rdfs:domain :Person ;
     rdfs:range :Person ;
     rdfs:label "co-mentioned with" ;
-    rdfs:comment "Two people named in the same post; symmetric by construction." ;
+    rdfs:comment "Two people named in the same post -- symmetric by construction." ;
     :lookupCode "edge_co_mention" .
 
 #################################################################
-# Object properties -- cross-post actor identity
+# Object properties -- ADR 0009 cross-post identity resolution edges.
+# Kept distinct from :mentionedIn/:affiliatedWith (not reused with a
+# broadened domain/range) so an edge_type_code alone always tells you
+# which node types it connects -- stating rdfs:domain for the same
+# property twice (once :Person, once :Team) would make RDFS entail
+# every :mentionedIn subject is BOTH a :Person and a :Team, which is false.
 #################################################################
 
-:mentionsTeam
-    a owl:ObjectProperty ;
+:mentionsTeam a owl:ObjectProperty ;
     rdfs:domain :Team ;
     rdfs:range :Post ;
     rdfs:label "mentioned in post" ;
-    rdfs:comment "A cataloged team is named by a post." ;
+    rdfs:comment "A cataloged team is named by a post (post_team_mention)." ;
     :lookupCode "edge_mention_team" .
 
-:teamAffiliatedWith
-    a owl:ObjectProperty ;
-    rdfs:subPropertyOf org:unitOf ;
+:teamAffiliatedWith a owl:ObjectProperty ;
     rdfs:domain :Team ;
     rdfs:range :CorporateEntity ;
-    rdfs:label "team unit of organization" ;
-    rdfs:comment "The organization that owns a cataloged team, specializing W3C ORG unitOf." ;
+    rdfs:label "team affiliated with" ;
+    rdfs:comment "The company a cataloged team belongs to (cataloged_team.affiliated_corporate_entity_id)." ;
     :lookupCode "edge_team_affiliation" .
 
-:mentionsOrganization
-    a owl:ObjectProperty ;
+:mentionsOrganization a owl:ObjectProperty ;
     rdfs:domain :CorporateEntity ;
     rdfs:range :Post ;
     rdfs:label "mentioned in post" ;
-    rdfs:comment "A resolved organization is named by a post." ;
+    rdfs:comment "A resolved organization is named by a post (post_organization_mention)." ;
     :lookupCode "edge_mention_organization" .
 
 #################################################################
 # Object properties -- entity_relationship_type
+# (post_counterparty_entity.relationship_type_code)
 #################################################################
 
-:hasVocRelationship
-    a owl:ObjectProperty ;
-    rdfs:domain :Post ;
-    rdfs:range :CorporateEntity ;
+:hasVocRelationship a owl:ObjectProperty ;
+    rdfs:domain :Post ; rdfs:range :CorporateEntity ;
     rdfs:label "has Voice-of-Customer relationship" ;
     :lookupCode "rel_voc" .
 
-:hasVomRelationship
-    a owl:ObjectProperty ;
-    rdfs:domain :Post ;
-    rdfs:range :CorporateEntity ;
+:hasVomRelationship a owl:ObjectProperty ;
+    rdfs:domain :Post ; rdfs:range :CorporateEntity ;
     rdfs:label "has Voice-of-Market relationship" ;
     :lookupCode "rel_vom" .
 
-:hasVopRelationship
-    a owl:ObjectProperty ;
-    rdfs:domain :Post ;
-    rdfs:range :CorporateEntity ;
+:hasVopRelationship a owl:ObjectProperty ;
+    rdfs:domain :Post ; rdfs:range :CorporateEntity ;
     rdfs:label "has Voice-of-Partner relationship" ;
     :lookupCode "rel_vop" .
 
-:hasVoccRelationship
-    a owl:ObjectProperty ;
-    rdfs:domain :Post ;
-    rdfs:range :CorporateEntity ;
+:hasVoccRelationship a owl:ObjectProperty ;
+    rdfs:domain :Post ; rdfs:range :CorporateEntity ;
     rdfs:label "has Voice-of-Customer's-Customer relationship" ;
     :lookupCode "rel_vocc" .
 
-:hasVocoRelationship
-    a owl:ObjectProperty ;
-    rdfs:domain :Post ;
-    rdfs:range :CorporateEntity ;
+:hasVocoRelationship a owl:ObjectProperty ;
+    rdfs:domain :Post ; rdfs:range :CorporateEntity ;
     rdfs:label "has Voice-of-Competitor relationship" ;
     :lookupCode "rel_voco" .
 
-:hasVosRelationship
-    a owl:ObjectProperty ;
-    rdfs:domain :Post ;
-    rdfs:range :CorporateEntity ;
+:hasVosRelationship a owl:ObjectProperty ;
+    rdfs:domain :Post ; rdfs:range :CorporateEntity ;
     rdfs:label "has Voice-of-Supplier relationship" ;
     :lookupCode "rel_vos" .
 
 #################################################################
-# SKOS -- corporate-entity level classification
+# SKOS -- corporate_entity_level (Group -> Company -> Plant)
 #################################################################
 
-:CorporateEntityLevel
-    a owl:Class ;
-    rdfs:subClassOf skos:Concept ;
-    rdfs:label "Corporate entity level" ;
-    rdfs:comment "A classification concept such as Group, Company, or Plant. It is not the real organization instance." .
-
-:hasEntityLevel
-    a owl:ObjectProperty ;
-    rdfs:domain :CorporateEntity ;
-    rdfs:range :CorporateEntityLevel ;
-    rdfs:label "has corporate entity level" ;
-    rdfs:comment "Projects corporate_entity.entity_level_code to the corresponding controlled SKOS concept." .
-
-:corporateEntityLevelScheme
-    a skos:ConceptScheme ;
+:corporateEntityLevelScheme a skos:ConceptScheme ;
     rdfs:label "Corporate entity level scheme" ;
-    rdfs:comment "The Group -> Company -> Plant classification hierarchy, ordered broadest first." .
+    rdfs:comment "The Acme Group -> Acme Electronics Korea -> Acme Electronics Gwangju Plant kind of level, ordered broadest first." .
 
-:GroupLevel
-    a :CorporateEntityLevel, skos:Concept ;
+:GroupLevel a skos:Concept ;
     skos:inScheme :corporateEntityLevelScheme ;
     skos:prefLabel "Group"@en ;
     :lookupCode "group" .
 
-:CompanyLevel
-    a :CorporateEntityLevel, skos:Concept ;
+:CompanyLevel a skos:Concept ;
     skos:inScheme :corporateEntityLevelScheme ;
     skos:broader :GroupLevel ;
     skos:prefLabel "Company"@en ;
     :lookupCode "company" .
 
-:PlantLevel
-    a :CorporateEntityLevel, skos:Concept ;
+:PlantLevel a skos:Concept ;
     skos:inScheme :corporateEntityLevelScheme ;
     skos:broader :CompanyLevel ;
     skos:prefLabel "Plant"@en ;
@@ -263,65 +203,79 @@
 
 #################################################################
 # Classes -- prov_agent_type (post_summary_role.actor_type_code)
+#
+# A post's R&R (roles & responsibilities) actor is not always a person
+# -- business correspondence routinely names an organization acting
+# in its own name ("당사" [our company], "Demo Corp"). Grounded
+# directly in W3C PROV-O (Lebo, Sahoo, & McGuinness,
+# 2013): prov:Agent is the general acting-party class, with prov:Person
+# and prov:Organization its two recognized subclasses. These are
+# distinct from :Person / :OurSidePerson / :CounterpartyPerson above:
+# node_type's :Person is a cataloged_person row with a stable person_id
+# a Keyman panel links to; an R&R actor is a free-text name with no
+# cataloged identity of its own (it may not even resolve to a Keyman).
+#
+# A third, meso-level case real data surfaced: a named sub-unit of a
+# company ("설계팀" [design team]) is neither prov:Person nor the
+# prov:Organization itself -- it is the company's own internal
+# structure. PROV-O has no such class; the W3C Organization Ontology
+# (Reynolds, 2014) does: org:OrganizationalUnit, "used to represent
+# division of a particular organization into sub-organizational units,"
+# linked to its parent via org:unitOf. See docs/adr/0007-team-actor-type.md.
 #################################################################
 
-:RoleActorPerson
-    a owl:Class ;
+:RoleActorPerson a owl:Class ;
     rdfs:subClassOf prov:Person ;
     rdfs:label "Role actor (person)" ;
     rdfs:comment "An R&R actor that is a named individual, per prov:Person." ;
     :lookupCode "prov_person" .
 
-:RoleActorOrganization
-    a owl:Class ;
+:RoleActorOrganization a owl:Class ;
     rdfs:subClassOf prov:Organization ;
     rdfs:label "Role actor (organization)" ;
     rdfs:comment "An R&R actor that is an organization acting in its own name, per prov:Organization." ;
     :lookupCode "prov_organization" .
 
-:RoleActorTeam
-    a owl:Class ;
+:RoleActorTeam a owl:Class ;
     rdfs:subClassOf org:OrganizationalUnit ;
     rdfs:label "Role actor (team)" ;
-    rdfs:comment "An R&R actor that is a named sub-unit of a company, per org:OrganizationalUnit." ;
+    rdfs:comment "An R&R actor that is a named sub-unit of a company (e.g. 설계팀), per org:OrganizationalUnit -- not the company itself." ;
     :lookupCode "prov_team" .
 
 #################################################################
-# Organization-name resolution semantics
+# organization_name_resolution (raw/canonical organization-name pairs)
 #
-# organization_name_resolution.raw_organization_name corresponds to
-# skos:altLabel and resolved_organization_name to skos:prefLabel. These
-# columns are not common_lookup_value rows, so no duplicate lookupCode
-# term is declared here.
+# ADR 0008: an abbreviated/slang organization mention (e.g. "AGP")
+# is resolved to its full canonical name ("Aurora Grid Power") and
+# cross-verified via external search before being trusted. This is not
+# a new KG node/edge type -- no new :lookupCode term is declared here,
+# since organization_name_resolution's columns are not a
+# common_lookup_value category (there is nothing for
+# tests/test_ontology.py's round-trip check to enforce). Documented
+# here for the Ontology/Semantic-Layer grounding itself:
+# `organization_name_resolution.raw_organization_name` corresponds to
+# SKOS `skos:altLabel` (an alternative label -- an abbreviation is
+# exactly this) and `resolved_organization_name` to `skos:prefLabel`
+# (the single preferred/canonical label), per Miles & Bechhofer (2009).
 #################################################################
-
-#################################################################
-# Semantic project extraction
-#################################################################
-
-:Project
-    a owl:Class ;
+# Semantic project extraction (ADR 0036). These resources are distinct from
+# imported grouping fields: a post may mention a project without carrying a
+# project field, and the mention keeps evidence/confidence for review.
+:Project a owl:Class ;
     rdfs:label "Project"@en ;
     rdfs:comment "A business project referred to by a source post."@en .
 
-:ProjectMention
-    a owl:Class ;
+:ProjectMention a owl:Class ;
     rdfs:label "Project mention"@en ;
     rdfs:comment "An evidence-backed semantic assertion that a post refers to a project."@en .
 
-:mentionsProject
-    a owl:ObjectProperty ;
+:mentionsProject a owl:ObjectProperty ;
     rdfs:domain :Post ;
-    rdfs:range :Project ;
-    rdfs:label "mentions project"@en .
+    rdfs:range :Project .
 
-:projectEvidence
-    a owl:DatatypeProperty ;
+:projectEvidence a owl:DatatypeProperty ;
     rdfs:domain :ProjectMention ;
-    rdfs:range xsd:string ;
-    rdfs:label "project evidence"@en .
+    rdfs:range xsd:string .
 
-:semanticConfidence
-    a owl:DatatypeProperty ;
-    rdfs:range xsd:decimal ;
-    rdfs:label "semantic confidence"@en .
+:semanticConfidence a owl:DatatypeProperty ;
+    rdfs:range xsd:decimal .
