@@ -64,8 +64,8 @@ def test_persist_post_chat_writes_the_retrieval_cutoff_not_a_later_read_clock() 
 
 
 def test_cutoff_migration_is_applied_and_fails_closed_on_inverted_clocks() -> None:
-    migration = ROOT / "migrations/0054_post_chat_knowledge_cutoff.sql"
-    rollback = ROOT / "migrations/rollback/0054_post_chat_knowledge_cutoff.sql"
+    migration = ROOT / "migrations/0053_post_chat_knowledge_cutoff.sql"
+    rollback = ROOT / "migrations/rollback/0053_post_chat_knowledge_cutoff.sql"
     migrate_script = (ROOT / "docker/postgres-init/migrate.sh").read_text(encoding="utf-8")
 
     assert migration.is_file()
@@ -74,4 +74,4 @@ def test_cutoff_migration_is_applied_and_fails_closed_on_inverted_clocks() -> No
     assert "knowledge_cutoff = computed_at" in text
     assert "knowledge_cutoff <= computed_at" in text
     assert rollback.is_file()
-    assert "0054_*" in migrate_script
+    assert "0053_*" in migrate_script
