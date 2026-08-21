@@ -151,6 +151,16 @@ export function LineageDag({
                 {group.nodes.map((node) => {
                   const kind = node.is_branch_point ? "branch" : node.is_root ? "root" : "node";
                   const isCurrent = node.id === currentPostId;
+                  // Root/branch/current are otherwise conveyed by stroke color and
+                  // border width alone (see .lineage-dag-root/-branch/[aria-current]
+                  // in App.css) — name them here too so the distinction reaches
+                  // screen readers and colorblind users relying on the tooltip.
+                  const kindLabels = [
+                    isCurrent ? lineageDagText("Current record") : null,
+                    kind === "branch" ? lineageDagText("Branch point") : null,
+                    kind === "root" ? lineageDagText("Root record") : null,
+                  ].filter((label): label is string => Boolean(label));
+                  const kindSuffix = kindLabels.length > 0 ? ` (${kindLabels.join(", ")})` : "";
                   return (
                     <g
                       key={node.id}
@@ -158,7 +168,7 @@ export function LineageDag({
                       transform={`translate(${node.x}, ${node.y})`}
                       role="button"
                       tabIndex={0}
-                      aria-label={tf("Open post: {label}", { label: node.label })}
+                      aria-label={tf("Open post: {label}", { label: node.label }) + kindSuffix}
                       aria-current={isCurrent ? "true" : undefined}
                       onClick={() => onSelectPost(node.id)}
                       onKeyDown={(event) => {
@@ -179,7 +189,7 @@ export function LineageDag({
                         {tf("{label} — {date}", {
                           label: node.label,
                           date: eventDate(node.occurred_at),
-                        })}
+                        }) + kindSuffix}
                       </title>
                     </g>
                   );

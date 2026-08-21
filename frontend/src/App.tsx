@@ -2546,6 +2546,10 @@ type SelectPostOptions = {
   liveAfterCutoff?: boolean;
   knowledgeCutoff?: string;
   fromReportMember?: boolean;
+  /** Set when re-entering a post from a popstate (browser back/forward) so
+   * the handler doesn't push a duplicate history entry for a navigation
+   * the browser already performed. */
+  fromPopState?: boolean;
 };
 
 /**
@@ -3671,6 +3675,13 @@ function PostList({
     setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
+    if (!options?.fromPopState) {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("post") !== postId) {
+        url.searchParams.set("post", postId);
+        window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
+      }
+    }
   }
 
   useEffect(() => {
@@ -3678,6 +3689,22 @@ function PostList({
     selectPost(postIdToOpen);
     onPostOpened?.();
   }, [onPostOpened, postIdToOpen]);
+
+  useEffect(() => {
+    function handlePopState() {
+      const postId = new URLSearchParams(window.location.search).get("post");
+      if (postId) {
+        selectPost(postId, { fromPopState: true });
+      } else {
+        setSelectedPostId(null);
+        setOpenedAfterCutoff(false);
+        setOpenedCutoffIso(null);
+        setOpenedFromReportMember(false);
+      }
+    }
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   function closeSelectedPost() {
     setSelectedPostId(null);
@@ -4536,7 +4563,7 @@ function AskAgentPanel({
           rows={4}
         />
       </label>
-      <button className="keyman-select" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
+      <button className="btn-primary ask-agent-submit" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
         {asking ? t("Asking...") : t("Ask")}
       </button>
       {answer && (
