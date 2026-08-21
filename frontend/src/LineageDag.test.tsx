@@ -26,6 +26,20 @@ const graph: LineageGraph = {
   edges: [{ source: "root-post", target: "child-post", fused_score: 0.91 }],
 };
 
+const isolatedGraph: LineageGraph = {
+  nodes: [
+    {
+      id: "isolated-post",
+      group: "isolated-project",
+      label: "Unlinked record",
+      occurred_at: "2026-02-01T00:00:00Z",
+      is_root: true,
+      is_branch_point: false,
+    },
+  ],
+  edges: [],
+};
+
 describe("LineageDag", () => {
   it("renders an interactive graph and opens a post from click and keyboard activation", async () => {
     const user = userEvent.setup();
@@ -74,6 +88,15 @@ describe("LineageDag", () => {
     expect(within(evidenceTable).getByText("Root record → Child record")).toBeInTheDocument();
     expect(within(evidenceTable).getByText("0.91")).toBeInTheDocument();
     expect(within(evidenceTable).getByText("2026-01-01 → 2026-01-02")).toBeInTheDocument();
+    expect(within(evidenceTable).getByText("Evidence (fused_score)")).toBeInTheDocument();
+  });
+
+  it("keeps an isolated root interactive without rendering an empty edge table", () => {
+    render(<LineageDag graph={isolatedGraph} onSelectPost={vi.fn()} />);
+
+    expect(screen.getByRole("group", { name: "isolated-project lineage" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open post: Unlinked record" })).toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 
   it("renders the explicit empty state without graph controls", () => {
