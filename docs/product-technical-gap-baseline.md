@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit scope: the current `feat/uiux-standard-guide-v3-restacked` worktree,
+> Audit scope: the current `fix/uiux-standard-guide-v3-postmerge` worktree,
 > compared with `origin/main`, the UI/UX Standard Guide v3.0 supplied for this
 > product, ADR 0118, the accepted TEPP PRD/contracts, and the
 > contextual-orchestrator architecture. Real source identifiers are deliberately
@@ -22,10 +22,10 @@ record the final PR head with `git rev-parse HEAD` during acceptance.
   integration proof.
 - **Figma reference:** ADR 0118 records file `1Su3lDRmiZdcUs47t1QwIX`; the
   inspected Event Lineage frames are desktop `5:14` and mobile `5:15`.
-- **Current PR gate:** PR #347 is review-required; Devin Review failed, the
-  required OpenCode/Noema reviews and product/security checks were pending at
-  audit time, and CodeRabbit skipped review because the diff exceeded its file
-  limit. This is not merge-ready evidence.
+- **Current PR gate:** PR #350 is open and review-required; its required
+  OpenCode/Noema reviews and product/security checks are pending. The prior PR
+  #347 merged at `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`, before this clean
+  post-merge PR was opened. This is not merge-ready evidence.
 
 ## 2. UI/UX Standard Guide v3.0 comparison
 
