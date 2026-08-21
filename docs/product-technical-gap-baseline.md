@@ -49,7 +49,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T16:42:30Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T16:45:06Z` from the
 GitHub API. Checkpoint types are `merge_commit`, `head`, and
 `closed_without_merge`; the latter records a closed PR's exact `head` when
 `merged_at` and `merge_commit_sha` are both absent. A merged commit is
@@ -71,7 +71,7 @@ Recently merged into the protected repository:
 
 Open PRs at the same observation:
 
-- PR #258: `head` `a3cf51e9fe34097fab41c2d160bf93c4ad48ddb0`, base `main`
+- PR #258: `head` `6621eb116a4e92eb33eeae989c70fbc602450c51`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #349: `head` `2d18879e8a7f93b08e32aa4261610e34700e1892`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
@@ -80,7 +80,7 @@ Open PRs at the same observation:
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `b6ffe3b8d303088da761bcd80b13c3308964b42e`, base `main`
+- PR #368: `head` `2863a08946ce5f7ecc40d7960dfdb6b70522155a`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `6b84bea10881e2f82fb676d5b01cf56f7d8f4adb`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
@@ -165,12 +165,15 @@ the real Compose backend, Valkey, and orchestrator boundary:
 - The remaining aggregate image state was 421 `failed` and 12,377
   `unavailable` images. Do not bulk retry until provider throughput, bounded
   retry policy, and buyer-visible failure/retry UX are separately accepted.
-- PR #258's exact head `a3cf51e9fe34097fab41c2d160bf93c4ad48ddb0` now
+- PR #258's exact head `6621eb116a4e92eb33eeae989c70fbc602450c51` now
   restarts a whole lineage group when an optional LLM adjudication channel
   fails mid-group, preventing mixed LLM and deterministic edge scores. Local
   verification at that head passed 976 backend tests (17 environment skips),
   221 frontend tests, lint, and production build; hosted Checks remain queued
   and no independent approval or merge commit is present.
+- PR #258 then corrected the Unreleased changelog's Buyer-terminology ADR
+  reference from 0119 to the governing ADR 0131; the focused reconstruction
+  and adjudication tests still passed at the pushed documentation head.
 
 Observed at `2026-08-21T16:16:02Z` in a fresh local Compose browser session
 against the authenticated React surface:
