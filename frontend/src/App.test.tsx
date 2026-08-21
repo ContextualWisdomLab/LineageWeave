@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import App from "./App";
+import App, { GLOBAL_ASK_SESSION_STORAGE_KEY } from "./App";
 import { setLocale } from "./i18n";
 import { isoWeekFromCreatedAt } from "./isoWeek";
 
@@ -91,6 +91,7 @@ describe("App, authenticated", () => {
     deferSecondAsk?: boolean;
     deferProjectHistory?: boolean;
     invalidAskSessionOnce?: boolean;
+    staleAskCitationsOnce?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
@@ -1699,6 +1700,16 @@ describe("App, authenticated", () => {
             }),
           );
         }
+        if (options?.staleAskCitationsOnce && askRequestCount === 1 && requestBody.session_id) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                detail: "Global Ask session evidence is no longer authorized; start a new session",
+              }),
+              { status: 409, headers: { "Content-Type": "application/json" } },
+            ),
+          );
+        }
         const ready =
           options?.deferSecondAsk && askRequestCount === 2
             ? secondAskReady
@@ -1951,7 +1962,7 @@ describe("App, authenticated", () => {
   });
 
   it("replaces an invalid saved Ask session without requiring storage cleanup", async () => {
-    window.sessionStorage.setItem("lineageweave.globalAskSessionId", "stale-session");
+    window.sessionStorage.setItem(GLOBAL_ASK_SESSION_STORAGE_KEY, "stale-session");
     const fetchMock = stubBackend({ invalidAskSessionOnce: true });
     render(<App />);
 
@@ -1967,7 +1978,27 @@ describe("App, authenticated", () => {
       .filter(([url]) => String(url).endsWith("/api/ask"))
       .map(([, init]) => JSON.parse(String((init as RequestInit).body)) as { session_id?: string });
     expect(askBodies.map((body) => body.session_id)).toEqual(["stale-session", undefined]);
-    expect(window.sessionStorage.getItem("lineageweave.globalAskSessionId")).toBe("session-1");
+    expect(window.sessionStorage.getItem(GLOBAL_ASK_SESSION_STORAGE_KEY)).toBe("session-1");
+  });
+
+  it("restarts a Global Ask session whose citations lost visibility using the shared storage key", async () => {
+    window.sessionStorage.setItem(GLOBAL_ASK_SESSION_STORAGE_KEY, "stale-session");
+    const fetchMock = stubBackend({ staleAskCitationsOnce: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    await userEvent.type(within(ask).getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+
+    expect(
+      await within(ask).findByText("The cited project is supported by the stored semantic evidence."),
+    ).toBeInTheDocument();
+    const askBodies = fetchMock.mock.calls
+      .filter(([url]) => String(url).endsWith("/api/ask"))
+      .map(([, init]) => JSON.parse(String((init as RequestInit).body)) as { session_id?: string });
+    expect(askBodies.map((body) => body.session_id)).toEqual(["stale-session", undefined]);
+    expect(window.sessionStorage.getItem(GLOBAL_ASK_SESSION_STORAGE_KEY)).toBe("session-1");
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
