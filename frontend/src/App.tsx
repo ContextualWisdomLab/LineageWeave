@@ -74,6 +74,7 @@ import {
   type PostLineage,
   type PostSummary,
   type PostSortOrder,
+  type ProjectHistoryLink,
   type RankingList,
   type PersonRoleHistoryEntry,
   type RelatedNode,
@@ -90,8 +91,10 @@ import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
+import { AskProjectHistoryLinks } from "./components/AskProjectHistoryLinks";
 import { ProjectHistoryTimeline } from "./components/ProjectHistoryTimeline";
 import {
+  normalizeProjectIdentity,
   projectHistoryText,
   type ProjectHistoryIndex,
   type ProjectHistoryProjection,
@@ -294,6 +297,9 @@ function ChatPanel({
           answer_text: result.answer_text,
           cited_post_ids: result.cited_post_ids,
           cited_posts: result.cited_posts,
+          knowledge_cutoff: result.knowledge_cutoff,
+          project_histories: result.project_histories,
+          project_histories_truncated: result.project_histories_truncated,
         };
         return [...prev.filter((row) => row.question_text !== next.question_text), next];
       });
@@ -335,6 +341,12 @@ function ChatPanel({
             currentPostId={
               exchanges[0].cited_posts?.[0]?.post_id ?? exchanges[0].cited_post_ids[0]
             }
+          />
+          <AskProjectHistoryLinks
+            accessToken={accessToken}
+            links={(exchanges[0].project_histories ?? []) as ProjectHistoryLink[]}
+            truncated={exchanges[0].project_histories_truncated ?? false}
+            onOpenPost={setEvidencePostId}
           />
         </div>
       ) : null}
@@ -416,6 +428,12 @@ function ChatPanel({
             citedPostIds={exchange.cited_post_ids}
             onOpenEvidence={setEvidencePostId}
           />
+          <AskProjectHistoryLinks
+            accessToken={accessToken}
+            links={(exchange.project_histories ?? []) as ProjectHistoryLink[]}
+            truncated={exchange.project_histories_truncated ?? false}
+            onOpenPost={setEvidencePostId}
+          />
         </div>
       ))}
       {answer && !exchanges.some((row) => row.answer_text === answer.answer_text) && (
@@ -425,6 +443,12 @@ function ChatPanel({
             citedPosts={answer.cited_posts}
             citedPostIds={answer.cited_post_ids}
             onOpenEvidence={setEvidencePostId}
+          />
+          <AskProjectHistoryLinks
+            accessToken={accessToken}
+            links={(answer.project_histories ?? []) as ProjectHistoryLink[]}
+            truncated={answer.project_histories_truncated ?? false}
+            onOpenPost={setEvidencePostId}
           />
         </div>
       )}
@@ -4583,6 +4607,7 @@ function CustomerMasterPanel({
 }
 
 
+
 function ProjectHistoryPanel({
   accessToken,
   initialProjectKey,
@@ -4607,11 +4632,15 @@ function ProjectHistoryPanel({
     fetchProjectHistoryIndex(accessToken)
       .then((result) => {
         if (!active) return;
+        const initialProject = initialProjectKey
+          ? result.projects.find(
+              (project) =>
+                project.normalized_project_key === normalizeProjectIdentity(initialProjectKey),
+            )
+          : undefined;
         setIndex(result);
-        setSelectedProjectKey((current) =>
-          initialProjectKey && result.projects.some((project) => project.project_key === initialProjectKey)
-            ? initialProjectKey
-            : current || result.projects[0]?.project_key || "",
+        setSelectedProjectKey(
+          (current) => initialProject?.project_key ?? (current || result.projects[0]?.project_key || ""),
         );
         setError(false);
       })
@@ -4643,7 +4672,10 @@ function ProjectHistoryPanel({
     setLoadingHistory(true);
     setError(false);
     const focusPostId =
-      initialProjectKey === selectedProjectKey ? initialFocusPostId ?? undefined : undefined;
+      initialProjectKey &&
+      normalizeProjectIdentity(initialProjectKey) === normalizeProjectIdentity(selectedProjectKey)
+        ? initialFocusPostId ?? undefined
+        : undefined;
     fetchProjectHistory(accessToken, selectedProjectKey, index.knowledge_cutoff, focusPostId)
       .then((result) => {
         if (request !== historyRequest.current) return;

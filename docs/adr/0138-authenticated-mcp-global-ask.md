@@ -1,4 +1,4 @@
-# ADR 0127: Authenticated MCP Global Ask
+# ADR 0138: Authenticated MCP Global Ask
 
 - **Status:** Accepted
 - **Date:** 2026-08-20

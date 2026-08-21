@@ -89,8 +89,9 @@ describe("App, authenticated", () => {
     deferMe?: boolean;
     deferPostOneSummary?: boolean;
     deferSecondAsk?: boolean;
-    partialCutoff?: boolean;
     deferProjectHistory?: boolean;
+    projectHistoryProjectKey?: string;
+    partialCutoff?: boolean;
     invalidAskSessionOnce?: boolean;
     meFailed?: boolean;
     postBody?: string;
@@ -1172,7 +1173,7 @@ describe("App, authenticated", () => {
             visibility_label: "Public",
             project_evidence: [
               {
-                project_key: "semantic-project",
+                project_key: options?.projectHistoryProjectKey ?? "semantic-project",
                 project_name: "Semantic project",
                 evidence: "project was described in the body",
                 confidence: 0.9,
@@ -2200,6 +2201,19 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("heading", { name: "Project event timeline" })).toBeInTheDocument();
     expect(screen.getByRole("combobox", { name: "Select project" })).toHaveValue("semantic-project");
     expect(screen.getByRole("button", { name: "Open source record: Public post" })).toBeInTheDocument();
+    expect(projectHistoryRequestUrl).toContain("focus_post_id=post-1");
+  });
+
+  it("keeps the focus post when the project key differs only by identity normalization", async () => {
+    stubBackend({ projectHistoryProjectKey: "ＳＥＭＡＮＴＩＣ－ＰＲＯＪＥＣＴ" });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Open project history for: Semantic project" }),
+    );
+
+    expect(await screen.findByRole("heading", { name: "Project event timeline" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Select project" })).toHaveValue("semantic-project");
     expect(projectHistoryRequestUrl).toContain("focus_post_id=post-1");
   });
 

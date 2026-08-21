@@ -20,6 +20,29 @@ All notable changes to this project are documented here. Format follows
   and commitment-derived ticket writes enforce the owning-post authorization
   boundary before provider work.
 
+## [2.20.0] - 2026-08-21
+
+### Added
+
+- Post-scoped Ask and Global Ask now attach exact project-history links derived
+  only from currently authorized cited posts. Opening a link reuses the canonical
+  Project history timeline and its optional TEPP validation at the answer cutoff.
+
+### Security
+
+- Persisted post answers are withheld when any citation is no longer visible, and
+  stale Global Ask sessions are restarted before hidden prior prose can re-enter
+  conversation context (ADR 0113).
+
+## [2.19.0] - 2026-08-21
+
+### Added
+
+- Recovered the credential-free TEPP project-history validation boundary on top of
+  the canonical Buyer timeline. TEPP may return only cutoff-safe temporal
+  associations over the exact authorized events; the timeline remains readable
+  when TEPP is absent, and no result is labelled as a cause (ADR 0127).
+
 ## [2.18.0] - 2026-08-20
 
 ### Added
@@ -27,8 +50,6 @@ All notable changes to this project are documented here. Format follows
 - Added a Buyer Project history destination and post-detail entry point for
   bounded, authorized exact-project chronology. The release remains pending
   protected-main review and Checks (ADR 0111).
-
-## [2.19.0] - 2026-08-20
 
 ### Added
 
@@ -39,7 +60,6 @@ All notable changes to this project are documented here. Format follows
   does not add that focus or copy. No TEPP theta is invented. No cited
   post, customer, week, or cutoff body is invented (ADR 0100 / ADR 0097
   / ADR 0016).
-
 ## [2.17.0] - 2026-08-19
 
 ### Added

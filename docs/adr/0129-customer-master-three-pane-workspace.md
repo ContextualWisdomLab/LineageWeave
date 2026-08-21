@@ -1,4 +1,4 @@
-# ADR 0125: Customer-centered three-pane Customer Master workspace
+# ADR 0129: Customer-centered three-pane Customer Master workspace
 
 - **Status:** Accepted
 - **Date:** 2026-08-21

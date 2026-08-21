@@ -45,6 +45,7 @@ from lineageweave.post_chat import (
 from lineageweave.post_content_normalization import normalize_post_body
 
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
+from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from .source_post_revision import fetch_cutoff_revisions
 from lineageweave.ontology import ontology_annotations
 
@@ -344,6 +345,16 @@ _SOURCE_HINT_FIELDS = (
 _GLOBAL_ASK_TERM_PATTERN = re.compile(r"[^\W_]+(?:-[^\W_]+)*", re.UNICODE)
 _POST_CHAT_SOURCE_LIMIT = 6
 _POST_CHAT_CANDIDATE_LIMIT = 32
+_SOURCE_ELIGIBILITY = SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")
+
+
+def _ask_cutoff(value: datetime | None) -> datetime:
+    """Return an aware UTC cutoff for one Ask retrieval."""
+
+    cutoff = value or datetime.now(timezone.utc)
+    if cutoff.tzinfo is None or cutoff.utcoffset() is None:
+        raise ValueError("knowledge_cutoff must include an offset")
+    return cutoff.astimezone(timezone.utc)
 
 
 def _source_hint_facts(row: Any) -> tuple[str, ...]:
@@ -458,6 +469,7 @@ async def gather_chat_sources(
     can_see_post: Callable[[asyncpg.Record], bool],
     vision_client: ImageContentClient | None = None,
     *,
+    knowledge_cutoff: datetime | None = None,
     session_id: str | None = None,
     metadata: dict[str, str] | None = None,
 ) -> list[ChatSourceDocument]:
@@ -468,16 +480,29 @@ async def gather_chat_sources(
     """
     if vision_client is None:
         vision_client = NullImageContentClient()
-
-    anchor = await conn.fetchrow(
+    cutoff = _ask_cutoff(knowledge_cutoff) if knowledge_cutoff is not None else None
+    anchor_sql = (
         "select post_id, post_title, visibility_code, corporate_entity_id, created_at, "
         "source_system_code, source_record_key, "
         "source_author_code, source_author_name, source_company_code, source_company_name, "
         "source_process_unit_code, source_process_unit_name, "
         "source_sales_pool_code, source_sales_pool_name, "
         "source_customer_code, source_customer_name, source_project_code, "
-        "source_project_name from source_post where post_id = $1",
-        post_id,
+        f"source_project_name from source_post where post_id = $1 and {_SOURCE_ELIGIBILITY}"
+        if cutoff is None
+        else "select post_id, post_title, visibility_code, corporate_entity_id, created_at, "
+        "source_system_code, source_record_key, "
+        "source_author_code, source_author_name, source_company_code, source_company_name, "
+        "source_process_unit_code, source_process_unit_name, "
+        "source_sales_pool_code, source_sales_pool_name, "
+        "source_customer_code, source_customer_name, source_project_code, "
+        f"source_project_name from source_post where post_id = $1 "
+        f"and created_at <= $2 and {_SOURCE_ELIGIBILITY}"
+    )
+    anchor = (
+        await conn.fetchrow(anchor_sql, post_id)
+        if cutoff is None
+        else await conn.fetchrow(anchor_sql, post_id, cutoff)
     )
     if anchor is None or not can_see_post(anchor):
         return []
@@ -516,16 +541,35 @@ async def gather_chat_sources(
     if not candidate_ids:
         return sources
 
-    rows = await conn.fetch(
+    linked_sql = (
         "select post_id, post_title, visibility_code, corporate_entity_id, created_at, "
         "source_system_code, source_record_key, source_author_code, source_author_name, "
         "source_company_code, source_company_name, source_process_unit_code, "
         "source_process_unit_name, source_sales_pool_code, source_sales_pool_name, "
         "source_customer_code, source_customer_name, "
         "source_project_code, source_project_name "
-        "from source_post where post_id = any($1::uuid[]) "
-        "order by array_position($1::uuid[], post_id)",
-        candidate_ids,
+        f"from source_post where post_id = any($1::uuid[]) and {_SOURCE_ELIGIBILITY} "
+        "order by array_position($1::uuid[], post_id)"
+        if cutoff is None
+        else "select post_id, post_title, visibility_code, corporate_entity_id, created_at, "
+        "source_system_code, source_record_key, source_author_code, source_author_name, "
+        "source_company_code, source_company_name, source_process_unit_code, "
+        "source_process_unit_name, source_sales_pool_code, source_sales_pool_name, "
+        "source_customer_code, source_customer_name, "
+        "source_project_code, source_project_name "
+        f"from source_post where post_id = any($1::uuid[]) "
+        f"and created_at <= $3 and {_SOURCE_ELIGIBILITY} "
+        "order by array_position($1::uuid[], post_id) limit $2"
+    )
+    rows = (
+        await conn.fetch(linked_sql, candidate_ids)
+        if cutoff is None
+        else await conn.fetch(
+            linked_sql,
+            candidate_ids,
+            _POST_CHAT_CANDIDATE_LIMIT,
+            cutoff,
+        )
     )
     admitted_rows = [row for row in rows if can_see_post(row)]
     direct_rows = sorted(
@@ -604,29 +648,34 @@ def _clock_iso(value: datetime) -> str:
 
 def _global_ask_candidate_sql(*, knowledge_cutoff: bool) -> str:
     if not knowledge_cutoff:
-        return """
+        eligibility = SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")
+        return f"""
             select post_id, matched_in
               from (
                    (select post_id, created_at, 'title' as matched_in
                       from source_post
-                     where post_title ilike '%' || $1 || '%'
+                     where {eligibility}
+                       and post_title ilike '%' || $1 || '%'
                      limit 32)
                     union all
                    (select post_id, created_at, 'body' as matched_in
                       from source_post
-                     where lower(left(source_post_search_text(post_body), 16384))
+                     where {eligibility}
+                       and lower(left(source_post_search_text(post_body), 16384))
                                like '%' || lower($1) || '%'
                      limit 32)
                     union all
                    (select post_id, created_at, 'body' as matched_in
                       from source_post
-                     where to_tsvector('simple', source_post_search_text(post_body))
+                     where {eligibility}
+                       and to_tsvector('simple', source_post_search_text(post_body))
                                @@ plainto_tsquery('simple', $1)
                      limit 32)
                     union all
                    (select post_id, created_at, 'source_field' as matched_in
                       from source_post
-                     where concat_ws(' ', source_system_code, source_record_key,
+                     where {eligibility}
+                       and concat_ws(' ', source_system_code, source_record_key,
                                       source_author_code, source_author_name,
                                       source_company_code, source_company_name,
                                       source_process_unit_code, source_process_unit_name,
@@ -639,10 +688,13 @@ def _global_ask_candidate_sql(*, knowledge_cutoff: bool) -> str:
              order by created_at desc, post_id desc
             limit 32
             """
+    eligibility = SOURCE_POST_ELIGIBILITY_SQL.format(alias="sp")
     covering = (
-        "spr.written_at <= $2 "
-        "and (spr.superseded_at is null or spr.superseded_at > $2) "
-        "and sp.created_at <= $2"
+        "spr.written_at <= $3 "
+        "and (spr.superseded_at is null or spr.superseded_at > $3) "
+        "and sp.created_at <= $3 "
+        "and (sp.visibility_code = 'public' or sp.corporate_entity_id::text = any($2::text[])) "
+        f"and {eligibility}"
     )
     return f"""
             select post_id, matched_in
@@ -697,6 +749,8 @@ async def gather_global_chat_sources(
         return []
     if vision_client is None:
         vision_client = NullImageContentClient()
+    cutoff = _ask_cutoff(knowledge_cutoff)
+    authorized_entity_ids = list(authorized_corporate_entity_ids)
     search_terms = tuple(
         dict.fromkeys(
             token.casefold()
@@ -741,7 +795,9 @@ async def gather_global_chat_sources(
     candidate_sql = _global_ask_candidate_sql(knowledge_cutoff=knowledge_cutoff is not None)
     for term in search_terms:
         candidate_args: tuple[object, ...] = (
-            (term, knowledge_cutoff) if knowledge_cutoff is not None else (term,)
+            (term, authorized_entity_ids, cutoff)
+            if knowledge_cutoff is not None
+            else (term, authorized_entity_ids)
         )
         candidate_rows = await conn.fetch(candidate_sql, *candidate_args)
         for row in candidate_rows:
@@ -770,7 +826,7 @@ async def gather_global_chat_sources(
                 "join source_post on source_post.post_id = parent_post_id "
                 "where child_post_id = $1 and source_post.created_at <= $2",
                 lineage_anchor_id,
-                knowledge_cutoff,
+                cutoff,
             )
         else:
             lineage_rows = await conn.fetch(
@@ -792,55 +848,34 @@ async def gather_global_chat_sources(
         candidate_ids = candidate_ids[:candidate_budget]
     lineage_neighbor_id_set = frozenset(lineage_neighbor_ids)
 
-    if knowledge_cutoff is not None:
-        rows = await conn.fetch(
-            """
-            select post_id, post_title, post_body, visibility_code, corporate_entity_id,
-                   created_at, updated_at,
-                   source_system_code, source_record_key, source_author_code, source_author_name,
-                   source_company_code, source_company_name, source_process_unit_code,
-                   source_process_unit_name, source_sales_pool_code, source_sales_pool_name,
-                   source_customer_code, source_customer_name,
-                   source_project_code, source_project_name
-              from source_post
-             where (visibility_code = 'public'
-                or corporate_entity_id::text = any($1::text[]))
-               and created_at <= $4
-             order by array_position($2::uuid[], post_id) nulls last,
-                      created_at desc, post_id desc
-             limit $3
-            """,
-            list(authorized_corporate_entity_ids),
-            candidate_ids,
-            limit,
-            knowledge_cutoff,
-        )
-    else:
-        rows = await conn.fetch(
-            """
-            select post_id, post_title, post_body, visibility_code, corporate_entity_id,
-                   created_at,
-                   source_system_code, source_record_key, source_author_code, source_author_name,
-                   source_company_code, source_company_name, source_process_unit_code,
-                   source_process_unit_name, source_sales_pool_code, source_sales_pool_name,
-                   source_customer_code, source_customer_name,
-                   source_project_code, source_project_name
-              from source_post
-             where visibility_code = 'public'
-                or corporate_entity_id::text = any($1::text[])
-             order by array_position($2::uuid[], post_id) nulls last,
-                      created_at desc, post_id desc
-             limit $3
-            """,
-            list(authorized_corporate_entity_ids),
-            candidate_ids,
-            limit,
-        )
+    rows = await conn.fetch(
+        f"""
+        select post_id, post_title, post_body, visibility_code, corporate_entity_id,
+               created_at, updated_at,
+               source_system_code, source_record_key, source_author_code, source_author_name,
+               source_company_code, source_company_name, source_process_unit_code,
+               source_process_unit_name, source_sales_pool_code, source_sales_pool_name,
+               source_customer_code, source_customer_name,
+               source_project_code, source_project_name
+          from source_post
+         where (visibility_code = 'public'
+            or corporate_entity_id::text = any($1::text[]))
+           and created_at <= $4
+           and {_SOURCE_ELIGIBILITY}
+         order by array_position($2::uuid[], post_id) nulls last,
+                  created_at desc, post_id desc
+         limit $3
+        """,
+        authorized_entity_ids,
+        candidate_ids,
+        limit,
+        cutoff,
+    )
     visible_rows = [row for row in rows if can_see_post(row)][:limit]
     visible_ids = [str(row["post_id"]) for row in visible_rows]
     anchor_is_visible = lineage_anchor_id in visible_ids
     cutoff_revisions = (
-        await fetch_cutoff_revisions(conn, visible_ids, knowledge_cutoff)
+        await fetch_cutoff_revisions(conn, visible_ids, cutoff)
         if knowledge_cutoff is not None
         else {}
     )
@@ -897,7 +932,7 @@ async def gather_global_chat_sources(
             if getattr(updated_at, "tzinfo", None) is None:
                 live_clock = updated_at.replace(tzinfo=timezone.utc)
             try:
-                live_after_cutoff = live_clock > knowledge_cutoff
+                live_after_cutoff = live_clock > cutoff
             except TypeError:
                 live_after_cutoff = False
         sources.append(
@@ -938,7 +973,7 @@ async def _serialize_chat(
 ) -> dict[str, Any] | None:
     """One stored exchange plus citation chips, or None when missing."""
     header = await conn.fetchrow(
-        "select question_text, answer_text from post_chat_result "
+        "select question_text, answer_text, knowledge_cutoff from post_chat_result "
         "where post_id = $1 and question_norm = $2",
         post_id,
         question_norm,
@@ -958,6 +993,7 @@ async def _serialize_chat(
         "question_text": header["question_text"],
         "answer_text": header["answer_text"],
         "cited_post_ids": cited_ids,
+        "_knowledge_cutoff": header.get("knowledge_cutoff"),
         "cited_posts": [
             {"post_id": str(row["cited_post_id"]), "post_title": row["post_title"]}
             for row in cites
@@ -995,23 +1031,30 @@ async def persist_post_chat(
     question: str,
     answer_text: str,
     cited_post_ids: list[str] | tuple[str, ...],
+    *,
+    knowledge_cutoff: datetime | None = None,
 ) -> dict[str, Any]:
     """Replace the stored exchange for ``(post_id, question)`` and return it."""
     norm = normalize_chat_question(question)
     if not norm:
         raise ValueError("question is empty after normalize")
+    cutoff = _ask_cutoff(knowledge_cutoff)
+    computed_at = max(datetime.now(timezone.utc), cutoff)
     await conn.execute(
         "delete from post_chat_result where post_id = $1 and question_norm = $2",
         post_id,
         norm,
     )
     await conn.execute(
-        "insert into post_chat_result (post_id, question_norm, question_text, answer_text) "
-        "values ($1, $2, $3, $4)",
+        "insert into post_chat_result "
+        "(post_id, question_norm, question_text, answer_text, computed_at, knowledge_cutoff) "
+        "values ($1, $2, $3, $4, $5, $6)",
         post_id,
         norm,
         question.strip(),
         answer_text,
+        computed_at,
+        cutoff,
     )
     seen: set[str] = set()
     ordinal = 0

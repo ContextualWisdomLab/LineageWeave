@@ -64,7 +64,7 @@ class _CutoffConnection:
         self.calls.append((query, args))
         if "matched_in" in query:
             term = str(args[0]).casefold()
-            cutoff = args[1] if len(args) > 1 else None
+            cutoff = args[2] if len(args) > 2 else None
             matches = []
             if cutoff is not None:
                 covering: dict[str, dict[str, object]] = {}
@@ -208,8 +208,8 @@ def test_cutoff_excludes_posts_created_after_the_clock() -> None:
     assert sources == []
     candidate_query, candidate_args = connection.calls[0]
     assert "source_post_revision" in candidate_query
-    assert "created_at <= $2" in candidate_query
-    assert candidate_args[1] == _CUTOFF
+    assert "created_at <= $3" in candidate_query
+    assert candidate_args[2] == _CUTOFF
     source_query = next(query for query, _args in connection.calls if "array_position" in query)
     assert "created_at <= $4" in source_query
 

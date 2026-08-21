@@ -1,4 +1,4 @@
-# ADR 0128: Register account operation events in Valkey
+# ADR 0139: Register account operation events in Valkey
 
 - Status: Accepted
 - Date: 2026-08-20
