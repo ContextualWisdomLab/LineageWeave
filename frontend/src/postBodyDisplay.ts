@@ -32,6 +32,27 @@ const NUMERIC_FOOTNOTE_MARKER = "\u0003lw-numeric-footnote\u0004";
 const FOOTNOTE_BLOCK_MARKER = "\u0005lw-footnote-block\u0006";
 const FOOTNOTE_BLOCK_OPEN = /<\s*(?:footnote|endnote|w:footnote|w:endnote)\b[^>]*>/gi;
 const NUMERIC_SUPERSCRIPT = /<sup\b[^>]*>\s*(\d{1,3})\s*<\/sup>/gi;
+const SUPERSCRIPT_DIGITS = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+const SUBSCRIPT_DIGITS = "₀₁₂₃₄₅₆₇₈₉";
+const METRIC_MARKUP =
+  /((?<![A-Za-z])(?:\d+(?:\.\d+)?\s*)?(?:km|cm|mm|kg|m))\s*<(sup|sub)\b[^>]*>\s*(\d{1,3})\s*<\/\2>/gi;
+const METRIC_PLAIN_SCRIPT =
+  /((?<![A-Za-z])(?:\d+(?:\.\d+)?\s*)?(?:km|cm|mm|kg|m))\s*(\^|_)\s*(?:\{(\d{1,3})\}|(\d{1,3}))/gi;
+
+function normalizeMetricMarkup(raw: string): string {
+  return raw
+    .replace(METRIC_MARKUP, (_match, base: string, kind: string, digits: string) => {
+      const table = kind.toLowerCase() === "sup" ? SUPERSCRIPT_DIGITS : SUBSCRIPT_DIGITS;
+      return `${base}${[...digits].map((digit) => table[Number(digit)]).join("")}`;
+    })
+    .replace(
+      METRIC_PLAIN_SCRIPT,
+      (_match, base: string, kind: string, bracedDigits: string, digits: string) => {
+        const table = kind === "^" ? SUPERSCRIPT_DIGITS : SUBSCRIPT_DIGITS;
+        return `${base}${[...(bracedDigits || digits)].map((digit) => table[Number(digit)]).join("")}`;
+      },
+    );
+}
 
 function stripIndentMarkers(value: string): string {
   return value
@@ -224,7 +245,7 @@ function isDecodableBase64(raw: string): boolean {
 
 function pushText(segments: PostBodySegment[], raw: string, indentUnit: number): void {
   const text = stripHtmlTags(
-    raw
+    normalizeMetricMarkup(raw)
       .replace(FOOTNOTE_BLOCK_OPEN, FOOTNOTE_BLOCK_MARKER)
       .replace(NUMERIC_SUPERSCRIPT, `${NUMERIC_FOOTNOTE_MARKER}$1`),
   );
@@ -257,7 +278,7 @@ function markdownCells(line: string): string[] | null {
   const value = line.trim().replace(/^\|/, "").replace(/(?<!\\)\|$/, "");
   if (!value.includes("|")) return null;
   const cells = value.split(/(?<!\\)\|/).map((cell) => cell.trim().replace(/\\\|/g, "|"));
-  return cells.length >= 2 && cells.every(Boolean) ? cells : null;
+  return cells.length >= 2 && cells.every(Boolean) ? cells.map(normalizeMetricMarkup) : null;
 }
 
 function isMarkdownSeparatorRow(cells: string[] | null): boolean {

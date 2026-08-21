@@ -12,7 +12,7 @@ function parsePipeDelimitedTable(text: string): string[][] | null {
   const rows = text
     .split(/\r?\n/)
     .map((row) => {
-      const cells = row.split("|").map((cell) => cell.trim());
+      const cells = row.split(/(?<!\\)\|/).map((cell) => cell.trim().replace(/\\\|/g, "|"));
       if (cells[0] === "") cells.shift();
       if (cells[cells.length - 1] === "") cells.pop();
       return cells;
@@ -27,10 +27,20 @@ function parsePipeDelimitedTable(text: string): string[][] | null {
 function renderImageText(text: string) {
   const rows = parsePipeDelimitedTable(text);
   if (!rows) return <p>{text}</p>;
+  const [header, ...bodyRows] = rows;
   return (
     <table className="post-body-table post-image-text-table">
+      <thead>
+        <tr>
+          {header.map((cell, cellIndex) => (
+            <th key={`post-image-text-header-${cellIndex}`} scope="col">
+              {cell}
+            </th>
+          ))}
+        </tr>
+      </thead>
       <tbody>
-        {rows.map((row, rowIndex) => (
+        {bodyRows.map((row, rowIndex) => (
           <tr key={`post-image-text-row-${rowIndex}`}>
             {row.map((cell, cellIndex) => (
               <td key={`post-image-text-cell-${rowIndex}-${cellIndex}`}>{cell}</td>
@@ -77,7 +87,14 @@ function renderImageEvidence(
           <ol>
             {imageContent.regions.map((region) => (
               <li key={region.region_index}>
-                <span>{region.caption || region.extracted_text || t("Unknown")}</span>
+                {region.caption ? <p>{region.caption}</p> : null}
+                {region.extracted_text ? (
+                  <div className="post-image-region-text">
+                    {renderImageText(region.extracted_text)}
+                  </div>
+                ) : region.caption ? null : (
+                  t("Unknown")
+                )}
                 {region.tags.length ? (
                   <small>
                     {t("Image tags")}: {region.tags.join(", ")}

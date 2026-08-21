@@ -13,6 +13,11 @@ All notable changes to this project are documented here. Format follows
   semantic-unit parser and buyer body renderer. See the [product and
   technical gap baseline](docs/product-technical-gap-baseline.md) and
   [ADR 0103](docs/adr/0103-semantic-document-evidence-contract.md).
+- Preserve multiline VISION table rows, render parent and region OCR tables
+  accessibly, and request source-visible entity, relationship, layout, and
+  document-purpose evidence instead of a generic image caption. VISION calls
+  now share the structure channel's 600-second deep-agent runtime boundary;
+  an empty same-image retry can no longer erase previously observed OCR.
 
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same

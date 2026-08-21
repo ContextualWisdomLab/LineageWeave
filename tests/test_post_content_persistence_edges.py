@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
+import hashlib
 from types import SimpleNamespace
 
 import pytest
@@ -27,9 +28,10 @@ def _persist(*args: object, **kwargs: object) -> int:
 
 
 class _Connection:
-    def __init__(self) -> None:
+    def __init__(self, previous_images: tuple[dict[str, object], ...] = ()) -> None:
         self.executed: list[tuple[str, tuple[object, ...]]] = []
         self.fetchvals: list[tuple[str, tuple[object, ...]]] = []
+        self.previous_images = previous_images
         self._next_id = 0
 
     @asynccontextmanager
@@ -44,6 +46,10 @@ class _Connection:
         self.fetchvals.append((query, args))
         self._next_id += 1
         return f"id-{self._next_id}"
+
+    async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+        assert "post_content_image" in query
+        return list(self.previous_images)
 
 
 class _EmbedMany:
@@ -190,7 +196,18 @@ def test_persists_image_tags_formatting_and_embeddings() -> None:
             ),
         ),
     )
-    conn = _Connection()
+    conn = _Connection(
+        (
+            {
+                "content_sha256": hashlib.sha256(b"hello").hexdigest(),
+                "extracted_text": "previous OCR",
+            },
+            {
+                "content_sha256": hashlib.sha256(b"replaced image").hexdigest(),
+                "extracted_text": "removed image OCR",
+            },
+        )
+    )
     embedder = _EmbedMany()
 
     count = _persist(
@@ -211,6 +228,37 @@ def test_persists_image_tags_formatting_and_embeddings() -> None:
     assert sum("post_content_image_region_embedding_value" in query for query, _args in conn.executed) == 2
     assert any("post_content_embedding" in query for query, _args in conn.fetchvals)
     assert sum("post_content_embedding_value" in query for query, _args in conn.executed) == 2 * len(chunks)
+
+
+def test_same_image_retry_cannot_replace_existing_ocr_with_empty_text() -> None:
+    body = '<img src="data:image/png;base64,aGVsbG8=">'
+    image_index = chunk_by_dom(body)[0].index
+    normalized = NormalizedPostContent(
+        text="[image: updated caption]",
+        image_results=(
+            ImageContentResult(
+                image_index,
+                "image/png",
+                "described",
+                SimpleNamespace(caption="updated caption", extracted_text="", tags=()),
+            ),
+        ),
+    )
+    conn = _Connection(
+        (
+            {
+                "content_sha256": hashlib.sha256(b"hello").hexdigest(),
+                "description_status_code": "described",
+                "extracted_text": "prior OCR",
+                "caption": "prior caption",
+            },
+        )
+    )
+
+    with pytest.raises(RuntimeError, match="refusing to replace non-empty image OCR"):
+        _persist(conn, "post-4", body, normalized_result=normalized)
+
+    assert not any("delete from post_content_unit" in query for query, _args in conn.executed)
 
 
 def test_legacy_embed_and_malformed_vectors_never_write_vectors() -> None:

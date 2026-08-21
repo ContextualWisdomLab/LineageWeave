@@ -279,6 +279,43 @@ describe("PostBody", () => {
     expect(screen.getAllByRole("row")).toHaveLength(2);
   });
 
+  it("renders table-shaped image OCR as accessible evidence", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,QQ==" />'}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "completed",
+            extracted_text: "| Project | Status |\n| --- | --- |\n| Alpha | Ready |",
+            caption: "A synthetic project status table.",
+            tags: ["table"],
+            regions: [
+              {
+                region_index: 0,
+                x_ratio: 0,
+                y_ratio: 0,
+                width_ratio: 1,
+                height_ratio: 1,
+                status_code: "completed",
+                extracted_text: "| Owner | Action |\n| --- | --- |\n| Team A | Review |",
+                caption: "The table region assigns an action to a team.",
+                tags: ["assignment"],
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getAllByRole("table")).toHaveLength(2);
+    expect(screen.getByRole("columnheader", { name: "Project" })).toBeInTheDocument();
+    expect(screen.getByText("Ready")).toBeInTheDocument();
+    expect(screen.getByText("The table region assigns an action to a team.")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Owner" })).toBeInTheDocument();
+  });
+
   it("marks persisted footnotes as footnote evidence", () => {
     render(
       <PostBody
@@ -369,6 +406,28 @@ describe("PostBody", () => {
     expect(screen.getByRole("table")).toBeInTheDocument();
     expect(screen.getAllByRole("row")).toHaveLength(2);
     expect(screen.getByText("Panel")).toBeInTheDocument();
+  });
+
+  it("keeps escaped pipe characters inside image OCR table cells", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "| Item | State |\n| --- | --- |\n| Review \\| approve | Ready |",
+            caption: "A table image with an escaped separator.",
+            tags: [],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getByText("Review | approve")).toBeInTheDocument();
+    expect(screen.getByText("Ready")).toBeInTheDocument();
   });
 
   it("keeps source-image placement while showing persisted OCR and caption evidence", () => {
