@@ -290,6 +290,9 @@ def test_visible_graph_attaches_ranked_channel_evidence() -> None:
     assert "llm" not in {item["signal_code"] for item in evidence}
     assert graph["reconstruction"]["reconstruction_version"] == "lineageweave.reconstruct/2.14.0"
     assert graph["reconstruction"]["active_weights"][0]["signal_code"] == "temporal"
+    signal_query = next(query for query in connection.queries if "post_lineage_edge_signal" in query)
+    assert "parent_post_id = any($1::uuid[])" in signal_query
+    assert "child_post_id = any($2::uuid[])" in signal_query
     weight_query = next(query for query in connection.queries if "event_lineage_rebuild_channel" in query)
     assert "join common_lookup_value as lookup" in weight_query
     assert "order by lookup.display_order, channel.signal_code" in weight_query

@@ -166,10 +166,6 @@ async def visible_lineage_graph(
     edge_rows = await conn.fetch(
         "select parent_post_id, child_post_id, fused_score from post_lineage_edge"
     )
-    signal_rows = await conn.fetch(
-        "select parent_post_id, child_post_id, signal_code, signal_score, "
-        "signal_weight, signal_contribution from post_lineage_edge_signal"
-    )
     rebuild_rows = await conn.fetch(
         "select reconstruction_version, generated_at, min_fused_score, candidate_window "
         "from event_lineage_rebuild"
@@ -225,6 +221,15 @@ async def visible_lineage_graph(
         for row in edge_rows
         if str(row["parent_post_id"]) in visible_ids and str(row["child_post_id"]) in visible_ids
     ]
+    visible_id_list = sorted(visible_ids)
+    signal_rows = await conn.fetch(
+        "select parent_post_id, child_post_id, signal_code, signal_score, "
+        "signal_weight, signal_contribution from post_lineage_edge_signal "
+        "where parent_post_id = any($1::uuid[]) "
+        "and child_post_id = any($2::uuid[])",
+        visible_id_list,
+        visible_id_list,
+    )
     children_of: dict[str, list[str]] = {}
     for row in visible_edges:
         children_of.setdefault(str(row["parent_post_id"]), []).append(str(row["child_post_id"]))
