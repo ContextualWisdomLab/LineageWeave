@@ -110,6 +110,7 @@ from backend.app.post_content_queue import (
     fetch_post_summary_source,
     post_content_api_status,
     post_content_is_complete,
+    post_content_summary_status_message,
     post_content_summary_is_ready,
     post_body_has_images,
     publish_post_content_event,
@@ -2814,9 +2815,15 @@ async def read_post_summary(
                 )
                 queue_event = None
             if summary_waiting_for_images:
+                image_job_status = await conn.fetchval(
+                    "select status_code from post_content_ingestion_job where post_id = $1",
+                    post_id,
+                )
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post summary is unavailable: image evidence is still being processed",
+                    post_content_summary_status_message(
+                        str(image_job_status) if image_job_status is not None else None
+                    ),
                 )
         with use_llm_metadata(post_metadata):
             client = _post_summary_client()
