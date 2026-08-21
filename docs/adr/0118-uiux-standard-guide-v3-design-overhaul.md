@@ -1,4 +1,4 @@
-# ADR 0117: UI·UX Standard Guide Ver.3.0 Design Overhaul
+# ADR 0118: UI·UX Standard Guide Ver.3.0 Design Overhaul
 
 **Status:** Accepted
 **Date:** 2026-08-21
