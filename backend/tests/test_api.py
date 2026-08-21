@@ -2195,6 +2195,7 @@ def test_other_corp_private_voc_evidence_is_forbidden(client, demo_analyst_token
 
 
 def test_related_keymen_use_rwr_and_hide_invisible_posts(client, demo_analyst_token, seeded_db) -> None:
+    """Expose buyer-facing labels while excluding invisible related posts."""
     response = client.get(
         f"/api/keymen/{seeded_db['our_person_id']}/related",
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
@@ -2214,6 +2215,13 @@ def test_related_keymen_use_rwr_and_hide_invisible_posts(client, demo_analyst_to
     assert counterpart["ontology_iri"].endswith("#Person")
     assert counterpart["person_side_code"] == "counterparty"
     assert counterpart["person_side_label"] == "Counterparty"
+    assert "affiliation_organization_name" not in counterpart
+    assert counterpart["affiliation_ambiguous"] is True
+    corp_nodes = [
+        node for node in body["related"] if node["node_type_code"] == "node_corporate_entity"
+    ]
+    assert corp_nodes
+    assert all(node.get("entity_level_label") for node in corp_nodes)
     own_post = by_id[seeded_db["own_private_post_id"]]
     assert own_post["ontology_label"] == "Post"
 
@@ -2311,8 +2319,10 @@ def test_related_keymen_role_history_is_empty_without_any_role_classification(
 def test_related_corporate_entity_uses_rwr_and_hides_invisible_posts(
     client, demo_analyst_token, seeded_db
 ) -> None:
-    """GET /api/corporate-entities/{id}/related must walk from the org
-    the same way Keyman related walks from a person.
+    """Verify the org-related endpoint walks like Keyman-related lookup.
+
+    The response includes person-side labels while excluding private and
+    hidden related posts.
     """
     response = client.get(
         f"/api/corporate-entities/{seeded_db['own_corp_id']}/related",
@@ -2326,6 +2336,8 @@ def test_related_corporate_entity_uses_rwr_and_hides_invisible_posts(
     our_person = next(node for node in body["related"] if node["node_id"] == seeded_db["our_person_id"])
     assert our_person["person_side_code"] == "our_side"
     assert our_person["person_side_label"] == "Our side"
+    assert our_person["affiliation_organization_name"] == "Test Corp"
+    assert "affiliation_ambiguous" not in our_person
     assert seeded_db["other_private_post_id"] not in related_ids
     assert seeded_db["hidden_person_id"] not in related_ids
 
@@ -3180,6 +3192,7 @@ def test_verify_relations_persists_real_search_outcomes(client, demo_analyst_tok
     POST /api/posts/{id}/verify-relations.
     """
     os.environ["SEARXNG_BASE_URL"] = _SEARXNG_BASE_URL
+    fake_org_name = f"Zzqxvthorp Fictitious Nonexistent Org {uuid.uuid4().hex}"
 
     admin_conn = psycopg2.connect(seeded_db["dsn"])
     admin_conn.autocommit = True
@@ -3199,8 +3212,8 @@ def test_verify_relations_persists_real_search_outcomes(client, demo_analyst_tok
             cur.execute(
                 "insert into post_counterparty_entity (post_id, counterparty_entity_name, relationship_type_code) "
                 "values (%s, 'Wikipedia', 'rel_voc'), "
-                "(%s, 'Zzqxvthorp Fictitious Nonexistent Org 8f3e1c', 'rel_voco')",
-                (seeded_db["public_post_id"], seeded_db["public_post_id"]),
+                "(%s, %s, 'rel_voco')",
+                (seeded_db["public_post_id"], seeded_db["public_post_id"], fake_org_name),
             )
     finally:
         admin_conn.close()
@@ -3220,7 +3233,7 @@ def test_verify_relations_persists_real_search_outcomes(client, demo_analyst_tok
         )
     assert real_org["verification_evidence_url"]
 
-    fake_org = verified["Zzqxvthorp Fictitious Nonexistent Org 8f3e1c"]
+    fake_org = verified[fake_org_name]
     assert fake_org["verification_status_code"] == "verify_uncorroborated"
     assert fake_org["verification_evidence_url"] is None
 
@@ -3230,7 +3243,7 @@ def test_verify_relations_persists_real_search_outcomes(client, demo_analyst_tok
     )
     persisted = {c["counterparty_entity_name"]: c for c in counterparties_response.json()["counterparties"]}
     assert persisted["Wikipedia"]["verification_status_code"] == "verify_corroborated"
-    assert persisted["Zzqxvthorp Fictitious Nonexistent Org 8f3e1c"]["verification_status_code"] == "verify_uncorroborated"
+    assert persisted[fake_org_name]["verification_status_code"] == "verify_uncorroborated"
 
     # Already-checked rows are left alone on a second call, not re-searched.
     second_response = client.post(

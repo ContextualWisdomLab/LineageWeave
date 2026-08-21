@@ -147,6 +147,11 @@ def corroborating_evidence_url(
 ) -> str | None:
     """Return a safe result URL when all distinctive name tokens are present.
 
+    Search engines echo the query in result titles, so "any hit" is not
+    corroboration. A result counts only when every distinctive name token
+    appears in the host or snippet, and the host is not itself a search
+    page. This prevents a generic word such as ``fictitious`` from
+    corroborating an unrelated page. Missing or empty URLs are not evidence.
     Search engines echo query text in titles, so only the result host and
     snippet are considered. A result must contain every distinctive token;
     missing, search-host, non-HTTP, and title-only URLs are not evidence.

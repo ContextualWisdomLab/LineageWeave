@@ -232,6 +232,21 @@ def test_org_token_in_result_host_is_corroboration() -> None:
     )
 
 
+def test_generic_token_in_result_is_not_enough_for_a_compound_name() -> None:
+    """A result mentioning only common qualifiers is not identity evidence."""
+    assert (
+        corroborating_evidence_url(
+            "Zzqxvthorp Fictitious Nonexistent Org",
+            {
+                "url": "https://example.test/search-result",
+                "title": "Fictitious projects",
+                "content": "A list of fictitious and nonexistent examples.",
+            },
+        )
+        is None
+    )
+
+
 def test_short_name_token_inside_another_word_is_not_corroboration() -> None:
     """A search snippet must contain the organization token as a word."""
     assert (

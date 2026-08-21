@@ -1,4 +1,9 @@
-"""Shared source-post eligibility SQL for reader-facing evidence reads."""
+"""Shared source-post eligibility SQL for buyer evidence reads.
+
+Keep this module importable as a first-class backend dependency: the knowledge
+graph and every post-scoped read use the same predicate so a graph projection
+cannot bypass the buyer visibility boundary.
+"""
 
 SOURCE_CONTEXT_COLUMNS = (
     "source_author_code",
