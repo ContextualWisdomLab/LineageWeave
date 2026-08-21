@@ -23,4 +23,20 @@ describe("LineageDag CSS contracts", () => {
     expect(appCss).not.toContain('content: "Graph relation";');
     expect(appCss).not.toContain('content: "Evidence (fused_score)";');
   });
+
+  it("keeps the buyer board controls as one stacked layout contract", () => {
+    for (const selector of [
+      "board-header",
+      "board-result-count",
+      "board-controls",
+      "board-voc-type-filter",
+      "post-body-excerpt",
+      "board-empty",
+      "board-pagination",
+    ]) {
+      expect(appCss.match(new RegExp(`(^|\\n)\\.${selector}\\s*\\{`, "g"))).toHaveLength(1);
+    }
+    expect(appCss).toContain(".board-search-row {");
+    expect(appCss).not.toContain("grid-template-columns: minmax(12rem, 2fr)");
+  });
 });

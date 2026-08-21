@@ -277,6 +277,20 @@ def test_llm_policy_is_explicit_and_never_fabricates_absent_scores(
     assert ("llm" in channels) is llm_present
 
 
+def test_available_llm_is_reported_not_invoked_when_no_pair_requires_inference() -> None:
+    """An admitted client is not reported as completed when no pair was scored."""
+
+    request = _request(
+        [_record("email:001", "Phoenix delivery status", "2026-08-20T09:00:00Z")],
+        allow_llm=True,
+    )
+
+    result = analyze_external_lineage(request, llm=AvailableLlm())
+
+    assert result.llm_status_code == "not_invoked"
+    assert result.edges == ()
+
+
 def test_project_projection_is_proposed_and_uses_only_included_evidence() -> None:
     request = _request(
         [
