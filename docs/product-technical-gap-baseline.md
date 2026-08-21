@@ -1,12 +1,12 @@
 # Product & Technical Gap Baseline
 
-**Snapshot:** 2026-08-21 05:46 (Asia/Seoul)
+**Snapshot:** 2026-08-21 11:57 (Asia/Seoul)
 **Protected-main baseline:** `origin/main`, product version `2.12.5`
-**Audited PR head:** #258 at `b83be708a9dc705df7485e1b18e779439bfb7b71` (current exact branch head; protected-main runtime evidence remains pending)
-**Active PR update:** Hosted Full test, frontend, PROV-O, CodeQL, SAST, supply-chain,
-and security Checks are successful on the current #258 head; Devin Review is
-failed and the OpenCode coverage check remains pending. Formal approval and
-protected-main acceptance are still required.
+**Audited PR head:** #258 at `99244658bc7edb7cf0c71cce2e3dcc59ff891b2b` (current exact branch head; protected-main runtime evidence remains pending)
+**Active PR update:** At this snapshot, PR #258 has one failed check (`Devin Review`),
+fourteen queued checks, seven skipped scheduler jobs, and successful CodeRabbit;
+no formal approval or protected-main acceptance is present. The current queue
+inventory below is a point-in-time gate record, not a merge or release claim.
 **Purpose:** connect the normative ADRs and research evidence to product
 requirements, technical contracts, implementation evidence, and active PRs.
 An active PR is proposed work, not shipped behavior.
@@ -593,6 +593,138 @@ correctness, authorization coverage, or release readiness. Re-run the same
 aggregate projection against the authorized deployment before treating it as
 buyer-facing evidence.
 
+## Current continuation checkpoint: 2026-08-21 08:39 KST
+
+This section supersedes the older PR snapshot above for the PRs explicitly
+re-audited in the current continuation loop. GitHub state is authoritative;
+local tests below are branch-local evidence and are not merge evidence.
+
+| PR | Exact head | Base | Current gate | Current evidence |
+|---|---|---|---|---|
+| #270 authenticated MCP Global Ask | `1881a3cc402d99d8494bd9b936be9099b43ca3e7` | `feat/event-lineage-node-keeps-gnb-focus-v2170` | BLOCKED; review decision empty | Local MCP/auth/Global Ask regression set: 45 passed; import-order correction pushed |
+| #325 product/technical baseline | `d80d691cd8ed780a8fb0072199304f595b1ea75e` | `fix/validate-partial-image-regions` | BLOCKED; REVIEW_REQUIRED | This document, ADR 0102, and chunking changes are proposed, not on protected main |
+| #328 member locale bootstrap | `d0e159872147c7d7bd8bbf042c5552041eb44a4a` | `fix/oidc-deep-link-locale` | BLOCKED; REVIEW_REQUIRED | Local Frontend locale/deep-link set: 82 passed; TypeScript and lint passed |
+| #329 buyer-safe image evidence | `b5b08071ab869854da696566343e97feb04add20` | `fix/validate-partial-image-regions` | BLOCKED; REVIEW_REQUIRED | Local image/normalization/persistence set: 54 backend tests and 13 PostBody tests passed |
+| #330 lineage DAG interaction coverage | `e14dd956ad2493c42a16076a2adc095e0df5733b` | `codex/normalize-source-indent-semantics` | BLOCKED; REVIEW_REQUIRED | Frontend regression-only PR; hosted gate and independent review remain required |
+| #331 OIDC post deep-link regression | `72e842bad482b73974d8ab4f09d2385582c300d6` | `fix/member-locale-bootstrap-race` | BLOCKED; REVIEW_REQUIRED | Deep-link stack remains proposed and must be checked at its exact head |
+| #333 Keyverse-authenticated MCP API keys | `236b83b5af9632f83457dcc822b792dc239bcc7a` | `feat/analysis-run-name-evidence-lineage` | BLOCKED; review decision empty | Remote agent added malformed-revoke coverage; hosted Checks restarted |
+| #334 MCP API-key authentication | `89f19eb1378ac785b80ea344d6f4e6e2bbe4a312` | `agent/authenticated-mcp-global-ask` | BLOCKED; REVIEW_REQUIRED | Depends on #333 migration 0051; local full backend suite: 825 passed, 16 skipped |
+
+### Current closure order
+
+1. Revalidate each exact head after any remote-agent push; never use the older
+   hash as merge evidence.
+2. Merge #258 and its dependent buyer-surface stack only through the repository's
+   required independent review and terminal Checks. Do not treat local evidence,
+   a skipped review, or a queued workflow as approval.
+3. Deploy #333's normalized `mcp_api_key` resource before enabling the API-key
+   authentication path in #334. OIDC remains the fallback identity path when
+   the key table is not installed.
+4. After the relevant stack reaches protected main, run the real browser journey:
+   login screen first, locale preference restoration, GNB navigation, source
+   post popup, semantic image evidence, and MCP authorization. Record only
+   aggregate non-identifying evidence here.
+
+### Newly explicit product gaps
+
+- The MCP key lifecycle and MCP bearer verifier are separate PRs and are not yet
+  jointly deployable on protected main.
+- The locale and OIDC deep-link fixes are separate dependent PRs; local tests do
+  not prove that a logged-in browser session preserves `?post=` on the deployed
+  stack.
+- Buyer-safe image captions are covered locally, but region-level visual evidence
+  and buyer rendering still require post-merge browser evidence.
+- The older aggregate runtime table remains historical. It must not be cited as
+  proof that the current PR heads or protected main contain these changes.
+
+### Queue roots carried forward from the prior checkpoint
+
+The current root entries from the preceding queue audit were revalidated before
+this update and remain proposed, not shipped:
+
+| PR | Exact head | Current gate |
+|---|---|---|
+| #258 buyer evidence board and ontology surface | `41036e2cd8095c5e7b9c333fd72c542cb676ef5e` | BLOCKED; REVIEW_REQUIRED |
+| #309 persisted buyer image-region overlays | `d8a938cd6e7e72b8bc0a7b11149afcfcc7820270` | BLOCKED; REVIEW_REQUIRED |
+
+This continuation checkpoint supersedes the earlier #332 documentation-only
+snapshot by retaining its root-head evidence and adding the later MCP, locale,
+image-caption, and DAG gate state above.
+
+## Current exact-head continuation: 2026-08-21 09:09 KST
+
+The review/fix loop re-fetched the independent roots and the status-clock
+dependent stack after concurrent branch updates. The following are the only
+current hashes used as merge evidence in this loop:
+
+| PR | Exact head | Base | Local evidence | Hosted gate |
+|---|---|---|---|---|
+| #258 buyer evidence board and ontology surface | `41036e2cd8095c5e7b9c333fd72c542cb676ef5e` | `main@2feba74b75863810869cde680b19032a93fba413` | Python `718 passed, 16 skipped`; cleanup branch coverage `100%`; focused suite `18 passed` | required workflows queued; no formal approval; Devin review failure remains unresolved as a review gate |
+| #323 TEPP request and search evidence boundaries | `3b57e1cad490b47496d0c25553d28a0c1e3e2ca3` | `main@2feba74b75863810869cde680b19032a93fba413` | Python `570 passed, 16 skipped, 4 warnings`; boolean contract-version regression added | Tests, Semgrep, and Security Scan queued; Devin is a comment-only review, not formal approval |
+| #327 Searxng corroboration token precision | `e6ef7cc53bcfef1e3dd61705b9ab243251860730` | `main@2feba74b75863810869cde680b19032a93fba413` | Python `573 passed, 16 skipped`; focused relation suite `25 passed`; isolated line/branch coverage `100%` | required workflows queued; comment-only reviews; no formal approval |
+| #326 Python-ahead status write clock | `f9c53e7c18a696260d60bfcdd7c0af5e07c1dda6` | `#327@e6ef7cc53bcfef1e3dd61705b9ab243251860730` | stacked Python `578 passed, 16 skipped, 4 warnings`; clock boundary tests `5 passed`; additive `0030` fixture path exercised | required workflows queued after the new exact head; no formal approval |
+
+Claude's #323 review found no confirmed correctness, security, data-loss, or
+authorization defect. The proposed SHA-format concern was checked against
+TEPP's current published request schema and dismissed because `snapshot_id`
+is specified as non-blank text, not as a SHA. The confirmed boolean type-test
+gap was closed in #323. Claude's #326 review found no high-severity defect;
+the valid CodeRabbit upgrade-path finding was closed by running migration
+`0030` in the PostgreSQL fixture and testing 59 seconds, exactly one minute,
+and two minutes.
+
+These results are branch-local observations and hosted queue/review state;
+they are not protected-main or release evidence. The next merge candidate is
+#258 only after its exact current head has independent formal approval,
+resolved review threads, and terminal required Checks. #327 is an independent
+root that must be merged before #326; #323 can proceed independently. A queued
+workflow is active work, not a blocker or a pass.
+
+## Restack continuation: 2026-08-21 09:23 KST
+
+PR #258 advanced normally after the ADR 0083 pin correction. Its current head
+is now `4bb234476ca26aacdd645f3c495a161a2c441790`. The semantic-unit child
+PR #302 was merged normally with that current base and now has exact head
+`8e1bd783fa2cb3e565983fc3d7b9092d394ff814`; its local validation is Python
+`740 passed, 16 skipped, 4 warnings`, frontend `137 passed`, lint/build/
+Storybook passed, and chunking coverage remains 100%.
+
+The #302 restack carries #258's reviewed immutable orchestrator pin and ADR
+regression check. Hosted Checks and independent formal approval remain
+required for both exact heads; no merge or protected-main claim is made.
+
+## Current queue refresh: 2026-08-21 09:21 KST
+
+The live queue now contains 45 open pull requests. The following branches were
+opened or advanced after the preceding checkpoint and therefore must be
+included in the next exact-head audit; this document does not treat any of
+them as merge-ready:
+
+| PR | Exact head | Base | Gate at refresh |
+|---|---|---|---|
+| #335 current exact-head gap checkpoint | `858f7e4913824b9899710bc5b1e51bc49b43ce52` | `docs/current-gap-audit@d80d691cd8ed780a8fb0072199304f595b1ea75e` | BLOCKED; REVIEW_REQUIRED; required Checks queued |
+| #337 Naruon calendar event projection contract | `974cf8b4a5618a43b17584ab762af6630ee4acd0` | `feat/calendar-open-focus-event-lineage-v2140@221cc94db3780e82114ef553729c7a00da554532` | BLOCKED; REVIEW_REQUIRED; required Checks queued |
+| #339 TEPP canonical Project history recovery | `26b83f06899a2ad416be746d9a6fb13042bb7659` | `feat/project-history-timeline-v2184-r3@cfc125cb65f26ed7e834976dbff12b6b9790b59c` | BLOCKED; REVIEW_REQUIRED; required Checks queued |
+
+The queue count and gate fields are a point-in-time GitHub observation. Before
+reviewing or merging any row, fetch its branch again, compare the exact head
+with the review and all required Checks, and confirm the full dependency stack.
+
+## Security-boundary continuation: 2026-08-21 09:40 KST
+
+PR #333's MCP key lifecycle was re-reviewed with Claude and its confirmed
+medium metadata leak was fixed. Exact current head is
+`065d14f5022f052d8b096f4388a62cb227d12d9e`, based on #258's current
+`4bb234476ca26aacdd645f3c495a161a2c441790`. The key table and application
+now persist/display only the constant `lw_mcp_` family prefix, while the
+random secret remains one-time creation output; the buyer's date-only expiry
+is converted to the local calendar day's end.
+
+Post-fix validation is Python `725 passed, 16 skipped, 4 warnings`, frontend
+`132 passed`, MCP panel `3 passed`, lint/build/Storybook passed, and diff check
+passed. These are branch-local results. #333 remains gated until exact-head
+hosted Checks and independent formal approval are terminal-successful; #334
+must not enable API-key authentication before migration `0051` is deployed.
 ## Buyer-reported gap mapping: 2026-08-21
 
 The following requirements are mapped from an authorized buyer report. The
@@ -647,6 +779,88 @@ push, or synthetic runtime success is acceptable.
 These four rows are exact-head observations from the current review loop. They
 do not establish that any behavior is present on protected `main`; re-fetch all
 heads and dependency bases before the next review or merge decision.
+## Live exact-head inventory: 2026-08-21 11:57 KST
+
+GitHub reported 48 open pull requests and 13 open issues at this snapshot. The
+following inventory records every open PR head and its advertised base SHA so
+the next loop can re-fetch the exact branch before review, repair, Checks, or a
+protected merge. A blank or non-terminal GitHub mergeability value is not
+treated as merge-ready. The `#335` base branch also requires special care:
+GitHub's pull-request payload still advertised `c0b8f533`, while the fetched
+`docs/current-gap-audit` branch resolved to `64ce5fba`; the branch ref, not a
+stale payload, is the source for the next restack.
+
+| PR | Head branch @ exact head | Advertised base branch @ SHA |
+|---:|---|---|
+| #346 | `feat/uiux-standard-guide-v3` @ `73d808113d2a1980dc20bb040c661c9a1cf74324` | `main` @ `2feba74b75863810869cde680b19032a93fba413` |
+| #345 | `fix/otel-session-telemetry` @ `228ac9e6c54a0f7dc917b2ed392ee98feb02d466` | `fix/buyer-safe-image-captions` @ `9b7ef93a4708993c7d5af28c67c28b227f59437a` |
+| #344 | `feat/math-semantic-units` @ `efcf16920d33b72242db664273a7b16dbd3218fa` | `feat/image-evidence-markdown-semantics` @ `d8e8ede425d6b7373b678776e5ccaeef83f7cec5` |
+| #343 | `feat/external-lineage-integration-contract` @ `cbc65a903cf46e863ea66bb601a97b9051e408dc` | `main` @ `2feba74b75863810869cde680b19032a93fba413` |
+| #342 | `feat/project-history-ask-surfaces-v2200` @ `bd9e965e3943ea19a115d53c0a8f39a0f70968d6` | `feat/tepp-project-history-recovery-v2210` @ `43262dc76622928fdf90b922653949b4ac7c6631` |
+| #340 | `feat/lineage-provider-contract-v1` @ `1e792a761f96e2184394a15f112cc947c7661c41` | `main` @ `2feba74b75863810869cde680b19032a93fba413` |
+| #339 | `feat/tepp-project-history-recovery-v2210` @ `43262dc76622928fdf90b922653949b4ac7c6631` | `feat/project-history-timeline-v2184-r3` @ `cfc125cb65f26ed7e834976dbff12b6b9790b59c` |
+| #337 | `feat/naruon-calendar-projection-contract` @ `44517b30d76dc2ac66c496b9b3cf6436b7955cd0` | `feat/calendar-open-focus-event-lineage-v2140` @ `221cc94db3780e82114ef553729c7a00da554532` |
+| #335 | `docs/current-gap-audit-current-checkpoint` @ `c43edff228878361a8d09b793aec4e7c85537d93` | `docs/current-gap-audit` @ `c0b8f5330ff3940b7a8907756a8ca4e5549dfde9` |
+| #331 | `feat/locale-deep-link-regression` @ `72e842bad482b73974d8ab4f09d2385582c300d6` | `fix/member-locale-bootstrap-race` @ `d0e159872147c7d7bd8bbf042c5552041eb44a4a` |
+| #330 | `feat/lineage-dag-regression` @ `f9df5ead44a2f2b1fd3b578bfd20f2fad15bb8aa` | `codex/normalize-source-indent-semantics` @ `e3f00eaae9255f5f56eaa5d93b6fa2ea6ea3e8c5` |
+| #329 | `fix/buyer-safe-image-captions` @ `9b7ef93a4708993c7d5af28c67c28b227f59437a` | `fix/validate-partial-image-regions` @ `53c2b2553d19be6a0573294a2a9a9e693cdc4d2f` |
+| #328 | `fix/member-locale-bootstrap-race` @ `d0e159872147c7d7bd8bbf042c5552041eb44a4a` | `fix/oidc-deep-link-locale` @ `3a32312b9cf9e368c58d7df5efb0c699dfe73152` |
+| #327 | `fix/searxng-corroboration-token-precision` @ `e6ef7cc53bcfef1e3dd61705b9ab243251860730` | `main` @ `2feba74b75863810869cde680b19032a93fba413` |
+| #326 | `fix/analysis-run-status-write-clock-v2126` @ `f9c53e7c18a696260d60bfcdd7c0af5e07c1dda6` | `fix/searxng-corroboration-token-precision` @ `e6ef7cc53bcfef1e3dd61705b9ab243251860730` |
+| #325 | `docs/current-gap-audit` @ `64ce5fbac4ed9c6233ecaab475d6702080a8e7e2` | `fix/validate-partial-image-regions` @ `53c2b2553d19be6a0573294a2a9a9e693cdc4d2f` |
+| #324 | `fix/validate-partial-image-regions` @ `53c2b2553d19be6a0573294a2a9a9e693cdc4d2f` | `codex/preserve-partial-image-regions` @ `cf7331ae25544f660ecad11a4fc965f9cef107f1` |
+| #323 | `fix/tepp-request-contract-validation` @ `eb1fc2a473ea2401a7cd259f08a22c6e257438ef` | `main` @ `2feba74b75863810869cde680b19032a93fba413` |
+| #322 | `feat/orchestrator-owned-embedding-consumer` @ `1c46edad6832e766f3a6f54d45a88b1a173dda78` | `fix/stale-summary-buyer-continuity` @ `17ff91195c921f3967bd22fb15dd58764519f45a` |
+| #320 | `codex/preserve-partial-image-regions` @ `cf7331ae25544f660ecad11a4fc965f9cef107f1` | `codex/normalize-source-indent-semantics` @ `e3f00eaae9255f5f56eaa5d93b6fa2ea6ea3e8c5` |
+| #319 | `codex/normalize-source-indent-semantics` @ `e3f00eaae9255f5f56eaa5d93b6fa2ea6ea3e8c5` | `codex/post-structure-case-fixes` @ `1faed2f680fa6d7bbe946a1a884522757d1639d6` |
+| #318 | `feat/verified-organization-label-evidence` @ `8ad157b43d0d33515e719860d32c7f14aabe5623` | `feat/multilingual-organization-label-search` @ `78434ce251cedd3d1dceb168603d9f2bc06f3438` |
+| #317 | `codex/post-structure-case-fixes` @ `1faed2f680fa6d7bbe946a1a884522757d1639d6` | `codex/fix-mixed-body-indentation-311` @ `e38df6256f03db06a9fe8dd07a8ab212540ea4c9` |
+| #316 | `feat/multilingual-organization-label-search` @ `78434ce251cedd3d1dceb168603d9f2bc06f3438` | `feat/global-ask-public-claim-verification-v2200` @ `41ad3b758618354457ff11641b52d1def290d1d1` |
+| #314 | `codex/fix-mixed-body-indentation-311` @ `254c2b131740cbdf94c4ce89707d5298553fcfbd` | `fix/stale-summary-buyer-continuity` @ `17ff91195c921f3967bd22fb15dd58764519f45a` |
+| #311 | `fix/stale-summary-buyer-continuity` @ `17ff91195c921f3967bd22fb15dd58764519f45a` | `fix/project-bound-summary-actions` @ `46ca53333963a725e9d38eef020800bba6ebb1ec` |
+| #309 | `feat/buyer-image-region-overlays` @ `75047741371c969d4e2114a34ddf9385d8412e96` | `fix/buyer-image-evidence` @ `fbecd77358c95ebaea02b4a87e32b795c70d5e15` |
+| #308 | `fix/project-bound-summary-actions` @ `90b967d1ef9e4bad362b87c4c4ec3973f2a706fd` | `fix/buyer-image-evidence` @ `fbecd77358c95ebaea02b4a87e32b795c70d5e15` |
+| #307 | `fix/buyer-image-evidence` @ `fbecd77358c95ebaea02b4a87e32b795c70d5e15` | `fix/oidc-deep-link-locale` @ `4e40e267f0e255f55e923ace97ece1e9963e8640` |
+| #306 | `fix/oidc-deep-link-locale` @ `dab3994ee49f299e86c4543a8c33845fe8d92eb8` | `feat/analysis-run-name-evidence-lineage` @ `4bb234476ca26aacdd645f3c495a161a2c441790` |
+| #303 | `feat/image-evidence-markdown-semantics` @ `d8e8ede425d6b7373b678776e5ccaeef83f7cec5` | `feat/buyer-evidence-gap-structure` @ `1a317f24f3e5905a208fdbaf273acba0d458b272` |
+| #302 | `feat/buyer-evidence-gap-structure` @ `1a317f24f3e5905a208fdbaf273acba0d458b272` | `feat/analysis-run-name-evidence-lineage` @ `99244658bc7edb7cf0c71cce2e3dcc59ff891b2b` |
+| #301 | `feat/global-ask-knowledge-cutoff-v2230` @ `d51093c1cacd2250c9fa758877ee8fb6e6688ccd` | `feat/event-lineage-node-keeps-gnb-focus-v2170` @ `2ff882642565bae3f5443c40dc4d0f9328a2653a` |
+| #298 | `feat/bounded-async-lineage-llm-rebuild-v2220` @ `5c5544ed6ffbc2d6c76d62add794dc4d585ebd05` | `feat/global-ask-public-claim-verification-v2200` @ `139cd24cbdc5282230ce0619617d113914efa7d6` |
+| #287 | `feat/event-lineage-channel-evidence-v2210` @ `c01dedf654ef33beb9a2117a5b02b064c85ff89d` | `feat/global-ask-public-claim-verification-v2200` @ `139cd24cbdc5282230ce0619617d113914efa7d6` |
+| #286 | `feat/mcp-browser-admission-v2131` @ `8be7fbb763eb256367828461b10ed39d716783e2` | `agent/authenticated-mcp-global-ask` @ `e1c31db3387ec051e6327332d373293242b9e5eb` |
+| #285 | `feat/project-history-timeline-v2184-r3` @ `68ca6cb63ef8915418eb62fb356cbab010d9e751` | `feat/event-lineage-node-keeps-gnb-focus-v2170` @ `2ff882642565bae3f5443c40dc4d0f9328a2653a` |
+| #276 | `feat/global-ask-public-claim-verification-v2200` @ `139cd24cbdc5282230ce0619617d113914efa7d6` | `feat/gnb-event-lineage-focus-keyman-v2190` @ `259b3b0d073eaa4c050ee5459a95ebb815a43f4f` |
+| #275 | `feat/evidence-bound-event-intelligence-v2183` @ `68974f5c71d0499fac1a52595880e803199a306b` | `agent/authenticated-mcp-global-ask` @ `e1c31db3387ec051e6327332d373293242b9e5eb` |
+| #270 | `agent/authenticated-mcp-global-ask` @ `e1c31db3387ec051e6327332d373293242b9e5eb` | `feat/event-lineage-node-keeps-gnb-focus-v2170` @ `bcdc4594abe467627c71378adeceb61624d02d67` |
+| #266 | `feat/gnb-event-lineage-focus-keyman-v2190` @ `259b3b0d073eaa4c050ee5459a95ebb815a43f4f` | `feat/event-lineage-node-keeps-gnb-focus-v2170` @ `bcdc4594abe467627c71378adeceb61624d02d67` |
+| #264 | `feat/event-lineage-node-keeps-gnb-focus-v2170` @ `bcdc4594abe467627c71378adeceb61624d02d67` | `feat/ask-agent-open-focus-event-lineage-v2160` @ `457e7e121adb79424f382a9868a84f6fb6e402f2` |
+| #263 | `feat/ask-agent-open-focus-event-lineage-v2160` @ `457e7e121adb79424f382a9868a84f6fb6e402f2` | `feat/customer-master-open-focus-event-lineage-v2150` @ `cc0a8907b74bfa2d9757e321a91fd06bff39e442` |
+| #262 | `feat/customer-master-open-focus-event-lineage-v2150` @ `cc0a8907b74bfa2d9757e321a91fd06bff39e442` | `feat/calendar-open-focus-event-lineage-v2140` @ `6c4d48dfd9eccae81f4809adf52cad51eb4c394b` |
+| #261 | `feat/calendar-open-focus-event-lineage-v2140` @ `6c4d48dfd9eccae81f4809adf52cad51eb4c394b` | `feat/board-weekly-voc-open-event-lineage-v2130` @ `b7625c3dd3c6dce6f6a933f0479740a3006450e8` |
+| #260 | `feat/board-weekly-voc-open-event-lineage-v2130` @ `b7625c3dd3c6dce6f6a933f0479740a3006450e8` | `feat/analysis-run-name-evidence-lineage` @ `99244658bc7edb7cf0c71cce2e3dcc59ff891b2b` |
+| #258 | `feat/analysis-run-name-evidence-lineage` @ `99244658bc7edb7cf0c71cce2e3dcc59ff891b2b` | `main` @ `2feba74b75863810869cde680b19032a93fba413` |
+| #192 | `feat/related-node-plural-next-action` @ `5b1f6da236fd46a6effffd251aad804d75738c3c` | `feat/analysis-run-name-evidence-lineage` @ `4bb234476ca26aacdd645f3c495a161a2c441790` |
+
+The inventory is refreshed before every merge decision. It intentionally does
+not assert that an open PR is merge-ready; review approval, all required
+terminal Checks, exact dependency heads, and post-merge SHA verification remain
+independent gates.
+
+## Live queue delta: 2026-08-21 12:03 KST
+
+The next read found the same aggregate queue size (48 open PRs and 13 open
+issues), but PR #346 is now closed and a replacement UI stack is open as PR
+#347. The exact current #347 head is
+`dd7156dadf62d5eff79def3aff2108f7d33e7e7d`, based on `main` at
+`2feba74b75863810869cde680b19032a93fba413`; GitHub still reports its
+mergeability as non-terminal. PR #345 remains at
+`228ac9e6c54a0f7dc917b2ed392ee98feb02d466`, #344 at
+`efcf16920d33b72242db664273a7b16dbd3218fa`, #342 at
+`bd9e965e3943ea19a115d53c0a8f39a0f70968d6`, #339 at
+`43262dc76622928fdf90b922653949b4ac7c6631`, and #335 at
+`c43edff228878361a8d09b793aec4e7c85537d93`. These are queue observations;
+none is a protected merge or release claim.
+
 ### Provider-error checkpoint
 
 Provider failures are not buyer evidence. The API and browser boundaries must
