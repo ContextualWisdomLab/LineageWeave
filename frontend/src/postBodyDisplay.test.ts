@@ -61,6 +61,16 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("preserves nested HTML list depth as semantic indentation", () => {
+    expect(
+      splitPostBody("<ol><li>Parent<ol><li>Child</li></ol></li><li>Sibling</li></ol>"),
+    ).toEqual([
+      { kind: "text", text: "Parent" },
+      { kind: "text", text: "Child", indentLevel: 1 },
+      { kind: "text", text: "Sibling" },
+    ]);
+  });
+
   it("labels HTML, Word, and OOXML footnotes in the fallback renderer", () => {
     expect(
       splitPostBody(

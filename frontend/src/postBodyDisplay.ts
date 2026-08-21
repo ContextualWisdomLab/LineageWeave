@@ -143,11 +143,20 @@ function indentMarker(width: number): string {
 
 function stripHtmlTags(text: string): string {
   text = markFootnoteTags(text).replace(/<sup[^>]*>(.*?)<\/sup>/gi, "^$1");
+  let listDepth = 0;
   const withBoundaries = text
     .replace(BREAK_TAG, "\n")
     .replace(BLOCK_TAG, (tag) => {
-      if (/^<\//.test(tag)) return "\n\n";
-      return `\n\n${indentMarker(declaredIndentWidth(tag))}`;
+      const name = tag.match(/^<\/?\s*([a-z0-9:]+)/i)?.[1]?.toLowerCase() ?? "";
+      const closing = /^<\//.test(tag);
+      if (name === "ul" || name === "ol") {
+        if (closing) listDepth = Math.max(0, listDepth - 1);
+        else listDepth += 1;
+        return "\n\n";
+      }
+      if (closing) return "\n\n";
+      const nestedListIndent = name === "li" ? Math.max(0, listDepth - 1) * 4 : 0;
+      return `\n\n${indentMarker(declaredIndentWidth(tag) + nestedListIndent)}`;
     })
     .replace(WORD_INDENT_TAG, (tag) => indentMarker(declaredIndentWidth(tag)));
   const withoutTags = withBoundaries.replace(HTML_TAG, (tag) => {
