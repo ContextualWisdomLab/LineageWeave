@@ -1,0 +1,89 @@
+name: Apply customer master tree hardening
+
+on:
+  push:
+    branches: [feat/analysis-run-name-evidence-lineage]
+    paths:
+      - scripts/apply_customer_master_tree_hardening.py
+      - .github/workflows/apply-customer-master-tree-hardening.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: apply-customer-master-tree-hardening
+  cancel-in-progress: false
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/analysis-run-name-evidence-lineage
+          fetch-depth: 0
+          persist-credentials: true
+
+      - name: Apply bounded source patch
+        run: python scripts/apply_customer_master_tree_hardening.py
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install locked frontend dependencies
+        working-directory: frontend
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+
+      - name: Verify focused customer-tree tests
+        working-directory: frontend
+        run: pnpm exec vitest run src/customerMasterTree.test.ts src/components/CustomerMasterTree.test.tsx
+
+      - name: Verify complete frontend
+        working-directory: frontend
+        run: |
+          pnpm run lint
+          pnpm run test
+          pnpm run build
+          pnpm run build-storybook
+
+      - name: Commit verified implementation
+        id: code_commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/src/App.tsx frontend/src/customerMasterTree.ts frontend/src/customerMasterTree.test.ts \
+            frontend/src/components/CustomerMasterTree.tsx frontend/src/components/CustomerMasterTree.css \
+            frontend/src/components/CustomerMasterTree.test.tsx frontend/src/components/CustomerMasterTree.stories.tsx \
+            docs/storybook-inventory.md docs/product-technical-gap-baseline.md \
+            docs/adr/0124-customer-master-tree-projection.md CHANGELOG.d/customer-master-tree-projection.md
+          git commit -m "fix(frontend): harden customer master hierarchy"
+          echo "sha=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Pin baseline evidence and remove one-shot machinery
+        env:
+          TREE_CODE_SHA: ${{ steps.code_commit.outputs.sha }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          path = Path("docs/product-technical-gap-baseline.md")
+          text = path.read_text(encoding="utf-8")
+          placeholder = "__TREE_CODE_SHA__"
+          count = text.count(placeholder)
+          if count < 1:
+              raise SystemExit("baseline did not contain the code SHA placeholder")
+          path.write_text(text.replace(placeholder, os.environ["TREE_CODE_SHA"]), encoding="utf-8")
+          PY
+          rm scripts/apply_customer_master_tree_hardening.py
+          rm .github/workflows/apply-customer-master-tree-hardening.yml
+          git add docs/product-technical-gap-baseline.md scripts/apply_customer_master_tree_hardening.py \
+            .github/workflows/apply-customer-master-tree-hardening.yml
+          git commit -m "docs: record customer hierarchy verification evidence"
+
+      - name: Push verified commits
+        run: git push origin HEAD:feat/analysis-run-name-evidence-lineage
