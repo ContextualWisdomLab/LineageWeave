@@ -49,7 +49,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T15:11:36Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T15:42:24Z` from the
 GitHub API. A merged commit is identified as `merge_commit`; an open PR is
 identified by its exact `head` and `base`.
 
@@ -58,30 +58,38 @@ Recently merged into the protected repository:
 - PR #385: `merge_commit` `8b356a8399d40bcecc68a07bcfacab78eef303a0`.
 - PR #366: `merge_commit` `ec6a829c88f9d2fdb6c34d2d089945aefb59c7a4`.
 - PR #374: `merge_commit` `79c40bc8c25050084e5bbed62b8f145f6fa47775`.
+- PR #375: `merge_commit` `fb0d185a2da707e57d2ed10900b06707126d8300`.
+- PR #379: `merge_commit` `b606c2553f877fa85968d90dc46598ce16897fbf`.
+- PR #370: `merge_commit` `aa38b29a95eed24de8073753552befc2e8cfaaae`.
+- PR #369: `merge_commit` `6e591f4b7ec4da6acf768298d8d06f841e3a2372`.
+- PR #287: `merge_commit` `bc8bcbee45c050cbd6775ca4f8455c00c25cc77d`.
+- PR #367: `merge_commit` `7a0d025215fbd9f6510727c7139885b561296149`.
 - PR #262: `merge_commit` `6bf75991b04601483d48384045e314db2a928e30`.
 
 Open PRs at the same observation:
 
-- PR #258: `head` `8b356a8399d40bcecc68a07bcfacab78eef303a0`, base `main`.
-- PR #287: `head` `0aedf64e2feac4feb33cf2f6c39f967e8eeb3c12`, base
-  `feat/global-ask-public-claim-verification-v2200`.
-- PR #349: `head` `feb55d029eb9d17c2b4f01cf8c86366fb603206a`, base `main`.
-- PR #355: `head` `b606c2553f877fa85968d90dc46598ce16897fbf`, base `main`.
-- PR #368: `head` `76630661963e79a68c23cd58948953cc7b36bcad`, base `main`.
-- PR #370: `head` `d5495162fbf4950ca180d43d5c13a636f1889e0c`, base
-  `feat/lineage-dag-regression`.
-- PR #373: `head` `6b84bea10881e2f82fb676d5b01cf56f7d8f4adb`, base `main`.
-- PR #382: `head` `91bf532b4a30a050f6431ae3a29fcab5ccfa99ed`, base
-  `ci/publish-ontology-pages-clean`.
-- PR #383: `head` `720004942dd155a85020af32da402d320038f46a`, base `main`.
-- PR #384: `head` `fb4bad5cb79d70b1a890f37cb651d0801fb61c16`, base
-  `docs/customer-master-scope-adr`.
-- PR #386: `head` `57a013deb88fc0b23ae6448c1d3474c770360a5e`, base `main`.
+- PR #258: `head` `8b356a8399d40bcecc68a07bcfacab78eef303a0`, base `main`
+  (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
+- PR #349: `head` `feb55d029eb9d17c2b4f01cf8c86366fb603206a`, base `main`
+  (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
+- PR #355: `head` `b606c2553f877fa85968d90dc46598ce16897fbf`, base `main`
+  (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
+- PR #368: `head` `34103b5b23503524cef6a6cf97b0e7b364b0f852`, base `main`
+  (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
+- PR #373: `head` `6b84bea10881e2f82fb676d5b01cf56f7d8f4adb`, base `main`
+  (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
+- PR #382: `head` `5eb707f02209a46d4d046480cec960ac40f59375`, base
+  `ci/publish-ontology-pages-clean` (`6b84bea10881e2f82fb676d5b01cf56f7d8f4adb`).
+- PR #383: `head` `745113829469a7c09e03fe783ea942ca884f2ea6`, base `main`
+  (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
+- PR #384: `head` `e8637fb82cb3abe216eaba64761d2a86011267e0`, base
+  `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
 
 The open queue remains subject to exact-current-head Checks, formal independent
 approval, and protected mergeability. Green Checks alone do not prove that a
-merge is authorized. PR #385's merge is the current parent of PR #258; the
-other open entries remain separate until their own merge commits are observed.
+merge is authorized. PR #385's merge is the current parent of PR #258; PR #386
+is closed as a duplicate of the safer #373 login fix. The other open entries
+remain separate until their own merge commits are observed.
 
 ## 5. Local Buyer-Surface Verification
 
@@ -134,9 +142,9 @@ GRC evidence subjects.
 
 ## 7. Next Implementation Order
 
-1. Let the protected Checks and independent approvals complete for open stacked
-   PRs #377, #382, and #385, then revalidate parent PRs #374, #373, and #258
-   at their exact current heads; PRs #367, #375, and #379 are already merged.
+1. Revalidate open PRs #258, #349, #355, #368, #373, #382, #383, and #384 at
+   their exact current heads as Checks and formal independent approvals arrive;
+   process stacked parents only after their child merge commits are observed.
    Verify the synthetic footnote/table cases in the authenticated browser and
    use the protected external corpus only for aggregate, non-identifying
    runtime evidence.
