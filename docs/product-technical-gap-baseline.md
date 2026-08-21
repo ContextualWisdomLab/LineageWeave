@@ -423,7 +423,8 @@ frontend suite is `208 passed` with lint and production build passing; the
 backend evidence remains `864 passed, 17 skipped, 14 warnings`. Hosted Checks
 restarted and remain pending, with no independent approval, so merge is not
 authorized. Parent PR #392 is currently at `a6d754a7` and baseline PR #368 at
-`a6e3a681`; both remain open and blocked by their respective merge gates.
+`331206425fa0acf3538f7c8edff261663f2ad606`; both remain open while their
+respective merge gates recalculate.
 
 ## 5. Local Buyer-Surface Verification
 
