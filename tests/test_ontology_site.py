@@ -115,6 +115,18 @@ def test_helpers_cover_slash_fragments_json_lists_and_missing_ontology() -> None
     builder = _load_builder()
     assert builder._fragment(builder.URIRef("https://example.test/vocabulary/Term")) == "Term"
     assert builder._canonicalize_json({"@list": ["b", "a"]}) == {"@list": ["b", "a"]}
+    graph = Graph()
+    graph.add(
+        (
+            builder.URIRef("https://example.test/ontology#Term"),
+            builder.RDF.type,
+            builder.OWL.Class,
+        )
+    )
+    nav, sections, term_count = builder._render_term_sections(graph)
+    assert 'href="#classes"' in nav
+    assert 'id="object-properties"' not in sections
+    assert term_count == 1
     try:
         builder._ontology_metadata(Graph())
     except ValueError as exc:
