@@ -190,7 +190,7 @@ export function OntologyExplorer({
           aria-label={t("Search within this neighborhood")}
         />
       </label>
-      {statusMessage(status)}
+      {statusMessage(status, loaded)}
       {loaded?.next_cursor && accessToken && !provided && status !== "loading" ? (
         <div className="ontology-explorer-actions">
           <button type="button" onClick={loadNextPage}>
@@ -265,14 +265,28 @@ function statusFromPayload(
   return "ready";
 }
 
-function statusMessage(status: OntologyExplorerStatus) {
+function statusMessage(status: OntologyExplorerStatus, payload: OntologyNeighborhoodPayload | null) {
+  if (status === "truncated" && payload?.next_cursor) {
+    return (
+      <p className="ontology-status ontology-status-truncated" role="status">
+        {ontologyExplorerText("Neighborhood truncated. Load the next relation page or inspect one edge.")}
+      </p>
+    );
+  }
+  if (status === "truncated" && payload?.edges.some((edge) => edge.evidence_references.length === 0)) {
+    return (
+      <p className="ontology-status ontology-status-truncated" role="status">
+        {ontologyExplorerText(
+          "Neighborhood reached the authorized query bound. Narrow the property filter or reduce traversal depth.",
+        )}
+      </p>
+    );
+  }
   const messages: Record<OntologyExplorerStatus, string> = {
     ready: "",
     loading: t("Loading ontology neighborhood..."),
     empty: t("No visible ontology relations for this focus. Open a Keyman or affiliated organization next."),
-    truncated: ontologyExplorerText(
-      "Neighborhood truncated. Load the next relation page or inspect one edge.",
-    ),
+    truncated: t("Neighborhood truncated. Page visible relations, then inspect one edge."),
     denied: t("Access denied for this ontology neighborhood. Open a visible post next."),
     stale: t("This neighborhood is bound to a knowledge cutoff. Compare with live evidence next."),
     rejected: t("Rejected proposal. Open the evidence and do not treat it as authoritative."),
@@ -306,7 +320,6 @@ function OntologyLegend() {
         <li>{t("Superseded")}</li>
         <li>{t("Rejected")}</li>
       </ul>
-      <p>{t("Hidden evidence was removed. No omitted count is shown.")}</p>
     </details>
   );
 }
