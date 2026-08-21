@@ -49,7 +49,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T16:16:02Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T16:28:12Z` from the
 GitHub API. Checkpoint types are `merge_commit`, `head`, and
 `closed_without_merge`; the latter records a closed PR's exact `head` when
 `merged_at` and `merge_commit_sha` are both absent. A merged commit is
@@ -151,6 +151,20 @@ Observed at `2026-08-21T16:01:40Z` in a fresh local Compose browser session:
 These observations are runtime evidence, not a claim that the corresponding
 PRs are merged. The image-processing state and protected-corpus parsing cases
 remain open gaps.
+
+Observed at `2026-08-21T16:28:12Z` after one bounded operator retry through
+the real Compose backend, Valkey, and orchestrator boundary:
+
+- One terminal image-ingestion job completed with `succeeded` after roughly
+  eight minutes. Its content endpoint reported `ready` with nine semantic
+  units and one image; aggregate described images increased from 24 to 25.
+- The same post's summary request was still pending after a 15-second browser
+  observation window, and PostgreSQL still contained zero summaries at current
+  contract version 13. This proves one bounded multimodal persistence path,
+  not end-to-end Korean summary readiness or corpus completion.
+- The remaining aggregate image state was 421 `failed` and 12,377
+  `unavailable` images. Do not bulk retry until provider throughput, bounded
+  retry policy, and buyer-visible failure/retry UX are separately accepted.
 
 Observed at `2026-08-21T16:16:02Z` in a fresh local Compose browser session
 against the authenticated React surface:
