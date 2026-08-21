@@ -4354,6 +4354,30 @@ function CustomerRelatedPostCard({
   );
 }
 
+const CUSTOMER_MASTER_SCOPE_FILTERS = ["own", "granted", "observed", "unclassified"] as const;
+type CustomerMasterScopeFilter = (typeof CUSTOMER_MASTER_SCOPE_FILTERS)[number];
+const CUSTOMER_MASTER_SCOPE_FILTER_LABELS: Record<CustomerMasterScopeFilter, string> = {
+  own: "Own company",
+  granted: "Granted customer",
+  observed: "Observed in posts",
+  unclassified: "Unclassified",
+};
+
+// An entity can carry more than one facet (e.g. it is both this account's
+// own company and an organization observed in a post); it belongs to
+// every bucket that applies. No facet at all means an authorized but
+// undifferentiated (scope_unclassified) affiliation -- ADR 0125's
+// deliberate honest third state, not a guessed own/customer label.
+function customerMasterScopeBuckets(entity: CustomerMasterEntity): CustomerMasterScopeFilter[] {
+  const facets = entity.scope_facets ?? [];
+  const buckets: CustomerMasterScopeFilter[] = [];
+  if (facets.includes("authorized_own")) buckets.push("own");
+  if (facets.includes("authorized_granted")) buckets.push("granted");
+  if (facets.includes("observed_organization")) buckets.push("observed");
+  if (buckets.length === 0) buckets.push("unclassified");
+  return buckets;
+}
+
 function CustomerMasterPanel({
   accessToken,
   onOpenPost,
@@ -4362,6 +4386,9 @@ function CustomerMasterPanel({
   onOpenPost: (postId: string) => void;
 }) {
   const [master, setMaster] = useState<CustomerMasterResponse | null>(null);
+  const [scopeFilter, setScopeFilter] = useState<Set<CustomerMasterScopeFilter>>(
+    () => new Set(CUSTOMER_MASTER_SCOPE_FILTERS),
+  );
   const [error, setError] = useState<string | null>(null);
   const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
   const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
@@ -4430,6 +4457,10 @@ function CustomerMasterPanel({
     }
   }
 
+  const filteredEntities = (master?.corporate_entities ?? []).filter((entity) =>
+    customerMasterScopeBuckets(entity).some((bucket) => scopeFilter.has(bucket)),
+  );
+
   return (
     <section className="workspace-destination" aria-labelledby="customer-master-heading">
       <p className="section-eyebrow">{t("Authorized customer scope")}</p>
@@ -4441,8 +4472,35 @@ function CustomerMasterPanel({
         <p className="popup-placeholder">{t("No customer entities are connected to this account.")}</p>
       ) : null}
       {master && master.corporate_entities.length > 0 ? (
+        <fieldset className="board-voc-type-filter">
+          <legend>{t("Filter by scope")}</legend>
+          {CUSTOMER_MASTER_SCOPE_FILTERS.map((bucket) => (
+            <label key={bucket}>
+              <input
+                type="checkbox"
+                checked={scopeFilter.has(bucket)}
+                onChange={(event) =>
+                  setScopeFilter((current) => {
+                    const next = new Set(current);
+                    if (event.target.checked) next.add(bucket);
+                    else next.delete(bucket);
+                    return next;
+                  })
+                }
+              />
+              {t(CUSTOMER_MASTER_SCOPE_FILTER_LABELS[bucket])}
+            </label>
+          ))}
+        </fieldset>
+      ) : null}
+      {master && master.corporate_entities.length > 0 && filteredEntities.length === 0 ? (
+        <p className="popup-placeholder" role="status">
+          {t("No entities match the current scope filter.")}
+        </p>
+      ) : null}
+      {filteredEntities.length > 0 ? (
         <ul className="customer-master-list customer-master-tree" aria-label={t("Customer entities available to this account.")}>
-          {buildCustomerEntityTree(master.corporate_entities).map((node) => (
+          {buildCustomerEntityTree(filteredEntities).map((node) => (
             <CustomerEntityTreeRow
               key={node.entity.corporate_entity_id}
               node={node}

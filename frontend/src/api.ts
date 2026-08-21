@@ -437,11 +437,17 @@ export interface CorporateEntityRef {
   entity_name: string;
 }
 
+export type CustomerMasterScopeFacet =
+  | "authorized_own"
+  | "authorized_granted"
+  | "observed_organization";
+
 export interface CustomerMasterEntity extends CorporateEntityRef {
   corporate_entity_code: string;
   entity_level_code: string;
   entity_level_label: string;
   parent_entity_id: string | null;
+  scope_facets: CustomerMasterScopeFacet[];
 }
 
 export interface CustomerMasterKeymanAffiliation {

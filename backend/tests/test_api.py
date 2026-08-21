@@ -123,6 +123,16 @@ _IDENTIFIER_MIGRATION = (
     / "migrations"
     / "0104_two_word_database_identifiers.sql"
 )
+_GLOBAL_ASK_HISTORY_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0105_global_ask_conversation_history.sql"
+)
+_AFFILIATION_SCOPE_FACET_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0106_account_affiliation_scope_facet.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -238,6 +248,8 @@ def seeded_db(demo_analyst_token):
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
             cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
             cur.execute(_IDENTIFIER_MIGRATION.read_text())
+            cur.execute(_GLOBAL_ASK_HISTORY_MIGRATION.read_text())
+            cur.execute(_AFFILIATION_SCOPE_FACET_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -1371,6 +1383,93 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
         for affiliation in author_hint[0]["account_affiliations"]
     )
     assert "account_affiliation.corporate_entity_id" in author_hint[0]["provenance"]
+
+
+def test_customer_master_scope_facets_reflect_authorization_and_observed_evidence(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """ADR 0125: an entity's scope_facets must reflect exactly how it was
+    admitted -- an account's own affiliation, a granted affiliation, an
+    organization actually mentioned in a post the account may see -- and
+    private evidence must never add a node the account cannot otherwise see.
+    """
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "update account_affiliation set affiliation_scope_code = 'scope_own_entity' "
+                "where corporate_entity_id = %s",
+                (seeded_db["own_corp_id"],),
+            )
+            cur.execute(
+                "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
+                "values ('GRANTED-CORP', 'Case Granted Corp', 'company') returning corporate_entity_id"
+            )
+            granted_corp_id = cur.fetchone()[0]
+            cur.execute(
+                "select user_account_id from account_affiliation where corporate_entity_id = %s",
+                (seeded_db["own_corp_id"],),
+            )
+            account_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into account_affiliation "
+                "(user_account_id, corporate_entity_id, affiliation_scope_code) "
+                "values (%s, %s, 'scope_granted_entity')",
+                (account_id, granted_corp_id),
+            )
+            # Deliberately no scope_code override -- proves the column's
+            # own default lands new/unaudited affiliations on the honest
+            # "unclassified" state rather than a guessed own/granted label.
+            cur.execute(
+                "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
+                "values ('UNCLASSIFIED-CORP', 'Case Unclassified Corp', 'company') returning corporate_entity_id"
+            )
+            unclassified_corp_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into account_affiliation (user_account_id, corporate_entity_id) values (%s, %s)",
+                (account_id, unclassified_corp_id),
+            )
+            # Observed via a post the account may see -- never affiliated,
+            # so it can only reach the response through evidence.
+            cur.execute(
+                "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
+                "values ('OBSERVED-CORP', 'Case Observed Corp', 'company') returning corporate_entity_id"
+            )
+            observed_corp_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into post_organization_mention (post_id, corporate_entity_id) values (%s, %s)",
+                (seeded_db["own_private_post_id"], observed_corp_id),
+            )
+            # Observed only via a private post from another corp -- must
+            # never surface, no matter how "real" the mention is.
+            cur.execute(
+                "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
+                "values ('HIDDEN-OBSERVED-CORP', 'Case Hidden Observed Corp', 'company') "
+                "returning corporate_entity_id"
+            )
+            hidden_observed_corp_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into post_organization_mention (post_id, corporate_entity_id) values (%s, %s)",
+                (seeded_db["other_private_post_id"], hidden_observed_corp_id),
+            )
+        admin_conn.commit()
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        "/api/customer-master",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    entities = response.json()["corporate_entities"]
+    facets_by_name = {row["entity_name"]: set(row["scope_facets"]) for row in entities}
+
+    assert facets_by_name["Test Corp"] == {"authorized_own"}
+    assert facets_by_name["Case Granted Corp"] == {"authorized_granted"}
+    assert facets_by_name["Case Unclassified Corp"] == set()
+    assert facets_by_name["Case Observed Corp"] == {"observed_organization"}
+    assert "Case Hidden Observed Corp" not in facets_by_name
 
 
 def test_resolve_customer_hint_creates_and_links_a_corroborated_entity(

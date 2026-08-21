@@ -710,6 +710,26 @@ async def update_me_preferences(
     return {"preferred_locale": preference.preferred_locale}
 
 
+_AFFILIATION_SCOPE_CODE_TO_FACET = {
+    "scope_own_entity": "authorized_own",
+    "scope_granted_entity": "authorized_granted",
+    # scope_unclassified contributes no own/granted facet -- the entity is
+    # still authorized, it is just not labeled either way (ADR 0125).
+}
+
+
+def _customer_master_scope_facets(row: asyncpg.Record) -> list[str]:
+    """Repeatable, provenance-bearing facets for one Customer Master row."""
+    facets = [
+        _AFFILIATION_SCOPE_CODE_TO_FACET[code]
+        for code in row["scope_codes"]
+        if code in _AFFILIATION_SCOPE_CODE_TO_FACET
+    ]
+    if row["is_observed_organization"]:
+        facets.append("observed_organization")
+    return facets
+
+
 @app.get("/api/customer-master")
 async def read_customer_master(
     account: CurrentAccount = Depends(get_current_account),
@@ -924,15 +944,45 @@ async def read_customer_master(
             """,
             list(account.corporate_entity_ids),
         )
-        entity_rows = await conn.fetch(
-            """
-            select corporate_entity_id, corporate_entity_code, entity_name,
-                   entity_level_code, parent_entity_id
-              from corporate_entity
-             where corporate_entity_id = any($1::uuid[])
-             order by entity_name
+        # ADR 0125: an entity reaches Customer Master either through this
+        # account's own account_affiliation grants (authorized_own /
+        # authorized_granted, per its explicit affiliation_scope_code -- an
+        # unclassified affiliation is still authorized, it just carries no
+        # own/granted facet) or because it is actually mentioned in a post
+        # this account may already see (observed_organization). Neither
+        # path widens access: the observed branch reuses the exact same
+        # public-or-own-corp/eligibility predicate every other query on
+        # this endpoint already applies to source_post.
+        # Safe SQL: the eligibility predicate is an immutable schema fragment; ids are bound.
+        entity_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            f"""
+            with own_affiliation as (
+                select corporate_entity_id,
+                       array_agg(distinct affiliation_scope_code)
+                           filter (where affiliation_scope_code is not null) as scope_codes
+                  from account_affiliation
+                 where user_account_id = $2
+                 group by corporate_entity_id
+            ), observed as (
+                select distinct org_mention.corporate_entity_id
+                  from post_organization_mention org_mention
+                  join source_post post on post.post_id = org_mention.post_id
+                 where (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
+                   and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+            )
+            select entity.corporate_entity_id, entity.corporate_entity_code, entity.entity_name,
+                   entity.entity_level_code, entity.parent_entity_id,
+                   coalesce(own_affiliation.scope_codes, array[]::text[]) as scope_codes,
+                   (observed.corporate_entity_id is not null) as is_observed_organization
+              from corporate_entity entity
+              left join own_affiliation on own_affiliation.corporate_entity_id = entity.corporate_entity_id
+              left join observed on observed.corporate_entity_id = entity.corporate_entity_id
+             where own_affiliation.corporate_entity_id is not null
+                or observed.corporate_entity_id is not null
+             order by entity.entity_name
             """,
             list(account.corporate_entity_ids),
+            account.user_account_id,
         )
         has_source_context = bool(source_customer_rows or source_author_rows)
         if not has_source_context:
@@ -1013,6 +1063,7 @@ async def read_customer_master(
                 "parent_entity_id": (
                     str(row["parent_entity_id"]) if row["parent_entity_id"] is not None else None
                 ),
+                "scope_facets": _customer_master_scope_facets(row),
             }
             for row in entity_rows
         ],

@@ -93,8 +93,11 @@ describe("App, authenticated", () => {
     postBody?: string;
     manyCustomerHints?: number;
     customerEntityHierarchy?: boolean;
+    customerScopeFacets?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
+    summaryPending?: boolean;
+    summaryUnavailable?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePosts: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -1594,35 +1597,77 @@ describe("App, authenticated", () => {
       if (url.endsWith("/api/customer-master") && method === "GET") {
         return Promise.resolve(
           jsonResponse({
-            corporate_entities: options?.customerEntityHierarchy
+            corporate_entities: options?.customerScopeFacets
               ? [
                   {
-                    corporate_entity_id: "corp-group",
-                    corporate_entity_code: "DEMO-GROUP-01",
-                    entity_name: "Demo Group",
-                    entity_level_code: "group",
-                    entity_level_label: "Group",
-                    parent_entity_id: null,
-                  },
-                  {
-                    corporate_entity_id: "corp-demo",
-                    corporate_entity_code: "DEMO-CORP-01",
-                    entity_name: "Demo Corp",
+                    corporate_entity_id: "corp-own",
+                    corporate_entity_code: "OWN-CORP-01",
+                    entity_name: "Own Scope Corp",
                     entity_level_code: "company",
                     entity_level_label: "Company",
-                    parent_entity_id: "corp-group",
+                    parent_entity_id: null,
+                    scope_facets: ["authorized_own"],
+                  },
+                  {
+                    corporate_entity_id: "corp-granted",
+                    corporate_entity_code: "GRANTED-CORP-01",
+                    entity_name: "Granted Scope Corp",
+                    entity_level_code: "company",
+                    entity_level_label: "Company",
+                    parent_entity_id: null,
+                    scope_facets: ["authorized_granted"],
+                  },
+                  {
+                    corporate_entity_id: "corp-observed",
+                    corporate_entity_code: "OBSERVED-CORP-01",
+                    entity_name: "Observed Scope Corp",
+                    entity_level_code: "company",
+                    entity_level_label: "Company",
+                    parent_entity_id: null,
+                    scope_facets: ["observed_organization"],
+                  },
+                  {
+                    corporate_entity_id: "corp-unclassified",
+                    corporate_entity_code: "UNCLASSIFIED-CORP-01",
+                    entity_name: "Unclassified Scope Corp",
+                    entity_level_code: "company",
+                    entity_level_label: "Company",
+                    parent_entity_id: null,
+                    scope_facets: [],
                   },
                 ]
-              : [
-                  {
-                    corporate_entity_id: "corp-demo",
-                    corporate_entity_code: "DEMO-CORP-01",
-                    entity_name: "Demo Corp",
-                    entity_level_code: "company",
-                    entity_level_label: "Company",
-                    parent_entity_id: null,
-                  },
-                ],
+              : options?.customerEntityHierarchy
+                ? [
+                    {
+                      corporate_entity_id: "corp-group",
+                      corporate_entity_code: "DEMO-GROUP-01",
+                      entity_name: "Demo Group",
+                      entity_level_code: "group",
+                      entity_level_label: "Group",
+                      parent_entity_id: null,
+                      scope_facets: ["authorized_own"],
+                    },
+                    {
+                      corporate_entity_id: "corp-demo",
+                      corporate_entity_code: "DEMO-CORP-01",
+                      entity_name: "Demo Corp",
+                      entity_level_code: "company",
+                      entity_level_label: "Company",
+                      parent_entity_id: "corp-group",
+                      scope_facets: ["authorized_own"],
+                    },
+                  ]
+                : [
+                    {
+                      corporate_entity_id: "corp-demo",
+                      corporate_entity_code: "DEMO-CORP-01",
+                      entity_name: "Demo Corp",
+                      entity_level_code: "company",
+                      entity_level_label: "Company",
+                      parent_entity_id: null,
+                      scope_facets: ["authorized_own"],
+                    },
+                  ],
             keymen: [
               {
                 person_id: "person-1",
@@ -1756,6 +1801,33 @@ describe("App, authenticated", () => {
     // The subsidiary's <li> is nested inside the parent's <li>, not a
     // sibling at the same top level.
     expect(parentRow?.contains(subsidiaryRow)).toBe(true);
+  });
+
+  it("filters the customer master tree by scope facet", async () => {
+    // ADR 0125: 자사 속성은 필터로 접근해야 한다 -- an entity's own-company,
+    // granted-customer, observed, or unclassified facet must be a real
+    // filter, not just a label. All four buckets are on by default.
+    stubBackend({ customerScopeFacets: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    expect(await screen.findByText("Own Scope Corp")).toBeInTheDocument();
+    expect(screen.getByText("Granted Scope Corp")).toBeInTheDocument();
+    expect(screen.getByText("Observed Scope Corp")).toBeInTheDocument();
+    expect(screen.getByText("Unclassified Scope Corp")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("checkbox", { name: "Own company" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Granted customer" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Observed in posts" }));
+
+    expect(screen.queryByText("Own Scope Corp")).not.toBeInTheDocument();
+    expect(screen.queryByText("Granted Scope Corp")).not.toBeInTheDocument();
+    expect(screen.queryByText("Observed Scope Corp")).not.toBeInTheDocument();
+    expect(screen.getByText("Unclassified Scope Corp")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("checkbox", { name: "Unclassified" }));
+    expect(screen.getByText("No entities match the current scope filter.")).toBeInTheDocument();
   });
 
   it("shows every observed relationship role for a counterparty, flagging multi-role names", async () => {
