@@ -35,7 +35,7 @@
 The following states are evidence-bound and must not be changed to `merged` or
 `resolved` from intent alone:
 
-Observed at `2026-08-21T12:42:34Z` from the GitHub API. A merged commit is
+Observed at `2026-08-21T13:12:54Z` from the GitHub API. A merged commit is
 identified as `merge_commit`; an open PR is identified by its exact `head`.
 
 - LineageWeave PR #344: `merge_commit`
@@ -69,23 +69,42 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   continuation is open and required Checks and independent approval remain
   external gates.
 - LineageWeave PR #370: `head`
-  `74b92eb95360b14c7e4f2bc2679f580f4ce249f8`, base
+  `9f8f4b742759e15ad34c7ef09c401dbc8b1d1ae5`, base
   `8bed77e7e7b91b633bb92d3a82d0187c387206af`; its runtime boundary fixes are
-  stacked in PR #376.
+  now part of the current Customer Master stack; required Checks and
+  independent approval remain external gates.
 - LineageWeave PR #374: `head`
   `f6ce19f8e10aa7ec2b0a95f3adbbea816bd39594`, base
   `0a5a5799b444c44dc2952edc7227b1b96b97457e`; its post-chat atomic
   reauthorization fix is stacked in PR #377.
-- LineageWeave PR #376: `head`
-  `21880e937eedff6c314cb7af3d99ddca2792597f`, base `docs/customer-master-scope-adr`;
-  migration, relation-boundary, image-job transaction, and overflow-test fixes
-  are locally verified; required Checks and independent approval remain
-  external gates.
+- LineageWeave PR #376: `merge_commit`
+  `860545f7bece99359ec7b9840c675ddc14e9acbc`, merged at
+  `2026-08-21T13:10:45Z`; migration, relation-boundary, image-job transaction,
+  and overflow-test fixes are delivered in the Customer Master stack.
+- LineageWeave PR #380: `merge_commit`
+  `9f8f4b742759e15ad34c7ef09c401dbc8b1d1ae5`, merged at
+  `2026-08-21T13:11:02Z`; the workspace-refresh and accessibility changes are
+  delivered in the current #370 head.
 - LineageWeave PR #377: `head`
   `16ab01a9ab7d88487a3c984e192709857f6cfd1c`, base
   `repair/global-ask-atomic-rollback-v2203`; post-chat rollback and test
   cleanup are locally verified; required Checks and independent approval
   remain external gates.
+- LineageWeave PR #373: `head`
+  `bc91481dac7350975de7ec00f11d4e54f676eb2c`, base `main`; ontology
+  publication has unresolved review work and is not treated as delivered.
+- LineageWeave PR #375: `head`
+  `34967730b4a9e663ff366b7fd8a91c21f98236f1`, base
+  `repair/global-ask-atomic-rollback-v2203`; one unresolved review thread
+  remains, so post-chat citation authorization is not treated as delivered.
+- LineageWeave PR #379: `head`
+  `8d688c8b865092e7e52c7ff4cabbc01dcde9c9b0`, base
+  `feat/naruon-calendar-projection-contract-main`; one unresolved review
+  thread remains and it is outside the LineageWeave buyer-surface completion
+  claim.
+- Legacy open PRs #258, #262, and #287 remain explicitly unmerged; their
+  current review/conflict state requires separate triage before any delivery
+  claim.
 - LineageWeave PR #371: `closed_without_merge`
   head `4c3e43f9e96ecc2d868657dd9b0ce5524a15c76c`, closed at
   `2026-08-21T11:59:57Z`; no merge commit exists, so ontology publication is
