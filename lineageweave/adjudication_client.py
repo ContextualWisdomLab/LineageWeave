@@ -15,7 +15,7 @@ from __future__ import annotations
 import re
 from typing import Protocol
 
-from .http_client import post_json
+from .http_client import chat_completion_content, post_json
 
 
 class AdjudicationClient(Protocol):
@@ -76,7 +76,7 @@ class ContextualOrchestratorAdjudicationClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = body["choices"][0]["message"]["content"]
+        content = chat_completion_content(body)
         match = _CONFIDENCE_PATTERN.search(content)
         if match is None:
             return 0.0
