@@ -1350,44 +1350,6 @@
   font-size: 0.9rem;
 }
 
-.lineage-dag-legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem 1rem;
-  margin-bottom: 1rem;
-  color: var(--text-muted);
-  font-size: 0.8rem;
-}
-
-.lineage-dag-legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-
-.lineage-dag-legend-mark {
-  display: inline-block;
-  width: 0.7rem;
-  height: 0.7rem;
-  border: 2px solid var(--border);
-  border-radius: 50%;
-  background: var(--surface-muted);
-}
-
-.lineage-dag-legend-root {
-  border-color: var(--color-accent-info);
-}
-
-.lineage-dag-legend-branch {
-  border-color: var(--color-accent-orange);
-  background: var(--badge-actor-organization-bg);
-}
-
-.lineage-dag-legend-current {
-  border-color: var(--text-h);
-  border-width: 3px;
-}
-
 .lineage-dag-viewport {
   overflow-x: auto;
   border: 1px solid var(--border);

@@ -18,6 +18,11 @@ describe("LineageDag CSS contracts", () => {
     expect(appCss).not.toContain('marker-end: url("#lineage-dag-arrow");');
   });
 
+  it("keeps the LineageDag legend in its component stylesheet only", () => {
+    expect(css).toContain(".lineage-dag-legend {");
+    expect(appCss).not.toContain(".lineage-dag-legend");
+  });
+
   it("uses each localized cell label in the mobile evidence layout", () => {
     expect(appCss).toContain("content: attr(data-label);");
     expect(appCss).not.toContain('content: "Graph relation";');

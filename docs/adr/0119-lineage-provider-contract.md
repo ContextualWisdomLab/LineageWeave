@@ -1,6 +1,6 @@
 # ADR 0119: Publish a bounded LineageWeave provider contract
 
-- Status: Accepted on this PR; not main-branch truth until merged
+- Status: Superseded by ADR 0133 on this PR; never shipped
 - Date: 2026-08-21
 - Decision owners: LineageWeave maintainers
 
@@ -12,9 +12,17 @@ channel evidence, cutoff semantics, and inferred lineage. Sharing application
 tables or copying LineageWeave internals into Naruon would create a second
 authority and bypass the existing ABAC boundary.
 
-## Decision
+## Supersession
 
-`lineageweave.lineage_contract` is the provider-side versioned boundary for a
+ADR 0133 consolidates the reusable boundary in
+`lineageweave.external_lineage_contract` and
+`lineageweave.external_lineage_analysis`. The proposed parallel
+`lineageweave.lineage_contract` module was removed before this stack merged,
+so consumers have one contract authority and one version vocabulary.
+
+## Superseded proposal (not operative)
+
+`lineageweave.lineage_contract` would have been a provider-side versioned boundary for a
 bounded, store-agnostic analysis request. It uses immutable Python dataclasses
 and canonical JSON (`lineage-analysis/v1`) so a future HTTP or generated SDK
 adapter can be added without changing reconstruction.

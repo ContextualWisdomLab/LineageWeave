@@ -63,28 +63,28 @@ export function LineageDag({
         </p>
       </div>
       <ul className="lineage-dag-legend" aria-label={lineageDagText("Lineage legend")}>
-        <li className="lineage-dag-legend-item">
+        <li>
           <span
-            className="lineage-dag-legend-node lineage-dag-legend-mark lineage-dag-legend-root"
+            className="lineage-dag-legend-node lineage-dag-legend-root"
             aria-hidden="true"
           />
           {lineageDagText("Root record")}
         </li>
-        <li className="lineage-dag-legend-item">
+        <li>
           <span
-            className="lineage-dag-legend-node lineage-dag-legend-mark lineage-dag-legend-branch"
+            className="lineage-dag-legend-node lineage-dag-legend-branch"
             aria-hidden="true"
           />
           {lineageDagText("Branch point")}
         </li>
-        <li className="lineage-dag-legend-item">
+        <li>
           <span
-            className="lineage-dag-legend-node lineage-dag-legend-mark lineage-dag-legend-current"
+            className="lineage-dag-legend-node lineage-dag-legend-current"
             aria-hidden="true"
           />
           {lineageDagText("Current record")}
         </li>
-        <li className="lineage-dag-legend-item">
+        <li>
           <span className="lineage-dag-legend-direction" aria-hidden="true" />
           {lineageDagText("Parent to child")}
         </li>

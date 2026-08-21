@@ -3752,6 +3752,7 @@ function PostList({
         setOpenedAfterCutoff(false);
         setOpenedCutoffIso(null);
         setOpenedFromReportMember(false);
+        setOpenedFromWeeklyVoc(false);
       }
     }
     window.addEventListener("popstate", handlePopState);

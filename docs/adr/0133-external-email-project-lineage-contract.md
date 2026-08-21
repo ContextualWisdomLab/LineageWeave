@@ -18,6 +18,10 @@ LineageWeave publishes contract version `1.0.0` through:
 
 The initial implementation is a store-agnostic Python package boundary. It performs no database, mailbox, provider, or network operation. A later service or Naruon plugin adapter must preserve the same JSON Schema and truth boundaries.
 
+This decision supersedes ADR 0119 before either proposal shipped. Its parallel
+`lineageweave.lineage_contract` module is removed, leaving this contract and
+analysis adapter as the sole reusable lineage contract authority.
+
 The caller supplies opaque evidence references, bounded text labels, occurrence and availability clocks, an optional secondary key, an optional project reference, and an optional caller-observed parent relation. Explicit observed parent relations replace an inferred parent for the same child and must form an acyclic graph. Reconstructed continuation remains `inferred`. Project groupings remain `proposed`.
 
 An admitted child with an explicit observed parent is not rescored for an alternative inferred parent and consumes no optional LLM/provider call or inferred-pair budget. The record remains in temporal history and may still be an eligible candidate parent for a later record. This preserves observed authority without weakening downstream lineage reconstruction.

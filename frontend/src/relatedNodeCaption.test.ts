@@ -78,13 +78,13 @@ describe("relatedNodeCaption", () => {
     ).toBe("Priya Nair, multiple organizations (Counterparty)");
   });
 
-  it("tells the buyer to read the Keyman list when it is already on screen", () => {
+  it("tells the reader to read the Keyman list when it is already on screen", () => {
     expect(relatedAffiliationNextAction(true)).toBe(
       "Multiple organizations are recorded. Read every organization in the Keyman list above, then continue the walk.",
     );
   });
 
-  it("tells the buyer to extract Keymen when the list is empty", () => {
+  it("tells the reader to extract Keymen when the list is empty", () => {
     expect(relatedAffiliationNextAction(false)).toBe(
       "Multiple organizations are recorded. Extract Keymen to list every organization, then continue the walk.",
     );

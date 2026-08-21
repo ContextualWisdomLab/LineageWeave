@@ -2029,7 +2029,9 @@ describe("App, authenticated", () => {
       "Public post is current in Event Lineage. Read Keyman and evaluation next.",
     );
 
-    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    window.history.replaceState({}, "", "/");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    await waitFor(() => expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument());
     await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
     await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
