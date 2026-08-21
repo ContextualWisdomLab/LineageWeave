@@ -440,6 +440,22 @@
   border-top: 1px solid var(--border);
 }
 
+/* Korean summary next to 5W1H so both are scannable at a glance instead
+   of stacked below the raw post body (UI/UX Standard Guide Ver.3.0 SS3.1
+   item order: summary/key events/R&R read first). */
+.popup-analysis-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0 1.5rem;
+}
+
+@media (min-width: 768px) {
+  .popup-analysis-grid {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+
 .popup-section h3 {
   margin: 0 0 0.5rem;
   font-size: 1rem;
@@ -957,7 +973,24 @@
 
 @media (max-width: 768px) {
   /* Phone Breakpoint (<768px) */
-  
+
+  /* Fixed height + no-wrap pushed the search/language/logout controls
+     off the right edge of narrow viewports (unreachable, not just
+     visually cramped -- logout must always stay reachable per SS3.2). */
+  .app-header {
+    height: auto;
+    min-height: var(--header-height);
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+    padding: 0.6rem 1rem;
+  }
+
+  .app-header-top-menu {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    row-gap: 0.5rem;
+  }
+
   .workspace-gnb {
     display: none; /* Replaced by drawer on mobile */
   }

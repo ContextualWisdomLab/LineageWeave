@@ -1929,191 +1929,9 @@ function PostDetailPopup({
                 {liveBodyWarning}
               </p>
             ) : null}
-            <section className="popup-section post-source-body" aria-label={t("Post body")}>
-              <h3>{t("Post body")}</h3>
-              {post.post_body.trim() ? (
-                <PostBody body={post.post_body} imageContent={imageContent} structureUnits={structureUnits} />
-              ) : (
-                <p className="popup-placeholder" role="status">
-                  {t("Source body was not imported; summary and semantic extraction are unavailable.")}
-                </p>
-              )}
-            </section>
-            {(post.source_stage_code ||
-              post.source_detail_state_code ||
-              post.source_draft_code ||
-              post.source_deleted_flag ||
-              post.source_author_code ||
-              post.source_author_name ||
-              post.source_company_code ||
-              post.source_company_name ||
-              post.source_process_unit_code ||
-              post.source_process_unit_name ||
-              post.source_sales_pool_code ||
-              post.source_sales_pool_name ||
-              post.source_customer_code ||
-              post.source_customer_name ||
-              post.source_project_code ||
-              post.source_project_name ||
-              post.source_system_code ||
-              post.source_record_key) && (
-              <section className="popup-section" aria-label={t("Original source state")}>
-                <h3>{t("Original source state")}</h3>
-                <dl>
-                  {post.source_stage_code ? (
-                    <>
-                      <dt>{t("Source stage")}</dt>
-                      <dd>{post.source_stage_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_detail_state_code ? (
-                    <>
-                      <dt>{t("Source detail state")}</dt>
-                      <dd>{post.source_detail_state_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_draft_code ? (
-                    <>
-                      <dt>{t("Source draft marker")}</dt>
-                      <dd>{post.source_draft_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_deleted_flag ? (
-                    <>
-                      <dt>{t("Source deletion marker")}</dt>
-                      <dd>{post.source_deleted_flag}</dd>
-                    </>
-                  ) : null}
-                  {post.source_author_code ? (
-                    <>
-                      <dt>{t("Source author code")}</dt>
-                      <dd>{post.source_author_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_author_name ? (
-                    <>
-                      <dt>{t("Source author name")}</dt>
-                      <dd>{post.source_author_name}</dd>
-                    </>
-                  ) : null}
-                  {post.source_company_code ? (
-                    <>
-                      <dt>{t("Source company code")}</dt>
-                      <dd>{post.source_company_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_company_name ? (
-                    <>
-                      <dt>{t("Source company name")}</dt>
-                      <dd>{post.source_company_name}</dd>
-                    </>
-                  ) : null}
-                  {post.source_process_unit_name ? (
-                    <>
-                      <dt>{t("Source process unit name")}</dt>
-                      <dd>{post.source_process_unit_name}</dd>
-                    </>
-                  ) : null}
-                  {post.source_process_unit_code ? (
-                    <>
-                      <dt>{t("Source business unit")}</dt>
-                      <dd>{post.source_process_unit_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_sales_pool_code ? (
-                    <>
-                      <dt>{t("Source sales pool")}</dt>
-                      <dd>{post.source_sales_pool_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_sales_pool_name ? (
-                    <>
-                      <dt>{t("Source sales pool name")}</dt>
-                      <dd>{post.source_sales_pool_name}</dd>
-                    </>
-                  ) : null}
-                  {post.source_customer_code ? (
-                    <>
-                      <dt>{t("Source customer code")}</dt>
-                      <dd>{post.source_customer_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_customer_name ? (
-                    <>
-                      <dt>{t("Source customer name")}</dt>
-                      <dd>{post.source_customer_name}</dd>
-                    </>
-                  ) : null}
-                  {post.source_project_code ? (
-                    <>
-                      <dt>{t("Source project code")}</dt>
-                      <dd>{post.source_project_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_project_name ? (
-                    <>
-                      <dt>{t("Source project name")}</dt>
-                      <dd>{post.source_project_name}</dd>
-                    </>
-                  ) : null}
-                  {post.source_system_code ? (
-                    <>
-                      <dt>{t("Source system")}</dt>
-                      <dd>{post.source_system_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_record_key ? (
-                    <>
-                      <dt>{t("Source record key")}</dt>
-                      <dd>{post.source_record_key}</dd>
-                    </>
-                  ) : null}
-                </dl>
-                <p className="post-meta">{t("Raw source codes are shown; no state label was inferred.")}</p>
-              </section>
-            )}
 
-					<FiveW1H slots={fiveW1H?.slots ?? null} />
-
-				{post.project_evidence && post.project_evidence.length > 0 ? (
-              <section className="popup-section" aria-label={t("Projects / semantic evidence")}>
-                <h3>{t("Projects / semantic evidence")}</h3>
-                <ul>
-                  {post.project_evidence.map((project) => (
-                    <li key={`${project.resolution_status}:${project.project_key}`}>
-                      <button
-                        type="button"
-                        className="related-post-card"
-                        aria-label={tf("Search related posts for: {name}", { name: project.project_name })}
-                        onClick={() => onSearch?.(project.project_name)}
-                        disabled={!onSearch}
-                      >
-                        <strong>{project.project_name}</strong>
-                        <span>{t("Search related posts")}</span>
-                      </button>{" "}
-                      {project.confidence === null
-                        ? `(${t("Hint only")})`
-                        : `(${Math.round(project.confidence * 100)}%)`}
-                      : {project.evidence}
-                      <details className="semantic-provenance">
-                        <summary>{t("Evidence provenance")}</summary>
-                        <span className="post-badge">
-                          {t("Ontology class")}: {t(project.ontology_label ?? "Project")}
-                        </span>
-                        <span className="post-badge">
-                          {t("Extraction source")}: {projectExtractionLabel(project.extraction_method)}
-                        </span>
-                        <span className="post-badge">
-                          {t("Evidence field")}: {projectProvenanceLabel(project.provenance)}
-                        </span>
-                      </details>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
-
-            <section className="popup-section">
+					<div className="popup-analysis-grid">
+              <section className="popup-section popup-analysis-col">
               <h3>{t("Summary")}</h3>
               {summary ? (
                 <>
@@ -2266,6 +2084,193 @@ function PostDetailPopup({
                 <p className="error">{summaryError}</p>
               ) : (
                 <p className="popup-placeholder">{t("No summary is available for this record yet.")}</p>
+              )}
+              </section>
+              <div className="popup-analysis-col">
+                <FiveW1H slots={fiveW1H?.slots ?? null} />
+              </div>
+            </div>
+
+            {post.project_evidence && post.project_evidence.length > 0 ? (
+              <section className="popup-section" aria-label={t("Projects / semantic evidence")}>
+                <h3>{t("Projects / semantic evidence")}</h3>
+                <ul>
+                  {post.project_evidence.map((project) => (
+                    <li key={`${project.resolution_status}:${project.project_key}`}>
+                      <button
+                        type="button"
+                        className="related-post-card"
+                        aria-label={tf("Search related posts for: {name}", { name: project.project_name })}
+                        onClick={() => onSearch?.(project.project_name)}
+                        disabled={!onSearch}
+                      >
+                        <strong>{project.project_name}</strong>
+                        <span>{t("Search related posts")}</span>
+                      </button>{" "}
+                      {project.confidence === null
+                        ? `(${t("Hint only")})`
+                        : `(${Math.round(project.confidence * 100)}%)`}
+                      : {project.evidence}
+                      <details className="semantic-provenance">
+                        <summary>{t("Evidence provenance")}</summary>
+                        <span className="post-badge">
+                          {t("Ontology class")}: {t(project.ontology_label ?? "Project")}
+                        </span>
+                        <span className="post-badge">
+                          {t("Extraction source")}: {projectExtractionLabel(project.extraction_method)}
+                        </span>
+                        <span className="post-badge">
+                          {t("Evidence field")}: {projectProvenanceLabel(project.provenance)}
+                        </span>
+                      </details>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            {(post.source_stage_code ||
+              post.source_detail_state_code ||
+              post.source_draft_code ||
+              post.source_deleted_flag ||
+              post.source_author_code ||
+              post.source_author_name ||
+              post.source_company_code ||
+              post.source_company_name ||
+              post.source_process_unit_code ||
+              post.source_process_unit_name ||
+              post.source_sales_pool_code ||
+              post.source_sales_pool_name ||
+              post.source_customer_code ||
+              post.source_customer_name ||
+              post.source_project_code ||
+              post.source_project_name ||
+              post.source_system_code ||
+              post.source_record_key) && (
+              <section className="popup-section" aria-label={t("Original source state")}>
+                <h3>{t("Original source state")}</h3>
+                <dl>
+                  {post.source_stage_code ? (
+                    <>
+                      <dt>{t("Source stage")}</dt>
+                      <dd>{post.source_stage_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_detail_state_code ? (
+                    <>
+                      <dt>{t("Source detail state")}</dt>
+                      <dd>{post.source_detail_state_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_draft_code ? (
+                    <>
+                      <dt>{t("Source draft marker")}</dt>
+                      <dd>{post.source_draft_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_deleted_flag ? (
+                    <>
+                      <dt>{t("Source deletion marker")}</dt>
+                      <dd>{post.source_deleted_flag}</dd>
+                    </>
+                  ) : null}
+                  {post.source_author_code ? (
+                    <>
+                      <dt>{t("Source author code")}</dt>
+                      <dd>{post.source_author_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_author_name ? (
+                    <>
+                      <dt>{t("Source author name")}</dt>
+                      <dd>{post.source_author_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_company_code ? (
+                    <>
+                      <dt>{t("Source company code")}</dt>
+                      <dd>{post.source_company_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_company_name ? (
+                    <>
+                      <dt>{t("Source company name")}</dt>
+                      <dd>{post.source_company_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_process_unit_name ? (
+                    <>
+                      <dt>{t("Source process unit name")}</dt>
+                      <dd>{post.source_process_unit_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_process_unit_code ? (
+                    <>
+                      <dt>{t("Source business unit")}</dt>
+                      <dd>{post.source_process_unit_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_sales_pool_code ? (
+                    <>
+                      <dt>{t("Source sales pool")}</dt>
+                      <dd>{post.source_sales_pool_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_sales_pool_name ? (
+                    <>
+                      <dt>{t("Source sales pool name")}</dt>
+                      <dd>{post.source_sales_pool_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_customer_code ? (
+                    <>
+                      <dt>{t("Source customer code")}</dt>
+                      <dd>{post.source_customer_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_customer_name ? (
+                    <>
+                      <dt>{t("Source customer name")}</dt>
+                      <dd>{post.source_customer_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_project_code ? (
+                    <>
+                      <dt>{t("Source project code")}</dt>
+                      <dd>{post.source_project_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_project_name ? (
+                    <>
+                      <dt>{t("Source project name")}</dt>
+                      <dd>{post.source_project_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_system_code ? (
+                    <>
+                      <dt>{t("Source system")}</dt>
+                      <dd>{post.source_system_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_record_key ? (
+                    <>
+                      <dt>{t("Source record key")}</dt>
+                      <dd>{post.source_record_key}</dd>
+                    </>
+                  ) : null}
+                </dl>
+                <p className="post-meta">{t("Raw source codes are shown; no state label was inferred.")}</p>
+              </section>
+            )}
+
+            <section className="popup-section post-source-body" aria-label={t("Post body")}>
+              <h3>{t("Post body")}</h3>
+              {post.post_body.trim() ? (
+                <PostBody body={post.post_body} imageContent={imageContent} structureUnits={structureUnits} />
+              ) : (
+                <p className="popup-placeholder" role="status">
+                  {t("Source body was not imported; summary and semantic extraction are unavailable.")}
+                </p>
               )}
             </section>
 
