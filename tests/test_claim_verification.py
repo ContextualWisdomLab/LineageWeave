@@ -125,7 +125,9 @@ def test_adjudication_invalid_payloads_fail_closed(content: str) -> None:
         cv._parse_adjudication(content, claim, ())
 
 
-def test_searxng_orchestrated_client_uses_verify_mode_and_selected_evidence(monkeypatch) -> None:
+def test_searxng_orchestrated_client_uses_auto_structured_contract_and_selected_evidence(
+    monkeypatch,
+) -> None:
     calls: dict[str, object] = {}
 
     def fake_get_json(url: str, *, timeout: float):
@@ -180,8 +182,20 @@ def test_searxng_orchestrated_client_uses_verify_mode_and_selected_evidence(monk
 
     assert result.status_code == cv.CLAIM_SUPPORTED
     assert [item.url for item in result.evidence] == ["https://example.com/evidence"]
-    assert calls["payload"]["mode"] == "verify"
-    assert calls["payload"]["reasoning_effort"] == "auto"
+    payload = calls["payload"]
+    assert payload["mode"] == "auto"
+    assert payload["reasoning_effort"] == "auto"
+    assert "model" not in payload
+    assert [message["role"] for message in payload["messages"]] == ["system", "user"]
+    assert payload["response_format"]["type"] == "json_schema"
+    response_contract = payload["response_format"]["json_schema"]
+    assert response_contract["strict"] is True
+    assert set(response_contract["schema"]["required"]) == {
+        "status_code",
+        "rationale",
+        "evidence_numbers",
+    }
+    assert response_contract["schema"]["additionalProperties"] is False
     assert calls["headers"] == {"authorization": "Bearer secret"}
     assert "format=json" in calls["search_url"]
 

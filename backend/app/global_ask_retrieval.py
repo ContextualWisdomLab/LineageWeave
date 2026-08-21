@@ -66,10 +66,12 @@ async def semantic_candidate_post_ids(
 ) -> list[str]:
     """Nominate posts from persisted semantic and Knowledge-Graph evidence.
 
-    Project mentions, responsibility/affiliation evidence, Keyman names,
-    organization/team catalogs, and graph edge/type vocabulary are searched.
-    Ontology lookup codes are applied only to graph lookup-code columns; they
-    are not compared to ontology IRIs. The function never returns source text.
+    Project mentions, responsibility/affiliation evidence, Keyman names, and
+    organization/team catalogs use one ``ILIKE`` predicate per indexed column.
+    This preserves multilingual substring lookup without wrapping indexed fields
+    in an expression that forces a sequential scan. Ontology lookup codes are
+    applied only to graph lookup-code columns. The function never returns source
+    text and nomination never grants access.
     """
 
     if maximum_candidates <= 0:
@@ -88,11 +90,9 @@ async def semantic_candidate_post_ids(
               join source_post post on post.post_id = mention.post_id
              where exists (
                     select 1 from query_terms term
-                     where concat_ws(' ', mention.project_name,
-                                           mention.evidence_text,
-                                           mention.ontology_iri,
-                                           mention.extraction_method)
-                           ilike '%' || term.term || '%'
+                     where mention.project_name ilike '%' || term.term || '%'
+                        or mention.evidence_text ilike '%' || term.term || '%'
+                        or mention.ontology_iri ilike '%' || term.term || '%'
                 )
             union all
             select role.post_id, post.created_at
@@ -100,10 +100,9 @@ async def semantic_candidate_post_ids(
               join source_post post on post.post_id = role.post_id
              where exists (
                     select 1 from query_terms term
-                     where concat_ws(' ', role.actor_name,
-                                           role.responsibility,
-                                           role.affiliated_organization_name)
-                           ilike '%' || term.term || '%'
+                     where role.actor_name ilike '%' || term.term || '%'
+                        or role.responsibility ilike '%' || term.term || '%'
+                        or role.affiliated_organization_name ilike '%' || term.term || '%'
                 )
             union all
             select mention.post_id, post.created_at
@@ -112,10 +111,9 @@ async def semantic_candidate_post_ids(
               join source_post post on post.post_id = mention.post_id
              where exists (
                     select 1 from query_terms term
-                     where concat_ws(' ', person.person_name,
-                                           person.last_known_job_title,
-                                           mention.mention_context)
-                           ilike '%' || term.term || '%'
+                     where person.person_name ilike '%' || term.term || '%'
+                        or person.last_known_job_title ilike '%' || term.term || '%'
+                        or mention.mention_context ilike '%' || term.term || '%'
                 )
             union all
             select mention.post_id, post.created_at
@@ -134,9 +132,8 @@ async def semantic_candidate_post_ids(
               join source_post post on post.post_id = mention.post_id
              where exists (
                     select 1 from query_terms term
-                     where concat_ws(' ', team.team_name,
-                                           team.affiliated_organization_name)
-                           ilike '%' || term.term || '%'
+                     where team.team_name ilike '%' || term.term || '%'
+                        or team.affiliated_organization_name ilike '%' || term.term || '%'
                 )
             union all
             select evidence.evidence_post_id as post_id, post.created_at
@@ -147,13 +144,6 @@ async def semantic_candidate_post_ids(
              where edge.edge_type_code = any($2::text[])
                 or edge.source_node_type_code = any($2::text[])
                 or edge.target_node_type_code = any($2::text[])
-                or exists (
-                    select 1 from query_terms term
-                     where concat_ws(' ', edge.edge_type_code,
-                                           edge.source_node_type_code,
-                                           edge.target_node_type_code)
-                           ilike '%' || term.term || '%'
-                )
         )
         select post_id::text as post_id
           from candidate_post

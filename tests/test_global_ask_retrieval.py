@@ -102,7 +102,9 @@ class _FakeConnection:
 
 
 @pytest.mark.anyio
-async def test_semantic_candidate_post_ids_is_bounded_and_deduplicated(monkeypatch) -> None:
+async def test_semantic_candidate_post_ids_is_bounded_deduplicated_and_indexable(
+    monkeypatch,
+) -> None:
     monkeypatch.setattr(
         retrieval,
         "ontology_lookup_codes_for_question",
@@ -120,12 +122,33 @@ async def test_semantic_candidate_post_ids_is_bounded_and_deduplicated(monkeypat
         "11111111-1111-1111-1111-111111111111",
         "22222222-2222-2222-2222-222222222222",
     ]
-    assert "post_project_mention" in connection.query
-    assert "post_summary_role" in connection.query
-    assert "post_person_mention" in connection.query
-    assert "post_organization_mention" in connection.query
-    assert "post_team_mention" in connection.query
-    assert "knowledge_graph_edge_evidence" in connection.query
+    query = connection.query.casefold()
+    assert "post_project_mention" in query
+    assert "post_summary_role" in query
+    assert "post_person_mention" in query
+    assert "post_organization_mention" in query
+    assert "post_team_mention" in query
+    assert "knowledge_graph_edge_evidence" in query
+
+    # Expression concatenation defeats the per-column pg_trgm indexes and
+    # turns every semantic table into a sequential expression scan.
+    assert "concat_ws" not in query
+    for predicate in (
+        "mention.project_name ilike",
+        "mention.evidence_text ilike",
+        "mention.ontology_iri ilike",
+        "role.actor_name ilike",
+        "role.responsibility ilike",
+        "role.affiliated_organization_name ilike",
+        "person.person_name ilike",
+        "person.last_known_job_title ilike",
+        "mention.mention_context ilike",
+        "entity.entity_name ilike",
+        "team.team_name ilike",
+        "team.affiliated_organization_name ilike",
+    ):
+        assert predicate in query
+
     assert connection.arguments[1] == ["edge_team_affiliation"]
     assert connection.arguments[2] == 7
 
