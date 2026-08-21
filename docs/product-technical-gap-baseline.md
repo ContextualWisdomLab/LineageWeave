@@ -396,29 +396,32 @@ Observed at `2026-08-21T18:39:50Z` on PR #349's exact head
 
 ## 6. Organization OpenTelemetry Evidence Boundary
 
-GRC PR #51 records organization-level OTEL acceptance evidence through the
-existing purpose-bound evidence contract. It does not become a raw span store
-and must not copy prompts, post bodies, images, provider responses, secrets, or
-an ad-hoc `user_account + post_id` session key. W3C trace context and bounded
-OpenTelemetry attributes correlate the authorized operation across services;
-collector delivery, retention, access review, and no-export rollback are the
-GRC evidence subjects.
+The organization GRC boundary is governance-risk-compliance PR #51 at exact
+head `1a8f90dd15f37ffc86b8a0efd217a8b2812e5f99`. It emits W3C-parented server
+spans, low-cardinality request and authorization metrics, and redaction-safe
+structured request logs through the opt-in `OTEL_EXPORTER_OTLP_ENDPOINT`.
+GRC is the organization control and evidence boundary, not a raw span store:
+it must not copy prompts, post bodies, images, provider responses, secrets, or
+an ad-hoc `user_account + post_id` session key.
 
-The former PR #383 `osv-scan` failure at head
-`3584c31c22a432399c694588a4786c445f943848` was a central workflow defect: the
-scan exited successfully, but the follow-up treated a missing baseline result
-file as failure after the head checkout. Central `.github` PR #1158 now
-contains the direct-source result-file repair (`--output-file`) at observed
-exact head `eb7efe560fe697b54f174a2295dd0950a6984e37`; its current Checks have
-no failure presently observed but remain non-terminal. The current #383 head
-`b1d32a93632164cf1379f24fc9aca71c5d29b746` has no failed Checks observed but
-remains non-terminal and unauthorized to merge. Central PR #1002 independently
-remains open at observed exact head
-`1c09f8db1876af8388d21fe14c9993ec6c1d8688` with required checks still running.
+LineageWeave PR #383 at exact head
+`b1d32a93632164cf1379f24fc9aca71c5d29b746` emits bounded API/Valkey/session
+telemetry, and contextual-orchestrator PR #818 at exact head
+`51531d0c1144427c67649da3233bcbe1c5d53858` preserves the same post-scoped
+session correlation across provider, Responses, structured-output, VISION, and
+embedding work. These are separate open, protected PRs; their current Checks
+are not terminal and no independent approval or merge is claimed.
+
+This establishes the organization integration contract, not production
+collector acceptance. Collector delivery, retention, access review, dashboard
+SLOs, and no-export rollback remain deployment evidence to be recorded by GRC.
+The current GRC `osv-scan` failure is the shared workflow's deprecated OSV
+output-file contract, not a source vulnerability verdict; no protected merge
+or bypass is authorized until the central repair and exact-head Checks pass.
 
 ## 7. Next Implementation Order
 
-1. Revalidate open PRs #258, #349, #355, #368, #373, #383, #384, #387, and #391 at
+1. Revalidate open PRs #258, #349, #355, #368, #373, #383, #384, #387, and #392 at
    their exact current heads as Checks and formal independent approvals arrive;
    the #388/#389/#390 stack merges are already recorded above, so process the
   open #387 parent only after its current-head gates pass. PR #392 is a
@@ -434,4 +437,5 @@ remains open at observed exact head
    external runtime, returning only aggregate or derived non-identifying
    evidence to repository artifacts.
 4. Keep the GRC and contextual-orchestrator OTEL evidence contracts aligned
-   with the exact merged application instrumentation.
+   with the exact merged application instrumentation; validate live collector
+   delivery separately from source and PR evidence.
