@@ -665,3 +665,20 @@ they are not protected-main or release evidence. The next merge candidate is
 resolved review threads, and terminal required Checks. #327 is an independent
 root that must be merged before #326; #323 can proceed independently. A queued
 workflow is active work, not a blocker or a pass.
+
+## Current queue refresh: 2026-08-21 09:21 KST
+
+The live queue now contains 45 open pull requests. The following branches were
+opened or advanced after the preceding checkpoint and therefore must be
+included in the next exact-head audit; this document does not treat any of
+them as merge-ready:
+
+| PR | Exact head | Base | Gate at refresh |
+|---|---|---|---|
+| #335 current exact-head gap checkpoint | `858f7e4913824b9899710bc5b1e51bc49b43ce52` | `docs/current-gap-audit@d80d691cd8ed780a8fb0072199304f595b1ea75e` | BLOCKED; REVIEW_REQUIRED; required Checks queued |
+| #337 Naruon calendar event projection contract | `974cf8b4a5618a43b17584ab762af6630ee4acd0` | `feat/calendar-open-focus-event-lineage-v2140@221cc94db3780e82114ef553729c7a00da554532` | BLOCKED; REVIEW_REQUIRED; required Checks queued |
+| #339 TEPP canonical Project history recovery | `26b83f06899a2ad416be746d9a6fb13042bb7659` | `feat/project-history-timeline-v2184-r3@cfc125cb65f26ed7e834976dbff12b6b9790b59c` | BLOCKED; REVIEW_REQUIRED; required Checks queued |
+
+The queue count and gate fields are a point-in-time GitHub observation. Before
+reviewing or merging any row, fetch its branch again, compare the exact head
+with the review and all required Checks, and confirm the full dependency stack.
