@@ -106,6 +106,8 @@ import {
 import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import "./App.css";
 
+const GLOBAL_ASK_SESSION_STORAGE_KEY = "lineageweave.globalAskSessionId";
+
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
   if (err instanceof BackendError && err.status === 503) {
     return `${action} ${t("is temporarily unavailable.")} ${t("Saved evidence is still available.")}`;
@@ -4513,7 +4515,7 @@ function AskAgentPanel({
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>(() =>
-    window.sessionStorage.getItem("lineageweave.globalAskSessionId") ?? undefined,
+    window.sessionStorage.getItem(GLOBAL_ASK_SESSION_STORAGE_KEY) ?? undefined,
   );
 
   async function handleAsk() {
@@ -4523,10 +4525,20 @@ function AskAgentPanel({
     setError(null);
     setAnswer(null);
     try {
-      const nextAnswer = await askAgent(accessToken, normalized, sessionId);
+      let nextAnswer: AskAgentResponse;
+      try {
+        nextAnswer = await askAgent(accessToken, normalized, sessionId);
+      } catch (err) {
+        if (!(err instanceof BackendError) || err.status !== 404 || !sessionId) {
+          throw err;
+        }
+        setSessionId(undefined);
+        window.sessionStorage.removeItem(GLOBAL_ASK_SESSION_STORAGE_KEY);
+        nextAnswer = await askAgent(accessToken, normalized);
+      }
       setAnswer(nextAnswer);
       setSessionId(nextAnswer.session_id);
-      window.sessionStorage.setItem("lineageweave.globalAskSessionId", nextAnswer.session_id);
+      window.sessionStorage.setItem(GLOBAL_ASK_SESSION_STORAGE_KEY, nextAnswer.session_id);
     } catch (err) {
       setAnswer(null);
       setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
@@ -4560,8 +4572,8 @@ function AskAgentPanel({
           {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
           {answer.timeline && answer.timeline.length > 0 ? (
             <>
-              <h4>Event Lineage timeline</h4>
-              <ol className="related-post-list" aria-label="Event Lineage timeline">
+              <h4>{t("Event Lineage timeline")}</h4>
+              <ol className="related-post-list" aria-label={t("Event Lineage timeline")}>
                 {answer.timeline.map((event) => (
                   <li key={event.post_id}>
                     <button
@@ -4690,7 +4702,14 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         <h1>LineageWeave</h1>
         <div>
           <span>{auth.user?.profile.preferred_username}</span>
-          <button onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
+          <button
+            onClick={() => {
+              window.sessionStorage.removeItem(GLOBAL_ASK_SESSION_STORAGE_KEY);
+              void auth.signoutRedirect();
+            }}
+          >
+            {t("Log out")}
+          </button>
         </div>
       </header>
       <BuyerNav
