@@ -75,7 +75,10 @@ def test_adaptive_depth_hub_reaches_more_nodes_than_a_sparse_node(synthetic_grap
     assert len(hub_related) > len(loner_related)
 
 
-def test_post_knowledge_graph_does_not_mark_exact_relation_limit_truncated() -> None:
+@pytest.mark.parametrize(("overflow", "expected_truncated"), [(False, False), (True, True)])
+def test_post_knowledge_graph_relation_limit_boundary(
+    overflow: bool, expected_truncated: bool
+) -> None:
     """A look-ahead row distinguishes an exact page from an overflow page."""
     post_id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1"
     organization_id = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1"
@@ -83,6 +86,20 @@ def test_post_knowledge_graph_does_not_mark_exact_relation_limit_truncated() -> 
     class Connection:
         def __init__(self) -> None:
             self.semantic_query = ""
+            self.semantic_rows = [
+                {
+                    "relation_ordinal": 1,
+                    "subject_name": "Synthetic source",
+                    "subject_type": "organization",
+                    "predicate_code": "rel_voc",
+                    "object_name": "Synthetic customer",
+                    "object_type": "organization",
+                    "evidence_text": "Synthetic evidence",
+                    "relation_confidence": 0.9,
+                }
+            ]
+            if overflow:
+                self.semantic_rows.append({**self.semantic_rows[0], "relation_ordinal": 2})
 
         async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
             normalized = " ".join(query.lower().split())
@@ -96,18 +113,7 @@ def test_post_knowledge_graph_does_not_mark_exact_relation_limit_truncated() -> 
                 return []
             if "from post_summary_semantic_relationship" in normalized:
                 self.semantic_query = normalized
-                return [
-                    {
-                        "relation_ordinal": 1,
-                        "subject_name": "Synthetic source",
-                        "subject_type": "organization",
-                        "predicate_code": "rel_voc",
-                        "object_name": "Synthetic customer",
-                        "object_type": "organization",
-                        "evidence_text": "Synthetic evidence",
-                        "relation_confidence": 0.9,
-                    }
-                ]
+                return self.semantic_rows
             return []
 
         async def fetchval(self, query: str, *args: object) -> str | None:
@@ -117,7 +123,7 @@ def test_post_knowledge_graph_does_not_mark_exact_relation_limit_truncated() -> 
     result = asyncio.run(post_knowledge_graph(conn, post_id, relation_limit=1))
 
     assert "limit ($2 + 1)" in conn.semantic_query
-    assert result["truncated"] is False
+    assert result["truncated"] is expected_truncated
     assert len(result["edges"]) == 1
 
 
