@@ -447,6 +447,18 @@ synthetic Keycloak account and aggregate-only assertions:
   this repository. Image-heavy processing remains an explicit processing-state
   gap, not a live-success claim.
 
+Observed at `2026-08-21T20:55:11Z` in the same local Compose browser runtime
+with aggregate-only assertions:
+
+- The Keycloak login flow completed, 50 authorized list entries were loaded,
+  and one detail popup opened and closed successfully.
+- The rendered popup contained the Event Lineage heading, Knowledge Graph
+  region, and post-action group without a frontend error element. Aggregate
+  response statuses were `200×60`, `302×1`, and `503×1`.
+- The `503` is generated-evidence unavailability, so this run proves the UX
+  path and error boundary only; it does not prove complete summary or VISION
+  readiness.
+
 Observed at `2026-08-21T16:01:40Z` in a fresh local Compose browser session:
 
 - OIDC login, an authorized post click, popup close, and the phone-width menu
