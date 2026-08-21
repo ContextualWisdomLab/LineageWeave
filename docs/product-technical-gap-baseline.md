@@ -13,6 +13,22 @@
 - **Math/Superscripts**: synthetic case `case-math-01` covers bounded metric normalization such as m³; arbitrary formula semantics and authorized runtime verification remain open after PR #344.
 - **Missing UI Elements**: synthetic case `case-dag-01` tracks the Event Lineage DAG surface; current source includes the DAG, but corpus coverage and browser evidence remain open.
 
+## 1.1 UI/UX Standard Guide v3.0 audit
+
+- **Present in source and unit coverage:** the React shell has a sticky header,
+  top-right account/logout/language/search utilities, GNB and phone drawer,
+  footer/copyright, Noto Sans and tokenized palette, 1024/1280/1920 layout
+  bounds, three responsive tiers, table/form alignment rules, required-field
+  markers, focus states, and a 50% modal mask. The Event Lineage DAG has
+  keyboard activation, branch/root/current states, evidence context, and
+  Storybook scenes.
+- **Figma reference:** ADR 0118 records File ID `1Su3lDRmiZdcUs47t1QwIX`;
+  Event Lineage desktop/mobile frames remain the normative visual reference.
+- **Open buyer or governance gaps:** approved tenant CI/BI assets and usage
+  permission are not present; no-JavaScript fallback is not proven; phone and
+  site-map behavior need protected runtime evidence; and Figma parity does not
+  prove complete authorized-corpus image/table evidence.
+
 ## 2. LLM Extraction & Knowledge Graph Gaps
 - **Multiple Project Extraction**: A structured `key_events.project_name` implementation exists, but separate-event behavior still requires protected authorized-corpus evidence.
 - **5W1H Missing**: A structured 5W1H evidence-item implementation exists, but completeness and provenance still require protected authorized-corpus evidence.
