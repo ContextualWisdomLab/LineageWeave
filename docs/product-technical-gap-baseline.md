@@ -49,7 +49,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T16:10:57Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T16:16:02Z` from the
 GitHub API. Checkpoint types are `merge_commit`, `head`, and
 `closed_without_merge`; the latter records a closed PR's exact `head` when
 `merged_at` and `merge_commit_sha` are both absent. A merged commit is
@@ -88,7 +88,7 @@ Open PRs at the same observation:
   `ci/publish-ontology-pages-clean` (`6b84bea10881e2f82fb676d5b01cf56f7d8f4adb`).
 - PR #383: `head` `46e4d6d69c1964f0cbeb761281071db7861e31dd`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #384: `head` `140f91ee246b4723a70da004258f4a14fcca4b5b`, base
+- PR #384: `head` `0cbcededefad6d916947c74c073a2e010866139b`, base
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
 
 The open queue remains subject to exact-current-head Checks, formal independent
@@ -151,6 +151,30 @@ Observed at `2026-08-21T16:01:40Z` in a fresh local Compose browser session:
 These observations are runtime evidence, not a claim that the corresponding
 PRs are merged. The image-processing state and protected-corpus parsing cases
 remain open gaps.
+
+Observed at `2026-08-21T16:16:02Z` in a fresh local Compose browser session
+against the authenticated React surface:
+
+- The UI/UX Guide v3.0 viewport checks passed at 1920×1080, 1280×1024,
+  1024×768, 768×1024, and 375×667: each rendered document had no horizontal
+  overflow, the authenticated header was sticky, the footer was present, and
+  the phone drawer became visible only below the phone tier.
+- The post popup opened and closed. Its DOM exposed Summary, Key events, and
+  Event Lineage/graph sections; no R&R rows were rendered because the summary
+  request returned HTTP 503 before an evidence object existed. This is not
+  evidence that the R&R component is absent: `App.tsx` still renders it when
+  persisted roles are available.
+- The summary response explained the current buyer-visible gap: `Post summary
+  is unavailable: image evidence is still being processed`. Aggregate
+  PostgreSQL evidence was 43,839 source posts, 401 empty-body posts, 97
+  persisted summaries, and zero summaries at current contract version 13.
+  The content-ingestion job registry had 18 failed and zero queued/running
+  jobs; no live image-summary completion is claimed.
+- PR #384's popup CSS was then reduced to the standard three responsive tiers
+  by removing its extra 1280px media query; the focused CSS contract, full
+  frontend test suite (199 tests), lint, TypeScript, and production build all
+  passed locally. The change is pushed at the exact PR head recorded above;
+  hosted Checks and independent approval remain open.
 
 ## 6. Organization OpenTelemetry Evidence Boundary
 
