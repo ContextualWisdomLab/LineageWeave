@@ -82,6 +82,19 @@ def test_summary_backfill_normalizes_writing_state_codes() -> None:
     assert "coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'" in source
 
 
+def test_summary_backfill_uses_all_source_commercial_context_fields() -> None:
+    """Seed eligibility matches the reader's complete source-context contract."""
+    source = (ROOT / "scripts/backfill_post_summaries.py").read_text(encoding="utf-8")
+    for field_name in (
+        "source_order_pool_code",
+        "source_sales_order_code",
+        "source_sales_order_item_number",
+        "source_inspection_point_code",
+    ):
+        assert f"post.{field_name}" in source
+        assert f"real_post.{field_name}" in source
+
+
 def test_content_backfill_normalizes_writing_state_codes() -> None:
     """Content recovery excludes padded and lower-case writing rows."""
     source = (ROOT / "scripts/queue_post_content_backfill.py").read_text(encoding="utf-8")
