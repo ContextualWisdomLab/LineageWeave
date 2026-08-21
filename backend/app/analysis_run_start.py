@@ -100,11 +100,15 @@ def configured_tepp_client(transport_url: str = "", api_key: str = "") -> TeppCl
         return TeppClient()
 
     def transport(payload: dict[str, Any]) -> dict[str, Any]:
+        transport_error = False
         try:
             headers = {"authorization": f"Bearer {api_key}"} if api_key.strip() else {}
-            return post_json(url, payload, headers=headers, timeout=30.0)
-        except (HttpClientError, OSError, ValueError, TypeError) as exc:
-            raise TeppNotAvailable(str(exc)) from exc
+            response = post_json(url, payload, headers=headers, timeout=30.0)
+        except (HttpClientError, OSError, ValueError, TypeError):
+            transport_error = True
+        if transport_error:
+            raise TeppNotAvailable("TEPP transport unavailable")
+        return response
 
     return TeppClient(transport=transport)
 

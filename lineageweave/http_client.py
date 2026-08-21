@@ -28,7 +28,7 @@ _ALLOWED_SCHEMES = frozenset({"http", "https"})
 
 
 class HttpClientError(RuntimeError):
-    """The remote endpoint returned a non-success status or invalid JSON."""
+    """The remote endpoint failed, returned a non-success status, or invalid JSON."""
 
 
 def _request(
@@ -39,7 +39,7 @@ def _request(
     headers: dict[str, str],
     timeout: float,
 ) -> tuple[int, bytes]:
-    """Implement the _request operation for this channel."""
+    """Perform one exchange without exposing provider transport exception details."""
     parsed = urlparse(url)
     if parsed.scheme not in _ALLOWED_SCHEMES:
         raise ValueError(f"refusing non-http(s) URL scheme: {parsed.scheme!r}")
@@ -59,18 +59,25 @@ def _request(
     connection = http.client.HTTPConnection(parsed.hostname, port, timeout=timeout)
 
     try:
-        if parsed.scheme == "https":
-            connection.connect()
-            if connection.sock is None:
-                raise HttpClientError(f"no socket after connect to {parsed.hostname}")
-            connection.sock = _SSL_CONTEXT.wrap_socket(
-                connection.sock, server_hostname=parsed.hostname
-            )
-        connection.request(method, path, body=body, headers=headers)
-        response = connection.getresponse()
-        length_header = response.getheader("Content-Length")
-        raw = response.read(int(length_header)) if length_header is not None else response.read()
-        return response.status, raw
+        transport_error = False
+        try:
+            if parsed.scheme == "https":
+                connection.connect()
+                if connection.sock is None:
+                    raise HttpClientError(f"no socket after connect to {parsed.hostname}")
+                connection.sock = _SSL_CONTEXT.wrap_socket(
+                    connection.sock, server_hostname=parsed.hostname
+                )
+            connection.request(method, path, body=body, headers=headers)
+            response = connection.getresponse()
+            length_header = response.getheader("Content-Length")
+            raw = response.read(int(length_header)) if length_header is not None else response.read()
+            response_status = response.status
+        except (OSError, ValueError, http.client.HTTPException):
+            transport_error = True
+        if transport_error:
+            raise HttpClientError("provider transport unavailable")
+        return response_status, raw
     finally:
         connection.close()
 
@@ -79,8 +86,11 @@ def _decode_json(raw: bytes, hostname: str) -> object:
     """Implement the _decode_json operation for this channel."""
     try:
         return json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise HttpClientError(f"non-JSON response from {hostname}") from exc
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        # Keep the provider parser exception out of both the public error and
+        # its implicit context. The provider response body is not trusted data.
+        pass
+    raise HttpClientError(f"non-JSON response from {hostname}")
 
 
 def _decode_json_object(raw: bytes, hostname: str) -> dict:
