@@ -309,10 +309,45 @@ projection: update the affected FR/NFR row and Gap closure evidence when an ADR
 or PR changes product behavior. Never turn a PR title, green unit test, or old
 runtime note into a shipped/live claim.
 
+## Recovered TEPP project-history integration (2026-08-21)
+
+- The canonical Buyer project timeline remains owned by the stacked Project history PR.
+- The previously implemented TEPP work had become stranded in a closed parent and an
+  orphaned duplicate stack. This recovery consumes the canonical timeline instead of
+  introducing another project query, classifier, or timeline component.
+- The dependency is the exact `ContextualWisdomLab/TEPP#159` project-history contract.
+  Until that contract is merged and a TEPP endpoint is deployed, the UI reports an
+  actionable fail-closed state and keeps the authorized LineageWeave timeline readable.
+- TEPP receives opaque actor references and bounded source-field evidence only. Browser,
+  review, provider, and `TEPP_API_KEY` credentials are not forwarded.
+- `temporal_association_only` is the maximum accepted authority. Buyer copy must say
+  that a preceding event is related in time, not that it caused the VOC.
+- The next stacked slice attaches this same canonical timeline and TEPP metadata to
+  Global Ask and post-scoped Ask without re-retrieving hidden evidence.
+
+## Ask-to-project-history integration (2026-08-21)
+
+- Protected-stack checkpoint: PR #342 is based on PR #339 head
+  `43262dc76622928fdf90b922653949b4ac7c6631`; the PR description and hosted Checks
+  record its exact current head. Both remain review/check gated and are not represented
+  as merged production behavior.
+- Post-scoped Ask and Global Ask return structured project-history links only for exact
+  project identities on their currently authorized cited posts.
+- Opening a link lazily calls the canonical Project history endpoint with the answer
+  knowledge cutoff and cited focus post; no second timeline, classifier, or TEPP query is
+  implemented in either Ask surface.
+- Source publication eligibility and cutoff are applied before Ask retrieval. Persisted
+  answers are withheld when any citation loses visibility, and a Global Ask session with
+  stale citations must start a new session before prior answer prose is reused.
+- The response bounds citation and project counts, discloses truncated project links, and
+  keeps answers readable when a timeline or TEPP validation is unavailable.
+- Remaining causal-analysis work is explicitly outside this slice: temporal association
+  and evidence navigation do not identify why a VOC occurred.
+
 ## Current stacked PR product-surface gaps
 
 - **Customer Master relationship composition — PR #262**: Resolved on the
-  current feature branch. ADR 0125 and Figma frames `313:2` / `314:2` define a
+  current feature branch. ADR 0129 and Figma frames `313:2` / `314:2` define a
   customer-centered three-pane workspace that keeps the selected customer
   stable while the user inspects relationships and source posts.
 - **Responsive Customer Master flow — PR #262**: Resolved on the current

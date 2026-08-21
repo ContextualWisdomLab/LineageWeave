@@ -186,6 +186,11 @@ from backend.app.post_summary_ingestion import (
     persist_post_summary,
     require_summary_source_body,
 )
+from backend.app.ask_project_history import (
+    ask_knowledge_cutoff,
+    global_ask_session_citations_authorized,
+    read_authorized_ask_evidence,
+)
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from backend.app.project_history import (
     PROJECT_HISTORY_DEFAULT_LIMIT,
@@ -195,6 +200,10 @@ from backend.app.project_history import (
     ProjectHistoryNotFound,
     fetch_project_history_index,
     fetch_project_history_projection,
+)
+from backend.app.tepp_project_history import (
+    tenant_workspace_reference,
+    validate_project_history_with_tepp,
 )
 from lineageweave.project_history import normalize_project_key
 from backend.app.demo_scope import (
@@ -2683,9 +2692,25 @@ async def read_post_chat(
     an empty list, not a fabricated transcript.
     """
     await _load_visible_post(post_id, account, pool)
+    authorized_exchanges: list[dict[str, Any]] = []
     async with pool.acquire() as conn:
         exchanges = await fetch_persisted_chats(conn, post_id)
-    return {"post_id": post_id, "exchanges": exchanges}
+        for exchange in exchanges:
+            cutoff = ask_knowledge_cutoff(exchange.get("_knowledge_cutoff"))
+            evidence = await read_authorized_ask_evidence(
+                conn,
+                cited_post_ids=exchange["cited_post_ids"],
+                corporate_entity_ids=account.corporate_entity_ids,
+                knowledge_cutoff=cutoff,
+            )
+            if not evidence.all_citations_visible:
+                continue
+            public_exchange = {
+                key: value for key, value in exchange.items() if not key.startswith("_")
+            }
+            public_exchange.update(evidence.response_fields())
+            authorized_exchanges.append(public_exchange)
+    return {"post_id": post_id, "exchanges": authorized_exchanges}
 
 
 @app.post("/api/posts/{post_id}/chat")
@@ -2711,18 +2736,28 @@ async def chat_about_post(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
     post = await _load_visible_post(post_id, account, pool)
     post_metadata = build_post_llm_metadata(post_id, post)
+    knowledge_cutoff = ask_knowledge_cutoff()
     async with pool.acquire() as conn:
         stored = await fetch_persisted_chat(conn, post_id, question)
         if stored is not None:
-            source_ids = [post_id]
-            source_ids.extend(cid for cid in stored["cited_post_ids"] if cid != post_id)
-            return {
-                "post_id": post_id,
-                "answer_text": stored["answer_text"],
-                "cited_post_ids": stored["cited_post_ids"],
-                "cited_posts": stored["cited_posts"],
-                "source_post_ids": source_ids,
-            }
+            stored_cutoff = ask_knowledge_cutoff(stored.get("_knowledge_cutoff"))
+            stored_evidence = await read_authorized_ask_evidence(
+                conn,
+                cited_post_ids=stored["cited_post_ids"],
+                corporate_entity_ids=account.corporate_entity_ids,
+                knowledge_cutoff=stored_cutoff,
+            )
+            if stored_evidence.all_citations_visible:
+                source_ids = list(
+                    dict.fromkeys([post_id, *stored["cited_post_ids"]])
+                )
+                return {
+                    "post_id": post_id,
+                    "answer_text": stored["answer_text"],
+                    "cited_post_ids": stored["cited_post_ids"],
+                    "source_post_ids": source_ids,
+                    **stored_evidence.response_fields(),
+                }
         with use_llm_metadata(post_metadata):
             client = _post_chat_client()
             if not client.available:
@@ -2731,7 +2766,11 @@ async def chat_about_post(
                     "Post chat is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
                 )
             sources = await gather_chat_sources(
-                conn, post_id, lambda row: _can_see_post(account, row), vision_client=_vision_client()
+                conn,
+                post_id,
+                lambda row: _can_see_post(account, row),
+                vision_client=_vision_client(),
+                knowledge_cutoff=knowledge_cutoff,
             )
     try:
         with use_llm_metadata(post_metadata):
@@ -2748,7 +2787,25 @@ async def chat_about_post(
         ) from exc
     cited_ids = list(answer.cited_post_ids)
     async with pool.acquire() as conn:
-        await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)
+        await persist_post_chat(
+            conn,
+            post_id,
+            question,
+            answer.answer_text,
+            cited_ids,
+            knowledge_cutoff=knowledge_cutoff,
+        )
+        answer_evidence = await read_authorized_ask_evidence(
+            conn,
+            cited_post_ids=cited_ids,
+            corporate_entity_ids=account.corporate_entity_ids,
+            knowledge_cutoff=knowledge_cutoff,
+        )
+    if not answer_evidence.all_citations_visible:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Post chat evidence changed before the answer could be returned",
+        )
     await publish_activity_event(
         valkey,
         post_id,
@@ -2760,8 +2817,8 @@ async def chat_about_post(
         "post_id": post_id,
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
-        "cited_posts": cited_post_summaries(sources, cited_ids),
         "source_post_ids": [source.post_id for source in sources],
+        **answer_evidence.response_fields(),
     }
 
 
@@ -2782,6 +2839,7 @@ async def ask_agent(
             UUID(request.session_id)
         except ValueError:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Global Ask session not found") from None
+    knowledge_cutoff = ask_knowledge_cutoff()
     client = _post_chat_client()
     if not client.available:
         raise HTTPException(
@@ -2794,12 +2852,23 @@ async def ask_agent(
         )
         if session_id is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Global Ask session not found")
+        if not await global_ask_session_citations_authorized(
+            conn,
+            session_id=session_id,
+            corporate_entity_ids=account.corporate_entity_ids,
+            knowledge_cutoff=knowledge_cutoff,
+        ):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Global Ask session evidence is no longer authorized; start a new session",
+            )
         conversation = await load_global_ask_context(conn, session_id)
         sources = await gather_global_chat_sources(
             conn,
             lambda row: _can_see_post(account, row),
             account.corporate_entity_ids,
             question=question,
+            knowledge_cutoff=knowledge_cutoff,
         )
     if conversation.compress_turns:
         compressor = getattr(client, "compress_context", None)
@@ -2827,6 +2896,11 @@ async def ask_agent(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Ask Agent conversation context compression is unavailable",
             ) from exc
+        except Exception as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask Agent conversation context compression is unavailable",
+            ) from exc
     conversation_context = render_global_ask_context(
         conversation.summary,
         conversation.recent_turns,
@@ -2848,6 +2922,9 @@ async def ask_agent(
             "source_post_ids": [],
             "cited_post_evidence": [],
             "timeline": [],
+            "project_histories": [],
+            "project_histories_truncated": False,
+            "knowledge_cutoff": knowledge_cutoff.isoformat().replace("+00:00", "Z"),
             "next_action": "No authorized source posts are available for this question.",
         }
     try:
@@ -2876,6 +2953,17 @@ async def ask_agent(
             answer.answer_text,
             cited_ids,
         )
+        answer_evidence = await read_authorized_ask_evidence(
+            conn,
+            cited_post_ids=cited_ids,
+            corporate_entity_ids=account.corporate_entity_ids,
+            knowledge_cutoff=knowledge_cutoff,
+        )
+    if not answer_evidence.all_citations_visible:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Global Ask evidence changed before the answer could be returned",
+        )
     await publish_operation_event(
         valkey,
         account.user_account_id,
@@ -2886,10 +2974,10 @@ async def ask_agent(
         "session_id": conversation.session_id,
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
-        "cited_posts": cited_post_summaries(sources, cited_ids),
         "cited_post_evidence": cited_post_evidence(sources, cited_ids),
         "source_post_ids": [source.post_id for source in sources],
         "timeline": global_ask_timeline(sources),
+        **answer_evidence.response_fields(),
     }
 
 
@@ -3439,7 +3527,7 @@ async def read_project_history(
             ) from exc
     async with pool.acquire() as conn:
         try:
-            return await fetch_project_history_projection(
+            projection = await fetch_project_history_projection(
                 conn,
                 project_key=project_key,
                 focus_post_id=focus_post_id,
@@ -3449,6 +3537,13 @@ async def read_project_history(
             )
         except ProjectHistoryNotFound as exc:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "project history not found") from exc
+    projection["tepp_validation"] = await asyncio.to_thread(
+        validate_project_history_with_tepp,
+        projection=projection,
+        tenant_workspace_id=tenant_workspace_reference(account.corporate_entity_ids),
+        transport_url=load_settings().tepp_transport_url,
+    )
+    return projection
 
 
 @app.get("/api/rankings")

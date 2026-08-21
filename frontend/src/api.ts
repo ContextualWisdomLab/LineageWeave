@@ -282,12 +282,24 @@ export interface CitedPostEvidence {
   facts: CitedPostEvidenceFact[];
 }
 
+export interface ProjectHistoryLink {
+  project_key: string;
+  project_name: string;
+  focus_post_id: string;
+  source_post_ids: string[];
+  knowledge_cutoff: string;
+  truth_status_code: "observed" | "inferred";
+}
+
 export interface ChatAnswer {
   post_id: string;
   answer_text: string;
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
   source_post_ids: string[];
+  knowledge_cutoff?: string;
+  project_histories?: ProjectHistoryLink[];
+  project_histories_truncated?: boolean;
 }
 
 export interface ChatExchange {
@@ -295,6 +307,9 @@ export interface ChatExchange {
   answer_text: string;
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
+  knowledge_cutoff?: string;
+  project_histories?: ProjectHistoryLink[];
+  project_histories_truncated?: boolean;
 }
 
 export interface ChatHistory {
@@ -310,6 +325,9 @@ export interface AskAgentResponse {
   cited_post_evidence?: CitedPostEvidence[];
   source_post_ids: string[];
   timeline?: AskTimelineEntry[];
+  knowledge_cutoff?: string;
+  project_histories?: ProjectHistoryLink[];
+  project_histories_truncated?: boolean;
   next_action?: string;
 }
 

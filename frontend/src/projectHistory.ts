@@ -2,6 +2,45 @@ import type { ProjectEvidence } from "./api";
 import type { Locale } from "./i18n";
 
 export type ProjectHistoryTruthStatus = "observed" | "inferred";
+
+export type TeppProjectHistoryFindingCode =
+  | "contract_award_before_focus"
+  | "specification_change_before_focus"
+  | "delivery_before_focus"
+  | "handoff_before_focus"
+  | "rebid_after_focus"
+  | "specification_change_and_handoff_before_focus";
+
+export interface TeppProjectHistoryFinding {
+  finding_code: TeppProjectHistoryFindingCode;
+  summary: string;
+  related_event_ids: string[];
+  evidence_post_ids: string[];
+}
+
+export interface TeppProjectHistoryMetadata {
+  contract_version: 1;
+  project_key: string;
+  project_name: string;
+  focus_event_id: string;
+  knowledge_cutoff: string;
+  history_span_start: string;
+  history_span_end: string;
+  participant_count: number;
+  inference_status: "temporal_association_only";
+  event_count: number;
+  findings: TeppProjectHistoryFinding[];
+}
+
+export interface TeppProjectHistoryValidation {
+  status: "validated" | "not_configured" | "unavailable" | "invalid_evidence";
+  project_history: TeppProjectHistoryMetadata | null;
+  next_action_code:
+    | "open_source_evidence"
+    | "configure_tepp_project_history"
+    | "retry_tepp_project_history";
+}
+
 export type ResponsibilityTransitionCode = "continuous" | "handoff" | "assignment_gap";
 export type ProjectHistoryTimeBasis = "source_post_created_at_fallback" | "document_time";
 
@@ -73,6 +112,7 @@ export interface ProjectHistoryProjection {
   distinct_actor_count?: number;
   distinct_observed_actor_count: number;
   truncated: boolean;
+  tepp_validation?: TeppProjectHistoryValidation;
   events: ProjectHistoryEvent[];
 }
 

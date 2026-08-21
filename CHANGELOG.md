@@ -4,6 +4,29 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.20.0] - 2026-08-21
+
+### Added
+
+- Post-scoped Ask and Global Ask now attach exact project-history links derived
+  only from currently authorized cited posts. Opening a link reuses the canonical
+  Project history timeline and its optional TEPP validation at the answer cutoff.
+
+### Security
+
+- Persisted post answers are withheld when any citation is no longer visible, and
+  stale Global Ask sessions are restarted before hidden prior prose can re-enter
+  conversation context (ADR 0113).
+
+## [2.19.0] - 2026-08-21
+
+### Added
+
+- Recovered the credential-free TEPP project-history validation boundary on top of
+  the canonical Buyer timeline. TEPP may return only cutoff-safe temporal
+  associations over the exact authorized events; the timeline remains readable
+  when TEPP is absent, and no result is labelled as a cause (ADR 0127).
+
 ## [2.18.0] - 2026-08-20
 
 ### Added

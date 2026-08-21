@@ -110,6 +110,11 @@ _GLOBAL_ASK_CONTEXT_MIGRATION = (
     / "migrations"
     / "0052_global_ask_context.sql"
 )
+_POST_CHAT_CUTOFF_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0054_post_chat_knowledge_cutoff.sql"
+)
 _MAJOR_EVENT_ACTION_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0100_major_event_action.sql"
 )
@@ -235,6 +240,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
             cur.execute(_ORGANIZATION_CONTEXT_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_CONTEXT_MIGRATION.read_text())
+            cur.execute(_POST_CHAT_CUTOFF_MIGRATION.read_text())
             cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
