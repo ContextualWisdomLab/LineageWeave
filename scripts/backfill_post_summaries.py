@@ -23,13 +23,18 @@ if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from backend.app.post_summary_ingestion import persist_post_summary
-from lineageweave.corporate_hierarchy_inference import NullCorporateHierarchyInferenceClient
+from lineageweave.corporate_hierarchy_inference import (
+    NullCorporateHierarchyInferenceClient,
+)
 from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_content_persistence import persist_post_content
-from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
+from lineageweave.post_structure import (
+    ContextualOrchestratorPostStructureClient,
+    NullPostStructureClient,
+)
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient
 from lineageweave.semantic_hints import format_semantic_hints
