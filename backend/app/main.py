@@ -567,7 +567,7 @@ async def _lookup_post_labels(conn: asyncpg.Connection, rows: list[asyncpg.Recor
 
 async def _post_filter_options(
     conn: asyncpg.Connection, corporate_entity_ids: frozenset[str]
-) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+) -> tuple[list[dict[str, str]], list[dict[str, str]], list[str]]:
     """Return every authorized filter value, not only values on the current page."""
     visibility_sql = f"""
         select distinct post.visibility_code as code,
@@ -595,6 +595,15 @@ async def _post_filter_options(
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
     """
+    week_sql = f"""
+        select distinct to_char(post.created_at at time zone 'UTC', 'IYYY-"W"IW') as iso_week
+          from source_post post
+         where (post.visibility_code = 'public'
+            or post.corporate_entity_id::text = any($1::text[]))
+           and post.created_at is not null
+           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+         order by iso_week desc
+    """
     # Safe SQL: both query strings are closed lookup statements; entity ids remain asyncpg parameters.
     visibility_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         visibility_sql, list(corporate_entity_ids)
@@ -603,9 +612,14 @@ async def _post_filter_options(
     type_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         type_sql, list(corporate_entity_ids)
     )
+    # Safe SQL: the ISO-week query is closed; entity ids remain an asyncpg parameter.
+    week_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        week_sql, list(corporate_entity_ids)
+    )
     return (
         [{"code": row["code"], "label": row["label"]} for row in type_rows],
         [{"code": row["code"], "label": row["label"]} for row in visibility_rows],
+        [row["iso_week"] for row in week_rows],
     )
 
 
@@ -1140,6 +1154,7 @@ async def list_posts(
     search: str | None = Query(None, max_length=200),
     voc_type: list[str] | None = Query(None, max_length=80),
     visibility: str | None = Query(None, max_length=80),
+    iso_week: str | None = Query(None, max_length=8, pattern=r"^\d{4}-W\d{2}$"),
     sort: Literal["newest", "oldest", "title"] = Query("newest"),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
@@ -1148,7 +1163,7 @@ async def list_posts(
     _require_post_read(account)
     search_term = search.strip() if search and search.strip() else None
     async with pool.acquire() as conn:
-        voc_type_options, visibility_options = await _post_filter_options(
+        voc_type_options, visibility_options, iso_week_options = await _post_filter_options(
             conn, account.corporate_entity_ids
         )
         body_search_ids: list[str] = []
@@ -1194,7 +1209,7 @@ async def list_posts(
                        case
                            when $1::text is null then 0
                            when lower(coalesce(post.post_title, '')) like '%' || lower($1) || '%' then 0
-                           when post.post_id = any($5::uuid[]) then 1
+                           when post.post_id = any($6::uuid[]) then 1
                            else 2
                        end as search_priority,
                        count(*) over() as total_count
@@ -1258,7 +1273,7 @@ async def list_posts(
                             ) >= 0.45
                         )
                     )
-                    or post.post_id = any($5::uuid[])
+                    or post.post_id = any($6::uuid[])
                     or exists (
                         select 1 from post_project_mention project
                          where project.post_id = post.post_id
@@ -1325,18 +1340,22 @@ async def list_posts(
                )
                and ($3::text[] is null or post.voc_type_code = any($3::text[]))
                and ($4::text is null or post.visibility_code = $4)
+               and (
+                    $5::text is null
+                    or to_char(post.created_at at time zone 'UTC', 'IYYY-"W"IW') = $5
+               )
                  order by
                     search_priority asc,
                     case
-                        when $1::text is not null and post.post_id = any($5::uuid[])
-                        then array_position($5::uuid[], post.post_id)
+                        when $1::text is not null and post.post_id = any($6::uuid[])
+                        then array_position($6::uuid[], post.post_id)
                     end asc,
-                    case when $8::text = 'title' then lower(coalesce(post.post_title, '')) end asc,
-                    case when $8::text = 'oldest' then post.created_at end asc,
-                    case when $8::text in ('newest', 'title') then post.created_at end desc,
+                    case when $9::text = 'title' then lower(coalesce(post.post_title, '')) end asc,
+                    case when $9::text = 'oldest' then post.created_at end asc,
+                    case when $9::text in ('newest', 'title') then post.created_at end desc,
                     post.post_id desc
-                   offset $6
-                   limit $7
+                   offset $7
+                   limit $8
             )
             select page.*,
                    case
@@ -1383,17 +1402,18 @@ async def list_posts(
                 case when $1::text is not null then page.search_priority end asc,
                 case
                     when $1::text is not null and page.search_priority = 1
-                    then array_position($5::uuid[], page.post_id)
+                    then array_position($6::uuid[], page.post_id)
                 end asc,
-                case when $8::text = 'title' then lower(coalesce(page.post_title, '')) end asc,
-                case when $8::text = 'oldest' then page.created_at end asc,
-                case when $8::text in ('newest', 'title') then page.created_at end desc,
+                case when $9::text = 'title' then lower(coalesce(page.post_title, '')) end asc,
+                case when $9::text = 'oldest' then page.created_at end asc,
+                case when $9::text in ('newest', 'title') then page.created_at end desc,
                 page.post_id desc
             """,
             search_term,
             list(account.corporate_entity_ids),
             [code.strip() for code in voc_type if code.strip()] if voc_type else None,
             visibility.strip() if visibility and visibility.strip() else None,
+            iso_week,
             body_search_ids,
             offset,
             limit,
@@ -1409,6 +1429,7 @@ async def list_posts(
         "offset": offset,
         "voc_type_options": voc_type_options,
         "visibility_options": visibility_options,
+        "iso_week_options": iso_week_options,
     }
 
 

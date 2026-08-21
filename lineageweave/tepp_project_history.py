@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from datetime import datetime, timezone
+import json
 import re
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
@@ -21,6 +22,7 @@ PROJECT_HISTORY_PATH = "/v1/project-histories"
 PROJECT_HISTORY_INFERENCE_STATUS = "temporal_association_only"
 PROJECT_HISTORY_EVENT_LIMIT = 128
 PROJECT_HISTORY_ACTOR_LIMIT = 64
+PROJECT_HISTORY_BYTE_LIMIT = 256 * 1024
 _RFC3339_PATTERN = re.compile(
     r"^[0-9]{4}-[0-9]{2}-[0-9]{2}[Tt][0-9]{2}:"
     r"[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?(?:[Zz]|[+-][0-9]{2}:[0-9]{2})$"
@@ -203,7 +205,7 @@ def validate_tepp_project_history_request(
     focus_event_id = _text(payload["focus_event_id"], "focus_event_id", 256)
     if focus_event_id not in set(event_ids):
         raise TeppProjectHistoryUnavailable("focus event is outside the evidence bundle")
-    return {
+    validated = {
         "contract_version": PROJECT_HISTORY_CONTRACT_VERSION,
         "idempotency_key": _text(payload["idempotency_key"], "idempotency_key", 256),
         "tenant_workspace_id": _text(
@@ -215,6 +217,10 @@ def validate_tepp_project_history_request(
         "focus_event_id": focus_event_id,
         "events": events,
     }
+    wire = json.dumps(validated, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    if len(wire) > PROJECT_HISTORY_BYTE_LIMIT:
+        raise TeppProjectHistoryUnavailable("project-history request exceeds 256 KiB")
+    return validated
 
 
 def _finding(
@@ -407,6 +413,7 @@ class TeppProjectHistoryClient:
             headers=headers,
             timeout=timeout,
             include_llm_metadata=False,
+            maximum_response_bytes=PROJECT_HISTORY_BYTE_LIMIT,
         )
 
     def project(self, request: Any) -> dict[str, Any]:

@@ -7,10 +7,16 @@ import threading
 from copy import deepcopy
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
+import pytest
+
 from lineageweave import tepp_project_history as tepp_transport_module
-from lineageweave.http_client import post_json
+from lineageweave.http_client import HttpClientError, post_json
 from lineageweave.llm_context import use_llm_metadata
-from lineageweave.tepp_project_history import TeppProjectHistoryClient
+from lineageweave.tepp_project_history import (
+    TeppProjectHistoryClient,
+    TeppProjectHistoryUnavailable,
+    validate_tepp_project_history_request,
+)
 
 
 class _EchoHandler(BaseHTTPRequestHandler):
@@ -19,7 +25,9 @@ class _EchoHandler(BaseHTTPRequestHandler):
     def do_POST(self) -> None:  # noqa: N802 -- stdlib callback name
         length = int(self.headers.get("content-length", "0"))
         payload = json.loads(self.rfile.read(length).decode("utf-8"))
-        body = json.dumps({"echo": payload}).encode("utf-8")
+        body = json.dumps(
+            {"oversized": "x" * 512} if self.path == "/oversized" else {"echo": payload}
+        ).encode("utf-8")
         self.send_response(200)
         self.send_header("content-type", "application/json")
         self.send_header("content-length", str(len(body)))
@@ -124,19 +132,65 @@ def test_post_json_can_disable_metadata_for_a_closed_contract() -> None:
     assert body["echo"] == {"contract_version": 1}
 
 
+def test_post_json_rejects_a_response_above_the_contract_byte_limit() -> None:
+    """A bounded wire contract never buffers an oversized remote response."""
+
+    server, base = _serve()
+    try:
+        with pytest.raises(HttpClientError, match="response exceeds"):
+            post_json(
+                f"{base}/oversized",
+                {},
+                headers={},
+                timeout=2.0,
+                maximum_response_bytes=256,
+            )
+    finally:
+        server.shutdown()
+
+
+def test_tepp_request_rejects_payload_above_the_published_byte_limit() -> None:
+    """LineageWeave rejects oversized evidence before TEPP returns HTTP 400."""
+
+    request = _request()
+    template = request["events"][0]
+    request["events"] = [
+        {
+            **template,
+            "event_id": f"event-{index}",
+            "source_post_id": f"post-{index}",
+            "evidence_text": "x" * 4096,
+        }
+        for index in range(128)
+    ]
+    request["focus_event_id"] = "event-0"
+
+    with pytest.raises(TeppProjectHistoryUnavailable, match="request exceeds"):
+        validate_tepp_project_history_request(request)
+
+
 def test_default_tepp_transport_disables_context_metadata(monkeypatch) -> None:
     """The strict TEPP adapter opts out even when Ask sets LLM metadata."""
 
     request = _request()
     captured: dict[str, object] = {}
 
-    def fake_post_json(url, payload, *, headers, timeout, include_llm_metadata):
+    def fake_post_json(
+        url,
+        payload,
+        *,
+        headers,
+        timeout,
+        include_llm_metadata,
+        maximum_response_bytes,
+    ):
         captured.update(
             url=url,
             payload=deepcopy(payload),
             headers=headers,
             timeout=timeout,
             include_llm_metadata=include_llm_metadata,
+            maximum_response_bytes=maximum_response_bytes,
         )
         return _response(payload)
 
@@ -146,5 +200,6 @@ def test_default_tepp_transport_disables_context_metadata(monkeypatch) -> None:
 
     assert result["inference_status"] == "temporal_association_only"
     assert captured["include_llm_metadata"] is False
+    assert captured["maximum_response_bytes"] == 256 * 1024
     assert captured["payload"] == request
     assert "metadata" not in captured["payload"]
