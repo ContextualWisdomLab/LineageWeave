@@ -1606,7 +1606,7 @@ describe("App, authenticated", () => {
                     entity_level_code: "company",
                     entity_level_label: "Company",
                     parent_entity_id: "corp-group",
-                    scope_facets: ["authorized_own"],
+                    scope_facets: ["authorized_own", "observed_hierarchy"],
                   },
                 ]
               : [
@@ -1766,6 +1766,10 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Demo Corp")).toBeInTheDocument();
     expect(screen.queryByText("Demo Group")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Demo Corp.*Own company/ })).toBeInTheDocument();
+
+    await userEvent.selectOptions(filter, "observed_hierarchy");
+    expect(screen.getByText("Demo Corp")).toBeInTheDocument();
+    expect(screen.queryByText("Demo Group")).not.toBeInTheDocument();
   });
 
   it("shows every observed relationship role for a counterparty, flagging multi-role names", async () => {

@@ -992,8 +992,16 @@ async def read_customer_master(
                     for scope_code in (row["affiliation_scope_codes"] or ["scope_unclassified"])
                 ],
             )
+        observed_entity_ids = {str(row["corporate_entity_id"]) for row in observed_entity_rows}
         for row in observed_entity_rows:
             add_entity(row, ["observed_organization"])
+        for entity_id in observed_entity_ids:
+            entity = entity_by_id[entity_id]
+            parent_id = entity["parent_entity_id"]
+            if parent_id is None or str(parent_id) not in entity_by_id:
+                continue
+            entity["scope_facets"].add("observed_hierarchy")
+            entity_by_id[str(parent_id)]["scope_facets"].add("observed_hierarchy")
         entity_rows = sorted(entity_by_id.values(), key=lambda row: row["entity_name"])
         has_source_context = bool(source_customer_rows or source_author_rows)
         if not has_source_context:

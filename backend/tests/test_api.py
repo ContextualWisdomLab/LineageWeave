@@ -1250,6 +1250,7 @@ def test_settings_patch_requires_post_admin(client, demo_analyst_token, seeded_d
 
 
 def test_customer_master_returns_authorized_catalog_contract(client, demo_analyst_token, seeded_db) -> None:
+    subject = jwt.decode(demo_analyst_token, options={"verify_signature": False})["sub"]
     admin_conn = psycopg2.connect(seeded_db["dsn"])
     try:
         with admin_conn.cursor() as cur:
@@ -1288,13 +1289,22 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
             )
             cur.execute(
                 "insert into post_organization_mention (post_id, corporate_entity_id) "
-                "values (%s, %s), (%s, %s)",
+                "values (%s, %s), (%s, %s), (%s, %s)",
                 (
                     seeded_db["public_post_id"],
                     seeded_db["other_corp_id"],
                     seeded_db["other_private_post_id"],
                     seeded_db["hidden_corp_id"],
+                    seeded_db["public_post_id"],
+                    seeded_db["own_corp_id"],
                 ),
+            )
+            cur.execute(
+                "insert into account_affiliation "
+                "(user_account_id, corporate_entity_id, affiliation_scope_code) "
+                "select user_account_id, %s, 'scope_granted_entity' "
+                "from user_account where external_subject_id = %s",
+                (seeded_db["own_group_id"], subject),
             )
             # A real counterparty can hold more than one role over its
             # lifetime -- one post classifies "Northridge Grid" as a
@@ -1336,7 +1346,9 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
     # confirm this is a real common_lookup_value label, not the code echoed back.
     assert entity["entity_level_code"] == "company"
     assert entity["entity_level_label"] not in ("", "company")
-    assert entity["scope_facets"] == ["authorized_own"]
+    assert entity["scope_facets"] == ["authorized_own", "observed_hierarchy", "observed_organization"]
+    parent = next(item for item in body["corporate_entities"] if item["entity_name"] == "Test Group")
+    assert parent["scope_facets"] == ["authorized_granted", "observed_hierarchy"]
     granted = next(item for item in body["corporate_entities"] if item["entity_name"] == "Granted Corp")
     assert granted["scope_facets"] == ["authorized_granted"]
     observed = next(item for item in body["corporate_entities"] if item["entity_name"] == "Other Corp")

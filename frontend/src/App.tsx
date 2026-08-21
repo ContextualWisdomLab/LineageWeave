@@ -4448,6 +4448,7 @@ function CustomerMasterPanel({
               <option value="authorized_granted">{t("Granted company")}</option>
               <option value="scope_unclassified">{t("Scope not classified")}</option>
               <option value="observed_organization">{t("Observed organization")}</option>
+              <option value="observed_hierarchy">{t("Observed hierarchy")}</option>
             </select>
           </div>
           {visibleEntities.length > 0 ? (
