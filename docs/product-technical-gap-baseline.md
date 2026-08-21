@@ -93,7 +93,7 @@ Open PRs at the same observation:
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `4efd5e73abfb88fa53dca66cbcfc337cd7c715ea` (the exact current
+- PR #368: `head` `2ea8e3d8d25414429f3bacc9b1e97ae589ce352c` (the exact current
   documentation checkpoint), base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, base `main`
@@ -102,7 +102,7 @@ Open PRs at the same observation:
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #384: `head` `13bf132f06f52adb01997c6a805d440fea6f40f7`, base
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
-- PR #387: `head` `13c102532f4485c732a83c7741e0844c77f082e5`, base `main`
+- PR #387: `head` `7a0a5f649c766d967d73265ae7833aa7c070f542`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #391: `head` `d2216ce7ee866d24cab9933eb2fd871a1b4da140`, base PR #387
   (`13c102532f4485c732a83c7741e0844c77f082e5`).
@@ -335,14 +335,29 @@ Observed at `2026-08-22T03:43:10Z` on PR #391's exact head
   and `git diff --check`. Hosted Checks were one pass and three pending at the
   observation; no independent approval or merge was claimed.
 
-Observed at `2026-08-21T18:11:51Z` on PR #383's current head
-`6525127008b3ba74526e8ffb8d8bf25630cf58db`:
+Observed at `2026-08-22T03:44:00Z` on PR #387's exact head
+`7a0a5f649c766d967d73265ae7833aa7c070f542`:
+
+- The remote branch advanced after the earlier local 770-test checkpoint.
+  Current hosted checks were still queued (15 pending, no failure observed) and
+  no independent approval was present; the earlier local result is not claimed
+  as evidence for this newer head.
+
+Observed at `2026-08-22T03:44:00Z` on PR #383's current head
+`3584c31c22a432399c694588a4786c445f943848`:
 
 - `TypeError` from post-chat/global-agent and post-content-worker paths is now
   classified as an internal failure, while provider transport/configuration
   errors retain `provider_unavailable`. Focused worker and diagnostics tests
   passed; hosted Checks, independent approval, and a protected merge commit
   remain absent.
+
+- The hosted `osv-scan` job `96871880120` still fails after both scans exit 0:
+  the central workflow passes deprecated `--output=old-results.json` and
+  `--output=new-results.json`, then `test -s` cannot find those files. This is
+  the same central defect addressed, but not yet merged, by `.github` PR #1158;
+  the application PR remains unmergeable until its current Checks and approval
+  gates pass.
 
 Observed at `2026-08-21T18:39:50Z` on PR #349's exact head
 `202194a2d9ba6da49a011ca6127a00f6bf5394ba`:
@@ -364,15 +379,15 @@ OpenTelemetry attributes correlate the authorized operation across services;
 collector delivery, retention, access review, and no-export rollback are the
 GRC evidence subjects.
 
-The historical PR #383 `osv-scan` failure was a central workflow defect: the
+The current PR #383 `osv-scan` failure is a central workflow defect: the
 scan exited successfully, but the follow-up treated a missing baseline result
 file as failure after the head checkout. Central `.github` PR #1158 now
 contains the direct-source result-file repair (`--output-file`) at observed
 exact head `c24ce16ab72c5b372d2c397f0af8f84dc1b63d2f`; its provenance, Python
-contracts, and exact-head policy checks pass. The current #383 head has no
-failed Checks observed but still has non-terminal Checks and no independent
-approval, so it is not authorized to merge. Central PR #1002 independently
-remains open at observed exact head
+contracts, and exact-head policy checks pass. The current #383 head still has
+the `osv-scan` failure above, while other Checks are non-terminal and no
+independent approval is present, so it is not authorized to merge. Central PR
+#1002 independently remains open at observed exact head
 `a5163b4db0f25c0f2463fdeb075a74c8c0f2f6bf` with required checks still running.
 
 ## 7. Next Implementation Order
