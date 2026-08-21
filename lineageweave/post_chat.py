@@ -24,7 +24,7 @@ import re
 from dataclasses import dataclass, field
 from typing import Protocol
 
-from .http_client import post_json
+from .http_client import chat_completion_content, post_json
 
 CANONICAL_CHAT_QUESTION = "What happened between these events?"
 CANONICAL_INVOLVED_QUESTION = "Who is involved?"
@@ -320,7 +320,7 @@ class ContextualOrchestratorPostChatClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = body["choices"][0]["message"]["content"]
+        content = chat_completion_content(body)
         answer = _parse_plain_chat_response(content, sources)
         if answer is None:
             raise ValueError("chat response did not match the required format")
