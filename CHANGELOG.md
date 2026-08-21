@@ -25,7 +25,7 @@ All notable changes to this project are documented here. Format follows
 - Recovered the credential-free TEPP project-history validation boundary on top of
   the canonical Buyer timeline. TEPP may return only cutoff-safe temporal
   associations over the exact authorized events; the timeline remains readable
-  when TEPP is absent, and no result is labelled as a cause (ADR 0112).
+  when TEPP is absent, and no result is labelled as a cause (ADR 0127).
 
 ## [2.18.0] - 2026-08-20
 

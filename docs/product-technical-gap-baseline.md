@@ -347,7 +347,7 @@ runtime note into a shipped/live claim.
 ## Current stacked PR product-surface gaps
 
 - **Customer Master relationship composition — PR #262**: Resolved on the
-  current feature branch. ADR 0125 and Figma frames `313:2` / `314:2` define a
+  current feature branch. ADR 0129 and Figma frames `313:2` / `314:2` define a
   customer-centered three-pane workspace that keeps the selected customer
   stable while the user inspects relationships and source posts.
 - **Responsive Customer Master flow — PR #262**: Resolved on the current

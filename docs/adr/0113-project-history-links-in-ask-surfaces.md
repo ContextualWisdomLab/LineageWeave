@@ -2,7 +2,7 @@
 
 - Status: Proposed
 - Date: 2026-08-21
-- Depends on: ADR 0112 and the canonical Project history read model
+- Depends on: ADR 0112, ADR 0127, and the canonical Project history read model
 
 ## Context
 
