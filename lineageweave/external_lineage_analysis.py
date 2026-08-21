@@ -437,6 +437,10 @@ def analyze_external_lineage(
     ]
     limitations.extend(explicit_limitations)
 
+    edge_order = {
+        record.evidence_ref: (record.group_ref, record.occurred_at, record.evidence_ref)
+        for record in included
+    }
     result = LineageAnalysisResult(
         contract_version=CONTRACT_VERSION,
         analysis_id=validated.analysis_id,
@@ -453,7 +457,7 @@ def analyze_external_lineage(
             sorted(
                 edges,
                 key=lambda item: (
-                    item.child_evidence_ref,
+                    edge_order[item.child_evidence_ref],
                     item.parent_evidence_ref,
                     item.relation_type_code,
                 ),

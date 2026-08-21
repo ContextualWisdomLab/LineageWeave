@@ -93,5 +93,10 @@ class ContextualOrchestratorAdjudicationClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = chat_completion_content(body)
+        try:
+            content = chat_completion_content(body)
+        except (TypeError, ValueError) as exc:
+            raise AdjudicationClientError(
+                "provider response did not contain one chat message"
+            ) from exc
         return parse_confidence_response(content)
