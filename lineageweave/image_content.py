@@ -36,7 +36,7 @@ from urllib.parse import urlparse
 
 from PIL import Image
 
-from .http_client import post_json
+from .http_client import chat_completion_content, post_json
 
 _DATA_URI_IMG = re.compile(
     r'<img\b[^>]*\bsrc\s*=\s*["\']data:(image/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)["\']',
@@ -261,9 +261,7 @@ def _parse_description(content: str) -> ImageDescription:
             fields["TEXT"].append(_strip_outer_markdown_emphasis(line))
 
     if not fields["TEXT"] and not fields["CAPTION"]:
-        raise ImageDescriptionParseError(
-            f"vision response had neither TEXT nor CAPTION content: {content!r}"
-        )
+        raise ImageDescriptionParseError("vision response had neither TEXT nor CAPTION content")
 
     extracted_text = "\n".join(fields["TEXT"]).strip()
     if extracted_text.upper() == "NONE":
@@ -342,7 +340,7 @@ class OpenAiCompatibleVisionClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = body["choices"][0]["message"]["content"]
+        content = chat_completion_content(body)
         return _parse_description(content)
 
     def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
@@ -375,9 +373,7 @@ class OpenAiCompatibleVisionClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = body["choices"][0]["message"]["content"]
-        if not isinstance(content, str):
-            raise ValueError("vision region response was not text JSON")
+        content = chat_completion_content(body)
         fenced = re.sub(r"^\s*```(?:json)?\s*|\s*```\s*$", "", content, flags=re.IGNORECASE)
         document = json.loads(fenced)
         if not isinstance(document, dict):

@@ -9,7 +9,8 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-import backend.app.auth as auth
+from backend.app import auth
+from lineageweave.http_client import HttpClientError
 
 
 def _segment(value: dict) -> str:
@@ -173,3 +174,42 @@ def test_decode_rejects_missing_subject(monkeypatch: pytest.MonkeyPatch) -> None
     with pytest.raises(HTTPException) as error:
         auth._decode_access_token("token", settings)
     assert error.value.status_code == 401
+
+
+def test_decode_hides_raw_jwt_provider_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(auth, "_signing_key", lambda settings, token: "signing-key")
+
+    def fail_decode(*args: object, **kwargs: object) -> dict:
+        raise auth.jwt.InvalidTokenError("provider secret")
+
+    monkeypatch.setattr(auth.jwt, "decode", fail_decode)
+    settings = SimpleNamespace(
+        oidc_issuer="https://id.example",
+        oidc_audience="lineageweave-api",
+        oidc_clock_skew_seconds=5,
+    )
+
+    with pytest.raises(HTTPException) as error:
+        auth._decode_access_token("token", settings)
+    assert error.value.detail == "invalid access token"
+    assert "provider secret" not in str(error.value.detail)
+
+
+def test_jwks_hides_raw_identity_provider_error(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        auth,
+        "get_json",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            HttpClientError("identity provider secret")
+        ),
+    )
+    settings = SimpleNamespace(
+        oidc_issuer="https://id.example",
+        oidc_discovery_uri="https://id.example/.well-known/openid-configuration",
+        oidc_jwks_uri_override="",
+    )
+
+    with pytest.raises(HTTPException) as error:
+        auth._jwks(settings)
+    assert error.value.detail == "could not fetch OIDC JWKS: identity provider unavailable"
+    assert "identity provider secret" not in str(error.value.detail)

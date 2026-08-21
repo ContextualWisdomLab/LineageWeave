@@ -2650,7 +2650,7 @@ async def ask_agent(
     except (HttpClientError, KeyError, OSError, ValueError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            f"Ask Agent is unavailable: {exc}",
+            "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
     return {
