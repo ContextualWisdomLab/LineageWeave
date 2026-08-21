@@ -10,7 +10,6 @@ import pytest
 from lineageweave.http_client import (
     HttpClientError,
     get_json,
-    get_json_list,
     post_form,
     post_json,
 )

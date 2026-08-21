@@ -2588,7 +2588,7 @@ async def chat_about_post(
     try:
         with use_llm_metadata(post_metadata):
             answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, ValueError) as exc:
+    except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
@@ -2647,7 +2647,7 @@ async def ask_agent(
         }
     try:
         answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, ValueError) as exc:
+    except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
