@@ -70,6 +70,15 @@ rerun for the resulting PR head.
   `3 passed` and the shared SQL contract test passed; full API-file execution
   remains unclaimed because its external integration setup did not terminate.
 
+- **Canonical ontology explorer PR:** PR #349 remains open and unmerged at
+  exact head `1cb9f7000224aec55e4df184044d04e170b5960e`, based on `main` at
+  `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`. Its latest stabilization fixes
+  recheck final-depth endpoint visibility, log bounded stale-summary fallback
+  diagnostics, recompute node evidence after node-bound trimming, and make
+  tenant-settings migration `0103` replay-safe. Focused validation is `46
+  passed`; hosted Tests, Security, SAST, PROV-O, and Devin Review remain
+  pending/queued, so no approval or merge is claimed.
+
 ## 2. UI/UX Standard Guide v3.0 comparison
 
 ### 2.1 Satisfied or substantially present
