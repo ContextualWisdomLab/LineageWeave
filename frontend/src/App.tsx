@@ -4662,8 +4662,6 @@ function buildCustomerEntityTree(entities: CustomerMasterEntity[]): CustomerEnti
   return roots.map(toNode);
 }
 
-type CustomerMasterScopeFilter = "all" | CustomerMasterScopeFacet;
-
 function customerScopeFacetLabel(facet: CustomerMasterScopeFacet): string {
   switch (facet) {
     case "authorized_own":
@@ -4677,13 +4675,6 @@ function customerScopeFacetLabel(facet: CustomerMasterScopeFacet): string {
     case "observed_hierarchy":
       return t("Observed hierarchy");
   }
-}
-
-function customerEntityMatchesScope(
-  entity: CustomerMasterEntity,
-  filter: CustomerMasterScopeFilter,
-): boolean {
-  return filter === "all" || (entity.scope_facets ?? []).includes(filter);
 }
 
 function CustomerEntityTreeRow({
@@ -4839,7 +4830,6 @@ function CustomerMasterPanel({
   const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
   const [resolvingHint, setResolvingHint] = useState<string | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
-  const [scopeFilter, setScopeFilter] = useState<CustomerMasterScopeFilter>("all");
   // Fetched independently, same pattern as PostList's own canRebuild --
   // CustomerMasterPanel is a sibling of PostList under App, not a child,
   // so it cannot read PostList's local post_admin check.
@@ -4870,10 +4860,6 @@ function CustomerMasterPanel({
     setMaster(null);
     void loadMaster();
   }, [loadMaster]);
-
-  const visibleEntities = (master?.corporate_entities ?? []).filter((entity) =>
-    customerEntityMatchesScope(entity, scopeFilter),
-  );
 
   async function handleResolveHint(hintCode: string) {
     setResolvingHint(hintCode);
