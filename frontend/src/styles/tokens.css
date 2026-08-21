@@ -1,18 +1,70 @@
 :root {
+  /* Primary & Accent Colors (§4.1 – CI/BI 규정집 준용) */
+  --color-primary: #034ea2;
+  --color-primary-dark: #2e008b;
+  --color-primary-light: #0047bb;
+  --color-accent-gold: #876d4b;
+  --color-accent-light-gold: #ad7c59;
+  --color-accent-silver: #898c8e;
+  --color-accent-light-silver: #c8c8c8;
+  --color-accent-orange: #ff595a;
+
+  /* Standard Palette (§3.1 공통 – 색상 예시) */
+  --color-palette-blue-deep: #0071bc;
+  --color-palette-blue-mid: #448ccb;
+  --color-palette-blue-light: #adcafc;
+  --color-palette-gray-lightest: #eeeef0;
+  --color-palette-white: #ffffff;
+  --color-palette-gray-400: #a5a5a5;
+  --color-palette-gray-300: #bfbfbf;
+  --color-palette-gray-200: #d8d8d8;
+  --color-palette-gray-100: #f2f2f2;
+
+  /* Table & Form Standard Tokens (§3.1) */
+  --color-table-th-bg: #eeeef0;
+  --color-table-th-border: #d8d8d8;
+  --color-table-th-text: #08060d;
+  --color-table-row-hover: #f2f2f2;
+  --color-table-border: #e5e4e7;
+
+  /* Header & Footer Tokens (§2.2) */
+  --color-header-bg: #ffffff;
+  --color-header-border: #d8d8d8;
+  --color-footer-bg: #f9f9fa;
+  --color-footer-text: #898c8e;
+  --color-footer-border: #e5e4e7;
+
+  /* Focus Ring (§3.1.4 – cursor input form) */
+  --color-focus-ring: rgba(3, 78, 162, 0.35);
+  --color-focus-border: #034ea2;
+
+  /* Button Tokens (§4.3) */
+  --color-btn-primary-bg: #034ea2;
+  --color-btn-primary-hover: #0047bb;
+  --color-btn-primary-text: #ffffff;
+  --color-btn-secondary-bg: #ffffff;
+  --color-btn-secondary-border: #c8c8c8;
+  --color-btn-secondary-hover: #eeeef0;
+  --color-btn-secondary-text: #08060d;
+
+  /* Text & Background */
   --color-text: #6b6375;
   --color-text-heading: #08060d;
   --color-background: #fff;
   --color-border: #e5e4e7;
   --color-code-background: #f4f3ec;
-  --color-accent: #aa3bff;
-  --color-accent-background: rgba(170, 59, 255, 0.1);
-  --color-accent-border: rgba(170, 59, 255, 0.5);
+  --color-accent: #034ea2;
+  --color-accent-background: rgba(3, 78, 162, 0.08);
+  --color-accent-border: rgba(3, 78, 162, 0.4);
   --color-chip-border: #3335;
   --color-border-subtle: #3335;
   --color-accent-info: #2563eb;
   --color-accent-info-background: rgba(37, 99, 235, 0.2);
   --color-accent-secondary: #7c3aed;
   --color-accent-secondary-background: rgba(124, 58, 237, 0.2);
+  --color-status-alert: #b91c1c;
+
+  /* Badge Tokens (ADR 0099) */
   --badge-actor-person-bg: #e8eaf6;
   --badge-actor-person-text: #303f9f;
   --badge-actor-organization-bg: #fff3e0;
@@ -25,6 +77,8 @@
   --badge-status-success-text: #155724;
   --badge-status-danger-bg: #f8d7da;
   --badge-status-danger-text: #721c24;
+
+  /* Spacing & Radius Tokens */
   --space-chip-inline: 0.6rem;
   --space-chip-block: 0.1rem;
   --space-chip-gap: 0.3rem;
@@ -32,30 +86,99 @@
   --space-control-gap: 0.35rem;
   --size-control-min: 24px;
   --radius-chip: 999px;
-  --radius-control: 8px;
+  --radius-control: 6px;
   --font-size-close: 1.5rem;
   --font-family-chip: ui-monospace, Consolas, monospace;
   --font-size-badge: 0.75rem;
   --space-panel-block: 0.75rem;
   --radius-panel: 0.5rem;
+
+  /* Layout & Breakpoint Tokens (§2.1 – 화면 해상도 / 반응형) */
+  --breakpoint-phone: 768px;
+  --breakpoint-tablet: 1024px;
+  --breakpoint-pc: 1280px;
+  --breakpoint-max: 1920px;
+
+  /* Shell Layout Tokens (§2.1 Resolution & §2.2 Identity) */
+  --layout-max-width: 1920px;
+  --layout-content-width: 1280px;
+  --layout-min-width: 1024px;
+  --header-height: 56px;
+  --gnb-height: 48px;
+  --footer-min-height: 64px;
+  --drawer-width: 280px;
+
+  /* Z-Index Layers */
+  --z-header: 100;
+  --z-gnb-pulldown: 90;
+  --z-drawer-backdrop: 200;
+  --z-drawer: 210;
+  --z-modal-backdrop: 300;
+  --z-modal: 310;
+  --z-evidence-panel: 250;
+
+  /* Required Field Indicator */
+  --color-required: #b91c1c;
+
+  /* GNB Active Indicator */
+  --gnb-active-indicator-height: 3px;
+  --gnb-active-indicator-color: var(--color-primary);
+
+  /* Drawer Menu Tokens */
+  --color-drawer-bg: var(--color-background);
+  --color-drawer-border: var(--color-border);
+  --color-drawer-overlay: rgba(0, 0, 0, 0.5);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
+    --color-primary: #448ccb;
+    --color-primary-dark: #2e008b;
+    --color-primary-light: #60a5fa;
+    --color-accent-gold: #ad7c59;
+    --color-accent-light-gold: #ad7c59;
+    --color-accent-silver: #898c8e;
+    --color-accent-light-silver: #c8c8c8;
+    --color-accent-orange: #ff595a;
+
+    --color-table-th-bg: #22232c;
+    --color-table-th-border: #2e303a;
+    --color-table-th-text: #f3f4f6;
+    --color-table-row-hover: #1c1d25;
+    --color-table-border: #2e303a;
+
+    --color-header-bg: #16171d;
+    --color-header-border: #2e303a;
+    --color-footer-bg: #131419;
+    --color-footer-text: #9ca3af;
+    --color-footer-border: #2e303a;
+
+    --color-focus-ring: rgba(96, 165, 250, 0.35);
+    --color-focus-border: #60a5fa;
+
+    --color-btn-primary-bg: #034ea2;
+    --color-btn-primary-hover: #0047bb;
+    --color-btn-primary-text: #ffffff;
+    --color-btn-secondary-bg: #1f2028;
+    --color-btn-secondary-border: #3b3d4a;
+    --color-btn-secondary-hover: #2e303a;
+    --color-btn-secondary-text: #f3f4f6;
+
     --color-text: #9ca3af;
     --color-text-heading: #f3f4f6;
     --color-background: #16171d;
     --color-border: #2e303a;
     --color-code-background: #1f2028;
-    --color-accent: #c084fc;
-    --color-accent-background: rgba(192, 132, 252, 0.15);
-    --color-accent-border: rgba(192, 132, 252, 0.5);
+    --color-accent: #60a5fa;
+    --color-accent-background: rgba(96, 165, 250, 0.15);
+    --color-accent-border: rgba(96, 165, 250, 0.5);
     --color-chip-border: #9ca3af;
     --color-border-subtle: rgba(255, 255, 255, 0.2);
     --color-accent-info: #60a5fa;
     --color-accent-info-background: rgba(96, 165, 250, 0.2);
     --color-accent-secondary: #a78bfa;
     --color-accent-secondary-background: rgba(167, 139, 250, 0.2);
+    --color-status-alert: #f87171;
     --badge-actor-person-bg: rgba(63, 81, 181, 0.25);
     --badge-actor-person-text: #b3bcf5;
     --badge-actor-organization-bg: rgba(154, 52, 18, 0.25);
@@ -68,5 +191,9 @@
     --badge-status-success-text: #86e29b;
     --badge-status-danger-bg: rgba(114, 28, 36, 0.3);
     --badge-status-danger-text: #f5a3ab;
+
+    --color-drawer-bg: #16171d;
+    --color-drawer-border: #2e303a;
+    --color-drawer-overlay: rgba(0, 0, 0, 0.65);
   }
 }

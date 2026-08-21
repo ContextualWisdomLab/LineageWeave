@@ -21,6 +21,7 @@ new claim of its own, it only combines the two.
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass, field
 
@@ -118,7 +119,7 @@ def _image_placeholder(description: ImageDescription) -> str:
     caption = description.caption or "no caption available"
     ocr = description.extracted_text.strip()
     if ocr:
-        return f"[image: {caption} | text: {ocr}]"
+        return f"[image: {caption}]\n\n{ocr}\n"
     return f"[image: {caption}]"
 
 
@@ -128,6 +129,24 @@ def _merge_region_descriptions(descriptions: list[ImageDescription]) -> ImageDes
     captions = " ".join(item.caption.strip() for item in descriptions if item.caption.strip())
     tags = tuple(dict.fromkeys(tag for item in descriptions for tag in item.tags))
     return ImageDescription(extracted_text=extracted_text, caption=captions, tags=tags)
+
+
+def _is_bounded_region(region: ImageRegion) -> bool:
+    """Accept only finite, positive regions wholly inside the image."""
+    if not isinstance(region, ImageRegion):
+        return False
+    values = (region.x, region.y, region.width, region.height)
+    if not all(isinstance(value, (int, float)) for value in values):
+        return False
+    return (
+        all(math.isfinite(value) for value in values)
+        and 0.0 <= region.x <= 1.0
+        and 0.0 <= region.y <= 1.0
+        and 0.0 < region.width <= 1.0
+        and 0.0 < region.height <= 1.0
+        and region.x + region.width <= 1.0
+        and region.y + region.height <= 1.0
+    )
 
 
 def _describe_image_region(
@@ -166,8 +185,12 @@ def _describe_image_chunk(
         except Exception:  # noqa: BLE001 - locator failure falls back to whole-image evidence.
             regions = ()
         try:
-            regions = tuple(regions or ())
-        except Exception:  # noqa: BLE001 - malformed locator output uses parent evidence.
+            regions = tuple(
+                region
+                for region in (regions or ())
+                if _is_bounded_region(region)
+            )
+        except Exception:  # noqa: BLE001 - malformed locator output falls back safely.
             regions = ()
         full_image_region = len(regions) == 1 and regions[0] == ImageRegion(0.0, 0.0, 1.0, 1.0)
         partial_regions = bool(regions) and not full_image_region and not regions_cover_image(regions)
