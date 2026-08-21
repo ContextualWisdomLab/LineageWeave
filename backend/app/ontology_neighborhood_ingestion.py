@@ -278,7 +278,7 @@ async def _load_facts(
     """Load one keyset page of cutoff-safe recursive facts for the focus node."""
     if not visible_post_ids:
         return _LoadedFactWindow()
-    query_limit = min(HARD_MAXIMUM_EDGES, maximum_edges + 1)
+    query_limit = maximum_edges + 1
     query = """
         with recursive candidate_facts as (
             select edge.source_node_type_code,

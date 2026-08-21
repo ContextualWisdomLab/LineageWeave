@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 import pytest
 
+import backend.app.ontology_neighborhood_ingestion as ingestion
 from backend.app.ontology_neighborhood_ingestion import (
     _load_facts,
     _load_labels,
@@ -283,6 +284,39 @@ def test_load_facts_skos_and_labels() -> None:
     assert labels[(NODE_TEAM, TEAM_ID)] == "Demo Team"
     empty_labels = asyncio.run(_load_labels(ScriptedConn({}), []))
     assert empty_labels == {}
+
+
+def test_load_facts_does_not_report_exact_hard_cap_as_truncated(monkeypatch) -> None:
+    """Fetch one lookahead row even when the response is at its hard cap."""
+
+    monkeypatch.setattr(ingestion, "HARD_MAXIMUM_EDGES", 2)
+    rows = [
+        {
+            "source_node_type_code": NODE_PERSON,
+            "source_node_id": PERSON_ID,
+            "target_node_type_code": NODE_POST,
+            "target_node_id": POST_ID,
+            "edge_type_code": EDGE_MENTION,
+            "available_at": T0,
+            "evidence_ids": [POST_ID],
+        },
+        {
+            "source_node_type_code": NODE_PERSON,
+            "source_node_id": PERSON_ID,
+            "target_node_type_code": NODE_CORPORATE_ENTITY,
+            "target_node_id": CORP_ID,
+            "edge_type_code": EDGE_AFFILIATION,
+            "available_at": T0,
+            "evidence_ids": [POST_ID],
+        },
+    ]
+    conn = ScriptedConn({"from knowledge_graph_edge edge": rows})
+
+    window = asyncio.run(_load_facts(conn, [POST_ID], maximum_edges=2))
+
+    assert len(window) == 2
+    assert window.truncated is False
+    assert conn.calls[0][1][4] == 3
 
 
 def test_null_labels_are_not_returned_and_catalog_metadata_is_optional() -> None:
