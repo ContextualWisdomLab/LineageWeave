@@ -27,6 +27,13 @@ path owns only the requesting account's conversations and re-applies the
 current post visibility rule before returning source titles, citations, or
 evidence.
 
+Before the persistence transaction commits, cited `source_post` rows are
+locked with `FOR SHARE` and the same analysis-visibility predicate is applied
+again. If a citation became unauthorized or disappeared, the transaction
+raises a stable retryable failure and rolls back the new session, turn,
+citations, and evidence together. This closes the race between evidence
+retrieval and transcript persistence without exposing the discarded answer.
+
 This is transcript persistence, not a new long-context prompt contract. The
 orchestrator continues to receive the current question and its bounded,
 authorized evidence set. Conversation summarization or cross-turn reasoning
@@ -38,5 +45,7 @@ requires a separate ADR and upstream orchestrator contract.
 * A user cannot read another account's conversation by changing a UUID.
 * Revoked post visibility removes that post's source/citation projection from
   history; the stored answer remains account-owned transcript data.
+* A visibility change during a turn cannot leave a partially persisted or
+  unusable conversation; the reader retries after the source boundary settles.
 * The UI can select an existing conversation or start a new one without
   changing the existing `/api/ask` evidence contract.
