@@ -50,6 +50,7 @@ def build_server(host: str = "127.0.0.1", port: int = 8420) -> ThreadingHTTPServ
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self) -> None:  # noqa: N802
+            """Handle a GET request using the server's health endpoint contract."""
             if self.path == "/api/lineage":
                 trees = reconstruct(sample_records())
                 self._send_json(trees_to_graph(trees))
@@ -57,6 +58,7 @@ def build_server(host: str = "127.0.0.1", port: int = 8420) -> ThreadingHTTPServ
             self._send_static()
 
         def _send_json(self, payload: dict) -> None:
+            """Implement the _send_json operation for this channel."""
             body = json.dumps(payload).encode("utf-8")
             self.send_response(200)
             self.send_header("content-type", "application/json")
@@ -65,6 +67,7 @@ def build_server(host: str = "127.0.0.1", port: int = 8420) -> ThreadingHTTPServ
             self.wfile.write(body)
 
         def _send_static(self) -> None:
+            """Implement the _send_static operation for this channel."""
             relative = "index.html" if self.path in ("/", "") else self.path.lstrip("/")
             file_path = os.path.normpath(os.path.join(_WEB_DIR, relative))
             if not file_path.startswith(_WEB_DIR) or not os.path.isfile(file_path):
@@ -81,12 +84,14 @@ def build_server(host: str = "127.0.0.1", port: int = 8420) -> ThreadingHTTPServ
             self.wfile.write(body)
 
         def log_message(self, format: str, *args) -> None:  # noqa: A002 - stdlib signature
+            """Suppress the standard library request log for this service."""
             pass  # quiet by default; rely on the caller's own logging if needed
 
     return ThreadingHTTPServer((host, port), Handler)
 
 
 def serve(host: str = "127.0.0.1", port: int = 8420) -> None:
+    """Run the local HTTP server until it is stopped."""
     server = build_server(host, port)
     print(f"LineageWeave demo listening on http://{host}:{port}")
     server.serve_forever()

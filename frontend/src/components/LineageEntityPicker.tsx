@@ -24,9 +24,9 @@ export function LineageEntityPicker({
   }
   return (
     <label className="lineage-entity-picker">
-      Corporate entity to reconstruct
+      {t("Corporate entity to reconstruct")}
       <select
-        aria-label="Corporate entity to reconstruct"
+        aria-label={t("Corporate entity to reconstruct")}
         value={selectedEntityId}
         onChange={(event) => onSelectEntityId(event.target.value)}
       >
@@ -39,3 +39,4 @@ export function LineageEntityPicker({
     </label>
   );
 }
+import { t } from "../i18n";

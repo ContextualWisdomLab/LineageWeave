@@ -12,6 +12,20 @@ All notable changes to this project are documented here. Format follows
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 
+## [2.12.6] - 2026-08-20
+
+### Added
+
+- Production OIDC can now use a real Keyverse issuer through
+  `KEYVERSE_ISSUER` and `KEYVERSE_CLIENT_ID`. The backend discovers the
+  provider's JWKS and verifies the issuer; Compose keeps local Keycloak only
+  as an explicit development fallback and does not emulate Keyverse.
+- Relation verification now preserves a separately authorized internal source
+  post containing normalized organization and relationship context. Open that
+  evidence from the counterparty popup without treating it as an external URL.
+- Large corpora now use bounded post and Event Lineage landing projections so
+  buyers can open complete post-specific detail from a responsive first view.
+
 ## [2.12.5] - 2026-08-18
 
 ### Fixed

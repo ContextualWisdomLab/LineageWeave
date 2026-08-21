@@ -118,20 +118,6 @@ begin
     select count(*) into run_count from analysis_run;
     select count(*) into snapshot_count from analysis_source_snapshot;
 
-    -- ADR 0021 start reconstruction adds immutable children. Those
-    -- tables are absent on a 0020-only database. When present, their
-    -- delete-reject triggers and FKs would otherwise force a superuser
-    -- DISABLE TRIGGER — the failure this procedure exists to remove.
-    if to_regclass('public.analysis_run_lineage_edge') is not null then
-        execute 'alter table analysis_run_lineage_edge disable trigger user';
-    end if;
-    if to_regclass('public.analysis_run_reconstruction') is not null then
-        execute 'alter table analysis_run_reconstruction disable trigger user';
-    end if;
-    if to_regclass('public.analysis_source_snapshot_member') is not null then
-        execute 'alter table analysis_source_snapshot_member disable trigger user';
-    end if;
-
     alter table analysis_run_status_event
         disable trigger analysis_run_status_event_delete_reject;
     alter table analysis_run_scope
@@ -140,19 +126,10 @@ begin
         disable trigger analysis_run_mutation_reject;
 
     begin
-        if to_regclass('public.analysis_run_lineage_edge') is not null then
-            delete from analysis_run_lineage_edge;
-        end if;
-        if to_regclass('public.analysis_run_reconstruction') is not null then
-            delete from analysis_run_reconstruction;
-        end if;
         delete from analysis_run_status_event;
         delete from analysis_run_scope;
         delete from analysis_run;
         delete from analysis_source_count;
-        if to_regclass('public.analysis_source_snapshot_member') is not null then
-            delete from analysis_source_snapshot_member;
-        end if;
         delete from analysis_source_snapshot;
     exception
         when others then
@@ -162,15 +139,6 @@ begin
                 enable trigger analysis_run_scope_mutation_reject;
             alter table analysis_run_status_event
                 enable trigger analysis_run_status_event_delete_reject;
-            if to_regclass('public.analysis_source_snapshot_member') is not null then
-                execute 'alter table analysis_source_snapshot_member enable trigger user';
-            end if;
-            if to_regclass('public.analysis_run_reconstruction') is not null then
-                execute 'alter table analysis_run_reconstruction enable trigger user';
-            end if;
-            if to_regclass('public.analysis_run_lineage_edge') is not null then
-                execute 'alter table analysis_run_lineage_edge enable trigger user';
-            end if;
             raise;
     end;
 
@@ -180,15 +148,6 @@ begin
         enable trigger analysis_run_scope_mutation_reject;
     alter table analysis_run_status_event
         enable trigger analysis_run_status_event_delete_reject;
-    if to_regclass('public.analysis_source_snapshot_member') is not null then
-        execute 'alter table analysis_source_snapshot_member enable trigger user';
-    end if;
-    if to_regclass('public.analysis_run_reconstruction') is not null then
-        execute 'alter table analysis_run_reconstruction enable trigger user';
-    end if;
-    if to_regclass('public.analysis_run_lineage_edge') is not null then
-        execute 'alter table analysis_run_lineage_edge enable trigger user';
-    end if;
 
     insert into analysis_run_retention_event (
         purged_run_count,
@@ -211,10 +170,8 @@ $$;
 comment on function purge_analysis_run_registry(text) is
     'Empties immutable registry relations after an unrevoked role grant, '
     'analysis_run_retention_admin membership, and the documented approval '
-    'token; also empties analysis_run_lineage_edge, '
-    'analysis_run_reconstruction, and analysis_source_snapshot_member '
-    'when those ADR 0021 relations exist. Next action: export '
-    'analysis_run_retention_event, delete it, then roll back 0020 and 0018.';
+    'token; records one analysis_run_retention_event. Next action: export '
+    'that event, delete it, then roll back 0020 and 0018.';
 
 revoke all on function purge_analysis_run_registry(text) from public;
 grant execute on function purge_analysis_run_registry(text)

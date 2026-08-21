@@ -19,6 +19,8 @@ from urllib.parse import urlencode, urlparse
 
 import certifi
 
+from .llm_context import current_llm_metadata
+
 # Some interpreter distributions don't reliably inherit the OS trust store.
 # Pointing at certifi keeps full chain validation without weakening TLS.
 _SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
@@ -37,6 +39,7 @@ def _request(
     headers: dict[str, str],
     timeout: float,
 ) -> tuple[int, bytes]:
+    """Implement the _request operation for this channel."""
     parsed = urlparse(url)
     if parsed.scheme not in _ALLOWED_SCHEMES:
         raise ValueError(f"refusing non-http(s) URL scheme: {parsed.scheme!r}")
@@ -73,6 +76,7 @@ def _request(
 
 
 def _decode_json(raw: bytes, hostname: str) -> object:
+    """Implement the _decode_json operation for this channel."""
     try:
         return json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
@@ -80,6 +84,7 @@ def _decode_json(raw: bytes, hostname: str) -> object:
 
 
 def _decode_json_object(raw: bytes, hostname: str) -> dict:
+    """Implement the _decode_json_object operation for this channel."""
     decoded = _decode_json(raw, hostname)
     if not isinstance(decoded, dict):
         raise HttpClientError(f"JSON object expected from {hostname}")
@@ -87,6 +92,7 @@ def _decode_json_object(raw: bytes, hostname: str) -> dict:
 
 
 def _decode_json_list(raw: bytes, hostname: str) -> list:
+    """Implement the _decode_json_list operation for this channel."""
     decoded = _decode_json(raw, hostname)
     if not isinstance(decoded, list):
         raise HttpClientError(f"JSON array expected from {hostname}")
@@ -106,10 +112,21 @@ def post_json(
         ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
         HttpClientError: the server responded with HTTP >= 400 or non-JSON.
     """
+    request_payload = payload
+    request_metadata = current_llm_metadata()
+    if request_metadata:
+        request_payload = dict(payload)
+        existing_metadata = request_payload.get("metadata")
+        if existing_metadata is None:
+            request_payload["metadata"] = request_metadata
+        elif isinstance(existing_metadata, dict):
+            request_payload["metadata"] = {**existing_metadata, **request_metadata}
+        else:
+            raise ValueError("metadata must be an object")
     status, raw = _request(
         "POST",
         url,
-        body=json.dumps(payload).encode("utf-8"),
+        body=json.dumps(request_payload).encode("utf-8"),
         headers={"content-type": "application/json", **headers},
         timeout=timeout,
     )

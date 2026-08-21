@@ -141,6 +141,7 @@ def build_affiliate_forest(
         child_ids.sort(key=lambda entity_id: (entity_by_id[entity_id].entity_name, entity_id))
 
     def _build(entity_id: str) -> AffiliateNode:
+        """Implement the _build operation for this channel."""
         row = entity_by_id[entity_id]
         return AffiliateNode(
             entity_id=row.entity_id,
