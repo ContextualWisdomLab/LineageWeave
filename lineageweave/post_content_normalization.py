@@ -40,8 +40,8 @@ from .image_content import (
 # what chunk_by_dom already splits on, plus the inline/replaced tags
 # that carry images or wrap rich-text fragments.
 _HTML_OPEN_TAG = re.compile(
-    r"<\s*/?\s*(?:article|section|nav|aside|header|footer|div|p|li|td|th|tr|"
-    r"table|blockquote|h[1-6]|img|br|hr|ul|ol|span|strong|em|b|i|u|a|"
+    r"<\s*/?\s*(?:article|section|nav|aside|header|footer|div|p|li|td|th|tr|sup|"
+    r"table|blockquote|h[1-6]|img|br|hr|ul|ol|oi|span|strong|em|b|i|u|a|"
     r"html|body|head|style|script|font|center|pre)\b",
     re.IGNORECASE,
 )
@@ -262,6 +262,11 @@ def normalize_post_body(
         vision_client = NullImageContentClient()
 
     if not _looks_like_html(body):
+        markdown_chunks = chunk_by_dom(body)
+        if any(chunk.label == "markdown_tr" for chunk in markdown_chunks):
+            return NormalizedPostContent(
+                text="\n\n".join(chunk.text for chunk in markdown_chunks if chunk.text)
+            )
         return NormalizedPostContent(text=normalize_semantic_text(body))
 
     chunks: list[Chunk] = chunk_by_dom(body)

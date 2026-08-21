@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { splitPostBody } from "./postBodyDisplay";
+import { splitMarkdownTableBody, splitPostBody } from "./postBodyDisplay";
 
 /** 1x1 transparent PNG — the same synthetic fixture the Python vision tests use. */
 const TINY_PNG_B64 =
@@ -59,6 +59,100 @@ describe("splitPostBody", () => {
       { kind: "text", text: "Nested", indentLevel: 10 },
       { kind: "text", text: "*Tier 2: note", role: "footnote" },
     ]);
+  });
+
+  it("recognizes numeric superscript-style footnotes", () => {
+    expect(splitPostBody("<p><sup>1</sup> Source note</p>")).toEqual([
+      { kind: "text", text: "1 Source note", role: "footnote" },
+    ]);
+  });
+
+  it("preserves explicit metric superscripts and subscripts", () => {
+    expect(splitPostBody("<p>Volume: 5m<sup>3</sup>, index m<sub>3</sub>.</p>")).toEqual([
+      { kind: "text", text: "Volume: 5m³, index m₃." },
+    ]);
+  });
+
+  it("normalizes plain-text metric superscripts and subscripts", () => {
+    expect(splitPostBody("<p>Volume: 5m^3, index m_3, braced m^{2}.</p>")).toEqual([
+      { kind: "text", text: "Volume: 5m³, index m₃, braced m²." },
+    ]);
+  });
+
+  it("preserves HTML and Word footnote blocks as footnote paragraphs", () => {
+    expect(
+      splitPostBody(
+        "<p>Body evidence.</p>" +
+          "<footnote>HTML note.</footnote>" +
+          "<w:footnote><w:p>Word note.</w:p></w:footnote>" +
+          "<p>Next action.</p>",
+      ),
+    ).toEqual([
+      { kind: "text", text: "Body evidence." },
+      { kind: "text", text: "HTML note.", role: "footnote" },
+      { kind: "text", text: "Word note.", role: "footnote" },
+      { kind: "text", text: "Next action." },
+    ]);
+  });
+
+  it("limits numeric superscript footnote roles to their source paragraph", () => {
+    expect(
+      splitPostBody(
+        "<p>Evidence remains attached to the source.</p>" +
+          "<p><sup>1</sup> Source note.</p>" +
+          "<p>Continue with the next source action.</p>",
+      ),
+    ).toEqual([
+      { kind: "text", text: "Evidence remains attached to the source." },
+      { kind: "text", text: "1 Source note.", role: "footnote" },
+      { kind: "text", text: "Continue with the next source action." },
+    ]);
+  });
+
+  it("keeps exporter list containers in the visible nesting hierarchy", () => {
+    expect(splitPostBody("<oi><li>Parent<ul><li>Child</li></ul></li></oi>")).toEqual([
+      { kind: "text", text: "Parent", indentLevel: 1 },
+      { kind: "text", text: "Child", indentLevel: 2 },
+    ]);
+  });
+
+  it("resets indentation between separate top-level lists", () => {
+    expect(splitPostBody("<ul><li>First</li></ul><ul><li>Second</li></ul>")).toEqual([
+      { kind: "text", text: "First", indentLevel: 1 },
+      { kind: "text", text: "Second", indentLevel: 1 },
+    ]);
+  });
+
+  it("keeps list items separate when optional closing tags are omitted", () => {
+    expect(splitPostBody("<ul><li>First<li>Second</ul>")).toEqual([
+      { kind: "text", text: "First", indentLevel: 1 },
+      { kind: "text", text: "Second", indentLevel: 1 },
+    ]);
+  });
+
+  it("preserves prose around the supported Markdown table shape", () => {
+    expect(
+      splitMarkdownTableBody("Intro.\n\n| Project | Status |\n| --- | --- |\n| Alpha | Ready |\n\nNext action."),
+    ).toEqual([
+      { kind: "prose", text: "Intro." },
+      { kind: "table", rows: [["Project", "Status"], ["Alpha", "Ready"]] },
+      { kind: "prose", text: "Next action." },
+    ]);
+  });
+
+  it("normalizes metric scripts inside Markdown table cells", () => {
+    expect(
+      splitMarkdownTableBody("| Metric | Index |\n| --- | --- |\n| 5m^3 | m<sub>3</sub> |"),
+    ).toEqual([{ kind: "table", rows: [["Metric", "Index"], ["5m³", "m₃"]] }]);
+  });
+
+  it("unescapes pipe characters inside Markdown cells without accepting a short delimiter", () => {
+    expect(
+      splitMarkdownTableBody(
+        "| Project | Notes |\n| :--- | ---: |\n| Alpha | Ready \\| review |",
+      ),
+    ).toEqual([{ kind: "table", rows: [["Project", "Notes"], ["Alpha", "Ready | review"]] }]);
+    expect(splitMarkdownTableBody("| Project | Status |\n| -- | -- |\n| Alpha | Ready |")).toBeNull();
   });
 
   it("leaves a plain-text post unchanged so existing popups keep their wording", () => {

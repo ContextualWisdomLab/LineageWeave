@@ -19,7 +19,7 @@ All notable changes to this project are documented here. Format follows
 
 - Board now names Weekly VOC as an ISO-8601 week list filter. The control
   keeps Voice of Customer posts for the latest week present in the loaded
-  list (UTC Thursday rule) and tells the buyer to open a post to read
+  list (UTC Thursday rule) and tells the reader to open a post to read
   Event Lineage. Reset filters returns every VOC type and every week.
   No TEPP theta is invented (ADR 0092).
 
@@ -28,30 +28,27 @@ All notable changes to this project are documented here. Format follows
 ### Changed
 
 - Renamed "Buyer" terminology to reader/workspace naming across the frontend
-  shell, backend evidence helpers, and living docs (ADR 0119). LineageWeave
-  has no explicit buyer role, so `BuyerNav`/`BuyerDestination` became
-  `WorkspaceNav`/`WorkspaceDestination`, `.buyer-gnb*` CSS became
-  `.workspace-gnb*`, and prose referring to the reading user now says
-  "reader" instead of "buyer". Historical ADRs and changelog entries keep
-  their original wording as a point-in-time record.
+  shell, backend evidence helpers, and living docs (ADR 0119). Historical ADRs
+  and changelog entries retain their point-in-time wording.
 
 ### Fixed
 
+- Preserve source-order nested list units, numeric superscript footnotes,
+  HTML/OOXML table rows, and recognizable Markdown table rows across the
+  semantic-unit parser and buyer body renderer. See the [product and
+  technical gap baseline](docs/product-technical-gap-baseline.md) and
+  [ADR 0103](docs/adr/0103-semantic-document-evidence-contract.md).
+- Preserve multiline VISION table rows, render parent and region OCR tables
+  accessibly, and request source-visible entity, relationship, layout, and
+  document-purpose evidence instead of a generic image caption. VISION calls
+  now share the structure channel's 600-second deep-agent runtime boundary;
+  an empty same-image retry can no longer erase previously observed OCR.
 - Removed the completed one-shot Global Ask package-manager repair workflow;
   normal product CI remains the only branch validation path.
+
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
-- The workspace Event Lineage global Search action now retries focus after the
-  board finishes loading, so navigation from Customer master, Calendar, or
-  Ask Agent lands the cursor in the search box. The handled request is consumed,
-  so later board navigation does not steal focus, and Search closes an open
-  mobile drawer like every other destination change.
-- Mobile Event Lineage evidence cards now read their translated column labels
-  from the rendered cells instead of hardcoded English CSS, and the two drawer
-  close controls have distinct accessible names.
-- Event Lineage SVG edges now retain their instance-specific direction markers,
-  so parent-to-child arrows remain visible when multiple lineage groups render.
 - All OpenAI-compatible chat-completion consumers now validate the shared
   response envelope before parsing it, preventing malformed provider bodies
   from escaping as raw `KeyError` or response-shape details.
@@ -69,26 +66,6 @@ All notable changes to this project are documented here. Format follows
   evidence from the counterparty popup without treating it as an external URL.
 - Large corpora now use bounded post and Event Lineage landing projections so
   buyers can open complete post-specific detail from a responsive first view.
-
-## [2.11.0] - 2026-08-18
-
-### Added
-
-- Relation verification now preserves a separately authorized internal source
-  post containing normalized organization and relationship context. The
-  counterparty popup can open that evidence without treating it as an
-  external-search URL or changing the external verification status.
-- Large corpora now use bounded post and Event Lineage landing projections so
-  the React screen remains usable before opening complete post-specific detail.
-
-## [2.10.0] - 2026-08-18
-
-### Added
-
-- Production OIDC can now use a real Keyverse issuer through
-  `KEYVERSE_ISSUER` and `KEYVERSE_CLIENT_ID`. The backend discovers the
-  provider's JWKS and verifies the issuer; Compose keeps local Keycloak only
-  as an explicit development fallback and does not emulate Keyverse.
 
 ## [2.12.5] - 2026-08-18
 
