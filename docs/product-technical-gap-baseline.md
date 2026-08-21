@@ -8,6 +8,21 @@
 
 ## 1. Exact-head evidence
 
+### 1.1 Current continuation head
+
+The current buyer-surface/source-context continuation is PR #384 at exact head
+`352f48ab007a60d4e422c1f105c0e221ad589370` on 2026-08-22. Its base is
+`docs/customer-master-scope-adr`; the branch includes the source commercial
+context migration replay fix and the merge of the latest base branch. GitHub
+currently reports `MERGEABLE` with checks still pending/unstable. No merge or
+approval is claimed from that state.
+
+The historical evidence below remains valid only at the exact heads and dates
+stated in each entry. It must not be used as proof that the current continuation
+head has passed the same checks.
+
+### 1.2 Historical audit anchor
+
 Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
@@ -52,6 +67,23 @@ next exact head and therefore requires the protected checks to rerun.
   collisions, and drops table rows made only of empty cells. The focused
   parser gate is `47 passed`; `compileall` and `git diff --check` passed.
   Hosted Checks remain queued and no approval or merge is claimed.
+
+### 1.3 Current related PR queue
+
+The following exact-head states were observed during this continuation and are
+part of the acceptance queue, not completion evidence:
+
+| Repository | PR | Exact head | State | Remaining gate |
+| --- | ---: | --- | --- | --- |
+| LineageWeave | #384 | `352f48ab007a60d4e422c1f105c0e221ad589370` | open, mergeable, unstable | hosted checks and review |
+| LineageWeave | #383 | `720004942dd155a85020af32da402d320038f46a` | open, blocked | required checks and review |
+| contextual-orchestrator | #765 | `d19e3492192e21e4a040fa3fc13a0793443731bf` | open, blocked | required checks and review |
+| governance-risk-compliance | #50 | `ba78e4790f3e361826991455ce83634004f2875d` | open, mergeable, unstable | central OSV provenance gate |
+| ContextualWisdomLab/.github | #1158 | `6e93fd0b65c159c7b168d83579e5b8282096480e` | open, behind | required checks and review |
+
+GRC stack PRs #20 and #21 were merged in order before #50. These merge SHAs do
+not make #50 or the other listed PRs merged; each remains subject to its own
+exact-head protected gate.
 
 ## 2. UI/UX Standard Guide v3.0 comparison
 
@@ -216,6 +248,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Customer master and hierarchy tree | `/api/customer-master`, affiliate tree, catalog migrations | source + unit; scoped to `account_affiliation` only, no own-company/customer distinction — see §5 |
 | VOC/VOM/VOP/VOCC/VOCO/VOS role classification | common lookup values and relationship APIs | source + unit; live classification open |
 | Evidence-grounded chat and source navigation | `/chat`, `/ask`, citation/evidence UI | source + unit; synthetic orchestrator judge route verified, corpus chat/runtime evidence open |
+| OpenTelemetry across LineageWeave, contextual-orchestrator, Valkey, and GRC | LineageWeave PR #383 adds API/Valkey/session spans; contextual-orchestrator PR #765 carries session/provider telemetry; governance-risk-compliance PR #50 adds request telemetry, W3C trace context, OTLP export, and ADR 0009 | source + PR; protected merge and end-to-end collector evidence open |
 | PU/team/project weekly/monthly reports | report API/UI and grouping controls | source + unit; TEPP-backed live report open |
 | TEPP calibrated measurement, dichotomous items, multilevel/MMM/time model | published import/REST boundary and TEPP ADR/PRD references | boundary-only; live-external open |
 | contextual-orchestrator routing, VISION, embedding, schema repair | clients and provenance/session boundary; synthetic authenticated route returned a judge score of `0.98`, OCR succeeded, and region location returned five regions | source + local-integration partial; corpus backfill, capability/readiness evidence, and schema-repair workflow open |
