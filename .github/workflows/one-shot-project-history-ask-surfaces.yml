@@ -71,7 +71,9 @@ jobs:
 
       - name: Confirm RED backend authorization contract
         run: |
-          if uv run --frozen python -m pytest -q tests/test_ask_project_history.py; then
+          if uv run --frozen python -m pytest -q \
+              tests/test_ask_project_history.py \
+              tests/test_ask_project_history_cutoff.py; then
             echo "Expected missing Ask project-history implementation to keep the backend contract red." >&2
             exit 1
           fi
@@ -95,17 +97,20 @@ jobs:
             backend/app/ask_project_history.py \
             backend/app/post_chat_ingestion.py \
             backend/app/main.py \
-            tests/test_ask_project_history.py
+            tests/test_ask_project_history.py \
+            tests/test_ask_project_history_cutoff.py
           uv run --frozen ruff check \
             backend/app/ask_project_history.py \
             backend/app/post_chat_ingestion.py \
             backend/app/main.py \
-            tests/test_ask_project_history.py
+            tests/test_ask_project_history.py \
+            tests/test_ask_project_history_cutoff.py
 
       - name: Run focused Python contracts
         run: >-
           uv run --frozen python -m pytest -q
           tests/test_ask_project_history.py
+          tests/test_ask_project_history_cutoff.py
           tests/test_post_chat_ingestion.py
           tests/test_global_ask_sources.py
           tests/test_project_history_api_contract.py
