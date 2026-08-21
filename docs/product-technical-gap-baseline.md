@@ -359,3 +359,9 @@ The integrated `60b52f26` checkpoint passes the full backend suite: `723 passed,
 16 skipped`, with no test failures. Frontend lint, `131 passed`, and production
 build also pass. Four existing dependency deprecation/security warnings remain
 non-failing and are not reclassified as product evidence.
+### Provider-error checkpoint
+
+Provider failures are not buyer evidence. The API and browser boundaries must
+return stable next actions while retaining the original exception only for
+in-process operator diagnostics. See ADR 0123 and the client regression tests
+for this protected boundary.
