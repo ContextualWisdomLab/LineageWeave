@@ -141,12 +141,13 @@ function ImageEvidenceFigure({
           <ol>
             {regions.map((region) => (
               <li key={region.region_index}>
-                {region.caption ? <p>{region.caption}</p> : null}
-                {region.extracted_text ? (
+                {region.caption ? (
+                  <p>{region.caption}</p>
+                ) : region.extracted_text ? (
                   <div className="post-image-region-text">
                     {renderImageText(region.extracted_text)}
                   </div>
-                ) : region.caption ? null : (
+                ) : (
                   <span>{t("Unknown")}</span>
                 )}
                 {region.tags.length ? (
