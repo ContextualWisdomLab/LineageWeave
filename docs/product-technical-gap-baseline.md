@@ -49,7 +49,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T18:04:14Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T18:06:44Z` from the
 GitHub API. Checkpoint types are `merge_commit`, `head`, and
 `closed_without_merge`; the latter records a closed PR's exact `head` when
 `merged_at` and `merge_commit_sha` are both absent. A merged commit is
@@ -85,7 +85,7 @@ Open PRs at the same observation:
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `e112071a5ee7473abda20a1a5e74f773fc71cdd6` (the exact current
+- PR #368: `head` `a5058283654441200024f1ae384f8bc030df6667` (the exact current
   documentation checkpoint), base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, base `main`
@@ -99,7 +99,7 @@ Open PRs at the same observation:
 - PR #388: `head` `1b680a27e6eaca544f1d99512e31220278c43110`, base
   `feat/event-lineage-channel-evidence`
   (`4bf061314516a6d824dcc41b24a021ca69661aa4`).
-- PR #389: `head` `0c2f706008f9888f3ed24ee981029c2b83f3b796`, base
+- PR #389: `head` `5118500c8e1adf05e37da498558ef516ac9f6959`, base
   `feat/post-body-footnote-display`
   (`1b680a27e6eaca544f1d99512e31220278c43110`).
 
@@ -114,6 +114,12 @@ commit is later repository history, not PR #258's original base or a merge of
 #258. PR #386 is closed as a duplicate of the safer #373 login fix. PR #382's
 stack merge is not a main merge; #373 must still pass its own current-head
 gates.
+
+Queue refresh at the same observation: PRs #387, #388, #389, #349, and #368
+had no independent `APPROVED` review. Each still had at least one non-terminal
+required check (in-progress or queued), so none was merge-authorized. The
+current exact HEAD, review, and terminal-check gates must be re-read before any
+future merge action.
 
 Closed without merge at the same observation:
 
@@ -265,16 +271,18 @@ Observed at `2026-08-21T18:02:27Z` on PR #388's exact head
   verification passed 148 frontend tests, lint, and build. Hosted Checks and
   independent approval remain open.
 
-Observed at `2026-08-21T18:03:09Z` on PR #389's exact head
-`0c2f706008f9888f3ed24ee981029c2b83f3b796`:
+Observed at `2026-08-21T18:06:44Z` on PR #389's exact head
+`5118500c8e1adf05e37da498558ef516ac9f6959`:
 
 - The buyer-facing fallback renders a Markdown table in a normal source body,
   including an empty cell, without converting ordinary pipe-delimited prose.
   Persisted text units use the same renderer, while separator-free OCR rows
-  remain supported only in the image-evidence path.
-- Local frontend verification passed 152 Vitest tests, lint, and the
-  production build. Hosted Checks, independent approval, and a protected merge
-  commit remain absent. This remains an open stacked fix, not a resolved
+  remain supported only in the image-evidence path. Candidate pipe rows are
+  buffered until a valid Markdown separator and data rows confirm a table, so
+  a lone pipe line cannot split the surrounding paragraph.
+- Local frontend verification passed 154 Vitest tests, lint, production build,
+  and `git diff --check`. Hosted Checks, independent approval, and a protected
+  merge commit remain absent. This remains an open stacked fix, not a resolved
   production gap.
 
 Observed at `2026-08-21T17:49:48Z` on PR #387's exact head
