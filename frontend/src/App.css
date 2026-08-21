@@ -1076,10 +1076,6 @@
     content: "Evidence (fused_score)";
   }
 
-  .app-header {
-    padding: 0 1rem;
-  }
-  
   .app-footer {
     flex-direction: column;
     align-items: flex-start;
