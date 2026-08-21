@@ -1689,10 +1689,26 @@ describe("App, authenticated", () => {
     await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
     await userEvent.click(screen.getByRole("button", { name: "Ask" }));
 
+    expect(screen.getByRole("log", { name: "Conversation" })).toBeInTheDocument();
+    expect(screen.getByText("Which project?", { exact: true })).toBeInTheDocument();
     expect(await screen.findByRole("list", { name: "Evidence facts" })).toBeInTheDocument();
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
+
+  it("renders the conversation empty state and submits an Ask Agent question with Enter", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+
+    expect(screen.getByRole("log", { name: "Conversation" })).toHaveAttribute("aria-busy", "false");
+    expect(screen.getByText("Start with a question about the evidence")).toBeInTheDocument();
+    const input = screen.getByRole("textbox", { name: "Ask a question" });
+    await userEvent.type(input, "Which project?{Enter}");
+
+    expect(await screen.findByText("Which project?", { selector: ".ask-agent-user-message p:last-child" })).toBeInTheDocument();
+    expect(input).toHaveValue("");
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
@@ -3633,6 +3649,24 @@ describe("App, authenticated", () => {
     });
     await waitFor(() => expect(boardButton).toHaveFocus());
     expect(remountedSearchInput).not.toHaveFocus();
+  });
+
+  it("focuses the board search input again on a later global Search action", async () => {
+    stubBackend();
+    render(<App />);
+
+    const header = document.querySelector("header.app-header");
+    expect(header).not.toBeNull();
+    const globalSearch = within(header as HTMLElement).getByRole("button", { name: "Search" });
+    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
+
+    await userEvent.click(globalSearch);
+    await waitFor(() => expect(searchInput).toHaveFocus());
+    searchInput.blur();
+    expect(searchInput).not.toHaveFocus();
+
+    await userEvent.click(globalSearch);
+    await waitFor(() => expect(searchInput).toHaveFocus());
   });
 
   it("clears a pending global search focus request when leaving the board", async () => {

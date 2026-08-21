@@ -3664,6 +3664,13 @@ function PostList({
   const lastFocusedSearchRequest = useRef(0);
 
   useEffect(() => {
+    if (focusSearchRequest <= 0) {
+      // The parent intentionally reuses 1 after each handled request resets
+      // its counter to 0. Reset the local guard with it so the next global
+      // Search action can focus the input again.
+      lastFocusedSearchRequest.current = 0;
+      return;
+    }
     if (focusSearchRequest <= lastFocusedSearchRequest.current) return;
     const input = searchInputRef.current;
     if (!input) return;
@@ -4556,6 +4563,14 @@ function CustomerMasterPanel({
   );
 }
 
+type AskAgentExchange = {
+  id: number;
+  question: string;
+  status: "pending" | "complete" | "error";
+  response?: AskAgentResponse;
+  error?: string;
+};
+
 function AskAgentPanel({
   accessToken,
   onOpenPost,
@@ -4564,77 +4579,130 @@ function AskAgentPanel({
   onOpenPost: (postId: string) => void;
 }) {
   const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [exchanges, setExchanges] = useState<AskAgentExchange[]>([]);
   const [asking, setAsking] = useState(false);
+  const exchangeIdRef = useRef(0);
 
   async function handleAsk() {
     const normalized = question.trim();
-    if (!normalized) return;
+    if (!normalized || asking) return;
+    const exchangeId = ++exchangeIdRef.current;
+    setExchanges((current) => [...current, { id: exchangeId, question: normalized, status: "pending" }]);
+    setQuestion("");
     setAsking(true);
-    setError(null);
     try {
-      setAnswer(await askAgent(accessToken, normalized));
+      const response = await askAgent(accessToken, normalized);
+      setExchanges((current) => current.map((exchange) => (
+        exchange.id === exchangeId ? { ...exchange, status: "complete", response } : exchange
+      )));
     } catch (err) {
-      setAnswer(null);
-      setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
+      setExchanges((current) => current.map((exchange) => (
+        exchange.id === exchangeId
+          ? { ...exchange, status: "error", error: orchestratorUnavailableMessage(err, t("Ask Agent")) }
+          : exchange
+      )));
     } finally {
       setAsking(false);
     }
   }
 
   return (
-    <section className="workspace-destination" aria-labelledby="ask-agent-heading">
-      <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
-      <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
-      <p className="workspace-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
-      {error ? <p className="error">{error}</p> : null}
-      <label className="ask-agent-source">
-        <span>{t("Ask a question")}</span>
-        <textarea
-          aria-label={t("Ask a question")}
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          rows={4}
-        />
-      </label>
-      <button className="btn-primary ask-agent-submit" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
-        <SendIcon />
-        {asking ? t("Asking...") : t("Ask")}
-      </button>
-      {answer && (
-        <section className="popup-section" aria-label={t("Answer")}>
-          <h3>{t("Answer")}</h3>
-          {answer.answer_text ? <p>{answer.answer_text}</p> : null}
-          {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
-          {answer.cited_posts && answer.cited_posts.length > 0 && (
-            <>
-              <h4>{t("Cited posts")}</h4>
-              <ul className="related-post-list">
-                {answer.cited_posts.map((post) => (
-                  <li key={post.post_id}>
-                    <button className="post-list-item" onClick={() => onOpenPost(post.post_id)}>
-                      <strong>{post.post_title}</strong>
-                    </button>
-                    {answer.cited_post_evidence?.find((item) => item.post_id === post.post_id)?.facts.length ? (
-                      <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
-                        {answer.cited_post_evidence
-                          .find((item) => item.post_id === post.post_id)
-                          ?.facts.map((fact, index) => (
-                            <li key={`${fact.kind}:${fact.text}:${index}`}>
-                              <span>{chatEvidenceKindLabel(fact.kind)}</span>
-                              <span>{fact.text}</span>
-                            </li>
-                          ))}
+    <section className="workspace-destination ask-agent-workspace" aria-labelledby="ask-agent-heading">
+      <header className="ask-agent-header">
+        <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
+        <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
+        <p className="workspace-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
+      </header>
+
+      <div className="ask-agent-thread" role="log" aria-label={t("Conversation")} aria-live="polite" aria-busy={asking}>
+        {exchanges.length === 0 ? (
+          <div className="ask-agent-empty">
+            <span className="ask-agent-mark" aria-hidden="true">LW</span>
+            <h3>{t("Start with a question about the evidence")}</h3>
+            <p>{t("Ask about an event, decision, or source post.")}</p>
+          </div>
+        ) : exchanges.map((exchange) => {
+          const response = exchange.response;
+          return (
+            <article className="ask-agent-turn" key={exchange.id}>
+              <div className="ask-agent-message-row">
+                <span className="ask-agent-avatar ask-agent-user-avatar" aria-hidden="true">U</span>
+                <div className="ask-agent-message ask-agent-user-message">
+                  <p className="ask-agent-message-label">{t("You")}</p>
+                  <p>{exchange.question}</p>
+                </div>
+              </div>
+              <div className="ask-agent-message-row">
+                <span className="ask-agent-avatar ask-agent-assistant-avatar" aria-hidden="true">LW</span>
+                <div className="ask-agent-message ask-agent-assistant-message">
+                  <p className="ask-agent-message-label">{t("Ask Agent")}</p>
+                  {exchange.status === "pending" ? <p className="ask-agent-pending">{t("Thinking...")}</p> : null}
+                  {exchange.status === "error" ? <p className="ask-agent-error">{exchange.error}</p> : null}
+                  {response?.answer_text ? <p>{response.answer_text}</p> : null}
+                  {response?.next_action ? <p className="post-meta">{t(response.next_action)}</p> : null}
+                  {response?.cited_posts && response.cited_posts.length > 0 ? (
+                    <section className="ask-agent-citations" aria-label={t("Cited posts")}>
+                      <h4>{t("Cited posts")}</h4>
+                      <ul className="ask-agent-citation-list">
+                        {response.cited_posts.map((post) => (
+                          <li key={post.post_id}>
+                            <button className="ask-agent-citation" onClick={() => onOpenPost(post.post_id)}>
+                              <strong>{post.post_title}</strong>
+                              <span>{t("Open source")}</span>
+                            </button>
+                            {response.cited_post_evidence?.find((item) => item.post_id === post.post_id)?.facts.length ? (
+                              <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
+                                {response.cited_post_evidence
+                                  .find((item) => item.post_id === post.post_id)
+                                  ?.facts.map((fact, index) => (
+                                    <li key={fact.kind + ":" + fact.text + ":" + index}>
+                                      <span>{chatEvidenceKindLabel(fact.kind)}</span>
+                                      <span>{fact.text}</span>
+                                    </li>
+                                  ))}
+                              </ul>
+                            ) : null}
+                          </li>
+                        ))}
                       </ul>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </section>
-      )}
+                    </section>
+                  ) : null}
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      <form
+        className="ask-agent-composer"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void handleAsk();
+        }}
+      >
+        <label className="sr-only" htmlFor="ask-agent-input">{t("Ask a question")}</label>
+        <div className="ask-agent-composer-field">
+          <textarea
+            id="ask-agent-input"
+            aria-label={t("Ask a question")}
+            placeholder={t("What happened between these events?")}
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void handleAsk();
+              }
+            }}
+            rows={1}
+          />
+          <button className="ask-agent-send" type="submit" aria-label={t("Ask")} disabled={asking || !question.trim()}>
+            <SendIcon />
+          </button>
+        </div>
+        <p className="ask-agent-composer-help">{t("Enter to send. Shift+Enter for a new line.")}</p>
+      </form>
     </section>
   );
 }
