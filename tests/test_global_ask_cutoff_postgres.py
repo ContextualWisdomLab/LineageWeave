@@ -75,6 +75,10 @@ def test_final_global_source_query_binds_the_cutoff_in_real_postgresql() -> None
             )
             assert result == []
             assert boundary.final_args is not None
+            assert len(boundary.final_args) == 4
+            assert list(boundary.final_args[0]) == [
+                "00000000-0000-4000-8000-000000000001"
+            ]
             assert boundary.final_args[3] == CUTOFF
         finally:
             await connection.close()
