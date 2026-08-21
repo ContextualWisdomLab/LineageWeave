@@ -23,7 +23,7 @@
 # this file is the formal semantic layer over it -- PostgreSQL stays
 # the source of record. See docs/adr/0004-knowledge-graph-ontology.md
 # for the KG design rationale, docs/adr/0006-role-responsibility-agent-ontology.md
-# and docs/adr/0124-operational-controlled-vocabulary-semantic-layer.md
+# and docs/adr/0126-operational-controlled-vocabulary-semantic-layer.md
 # for the R&R actor-type rationale (grounded in W3C PROV-O), and
 # tests/test_ontology.py for the round-trip check that every code below
 # actually exists as a common_lookup_value row, and vice versa.
