@@ -130,7 +130,7 @@ def _source_indent_width(text: str) -> int:
 
 def _length_to_indent_units(value: str) -> int:
     """Convert common CSS/XML lengths to a comparable eight-pixel unit."""
-    match = re.fullmatch(r"\s*([+-]?(?:\d+\.?\d*|\.\d+))\s*(px|pt|em|rem|in|cm|mm|%)?\s*", value, re.I)
+    match = re.fullmatch(r"\s*([+-]?(?:\d+\.?\d*|\.\d+))\s*(px|pt|em|rem|in|cm|mm|%)?\s*", value, re.IGNORECASE)
     if match is None:
         return 0
     amount = float(match.group(1))
@@ -172,7 +172,7 @@ def _declared_indent_width(tag: str, attrs: list[tuple[str, str | None]]) -> int
     for match in re.finditer(
         r"(?:^|;)\s*(?:margin-left|padding-left|padding-inline-start|text-indent)\s*:\s*([^;]+)",
         style,
-        re.I,
+        re.IGNORECASE,
     ):
         width += _length_to_indent_units(match.group(1))
     # A real editor (Word paste, Outlook compose) declares indentation with
@@ -181,7 +181,7 @@ def _declared_indent_width(tag: str, attrs: list[tuple[str, str | None]]) -> int
     # every nested <li> in a real body used only the shorthand, so its
     # indentation silently read as 0 and every nesting level collapsed flat
     # (live bug, 2026-08-19).
-    for match in re.finditer(r"(?:^|;)\s*(?:margin|padding)\s*:\s*([^;]+)", style, re.I):
+    for match in re.finditer(r"(?:^|;)\s*(?:margin|padding)\s*:\s*([^;]+)", style, re.IGNORECASE):
         width += _length_to_indent_units(_shorthand_left_value(match.group(1)))
     for name, value in attrs:
         if name in {"w:left", "w:start", "w:firstline"} and value:
@@ -497,8 +497,7 @@ def _markdown_cells(line: str) -> list[str] | None:
     if "|" not in line:
         return None
     value = line.strip()
-    if value.startswith("|"):
-        value = value[1:]
+    value = value.removeprefix("|")
     if value.endswith("|") and not value.endswith("\\|"):
         value = value[:-1]
     cells = [cell.strip().replace(r"\|", "|") for cell in re.split(r"(?<!\\)\|", value)]
