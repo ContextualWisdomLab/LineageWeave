@@ -65,6 +65,28 @@ Observed at `2026-08-21T19:50:57Z` from the GitHub API and local worktree
   targets `main`, and is `BLOCKED` with `REVIEW_REQUIRED`; #397 is a stacked
   follow-up and must not be described as a protected-main merge.
 
+## 4.1 Latest open-PR and Checks refresh
+
+Observed at `2026-08-21T19:50:57Z` from the GitHub API. The exact open
+application heads were: #258 `6dc040c6`, #349 `a6af4525`, #355 `b606c255`,
+#368 `7ac93c85`, #373 `151fe6e1`, #383 `4eaa0717`, #387 `16f6341a`, #392
+`4fdd3032`, #393 `1ac3a17a`, #394 `5219ed8b`, and #397 `48fe6e36`. No PR in
+this set was reported as merged into protected `main`.
+
+- #397 had no failed Checks at observation; its Devin Review was pending and
+  CodeRabbit reported success while explicitly skipping review because the
+  non-default stack base disables automatic review. There is no independent
+  approval, so merge is not authorized.
+- #383 had a failed `osv-scan`. The failure remains the shared workflow's
+  deprecated `--output=old-results.json` / `--output=new-results.json` contract,
+  not a source vulnerability verdict. Central `.github` PR #1158 is open at
+  exact head `f61a8795`, adds the `--output-file` contract and provenance
+  classifier, and remains unmerged with hosted Checks pending. Do not duplicate
+  the central repair in LineageWeave.
+- The active protected ruleset `LineageWeave: no force pushes` has no bypass
+  actors and only the `non_fast_forward` rule. All stack pushes above were
+  normal fast-forward/new-branch pushes.
+
 ## 2. LLM Extraction & Knowledge Graph Gaps
 - **Multiple Project Extraction**: A structured `key_events.project_name` implementation exists, but separate-event behavior still requires protected authorized-corpus evidence.
 - **5W1H Missing**: A structured 5W1H evidence-item implementation exists, but completeness and provenance still require protected authorized-corpus evidence.
