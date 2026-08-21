@@ -5,6 +5,7 @@
   --color-border: #e5e4e7;
   --color-code-background: #f4f3ec;
   --color-accent: #aa3bff;
+  --color-on-accent: #fff;
   --color-accent-background: rgba(170, 59, 255, 0.1);
   --color-accent-border: rgba(170, 59, 255, 0.5);
   --color-chip-border: #3335;
@@ -48,6 +49,7 @@
     --color-border: #2e303a;
     --color-code-background: #1f2028;
     --color-accent: #c084fc;
+    --color-on-accent: #fff;
     --color-accent-background: rgba(192, 132, 252, 0.15);
     --color-accent-border: rgba(192, 132, 252, 0.5);
     --color-chip-border: #9ca3af;
