@@ -4,7 +4,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
   type KeyboardEvent,
   type ReactNode,
 } from "react";
@@ -92,7 +91,7 @@ export function CustomerMasterTree({
   const [evidenceEntityId, setEvidenceEntityId] = useState<string | null>(null);
   const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
   const [relatedLoadingId, setRelatedLoadingId] = useState<string | null>(null);
-  const treeItemRefs = useRef(new Map<string, HTMLButtonElement>());
+  const treeItemRefs = useRef(new Map<string, HTMLLIElement>());
   const relatedRequestSerial = useRef(0);
 
   useEffect(() => {
@@ -170,9 +169,10 @@ export function CustomerMasterTree({
   );
 
   function handleTreeKeyDown(
-    event: KeyboardEvent<HTMLButtonElement>,
+    event: KeyboardEvent<HTMLLIElement>,
     item: VisibleCustomerTreeItem,
   ) {
+    event.stopPropagation();
     const visibleIndex = visibleItems.findIndex((candidate) => candidate.entityId === item.entityId);
     switch (event.key) {
       case "ArrowDown": {
@@ -217,12 +217,18 @@ export function CustomerMasterTree({
         }
         return;
       }
+      case "Enter":
+      case " ": {
+        event.preventDefault();
+        void toggleEvidence(item.entityId);
+        return;
+      }
       default:
         return;
     }
   }
 
-  function renderNodes(nodes: readonly CustomerEntityTreeNode[], level: number): ReactNode {
+  function renderNodes(nodes: readonly CustomerEntityTreeNode[]): ReactNode {
     return nodes.map((node) => {
       const entity = node.entity;
       const entityId = entity.corporate_entity_id;
@@ -231,40 +237,50 @@ export function CustomerMasterTree({
       const isBranch = node.children.length > 0;
       const isExpanded = expandedEntityIds.has(entityId);
       const isEvidenceOpen = evidenceEntityId === entityId;
-      const style = { "--customer-tree-depth": level - 1 } as CSSProperties;
+      const accessibleLabel = [
+        entity.entity_name,
+        `${entity.corporate_entity_code} · ${entity.entity_level_label}`,
+        node.hierarchyIssue ? t("unresolved") : null,
+      ]
+        .filter(Boolean)
+        .join(", ");
       return (
         <li
           key={entityId}
-          role="none"
+          ref={(element) => {
+            if (element) treeItemRefs.current.set(entityId, element);
+            else treeItemRefs.current.delete(entityId);
+          }}
+          role="treeitem"
           className="customer-tree-node"
+          tabIndex={focusedEntityId === entityId ? 0 : -1}
+          aria-label={accessibleLabel}
+          aria-level={item.level}
+          aria-posinset={item.positionInSet}
+          aria-setsize={item.setSize}
+          aria-expanded={isBranch ? isExpanded : undefined}
+          aria-selected={isEvidenceOpen}
+          aria-controls={isEvidenceOpen ? `customer-evidence-${entityId}` : undefined}
           data-hierarchy-issue={node.hierarchyIssue ?? undefined}
-          style={style}
+          onFocus={(event) => {
+            if (event.currentTarget === event.target) setFocusedEntityId(entityId);
+          }}
+          onKeyDown={(event) => handleTreeKeyDown(event, item)}
+          onClick={(event) => {
+            event.stopPropagation();
+            const target = event.target as HTMLElement;
+            if (target !== event.currentTarget) {
+              const row = target.closest("[data-customer-tree-row]");
+              if (!row || row.parentElement !== event.currentTarget) return;
+            }
+            if (isBranch && target.closest("[data-customer-branch-toggle]")) {
+              setBranchExpanded(entityId, !isExpanded);
+              return;
+            }
+            void toggleEvidence(entityId);
+          }}
         >
-          <button
-            ref={(element) => {
-              if (element) treeItemRefs.current.set(entityId, element);
-              else treeItemRefs.current.delete(entityId);
-            }}
-            type="button"
-            role="treeitem"
-            className="customer-entity-button"
-            tabIndex={focusedEntityId === entityId ? 0 : -1}
-            aria-level={item.level}
-            aria-posinset={item.positionInSet}
-            aria-setsize={item.setSize}
-            aria-expanded={isBranch ? isExpanded : undefined}
-            aria-selected={isEvidenceOpen}
-            onFocus={() => setFocusedEntityId(entityId)}
-            onKeyDown={(event) => handleTreeKeyDown(event, item)}
-            onClick={(event) => {
-              const target = event.target as HTMLElement;
-              if (isBranch && target.closest("[data-customer-branch-toggle]")) {
-                setBranchExpanded(entityId, !isExpanded);
-                return;
-              }
-              void toggleEvidence(entityId);
-            }}
-          >
+          <div className="customer-entity-button" data-customer-tree-row>
             <span
               className={
                 isBranch ? "customer-tree-branch-indicator" : "customer-tree-branch-spacer"
@@ -281,10 +297,10 @@ export function CustomerMasterTree({
                 <span className="customer-tree-unresolved">{t("unresolved")}</span>
               ) : null}
             </span>
-          </button>
+          </div>
           {isBranch && isExpanded ? (
             <ul role="group" className="customer-master-tree-group">
-              {renderNodes(node.children, level + 1)}
+              {renderNodes(node.children)}
             </ul>
           ) : null}
         </li>
@@ -306,10 +322,11 @@ export function CustomerMasterTree({
         className="customer-master-list customer-master-tree customer-master-tree-widget"
         aria-label={t("Customer entities available to this account.")}
       >
-        {renderNodes(forest, 1)}
+        {renderNodes(forest)}
       </ul>
       {evidenceEntityId && evidenceEntity ? (
         <section
+          id={`customer-evidence-${evidenceEntityId}`}
           className="customer-related-posts customer-tree-evidence"
           aria-label={`${t("Related posts")}: ${evidenceEntity.entity_name}`}
         >

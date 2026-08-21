@@ -27,7 +27,7 @@ const hierarchy = [
 ];
 
 describe("CustomerMasterTree", () => {
-  it("exposes hierarchy levels and WAI-ARIA arrow-key navigation", async () => {
+  it("exposes hierarchy metadata and the complete WAI-ARIA navigation contract", async () => {
     render(
       <CustomerMasterTree
         entities={hierarchy}
@@ -41,13 +41,21 @@ describe("CustomerMasterTree", () => {
     const company = screen.getByRole("treeitem", { name: /Demo Company/ });
     const plant = screen.getByRole("treeitem", { name: /Demo Plant/ });
     expect(group).toHaveAttribute("aria-level", "1");
+    expect(group).toHaveAttribute("aria-posinset", "1");
+    expect(group).toHaveAttribute("aria-setsize", "1");
     expect(company).toHaveAttribute("aria-level", "2");
     expect(plant).toHaveAttribute("aria-level", "3");
 
     group.focus();
-    fireEvent.keyDown(group, { key: "ArrowRight" });
+    fireEvent.keyDown(group, { key: "ArrowDown" });
     expect(company).toHaveFocus();
-    fireEvent.keyDown(company, { key: "ArrowRight" });
+    fireEvent.keyDown(company, { key: "ArrowDown" });
+    expect(plant).toHaveFocus();
+    fireEvent.keyDown(plant, { key: "ArrowUp" });
+    expect(company).toHaveFocus();
+    fireEvent.keyDown(company, { key: "Home" });
+    expect(group).toHaveFocus();
+    fireEvent.keyDown(group, { key: "End" });
     expect(plant).toHaveFocus();
     fireEvent.keyDown(plant, { key: "ArrowLeft" });
     expect(company).toHaveFocus();
@@ -60,9 +68,31 @@ describe("CustomerMasterTree", () => {
     fireEvent.keyDown(company, { key: "ArrowRight" });
     expect(await screen.findByRole("treeitem", { name: /Demo Plant/ })).toBeInTheDocument();
     expect(company).toHaveAttribute("aria-expanded", "true");
+    fireEvent.keyDown(company, { key: "ArrowRight" });
+    expect(screen.getByRole("treeitem", { name: /Demo Plant/ })).toHaveFocus();
   });
 
-  it("opens source-backed posts outside the tree without changing hierarchy disclosure", async () => {
+  it("uses branch disclosure independently from evidence selection", async () => {
+    render(
+      <CustomerMasterTree
+        entities={hierarchy}
+        loadRelated={async () => []}
+        onOpenPost={() => undefined}
+      />,
+    );
+
+    const group = screen.getByRole("treeitem", { name: /Demo Group/ });
+    const branchToggle = group.querySelector("[data-customer-branch-toggle]");
+    expect(branchToggle).not.toBeNull();
+    await userEvent.click(branchToggle as HTMLElement);
+    expect(group).toHaveAttribute("aria-expanded", "false");
+    expect(group).toHaveAttribute("aria-selected", "false");
+    expect(screen.queryByRole("treeitem", { name: /Demo Company/ })).not.toBeInTheDocument();
+    await userEvent.click(branchToggle as HTMLElement);
+    expect(await screen.findByRole("treeitem", { name: /Demo Company/ })).toBeInTheDocument();
+  });
+
+  it("opens source-backed posts outside the tree with keyboard activation", async () => {
     const onOpenPost = vi.fn();
     const related: RelatedNode[] = [
       {
@@ -86,24 +116,41 @@ describe("CustomerMasterTree", () => {
 
     const tree = screen.getByRole("tree");
     const company = screen.getByRole("treeitem", { name: /Demo Company/ });
-    await userEvent.click(company);
+    company.focus();
+    fireEvent.keyDown(company, { key: "Enter" });
     expect(loadRelated).toHaveBeenCalledWith("company");
     expect(company).toHaveAttribute("aria-selected", "true");
     const evidence = await screen.findByRole("region", {
       name: "Related posts: Demo Company",
     });
     expect(tree).not.toContainElement(evidence);
-    const post = within(evidence).getByRole("button", {
-      name: "Open related post: Customer escalation",
-    });
-    expect(post).toHaveTextContent("Escalation evidence");
+    expect(company).toHaveAttribute("aria-controls", evidence.id);
+    expect(
+      within(evidence).getByRole("button", {
+        name: "Open related post: Customer escalation",
+      }),
+    ).toHaveTextContent("Escalation evidence");
     expect(screen.getByRole("treeitem", { name: /Demo Plant/ })).toBeInTheDocument();
 
-    await userEvent.click(post);
+    fireEvent.keyDown(company, { key: " " });
+    expect(
+      screen.queryByRole("region", { name: "Related posts: Demo Company" }),
+    ).not.toBeInTheDocument();
+    fireEvent.keyDown(company, { key: "Enter" });
+    const reopenedEvidence = await screen.findByRole("region", {
+      name: "Related posts: Demo Company",
+    });
+    expect(loadRelated).toHaveBeenCalledTimes(1);
+
+    await userEvent.click(
+      within(reopenedEvidence).getByRole("button", {
+        name: "Open related post: Customer escalation",
+      }),
+    );
     expect(onOpenPost).toHaveBeenCalledWith("post-1");
   });
 
-  it("does not let a stale entity request overwrite the newly opened evidence", async () => {
+  it("does not let a stale entity request overwrite newly selected evidence", async () => {
     let resolveGroup: ((value: RelatedNode[]) => void) | undefined;
     const groupRequest = new Promise<RelatedNode[]>((resolve) => {
       resolveGroup = resolve;
@@ -137,6 +184,22 @@ describe("CustomerMasterTree", () => {
       ).toBeInTheDocument(),
     );
     expect(screen.queryByText("Stale group post")).not.toBeInTheDocument();
+  });
+
+  it("fails a related-post request closed without hiding the customer", async () => {
+    render(
+      <CustomerMasterTree
+        entities={hierarchy}
+        loadRelated={async () => {
+          throw new Error("network unavailable");
+        }}
+        onOpenPost={() => undefined}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("treeitem", { name: /Demo Plant/ }));
+    expect(await screen.findByText("No linked posts yet.")).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: /Demo Plant/ })).toBeInTheDocument();
   });
 
   it("keeps malformed hierarchy members visible and marks the relation unresolved", () => {
