@@ -302,6 +302,7 @@ class _BlockTextExtractor(HTMLParser):
     """
 
     def __init__(self) -> None:
+        """Initialize parser buffers for ordered text, image, and footnote units."""
         super().__init__()
         self._stack: list[tuple[str, list[str], str | None, int]] = []
         self._unscoped_buffer: list[str] = []
@@ -347,6 +348,16 @@ class _BlockTextExtractor(HTMLParser):
                 indent_width + _declared_indent_width(tag, attrs),
             )
             return
+        if tag in _TABLE_CELL_TAGS:
+            if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS and self._stack[-1][1]:
+                self._stack[-1][1].append(" | ")
+            return
+        # Nested blocks belong to the open table row. Keep list-item text
+        # readable without letting a nested list become a separate chunk.
+        if any(entry[0] in _TABLE_ROW_TAGS for entry in self._stack):
+            if tag == "li" and self._stack[-1][1]:
+                self._stack[-1][1].append(" ")
+            return
         if tag in _LIST_CONTAINER_TAGS:
             # Emit a parent list item before entering its nested list. Closing
             # tags otherwise make the child appear before the parent in the
@@ -363,15 +374,6 @@ class _BlockTextExtractor(HTMLParser):
                 )
             style = next((value for name, value in attrs if name == "style" and value), None)
             self._stack.append((tag, [], style, _declared_indent_width(tag, attrs)))
-            return
-        if tag in _TABLE_CELL_TAGS:
-            if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS and self._stack[-1][1]:
-                self._stack[-1][1].append(" | ")
-            return
-        # A rich-text editor commonly wraps a table cell in a nested <p> or
-        # <div>. Keep that content in the open row; otherwise the nested block
-        # closes first and destroys the row/column boundary.
-        if any(entry[0] in _TABLE_ROW_TAGS for entry in self._stack):
             return
         if tag in _DOM_BLOCK_TAGS:
             if self._stack and self._stack[-1][1]:
@@ -409,16 +411,13 @@ class _BlockTextExtractor(HTMLParser):
         superscript_marker = id(buffer) in self._numeric_superscript_buffers
         for raw_unit, source_indent in _split_dom_units(raw_text):
             text = normalize_semantic_text(raw_unit)
-            if text:
-                indent_width = declared_width + source_indent
-                label = (
-                    "footnote"
-                    if superscript_marker or _FOOTNOTE_START.match(text)
-                    else tag_name
-                )
-                self._finished.append(
-                    ("text", text, label, style, indent_width)
-                )
+            indent_width = declared_width + source_indent
+            label = (
+                "footnote"
+                if superscript_marker or _FOOTNOTE_START.match(text)
+                else tag_name
+            )
+            self._finished.append(("text", text, label, style, indent_width))
         self._numeric_superscript_buffers.discard(id(buffer))
 
     def handle_data(self, data: str) -> None:
@@ -457,10 +456,10 @@ def _split_dom_units(raw_text: str) -> list[tuple[str, int]]:
     current: list[str] = []
 
     def flush() -> None:
+        """Move the current non-empty DOM unit into the result list."""
         if current:
             raw_unit = "\n".join(current)
-            if raw_unit.strip():
-                units.append((raw_unit, _source_indent_width(raw_unit)))
+            units.append((raw_unit, _source_indent_width(raw_unit)))
             current.clear()
 
     for line in raw_text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
@@ -498,6 +497,7 @@ def _markdown_table_entries(text: str) -> list[tuple[str, str]]:
     found_table = False
 
     def flush_pending() -> None:
+        """Emit prose accumulated outside a recognized Markdown table."""
         if pending:
             value = normalize_semantic_text("\n".join(pending))
             if value:
@@ -553,11 +553,11 @@ def _split_plain_text_units(text: str) -> list[tuple[str, int, str]]:
     current: list[str] = []
 
     def flush() -> None:
+        """Emit the current authored plain-text semantic unit."""
         if current:
             raw_unit = "\n".join(current)
             normalized = normalize_semantic_text(raw_unit)
-            if normalized:
-                units.append((normalized, _source_indent_width(raw_unit), ""))
+            units.append((normalized, _source_indent_width(raw_unit), ""))
             current.clear()
 
     index = 0
