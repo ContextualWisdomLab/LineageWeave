@@ -389,10 +389,21 @@ async def _load_facts(
             hop_depth = row["hop_depth"]
         except (KeyError, IndexError):
             hop_depth = None
+        source_key = source_key_from_row(row)
+        source_order_key = (
+            source_key.hop_depth,
+            source_key.edge_type_code,
+            source_key.source_node_type_code,
+            source_key.source_node_id,
+            source_key.target_node_type_code,
+            source_key.target_node_id,
+        )
         facts.append(
-            fact
-            if hop_depth is None
-            else replace(fact, source_hop_depth=int(hop_depth))
+            replace(
+                fact,
+                source_hop_depth=None if hop_depth is None else int(hop_depth),
+                source_order_key=source_order_key,
+            )
         )
         source_keys_by_edge[
             (
@@ -402,7 +413,7 @@ async def _load_facts(
                 fact.target_node_type_code,
                 fact.target_node_id,
             )
-        ] = source_key_from_row(row)
+        ] = source_key
     last_key = source_key_from_row(page_rows[-1]) if page_rows else None
     return _LoadedFactWindow(
         facts,

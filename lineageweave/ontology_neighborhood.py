@@ -144,6 +144,9 @@ class NeighborhoodFact:
     # SQL source windows already computed this relation's focus distance. It
     # is internal paging metadata, not buyer-facing evidence.
     source_hop_depth: int | None = None
+    # The SQL keyset order is retained separately from display orientation.
+    # It keeps source-window page selection and continuation on one order.
+    source_order_key: tuple[int, str, str, str, str, str] | None = None
 
 
 @dataclass(frozen=True)
@@ -472,6 +475,7 @@ def assemble_ontology_neighborhood(
                 evidence_references=fact.evidence_references,
                 provenance_reference=fact.provenance_reference,
                 source_hop_depth=fact.source_hop_depth,
+                source_order_key=fact.source_order_key,
             )
         )
 
@@ -483,20 +487,37 @@ def assemble_ontology_neighborhood(
     reached: dict[str, int] = {focus_key: 0}
     collected: list[NeighborhoodFact] = []
     seen_edges: set[str] = set()
-    source_window_facts = [fact for fact in visible_facts if fact.source_hop_depth is not None]
+    source_window_facts = [
+        fact
+        for fact in visible_facts
+        if fact.source_hop_depth is not None or fact.source_order_key is not None
+    ]
     if source_window_facts:
         # A source-cursor page may begin after the focus edge. PostgreSQL has
         # already performed the authorized recursive BFS, so replay its
         # bounded hop metadata instead of requiring the page to contain the
         # earlier bridge facts.
         deduplicated: dict[str, NeighborhoodFact] = {}
-        for fact in sorted(
-            visible_facts,
-            key=lambda fact: (
-                fact.source_hop_depth if fact.source_hop_depth is not None else maximum_depth,
-                _fact_sort_key(fact),
-            ),
-        ):
+        def source_page_sort_key(
+            fact: NeighborhoodFact,
+        ) -> tuple[int, tuple[int, str, str, str, str, str]]:
+            if fact.source_order_key is not None:
+                return (0, fact.source_order_key)
+            return (
+                1,
+                (
+                    fact.source_hop_depth
+                    if fact.source_hop_depth is not None
+                    else maximum_depth,
+                    fact.property_code,
+                    fact.source_node_type_code,
+                    fact.source_node_id,
+                    fact.target_node_type_code,
+                    fact.target_node_id,
+                ),
+            )
+
+        for fact in sorted(visible_facts, key=source_page_sort_key):
             edge_id = _edge_id(fact)
             existing = deduplicated.get(edge_id)
             if existing is None:
@@ -514,6 +535,13 @@ def assemble_ontology_neighborhood(
                     sorted(set(existing.evidence_references) | set(fact.evidence_references))
                 ),
                 source_hop_depth=min(hop_depths) if hop_depths else None,
+                source_order_key=min(
+                    key
+                    for key in (existing.source_order_key, fact.source_order_key)
+                    if key is not None
+                )
+                if existing.source_order_key is not None or fact.source_order_key is not None
+                else None,
             )
         collected = list(deduplicated.values())
         for fact in collected:

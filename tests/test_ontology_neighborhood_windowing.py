@@ -193,6 +193,50 @@ def test_source_page_deduplicates_edges_and_unions_evidence() -> None:
     assert neighborhood.edges[0].evidence_references == (POST_ID, "other-evidence")
 
 
+def test_source_page_uses_sql_order_when_display_order_differs() -> None:
+    """Source paging must select and continue in the sealed SQL order."""
+    first_in_sql = replace(
+        fact_from_knowledge_graph_edge(
+            source_node_type_code=NODE_PERSON,
+            source_node_id=PERSON_ID,
+            target_node_type_code=NODE_POST,
+            target_node_id=POST_ID,
+            edge_type_code=EDGE_MENTION,
+            recorded_at=T0,
+        ),
+        source_hop_depth=0,
+        source_order_key=(0, EDGE_MENTION, NODE_PERSON, "z", NODE_POST, POST_ID),
+    )
+    second_in_sql = replace(
+        fact_from_knowledge_graph_edge(
+            source_node_type_code=NODE_PERSON,
+            source_node_id="bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2",
+            target_node_type_code=NODE_POST,
+            target_node_id=POST_ID,
+            edge_type_code=EDGE_MENTION,
+            recorded_at=T0,
+        ),
+        source_hop_depth=0,
+        source_order_key=(0, EDGE_MENTION, NODE_PERSON, "a", NODE_POST, POST_ID),
+    )
+
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        facts=[second_in_sql, first_in_sql],
+        labels={
+            (NODE_POST, POST_ID): "Focus",
+            (NODE_PERSON, PERSON_ID): "Person A",
+            (NODE_PERSON, "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2"): "Person Z",
+        },
+        maximum_edges=1,
+        source_truncated=True,
+    )
+
+    assert len(neighborhood.edges) == 1
+    assert neighborhood.edges[0].target_node_id == "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2"
+
+
 class CapturingWindowConnection:
     """Record the keyset query without a live PostgreSQL instance."""
 
