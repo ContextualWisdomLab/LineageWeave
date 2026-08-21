@@ -1011,8 +1011,6 @@ async def read_customer_master(
         surviving_entity_by_id = {
             str(row["corporate_entity_id"]): row for row in entity_rows
         }
-        for row in entity_rows:
-            row["scope_facets"].discard("observed_hierarchy")
         for entity_id in observed_entity_ids:
             entity = surviving_entity_by_id.get(entity_id)
             if entity is None:

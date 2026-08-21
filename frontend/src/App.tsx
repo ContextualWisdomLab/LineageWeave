@@ -1768,7 +1768,10 @@ function PostDetailPopup({
       }
       if (event.key !== "Tab") return;
       const focusable = Array.from(panel.querySelectorAll<HTMLElement>(focusableSelector)).filter(
-        (element) => !element.hidden && element.getAttribute("aria-hidden") !== "true",
+        (element) =>
+          !element.hidden &&
+          element.getAttribute("aria-hidden") !== "true" &&
+          !element.closest("details:not([open])"),
       );
       if (focusable.length === 0) {
         event.preventDefault();

@@ -2089,6 +2089,7 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
     await user.keyboard("{Shift>}{Tab}{/Shift}");
     expect(dialog).toContainElement(document.activeElement as HTMLElement);
+    expect((document.activeElement as HTMLElement).closest("details:not([open])")).toBeNull();
     await user.keyboard("{Escape}");
 
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
