@@ -12,7 +12,7 @@ people: the UI uses an authorized unique affiliation only when one identity
 remains and otherwise says `multiple organizations`. The full N:N evidence
 stays on the Keyman surface, and the panel gives the buyer the next action.
 The implementation and APA 7th sources are recorded in
-[`docs/adr/0103-related-node-business-captions.md`](adr/0103-related-node-business-captions.md)
+[`docs/adr/0105-related-node-business-captions.md`](adr/0105-related-node-business-captions.md)
 and [`docs/doctoring/RELATED_NODE_AFFILIATION_REFERENCES.md`](doctoring/RELATED_NODE_AFFILIATION_REFERENCES.md).
 
 ## The problem this is answering
