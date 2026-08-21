@@ -3,6 +3,8 @@
 from lineageweave import http_client, observability
 from lineageweave.llm_context import use_llm_metadata
 from lineageweave.observability import (
+    _bounded_session_id,
+    _safe_attributes,
     _otlp_trace_endpoint,
     current_session_id,
     shutdown_telemetry,
@@ -40,6 +42,30 @@ def test_current_session_id_reads_existing_context():
     """Telemetry reuses the existing normalized LLM context, not a new store."""
     with use_llm_metadata({"lineageweave_post_session_id": "post-session-2"}):
         assert current_session_id() == "post-session-2"
+
+
+def test_session_correlation_is_printable_and_bounded():
+    """Session correlation rejects controls and caps values before export."""
+    assert _bounded_session_id("  session-3  ") == "session-3"
+    assert _bounded_session_id("session\n3") is None
+    assert _bounded_session_id("session\x7f3") is None
+    assert _bounded_session_id("x" * 129) == "x" * 128
+    assert _bounded_session_id(3) is None
+
+
+def test_safe_attributes_drops_unknown_keys_and_invalid_session_values():
+    """Telemetry keeps only the allowlisted scalar boundary attributes."""
+    assert _safe_attributes(
+        {
+            "request.path": "/private/synthetic",
+            "lineageweave.session_id": "bad\nvalue",
+            "service.peer.name": "tepp",
+            "http.response.status_code": 503,
+        }
+    ) == {
+        "service.peer.name": "tepp",
+        "http.response.status_code": 503,
+    }
 
 
 def test_traced_rethrows_provider_errors():

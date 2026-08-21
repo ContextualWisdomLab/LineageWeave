@@ -56,7 +56,7 @@ def _bounded_session_id(value: object) -> str | None:
     if not isinstance(value, str):
         return None
     value = value.strip()
-    if not value or any(ord(character) < 32 for character in value):
+    if not value or not value.isprintable():
         return None
     return value[:128]
 
