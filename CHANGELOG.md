@@ -18,6 +18,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Tenant identity metadata migration now repairs blank legacy settings before
+  adding non-empty and copyright-year constraints, so existing Compose volumes
+  can replay the migration without losing valid tenant-provided values.
+
 - The post-detail dialog focus trap now excludes descendants of `aria-hidden`
   content as well as collapsed `details`, keeping keyboard focus inside the
   visible modal controls.
