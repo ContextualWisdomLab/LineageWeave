@@ -49,7 +49,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T18:17:06Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T18:28:15Z` from the
 GitHub API. Checkpoint types are `merge_commit`, `head`, and
 `closed_without_merge`; the latter records a closed PR's exact `head` when
 `merged_at` and `merge_commit_sha` are both absent. A merged commit is
@@ -85,7 +85,7 @@ Open PRs at the same observation:
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `e347e0342c75a3a8eaa5bee69731da12edba3c29` (the exact current
+- PR #368: `head` `0201b9c2ac7a21b388d9bda2d7514d6cd605049b` (the exact current
   documentation checkpoint), base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, base `main`
@@ -94,14 +94,14 @@ Open PRs at the same observation:
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #384: `head` `1bffa5adafa6f015cea355de1b82a370d5791f4b`, base
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
-- PR #387: `head` `cb79302831c0889007699ba7dca2aafa02c01e50`, base `main`
+- PR #387: `head` `068ed6a44a7235e2f996450f0d6a7948bdd8732a`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #388: `head` `caea21be9e3485086ae3967fe5e6d23199b5459`, base
+- PR #388: `head` `86ac1d41d0e1acb9f29588adbdc8138ba822cef5`, base
   `feat/event-lineage-channel-evidence`
-  (`cb79302831c0889007699ba7dca2aafa02c01e50`).
-- PR #389: `head` `d4a486b15412340734541efca7a6e5050a7cd02c`, base
+  (`6e32ecac3677b220adf42ea7e7d5157d5dd80b8a`).
+- PR #389: `head` `788bacd998634f09ca7debc1745fe279d788122f`, base
   `feat/post-body-footnote-display`
-  (`caea21be9e3485086ae3967fe5e6d23199b5459`).
+  (`86ac1d41d0e1acb9f29588adbdc8138ba822cef5`).
 
 The open queue remains subject to exact-current-head Checks, formal independent
 approval, and protected mergeability. Green Checks alone do not prove that a
@@ -257,8 +257,8 @@ Observed at `2026-08-21T17:10:21Z` on PR #387's exact head
   the orchestrated rebuild/import boundary. Hosted Checks are queued and no
   independent approval or merge commit is claimed.
 
-Observed at `2026-08-21T18:17:06Z` on PR #388's exact head
-`caea21be9e3485086ae3967fe5e6d23199b5459`:
+Observed at `2026-08-21T18:28:15Z` on PR #388's exact head
+`86ac1d41d0e1acb9f29588adbdc8138ba822cef5`:
 
 - The browser fallback preserves footnote roles for synthetic HTML footnote
   lists, Word `MsoFootnoteText`, and OOXML footnote containers. Anchor tags no
@@ -273,8 +273,8 @@ Observed at `2026-08-21T18:17:06Z` on PR #388's exact head
   passed 149 frontend tests, lint, build, and diff check. Hosted Checks and
   independent approval remain open.
 
-Observed at `2026-08-21T18:17:06Z` on PR #389's exact head
-`d4a486b15412340734541efca7a6e5050a7cd02c`:
+Observed at `2026-08-21T18:28:15Z` on PR #389's exact head
+`788bacd998634f09ca7debc1745fe279d788122f`:
 
 - The buyer-facing fallback renders a Markdown table in a normal source body,
   including an empty cell, without converting ordinary pipe-delimited prose.
@@ -282,14 +282,15 @@ Observed at `2026-08-21T18:17:06Z` on PR #389's exact head
   remain supported only in the image-evidence path. Candidate pipe rows are
   buffered until a valid Markdown separator and data rows confirm a table, so
   a lone pipe line cannot split the surrounding paragraph. The #388 wrapped
-  footnote fix is included through a regular stack merge.
-- Local frontend verification passed 155 Vitest tests, lint, production build,
+  footnote fix is included through a regular stack merge. The PR ref also
+  contains the current backend lineage parent, so exact-head verification
+  passed 21 focused backend tests and 155 Vitest tests, lint, production build,
   and `git diff --check`. Hosted Checks, independent approval, and a protected
   merge commit remain absent. This remains an open stacked fix, not a resolved
   production gap.
 
-Observed at `2026-08-21T18:14:02Z` on PR #387's exact head
-`cb79302831c0889007699ba7dca2aafa02c01e50`:
+Observed at `2026-08-21T18:28:15Z` on PR #387's exact head
+`068ed6a44a7235e2f996450f0d6a7948bdd8732a`:
 
 - The Event Lineage channel-evidence persistence check now budgets one
   half-quantum per six-decimal contribution plus a small floating-point guard,
@@ -299,9 +300,10 @@ Observed at `2026-08-21T18:14:02Z` on PR #387's exact head
   rebuild now offloads synchronous reconstruction and the visible graph bounds
   evidence reads to visible endpoint IDs. The rebuild transaction now starts
   only after reconstruction, so slow orchestrator work cannot hold a pooled
-  connection idle in transaction. Local verification on this exact head passed
-  769 backend tests with 17 environment skips; hosted Checks were queued and
-  no independent approval or merge commit was present.
+  connection idle in transaction. The current branch also carries the
+  structured-footnote frontend change. Local verification passed 21 focused
+  backend tests and 149 frontend tests, lint, build, and diff check; hosted
+  Checks and no independent approval or merge commit were present.
 
 Observed at `2026-08-21T18:11:51Z` on PR #383's current head
 `6525127008b3ba74526e8ffb8d8bf25630cf58db`:
@@ -337,9 +339,9 @@ The remaining PR #383 `osv-scan` failure is a central workflow defect: the scan
 exited successfully, but the follow-up treated a missing baseline result file
 as failure after the head checkout. Central `.github` PR #1158 is the broader
 source-provenance repair at exact head
-`acbd253df81e06d18ed758de1ce748ad6729faa0`; central PR #1002 independently
+`9b44801730a05c21e82095e3fede3efbfaeadd13`; central PR #1002 independently
 adds the minimal result-preservation and review-placeholder repair at exact
-head `e46777fc541d4e0aa1484348928a2847a81c6952`. Both remain open with non-terminal
+head `8a1e12960d6b91ebe6b1f857e67fe69a8cd2e539`. Both remain open with non-terminal
 Checks and no independent approval, so PR #383 is not reported green or
 mergeable from this historical failure alone.
 
