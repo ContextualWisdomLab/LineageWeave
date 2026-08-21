@@ -454,8 +454,9 @@ formal review decision. Documentation PR #368 is at exact head
 `829b630a3608d0b800fabf9ea129d011091f7ca3`; it is likewise open,
 `mergeable=true`, blocked, and pending its hosted checks without independent
 approval. The stack branch still points to merged identity commit
-`202063bca2afa38d100199de3f0520fdd8c15e8c`. No protected-main merge is
-claimed.
+`139ecaa17b411451c645f12a888f095df3beb3b2`, which retains the identity merge
+`202063bca2afa38d100199de3f0520fdd8c15e8c` and the subsequent #399 rollback.
+No protected-main merge is claimed.
 
 ## 5. Local Buyer-Surface Verification
 
