@@ -49,7 +49,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T18:14:02Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T18:17:06Z` from the
 GitHub API. Checkpoint types are `merge_commit`, `head`, and
 `closed_without_merge`; the latter records a closed PR's exact `head` when
 `merged_at` and `merge_commit_sha` are both absent. A merged commit is
@@ -96,12 +96,12 @@ Open PRs at the same observation:
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
 - PR #387: `head` `cb79302831c0889007699ba7dca2aafa02c01e50`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #388: `head` `1b680a27e6eaca544f1d99512e31220278c43110`, base
+- PR #388: `head` `caea21be9e3485086ae3967fe5e6d23199b5459`, base
   `feat/event-lineage-channel-evidence`
-  (`4bf061314516a6d824dcc41b24a021ca69661aa4`).
-- PR #389: `head` `5118500c8e1adf05e37da498558ef516ac9f6959`, base
+  (`cb79302831c0889007699ba7dca2aafa02c01e50`).
+- PR #389: `head` `d4a486b15412340734541efca7a6e5050a7cd02c`, base
   `feat/post-body-footnote-display`
-  (`1b680a27e6eaca544f1d99512e31220278c43110`).
+  (`caea21be9e3485086ae3967fe5e6d23199b5459`).
 
 The open queue remains subject to exact-current-head Checks, formal independent
 approval, and protected mergeability. Green Checks alone do not prove that a
@@ -257,8 +257,8 @@ Observed at `2026-08-21T17:10:21Z` on PR #387's exact head
   the orchestrated rebuild/import boundary. Hosted Checks are queued and no
   independent approval or merge commit is claimed.
 
-Observed at `2026-08-21T18:02:27Z` on PR #388's exact head
-`1b680a27e6eaca544f1d99512e31220278c43110`:
+Observed at `2026-08-21T18:17:06Z` on PR #388's exact head
+`caea21be9e3485086ae3967fe5e6d23199b5459`:
 
 - The browser fallback preserves footnote roles for synthetic HTML footnote
   lists, Word `MsoFootnoteText`, and OOXML footnote containers. Anchor tags no
@@ -267,20 +267,23 @@ Observed at `2026-08-21T18:02:27Z` on PR #388's exact head
   container's internal control marker.
 - The branch now includes the current #387 parent through a regular merge
   commit. Footnote detection is bound to class/role attributes and anchor-tag
-  matching no longer strips tag names that merely start with `a`. Local
-  verification passed 148 frontend tests, lint, and build. Hosted Checks and
+  matching no longer strips tag names that merely start with `a`. A labeled
+  `div` wrapper around an unlabeled HTML list now marks the nested footnotes,
+  while closing the wrapper returns to ordinary content. Local verification
+  passed 149 frontend tests, lint, build, and diff check. Hosted Checks and
   independent approval remain open.
 
-Observed at `2026-08-21T18:06:44Z` on PR #389's exact head
-`5118500c8e1adf05e37da498558ef516ac9f6959`:
+Observed at `2026-08-21T18:17:06Z` on PR #389's exact head
+`d4a486b15412340734541efca7a6e5050a7cd02c`:
 
 - The buyer-facing fallback renders a Markdown table in a normal source body,
   including an empty cell, without converting ordinary pipe-delimited prose.
   Persisted text units use the same renderer, while separator-free OCR rows
   remain supported only in the image-evidence path. Candidate pipe rows are
   buffered until a valid Markdown separator and data rows confirm a table, so
-  a lone pipe line cannot split the surrounding paragraph.
-- Local frontend verification passed 154 Vitest tests, lint, production build,
+  a lone pipe line cannot split the surrounding paragraph. The #388 wrapped
+  footnote fix is included through a regular stack merge.
+- Local frontend verification passed 155 Vitest tests, lint, production build,
   and `git diff --check`. Hosted Checks, independent approval, and a protected
   merge commit remain absent. This remains an open stacked fix, not a resolved
   production gap.
