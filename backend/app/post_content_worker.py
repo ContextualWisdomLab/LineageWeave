@@ -57,7 +57,7 @@ async def _claim_job(
     async with pool.acquire() as conn:
         async with conn.transaction():
             row = await conn.fetchrow(
-                f"""
+                """
                 select p.*, j.source_body_sha256 as job_source_body_sha256,
                        j.status_code as job_status_code,
                        j.attempt_count as job_attempt_count,
@@ -67,12 +67,15 @@ async def _claim_job(
                 join source_post p on p.post_id = j.post_id
                 where j.post_id = $1::uuid
                   and j.source_body_sha256 = $2
+                  and coalesce(btrim(p.source_detail_state_code), '') <> 'W'
                 for update of j, p
                 """,
                 post_id,
                 source_body_digest,
             )
             if row is None:
+                return None
+            if row.get("source_detail_state_code") == "W":
                 return None
             status_code = str(row["job_status_code"])
             attempt_count = int(row["job_attempt_count"])
