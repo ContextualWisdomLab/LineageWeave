@@ -369,7 +369,7 @@ def test_summary_parser_error_does_not_expose_provider_response(monkeypatch) -> 
     def fake_post_json(url, payload, *, headers, timeout):
         nonlocal calls
         calls += 1
-        content = "본문 근거 요약" if calls == 1 else provider_secret
+        content = "본문 근거 요약\nKEY EVENTS: 확인" if calls == 1 else provider_secret
         return {"choices": [{"message": {"content": content}}]}
 
     monkeypatch.setattr("lineageweave.post_summary.post_json", fake_post_json)
