@@ -557,6 +557,15 @@ def assemble_ontology_neighborhood(
         ordered_keys = [key for key in ordered_keys if key in keep]
         truncated = True
         next_cursor = None
+        node_evidence = defaultdict(set)
+        for fact in page_edges:
+            for node_type, node_id in (
+                (fact.source_node_type_code, fact.source_node_id),
+                (fact.target_node_type_code, fact.target_node_id),
+            ):
+                node_evidence[_node_key(node_type, node_id)].update(
+                    fact.evidence_references
+                )
 
     nodes = tuple(
         OntologyGraphNode(

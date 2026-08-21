@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import datetime
@@ -245,6 +246,8 @@ async def lifespan(app: FastAPI):
         await app.state.pool.close()
         await app.state.valkey.aclose()
 
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="LineageWeave API", lifespan=lifespan)
 app.add_middleware(
@@ -2530,11 +2533,26 @@ async def read_post_summary(
         if stored is not None:
             return stored
         stale = await fetch_persisted_summary(conn, post_id, allow_stale=True)
+
+        def stale_fallback(
+            reason: str, error: BaseException | None = None
+        ) -> dict[str, Any]:
+            """Return explicitly stale evidence while preserving operator diagnostics."""
+            if stale is None:
+                raise RuntimeError("stale summary fallback called without a stale row")
+            logger.warning(
+                "post_summary_stale_fallback post_id=%s reason=%s error_type=%s",
+                post_id,
+                reason,
+                type(error).__name__ if error is not None else "unavailable",
+            )
+            return stale
+
         with use_llm_metadata(post_metadata):
             client = _post_summary_client()
             if not client.available:
                 if stale is not None:
-                    return stale
+                    return stale_fallback("orchestrator_unavailable")
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
@@ -2552,14 +2570,14 @@ async def read_post_summary(
                     summary = await asyncio.to_thread(client.summarize, post["post_title"], normalized_body)
             except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
                 if stale is not None:
-                    return stale
+                    return stale_fallback("orchestrator_failure", exc)
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
                 ) from exc
             except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
                 if stale is not None:
-                    return stale
+                    return stale_fallback("orchestrator_unexpected_failure", exc)
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
@@ -2575,7 +2593,7 @@ async def read_post_summary(
                 )
             except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
                 if stale is not None:
-                    return stale
+                    return stale_fallback("summary_persist_failure", exc)
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
