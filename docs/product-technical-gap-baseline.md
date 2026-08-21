@@ -51,7 +51,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T18:39:50Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T18:50:17Z` from the
 GitHub API. Checkpoint types are `merge_commit`, `head`, and
 `closed_without_merge`; the latter records a closed PR's exact `head` when
 `merged_at` and `merge_commit_sha` are both absent. A merged commit is
@@ -93,14 +93,14 @@ Open PRs at the same observation:
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `2ea8e3d8d25414429f3bacc9b1e97ae589ce352c` (the exact current
+- PR #368: `head` `320be1af542343a8991b3da172bfd747d98e3c01` (the exact current
   documentation checkpoint), base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #383: `head` `3584c31c22a432399c694588a4786c445f943848`, base `main`
+- PR #383: `head` `6af3adc3e08fd1b0b11182d8cf3714b847c71ea8`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #384: `head` `13bf132f06f52adb01997c6a805d440fea6f40f7`, base
+- PR #384: `head` `a32bbda48e1ed873362e6e7bd6e47766d9998bb5`, base
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
 - PR #387: `head` `7a0a5f649c766d967d73265ae7833aa7c070f542`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
@@ -120,13 +120,16 @@ PR #258. PR #386 is closed as a duplicate of the safer #373 login fix. PR #382's
 stack merge is not a main merge; #373 must still pass its own current-head
 gates.
 
-Queue refresh at `2026-08-21T18:39:50Z`: PRs #258, #355, #373, and #384 had
+Queue refresh at `2026-08-21T18:50:17Z`: PRs #258, #355, and #373 had
 terminal successful Checks but no independent `APPROVED` review, so none was
-authorized to merge. PRs #349, #368, #383, and #387 had no failed Checks
-observed at their exact heads but retained non-terminal Checks and no
-independent approval. PRs #388, #389, and #390 were merged into stack bases
-only; their merge commits are not protected-main merges. Re-read the exact
-current HEAD, review, and terminal-check gates before every future merge.
+authorized to merge. PRs #349, #368, #383, #384, #387, and #391 had no failed
+Checks observed at their exact heads but retained non-terminal Checks and no
+independent approval. PR #355 also retained a `CHANGES_REQUESTED` review
+decision from the earlier stale coverage verdict; it remains unmergeable until
+the current-head review is refreshed. PRs #388, #389, and #390 were merged
+into stack bases only; their merge commits are not protected-main merges.
+Re-read the exact current HEAD, review, and terminal-check gates before every
+future merge.
 
 Closed without merge at the same observation:
 
@@ -343,16 +346,16 @@ Observed at `2026-08-22T03:44:00Z` on PR #387's exact head
   no independent approval was present; the earlier local result is not claimed
   as evidence for this newer head.
 
-Observed at `2026-08-22T03:44:00Z` on PR #383's current head
-`3584c31c22a432399c694588a4786c445f943848`:
+Observed at `2026-08-21T18:50:17Z` on PR #383's current head
+`6af3adc3e08fd1b0b11182d8cf3714b847c71ea8`:
 
-- `TypeError` from post-chat/global-agent and post-content-worker paths is now
+- `TypeError` from post-chat/global-agent and post-content-worker paths remains
   classified as an internal failure, while provider transport/configuration
-  errors retain `provider_unavailable`. Focused worker and diagnostics tests
-  passed; hosted Checks, independent approval, and a protected merge commit
-  remain absent.
+  errors retain `provider_unavailable`. The current head has no failed Checks
+  observed, but hosted Checks remain non-terminal and no independent approval
+  or protected merge commit is present.
 
-- The hosted `osv-scan` job `96871880120` still fails after both scans exit 0:
+- The former hosted `osv-scan` job `96871880120` failed after both scans exit 0:
   the central workflow passes deprecated `--output=old-results.json` and
   `--output=new-results.json`, then `test -s` cannot find those files. This is
   the same central defect addressed, but not yet merged, by `.github` PR #1158;
@@ -379,15 +382,16 @@ OpenTelemetry attributes correlate the authorized operation across services;
 collector delivery, retention, access review, and no-export rollback are the
 GRC evidence subjects.
 
-The current PR #383 `osv-scan` failure is a central workflow defect: the
+The former PR #383 `osv-scan` failure at head
+`3584c31c22a432399c694588a4786c445f943848` was a central workflow defect: the
 scan exited successfully, but the follow-up treated a missing baseline result
 file as failure after the head checkout. Central `.github` PR #1158 now
 contains the direct-source result-file repair (`--output-file`) at observed
 exact head `c24ce16ab72c5b372d2c397f0af8f84dc1b63d2f`; its provenance, Python
-contracts, and exact-head policy checks pass. The current #383 head still has
-the `osv-scan` failure above, while other Checks are non-terminal and no
-independent approval is present, so it is not authorized to merge. Central PR
-#1002 independently remains open at observed exact head
+contracts, and exact-head policy checks pass. The current #383 head
+`6af3adc3e08fd1b0b11182d8cf3714b847c71ea8` has no failed Checks observed but
+remains non-terminal and unauthorized to merge. Central PR #1002 independently
+remains open at observed exact head
 `a5163b4db0f25c0f2463fdeb075a74c8c0f2f6bf` with required checks still running.
 
 ## 7. Next Implementation Order
