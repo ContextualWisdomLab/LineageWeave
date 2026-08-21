@@ -218,7 +218,7 @@ EVENT_CLUE_TYPES = frozenset(
 )
 # Stored rows without this contract version are legacy summaries and must be
 # regenerated from the current source body before the popup treats them as evidence.
-POST_SUMMARY_CONTRACT_VERSION = 12
+POST_SUMMARY_CONTRACT_VERSION = 13
 
 _GENERIC_TEAM_ACTOR_NAMES = frozenset(
     {"사업부", "부서", "팀", "business unit", "department", "division"}
@@ -229,6 +229,40 @@ def is_generic_team_actor(actor_name: str) -> bool:
     """Return whether a team label lacks a specific unit identity."""
     normalized = " ".join(actor_name.split()).strip().casefold()
     return normalized in _GENERIC_TEAM_ACTOR_NAMES
+
+
+_PARTICIPATION_ONLY_RESPONSIBILITIES = frozenset(
+    {
+        "attended",
+        "attendee",
+        "meeting attendee",
+        "meeting attendance",
+        "meeting participant",
+        "meeting participation",
+        "participant",
+        "participation",
+        "attended meeting",
+        "회의 참석",
+        "회의 참석자",
+        "회의 참여",
+        "회의 참가",
+        "미팅 참석",
+        "미팅 참석자",
+        "참석",
+        "참석자",
+        "참여",
+        "참가",
+    }
+)
+
+
+def _is_participation_only_responsibility(value: str) -> bool:
+    """Keep concrete work in R&R; route attendance-only evidence to clues."""
+    normalized = " ".join(value.casefold().split()).strip()
+    if not normalized:
+        return False
+    parts = re.split(r"\s*(?:및|와|과|and|&|,|/)\s*", normalized)
+    return all(part in _PARTICIPATION_ONLY_RESPONSIBILITIES for part in parts)
 
 
 @dataclass(frozen=True)
@@ -780,10 +814,14 @@ Column 1 is always the actor's own name (a person's name, an organization's
 name, a team's name, or a named software agent) -- never a role description or a category label
 such as "meeting participant" or "attendee". Column 3 must be exactly one
 of the four values person, organization, team, or software_agent -- never a name. One row
-per distinct actor: when several different people share the same
-responsibility (e.g. a list of meeting attendees), write one row per
-person and repeat the responsibility text on each row rather than merging
-them into a single row.
+per distinct actor with a concrete source-grounded action, duty,
+representation, ownership, decision, or support. Attendance alone is not a
+role or responsibility: do not write a ROLES row whose only meaning is
+"attended", "meeting attendee", "participant", 회의 참석, 미팅 참석, 참석자,
+참여, or 참가. Preserve a named attendee in CLUES as clue_actor when the
+post explicitly connects that person or organization to a key event. When
+several actors have concrete work, write one row per actor rather than
+merging them.
 
 Technical terms are not actors. Do not write a ROLES row for a material,
 product, process, method, equipment, acronym, or parenthetical expansion.
@@ -804,7 +842,7 @@ post title or body independently names that same person doing something
 
 Worked examples (fictional names, format only, not real post's content):
 홍길동 | 견적 승인 검토 | person | Acme Electronics
-Acme Renewables | 기술 세미나 참석 | organization | NONE
+Acme Renewables | 기술 세미나에서 제품 설명 | organization | NONE
 설계팀 | 도면 검토 지원 | team | Acme Electronics
 
 PROJECTS:
@@ -867,10 +905,24 @@ used as a PU/business-unit value. Source project fields remain project hints,
 not catalog bindings, unless the post evidence supports them.
 For RELATIONS, extract only an explicit relation stated by the post. Use the
 standard/profile predicate code that best matches the source. Do not infer a
-relation from proximity, a catalog hint, or a role alone. Keep unresolved
-names as text and preserve the shortest exact supporting phrase. A full
-predicate registry is supplied by the application contract; if no predicate
-fits, omit the relation rather than inventing a verb.
+relation from proximity, a catalog hint, a role alone, or the fact that two
+names occur in the same meeting. Keep unresolved names as text and preserve
+the shortest exact supporting phrase. In particular:
+- use org_member_of for an explicit organization membership or group-joining
+  statement;
+- use lw_supports for an explicit organization-to-named-project statement
+  such as "provided installation support for [project]", "worked on
+  [project]", or "was the main contractor for [project]";
+- emit separate organization-to-project rows when the source explicitly
+  assigns different organizations different project responsibilities;
+- do not turn attendance, an affiliation field, or a project mention alone
+  into a relation.
+Fictional format examples only:
+Northwind Services | organization | org_member_of | Northwind Group | organization | joined Northwind Group | 0.98
+Northwind Services | organization | lw_supports | Highland HVDC | project | provided installation support for Highland HVDC | 0.9
+Prime Contractor | organization | lw_supports | Highland HVDC | project | Prime Contractor was the main contractor | 0.95
+A full predicate registry is supplied by the application contract; if no
+predicate fits, omit the relation rather than inventing a verb.
 Post title: {title}
 Post body: {body}
 Context hints: {context_hints}
@@ -1325,6 +1377,8 @@ def _parse_plain_summary_details(
         # better prompt/model, not a column-guessing heuristic here.
         if not actor_type_code or not actor_name or not responsibility:
             continue
+        if _is_participation_only_responsibility(responsibility):
+            continue
         if actor_type_code == ACTOR_TYPE_TEAM and is_generic_team_actor(actor_name):
             continue
         if _is_technical_actor(actor_name, post_body):
@@ -1578,6 +1632,8 @@ def parse_summary_response(content: str) -> PostSummary | None:
                 and isinstance(responsibility, str)
                 and responsibility.strip()
             ):
+                if _is_participation_only_responsibility(responsibility):
+                    continue
                 if actor_type_code == ACTOR_TYPE_TEAM and is_generic_team_actor(name):
                     continue
                 roles.append(
@@ -1760,6 +1816,8 @@ def _parse_summary_details(
             if affiliation_text.casefold() in {"", "none", "null", "없음"}:
                 affiliation_text = None
             if name.strip() and responsibility.strip():
+                if _is_participation_only_responsibility(responsibility):
+                    continue
                 if actor_type_code == ACTOR_TYPE_TEAM and is_generic_team_actor(name):
                     continue
                 roles.append(

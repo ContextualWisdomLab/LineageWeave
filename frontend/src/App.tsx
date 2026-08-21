@@ -51,6 +51,7 @@ import {
   updateTicketStatus,
   verifyPostRelations,
   type ActivityEvent,
+  type AccountAffiliation,
   type AskAgentResponse,
   type AskConversationCursor,
   type AskConversationSummary,
@@ -87,6 +88,7 @@ import {
   type RankingList,
   type PersonRoleHistoryEntry,
   type PostRoleResponsibility,
+  type PostSemanticRelationship,
   type RelatedNode,
   type RelatedNodeType,
   type VocEvidence,
@@ -108,6 +110,12 @@ import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
+import {
+  SOURCE_LINEAGE_FIELDS,
+  sourceLineageContextLabel,
+  sourceLineageFieldIsPresent,
+  sourceLineageFieldLabel,
+} from "./sourceLineageHints";
 import {
   isSupportedLocale,
   LOCALE_LABELS,
@@ -148,6 +156,49 @@ function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
         ))}
       </select>
     </label>
+  );
+}
+
+function AuthorizedScope({ affiliations }: { affiliations?: AccountAffiliation[] }) {
+  const scopeValues = Array.from(
+    new Set(
+      (affiliations ?? [])
+        .map((affiliation) => {
+          const corporateCode = affiliation.corporate_entity_code.trim();
+          if (!corporateCode) return null;
+          return affiliation.process_unit_code?.trim()
+            ? `${corporateCode} / ${affiliation.process_unit_code.trim()}`
+            : corporateCode;
+        })
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+  if (scopeValues.length === 0) return null;
+
+  const visibleScopeValues = scopeValues.slice(0, 3);
+  const hiddenScopeCount = scopeValues.length - visibleScopeValues.length;
+  const fullScopeLabel = scopeValues.join(", ");
+
+  return (
+    <details className="app-account-scope" aria-label={t("Authorized scope")}>
+      <summary title={fullScopeLabel}>
+        <span className="visually-hidden">{t("Authorized scope")}: </span>
+        <span className="app-account-scope-summary">
+          {visibleScopeValues.join(", ")}
+        </span>
+        {hiddenScopeCount > 0 ? (
+          <span className="app-account-scope-more">+{hiddenScopeCount}</span>
+        ) : null}
+      </summary>
+      <div className="app-account-scope-panel">
+        <p className="app-account-scope-heading">{t("Authorized scope")}</p>
+        <ul>
+          {scopeValues.map((scopeValue) => (
+            <li key={scopeValue}>{scopeValue}</li>
+          ))}
+        </ul>
+      </div>
+    </details>
   );
 }
 
@@ -1715,6 +1766,21 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
   );
 }
 
+const SEMANTIC_RELATION_LABELS: Record<string, string> = {
+  org_member_of: "Organization member of",
+  org_unit_of: "Organization unit of",
+  org_suborganization_of: "Sub-organization of",
+  lw_supports: "Supports",
+};
+
+function semanticRelationLabel(relation: PostSemanticRelationship): string {
+  return t(
+    SEMANTIC_RELATION_LABELS[relation.predicate_code] ??
+      relation.ontology_label ??
+      relation.predicate_code,
+  );
+}
+
 const ROLE_ACTOR_TYPE_RANK: Record<string, number> = {
   prov_organization: 0,
   prov_team: 1,
@@ -1812,6 +1878,10 @@ function groupKeyEventsByProject(events: PostKeyEvent[]): KeyEventGroup[] {
     }
   });
   return groups;
+}
+
+function isWritingSourceDetailState(code: string | null | undefined): boolean {
+  return (code ?? "").trim().toUpperCase() === "W";
 }
 
 function PostDetailPopup({
@@ -1916,6 +1986,7 @@ function PostDetailPopup({
   }, []);
 
   function reloadKeymen() {
+    if (isWritingSourceDetailState(post?.source_detail_state_code)) return;
     fetchPostKeymen(accessToken, postId)
       .then((r) => {
         setKeymen(r.keymen);
@@ -1933,6 +2004,7 @@ function PostDetailPopup({
   }
 
   function reloadCounterparties() {
+    if (isWritingSourceDetailState(post?.source_detail_state_code)) return;
     fetchPostCounterparties(accessToken, postId)
       .then((r) => setCounterparties(r.counterparties))
       .catch(() => setCounterparties([]));
@@ -1965,7 +2037,45 @@ function PostDetailPopup({
     let disposed = false;
     let contentPollTimer: number | undefined;
     const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
-    fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
+    const loadDerivedPostData = (loadedPost: PostDetail) => {
+      if (isWritingSourceDetailState(loadedPost.source_detail_state_code)) return;
+      fetchPostEvaluation(accessToken, postId)
+        .then((r) => setEvaluation(r.responses))
+        .catch(() => setEvaluation([]));
+      fetchPostFiveW1H(accessToken, postId)
+        .then(setFiveW1H)
+        .catch(() => setFiveW1H(null));
+      fetchPostKeymen(accessToken, postId)
+        .then((r) => {
+          setKeymen(r.keymen);
+          setSourceAuthorContext(r.source_author_context ?? null);
+        })
+        .catch(() => {
+          setKeymen([]);
+          setSourceAuthorContext(null);
+        });
+      fetchPostCounterparties(accessToken, postId)
+        .then((r) => setCounterparties(r.counterparties))
+        .catch(() => setCounterparties([]));
+      fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
+      fetchPostKnowledgeGraph(accessToken, postId)
+        .then(setKnowledgeGraph)
+        .catch(() => setKnowledgeGraph(null));
+      fetchPostAffiliateTree(accessToken, postId)
+        .then((r) => setAffiliateTrees(r.trees))
+        .catch(() => setAffiliateTrees([]));
+      fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+    };
+    fetchPost(accessToken, postId, asOf)
+      .then((loadedPost) => {
+        if (disposed) return;
+        setPost(loadedPost);
+        loadDerivedPostData(loadedPost);
+        if (!isWritingSourceDetailState(loadedPost.source_detail_state_code)) {
+          reloadContent();
+        }
+      })
+      .catch((err) => setError(String(err)));
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)
         .then((content) => {
@@ -1991,38 +2101,11 @@ function PostDetailPopup({
           setStructureUnits([]);
         });
     contentReloadRef.current = reloadContent;
-    reloadContent();
     fetchPostBookmark(accessToken, postId)
       .then((r) => setBookmarked(r.bookmarked))
       .catch(() => {
         setBookmarked(null);
       });
-    fetchPostEvaluation(accessToken, postId)
-      .then((r) => setEvaluation(r.responses))
-      .catch(() => setEvaluation([]));
-    fetchPostFiveW1H(accessToken, postId)
-      .then(setFiveW1H)
-      .catch(() => setFiveW1H(null));
-    fetchPostKeymen(accessToken, postId)
-      .then((r) => {
-        setKeymen(r.keymen);
-        setSourceAuthorContext(r.source_author_context ?? null);
-      })
-      .catch(() => {
-        setKeymen([]);
-        setSourceAuthorContext(null);
-      });
-    fetchPostCounterparties(accessToken, postId)
-      .then((r) => setCounterparties(r.counterparties))
-      .catch(() => setCounterparties([]));
-    fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
-    fetchPostKnowledgeGraph(accessToken, postId)
-      .then(setKnowledgeGraph)
-      .catch(() => setKnowledgeGraph(null));
-    fetchPostAffiliateTree(accessToken, postId)
-      .then((r) => setAffiliateTrees(r.trees))
-      .catch(() => setAffiliateTrees([]));
-    fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
     return () => {
       disposed = true;
       if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
@@ -2037,6 +2120,17 @@ function PostDetailPopup({
     setSummary(null);
     setSummaryError(null);
     setSummaryLoading(true);
+    if (!post) {
+      return () => {
+        disposed = true;
+      };
+    }
+    if (isWritingSourceDetailState(post.source_detail_state_code)) {
+      setSummaryLoading(false);
+      return () => {
+        disposed = true;
+      };
+    }
     fetchPostSummary(accessToken, postId)
       .then((value) => {
         if (!disposed) {
@@ -2055,7 +2149,7 @@ function PostDetailPopup({
     return () => {
       disposed = true;
     };
-  }, [postId, accessToken, summaryRetry]);
+  }, [postId, accessToken, summaryRetry, post]);
 
   const permanentLink = (() => {
     const url = new URL(window.location.href);
@@ -2165,7 +2259,13 @@ function PostDetailPopup({
 					<div className="popup-analysis-grid">
               <section className="popup-section popup-analysis-col">
               <h3>{t("Summary")}</h3>
-              {!summary && (summaryLoading || contentStatus === "processing") ? (
+              {isWritingSourceDetailState(post.source_detail_state_code) ? (
+                <SummaryStatus
+                  kind="empty"
+                  title={t("Summary is not created for writing posts.")}
+                  description={t("The source is still being written; analysis starts after approval.")}
+                />
+              ) : !summary && (summaryLoading || contentStatus === "processing") ? (
                 <SummaryStatus
                   kind="processing"
                   title={t("Summary is being prepared.")}
@@ -2381,6 +2481,37 @@ function PostDetailPopup({
                       </ul>
                     </>
                   )}
+                  {summary.semantic_relationships && summary.semantic_relationships.length > 0 && (
+                    <>
+                      <h4>{t("Explicit semantic relationships")}</h4>
+                      <ul className="summary-action-list semantic-relationship-list">
+                        {summary.semantic_relationships.map((relation) => (
+                          <li key={`${relation.relation_ordinal}:${relation.subject_name}:${relation.object_name}`}>
+                            <div className="semantic-relationship-line">
+                              <strong>{relation.subject_name}</strong>
+                              <span className="post-badge">{semanticRelationLabel(relation)}</span>
+                              <strong>{relation.object_name}</strong>
+                            </div>
+                            <small>
+                              {t("Evidence")}: {relation.evidence_text} · {t("Confidence")}: {Math.round(relation.confidence * 100)}%
+                            </small>
+                            <details className="semantic-provenance">
+                              <summary>{t("Evidence provenance")}</summary>
+                              <span className="post-badge">
+                                {t("Subject type")}: {relation.subject_type}
+                              </span>
+                              <span className="post-badge">
+                                {t("Object type")}: {relation.object_type}
+                              </span>
+                              <span className="post-badge">
+                                {t("Extraction source")}: {relation.extraction_method ?? t("Recorded extraction")}
+                              </span>
+                            </details>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
                   {summary.major_event_actions && summary.major_event_actions.length > 0 && (
                     <>
                       <h4>{t("Major event actions")}</h4>
@@ -2553,6 +2684,10 @@ function PostDetailPopup({
               post.source_process_unit_catalog_name ||
               post.source_sales_pool_code ||
               post.source_sales_pool_name ||
+              post.source_order_pool_code ||
+              post.source_sales_order_code ||
+              (post.source_sales_order_item_number !== null && post.source_sales_order_item_number !== undefined) ||
+              post.source_inspection_point_code ||
               post.source_customer_code ||
               post.source_customer_name ||
               post.source_project_code ||
@@ -2571,7 +2706,14 @@ function PostDetailPopup({
                   {post.source_detail_state_code ? (
                     <>
                       <dt>{t("Source detail state")}</dt>
-                      <dd>{post.source_detail_state_code}</dd>
+                      {(() => {
+                        const presentation = presentSourceDetailState(post.source_detail_state_code);
+                        return (
+                          <dd aria-label={presentation.accessibleName}>
+                            <strong className="board-source-detail-state-code">{presentation.code}</strong> · {presentation.description}
+                          </dd>
+                        );
+                      })()}
                     </>
                   ) : null}
                   {post.source_draft_code ? (
@@ -2642,6 +2784,30 @@ function PostDetailPopup({
                       <dd>{post.source_sales_pool_name}</dd>
                     </>
                   ) : null}
+                  {post.source_order_pool_code ? (
+                    <>
+                      <dt>{t("Source order pool")}</dt>
+                      <dd>{post.source_order_pool_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_sales_order_code ? (
+                    <>
+                      <dt>{t("Source sales order")}</dt>
+                      <dd>{post.source_sales_order_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_sales_order_item_number !== null && post.source_sales_order_item_number !== undefined ? (
+                    <>
+                      <dt>{t("Source sales order item")}</dt>
+                      <dd>{post.source_sales_order_item_number}</dd>
+                    </>
+                  ) : null}
+                  {post.source_inspection_point_code ? (
+                    <>
+                      <dt>{t("Source inspection point")}</dt>
+                      <dd>{post.source_inspection_point_code}</dd>
+                    </>
+                  ) : null}
                   {post.source_customer_code ? (
                     <>
                       <dt>{t("Source customer code")}</dt>
@@ -2680,6 +2846,40 @@ function PostDetailPopup({
                   ) : null}
                 </dl>
                 <p className="post-meta">{t("Raw source codes are shown; no state label was inferred.")}</p>
+                {post.source_lineage_hints ? (
+                  <div className="source-lineage-hint" aria-label={t("Source lineage combination")}>
+                    <h4>{t("Source lineage combination")}</h4>
+                    <p>
+                      <strong>{sourceLineageContextLabel(post.source_lineage_hints)}</strong>{" "}
+                      <span className="post-badge">{t("Combination code")}: {post.source_lineage_hints.combination_code}</span>{" "}
+                      <span className="post-meta">{t("Inferred from field presence")}</span>
+                    </p>
+                    <p className="post-meta">{t("Field combination")}</p>
+                    <ul className="source-lineage-fields">
+                      {SOURCE_LINEAGE_FIELDS.map((field) => {
+                        const values: Record<string, string | null> = {
+                          customer: post.source_customer_code || post.source_customer_name || null,
+                          order_pool: post.source_order_pool_code || null,
+                          sales_order: post.source_sales_order_code || null,
+                          sales_order_item:
+                            post.source_sales_order_item_number === null || post.source_sales_order_item_number === undefined
+                              ? null
+                              : String(post.source_sales_order_item_number),
+                        };
+                        const present = sourceLineageFieldIsPresent(post.source_lineage_hints!, field);
+                        return (
+                          <li key={field} className={present ? "is-present" : "is-missing"}>
+                            <span>{sourceLineageFieldLabel(field)}</span>
+                            <strong>{present ? values[field] || t("Present") : t("Not present")}</strong>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                    <p className="post-meta">
+                      {t("Lifecycle vector")}: {post.source_lineage_hints.lifecycle_vector} · {t("Raw codes only")}
+                    </p>
+                  </div>
+                ) : null}
               </section>
             )}
             </div>
@@ -4031,6 +4231,30 @@ function presentVocType(option: PostFilterOption): {
   };
 }
 
+const SOURCE_DETAIL_STATE_PRESENTATIONS: Record<string, string> = {
+  W: "Writing in progress",
+  D: "Pending approval",
+  A: "Approved",
+};
+
+function presentSourceDetailState(code: string): {
+  code: string;
+  description: string;
+  accessibleName: string;
+} {
+  const normalizedCode = code.trim().toUpperCase();
+  const englishLabel = SOURCE_DETAIL_STATE_PRESENTATIONS[normalizedCode] ?? "Unmapped source detail state";
+  const description = t(englishLabel);
+  return {
+    code: normalizedCode || code,
+    description,
+    accessibleName:
+      description === englishLabel
+        ? `${normalizedCode || code} — ${englishLabel}`
+        : `${normalizedCode || code} — ${description} (${englishLabel})`,
+  };
+}
+
 function PostList({
   accessToken,
   showLabPanels = false,
@@ -4079,6 +4303,8 @@ function PostList({
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [vocTypeFilterOptions, setVocTypeFilterOptions] = useState<PostFilterOption[]>([]);
+  const [sourceDetailStateFilter, setSourceDetailStateFilter] = useState<string[]>([]);
+  const [sourceDetailStateFilterOptions, setSourceDetailStateFilterOptions] = useState<PostFilterOption[]>([]);
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
@@ -4227,6 +4453,7 @@ function PostList({
         (page - 1) * POST_PAGE_SIZE,
         query,
         typeFilter.length > 0 ? typeFilter : undefined,
+        sourceDetailStateFilter.length > 0 ? sourceDetailStateFilter : undefined,
         visibilityFilter === "all" ? undefined : visibilityFilter,
         sort,
       );
@@ -4234,6 +4461,7 @@ function PostList({
       setPosts(response.posts);
       setTotalPosts(response.total_count);
       setVocTypeFilterOptions(response.voc_type_options ?? []);
+      setSourceDetailStateFilterOptions(response.source_detail_state_options ?? []);
       setVisibilityFilterOptions(response.visibility_options ?? []);
       setCurrentPage(page);
     } catch (err) {
@@ -4242,7 +4470,7 @@ function PostList({
     } finally {
       if (requestId === postsRequest.current) setLoadingPage(false);
     }
-  }, [accessToken, searchQuery, sortOrder, typeFilter, visibilityFilter]);
+  }, [accessToken, searchQuery, sortOrder, typeFilter, sourceDetailStateFilter, visibilityFilter]);
 
   useEffect(() => {
     void loadPostPage(1);
@@ -4311,11 +4539,27 @@ function PostList({
           code,
           label: loadedPosts.find((post) => post.voc_type_code === code)?.voc_type_label ?? code,
         }));
+  const sourceDetailStateOptions = sourceDetailStateFilterOptions.length
+    ? sourceDetailStateFilterOptions
+    : Array.from(
+        new Set(
+          loadedPosts
+            .map((post) => post.source_detail_state_code)
+            .filter((code): code is string => Boolean(code?.trim())),
+        ),
+      )
+        .sort()
+        .map((code) => ({ code, label: code }));
   const filteredPosts = loadedPosts
     .filter((post) => {
       const matchesType = typeFilter.length === 0 || typeFilter.includes(post.voc_type_code);
+      const matchesSourceDetailState =
+        sourceDetailStateFilter.length === 0 ||
+        (post.source_detail_state_code !== null &&
+          post.source_detail_state_code !== undefined &&
+          sourceDetailStateFilter.includes(post.source_detail_state_code));
       const matchesVisibility = visibilityFilter === "all" || post.visibility_code === visibilityFilter;
-      return matchesType && matchesVisibility;
+      return matchesType && matchesSourceDetailState && matchesVisibility;
     })
     .sort((left, right) => {
       if (sortOrder === "title") {
@@ -4324,7 +4568,12 @@ function PostList({
       const direction = sortOrder === "newest" ? -1 : 1;
       return direction * left.created_at.localeCompare(right.created_at);
     });
-  const hasBoardFilters = Boolean(searchInput.trim()) || Boolean(searchQuery) || typeFilter.length > 0 || visibilityFilter !== "all";
+  const hasBoardFilters =
+    Boolean(searchInput.trim()) ||
+    Boolean(searchQuery) ||
+    typeFilter.length > 0 ||
+    sourceDetailStateFilter.length > 0 ||
+    visibilityFilter !== "all";
   const totalPages = Math.max(1, Math.ceil(totalPosts / POST_PAGE_SIZE));
   const pageItems: Array<number | "ellipsis"> =
     totalPages <= 7
@@ -4374,6 +4623,7 @@ function PostList({
               setSearchInput("");
               setSearchQuery("");
               setTypeFilter([]);
+              setSourceDetailStateFilter([]);
               setVisibilityFilter("all");
               setSortOrder("newest");
             }}
@@ -4418,6 +4668,35 @@ function PostList({
                   );
                 })}
               </fieldset>
+              {sourceDetailStateOptions.length > 0 ? (
+                <fieldset className="board-voc-type-filter board-source-detail-state-filter">
+                  <legend>{t("Filter by source detail state")}</legend>
+                  <p className="board-source-detail-state-help">
+                    {t("W = writing in progress · D = pending approval · A = approved")}
+                  </p>
+                  {sourceDetailStateOptions.map((option) => {
+                    const presentation = presentSourceDetailState(option.code);
+                    return (
+                      <label key={option.code} className="board-choice-option">
+                        <input
+                          type="checkbox"
+                          checked={sourceDetailStateFilter.includes(option.code)}
+                          aria-label={presentation.accessibleName}
+                          onChange={(event) =>
+                            setSourceDetailStateFilter((current) =>
+                              event.target.checked
+                                ? [...current, option.code]
+                                : current.filter((code) => code !== option.code),
+                            )
+                          }
+                        />
+                        <span className="board-voc-type-code">{presentation.code}</span>
+                        <span className="board-voc-type-description">{presentation.description}</span>
+                      </label>
+                    );
+                  })}
+                </fieldset>
+              ) : null}
               <label>
                 {t("Filter by visibility")}
                 <select
@@ -4464,7 +4743,11 @@ function PostList({
             </p>
           ) : (
             <ul className="post-list" aria-label={t("Board posts")}>
-              {filteredPosts.map((post) => (
+              {filteredPosts.map((post) => {
+                const sourceDetailState = post.source_detail_state_code
+                  ? presentSourceDetailState(post.source_detail_state_code)
+                  : null;
+                return (
                 <li key={post.post_id}>
                   <article className="post-card">
                     <button
@@ -4501,6 +4784,24 @@ function PostList({
                             {t("Source project name")}: {post.source_project_name}
                           </span>
                         ) : null}
+                        {post.source_lineage_hints ? (
+                          <>
+                            <span className="post-meta">
+                              {t("Source context")}: {sourceLineageContextLabel(post.source_lineage_hints)} · {t("Combination code")}: {post.source_lineage_hints.combination_code}
+                            </span>
+                            <span className="post-meta source-lineage-presence" aria-label={t("Source fields") + ": " + SOURCE_LINEAGE_FIELDS.map((field) => `${sourceLineageFieldLabel(field)}: ${sourceLineageFieldIsPresent(post.source_lineage_hints!, field) ? t("Present") : t("Not present")}`).join(", ")}>
+                              <span>{t("Source fields")}:</span>
+                              {SOURCE_LINEAGE_FIELDS.map((field) => {
+                                const present = sourceLineageFieldIsPresent(post.source_lineage_hints!, field);
+                                return (
+                                  <span key={field} className={`source-lineage-presence-item ${present ? "is-present" : "is-missing"}`}>
+                                    {sourceLineageFieldLabel(field)} {present ? "✓" : "—"}
+                                  </span>
+                                );
+                              })}
+                            </span>
+                          </>
+                        ) : null}
                         {post.project_evidence && post.project_evidence.length > 0 ? (
                           <span className="post-meta">
                             {t("Semantic project")}: {post.project_evidence.map((project) => project.project_name).join(", ")}
@@ -4513,16 +4814,17 @@ function PostList({
                       <span className="post-card-badges">
                         <span className="post-badge">{t(post.voc_type_label ?? post.voc_type_code)}</span>
                         <span className="post-badge">{t(post.visibility_label ?? post.visibility_code)}</span>
-                        {post.source_detail_state_code ? (
-                          <span className="post-badge">
-                            {t("Source detail state")}: {post.source_detail_state_code}
+                        {sourceDetailState ? (
+                          <span className="post-badge" aria-label={`${t("Source detail state")}: ${sourceDetailState.accessibleName}`}>
+                            {t("Source detail state")}: <strong className="board-source-detail-state-code">{sourceDetailState.code}</strong> · <span className="board-source-detail-state-description">{sourceDetailState.description}</span>
                           </span>
                         ) : null}
                       </span>
                     </button>
                   </article>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
           {totalPages > 1 && (
@@ -5724,12 +6026,6 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
     return <p className="error">{t("Authenticated, but no access token was returned.")}</p>;
   }
 
-  const accountScope = currentUser?.account_affiliations
-    ?.map((affiliation) =>
-      `${affiliation.corporate_entity_code}${affiliation.process_unit_code ? ` / ${affiliation.process_unit_code}` : ""}`,
-    )
-    .join(", ");
-
   return (
     <div className="app-shell">
       <a
@@ -5759,11 +6055,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           <MenuIcon />
         </button>
         <div className="app-header-top-menu">
-          {accountScope ? (
-            <span className="app-account-scope" aria-label={t("Authorized scope")}>
-              {accountScope}
-            </span>
-          ) : null}
+          <AuthorizedScope affiliations={currentUser?.account_affiliations} />
           <span className="app-user-profile">{auth.user?.profile.preferred_username}</span>
           <LanguageSwitcher accessToken={accessToken} />
           <GlobalSearch

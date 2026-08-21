@@ -717,9 +717,10 @@
     rdfs:label "responsible for"@en .
 
 :supports a owl:ObjectProperty ;
-    rdfs:domain :RoleActorAgent ;
-    rdfs:range :SemanticAssertion ;
-    rdfs:label "supports"@en .
+    rdfs:domain prov:Agent ;
+    rdfs:range prov:Entity ;
+    rdfs:label "supports"@en ;
+    rdfs:comment "LineageWeave profile relation for an explicit source statement that an agent supports an entity such as a named project. It is not inferred from co-occurrence or role evidence."@en .
 
 :subjectName a owl:DatatypeProperty ;
     rdfs:domain :SemanticRelationship ;

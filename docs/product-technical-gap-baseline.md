@@ -1,16 +1,35 @@
 # Product & Technical Gap Baseline
 
-> Audit scope: the current `feat/customer-master-scope-facets` worktree and
-> open PR #366, compared with its exact base `feat/lineage-dag-regression`, the UI/UX Standard Guide v3.0 supplied for this
+> Audit scope: the current LineageWeave buyer-surface/source-context worktree
+> and open PR #384, compared with its exact base and the UI/UX Standard Guide v3.0 supplied for this
 > product, ADR 0118, the accepted TEPP PRD/contracts, and the
 > contextual-orchestrator architecture. Real source identifiers are deliberately
 > replaced with case labels; they must not enter repository artifacts.
 
 ## 1. Exact-head evidence
 
-Audit anchor: the exact source state carried by this documentation commit at
-2026-08-21; record the final PR head with `git rev-parse HEAD` during
-acceptance.
+### 1.1 Current continuation head
+
+The current buyer-surface/source-context implementation head for PR #384 is
+`d2d4b9209caed81cf4506908207e7b03142a1af6` (the exact head pushed after the
+remote fixture cleanup and vendor-skill revert), observed at `2026-08-21T15:35:55Z`
+(`2026-08-22` KST). Its base is
+`83ace331edc982208c290763cb0d389c1884e21b` (`docs/customer-master-scope-adr`).
+The repaired implementation includes the customer-master scope-facet base
+and preserves the source-detail-state fixes. Local acceptance evidence is
+backend `127 passed, 6 skipped`, frontend `199 passed`, lint, TypeScript, and
+production build success. The baseline update itself follows this code
+commit; hosted checks, formal review, and merge remain unclaimed until the
+remote PR is queried at its newly pushed exact head.
+
+The historical evidence below remains valid only at the exact heads and dates
+stated in each entry. It must not be used as proof that the current continuation
+head has passed the same checks.
+
+### 1.2 Historical audit anchor
+
+Audit anchor: the exact source state carried by this commit at 2026-08-21;
+record the final PR head with `git rev-parse HEAD` during acceptance.
 
 Current source/test exact head observed before this documentation update:
 `8bed77e7e7b91b633bb92d3a82d0187c387206af`, the squash merge of PR #364
@@ -49,13 +68,32 @@ next exact head and therefore requires the protected checks to rerun.
   Devin Review is pending, and no independent approval or merge is claimed.
   The prior PR #347 merged at
   `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`.
-- **Current parsing PR:** PR #367 is open and unmerged at exact head
-  `4093ac7f` (full SHA is recorded in the PR body), based on
+- **Historical parsing PR:** PR #367 subsequently merged at
+  `7a0d025215fbd9f6510727c7139885b561296149` after exact head
+  `5194d267b90430d7a27a9752a49d73617cb5756c`, based on
   `docs/customer-master-scope-adr` at `f66991699506ef14607de5946da1efcfd20ae6da`.
   It preserves numbered footnotes and empty-cell positions, avoids short-id
   collisions, and drops table rows made only of empty cells. The focused
   parser gate is `47 passed`; `compileall` and `git diff --check` passed.
   Hosted Checks remain queued and no approval or merge is claimed.
+
+### 1.3 Current related PR queue
+
+The following exact-head states were observed during this continuation and are
+part of the acceptance queue, not completion evidence:
+
+| Repository | PR | Exact head | State | Remaining gate |
+| --- | ---: | --- | --- | --- |
+| LineageWeave | #384 | `d2d4b9209caed81cf4506908207e7b03142a1af6` | open, mergeable, unstable | hosted checks and review |
+| LineageWeave | #383 | `720004942dd155a85020af32da402d320038f46a` | open, blocked | required checks and review |
+| LineageWeave | #355 | `b606c2553f877fa85968d90dc46598ce16897fbf` | open, coverage pending | coverage gate and review |
+| contextual-orchestrator | #765 | `d19e3492192e21e4a040fa3fc13a0793443731bf` | open, blocked | required checks and review |
+| governance-risk-compliance | #50 | `ba78e4790f3e361826991455ce83634004f2875d` | open, mergeable, unstable | central OSV provenance gate |
+| ContextualWisdomLab/.github | #1158 | `6e93fd0b65c159c7b168d83579e5b8282096480e` | open, behind | required checks and review |
+
+GRC stack PRs #20 and #21 were merged in order before #50. These merge SHAs do
+not make #50 or the other listed PRs merged; each remains subject to its own
+exact-head protected gate.
 
 ## 2. UI/UX Standard Guide v3.0 comparison
 
@@ -100,6 +138,15 @@ next exact head and therefore requires the protected checks to rerun.
   `LanguageSwitcher` now renders inside `.app-header-top-menu` (`App.tsx`)
   instead of the GNB row; the now-unused `WorkspaceNav` `tools` prop and
   `.workspace-gnb-tools` CSS were removed.
+- **Authorized corp/PU scope — fixed in this worktree:** `/api/me` remains the
+  only source for GNB scope values, and that response is built from the
+  authenticated account's DB-backed `account_affiliation` rows. The header now
+  presents a compact code summary with a keyboard-operable disclosure for the
+  complete corporation/business-unit list, keeps corporation-only affiliations,
+  and omits the scope when no affiliation is authorized. Desktop and 390px
+  mobile Playwright checks cover the disclosure, no-unassigned-code behavior,
+  and no horizontal overflow; the external Keyverse/OIDC runtime gate remains
+  open below.
 - **Locale document metadata — substantially present:** `i18n.ts` synchronizes
   `document.documentElement.lang` after locale selection and `i18n.test.ts`
   covers the supported locales. `frontend/index.html` remains an English
@@ -203,20 +250,21 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Site map / utility menu | `SiteMapUtility`, accessible toggle/region, Escape and destination-close behavior, responsive CSS contract, locale coverage | source + unit; authenticated browser evidence open |
 | Noto Sans, palette, table/form/button conventions, modal 50% mask and keyboard semantics | ADR 0118, token CSS, popup dialog implementation, frontend tests | source + unit |
 | Keyverse/OIDC login with real account | `auth.py`, OIDC discovery/JWKS boundary, local redirect check | source + local-integration; Keyverse open |
-| Authenticated corp/PU attributes | `/api/me` returns DB-backed codes; backend integration test covers `TEST-CORP`/`TEST-PU` and header displays them | source + local-integration |
-| RBAC/ABAC, public/private visibility, tenant isolation | `_can_see_post`, shared `SOURCE_POST_VISIBILITY_SQL`, API authorization tests, aggregate-only runtime checks | source + unit + local-integration |
+| Authenticated corp/PU attributes | `/api/me` returns DB-backed codes; backend integration test covers `TEST-CORP`/`TEST-PU`, the GNB disclosure is covered by `App.test.tsx`, and desktop/390px Playwright QA verifies the rendered scope | source + unit + local-integration + browser-mocked |
+| RBAC/ABAC, public/private visibility, tenant isolation | `_can_see_post` plus W author/admin raw-source exception, analysis eligibility excluding W, API authorization tests, aggregate-only runtime checks | source + local-integration |
 | React product surface and PostgreSQL boundary | React routes/components, asyncpg API, Compose stack | source + local-integration |
 | Authorized PostgreSQL export import mapping | `scripts/import_postgresql_posts.py`, ADR 0121, hash-verified RFC 2557 MHTML resolver, and synthetic preflight/import tests; authorized relation has artifact-path metadata but no body/content/HTML field | source + unit + local-integration partial; operator artifact files and authorized live import open |
 | Bounded large-body search migration | `0035_body_search_prefix.sql`, `0036_normalized_body_search.sql`; live replay completed after bounded rendered-text indexing | source + local-integration |
 | Public Compose liveness and tenant settings boundary | health-probe regression test, `0103_tenant_settings.sql`, replayed existing volume, one tenant-settings row, canonical `tenant_settings_id` after `0104`, rebuilt backend `/healthz` and authenticated `/api/settings` HTTP 200 | source + unit + local-integration |
 | Two-word snake_case database identifiers | ADR 0120, idempotent migration `0104`, live public-schema audit, zero invalid indexes | source + unit + local-integration |
-| Post list/detail popup, Korean summary, 5W1H, R&R, tickets/calendar | API routes, popup panels, backend/frontend tests | source + unit |
+| Post list/detail popup, Korean summary, 5W1H, R&R, tickets/calendar | API routes, popup panels, backend/frontend tests; W is raw-source-only for author/admin and is excluded from summary and derived analysis targets | source + unit |
 | Keyman on both sides, titles, affiliations, related KG nodes | Keyman/affiliate-tree/related-node routes and popup | source + unit; live extraction open |
 | Ontology, semantic layer, provenance, W3C PROV-O projection | normalized schema, SKOS operational vocabulary concepts, `ontology_annotations` label fallback, ADR 0124, provenance modules, ADRs, evidence UI | source + unit; corpus verification open |
 | Branching Event Lineage DAG with evidence trail | `LineageDag.tsx`, Storybook story, Figma frames, accessible node-kind names for screen readers/tooltips, frontend tests; runtime cases include both a rendered DAG and honest empty states, while current corpus coverage remains sparse | source + unit + local-integration partial |
 | Customer master and hierarchy tree | `/api/customer-master`, `scope_facets`, visible `post_organization_mention` enrichment, affiliate tree, migration `0105`, scope filter | source + unit + local-integration partial; authorized own/granted/unclassified facets, visible observed organizations, and admitted observed hierarchy facets are implemented, while authoritative scope backfill and broader hierarchy traversal remain open |
 | VOC/VOM/VOP/VOCC/VOCO/VOS role classification | common lookup values and relationship APIs | source + unit; live classification open |
 | Evidence-grounded chat and source navigation | `/chat`, `/ask`, citation/evidence UI | source + unit; synthetic orchestrator judge route verified, corpus chat/runtime evidence open |
+| OpenTelemetry across LineageWeave, contextual-orchestrator, Valkey, and GRC | LineageWeave PR #383 adds API/Valkey/session spans; contextual-orchestrator PR #765 carries session/provider telemetry; governance-risk-compliance PR #50 adds request telemetry, W3C trace context, OTLP export, and ADR 0009 | source + PR; protected merge and end-to-end collector evidence open |
 | PU/team/project weekly/monthly reports | report API/UI and grouping controls | source + unit; TEPP-backed live report open |
 | TEPP calibrated measurement, dichotomous items, multilevel/MMM/time model | published import/REST boundary and TEPP ADR/PRD references | boundary-only; live-external open |
 | contextual-orchestrator routing, VISION, embedding, schema repair | clients and provenance/session boundary; synthetic authenticated route returned a judge score of `0.98`, OCR succeeded, and region location returned five regions | source + local-integration partial; corpus backfill, capability/readiness evidence, and schema-repair workflow open |
@@ -230,8 +278,8 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | APA 7 doctoring and Zotero OA records | baseline bibliography, local Zotero API reachable, known metadata found | source + local-integration; OA attachment audit open |
 | Browser E2E from login through evidence | authenticated local OIDC login, protected list, drawer/search, popup sweep, and aggregate evidence checks at 390x958; post-migration fresh session had `htmlLang=zh`, localized protected shell, zero console errors/warnings, no horizontal overflow, popup, summary, and Event Lineage | source + local-integration; external provider/runtime evidence remains open |
 | Storybook scenes/edge events and design-token coverage | `LineageDag.stories.tsx`, inventory, Storybook build | source + unit |
-| External email/project lineage package boundary | PR #343 publishes strict v1.0.0 bounded request/result types, available-time cutoff handling, observed/inferred/proposed truth states, pair-budget enforcement, and no source/provider access | source + focused unit; exact-head hosted gates, independent review, and immutable release open |
-| Naruon calendar projection boundary | PR #337 is closed as superseded; draft PR #355 carries the strict read projection contract without making LineageWeave a CalDAV provider | source + focused unit; Naruon endpoint, runtime wiring, restack, and review open |
+| External email/project lineage package boundary | PR #343 merged at `125a8069a1554874d8067a15047e19d780ea6b7b` with strict v1.0.0 bounded request/result types, available-time cutoff handling, observed/inferred/proposed truth states, pair-budget enforcement, and no source/provider access | source + focused unit; immutable release open |
+| Naruon calendar projection boundary | PR #337 is closed as superseded; PR #355 carries the strict read projection contract without making LineageWeave a CalDAV provider | source + focused unit; Naruon endpoint, runtime wiring, and provider conformance remain open |
 | Hourly PR review/repair/merge loop | Central `ContextualWisdomLab/.github` scheduler owns `*/15 * * * *` sweep and `0 * * * *` heartbeat; no duplicate repo-local scheduler is required | boundary accepted; current-head runtime open |
 | 100% coverage/docstrings/edge-case/release gates | current local checks pass, but repository-wide coverage/docstring reports, hosted checks, independent review, and release evidence are not complete on PR #366 | open |
 
@@ -288,7 +336,7 @@ or an explicit unavailable result.
      `rel_voc`) together with a *job title* ("연구원") that has no home of
      its own on `RoleResponsibility` the way `last_known_job_title` does on
      `Keyman`. Fixing this needs a new field plus an
-     `POST_SUMMARY_CONTRACT_VERSION` bump (currently `12`) and an extraction-
+     `POST_SUMMARY_CONTRACT_VERSION` bump (currently `13`) and an extraction-
      prompt change — not a display-layer patch, and not something to
      implement without review given every future extraction depends on the
      contract version.
@@ -378,8 +426,9 @@ or an explicit unavailable result.
   distinguishes genuinely isolated posts from missing extraction or grouping
   evidence before presenting a reader-facing branching DAG as complete.
 - **Cross-repository email/project lineage — provider boundary implemented,
-  consumer open:** PR #343 provides the store-agnostic LineageWeave contract but
-  remains unmerged and unreleased. Naruon issue #1437 still needs a disabled-by-
+  consumer open:** PR #343 merged at
+  `125a8069a1554874d8067a15047e19d780ea6b7b`, but the contract remains
+  unreleased. Naruon issue #1437 still needs a disabled-by-
   default admission policy, durable idempotent analysis job, immutable artifact
   pin, result projection, accept/correct/reject audit, and integration into the
   existing email/thread/project surfaces. No draft branch, direct SQL, shared ORM,

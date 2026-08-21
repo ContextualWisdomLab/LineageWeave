@@ -10,11 +10,14 @@ warranty language messy), which is exactly the "non-trivial" shape Phase
 
 from __future__ import annotations
 
+import asyncio
 import os
 
 import pytest
 
 from backend.app.post_summary_ingestion import (
+    SUMMARY_TARGET_UNAVAILABLE,
+    require_summary_target,
     require_summary_source_body,
     seeded_fixture_summary,
 )
@@ -37,6 +40,7 @@ from lineageweave.post_summary import (
     _parse_plain_semantic_relationships,
     _parse_plain_summary_details,
     _parse_plain_summary_response,
+    _is_participation_only_responsibility,
     parse_summary_response,
 )
 
@@ -75,6 +79,17 @@ def test_summary_requires_imported_source_body() -> None:
     assert require_summary_source_body("  body  ") == "  body  "
     with pytest.raises(ValueError, match="source post body is empty"):
         require_summary_source_body("")
+
+
+def test_summary_target_rejects_transport_padded_writing_state() -> None:
+    class _Connection:
+        async def fetchval(self, query: str, post_id: str) -> str:
+            assert "source_detail_state_code" in query
+            assert post_id == "post-1"
+            return " w "
+
+    with pytest.raises(ValueError, match=SUMMARY_TARGET_UNAVAILABLE):
+        asyncio.run(require_summary_target(_Connection(), "post-1"))
 
 
 def test_parses_a_well_formed_json_object() -> None:
@@ -138,6 +153,29 @@ def test_plain_relation_parser_drops_unallowlisted_predicates() -> None:
     )
     assert len(relations) == 1
     assert relations[0].predicate_code == "org_unit_of"
+
+
+def test_attendance_only_is_not_a_role_but_concrete_work_is() -> None:
+    details = _parse_plain_summary_details(
+        "ROLES:\n"
+        "Synthetic attendee | 회의 참석 | person | Synthetic Works\n"
+        "Synthetic operator | 회의 참석 및 기술 지원 | person | Synthetic Works\n"
+        "PROJECTS:\nNONE\n"
+    )
+    assert details is not None
+    assert [role.actor_name for role in details[0]] == ["Synthetic operator"]
+    assert _is_participation_only_responsibility("meeting attendee")
+    assert not _is_participation_only_responsibility("meeting attendance and installation support")
+
+
+def test_json_attendance_only_is_not_a_role() -> None:
+    summary = parse_summary_response(
+        '{"korean_summary":"요약", "key_events":[], "roles_and_responsibilities":['
+        '{"actor_name":"Synthetic attendee","responsibility":"participant", "actor_type":"person"},'
+        '{"actor_name":"Synthetic reviewer","responsibility":"도면 검토", "actor_type":"person"}]}'
+    )
+    assert summary is not None
+    assert [role.actor_name for role in summary.roles_and_responsibilities] == ["Synthetic reviewer"]
 
 
 def test_parses_explicit_five_w1h_evidence_with_source_phrase() -> None:

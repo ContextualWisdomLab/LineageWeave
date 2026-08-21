@@ -21,6 +21,7 @@ from backend.app.post_content_queue import (
     requeue_failed_post_content_job,
     post_content_api_status,
     post_content_is_complete,
+    post_content_summary_status_message,
     post_content_summary_is_ready,
     post_body_has_images,
     post_content_stream_fields,
@@ -49,6 +50,12 @@ def test_api_status_does_not_call_failed_content_ready() -> None:
     assert post_content_api_status(SUCCEEDED, content_present=True) == "ready"
     assert post_content_api_status(FAILED, content_present=False) == "unavailable"
     assert post_content_api_status(FAILED, content_present=True) == "unavailable"
+
+
+def test_summary_status_distinguishes_terminal_image_failure_from_processing() -> None:
+    assert "ingestion failed" in post_content_summary_status_message(FAILED)
+    assert "still being processed" in post_content_summary_status_message(QUEUED)
+    assert "still being processed" in post_content_summary_status_message(RUNNING)
 
 
 def test_summary_waits_for_image_evidence_and_detects_images_without_body_logging() -> None:
@@ -119,6 +126,9 @@ def test_republish_query_recovers_due_queue_and_stale_running_leases() -> None:
         async def fetch(self, query: str, *args: object):
             assert "status_code = $1" in query
             assert "status_code = $3" in query
+            assert "join source_post post" in query
+            assert "source_detail_state_code" in query
+            assert "coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'" in query
             assert "started_at < now() - $4::interval" in query
             assert args[0] == QUEUED
             assert args[2] == RUNNING
@@ -431,7 +441,8 @@ def test_recovery_republishes_due_rows_in_queued_at_order() -> None:
     assert published == 2
     assert client.events == [("first", "a" * 64), ("second", "b" * 64)]
     assert "queued_at <= now() - $2::interval" in connection.query
-    assert "order by queued_at" in connection.query
+    assert "coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'" in connection.query
+    assert "order by post_content_ingestion_job.queued_at" in connection.query
     assert connection.args == (QUEUED, POST_CONTENT_RETRY_INTERVAL, RUNNING, STALE_RUNNING_INTERVAL, 2)
 
 

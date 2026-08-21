@@ -233,12 +233,110 @@
 }
 
 .app-account-scope {
-  max-width: 22rem;
-  overflow: hidden;
+  position: relative;
+  max-width: min(30rem, 34vw);
   color: var(--text-muted);
   font-size: 0.75rem;
+}
+
+.app-account-scope > summary {
+  display: flex;
+  min-width: 0;
+  min-height: var(--size-control-min);
+  align-items: center;
+  gap: 0.35rem;
+  overflow: hidden;
+  padding: 0.2rem 0.45rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  list-style: none;
+}
+
+.app-account-scope > summary::-webkit-details-marker {
+  display: none;
+}
+
+.app-account-scope > summary::after {
+  flex: 0 0 auto;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-left: 0.15rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  content: "";
+  transform: translateY(-0.12rem) rotate(45deg);
+}
+
+.app-account-scope[open] > summary::after {
+  transform: translateY(0.12rem) rotate(225deg);
+}
+
+.app-account-scope > summary:hover,
+.app-account-scope > summary:focus-visible {
+  border-color: var(--color-accent-border);
+  background: var(--color-accent-background);
+  color: var(--text-h);
+}
+
+.app-account-scope-summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.app-account-scope-more {
+  flex: 0 0 auto;
+  color: var(--color-primary);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.app-account-scope-panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: var(--z-gnb-pulldown);
+  width: min(24rem, calc(100vw - 2rem));
+  max-height: min(24rem, 60vh);
+  overflow: auto;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface);
+  box-shadow: 0 10px 28px rgba(16, 24, 40, 0.14);
+  color: var(--text-h);
+}
+
+.app-account-scope-heading {
+  margin: 0 0 0.55rem;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.app-account-scope-panel ul {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 18rem;
+  overflow: auto;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.app-account-scope-panel li {
+  overflow-wrap: anywhere;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-muted);
+  font-family: var(--mono);
+  font-size: 0.76rem;
 }
 
 /* Drawer Menu Trigger (Mobile) */
@@ -1285,20 +1383,30 @@ a:focus-visible {
   text-transform: none;
 }
 
-.board-voc-type-option {
-  min-height: 2rem;
+.board-voc-type-option,
+.board-choice-option {
+  min-height: var(--size-control-min);
   padding: 0.3rem 0.45rem;
   border: 1px solid transparent;
   border-radius: var(--radius-chip);
 }
 
-.board-voc-type-option:hover {
+.board-voc-type-option:hover,
+.board-choice-option:hover {
   background: var(--color-accent-background);
 }
 
-.board-voc-type-option:focus-within {
+.board-voc-type-option:focus-within,
+.board-choice-option:focus-within {
   border-color: var(--color-accent-border);
   box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.board-source-detail-state-help {
+  flex: 0 0 100%;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
 }
 
 .board-voc-type-filter input {
@@ -1397,6 +1505,21 @@ a:focus-visible {
 .post-card-main > .post-meta {
   font-size: 0.77rem;
   line-height: 1.4;
+}
+
+.source-lineage-presence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.source-lineage-presence-item {
+  color: var(--text);
+}
+
+.source-lineage-presence-item.is-missing {
+  color: var(--text-muted);
 }
 
 .post-card-badges {
@@ -1504,15 +1627,8 @@ a:focus-visible {
   position: relative;
   background: var(--surface);
   color: var(--text);
-  width: min(90%, 820px);
+  width: min(90%, 1180px);
   max-height: 85vh;
-  /* Wide desktop viewports get more than the 820px mobile-safe cap so
-     multi-column sections (popup-analysis-grid, popup-secondary-grid)
-     have room to sit side by side instead of forcing a narrow single
-     column on a 1920px-wide shell. */
-  @media (min-width: 1280px) {
-    width: min(85%, 1180px);
-  }
   overflow-y: auto;
   padding: clamp(1.25rem, 3vw, 2rem);
   border: 1px solid var(--border);
@@ -2030,6 +2146,63 @@ a:focus-visible {
   font-size: 0.8rem;
 }
 
+.source-lineage-hint {
+  margin-top: 0.9rem;
+  padding: 0.75rem 0.9rem;
+  border-inline-start: 3px solid var(--color-primary);
+  background: var(--color-accent-background);
+}
+
+.source-lineage-hint p {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.35rem 0 0;
+}
+
+.source-lineage-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+  padding: 0;
+  margin: 0.45rem 0 0;
+  list-style: none;
+}
+
+.source-lineage-fields li {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--bg);
+}
+
+.source-lineage-fields li span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.source-lineage-fields li strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+}
+
+.source-lineage-fields .is-missing strong {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+@media (max-width: 720px) {
+  .source-lineage-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .ontology-affiliation-link {
   font-weight: 600;
 }
@@ -2101,6 +2274,18 @@ a:focus-visible {
 
 .semantic-provenance .post-badge {
   margin: 0;
+}
+
+.semantic-relationship-list li {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.semantic-relationship-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .verification-verify_pending {
@@ -2327,7 +2512,7 @@ a:focus-visible {
   }
 
   .app-account-scope {
-    display: none;
+    max-width: min(24rem, 42vw);
   }
   .workspace-gnb {
     padding: 0 1rem;
@@ -2525,9 +2710,28 @@ a:focus-visible {
   }
 
   .app-header-top-menu {
+    width: 100%;
+    min-width: 0;
+    flex: 1 1 100%;
     flex-wrap: wrap;
     justify-content: flex-end;
     row-gap: 0.5rem;
+  }
+
+  .app-account-scope {
+    flex: 1 0 100%;
+    max-width: 100%;
+    min-width: 0;
+    order: -1;
+  }
+
+  .app-account-scope-panel {
+    position: fixed;
+    top: calc(var(--header-height) + 0.5rem);
+    right: 0.9rem;
+    left: 0.9rem;
+    width: auto;
+    max-height: 60vh;
   }
 
   .global-search-panel {

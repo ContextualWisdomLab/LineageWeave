@@ -211,6 +211,14 @@ class _SummaryConnection:
             return None
         raise AssertionError(f"unexpected fetchrow query: {compact}")
 
+    async def fetchval(self, query: str, *args: Any) -> Any:
+        compact = " ".join(query.split())
+        self._events.append(("fetchval", compact))
+        if compact.startswith("select source_detail_state_code from source_post"):
+            assert not self.in_transaction
+            return None
+        raise AssertionError(f"unexpected fetchval query: {compact}")
+
     async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
         compact = " ".join(query.split())
         self._events.append(("fetch", compact))

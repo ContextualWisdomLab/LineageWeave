@@ -20,17 +20,32 @@ export interface PostSummary {
   source_process_unit_catalog_name?: string | null;
   source_sales_pool_code?: string | null;
   source_sales_pool_name?: string | null;
+  source_order_pool_code?: string | null;
+  source_sales_order_code?: string | null;
+  source_sales_order_item_number?: number | null;
+  source_inspection_point_code?: string | null;
   source_customer_code?: string | null;
   source_customer_name?: string | null;
   source_project_code?: string | null;
   source_project_name?: string | null;
   source_system_code?: string | null;
   source_record_key?: string | null;
+  source_lineage_hints?: SourceLineageHints;
   publication_state_code?: string;
   post_body_excerpt?: string | null;
   post_body_truncated?: boolean;
   project_evidence?: ProjectEvidence[];
   created_at: string;
+}
+
+export interface SourceLineageHints {
+  combination_code: string;
+  commercial_context_code: string;
+  inference_status_code: string;
+  present_fields: string[];
+  missing_fields: string[];
+  lifecycle_vector: string;
+  deleted_marker_present: boolean;
 }
 
 export interface PostPage {
@@ -39,6 +54,7 @@ export interface PostPage {
   limit: number;
   offset: number;
   voc_type_options?: PostFilterOption[];
+  source_detail_state_options?: PostFilterOption[];
   visibility_options?: PostFilterOption[];
 }
 
@@ -238,6 +254,20 @@ export interface PostProjectMention {
   extraction_method: string;
 }
 
+export interface PostSemanticRelationship {
+  relation_ordinal: number;
+  subject_name: string;
+  subject_type: string;
+  predicate_code: string;
+  object_name: string;
+  object_type: string;
+  evidence_text: string;
+  confidence: number;
+  ontology_iri?: string;
+  ontology_label?: string;
+  extraction_method?: string;
+}
+
 export interface ProjectEvidence {
   project_key: string;
   project_name: string;
@@ -263,6 +293,7 @@ export interface PostAiSummary {
   project_mentions?: PostProjectMention[];
   quantitative_observations?: PostQuantitativeObservation[];
   source_grounded_facts?: PostSourceGroundedFact[];
+  semantic_relationships?: PostSemanticRelationship[];
 }
 
 export interface PostKeyEvent {
@@ -714,6 +745,7 @@ export function fetchPosts(
   offset?: number,
   search?: string,
   vocTypes?: string[],
+  sourceDetailStates?: string[],
   visibility?: string,
   sort?: PostSortOrder,
 ): Promise<PostPage> {
@@ -727,6 +759,9 @@ export function fetchPosts(
   }
   for (const vocType of vocTypes ?? []) {
     params.append("voc_type", vocType);
+  }
+  for (const sourceDetailState of sourceDetailStates ?? []) {
+    params.append("source_detail_state", sourceDetailState);
   }
   if (visibility) {
     params.set("visibility", visibility);

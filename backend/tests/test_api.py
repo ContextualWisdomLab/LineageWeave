@@ -82,6 +82,9 @@ _SOURCE_NAMED_HINTS_MIGRATION = (
 _SOURCE_ORG_NAMED_HINTS_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0039_source_org_named_hints.sql"
 )
+_SOURCE_COMMERCIAL_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0130_source_commercial_context.sql"
+)
 _MEMBER_LOCALE_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0044_member_locale_preference.sql"
 )
@@ -263,6 +266,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_SOURCE_RECORD_IDENTITY_MIGRATION.read_text())
             cur.execute(_SOURCE_NAMED_HINTS_MIGRATION.read_text())
             cur.execute(_SOURCE_ORG_NAMED_HINTS_MIGRATION.read_text())
+            cur.execute(_SOURCE_COMMERCIAL_CONTEXT_MIGRATION.read_text())
             cur.execute(
                 (Path(__file__).resolve().parents[2] / "migrations" / "0040_post_summary_contract.sql")
                 .read_text()
@@ -1239,6 +1243,9 @@ def test_me_reflects_the_authenticated_account(client, demo_analyst_token, seede
     assert any(
         entity["entity_name"] == "Test Corp" for entity in body["corporate_entities"]
     )
+    assert {
+        row["corporate_entity_code"] for row in body["account_affiliations"]
+    } == {"TEST-CORP", "GRANTED-CORP"}
     affiliation = next(
         row
         for row in body["account_affiliations"]
@@ -1443,7 +1450,7 @@ def test_customer_master_returns_authorized_catalog_contract(
     # confirm this is a real common_lookup_value label, not the code echoed back.
     assert entity["entity_level_code"] == "company"
     assert entity["entity_level_label"] not in ("", "company")
-    assert entity["scope_facets"] == ["authorized_own", "observed_hierarchy", "observed_organization"]
+    assert entity["scope_facets"] == ["authorized_own", "observed_organization"]
     parent = next(item for item in body["corporate_entities"] if item["entity_name"] == "Test Group")
     assert parent["scope_facets"] == ["authorized_granted", "observed_hierarchy"]
     granted = next(item for item in body["corporate_entities"] if item["entity_name"] == "Granted Corp")
@@ -1550,7 +1557,7 @@ def test_customer_master_scope_facets_reflect_authorization_and_observed_evidenc
             )
             cur.execute(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
-                "values ('GRANTED-CORP', 'Case Granted Corp', 'company') returning corporate_entity_id"
+                "values ('CASE-GRANTED-CORP', 'Case Granted Corp', 'company') returning corporate_entity_id"
             )
             granted_corp_id = cur.fetchone()[0]
             cur.execute(
@@ -1760,8 +1767,125 @@ def test_post_list_includes_public_and_own_corp_but_excludes_other_corp(client, 
     assert public["voc_type_label"] == "Voice of Customer"
     assert public["visibility_label"] == "Public"
     assert {option["code"] for option in payload["voc_type_options"]} == {"voc"}
+    assert payload["source_detail_state_options"] == []
     assert {option["code"] for option in payload["visibility_options"]} == {"public", "private"}
     assert next(option for option in payload["visibility_options"] if option["code"] == "public")["label"] == "Public"
+
+
+def test_post_list_filters_and_lists_source_detail_state_codes(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "select user_account_id from user_account "
+                "where email_address = 'other.analyst@example.test'"
+            )
+            other_account_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                update source_post
+                   set source_detail_state_code = case post_title
+                       when 'Public post' then ' W '
+                       when 'Own-corp private post' then ' D '
+                       when 'Late own-corp private post' then ' A '
+                       when 'Edited own-corp private post' then ' W '
+                       else source_detail_state_code
+                   end
+                 where post_title in (
+                    'Public post', 'Own-corp private post',
+                    'Late own-corp private post', 'Edited own-corp private post'
+                 )
+                """
+            )
+            cur.execute(
+                "update source_post set author_account_id = %s where post_title = %s",
+                (other_account_id, "Edited own-corp private post"),
+            )
+            cur.execute(
+                "update source_post set corporate_entity_id = %s, visibility_code = 'private' "
+                "where post_title = %s",
+                (seeded_db["other_corp_id"], "Public post"),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    listed = client.get("/api/posts", headers=headers)
+    assert listed.status_code == 200, listed.text
+    assert {
+        option["code"] for option in listed.json()["source_detail_state_options"]
+    } == {"A", "D", "W"}
+    assert {post["post_title"] for post in listed.json()["posts"]} == {
+        "Public post",
+        "Own-corp private post",
+        "Late own-corp private post",
+    }
+
+    blank_filter = client.get("/api/posts?source_detail_state=", headers=headers)
+    assert blank_filter.status_code == 200, blank_filter.text
+    assert {post["post_title"] for post in blank_filter.json()["posts"]} == {
+        "Public post",
+        "Own-corp private post",
+        "Late own-corp private post",
+    }
+
+    blank_voc_filter = client.get("/api/posts?voc_type=", headers=headers)
+    assert blank_voc_filter.status_code == 200, blank_voc_filter.text
+    assert {post["post_title"] for post in blank_voc_filter.json()["posts"]} == {
+        "Public post",
+        "Own-corp private post",
+        "Late own-corp private post",
+    }
+
+    filtered = client.get("/api/posts?source_detail_state=D", headers=headers)
+    assert filtered.status_code == 200, filtered.text
+    assert [post["post_title"] for post in filtered.json()["posts"]] == [
+        "Own-corp private post"
+    ]
+
+    writing = client.get("/api/posts?source_detail_state=W", headers=headers)
+    assert writing.status_code == 200, writing.text
+    assert {post["post_title"] for post in writing.json()["posts"]} == {"Public post"}
+
+    authored_detail = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}", headers=headers
+    )
+    assert authored_detail.status_code == 200, authored_detail.text
+    summary = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}/summary", headers=headers
+    )
+    assert summary.status_code == 422
+    assert "not analysis targets" in summary.json()["detail"]
+    for derived_path in (
+        "content",
+        "five-w1h",
+        "keymen",
+        "counterparties",
+        "lineage",
+        "knowledge-graph",
+        "evaluation",
+        "chat",
+    ):
+        derived = client.get(
+            f"/api/posts/{seeded_db['public_post_id']}/{derived_path}", headers=headers
+        )
+        assert derived.status_code == 422, (derived_path, derived.text)
+
+    hidden_detail = client.get(
+        f"/api/posts/{seeded_db['edited_own_post_id']}", headers=headers
+    )
+    assert hidden_detail.status_code == 403
+
+    _grant_post_admin(seeded_db["dsn"])
+    admin_list = client.get("/api/posts?source_detail_state=W", headers=headers)
+    assert admin_list.status_code == 200, admin_list.text
+    assert {post["post_title"] for post in admin_list.json()["posts"]} == {
+        "Public post",
+        "Edited own-corp private post",
+    }
 
 
 def test_post_list_supports_bounded_offset_pages(client, demo_analyst_token, seeded_db) -> None:
@@ -4545,6 +4669,8 @@ def test_calendar_hides_other_corp_private_commitments_and_sorts_by_due_date(
     assert commitments[0]["commitment_summary"] == "Send the revised quote"
     assert "visibility_code" not in commitments[0]
     assert "corporate_entity_id" not in commitments[0]
+    assert "author_account_id" not in commitments[0]
+    assert "source_detail_state_code" not in commitments[0]
 
 
 def test_calendar_keeps_real_ticket_when_demo_code_is_shared(
@@ -5211,6 +5337,21 @@ def test_seed_period_report_member_click_lands_on_decorated_fixture(
             first = report["members"][0]
             assert first["post_title"] in decorated, first["post_title"]
             assert not first["post_title"].startswith(("High-band", "Low-band"))
+            assert not {
+                "visibility_code",
+                "corporate_entity_id",
+                "author_account_id",
+                "source_detail_state_code",
+                "has_real_source_context",
+            } & first.keys()
+            for pair in report.get("leftover_pairs", []):
+                assert not {
+                    "visibility_code",
+                    "corporate_entity_id",
+                    "author_account_id",
+                    "source_detail_state_code",
+                    "has_real_source_context",
+                } & pair.keys()
 
     threads = client.get("/api/reports/thread_group/2026-W02", headers=headers)
     a100 = next(report for report in threads.json()["reports"] if report["grouping_key"] == "A-100")

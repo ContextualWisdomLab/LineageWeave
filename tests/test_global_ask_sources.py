@@ -291,7 +291,11 @@ def test_global_sources_expand_top_match_through_event_lineage() -> None:
     }
 
     class FakeConnection:
+        def __init__(self) -> None:
+            self.queries: list[str] = []
+
         async def fetch(self, query: str, *args):
+            self.queries.append(query)
             if "matched_in" in query:
                 return [matched_row]
             if "post_lineage_edge" in query:
@@ -300,9 +304,10 @@ def test_global_sources_expand_top_match_through_event_lineage() -> None:
                 return [matched_row, lineage_row]
             return []
 
+    connection = FakeConnection()
     sources = asyncio.run(
         gather_global_chat_sources(
-            FakeConnection(),
+            connection,
             lambda row: True,
             question="Northridge Grid capacity",
             limit=4,
@@ -310,11 +315,25 @@ def test_global_sources_expand_top_match_through_event_lineage() -> None:
     )
 
     assert [source.post_id for source in sources] == ["event-2", "event-1"]
-    assert sources[0].evidence_facts == ()
+    assert any(
+        "commercial_context=no_sales_identifier_candidate" in fact
+        for fact in sources[0].evidence_facts
+    )
+    assert any("source_lifecycle_vector=∅/∅/∅/∅" in fact for fact in sources[0].evidence_facts)
     assert any(
         "Event Lineage: reconstructed timeline neighbor of post_id=event-2" in fact
         for fact in sources[1].evidence_facts
     )
+    source_query = next(query for query in connection.queries if "array_position($2::uuid[], post_id)" in query)
+    for field_name in (
+        "source_order_pool_code",
+        "source_sales_order_code",
+        "source_sales_order_item_number",
+        "source_inspection_point_code",
+        "source_stage_code",
+        "source_deleted_flag",
+    ):
+        assert field_name in source_query
 
 
 def test_global_sources_do_not_leak_lineage_anchor_id_when_anchor_is_invisible() -> None:
@@ -357,4 +376,7 @@ def test_global_sources_do_not_leak_lineage_anchor_id_when_anchor_is_invisible()
     )
 
     assert [source.post_id for source in sources] == ["visible-neighbor"]
-    assert sources[0].evidence_facts == ()
+    assert any(
+        "commercial_context=no_sales_identifier_candidate" in fact
+        for fact in sources[0].evidence_facts
+    )

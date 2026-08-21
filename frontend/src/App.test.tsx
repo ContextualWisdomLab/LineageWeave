@@ -90,11 +90,15 @@ describe("App, authenticated", () => {
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
     pluralAffiliations?: boolean;
+    manyAffiliations?: boolean;
+    noAffiliations?: boolean;
     deferMe?: boolean;
     deferPosts?: boolean;
     meFailed?: boolean;
     postBody?: string;
     vocTypeOptions?: { code: string; label: string }[];
+    sourceDetailStateCode?: string;
+    sourceDetailStateOptions?: { code: string; label: string }[];
     manyCustomerHints?: number;
     customerEntityHierarchy?: boolean;
     customerScopeFacets?: boolean;
@@ -129,6 +133,61 @@ describe("App, authenticated", () => {
     let createdPendingTepp: Record<string, unknown> | null = null;
     let resolvedHintCode: string | null = null;
     let contentRequests = 0;
+    const authorizedAffiliations = options?.noAffiliations
+      ? []
+      : options?.manyAffiliations
+      ? [
+          {
+            corporate_entity_id: "corp-demo",
+            corporate_entity_code: "DEMO-CORP",
+            entity_name: "Demo Corp",
+            process_unit_id: "pu-demo",
+            process_unit_code: "DEMO-PU",
+            process_unit_name: "Demo PU",
+          },
+          {
+            corporate_entity_id: "corp-north",
+            corporate_entity_code: "NORTH-CORP",
+            entity_name: "North Corp",
+            process_unit_id: "pu-north",
+            process_unit_code: "NORTH-PU",
+            process_unit_name: "North PU",
+          },
+          {
+            corporate_entity_id: "corp-south",
+            corporate_entity_code: "SOUTH-CORP",
+            entity_name: "South Corp",
+            process_unit_id: "pu-south",
+            process_unit_code: "SOUTH-PU",
+            process_unit_name: "South PU",
+          },
+          {
+            corporate_entity_id: "corp-west",
+            corporate_entity_code: "WEST-CORP",
+            entity_name: "West Corp",
+            process_unit_id: "pu-west",
+            process_unit_code: "WEST-PU",
+            process_unit_name: "West PU",
+          },
+          {
+            corporate_entity_id: "corp-hq",
+            corporate_entity_code: "HQ-CORP",
+            entity_name: "HQ Corp",
+            process_unit_id: null,
+            process_unit_code: null,
+            process_unit_name: null,
+          },
+        ]
+      : [
+          {
+            corporate_entity_id: "corp-demo",
+            corporate_entity_code: "DEMO-CORP",
+            entity_name: "Demo Corp",
+            process_unit_id: "pu-demo",
+            process_unit_code: "DEMO-PU",
+            process_unit_name: "Demo PU",
+          },
+        ];
 
     let releaseMe = () => {};
     let releasePosts = () => {};
@@ -172,16 +231,7 @@ describe("App, authenticated", () => {
                   { corporate_entity_id: "corp-north", entity_name: "Northridge Grid" },
                 ]
               : [{ corporate_entity_id: "corp-demo", entity_name: "Demo Corp" }],
-            account_affiliations: [
-              {
-                corporate_entity_id: "corp-demo",
-                corporate_entity_code: "DEMO-CORP",
-                entity_name: "Demo Corp",
-                process_unit_id: "pu-demo",
-                process_unit_code: "DEMO-PU",
-                process_unit_name: "Demo PU",
-              },
-            ],
+            account_affiliations: authorizedAffiliations,
           });
         });
       }
@@ -1076,6 +1126,7 @@ describe("App, authenticated", () => {
                       post_title: "Public post",
                       voc_type_code: "voc",
                       voc_type_label: "Voice of Customer",
+                      source_detail_state_code: options?.sourceDetailStateCode,
                       visibility_code: "public",
                       visibility_label: "Public",
                       created_at: "2026-01-01T00:00:00Z",
@@ -1090,6 +1141,7 @@ describe("App, authenticated", () => {
                       { code: "vop", label: "Voice of Partner" },
                     ]),
                   ],
+                  source_detail_state_options: options?.sourceDetailStateOptions ?? [],
                   visibility_options: [{ code: "public", label: "Public" }],
                 },
           ),
@@ -1105,6 +1157,7 @@ describe("App, authenticated", () => {
             post_body: options?.postBody ?? "The full body text.",
             voc_type_code: "voc",
             voc_type_label: "Voice of Customer",
+            source_detail_state_code: options?.sourceDetailStateCode,
             visibility_code: "public",
             visibility_label: "Public",
             project_evidence: [
@@ -2228,6 +2281,96 @@ describe("App, authenticated", () => {
         within(board).getByRole("checkbox", { name: "VOC — 고객의 소리 (Voice of Customer)" }),
       ).toBeInTheDocument(),
     );
+  });
+
+  it("explains and filters source detail state codes", async () => {
+    const fetchMock = stubBackend({
+      sourceDetailStateCode: "D",
+      sourceDetailStateOptions: [
+        { code: "W", label: "W" },
+        { code: "D", label: "D" },
+        { code: "A", label: "A" },
+      ],
+    });
+    render(<App showLabPanels />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(
+      within(board).getByRole("group", { name: "Filter by source detail state" }),
+    ).toBeInTheDocument();
+    expect(
+      within(board).getByRole("checkbox", { name: "W — Writing in progress" }),
+    ).toBeInTheDocument();
+    expect(
+      within(board).getByRole("checkbox", { name: "D — Pending approval" }),
+    ).toBeInTheDocument();
+    expect(
+      within(board).getByRole("checkbox", { name: "A — Approved" }),
+    ).toBeInTheDocument();
+    expect(within(board).getByText("D", { selector: ".board-source-detail-state-code" })).toBeInTheDocument();
+    expect(within(board).getByText("Pending approval", { selector: ".board-source-detail-state-description" })).toBeInTheDocument();
+
+    await userEvent.click(within(board).getByRole("checkbox", { name: "D — Pending approval" }));
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes("source_detail_state=D"))).toBe(true),
+    );
+
+    setLocale("ko");
+    await waitFor(() =>
+      expect(
+        within(board).getByRole("checkbox", { name: "D — 결재 중 (Pending approval)" }),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("does not request derived analysis for a writing-state post", async () => {
+    const fetchMock = stubBackend({ sourceDetailStateCode: " w " });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    expect(await screen.findByText("Summary is not created for writing posts.")).toBeInTheDocument();
+
+    const requestedPaths = fetchMock.mock.calls.map(([url]) =>
+      new URL(String(url), "https://backend.test").pathname,
+    );
+    expect(requestedPaths).not.toContain("/api/posts/post-1/summary");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/evaluation");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/five-w1h");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/keymen");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/counterparties");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/lineage");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/knowledge-graph");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/affiliate-tree");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/voc-evidence");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/content");
+  });
+
+  it("does not show an empty source detail state filter", async () => {
+    const fetchMock = stubBackend({ sourceDetailStateOptions: [] });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(
+      within(board).queryByRole("group", { name: "Filter by source detail state" }),
+    ).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalled();
+  });
+
+  it("does not request derived panels for writing posts", async () => {
+    const fetchMock = stubBackend({
+      sourceDetailStateCode: " w ",
+      sourceDetailStateOptions: [{ code: "W", label: "W" }],
+    });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await screen.findByText("The full body text.");
+
+    const urls = fetchMock.mock.calls.map(([url]) => String(url));
+    expect(
+      urls.some((url) =>
+        /\/api\/posts\/[^/]+\/(five-w1h|keymen|counterparties|lineage|knowledge-graph|affiliate-tree|voc-evidence|evaluation)(?:\?|$)/.test(url),
+      ),
+    ).toBe(false);
   });
 
   it("opens a post from a DAG node click", async () => {
@@ -4026,6 +4169,32 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByRole("searchbox", { name: "Search semantic evidence" })).toHaveFocus(),
     );
+  });
+
+  it("discloses every authorized corporation and business unit code", async () => {
+    stubBackend({ manyAffiliations: true });
+    render(<App />);
+
+    const scope = await screen.findByLabelText("Authorized scope");
+    const summary = scope.querySelector("summary");
+    expect(summary).not.toBeNull();
+    expect(summary).toHaveTextContent("DEMO-CORP / DEMO-PU");
+    expect(summary).toHaveTextContent("+2");
+    expect(scope).not.toHaveAttribute("open");
+
+    await userEvent.click(summary as HTMLElement);
+
+    expect(scope).toHaveAttribute("open", "");
+    expect(within(scope).getByText("NORTH-CORP / NORTH-PU")).toBeVisible();
+    expect(within(scope).getByText("HQ-CORP")).toBeVisible();
+  });
+
+  it("does not derive GNB scope from an unrelated entity list", async () => {
+    stubBackend({ noAffiliations: true, pluralAffiliations: true });
+    render(<App />);
+
+    await screen.findByRole("region", { name: "Board" });
+    expect(screen.queryByLabelText("Authorized scope")).not.toBeInTheDocument();
   });
 
   it("opens the site map utility and closes it after navigation or Escape", async () => {
