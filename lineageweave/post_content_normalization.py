@@ -120,7 +120,7 @@ def _image_placeholder(description: ImageDescription) -> str:
     caption = buyer_safe_image_caption(description.caption) or "no caption available"
     ocr = description.extracted_text.strip()
     if ocr:
-        return f"[image: {caption} | text: {ocr}]"
+        return f"[image: {caption}]\n\n{ocr}\n"
     return f"[image: {caption}]"
 
 

@@ -230,7 +230,7 @@ class NullPostSummaryClient:
 
 _SUMMARY_PROMPT_TEMPLATE = """\
 Read the post below (it may be in English, Korean, or mixed) and produce
-four things:
+five things:
 
 Do not output a reasoning trace. Return the JSON object immediately.
 
@@ -253,6 +253,7 @@ Do not output a reasoning trace. Return the JSON object immediately.
    do not force a team's name into an organization slot: a team is a
    sub-unit of a company, not the company itself -- decide which of the
    three each actor is, and say which.
+   Name every person and organization by their actual stated name whenever the text gives one (e.g. "홍길동 PM, 김철수 PM이 참석했다" instead of a collective "PM들이 참석했다").
    When the actor is a person and the text names or clearly implies who
    they work for, also give that organization's name -- a bare person
    name without their employer is hard to place. When the actor is a
@@ -269,6 +270,8 @@ Do not output a reasoning trace. Return the JSON object immediately.
    topic. Keep ambiguous candidates with confidence below 0.7 so the UI can
    show uncertainty, but they must not be used as a report grouping.
 
+5. A list of 5W1H evidence items. Explicitly extract specific 'when', 'where', 'why', and 'how' facts from the text. For each fact, return the slot code, the extracted value, and the exact supporting phrase. Do not infer anything not in the text.
+
 Structured context hints (hints, not proof): {context_hints}
 Treat a customer value such as 기타, 미등록고객, unknown, or other as a
 weak hint; it cannot confirm a project by itself.
@@ -280,7 +283,9 @@ phrase short. Return an empty array when the post supports no item.
 Reply with ONLY a JSON object (no markdown fences, no prose) with exactly
 these fields:
   "korean_summary": string
-  "key_events": array of strings
+  "key_events": array of objects, each with:
+    "event_text": string,
+    "project_name": string (the name of the project this event belongs to, or null if unassigned)
   "roles_and_responsibilities": array of objects, each with:
     "actor_name": string
     "responsibility": string
@@ -436,7 +441,7 @@ def _parse_plain_summary_response(
     plain = _strip_code_fence(content).strip()
     match = re.search(r"(?im)^\s*KEY EVENTS\s*:\s*", plain)
     if match is None:
-        return (plain, ()) if plain else None
+        return (plain, (), ()) if plain else None
     summary = plain[: match.start()].strip()
     raw_events = plain[match.end() :].strip()
     events: list[str] = []
@@ -975,10 +980,7 @@ class ContextualOrchestratorPostSummaryClient:
             context_hints=context_hints,
         )
         if details is None:
-            raise ValueError(
-                "summary semantic response did not match the required format: "
-                f"{details_body['choices'][0]['message']['content']!r}"
-            )
+            raise ValueError("summary semantic response did not match the required format")
         roles, projects, actions, five_w1h_evidence = details
         return PostSummary(
             korean_summary=korean_summary,
