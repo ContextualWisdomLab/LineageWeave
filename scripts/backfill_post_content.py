@@ -27,7 +27,10 @@ from lineageweave.embedding_client import NullEmbeddingClient, orchestrator_embe
 from lineageweave.image_content import NullImageContentClient, orchestrator_vision_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
-from lineageweave.post_content_persistence import persist_post_content
+from lineageweave.post_content_persistence import (
+    ImageOcrPreservationError,
+    persist_post_content,
+)
 from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
 
 
@@ -227,17 +230,21 @@ async def backfill_post_content(
                     result["skipped_posts"] += 1
                     continue
                 conn = await _ensure_open_connection(conn, target_dsn)
-                await persist_post_content(
-                    conn,
-                    str(row["post_id"]),
-                    row["post_body"],
-                    vision_client=vision_client,
-                    embedding_client=embedding_client,
-                    embedding_model_code=embedding_model or None,
-                    normalized_result=normalized,
-                    structure_client=structure_client,
-                    post_title=row["post_title"],
-                )
+                try:
+                    await persist_post_content(
+                        conn,
+                        str(row["post_id"]),
+                        row["post_body"],
+                        vision_client=vision_client,
+                        embedding_client=embedding_client,
+                        embedding_model_code=embedding_model or None,
+                        normalized_result=normalized,
+                        structure_client=structure_client,
+                        post_title=row["post_title"],
+                    )
+                except ImageOcrPreservationError:
+                    result["skipped_posts"] += 1
+                    continue
                 async with conn.transaction():
                     await record_post_content_backfill_success(
                         conn,

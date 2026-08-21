@@ -45,7 +45,9 @@ recognizable header/separator/data shape and otherwise preserves plain text.
 7. Serialize replacement per source post and reject a same-image retry when
    its content hash matches non-empty persisted OCR but the retry returns no
    OCR. Provider completion is transport evidence, not permission to erase a
-   stronger prior observation.
+   stronger prior observation. During an operator backfill, this typed
+   preservation failure skips only the affected post, records it in the
+   aggregate result, and allows the remaining selected posts to continue.
 
 ## Rejected alternatives
 
@@ -66,6 +68,8 @@ recognizable header/separator/data shape and otherwise preserves plain text.
   no denormalized JSON field or new service.
 - A weaker same-image VISION retry fails before replacement, leaving the
   prior committed evidence available for a later orchestrator retry.
+- A protected retry does not abort an entire operator batch; the skipped-post
+  count is visible to the operator without exposing raw post content.
 - Markdown dialects outside the narrow recognized shape remain plain text and
   are reported as a future parser extension rather than guessed.
 

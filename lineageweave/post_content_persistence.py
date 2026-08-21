@@ -30,6 +30,10 @@ _BatchKey = TypeVar("_BatchKey")
 _LOGGER = logging.getLogger(__name__)
 
 
+class ImageOcrPreservationError(RuntimeError):
+    """A retry would erase stronger OCR already persisted for the same image."""
+
+
 def _bounded_unit_batches(  # noqa: UP047 - retain Python 3.10 compatibility.
     units: list[tuple[_BatchKey, str]],
 ) -> list[list[tuple[_BatchKey, str]]]:
@@ -258,7 +262,7 @@ async def persist_post_content(
                 and not image_ocr_by_sha256[row["content_sha256"]]
                 for row in previous_images
             ):
-                raise RuntimeError(
+                raise ImageOcrPreservationError(
                     "refusing to replace non-empty image OCR with an empty retry result"
                 )
         await conn.execute("delete from post_content_unit where post_id = $1", post_id)
