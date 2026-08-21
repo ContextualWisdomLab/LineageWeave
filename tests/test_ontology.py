@@ -12,6 +12,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from rdflib.namespace import OWL, RDF, RDFS, SKOS, XSD
+
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
     EDGE_CO_MENTION,
@@ -27,7 +29,6 @@ from lineageweave.ontology import (
     load_ontology,
     ontology_annotations,
 )
-from rdflib.namespace import OWL, RDF, RDFS, SKOS, XSD
 
 _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo_data.py"
 
@@ -44,9 +45,9 @@ _ADDITIONAL_LOOKUP_MIGRATION_PATHS = (
 )
 
 # The categories this ontology covers (ADR 0004's scope). seed_demo_data.py
-# also seeds categories this ontology deliberately does not model yet
-# (post_visibility, voc_type, permission, ticket_status) -- those are
-# real, expected gaps, not a test bug.
+# also seeds categories this ontology does not model as KG node/edge
+# predicates. Operational categories below are still modeled as SKOS
+# concepts, so the full controlled vocabulary remains machine-checkable.
 _ONTOLOGY_COVERED_CATEGORIES = frozenset(
     {
         "node_type",
@@ -55,6 +56,10 @@ _ONTOLOGY_COVERED_CATEGORIES = frozenset(
         "person_side",
         "corporate_entity_level",
         "prov_agent_type",
+        "post_visibility",
+        "voc_type",
+        "permission",
+        "ticket_status",
     }
 )
 
@@ -137,9 +142,31 @@ def test_ontology_annotations_carry_iri_and_label_for_a_node_type() -> None:
 
 def test_ontology_annotations_are_empty_for_an_undeclared_code() -> None:
     assert ontology_annotations("not_a_real_lookup_code") == {}
-    # `open` is a real ticket_status lookup code this ontology
-    # deliberately does not cover -- missing, not a fake label.
-    assert ontology_annotations("open") == {}
+    assert ontology_annotations("open") == {
+        "ontology_iri": str(LW.OpenTicketStatus),
+        "ontology_label": "Open",
+    }
+
+
+def test_operational_controlled_vocabulary_uses_skos_concepts() -> None:
+    """Visibility, VOC, permission, and ticket state are semantic concepts,
+    not untyped strings or invented graph edge predicates.
+    """
+    graph = load_ontology()
+    for code, term in (
+        ("public", LW.PublicVisibility),
+        ("voc", LW.VoiceOfCustomer),
+        ("post_read", LW.ReadPostsPermission),
+        ("open", LW.OpenTicketStatus),
+    ):
+        assert iri_for_lookup_code(code) == str(term)
+        assert (term, RDF.type, SKOS.Concept) in graph
+        assert (term, SKOS.inScheme, None) in graph
+
+    assert (LW.hasPostVisibility, RDFS.domain, LW.Post) in graph
+    assert (LW.hasPostVisibility, RDFS.range, SKOS.Concept) in graph
+    assert (LW.hasPermission, RDFS.domain, LW.AccessRole) in graph
+    assert (LW.hasTicketStatus, RDFS.domain, LW.IssueTicket) in graph
 
 
 def test_mentioned_in_property_matches_canonical_edge_direction() -> None:

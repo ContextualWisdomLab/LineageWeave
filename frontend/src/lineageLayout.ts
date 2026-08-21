@@ -45,19 +45,26 @@ function layoutGroup(nodes: LineageGraphNode[], edges: LineageGraphEdge[]): {
   const hasParent = new Set(edges.map((edge) => edge.target));
   const roots = nodes.filter((node) => !hasParent.has(node.id));
   const positions = new Map<string, { x: number; y: number }>();
+  const visiting = new Set<string>();
   let nextRow = 0;
 
   const walk = (id: string, depth: number) => {
-    const kids = (children.get(id) ?? []).filter((childId) => byId.has(childId));
+    if (positions.has(id) || visiting.has(id)) return;
+    visiting.add(id);
+    const kids = (children.get(id) ?? []).filter(
+      (childId) => byId.has(childId) && !positions.has(childId) && !visiting.has(childId),
+    );
     if (kids.length === 0) {
       positions.set(id, { x: PAD + depth * COL_W, y: PAD + nextRow * ROW_H });
       nextRow += 1;
+      visiting.delete(id);
       return;
     }
     const startRow = nextRow;
     for (const childId of kids) walk(childId, depth + 1);
     const midRow = (startRow + nextRow - 1) / 2;
     positions.set(id, { x: PAD + depth * COL_W, y: PAD + midRow * ROW_H });
+    visiting.delete(id);
   };
 
   for (const root of roots) walk(root.id, 0);

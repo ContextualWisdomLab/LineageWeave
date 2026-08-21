@@ -191,14 +191,14 @@ async def _semantic_facts_for_posts(
                    || ' | evidence: ' || left(evidence_text, 500)
                    || ' | ontology_iri: ' || ontology_iri
                    || ' | extraction_method: ' || extraction_method
-                   || ' | confidence: ' || confidence::text
+                   || ' | confidence: ' || mention_confidence::text
                    || ' [provenance=post_project_mention]' as fact
           from post_project_mention
          where post_id = any($1::uuid[])
         union all
         select post_id::text as post_id,
                'actor: ' || left(actor_name, 200)
-                   || ' | responsibility: ' || left(responsibility, 500)
+                   || ' | responsibility: ' || left(responsibility_text, 500)
                    || coalesce(' | affiliation: ' || left(affiliated_organization_name, 200), '')
                    || ' [provenance=post_summary_role]' as fact
           from post_summary_role

@@ -1,4 +1,4 @@
-# ADR 0103: Source-only whitespace is not authoritative structure
+# ADR 0105: Source-only whitespace is not authoritative structure
 
 - Status: Accepted
 - Date: 2026-08-20

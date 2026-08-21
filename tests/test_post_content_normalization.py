@@ -122,6 +122,20 @@ def test_plain_text_visual_continuation_breaks_are_normalized_for_embeddings() -
     assert result.text == "- 요청 사항 후속 설명은 같은 항목에 속한다.\n· 다음 항목"
 
 
+def test_markdown_table_rows_remain_separate_in_normalized_evidence() -> None:
+    result = normalize_post_body(
+        "| Project | Status |\n| --- | --- |\n| Alpha | Ready |"
+    )
+
+    assert result.text == "Project | Status\n\nAlpha | Ready"
+
+
+def test_exporter_oi_lists_are_normalized_as_html_evidence() -> None:
+    result = normalize_post_body("<oi><li>Parent<ul><li>Child</li></ul></li></oi>")
+
+    assert result.text == "Parent\n\nChild"
+
+
 def test_html_tags_never_appear_in_the_normalized_text() -> None:
     html = '<div style="color:red"><p>Confirm delivery by Friday.</p></div>'
     result = normalize_post_body(html)
@@ -275,7 +289,7 @@ def test_partial_locator_with_no_successful_description_fails_closed() -> None:
     assert result.text == "[image: content unavailable]"
 
 
-def test_unknown_chunk_kinds_are_not_leaked_into_buyer_text(monkeypatch) -> None:
+def test_unknown_chunk_kinds_are_not_leaked_into_reader_text(monkeypatch) -> None:
     from lineageweave import post_content_normalization
 
     monkeypatch.setattr(

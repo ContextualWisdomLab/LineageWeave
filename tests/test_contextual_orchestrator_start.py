@@ -52,6 +52,15 @@ def test_gateway_api_key_accepts_local_compatibility_alias(monkeypatch) -> None:
     assert module._pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY") == "compatibility-key"
 
 
+def test_env_file_quotes_are_not_part_of_transport_values(monkeypatch) -> None:
+    module = _load_start_module()
+    monkeypatch.setenv("LLM_GATEWAY_API_KEY", "'provider-key'")
+    monkeypatch.setenv("LLM_GATEWAY_API_URL", '"https://gateway.example/v1"')
+
+    assert module._pop_first_env("LLM_GATEWAY_API_KEY") == "provider-key"
+    assert module._pop_first_env("LLM_GATEWAY_API_URL") == "https://gateway.example/v1"
+
+
 def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch) -> None:
     module = _load_start_module()
     captured: dict[str, object] = {}
@@ -90,9 +99,11 @@ def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch
     monkeypatch.setattr(module, "Path", FakePath)
     monkeypatch.setattr(sys, "argv", ["start.py"])
     monkeypatch.setenv("LLM_GATEWAY_API_KEY", "provider-key")
-    monkeypatch.setenv("CONTEXTUAL_ORCHESTRATOR_TOKEN", "orchestrator-token")
+    monkeypatch.setenv("CONTEXTUAL_ORCHESTRATOR_TOKEN", "'orchestrator-token'")
     monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://gateway.example")
-    monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", "embedding-model")
+    monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", "'embedding-model'")
+    monkeypatch.setenv("LLM_GATEWAY_MAX_OUTPUT_TOKENS", "'2048'")
+    monkeypatch.setenv("CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES", '"65536"')
 
     module.main()
 
@@ -100,6 +111,9 @@ def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch
     assert isinstance(argv, list)
     assert "--embedding-provider-url" not in argv
     assert "--embedding-model" not in argv
+    assert argv[argv.index("--auth-token") + 1] == "orchestrator-token"
+    assert argv[argv.index("--max-output-tokens") + 1] == "2048"
+    assert argv[argv.index("--max-body-bytes") + 1] == "65536"
     assert captured["credentials"] == [
         ("NVIDIA_NIM_API_KEY", "provider-key"),
         ("LLM_GATEWAY_API_KEY", "provider-key"),

@@ -24,9 +24,9 @@ cannot escape as raw ``KeyError`` or type-error payloads from a library
 boundary.
 
 The browser API client is a second trust boundary: HTTP 5xx details are
-discarded, and transport failures become a stable status-0 client error
-before any UI handler can render them. Client-error details remain available
-only for actionable validation or authorization responses.
+discarded, and transport failures become a stable status-0 client error before
+any UI handler can render them. Client-error details remain available only for
+actionable validation or authorization responses.
 
 Missing or malformed evidence remains unavailable; it is never converted into
 a fabricated negative result. Existing input-validation errors outside a

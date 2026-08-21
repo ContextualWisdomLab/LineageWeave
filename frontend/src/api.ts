@@ -39,6 +39,7 @@ export interface PostPage {
   offset: number;
   voc_type_options?: PostFilterOption[];
   visibility_options?: PostFilterOption[];
+  iso_week_options?: string[];
 }
 
 export interface PostFilterOption {
@@ -536,7 +537,17 @@ export interface CurrentUser {
   display_name: string;
   permission_codes: string[];
   corporate_entities?: CorporateEntityRef[];
+  account_affiliations?: AccountAffiliation[];
   preferred_locale?: string | null;
+}
+
+export interface AccountAffiliation {
+  corporate_entity_id: string;
+  corporate_entity_code: string;
+  entity_name: string;
+  process_unit_id: string | null;
+  process_unit_code: string | null;
+  process_unit_name: string | null;
 }
 
 export function fetchMe(accessToken: string): Promise<CurrentUser> {
@@ -586,6 +597,7 @@ export function fetchPosts(
   vocTypes?: string[],
   visibility?: string,
   sort?: PostSortOrder,
+  isoWeek?: string,
 ): Promise<PostPage> {
   const params = new URLSearchParams();
   if (limit !== undefined) {
@@ -603,6 +615,9 @@ export function fetchPosts(
   }
   if (sort) {
     params.set("sort", sort);
+  }
+  if (isoWeek) {
+    params.set("iso_week", isoWeek);
   }
   const query = params.toString();
   return backendFetch<PostPage | PostSummary[]>(`/api/posts${query ? `?${query}` : ""}`, accessToken).then(
