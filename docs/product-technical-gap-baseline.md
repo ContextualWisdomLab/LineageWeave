@@ -49,7 +49,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T18:09:21Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T18:14:02Z` from the
 GitHub API. Checkpoint types are `merge_commit`, `head`, and
 `closed_without_merge`; the latter records a closed PR's exact `head` when
 `merged_at` and `merge_commit_sha` are both absent. A merged commit is
@@ -85,7 +85,7 @@ Open PRs at the same observation:
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `9dcfc4417cf22bd95604d8aabbf786346eaa60de` (the exact current
+- PR #368: `head` `e347e0342c75a3a8eaa5bee69731da12edba3c29` (the exact current
   documentation checkpoint), base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, base `main`
@@ -94,7 +94,7 @@ Open PRs at the same observation:
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #384: `head` `1bffa5adafa6f015cea355de1b82a370d5791f4b`, base
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
-- PR #387: `head` `4bf061314516a6d824dcc41b24a021ca69661aa4`, base `main`
+- PR #387: `head` `cb79302831c0889007699ba7dca2aafa02c01e50`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #388: `head` `1b680a27e6eaca544f1d99512e31220278c43110`, base
   `feat/event-lineage-channel-evidence`
@@ -285,8 +285,8 @@ Observed at `2026-08-21T18:06:44Z` on PR #389's exact head
   merge commit remain absent. This remains an open stacked fix, not a resolved
   production gap.
 
-Observed at `2026-08-21T18:09:21Z` on PR #387's exact head
-`4bf061314516a6d824dcc41b24a021ca69661aa4`:
+Observed at `2026-08-21T18:14:02Z` on PR #387's exact head
+`cb79302831c0889007699ba7dca2aafa02c01e50`:
 
 - The Event Lineage channel-evidence persistence check now budgets one
   half-quantum per six-decimal contribution plus a small floating-point guard,
@@ -294,10 +294,11 @@ Observed at `2026-08-21T18:09:21Z` on PR #387's exact head
   because of storage rounding.
 - A four-channel regression covers the former failure boundary. The async
   rebuild now offloads synchronous reconstruction and the visible graph bounds
-  evidence reads to visible endpoint IDs. Local verification on this exact
-  head passed 769 backend tests with 17 environment skips; hosted Checks still
-  had non-terminal work and no independent approval or merge commit was
-  present.
+  evidence reads to visible endpoint IDs. The rebuild transaction now starts
+  only after reconstruction, so slow orchestrator work cannot hold a pooled
+  connection idle in transaction. Local verification on this exact head passed
+  769 backend tests with 17 environment skips; hosted Checks were queued and
+  no independent approval or merge commit was present.
 
 Observed at `2026-08-21T18:11:51Z` on PR #383's current head
 `6525127008b3ba74526e8ffb8d8bf25630cf58db`:
