@@ -66,7 +66,7 @@ class ImageContentResult:
     mime_type: str
     status_code: str
     description: ImageDescription | None = None
-    regions: tuple["ImageRegionResult", ...] = field(default_factory=tuple)
+    regions: tuple[ImageRegionResult, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
