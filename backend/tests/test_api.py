@@ -237,6 +237,8 @@ def seeded_db(demo_analyst_token):
             cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
             cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
+            # Compose replays this gate on restart; the second apply is the contract.
+            cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
             cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
