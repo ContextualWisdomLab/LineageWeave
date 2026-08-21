@@ -354,7 +354,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
 	    Why: "왜",
 	    How: "어떻게",
 	    "Loading 5W1H...": "5W1H를 불러오는 중...",
-	    "No grounded evidence for this dimension.": "이 항목을 뒷받침하는 근거가 없습니다.",
+    "No grounded evidence for this dimension.": "이 항목을 뒷받침하는 근거가 없습니다.",
+    "Review the source body or related posts for this dimension.":
+      "이 항목은 원문 본문 또는 관련 글의 근거를 검토하세요.",
+    "Review source evidence for this dimension.": "이 항목의 원문 근거를 검토하세요.",
     Evidence: "근거",
     "Post quality (IRT)": "게시글 품질 (IRT)",
     Counterparties: "관련 주체",
@@ -810,7 +813,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
 	    Why: "为什么",
 	    How: "如何",
 	    "Loading 5W1H...": "正在加载 5W1H…",
-	    "No grounded evidence for this dimension.": "此维度没有有依据的证据。",
+    "No grounded evidence for this dimension.": "此维度没有有依据的证据。",
+    "Review the source body or related posts for this dimension.":
+      "请检查此维度的原文正文或相关文章。",
+    "Review source evidence for this dimension.": "请检查此维度的原文证据。",
     Evidence: "证据",
     "Post quality (IRT)": "文章质量（IRT）",
     Counterparties: "相关方",
@@ -977,6 +983,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     How: "どのように",
     "Loading 5W1H...": "5W1Hを読み込んでいます...",
     "No grounded evidence for this dimension.": "この項目を裏付ける証拠はありません。",
+    "Review the source body or related posts for this dimension.":
+      "この項目について原文本文または関連投稿の根拠を確認してください。",
+    "Review source evidence for this dimension.": "この項目の原文根拠を確認してください。",
     "Open related post: {label}": "関連投稿を開く：{label}",
     "Affiliate org: {name}": "所属組織：{name}",
     "Affiliate Keyman: {name}": "所属キーパーソン：{name}",
@@ -1383,6 +1392,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     How: "Như thế nào",
     "Loading 5W1H...": "Đang tải 5W1H...",
     "No grounded evidence for this dimension.": "Không có bằng chứng được kiểm chứng cho mục này.",
+    "Review the source body or related posts for this dimension.":
+      "Hãy xem lại nội dung gốc hoặc các bài viết liên quan cho mục này.",
+    "Review source evidence for this dimension.": "Hãy xem lại bằng chứng nguồn cho mục này.",
     "Open related post: {label}": "Mở bài viết liên quan: {label}",
     "Affiliate org: {name}": "Tổ chức liên kết: {name}",
     "Affiliate Keyman: {name}": "Người liên hệ chính liên kết: {name}",
