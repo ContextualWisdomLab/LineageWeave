@@ -11,6 +11,7 @@ import asyncpg
 import redis.asyncio as redis
 
 from lineageweave.embedding_client import EmbeddingClient
+from lineageweave.http_client import HttpClientError
 from lineageweave.image_content import ImageContentClient
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
@@ -270,7 +271,14 @@ async def process_post_content_job(
                 )
                 return
     except Exception as exc:  # noqa: BLE001 - durable failure is recorded for retry.
-        record_server_failure("post_content_ingestion", exc, outcome="internal_error")
+        outcome = (
+            "provider_unavailable"
+            if isinstance(
+                exc, (HttpClientError, KeyError, OSError, TypeError, ValueError)
+            )
+            else "internal_error"
+        )
+        record_server_failure("post_content_ingestion", exc, outcome=outcome)
         await _finish_failed_job(
             pool,
             post_id,
