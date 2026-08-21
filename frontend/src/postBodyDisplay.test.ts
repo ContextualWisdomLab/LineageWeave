@@ -88,6 +88,20 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("labels footnotes inside a labeled wrapper around an HTML list", () => {
+    expect(
+      splitPostBody(
+        '<p>Body text</p>' +
+          '<div class="footnotes"><ol><li><p>Wrapped footnote body</p></li></ol></div>' +
+          "<p>Ordinary body after footnotes</p>",
+      ),
+    ).toEqual([
+      { kind: "text", text: "Body text" },
+      { kind: "text", text: "Wrapped footnote body", role: "footnote" },
+      { kind: "text", text: "Ordinary body after footnotes" },
+    ]);
+  });
+
   it("does not expose control markers for an empty footnote container", () => {
     expect(splitPostBody('<ol class="footnotes"></ol>')).toEqual([{ kind: "text", text: "" }]);
   });
