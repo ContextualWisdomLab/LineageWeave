@@ -1674,10 +1674,10 @@ def test_post_list_filters_and_lists_source_detail_state_codes(
                 """
                 update source_post
                    set source_detail_state_code = case post_title
-                       when 'Public post' then 'W'
-                       when 'Own-corp private post' then 'D'
-                       when 'Late own-corp private post' then 'A'
-                       when 'Edited own-corp private post' then 'W'
+                       when 'Public post' then ' W '
+                       when 'Own-corp private post' then ' D '
+                       when 'Late own-corp private post' then ' A '
+                       when 'Edited own-corp private post' then ' W '
                        else source_detail_state_code
                    end
                  where post_title in (

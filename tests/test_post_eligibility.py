@@ -16,3 +16,14 @@ def test_real_source_context_hides_pure_seed_rows_at_read_boundary() -> None:
     for column in SOURCE_CONTEXT_COLUMNS:
         assert f"post.{column}" in source_context_missing_sql("post")
         assert f"real_post.{column}" in source_context_present_sql("real_post")
+
+
+def test_writing_state_visibility_normalizes_padded_codes() -> None:
+    from backend.app.post_eligibility import source_post_state_visibility_sql
+
+    visibility = source_post_state_visibility_sql(
+        "post", corporate_param=1, account_param=2, admin_param=3
+    )
+
+    assert "upper(btrim(post.source_detail_state_code))" in visibility
+    assert "<> 'W'" in visibility

@@ -75,7 +75,7 @@ async def _claim_job(
             )
             if row is None:
                 return None
-            if row.get("source_detail_state_code") == "W":
+            if str(row.get("source_detail_state_code") or "").strip().upper() == "W":
                 return None
             status_code = str(row["job_status_code"])
             attempt_count = int(row["job_attempt_count"])

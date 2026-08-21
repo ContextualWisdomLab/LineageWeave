@@ -8,10 +8,11 @@ def source_post_state_visibility_sql(
 ) -> str:
     """Apply public/corp visibility, with an author/admin exception for W."""
     return (
-        f"(({alias}.source_detail_state_code = '{WRITING_SOURCE_DETAIL_STATE_CODE}' "
+        f"((coalesce(upper(btrim({alias}.source_detail_state_code)), '') = "
+        f"'{WRITING_SOURCE_DETAIL_STATE_CODE}' "
         f"and ({alias}.author_account_id = ${account_param}::uuid "
         f"or ${admin_param}::boolean)) "
-        f"or ({alias}.source_detail_state_code is distinct from "
+        f"or (coalesce(upper(btrim({alias}.source_detail_state_code)), '') <> "
         f"'{WRITING_SOURCE_DETAIL_STATE_CODE}' and ({alias}.visibility_code = 'public' "
         f"or {alias}.corporate_entity_id::text = any(${corporate_param}::text[]))))"
     )
@@ -65,5 +66,5 @@ SOURCE_POST_READER_ELIGIBILITY_SQL = (
 # list/detail routes opt into SOURCE_POST_READER_ELIGIBILITY_SQL explicitly.
 SOURCE_POST_ELIGIBILITY_SQL = (
     f"({SOURCE_POST_READER_ELIGIBILITY_SQL}) "
-    "and coalesce(btrim({alias}.source_detail_state_code), '') <> 'W'"
+    "and coalesce(upper(btrim({alias}.source_detail_state_code)), '') <> 'W'"
 )

@@ -432,7 +432,8 @@ def _rankweave_client():
 
 def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
     """ABAC: W is author/admin-only; other rows use public/corp visibility."""
-    if post.get("source_detail_state_code") == WRITING_SOURCE_DETAIL_STATE_CODE:
+    detail_state = str(post.get("source_detail_state_code") or "").strip().upper()
+    if detail_state == WRITING_SOURCE_DETAIL_STATE_CODE:
         return account.has_permission(_POST_ADMIN) or str(post["author_account_id"]) == account.user_account_id
     if post["visibility_code"] == "public":
         return True
@@ -441,8 +442,9 @@ def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
 
 def _can_use_post_for_analysis(account: CurrentAccount, post: asyncpg.Record) -> bool:
     """Derived features consume only non-W authorized source posts."""
+    detail_state = str(post.get("source_detail_state_code") or "").strip().upper()
     return (
-        post.get("source_detail_state_code") != WRITING_SOURCE_DETAIL_STATE_CODE
+        detail_state != WRITING_SOURCE_DETAIL_STATE_CODE
         and _can_see_post(account, post)
     )
 
@@ -459,6 +461,7 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
     resolved = labels or {}
     voc = post["voc_type_code"]
     visibility = post["visibility_code"]
+    detail_state = str(post.get("source_detail_state_code") or "").strip().upper() or None
     project_evidence = post.get("project_evidence") or []
     if isinstance(project_evidence, str):
         project_evidence = json.loads(project_evidence)
@@ -470,7 +473,7 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
         "visibility_code": visibility,
         "visibility_label": resolved.get(visibility, visibility),
         "source_stage_code": post.get("source_stage_code"),
-        "source_detail_state_code": post.get("source_detail_state_code"),
+        "source_detail_state_code": detail_state,
         "source_draft_code": post.get("source_draft_code"),
         "source_deleted_flag": post.get("source_deleted_flag"),
         "publication_state_code": _publication_state_code(post),
@@ -599,8 +602,8 @@ async def _post_filter_options(
          order by display_order, code
     """
     detail_state_sql = f"""
-        select distinct post.source_detail_state_code as code,
-               post.source_detail_state_code as label
+        select distinct upper(btrim(post.source_detail_state_code)) as code,
+               upper(btrim(post.source_detail_state_code)) as label
           from source_post post
          where {state_visibility_sql}
            and {SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='post')}
@@ -1499,7 +1502,7 @@ async def list_posts(
                     )
                )
                and ($3::text[] is null or post.voc_type_code = any($3::text[]))
-               and ($4::text[] is null or post.source_detail_state_code = any($4::text[]))
+               and ($4::text[] is null or coalesce(upper(btrim(post.source_detail_state_code)), '') = any($4::text[]))
                and ($5::text is null or post.visibility_code = $5)
                  order by
                     search_priority asc,
@@ -1569,7 +1572,7 @@ async def list_posts(
             search_term,
             list(account.corporate_entity_ids),
             [code.strip() for code in voc_type if code.strip()] if voc_type else None,
-            [code.strip() for code in source_detail_state if code.strip()]
+            [code.strip().upper() for code in source_detail_state if code.strip()]
             if source_detail_state
             else None,
             visibility.strip() if visibility and visibility.strip() else None,
@@ -1844,7 +1847,7 @@ async def _load_visible_post(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "post not found")
     if not _can_see_post(account, row):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this post")
-    if row.get("source_detail_state_code") == WRITING_SOURCE_DETAIL_STATE_CODE:
+    if str(row.get("source_detail_state_code") or "").strip().upper() == WRITING_SOURCE_DETAIL_STATE_CODE:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "Writing-in-progress posts are not analysis targets.",
