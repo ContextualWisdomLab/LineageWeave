@@ -255,14 +255,15 @@ def _parse_description(content: str) -> ImageDescription:
             remainder = _strip_outer_markdown_emphasis(match.group(2))
             if remainder:
                 fields[label].append(remainder)
-            multiline_field = "TEXT" if label == "TEXT" else None
+            multiline_field = label if label in {"TEXT", "CAPTION"} else None
             continue
 
-        if multiline_field == "TEXT" and line.strip():
+        if multiline_field in {"TEXT", "CAPTION"} and line.strip():
             # A colon is common inside OCR (for example ``Date: 2026-08-21``).
-            # Only the known response labels above end the TEXT section;
-            # treating every colon as a provider label loses real image text.
-            fields["TEXT"].append(_strip_outer_markdown_emphasis(line))
+            # Only the known response labels above end the active section;
+            # treating every colon as a provider label loses real image text
+            # or the continuation of a detailed caption.
+            fields[multiline_field].append(_strip_outer_markdown_emphasis(line))
 
     if not fields["TEXT"] and not fields["CAPTION"]:
         raise ImageDescriptionParseError("vision response had no usable TEXT or CAPTION content")
