@@ -12,7 +12,7 @@ Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
 Current PR exact head observed before this documentation update:
-`f74df9e09d4fe77b1d723575220e46dd47d808f2`. The backend image was rebuilt from
+`c616a1145a7f844be67ff4c9d2a59770cd965a15`. The backend image was rebuilt from
 the health-probe fix commit in this stack; the frontend container also contains
 concurrent uncommitted workspace UI changes, so a clean current-head image
 rebuild remains an acceptance step.
@@ -73,6 +73,12 @@ rebuild remains an acceptance step.
   `document.documentElement.lang` after locale selection and `i18n.test.ts`
   covers the supported locales. `frontend/index.html` remains an English
   pre-JavaScript fallback, so a no-JavaScript locale check is still open.
+- **Event Lineage locale parity — fixed in this worktree:** the PR review
+  exposed ten Event Lineage, graph-evidence, navigation, and authorization
+  labels translated only for Korean while Chinese, Japanese, and Vietnamese
+  fell back to English. The three locale maps now contain those translations,
+  and the i18n test rejects raw-key fallback for every supported non-English
+  locale. This does not close the separate no-JavaScript fallback gap.
 - **Phone content affordance — locally verified:** the authenticated 390px
   browser sweep had a scrollable page and rendered the post list below the
   sticky shell. Re-run after the current-head image rebuild before acceptance.

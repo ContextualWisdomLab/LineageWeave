@@ -37,7 +37,7 @@ describe("i18n", () => {
     "Answer",
     "Showing the first {shown} of {total} posts known at this cutoff.",
   ] as const;
-  const requiredLineageLabels = [
+  const eventLineageLabels = [
     "Authorized scope",
     "Open navigation",
     "Lineage legend",
@@ -66,10 +66,10 @@ describe("i18n", () => {
   );
 
   it.each(["ko", "zh", "ja", "vi"] as const)(
-    "translates all Event Lineage labels in %s",
+    "translates Event Lineage and authorization labels in %s",
     (locale) => {
       setLocale(locale);
-      for (const key of requiredLineageLabels) {
+      for (const key of eventLineageLabels) {
         expect(t(key), `${locale}:${key}`).not.toBe(key);
       }
     },
