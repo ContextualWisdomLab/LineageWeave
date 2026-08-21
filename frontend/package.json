@@ -19,6 +19,7 @@
     "react-oidc-context": "^3.3.1"
   },
   "devDependencies": {
+    "@storybook/addon-viewport": "^10.5.8",
     "@storybook/react-vite": "^10.5.8",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.2",
