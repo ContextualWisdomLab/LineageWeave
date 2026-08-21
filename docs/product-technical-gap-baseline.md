@@ -34,14 +34,16 @@
   header and footer rendered one configured `brandName` and the footer used
   the browser's current year. This observation remains historical and is not
   a claim about the current stacked head.
-- **Current exact-source mitigation at stacked PR #397 head `0f4ecee6`:**
+- **Current exact-source mitigation at stacked PR #397 head `07f8d55f`:**
   `tenant_settings` now persists separate `brandName`, `systemName`,
   `copyrightYear`, and `copyrightHolder` values. The header renders brand and
   system name separately, the footer uses the persisted year and rights
   holder, and the admin form validates the four-field contract through the
   `post_admin` boundary. The migration is replayable through Compose and the
-  old brand-only PATCH shape remains compatible. This is an open, unmerged PR;
-  the exact upstream stack base is `4fdd3032`.
+  old brand-only PATCH shape remains compatible. The latest review also fixed
+  the asynchronous draft synchronization race and the Korean operation-note
+  translation key. This is an open, unmerged PR; the exact upstream stack base
+  is `4fdd3032`.
 - **Remaining UI governance gap:** no approved CI/BI image asset or usage
   permission was supplied, so the implementation deliberately remains text
   based. Production release still requires the approved asset and legal
@@ -50,15 +52,17 @@
 
 ### 1.1.1 Exact implementation evidence for tenant identity metadata
 
-Observed at `2026-08-21T19:50:57Z` from the GitHub API and local worktree
+Observed at `2026-08-21T20:04:07Z` from the GitHub API and local worktree
 `/private/tmp/lineageweave-identity-metadata.8NPveY`:
 
 - PR [#397](https://github.com/ContextualWisdomLab/LineageWeave/pull/397) is
-  open and ready at head `0f4ecee6651f75949f516838e45fd2e72d8b640b`, based on
+  open and ready at head `07f8d55fe3a966784302e92037c8b5028560e74a`, based on
   exact stack branch head `4fdd3032de21d490767cf9aa24b25191ad8a814a`; it is
-  `UNSTABLE` while hosted Checks run and has no formal review decision yet.
-- Local verification at that head passed backend `850 passed, 17 skipped`,
-  frontend `202 passed`, frontend lint, production build, and Storybook build.
+  `UNSTABLE` while hosted Checks and automated reviews run and has no formal
+  review decision yet.
+- Local verification at the prior source-compatible head passed backend
+  `850 passed, 17 skipped`; the latest frontend-only review fix passed frontend
+  `203 passed`, lint, production build, and Storybook build.
   The focused API tests cover authentication, full metadata, legacy
   brand-only PATCH compatibility, blank values, and copyright-year bounds.
 - PR #392 remains open at head `4fdd3032de21d490767cf9aa24b25191ad8a814a`,
@@ -67,16 +71,16 @@ Observed at `2026-08-21T19:50:57Z` from the GitHub API and local worktree
 
 ## 4.1 Latest open-PR and Checks refresh
 
-Observed at `2026-08-21T19:56:34Z` from the GitHub API. The exact open
+Observed at `2026-08-21T20:04:07Z` from the GitHub API. The exact open
 application heads were: #258 `6dc040c6`, #349 `a6af4525`, #355 `b606c255`,
-#368 `7ac93c85`, #373 `151fe6e1`, #383 `4eaa0717`, #387 `16f6341a`, #392
-`4fdd3032`, #393 `1ac3a17a`, #394 `5219ed8b`, and #397 `0f4ecee6`. No PR in
+#368 `f3a487ad`, #373 `151fe6e1`, #383 `4eaa0717`, #387 `16f6341a`, #392
+`4fdd3032`, #393 `1ac3a17a`, #394 `5219ed8b`, and #397 `07f8d55f`. No PR in
 this set was reported as merged into protected `main`.
 
-- #397 had no failed Checks at observation; `Full test suite`, `Frontend lint,
-  test, build`, and Devin Review were pending. An earlier CodeRabbit status
-  explicitly skipped review because the non-default stack base disables
-  automatic review. There is no independent approval, so merge is not
+- #397's latest head had only CodeRabbit and Devin Review queued at observation;
+  the full required Checks had not yet been published. The prior review found
+  and the latest push fixed the stale Korean translation key and the fetched
+  tenant-config draft race. There is no independent approval, so merge is not
   authorized.
 - #383 had a failed `osv-scan`. The failure remains the shared workflow's
   deprecated `--output=old-results.json` / `--output=new-results.json` contract,
