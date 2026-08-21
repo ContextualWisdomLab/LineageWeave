@@ -170,6 +170,7 @@ from backend.app.knowledge_graph import (
 )
 from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
 from backend.app.post_chat_ingestion import (
+    PostChatHistoryLimitError,
     ensure_global_ask_session,
     fetch_persisted_chat,
     fetch_persisted_chats,
@@ -187,9 +188,11 @@ from backend.app.post_summary_ingestion import (
     require_summary_source_body,
 )
 from backend.app.ask_project_history import (
+    AskEvidenceBatchLimitError,
     ask_knowledge_cutoff,
     global_ask_session_citations_authorized,
     read_authorized_ask_evidence,
+    read_authorized_ask_evidence_batch,
 )
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from backend.app.project_history import (
@@ -2694,15 +2697,26 @@ async def read_post_chat(
     await _load_visible_post(post_id, account, pool)
     authorized_exchanges: list[dict[str, Any]] = []
     async with pool.acquire() as conn:
-        exchanges = await fetch_persisted_chats(conn, post_id)
-        for exchange in exchanges:
-            cutoff = ask_knowledge_cutoff(exchange.get("_knowledge_cutoff"))
-            evidence = await read_authorized_ask_evidence(
+        try:
+            exchanges = await fetch_persisted_chats(conn, post_id)
+            evidence_by_exchange = await read_authorized_ask_evidence_batch(
                 conn,
-                cited_post_ids=exchange["cited_post_ids"],
+                exchanges=[
+                    (
+                        exchange["cited_post_ids"],
+                        exchange.get("_knowledge_cutoff"),
+                    )
+                    for exchange in exchanges
+                ],
                 corporate_entity_ids=account.corporate_entity_ids,
-                knowledge_cutoff=cutoff,
             )
+        except (AskEvidenceBatchLimitError, PostChatHistoryLimitError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask history is too large to read safely; ask an administrator "
+                "to reduce retained history and retry",
+            ) from exc
+        for exchange, evidence in zip(exchanges, evidence_by_exchange, strict=True):
             if not evidence.all_citations_visible:
                 continue
             public_exchange = {
