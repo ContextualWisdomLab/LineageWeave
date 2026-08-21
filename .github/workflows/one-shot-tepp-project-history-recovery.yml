@@ -69,18 +69,18 @@ jobs:
           corepack enable
           pnpm install --frozen-lockfile
 
-      - name: Confirm RED Python contract
+      - name: Confirm RED Python route contract
         run: |
           if uv run --frozen python -m pytest -q tests/test_tepp_project_history_recovery.py; then
             echo "Expected the route integration contract to fail before applying the recovery." >&2
             exit 1
           fi
 
-      - name: Confirm RED frontend contract
+      - name: Confirm RED canonical-timeline contract
         working-directory: frontend
         run: |
-          if pnpm exec vitest run src/components/TeppProjectHistoryEvidence.test.tsx; then
-            echo "Expected the unconnected component contract to fail before applying the recovery." >&2
+          if pnpm exec vitest run src/components/ProjectHistoryTimeline.tepp.test.tsx; then
+            echo "Expected the canonical timeline to omit TEPP evidence before applying the recovery." >&2
             exit 1
           fi
 
@@ -102,6 +102,7 @@ jobs:
         run: >-
           pnpm exec vitest run
           src/components/TeppProjectHistoryEvidence.test.tsx
+          src/components/ProjectHistoryTimeline.tepp.test.tsx
           src/components/ProjectHistoryTimeline.test.tsx
 
       - name: Verify frontend lint and production builds
