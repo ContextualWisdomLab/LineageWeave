@@ -20,7 +20,7 @@ permissions:
 
 concurrency:
   group: ask-agent-workspace-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   integrate-and-verify:
