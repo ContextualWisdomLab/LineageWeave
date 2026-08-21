@@ -1,3 +1,5 @@
+import { AdminPanel } from "./components/AdminPanel";
+
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
@@ -53,6 +55,7 @@ import {
   type ChatAnswer,
   type ChatExchange,
   type CorporateEntityRef,
+  type CustomerMasterEntity,
   type CustomerMasterResponse,
   type Counterparty,
   type EvaluationResponse,
@@ -77,13 +80,13 @@ import {
   type RelatedNode,
   type RelatedNodeType,
   type VocEvidence,
+  fetchTenantConfig,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
-import { CustomerMasterTree, CustomerRelatedPostCard } from "./components/CustomerMasterTree";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
@@ -99,7 +102,6 @@ import {
   useLocale,
 } from "./i18n";
 import { isoWeekFromCreatedAt, latestIsoWeek } from "./isoWeek";
-import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -1697,6 +1699,7 @@ function PostDetailPopup({
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<PostAiSummary | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
+  const [summaryRetry, setSummaryRetry] = useState(0);
   const [fiveW1H, setFiveW1H] = useState<PostFiveW1H | null>(null);
   const [keymen, setKeymen] = useState<Keyman[] | null>(null);
   const [sourceAuthorContext, setSourceAuthorContext] = useState<SourceAuthorContext | null>(null);
@@ -1708,6 +1711,7 @@ function PostDetailPopup({
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
   const [focusTeam, setFocusTeam] = useState<{ teamId: string; teamName: string } | null>(null);
+  const contentReloadRef = useRef<() => void>(() => undefined);
 
   function reloadKeymen() {
     fetchPostKeymen(accessToken, postId)
@@ -1774,6 +1778,7 @@ function PostDetailPopup({
           setImageContent([]);
           setStructureUnits([]);
         });
+    contentReloadRef.current = reloadContent;
     reloadContent();
     fetchPostBookmark(accessToken, postId)
       .then((r) => setBookmarked(r.bookmarked))
@@ -1783,15 +1788,6 @@ function PostDetailPopup({
     fetchPostEvaluation(accessToken, postId)
       .then((r) => setEvaluation(r.responses))
       .catch(() => setEvaluation([]));
-    fetchPostSummary(accessToken, postId)
-      .then((value) => {
-        setSummary(value);
-        reloadContent();
-      })
-      .catch((err) => {
-        setSummary(null);
-        setSummaryError(summaryFetchError(err));
-      });
     fetchPostFiveW1H(accessToken, postId)
       .then(setFiveW1H)
       .catch(() => setFiveW1H(null));
@@ -1815,8 +1811,32 @@ function PostDetailPopup({
     return () => {
       disposed = true;
       if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
+      if (contentReloadRef.current === reloadContent) {
+        contentReloadRef.current = () => undefined;
+      }
     };
   }, [postId, accessToken, liveBodyWarning, knowledgeCutoff]);
+
+  useEffect(() => {
+    let disposed = false;
+    setSummary(null);
+    setSummaryError(null);
+    fetchPostSummary(accessToken, postId)
+      .then((value) => {
+        if (!disposed) {
+          setSummary(value);
+          contentReloadRef.current();
+        }
+      })
+      .catch((err) => {
+        if (disposed) return;
+        setSummary(null);
+        setSummaryError(summaryFetchError(err));
+      });
+    return () => {
+      disposed = true;
+    };
+  }, [postId, accessToken, summaryRetry]);
 
   const permanentLink = (() => {
     const url = new URL(window.location.href);
@@ -2101,13 +2121,24 @@ function PostDetailPopup({
               <h3>{t("Summary")}</h3>
               {summary ? (
                 <>
+                  {summary.summary_status === "stale" ? (
+                    <p className="post-meta" role="status">
+                      {t("Last saved summary shown. Retry semantic refresh.")} {" "}
+                      <button type="button" onClick={() => setSummaryRetry((value) => value + 1)}>
+                        {t("Retry summary refresh")}
+                      </button>
+                    </p>
+                  ) : null}
                   <p>{summary.korean_summary}</p>
-                  {summary.key_events.length > 0 && (
+                  {(summary.key_event_details?.length ?? summary.key_events.length) > 0 && (
                     <>
                       <h4>{t("Key events")}</h4>
                       <ul>
-                        {summary.key_events.map((event, i) => (
-                          <li key={i}>{event}</li>
+                        {(summary.key_event_details ?? summary.key_events.map((event) => ({ event_text: event, project_name: null }))).map((event, i) => (
+                          <li key={i}>
+                            {event.project_name ? <strong>{event.project_name}: </strong> : null}
+                            {event.event_text}
+                          </li>
                         ))}
                       </ul>
                     </>
@@ -2216,7 +2247,10 @@ function PostDetailPopup({
                       <ul className="summary-action-list">
                         {summary.major_event_actions.map((action, i) => (
                           <li key={i}>
-                            <strong>{action.action_text}</strong>
+                            <strong>
+                              {action.project_name ? `${action.project_name}: ` : ""}
+                              {action.action_text}
+                            </strong>
                             <div>
                               {t("Requester")}: {action.requester_actor_name ?? t("Not stated in source")}
                             </div>
@@ -4152,6 +4186,148 @@ function PostList({
   );
 }
 
+interface CustomerEntityTreeNode {
+  entity: CustomerMasterEntity;
+  children: CustomerEntityTreeNode[];
+}
+
+// Live bug (2026-08-19): Customer Master's own entity list rendered every
+// corporate_entity as an independent top-level row, even though the API
+// already carries parent_entity_id and the codebase already knows how to
+// build a real forest from it (lineageweave/affiliate_tree.py, used for
+// the post-detail popup's Affiliate tree) -- a group holding company and
+// its subsidiaries showed up as an unrelated flat list with no visual
+// hierarchy at all. A parent not present in this account's own visible
+// entity list (a real possibility -- ABAC can authorize a child entity
+// without its parent) is not dropped; that entity becomes a root here
+// instead of disappearing.
+function buildCustomerEntityTree(entities: CustomerMasterEntity[]): CustomerEntityTreeNode[] {
+  const byId = new Map(entities.map((entity) => [entity.corporate_entity_id, entity]));
+  const childrenByParent = new Map<string, CustomerMasterEntity[]>();
+  const roots: CustomerMasterEntity[] = [];
+  for (const entity of entities) {
+    if (entity.parent_entity_id && byId.has(entity.parent_entity_id)) {
+      const siblings = childrenByParent.get(entity.parent_entity_id) ?? [];
+      siblings.push(entity);
+      childrenByParent.set(entity.parent_entity_id, siblings);
+    } else {
+      roots.push(entity);
+    }
+  }
+  const toNode = (entity: CustomerMasterEntity): CustomerEntityTreeNode => ({
+    entity,
+    children: (childrenByParent.get(entity.corporate_entity_id) ?? []).map(toNode),
+  });
+  return roots.map(toNode);
+}
+
+function CustomerEntityTreeRow({
+  node,
+  depth,
+  expandedEntityId,
+  relatedByEntity,
+  relatedLoading,
+  onToggle,
+  onOpenPost,
+}: {
+  node: CustomerEntityTreeNode;
+  depth: number;
+  expandedEntityId: string | null;
+  relatedByEntity: Record<string, RelatedNode[]>;
+  relatedLoading: string | null;
+  onToggle: (entityId: string) => void;
+  onOpenPost: (postId: string) => void;
+}) {
+  const { entity, children } = node;
+  const relatedPosts = (relatedByEntity[entity.corporate_entity_id] ?? []).filter(
+    (related) => related.node_type_code === NODE_POST,
+  );
+  return (
+    <li style={{ marginInlineStart: depth * 20 }}>
+      <button
+        type="button"
+        className="customer-entity-button"
+        aria-expanded={expandedEntityId === entity.corporate_entity_id}
+        onClick={() => onToggle(entity.corporate_entity_id)}
+      >
+        <strong>{entity.entity_name}</strong>
+        <span>{entity.corporate_entity_code} · {entity.entity_level_label}</span>
+      </button>
+      {expandedEntityId === entity.corporate_entity_id ? (
+        <div className="customer-related-posts">
+          {relatedLoading === entity.corporate_entity_id ? <p>{t("Loading related posts...")}</p> : null}
+          {relatedLoading !== entity.corporate_entity_id && relatedPosts.length === 0 ? (
+            <p className="popup-placeholder">{t("No linked posts yet.")}</p>
+          ) : null}
+          {relatedPosts.length > 0 ? (
+            <ul aria-label={`${t("Related posts")}: ${entity.entity_name}`}>
+              {relatedPosts.map((related) => (
+                <li key={related.node_id}>
+                  <CustomerRelatedPostCard
+                    postId={related.node_id}
+                    postTitle={related.label ?? related.node_id}
+                    postBodyExcerpt={related.post_body_excerpt}
+                    postBodyTruncated={related.post_body_truncated}
+                    onOpenPost={onOpenPost}
+                  />
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+      {children.length > 0 ? (
+        <ul className="customer-master-list customer-master-tree-children" aria-label={tf("Affiliates of {name}", { name: entity.entity_name })}>
+          {children.map((child) => (
+            <CustomerEntityTreeRow
+              key={child.entity.corporate_entity_id}
+              node={child}
+              depth={depth + 1}
+              expandedEntityId={expandedEntityId}
+              relatedByEntity={relatedByEntity}
+              relatedLoading={relatedLoading}
+              onToggle={onToggle}
+              onOpenPost={onOpenPost}
+            />
+          ))}
+        </ul>
+      ) : null}
+    </li>
+  );
+}
+
+function CustomerRelatedPostCard({
+  postId,
+  postTitle,
+  postBodyExcerpt,
+  postBodyTruncated,
+  onOpenPost,
+}: {
+  postId: string;
+  postTitle: string;
+  postBodyExcerpt?: string | null;
+  postBodyTruncated?: boolean;
+  onOpenPost: (postId: string) => void;
+}) {
+  return (
+    <button
+      type="button"
+      className="related-post-card"
+      aria-label={tf("Open related post: {label}", { label: postTitle })}
+      onClick={() => onOpenPost(postId)}
+    >
+      <span className="related-post-content">
+        <strong>{postTitle}</strong>
+        <span className="post-body-excerpt" aria-label={t("Post body preview")}>
+          {postBodyExcerpt || t("No post body.")}
+          {postBodyTruncated ? " ..." : ""}
+        </span>
+      </span>
+      <span>{t("Open record")}</span>
+    </button>
+  );
+}
+
 function CustomerMasterPanel({
   accessToken,
   onOpenPost,
@@ -4161,6 +4337,9 @@ function CustomerMasterPanel({
 }) {
   const [master, setMaster] = useState<CustomerMasterResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
+  const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
+  const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
   const [resolvingHint, setResolvingHint] = useState<string | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
   // Fetched independently, same pattern as PostList's own canRebuild --
@@ -4207,6 +4386,24 @@ function CustomerMasterPanel({
     }
   }
 
+  async function toggleEntity(entityId: string) {
+    if (expandedEntityId === entityId) {
+      setExpandedEntityId(null);
+      return;
+    }
+    setExpandedEntityId(entityId);
+    if (relatedByEntity[entityId]) return;
+    setRelatedLoading(entityId);
+    try {
+      const response = await fetchRelatedEntity(accessToken, entityId);
+      setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
+    } catch {
+      setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
+    } finally {
+      setRelatedLoading(null);
+    }
+  }
+
   return (
     <section className="buyer-destination" aria-labelledby="customer-master-heading">
       <p className="section-eyebrow">{t("Authorized customer scope")}</p>
@@ -4218,13 +4415,20 @@ function CustomerMasterPanel({
         <p className="popup-placeholder">{t("No customer entities are connected to this account.")}</p>
       ) : null}
       {master && master.corporate_entities.length > 0 ? (
-        <CustomerMasterTree
-          entities={master.corporate_entities}
-          loadRelated={(entityId) =>
-            fetchRelatedEntity(accessToken, entityId).then((response) => response.related)
-          }
-          onOpenPost={onOpenPost}
-        />
+        <ul className="customer-master-list customer-master-tree" aria-label={t("Customer entities available to this account.")}>
+          {buildCustomerEntityTree(master.corporate_entities).map((node) => (
+            <CustomerEntityTreeRow
+              key={node.entity.corporate_entity_id}
+              node={node}
+              depth={0}
+              expandedEntityId={expandedEntityId}
+              relatedByEntity={relatedByEntity}
+              relatedLoading={relatedLoading}
+              onToggle={toggleEntity}
+              onOpenPost={onOpenPost}
+            />
+          ))}
+        </ul>
       ) : null}
       {master && (master.relationship_network ?? []).length > 0 ? (
         <section className="customer-keymen" aria-labelledby="relationship-network-heading">
@@ -4458,6 +4662,7 @@ function AskAgentPanel({
 
 export default function App({ showLabPanels = false }: { showLabPanels?: boolean } = {}) {
   useLocale();
+  const [brandName, setBrandName] = useState("LineageWeave");
   const auth = useAuth();
   const [destination, setDestination] = useState<BuyerDestination>("board");
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
@@ -4471,6 +4676,14 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   // post_admin check (`canRebuild`), not on this caller-supplied prop.
   const testOnlyLabPanels = import.meta.env.MODE === "test" && showLabPanels;
   const accessToken = auth.user?.access_token;
+
+  useEffect(() => {
+    if (accessToken) {
+      fetchTenantConfig(accessToken).then((config) => {
+        if (config.brandName) setBrandName(config.brandName);
+      }).catch(console.error);
+    }
+  }, [accessToken]);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -4496,24 +4709,40 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   }
 
   if (auth.error) {
-    return <p className="error">Authentication error: {auth.error.message}</p>;
+    return <p className="error">{t(auth.error.message)}</p>;
   }
 
   if (!auth.isAuthenticated) {
     return (
-      <main className="centered">
-        <h1>LineageWeave</h1>
-        <LanguageSwitcher />
-          <button
-            onClick={() => {
-              const returnUrl = returnUrlFromLocation();
-              rememberOidcReturnUrl(returnUrl);
-              void auth.signinRedirect({ state: { returnUrl } });
-            }}
-          >
-            {t("Log in")}
-          </button>
+      <div className="app-shell">
+        <main className="login-screen">
+          <div className="login-card">
+            <div className="login-header">
+              <h1>{brandName}</h1>
+              <p className="login-subtitle">Marketing & Operational Lineage Intelligence</p>
+            </div>
+            <div className="login-controls">
+              <button className="btn-primary" onClick={() => {
+                const returnUrl = window.location.pathname + window.location.search;
+                void auth.signinRedirect({ state: { returnUrl } });
+              }}>
+                {t("Log in")}
+              </button>
+            </div>
+            <div className="login-help">
+              <small>Enterprise SSO Authentication</small>
+            </div>
+          </div>
       </main>
+        <footer className="app-footer" role="contentinfo">
+          <div className="app-footer-title">
+            <span className="app-footer-logo">{brandName}</span>
+          </div>
+          <div className="app-footer-copyright">
+            <p>Copyright &copy; {new Date().getFullYear()} by {brandName}. All rights reserved.</p>
+          </div>
+        </footer>
+      </div>
     );
   }
 
@@ -4522,12 +4751,14 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   }
 
   return (
-    <main>
+    <div className="app-shell">
       <header className="app-header">
-        <h1>LineageWeave</h1>
-        <div>
-          <span>{auth.user?.profile.preferred_username}</span>
-          <button onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
+        <div className="app-header-logo">
+          <h1 className="app-header-title">{brandName}</h1>
+        </div>
+        <div className="app-header-top-menu">
+          <span className="app-user-profile">{auth.user?.profile.preferred_username}</span>
+          <button className="btn-secondary" onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
         </div>
       </header>
       <BuyerNav
@@ -4535,6 +4766,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         onChange={setDestination}
         tools={<LanguageSwitcher accessToken={accessToken} />}
       />
+      <main>
       {destination === "board" ? (
         <PostList
           accessToken={accessToken}
@@ -4577,6 +4809,22 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           }}
         />
       ) : null}
-    </main>
+      {destination === "admin" ? (
+        <AdminPanel
+          currentBrandName={brandName}
+          onBrandNameChange={setBrandName}
+          accessToken={accessToken}
+        />
+      ) : null}
+      </main>
+      <footer className="app-footer" role="contentinfo">
+        <div className="app-footer-title">
+          <span className="app-footer-logo">{brandName}</span>
+        </div>
+        <div className="app-footer-copyright">
+          <p>Copyright &copy; {new Date().getFullYear()} by {brandName}. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
   );
 }

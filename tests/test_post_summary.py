@@ -26,6 +26,8 @@ from lineageweave.post_summary import (
     NullPostSummaryClient,
     RoleResponsibility,
     _SUMMARY_REQUEST_PROMPT_TEMPLATE,
+    _parse_optional_project_key,
+    _parse_plain_summary_response,
     _parse_plain_summary_details,
     parse_summary_response,
 )
@@ -117,6 +119,71 @@ def test_parses_major_event_requester_and_processor() -> None:
     action = details[2][0]
     assert action.requester_actor_name == "홍길동"
     assert action.processor_actor_name == "김철수"
+
+
+def test_parses_project_bound_major_event_action() -> None:
+    details = _parse_plain_summary_details(
+        "ROLES:\n"
+        "홍길동 | 변경 요청 | person | 당사\n"
+        "김철수 | 도면 수정 | person | 고객사\n"
+        "PROJECTS:\n"
+        "HVDC Pilot | hvdc-pilot | 파일럿 도면 | 0.9\n"
+        "ACTIONS:\n"
+        "도면 변경 승인 | hvdc-pilot | 홍길동 | 김철수 | 프로젝트 도면 근거"
+    )
+    assert details is not None
+    assert details[2][0].project_key == "hvdc-pilot"
+
+
+def test_legacy_action_preserves_pipe_in_evidence_text() -> None:
+    details = _parse_plain_summary_details(
+        "ROLES:\n"
+        "Synthetic requester | 요청 | person | Synthetic organization\n"
+        "Synthetic processor | 처리 | person | Synthetic organization\n"
+        "PROJECTS:\nNONE\n"
+        "ACTIONS:\n"
+        "합성 조치 | Synthetic requester | Synthetic processor | 첫 근거 | 추가 근거"
+    )
+    assert details is not None
+    assert details[2][0].project_key is None
+    assert details[2][0].evidence_text == "첫 근거 | 추가 근거"
+
+
+def test_json_project_name_is_normalized_for_legacy_action_contract() -> None:
+    summary = parse_summary_response(
+        '{"korean_summary":"요약", "major_event_actions":['
+        '{"action_text":"검토", "project_name":"HVDC Pilot", '
+        '"evidence_text":"본문 근거"}]}'
+    )
+    assert summary is not None
+    assert summary.major_event_actions[0].project_key == "hvdc-pilot"
+
+
+def test_parses_project_bound_key_event_without_leaking_internal_key_to_text() -> None:
+    summary = parse_summary_response(
+        '{"korean_summary":"요약", "key_events":[{"event_text":"도면 검토",'
+        '"project_key":"HVDC Pilot"}]}'
+    )
+    assert summary is not None
+    assert summary.key_events == ("도면 검토",)
+    assert summary.key_event_details[0].project_key == "hvdc-pilot"
+
+
+def test_parses_project_bound_plain_key_event() -> None:
+    parsed = _parse_plain_summary_response(
+        "회의 요약\nKEY EVENTS: hvdc-pilot :: 도면 검토; NONE :: 공통 일정 확인"
+    )
+    assert parsed is not None
+    _summary, events, details = parsed
+    assert events == ("도면 검토", "공통 일정 확인")
+    assert details[0].project_key == "hvdc-pilot"
+    assert details[1].project_key is None
+
+
+def test_optional_project_key_normalizes_unicode_and_rejects_sentinels() -> None:
+    assert _parse_optional_project_key("  Project  Ω ") == "project-ω"
+    for sentinel in (None, "", "  ", "None", "N/A", "unknown", 42):
+        assert _parse_optional_project_key(sentinel) is None
 
 
 def test_organization_actor_is_not_forced_into_a_person_slot() -> None:

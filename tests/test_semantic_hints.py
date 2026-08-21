@@ -21,6 +21,9 @@ def test_semantic_hints_keep_explicit_project_pool_and_author_sources() -> None:
         source_company_code="SOURCE-COMPANY",
         source_business_unit_code="SOURCE-BU",
         source_customer_code="SOURCE-CUSTOMER",
+        source_company_catalog_name="Catalog Company",
+        source_process_unit_catalog_name="Catalog PU",
+        source_customer_catalog_name="Catalog Customer",
         source_project_code="SOURCE-PROJECT",
         source_company_name="Named company",
         source_process_unit_name="Named PU",
@@ -43,6 +46,23 @@ def test_semantic_hints_keep_explicit_project_pool_and_author_sources() -> None:
     assert "source_project_code=SOURCE-PROJECT" in hints
     assert "source_company_name=Named company [source_field=source_post.source_company_name]" in hints
     assert "source_process_unit_name=Named PU [source_field=source_post.source_process_unit_name]" in hints
+    assert "source_company_catalog_name=Catalog Company [source_lookup=corporate_entity.corporate_entity_code]" in hints
+    assert "source_process_unit_catalog_name=Catalog PU [source_lookup=process_unit.process_unit_code]" in hints
+    assert "source_customer_catalog_name=Catalog Customer [source_lookup=corporate_entity.corporate_entity_code]" in hints
+
+
+def test_catalog_lookup_hint_reports_a_code_without_inventing_a_name() -> None:
+    hints = format_semantic_hints(
+        author_name=None,
+        author_affiliations=(),
+        order_pool_code=None,
+        order_pool_name=None,
+        project_field=None,
+        customer_name=None,
+        source_company_code="UNRESOLVED-COMPANY",
+    )
+
+    assert "source_company_catalog_name=none [source_lookup=corporate_entity.corporate_entity_code]" in hints
 
 
 def test_unknown_customer_is_a_weak_hint_not_project_evidence() -> None:

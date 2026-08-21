@@ -183,7 +183,6 @@ from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
     has_real_source_context,
-    is_demo_scope,
 )
 from lineageweave.http_client import HttpClientError
 
@@ -598,6 +597,36 @@ async def _post_filter_options(
 
 
 @app.get("/healthz")
+
+@app.get("/api/settings", response_model=dict)
+async def read_tenant_settings(
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+):
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT brand_name FROM tenant_settings WHERE id = 1")
+    if not row:
+        return {"brandName": "LineageWeave"}
+    return {"brandName": row["brand_name"]}
+
+@app.patch("/api/settings", response_model=dict)
+async def update_tenant_settings(
+    payload: dict,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+):
+    # Only admins can change settings
+    _require_post_admin(account)
+    brand_name = payload.get("brandName", "LineageWeave")
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO tenant_settings (id, brand_name) VALUES (1, $1) "
+            "ON CONFLICT (id) DO UPDATE SET brand_name = $1",
+            brand_name
+        )
+    return {"brandName": brand_name}
+
+
 async def healthz() -> dict[str, str]:
     """Liveness probe: the process is up. Does not touch Postgres."""
     return {"status": "ok"}
@@ -1054,6 +1083,11 @@ async def resolve_customer_master_hint(
             # "unresolved" -- a failed call is not the same claim as "the
             # model looked and found nothing" (same discipline as
             # verify-relations' identical try/except).
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Hint resolution is unavailable: the orchestrator or search provider did not respond",
+            ) from exc
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Hint resolution is unavailable: the orchestrator or search provider did not respond",
@@ -1642,12 +1676,15 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
                post.source_author_name,
                post.source_company_code,
                post.source_company_name,
+               source_company.entity_name as source_company_catalog_name,
                post.source_process_unit_code,
                post.source_process_unit_name,
+               source_process_unit.process_unit_name as source_process_unit_catalog_name,
                post.source_sales_pool_code,
                post.source_sales_pool_name,
                post.source_customer_code,
                post.source_customer_name,
+               source_customer.entity_name as source_customer_catalog_name,
                post.source_project_code,
                post.source_project_name,
                post.secondary_grouping_key as project_field,
@@ -1656,6 +1693,12 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
           from source_post post
           join user_account author on author.user_account_id = post.author_account_id
           left join corporate_entity customer on customer.corporate_entity_id = post.corporate_entity_id
+          left join corporate_entity source_company
+            on source_company.corporate_entity_code = nullif(btrim(post.source_company_code), '')
+          left join process_unit source_process_unit
+            on source_process_unit.process_unit_code = nullif(btrim(post.source_process_unit_code), '')
+          left join corporate_entity source_customer
+            on source_customer.corporate_entity_code = nullif(btrim(post.source_customer_code), '')
           left join account_affiliation account_aff
             on account_aff.user_account_id = post.author_account_id
           left join corporate_entity affiliated
@@ -1704,12 +1747,15 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
         source_author_name=source_author_name,
         source_company_code=first["source_company_code"],
         source_company_name=first["source_company_name"],
+        source_company_catalog_name=first["source_company_catalog_name"],
         source_business_unit_code=first["source_process_unit_code"],
         source_process_unit_name=first["source_process_unit_name"],
+        source_process_unit_catalog_name=first["source_process_unit_catalog_name"],
         source_sales_pool_code=first["source_sales_pool_code"],
         source_sales_pool_name=first["source_sales_pool_name"],
         source_customer_code=first["source_customer_code"],
         source_customer_name=first["source_customer_name"],
+        source_customer_catalog_name=first["source_customer_catalog_name"],
         source_project_code=first["source_project_code"],
         source_project_name=first["source_project_name"],
         source_context_present=source_context_present,
@@ -1997,6 +2043,11 @@ async def verify_post_entity_relationships(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Relation verification is unavailable: the search provider did not respond",
             ) from exc
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Relation verification is unavailable: the search provider did not respond",
+            ) from exc
     await publish_activity_event(
         valkey,
         post_id,
@@ -2050,22 +2101,33 @@ async def extract_post_keymen(
             # tags dilute the model's attention and a base64 payload sent as
             # literal text either blows the token budget or is silently
             # ignored (see lineageweave/post_content_normalization.py).
-            post_body = (
-                await asyncio.to_thread(normalize_post_body, raw_body, _vision_client())
-            ).text
             context_hints = await _load_post_semantic_hints(conn, post_id)
-            mentions = await ingest_post_keymen(
-                conn,
-                keyman_client,
-                post_id,
-                post["post_title"],
-                post_body,
-                resolution_client=_organization_name_resolution_client(),
-                verification_client=_relation_verification_client(),
-                hierarchy_inference_client=_corporate_hierarchy_inference_client(),
-                context_hints=context_hints,
-                persist_graph=False,
-            )
+            try:
+                post_body = (
+                    await asyncio.to_thread(normalize_post_body, raw_body, _vision_client())
+                ).text
+                mentions = await ingest_post_keymen(
+                    conn,
+                    keyman_client,
+                    post_id,
+                    post["post_title"],
+                    post_body,
+                    resolution_client=_organization_name_resolution_client(),
+                    verification_client=_relation_verification_client(),
+                    hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+                    context_hints=context_hints,
+                    persist_graph=False,
+                )
+            except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
+            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
             # Live bug (2026-08-19): an organization affiliated ONLY with an
             # our_side person (our own factory, our own affiliate) got fed
             # into the counterparty-relationship classifier the same as any
@@ -2081,9 +2143,20 @@ async def extract_post_keymen(
                     for name in mention.affiliated_organization_names
                 }
             )
-            relationships = await ingest_post_entity_relationships(
-                conn, relationship_client, post_id, post["post_title"], post_body, organization_names
-            )
+            try:
+                relationships = await ingest_post_entity_relationships(
+                    conn, relationship_client, post_id, post["post_title"], post_body, organization_names
+                )
+            except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
+            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
             async with conn.transaction():
                 await persist_edges_for_post(conn, post_id)
     await publish_activity_event(
@@ -2211,17 +2284,28 @@ async def evaluate_post(
             )
         async with pool.acquire() as conn:
             body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-        normalized_body = (
-            await asyncio.to_thread(
-                normalize_post_body,
-                "" if body_row is None else body_row["post_body"],
-                _vision_client(),
-            )
-        ).text
-        async with pool.acquire() as conn:
-            rows = await ingest_post_evaluation(
-                conn, client, post_id, post["post_title"], normalized_body
-            )
+        try:
+            normalized_body = (
+                await asyncio.to_thread(
+                    normalize_post_body,
+                    "" if body_row is None else body_row["post_body"],
+                    _vision_client(),
+                )
+            ).text
+            async with pool.acquire() as conn:
+                rows = await ingest_post_evaluation(
+                    conn, client, post_id, post["post_title"], normalized_body
+                )
+        except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Post evaluation is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Post evaluation is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
     await publish_activity_event(
         valkey,
         post_id,
@@ -2410,18 +2494,21 @@ async def read_post_summary(
         stored = await fetch_persisted_summary(conn, post_id)
         if stored is not None:
             return stored
+        stale = await fetch_persisted_summary(conn, post_id, allow_stale=True)
         with use_llm_metadata(post_metadata):
             client = _post_summary_client()
             if not client.available:
+                if stale is not None:
+                    return stale
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
                 )
-            normalized = await asyncio.to_thread(normalize_post_body, raw_body)
-            normalized_body = normalized.text
             context_hints = await _load_post_semantic_hints(conn, post_id)
             summarize_with_hints = getattr(client, "summarize_with_hints", None)
             try:
+                normalized = await asyncio.to_thread(normalize_post_body, raw_body)
+                normalized_body = normalized.text
                 if callable(summarize_with_hints):
                     summary = await asyncio.to_thread(
                         summarize_with_hints, post["post_title"], normalized_body, context_hints
@@ -2429,18 +2516,35 @@ async def read_post_summary(
                 else:
                     summary = await asyncio.to_thread(client.summarize, post["post_title"], normalized_body)
             except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
+                if stale is not None:
+                    return stale
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
                 ) from exc
-            payload = await persist_post_summary(
-                conn,
-                post_id,
-                summary,
-                post_body=normalized_body,
-                hierarchy_inference_client=_corporate_hierarchy_inference_client(),
-                verification_client=_relation_verification_client(),
-            )
+            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                if stale is not None:
+                    return stale
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
+                ) from exc
+            try:
+                payload = await persist_post_summary(
+                    conn,
+                    post_id,
+                    summary,
+                    post_body=normalized_body,
+                    hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+                    verification_client=_relation_verification_client(),
+                )
+            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                if stale is not None:
+                    return stale
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Post summary is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
         content_complete = await post_content_is_complete(
             conn,
             post_id,
@@ -2562,7 +2666,12 @@ async def chat_about_post(
     try:
         with use_llm_metadata(post_metadata):
             answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, ValueError) as exc:
+    except (HttpClientError, KeyError, OSError, RuntimeError, ValueError) as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
+        ) from exc
+    except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
@@ -2621,10 +2730,15 @@ async def ask_agent(
         }
     try:
         answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, ValueError) as exc:
+    except (HttpClientError, KeyError, OSError, RuntimeError, ValueError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            f"Ask Agent is unavailable: {exc}",
+            "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
+        ) from exc
+    except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
     return {
@@ -2855,14 +2969,25 @@ async def derive_post_commitment(
             )
         async with pool.acquire() as conn:
             body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-        normalized_body = (
-            await asyncio.to_thread(normalize_post_body, body_row["post_body"], _vision_client())
-        ).text
-        # TimeML/TempEval document creation time, not wall-clock now: "by next
-        # Friday" in a January post must resolve to that January, not to the
-        # Friday after the operator clicked Derive.
-        reference_date = post["created_at"].date().isoformat()
-        commitment = client.extract(post["post_title"], normalized_body, reference_date)
+        try:
+            normalized_body = (
+                await asyncio.to_thread(normalize_post_body, body_row["post_body"], _vision_client())
+            ).text
+            # TimeML/TempEval document creation time, not wall-clock now: "by next
+            # Friday" in a January post must resolve to that January, not to the
+            # Friday after the operator clicked Derive.
+            reference_date = post["created_at"].date().isoformat()
+            commitment = client.extract(post["post_title"], normalized_body, reference_date)
+        except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Commitment derivation is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Commitment derivation is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
     if not commitment.has_commitment:
         return {"post_id": str(post["post_id"]), "has_commitment": False, "ticket": None}
     async with pool.acquire() as conn:
