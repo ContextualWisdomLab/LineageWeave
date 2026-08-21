@@ -60,7 +60,7 @@ const LINEAGE_DAG_COPY = {
 
 export type LineageDagCopyKey = keyof (typeof LINEAGE_DAG_COPY)["en"];
 
-/** Return buyer-facing Event Lineage copy in the active product locale. */
+/** Return reader-facing Event Lineage copy in the active product locale. */
 export function lineageDagText(key: LineageDagCopyKey): string {
   return LINEAGE_DAG_COPY[getLocale()][key];
 }
