@@ -123,11 +123,6 @@ _IDENTIFIER_MIGRATION = (
     / "migrations"
     / "0104_two_word_database_identifiers.sql"
 )
-_GLOBAL_ASK_HISTORY_MIGRATION = (
-    Path(__file__).resolve().parents[2]
-    / "migrations"
-    / "0105_global_ask_conversation_history.sql"
-)
 _AFFILIATION_SCOPE_FACET_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -248,7 +243,6 @@ def seeded_db(demo_analyst_token):
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
             cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
             cur.execute(_IDENTIFIER_MIGRATION.read_text())
-            cur.execute(_GLOBAL_ASK_HISTORY_MIGRATION.read_text())
             cur.execute(_AFFILIATION_SCOPE_FACET_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "

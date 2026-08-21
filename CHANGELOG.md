@@ -34,6 +34,9 @@ All notable changes to this project are documented here. Format follows
 - All OpenAI-compatible chat-completion consumers now validate the shared
   response envelope before parsing it, preventing malformed provider bodies
   from escaping as raw `KeyError` or response-shape details.
+- Customer Master integration fixtures no longer reference an unshipped
+  Global Ask history migration; Global Ask remains stateless as documented by
+  ADR 0090, while the shipped scope-facet migration is applied directly.
 
 ## [2.12.6] - 2026-08-20
 
