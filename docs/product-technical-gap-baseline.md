@@ -12,9 +12,9 @@ Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
 Current source/test exact head observed before this documentation update:
-`b897fabe18332081a64a9286e4ab580c79a38f8d`. This documentation update will
-create the next exact head and therefore requires the protected checks to
-rerun.
+`0e63ba0a2e23949630f8997cbe001b6e13b2d274`, the squash merge of PR #350.
+This documentation update will create the next exact head and therefore
+requires the protected checks to rerun.
 
 - **Implemented in source:** PostgreSQL-backed API boundaries, Keyverse/OIDC
   identity boundary, workspace navigation, post popup, ABAC/RBAC surfaces, Korean
@@ -33,14 +33,15 @@ rerun.
 - **Figma reference:** ADR 0118 records file `1Su3lDRmiZdcUs47t1QwIX`; the
   inspected Event Lineage frames are desktop `5:14` and mobile `5:15`.
 - **Local quality evidence at the source/test head:** backend `uv run pytest -q`
-  passed `786` tests with `16` skips; frontend Vitest passed `172` tests in `19`
+  passed `786` tests with `16` skips; frontend Vitest passed `174` tests in `19`
   files, frontend lint/build passed, and Storybook build completed. These are
   local checks, not hosted protected-gate or independent-review evidence.
-- **Current PR gate:** PR #350 is open, `MERGEABLE` but `BLOCKED`, and has no
-  independent approval. Its current-head OpenCode/Noema/product/security
-  checks are pending after the latest push. The prior PR #347 merged at
-  `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`, before this clean post-merge PR
-  was opened. PR #350 is still unmerged; this is not merge-ready evidence.
+- **Current PR gate:** PR #350 merged at
+  `0e63ba0a2e23949630f8997cbe001b6e13b2d274` after its source head
+  `819ef876270212305c89743e5443b3ce0b871e66` was reviewed and squashed into
+  `feat/lineage-dag-regression`. This docs-only follow-up requires its own
+  protected checks and independent approval; neither is claimed yet. The
+  prior PR #347 merged at `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`.
 
 ## 2. UI/UX Standard Guide v3.0 comparison
 
@@ -193,7 +194,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Keyman on both sides, titles, affiliations, related KG nodes | Keyman/affiliate-tree/related-node routes and popup | source + unit; live extraction open |
 | Ontology, semantic layer, provenance, W3C PROV-O projection | normalized schema, SKOS operational vocabulary concepts, `ontology_annotations` label fallback, ADR 0124, provenance modules, ADRs, evidence UI | source + unit; corpus verification open |
 | Branching Event Lineage DAG with evidence trail | `LineageDag.tsx`, Storybook story, Figma frames, accessible node-kind names for screen readers/tooltips, frontend tests; runtime cases include both a rendered DAG and honest empty states, while current corpus coverage remains sparse | source + unit + local-integration partial |
-| Customer master and hierarchy tree | `/api/customer-master`, affiliate tree, catalog migrations | source + unit; live resolution open |
+| Customer master and hierarchy tree | `/api/customer-master`, affiliate tree, catalog migrations | source + unit; scoped to `account_affiliation` only, no own-company/customer distinction — see §5 |
 | VOC/VOM/VOP/VOCC/VOCO/VOS role classification | common lookup values and relationship APIs | source + unit; live classification open |
 | Evidence-grounded chat and source navigation | `/chat`, `/ask`, citation/evidence UI | source + unit; synthetic orchestrator judge route verified, corpus chat/runtime evidence open |
 | PU/team/project weekly/monthly reports | report API/UI and grouping controls | source + unit; TEPP-backed live report open |
@@ -240,6 +241,32 @@ or an explicit unavailable result.
 
 ## 5. Product and technical gaps
 
+- **Customer master "customer tree" — scope gap, evidence-backed (2026-08-21):**
+  `/api/customer-master`'s `corporate_entities` list (`backend/app/main.py`
+  `read_customer_master`, `entity_rows` query) is scoped to
+  `account.corporate_entity_ids`, which comes only from `account_affiliation`
+  rows (`backend/app/auth.py` `get_current_account`) — the account's own
+  employer plus any explicitly granted entities. A live query against the
+  seeded stack confirms the Demo Corp account's `account_affiliation` grants
+  exactly one entity (Demo Corp itself) with zero `source_customer_code`/
+  `source_customer_name` hints on its posts, so `buildCustomerEntityTree`
+  (`frontend/src/App.tsx`) renders a single un-nested node, not the "Harbor
+  Group -> Harbor Devices Korea" customer-affiliate tree ADR 0004 and ADR 0010
+  describe as a standing requirement. Counterparty `corporate_entity` rows
+  that ADR 0010's `get_or_create_corporate_entity` auto-creates are never
+  linked via `account_affiliation`, so they cannot reach this endpoint no
+  matter how well-populated the corpus becomes — the tree needs to traverse
+  observed post/VOC/affiliate-tree evidence, not `account_affiliation` alone.
+  Separately, there is no schema signal distinguishing "own company" from
+  "granted customer entity" inside `account_affiliation`: both use the same
+  `process_unit_id`-bearing row shape (the Demo Analyst account's grants into
+  "Source company H504"/"H904" carry `process_unit_id` exactly like Demo
+  Corp's own grant does), so a same-screen filter separating 자사(own
+  company) attributes from customer attributes has no field to filter on
+  yet. Needs an ADR before implementation: either an explicit
+  `account_affiliation`/`corporate_entity` scope flag, or a customer-tree
+  query redesign: guessing at either without a reviewed decision risks an
+  ABAC-adjacent regression.
 - **Entity and abbreviation resolution — open:** canonical names, aliases,
   multilingual labels, team-vs-organization typing, title-aware person
   disambiguation, and SearXNG/internal corroboration need end-to-end evidence.
