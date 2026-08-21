@@ -58,7 +58,7 @@ def test_fact_window_reports_source_truncation_without_exceeding_bound() -> None
         )
     )
 
-    assert len(window) == 3
+    assert len(window) == 1
     assert window.truncated is True
 
 
@@ -122,3 +122,51 @@ def test_first_page_preserves_breadth_first_proximity_before_property_sort() -> 
     assert len(neighborhood.edges) == 1
     assert neighborhood.edges[0].property_code == PROPERTY_MENTIONS
     assert neighborhood.edges[0].property_code != PROPERTY_AFFILIATED_WITH
+
+
+class CapturingWindowConnection:
+    """Record the keyset query without a live PostgreSQL instance."""
+
+    def __init__(self) -> None:
+        self.query = ""
+        self.arguments: tuple[object, ...] = ()
+
+    async def fetch(self, query: str, *arguments: object) -> list[object]:
+        """Capture SQL and return no rows."""
+        self.query = query
+        self.arguments = arguments
+        return []
+
+
+def test_load_facts_uses_keyset_not_offset() -> None:
+    """Source continuation must resume after the last SQL key, never OFFSET."""
+    from lineageweave.ontology_source_cursor import OntologySourceKey
+
+    conn = CapturingWindowConnection()
+    after = OntologySourceKey(
+        hop_depth=0,
+        edge_type_code=EDGE_MENTION,
+        source_node_type_code=NODE_POST,
+        source_node_id=POST_ID,
+        target_node_type_code=NODE_PERSON,
+        target_node_id=PERSON_ID,
+    )
+    window = asyncio.run(
+        _load_facts(
+            conn,  # type: ignore[arg-type]
+            [POST_ID],
+            focus_node_type_code=NODE_POST,
+            focus_node_id=POST_ID,
+            maximum_depth=1,
+            maximum_edges=1,
+            after_key=after,
+        )
+    )
+    normalized = " ".join(conn.query.lower().split())
+    assert "offset" not in normalized
+    assert "$8::integer is null" in normalized
+    assert conn.arguments[7] == 0
+    assert conn.arguments[8] == EDGE_MENTION
+    assert conn.arguments[10] == POST_ID
+    assert conn.arguments[12] == PERSON_ID
+    assert window == []

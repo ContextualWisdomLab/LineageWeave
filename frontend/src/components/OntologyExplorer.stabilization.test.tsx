@@ -273,4 +273,52 @@ describe("OntologyExplorer stabilization contracts", () => {
     expect(await screen.findByText("Focused person")).toBeInTheDocument();
     expect(String(fetchMock.mock.calls[0][0])).toContain(`focus_node_id=${PERSON_ID}`);
   });
+
+  it("accumulates the next page without losing the selected evidence", async () => {
+    const first = payload({
+      truncated: true,
+      next_cursor: "src.v1.opaque-token",
+      limitation_code: "neighborhood_truncated",
+    });
+    const second = payload({
+      truncated: false,
+      next_cursor: null,
+      limitation_code: null,
+      nodes: [
+        {
+          node_id: PERSON_ID,
+          node_type_code: "node_person",
+          ontology_class_iri: "https://example.test/Person",
+          display_label: "Paged person",
+          truth_status_code: "truth_observed",
+          valid_from: null,
+          valid_to: null,
+          recorded_at: "2026-01-10T12:00:00+00:00",
+          evidence_count: 1,
+          shape_code: "ellipse",
+        },
+      ],
+      edges: [],
+      exact_value_rows: [],
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => first })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => second });
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <OntologyExplorer
+        accessToken="token"
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+      />,
+    );
+    await userEvent.click(await screen.findByRole("button", { name: /Select edge: mentions from/ }));
+    expect(screen.getByLabelText("Edge provenance")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Load next relation page" }));
+    expect(await screen.findByText("Paged person")).toBeInTheDocument();
+    expect(screen.getAllByText("Demo post").length).toBeGreaterThan(0);
+    expect(screen.getByLabelText("Edge provenance")).toBeInTheDocument();
+    expect(String(fetchMock.mock.calls[1][0])).toContain("cursor=src.v1.opaque-token");
+  });
 });

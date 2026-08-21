@@ -188,7 +188,7 @@ def test_visible_neighbor_evidence_expands_the_second_hop(monkeypatch: Any) -> N
         )
     )
 
-    assert fact_calls == [(POST_ID,), (POST_ID, SECOND_POST_ID)]
+    assert fact_calls == [(POST_ID,), (POST_ID, SECOND_POST_ID), (POST_ID, SECOND_POST_ID)]
     assert {edge.property_code for edge in neighborhood.edges} == {
         "mentions",
         "affiliatedWith",

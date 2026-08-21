@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { OntologyNeighborhoodPayload } from "./api";
-import { layoutOntologyNeighborhood, neighborhoodCsv } from "./ontologyLayout";
+import { accumulateNeighborhoodPages, layoutOntologyNeighborhood, neighborhoodCsv } from "./ontologyLayout";
 
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
 const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
@@ -180,5 +180,37 @@ describe("ontologyLayout", () => {
     });
     const byId = new Map(laidOut.nodes.map((node) => [node.node_id, node]));
     expect(byId.get(CORP_ID)!.y).toBeLessThan(byId.get(PERSON_ID)!.y);
+  });
+
+  it("accumulates later pages without dropping earlier edges", () => {
+    const first = payload();
+    const secondEdge = first.edges[1];
+    const second: OntologyNeighborhoodPayload = {
+      ...first,
+      truncated: false,
+      next_cursor: null,
+      nodes: [first.nodes[2]],
+      edges: [secondEdge],
+      exact_value_rows: [
+        {
+          ...first.exact_value_rows[0],
+          edge_id: secondEdge.edge_id,
+          source_node_id: PERSON_ID,
+          source_label: "Test Person",
+          target_node_id: CORP_ID,
+          target_label: "Demo Corp",
+        },
+      ],
+      jsonld: {
+        "@graph": [{ "@id": `lw:edge/${secondEdge.edge_id}` }],
+      },
+    };
+    const merged = accumulateNeighborhoodPages(first, second);
+    expect(merged.edges.map((edge) => edge.edge_id)).toEqual([
+      first.edges[0].edge_id,
+      first.edges[1].edge_id,
+    ]);
+    expect(merged.nodes).toHaveLength(3);
+    expect(merged.next_cursor).toBeNull();
   });
 });

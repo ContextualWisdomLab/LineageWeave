@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from dataclasses import replace
+from datetime import datetime, timezone
 from typing import Any, Callable, Sequence
 from uuid import UUID
 
@@ -38,6 +39,14 @@ from lineageweave.ontology_neighborhood import (
     fact_from_knowledge_graph_edge,
     skos_broader_fact,
 )
+from lineageweave.ontology_source_cursor import (
+    OntologySourceKey,
+    SOURCE_CURSOR_PREFIX,
+    mint_source_cursor,
+    source_cursor_secret_from_env,
+    source_key_from_row,
+    verify_source_cursor,
+)
 
 FORBIDDEN_NEIGHBORHOOD_CODES = frozenset({"focus_hidden", "focus_not_visible"})
 NOT_FOUND_NEIGHBORHOOD_CODES = frozenset({"unknown_node_type", "dangling_endpoint"})
@@ -51,9 +60,11 @@ class _LoadedFactWindow(list[NeighborhoodFact]):
         facts: Sequence[NeighborhoodFact] = (),
         *,
         truncated: bool = False,
+        last_source_key: OntologySourceKey | None = None,
     ) -> None:
         super().__init__(facts)
         self.truncated = truncated
+        self.last_source_key = last_source_key
 
 
 def neighborhood_error_http_status(error: OntologyNeighborhoodError) -> int:
@@ -245,15 +256,13 @@ async def _load_facts(
     maximum_depth: int = DEFAULT_MAXIMUM_DEPTH,
     maximum_edges: int = DEFAULT_MAXIMUM_EDGES,
     knowledge_cutoff: datetime | None = None,
+    snapshot_at: datetime | None = None,
+    after_key: OntologySourceKey | None = None,
 ) -> _LoadedFactWindow:
-    """Load a bounded, cutoff-safe recursive fact window for the focus node."""
+    """Load one keyset page of cutoff-safe recursive facts for the focus node."""
     if not visible_post_ids:
         return _LoadedFactWindow()
-    window_size = min(
-        HARD_MAXIMUM_EDGES,
-        maximum_edges * (maximum_depth + 1) + 1,
-    )
-    query_limit = min(HARD_MAXIMUM_EDGES, window_size)
+    query_limit = min(HARD_MAXIMUM_EDGES, maximum_edges + 1)
     query = """
         with recursive candidate_facts as (
             select edge.source_node_type_code,
@@ -271,6 +280,7 @@ async def _load_facts(
                 on post.post_id = evidence.evidence_post_id
              where evidence.evidence_post_id = any($1::uuid[])
                and ($6::timestamptz is null or post.created_at <= $6::timestamptz)
+               and ($7::timestamptz is null or post.created_at <= $7::timestamptz)
              group by edge.source_node_type_code, edge.source_node_id,
                       edge.target_node_type_code, edge.target_node_id,
                       edge.edge_type_code
@@ -293,57 +303,71 @@ async def _load_facts(
                 or (candidate.target_node_type_code = reachable.node_type_code
                     and candidate.target_node_id = reachable.node_id)
              where reachable.depth < $4::integer
+        ), ranked as (
+            select candidate.source_node_type_code,
+                   candidate.source_node_id,
+                   candidate.target_node_type_code,
+                   candidate.target_node_id,
+                   candidate.edge_type_code,
+                   candidate.available_at,
+                   candidate.evidence_ids,
+                   min(reachable.depth) as hop_depth
+              from candidate_facts candidate
+              join reachable
+                on ((candidate.source_node_type_code = reachable.node_type_code
+                     and candidate.source_node_id = reachable.node_id)
+                 or (candidate.target_node_type_code = reachable.node_type_code
+                     and candidate.target_node_id = reachable.node_id))
+               and reachable.depth < $4::integer
+             group by candidate.source_node_type_code,
+                      candidate.source_node_id,
+                      candidate.target_node_type_code,
+                      candidate.target_node_id,
+                      candidate.edge_type_code,
+                      candidate.available_at,
+                      candidate.evidence_ids
         )
-        select distinct candidate.source_node_type_code,
-                        candidate.source_node_id,
-                        candidate.target_node_type_code,
-                        candidate.target_node_id,
-                        candidate.edge_type_code,
-                        candidate.available_at,
-                        candidate.evidence_ids
-          from candidate_facts candidate
-          join reachable
-            on ((candidate.source_node_type_code = reachable.node_type_code
-                 and candidate.source_node_id = reachable.node_id)
-             or (candidate.target_node_type_code = reachable.node_type_code
-                 and candidate.target_node_id = reachable.node_id))
-           and reachable.depth < $4::integer
-         order by candidate.edge_type_code,
-                  candidate.source_node_type_code,
-                  candidate.source_node_id,
-                  candidate.target_node_type_code,
-                  candidate.target_node_id
+        select source_node_type_code,
+               source_node_id,
+               target_node_type_code,
+               target_node_id,
+               edge_type_code,
+               available_at,
+               evidence_ids,
+               hop_depth
+          from ranked
+         where $8::integer is null
+            or (hop_depth, edge_type_code, source_node_type_code, source_node_id,
+                target_node_type_code, target_node_id)
+               > ($8::integer, $9::text, $10::text, $11::text, $12::text, $13::text)
+         order by hop_depth,
+                  edge_type_code,
+                  source_node_type_code,
+                  source_node_id,
+                  target_node_type_code,
+                  target_node_id
          limit $5::integer
         """
-    if knowledge_cutoff is None:
-        query = query.replace(
-            "and ($6::timestamptz is null or post.created_at <= $6::timestamptz)",
-            "",
-        )
-        arguments: list[object] = [
-            visible_post_ids,
-            focus_node_type_code,
-            focus_node_id,
-            maximum_depth,
-            query_limit,
-        ]
-    else:
-        arguments = [
-            visible_post_ids,
-            focus_node_type_code,
-            focus_node_id,
-            maximum_depth,
-            query_limit,
-            knowledge_cutoff,
-        ]
+    arguments: list[object] = [
+        visible_post_ids,
+        focus_node_type_code,
+        focus_node_id,
+        maximum_depth,
+        query_limit,
+        knowledge_cutoff,
+        snapshot_at,
+        None if after_key is None else after_key.hop_depth,
+        None if after_key is None else after_key.edge_type_code,
+        None if after_key is None else after_key.source_node_type_code,
+        None if after_key is None else after_key.source_node_id,
+        None if after_key is None else after_key.target_node_type_code,
+        None if after_key is None else after_key.target_node_id,
+    ]
     rows = await conn.fetch(query, *arguments)
-    # The query is capped at the exact request window, so a full page means
-    # that additional rows may exist but cannot be distinguished without an
-    # unbounded second query. Report that conservative truncation state.
     source_truncated = len(rows) >= query_limit
-    rows = rows[:window_size]
+    page_rows = list(rows[:maximum_edges])
     facts: list[NeighborhoodFact] = []
-    for row in rows:
+    for row in page_rows:
         facts.append(
             fact_from_knowledge_graph_edge(
                 source_node_type_code=row["source_node_type_code"],
@@ -356,7 +380,8 @@ async def _load_facts(
                 provenance_reference="knowledge_graph_edge",
             )
         )
-    return _LoadedFactWindow(facts, truncated=source_truncated)
+    last_key = source_key_from_row(page_rows[-1]) if page_rows else None
+    return _LoadedFactWindow(facts, truncated=source_truncated, last_source_key=last_key)
 
 
 async def _load_skos_facts(
@@ -538,6 +563,8 @@ async def visible_ontology_neighborhood(
     allowed_property_codes: list[str] | None = None,
     knowledge_cutoff: datetime | None = None,
     cursor: str | None = None,
+    source_cursor_secret: str | None = None,
+    source_cursor_scope: str | None = None,
 ) -> OntologyNeighborhood:
     """Assemble the authorized neighborhood for one focus node."""
     if focus_node_type_code not in KNOWN_NODE_TYPES:
@@ -556,17 +583,27 @@ async def visible_ontology_neighborhood(
     )
     if not visible_post_ids:
         raise OntologyNeighborhoodError("focus_not_visible", "focus node is not visible")
+    secret = source_cursor_secret_from_env(source_cursor_secret)
+    snapshot_at = datetime.now(timezone.utc)
+    after_key: OntologySourceKey | None = None
+    assembler_cursor = cursor
+    if cursor is not None and cursor.startswith(SOURCE_CURSOR_PREFIX):
+        assembler_cursor = None
+        if secret is None or not source_cursor_scope:
+            raise OntologyNeighborhoodError("malformed_cursor", "source cursor is unavailable")
+    elif cursor is not None and not cursor.startswith("after:"):
+        raise OntologyNeighborhoodError("malformed_cursor", "cursor must be an opaque after: or source token")
     fact_window = await _load_facts(
         conn,
         visible_post_ids,
         focus_node_type_code=focus_node_type_code,
         focus_node_id=focus_node_id,
         maximum_depth=maximum_depth,
-        maximum_edges=maximum_edges,
+        maximum_edges=HARD_MAXIMUM_EDGES,
         knowledge_cutoff=knowledge_cutoff,
+        snapshot_at=snapshot_at,
     )
     facts = list(fact_window)
-    source_truncated = bool(getattr(fact_window, "truncated", False))
     loaded_post_ids = set(visible_post_ids)
     visible_by_node: dict[tuple[str, str], list[str]] = {}
     for _ in range(maximum_depth):
@@ -595,14 +632,47 @@ async def visible_ontology_neighborhood(
             focus_node_type_code=focus_node_type_code,
             focus_node_id=focus_node_id,
             maximum_depth=maximum_depth,
-            maximum_edges=maximum_edges,
+            maximum_edges=HARD_MAXIMUM_EDGES,
             knowledge_cutoff=knowledge_cutoff,
+            snapshot_at=snapshot_at,
         )
-        source_truncated = source_truncated or bool(getattr(expanded_window, "truncated", False))
         for fact in expanded_window:
             if fact not in facts:
                 facts.append(fact)
         loaded_post_ids = candidate_post_ids
+    frozen_posts = sorted(loaded_post_ids)
+    if cursor is not None and cursor.startswith(SOURCE_CURSOR_PREFIX):
+        if secret is None or source_cursor_scope is None:
+            raise OntologyNeighborhoodError("malformed_cursor", "source cursor is unavailable")
+        claims = verify_source_cursor(
+            cursor,
+            secret=secret,
+            user_account_id=source_cursor_scope,
+            focus_node_type_code=focus_node_type_code,
+            focus_node_id=focus_node_id,
+            knowledge_cutoff=knowledge_cutoff,
+            maximum_depth=maximum_depth,
+            maximum_nodes=maximum_nodes,
+            maximum_edges=maximum_edges,
+            allowed_property_codes=allowed_property_codes,
+            visible_post_ids=frozen_posts,
+        )
+        snapshot_at = claims.snapshot_at
+        after_key = claims.last_key
+    page_window = await _load_facts(
+        conn,
+        frozen_posts,
+        focus_node_type_code=focus_node_type_code,
+        focus_node_id=focus_node_id,
+        maximum_depth=maximum_depth,
+        maximum_edges=maximum_edges,
+        knowledge_cutoff=knowledge_cutoff,
+        snapshot_at=snapshot_at,
+        after_key=after_key,
+    )
+    facts = list(page_window)
+    source_truncated = bool(getattr(page_window, "truncated", False))
+    last_source_key = getattr(page_window, "last_source_key", None)
     corp_ids = [
         fact.source_node_id if fact.source_node_type_code == NODE_CORPORATE_ENTITY else fact.target_node_id
         for fact in facts
@@ -688,7 +758,11 @@ async def visible_ontology_neighborhood(
         focus_node_type_code=focus_node_type_code,
         focus_node_id=focus_node_id,
     )
-    return assemble_ontology_neighborhood(
+    page_node_keys = {(focus_node_type_code, focus_node_id)}
+    for fact in facts:
+        page_node_keys.add((fact.source_node_type_code, fact.source_node_id))
+        page_node_keys.add((fact.target_node_type_code, fact.target_node_id))
+    neighborhood = assemble_ontology_neighborhood(
         focus_node_type_code=focus_node_type_code,
         focus_node_id=focus_node_id,
         facts=facts,
@@ -700,6 +774,33 @@ async def visible_ontology_neighborhood(
         maximum_nodes=maximum_nodes,
         maximum_edges=maximum_edges,
         allowed_property_codes=allowed_property_codes,
-        cursor=cursor,
+        cursor=assembler_cursor,
         source_truncated=source_truncated,
     )
+    if (
+        secret is not None
+        and source_cursor_scope
+        and last_source_key is not None
+        and source_truncated
+        and neighborhood.truncated
+        and len(page_node_keys) <= maximum_nodes
+        and neighborhood.edges
+    ):
+        return replace(
+            neighborhood,
+            next_cursor=mint_source_cursor(
+                secret=secret,
+                user_account_id=source_cursor_scope,
+                focus_node_type_code=focus_node_type_code,
+                focus_node_id=focus_node_id,
+                knowledge_cutoff=knowledge_cutoff,
+                maximum_depth=maximum_depth,
+                maximum_nodes=maximum_nodes,
+                maximum_edges=maximum_edges,
+                allowed_property_codes=allowed_property_codes,
+                last_key=last_source_key,
+                snapshot_at=snapshot_at,
+                visible_post_ids=frozen_posts,
+            ),
+        )
+    return neighborhood

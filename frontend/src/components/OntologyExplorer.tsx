@@ -8,7 +8,7 @@ import {
 } from "../api";
 import { t, tf } from "../i18n";
 import { ontologyExplorerText } from "../ontologyExplorerI18n";
-import { filterNeighborhood, layoutOntologyNeighborhood, neighborhoodCsv } from "../ontologyLayout";
+import { accumulateNeighborhoodPages, filterNeighborhood, layoutOntologyNeighborhood, neighborhoodCsv } from "../ontologyLayout";
 
 export type OntologyExplorerStatus =
   | "ready"
@@ -116,7 +116,9 @@ export function OntologyExplorer({
     })
       .then((payload) => {
         if (cancelled) return;
-        setLoaded(payload);
+        setLoaded((current) =>
+          cursor && current ? accumulateNeighborhoodPages(current, payload) : payload,
+        );
         setStatus(statusFromPayload(payload, knowledgeCutoff));
       })
       .catch((error: unknown) => {
@@ -150,9 +152,6 @@ export function OntologyExplorer({
   function loadNextPage() {
     if (!loaded?.next_cursor) return;
     setCursor(loaded.next_cursor);
-    setSelectedNodeKey(null);
-    setSelectedEdgeId(null);
-    setQuery("");
   }
 
   function exportCsv() {

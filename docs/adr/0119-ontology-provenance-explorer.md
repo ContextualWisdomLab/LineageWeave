@@ -27,6 +27,7 @@
 - Event Lineage and ontology neighborhood stay distinct product capabilities.
 - Related-node RWR ranking is unchanged; the neighborhood is a typed BFS with fail-closed bounds.
 - Coverage, public docstrings, i18n (`en`/`ko`/`zh`/`ja`/`vi`), and Storybook gates apply to this slice.
+- Continuing past the SQL source window is [ADR 0124](0124-ontology-source-window-cursor.md) / issue #363.
 
 **References**
 

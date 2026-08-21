@@ -12,7 +12,7 @@ normative research-grounding policy, and
 [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md) for
 supporting literature and aggregate evidence. Event Lineage (reconstructed
 post-to-post parents) is distinct from the typed ontology neighborhood
-(ADR 0119); do not mix those graphs.
+(ADR 0119); source-window continuation is ADR 0124. Do not mix those graphs.
 
 ## Hard rule: no real data in repository artifacts
 
