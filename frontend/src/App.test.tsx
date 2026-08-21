@@ -3544,4 +3544,23 @@ describe("App, authenticated", () => {
       expect(screen.getByRole("searchbox", { name: "Search semantic evidence" })).toHaveFocus(),
     );
   });
+
+  it("does not steal focus after the global search request has been handled", async () => {
+    const fetchMock = stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Search" }));
+
+    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
+    await waitFor(() => expect(searchInput).toHaveFocus());
+
+    const sort = screen.getByLabelText("Sort posts");
+    await userEvent.selectOptions(sort, "title");
+    await waitFor(() => {
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes("sort=title"))).toBe(true);
+      expect(sort).toHaveFocus();
+    });
+  });
 });
