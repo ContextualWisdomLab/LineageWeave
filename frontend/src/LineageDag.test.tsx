@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { LineageGraph } from "./api";
@@ -52,5 +52,25 @@ describe("LineageDag", () => {
 
     await user.keyboard("{Enter}");
     expect(onSelectPost).toHaveBeenLastCalledWith("child-post");
+  });
+
+  it("makes lineage direction and exact edge evidence available without hover", () => {
+    render(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
+
+    const arrowMarker = document.querySelector("marker#lineage-dag-arrow");
+    expect(arrowMarker).not.toBeNull();
+
+    const edge = document.querySelector(".lineage-dag-edge");
+    expect(edge).toHaveAttribute("marker-end", "url(#lineage-dag-arrow)");
+    expect(edge).toHaveTextContent("Root record → Child record (0.91)");
+
+    const scrollRegion = document.querySelector(".lineage-dag-scroll");
+    expect(scrollRegion).not.toBeNull();
+
+    const evidenceTable = document.querySelector(".lineage-dag-evidence-table");
+    expect(evidenceTable).not.toBeNull();
+    expect(within(evidenceTable as HTMLElement).getByText("Root record → Child record")).toBeInTheDocument();
+    expect(within(evidenceTable as HTMLElement).getByText("0.91")).toBeInTheDocument();
+    expect(within(evidenceTable as HTMLElement).getByText("2026-01-01 → 2026-01-02")).toBeInTheDocument();
   });
 });
