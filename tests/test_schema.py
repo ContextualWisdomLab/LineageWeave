@@ -51,6 +51,11 @@ _IDENTIFIER_MIGRATION = (
     / "migrations"
     / "0104_two_word_database_identifiers.sql"
 )
+_CUSTOMER_MASTER_SCOPE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0105_customer_master_scope_facets.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -91,6 +96,8 @@ def schema_db():
                 identifier_migration = _IDENTIFIER_MIGRATION.read_text()
                 cur.execute(identifier_migration)
                 cur.execute(identifier_migration)
+                cur.execute(_CUSTOMER_MASTER_SCOPE_MIGRATION.read_text())
+                cur.execute(_CUSTOMER_MASTER_SCOPE_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -247,6 +254,38 @@ def test_invalid_lookup_code_is_rejected_by_a_real_foreign_key(schema_db) -> Non
                 "values ('BAD-ENTITY', 'Bad Entity', 'not_a_real_code')"
             )
     schema_db.rollback()
+
+
+def test_account_affiliation_scope_facets_are_lookup_backed(schema_db) -> None:
+    """Own/granted/unknown facets are data, not an authorization bypass."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select column_name, is_nullable, column_default
+              from information_schema.columns
+             where table_schema = 'public'
+               and table_name = 'account_affiliation'
+               and column_name = 'affiliation_scope_code'
+            """
+        )
+        assert cur.fetchone() == (
+            "affiliation_scope_code",
+            "NO",
+            "'scope_unclassified'::text",
+        )
+        cur.execute(
+            """
+            select lookup_code
+              from common_lookup_value
+             where lookup_category = 'account_affiliation_scope'
+             order by lookup_code
+            """
+        )
+        assert [row[0] for row in cur.fetchall()] == [
+            "scope_granted_entity",
+            "scope_own_entity",
+            "scope_unclassified",
+        ]
 
 
 def test_lookup_code_is_unique_across_categories(schema_db) -> None:

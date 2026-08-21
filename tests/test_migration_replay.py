@@ -69,3 +69,15 @@ def test_migrate_sh_replays_database_identifier_migration_on_existing_volumes() 
     ).read_text(encoding="utf-8")
 
     assert "0104_*" in script
+
+
+def test_migrate_sh_replays_customer_master_scope_migration_on_existing_volumes() -> None:
+    """Existing Compose volumes must receive Customer Master scope facets."""
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "migrate.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "0105_*" in script

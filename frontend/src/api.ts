@@ -442,7 +442,15 @@ export interface CustomerMasterEntity extends CorporateEntityRef {
   entity_level_code: string;
   entity_level_label: string;
   parent_entity_id: string | null;
+  scope_facets?: CustomerMasterScopeFacet[];
 }
+
+export type CustomerMasterScopeFacet =
+  | "authorized_own"
+  | "authorized_granted"
+  | "scope_unclassified"
+  | "observed_organization"
+  | "observed_hierarchy";
 
 export interface CustomerMasterKeymanAffiliation {
   organization_name: string;

@@ -1597,6 +1597,7 @@ describe("App, authenticated", () => {
                     entity_level_code: "group",
                     entity_level_label: "Group",
                     parent_entity_id: null,
+                    scope_facets: ["scope_unclassified"],
                   },
                   {
                     corporate_entity_id: "corp-demo",
@@ -1605,6 +1606,7 @@ describe("App, authenticated", () => {
                     entity_level_code: "company",
                     entity_level_label: "Company",
                     parent_entity_id: "corp-group",
+                    scope_facets: ["authorized_own"],
                   },
                 ]
               : [
@@ -1750,6 +1752,20 @@ describe("App, authenticated", () => {
     // The subsidiary's <li> is nested inside the parent's <li>, not a
     // sibling at the same top level.
     expect(parentRow?.contains(subsidiaryRow)).toBe(true);
+  });
+
+  it("filters the Customer Master tree by the server-provided scope facet", async () => {
+    stubBackend({ customerEntityHierarchy: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    const filter = screen.getByLabelText("Filter customer entities");
+    await userEvent.selectOptions(filter, "authorized_own");
+
+    expect(screen.getByText("Demo Corp")).toBeInTheDocument();
+    expect(screen.queryByText("Demo Group")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Demo Corp.*Own company/ })).toBeInTheDocument();
   });
 
   it("shows every observed relationship role for a counterparty, flagging multi-role names", async () => {

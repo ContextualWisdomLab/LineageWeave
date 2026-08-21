@@ -123,6 +123,11 @@ _IDENTIFIER_MIGRATION = (
     / "migrations"
     / "0104_two_word_database_identifiers.sql"
 )
+_CUSTOMER_MASTER_SCOPE_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0105_customer_master_scope_facets.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -238,6 +243,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
             cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
             cur.execute(_IDENTIFIER_MIGRATION.read_text())
+            cur.execute(_CUSTOMER_MASTER_SCOPE_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -294,6 +300,16 @@ def seeded_db(demo_analyst_token):
                 "values ('OTHER-CORP', 'Other Corp', 'group') returning corporate_entity_id"
             )
             other_corp_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
+                "values ('GRANTED-CORP', 'Granted Corp', 'company') returning corporate_entity_id"
+            )
+            granted_corp_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
+                "values ('HIDDEN-CORP', 'Hidden Corp', 'company') returning corporate_entity_id"
+            )
+            hidden_corp_id = cur.fetchone()[0]
 
             cur.execute(
                 "insert into user_account (external_subject_id, display_name, email_address) "
@@ -302,8 +318,10 @@ def seeded_db(demo_analyst_token):
             )
             account_id = cur.fetchone()[0]
             cur.execute(
-                "insert into account_affiliation (user_account_id, corporate_entity_id) values (%s, %s)",
-                (account_id, own_corp_id),
+                "insert into account_affiliation "
+                "(user_account_id, corporate_entity_id, affiliation_scope_code) "
+                "values (%s, %s, 'scope_own_entity'), (%s, %s, 'scope_granted_entity')",
+                (account_id, own_corp_id, account_id, granted_corp_id),
             )
             cur.execute(
                 "insert into access_role (role_code, role_name) values ('viewer', 'Viewer') returning access_role_id"
@@ -560,6 +578,8 @@ def seeded_db(demo_analyst_token):
             "own_group_id": str(own_group_id),
             "own_corp_id": str(own_corp_id),
             "other_corp_id": str(other_corp_id),
+            "granted_corp_id": str(granted_corp_id),
+            "hidden_corp_id": str(hidden_corp_id),
             "own_private_post_id": own_private_post_id,
             "late_own_private_post_id": late_own_private_post_id,
             "edited_own_post_id": edited_own_post_id,
@@ -1266,6 +1286,16 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
                     seeded_db["our_person_id"],
                 ),
             )
+            cur.execute(
+                "insert into post_organization_mention (post_id, corporate_entity_id) "
+                "values (%s, %s), (%s, %s)",
+                (
+                    seeded_db["public_post_id"],
+                    seeded_db["other_corp_id"],
+                    seeded_db["other_private_post_id"],
+                    seeded_db["hidden_corp_id"],
+                ),
+            )
             # A real counterparty can hold more than one role over its
             # lifetime -- one post classifies "Northridge Grid" as a
             # customer, a different visible post classifies the same
@@ -1306,6 +1336,12 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
     # confirm this is a real common_lookup_value label, not the code echoed back.
     assert entity["entity_level_code"] == "company"
     assert entity["entity_level_label"] not in ("", "company")
+    assert entity["scope_facets"] == ["authorized_own"]
+    granted = next(item for item in body["corporate_entities"] if item["entity_name"] == "Granted Corp")
+    assert granted["scope_facets"] == ["authorized_granted"]
+    observed = next(item for item in body["corporate_entities"] if item["entity_name"] == "Other Corp")
+    assert observed["scope_facets"] == ["observed_organization"]
+    assert not any(item["entity_name"] == "Hidden Corp" for item in body["corporate_entities"])
     assert isinstance(body["keymen"], list)
     ada_west = next(item for item in body["keymen"] if item["person_name"] == "Ada West")
     assert ada_west["person_side_code"] == "our_side"
