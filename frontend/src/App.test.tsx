@@ -2323,6 +2323,27 @@ describe("App, authenticated", () => {
     );
   });
 
+  it("does not request derived analysis for a writing-state post", async () => {
+    const fetchMock = stubBackend({ sourceDetailStateCode: " w " });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    expect(await screen.findByText("Summary is not created for writing posts.")).toBeInTheDocument();
+
+    const requestedPaths = fetchMock.mock.calls.map(([url]) =>
+      new URL(String(url), "https://backend.test").pathname,
+    );
+    expect(requestedPaths).not.toContain("/api/posts/post-1/summary");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/evaluation");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/five-w1h");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/keymen");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/counterparties");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/lineage");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/knowledge-graph");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/affiliate-tree");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/voc-evidence");
+  });
+
   it("does not show an empty source detail state filter", async () => {
     const fetchMock = stubBackend({ sourceDetailStateOptions: [] });
     render(<App />);
@@ -2332,6 +2353,23 @@ describe("App, authenticated", () => {
       within(board).queryByRole("group", { name: "Filter by source detail state" }),
     ).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalled();
+  });
+
+  it("does not request derived panels for writing posts", async () => {
+    const fetchMock = stubBackend({
+      sourceDetailStateCode: " w ",
+      sourceDetailStateOptions: [{ code: "W", label: "W" }],
+    });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await screen.findByText("The full body text.");
+
+    const urls = fetchMock.mock.calls.map(([url]) => String(url));
+    expect(
+      urls.some((url) =>
+        /\/api\/posts\/[^/]+\/(five-w1h|keymen|counterparties|lineage|knowledge-graph|affiliate-tree|voc-evidence|evaluation)(?:\?|$)/.test(url),
+      ),
+    ).toBe(false);
   });
 
   it("opens a post from a DAG node click", async () => {
@@ -2515,6 +2553,9 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("Related to Priya Nair")).not.toBeInTheDocument();
     const popup = document.querySelector(".popup-panel");
     expect(popup).not.toBeNull();
+    expect(screen.getByRole("dialog", { name: "Public post" })).toBe(popup);
+    expect(popup).toHaveAttribute("aria-modal", "true");
+    expect(popup).toHaveAttribute("aria-labelledby", "post-detail-title");
     const evaluation = within(popup as HTMLElement).getByRole("heading", {
       name: "Post quality (IRT)",
     });
@@ -2530,6 +2571,45 @@ describe("App, authenticated", () => {
     expect(affiliate.compareDocumentPosition(keyman) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     const ask = within(popup as HTMLElement).getByRole("heading", { name: "Ask about this lineage" });
     expect(keyman.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  });
+
+  it("keeps the post popup keyboard-contained and restores the opener after Escape", async () => {
+    const user = userEvent.setup();
+    stubBackend();
+    render(<App showLabPanels />);
+
+    const opener = await screen.findByRole("button", { name: "View post: Public post" });
+    await user.click(opener);
+    const dialog = await screen.findByRole("dialog", { name: "Public post" });
+    await waitFor(() => expect(dialog).toHaveFocus());
+
+    await user.keyboard("{Tab}");
+    expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
+    const evidenceSummary = screen.getByText("Evidence provenance");
+    for (let step = 0; step < 40 && document.activeElement !== evidenceSummary; step += 1) {
+      await user.keyboard("{Tab}");
+    }
+    expect(evidenceSummary).toHaveFocus();
+    const ariaHiddenTabStop = document.createElement("button");
+    ariaHiddenTabStop.setAttribute("aria-hidden", "true");
+    dialog.insertBefore(ariaHiddenTabStop, screen.getByRole("button", { name: "Close" }).nextSibling);
+    await user.keyboard("{Tab}");
+    expect(ariaHiddenTabStop).not.toHaveFocus();
+    const ariaHiddenGroup = document.createElement("div");
+    ariaHiddenGroup.setAttribute("aria-hidden", "true");
+    const nestedAriaHiddenTabStop = document.createElement("button");
+    ariaHiddenGroup.append(nestedAriaHiddenTabStop);
+    dialog.insertBefore(ariaHiddenGroup, screen.getByRole("button", { name: "Close" }).nextSibling);
+    await user.keyboard("{Tab}");
+    expect(nestedAriaHiddenTabStop).not.toHaveFocus();
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+    await user.keyboard("{Shift>}{Tab}{/Shift}");
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+    expect((document.activeElement as HTMLElement).closest("details:not([open])")).toBeNull();
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(opener).toHaveFocus();
   });
 
   it("labels a stale summary and retries the semantic refresh on request", async () => {

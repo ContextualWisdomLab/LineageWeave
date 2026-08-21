@@ -82,6 +82,11 @@ _IDENTIFIER_MIGRATION = (
     / "migrations"
     / "0104_two_word_database_identifiers.sql"
 )
+_SOURCE_COMMERCIAL_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0130_source_commercial_context.sql"
+)
 _SEMANTIC_SEARCH_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0032_semantic_search_trigram.sql"
 )
@@ -90,9 +95,6 @@ _SOURCE_STATE_MIGRATION = (
 )
 _SOURCE_CONTEXT_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0034_source_context_provenance.sql"
-)
-_SOURCE_COMMERCIAL_CONTEXT_MIGRATION = (
-    Path(__file__).resolve().parents[1] / "migrations" / "0130_source_commercial_context.sql"
 )
 _NORMALIZED_BODY_SEARCH_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0036_normalized_body_search.sql"

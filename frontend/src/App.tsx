@@ -64,6 +64,7 @@ import {
   type CorporateEntityRef,
   type CustomerMasterEntity,
   type CustomerMasterResponse,
+  type CustomerMasterScopeFacet,
   type Counterparty,
   type EvaluationResponse,
   type IssueTicket,
@@ -1879,6 +1880,10 @@ function groupKeyEventsByProject(events: PostKeyEvent[]): KeyEventGroup[] {
   return groups;
 }
 
+function isWritingSourceDetailState(code: string | null | undefined): boolean {
+  return (code ?? "").trim().toUpperCase() === "W";
+}
+
 function PostDetailPopup({
   postId,
   accessToken,
@@ -1928,8 +1933,60 @@ function PostDetailPopup({
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
   const [focusTeam, setFocusTeam] = useState<{ teamId: string; teamName: string } | null>(null);
   const contentReloadRef = useRef<() => void>(() => undefined);
+  const popupPanelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    const panel = popupPanelRef.current;
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (!panel) return;
+    panel.focus({ preventScroll: true });
+
+    const focusableSelector =
+      'a[href], area[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(panel.querySelectorAll<HTMLElement>(focusableSelector)).filter(
+        (element) =>
+          !element.hidden &&
+          !element.closest('[aria-hidden="true"]') &&
+          (!element.closest("details:not([open])") || element.matches("summary")),
+      );
+      if (focusable.length === 0) {
+        event.preventDefault();
+        panel.focus();
+        return;
+      }
+      const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
+      const nextIndex = event.shiftKey
+        ? currentIndex <= 0
+          ? focusable.length - 1
+          : currentIndex - 1
+        : currentIndex < 0 || currentIndex === focusable.length - 1
+          ? 0
+          : currentIndex + 1;
+      event.preventDefault();
+      focusable[nextIndex].focus();
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      if (previouslyFocused && document.contains(previouslyFocused)) previouslyFocused.focus();
+    };
+  }, []);
 
   function reloadKeymen() {
+    if (isWritingSourceDetailState(post?.source_detail_state_code)) return;
     fetchPostKeymen(accessToken, postId)
       .then((r) => {
         setKeymen(r.keymen);
@@ -1947,6 +2004,7 @@ function PostDetailPopup({
   }
 
   function reloadCounterparties() {
+    if (isWritingSourceDetailState(post?.source_detail_state_code)) return;
     fetchPostCounterparties(accessToken, postId)
       .then((r) => setCounterparties(r.counterparties))
       .catch(() => setCounterparties([]));
@@ -1979,7 +2037,42 @@ function PostDetailPopup({
     let disposed = false;
     let contentPollTimer: number | undefined;
     const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
-    fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
+    const loadDerivedPostData = (loadedPost: PostDetail) => {
+      if (isWritingSourceDetailState(loadedPost.source_detail_state_code)) return;
+      fetchPostEvaluation(accessToken, postId)
+        .then((r) => setEvaluation(r.responses))
+        .catch(() => setEvaluation([]));
+      fetchPostFiveW1H(accessToken, postId)
+        .then(setFiveW1H)
+        .catch(() => setFiveW1H(null));
+      fetchPostKeymen(accessToken, postId)
+        .then((r) => {
+          setKeymen(r.keymen);
+          setSourceAuthorContext(r.source_author_context ?? null);
+        })
+        .catch(() => {
+          setKeymen([]);
+          setSourceAuthorContext(null);
+        });
+      fetchPostCounterparties(accessToken, postId)
+        .then((r) => setCounterparties(r.counterparties))
+        .catch(() => setCounterparties([]));
+      fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
+      fetchPostKnowledgeGraph(accessToken, postId)
+        .then(setKnowledgeGraph)
+        .catch(() => setKnowledgeGraph(null));
+      fetchPostAffiliateTree(accessToken, postId)
+        .then((r) => setAffiliateTrees(r.trees))
+        .catch(() => setAffiliateTrees([]));
+      fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+    };
+    fetchPost(accessToken, postId, asOf)
+      .then((loadedPost) => {
+        if (disposed) return;
+        setPost(loadedPost);
+        loadDerivedPostData(loadedPost);
+      })
+      .catch((err) => setError(String(err)));
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)
         .then((content) => {
@@ -2011,32 +2104,6 @@ function PostDetailPopup({
       .catch(() => {
         setBookmarked(null);
       });
-    fetchPostEvaluation(accessToken, postId)
-      .then((r) => setEvaluation(r.responses))
-      .catch(() => setEvaluation([]));
-    fetchPostFiveW1H(accessToken, postId)
-      .then(setFiveW1H)
-      .catch(() => setFiveW1H(null));
-    fetchPostKeymen(accessToken, postId)
-      .then((r) => {
-        setKeymen(r.keymen);
-        setSourceAuthorContext(r.source_author_context ?? null);
-      })
-      .catch(() => {
-        setKeymen([]);
-        setSourceAuthorContext(null);
-      });
-    fetchPostCounterparties(accessToken, postId)
-      .then((r) => setCounterparties(r.counterparties))
-      .catch(() => setCounterparties([]));
-    fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
-    fetchPostKnowledgeGraph(accessToken, postId)
-      .then(setKnowledgeGraph)
-      .catch(() => setKnowledgeGraph(null));
-    fetchPostAffiliateTree(accessToken, postId)
-      .then((r) => setAffiliateTrees(r.trees))
-      .catch(() => setAffiliateTrees([]));
-    fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
     return () => {
       disposed = true;
       if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
@@ -2056,7 +2123,7 @@ function PostDetailPopup({
         disposed = true;
       };
     }
-    if (post?.source_detail_state_code?.trim().toUpperCase() === "W") {
+    if (isWritingSourceDetailState(post.source_detail_state_code)) {
       setSummaryLoading(false);
       return () => {
         disposed = true;
@@ -2131,13 +2198,22 @@ function PostDetailPopup({
 
   return (
     <div className="popup-backdrop" onClick={onClose}>
-      <div className="popup-panel" onClick={(event) => event.stopPropagation()}>
+      <div
+        ref={popupPanelRef}
+        className="popup-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={post ? "post-detail-title" : undefined}
+        aria-label={!post ? t("Post details") : undefined}
+        tabIndex={-1}
+        onClick={(event) => event.stopPropagation()}
+      >
         <PopupCloseButton onClose={onClose} label={t("Close")} />
         {error && <p className="error">{error}</p>}
         {!post && !error && <p>{t("Loading...")}</p>}
         {post && (
           <>
-            <h2>{post.post_title}</h2>
+            <h2 id="post-detail-title">{post.post_title}</h2>
             <p className="post-meta">
               {post.voc_type_label ?? post.voc_type_code} &middot;{" "}
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
@@ -2181,7 +2257,7 @@ function PostDetailPopup({
 					<div className="popup-analysis-grid">
               <section className="popup-section popup-analysis-col">
               <h3>{t("Summary")}</h3>
-              {post.source_detail_state_code?.trim().toUpperCase() === "W" ? (
+              {isWritingSourceDetailState(post.source_detail_state_code) ? (
                 <SummaryStatus
                   kind="empty"
                   title={t("Summary is not created for writing posts.")}
@@ -4886,6 +4962,21 @@ function buildCustomerEntityTree(entities: CustomerMasterEntity[]): CustomerEnti
   return roots.map(toNode);
 }
 
+function customerScopeFacetLabel(facet: CustomerMasterScopeFacet): string {
+  switch (facet) {
+    case "authorized_own":
+      return t("Own company");
+    case "authorized_granted":
+      return t("Granted company");
+    case "scope_unclassified":
+      return t("Scope not classified");
+    case "observed_organization":
+      return t("Observed organization");
+    case "observed_hierarchy":
+      return t("Observed hierarchy");
+  }
+}
+
 function CustomerEntityTreeRow({
   node,
   depth,
@@ -4916,7 +5007,12 @@ function CustomerEntityTreeRow({
         onClick={() => onToggle(entity.corporate_entity_id)}
       >
         <strong>{entity.entity_name}</strong>
-        <span>{entity.corporate_entity_code} · {entity.entity_level_label}</span>
+        <span className="customer-entity-meta">
+          <span>{entity.corporate_entity_code} · {entity.entity_level_label}</span>
+          {(entity.scope_facets ?? []).map((facet) => (
+            <span className="customer-scope-chip" key={facet}>{customerScopeFacetLabel(facet)}</span>
+          ))}
+        </span>
       </button>
       {expandedEntityId === entity.corporate_entity_id ? (
         <div className="customer-related-posts">
@@ -5102,7 +5198,7 @@ function CustomerMasterPanel({
 
   return (
     <section className="workspace-destination" aria-labelledby="customer-master-heading">
-      <p className="section-eyebrow">{t("Authorized customer scope")}</p>
+      <p className="section-eyebrow">{t("Customer scope")}</p>
       <h2 id="customer-master-heading">{t("Customer master")}</h2>
       <p className="workspace-destination-intro">{t("Customer entities available to this account.")}</p>
       {error ? <p className="error">{error}</p> : null}

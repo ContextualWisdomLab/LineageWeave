@@ -19,8 +19,9 @@ from __future__ import annotations
 
 import asyncio
 import re
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from typing import Any, Callable, Iterable
+from typing import Any
 
 import asyncpg
 
@@ -33,6 +34,7 @@ from lineageweave.knowledge_graph import (
     random_walk_with_restart,
     select_related_nodes,
 )
+from lineageweave.ontology import ontology_annotations
 from lineageweave.post_chat import (
     CANONICAL_CHAT_QUESTION,
     CANONICAL_COMMITMENT_QUESTION,
@@ -44,7 +46,6 @@ from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.source_lineage_hints import source_lineage_hint_facts
 
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
-from lineageweave.ontology import ontology_annotations
 
 
 @dataclass(frozen=True)
@@ -400,7 +401,7 @@ async def gather_chat_sources(
         "source_company_code, source_company_name, source_process_unit_code, "
         "source_process_unit_name, source_sales_pool_code, source_sales_pool_name, "
         "source_order_pool_code, source_sales_order_code, source_sales_order_item_number, "
-        "source_inspection_point_code, source_stage_code, source_detail_state_code, source_deleted_flag, "
+        "source_inspection_point_code, source_stage_code, source_deleted_flag, "
         "source_customer_code, source_customer_name, "
         "source_project_code, source_project_name "
         "from source_post where post_id = any($1::uuid[]) "
@@ -531,6 +532,10 @@ async def gather_global_chat_sources(
                                       source_company_code, source_company_name,
                                       source_process_unit_code, source_process_unit_name,
                                       source_sales_pool_code, source_sales_pool_name,
+                                      source_order_pool_code, source_sales_order_code,
+                                      source_sales_order_item_number,
+                                      source_inspection_point_code, source_stage_code,
+                                      source_deleted_flag,
                                       source_customer_code, source_customer_name,
                                       source_project_code, source_project_name)
                                ilike '%' || $1 || '%'
@@ -673,6 +678,8 @@ async def gather_global_chat_sources(
                source_system_code, source_record_key, source_author_code, source_author_name,
                source_company_code, source_company_name, source_process_unit_code,
                source_process_unit_name, source_sales_pool_code, source_sales_pool_name,
+               source_order_pool_code, source_sales_order_code, source_sales_order_item_number,
+               source_inspection_point_code, source_stage_code, source_deleted_flag,
                source_customer_code, source_customer_name,
                source_project_code, source_project_name
           from source_post

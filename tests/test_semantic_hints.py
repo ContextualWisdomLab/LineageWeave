@@ -168,3 +168,23 @@ def test_without_source_context_account_affiliation_is_kept_as_keyman_hint() -> 
 
     assert "author_affiliations=Synthetic Corp" in hints
     assert "author_side_hint=our_side_candidate" in hints
+
+
+def test_lifecycle_only_fields_do_not_hide_independent_identity_hints() -> None:
+    """Lifecycle state is not source identity and must not suppress priors."""
+    hints = format_semantic_hints(
+        author_name="Synthetic Analyst",
+        author_account_id="demo-account",
+        author_affiliations=["Synthetic Corp"],
+        order_pool_code=None,
+        order_pool_name=None,
+        project_field=None,
+        customer_name="Synthetic Customer",
+        source_stage_code="ACTIVE",
+        source_detail_state_code="D",
+        source_deleted_flag="N",
+    )
+
+    assert "author_affiliations=Synthetic Corp" in hints
+    assert "author_side_hint=our_side_candidate" in hints
+    assert "customer=Synthetic Customer" in hints
