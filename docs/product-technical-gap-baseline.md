@@ -35,7 +35,7 @@
 The following states are evidence-bound and must not be changed to `merged` or
 `resolved` from intent alone:
 
-Observed at `2026-08-21T13:35:16Z` from the GitHub API. A merged commit is
+Observed at `2026-08-21T13:44:58Z` from the GitHub API. A merged commit is
 identified as `merge_commit`; an open PR is identified by its exact `head`.
 
 - LineageWeave PR #344: `merge_commit`
@@ -51,7 +51,7 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   provenance explorer remains open and required Checks and independent
   approval remain external gates.
 - LineageWeave PR #368: `head`
-  `f45fcdebfd54bf236b55f5d892aeb6091b51ba5b`, base `main`; this baseline
+  `c6defda2c1122c7c48eab8788eb85c6571d37e4e`, base `main`; this baseline
   checkpoint is updated by the stacked documentation PR for the newer queue
   evidence below.
 - LineageWeave PR #378: `merge_commit`
@@ -69,12 +69,12 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   continuation is open and required Checks and independent approval remain
   external gates.
 - LineageWeave PR #370: `head`
-  `9f8f4b742759e15ad34c7ef09c401dbc8b1d1ae5`, base
+  `1f12c862beb1d138e4afae6439bf474f86bb4859`, base
   `8bed77e7e7b91b633bb92d3a82d0187c387206af`; its runtime boundary fixes are
   now part of the current Customer Master stack; required Checks and
   independent approval remain external gates.
 - LineageWeave PR #374: `head`
-  `f6ce19f8e10aa7ec2b0a95f3adbbea816bd39594`, base
+  `fb0d185a2da707e57d2ed10900b06707126d8300`, base
   `0a5a5799b444c44dc2952edc7227b1b96b97457e`; its post-chat atomic
   reauthorization fix is stacked in PR #377.
 - LineageWeave PR #376: `merge_commit`
@@ -91,9 +91,9 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   cleanup are locally verified; required Checks and independent approval
   remain external gates.
 - LineageWeave PR #385: `head`
-  `cda7d483717addf6f62b7771a5cdcd244cad8fa9`, base
+  `b1537164e67e622e1b5758f3e0b4e3260af81112`, base
   `feat/analysis-run-name-evidence-lineage`; stacked on PR #258's exact head
-  `efcc3c615cf4809a7ec265a1074a10e12877dd15`, it hardens the external
+  `3f9a0cfadc0164a44bad4bbe0c4af3f5e2e4d3bd`, it hardens the external
   lineage contract, removes the self-modifying repair workflow, and fixes the
   responsive board CSS. Checks and independent approval remain external gates.
 - LineageWeave PR #373: `head`
@@ -114,9 +114,17 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   `d14dc49025886a00251a3f579f4e9d53ed55f0ba`, base
   `ci/publish-ontology-pages-clean`; it carries the ontology-site safety
   repair stacked on PR #373 and remains gated by Checks and approval.
-- Legacy open PRs #258, #262, and #287 remain explicitly unmerged. PR #258
-  has the separate hardening stack #385; neither PR is treated as delivered
-  until GitHub reports a merge commit.
+- Legacy open PR #258: `head`
+  `3f9a0cfadc0164a44bad4bbe0c4af3f5e2e4d3bd`, base `main`; hardening stack
+  #385 is open and parent delivery remains gated by Checks and review.
+- Legacy open PR #262: `head`
+  `be7255d9cd7f8c890f2ba2de9fc05c6750073293`, base
+  `feat/calendar-open-focus-event-lineage-v2140`; it remains unmerged and
+  separately gated.
+- Legacy open PR #287: `head`
+  `b693377ed849a3a15b7bd363e519fa4564503983`, base
+  `feat/global-ask-public-claim-verification-v2200`; it is conflicting and
+  remains unmerged.
 - LineageWeave PR #371: `closed_without_merge`
   head `4c3e43f9e96ecc2d868657dd9b0ce5524a15c76c`, closed at
   `2026-08-21T11:59:57Z`; no merge commit exists, so ontology publication is
