@@ -75,5 +75,15 @@ def test_migrate_sh_replays_verified_label_and_catalog_identity_migrations() -> 
         / "migrations"
         / "0103_organization_resolution_entity_id.sql"
     ).read_text(encoding="utf-8")
+    rollback = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "rollback"
+        / "0103_organization_resolution_entity_id.sql"
+    ).read_text(encoding="utf-8")
+    assert migration.strip().casefold().startswith("begin;")
+    assert migration.strip().casefold().endswith("commit;")
     assert "resolved_corporate_entity_id" in migration
     assert "references corporate_entity" in migration
+    assert "drop index if exists organization_name_resolution_entity_id_idx" in rollback
+    assert "drop column if exists resolved_corporate_entity_id" in rollback

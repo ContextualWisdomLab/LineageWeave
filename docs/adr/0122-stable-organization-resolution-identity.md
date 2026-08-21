@@ -26,6 +26,8 @@ relationship; no name-based backfill is permitted.
 
 `docker/postgres-init/migrate.sh` replays both the verified-label indexes and
 this identity migration on existing Compose volumes.
+The paired rollback removes only the new index and nullable foreign-key column;
+it assumes the application has first been rolled back to the prior contract.
 
 ## Consequences
 
