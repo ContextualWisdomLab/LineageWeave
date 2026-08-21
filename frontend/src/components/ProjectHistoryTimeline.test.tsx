@@ -177,6 +177,6 @@ describe("ProjectHistoryTimeline", () => {
         onOpenPost={vi.fn()}
       />,
     );
-    expect(screen.getByText("Dates use the recorded document time.")).toBeInTheDocument();
+    expect(screen.getByText("Dates use the document time recorded by the source.")).toBeInTheDocument();
   });
 });
