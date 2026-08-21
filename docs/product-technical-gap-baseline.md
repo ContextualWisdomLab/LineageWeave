@@ -34,12 +34,11 @@ checks to rerun.
   passed `760` tests with `16` skips; frontend Vitest passed `161` tests in `17`
   files, frontend lint/build passed, and Storybook build completed. These are
   local checks, not hosted protected-gate or independent-review evidence.
-- **Current PR gate:** PR #350 is open and review-required; its required
-  OpenCode/Noema reviews and product/security checks were cancelled by a later
-  push and must rerun for the current head. The prior PR #347 merged at
+- **Current PR gate:** PR #350 is open, `MERGEABLE` but `BLOCKED`, and has no
+  independent approval. Its current-head OpenCode/Noema/product/security
+  checks are pending after the latest push. The prior PR #347 merged at
   `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`, before this clean post-merge PR
-  was opened. PR #350 is still open, blocked, and unmerged; this is not
-  merge-ready evidence.
+  was opened. PR #350 is still unmerged; this is not merge-ready evidence.
 
 ## 2. UI/UX Standard Guide v3.0 comparison
 
@@ -193,7 +192,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Browser E2E from login through evidence | authenticated local OIDC login, protected list, drawer/search, popup sweep, and aggregate evidence checks at 390x958; post-migration fresh session had `htmlLang=zh`, localized protected shell, zero console errors/warnings, no horizontal overflow, popup, summary, and Event Lineage | source + local-integration; external provider/runtime evidence remains open |
 | Storybook scenes/edge events and design-token coverage | `LineageDag.stories.tsx`, inventory, Storybook build | source + unit |
 | External email/project lineage package boundary | PR #343 publishes strict v1.0.0 bounded request/result types, available-time cutoff handling, observed/inferred/proposed truth states, pair-budget enforcement, and no source/provider access | source + focused unit; exact-head hosted gates, independent review, and immutable release open |
-| Naruon calendar projection boundary | PR #337 defines a strict read projection contract without making LineageWeave a CalDAV provider | source + focused unit; Naruon endpoint, runtime wiring, restack, and review open |
+| Naruon calendar projection boundary | PR #337 is closed as superseded; draft PR #355 carries the strict read projection contract without making LineageWeave a CalDAV provider | source + focused unit; Naruon endpoint, runtime wiring, restack, and review open |
 | Hourly PR review/repair/merge loop | Central `ContextualWisdomLab/.github` scheduler owns `*/15 * * * *` sweep and `0 * * * *` heartbeat; no duplicate repo-local scheduler is required | boundary accepted; current-head runtime open |
 | 100% coverage/docstrings/edge-case/release gates | current checks and coverage evidence are not complete on PR #350 | open |
 
@@ -281,7 +280,7 @@ or an explicit unavailable result.
 ## 6. Next acceptance loop
 
 1. Re-fetch the exact PR head and required reviews/checks for the buyer UI stack,
-   PR #343, and PR #337.
+   PR #343, and the superseding calendar contract PR #355.
 2. Run frontend lint, tests, build, Storybook, backend tests, and authenticated
    browser checks when the local stack is available.
 3. Reproduce each case label using synthetic fixtures or authorized runtime
