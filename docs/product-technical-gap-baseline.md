@@ -197,7 +197,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Keyman on both sides, titles, affiliations, related KG nodes | Keyman/affiliate-tree/related-node routes and popup | source + unit; live extraction open |
 | Ontology, semantic layer, provenance, W3C PROV-O projection | normalized schema, SKOS operational vocabulary concepts, `ontology_annotations` label fallback, ADR 0124, provenance modules, ADRs, evidence UI | source + unit; corpus verification open |
 | Branching Event Lineage DAG with evidence trail | `LineageDag.tsx`, Storybook story, Figma frames, accessible node-kind names for screen readers/tooltips, frontend tests; runtime cases include both a rendered DAG and honest empty states, while current corpus coverage remains sparse | source + unit + local-integration partial |
-| Customer master and hierarchy tree | `/api/customer-master`, `scope_facets`, visible `post_organization_mention` enrichment, affiliate tree, migration `0105`, scope filter | source + unit + local-integration partial; authorized own/granted/unclassified facets and visible observed organizations are implemented, while authoritative scope backfill and hierarchy traversal remain open |
+| Customer master and hierarchy tree | `/api/customer-master`, `scope_facets`, visible `post_organization_mention` enrichment, affiliate tree, migration `0105`, scope filter | source + unit + local-integration partial; authorized own/granted/unclassified facets, visible observed organizations, and admitted observed hierarchy facets are implemented, while authoritative scope backfill and broader hierarchy traversal remain open |
 | VOC/VOM/VOP/VOCC/VOCO/VOS role classification | common lookup values and relationship APIs | source + unit; live classification open |
 | Evidence-grounded chat and source navigation | `/chat`, `/ask`, citation/evidence UI | source + unit; synthetic orchestrator judge route verified, corpus chat/runtime evidence open |
 | PU/team/project weekly/monthly reports | report API/UI and grouping controls | source + unit; TEPP-backed live report open |
@@ -251,12 +251,15 @@ or an explicit unavailable result.
   `scope_unclassified`; it does not infer own-company or granted scope from a
   token, PU, title, or corporate name. `/api/customer-master` now returns
   repeatable `scope_facets` (`authorized_own`, `authorized_granted`,
-  `scope_unclassified`, `observed_organization`) and the React Customer Master
-  panel can filter those server-provided facets. Resolved
+  `scope_unclassified`, `observed_organization`, and admitted
+  `observed_hierarchy`) and the React Customer Master panel can filter those
+  server-provided facets. `observed_hierarchy` is emitted only when a visible
+  observed child and its already-admitted parent are both in the response.
+  Resolved
   `post_organization_mention` rows enrich navigation only when their source
   post is public or already authorized and eligible; they never widen ABAC,
   and unresolved counterparty names remain hints. Synthetic schema/API/UI
-  coverage is present at implementation head `765a12c1`.
+  coverage is present at implementation head `ad4403ea`.
   The remaining product gap is authoritative scope backfill for existing live
   affiliations, persisted parent/hierarchy evidence, and a customer tree that
   can safely traverse admitted observed hierarchy nodes. Until that evidence
