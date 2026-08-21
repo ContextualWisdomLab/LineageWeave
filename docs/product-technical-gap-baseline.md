@@ -11,6 +11,12 @@
 Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
+Current PR exact head observed during this audit: `0937a9848df1e637e9478cbfca1cd35c4e2024e3`.
+The local Compose image used for the authenticated runtime sweep was rebuilt
+from predecessor head `5b727e736c23d3f918eebcd624342105a9d30ee5`; the later
+terminology and locale commits are source-only deltas for this runtime evidence,
+so a current-head image rebuild remains an acceptance step.
+
 - **Implemented in source:** PostgreSQL-backed API boundaries, Keyverse/OIDC
   identity boundary, workspace navigation, post popup, ABAC/RBAC surfaces, Korean
   summary, 5W1H, R&R/Keyman, customer hierarchy, tickets/calendar, chat,
@@ -23,9 +29,11 @@ record the final PR head with `git rev-parse HEAD` during acceptance.
 - **Figma reference:** ADR 0118 records file `1Su3lDRmiZdcUs47t1QwIX`; the
   inspected Event Lineage frames are desktop `5:14` and mobile `5:15`.
 - **Current PR gate:** PR #350 is open and review-required; its required
-  OpenCode/Noema reviews and product/security checks are pending. The prior PR
-  #347 merged at `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`, before this clean
-  post-merge PR was opened. This is not merge-ready evidence.
+  OpenCode/Noema reviews and product/security checks were cancelled by a later
+  push and must rerun for the current head. The prior PR #347 merged at
+  `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`, before this clean post-merge PR
+  was opened. PR #350 is still open, blocked, and unmerged; this is not
+  merge-ready evidence.
 
 ## 2. UI/UX Standard Guide v3.0 comparison
 
@@ -65,9 +73,29 @@ record the final PR head with `git rev-parse HEAD` during acceptance.
   `document.documentElement.lang` after locale selection and `i18n.test.ts`
   covers the supported locales. `frontend/index.html` remains an English
   pre-JavaScript fallback, so a no-JavaScript locale check is still open.
-- **Phone content affordance — runtime verify:** the guide requires a visible
-  portion of content below the fold. Verify this with Playwright at 390px after
-  the authenticated runtime is available.
+- **Phone content affordance — locally verified:** the authenticated 390px
+  browser sweep had a scrollable page and rendered the post list below the
+  sticky shell. Re-run after the current-head image rebuild before acceptance.
+
+### 2.3 Authenticated runtime evidence
+
+The local Compose stack accepted the synthetic Keycloak OIDC account and the
+real React client rendered the protected board. Aggregate evidence only:
+
+- `/api/me` returned two authorized corporate entities and eight account
+  affiliations, with corporate and process-unit code/name fields.
+- At a 390×958 viewport, logout, scope display, language control, 50 visible
+  posts, drawer open/close, and global-search-to-input focus all worked.
+- All 11 supplied post cases opened a popup with a loaded title and zero popup
+  error elements. The footnote case rendered one footnote, the table case one
+  semantic table, the known lineage case one DAG, and the image-table case
+  rendered five images but zero persisted image-region panels.
+- The full lineage endpoint returned 500 bounded nodes and one edge; the focused
+  isolated case correctly returned an empty graph. PostgreSQL aggregates were
+  43,839 source posts, 54 knowledge-graph edges, 65 edge-evidence rows, 1,308
+  persisted post-lineage edges, and 1,929 posts participating in those edges.
+  This is evidence of a sparse current relationship projection, not evidence
+  that the Event Lineage product goal is complete.
 
 ## 3. Requirement traceability
 
@@ -94,22 +122,22 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Post list/detail popup, Korean summary, 5W1H, R&R, tickets/calendar | API routes, popup panels, backend/frontend tests | source + unit |
 | Keyman on both sides, titles, affiliations, related KG nodes | Keyman/affiliate-tree/related-node routes and popup | source + unit; live extraction open |
 | Ontology, semantic layer, provenance, W3C PROV-O projection | normalized schema, provenance modules, ADRs, evidence UI | source; corpus verification open |
-| Branching Event Lineage DAG with evidence trail | `LineageDag.tsx`, Storybook story, Figma frames, frontend tests | source + unit |
+| Branching Event Lineage DAG with evidence trail | `LineageDag.tsx`, Storybook story, Figma frames, frontend tests; one supplied runtime case rendered a DAG while an isolated case rendered the honest empty state | source + unit + local-integration partial |
 | Customer master and hierarchy tree | `/api/customer-master`, affiliate tree, catalog migrations | source + unit; live resolution open |
 | VOC/VOM/VOP/VOCC/VOCO/VOS role classification | common lookup values and relationship APIs | source + unit; live classification open |
 | Evidence-grounded chat and source navigation | `/chat`, `/ask`, citation/evidence UI | source + unit; orchestrator runtime open |
 | PU/team/project weekly/monthly reports | report API/UI and grouping controls | source + unit; TEPP-backed live report open |
 | TEPP calibrated measurement, dichotomous items, multilevel/MMM/time model | published import/REST boundary and TEPP ADR/PRD references | boundary-only; live-external open |
 | contextual-orchestrator routing, VISION, embedding, schema repair | clients and provenance/session boundary | source; live-external open |
-| HTML semantic units, tables, indentation, footnotes, formulas | parser modules and synthetic tests | source + unit; supplied runtime cases open |
-| Base64/file image regions and multimodal evidence | image-region schema and VISION client boundary | source; live-external open |
+| HTML semantic units, tables, indentation, footnotes, formulas | parser modules and synthetic tests; 11-case authenticated popup sweep had no popup errors and rendered the supplied footnote/table cases | source + unit + local-integration partial; formula/semantic correctness open |
+| Base64/file image regions and multimodal evidence | image-region schema and VISION client boundary; image-table case rendered five images but zero region panels | source + local-integration partial; live-external open |
 | Abbreviation/multilingual alias/entity disambiguation | catalog hints and resolver boundary | source; live corroboration open |
 | SearXNG/internal relation fact check | verification endpoint and unavailable handling | source; SearXNG runtime open |
 | Valkey event queue and cloud-native Compose stack | queue modules, Compose services, health checks | source + local-integration; delivery stress open |
 | 3NF, hot partitions, locks, read/write contention | migrations and documented boundaries | source; operational evidence open |
 | Rust/GPU/CPU psychometric computation | delegated to TEPP, not reimplemented here | boundary accepted; live TEPP evidence open |
 | APA 7 doctoring and Zotero OA records | baseline bibliography, local Zotero API reachable, known metadata found | source + local-integration; OA attachment audit open |
-| Browser E2E from login through evidence | anonymous OIDC redirect verified at 390px; authenticated account flow not executed | partial; open |
+| Browser E2E from login through evidence | authenticated local OIDC login, protected list, drawer/search, popup sweep, and aggregate evidence checks; image predates current exact head | local-integration partial; current-head redeploy open |
 | Storybook scenes/edge events and design-token coverage | `LineageDag.stories.tsx`, inventory, Storybook build | source + unit |
 | Hourly PR review/repair/merge loop | Central `ContextualWisdomLab/.github` scheduler owns `*/15 * * * *` sweep and `0 * * * *` heartbeat; no duplicate repo-local scheduler is required | boundary accepted; current-head runtime open |
 | 100% coverage/docstrings/edge-case/release gates | current checks and coverage evidence are not complete on PR #350 | open |
