@@ -14,4 +14,9 @@ describe("mobile header CSS contract", () => {
     expect(phoneMedia).toContain("padding: 0.6rem 1rem;");
     expect(phoneMedia).not.toContain("padding: 0 1rem;");
   });
+
+  it("leaves navigation to the phone drawer instead of duplicating the site map", () => {
+    expect(appCss).toContain(".site-map-menu .workspace-gnb");
+    expect(phoneMedia).toMatch(/\.site-map-utility\s*\{\s*display: none;/);
+  });
 });

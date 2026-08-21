@@ -137,6 +137,38 @@ function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
   );
 }
 
+function SiteMapUtility({
+  destination,
+  onChange,
+  open,
+  onToggle,
+}: {
+  destination: WorkspaceDestination;
+  onChange: (destination: WorkspaceDestination) => void;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="site-map-utility">
+      <button
+        type="button"
+        className="btn-secondary"
+        aria-expanded={open}
+        aria-controls="site-map-menu"
+        aria-haspopup="true"
+        onClick={onToggle}
+      >
+        {t("Site map")}
+      </button>
+      {open ? (
+        <div id="site-map-menu" className="site-map-menu" role="region" aria-label={t("Site map")}>
+          <WorkspaceNav destination={destination} onChange={onChange} id="site-map-navigation" />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function searchUnavailableMessage(err: unknown): string {
   if (err instanceof BackendError && err.status === 503) {
     return t("Verification unavailable (search is not configured).");
@@ -4609,6 +4641,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   const auth = useAuth();
   const [destination, setDestination] = useState<WorkspaceDestination>("board");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [siteMapOpen, setSiteMapOpen] = useState(false);
   const [searchFocusRequest, setSearchFocusRequest] = useState(0);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
@@ -4624,8 +4657,18 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   const changeDestination = (nextDestination: WorkspaceDestination) => {
     setDestination(nextDestination);
     setMobileMenuOpen(false);
+    setSiteMapOpen(false);
     if (nextDestination !== "board") setSearchFocusRequest(0);
   };
+
+  useEffect(() => {
+    if (!siteMapOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSiteMapOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [siteMapOpen]);
 
   useEffect(() => {
     if (accessToken) {
@@ -4756,6 +4799,12 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           >
             {t("Search")}
           </button>
+          <SiteMapUtility
+            destination={destination}
+            onChange={changeDestination}
+            open={siteMapOpen}
+            onToggle={() => setSiteMapOpen((open) => !open)}
+          />
           <button className="btn-secondary" onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
         </div>
       </header>

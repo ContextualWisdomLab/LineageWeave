@@ -33,6 +33,7 @@ describe("i18n", () => {
     "Calendar",
     "Board",
     "Search",
+    "Site map",
     "Page",
     "Answer",
     "Showing the first {shown} of {total} posts known at this cutoff.",

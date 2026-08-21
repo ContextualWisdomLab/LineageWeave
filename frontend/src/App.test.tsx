@@ -3572,6 +3572,26 @@ describe("App, authenticated", () => {
     );
   });
 
+  it("opens the site map utility and closes it after navigation or Escape", async () => {
+    stubBackend();
+    render(<App />);
+
+    const siteMapButton = await screen.findByRole("button", { name: "Site map" });
+    expect(siteMapButton).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(siteMapButton);
+    expect(screen.getByRole("region", { name: "Site map" })).toBeInTheDocument();
+    expect(siteMapButton).toHaveAttribute("aria-expanded", "true");
+
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("region", { name: "Site map" })).not.toBeInTheDocument();
+
+    await userEvent.click(siteMapButton);
+    const siteMap = screen.getByRole("region", { name: "Site map" });
+    await userEvent.click(within(siteMap).getByRole("button", { name: "Customer master" }));
+    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Site map" })).not.toBeInTheDocument();
+  });
+
   it("lets a keyboard user skip the header and GNB to reach main content", async () => {
     stubBackend();
     render(<App />);
