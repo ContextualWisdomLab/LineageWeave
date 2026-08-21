@@ -1,0 +1,77 @@
+.lineage-dag-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  border-radius: var(--radius-control);
+  scrollbar-gutter: stable;
+}
+
+.lineage-dag-scroll:focus-visible {
+  outline: 2px solid var(--color-accent-info);
+  outline-offset: 2px;
+}
+
+.lineage-dag-canvas {
+  display: block;
+  max-width: none;
+  color: color-mix(in srgb, canvastext 55%, transparent);
+}
+
+.lineage-dag-arrow {
+  fill: currentColor;
+}
+
+.lineage-dag-node-date {
+  font-size: 9px;
+  opacity: 0.72;
+  fill: var(--text);
+}
+
+.lineage-dag-evidence {
+  margin-top: 0.5rem;
+}
+
+.lineage-dag-evidence > summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.lineage-dag-evidence-scroll {
+  overflow-x: auto;
+}
+
+.lineage-dag-evidence-table {
+  width: 100%;
+  margin-top: 0.5rem;
+  border-collapse: collapse;
+  font-size: var(--lw-font-size-meta);
+}
+
+.lineage-dag-evidence-table th,
+.lineage-dag-evidence-table td {
+  padding: 0.45rem 0.55rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.lineage-dag-evidence-table th {
+  color: var(--text-h);
+}
+
+@media print {
+  .lineage-dag-scroll,
+  .lineage-dag-evidence-scroll {
+    overflow: visible;
+  }
+
+  .lineage-dag-canvas {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .lineage-dag-evidence {
+    break-inside: avoid;
+  }
+}
