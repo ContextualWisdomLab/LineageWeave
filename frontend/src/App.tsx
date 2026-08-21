@@ -76,6 +76,7 @@ import {
   type PostLineage,
   type PostSummary,
   type PostSortOrder,
+  type ProjectHistoryLink,
   type RankingList,
   type PersonRoleHistoryEntry,
   type RelatedNode,
@@ -92,6 +93,7 @@ import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
+import { AskProjectHistoryLinks } from "./components/AskProjectHistoryLinks";
 import { ProjectHistoryTimeline } from "./components/ProjectHistoryTimeline";
 import {
   projectHistoryText,
@@ -293,6 +295,9 @@ function ChatPanel({
           answer_text: result.answer_text,
           cited_post_ids: result.cited_post_ids,
           cited_posts: result.cited_posts,
+          knowledge_cutoff: result.knowledge_cutoff,
+          project_histories: result.project_histories,
+          project_histories_truncated: result.project_histories_truncated,
         };
         return [...prev.filter((row) => row.question_text !== next.question_text), next];
       });
@@ -334,6 +339,12 @@ function ChatPanel({
             currentPostId={
               exchanges[0].cited_posts?.[0]?.post_id ?? exchanges[0].cited_post_ids[0]
             }
+          />
+          <AskProjectHistoryLinks
+            accessToken={accessToken}
+            links={(exchanges[0].project_histories ?? []) as ProjectHistoryLink[]}
+            truncated={exchanges[0].project_histories_truncated ?? false}
+            onOpenPost={setEvidencePostId}
           />
         </div>
       ) : null}
@@ -415,6 +426,12 @@ function ChatPanel({
             citedPostIds={exchange.cited_post_ids}
             onOpenEvidence={setEvidencePostId}
           />
+          <AskProjectHistoryLinks
+            accessToken={accessToken}
+            links={(exchange.project_histories ?? []) as ProjectHistoryLink[]}
+            truncated={exchange.project_histories_truncated ?? false}
+            onOpenPost={setEvidencePostId}
+          />
         </div>
       ))}
       {answer && !exchanges.some((row) => row.answer_text === answer.answer_text) && (
@@ -424,6 +441,12 @@ function ChatPanel({
             citedPosts={answer.cited_posts}
             citedPostIds={answer.cited_post_ids}
             onOpenEvidence={setEvidencePostId}
+          />
+          <AskProjectHistoryLinks
+            accessToken={accessToken}
+            links={(answer.project_histories ?? []) as ProjectHistoryLink[]}
+            truncated={answer.project_histories_truncated ?? false}
+            onOpenPost={setEvidencePostId}
           />
         </div>
       )}
@@ -4598,6 +4621,12 @@ function AskAgentPanel({
     window.sessionStorage.getItem(GLOBAL_ASK_SESSION_STORAGE_KEY) ?? undefined,
   );
 
+  function acceptAnswer(nextAnswer: AskAgentResponse) {
+    setAnswer(nextAnswer);
+    setSessionId(nextAnswer.session_id);
+    window.sessionStorage.setItem("lineageweave.globalAskSessionId", nextAnswer.session_id);
+  }
+
   async function handleAsk() {
     const normalized = question.trim();
     if (!normalized) return;
@@ -4616,11 +4645,19 @@ function AskAgentPanel({
         window.sessionStorage.removeItem(GLOBAL_ASK_SESSION_STORAGE_KEY);
         nextAnswer = await askAgent(accessToken, normalized);
       }
-      setAnswer(nextAnswer);
-      setSessionId(nextAnswer.session_id);
-      window.sessionStorage.setItem(GLOBAL_ASK_SESSION_STORAGE_KEY, nextAnswer.session_id);
+      acceptAnswer(nextAnswer);
     } catch (err) {
-      setAnswer(null);
+      if (err instanceof BackendError && err.status === 409 && sessionId) {
+        window.sessionStorage.removeItem("lineageweave.globalAskSessionId");
+        setSessionId(undefined);
+        try {
+          acceptAnswer(await askAgent(accessToken, normalized));
+          return;
+        } catch (retryError) {
+          setError(orchestratorUnavailableMessage(retryError, t("Ask Agent")));
+          return;
+        }
+      }
       setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
     } finally {
       setAsking(false);
@@ -4670,6 +4707,12 @@ function AskAgentPanel({
               </ol>
             </>
           ) : null}
+          <AskProjectHistoryLinks
+            accessToken={accessToken}
+            links={(answer.project_histories ?? []) as ProjectHistoryLink[]}
+            truncated={answer.project_histories_truncated ?? false}
+            onOpenPost={onOpenPost}
+          />
           {answer.cited_posts && answer.cited_posts.length > 0 && (
             <>
               <p className="board-next-action" role="status" aria-label={t("Next action")}>
