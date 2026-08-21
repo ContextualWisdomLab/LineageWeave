@@ -205,7 +205,7 @@ def test_chunk_by_dom_preserves_empty_table_cells_as_columns() -> None:
 
     chunks = chunk_by_dom(html)
 
-    assert [chunk.text for chunk in chunks] == ["| Company |  | Result"]
+    assert [chunk.text for chunk in chunks] == ["|  | Company |  | Result"]
 
 
 def test_chunk_by_dom_labels_ooxml_footnote_containers() -> None:

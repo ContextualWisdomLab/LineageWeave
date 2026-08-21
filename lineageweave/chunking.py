@@ -140,7 +140,7 @@ def _is_footnote_reference(attrs: list[tuple[str, str | None]]) -> bool:
     }
     href = values.get("href", "")
     anchor_values = (values.get("id", ""), values.get("name", ""))
-    href_is_reference = bool(re.search(r"(?:fn|ftn)ref[:_-]?\d+(?:[:_-][a-z0-9]+)*|(?:fn|ftn)ref", href))
+    href_is_reference = bool(re.search(r"(?:fn|ftn)ref", href))
     return href_is_reference and any(
         _is_footnote_identifier(value) for value in anchor_values
     )
@@ -418,8 +418,13 @@ class _BlockTextExtractor(HTMLParser):
                 row_buffer = self._stack[-1][1]
                 row_key = id(row_buffer)
                 cell_count = self._table_cell_counts.get(row_key, 0)
+                first_cell_is_empty = (
+                    cell_count == 1 and not "".join(row_buffer).strip()
+                )
                 if cell_count or "".join(row_buffer).strip():
                     row_buffer.append(" | ")
+                    if first_cell_is_empty:
+                        row_buffer.append(" | ")
                 self._table_cell_counts[row_key] = cell_count + 1
             return
         # A rich-text editor commonly wraps a table cell in a nested <p> or
