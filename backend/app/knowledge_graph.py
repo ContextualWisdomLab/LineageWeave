@@ -623,7 +623,7 @@ async def post_knowledge_graph(
           from post_summary_semantic_relationship
          where post_id = $1
          order by relation_ordinal
-         limit $2
+         limit ($2 + 1)
         """,
         post_id,
         relation_limit,
@@ -633,7 +633,7 @@ async def post_knowledge_graph(
         digest = hashlib.sha256(f"{node_type}\0{name}".encode()).hexdigest()[:16]
         return f"semantic:{post_id}:{digest}"
 
-    for row in relation_rows:
+    for row in relation_rows[:relation_limit]:
         source = semantic_key(row["subject_type"], row["subject_name"])
         target = semantic_key(row["object_type"], row["object_name"])
         for key, node_type, name in (
@@ -670,7 +670,7 @@ async def post_knowledge_graph(
         "post_id": post_id,
         "nodes": list(nodes.values()),
         "edges": edges,
-        "truncated": len(catalog_edges) > relation_limit or len(relation_rows) >= relation_limit,
+        "truncated": len(catalog_edges) > relation_limit or len(relation_rows) > relation_limit,
     }
 
 
