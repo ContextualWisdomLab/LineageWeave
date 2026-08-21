@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 
 import pytest
 
-import backend.app.ontology_neighborhood_ingestion as ingestion
 from backend.app.ontology_neighborhood_ingestion import (
     _load_facts,
     _load_labels,
@@ -289,7 +288,9 @@ def test_load_facts_skos_and_labels() -> None:
 def test_load_facts_does_not_report_exact_hard_cap_as_truncated(monkeypatch) -> None:
     """Fetch one lookahead row even when the response is at its hard cap."""
 
-    monkeypatch.setattr(ingestion, "HARD_MAXIMUM_EDGES", 2)
+    monkeypatch.setattr(
+        "backend.app.ontology_neighborhood_ingestion.HARD_MAXIMUM_EDGES", 2
+    )
     rows = [
         {
             "source_node_type_code": NODE_PERSON,
