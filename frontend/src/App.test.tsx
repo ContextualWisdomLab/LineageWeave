@@ -84,13 +84,14 @@ describe("App, authenticated", () => {
     pendingTeppRun?: boolean;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
+    deferPosts?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
     customerEntityHierarchy?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
-  }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
+  }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePosts: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -117,9 +118,15 @@ describe("App, authenticated", () => {
     let contentRequests = 0;
 
     let releaseMe = () => {};
+    let releasePosts = () => {};
     const meReady = options?.deferMe
       ? new Promise<void>((resolve) => {
           releaseMe = resolve;
+        })
+      : Promise.resolve();
+    const postsReady = options?.deferPosts
+      ? new Promise<void>((resolve) => {
+          releasePosts = resolve;
         })
       : Promise.resolve();
 
@@ -1045,7 +1052,7 @@ describe("App, authenticated", () => {
       }
       const postsUrl = new URL(url, "https://backend.test");
       if (postsUrl.pathname === "/api/posts") {
-        return Promise.resolve(
+        return postsReady.then(() =>
           jsonResponse(
             postsUrl.searchParams.get("search")
               ? []
@@ -1667,7 +1674,7 @@ describe("App, authenticated", () => {
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
-    return Object.assign(fetchMock, { releaseMe });
+    return Object.assign(fetchMock, { releaseMe, releasePosts });
   }
 
   it("renders safe Ask Agent evidence under each cited post", async () => {
@@ -3596,5 +3603,19 @@ describe("App, authenticated", () => {
     });
     await waitFor(() => expect(boardButton).toHaveFocus());
     expect(remountedSearchInput).not.toHaveFocus();
+  });
+
+  it("clears a pending global search focus request when leaving the board", async () => {
+    const fetchMock = stubBackend({ deferPosts: true });
+    render(<App />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Search" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+
+    fetchMock.releasePosts();
+    await userEvent.click(screen.getByRole("button", { name: "Board" }));
+    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
+    expect(searchInput).not.toHaveFocus();
   });
 });

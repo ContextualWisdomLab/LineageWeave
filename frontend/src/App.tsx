@@ -4593,6 +4593,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   const changeDestination = (nextDestination: WorkspaceDestination) => {
     setDestination(nextDestination);
     setMobileMenuOpen(false);
+    if (nextDestination !== "board") setSearchFocusRequest(0);
   };
 
   useEffect(() => {
