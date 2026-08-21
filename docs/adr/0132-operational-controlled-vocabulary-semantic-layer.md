@@ -1,5 +1,4 @@
-# ADR 0124: Model operational controlled vocabularies as SKOS concepts
-
+# ADR 0132: Model operational controlled vocabularies as SKOS concepts
 ## Status
 
 Accepted

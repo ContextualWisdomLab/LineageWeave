@@ -133,6 +133,39 @@ describe("PostBody", () => {
     expect(screen.queryAllByText("No.")).toHaveLength(1);
   });
 
+  it("renders persisted Markdown table rows as a table", () => {
+    render(
+      <PostBody
+        body="| Project | Status |\n| --- | --- |\n| Alpha | Ready |"
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "plain_text",
+            unit_label: "markdown_tr",
+            unit_text: "Project | Status",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "Markdown table row",
+          },
+          {
+            unit_index: 1,
+            unit_kind_code: "plain_text",
+            unit_label: "markdown_tr",
+            unit_text: "Alpha | Ready",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "Markdown table row",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getAllByRole("row")).toHaveLength(2);
+  });
+
   it("keeps source indentation after a persisted table unit", () => {
     render(
       <PostBody
@@ -201,6 +234,111 @@ describe("PostBody", () => {
 
     expect(screen.getAllByRole("table")).toHaveLength(2);
     expect(screen.getAllByRole("row")).toHaveLength(4);
+  });
+
+  it("renders a raw Markdown table when persisted structure is unavailable", () => {
+    render(
+      <PostBody body={"Intro.\n\n| Project | Status |\n| --- | --- |\n| Alpha | Ready |\n\nNext action."} />,
+    );
+
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Project" })).toBeInTheDocument();
+    expect(screen.getByText("Intro.")).toBeInTheDocument();
+    expect(screen.getByText("Next action.")).toBeInTheDocument();
+  });
+
+  it("keeps a persisted Markdown table row searchable", () => {
+    render(
+      <PostBody
+        body="| Project | Status |\n| --- | --- |\n| Alpha | Ready |"
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "plain_text",
+            unit_label: "markdown_tr",
+            unit_text: "Project | Status",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "Markdown table row",
+          },
+          {
+            unit_index: 1,
+            unit_kind_code: "plain_text",
+            unit_label: "markdown_tr",
+            unit_text: "Alpha | Ready",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "Markdown table row",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getAllByRole("row")).toHaveLength(2);
+  });
+
+  it("renders table-shaped image OCR as accessible evidence", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,QQ==" />'}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "completed",
+            extracted_text: "| Project | Status |\n| --- | --- |\n| Alpha | Ready |",
+            caption: "A synthetic project status table.",
+            tags: ["table"],
+            regions: [
+              {
+                region_index: 0,
+                x_ratio: 0,
+                y_ratio: 0,
+                width_ratio: 1,
+                height_ratio: 1,
+                status_code: "completed",
+                extracted_text: "| Owner | Action |\n| --- | --- |\n| Team A | Review |",
+                caption: "The table region assigns an action to a team.",
+                tags: ["assignment"],
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getAllByRole("table")).toHaveLength(2);
+    expect(screen.getByRole("columnheader", { name: "Project" })).toBeInTheDocument();
+    expect(screen.getByText("Ready")).toBeInTheDocument();
+    expect(screen.getByText("The table region assigns an action to a team.")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Owner" })).toBeInTheDocument();
+  });
+
+  it("keeps an embedded source image when prose also contains a Markdown table", () => {
+    render(
+      <PostBody
+        body={
+          '<p>Before the table</p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />' +
+          "\n\n| Project | Status |\n| --- | --- |\n| Alpha | Ready |"
+        }
+        imageContent={[
+          {
+            unit_index: 1,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "",
+            caption: "Source image beside the table",
+            tags: [],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByAltText("Source image beside the table")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Project" })).toBeInTheDocument();
+    expect(screen.getByText("Ready")).toBeInTheDocument();
   });
 
   it("marks persisted footnotes as footnote evidence", () => {

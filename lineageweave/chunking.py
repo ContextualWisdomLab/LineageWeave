@@ -65,9 +65,10 @@ _DOM_BLOCK_TAGS = frozenset(
         "footer",
         "div",
         "p",
-        "ol",
-        "ul",
         "li",
+        "ul",
+        "ol",
+        "oi",
         "footnote",
         "endnote",
         "w:footnote",
@@ -97,11 +98,12 @@ _DOM_BLOCK_TAGS = frozenset(
 # readable and attributable as one unit.
 _TABLE_ROW_TAGS = frozenset({"tr", "w:tr"})
 _TABLE_CELL_TAGS = frozenset({"td", "th", "w:tc"})
+_LIST_CONTAINER_TAGS = frozenset({"ul", "ol", "oi"})
 
 _LIST_ITEM_START = re.compile(
     r"^(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)"
 )
-_FOOTNOTE_START = re.compile(r"^[*†‡](?=\S)")
+_FOOTNOTE_START = re.compile(r"^[*†‡]+(?=\S)")
 
 
 def _is_footnote_block(tag: str, attrs: list[tuple[str, str | None]]) -> bool:
@@ -132,6 +134,7 @@ def _is_footnote_reference(attrs: list[tuple[str, str | None]]) -> bool:
 
 def normalize_semantic_text(text: str) -> str:
     """Remove visual hanging-indent breaks without changing source content."""
+    text = _normalize_metric_markup(_normalize_plain_metric_scripts(text))
     lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
     normalized: list[str] = []
     for line in lines:
@@ -199,7 +202,7 @@ def _shorthand_left_value(raw: str) -> str:
 
 def _declared_indent_width(tag: str, attrs: list[tuple[str, str | None]]) -> int:
     """Read HTML CSS and WordprocessingML paragraph indentation declarations."""
-    width = 4 if tag in {"blockquote", "ul", "ol"} else 0
+    width = 4 if tag in {"blockquote", "ul", "ol", "oi"} else 0
     style = next((value or "" for name, value in attrs if name == "style"), "")
     for match in re.finditer(
         r"(?:^|;)\s*(?:margin-left|padding-left|padding-inline-start|text-indent)\s*:\s*([^;]+)",
@@ -301,6 +304,21 @@ _METRIC_MARKUP = re.compile(
     r"<(?P<kind>sup|sub)\b[^>]*>\s*(?P<digits>\d{1,3})\s*</(?P=kind)>",
     re.IGNORECASE,
 )
+_METRIC_PLAIN_SCRIPT = re.compile(
+    r"(?P<base>(?<![A-Za-z])(?:\d+(?:\.\d+)?\s*)?(?:km|cm|mm|kg|m))\s*"
+    r"(?P<kind>\^|_)\s*(?:\{(?P<braced_digits>\d{1,3})\}|(?P<digits>\d{1,3}))",
+    re.IGNORECASE,
+)
+
+
+def _normalize_plain_metric_scripts(text: str) -> str:
+    """Normalize bounded plain-text metric exponents and indices."""
+    def replace(match: re.Match[str]) -> str:
+        table = _SUPERSCRIPT_DIGITS if match.group("kind") == "^" else _SUBSCRIPT_DIGITS
+        digits = match.group("braced_digits") or match.group("digits") or ""
+        return f"{match.group('base')}{digits.translate(table)}"
+
+    return _METRIC_PLAIN_SCRIPT.sub(replace, text)
 
 
 def _normalize_metric_markup(html: str) -> str:
@@ -361,14 +379,26 @@ class _BlockTextExtractor(HTMLParser):
     """
 
     def __init__(self) -> None:
+        """Initialize parser buffers for ordered text, image, and footnote units."""
         super().__init__()
         self._stack: list[tuple[str, list[str], str | None, int, bool]] = []
         self._unscoped_buffer: list[str] = []
+        self._active_superscripts: list[tuple[int, list[str]]] = []
+        self._numeric_superscript_buffers: set[int] = set()
         # Each entry is ("text", str, tag_name, style) or
         # ("image", (mime_type, bytes), "", None) -- a single sequence in
         # true document order, so an image's index among its siblings
         # reflects where it actually sat.
         self._finished: list[tuple[str, object, str, str | None, int, int]] = []
+
+    def _declared_stack_width(self) -> int:
+        """Combine list depth with explicit width without double counting."""
+        list_depth = sum(entry[0] in _LIST_CONTAINER_TAGS for entry in self._stack)
+        explicit_width = sum(
+            max(0, entry[3] - 4) if entry[0] in _LIST_CONTAINER_TAGS else entry[3]
+            for entry in self._stack
+        )
+        return max(explicit_width, list_depth * 4)
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Collect relevant text state when an HTML start tag is encountered."""
@@ -378,6 +408,10 @@ class _BlockTextExtractor(HTMLParser):
                 decoded = _decode_data_uri_image(src)
                 if decoded is not None:
                     self._finished.append(("image", decoded, "", None, 0, 0))
+            return
+        if tag == "sup":
+            if self._stack:
+                self._active_superscripts.append((id(self._stack[-1][1]), []))
             return
         if tag in {"br", "w:br"} and self._stack:
             self._stack[-1][1].append("\n")
@@ -400,15 +434,39 @@ class _BlockTextExtractor(HTMLParser):
             if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS and self._stack[-1][1]:
                 self._stack[-1][1].append(" | ")
             return
-        # A rich-text editor commonly wraps a table cell in a nested <p> or
-        # <div>. Keep that content in the open row; otherwise the nested block
-        # closes first and destroys the row/column boundary.
+        # Nested blocks belong to the open table row. Keep list-item text
+        # readable without letting a nested list become a separate chunk.
         if any(entry[0] in _TABLE_ROW_TAGS for entry in self._stack):
+            if tag == "li" and self._stack[-1][1]:
+                self._stack[-1][1].append(" ")
+            return
+        if tag in _LIST_CONTAINER_TAGS:
+            # Emit a parent list item before entering its nested list. Closing
+            # tags otherwise make the child appear before the parent in the
+            # finished list, which destroys the source order buyers use to
+            # read a hierarchy.
+            if self._stack and self._stack[-1][0] == "li" and self._stack[-1][1]:
+                tag_name, buffer, style, indent_width, is_footnote = self._stack[-1]
+                self._stack[-1] = (tag_name, [], style, indent_width, is_footnote)
+                self._finish_block(
+                    tag_name,
+                    buffer,
+                    style,
+                    self._declared_stack_width(),
+                    is_footnote,
+                )
+            style = next((value for name, value in attrs if name == "style" and value), None)
+            is_footnote = _is_footnote_block(tag, attrs) or any(
+                entry[4] for entry in self._stack
+            )
+            self._stack.append(
+                (tag, [], style, _declared_indent_width(tag, attrs), is_footnote)
+            )
             return
         if tag in _DOM_BLOCK_TAGS:
             if self._stack and self._stack[-1][1]:
                 tag_name, buffer, style, _, is_footnote = self._stack[-1]
-                declared_width = sum(entry[3] for entry in self._stack)
+                declared_width = self._declared_stack_width()
                 self._finish_block(tag_name, buffer, style, declared_width, is_footnote)
                 buffer.clear()
             style = next((value for name, value in attrs if name == "style" and value), None)
@@ -427,8 +485,14 @@ class _BlockTextExtractor(HTMLParser):
 
     def handle_endtag(self, tag: str) -> None:
         """Close the relevant text state when an HTML end tag is encountered."""
+        if tag == "sup":
+            if self._active_superscripts:
+                buffer_id, content = self._active_superscripts.pop()
+                if re.fullmatch(r"\s*\d{1,3}\s*", "".join(content)):
+                    self._numeric_superscript_buffers.add(buffer_id)
+            return
         if tag in _DOM_BLOCK_TAGS and self._stack and self._stack[-1][0] == tag:
-            declared_width = sum(entry[3] for entry in self._stack)
+            declared_width = self._declared_stack_width()
             tag_name, buffer, style, _, is_footnote = self._stack.pop()
             self._finish_block(tag_name, buffer, style, declared_width, is_footnote)
 
@@ -442,11 +506,16 @@ class _BlockTextExtractor(HTMLParser):
     ) -> None:
         """Emit one block buffer, including a block closed only at EOF."""
         raw_text = "".join(buffer)
+        superscript_marker = id(buffer) in self._numeric_superscript_buffers
         for raw_unit, source_indent in _split_dom_units(raw_text):
             text = normalize_semantic_text(raw_unit)
             if text:
                 indent_width = declared_width + source_indent
-                label = "footnote" if is_footnote or _FOOTNOTE_START.match(text) else tag_name
+                label = (
+                    "footnote"
+                    if is_footnote or superscript_marker or _FOOTNOTE_START.match(text)
+                    else tag_name
+                )
                 self._finished.append(
                     (
                         "text",
@@ -457,6 +526,7 @@ class _BlockTextExtractor(HTMLParser):
                         declared_width,
                     )
                 )
+        self._numeric_superscript_buffers.discard(id(buffer))
 
     def handle_data(self, data: str) -> None:
         """Collect character data from the current HTML text region."""
@@ -466,6 +536,8 @@ class _BlockTextExtractor(HTMLParser):
             if decoded == text:
                 break
             text = decoded
+        if self._active_superscripts:
+            self._active_superscripts[-1][1].append(text)
         had_nbsp = "\xa0" in text
         text = text.replace("\xa0", " ")
         if self._stack and (text.strip() or had_nbsp):
@@ -476,7 +548,7 @@ class _BlockTextExtractor(HTMLParser):
     def finished(self) -> list[tuple[str, object, str, str | None, int, int]]:
         """Return the normalized records collected from the HTML fragment."""
         while self._stack:
-            declared_width = sum(entry[3] for entry in self._stack)
+            declared_width = self._declared_stack_width()
             tag_name, buffer, style, _, is_footnote = self._stack.pop()
             self._finish_block(tag_name, buffer, style, declared_width, is_footnote)
         if not self._finished:
@@ -494,10 +566,10 @@ def _split_dom_units(raw_text: str) -> list[tuple[str, int]]:
     current: list[str] = []
 
     def flush() -> None:
+        """Move the current non-empty DOM unit into the result list."""
         if current:
             raw_unit = "\n".join(current)
-            if raw_unit.strip():
-                units.append((raw_unit, _source_indent_width(raw_unit)))
+            units.append((raw_unit, _source_indent_width(raw_unit)))
             current.clear()
 
     for line in raw_text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
@@ -509,6 +581,62 @@ def _split_dom_units(raw_text: str) -> list[tuple[str, int]]:
         current.append(line.rstrip())
     flush()
     return units
+
+
+_MARKDOWN_SEPARATOR_CELL = re.compile(r"^:?-{3,}:?$")
+
+
+def _markdown_cells(line: str) -> list[str] | None:
+    """Return Markdown table cells, or ``None`` for a non-table line."""
+    if "|" not in line:
+        return None
+    value = line.strip()
+    value = value.removeprefix("|")
+    if value.endswith("|") and not value.endswith("\\|"):
+        value = value[:-1]
+    cells = [cell.strip().replace(r"\|", "|") for cell in re.split(r"(?<!\\)\|", value)]
+    return cells if len(cells) >= 2 and all(cells) else None
+
+
+def _markdown_table_entries(text: str) -> list[tuple[str, str]]:
+    """Extract table rows while retaining non-table prose around the table."""
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    entries: list[tuple[str, str]] = []
+    pending: list[str] = []
+    found_table = False
+
+    def flush_pending() -> None:
+        """Emit prose accumulated outside a recognized Markdown table."""
+        if pending:
+            value = normalize_semantic_text("\n".join(pending))
+            if value:
+                entries.append(("", value))
+            pending.clear()
+
+    index = 0
+    while index < len(lines):
+        header = _markdown_cells(lines[index])
+        separator = _markdown_cells(lines[index + 1]) if index + 1 < len(lines) else None
+        if header is None or separator is None or not all(
+            _MARKDOWN_SEPARATOR_CELL.fullmatch(cell) for cell in separator
+        ):
+            pending.append(lines[index])
+            index += 1
+            continue
+
+        found_table = True
+        flush_pending()
+        entries.append(("markdown_tr", " | ".join(normalize_semantic_text(cell) for cell in header)))
+        index += 2
+        while index < len(lines) and lines[index].strip():
+            cells = _markdown_cells(lines[index])
+            if cells is None:
+                break
+            entries.append(("markdown_tr", " | ".join(normalize_semantic_text(cell) for cell in cells)))
+            index += 1
+
+    flush_pending()
+    return entries if found_table else []
 
 
 _MARKDOWN_TABLE_SEPARATOR = re.compile(
@@ -524,7 +652,10 @@ def _is_markdown_table_row(line: str) -> bool:
 
 def _render_markdown_table_row(line: str) -> str:
     """Keep Markdown table columns as searchable row evidence."""
-    return " | ".join(cell.strip() for cell in line.strip().strip("|").split("|"))
+    return " | ".join(
+        normalize_semantic_text(cell.strip())
+        for cell in line.strip().strip("|").split("|")
+    )
 
 
 def _split_plain_text_units(text: str) -> list[tuple[str, int, str]]:
@@ -534,11 +665,11 @@ def _split_plain_text_units(text: str) -> list[tuple[str, int, str]]:
     current: list[str] = []
 
     def flush() -> None:
+        """Emit the current authored plain-text semantic unit."""
         if current:
             raw_unit = "\n".join(current)
             normalized = normalize_semantic_text(raw_unit)
-            if normalized:
-                units.append((normalized, _source_indent_width(raw_unit), ""))
+            units.append((normalized, _source_indent_width(raw_unit), ""))
             current.clear()
 
     index = 0
@@ -589,6 +720,19 @@ def chunk_by_dom(html: str) -> list[Chunk]:
     is what lets the image be placed back where it actually was relative
     to the surrounding text chunks.
     """
+    if "<" not in html:
+        markdown_entries = _markdown_table_entries(html)
+        if markdown_entries:
+            return [
+                Chunk(
+                    text=text,
+                    unit_type="plain_text",
+                    index=index,
+                    label=label,
+                )
+                for index, (label, text) in enumerate(markdown_entries)
+            ]
+
     parser = _BlockTextExtractor()
     parser.feed(_normalize_metric_markup(html))
     entries = parser.finished()

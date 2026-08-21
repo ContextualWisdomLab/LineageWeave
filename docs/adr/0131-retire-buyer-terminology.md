@@ -1,4 +1,4 @@
-# ADR 0119: Retire "Buyer" as the reader-facing terminology
+# ADR 0131: Retire "Buyer" as the reader-facing terminology
 
 **Status:** Accepted
 **Date:** 2026-08-21

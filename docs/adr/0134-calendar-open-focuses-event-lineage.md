@@ -1,4 +1,4 @@
-# ADR 0094: Opening a Calendar commitment focuses Event Lineage
+# ADR 0134: Opening a Calendar commitment focuses Event Lineage
 
 - Status: Accepted
 - Date: 2026-08-19

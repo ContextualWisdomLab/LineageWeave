@@ -23,17 +23,22 @@
 # this file is the formal semantic layer over it -- PostgreSQL stays
 # the source of record. See docs/adr/0004-knowledge-graph-ontology.md
 # for the KG design rationale, docs/adr/0006-role-responsibility-agent-ontology.md
-# and docs/adr/0124-operational-controlled-vocabulary-semantic-layer.md
+# and docs/adr/0132-operational-controlled-vocabulary-semantic-layer.md
 # for the R&R actor-type rationale (grounded in W3C PROV-O), and
 # tests/test_ontology.py for the round-trip check that every code below
 # actually exists as a common_lookup_value row, and vice versa.
 #
-# Every custom term carries a :lookupCode annotation naming the exact
+# Every custom term carrying a :lookupCode annotation names the exact
 # `common_lookup_value.lookup_code` it corresponds to -- that literal
 # string, not the IRI fragment, is what the relational schema stores.
 #################################################################
 
 <https://contextualwisdomlab.github.io/lineageweave/ontology> a owl:Ontology ;
+    owl:versionIRI <https://contextualwisdomlab.github.io/lineageweave/ontology/1.0.0> ;
+    owl:versionInfo "1.0.0" ;
+    owl:imports <http://www.w3.org/ns/org> ,
+        <http://www.w3.org/ns/prov-o> ,
+        <http://www.w3.org/2004/02/skos/core> ;
     rdfs:label "LineageWeave Knowledge Graph Ontology" ;
     rdfs:comment "Formal OWL 2 / RDFS / SKOS vocabulary for LineageWeave's knowledge graph, operational controlled vocabularies, and post-summary actor types." .
 
@@ -66,10 +71,15 @@
     :lookupCode "counterparty" .
 
 :CorporateEntity a owl:Class ;
-    rdfs:subClassOf skos:Concept ;
+    rdfs:subClassOf org:Organization ;
     rdfs:label "Corporate entity" ;
-    rdfs:comment "A corporate_entity row. Also a skos:Concept so the self-referencing parent_entity_id hierarchy (e.g. Group -> Company -> Plant) is expressible with skos:broader/skos:narrower on instances." ;
+    rdfs:comment "A corporate_entity row grounded as a W3C ORG organization. Its authoritative parent_entity_id containment is exposed through :subOrganizationOf; SKOS is reserved for the separate level-classification concepts." ;
     :lookupCode "node_corporate_entity" .
+
+:CorporateEntityLevel a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Corporate entity level" ;
+    rdfs:comment "A controlled SKOS classification concept describing whether a corporate entity is a Group, Company, or Plant." .
 
 :Team a owl:Class ;
     rdfs:subClassOf org:OrganizationalUnit ;
@@ -127,10 +137,11 @@
     :lookupCode "edge_mention_team" .
 
 :teamAffiliatedWith a owl:ObjectProperty ;
+    rdfs:subPropertyOf org:unitOf ;
     rdfs:domain :Team ;
     rdfs:range :CorporateEntity ;
     rdfs:label "team affiliated with" ;
-    rdfs:comment "The company a cataloged team belongs to (cataloged_team.affiliated_corporate_entity_id)." ;
+    rdfs:comment "The company a cataloged team belongs to (cataloged_team.affiliated_corporate_entity_id), specialized from W3C ORG unitOf." ;
     :lookupCode "edge_team_affiliation" .
 
 :mentionsOrganization a owl:ObjectProperty ;
@@ -139,6 +150,29 @@
     rdfs:label "mentioned in post" ;
     rdfs:comment "A resolved organization is named by a post (post_organization_mention)." ;
     :lookupCode "edge_mention_organization" .
+
+#################################################################
+# Object properties -- authoritative organization containment
+#################################################################
+
+:subOrganizationOf a owl:ObjectProperty ;
+    rdfs:subPropertyOf org:subOrganizationOf ;
+    rdfs:domain :CorporateEntity ;
+    rdfs:range :CorporateEntity ;
+    rdfs:label "sub-organization of" ;
+    rdfs:comment "The authoritative direct corporate parent represented by corporate_entity.parent_entity_id, specialized from W3C ORG subOrganizationOf." .
+
+:hasSubOrganization a owl:ObjectProperty ;
+    owl:inverseOf :subOrganizationOf ;
+    rdfs:domain :CorporateEntity ;
+    rdfs:range :CorporateEntity ;
+    rdfs:label "has sub-organization" .
+
+:hasEntityLevel a owl:ObjectProperty ;
+    rdfs:domain :CorporateEntity ;
+    rdfs:range :CorporateEntityLevel ;
+    rdfs:label "has corporate entity level" ;
+    rdfs:comment "Classifies one corporate entity with exactly one Group, Company, or Plant concept; SHACL owns the closed-world cardinality." .
 
 #################################################################
 # Object properties -- entity_relationship_type
@@ -291,18 +325,18 @@
     rdfs:label "Corporate entity level scheme" ;
     rdfs:comment "The Acme Group -> Acme Electronics Korea -> Acme Electronics Gwangju Plant kind of level, ordered broadest first." .
 
-:GroupLevel a skos:Concept ;
+:GroupLevel a :CorporateEntityLevel, skos:Concept ;
     skos:inScheme :corporateEntityLevelScheme ;
     skos:prefLabel "Group"@en ;
     :lookupCode "group" .
 
-:CompanyLevel a skos:Concept ;
+:CompanyLevel a :CorporateEntityLevel, skos:Concept ;
     skos:inScheme :corporateEntityLevelScheme ;
     skos:broader :GroupLevel ;
     skos:prefLabel "Company"@en ;
     :lookupCode "company" .
 
-:PlantLevel a skos:Concept ;
+:PlantLevel a :CorporateEntityLevel, skos:Concept ;
     skos:inScheme :corporateEntityLevelScheme ;
     skos:broader :CompanyLevel ;
     skos:prefLabel "Plant"@en ;

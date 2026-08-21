@@ -78,10 +78,23 @@ ISO-8601 week stay; other VOC types and older weeks drop out. The Board
 names Event Lineage as the next read (ADR 0092). Open a remaining post:
 Event Lineage takes focus and names Keyman and evaluation next
 (ADR 0093). A home-list open does not. Do not invent a theta.
-
 ## Calendar open (v2.14.0)
 
 Open Calendar. Authorized commitments are current. Open a commitment:
 Event Lineage takes focus and names Keyman and evaluation next
-(ADR 0094). A home-list open does not. Do not invent a theta or a
+(ADR 0134). A home-list open does not. Do not invent a theta or a
 CalDAV event.
+
+## Customer master open (v2.15.0)
+
+Open Customer master. Authorized customer entities are current. Open a
+related post: Event Lineage takes focus and names Keyman and evaluation
+next (ADR 0095). A home-list open does not. Do not invent a theta or a
+customer.
+
+## Ask Agent open (v2.16.0)
+
+Open Ask Agent. After an authorized answer, cited posts are current. Open
+a cited post: Event Lineage takes focus and names Keyman and evaluation
+next (ADR 0096). A home-list open does not. Do not invent a theta or a
+cited post.

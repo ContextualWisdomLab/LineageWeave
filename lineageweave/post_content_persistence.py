@@ -30,6 +30,10 @@ _BatchKey = TypeVar("_BatchKey")
 _LOGGER = logging.getLogger(__name__)
 
 
+class ImageOcrPreservationError(RuntimeError):
+    """A retry would erase stronger OCR already persisted for the same image."""
+
+
 def _bounded_unit_batches(  # noqa: UP047 - retain Python 3.10 compatibility.
     units: list[tuple[_BatchKey, str]],
 ) -> list[list[tuple[_BatchKey, str]]]:
@@ -84,12 +88,24 @@ async def persist_post_content(
 
     Provider calls happen before the short database transaction. A failed or
     unavailable embedding call writes no vector row; it never writes a zero or
-    guessed vector. The raw body remains in ``source_post`` for future retry.
+    guessed vector. A same-image retry cannot replace non-empty persisted OCR
+    with an empty result. The raw body remains in ``source_post`` for future
+    retry.
     """
     normalized = normalized_result or normalize_post_body(body, vision_client)
     chunks = chunk_by_source_body(body)
     image_results = {result.chunk_index: result for result in normalized.image_results}
     formatting = {hint.chunk_index: hint.style for hint in normalized.formatting_hints}
+    image_ocr_by_sha256: dict[str, bool] = {}
+    for chunk in chunks:
+        if chunk.unit_type != "image" or chunk.image_data is None:
+            continue
+        result = image_results.get(chunk.index)
+        description = result.description if result else None
+        content_sha256 = hashlib.sha256(chunk.image_data).hexdigest()
+        image_ocr_by_sha256[content_sha256] = image_ocr_by_sha256.get(
+            content_sha256, False
+        ) or bool(description and description.extracted_text.strip())
 
     prepared: list[tuple[Chunk, str, str | None]] = []
     for chunk in chunks:
@@ -226,6 +242,29 @@ async def persist_post_content(
                 )
 
     async with conn.transaction():
+        if image_ocr_by_sha256:
+            await conn.fetchval(
+                "select post_id from source_post where post_id = $1 for update",
+                post_id,
+            )
+            previous_images = await conn.fetch(
+                """
+                select image.content_sha256, image.extracted_text
+                  from post_content_unit unit
+                  join post_content_image image using (post_content_unit_id)
+                 where unit.post_id = $1
+                   and nullif(btrim(image.extracted_text), '') is not null
+                """,
+                post_id,
+            )
+            if any(
+                row["content_sha256"] in image_ocr_by_sha256
+                and not image_ocr_by_sha256[row["content_sha256"]]
+                for row in previous_images
+            ):
+                raise ImageOcrPreservationError(
+                    "refusing to replace non-empty image OCR with an empty retry result"
+                )
         await conn.execute("delete from post_content_unit where post_id = $1", post_id)
         unit_ids: dict[int, str] = {}
         for chunk, unit_text, style in prepared:

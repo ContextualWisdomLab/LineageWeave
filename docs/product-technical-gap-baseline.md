@@ -11,6 +11,14 @@
 Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
+## 4. Current Stacked PR Product-Surface Gaps
+- **Customer Master relationship composition — PR #262**: (Resolved on the current feature branch) The hierarchy, selected customer, and linked evidence were previously stacked vertically, so the selected customer scrolled away while the user inspected relationships and source posts. ADR 0125 and Figma frames `313:2` / `314:2` define a customer-centered three-pane workspace that preserves the WAI-ARIA tree, keeps the selected customer stable, and places source-backed evidence in a separate pane.
+- **Responsive Customer Master flow — PR #262**: (Resolved on the current feature branch) PC uses three horizontal panes, tablet uses two columns plus full-width evidence, and phone preserves the semantic order hierarchy → selected customer → evidence at the shared 1024 px / 768 px breakpoints.
+- **Effective-dated relationship authority**: (Open) The current Customer Master projection still owns only one `parent_entity_id`. Legal ownership, operating structure, sales roll-up, billing hierarchy, historical roles, and multiple simultaneous relationship types require a normalized, effective-dated relation model before they can be shown as authoritative facts.
+- **Unresolved hierarchy repair workflow**: (Open) Cycle, self-parent, and missing-visible-parent members remain safely visible and marked unresolved, but operators still need a source-data quality queue, evidence review, and approved correction workflow.
+- **Customer relationship exact-value export**: (Open) The three-pane workspace is accessible and source-backed, but an auditable CSV/JSON export of the selected customer, visible relations, truth status, effective interval, and evidence references remains a later product slice.
+
+*This document is continuously updated by the hourly automated agent loop.*
 Current source/test exact head observed before this documentation update:
 `b897fabe18332081a64a9286e4ab580c79a38f8d`. This documentation update will
 create the next exact head and therefore requires the protected checks to
@@ -191,7 +199,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Two-word snake_case database identifiers | ADR 0120, idempotent migration `0104`, live public-schema audit, zero invalid indexes | source + unit + local-integration |
 | Post list/detail popup, Korean summary, 5W1H, R&R, tickets/calendar | API routes, popup panels, backend/frontend tests | source + unit |
 | Keyman on both sides, titles, affiliations, related KG nodes | Keyman/affiliate-tree/related-node routes and popup | source + unit; live extraction open |
-| Ontology, semantic layer, provenance, W3C PROV-O projection | normalized schema, SKOS operational vocabulary concepts, `ontology_annotations` label fallback, ADR 0124, provenance modules, ADRs, evidence UI | source + unit; corpus verification open |
+| Ontology, semantic layer, provenance, W3C PROV-O projection | normalized schema, SKOS operational vocabulary concepts, `ontology_annotations` label fallback, ADR 0132, provenance modules, ADRs, evidence UI | source + unit; corpus verification open |
 | Branching Event Lineage DAG with evidence trail | `LineageDag.tsx`, Storybook story, Figma frames, accessible node-kind names for screen readers/tooltips, frontend tests; runtime cases include both a rendered DAG and honest empty states, while current corpus coverage remains sparse | source + unit + local-integration partial |
 | Customer master and hierarchy tree | `/api/customer-master`, affiliate tree, catalog migrations | source + unit; live resolution open |
 | VOC/VOM/VOP/VOCC/VOCO/VOS role classification | common lookup values and relationship APIs | source + unit; live classification open |

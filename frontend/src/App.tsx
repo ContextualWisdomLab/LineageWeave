@@ -56,7 +56,6 @@ import {
   type ChatAnswer,
   type ChatExchange,
   type CorporateEntityRef,
-  type CustomerMasterEntity,
   type CustomerMasterResponse,
   type Counterparty,
   type EvaluationResponse,
@@ -93,6 +92,7 @@ import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
+import { CustomerMasterTree, CustomerRelatedPostCard } from "./components/CustomerMasterTree";
 import { subgraphForPost } from "./lineageLayout";
 import {
   isSupportedLocale,
@@ -2590,10 +2590,12 @@ type SelectPostOptions = {
   fromReportMember?: boolean;
   fromWeeklyVoc?: boolean;
   fromCalendar?: boolean;
+  fromCustomerMaster?: boolean;
   /** Set when re-entering a post from a popstate (browser back/forward) so
    * the handler doesn't push a duplicate history entry for a navigation
    * the browser already performed. */
   fromPopState?: boolean;
+  fromAskAgent?: boolean;
 };
 
 /**
@@ -3644,6 +3646,8 @@ function PostList({
   showLabPanels = false,
   postIdToOpen = null,
   postOpenFromCalendar = false,
+  postOpenFromCustomerMaster = false,
+  postOpenFromAskAgent = false,
   onPostOpened,
   focusSearchRequest = 0,
   onSearchFocusHandled,
@@ -3652,6 +3656,8 @@ function PostList({
   showLabPanels?: boolean;
   postIdToOpen?: string | null;
   postOpenFromCalendar?: boolean;
+  postOpenFromCustomerMaster?: boolean;
+  postOpenFromAskAgent?: boolean;
   onPostOpened?: () => void;
   focusSearchRequest?: number;
   onSearchFocusHandled?: () => void;
@@ -3674,6 +3680,8 @@ function PostList({
   const [openedFromReportMember, setOpenedFromReportMember] = useState(false);
   const [openedFromWeeklyVoc, setOpenedFromWeeklyVoc] = useState(false);
   const [openedFromCalendar, setOpenedFromCalendar] = useState(false);
+  const [openedFromCustomerMaster, setOpenedFromCustomerMaster] = useState(false);
+  const [openedFromAskAgent, setOpenedFromAskAgent] = useState(false);
   const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
   const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
   const [totalPosts, setTotalPosts] = useState(0);
@@ -3748,6 +3756,7 @@ function PostList({
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
     setOpenedFromWeeklyVoc(Boolean(options?.fromWeeklyVoc));
     setOpenedFromCalendar(Boolean(options?.fromCalendar));
+    setOpenedFromCustomerMaster(Boolean(options?.fromCustomerMaster));
     if (!options?.fromPopState) {
       const url = new URL(window.location.href);
       if (url.searchParams.get("post") !== postId) {
@@ -3755,13 +3764,24 @@ function PostList({
         window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
       }
     }
+    setOpenedFromAskAgent(Boolean(options?.fromAskAgent));
   }
 
   useEffect(() => {
     if (!postIdToOpen) return;
-    selectPost(postIdToOpen, postOpenFromCalendar ? { fromCalendar: true } : undefined);
+    selectPost(postIdToOpen, {
+      fromCalendar: postOpenFromCalendar,
+      fromCustomerMaster: postOpenFromCustomerMaster,
+      fromAskAgent: postOpenFromAskAgent,
+    });
     onPostOpened?.();
-  }, [onPostOpened, postIdToOpen, postOpenFromCalendar]);
+  }, [
+    onPostOpened,
+    postIdToOpen,
+    postOpenFromCalendar,
+    postOpenFromCustomerMaster,
+    postOpenFromAskAgent,
+  ]);
 
   useEffect(() => {
     function handlePopState() {
@@ -3786,6 +3806,8 @@ function PostList({
     setOpenedFromReportMember(false);
     setOpenedFromWeeklyVoc(false);
     setOpenedFromCalendar(false);
+    setOpenedFromCustomerMaster(false);
+    setOpenedFromAskAgent(false);
     const url = new URL(window.location.href);
     if (url.searchParams.has("post")) {
       url.searchParams.delete("post");
@@ -4274,7 +4296,13 @@ function PostList({
             openedAfterCutoff ? analysisRunOpenedBodyWarning(openedCutoffIso) : null
           }
           knowledgeCutoff={openedAfterCutoff ? openedCutoffIso : null}
-          focusEventLineage={openedFromReportMember || openedFromWeeklyVoc || openedFromCalendar}
+          focusEventLineage={
+            openedFromReportMember ||
+            openedFromWeeklyVoc ||
+            openedFromCalendar ||
+            openedFromCustomerMaster ||
+            openedFromAskAgent
+          }
           focusAskOnLand={openedFromReportMember}
           onClose={closeSelectedPost}
           onSelectPost={selectPost}
@@ -4282,148 +4310,6 @@ function PostList({
         />
       )}
     </section>
-  );
-}
-
-interface CustomerEntityTreeNode {
-  entity: CustomerMasterEntity;
-  children: CustomerEntityTreeNode[];
-}
-
-// Live bug (2026-08-19): Customer Master's own entity list rendered every
-// corporate_entity as an independent top-level row, even though the API
-// already carries parent_entity_id and the codebase already knows how to
-// build a real forest from it (lineageweave/affiliate_tree.py, used for
-// the post-detail popup's Affiliate tree) -- a group holding company and
-// its subsidiaries showed up as an unrelated flat list with no visual
-// hierarchy at all. A parent not present in this account's own visible
-// entity list (a real possibility -- ABAC can authorize a child entity
-// without its parent) is not dropped; that entity becomes a root here
-// instead of disappearing.
-function buildCustomerEntityTree(entities: CustomerMasterEntity[]): CustomerEntityTreeNode[] {
-  const byId = new Map(entities.map((entity) => [entity.corporate_entity_id, entity]));
-  const childrenByParent = new Map<string, CustomerMasterEntity[]>();
-  const roots: CustomerMasterEntity[] = [];
-  for (const entity of entities) {
-    if (entity.parent_entity_id && byId.has(entity.parent_entity_id)) {
-      const siblings = childrenByParent.get(entity.parent_entity_id) ?? [];
-      siblings.push(entity);
-      childrenByParent.set(entity.parent_entity_id, siblings);
-    } else {
-      roots.push(entity);
-    }
-  }
-  const toNode = (entity: CustomerMasterEntity): CustomerEntityTreeNode => ({
-    entity,
-    children: (childrenByParent.get(entity.corporate_entity_id) ?? []).map(toNode),
-  });
-  return roots.map(toNode);
-}
-
-function CustomerEntityTreeRow({
-  node,
-  depth,
-  expandedEntityId,
-  relatedByEntity,
-  relatedLoading,
-  onToggle,
-  onOpenPost,
-}: {
-  node: CustomerEntityTreeNode;
-  depth: number;
-  expandedEntityId: string | null;
-  relatedByEntity: Record<string, RelatedNode[]>;
-  relatedLoading: string | null;
-  onToggle: (entityId: string) => void;
-  onOpenPost: (postId: string) => void;
-}) {
-  const { entity, children } = node;
-  const relatedPosts = (relatedByEntity[entity.corporate_entity_id] ?? []).filter(
-    (related) => related.node_type_code === NODE_POST,
-  );
-  return (
-    <li style={{ marginInlineStart: depth * 20 }}>
-      <button
-        type="button"
-        className="customer-entity-button"
-        aria-expanded={expandedEntityId === entity.corporate_entity_id}
-        onClick={() => onToggle(entity.corporate_entity_id)}
-      >
-        <strong>{entity.entity_name}</strong>
-        <span>{entity.corporate_entity_code} · {entity.entity_level_label}</span>
-      </button>
-      {expandedEntityId === entity.corporate_entity_id ? (
-        <div className="customer-related-posts">
-          {relatedLoading === entity.corporate_entity_id ? <p>{t("Loading related posts...")}</p> : null}
-          {relatedLoading !== entity.corporate_entity_id && relatedPosts.length === 0 ? (
-            <p className="popup-placeholder">{t("No linked posts yet.")}</p>
-          ) : null}
-          {relatedPosts.length > 0 ? (
-            <ul aria-label={`${t("Related posts")}: ${entity.entity_name}`}>
-              {relatedPosts.map((related) => (
-                <li key={related.node_id}>
-                  <CustomerRelatedPostCard
-                    postId={related.node_id}
-                    postTitle={related.label ?? related.node_id}
-                    postBodyExcerpt={related.post_body_excerpt}
-                    postBodyTruncated={related.post_body_truncated}
-                    onOpenPost={onOpenPost}
-                  />
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      ) : null}
-      {children.length > 0 ? (
-        <ul className="customer-master-list customer-master-tree-children" aria-label={tf("Affiliates of {name}", { name: entity.entity_name })}>
-          {children.map((child) => (
-            <CustomerEntityTreeRow
-              key={child.entity.corporate_entity_id}
-              node={child}
-              depth={depth + 1}
-              expandedEntityId={expandedEntityId}
-              relatedByEntity={relatedByEntity}
-              relatedLoading={relatedLoading}
-              onToggle={onToggle}
-              onOpenPost={onOpenPost}
-            />
-          ))}
-        </ul>
-      ) : null}
-    </li>
-  );
-}
-
-function CustomerRelatedPostCard({
-  postId,
-  postTitle,
-  postBodyExcerpt,
-  postBodyTruncated,
-  onOpenPost,
-}: {
-  postId: string;
-  postTitle: string;
-  postBodyExcerpt?: string | null;
-  postBodyTruncated?: boolean;
-  onOpenPost: (postId: string) => void;
-}) {
-  return (
-    <button
-      type="button"
-      className="related-post-card"
-      aria-label={tf("Open related post: {label}", { label: postTitle })}
-      onClick={() => onOpenPost(postId)}
-    >
-      <span className="related-post-content">
-        <strong>{postTitle}</strong>
-        <span className="post-body-excerpt" aria-label={t("Post body preview")}>
-          {postBodyExcerpt || t("No post body.")}
-          {postBodyTruncated ? " ..." : ""}
-        </span>
-      </span>
-      <span>{t("Open record")}</span>
-    </button>
   );
 }
 
@@ -4436,9 +4322,6 @@ function CustomerMasterPanel({
 }) {
   const [master, setMaster] = useState<CustomerMasterResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
-  const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
-  const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
   const [resolvingHint, setResolvingHint] = useState<string | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
   // Fetched independently, same pattern as PostList's own canRebuild --
@@ -4485,49 +4368,32 @@ function CustomerMasterPanel({
     }
   }
 
-  async function toggleEntity(entityId: string) {
-    if (expandedEntityId === entityId) {
-      setExpandedEntityId(null);
-      return;
-    }
-    setExpandedEntityId(entityId);
-    if (relatedByEntity[entityId]) return;
-    setRelatedLoading(entityId);
-    try {
-      const response = await fetchRelatedEntity(accessToken, entityId);
-      setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
-    } catch {
-      setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
-    } finally {
-      setRelatedLoading(null);
-    }
-  }
+  const loadRelated = useCallback(
+    async (entityId: string) => (await fetchRelatedEntity(accessToken, entityId)).related,
+    [accessToken],
+  );
 
   return (
     <section className="workspace-destination" aria-labelledby="customer-master-heading">
       <p className="section-eyebrow">{t("Authorized customer scope")}</p>
       <h2 id="customer-master-heading">{t("Customer master")}</h2>
       <p className="workspace-destination-intro">{t("Customer entities available to this account.")}</p>
+      {master && master.corporate_entities.length > 0 ? (
+        <p className="board-next-action" role="status" aria-label={t("Next action")}>
+          {t("Authorized customer entities are current. Open a related post to read Event Lineage.")}
+        </p>
+      ) : null}
       {error ? <p className="error">{error}</p> : null}
       {master === null && !error ? <p>{t("Loading customer master...")}</p> : null}
       {master?.corporate_entities.length === 0 ? (
         <p className="popup-placeholder">{t("No customer entities are connected to this account.")}</p>
       ) : null}
       {master && master.corporate_entities.length > 0 ? (
-        <ul className="customer-master-list customer-master-tree" aria-label={t("Customer entities available to this account.")}>
-          {buildCustomerEntityTree(master.corporate_entities).map((node) => (
-            <CustomerEntityTreeRow
-              key={node.entity.corporate_entity_id}
-              node={node}
-              depth={0}
-              expandedEntityId={expandedEntityId}
-              relatedByEntity={relatedByEntity}
-              relatedLoading={relatedLoading}
-              onToggle={toggleEntity}
-              onOpenPost={onOpenPost}
-            />
-          ))}
-        </ul>
+        <CustomerMasterTree
+          entities={master.corporate_entities}
+          loadRelated={loadRelated}
+          onOpenPost={onOpenPost}
+        />
       ) : null}
       {master && (master.relationship_network ?? []).length > 0 ? (
         <section className="customer-keymen" aria-labelledby="relationship-network-heading">
@@ -4721,7 +4587,12 @@ function AskAgentPanel({
   }
 
   return (
-    <section className="workspace-destination ask-agent-workspace" aria-labelledby="ask-agent-heading">
+    <section
+      className="workspace-destination ask-agent-workspace"
+      aria-labelledby="ask-agent-heading"
+      role="region"
+      aria-label={t("Ask Agent")}
+    >
       <header className="ask-agent-header">
         <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
         <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
@@ -4753,14 +4624,26 @@ function AskAgentPanel({
                   {exchange.status === "pending" ? <p className="ask-agent-pending">{t("Thinking...")}</p> : null}
                   {exchange.status === "error" ? <p className="ask-agent-error">{exchange.error}</p> : null}
                   {response?.answer_text ? <p>{response.answer_text}</p> : null}
-                  {response?.next_action ? <p className="post-meta">{t(response.next_action)}</p> : null}
+                  {response?.next_action ? (
+                    <p className="post-meta" role="status" aria-label={t("Next action")}>
+                      {t(response.next_action)}
+                    </p>
+                  ) : response?.cited_posts?.length ? (
+                    <p className="board-next-action" role="status" aria-label={t("Next action")}>
+                      {t("Authorized cited posts are current. Open a cited post to read Event Lineage.")}
+                    </p>
+                  ) : null}
                   {response?.cited_posts && response.cited_posts.length > 0 ? (
                     <section className="ask-agent-citations" aria-label={t("Cited posts")}>
                       <h4>{t("Cited posts")}</h4>
                       <ul className="ask-agent-citation-list">
                         {response.cited_posts.map((post) => (
                           <li key={post.post_id}>
-                            <button className="ask-agent-citation" onClick={() => onOpenPost(post.post_id)}>
+                            <button
+                              className="ask-agent-citation"
+                              aria-label={`${t("Open cited post:")} ${post.post_title}`}
+                              onClick={() => onOpenPost(post.post_id)}
+                            >
                               <strong>{post.post_title}</strong>
                               <span>{t("Open source")}</span>
                             </button>
@@ -4835,6 +4718,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
     return new URLSearchParams(window.location.search).get("post");
   });
   const [postOpenFromCalendar, setPostOpenFromCalendar] = useState(false);
+  const [postOpenFromCustomerMaster, setPostOpenFromCustomerMaster] = useState(false);
+  const [postOpenFromAskAgent, setPostOpenFromAskAgent] = useState(false);
   // Test-only compatibility for legacy analysis-panel coverage; this prop
   // never forces the panels open outside Vitest. In a real build the
   // advanced-review section (ADR 0037) is gated on PostList's own
@@ -5027,9 +4912,13 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             showLabPanels={testOnlyLabPanels}
             postIdToOpen={postToOpen}
             postOpenFromCalendar={postOpenFromCalendar}
+            postOpenFromCustomerMaster={postOpenFromCustomerMaster}
+            postOpenFromAskAgent={postOpenFromAskAgent}
             onPostOpened={() => {
               setPostToOpen(null);
               setPostOpenFromCalendar(false);
+              setPostOpenFromCustomerMaster(false);
+              setPostOpenFromAskAgent(false);
             }}
             focusSearchRequest={searchFocusRequest}
             onSearchFocusHandled={() => setSearchFocusRequest(0)}
@@ -5040,6 +4929,9 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             accessToken={accessToken}
             onOpenPost={(postId) => {
               setPostToOpen(postId);
+              setPostOpenFromCalendar(false);
+              setPostOpenFromCustomerMaster(true);
+              setPostOpenFromAskAgent(false);
               changeDestination("board");
             }}
           />
@@ -5052,6 +4944,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             onSelectPost={(postId) => {
               setPostToOpen(postId);
               setPostOpenFromCalendar(true);
+              setPostOpenFromCustomerMaster(false);
+              setPostOpenFromAskAgent(false);
               changeDestination("board");
             }}
           />
@@ -5061,6 +4955,9 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             accessToken={accessToken}
             onOpenPost={(postId) => {
               setPostToOpen(postId);
+              setPostOpenFromCalendar(false);
+              setPostOpenFromCustomerMaster(false);
+              setPostOpenFromAskAgent(true);
               changeDestination("board");
             }}
           />
