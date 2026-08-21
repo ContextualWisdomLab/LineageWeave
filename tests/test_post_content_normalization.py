@@ -289,7 +289,7 @@ def test_partial_locator_with_no_successful_description_fails_closed() -> None:
     assert result.text == "[image: content unavailable]"
 
 
-def test_unknown_chunk_kinds_are_not_leaked_into_buyer_text(monkeypatch) -> None:
+def test_unknown_chunk_kinds_are_not_leaked_into_reader_text(monkeypatch) -> None:
     from lineageweave import post_content_normalization
 
     monkeypatch.setattr(

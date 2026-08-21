@@ -1,6 +1,8 @@
 {
   "realm": "lineageweave-demo",
   "enabled": true,
+  "displayName": "LineageWeave",
+  "loginTheme": "lineageweave",
   "sslRequired": "none",
   "registrationAllowed": false,
   "accessTokenLifespan": 900,

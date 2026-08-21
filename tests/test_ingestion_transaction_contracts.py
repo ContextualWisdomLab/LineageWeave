@@ -224,7 +224,7 @@ class _SummaryConnection:
             return [
                 {
                     "actor_name": "Synthetic Design Team",
-                    "responsibility": "도면 검토",
+                    "responsibility_text": "도면 검토",
                     "actor_type_code": ACTOR_TYPE_TEAM,
                     "affiliated_organization_name": "Synthetic Energy",
                     "cataloged_team_id": None,
@@ -528,7 +528,7 @@ def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
                 return [
                     {
                         "actor_name": "Priya Nair",
-                        "responsibility": "고객 측 수신",
+                        "responsibility_text": "고객 측 수신",
                         "actor_type_code": ACTOR_TYPE_PERSON,
                         "affiliated_organization_name": "Northridge Grid",
                         "cataloged_team_id": None,

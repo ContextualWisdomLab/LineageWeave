@@ -173,7 +173,7 @@ async def upsert_commitment_ticket(
 
     Re-deriving the same post must not stack duplicate calendar rows --
     an existing open ticket with a commitment_summary is updated in place.
-    A closed ticket is left alone so the buyer can keep the historical
+    A closed ticket is left alone so the reader can keep the historical
     record and still derive a fresh open one.
     """
     existing = await conn.fetchrow(

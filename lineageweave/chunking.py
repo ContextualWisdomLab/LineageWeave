@@ -323,8 +323,13 @@ def _normalize_plain_metric_scripts(text: str) -> str:
 
 def _normalize_metric_markup(html: str) -> str:
     """Keep explicit metric superscript/subscript digits in semantic text."""
+
     def replace(match: re.Match[str]) -> str:
-        table = _SUPERSCRIPT_DIGITS if match.group("kind").lower() == "sup" else _SUBSCRIPT_DIGITS
+        table = (
+            _SUPERSCRIPT_DIGITS
+            if match.group("kind").lower() == "sup"
+            else _SUBSCRIPT_DIGITS
+        )
         return f"{match.group('base')}{match.group('digits').translate(table)}"
 
     return _METRIC_MARKUP.sub(replace, html)

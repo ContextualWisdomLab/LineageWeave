@@ -161,6 +161,12 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("preserves explicit metric superscripts and subscripts", () => {
+    expect(splitPostBody("<p>Volume: 5m<sup>3</sup>, index m<sub>3</sub>.</p>")).toEqual([
+      { kind: "text", text: "Volume: 5m³, index m₃." },
+    ]);
+  });
+
   it("keeps comparison operators that look like broken HTML", () => {
     expect(splitPostBody("qty < 50 and price > 10")).toEqual([
       { kind: "text", text: "qty < 50 and price > 10" },

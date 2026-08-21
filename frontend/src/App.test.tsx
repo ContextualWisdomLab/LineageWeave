@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { setLocale } from "./i18n";
+import { isoWeekFromCreatedAt } from "./isoWeek";
 
 const signinRedirect = vi.fn();
 const signoutRedirect = vi.fn();
@@ -27,6 +28,10 @@ beforeEach(() => {
     signinRedirect,
     signoutRedirect,
   };
+  // Post navigation now pushes real history entries (browser back should
+  // close the popup); reset between tests so one test's opened post doesn't
+  // leak into the next test's initial render via a stale `?post=` query.
+  window.history.replaceState({}, "", "/");
 });
 
 afterEach(() => {
@@ -94,13 +99,42 @@ describe("App, authenticated", () => {
     pendingTeppRun?: boolean;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
+    deferPosts?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
     customerEntityHierarchy?: boolean;
+    boardPosts?: {
+      post_id: string;
+      post_title: string;
+      voc_type_code: string;
+      voc_type_label?: string;
+      visibility_code?: string;
+      visibility_label?: string;
+      created_at: string;
+    }[];
+    latestVocPost?: {
+      post_id: string;
+      post_title: string;
+      voc_type_code: string;
+      voc_type_label?: string;
+      visibility_code?: string;
+      visibility_label?: string;
+      created_at: string;
+    };
+    isoWeekOptions?: string[];
+    weekFilteredPosts?: {
+      post_id: string;
+      post_title: string;
+      voc_type_code: string;
+      voc_type_label?: string;
+      visibility_code?: string;
+      visibility_label?: string;
+      created_at: string;
+    }[];
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
-  }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
+  }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePosts: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -127,9 +161,15 @@ describe("App, authenticated", () => {
     let contentRequests = 0;
 
     let releaseMe = () => {};
+    let releasePosts = () => {};
     const meReady = options?.deferMe
       ? new Promise<void>((resolve) => {
           releaseMe = resolve;
+        })
+      : Promise.resolve();
+    const postsReady = options?.deferPosts
+      ? new Promise<void>((resolve) => {
+          releasePosts = resolve;
         })
       : Promise.resolve();
 
@@ -162,6 +202,16 @@ describe("App, authenticated", () => {
                   { corporate_entity_id: "corp-north", entity_name: "Northridge Grid" },
                 ]
               : [{ corporate_entity_id: "corp-demo", entity_name: "Demo Corp" }],
+            account_affiliations: [
+              {
+                corporate_entity_id: "corp-demo",
+                corporate_entity_code: "DEMO-CORP",
+                entity_name: "Demo Corp",
+                process_unit_id: "pu-demo",
+                process_unit_code: "DEMO-PU",
+                process_unit_name: "Demo PU",
+              },
+            ],
           });
         });
       }
@@ -1045,22 +1095,38 @@ describe("App, authenticated", () => {
       }
       const postsUrl = new URL(url, "https://backend.test");
       if (postsUrl.pathname === "/api/posts") {
-        return Promise.resolve(
+        const vocRequest = postsUrl.searchParams.get("voc_type") === "voc";
+        const boardPosts = vocRequest && options?.latestVocPost
+          ? [options.latestVocPost]
+          : [
+              {
+                post_id: "post-1",
+                post_title: "Public post",
+                voc_type_code: "voc",
+                voc_type_label: "Voice of Customer",
+                visibility_code: "public",
+                visibility_label: "Public",
+                created_at: "2026-01-01T00:00:00Z",
+              },
+              ...(options?.boardPosts ?? []),
+            ];
+        const isoWeekOptions = options?.isoWeekOptions ?? Array.from(
+          new Set(
+            boardPosts
+              .map((post) => isoWeekFromCreatedAt(post.created_at))
+              .filter((week): week is string => Boolean(week)),
+          ),
+        ).sort((left, right) => right.localeCompare(left));
+        const responsePosts =
+          postsUrl.searchParams.get("iso_week") && options?.weekFilteredPosts
+            ? options.weekFilteredPosts
+            : boardPosts;
+        return postsReady.then(() =>
           jsonResponse(
             postsUrl.searchParams.get("search")
               ? []
               : {
-                  posts: [
-                    {
-                      post_id: "post-1",
-                      post_title: "Public post",
-                      voc_type_code: "voc",
-                      voc_type_label: "Voice of Customer",
-                      visibility_code: "public",
-                      visibility_label: "Public",
-                      created_at: "2026-01-01T00:00:00Z",
-                    },
-                  ],
+                  posts: responsePosts,
                   total_count: 1,
                   limit: 50,
                   offset: 0,
@@ -1069,6 +1135,7 @@ describe("App, authenticated", () => {
                     { code: "vop", label: "Voice of Partner" },
                   ],
                   visibility_options: [{ code: "public", label: "Public" }],
+                  iso_week_options: isoWeekOptions,
                 },
           ),
         );
@@ -1667,7 +1734,7 @@ describe("App, authenticated", () => {
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
-    return Object.assign(fetchMock, { releaseMe });
+    return Object.assign(fetchMock, { releaseMe, releasePosts });
   }
 
   it("renders safe Ask Agent evidence under each cited post", async () => {
@@ -1678,10 +1745,26 @@ describe("App, authenticated", () => {
     await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
     await userEvent.click(screen.getByRole("button", { name: "Ask" }));
 
+    expect(screen.getByRole("log", { name: "Conversation" })).toBeInTheDocument();
+    expect(screen.getByText("Which project?", { exact: true })).toBeInTheDocument();
     expect(await screen.findByRole("list", { name: "Evidence facts" })).toBeInTheDocument();
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
+
+  it("renders the conversation empty state and submits an Ask Agent question with Enter", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+
+    expect(screen.getByRole("log", { name: "Conversation" })).toHaveAttribute("aria-busy", "false");
+    expect(screen.getByText("Start with a question about the evidence")).toBeInTheDocument();
+    const input = screen.getByRole("textbox", { name: "Ask a question" });
+    await userEvent.type(input, "Which project?{Enter}");
+
+    expect(await screen.findByText("Which project?", { selector: ".ask-agent-user-message p:last-child" })).toBeInTheDocument();
+    expect(input).toHaveValue("");
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
@@ -1806,6 +1889,149 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
   });
 
+  it("clicking Weekly VOC keeps the 2026-W01 Voice of Customer post and names Event Lineage as the next action", async () => {
+    stubBackend({
+      boardPosts: [
+        {
+          post_id: "post-vom-w01",
+          post_title: "Internal memo",
+          voc_type_code: "vom",
+          voc_type_label: "Voice of Market",
+          visibility_code: "internal",
+          visibility_label: "Internal",
+          created_at: "2026-01-02T00:00:00Z",
+        },
+        {
+          post_id: "post-voc-w52",
+          post_title: "Older Voice of Customer",
+          voc_type_code: "voc",
+          voc_type_label: "Voice of Customer",
+          visibility_code: "public",
+          visibility_label: "Public",
+          created_at: "2025-12-22T00:00:00Z",
+        },
+      ],
+    });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(within(board).getByRole("button", { name: "View post: Internal memo" })).toBeInTheDocument();
+    expect(within(board).getByRole("button", { name: "View post: Older Voice of Customer" })).toBeInTheDocument();
+
+    const weeklyVoc = within(board).getByRole("button", { name: "Weekly VOC" });
+    await userEvent.selectOptions(within(board).getByLabelText("Sort posts"), "title");
+    expect(weeklyVoc).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(weeklyVoc);
+
+    expect(weeklyVoc).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() => expect(within(board).getByLabelText("Sort posts")).toHaveValue("newest"));
+    expect(within(board).getByLabelText("Filter by ISO week")).toHaveValue("2026-W01");
+    expect(within(board).getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    expect(within(board).queryByRole("button", { name: "View post: Internal memo" })).not.toBeInTheDocument();
+    expect(
+      within(board).queryByRole("button", { name: "View post: Older Voice of Customer" }),
+    ).not.toBeInTheDocument();
+    expect(within(board).getByLabelText("Next action")).toHaveTextContent(
+      "Voice of Customer posts for 2026-W01 are current. Open a post to read Event Lineage.",
+    );
+
+    await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
+    expect(weeklyVoc).toHaveAttribute("aria-pressed", "false");
+    expect(within(board).getByRole("button", { name: "View post: Internal memo" })).toBeInTheDocument();
+    expect(within(board).getByRole("button", { name: "View post: Older Voice of Customer" })).toBeInTheDocument();
+  });
+
+  it("shows authorized ISO weeks supplied by the API even when a week is outside the loaded page", async () => {
+    const fetchMock = stubBackend({
+      isoWeekOptions: ["2026-W08", "2026-W01"],
+      weekFilteredPosts: [
+        {
+          post_id: "post-voc-w08",
+          post_title: "Older page Voice of Customer",
+          voc_type_code: "voc",
+          voc_type_label: "Voice of Customer",
+          visibility_code: "public",
+          visibility_label: "Public",
+          created_at: "2026-02-18T00:00:00Z",
+        },
+      ],
+    });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    await userEvent.selectOptions(within(board).getByLabelText("Filter by ISO week"), "2026-W08");
+    await waitFor(() =>
+      expect(within(board).getByRole("button", { name: "View post: Older page Voice of Customer" })).toBeInTheDocument(),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("iso_week=2026-W08"),
+      expect.anything(),
+    );
+  });
+
+  it("gets the Weekly VOC week from the authorized newest VOC post, not the loaded page", async () => {
+    const fetchMock = stubBackend({
+      boardPosts: [
+        {
+          post_id: "post-voc-old",
+          post_title: "Older Voice of Customer",
+          voc_type_code: "voc",
+          voc_type_label: "Voice of Customer",
+          visibility_code: "public",
+          visibility_label: "Public",
+          created_at: "2025-12-22T00:00:00Z",
+        },
+      ],
+      latestVocPost: {
+        post_id: "post-voc-new",
+        post_title: "Newest Voice of Customer",
+        voc_type_code: "voc",
+        voc_type_label: "Voice of Customer",
+        visibility_code: "public",
+        visibility_label: "Public",
+        created_at: "2026-02-18T00:00:00Z",
+      },
+    });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    await userEvent.click(within(board).getByRole("button", { name: "Weekly VOC" }));
+
+    await waitFor(() => expect(within(board).getByLabelText("Filter by ISO week")).toHaveValue("2026-W08"));
+    expect(within(board).getByRole("button", { name: "View post: Newest Voice of Customer" })).toBeInTheDocument();
+    expect(within(board).queryByRole("button", { name: "View post: Older Voice of Customer" })).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("limit=1"),
+      expect.objectContaining({ headers: expect.objectContaining({ Authorization: "Bearer test-access-token" }) }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("voc_type=voc"),
+      expect.anything(),
+    );
+  });
+
+  it("opening a Weekly VOC post focuses Event Lineage; a home list open does not", async () => {
+    stubBackend();
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    await userEvent.click(within(board).getByRole("button", { name: "Weekly VOC" }));
+    await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
+
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).toHaveFocus();
+    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
+      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
+    await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+  });
+
   it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {
     stubBackend();
     render(<App showLabPanels />);
@@ -1816,12 +2042,12 @@ describe("App, authenticated", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "View post: Public post" }));
     expect(await screen.findByLabelText("A-100 lineage")).toBeInTheDocument();
-    expect(screen.getByLabelText("Open post: Pricing renegotiation follow-up")).toHaveClass(
-      "lineage-dag-branch",
-    );
-    expect(screen.getByLabelText("Open post: Unrelated: annual account review")).toHaveClass(
-      "lineage-dag-root",
-    );
+    expect(
+      screen.getByLabelText("Open post: Pricing renegotiation follow-up (Branch point)"),
+    ).toHaveClass("lineage-dag-branch");
+    expect(
+      screen.getByLabelText("Open post: Unrelated: annual account review (Root record)"),
+    ).toHaveClass("lineage-dag-root");
   });
 
   it("renders the board landmark and functional post controls", async () => {
@@ -1989,7 +2215,9 @@ describe("App, authenticated", () => {
     expect(relatedPosts).toHaveTextContent("Linked post");
     // The Event Lineage DAG belongs to the opened post, not the list surface.
     expect(screen.getAllByLabelText("A-100 lineage")).toHaveLength(1);
-    expect(screen.getAllByLabelText("Open post: Pricing renegotiation follow-up")).toHaveLength(1);
+    expect(
+      screen.getAllByLabelText("Open post: Pricing renegotiation follow-up (Branch point)"),
+    ).toHaveLength(1);
     expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
     expect(document.getElementById("post-ask")).not.toHaveFocus();
     expect(
@@ -2012,6 +2240,9 @@ describe("App, authenticated", () => {
     const eventLineage = within(popup as HTMLElement).getByRole("heading", { name: "Event Lineage" });
     const affiliate = within(popup as HTMLElement).getByRole("heading", { name: "Affiliate tree" });
     const keyman = within(popup as HTMLElement).getByRole("heading", { name: "Keymen" });
+    expect(within(popup as HTMLElement).getByText("Lineage evidence")).toBeInTheDocument();
+    expect(within(popup as HTMLElement).getByText("Inference boundary")).toBeInTheDocument();
+    expect(within(popup as HTMLElement).getByRole("table", { name: /Evidence trail/ })).toBeInTheDocument();
     expect(evaluation.compareDocumentPosition(eventLineage) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
       0,
     );
@@ -2110,7 +2341,7 @@ describe("App, authenticated", () => {
     );
   });
 
-  it("stops loading and gives the buyer a next action when cited evidence is unavailable", async () => {
+  it("stops loading and gives the reader a next action when cited evidence is unavailable", async () => {
     stubBackend({ evidenceUnavailable: true });
     render(<App showLabPanels />);
 
@@ -2559,7 +2790,7 @@ describe("App, authenticated", () => {
     expect(screen.getByText("due 2026-01-09")).toBeInTheDocument();
   });
 
-  it("tells the buyer how to populate an empty calendar", async () => {
+  it("tells the reader how to populate an empty calendar", async () => {
     stubBackend({ calendarCommitments: [] });
     render(<App showLabPanels />);
 
@@ -2963,7 +3194,9 @@ describe("App, authenticated", () => {
       ).toHaveLength(1);
       const popup = document.querySelector(".popup-panel");
       expect(popup).not.toBeNull();
-      const currentNode = within(popup as HTMLElement).getByLabelText("Open post: Public post");
+      const currentNode = within(popup as HTMLElement).getByLabelText(
+        "Open post: Public post (Current record, Root record)",
+      );
       expect(currentNode).toHaveAttribute("aria-current", "true");
       const lineageNext = screen.getByRole("status", { name: "Event Lineage next action" });
       expect(lineageNext).toHaveTextContent(
@@ -3511,12 +3744,155 @@ describe("App, authenticated", () => {
     );
   });
 
-  it("keeps advanced review tools out of the buyer board", async () => {
+  it("keeps advanced review tools out of the workspace board", async () => {
     stubBackend();
     render(<App />);
 
-    expect(await screen.findByRole("navigation", { name: "Buyer navigation" })).toBeInTheDocument();
+    expect(await screen.findByRole("navigation", { name: "Workspace navigation" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Board" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByLabelText("Authorized scope")).toHaveTextContent("DEMO-CORP / DEMO-PU");
     expect(screen.queryByText("Advanced review tools")).not.toBeInTheDocument();
+    const mobileMenu = screen.getByRole("button", { name: "Open navigation" });
+    expect(mobileMenu).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(mobileMenu);
+    expect(screen.getByRole("button", { name: "Close Workspace navigation" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(1);
+    expect(document.getElementById("mobile-workspace-navigation")).toBeInTheDocument();
+    const drawerClose = document.querySelector<HTMLButtonElement>(".mobile-drawer-close");
+    expect(drawerClose).not.toBeNull();
+    await userEvent.click(drawerClose as HTMLButtonElement);
+    expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute("aria-expanded", "false");
+    const appHeader = document.querySelector<HTMLElement>("header.app-header");
+    expect(appHeader).not.toBeNull();
+    expect(within(appHeader as HTMLElement).getByLabelText("Language")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Workspace navigation" })).not.toHaveTextContent("Language");
+    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    const mobileNavigation = document.getElementById("mobile-workspace-navigation");
+    expect(mobileNavigation).not.toBeNull();
+    await userEvent.click(within(mobileNavigation as HTMLElement).getByRole("button", { name: "Customer master" }));
+    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    expect(screen.getByRole("button", { name: "Close Workspace navigation" })).toBeInTheDocument();
+    await userEvent.click(
+      within(appHeader as HTMLElement).getByRole("button", { name: "Search" }),
+    );
+    expect(document.getElementById("mobile-workspace-navigation")).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole("searchbox", { name: "Search semantic evidence" })).toHaveFocus(),
+    );
+  });
+
+  it("opens the site map utility and closes it after navigation or Escape", async () => {
+    stubBackend();
+    render(<App />);
+
+    const siteMapButton = await screen.findByRole("button", { name: "Site map" });
+    expect(siteMapButton).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(siteMapButton);
+    expect(screen.getByRole("region", { name: "Site map" })).toBeInTheDocument();
+    expect(siteMapButton).toHaveAttribute("aria-expanded", "true");
+
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("region", { name: "Site map" })).not.toBeInTheDocument();
+
+    await userEvent.click(siteMapButton);
+    const siteMap = screen.getByRole("region", { name: "Site map" });
+    await userEvent.click(within(siteMap).getByRole("button", { name: "Customer master" }));
+    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Site map" })).not.toBeInTheDocument();
+  });
+
+  it("lets a keyboard user skip the header and GNB to reach main content", async () => {
+    stubBackend();
+    render(<App />);
+
+    await screen.findByRole("navigation", { name: "Workspace navigation" });
+    const skipLink = screen.getByRole("link", { name: "Skip to main content" });
+    expect(skipLink).toHaveAttribute("href", "#main-content");
+    const main = document.getElementById("main-content");
+    expect(main).not.toBeNull();
+    await userEvent.click(skipLink);
+    expect(main).toHaveFocus();
+  });
+
+  it("does not steal focus after the global search request has been handled", async () => {
+    const fetchMock = stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Search" }));
+
+    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
+    await waitFor(() => expect(searchInput).toHaveFocus());
+
+    const sort = screen.getByLabelText("Sort posts");
+    await userEvent.selectOptions(sort, "title");
+    await waitFor(() => {
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes("sort=title"))).toBe(true);
+      expect(sort).toHaveFocus();
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    const boardButton = screen.getByRole("button", { name: "Board" });
+    await userEvent.click(boardButton);
+    const remountedSearchInput = await screen.findByRole("searchbox", {
+      name: "Search semantic evidence",
+    });
+    await waitFor(() => expect(boardButton).toHaveFocus());
+    expect(remountedSearchInput).not.toHaveFocus();
+  });
+
+  it("focuses the board search input again on a later global Search action", async () => {
+    stubBackend();
+    render(<App />);
+
+    const header = document.querySelector("header.app-header");
+    expect(header).not.toBeNull();
+    const globalSearch = within(header as HTMLElement).getByRole("button", { name: "Search" });
+    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
+
+    await userEvent.click(globalSearch);
+    await waitFor(() => expect(searchInput).toHaveFocus());
+    searchInput.blur();
+    expect(searchInput).not.toHaveFocus();
+
+    await userEvent.click(globalSearch);
+    await waitFor(() => expect(searchInput).toHaveFocus());
+  });
+
+  it("clears a pending global search focus request when leaving the board", async () => {
+    const fetchMock = stubBackend({ deferPosts: true });
+    render(<App />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Search" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+
+    fetchMock.releasePosts();
+    await userEvent.click(screen.getByRole("button", { name: "Board" }));
+    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
+    expect(searchInput).not.toHaveFocus();
+  });
+
+  it("closes a post popup when browser history moves back", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    expect(await screen.findByRole("heading", { name: "Public post" })).toBeInTheDocument();
+    expect(new URL(window.location.href).searchParams.get("post")).toBe("post-1");
+
+    window.history.replaceState({}, "", "/");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Public post" })).not.toBeInTheDocument());
   });
 });

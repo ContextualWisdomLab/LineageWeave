@@ -1,7 +1,7 @@
 /**
  * Split a raw `post_body` into text and in-place data-URI images.
  *
- * The popup used to dump the source string, so a buyer who opened a post
+ * The popup used to dump the source string, so a reader who opened a post
  * with an embedded invoice saw a base64 wall instead of the picture.
  * Only `data:image/...;base64,...` payloads are turned into images —
  * remote `http(s)` img tags are stripped, never fetched.
