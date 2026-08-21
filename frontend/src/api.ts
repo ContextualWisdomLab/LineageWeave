@@ -196,6 +196,7 @@ export interface PostMajorEventAction {
   requester_actor_name: string | null;
   processor_actor_name: string | null;
   evidence_text: string;
+  project_name?: string | null;
 }
 
 export interface PostProjectMention {
@@ -223,10 +224,18 @@ export interface ProjectEvidence {
 export interface PostAiSummary {
   post_id: string;
   korean_summary: string;
+  summary_status?: "current" | "stale";
+  summary_contract_version?: number | null;
   key_events: string[];
+  key_event_details?: PostKeyEvent[];
   roles_and_responsibilities: PostRoleResponsibility[];
   major_event_actions?: PostMajorEventAction[];
   project_mentions?: PostProjectMention[];
+}
+
+export interface PostKeyEvent {
+  event_text: string;
+  project_name?: string | null;
 }
 
 export interface FiveW1HValue {
@@ -354,7 +363,15 @@ export class BackendError extends Error {
   readonly status: number;
 
   constructor(path: string, status: number, detail?: string) {
-    super(detail && detail.trim() ? detail : `${path} -> HTTP ${status}`);
+    const message =
+      status === 0
+        ? "The service is unreachable. Try again later."
+        : status >= 500
+          ? "The service could not complete this request. Try again later."
+          : detail && detail.trim()
+            ? detail
+            : `${path} -> HTTP ${status}`;
+    super(message);
     this.name = "BackendError";
     this.status = status;
   }
@@ -365,14 +382,19 @@ async function backendFetch<T>(
   accessToken: string,
   init?: RequestInit,
 ): Promise<T> {
-  const response = await fetch(`${config.backendBaseUrl}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-      ...init?.headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${config.backendBaseUrl}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        ...(init?.body ? { "Content-Type": "application/json" } : {}),
+        ...init?.headers,
+      },
+    });
+  } catch {
+    throw new BackendError(path, 0);
+  }
   if (!response.ok) {
     let detail: string | undefined;
     try {
@@ -1044,4 +1066,18 @@ export interface RankingList {
 
 export function fetchRankings(accessToken: string): Promise<RankingList> {
   return backendFetch("/api/rankings", accessToken);
+}
+
+export function fetchTenantConfig(accessToken: string): Promise<{ brandName: string }> {
+  return backendFetch("/api/settings", accessToken);
+}
+
+export function updateTenantConfig(
+  accessToken: string,
+  brandName: string,
+): Promise<{ brandName: string }> {
+  return backendFetch("/api/settings", accessToken, {
+    method: "PATCH",
+    body: JSON.stringify({ brandName }),
+  });
 }
