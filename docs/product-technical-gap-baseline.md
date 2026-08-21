@@ -7,7 +7,7 @@
 
 ## 1. Known Parsing & Frontend Display Gaps
 - **Footnote Parsing**: synthetic case `case-footnote-01` exercises numbered footnote recognition; PR #367 merged semantic-chunker coverage, and stacked PR #388 adds browser fallback recognition for HTML, Word, and OOXML footnotes. Authorized production/browser corpus evidence remains pending.
-- **Table Parsing**: synthetic case `case-table-01` exercises malformed row boundaries and empty cells; image tables and browser rendering remain open.
+- **Table Parsing**: synthetic case `case-table-01` exercises malformed row boundaries and empty cells; PR #389 now covers ordinary Markdown rendering, while region-aware image tables and protected-corpus evidence remain open.
 - **Indentation**: synthetic cases `case-indent-01` and `case-indent-02` retain incorrect indentation rendering coverage gaps.
 - **Image/Table OCR**: synthetic case `case-image-table-01` still needs region-aware table OCR, markdown rendering, and sufficiently detailed buyer-safe image evidence.
 - **Math/Superscripts**: synthetic case `case-math-01` covers bounded metric normalization such as m³; arbitrary formula semantics and authorized runtime verification remain open after PR #344.
@@ -85,12 +85,12 @@ Open PRs at the same observation:
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `a5058283654441200024f1ae384f8bc030df6667` (the exact current
+- PR #368: `head` `9dcfc4417cf22bd95604d8aabbf786346eaa60de` (the exact current
   documentation checkpoint), base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #383: `head` `46e4d6d69c1964f0cbeb761281071db7861e31dd`, base `main`
+- PR #383: `head` `6525127008b3ba74526e8ffb8d8bf25630cf58db`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #384: `head` `1bffa5adafa6f015cea355de1b82a370d5791f4b`, base
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
@@ -299,6 +299,15 @@ Observed at `2026-08-21T18:09:21Z` on PR #387's exact head
   had non-terminal work and no independent approval or merge commit was
   present.
 
+Observed at `2026-08-21T18:11:51Z` on PR #383's current head
+`6525127008b3ba74526e8ffb8d8bf25630cf58db`:
+
+- `TypeError` from post-chat/global-agent and post-content-worker paths is now
+  classified as an internal failure, while provider transport/configuration
+  errors retain `provider_unavailable`. Focused worker and diagnostics tests
+  passed; hosted Checks, independent approval, and a protected merge commit
+  remain absent.
+
 Observed at `2026-08-21T17:32:25Z` on PR #349's exact head
 `979b4290bc62ab83668aab99cc09c2a297db8464`:
 
@@ -325,8 +334,8 @@ exited successfully, but the follow-up treated a missing baseline result file
 as failure after the head checkout. Central `.github` PR #1158 is the broader
 source-provenance repair at exact head
 `acbd253df81e06d18ed758de1ce748ad6729faa0`; central PR #1002 independently
-adds the minimal result-preservation repair at exact head
-`33db8cbccfe8b52ebfb979bdcb3a08b5914340fb`. Both remain open with non-terminal
+adds the minimal result-preservation and review-placeholder repair at exact
+head `e46777fc541d4e0aa1484348928a2847a81c6952`. Both remain open with non-terminal
 Checks and no independent approval, so PR #383 is not reported green or
 mergeable from this historical failure alone.
 
