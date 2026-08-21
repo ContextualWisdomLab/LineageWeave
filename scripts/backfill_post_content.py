@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Reprocess selected stored posts through the existing content pipeline.
 
-This is an operator command, not a buyer HTTP route. It is intentionally
+This is an operator command, not a reader-facing HTTP route. It is intentionally
 post-id scoped so a VISION failure cannot trigger an unbounded spend or rewrite
 the whole corpus. Raw post bodies and model responses are never printed.
 """

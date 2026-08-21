@@ -64,8 +64,8 @@ def iri_for_lookup_code(lookup_code: str) -> str | None:
     """The ontology term IRI whose `:lookupCode` annotation equals
     `lookup_code`, or `None` if no term declares that code -- e.g. a
     `common_lookup_value` category this ontology doesn't cover yet
-    (`ticket_status`, `post_visibility`), which is a real, expected gap,
-    not a bug.
+    (for example a future `analysis_run_kind` value) which is not yet part
+    of the published ontology profile.
     """
     subject = _term_subject(lookup_code)
     return str(subject) if subject is not None else None
@@ -82,7 +82,7 @@ def ontology_annotations(lookup_code: str) -> dict[str, str]:
     if subject is None:
         return {}
     fields = {"ontology_iri": str(subject)}
-    label = ONTOLOGY.value(subject, RDFS.label)
+    label = ONTOLOGY.value(subject, RDFS.label) or ONTOLOGY.value(subject, SKOS.prefLabel)
     if label is not None:
         fields["ontology_label"] = str(label)
     return fields

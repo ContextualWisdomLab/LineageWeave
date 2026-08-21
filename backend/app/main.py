@@ -507,11 +507,11 @@ async def _load_project_evidence(
         )
     rows = await conn.fetch(
         """
-        select project_key, project_name, evidence_text, confidence,
+        select project_key, project_name, evidence_text, mention_confidence,
                ontology_iri, extraction_method
           from post_project_mention
          where post_id = $1
-         order by confidence desc, project_name, project_key
+         order by mention_confidence desc, project_name, project_key
         """,
         post_id,
     )
@@ -520,7 +520,7 @@ async def _load_project_evidence(
             "project_key": row["project_key"],
             "project_name": row["project_name"],
             "evidence": row["evidence_text"],
-            "confidence": float(row["confidence"]),
+            "confidence": float(row["mention_confidence"]),
             "ontology_iri": row["ontology_iri"],
             "ontology_label": "Project",
             "extraction_method": row["extraction_method"],
@@ -582,15 +582,15 @@ async def _post_filter_options(
     )
 
 
-@app.get("/healthz")
-
 @app.get("/api/settings", response_model=dict)
 async def read_tenant_settings(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ):
     async with pool.acquire() as conn:
-        row = await conn.fetchrow("SELECT brand_name FROM tenant_settings WHERE id = 1")
+        row = await conn.fetchrow(
+            "SELECT brand_name FROM tenant_settings WHERE tenant_settings_id = 1"
+        )
     if not row:
         return {"brandName": "LineageWeave"}
     return {"brandName": row["brand_name"]}
@@ -606,13 +606,14 @@ async def update_tenant_settings(
     brand_name = payload.get("brandName", "LineageWeave")
     async with pool.acquire() as conn:
         await conn.execute(
-            "INSERT INTO tenant_settings (id, brand_name) VALUES (1, $1) "
-            "ON CONFLICT (id) DO UPDATE SET brand_name = $1",
+            "INSERT INTO tenant_settings (tenant_settings_id, brand_name) VALUES (1, $1) "
+            "ON CONFLICT (tenant_settings_id) DO UPDATE SET brand_name = $1",
             brand_name
         )
     return {"brandName": brand_name}
 
 
+@app.get("/healthz")
 async def healthz() -> dict[str, str]:
     """Liveness probe: the process is up. Does not touch Postgres."""
     return {"status": "ok"}
@@ -629,30 +630,59 @@ async def read_me(
     ``POST /api/analysis-runs`` should cover.
     """
     entities: list[dict[str, str]] = []
+    account_affiliations: list[dict[str, Any]] = []
     if account.corporate_entity_ids:
         async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """
-                select corporate_entity_id, entity_name
-                  from corporate_entity
-                 where corporate_entity_id = any($1::uuid[])
-                 order by entity_name
+                select affiliation.corporate_entity_id,
+                       entity.corporate_entity_code,
+                       entity.entity_name,
+                       affiliation.process_unit_id,
+                       process.process_unit_code,
+                       process.process_unit_name
+                  from account_affiliation affiliation
+                  join corporate_entity entity
+                    on entity.corporate_entity_id = affiliation.corporate_entity_id
+                  left join process_unit process
+                    on process.process_unit_id = affiliation.process_unit_id
+                   and process.corporate_entity_id = affiliation.corporate_entity_id
+                 where affiliation.user_account_id = $1
+                   and affiliation.corporate_entity_id = any($2::uuid[])
+                 order by entity.entity_name, process.process_unit_code nulls first
                 """,
+                account.user_account_id,
                 list(account.corporate_entity_ids),
             )
-        entities = [
-            {
-                "corporate_entity_id": str(row["corporate_entity_id"]),
-                "entity_name": row["entity_name"],
-            }
-            for row in rows
-        ]
+        seen_entities: set[str] = set()
+        for row in rows:
+            entity_id = str(row["corporate_entity_id"])
+            if entity_id not in seen_entities:
+                entities.append(
+                    {
+                        "corporate_entity_id": entity_id,
+                        "corporate_entity_code": row["corporate_entity_code"],
+                        "entity_name": row["entity_name"],
+                    }
+                )
+                seen_entities.add(entity_id)
+            account_affiliations.append(
+                {
+                    "corporate_entity_id": entity_id,
+                    "corporate_entity_code": row["corporate_entity_code"],
+                    "entity_name": row["entity_name"],
+                    "process_unit_id": str(row["process_unit_id"]) if row["process_unit_id"] else None,
+                    "process_unit_code": row["process_unit_code"],
+                    "process_unit_name": row["process_unit_name"],
+                }
+            )
     return {
         "user_account_id": account.user_account_id,
         "display_name": account.display_name,
         "preferred_locale": account.preferred_locale,
         "permission_codes": sorted(account.permission_codes),
         "corporate_entities": entities,
+        "account_affiliations": account_affiliations,
     }
 
 
@@ -1258,7 +1288,7 @@ async def list_posts(
                         select 1 from post_summary_role role
                          where role.post_id = post.post_id
                            and (role.actor_name ilike '%' || $1 || '%'
-                                or role.responsibility ilike '%' || $1 || '%'
+                                or role.responsibility_text ilike '%' || $1 || '%'
                                 or coalesce(role.affiliated_organization_name, '') ilike '%' || $1 || '%'
                                 or (char_length($1) >= 3 and word_similarity(lower($1), lower(role.actor_name)) >= 0.45))
                     )
@@ -1348,21 +1378,21 @@ async def list_posts(
                                  'project_key', project.project_key,
                                  'project_name', project.project_name,
                                  'evidence', project.evidence_text,
-                                 'confidence', project.confidence,
+                                 'confidence', project.mention_confidence,
                                  'ontology_iri', project.ontology_iri,
                                  'ontology_label', 'Project',
                                  'extraction_method', project.extraction_method,
                                  'resolution_status', 'semantic_candidate',
                                  'provenance', 'post_project_mention.evidence_text'
                              )
-                             order by project.confidence desc, project.project_name, project.project_key
+                             order by project.mention_confidence desc, project.project_name, project.project_key
                          ) as project_evidence
                     from (
-                        select project_key, project_name, evidence_text, confidence,
+                        select project_key, project_name, evidence_text, mention_confidence,
                                ontology_iri, extraction_method
                           from post_project_mention
                          where post_id = page.post_id
-                         order by confidence desc, project_name, project_key
+                         order by mention_confidence desc, project_name, project_key
                          limit 5
                     ) project
               ) projects on true
@@ -1467,7 +1497,7 @@ async def read_post_content(
     pool: asyncpg.Pool = Depends(get_pool),
     valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
-    """Return persisted content evidence; never derive or invent buyer copy."""
+    """Return persisted content evidence; never derive or invent reader-facing copy."""
     await _load_visible_post(post_id, account, pool)
     queue_event: tuple[str, str] | None = None
     async with pool.acquire() as conn:
@@ -1475,7 +1505,7 @@ async def read_post_content(
             """
             select unit.unit_index, unit.unit_kind_code, unit.unit_label, unit.unit_text,
                    coalesce(structure.indent_level, 0) as indent_level,
-                   structure.decision_source_code, structure.confidence,
+                   structure.decision_source_code, structure.structure_confidence,
                    structure.evidence_text
               from post_content_unit unit
               left join post_content_unit_structure structure
@@ -1520,7 +1550,7 @@ async def read_post_content(
         rows = await conn.fetch(
             """
             select image.post_content_image_id, unit.unit_index, image.mime_type, image.description_status_code,
-                   image.extracted_text, image.caption,
+                   image.extracted_text, image.image_caption,
                    coalesce(
                        array_agg(tag.tag_text order by tag.tag_text)
                            filter (where tag.tag_text is not null),
@@ -1533,7 +1563,7 @@ async def read_post_content(
                 on tag.post_content_image_id = image.post_content_image_id
              where unit.post_id = $1
              group by image.post_content_image_id, unit.unit_index, image.mime_type, image.description_status_code,
-                      image.extracted_text, image.caption
+                      image.extracted_text, image.image_caption
              order by unit.unit_index
             """,
             post_id,
@@ -1542,7 +1572,7 @@ async def read_post_content(
             """
             select image.post_content_image_id, region.region_index,
                    region.x_ratio, region.y_ratio, region.width_ratio, region.height_ratio,
-                   region.description_status_code, region.extracted_text, region.caption,
+                   region.description_status_code, region.extracted_text, region.image_caption,
                    coalesce(
                        array_agg(tag.tag_text order by tag.tag_text)
                            filter (where tag.tag_text is not null),
@@ -1556,7 +1586,7 @@ async def read_post_content(
              where image.post_content_image_id = any($1::uuid[])
              group by image.post_content_image_id, region.region_index,
                       region.x_ratio, region.y_ratio, region.width_ratio, region.height_ratio,
-                      region.description_status_code, region.extracted_text, region.caption
+                      region.description_status_code, region.extracted_text, region.image_caption
              order by image.post_content_image_id, region.region_index
             """,
             [row["post_content_image_id"] for row in rows],
@@ -1578,7 +1608,7 @@ async def read_post_content(
                 "height_ratio": row["height_ratio"],
                 "status_code": row["description_status_code"],
                 "extracted_text": row["extracted_text"],
-                "caption": row["caption"],
+                "caption": row["image_caption"],
                 "tags": list(row["tags"] or []),
             }
         )
@@ -1592,7 +1622,7 @@ async def read_post_content(
                 "unit_text": row["unit_text"],
                 "indent_level": row["indent_level"],
                 "indent_source_code": row["decision_source_code"] or "unresolved",
-                "indent_confidence": float(row["confidence"] or 0),
+                "indent_confidence": float(row["structure_confidence"] or 0),
                 "indent_evidence": row["evidence_text"] or "",
             }
             for row in unit_rows
@@ -1603,7 +1633,7 @@ async def read_post_content(
                 "mime_type": row["mime_type"],
                 "status_code": row["description_status_code"],
                 "extracted_text": row["extracted_text"],
-                "caption": row["caption"],
+                "caption": row["image_caption"],
                 "tags": list(row["tags"] or []),
                 "regions": regions_by_image.get(str(row["post_content_image_id"]), []),
             }
@@ -2574,7 +2604,7 @@ class ChatRequest(BaseModel):
 
 
 class GlobalAskRequest(BaseModel):
-    """JSON body for the buyer's source-grounded Global Ask Agent."""
+    """JSON body for the reader's source-grounded Global Ask Agent."""
 
     question: str
 
@@ -2680,7 +2710,7 @@ async def ask_agent(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Answer a buyer question from authorized post and graph evidence."""
+    """Answer a reader question from authorized post and graph evidence."""
     question = request.question.strip()
     if not question:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
@@ -2742,7 +2772,7 @@ async def read_post_bookmark(
     await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "select 1 from bookmark where user_account_id = $1 and post_id = $2",
+            "select 1 from post_bookmark where user_account_id = $1 and post_id = $2",
             account.user_account_id,
             post_id,
         )
@@ -2761,7 +2791,7 @@ async def write_post_bookmark(
         if request.bookmarked:
             await conn.execute(
                 """
-                insert into bookmark (user_account_id, post_id)
+                insert into post_bookmark (user_account_id, post_id)
                 values ($1, $2)
                 on conflict (user_account_id, post_id) do nothing
                 """,
@@ -2770,7 +2800,7 @@ async def write_post_bookmark(
             )
         else:
             await conn.execute(
-                "delete from bookmark where user_account_id = $1 and post_id = $2",
+                "delete from post_bookmark where user_account_id = $1 and post_id = $2",
                 account.user_account_id,
                 post_id,
             )

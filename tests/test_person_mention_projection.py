@@ -2,7 +2,7 @@
 
 Keyman extraction and post-summary R&R are independent evidence channels. A
 replacement in either channel must remove only that channel's stale person
-mentions, then reconcile the buyer-facing Knowledge Graph from the currently
+mentions, then reconcile the reader-facing Knowledge Graph from the currently
 supported union. Orphan graph-registry rows must never become visible.
 """
 
@@ -76,6 +76,11 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
     / "0102_project_bound_summary_event.sql"
+)
+_IDENTIFIER_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0104_two_word_database_identifiers.sql"
 )
 _SEMANTIC_SEARCH_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0032_semantic_search_trigram.sql"
@@ -165,6 +170,7 @@ def projection_database() -> str:
                 cursor.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_IDENTIFIER_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(
                     """
                     insert into common_lookup_value
@@ -448,7 +454,7 @@ def test_cross_post_identity_upgrade_keeps_keyman_mention_context(
             cursor.execute(
                 """
                 insert into post_summary_role
-                    (post_id, actor_name, responsibility, actor_type_code)
+                    (post_id, actor_name, responsibility_text, actor_type_code)
                 values (%s, 'Summary Person', '검토', 'prov_person')
                 """,
                 (post_id,),

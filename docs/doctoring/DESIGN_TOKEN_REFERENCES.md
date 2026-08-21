@@ -9,7 +9,7 @@ the Storybook inventory.
 | Source | Product implication | Implemented evidence |
 |---|---|---|
 | W3C Design Tokens Format Module 2025.10 | Name color, space, type, and radius once; consume those names from repeated objects. | `frontend/src/styles/tokens.css` defines `--color-*`, `--space-*`, `--size-control-min`, `--radius-chip`, `--radius-control`, `--radius-panel`, and `--font-*`. `CitationChip`, `PopupCloseButton`, `CutoffKnownBody`, and `LineageEntityPicker` read those names through `App.css`. |
-| Storybook for React & Vite | Catalog repeated controls so a buyer can try the next click without reading `App.tsx`. | `frontend/src/components/*.stories.tsx` and `docs/storybook-inventory.md`. |
+| Storybook for React & Vite | Catalog repeated controls so a reader can try the next click without reading `App.tsx`. | `frontend/src/components/*.stories.tsx` and `docs/storybook-inventory.md`. |
 | WCAG 2.2 | Give interactive controls programmatic names and announce an asynchronous evidence failure instead of leaving a perpetual loading state. | Component interaction tests exercise the named controls; `EvidencePanel` exposes its terminal failure with `role="alert"`. This is targeted evidence, not a claim of complete WCAG conformance. |
 
 ## APA 7th references

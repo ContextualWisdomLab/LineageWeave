@@ -1,0 +1,151 @@
+.lineage-dag-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 1rem;
+  margin: 0 0 0.55rem;
+  padding: 0;
+  color: var(--color-text);
+  font-size: var(--lw-font-size-meta);
+  list-style: none;
+}
+
+.lineage-dag-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.lineage-dag-legend-node {
+  box-sizing: border-box;
+  width: 0.75rem;
+  height: 0.75rem;
+  flex: 0 0 0.75rem;
+  border: 1.5px solid var(--color-border-subtle);
+  border-radius: 50%;
+  background: var(--color-background);
+}
+
+.lineage-dag-legend-root {
+  border-color: var(--color-accent-info);
+}
+
+.lineage-dag-legend-branch {
+  border-color: var(--badge-actor-organization-text);
+  background: var(--badge-actor-organization-bg);
+}
+
+.lineage-dag-legend-current {
+  border-width: 3px;
+  border-color: var(--color-text-heading);
+}
+
+.lineage-dag-legend-direction {
+  position: relative;
+  width: 1.75rem;
+  height: 0;
+  flex: 0 0 1.75rem;
+  border-top: 1.5px solid currentColor;
+}
+
+.lineage-dag-legend-direction::after {
+  position: absolute;
+  top: -0.28rem;
+  right: -0.05rem;
+  width: 0;
+  height: 0;
+  border-top: 0.22rem solid transparent;
+  border-bottom: 0.22rem solid transparent;
+  border-left: 0.42rem solid currentColor;
+  content: "";
+}
+
+.lineage-dag-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  border-radius: var(--radius-control);
+  scrollbar-gutter: stable;
+}
+
+.lineage-dag-scroll:focus-visible {
+  outline: 2px solid var(--color-accent-info);
+  outline-offset: 2px;
+}
+
+.lineage-dag-canvas {
+  display: block;
+  max-width: none;
+  color: color-mix(in srgb, canvastext 55%, transparent);
+}
+
+.lineage-dag-arrow {
+  fill: currentColor;
+}
+
+.lineage-dag-node text.lineage-dag-node-date {
+  font-size: 9px;
+  opacity: 0.72;
+  fill: var(--text);
+}
+
+.lineage-dag-boundary {
+  margin: 0.55rem 0 0;
+  padding: 0.6rem 0.75rem;
+  border-left: 3px solid var(--color-accent-info);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+  background: var(--color-accent-info-background);
+  color: var(--color-text-heading);
+  font-size: var(--lw-font-size-meta);
+  line-height: 1.45;
+}
+
+.lineage-dag-evidence {
+  margin-top: 0.5rem;
+}
+
+.lineage-dag-evidence > summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.lineage-dag-evidence-scroll {
+  overflow-x: auto;
+}
+
+.lineage-dag-evidence-table {
+  width: 100%;
+  margin-top: 0.5rem;
+  border-collapse: collapse;
+  font-size: var(--lw-font-size-meta);
+}
+
+.lineage-dag-evidence-table th,
+.lineage-dag-evidence-table td {
+  padding: 0.45rem 0.55rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.lineage-dag-evidence-table th {
+  color: var(--text-h);
+}
+
+@media print {
+  .lineage-dag-scroll,
+  .lineage-dag-evidence-scroll {
+    overflow: visible;
+  }
+
+  .lineage-dag-canvas {
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+  }
+
+  .lineage-dag-boundary,
+  .lineage-dag-evidence {
+    break-inside: avoid;
+  }
+}

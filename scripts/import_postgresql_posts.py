@@ -3,6 +3,8 @@
 The query and column mapping are runtime inputs, so this public adapter contains
 no source-organization or source-table identifiers. It preserves raw HTML in
 ``source_post``, persists normalized content artifacts, and rebuilds lineage.
+The body may come from an explicitly mapped source column or a hash-verified
+RFC 2557 MHTML artifact beneath an operator-supplied root.
 """
 
 from __future__ import annotations
@@ -13,6 +15,7 @@ import json
 import os
 import sys
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,13 +30,16 @@ if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from backend.app.lineage_ingestion import rebuild_lineage
-from lineageweave.synthetic_seed_cleanup import cleanup_synthetic_seed
 from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_persistence import persist_post_content
-from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
-
+from lineageweave.post_structure import (
+    ContextualOrchestratorPostStructureClient,
+    NullPostStructureClient,
+)
+from lineageweave.source_artifacts import SourceArtifactError, read_mhtml_html
+from lineageweave.synthetic_seed_cleanup import cleanup_synthetic_seed
 
 SOURCE_NAMESPACE = uuid.UUID("b6e4b1d6-5fd0-4ca1-92b0-8f7a4e2df83e")
 
@@ -65,7 +71,9 @@ class ColumnMapping:
     record_key: str
     post_id: str | None
     title: str
-    body: str
+    body: str | None
+    body_artifact_path: str | None
+    body_artifact_sha256: str | None
     created_at: str
     updated_at: str | None
     voc_type: str | None
@@ -104,7 +112,17 @@ def _parser() -> argparse.ArgumentParser:
         help="optional source UUID column for post_id; otherwise derive it from record key",
     )
     parser.add_argument("--title-column", required=True)
-    parser.add_argument("--body-column", required=True)
+    parser.add_argument(
+        "--body-column",
+        help="source body column; mutually exclusive with the MHTML artifact mapping",
+    )
+    parser.add_argument("--body-artifact-path-column")
+    parser.add_argument("--body-artifact-sha256-column")
+    parser.add_argument(
+        "--artifact-root",
+        type=Path,
+        help="operator-local root containing the explicitly mapped MHTML artifacts",
+    )
     parser.add_argument("--created-at-column", required=True)
     parser.add_argument("--updated-at-column")
     parser.add_argument("--voc-type-column")
@@ -223,13 +241,48 @@ def _source_code_matches(
 def _validate_source_mapping(
     sales_pool_column: str | None,
     process_unit_column: str | None,
+    body_column: str | None = None,
+    body_artifact_path_column: str | None = None,
+    body_artifact_sha256_column: str | None = None,
+    artifact_root: Path | None = None,
 ) -> None:
-    """Reject the common PU-to-sales-pool mapping error at the import boundary."""
+    """Reject unsafe or ambiguous source mappings at the import boundary."""
     if sales_pool_column and process_unit_column and sales_pool_column == process_unit_column:
         raise ValueError(
             "source sales pool and PU/business-unit columns must be distinct; "
             "PU is source_process_unit_code, not source_sales_pool_code"
         )
+    has_body_column = bool(body_column)
+    has_artifact_mapping = bool(body_artifact_path_column or body_artifact_sha256_column)
+    if has_body_column == has_artifact_mapping:
+        raise ValueError("map exactly one source body column or MHTML artifact body mapping")
+    if has_artifact_mapping and (
+        not body_artifact_path_column or not body_artifact_sha256_column or artifact_root is None
+    ):
+        raise ValueError(
+            "MHTML artifact body mapping requires path column, SHA-256 column, and artifact root"
+        )
+
+
+def _source_body_resolver(
+    mapping: ColumnMapping,
+    artifact_root: Path | None,
+) -> Callable[[Any, int], str]:
+    """Build the one explicit body resolver used by preflight and import."""
+    if mapping.body is not None:
+        return lambda row, _row_number: str(_value(row, mapping.body) or "")
+    if artifact_root is None or mapping.body_artifact_path is None or mapping.body_artifact_sha256 is None:
+        raise ValueError("source body mapping is incomplete")
+
+    def resolve(row: Any, row_number: int) -> str:
+        source_path = str(_value(row, mapping.body_artifact_path) or "")
+        expected_sha256 = str(_value(row, mapping.body_artifact_sha256) or "")
+        try:
+            return read_mhtml_html(artifact_root, source_path, expected_sha256)
+        except (KeyError, SourceArtifactError) as exc:
+            raise ValueError(f"source body artifact failed at source row {row_number}") from exc
+
+    return resolve
 
 
 def _validate_publication_state(
@@ -251,6 +304,7 @@ def _validate_source_rows(
     mapping: ColumnMapping,
     excluded_draft_values: list[str],
     excluded_deleted_values: list[str],
+    body_resolver: Callable[[Any, int], str] | None = None,
 ) -> None:
     """Reject incomplete source evidence before the target is mutated."""
     _validate_publication_state(rows, mapping, excluded_draft_values)
@@ -280,7 +334,11 @@ def _validate_source_rows(
                     f"duplicate source post id at source rows {previous_row} and {row_number}"
                 )
             seen_post_ids[post_id] = row_number
-        body = str(_value(row, mapping.body) or "")
+        body = (
+            body_resolver(row, row_number)
+            if body_resolver is not None
+            else str(_value(row, mapping.body) or "")
+        )
         if not body.strip():
             raise ValueError(f"source post body cannot be empty at source row {row_number}")
         voc_type_column = getattr(mapping, "voc_type", None)
@@ -349,6 +407,8 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
         post_id=args.post_id_column,
         title=args.title_column,
         body=args.body_column,
+        body_artifact_path=args.body_artifact_path_column,
+        body_artifact_sha256=args.body_artifact_sha256_column,
         created_at=args.created_at_column,
         updated_at=args.updated_at_column,
         voc_type=args.voc_type_column,
@@ -372,7 +432,15 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
         thread_group=args.thread_group_column,
         secondary_group=args.secondary_group_column,
     )
-    _validate_source_mapping(mapping.sales_pool, mapping.source_business_unit)
+    _validate_source_mapping(
+        mapping.sales_pool,
+        mapping.source_business_unit,
+        mapping.body,
+        mapping.body_artifact_path,
+        mapping.body_artifact_sha256,
+        args.artifact_root,
+    )
+    body_resolver = _source_body_resolver(mapping, args.artifact_root)
     query = args.query_file.read_text(encoding="utf-8")
     source = await asyncpg.connect(args.source_dsn)
     target = await asyncpg.connect(args.target_dsn)
@@ -380,11 +448,19 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
     skipped = 0
     try:
         rows = await source.fetch(query)
+        resolved_bodies: dict[int, str] = {}
+
+        def resolve_body(row: Any, row_number: int) -> str:
+            body = body_resolver(row, row_number)
+            resolved_bodies[row_number] = body
+            return body
+
         _validate_source_rows(
             rows,
             mapping,
             args.exclude_draft_value,
             args.exclude_deleted_value,
+            body_resolver=resolve_body,
         )
         account_id, corporate_id, process_unit_id = await _ensure_scope(target, args)
         vision_client = orchestrator_vision_client(
@@ -403,7 +479,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             if orchestrator_base_url and orchestrator_api_key
             else NullPostStructureClient()
         )
-        for row in rows:
+        for row_number, row in enumerate(rows, start=1):
             if _source_code_matches(row, mapping.draft, args.exclude_draft_value) or _source_code_matches(
                 row, mapping.deleted, args.exclude_deleted_value
             ):
@@ -414,7 +490,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             updated_at = _timestamp(_value(row, mapping.updated_at, created_at))
             post_id = _source_post_id(row, mapping, args.source_system_code, record_key)
             title = str(_value(row, mapping.title, "") or "")
-            body = str(_value(row, mapping.body, "") or "")
+            body = resolved_bodies[row_number]
             voc_type_code = _normalize_voc_type(
                 _value(row, mapping.voc_type, "voc"),
                 mapped=mapping.voc_type is not None,
