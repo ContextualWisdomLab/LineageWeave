@@ -34,6 +34,9 @@ SOURCE_CONTEXT_COLUMNS = (
     "source_process_unit_name",
     "source_sales_pool_code",
     "source_sales_pool_name",
+    "source_order_pool_code",
+    "source_sales_order_code",
+    "source_inspection_point_code",
     "source_customer_code",
     "source_customer_name",
     "source_project_code",
@@ -43,13 +46,19 @@ SOURCE_CONTEXT_COLUMNS = (
 
 def source_context_present_sql(alias: str) -> str:
     return " or ".join(
-        f"nullif(btrim({alias}.{column}), '') is not null" for column in SOURCE_CONTEXT_COLUMNS
+        [
+            *(f"nullif(btrim({alias}.{column}), '') is not null" for column in SOURCE_CONTEXT_COLUMNS),
+            f"{alias}.source_sales_order_item_number is not null",
+        ]
     )
 
 
 def source_context_missing_sql(alias: str) -> str:
     return " and ".join(
-        f"nullif(btrim({alias}.{column}), '') is null" for column in SOURCE_CONTEXT_COLUMNS
+        [
+            *(f"nullif(btrim({alias}.{column}), '') is null" for column in SOURCE_CONTEXT_COLUMNS),
+            f"{alias}.source_sales_order_item_number is null",
+        ]
     )
 
 

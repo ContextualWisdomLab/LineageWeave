@@ -35,6 +35,7 @@ from lineageweave.knowledge_graph import (
     select_related_nodes,
 )
 from lineageweave.ontology import ontology_annotations, semantic_predicate_annotations
+from lineageweave.source_lineage_hints import source_lineage_hints
 
 _GRAPH_PROJECTION_LOCK_KEY = "lineageweave:knowledge_graph_projection"
 
@@ -60,6 +61,7 @@ _SEMANTIC_NODE_CLASS_IRIS = {
     "quality_assessment": "https://contextualwisdomlab.github.io/lineageweave/ontology#QualityAssessment",
     "risk_statement": "https://contextualwisdomlab.github.io/lineageweave/ontology#RiskStatement",
     "organization_context": "https://contextualwisdomlab.github.io/lineageweave/ontology#OrganizationContext",
+    "source_observation": "https://contextualwisdomlab.github.io/lineageweave/ontology#Observation",
 }
 
 
@@ -669,6 +671,81 @@ async def post_knowledge_graph(
                 "evidence_post_ids": [post_id],
             }
         )
+
+    source_row = await conn.fetchrow(
+        """
+        select source_customer_code, source_order_pool_code,
+               source_sales_order_code, source_sales_order_item_number,
+               source_stage_code, source_detail_state_code,
+               source_inspection_point_code, source_deleted_flag
+          from source_post
+         where post_id = $1
+        """,
+        post_id,
+    )
+    if source_row is not None:
+        source_values = dict(source_row)
+        observed_source_fields = any(
+            value is not None and (not isinstance(value, str) or bool(value.strip()))
+            for value in source_values.values()
+        )
+        if observed_source_fields:
+            source_hints = source_lineage_hints(
+                customer_code=source_row["source_customer_code"],
+                order_pool_code=source_row["source_order_pool_code"],
+                sales_order_code=source_row["source_sales_order_code"],
+                sales_order_item_number=source_row["source_sales_order_item_number"],
+                stage_code=source_row["source_stage_code"],
+                detail_state_code=source_row["source_detail_state_code"],
+                inspection_point_code=source_row["source_inspection_point_code"],
+                deleted_flag=source_row["source_deleted_flag"],
+            )
+            source_observations = [
+                (
+                    "commercial_context",
+                    f"Commercial context: {source_hints['commercial_context_code']}",
+                    "combination="
+                    f"{source_hints['combination_code']}; "
+                    f"present_fields={','.join(source_hints['present_fields']) or 'none'}; "
+                    "inference=inferred; provenance=source_post.field_presence",
+                ),
+                (
+                    "lifecycle_vector",
+                    f"Lifecycle vector: {source_hints['lifecycle_vector']}",
+                    "raw_codes_only; provenance=source_post.lifecycle_fields",
+                ),
+            ]
+            predicate = semantic_predicate_annotations("prov_was_derived_from")
+            for kind, label, evidence_text in source_observations:
+                digest = hashlib.sha256(
+                    f"{post_id}\0{kind}\0{label}".encode()
+                ).hexdigest()[:16]
+                observation_key = f"source-observation:{post_id}:{digest}"
+                nodes.setdefault(
+                    observation_key,
+                    {
+                        "id": observation_key,
+                        "node_type_code": "semantic_source_observation",
+                        "node_id": observation_key,
+                        "label": label,
+                        "ontology_iri": _SEMANTIC_NODE_CLASS_IRIS["source_observation"],
+                        "ontology_label": "Observation",
+                        "is_focus": False,
+                        "is_evidence_text_node": True,
+                    },
+                )
+                edges.append(
+                    {
+                        "source": observation_key,
+                        "target": node_key(NODE_POST, post_id),
+                        "edge_type_code": "prov_was_derived_from",
+                        "ontology_iri": predicate.get("ontology_iri"),
+                        "ontology_label": predicate.get("ontology_label", "Was derived from"),
+                        "confidence": 1.0,
+                        "evidence_text": evidence_text,
+                        "evidence_post_ids": [post_id],
+                    }
+                )
     return {
         "post_id": post_id,
         "nodes": list(nodes.values()),

@@ -87,6 +87,7 @@ from lineageweave.post_structure import ContextualOrchestratorPostStructureClien
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
 from lineageweave.semantic_hints import customer_hint_trust, format_semantic_hints
+from lineageweave.source_lineage_hints import source_lineage_hints
 from lineageweave.ontology import LW
 from lineageweave.rankweave_client import build_rankweave_client
 
@@ -488,12 +489,26 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
         "source_process_unit_catalog_name": post.get("source_process_unit_catalog_name"),
         "source_sales_pool_code": post.get("source_sales_pool_code"),
         "source_sales_pool_name": post.get("source_sales_pool_name"),
+        "source_order_pool_code": post.get("source_order_pool_code"),
+        "source_sales_order_code": post.get("source_sales_order_code"),
+        "source_sales_order_item_number": post.get("source_sales_order_item_number"),
+        "source_inspection_point_code": post.get("source_inspection_point_code"),
         "source_customer_code": post.get("source_customer_code"),
         "source_customer_name": post.get("source_customer_name"),
         "source_project_code": post.get("source_project_code"),
         "source_project_name": post.get("source_project_name"),
         "source_system_code": post.get("source_system_code"),
         "source_record_key": post.get("source_record_key"),
+        "source_lineage_hints": source_lineage_hints(
+            customer_code=post.get("source_customer_code"),
+            order_pool_code=post.get("source_order_pool_code"),
+            sales_order_code=post.get("source_sales_order_code"),
+            sales_order_item_number=post.get("source_sales_order_item_number"),
+            stage_code=post.get("source_stage_code"),
+            detail_state_code=post.get("source_detail_state_code"),
+            inspection_point_code=post.get("source_inspection_point_code"),
+            deleted_flag=post.get("source_deleted_flag"),
+        ),
         "post_body_excerpt": post.get("post_body_excerpt"),
         "post_body_truncated": post.get("post_body_truncated", False),
         "project_evidence": project_evidence,
@@ -1323,6 +1338,8 @@ async def list_posts(
                        post.source_company_code, post.source_company_name,
                        post.source_process_unit_code, post.source_process_unit_name,
                        post.source_sales_pool_code, post.source_sales_pool_name,
+                       post.source_order_pool_code, post.source_sales_order_code,
+                       post.source_sales_order_item_number, post.source_inspection_point_code,
                        post.source_customer_code, post.source_customer_name,
                        post.source_project_code, post.source_project_name,
                        post.source_system_code,
@@ -1356,6 +1373,10 @@ async def list_posts(
                         post.source_process_unit_name,
                         post.source_sales_pool_code,
                         post.source_sales_pool_name,
+                        post.source_order_pool_code,
+                        post.source_sales_order_code,
+                        post.source_sales_order_item_number,
+                        post.source_inspection_point_code,
                         post.source_customer_code,
                         post.source_customer_name,
                         post.source_project_code,
@@ -1386,6 +1407,10 @@ async def list_posts(
                                     post.source_process_unit_name,
                                     post.source_sales_pool_code,
                                     post.source_sales_pool_name,
+                                    post.source_order_pool_code,
+                                    post.source_sales_order_code,
+                                    post.source_sales_order_item_number,
+                                    post.source_inspection_point_code,
                                     post.source_customer_code,
                                     post.source_customer_name,
                                     post.source_project_code,
@@ -1634,6 +1659,8 @@ async def read_post(
                 "source_process_unit_code, source_process_unit_name, "
                 "source_process_unit.process_unit_name as source_process_unit_catalog_name, "
                 "source_sales_pool_code, source_sales_pool_name, "
+                "source_order_pool_code, source_sales_order_code, "
+                "source_sales_order_item_number, source_inspection_point_code, "
                 "source_customer_code, source_customer_name, source_project_code, source_project_name, "
                 "source_system_code, source_record_key, author_account_id, "
                 "source_post.corporate_entity_id, source_post.created_at "
@@ -1873,6 +1900,13 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
                source_process_unit.process_unit_name as source_process_unit_catalog_name,
                post.source_sales_pool_code,
                post.source_sales_pool_name,
+               post.source_order_pool_code,
+               post.source_sales_order_code,
+               post.source_sales_order_item_number,
+               post.source_inspection_point_code,
+               post.source_stage_code,
+               post.source_detail_state_code,
+               post.source_deleted_flag,
                post.source_customer_code,
                post.source_customer_name,
                source_customer.entity_name as source_customer_catalog_name,
@@ -1912,6 +1946,13 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
             "source_process_unit_name",
             "source_sales_pool_code",
             "source_sales_pool_name",
+            "source_order_pool_code",
+            "source_sales_order_code",
+            "source_sales_order_item_number",
+            "source_inspection_point_code",
+            "source_stage_code",
+            "source_detail_state_code",
+            "source_deleted_flag",
             "source_customer_code",
             "source_customer_name",
             "source_project_code",
@@ -1944,6 +1985,13 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
         source_process_unit_catalog_name=first["source_process_unit_catalog_name"],
         source_sales_pool_code=first["source_sales_pool_code"],
         source_sales_pool_name=first["source_sales_pool_name"],
+        source_order_pool_code=first["source_order_pool_code"],
+        source_sales_order_code=first["source_sales_order_code"],
+        source_sales_order_item_number=first["source_sales_order_item_number"],
+        source_inspection_point_code=first["source_inspection_point_code"],
+        source_stage_code=first["source_stage_code"],
+        source_detail_state_code=first["source_detail_state_code"],
+        source_deleted_flag=first["source_deleted_flag"],
         source_customer_code=first["source_customer_code"],
         source_customer_name=first["source_customer_name"],
         source_customer_catalog_name=first["source_customer_catalog_name"],

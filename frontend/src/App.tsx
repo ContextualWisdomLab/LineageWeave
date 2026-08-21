@@ -108,6 +108,7 @@ import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
+import { sourceLineageContextLabel, sourceLineageFieldLabel } from "./sourceLineageHints";
 import {
   isSupportedLocale,
   LOCALE_LABELS,
@@ -2559,6 +2560,10 @@ function PostDetailPopup({
               post.source_process_unit_catalog_name ||
               post.source_sales_pool_code ||
               post.source_sales_pool_name ||
+              post.source_order_pool_code ||
+              post.source_sales_order_code ||
+              (post.source_sales_order_item_number !== null && post.source_sales_order_item_number !== undefined) ||
+              post.source_inspection_point_code ||
               post.source_customer_code ||
               post.source_customer_name ||
               post.source_project_code ||
@@ -2655,6 +2660,30 @@ function PostDetailPopup({
                       <dd>{post.source_sales_pool_name}</dd>
                     </>
                   ) : null}
+                  {post.source_order_pool_code ? (
+                    <>
+                      <dt>{t("Source order pool")}</dt>
+                      <dd>{post.source_order_pool_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_sales_order_code ? (
+                    <>
+                      <dt>{t("Source sales order")}</dt>
+                      <dd>{post.source_sales_order_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_sales_order_item_number !== null && post.source_sales_order_item_number !== undefined ? (
+                    <>
+                      <dt>{t("Source sales order item")}</dt>
+                      <dd>{post.source_sales_order_item_number}</dd>
+                    </>
+                  ) : null}
+                  {post.source_inspection_point_code ? (
+                    <>
+                      <dt>{t("Source inspection point")}</dt>
+                      <dd>{post.source_inspection_point_code}</dd>
+                    </>
+                  ) : null}
                   {post.source_customer_code ? (
                     <>
                       <dt>{t("Source customer code")}</dt>
@@ -2693,6 +2722,22 @@ function PostDetailPopup({
                   ) : null}
                 </dl>
                 <p className="post-meta">{t("Raw source codes are shown; no state label was inferred.")}</p>
+                {post.source_lineage_hints ? (
+                  <div className="source-lineage-hint" aria-label={t("Source lineage combination")}>
+                    <h4>{t("Source lineage combination")}</h4>
+                    <p>
+                      <strong>{sourceLineageContextLabel(post.source_lineage_hints)}</strong>{" "}
+                      <span className="post-badge">{post.source_lineage_hints.combination_code}</span>{" "}
+                      <span className="post-meta">{t("Inferred from field presence")}</span>
+                    </p>
+                    <p className="post-meta">
+                      {t("Present fields")}: {post.source_lineage_hints.present_fields.map(sourceLineageFieldLabel).join(", ") || t("None")}
+                    </p>
+                    <p className="post-meta">
+                      {t("Lifecycle vector")}: {post.source_lineage_hints.lifecycle_vector} · {t("Raw codes only")}
+                    </p>
+                  </div>
+                ) : null}
               </section>
             )}
             </div>
@@ -4595,6 +4640,11 @@ function PostList({
                         {post.source_project_name ? (
                           <span className="post-meta">
                             {t("Source project name")}: {post.source_project_name}
+                          </span>
+                        ) : null}
+                        {post.source_lineage_hints ? (
+                          <span className="post-meta">
+                            {t("Source context")}: {sourceLineageContextLabel(post.source_lineage_hints)} · {post.source_lineage_hints.combination_code}
                           </span>
                         ) : null}
                         {post.project_evidence && post.project_evidence.length > 0 ? (
