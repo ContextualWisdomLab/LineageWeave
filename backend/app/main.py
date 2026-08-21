@@ -1112,7 +1112,7 @@ async def rebuild_lineage_graph(
     _require_post_admin(account)
     async with pool.acquire() as conn:
         async with conn.transaction():
-            edges = await rebuild_lineage(conn)
+            edges = await rebuild_lineage(conn, llm=_adjudication_client())
     return {"edge_count": len(edges)}
 
 

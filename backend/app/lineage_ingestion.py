@@ -17,6 +17,7 @@ from typing import Any, Mapping
 import asyncpg
 
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from lineageweave.adjudication_client import AdjudicationClient
 from lineageweave.lineage_persistence import (
     LOOKUP_CODE_TO_SIGNAL,
     lineage_edge_specs,
@@ -114,14 +115,23 @@ async def persist_lineage_edges(conn: asyncpg.Connection, edges: list[Edge]) -> 
         )
 
 
-async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
-    """Reconstruct lineage for every ``source_post`` and persist the edges."""
+async def rebuild_lineage(
+    conn: asyncpg.Connection,
+    *,
+    llm: AdjudicationClient | None = None,
+) -> list[Edge]:
+    """Reconstruct lineage for every ``source_post`` and persist the edges.
+
+    A configured contextual-orchestrator client is passed through so the
+    optional LLM channel is recorded when available; ``None`` preserves the
+    fail-closed three-channel rebuild.
+    """
     rows = await conn.fetch(
         "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
         "process_unit_id, thread_group_key, secondary_grouping_key "
         f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
     )
-    edges = lineage_edge_specs(records_from_source_posts(rows))
+    edges = lineage_edge_specs(records_from_source_posts(rows), llm=llm)
     await persist_lineage_edges(conn, edges)
     return edges
 
@@ -163,7 +173,8 @@ async def visible_lineage_graph(
         "from event_lineage_rebuild"
     )
     weight_rows = await conn.fetch(
-        "select signal_code, signal_weight from event_lineage_rebuild_channel"
+        "select signal_code, signal_weight from event_lineage_rebuild_channel "
+        "order by signal_code"
     )
 
     if focus_post_id is None:

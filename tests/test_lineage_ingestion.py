@@ -6,6 +6,7 @@ import asyncio
 from datetime import datetime, timezone
 
 from backend.app.lineage_ingestion import (
+    rebuild_lineage,
     persist_lineage_edges,
     reconstruct_group_key,
     records_from_source_posts,
@@ -32,6 +33,30 @@ def test_records_use_persisted_thread_keys_not_process_unit_or_voc_type() -> Non
     assert records[0].group_key == "A-100"
     assert records[0].secondary_key == "proj-alpha"
     assert records[0].occurred_at.tzinfo is None
+
+
+def test_rebuild_passes_the_configured_adjudication_client(monkeypatch) -> None:
+    class FakeConnection:
+        async def fetch(self, _query: str, *_args):
+            return []
+
+    client = object()
+    captured: dict[str, object] = {}
+
+    def fake_lineage_edge_specs(_records, *, llm=None):
+        captured["llm"] = llm
+        return []
+
+    async def fake_persist_lineage_edges(_conn, _edges):
+        return None
+
+    import backend.app.lineage_ingestion as ingestion
+
+    monkeypatch.setattr(ingestion, "lineage_edge_specs", fake_lineage_edge_specs)
+    monkeypatch.setattr(ingestion, "persist_lineage_edges", fake_persist_lineage_edges)
+    asyncio.run(rebuild_lineage(FakeConnection(), llm=client))
+
+    assert captured["llm"] is client
 
 
 def test_records_fall_back_to_corporate_entity_when_thread_keys_are_empty() -> None:
