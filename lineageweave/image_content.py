@@ -84,6 +84,8 @@ def regions_cover_image(regions: tuple[ImageRegion, ...] | list[ImageRegion]) ->
     """
     if not regions:
         return False
+    if len(regions) == 1 and regions[0] == ImageRegion(0.0, 0.0, 1.0, 1.0):
+        return False
     sample_count = 32
     points = range(sample_count + 1)
     return all(
@@ -180,7 +182,9 @@ _RESPONSE_FORMAT = (
     "If the image contains a table, preserve its row/column structure: one row "
     "per line, with ' | ' between that row's cell values, in reading order -- "
     "never flatten a table into an unstructured word list.>\n"
-    "CAPTION: <one sentence describing what the image shows>\n"
+    "CAPTION: <2-4 concise, evidence-grounded sentences describing the visible layout, "
+    "objects, relationships, directions, measurements, and labels; do not guess "
+    "anything that is not visible>\n"
     "TAGS: <comma-separated short tags for the main objects/subjects>"
 )
 _REGION_RESPONSE_FORMAT = (
@@ -257,9 +261,7 @@ def _parse_description(content: str) -> ImageDescription:
             fields["TEXT"].append(_strip_outer_markdown_emphasis(line))
 
     if not fields["TEXT"] and not fields["CAPTION"]:
-        raise ImageDescriptionParseError(
-            f"vision response had neither TEXT nor CAPTION content: {content!r}"
-        )
+        raise ImageDescriptionParseError("vision response had no usable TEXT or CAPTION content")
 
     extracted_text = "\n".join(fields["TEXT"]).strip()
     if extracted_text.upper() == "NONE":

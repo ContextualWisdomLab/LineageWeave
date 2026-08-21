@@ -1,4 +1,4 @@
-# Product, technical, and gap baseline
+# Product & Technical Gap Baseline
 
 **Snapshot:** 2026-08-21 (Asia/Seoul)
 **Protected-main baseline:** `origin/main`; this document does not claim the active PR is shipped.
@@ -9,9 +9,20 @@ explicit WAI-ARIA ownership; final-head hosted Checks and independent approval r
 requirements, technical contracts, implementation evidence, and active PRs.
 An active PR is proposed work, not shipped behavior.
 
-## PRD
+## 2. LLM Extraction & Knowledge Graph Gaps
+- **Multiple Project Extraction**: (Resolved) LLM prompt updated to request key_events as objects with project_name, separating events correctly.
+- **5W1H Missing**: (Resolved) LLM prompt updated to explicitly request 5W1H evidence items in the JSON output array.
+- **R&R and Keyman Missing**: (Resolved) LLM prompt updated to explicitly instruct using actual stated names rather than collective titles.
+- **Entity Resolution / Searxng**: Abbreviations like "한전" and "한국전력" are not mapped properly using Searxng and KG corroboration.
+- **Meso-level Team Mapping**: (Resolved) Checked extraction logic; `team` mapping logic is present and correct, but LLM needed better explicit instruction which is covered by R&R resolution.
+- **Base64 Image Omni-modal**: Current text-only embedding fails on images. Omni-modal LLM processing is required for images to capture layout, font size, colors, and spatial meaning.
 
-### Problem and outcome
+## 3. General Architecture Gaps
+- **DB Architecture**: Ensure PostgreSQL is strictly used (no file DBs), 3rd normal form is maintained, and Hot Partitions are handled. DB locks must be managed (or use read/write replicas).
+- **Zotero Integration**: Papers and standards referenced by TEPP must be synced via Local Zotero API (http://localhost:23119/api/) and cited using APA 7th edition in docstrings.
+- **Testing**: We need actual testing of Psychometrics (Fast-MLSIRM parameter calibration, RMSE of estimates, Fixed-Item Parameter Calibration, CAT) against synthetic/demo data.
+- **Security & Compliance**: PII masking cannot break the system. Need SOC 2 and CSAP compliance alternatives to blind PII masking.
+- **LLM Orchestration**: Ensure ALL LLM calls route through `contextual-orchestrator` utilizing API keys (BYTEZ, NVIDIA, OPENROUTER, OPENAI) with auto model discovery and optimal reasoning effort allocation (Fugu/Conductor/TRINITY research).
 
 Buyers need to turn scattered, timestamped records into reviewable branching
 histories without confusing a plausible relation with a proven fact. The
@@ -65,7 +76,7 @@ claims that an unmerged PR or historical runtime observation is live behavior.
 | FR-09 | Period reports use real fast-mlsirm results; missing cells remain missing and leftover pairs are residual-derived and navigable. | ADR 0003, 0034-0035, 0048-0050 | Historical authenticated report rebuilds; report tests and schema |
 | FR-10 | Standard provenance uses normalized PROV-O relations; qualified influence implies its unqualified relation and KG edges remain a navigation projection. | ADR 0011, 0065 | PROV-O implementation matrices, ontology, CI contract |
 | FR-11 | Post summaries expose evidence-bearing events and R&R. Requester/processor actions are nullable and may only name actors already bound to the same post summary. | ADR 0052, ADR 0102 | Commit `15e1a378` is on PR #258 and the schema exists locally; the current database has zero populated action rows, so buyer-data acceptance remains unproven |
-| FR-12 | A hierarchy-enrichment timeout leaves the source-grounded summary readable and the actor unbound; it never creates a guessed catalog identity. | ADR 0104, ADR 0010, ADR 0026 | Commit `1c260f20` contains the boundary, ADR, and focused test; independent review, protected-main merge, and fresh runtime evidence remain pending |
+| FR-12 | A hierarchy-enrichment timeout leaves the source-grounded summary readable and the actor unbound; it never creates a guessed catalog identity. | ADR 0126, ADR 0010, ADR 0026 | Commit `1c260f20` contains the boundary, ADR, and focused test; independent review, protected-main merge, and fresh runtime evidence remain pending |
 | FR-13 | Customer Master projects authorized corporate entities as a Group → Company → Plant tree. Real organization containment uses W3C ORG while Group/Company/Plant remain separate SKOS level concepts. Missing-parent, self-parent, and cyclic edges remain visible as unresolved roots; the UI owns nested `group` elements from their parent `treeitem`, supports Arrow/Home/End and Enter/Space operation, and opens source-backed evidence outside the tree. | ADR 0124, ADR 0004, ADR 0010 | Ontology/SHACL interoperability tests, `customerMasterTree.ts`, `CustomerMasterTree.tsx`, component tests, Storybook, and code commit `21074cf80cbfab3001bf18b6e1a618f75f4bed24` |
 
 ## TRD
@@ -227,7 +238,7 @@ the exact-head disposition.
 | P1 | Requirements were implicit across ADRs and architecture phases | No prior PRD/TRD/requirement traceability baseline existed | Keep FR/NFR IDs in this document linked from ADR index; require new product PRs to name affected IDs and runtime evidence |
 | P1 | Active PR topology obscures release truth | 8 blocked, 8 unstable, and 2 dirty; many bases are other open branches | Publish a dependency order, retire obsolete/duplicate branches, and avoid version claims until their base chain reaches main |
 | P1 | ADR 0102 schema exists but current data does not exercise it | Commit `15e1a378` is on PR #258 and the table exists, but 95 summaries yield zero requester/processor action rows | Regenerate an authorized bounded sample, report aggregate accepted/dropped/absent counts, verify source evidence and actor FKs, then exercise the buyer popup without exposing record content |
-| P1 | ADR 0104 is active-PR behavior but not protected-main behavior | Commit `1c260f20` contains the corrected ADR link, boundary, and focused tests; independent review and protected-main merge remain pending | Re-audit the exact head, obtain independent approval, pass required checks, merge normally, and collect fresh runtime evidence |
+| P1 | ADR 0126 is active-PR behavior but not protected-main behavior | Commit `1c260f20` contains the corrected ADR link, boundary, and focused tests; independent review and protected-main merge remain pending | Re-audit the exact head, obtain independent approval, pass required checks, merge normally, and collect fresh runtime evidence |
 | P1 | ADR status vocabulary is inconsistent and sometimes stale | Several ADRs say “Accepted on this active PR; not protected-main truth” even after branch evolution | Add a mechanical ADR status/link audit that distinguishes Proposed, Accepted-on-PR, Accepted-on-main, and Superseded |
 | P2 | ADR numbering skips 0031 and 0093-0097 while file 0092 titles itself ADR 0031 | File identity and displayed identity differ | Correct the 0092 title or document an intentional alias; reserve or explain skipped numbers in the index |
 | P2 | Product measures lack explicit targets | Research supports evidence boundaries but not universal model-quality thresholds | Define targets only from an approved evaluation protocol and authorized labeled aggregate dataset; do not invent accuracy goals |
@@ -248,3 +259,5 @@ ADRs remain normative. This document is the product/technical traceability
 projection: update the affected FR/NFR row and Gap closure evidence when an ADR
 or PR changes product behavior. Never turn a PR title, green unit test, or old
 runtime note into a shipped/live claim.
+
+*This document is continuously updated by the hourly automated agent loop.*
