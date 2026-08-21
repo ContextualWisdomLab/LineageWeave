@@ -81,7 +81,7 @@ STATUS_UNCORROBORATED = "verify_uncorroborated"
 def _contains_org_token(token: str, haystack: str) -> bool:
     """Match one organization token without breaking Korean particle syntax."""
     if re.search(r"[가-힣]", token):
-        pattern = rf"(?<!\w){re.escape(token)}(?:{_HANGUL_PARTICLE})?(?!\w)"
+        pattern = rf"(?<!\w){re.escape(token)}(?:{_HANGUL_PARTICLE})*(?!\w)"
     else:
         pattern = rf"(?<!\w){re.escape(token)}(?!\w)"
     return re.search(pattern, haystack) is not None

@@ -251,6 +251,24 @@ def test_hangul_org_name_with_attached_particle_is_corroboration(particle: str) 
     )
 
 
+@pytest.mark.parametrize("particles", ["에서는", "으로는", "까지도"])
+def test_hangul_org_name_with_stacked_particles_is_corroboration(
+    particles: str,
+) -> None:
+    """Stacked Korean particles after a complete name remain bounded evidence."""
+    assert (
+        corroborating_evidence_url(
+            "한빛그리드",
+            {
+                "url": "https://news.example/item",
+                "title": "News",
+                "content": f"한빛그리드{particles} 발표했다.",
+            },
+        )
+        == "https://news.example/item"
+    )
+
+
 def test_hangul_org_name_inside_a_larger_word_is_not_corroboration() -> None:
     """A company token must not match an unrelated longer Hangul word."""
     assert (
