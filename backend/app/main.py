@@ -2515,14 +2515,29 @@ async def read_post_summary(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
                 ) from exc
-            payload = await persist_post_summary(
-                conn,
-                post_id,
-                summary,
-                post_body=normalized_body,
-                hierarchy_inference_client=_corporate_hierarchy_inference_client(),
-                verification_client=_relation_verification_client(),
-            )
+            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                if stale is not None:
+                    return stale
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
+                ) from exc
+            try:
+                payload = await persist_post_summary(
+                    conn,
+                    post_id,
+                    summary,
+                    post_body=normalized_body,
+                    hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+                    verification_client=_relation_verification_client(),
+                )
+            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                if stale is not None:
+                    return stale
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                     "Post summary is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                 ) from exc
         content_complete = await post_content_is_complete(
             conn,
             post_id,
