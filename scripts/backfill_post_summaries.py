@@ -166,12 +166,16 @@ async def _load_posts(
                and coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'
                and not (
                    (
-                       nullif(btrim(post.source_author_code), '') is null
+                       nullif(btrim(post.source_system_code), '') is null
+                       and nullif(btrim(post.source_record_key), '') is null
+                       and nullif(btrim(post.source_author_code), '') is null
                        and nullif(btrim(post.source_author_name), '') is null
                        and nullif(btrim(post.source_company_code), '') is null
                        and nullif(btrim(post.source_company_name), '') is null
                        and nullif(btrim(post.source_process_unit_code), '') is null
                        and nullif(btrim(post.source_process_unit_name), '') is null
+                       and nullif(btrim(post.source_stage_code), '') is null
+                       and nullif(btrim(post.source_detail_state_code), '') is null
                        and nullif(btrim(post.source_sales_pool_code), '') is null
                        and nullif(btrim(post.source_sales_pool_name), '') is null
                        and nullif(btrim(post.source_order_pool_code), '') is null
@@ -187,12 +191,16 @@ async def _load_posts(
                        select 1
                          from source_post real_post
                         where (
-                            nullif(btrim(real_post.source_author_code), '') is not null
+                            nullif(btrim(real_post.source_system_code), '') is not null
+                            or nullif(btrim(real_post.source_record_key), '') is not null
+                            or nullif(btrim(real_post.source_author_code), '') is not null
                             or nullif(btrim(real_post.source_author_name), '') is not null
                             or nullif(btrim(real_post.source_company_code), '') is not null
                             or nullif(btrim(real_post.source_company_name), '') is not null
                             or nullif(btrim(real_post.source_process_unit_code), '') is not null
                             or nullif(btrim(real_post.source_process_unit_name), '') is not null
+                            or nullif(btrim(real_post.source_stage_code), '') is not null
+                            or nullif(btrim(real_post.source_detail_state_code), '') is not null
                             or nullif(btrim(real_post.source_sales_pool_code), '') is not null
                             or nullif(btrim(real_post.source_sales_pool_name), '') is not null
                             or nullif(btrim(real_post.source_order_pool_code), '') is not null

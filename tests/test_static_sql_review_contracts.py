@@ -105,12 +105,38 @@ def test_content_backfill_uses_all_source_commercial_context_fields() -> None:
     """Content recovery queues posts identified only by commercial context."""
     source = (ROOT / "scripts/queue_post_content_backfill.py").read_text(encoding="utf-8")
     for field_name in (
+        "source_system_code",
+        "source_record_key",
+        "source_stage_code",
+        "source_detail_state_code",
         "source_order_pool_code",
         "source_sales_order_code",
         "source_sales_order_item_number",
         "source_inspection_point_code",
     ):
         assert field_name in source
+
+
+@pytest.mark.parametrize(
+    "relative_path",
+    (
+        "backend/app/demo_scope.py",
+        "scripts/backfill_post_content.py",
+        "scripts/backfill_post_keymen.py",
+        "scripts/backfill_post_summaries.py",
+    ),
+)
+def test_real_source_identity_context_is_preserved_in_operator_scope(relative_path: str) -> None:
+    """Metadata-only imported rows are not mistaken for synthetic seed rows."""
+    source = (ROOT / relative_path).read_text(encoding="utf-8")
+    for field_name in (
+        "source_system_code",
+        "source_record_key",
+        "source_stage_code",
+        "source_detail_state_code",
+    ):
+        assert f"source_post.{field_name}" in source or f"post.{field_name}" in source
+        assert f"real_post.{field_name}" in source
 
 
 @pytest.mark.parametrize(
