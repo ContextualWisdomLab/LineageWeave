@@ -99,7 +99,33 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   `f1b0cd48271e870571b022463e1ec2c857ae4a8a`; structured Responses and
   JSON-schema orchestration remain a separate open merge prerequisite.
 
-## 5. Organization OpenTelemetry Evidence Boundary
+## 5. Local Buyer-Surface Verification
+
+Observed at `2026-08-21T13:06:25Z` in the authorized local stack using a
+synthetic browser account and aggregate-only evidence:
+
+- The first authenticated board load exposed a migration drift: `/api/posts`
+  returned a server error because the runtime lacked the event evidence
+  column expected by the current backend. Rebuilding and running the current
+  migration image applied the pending migrations through `0114`; the same
+  board then returned HTTP 200 for settings, current-user, lineage, and post
+  list requests.
+- The authenticated browser loaded 50 post-list entries, opened the detail
+  popup, and rendered Event Lineage, Knowledge Graph, original-content, and
+  issue sections without a frontend error. An image-heavy summary returned
+  the explicit processing-state response (HTTP 503), so image evidence is not
+  claimed as live-ready.
+- The exact PR #366 frontend head passed 177 tests and a production build.
+  Its browser build authenticated successfully and loaded the board; the
+  disclosure-summary focus path remains covered by the unit test because the
+  local authorized corpus did not expose a disclosure element in the sampled
+  popup.
+
+These observations are runtime evidence, not a claim that the corresponding
+PRs are merged. The image-processing state and protected-corpus parsing cases
+remain open gaps.
+
+## 6. Organization OpenTelemetry Evidence Boundary
 
 GRC PR #42 records organization-level OTEL acceptance evidence through the
 existing purpose-bound evidence contract. It does not become a raw span store
@@ -109,7 +135,7 @@ OpenTelemetry attributes correlate the authorized operation across services;
 collector delivery, retention, access review, and no-export rollback are the
 GRC evidence subjects.
 
-## 6. Next Implementation Order
+## 7. Next Implementation Order
 
 1. Let the protected Checks and independent approvals complete for stacked PRs
    #376 and #377, then revalidate their parent PRs #370 and #374 at the exact
