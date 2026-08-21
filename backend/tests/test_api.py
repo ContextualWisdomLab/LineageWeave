@@ -3401,7 +3401,7 @@ def test_live_chat_answer_publishes_an_activity_event(
     it must publish to the post's activity feed too. A stored/seeded
     answer (no live call made) must not.
     """
-    from lineageweave.post_chat import ChatAnswer, normalize_chat_question
+    from lineageweave.post_chat import ChatAnswer
 
     _grant_post_admin(seeded_db["dsn"])
 
