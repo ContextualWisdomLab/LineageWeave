@@ -1,17 +1,22 @@
 # Product & Technical Gap Baseline
 
+> Repository artifacts contain synthetic fixtures and derived, non-identifying
+> evidence only. Real PostgreSQL rows, source payloads, images, names, and
+> identifiers remain in a protected external runtime and are never copied into
+> this repository, screenshots, tests, logs, or buyer evidence.
+
 ## 1. Known Parsing & Frontend Display Gaps
-- **Footnote Parsing**: `post=00505695-3e61-1fd1-83c5-263f88a9e77a` fails to recognize footnotes (li/oi level errors). Partial parser coverage is in LineageWeave PR #367; production/browser evidence is still pending.
-- **Table Parsing**: `post=00505695-3e61-1fd1-80c6-86bb61c8ddc5` completely fails at parsing tables. PR #367 covers malformed HTML row boundaries and empty cells; image tables and browser rendering remain open.
-- **Indentation**: Incorrect indentation rendering in `post=00505695-7571-1fd1-83c3-d521b187ad5b` and `post=00505695-3e61-1fd1-83c0-497b3c1c455e`.
-- **Image/Table OCR**: `post=00505695-7571-1fd1-83dd-3d22a61a5734` fails text recognition for tables inside images, markdown parsing fails, and image OCR description is too shallow for Ontology & Semantics.
-- **Math/Superscripts**: `post=00505695-9612-1fe1-83a7-e30153323f25` fails to parse superscripts like m^3 properly. The semantic normalization path merged through PR #344, but the named real-post browser evidence and strict Ontology grammar still require verification.
-- **Missing UI Elements**: DAG (Directed Acyclic Graph) view is currently missing from the frontend for `post=00505695-7571-1fd1-83c5-895ed333cdbc`.
+- **Footnote Parsing**: synthetic case `case-footnote-01` exercises numbered footnote recognition; PR #367 adds parser coverage, while authorized production/browser evidence remains pending.
+- **Table Parsing**: synthetic case `case-table-01` exercises malformed row boundaries and empty cells; image tables and browser rendering remain open.
+- **Indentation**: synthetic cases `case-indent-01` and `case-indent-02` retain incorrect indentation rendering coverage gaps.
+- **Image/Table OCR**: synthetic case `case-image-table-01` still needs region-aware table OCR, markdown rendering, and sufficiently detailed buyer-safe image evidence.
+- **Math/Superscripts**: synthetic case `case-math-01` covers bounded metric normalization such as m³; arbitrary formula semantics and authorized runtime verification remain open after PR #344.
+- **Missing UI Elements**: synthetic case `case-dag-01` tracks the Event Lineage DAG surface; current source includes the DAG, but corpus coverage and browser evidence remain open.
 
 ## 2. LLM Extraction & Knowledge Graph Gaps
-- **Multiple Project Extraction**: A structured `key_events.project_name` implementation exists, but separate-event behavior still requires real-post runtime evidence.
-- **5W1H Missing**: A structured 5W1H evidence-item implementation exists, but completeness and provenance still require real-post runtime evidence.
-- **R&R and Keyman Missing**: Prompt and persistence paths exist, but actual-side/other-side affiliation, requester, assignee, and provenance still require real-post runtime evidence.
+- **Multiple Project Extraction**: A structured `key_events.project_name` implementation exists, but separate-event behavior still requires protected authorized-corpus evidence.
+- **5W1H Missing**: A structured 5W1H evidence-item implementation exists, but completeness and provenance still require protected authorized-corpus evidence.
+- **R&R and Keyman Missing**: Prompt and persistence paths exist, but actual-side/other-side affiliation, requester, assignee, and provenance still require protected authorized-corpus evidence.
 - **Entity Resolution / Searxng**: Abbreviations like "한전" and "한국전력" are not mapped properly using Searxng and KG corroboration. 
 - **Meso-level Team Mapping**: `team` mapping logic is present; affiliation and same-entity resolution still require ontology-backed runtime evidence rather than prompt-only confirmation.
 - **Base64 Image Omni-modal**: Current text-only embedding fails on images. Omni-modal LLM processing is required for images to capture layout, font size, colors, and spatial meaning.
@@ -30,22 +35,34 @@
 The following states are evidence-bound and must not be changed to `merged` or
 `resolved` from intent alone:
 
-- LineageWeave PR #344: semantic metric normalization merged at `497ac120`; the
-  frontend and backend focused tests passed before merge. The named real-post
-  browser result remains an explicit follow-up.
-- LineageWeave PR #367: exact head `09500b59`; focused local tests passed (104),
-  while required GitHub Checks were queued and formal approval was absent at
-  the checkpoint.
-- LineageWeave PR #366: exact head `aef31c3c`; the customer-master authorization
-  fix derives downstream Keyman and relationship scopes from surviving entity
-  rows, not observed navigation-only entities. Required Checks and approval
-  remain external gates.
-- LineageWeave PR #345: application and Valkey caller OpenTelemetry spans are
-  merged. Raw telemetry remains outside the buyer evidence payload.
-- contextual-orchestrator PR #802: exact head `b2fe47e`; request session context
-  is propagated through local batch workers. No formal approval is recorded.
-- contextual-orchestrator PR #805: structured Responses and JSON-schema
-  orchestration remains a separate open merge prerequisite.
+Observed at `2026-08-21T11:16:36Z` from the GitHub API. A merged commit is
+identified as `merge_commit`; an open PR is identified by its exact `head`.
+
+- LineageWeave PR #344: `merge_commit`
+  `497ac120c2ea22f97ef2e4a4bcd15fc2a3610046`, merged at
+  `2026-08-21T10:23:02Z`; focused tests passed before merge, while the
+  authorized-runtime browser result remains open.
+- LineageWeave PR #367: `head`
+  `5194d267b90430d7a27a9752a49d73617cb5756c`, base
+  `f66991699506ef14607de5946da1efcfd20ae6da`; focused parser tests passed,
+  while required Checks and independent approval remain external gates.
+- LineageWeave PR #366: `head`
+  `696f8d46372ef6f5af9eb1b2dbc30fff4e9c9f6c`, base
+  `8bed77e7e7b91b633bb92d3a82d0187c387206af`; customer-master authorization
+  scope is implemented, while required Checks and independent approval remain
+  external gates.
+- LineageWeave PR #345: `merge_commit`
+  `9316d281ae396cc1bc33ac3ba470a9e3afd41a90`, merged at
+  `2026-08-21T09:08:31Z`; application and Valkey caller OpenTelemetry spans
+  are merged, while raw telemetry remains outside buyer evidence.
+- contextual-orchestrator PR #802: `head`
+  `b2fe47e78ade89b13aa4c239c71562c65af5f12e`, base
+  `f1b0cd48271e870571b022463e1ec2c857ae4a8a`; request session context is
+  propagated through local batch workers and approval is not recorded.
+- contextual-orchestrator PR #805: `head`
+  `1d11e7d40dc52121d440991969be2967adf2136e`, base
+  `f1b0cd48271e870571b022463e1ec2c857ae4a8a`; structured Responses and
+  JSON-schema orchestration remain a separate open merge prerequisite.
 
 ## 5. Organization OpenTelemetry Evidence Boundary
 
@@ -59,11 +76,14 @@ GRC evidence subjects.
 
 ## 6. Next Implementation Order
 
-1. Complete PR #367's protected Checks and verify the named footnote/table
-   posts in the authenticated browser.
+1. Complete PR #367's protected Checks and verify the synthetic footnote/table
+   cases in the authenticated browser; use the protected external corpus only
+   for aggregate, non-identifying runtime evidence.
 2. Resolve image DOM-region recognition, OCR, semantic table rendering, and
    buyer-facing caption separation through contextual-orchestrator VISION.
 3. Verify 5W1H, multi-project event separation, Keyman affiliation, and
-   customer-master ABAC against authorized real PostgreSQL data.
+   customer-master ABAC against authorized real PostgreSQL data in the protected
+   external runtime, returning only aggregate or derived non-identifying
+   evidence to repository artifacts.
 4. Keep the GRC and contextual-orchestrator OTEL evidence contracts aligned
    with the exact merged application instrumentation.
