@@ -297,6 +297,27 @@ describe("PostBody", () => {
     expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
   });
 
+  it("keeps hostile image evidence as text instead of executable markup", () => {
+    const { container } = render(
+      <PostBody
+        body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: '</p><script>window.__xss = true</script><p>',
+            caption: '</figcaption><script>window.__xss = true</script><figcaption>',
+            tags: ['<script>window.__xss = true</script>'],
+          },
+        ]}
+      />,
+    );
+
+    expect(container.querySelector("script")).toBeNull();
+    expect(screen.getAllByText(/window.__xss = true/)).toHaveLength(3);
+  });
+
   it("renders pipe-delimited image OCR as a buyer-facing table", () => {
     render(
       <PostBody
