@@ -309,4 +309,26 @@ projection: update the affected FR/NFR row and Gap closure evidence when an ADR
 or PR changes product behavior. Never turn a PR title, green unit test, or old
 runtime note into a shipped/live claim.
 
+## Current stacked PR product-surface gaps
+
+- **Customer Master relationship composition — PR #262**: Resolved on the
+  current feature branch. ADR 0125 and Figma frames `313:2` / `314:2` define a
+  customer-centered three-pane workspace that keeps the selected customer
+  stable while the user inspects relationships and source posts.
+- **Responsive Customer Master flow — PR #262**: Resolved on the current
+  feature branch. PC uses three horizontal panes, tablet uses two columns plus
+  full-width evidence, and phone preserves the semantic order hierarchy →
+  selected customer → evidence at the shared 1024 px / 768 px breakpoints.
+- **Effective-dated relationship authority**: Open. The current projection
+  still owns one `parent_entity_id`; legal ownership, operating structure,
+  sales roll-up, billing hierarchy, historical roles, and simultaneous
+  relationship types require a normalized effective-dated relation model.
+- **Unresolved hierarchy repair workflow**: Open. Cycle, self-parent, and
+  missing-visible-parent members remain visible and unresolved, but operators
+  still need a source-data quality queue, evidence review, and approved
+  correction workflow.
+- **Customer relationship exact-value export**: Open. An auditable CSV/JSON
+  export of the selected customer, visible relations, truth status, effective
+  interval, and evidence references remains a later product slice.
+
 *This document is continuously updated by the hourly automated agent loop.*
