@@ -34,7 +34,7 @@
   header and footer rendered one configured `brandName` and the footer used
   the browser's current year. This observation remains historical and is not
   a claim about the current stacked head.
-- **Current exact-source mitigation at stacked PR #397 head `4bfa642c`:**
+- **Current exact-source mitigation at stacked PR #397 head `8988fe71`:**
   `tenant_settings` now persists separate `brandName`, `systemName`,
   `copyrightYear`, and `copyrightHolder` values. The header renders brand and
   system name separately, the footer uses the persisted year and rights
@@ -44,8 +44,9 @@
   the asynchronous draft synchronization race and the Korean operation-note
   translation key, with the same operation note covered across all five
   product locales. The latest parent stack was fast-forwarded to #392 head
-  `fc040997`, and #397 was restacked with a normal merge commit. This is an
-  open, unmerged PR; the exact upstream stack base is `fc040997`.
+  `fc040997`, then `51aab854`, and #397 was restacked with normal merge
+  commits as the parent advanced. The current exact upstream stack base is
+  `259ce60a`. This is an open, unmerged PR.
 - **Remaining UI governance gap:** no approved CI/BI image asset or usage
   permission was supplied, so the implementation deliberately remains text
   based. Production release still requires the approved asset and legal
@@ -54,12 +55,12 @@
 
 ### 1.1.1 Exact implementation evidence for tenant identity metadata
 
-Observed at `2026-08-21T20:13:22Z` from the GitHub API and local worktree
+Observed at `2026-08-21T20:17:13Z` from the GitHub API and local worktree
 `/private/tmp/lineageweave-identity-restack`:
 
 - PR [#397](https://github.com/ContextualWisdomLab/LineageWeave/pull/397) is
-  open and ready at head `4bfa642c0326035e67638eaf12c0dbd143ed8934`, based on
-  exact stack branch head `fc0409979c67d0c8af5c5cbf3f9f7d4f3f75c885`; it is
+  open and ready at head `8988fe7175c8b03e27c9ea6fe3a554955eb350a4`, based on
+  exact stack branch head `259ce60abdb8e0d0993635facd8c987a2999cd58`; it is
   `UNSTABLE` while hosted Checks and automated reviews run and has no formal
   review decision yet.
 - Local verification at the latest restacked head passed the focused settings
@@ -68,16 +69,16 @@ Observed at `2026-08-21T20:13:22Z` from the GitHub API and local worktree
   the full backend suite (`850 passed, 17 skipped`) and Storybook build.
   The focused API tests cover authentication, full metadata, legacy
   brand-only PATCH compatibility, blank values, and copyright-year bounds.
-- PR #392 remains open at head `fc0409979c67d0c8af5c5cbf3f9f7d4f3f75c885`,
+- PR #392 remains open at head `259ce60abdb8e0d0993635facd8c987a2999cd58`,
   targets `main`, and is `BLOCKED` with `REVIEW_REQUIRED`; #397 is a stacked
   follow-up and must not be described as a protected-main merge.
 
 ## 4.1 Latest open-PR and Checks refresh
 
-Observed at `2026-08-21T20:13:22Z` from the GitHub API. The exact open
+Observed at `2026-08-21T20:17:13Z` from the GitHub API. The exact open
 application heads were: #258 `6dc040c6`, #349 `a6af4525`, #355 `b606c255`,
-#368 `392a9dd5`, #373 `151fe6e1`, #383 `4eaa0717`, #387 `16f6341a`, #392
-`fc040997`, #393 `1ac3a17a`, #394 `5219ed8b`, and #397 `4bfa642c`. No PR in
+#368 `cc052a4d`, #373 `151fe6e1`, #383 `4eaa0717`, #387 `16f6341a`, #392
+`259ce60a`, #393 `1ac3a17a`, #394 `2aee6ace`, and #397 `8988fe71`. No PR in
 this set was reported as merged into protected `main`.
 
 - #397's latest restacked head had Full test, frontend, CodeRabbit, and Devin
