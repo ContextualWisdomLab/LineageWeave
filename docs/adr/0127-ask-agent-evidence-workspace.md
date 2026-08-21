@@ -1,4 +1,4 @@
-# ADR 0126 — Ask Agent evidence workspace and composer contract
+# ADR 0127 — Ask Agent evidence workspace and composer contract
 
 **Decision status:** Accepted
 **Date:** 2026-08-21
