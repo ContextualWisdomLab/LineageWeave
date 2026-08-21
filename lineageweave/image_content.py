@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import ipaddress
 import json
 import math
 import re
@@ -233,6 +234,14 @@ _LABEL_LINE = re.compile(
     re.IGNORECASE,
 )
 _MARKDOWN_EMPHASIS_MARKERS = ("**", "__", "`", "*", "_")
+_BLOCKED_VISION_HOSTNAMES = frozenset(
+    {
+        "localhost",
+        "localhost.localdomain",
+        "metadata",
+        "metadata.google.internal",
+    }
+)
 
 
 class ImageDescriptionParseError(ValueError):
@@ -319,6 +328,38 @@ class OpenAiCompatibleVisionClient:
         if parsed.scheme not in {"http", "https"}:
             raise ValueError(
                 f"unsupported vision client URL scheme: {parsed.scheme or 'missing'}"
+            )
+        hostname = parsed.hostname
+        if not hostname:
+            raise ValueError("vision client URL is missing a hostname")
+        if parsed.username or parsed.password:
+            raise ValueError("vision client URL must not contain user credentials")
+        try:
+            parsed.port
+        except ValueError as exc:
+            raise ValueError("vision client URL has an invalid port") from exc
+        normalized_hostname = hostname.rstrip(".").casefold()
+        if (
+            normalized_hostname in _BLOCKED_VISION_HOSTNAMES
+            or normalized_hostname.endswith(".localhost")
+        ):
+            raise ValueError(
+                "vision client URL points to a private, loopback, link-local, or metadata destination"
+            )
+        try:
+            address = ipaddress.ip_address(hostname)
+        except ValueError:
+            address = None
+        if address is not None and (
+            address.is_private
+            or address.is_loopback
+            or address.is_link_local
+            or address.is_reserved
+            or address.is_multicast
+            or address.is_unspecified
+        ):
+            raise ValueError(
+                "vision client URL points to a private, loopback, link-local, or metadata destination"
             )
         if parsed.scheme == "http" and not allow_insecure_http:
             # A plain-HTTP endpoint sends the Bearer API key and every raw
