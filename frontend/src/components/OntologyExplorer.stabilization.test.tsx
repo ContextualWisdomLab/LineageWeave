@@ -138,6 +138,29 @@ describe("OntologyExplorer stabilization contracts", () => {
     );
   });
 
+  it("names the next action when a hard source bound has no cursor", () => {
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={payload({
+          truncated: true,
+          next_cursor: null,
+          limitation_code: "neighborhood_truncated",
+        })}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "Neighborhood reached the authorized query bound. Narrow the property filter or reduce traversal depth.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Load next relation page" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("does not call provenance-only edges hidden evidence", async () => {
     render(
       <OntologyExplorer
