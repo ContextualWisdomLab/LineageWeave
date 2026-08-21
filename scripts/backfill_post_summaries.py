@@ -244,7 +244,9 @@ async def backfill_post_summaries(
     vision_client = orchestrator_vision_client(base_url, api_key)
     if not vision_client.available:
         raise RuntimeError("VISION is unavailable; configure contextual-orchestrator before backfill")
-    summary_client = ContextualOrchestratorPostSummaryClient(base_url, api_key, timeout=180.0)
+    # Local orchestrator runs may perform two structured extraction passes;
+    # keep the operator backfill timeout aligned with the API route.
+    summary_client = ContextualOrchestratorPostSummaryClient(base_url, api_key, timeout=300.0)
     embedding_model = os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
     embedding_client = orchestrator_embedding_client(base_url, api_key, embedding_model)
     structure_client = (

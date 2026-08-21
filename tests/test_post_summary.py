@@ -75,6 +75,14 @@ def test_summary_prompt_requires_naming_actual_people_not_generic_titles() -> No
     assert "홍길동" in _SUMMARY_REQUEST_PROMPT_TEMPLATE
 
 
+def test_details_prompt_separates_events_from_projects_and_support_from_responsibility() -> None:
+    from lineageweave.post_summary import _DETAILS_REQUEST_PROMPT_TEMPLATE
+
+    assert "meeting title into a project" in _DETAILS_REQUEST_PROMPT_TEMPLATE
+    assert "lw_responsible_for" in _DETAILS_REQUEST_PROMPT_TEMPLATE
+    assert "lw_supports" in _DETAILS_REQUEST_PROMPT_TEMPLATE
+
+
 def test_summary_requires_imported_source_body() -> None:
     assert require_summary_source_body("  body  ") == "  body  "
     with pytest.raises(ValueError, match="source post body is empty"):
@@ -153,6 +161,18 @@ def test_plain_relation_parser_drops_unallowlisted_predicates() -> None:
     )
     assert len(relations) == 1
     assert relations[0].predicate_code == "org_unit_of"
+
+
+def test_plain_relation_parser_keeps_explicit_responsibility_predicate() -> None:
+    relations = _parse_plain_semantic_relationships(
+        "RELATIONS:\n"
+        "Prime Contractor | organization | lw_responsible_for | Highland HVDC | project | main contractor | 0.95\n"
+        "Northwind Services | organization | lw_supports | Highland HVDC | project | installation support | 0.9"
+    )
+    assert [relation.predicate_code for relation in relations] == [
+        "lw_responsible_for",
+        "lw_supports",
+    ]
 
 
 def test_attendance_only_is_not_a_role_but_concrete_work_is() -> None:

@@ -714,8 +714,15 @@ export function setPreferredLocale(
   });
 }
 
-export function fetchCustomerMaster(accessToken: string): Promise<CustomerMasterResponse> {
-  return backendFetch<CustomerMasterResponse>("/api/customer-master", accessToken);
+export function fetchCustomerMaster(
+  accessToken: string,
+  hintCode?: string,
+): Promise<CustomerMasterResponse> {
+  const normalizedHintCode = hintCode?.trim();
+  const query = normalizedHintCode
+    ? `?hint_code=${encodeURIComponent(normalizedHintCode)}`
+    : "";
+  return backendFetch<CustomerMasterResponse>(`/api/customer-master${query}`, accessToken);
 }
 
 export interface CustomerHintResolution {

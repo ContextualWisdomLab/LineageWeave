@@ -1129,6 +1129,15 @@ describe("App, authenticated", () => {
                       source_detail_state_code: options?.sourceDetailStateCode,
                       visibility_code: "public",
                       visibility_label: "Public",
+                      source_lineage_hints: {
+                        combination_code: "1000",
+                        commercial_context_code: "customer_only_candidate",
+                        inference_status_code: "inferred_from_field_presence",
+                        present_fields: ["customer"],
+                        missing_fields: ["order_pool", "sales_order", "sales_order_item"],
+                        lifecycle_vector: "Z-A-I-ALIVE",
+                        deleted_marker_present: false,
+                      },
                       created_at: "2026-01-01T00:00:00Z",
                     },
                   ],
@@ -1160,6 +1169,15 @@ describe("App, authenticated", () => {
             source_detail_state_code: options?.sourceDetailStateCode,
             visibility_code: "public",
             visibility_label: "Public",
+            source_lineage_hints: {
+              combination_code: "1000",
+              commercial_context_code: "customer_only_candidate",
+              inference_status_code: "inferred_from_field_presence",
+              present_fields: ["customer"],
+              missing_fields: ["order_pool", "sales_order", "sales_order_item"],
+              lifecycle_vector: "Z-A-I-ALIVE",
+              deleted_marker_present: false,
+            },
             project_evidence: [
               {
                 project_key: "source-project",
@@ -1795,7 +1813,9 @@ describe("App, authenticated", () => {
           }),
         );
       }
-      if (url.endsWith("/api/customer-master") && method === "GET") {
+      const customerMasterUrl = new URL(url, "https://backend.test");
+      if (customerMasterUrl.pathname === "/api/customer-master" && method === "GET") {
+        const requestedCustomerHint = customerMasterUrl.searchParams.get("hint_code");
         return Promise.resolve(
           jsonResponse({
             corporate_entities: options?.customerScopeFacets
@@ -1888,7 +1908,7 @@ describe("App, authenticated", () => {
                   resolution_status: resolvedHintCode === `CUST-${index}` ? "resolved" : "hint_only",
                   hint_trust: "normal",
                   provenance: "source_post.source_customer_code",
-                }))
+                })).filter((hint) => !requestedCustomerHint || hint.customer_code === requestedCustomerHint)
               : [],
             source_author_hints: [],
             relationship_network: [
@@ -2199,6 +2219,20 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("CUST-44")).not.toBeInTheDocument();
   });
 
+  it("finds an observed customer code outside the ranked first page", async () => {
+    const fetchMock = stubBackend({ manyCustomerHints: 45 });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    await userEvent.type(screen.getByRole("searchbox", { name: "Find source customer code" }), "CUST-44");
+    await userEvent.click(screen.getByRole("button", { name: "Find" }));
+
+    expect(await screen.findByText("CUST-44")).toBeInTheDocument();
+    expect(screen.queryByText("CUST-0")).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("hint_code=CUST-44"))).toBe(true);
+  });
+
   it("searches the board from a semantic project mention", async () => {
     stubBackend();
     render(<App />);
@@ -2411,6 +2445,9 @@ describe("App, authenticated", () => {
     );
     expect(listButton).toHaveTextContent("Voice of Customer");
     expect(listButton).toHaveTextContent("Public");
+    expect(listButton).toHaveTextContent("Combination code");
+    expect(listButton).toHaveTextContent("1000");
+    expect(within(listButton).getByLabelText("Field combination: 1000, Customer only candidate")).toBeInTheDocument();
 
     await userEvent.click(listButton);
 

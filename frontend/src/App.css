@@ -1122,6 +1122,34 @@ a:focus-visible {
   margin: 1.25rem 0 0;
 }
 
+.customer-master-hint-search {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 1.25rem;
+}
+
+.customer-master-hint-search label {
+  color: var(--text-h);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.customer-master-hint-search-row {
+  display: flex;
+  gap: 0.55rem;
+}
+
+.customer-master-hint-search-row input {
+  min-width: 0;
+  flex: 1;
+  min-height: 2.75rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-h);
+}
+
 .customer-master-scope-filter {
   display: grid;
   grid-template-columns: auto minmax(12rem, 1fr);
@@ -1544,6 +1572,26 @@ a:focus-visible {
   line-height: 1.2;
   text-align: right;
   text-transform: uppercase;
+}
+
+.source-lineage-combination {
+  border-color: var(--color-accent-info);
+  background: var(--color-accent-info-background);
+  color: var(--text-h);
+  gap: 0.3rem;
+}
+
+.source-lineage-combination-code {
+  color: var(--color-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+}
+
+.source-lineage-combination-label {
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: none;
 }
 
 .post-card .post-list-item:focus-visible {

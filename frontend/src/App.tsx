@@ -1,6 +1,6 @@
 import { AdminPanel, type AdminBoardTool } from "./components/AdminPanel";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
@@ -1770,6 +1770,7 @@ const SEMANTIC_RELATION_LABELS: Record<string, string> = {
   org_member_of: "Organization member of",
   org_unit_of: "Organization unit of",
   org_suborganization_of: "Sub-organization of",
+  lw_responsible_for: "Responsible for",
   lw_supports: "Supports",
 };
 
@@ -4785,7 +4786,7 @@ function PostList({
                         {post.source_lineage_hints ? (
                           <>
                             <span className="post-meta">
-                              {t("Source context")}: {sourceLineageContextLabel(post.source_lineage_hints)} · {t("Combination code")}: {post.source_lineage_hints.combination_code}
+                              {t("Source context")}: {sourceLineageContextLabel(post.source_lineage_hints)}
                             </span>
                             <span className="post-meta source-lineage-presence" aria-label={t("Source fields") + ": " + SOURCE_LINEAGE_FIELDS.map((field) => `${sourceLineageFieldLabel(field)}: ${sourceLineageFieldIsPresent(post.source_lineage_hints!, field) ? t("Present") : t("Not present")}`).join(", ")}>
                               <span>{t("Source fields")}:</span>
@@ -4812,6 +4813,16 @@ function PostList({
                       <span className="post-card-badges">
                         <span className="post-badge">{t(post.voc_type_label ?? post.voc_type_code)}</span>
                         <span className="post-badge">{t(post.visibility_label ?? post.visibility_code)}</span>
+                        {post.source_lineage_hints ? (
+                          <span
+                            className="post-badge source-lineage-combination"
+                            aria-label={`${t("Field combination")}: ${post.source_lineage_hints.combination_code}, ${sourceLineageContextLabel(post.source_lineage_hints)}`}
+                          >
+                            <span>{t("Combination code")}</span>
+                            <strong className="source-lineage-combination-code">{post.source_lineage_hints.combination_code}</strong>
+                            <span className="source-lineage-combination-label">{sourceLineageContextLabel(post.source_lineage_hints)}</span>
+                          </span>
+                        ) : null}
                         {sourceDetailState ? (
                           <span className="post-badge" aria-label={`${t("Source detail state")}: ${sourceDetailState.accessibleName}`}>
                             {t("Source detail state")}: <strong className="board-source-detail-state-code">{sourceDetailState.code}</strong> · <span className="board-source-detail-state-description">{sourceDetailState.description}</span>
@@ -5130,6 +5141,8 @@ function CustomerMasterPanel({
   const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
   const [resolvingHint, setResolvingHint] = useState<string | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
+  const [hintCodeInput, setHintCodeInput] = useState("");
+  const [searchedHintCode, setSearchedHintCode] = useState("");
   // Fetched independently, same pattern as PostList's own canRebuild --
   // CustomerMasterPanel is a sibling of PostList under App, not a child,
   // so it cannot read PostList's local post_admin check.
@@ -5151,10 +5164,10 @@ function CustomerMasterPanel({
 
   const loadMaster = useCallback(() => {
     setError(null);
-    return fetchCustomerMaster(accessToken)
+    return fetchCustomerMaster(accessToken, searchedHintCode)
       .then(setMaster)
       .catch(() => setError(t("Customer master could not be loaded.")));
-  }, [accessToken]);
+  }, [accessToken, searchedHintCode]);
 
   useEffect(() => {
     setMaster(null);
@@ -5172,6 +5185,11 @@ function CustomerMasterPanel({
     } finally {
       setResolvingHint(null);
     }
+  }
+
+  function handleHintSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSearchedHintCode(hintCodeInput.trim());
   }
 
   async function toggleEntity(entityId: string) {
@@ -5205,6 +5223,25 @@ function CustomerMasterPanel({
       {master === null && !error ? <p>{t("Loading customer master...")}</p> : null}
       {master?.corporate_entities.length === 0 ? (
         <p className="popup-placeholder">{t("No customer entities are connected to this account.")}</p>
+      ) : null}
+      <form className="customer-master-hint-search" onSubmit={handleHintSearch}>
+        <label htmlFor="customer-master-hint-code">{t("Find source customer code")}</label>
+        <div className="customer-master-hint-search-row">
+          <input
+            id="customer-master-hint-code"
+            type="search"
+            value={hintCodeInput}
+            onChange={(event) => setHintCodeInput(event.target.value)}
+            placeholder={t("Paste an observed customer code")}
+          />
+          <button type="submit">{t("Find")}</button>
+        </div>
+        <p className="post-meta">{t("Searches all authorized source hints, not only the ranked first page.")}</p>
+      </form>
+      {searchedHintCode && master && master.source_customer_hints.length === 0 ? (
+        <p className="popup-placeholder" role="status">
+          {tf("No source customer evidence matches {code}.", { code: searchedHintCode })}
+        </p>
       ) : null}
       {master && master.corporate_entities.length > 0 ? (
         <fieldset className="board-voc-type-filter">

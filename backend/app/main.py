@@ -836,11 +836,13 @@ def _observed_hierarchy_ids(rows: list[asyncpg.Record]) -> set[str]:
 
 @app.get("/api/customer-master")
 async def read_customer_master(
+    hint_code: str | None = Query(default=None, max_length=255),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
     """Return the authorized customer catalog and its cataloged Keymen."""
     _require_post_read(account)
+    requested_hint_code = (hint_code or "").strip() or None
     authorized_entity_ids = list(account.corporate_entity_ids)
     if not authorized_entity_ids:
         return {
@@ -866,6 +868,8 @@ async def read_customer_master(
                   from source_post
                  where (nullif(btrim(source_customer_code), '') is not null
                         or nullif(btrim(source_customer_name), '') is not null)
+                   and ($2::text is null
+                        or nullif(btrim(source_customer_code), '') = $2::text)
                    and {SOURCE_POST_VISIBILITY_SQL.format(alias='source_post', authorized_entity_ids='$1')}
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
             ), ranked as (
@@ -912,6 +916,7 @@ async def read_customer_master(
              order by top_groups.post_count desc, top_groups.customer_code, top_groups.customer_name
             """,
             authorized_entity_ids,
+            requested_hint_code,
         )
         # Safe SQL: the evidence query uses only closed schema fragments; authorized entity ids are bound.
         source_author_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli

@@ -616,7 +616,10 @@ Do not output a reasoning trace. Return the JSON object immediately.
    a canonical comparison name, the shortest supporting evidence phrase,
    and a confidence from 0 to 1. Do not invent a project from a generic
    topic. Keep ambiguous candidates with confidence below 0.7 so the UI can
-   show uncertainty, but they must not be used as a report grouping.
+   show uncertainty, but they must not be used as a report grouping. A
+   meeting, call, workshop, report, or introductory session is an event, not
+   a project; do not emit the event title as a project unless the body
+   explicitly identifies it as a project.
 
 5. A list of 5W1H evidence items. Explicitly extract specific 'when', 'where', 'why', and 'how' facts from the text. For each fact, return the slot code, the extracted value, and the exact supporting phrase. Do not infer anything not in the text.
 
@@ -871,6 +874,11 @@ each row short. For ACTIONS, the project canonical key must exactly match a
 canonical name in PROJECTS or be NONE. Requester and processor must be actor
 names also present in ROLES. Use NONE only when the post does not name that
 actor. Do not invent actors, projects, affiliations, actions, or confidence.
+An introductory meeting, call, workshop, report, or other event is not a
+project. Keep it in KEY EVENTS/CLUES and emit no PROJECTS row for the event
+itself unless the body explicitly identifies that named item as a project.
+Do not promote a meeting title into a project merely because it is the post
+title.
 Only write EVIDENCE rows when the post explicitly supports the value; do not
 turn the record's filing timestamp into an event time and do not infer a
 place, reason, or method from a title alone.
@@ -910,9 +918,12 @@ names occur in the same meeting. Keep unresolved names as text and preserve
 the shortest exact supporting phrase. In particular:
 - use org_member_of for an explicit organization membership or group-joining
   statement;
-- use lw_supports for an explicit organization-to-named-project statement
-  such as "provided installation support for [project]", "worked on
-  [project]", or "was the main contractor for [project]";
+- use lw_responsible_for for an explicit organization-to-named-project
+  responsibility such as "was the main contractor for [project]", "owned
+  the EPC scope for [project]", or "was responsible for [project]";
+- use lw_supports for an explicit organization-to-named-project support
+  statement such as "provided installation support for [project]" or
+  "supported [project]"; generic work wording is not enough;
 - emit separate organization-to-project rows when the source explicitly
   assigns different organizations different project responsibilities;
 - do not turn attendance, an affiliation field, or a project mention alone
@@ -920,7 +931,7 @@ the shortest exact supporting phrase. In particular:
 Fictional format examples only:
 Northwind Services | organization | org_member_of | Northwind Group | organization | joined Northwind Group | 0.98
 Northwind Services | organization | lw_supports | Highland HVDC | project | provided installation support for Highland HVDC | 0.9
-Prime Contractor | organization | lw_supports | Highland HVDC | project | Prime Contractor was the main contractor | 0.95
+Prime Contractor | organization | lw_responsible_for | Highland HVDC | project | Prime Contractor was the main contractor | 0.95
 A full predicate registry is supplied by the application contract; if no
 predicate fits, omit the relation rather than inventing a verb.
 Post title: {title}

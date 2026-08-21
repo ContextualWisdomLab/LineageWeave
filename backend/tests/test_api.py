@@ -1500,6 +1500,18 @@ def test_customer_master_returns_authorized_catalog_contract(
             "provenance": "source_post.source_customer_code/source_post.source_customer_name",
         }
     ]
+    filtered_response = client.get(
+        "/api/customer-master?hint_code=TEST-CUSTOMER-001",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert filtered_response.status_code == 200
+    assert filtered_response.json()["source_customer_hints"] == body["source_customer_hints"]
+    missing_response = client.get(
+        "/api/customer-master?hint_code=NOT-OBSERVED",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert missing_response.status_code == 200
+    assert missing_response.json()["source_customer_hints"] == []
     author_hint = body["source_author_hints"]
     assert len(author_hint) == 1
     assert author_hint[0]["author_code"] == "TEST-AUTHOR-001"
