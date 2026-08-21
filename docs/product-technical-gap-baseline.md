@@ -34,7 +34,8 @@
   header and footer rendered one configured `brandName` and the footer used
   the browser's current year. This observation remains historical and is not
   a claim about the current stacked head.
-- **Current exact-source mitigation at the merged stack change `2e51a777`:**
+- **Current exact-source mitigation at the merged stack change
+  `2e51a777277f3978d6afc5be8e1e76c71e0eb8e6`:**
   `tenant_settings` now persists separate `brandName`, `systemName`,
   `copyrightYear`, and `copyrightHolder` values. The header renders brand and
   system name separately, the footer uses the persisted year and rights
@@ -45,7 +46,8 @@
   translation key, with the same operation note covered across all five
   product locales. PR #397 merged into the non-main stack branch; the
   protected `main` branch still depends on the separate parent PR #392.
-- **Current follow-up merged into the non-main stack at `202063bc`:** the
+- **Current follow-up merged into the non-main stack at
+  `202063bca2afa38d100199de3f0520fdd8c15e8c`:** the
   settings upsert refreshes `tenant_settings.updated_at`, clearing the numeric
   copyright year stays visibly blank through an explicit invalid sentinel, and
   whitespace-only identity edits remain disabled no-ops. The merged review
@@ -392,11 +394,12 @@ Observed at `2026-08-21T20:50:15Z` from the GitHub REST API and the current
 follow-up worktree. This supersedes the earlier checkpoint wording above; the
 earlier sections remain historical evidence.
 
-- PR #397 merged into the non-main stack branch at head `77e2edee`; the stack
-  now contains the resulting commit `2e51a777`. This is not a protected-main
+- PR #397 merged into the non-main stack branch at head
+  `77e2edee43de39c758718d0d13ec88c51a8393ea`; the stack now contains the
+  resulting commit `2e51a777277f3978d6afc5be8e1e76c71e0eb8e6`. This is not a protected-main
   merge.
 - PR #398 is open at exact head `5822948fe915542f1f916618d8905c3b4715d676`,
-  based on stack head `2e51a777`, with `mergeable=true` and
+  based on stack head `2e51a777277f3978d6afc5be8e1e76c71e0eb8e6`, with `mergeable=true` and
   `mergeable_state=unstable`. Devin Review and the frontend/full-test Checks
   are pending, and no independent approval is recorded. It is not authorized
   to merge.
@@ -418,7 +421,8 @@ earlier sections remain historical evidence.
 
 Observed at `2026-08-21T20:57:23Z` from the GitHub REST API and the current
 follow-up worktree. PR #398 is now at exact head
-`f101ab938f844ea12fa78b1cdf4ea1adaf07e962`, based on stack head `2e51a777`.
+`f101ab938f844ea12fa78b1cdf4ea1adaf07e962`, based on stack head
+`2e51a777277f3978d6afc5be8e1e76c71e0eb8e6`.
 The follow-up includes the review repair that separates an empty numeric input
 from the `0` value and retains the whitespace-only no-op save guard. Its
 frontend suite is `208 passed` with lint and production build passing; the
@@ -433,7 +437,8 @@ respective merge gates recalculate.
 Observed at `2026-08-21T21:07:49Z` from the GitHub REST API. PR #398's final
 head was `19c68217ae0c57d4496009b6447fda79007e68ed`; it merged into the
 non-main stack branch with merge commit
-`202063bca2afa38d100199de3f0520fdd8c15e8c`, based on stack head `2e51a777`.
+`202063bca2afa38d100199de3f0520fdd8c15e8c`, based on stack head
+`2e51a777277f3978d6afc5be8e1e76c71e0eb8e6`.
 The commit checks visible at observation were still queued, so this records
 the stack merge fact only and does not promote queued Checks to terminal pass
 evidence or claim a protected-main merge.
@@ -487,6 +492,9 @@ evidence:
   the protected merge queue promote #392 and #368 in dependency order.
 
 ## 5. Local Buyer-Surface Verification
+
+Entries are grouped by validation batch rather than sorted chronologically;
+their UTC timestamps define the observation sequence.
 
 Observed at `2026-08-21T13:06:25Z` in the authorized local stack using a
 synthetic browser account and aggregate-only evidence:
@@ -825,13 +833,13 @@ Observed at `2026-08-21T19:36:33Z` from the current hosted Checks:
 
 ## 7. Next Implementation Order
 
-1. Revalidate open PRs #258, #349, #355, #368, #373, #383, #387, #392, #393,
-   and #394 at
+1. Revalidate protected-main-targeting open PRs #258, #349, #355, #368, #373,
+   #383, #387, #392, #393, and #394 at
    their exact current heads as Checks and formal independent approvals arrive;
    the #388/#389/#390 stack merges are already recorded above, so process the
-  open #387 parent only after its current-head gates pass. PR #392 is a
-  separate main-targeting product follow-up and remains subject to the same
-  gates.
+   open #387 parent only after its current-head gates pass. PR #398 is excluded
+   because it stack-merged and is represented by parent PR #392's current
+   main-targeting head, which remains subject to the same gates.
    Verify the synthetic footnote/table cases in the authenticated browser and
    use the protected external corpus only for aggregate, non-identifying
    runtime evidence.
