@@ -49,7 +49,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T17:02:57Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T17:07:44Z` from the
 GitHub API. Checkpoint types are `merge_commit`, `head`, and
 `closed_without_merge`; the latter records a closed PR's exact `head` when
 `merged_at` and `merge_commit_sha` are both absent. A merged commit is
@@ -85,7 +85,7 @@ Open PRs at the same observation:
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `416d0f5d839decf666f8b4bd6c4d7c2d4264ba39` (the checkpoint
+- PR #368: `head` `69f245b0b1bcfd795c01aa26fd009cd8760ef5f5` (the checkpoint
   parent before this baseline update), base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, base `main`
@@ -94,7 +94,7 @@ Open PRs at the same observation:
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #384: `head` `cc0b50aa0838701582b373e1310279d6014c17db`, base
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
-- PR #387: `head` `10cf59eef692d16a8e828b799f7e859251c09c00`, base `main`
+- PR #387: `head` `2c47b353bd71dba78b720edf14bf5708c314f4a0`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 
 The open queue remains subject to exact-current-head Checks, formal independent
@@ -206,16 +206,17 @@ against the authenticated React surface:
   concurrent commit and is not claimed as final-head evidence. Hosted Checks
   and independent approval remain open.
 
-Observed at `2026-08-21T17:02:57Z` on PR #387's exact head
-`10cf59eef692d16a8e828b799f7e859251c09c00`:
+Observed at `2026-08-21T17:07:44Z` on PR #387's exact head
+`2c47b353bd71dba78b720edf14bf5708c314f4a0`:
 
 - A real PostgreSQL schema fixture initially raised `NameError` because the
   0102 project-event migration path was missing. The fixture now applies 0102
   before 0105; the focused schema and lineage tests passed.
 - The API fixture now applies the 0105 channel-evidence migration, and the
   rebuild endpoint passes the configured contextual-orchestrator adjudication
-  client. Local backend regression passed 768 tests with 17 environment skips;
-  frontend lint, 143 Vitest tests, and production build passed.
+  client; the PostgreSQL import path preserves the same client. Local backend
+  regression passed 768 tests with 17 environment skips; frontend lint, 143
+  Vitest tests, and production build passed.
 - Devin's remaining observations about uniform channel sets and LLM
   availability are documented as invariants/optional-channel behavior in ADR
   0124; active weight ordering was made deterministic. Hosted Checks are
