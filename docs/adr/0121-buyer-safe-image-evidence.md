@@ -25,6 +25,13 @@ The instruction matcher uses concrete imperative phrases for Korean text
 extraction guidance rather than ordinary words such as `텍스트` or `질문`, so
 legitimate captions that describe an image containing text remain evidence.
 
+The configured Vision destination is also a trust boundary. The client rejects
+credential-bearing URLs, invalid ports, loopback/private/link-local/reserved
+IP literals, and known local or cloud-metadata hostnames even when local HTTP
+is explicitly enabled. Compose uses the service name `orchestrator` for its
+local HTTP route; a caller cannot opt into an internal IP destination by
+setting `allow_insecure_http`.
+
 ## Consequences
 
 - Buyer screens cannot expose the analysis agent's instruction as post content.
@@ -33,3 +40,5 @@ legitimate captions that describe an image containing text remain evidence.
 - OCR, region evidence, and semantic search remain available.
 - New provider-specific instruction variants require an explicit, reviewed
   pattern and a regression test rather than a broad caption guess.
+- A malformed or attacker-controlled Vision endpoint fails closed at client
+  construction, before an API key or image payload is sent.
