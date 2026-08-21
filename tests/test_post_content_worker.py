@@ -290,6 +290,36 @@ def test_stale_worker_cannot_retry_after_lease_recovery() -> None:
     assert not any("set status_code" in query for query, _args in connection.executed)
 
 
+def test_supervised_worker_restarts_after_unexpected_error(monkeypatch) -> None:
+    calls = 0
+
+    async def run_once(*_args, **_kwargs) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("transient worker failure")
+        raise asyncio.CancelledError
+
+    async def no_delay(_seconds: float) -> None:
+        return None
+
+    monkeypatch.setattr(post_content_worker, "run_post_content_worker", run_once)
+    monkeypatch.setattr(post_content_worker.asyncio, "sleep", no_delay)
+
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(
+            post_content_worker.run_post_content_worker_supervised(
+                SimpleNamespace(),
+                SimpleNamespace(),
+                vision_factory=lambda: SimpleNamespace(),
+                embedding_factory=lambda: SimpleNamespace(),
+                structure_factory=lambda: SimpleNamespace(),
+            )
+        )
+
+    assert calls == 2
+
+
 def test_stale_worker_cannot_mark_recovered_attempt_succeeded() -> None:
     class StaleConnection(_Connection):
         async def execute(self, query: str, *args: object) -> str:

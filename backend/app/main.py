@@ -114,7 +114,7 @@ from backend.app.post_content_queue import (
     post_body_has_images,
     publish_post_content_event,
 )
-from backend.app.post_content_worker import run_post_content_worker
+from backend.app.post_content_worker import run_post_content_worker_supervised
 from backend.app.source_post_revision import fetch_known_at_revision, parse_as_of_clock
 from backend.app.activity_stream import (
     create_valkey_client,
@@ -230,7 +230,7 @@ async def lifespan(app: FastAPI):
         )
     )
     app.state.post_content_worker = asyncio.create_task(
-        run_post_content_worker(
+        run_post_content_worker_supervised(
             app.state.valkey,
             app.state.pool,
             vision_factory=_vision_client,
