@@ -83,6 +83,7 @@ import {
   fetchTenantConfig,
 } from "./api";
 import { CitationChip } from "./components/CitationChip";
+import { returnUrlFromLocation } from "./oidcReturnUrl";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { OntologyExplorer } from "./components/OntologyExplorer";
@@ -4656,7 +4657,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             </div>
             <div className="login-controls">
               <button className="btn-primary" onClick={() => {
-                const returnUrl = window.location.pathname + window.location.search;
+                const returnUrl = returnUrlFromLocation();
                 void auth.signinRedirect({ state: { returnUrl } });
               }}>
                 {t("Log in")}
