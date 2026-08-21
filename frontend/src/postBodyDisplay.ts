@@ -36,7 +36,10 @@ function markFootnoteTags(markup: string): string {
     if (!match) return tag;
     const closing = Boolean(match[1]);
     const name = match[2].toLowerCase();
-    const hasFootnoteLabel = /\b(?:footnotes?|endnotes?|msofootnotetext|msoendnotetext)\b/i.test(tag);
+    const hasFootnoteLabel = [...tag.matchAll(/\b(?:class|role)\s*=\s*(["'])(.*?)\1/gi)].some(
+      (attribute) =>
+        /\b(?:footnotes?|endnotes?|msofootnotetext|msoendnotetext)\b/i.test(attribute[2]),
+    );
     const isContainer =
       (name === "ol" || name === "ul") && hasFootnoteLabel;
     const isWordParagraph =
@@ -148,7 +151,7 @@ function stripHtmlTags(text: string): string {
     })
     .replace(WORD_INDENT_TAG, (tag) => indentMarker(declaredIndentWidth(tag)));
   const withoutTags = withBoundaries.replace(HTML_TAG, (tag) => {
-    if (/^<\/?(?:a|w:)/i.test(tag)) return "";
+    if (/^<\/?(?:a\b|w:)/i.test(tag)) return "";
     return " ";
   });
   const decoded = decodeHtmlEntities(withoutTags);

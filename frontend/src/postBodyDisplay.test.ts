@@ -92,6 +92,24 @@ describe("splitPostBody", () => {
     expect(splitPostBody('<ol class="footnotes"></ol>')).toEqual([{ kind: "text", text: "" }]);
   });
 
+  it("does not infer footnotes from unrelated attribute values", () => {
+    expect(
+      splitPostBody(
+        '<ol data-purpose="footnotes"><li>Ordinary list</li></ol>' +
+          '<p data-purpose="footnote">Ordinary paragraph</p>',
+      ),
+    ).toEqual([
+      { kind: "text", text: "Ordinary list" },
+      { kind: "text", text: "Ordinary paragraph" },
+    ]);
+  });
+
+  it("keeps text boundaries for tags whose names start with a", () => {
+    expect(splitPostBody('<p>Alpha<abbr title="expanded">Beta</abbr>Gamma</p>')).toEqual([
+      { kind: "text", text: "Alpha Beta Gamma" },
+    ]);
+  });
+
   it("leaves a plain-text post unchanged so existing popups keep their wording", () => {
     expect(splitPostBody("The full body text.")).toEqual([
       { kind: "text", text: "The full body text." },
