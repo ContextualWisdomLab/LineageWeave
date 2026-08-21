@@ -136,6 +136,13 @@ def parse_rfc3339_utc(value: Any, name: str) -> tuple[datetime, str]:
     return utc, utc.isoformat().replace("+00:00", "Z")
 
 
+def project_history_event_sort_key(event: Mapping[str, Any]) -> tuple[datetime, str]:
+    """Order project-history events by their instant, then stable identity."""
+
+    occurred_at, _ = parse_rfc3339_utc(event["occurred_at"], "occurred_at")
+    return occurred_at, str(event["event_id"])
+
+
 def _code(value: Any, name: str) -> str:
     """Return a bounded lower-snake contract code."""
 
@@ -291,7 +298,7 @@ def validate_tepp_project_history_projection(
     response_events = [_event(event) for event in raw_events]
     expected_events = sorted(
         validated_request["events"],
-        key=lambda event: (event["occurred_at"], event["event_id"]),
+        key=project_history_event_sort_key,
     )
     if response_events != expected_events:
         raise TeppProjectHistoryUnavailable("TEPP changed or reordered supplied evidence")

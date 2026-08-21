@@ -13,6 +13,7 @@ from lineageweave.tepp_project_history import (
     TeppProjectHistoryInvalidResponse,
     TeppProjectHistoryUnavailable,
     parse_rfc3339_utc,
+    project_history_event_sort_key,
     validate_tepp_project_history_request,
 )
 
@@ -128,7 +129,7 @@ def build_tepp_project_history_request(
                 ),
             }
         )
-    events.sort(key=lambda event: (event["occurred_at"], event["event_id"]))
+    events.sort(key=project_history_event_sort_key)
     request: dict[str, Any] = {
         "contract_version": PROJECT_HISTORY_CONTRACT_VERSION,
         "tenant_workspace_id": tenant_workspace_id,

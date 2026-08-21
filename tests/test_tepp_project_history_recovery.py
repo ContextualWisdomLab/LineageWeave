@@ -20,6 +20,7 @@ from lineageweave.tepp_project_history import (
     TeppProjectHistoryClient,
     TeppProjectHistoryInvalidResponse,
     TeppProjectHistoryUnavailable,
+    parse_rfc3339_utc,
 )
 
 
@@ -123,7 +124,10 @@ def _tepp_response(request: dict[str, object]) -> dict[str, object]:
 
     events = sorted(
         deepcopy(request["events"]),
-        key=lambda event: (event["occurred_at"], event["event_id"]),
+        key=lambda event: (
+            parse_rfc3339_utc(event["occurred_at"], "occurred_at")[0],
+            event["event_id"],
+        ),
     )
     actors = {actor for event in events for actor in event["actor_ids"]}
     return {
@@ -169,6 +173,35 @@ def test_mapper_uses_opaque_actor_references_and_bounded_source_evidence() -> No
     )
     assert request["events"][0]["available_at"] == request["events"][0]["occurred_at"]
     assert request["events"][0]["evidence_text"].startswith("Synthetic contract awarded")
+
+
+def test_mapper_and_tepp_validation_order_fractional_seconds_by_instant() -> None:
+    """Events in the same second retain chronological rather than text order."""
+
+    projection = _canonical_projection()
+    projection["events"][0]["occurred_at"] = "2022-03-11T09:00:00.500Z"
+    projection["events"][1]["occurred_at"] = "2022-03-11T09:00:00Z"
+    request = build_tepp_project_history_request(
+        projection=projection,
+        tenant_workspace_id=tenant_workspace_reference(["tenant-a"]),
+    )
+
+    assert [event["event_id"] for event in request["events"]] == [
+        "00000000-0000-4000-8000-000000000002",
+        "00000000-0000-4000-8000-000000000001",
+        "00000000-0000-4000-8000-000000000003",
+    ]
+
+    client = TeppProjectHistoryClient(
+        "https://tepp.example",
+        transport=lambda url, payload, headers, timeout: _tepp_response(payload),
+    )
+    result = client.project(request)
+    assert [event["event_id"] for event in result["events"]] == [
+        "00000000-0000-4000-8000-000000000002",
+        "00000000-0000-4000-8000-000000000001",
+        "00000000-0000-4000-8000-000000000003",
+    ]
 
 
 @pytest.mark.parametrize("timestamp", ["2026-08-20 12:00:00Z", "2026-08-20T12:00:00+0900"])
