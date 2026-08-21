@@ -409,7 +409,7 @@ nesting in the buyer view.
 
 - Decision record: ADR 0103
 - Implementation: PR #319, stacked on the adjacent-table correction in PR #317
-- Local evidence: backend `731 passed, 16 skipped`; frontend `134 passed`, lint,
+- Local evidence: backend `734 passed, 16 skipped`; frontend `136 passed`, lint,
   build, and Storybook build passed.
 - Integration status: PR #319 is not protected-main truth; exact parent head,
   formal review, terminal Checks, and post-merge browser evidence remain
@@ -425,8 +425,8 @@ the existing whole-image fallback.
 
 - Decision record: ADR 0104
 - Implementation: PR #320, stacked on PR #319
-- Local evidence: backend `731 passed, 16 skipped`; focused image/normalization
-  tests `39 passed`; frontend lint, `134 passed`, build, and Storybook build
+- Local evidence: backend `734 passed, 16 skipped`; focused image/normalization
+  tests `13 passed`; frontend lint, `136 passed`, build, and Storybook build
   passed.
  - Integration status: PR #320 is not protected-main truth; exact stack heads,
    formal review, terminal Checks, and authorized post-merge image evidence
