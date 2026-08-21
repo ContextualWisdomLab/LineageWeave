@@ -137,6 +137,8 @@ was then restacked and pushed normally at head
 backend regression set passed (`28 passed, 135 deselected`), and the frontend
 suite/lint/build passed (`204 passed`). Hosted Checks for the new #397 head
 were pending at observation, so approval and merge remain unauthorized.
+The subsequent full backend run on the same restacked checkout passed
+(`862 passed, 17 skipped`, 14 deprecation/security warnings only).
 
 ## 2. LLM Extraction & Knowledge Graph Gaps
 - **Multiple Project Extraction**: A structured `key_events.project_name` implementation exists, but separate-event behavior still requires protected authorized-corpus evidence.
