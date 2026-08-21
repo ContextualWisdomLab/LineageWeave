@@ -187,11 +187,8 @@ def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -
         return None
     if not host or any(marker in host for marker in _SEARCH_HOST_MARKERS):
         return None
-    tokens = {
-        token.lower()
-        for token in _ORG_TOKEN.findall(organization_name)
-        if token.lower() not in _ORG_TOKEN_STOPWORDS
-    }
+    organization_tokens = [token.lower() for token in _ORG_TOKEN.findall(organization_name)]
+    tokens = {token for token in organization_tokens if token not in _ORG_TOKEN_STOPWORDS}
     if not tokens:
         return None
     haystack_tokens = {
@@ -201,9 +198,17 @@ def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -
     if all(
         any(_organization_token_matches(token, candidate) for candidate in haystack_tokens)
         for token in tokens
-    ):
+    ) or _concatenated_hangul_name_matches(organization_tokens, haystack_tokens):
         return url
     return None
+
+
+def _concatenated_hangul_name_matches(expected_tokens: list[str], observed_tokens: set[str]) -> bool:
+    """Accept a spaced Hangul name when a page writes its parts contiguously."""
+    if len(expected_tokens) < 2 or not all(_HANGUL_TOKEN.fullmatch(token) for token in expected_tokens):
+        return False
+    compact_name = "".join(expected_tokens)
+    return any(_organization_token_matches(compact_name, observed) for observed in observed_tokens)
 
 
 def _organization_token_matches(expected: str, observed: str) -> bool:
