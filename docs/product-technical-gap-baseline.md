@@ -91,6 +91,13 @@ this set was reported as merged into protected `main`.
 - The active protected ruleset `LineageWeave: no force pushes` has no bypass
   actors and only the `non_fast_forward` rule. All stack pushes above were
   normal fast-forward/new-branch pushes.
+- **Hourly automation boundary:** the central
+  [`ContextualWisdomLab/.github` merge scheduler](https://github.com/ContextualWisdomLab/.github/blob/main/.github/workflows/pr-review-merge-scheduler.yml)
+  runs its organization sweep at `0 * * * *`; the central target allowlist
+  includes `ContextualWisdomLab/LineageWeave`. Its reusable review-repair
+  workflow is product-neutral, so LineageWeave does not add a duplicate local
+  timer. The same exact-head, review, Checks, and protected-merge gates remain
+  authoritative; a scheduled run is not evidence of a merge.
 
 ## 2. LLM Extraction & Knowledge Graph Gaps
 - **Multiple Project Extraction**: A structured `key_events.project_name` implementation exists, but separate-event behavior still requires protected authorized-corpus evidence.
