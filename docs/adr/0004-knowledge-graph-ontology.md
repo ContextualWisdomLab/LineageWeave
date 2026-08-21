@@ -1,7 +1,7 @@
 # ADR 0004 — Standards-composed Knowledge Graph ontology and semantic layer
 
-**Decision status:** Accepted; amended 2026-08-21  
-**Original date:** 2026-08-13  
+**Decision status:** Accepted; amended 2026-08-21
+**Original date:** 2026-08-13
 **Related:** ADR 0006, ADR 0007, ADR 0009, ADR 0036, ADR 0065
 
 ## Context

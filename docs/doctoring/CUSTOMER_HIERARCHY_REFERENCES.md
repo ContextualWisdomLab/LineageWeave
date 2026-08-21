@@ -1,7 +1,7 @@
 # Customer hierarchy standards and research traceability
 
-**Decision:** ADR 0124 — Cycle-safe customer master tree projection  
-**Reviewed:** 2026-08-21  
+**Decision:** ADR 0124 — Cycle-safe customer master tree projection
+**Reviewed:** 2026-08-21
 **Figma file ID:** `SBpgot7uTvMxEaxUwvoc0S`
 
 ## Traceability
