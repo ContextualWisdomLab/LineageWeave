@@ -45,6 +45,13 @@ next exact head and therefore requires the protected checks to rerun.
   follow-up requires its own protected checks and independent approval;
   neither is claimed yet. The prior PR #347 merged at
   `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`.
+- **Current parsing PR:** PR #367 is open and unmerged at exact head
+  `4093ac7f` (full SHA is recorded in the PR body), based on
+  `docs/customer-master-scope-adr` at `f66991699506ef14607de5946da1efcfd20ae6da`.
+  It preserves numbered footnotes and empty-cell positions, avoids short-id
+  collisions, and drops table rows made only of empty cells. The focused
+  parser gate is `47 passed`; `compileall` and `git diff --check` passed.
+  Hosted Checks remain queued and no approval or merge is claimed.
 
 ## 2. UI/UX Standard Guide v3.0 comparison
 
