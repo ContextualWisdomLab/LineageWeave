@@ -1,4 +1,4 @@
-# ADR 0111: Authorized project-history buyer surface
+# ADR 0128: Authorized project-history buyer surface
 
 - Status: Proposed on PR #285; not protected-main behavior
 - Date: 2026-08-20
