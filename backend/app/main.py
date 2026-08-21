@@ -1016,10 +1016,11 @@ async def read_customer_master(
                 if str(row["corporate_entity_id"]) not in synthetic_only_entity_ids
             ]
         entity_ids = [row["corporate_entity_id"] for row in entity_rows]
+        authorized_entity_ids = [str(entity_id) for entity_id in account.corporate_entity_ids]
         source_author_affiliations = await _load_account_affiliation_hints(
             conn,
             [str(row["author_account_id"]) for row in source_author_rows],
-            [str(entity_id) for entity_id in entity_ids],
+            authorized_entity_ids,
         )
         keyman_rows = await conn.fetch(
             """
@@ -1036,11 +1037,11 @@ async def read_customer_master(
              where affiliation.affiliated_corporate_entity_id = any($1::uuid[])
              order by person.person_name, affiliation.affiliated_organization_name
             """,
-            entity_ids,
+            authorized_entity_ids,
         )
         side_labels = await labels_for_codes(conn, [row["person_side_code"] for row in keyman_rows])
         entity_level_labels = await labels_for_codes(conn, [row["entity_level_code"] for row in entity_rows])
-        relationship_network = await fetch_relationship_network(conn, entity_ids)
+        relationship_network = await fetch_relationship_network(conn, authorized_entity_ids)
 
     keymen_by_id: dict[str, dict[str, Any]] = {}
     for row in keyman_rows:

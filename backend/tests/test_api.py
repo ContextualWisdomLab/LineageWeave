@@ -521,6 +521,12 @@ def seeded_db(demo_analyst_token):
                 "values (%s, 'Northridge Grid'), (%s, 'Northridge Holdings')",
                 (counterpart_person_id, counterpart_person_id),
             )
+            cur.execute(
+                "insert into person_affiliation "
+                "(person_id, affiliated_organization_name, affiliated_corporate_entity_id) "
+                "values (%s, 'Other Corp Only', %s)",
+                (hidden_person_id, other_corp_id),
+            )
 
             cur.execute(
                 "insert into post_person_mention (post_id, person_id) values "
@@ -1300,6 +1306,12 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
                 ),
             )
             cur.execute(
+                "insert into post_counterparty_entity "
+                "(post_id, counterparty_entity_name, relationship_type_code, verification_status_code) "
+                "values (%s, 'Private Other Corp', 'rel_voc', 'verify_pending')",
+                (seeded_db["other_private_post_id"],),
+            )
+            cur.execute(
                 "insert into account_affiliation "
                 "(user_account_id, corporate_entity_id, affiliation_scope_code) "
                 "select user_account_id, %s, 'scope_granted_entity' "
@@ -1355,6 +1367,7 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
     assert observed["scope_facets"] == ["observed_organization"]
     assert not any(item["entity_name"] == "Hidden Corp" for item in body["corporate_entities"])
     assert isinstance(body["keymen"], list)
+    assert not any(item["person_name"] == "Other Corp Only" for item in body["keymen"])
     ada_west = next(item for item in body["keymen"] if item["person_name"] == "Ada West")
     assert ada_west["person_side_code"] == "our_side"
     # Live UI finding (2026-08-19): the Customer Master Keymen list falls
@@ -1364,6 +1377,7 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
     assert ada_west["person_side_label"] not in ("", "our_side")
 
     network = {row["counterparty_entity_name"]: row for row in body["relationship_network"]}
+    assert "Private Other Corp" not in network
     northridge = network["Northridge Grid"]
     assert northridge["multi_role"] is True
     assert {rel["relationship_type_code"] for rel in northridge["relationships"]} == {"rel_voc", "rel_voco"}
