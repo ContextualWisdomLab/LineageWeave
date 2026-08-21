@@ -366,10 +366,10 @@ export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessTo
                     || draftConfig.copyrightYear < COPYRIGHT_YEAR_MIN
                     || draftConfig.copyrightYear > COPYRIGHT_YEAR_MAX
                     || (
-                      draftConfig.brandName === currentTenantConfig.brandName
+                      draftConfig.brandName.trim() === currentTenantConfig.brandName
                       && draftConfig.systemName === currentTenantConfig.systemName
                       && draftConfig.copyrightYear === currentTenantConfig.copyrightYear
-                      && draftConfig.copyrightHolder === currentTenantConfig.copyrightHolder
+                      && draftConfig.copyrightHolder.trim() === currentTenantConfig.copyrightHolder
                     )
                   }
                 >

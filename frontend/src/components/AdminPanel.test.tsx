@@ -128,6 +128,16 @@ describe("AdminPanel", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("keeps the save action disabled for whitespace-only edits", () => {
+    render(<AdminPanel {...baseProps} />);
+    fireEvent.click(screen.getByRole("button", { name: /Tenant settings/ }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Tenant brand name" }), {
+      target: { value: "  LineageWeave  " },
+    });
+
+    expect(screen.getByRole("button", { name: "Save settings" })).toBeDisabled();
+  });
+
   it("refreshes the draft when the fetched tenant config arrives", () => {
     const { rerender } = render(<AdminPanel {...baseProps} />);
 
