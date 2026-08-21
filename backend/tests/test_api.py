@@ -3362,7 +3362,7 @@ def test_post_chat_malformed_provider_reply_is_unavailable(
 
 
 def test_global_ask_malformed_provider_reply_is_unavailable(
-    client, demo_analyst_token, monkeypatch
+    client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
     """Global Ask must degrade safely when provider content has the wrong type."""
 
