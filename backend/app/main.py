@@ -2617,7 +2617,10 @@ async def chat_about_post(
                     vision_client=_vision_client(),
                 )
         with use_llm_metadata(post_metadata):
-            with traced("lineageweave.api.post_chat", {"operation_code": "post_chat"}):
+            with traced(
+                "lineageweave.api.post_chat",
+                {"lineageweave.operation_code": "post_chat"},
+            ):
                 answer = await asyncio.to_thread(client.answer, question, sources)
     except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
         record_server_failure("post_chat", exc, outcome="provider_unavailable")
@@ -2692,7 +2695,10 @@ async def ask_agent(
             "next_action": "No authorized source posts are available for this question.",
         }
     try:
-        with traced("lineageweave.api.global_ask", {"operation_code": "global_ask"}):
+        with traced(
+            "lineageweave.api.global_ask",
+            {"lineageweave.operation_code": "global_ask"},
+        ):
             answer = await asyncio.to_thread(client.answer, question, sources)
     except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
         record_server_failure("global_ask", exc, outcome="provider_unavailable")

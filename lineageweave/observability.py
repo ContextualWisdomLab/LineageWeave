@@ -176,7 +176,7 @@ def configure_telemetry(service_name: str = "lineageweave") -> None:
 
 def shutdown_telemetry() -> None:
     """Flush configured OTLP providers without masking application shutdown."""
-    global _TRACE_PROVIDER, _METER_PROVIDER, _FAILURE_COUNTER
+    global _CONFIGURED, _TRACE_PROVIDER, _METER_PROVIDER, _FAILURE_COUNTER
     for provider_name, provider in (
         ("trace", _TRACE_PROVIDER),
         ("metric", _METER_PROVIDER),
@@ -193,6 +193,7 @@ def shutdown_telemetry() -> None:
     _TRACE_PROVIDER = None
     _METER_PROVIDER = None
     _FAILURE_COUNTER = None
+    _CONFIGURED = False
 
 
 def _failure_counter() -> Any:

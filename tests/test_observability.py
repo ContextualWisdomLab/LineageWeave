@@ -79,6 +79,13 @@ def test_traced_rethrows_provider_errors():
         raise AssertionError("traced must preserve operation failures")
 
 
+def test_safe_attributes_keeps_allowlisted_operation_code():
+    """Endpoint spans retain the bounded operation dimension."""
+    assert _safe_attributes(
+        {"lineageweave.operation_code": "post_chat"}
+    ) == {"lineageweave.operation_code": "post_chat"}
+
+
 def test_otlp_base_endpoint_gets_trace_signal_path():
     """A configured collector base URL receives the HTTP traces signal path."""
     assert _otlp_trace_endpoint("http://collector:4318") == "http://collector:4318/v1/traces"
@@ -99,6 +106,7 @@ def test_shutdown_telemetry_flushes_configured_providers(monkeypatch):
     monkeypatch.setattr(observability, "_TRACE_PROVIDER", _Provider("trace"))
     monkeypatch.setattr(observability, "_METER_PROVIDER", _Provider("metric"))
     monkeypatch.setattr(observability, "_FAILURE_COUNTER", object())
+    monkeypatch.setattr(observability, "_CONFIGURED", True)
 
     shutdown_telemetry()
 
@@ -106,3 +114,4 @@ def test_shutdown_telemetry_flushes_configured_providers(monkeypatch):
     assert observability._TRACE_PROVIDER is None
     assert observability._METER_PROVIDER is None
     assert observability._FAILURE_COUNTER is None
+    assert observability._CONFIGURED is False
