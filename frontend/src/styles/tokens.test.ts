@@ -70,4 +70,10 @@ describe("design tokens", () => {
       expect(appCss, `App.css never references var(${token})`).toContain(`var(${token})`);
     }
   });
+
+  it("gives native interactive controls a shared visible focus token", () => {
+    expect(appCss).toContain("button:focus-visible");
+    expect(appCss).toContain("outline: 2px solid var(--color-focus-border);");
+    expect(appCss).toContain("outline-offset: 2px;");
+  });
 });

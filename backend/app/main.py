@@ -179,7 +179,10 @@ from backend.app.post_summary_ingestion import (
     persist_post_summary,
     require_summary_source_body,
 )
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.post_eligibility import (
+    SOURCE_POST_ELIGIBILITY_SQL,
+    SOURCE_POST_VISIBILITY_SQL,
+)
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
     has_real_source_context,
@@ -550,8 +553,7 @@ async def _post_filter_options(
           left join common_lookup_value lookup
             on lookup.lookup_category = 'post_visibility'
            and lookup.lookup_code = post.visibility_code
-         where (post.visibility_code = 'public'
-            or post.corporate_entity_id::text = any($1::text[]))
+         where {SOURCE_POST_VISIBILITY_SQL.format(alias='post', authorized_entity_ids='$1')}
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
     """
@@ -563,8 +565,7 @@ async def _post_filter_options(
           left join common_lookup_value lookup
             on lookup.lookup_category = 'voc_type'
            and lookup.lookup_code = post.voc_type_code
-         where (post.visibility_code = 'public'
-            or post.corporate_entity_id::text = any($1::text[]))
+         where {SOURCE_POST_VISIBILITY_SQL.format(alias='post', authorized_entity_ids='$1')}
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
     """
@@ -740,7 +741,7 @@ async def read_customer_master(
                   from source_post
                  where (nullif(btrim(source_customer_code), '') is not null
                         or nullif(btrim(source_customer_name), '') is not null)
-                   and (visibility_code = 'public' or corporate_entity_id = any($1::uuid[]))
+                   and {SOURCE_POST_VISIBILITY_SQL.format(alias='source_post', authorized_entity_ids='$1')}
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
             ), ranked as (
                 select scoped.*,
@@ -806,7 +807,7 @@ async def read_customer_master(
                   join user_account author on author.user_account_id = post.author_account_id
                  where post.source_author_code is not null
                    and btrim(post.source_author_code) <> ''
-                   and (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
+                   and {SOURCE_POST_VISIBILITY_SQL.format(alias='post', authorized_entity_ids='$1')}
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
             ), ranked as (
                 select scoped.*,
@@ -924,16 +925,77 @@ async def read_customer_master(
             """,
             list(account.corporate_entity_ids),
         )
-        entity_rows = await conn.fetch(
+        authorized_entity_rows = await conn.fetch(
             """
-            select corporate_entity_id, corporate_entity_code, entity_name,
-                   entity_level_code, parent_entity_id
-              from corporate_entity
-             where corporate_entity_id = any($1::uuid[])
-             order by entity_name
+            select entity.corporate_entity_id, entity.corporate_entity_code,
+                   entity.entity_name, entity.entity_level_code,
+                   entity.parent_entity_id,
+                   coalesce(
+                       array_agg(distinct affiliation.affiliation_scope_code)
+                           filter (where affiliation.affiliation_scope_code is not null),
+                       array['scope_unclassified']::text[]
+                   ) as affiliation_scope_codes
+              from corporate_entity entity
+              left join account_affiliation affiliation
+                on affiliation.corporate_entity_id = entity.corporate_entity_id
+               and affiliation.user_account_id = $2
+             where entity.corporate_entity_id = any($1::uuid[])
+             group by entity.corporate_entity_id, entity.corporate_entity_code,
+                      entity.entity_name, entity.entity_level_code,
+                      entity.parent_entity_id
+             order by entity.entity_name
+            """,
+            list(account.corporate_entity_ids),
+            account.user_account_id,
+        )
+        # Resolved organization mentions enrich navigation only when the source
+        # post is already visible to this account. They never grant access to a
+        # private post and unresolved counterparty names remain hints below.
+        # Safe SQL: the visibility and eligibility predicates are closed schema text; ids are bound.
+        observed_entity_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            f"""
+            select distinct entity.corporate_entity_id, entity.corporate_entity_code,
+                   entity.entity_name, entity.entity_level_code,
+                   entity.parent_entity_id
+              from post_organization_mention mention
+              join source_post post on post.post_id = mention.post_id
+              join corporate_entity entity
+                on entity.corporate_entity_id = mention.corporate_entity_id
+             where {SOURCE_POST_VISIBILITY_SQL.format(alias='post', authorized_entity_ids='$1')}
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+             order by entity.entity_name
             """,
             list(account.corporate_entity_ids),
         )
+
+        scope_facet_by_code = {
+            "scope_own_entity": "authorized_own",
+            "scope_granted_entity": "authorized_granted",
+            "scope_unclassified": "scope_unclassified",
+        }
+        entity_by_id: dict[str, dict[str, Any]] = {}
+
+        def add_entity(row: asyncpg.Record | dict[str, Any], facets: list[str]) -> None:
+            entity_id = str(row["corporate_entity_id"])
+            current = entity_by_id.get(entity_id)
+            if current is None:
+                current = dict(row)
+                current["scope_facets"] = set()
+                entity_by_id[entity_id] = current
+            current["scope_facets"].update(facets)
+
+        for row in authorized_entity_rows:
+            add_entity(
+                row,
+                [
+                    scope_facet_by_code.get(scope_code, "scope_unclassified")
+                    for scope_code in (row["affiliation_scope_codes"] or ["scope_unclassified"])
+                ],
+            )
+        observed_entity_ids = {str(row["corporate_entity_id"]) for row in observed_entity_rows}
+        for row in observed_entity_rows:
+            add_entity(row, ["observed_organization"])
+        entity_rows = sorted(entity_by_id.values(), key=lambda row: row["entity_name"])
         has_source_context = bool(source_customer_rows or source_author_rows)
         if not has_source_context:
             has_source_context = await has_real_source_context(
@@ -946,11 +1008,29 @@ async def read_customer_master(
                 for row in entity_rows
                 if str(row["corporate_entity_id"]) not in synthetic_only_entity_ids
             ]
-        entity_ids = [row["corporate_entity_id"] for row in entity_rows]
+        surviving_entity_by_id = {
+            str(row["corporate_entity_id"]): row for row in entity_rows
+        }
+        for entity_id in observed_entity_ids:
+            entity = surviving_entity_by_id.get(entity_id)
+            if entity is None:
+                continue
+            parent_id = entity["parent_entity_id"]
+            parent = surviving_entity_by_id.get(str(parent_id)) if parent_id is not None else None
+            if parent is None:
+                continue
+            entity["scope_facets"].add("observed_hierarchy")
+            parent["scope_facets"].add("observed_hierarchy")
+        authorized_entity_id_set = {str(entity_id) for entity_id in account.corporate_entity_ids}
+        authorized_entity_ids = [
+            str(row["corporate_entity_id"])
+            for row in entity_rows
+            if str(row["corporate_entity_id"]) in authorized_entity_id_set
+        ]
         source_author_affiliations = await _load_account_affiliation_hints(
             conn,
             [str(row["author_account_id"]) for row in source_author_rows],
-            [str(entity_id) for entity_id in entity_ids],
+            authorized_entity_ids,
         )
         keyman_rows = await conn.fetch(
             """
@@ -967,11 +1047,11 @@ async def read_customer_master(
              where affiliation.affiliated_corporate_entity_id = any($1::uuid[])
              order by person.person_name, affiliation.affiliated_organization_name
             """,
-            entity_ids,
+            authorized_entity_ids,
         )
         side_labels = await labels_for_codes(conn, [row["person_side_code"] for row in keyman_rows])
         entity_level_labels = await labels_for_codes(conn, [row["entity_level_code"] for row in entity_rows])
-        relationship_network = await fetch_relationship_network(conn, entity_ids)
+        relationship_network = await fetch_relationship_network(conn, authorized_entity_ids)
 
     keymen_by_id: dict[str, dict[str, Any]] = {}
     for row in keyman_rows:
@@ -1010,6 +1090,7 @@ async def read_customer_master(
                 "entity_level_label": entity_level_labels.get(
                     row["entity_level_code"], row["entity_level_code"]
                 ),
+                "scope_facets": sorted(row["scope_facets"]),
                 "parent_entity_id": (
                     str(row["parent_entity_id"]) if row["parent_entity_id"] is not None else None
                 ),
@@ -1216,8 +1297,7 @@ async def list_posts(
                        end as search_priority,
                        count(*) over() as total_count
                   from source_post post
-             where (post.visibility_code = 'public'
-                or post.corporate_entity_id::text = any($2::text[]))
+             where {SOURCE_POST_VISIBILITY_SQL.format(alias='post', authorized_entity_ids='$2')}
                and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
                and (
                     $1::text is null

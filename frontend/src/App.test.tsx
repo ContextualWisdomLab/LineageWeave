@@ -1597,6 +1597,7 @@ describe("App, authenticated", () => {
                     entity_level_code: "group",
                     entity_level_label: "Group",
                     parent_entity_id: null,
+                    scope_facets: ["scope_unclassified"],
                   },
                   {
                     corporate_entity_id: "corp-demo",
@@ -1605,6 +1606,7 @@ describe("App, authenticated", () => {
                     entity_level_code: "company",
                     entity_level_label: "Company",
                     parent_entity_id: "corp-group",
+                    scope_facets: ["authorized_own", "observed_hierarchy"],
                   },
                 ]
               : [
@@ -1750,6 +1752,24 @@ describe("App, authenticated", () => {
     // The subsidiary's <li> is nested inside the parent's <li>, not a
     // sibling at the same top level.
     expect(parentRow?.contains(subsidiaryRow)).toBe(true);
+  });
+
+  it("filters the Customer Master tree by the server-provided scope facet", async () => {
+    stubBackend({ customerEntityHierarchy: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    const filter = screen.getByLabelText("Filter customer entities");
+    await userEvent.selectOptions(filter, "authorized_own");
+
+    expect(screen.getByText("Demo Corp")).toBeInTheDocument();
+    expect(screen.queryByText("Demo Group")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Demo Corp.*Own company/ })).toBeInTheDocument();
+
+    await userEvent.selectOptions(filter, "observed_hierarchy");
+    expect(screen.getByText("Demo Corp")).toBeInTheDocument();
+    expect(screen.queryByText("Demo Group")).not.toBeInTheDocument();
   });
 
   it("shows every observed relationship role for a counterparty, flagging multi-role names", async () => {
@@ -2035,6 +2055,9 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("Related to Priya Nair")).not.toBeInTheDocument();
     const popup = document.querySelector(".popup-panel");
     expect(popup).not.toBeNull();
+    expect(screen.getByRole("dialog", { name: "Public post" })).toBe(popup);
+    expect(popup).toHaveAttribute("aria-modal", "true");
+    expect(popup).toHaveAttribute("aria-labelledby", "post-detail-title");
     const evaluation = within(popup as HTMLElement).getByRole("heading", {
       name: "Post quality (IRT)",
     });
@@ -2050,6 +2073,45 @@ describe("App, authenticated", () => {
     expect(affiliate.compareDocumentPosition(keyman) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     const ask = within(popup as HTMLElement).getByRole("heading", { name: "Ask about this lineage" });
     expect(keyman.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  });
+
+  it("keeps the post popup keyboard-contained and restores the opener after Escape", async () => {
+    const user = userEvent.setup();
+    stubBackend();
+    render(<App showLabPanels />);
+
+    const opener = await screen.findByRole("button", { name: "View post: Public post" });
+    await user.click(opener);
+    const dialog = await screen.findByRole("dialog", { name: "Public post" });
+    await waitFor(() => expect(dialog).toHaveFocus());
+
+    await user.keyboard("{Tab}");
+    expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
+    const evidenceSummary = screen.getByText("Evidence provenance");
+    for (let step = 0; step < 40 && document.activeElement !== evidenceSummary; step += 1) {
+      await user.keyboard("{Tab}");
+    }
+    expect(evidenceSummary).toHaveFocus();
+    const ariaHiddenTabStop = document.createElement("button");
+    ariaHiddenTabStop.setAttribute("aria-hidden", "true");
+    dialog.insertBefore(ariaHiddenTabStop, screen.getByRole("button", { name: "Close" }).nextSibling);
+    await user.keyboard("{Tab}");
+    expect(ariaHiddenTabStop).not.toHaveFocus();
+    const ariaHiddenGroup = document.createElement("div");
+    ariaHiddenGroup.setAttribute("aria-hidden", "true");
+    const nestedAriaHiddenTabStop = document.createElement("button");
+    ariaHiddenGroup.append(nestedAriaHiddenTabStop);
+    dialog.insertBefore(ariaHiddenGroup, screen.getByRole("button", { name: "Close" }).nextSibling);
+    await user.keyboard("{Tab}");
+    expect(nestedAriaHiddenTabStop).not.toHaveFocus();
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+    await user.keyboard("{Shift>}{Tab}{/Shift}");
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+    expect((document.activeElement as HTMLElement).closest("details:not([open])")).toBeNull();
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(opener).toHaveFocus();
   });
 
   it("labels a stale summary and retries the semantic refresh on request", async () => {

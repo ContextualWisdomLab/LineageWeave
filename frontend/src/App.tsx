@@ -58,6 +58,7 @@ import {
   type CorporateEntityRef,
   type CustomerMasterEntity,
   type CustomerMasterResponse,
+  type CustomerMasterScopeFacet,
   type Counterparty,
   type EvaluationResponse,
   type IssueTicket,
@@ -1744,6 +1745,57 @@ function PostDetailPopup({
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
   const [focusTeam, setFocusTeam] = useState<{ teamId: string; teamName: string } | null>(null);
   const contentReloadRef = useRef<() => void>(() => undefined);
+  const popupPanelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    const panel = popupPanelRef.current;
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    if (!panel) return;
+    panel.focus({ preventScroll: true });
+
+    const focusableSelector =
+      'a[href], area[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const focusable = Array.from(panel.querySelectorAll<HTMLElement>(focusableSelector)).filter(
+        (element) =>
+          !element.hidden &&
+          !element.closest('[aria-hidden="true"]') &&
+          (!element.closest("details:not([open])") || element.matches("summary")),
+      );
+      if (focusable.length === 0) {
+        event.preventDefault();
+        panel.focus();
+        return;
+      }
+      const currentIndex = focusable.indexOf(document.activeElement as HTMLElement);
+      const nextIndex = event.shiftKey
+        ? currentIndex <= 0
+          ? focusable.length - 1
+          : currentIndex - 1
+        : currentIndex < 0 || currentIndex === focusable.length - 1
+          ? 0
+          : currentIndex + 1;
+      event.preventDefault();
+      focusable[nextIndex].focus();
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      if (previouslyFocused && document.contains(previouslyFocused)) previouslyFocused.focus();
+    };
+  }, []);
 
   function reloadKeymen() {
     fetchPostKeymen(accessToken, postId)
@@ -1919,13 +1971,22 @@ function PostDetailPopup({
 
   return (
     <div className="popup-backdrop" onClick={onClose}>
-      <div className="popup-panel" onClick={(event) => event.stopPropagation()}>
+      <div
+        ref={popupPanelRef}
+        className="popup-panel"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={post ? "post-detail-title" : undefined}
+        aria-label={!post ? t("Post details") : undefined}
+        tabIndex={-1}
+        onClick={(event) => event.stopPropagation()}
+      >
         <PopupCloseButton onClose={onClose} label={t("Close")} />
         {error && <p className="error">{error}</p>}
         {!post && !error && <p>{t("Loading...")}</p>}
         {post && (
           <>
-            <h2>{post.post_title}</h2>
+            <h2 id="post-detail-title">{post.post_title}</h2>
             <p className="post-meta">
               {post.voc_type_label ?? post.voc_type_code} &middot;{" "}
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
@@ -4206,6 +4267,30 @@ function buildCustomerEntityTree(entities: CustomerMasterEntity[]): CustomerEnti
   return roots.map(toNode);
 }
 
+type CustomerMasterScopeFilter = "all" | CustomerMasterScopeFacet;
+
+function customerScopeFacetLabel(facet: CustomerMasterScopeFacet): string {
+  switch (facet) {
+    case "authorized_own":
+      return t("Own company");
+    case "authorized_granted":
+      return t("Granted company");
+    case "scope_unclassified":
+      return t("Scope not classified");
+    case "observed_organization":
+      return t("Observed organization");
+    case "observed_hierarchy":
+      return t("Observed hierarchy");
+  }
+}
+
+function customerEntityMatchesScope(
+  entity: CustomerMasterEntity,
+  filter: CustomerMasterScopeFilter,
+): boolean {
+  return filter === "all" || (entity.scope_facets ?? []).includes(filter);
+}
+
 function CustomerEntityTreeRow({
   node,
   depth,
@@ -4236,7 +4321,12 @@ function CustomerEntityTreeRow({
         onClick={() => onToggle(entity.corporate_entity_id)}
       >
         <strong>{entity.entity_name}</strong>
-        <span>{entity.corporate_entity_code} · {entity.entity_level_label}</span>
+        <span className="customer-entity-meta">
+          <span>{entity.corporate_entity_code} · {entity.entity_level_label}</span>
+          {(entity.scope_facets ?? []).map((facet) => (
+            <span className="customer-scope-chip" key={facet}>{customerScopeFacetLabel(facet)}</span>
+          ))}
+        </span>
       </button>
       {expandedEntityId === entity.corporate_entity_id ? (
         <div className="customer-related-posts">
@@ -4327,6 +4417,7 @@ function CustomerMasterPanel({
   const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
   const [resolvingHint, setResolvingHint] = useState<string | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
+  const [scopeFilter, setScopeFilter] = useState<CustomerMasterScopeFilter>("all");
   // Fetched independently, same pattern as PostList's own canRebuild --
   // CustomerMasterPanel is a sibling of PostList under App, not a child,
   // so it cannot read PostList's local post_admin check.
@@ -4357,6 +4448,10 @@ function CustomerMasterPanel({
     setMaster(null);
     void loadMaster();
   }, [loadMaster]);
+
+  const visibleEntities = (master?.corporate_entities ?? []).filter((entity) =>
+    customerEntityMatchesScope(entity, scopeFilter),
+  );
 
   async function handleResolveHint(hintCode: string) {
     setResolvingHint(hintCode);
@@ -4391,7 +4486,7 @@ function CustomerMasterPanel({
 
   return (
     <section className="workspace-destination" aria-labelledby="customer-master-heading">
-      <p className="section-eyebrow">{t("Authorized customer scope")}</p>
+      <p className="section-eyebrow">{t("Customer scope")}</p>
       <h2 id="customer-master-heading">{t("Customer master")}</h2>
       <p className="workspace-destination-intro">{t("Customer entities available to this account.")}</p>
       {error ? <p className="error">{error}</p> : null}
@@ -4400,20 +4495,41 @@ function CustomerMasterPanel({
         <p className="popup-placeholder">{t("No customer entities are connected to this account.")}</p>
       ) : null}
       {master && master.corporate_entities.length > 0 ? (
-        <ul className="customer-master-list customer-master-tree" aria-label={t("Customer entities available to this account.")}>
-          {buildCustomerEntityTree(master.corporate_entities).map((node) => (
-            <CustomerEntityTreeRow
-              key={node.entity.corporate_entity_id}
-              node={node}
-              depth={0}
-              expandedEntityId={expandedEntityId}
-              relatedByEntity={relatedByEntity}
-              relatedLoading={relatedLoading}
-              onToggle={toggleEntity}
-              onOpenPost={onOpenPost}
-            />
-          ))}
-        </ul>
+        <>
+          <div className="customer-master-scope-filter">
+            <label htmlFor="customer-master-scope-filter">{t("Filter customer entities")}</label>
+            <select
+              id="customer-master-scope-filter"
+              value={scopeFilter}
+              onChange={(event) => setScopeFilter(event.target.value as CustomerMasterScopeFilter)}
+            >
+              <option value="all">{t("All customer scopes")}</option>
+              <option value="authorized_own">{t("Own company")}</option>
+              <option value="authorized_granted">{t("Granted company")}</option>
+              <option value="scope_unclassified">{t("Scope not classified")}</option>
+              <option value="observed_organization">{t("Observed organization")}</option>
+              <option value="observed_hierarchy">{t("Observed hierarchy")}</option>
+            </select>
+          </div>
+          {visibleEntities.length > 0 ? (
+            <ul className="customer-master-list customer-master-tree" aria-label={t("Customer entities available to this account.")}>
+              {buildCustomerEntityTree(visibleEntities).map((node) => (
+                <CustomerEntityTreeRow
+                  key={node.entity.corporate_entity_id}
+                  node={node}
+                  depth={0}
+                  expandedEntityId={expandedEntityId}
+                  relatedByEntity={relatedByEntity}
+                  relatedLoading={relatedLoading}
+                  onToggle={toggleEntity}
+                  onOpenPost={onOpenPost}
+                />
+              ))}
+            </ul>
+          ) : (
+            <p className="popup-placeholder">{t("No customer entities match this scope.")}</p>
+          )}
+        </>
       ) : null}
       {master && (master.relationship_network ?? []).length > 0 ? (
         <section className="customer-keymen" aria-labelledby="relationship-network-heading">
