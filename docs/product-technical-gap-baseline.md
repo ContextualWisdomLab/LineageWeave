@@ -8,7 +8,9 @@
 ## 1. Known Parsing & Frontend Display Gaps
 - **Footnote Parsing**: synthetic case `case-footnote-01` exercises numbered footnote recognition; PR #367 merged semantic-chunker coverage, and stacked PR #388 adds browser fallback recognition for HTML, Word, and OOXML footnotes. Authorized production/browser corpus evidence remains pending.
 - **Table Parsing**: synthetic case `case-table-01` exercises malformed row boundaries and empty cells; PR #389 now covers ordinary Markdown rendering, while region-aware image tables and protected-corpus evidence remain open.
-- **Indentation**: synthetic cases `case-indent-01` and `case-indent-02` retain incorrect indentation rendering coverage gaps.
+- **Indentation**: synthetic cases `case-indent-01` and `case-indent-02` retain
+  corpus coverage gaps; PR #391 adds the common nested HTML-list depth fix and
+  regression coverage, while authorized production/browser evidence remains open.
 - **Image/Table OCR**: synthetic case `case-image-table-01` still needs region-aware table OCR, markdown rendering, and sufficiently detailed buyer-safe image evidence.
 - **Math/Superscripts**: synthetic case `case-math-01` covers bounded metric normalization such as m³; arbitrary formula semantics and authorized runtime verification remain open after PR #344.
 - **Missing UI Elements**: synthetic case `case-dag-01` tracks the Event Lineage DAG surface; current source includes the DAG, but corpus coverage and browser evidence remain open.
@@ -102,6 +104,8 @@ Open PRs at the same observation:
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
 - PR #387: `head` `13c102532f4485c732a83c7741e0844c77f082e5`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
+- PR #391: `head` `d2216ce7ee866d24cab9933eb2fd871a1b4da140`, base PR #387
+  (`13c102532f4485c732a83c7741e0844c77f082e5`).
 - PR #388, #389, and #390 are closed after the stack merges recorded above;
   they are not open PRs at this checkpoint.
 
@@ -322,6 +326,15 @@ Observed at `2026-08-21T18:27:23Z` on PR #390's exact head
   base with merge commit `b020378710a0e405974538d80f7ef68ae3badd7c`; this is
   not a protected-main merge.
 
+Observed at `2026-08-22T03:43:10Z` on PR #391's exact head
+`d2216ce7ee866d24cab9933eb2fd871a1b4da140`:
+
+- The shared fallback parser now carries nested ordered/unordered-list depth
+  into semantic text-unit indentation and keeps sibling items at their parent
+  level. Local verification passed 157 frontend tests, lint, production build,
+  and `git diff --check`. Hosted Checks were one pass and three pending at the
+  observation; no independent approval or merge was claimed.
+
 Observed at `2026-08-21T18:11:51Z` on PR #383's current head
 `6525127008b3ba74526e8ffb8d8bf25630cf58db`:
 
@@ -364,7 +377,7 @@ remains open at observed exact head
 
 ## 7. Next Implementation Order
 
-1. Revalidate open PRs #258, #349, #355, #368, #373, #383, #384, and #387 at
+1. Revalidate open PRs #258, #349, #355, #368, #373, #383, #384, #387, and #391 at
    their exact current heads as Checks and formal independent approvals arrive;
    the #388/#389/#390 stack merges are already recorded above, so process the
    open #387 parent only after its current-head gates pass.
