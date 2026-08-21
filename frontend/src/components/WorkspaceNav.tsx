@@ -5,6 +5,7 @@ export type WorkspaceDestination = "board" | "customers" | "calendar" | "ask" | 
 export type WorkspaceNavProps = {
   destination: WorkspaceDestination;
   onChange: (destination: WorkspaceDestination) => void;
+  showAdmin?: boolean;
   drawer?: boolean;
   id?: string;
 };
@@ -19,14 +20,15 @@ const LABELS: Record<WorkspaceDestination, string> = {
   admin: "Admin",
 };
 
-export function WorkspaceNav({ destination, onChange, drawer = false, id }: WorkspaceNavProps) {
+export function WorkspaceNav({ destination, onChange, showAdmin = true, drawer = false, id }: WorkspaceNavProps) {
+  const items = showAdmin ? ITEMS : ITEMS.filter((item) => item !== "admin");
   return (
     <nav
       id={id}
       className={`workspace-gnb${drawer ? " workspace-gnb-drawer" : ""}`}
       aria-label={t("Workspace navigation")}
     >
-      {ITEMS.map((id) => (
+      {items.map((id) => (
         <button
           key={id}
           type="button"
