@@ -3944,6 +3944,32 @@ function ReportsPanel({
 const POST_PAGE_SIZE = 50;
 type BoardSortOrder = PostSortOrder;
 
+const VOC_TYPE_PRESENTATIONS: Record<string, { code: string; englishLabel: string }> = {
+  voc: { code: "VOC", englishLabel: "Voice of Customer" },
+  vocc: { code: "VOCC", englishLabel: "Voice of Customer's Customer" },
+  voco: { code: "VOCO", englishLabel: "Voice of Competitor" },
+  vom: { code: "VOM", englishLabel: "Voice of Market" },
+  vop: { code: "VOP", englishLabel: "Voice of Partner" },
+};
+
+function presentVocType(option: PostFilterOption): {
+  code: string;
+  description: string;
+  accessibleName: string;
+} {
+  const presentation = VOC_TYPE_PRESENTATIONS[option.code.trim().toLowerCase()];
+  const englishLabel = presentation?.englishLabel ?? option.label;
+  const description = t(englishLabel);
+  return {
+    code: presentation?.code ?? option.code.toUpperCase(),
+    description,
+    accessibleName:
+      description === englishLabel
+        ? `${presentation?.code ?? option.code.toUpperCase()} — ${englishLabel}`
+        : `${presentation?.code ?? option.code.toUpperCase()} — ${description} (${englishLabel})`,
+  };
+}
+
 function PostList({
   accessToken,
   showLabPanels = false,
@@ -4309,22 +4335,27 @@ function PostList({
             <div className="board-filter-row">
               <fieldset className="board-voc-type-filter">
                 <legend>{t("Filter by VOC type")}</legend>
-                {vocTypeOptions.map((option) => (
-                  <label key={option.code}>
-                    <input
-                      type="checkbox"
-                      checked={typeFilter.includes(option.code)}
-                      onChange={(event) =>
-                        setTypeFilter((current) =>
-                          event.target.checked
-                            ? [...current, option.code]
-                            : current.filter((code) => code !== option.code),
-                        )
-                      }
-                    />
-                    {t(option.label)}
-                  </label>
-                ))}
+                {vocTypeOptions.map((option) => {
+                  const presentation = presentVocType(option);
+                  return (
+                    <label key={option.code} className="board-voc-type-option">
+                      <input
+                        type="checkbox"
+                        checked={typeFilter.includes(option.code)}
+                        aria-label={presentation.accessibleName}
+                        onChange={(event) =>
+                          setTypeFilter((current) =>
+                            event.target.checked
+                              ? [...current, option.code]
+                              : current.filter((code) => code !== option.code),
+                          )
+                        }
+                      />
+                      <span className="board-voc-type-code">{presentation.code}</span>
+                      <span className="board-voc-type-description">{presentation.description}</span>
+                    </label>
+                  );
+                })}
               </fieldset>
               <label>
                 {t("Filter by visibility")}
