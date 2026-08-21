@@ -2342,6 +2342,7 @@ describe("App, authenticated", () => {
     expect(requestedPaths).not.toContain("/api/posts/post-1/knowledge-graph");
     expect(requestedPaths).not.toContain("/api/posts/post-1/affiliate-tree");
     expect(requestedPaths).not.toContain("/api/posts/post-1/voc-evidence");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/content");
   });
 
   it("does not show an empty source detail state filter", async () => {
