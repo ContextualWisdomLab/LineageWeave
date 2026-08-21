@@ -61,6 +61,9 @@ export function LineageDag({
         const arrowMarkerId = `lineage-dag-arrow-${instanceId}-${groupIndex}`;
         const captionId = `lineage-dag-caption-${instanceId}-${groupIndex}`;
         const lineageLabel = tf("{group} lineage", { group: group.heading });
+        const relationLabel = t("Graph relation");
+        const whenLabel = t("When");
+        const evidenceLabel = `${t("Evidence")} (fused_score)`;
         return (
           <figure key={group.group} className="lineage-dag-group">
             <figcaption id={captionId}>
@@ -191,9 +194,9 @@ export function LineageDag({
                       <caption className="visually-hidden">{`${lineageLabel} — ${t("Evidence trail")}`}</caption>
                       <thead>
                         <tr>
-                          <th scope="col">{t("Graph relation")}</th>
-                          <th scope="col">{t("When")}</th>
-                          <th scope="col">{`${t("Evidence")} (fused_score)`}</th>
+                          <th scope="col">{relationLabel}</th>
+                          <th scope="col">{whenLabel}</th>
+                          <th scope="col">{evidenceLabel}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -203,9 +206,9 @@ export function LineageDag({
                           if (!from || !to) return null;
                           return (
                             <tr key={`${edge.source}-${edge.target}-evidence`}>
-                              <td>{`${from.label} → ${to.label}`}</td>
-                              <td>{`${eventDate(from.occurred_at)} → ${eventDate(to.occurred_at)}`}</td>
-                              <td>{edge.fused_score.toFixed(2)}</td>
+                              <td data-label={relationLabel}>{`${from.label} → ${to.label}`}</td>
+                              <td data-label={whenLabel}>{`${eventDate(from.occurred_at)} → ${eventDate(to.occurred_at)}`}</td>
+                              <td data-label={evidenceLabel}>{edge.fused_score.toFixed(2)}</td>
                             </tr>
                           );
                         })}
