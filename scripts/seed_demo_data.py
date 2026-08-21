@@ -549,7 +549,7 @@ def _write_post_summary(cur, post_id, summary) -> None:
                 cataloged_person_id = str(person_row[0])
         cur.execute(
             "insert into post_summary_role "
-            "(post_id, actor_name, responsibility, actor_type_code, "
+            "(post_id, actor_name, responsibility_text, actor_type_code, "
             "affiliated_organization_name, cataloged_person_id) "
             "values (%s, %s, %s, %s, %s, %s)",
             (
@@ -1162,7 +1162,7 @@ def _persist_seed_period_report(
         cur.execute(
             "insert into report_item_parameter ("
             "grouping_kind, grouping_key, period_code, rubric_version, "
-            "item_code, item_index, slope, cat_params"
+            "item_code, item_index, item_slope, cat_params"
             ") values (%s,%s,%s,%s,%s,%s,%s,%s)",
             (
                 grouping_kind,
@@ -1179,7 +1179,7 @@ def _persist_seed_period_report(
         cur.execute(
             "insert into report_item_information ("
             "grouping_kind, grouping_key, period_code, rubric_version, "
-            "item_code, item_rank, information"
+            "item_code, item_rank, information_value"
             ") values (%s,%s,%s,%s,%s,%s,%s)",
             (
                 grouping_kind,

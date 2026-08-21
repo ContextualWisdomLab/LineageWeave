@@ -45,3 +45,27 @@ def test_migrate_sh_replays_tenant_settings_migration_on_existing_volumes() -> N
     ).read_text(encoding="utf-8")
 
     assert "0103_*" in script
+
+
+def test_tenant_settings_migration_is_idempotent_for_replay() -> None:
+    """The replayed migration must not fail after its table already exists."""
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0103_tenant_settings.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "CREATE TABLE IF NOT EXISTS tenant_settings" in migration
+    assert "ON CONFLICT (id) DO NOTHING" in migration
+
+
+def test_migrate_sh_replays_database_identifier_migration_on_existing_volumes() -> None:
+    """Existing Compose volumes must receive the canonical identifier names."""
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "migrate.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "0104_*" in script

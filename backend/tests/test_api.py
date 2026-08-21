@@ -118,6 +118,11 @@ _TENANT_SETTINGS_MIGRATION = (
     / "migrations"
     / "0103_tenant_settings.sql"
 )
+_IDENTIFIER_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0104_two_word_database_identifiers.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -232,6 +237,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
             cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
+            cur.execute(_IDENTIFIER_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -1244,7 +1250,7 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
             )
             cur.execute(
                 "insert into post_summary_role "
-                "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name, cataloged_person_id) "
+                "(post_id, actor_name, responsibility_text, actor_type_code, affiliated_organization_name, cataloged_person_id) "
                 "values (%s, %s, %s, %s, %s, %s)",
                 (
                     seeded_db["public_post_id"],
@@ -1515,7 +1521,7 @@ def test_post_detail_exposes_explicit_and_semantic_project_evidence(
             cur.execute(
                 """
                 insert into post_project_mention
-                    (post_id, project_key, project_name, evidence_text, confidence,
+                    (post_id, project_key, project_name, evidence_text, mention_confidence,
                      ontology_iri, extraction_method)
                 values (%s, %s, %s, %s, %s, %s, %s)
                 """,
@@ -1621,7 +1627,7 @@ def test_persisted_summary_is_returned_without_an_llm(client, demo_analyst_token
             )
             cur.execute(
                 "insert into post_summary_role "
-                "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name) "
+                "(post_id, actor_name, responsibility_text, actor_type_code, affiliated_organization_name) "
                 "values (%s, 'Ada West', '후속 연락', 'prov_person', 'Demo Corp')",
                 (seeded_db["public_post_id"],),
             )
@@ -2221,7 +2227,7 @@ def test_related_keymen_includes_chronological_role_history(client, demo_analyst
                 )
             cur.execute(
                 "insert into post_summary_role "
-                "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name, cataloged_person_id) "
+                "(post_id, actor_name, responsibility_text, actor_type_code, affiliated_organization_name, cataloged_person_id) "
                 "values (%s, %s, %s, %s, %s, %s)",
                 (
                     seeded_db["own_private_post_id"],
@@ -2234,7 +2240,7 @@ def test_related_keymen_includes_chronological_role_history(client, demo_analyst
             )
             cur.execute(
                 "insert into post_summary_role "
-                "(post_id, actor_name, responsibility, actor_type_code, affiliated_organization_name, cataloged_person_id) "
+                "(post_id, actor_name, responsibility_text, actor_type_code, affiliated_organization_name, cataloged_person_id) "
                 "values (%s, %s, %s, %s, %s, %s)",
                 (
                     seeded_db["public_post_id"],

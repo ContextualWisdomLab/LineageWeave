@@ -590,7 +590,7 @@ async def fetch_person_role_history(
     rows = await conn.fetch(
         """
         select role.post_id, post.post_title, post.created_at,
-               role.responsibility, role.affiliated_organization_name
+               role.responsibility_text, role.affiliated_organization_name
           from post_summary_role role
           join source_post post on post.post_id = role.post_id
          where role.cataloged_person_id = $1
@@ -605,7 +605,7 @@ async def fetch_person_role_history(
             "post_id": str(row["post_id"]),
             "post_title": row["post_title"],
             "created_at": row["created_at"].isoformat(),
-            "responsibility": row["responsibility"],
+            "responsibility": row["responsibility_text"],
             "affiliated_organization_name": row["affiliated_organization_name"],
         }
         for row in rows

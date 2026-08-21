@@ -12,12 +12,9 @@ Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
 Current source/test exact head observed before this documentation update:
-`344ee14e542e6d7269973a1d4152bcb3f0ed6c47`. The authenticated browser
-evidence below used the rebuilt stack at its immediate parent before the final
-one-line lineage accessibility compatibility fix; that fix changes only the
-visible inference-boundary label and its test contract. This documentation
-update will create the next exact head and therefore requires the protected
-checks to rerun.
+`d0cef47aeb9932751899ac8857ef08688c7b1955`. This documentation update will
+create the next exact head and therefore requires the protected checks to
+rerun.
 
 - **Implemented in source:** PostgreSQL-backed API boundaries, Keyverse/OIDC
   identity boundary, workspace navigation, post popup, ABAC/RBAC surfaces, Korean
@@ -31,7 +28,7 @@ checks to rerun.
 - **Figma reference:** ADR 0118 records file `1Su3lDRmiZdcUs47t1QwIX`; the
   inspected Event Lineage frames are desktop `5:14` and mobile `5:15`.
 - **Local quality evidence at the source/test head:** backend `uv run pytest -q`
-  passed `760` tests with `16` skips; frontend Vitest passed `161` tests in `17`
+  passed `762` tests with `17` skips; frontend Vitest passed `163` tests in `17`
   files, frontend lint/build passed, and Storybook build completed. These are
   local checks, not hosted protected-gate or independent-review evidence.
 - **Current PR gate:** PR #350 is open, `MERGEABLE` but `BLOCKED`, and has no
@@ -102,7 +99,16 @@ checks to rerun.
   runner stopped at `0102`, so existing volumes returned a misleading CORS
   symptom for `/api/settings` while the table was absent. The allowlist now
   replays `0103_tenant_settings.sql`; the existing PostgreSQL volume applied it
-  with exit 0 and contains one tenant-settings row.
+  with exit 0 and contains one tenant-settings row. Migration `0104` now
+  preserves the canonical `tenant_settings_id` column during replay.
+- **Database identifier contract — fixed in this worktree:** the live public
+  schema audit found one single-token table and nine single-token persistent
+  columns, including the legacy bookmark, status, content, report, and tenant
+  settings fields. ADR 0120 and migration `0104_two_word_database_identifiers`
+  rename them to two-word snake_case names, retain stable API JSON names, and
+  recreate the current-status view. The replayed live schema now reports zero
+  single-token table/view/column violations and zero invalid indexes. 3NF,
+  hot-partition, lock, and read/write contention evidence remains open.
 - **Metric superscript/subscript display — partially fixed in this worktree:**
   bounded metric markup such as `m<sup>3</sup>` and `m<sub>3</sub>` is now
   normalized consistently in the backend semantic parser and React renderer,
@@ -170,7 +176,8 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | React product surface and PostgreSQL boundary | React routes/components, asyncpg API, Compose stack | source + local-integration |
 | Authorized PostgreSQL export import mapping | bounded source-schema inspection found 43,814 rows and artifact-path metadata but no body/content/HTML field; the existing adapter rejects an absent body mapping | source + local-integration partial; approved artifact-to-body mapping open |
 | Bounded large-body search migration | `0035_body_search_prefix.sql`, `0036_normalized_body_search.sql`; live replay completed after bounded rendered-text indexing | source + local-integration |
-| Public Compose liveness and tenant settings boundary | health-probe regression test, `0103_tenant_settings.sql`, replayed existing volume, one tenant-settings row, rebuilt backend `/healthz` and authenticated `/api/settings` HTTP 200 | source + unit + local-integration |
+| Public Compose liveness and tenant settings boundary | health-probe regression test, `0103_tenant_settings.sql`, replayed existing volume, one tenant-settings row, canonical `tenant_settings_id` after `0104`, rebuilt backend `/healthz` and authenticated `/api/settings` HTTP 200 | source + unit + local-integration |
+| Two-word snake_case database identifiers | ADR 0120, idempotent migration `0104`, live public-schema audit, zero invalid indexes | source + unit + local-integration |
 | Post list/detail popup, Korean summary, 5W1H, R&R, tickets/calendar | API routes, popup panels, backend/frontend tests | source + unit |
 | Keyman on both sides, titles, affiliations, related KG nodes | Keyman/affiliate-tree/related-node routes and popup | source + unit; live extraction open |
 | Ontology, semantic layer, provenance, W3C PROV-O projection | normalized schema, provenance modules, ADRs, evidence UI | source; corpus verification open |
@@ -186,7 +193,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Abbreviation/multilingual alias/entity disambiguation | catalog hints and resolver boundary | source; live corroboration open |
 | SearXNG/internal relation fact check | verification endpoint and unavailable handling; local SearXNG health and JSON query both returned HTTP 200, while some upstream engines reported rate-limit/CAPTCHA results | source + local-integration partial; corroboration policy and reliable external coverage open |
 | Valkey event queue and cloud-native Compose stack | queue modules, Compose services, health checks | source + local-integration; delivery stress open |
-| 3NF, hot partitions, locks, read/write contention | migrations and documented boundaries | source; operational evidence open |
+| 3NF, hot partitions, locks, read/write contention | canonical identifier migration plus existing migrations | source; operational evidence open |
 | Rust/GPU/CPU psychometric computation | delegated to TEPP, not reimplemented here | boundary accepted; live TEPP evidence open |
 | APA 7 doctoring and Zotero OA records | baseline bibliography, local Zotero API reachable, known metadata found | source + local-integration; OA attachment audit open |
 | Browser E2E from login through evidence | authenticated local OIDC login, protected list, drawer/search, popup sweep, and aggregate evidence checks at 390x958; post-migration fresh session had `htmlLang=zh`, localized protected shell, zero console errors/warnings, no horizontal overflow, popup, summary, and Event Lineage | source + local-integration; external provider/runtime evidence remains open |

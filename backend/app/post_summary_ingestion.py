@@ -115,7 +115,7 @@ async def fetch_persisted_summary(
     )
     roles = await conn.fetch(
         """
-        select role.actor_name, role.responsibility, role.actor_type_code,
+        select role.actor_name, role.responsibility_text, role.actor_type_code,
                role.affiliated_organization_name,
                role.cataloged_team_id,
                role.cataloged_corporate_entity_id,
@@ -128,7 +128,7 @@ async def fetch_persisted_summary(
     )
     projects = await conn.fetch(
         """
-        select project_key, project_name, evidence_text, confidence, ontology_iri,
+        select project_key, project_name, evidence_text, mention_confidence, ontology_iri,
                extraction_method
           from post_project_mention
          where post_id = $1
@@ -166,7 +166,7 @@ async def fetch_persisted_summary(
         payload_roles.append(
             {
                 "actor_name": row["actor_name"],
-                "responsibility": row["responsibility"],
+                "responsibility": row["responsibility_text"],
                 "actor_type_code": row["actor_type_code"],
                 "affiliated_organization_name": row["affiliated_organization_name"],
                 "catalog_node_id": catalog_node_id,
@@ -207,7 +207,7 @@ async def fetch_persisted_summary(
                 "project_key": row["project_key"],
                 "project_name": row["project_name"],
                 "evidence": row["evidence_text"],
-                "confidence": float(row["confidence"]),
+                "confidence": float(row["mention_confidence"]),
                 "ontology_iri": row["ontology_iri"],
                 "extraction_method": row["extraction_method"],
             }
@@ -338,13 +338,13 @@ async def _replace_summary_projection(
         await conn.execute(
             """
             insert into post_project_mention
-                (post_id, project_key, project_name, evidence_text, confidence,
+                (post_id, project_key, project_name, evidence_text, mention_confidence,
                  ontology_iri, extraction_method)
             values ($1, $2, $3, $4, $5, $6, 'contextual_orchestrator_semantic')
             on conflict (post_id, project_key) do update set
                 project_name = excluded.project_name,
                 evidence_text = excluded.evidence_text,
-                confidence = excluded.confidence,
+                mention_confidence = excluded.mention_confidence,
                 ontology_iri = excluded.ontology_iri,
                 extraction_method = excluded.extraction_method
             """,
@@ -415,7 +415,7 @@ async def _replace_summary_projection(
             )
         await conn.execute(
             "insert into post_summary_role "
-            "(post_id, actor_name, responsibility, actor_type_code, "
+            "(post_id, actor_name, responsibility_text, actor_type_code, "
             "affiliated_organization_name, cataloged_team_id, "
             "cataloged_corporate_entity_id, cataloged_person_id) values "
             "($1, $2, $3, $4, $5, $6, $7, $8)",
