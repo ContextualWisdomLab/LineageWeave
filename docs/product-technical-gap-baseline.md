@@ -6,7 +6,7 @@
 > this repository, screenshots, tests, logs, or buyer evidence.
 
 ## 1. Known Parsing & Frontend Display Gaps
-- **Footnote Parsing**: synthetic case `case-footnote-01` exercises numbered footnote recognition; PR #367 merged the parser coverage, while authorized production/browser evidence remains pending.
+- **Footnote Parsing**: synthetic case `case-footnote-01` exercises numbered footnote recognition; PR #367 merged semantic-chunker coverage, and stacked PR #388 adds browser fallback recognition for HTML, Word, and OOXML footnotes. Authorized production/browser corpus evidence remains pending.
 - **Table Parsing**: synthetic case `case-table-01` exercises malformed row boundaries and empty cells; image tables and browser rendering remain open.
 - **Indentation**: synthetic cases `case-indent-01` and `case-indent-02` retain incorrect indentation rendering coverage gaps.
 - **Image/Table OCR**: synthetic case `case-image-table-01` still needs region-aware table OCR, markdown rendering, and sufficiently detailed buyer-safe image evidence.
@@ -78,28 +78,32 @@ Open PRs at the same observation:
 
 - PR #258: `head` `6621eb116a4e92eb33eeae989c70fbc602450c51`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #349: `head` `2d18879e8a7f93b08e32aa4261610e34700e1892`, base `main`
+- PR #349: `head` `dc4bd020d459e90461231b8d900d074eb3a46595`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #355: `head` `b606c2553f877fa85968d90dc46598ce16897fbf`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`). The overlap with PR #379's
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `dcc916cd68d8ae3c495563332658fd0cbf8d760e` (the exact head
+- PR #368: `head` `a7782ec05198e137399e1543cefa6a732693b0f6` (the exact parent
   observed for this baseline update), base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #383: `head` `46e4d6d69c1964f0cbeb761281071db7861e31dd`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #384: `head` `cc0b50aa0838701582b373e1310279d6014c17db`, base
+- PR #384: `head` `e4c4a3c8709a4e57654c08a838f568a1582abee3`, base
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
 - PR #387: `head` `4faf9a31371195c5ec63fca42a5afbb93a95369b`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
+- PR #388: `head` `f145b83f68731d6f31c3e1b1de59fd7be8f62001`, base
+  `feat/event-lineage-channel-evidence`
+  (`4faf9a31371195c5ec63fca42a5afbb93a95369b`).
 
 The open queue remains subject to exact-current-head Checks, formal independent
 approval, and protected mergeability. Green Checks alone do not prove that a
-merge is authorized. PR #258 still targets `main` at base
+merge is authorized. PR #388 is stacked on PR #387 and must follow its
+observed merge commit before rebasing onto `main`. PR #258 still targets `main` at base
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` and remains open; PR #385's merge
 commit is later repository history, not PR #258's original base or a merge of
 #258. PR #386 is closed as a duplicate of the safer #373 login fix. PR #382's
@@ -226,6 +230,16 @@ Observed at `2026-08-21T17:10:21Z` on PR #387's exact head
   the orchestrated rebuild/import boundary. Hosted Checks are queued and no
   independent approval or merge commit is claimed.
 
+Observed at `2026-08-21T17:20:10Z` on PR #388's exact head
+`f145b83f68731d6f31c3e1b1de59fd7be8f62001`:
+
+- The browser fallback preserves footnote roles for synthetic HTML footnote
+  lists, Word `MsoFootnoteText`, and OOXML footnote containers. Anchor tags no
+  longer become false leading indentation in this path.
+- Local frontend verification passed lint, 144 Vitest tests, and the
+  production build. Hosted Checks were queued and no independent approval or
+  merge commit was present.
+
 ## 6. Organization OpenTelemetry Evidence Boundary
 
 GRC PR #51 records organization-level OTEL acceptance evidence through the
@@ -238,7 +252,8 @@ GRC evidence subjects.
 
 ## 7. Next Implementation Order
 
-1. Revalidate open PRs #258, #349, #355, #368, #373, #383, #384, and #387 at
+1. Revalidate open PRs #258, #349, #355, #368, #373, #383, #384, #387, and
+   #388 at
    their exact current heads as Checks and formal independent approvals arrive;
    process stacked parents only after their child merge commits are observed.
    Verify the synthetic footnote/table cases in the authenticated browser and
