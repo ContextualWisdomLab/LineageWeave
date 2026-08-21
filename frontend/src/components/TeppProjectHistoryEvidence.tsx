@@ -111,6 +111,30 @@ const COPY: Record<Locale, Copy> = {
       specification_change_and_handoff_before_focus: "仕様変更と引継ぎの記録が選択イベントより前にあります。",
     },
   },
+  vi: {
+    heading: "Xác thực thời gian TEPP",
+    eyebrow: "Bằng chứng liên kết TEPP",
+    boundary: "Chỉ thể hiện mối liên hệ theo thời gian; kết quả này không xác định nguyên nhân.",
+    participants: (count) => `${count} chủ thể trong bằng chứng đã cung cấp`,
+    span: "Khoảng lịch sử đã xác thực",
+    findings: "Kết quả TEPP",
+    noFindings: "TEPP đã sắp xếp các sự kiện tường minh và không trả về kết quả bổ sung.",
+    openEvidence: (label) => `Mở bằng chứng: ${label}`,
+    status: {
+      not_configured: "Hãy cấu hình điểm cuối lịch sử dự án TEPP rồi xác thực lại dòng thời gian này.",
+      unavailable: "TEPP hiện không khả dụng. Hãy đọc dòng thời gian chuẩn và thử xác thực lại sau.",
+      invalid_evidence: "Hãy mở bằng chứng nguồn, sửa hợp đồng lịch sử dự án rồi chạy lại TEPP.",
+    },
+    findingLabels: {
+      contract_award_before_focus: "Bản ghi trao hợp đồng có trước sự kiện được chọn.",
+      specification_change_before_focus: "Bản ghi thay đổi đặc tả có trước sự kiện được chọn.",
+      delivery_before_focus: "Bản ghi bàn giao có trước sự kiện được chọn.",
+      handoff_before_focus: "Bản ghi chuyển giao có trước sự kiện được chọn.",
+      rebid_after_focus: "Bản ghi đấu thầu lại có sau sự kiện được chọn.",
+      specification_change_and_handoff_before_focus:
+        "Các bản ghi thay đổi đặc tả và chuyển giao đều có trước sự kiện được chọn.",
+    },
+  },
 };
 
 function shortDate(value: string): string {
