@@ -34,7 +34,7 @@
   header and footer rendered one configured `brandName` and the footer used
   the browser's current year. This observation remains historical and is not
   a claim about the current stacked head.
-- **Current exact-source mitigation at stacked PR #397 head `07f8d55f`:**
+- **Current exact-source mitigation at stacked PR #397 head `22b4660a`:**
   `tenant_settings` now persists separate `brandName`, `systemName`,
   `copyrightYear`, and `copyrightHolder` values. The header renders brand and
   system name separately, the footer uses the persisted year and rights
@@ -42,7 +42,8 @@
   `post_admin` boundary. The migration is replayable through Compose and the
   old brand-only PATCH shape remains compatible. The latest review also fixed
   the asynchronous draft synchronization race and the Korean operation-note
-  translation key. This is an open, unmerged PR; the exact upstream stack base
+  translation key, with the same operation note covered across all five
+  product locales. This is an open, unmerged PR; the exact upstream stack base
   is `4fdd3032`.
 - **Remaining UI governance gap:** no approved CI/BI image asset or usage
   permission was supplied, so the implementation deliberately remains text
@@ -52,11 +53,11 @@
 
 ### 1.1.1 Exact implementation evidence for tenant identity metadata
 
-Observed at `2026-08-21T20:04:07Z` from the GitHub API and local worktree
+Observed at `2026-08-21T20:07:10Z` from the GitHub API and local worktree
 `/private/tmp/lineageweave-identity-metadata.8NPveY`:
 
 - PR [#397](https://github.com/ContextualWisdomLab/LineageWeave/pull/397) is
-  open and ready at head `07f8d55fe3a966784302e92037c8b5028560e74a`, based on
+  open and ready at head `22b4660a99e3de182efc7a4baadf6b22fa19175f`, based on
   exact stack branch head `4fdd3032de21d490767cf9aa24b25191ad8a814a`; it is
   `UNSTABLE` while hosted Checks and automated reviews run and has no formal
   review decision yet.
@@ -71,10 +72,10 @@ Observed at `2026-08-21T20:04:07Z` from the GitHub API and local worktree
 
 ## 4.1 Latest open-PR and Checks refresh
 
-Observed at `2026-08-21T20:04:07Z` from the GitHub API. The exact open
+Observed at `2026-08-21T20:07:10Z` from the GitHub API. The exact open
 application heads were: #258 `6dc040c6`, #349 `a6af4525`, #355 `b606c255`,
 #368 `f3a487ad`, #373 `151fe6e1`, #383 `4eaa0717`, #387 `16f6341a`, #392
-`4fdd3032`, #393 `1ac3a17a`, #394 `5219ed8b`, and #397 `07f8d55f`. No PR in
+`4fdd3032`, #393 `1ac3a17a`, #394 `5219ed8b`, and #397 `22b4660a`. No PR in
 this set was reported as merged into protected `main`.
 
 - #397's latest head had only CodeRabbit and Devin Review queued at observation;
