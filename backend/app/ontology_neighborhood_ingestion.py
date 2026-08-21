@@ -681,7 +681,9 @@ async def visible_ontology_neighborhood(
         )
         snapshot_at = claims.snapshot_at
         after_key = claims.last_key
-    page_window = await _load_facts(
+    page_window = fact_window
+    if after_key is not None:
+        page_window = await _load_facts(
         conn,
         frozen_posts,
         focus_node_type_code=focus_node_type_code,
@@ -689,9 +691,15 @@ async def visible_ontology_neighborhood(
         maximum_depth=maximum_depth,
         maximum_edges=maximum_edges,
         knowledge_cutoff=knowledge_cutoff,
-        snapshot_at=snapshot_at,
-        after_key=after_key,
-    )
+            snapshot_at=snapshot_at,
+            after_key=after_key,
+        )
+    else:
+        page_window = _LoadedFactWindow(
+            facts,
+            truncated=bool(getattr(fact_window, "truncated", False)),
+            last_source_key=getattr(fact_window, "last_source_key", None),
+        )
     facts = list(page_window)
     source_truncated = bool(getattr(page_window, "truncated", False))
     last_source_key = getattr(page_window, "last_source_key", None)
