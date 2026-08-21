@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from collections.abc import Callable
 from uuid import UUID
@@ -34,7 +35,9 @@ from backend.app.post_content_queue import (
     republish_queued_post_content_jobs,
 )
 
+_logger = logging.getLogger(__name__)
 _RECOVERY_INTERVAL_SECONDS = 30.0
+_BROKER_RECOVERY_DELAY_SECONDS = 1.0
 _INCOMPLETE_FAILURE_CODE = "post_content_ingestion_incomplete"
 _ATTEMPT_LIMIT_FAILURE_CODE = "post_content_ingestion_attempt_limit"
 _UNEXPECTED_FAILURE_DETAIL = "post-content ingestion failed; inspect server telemetry"
@@ -359,11 +362,17 @@ async def run_post_content_worker(
         if now - last_recovery >= _RECOVERY_INTERVAL_SECONDS:
             await republish_queued_post_content_jobs(client, pool)
             last_recovery = now
-        last_id = await consume_post_content_stream_once(
-            client,
-            pool,
-            last_id=last_id,
-            vision_factory=vision_factory,
-            embedding_factory=embedding_factory,
-            structure_factory=structure_factory,
-        )
+        try:
+            last_id = await consume_post_content_stream_once(
+                client,
+                pool,
+                last_id=last_id,
+                vision_factory=vision_factory,
+                embedding_factory=embedding_factory,
+                structure_factory=structure_factory,
+            )
+        except (redis.RedisError, OSError) as exc:
+            _logger.warning(
+                "post-content Valkey poll failed; retrying (error_type=%s)", type(exc).__name__
+            )
+            await asyncio.sleep(_BROKER_RECOVERY_DELAY_SECONDS)

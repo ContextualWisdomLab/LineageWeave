@@ -7,6 +7,9 @@ supplies the internal visibility scope, and no event body is trusted.
 
 from __future__ import annotations
 
+import asyncio
+import logging
+
 import asyncpg
 import redis.asyncio as redis
 from uuid import UUID
@@ -17,6 +20,9 @@ from lineageweave.tepp_client import TeppClient
 
 from backend.app.analysis_run_outbox import OUTBOX_STREAM_KEY
 from backend.app.analysis_run_start import deliver_queued_analysis_run
+
+_BROKER_RECOVERY_DELAY_SECONDS = 1.0
+_worker_logger = logging.getLogger(__name__)
 
 
 async def consume_analysis_run_stream_once(
@@ -97,10 +103,16 @@ async def run_analysis_run_worker(
     """Run the single-process wake-up consumer until task cancellation."""
     last_id = "0-0"
     while True:
-        last_id = await consume_analysis_run_stream_once(
-            client,
-            pool,
-            last_id=last_id,
-            tepp_client=tepp_client,
-            adjudication_client=adjudication_client,
-        )
+        try:
+            last_id = await consume_analysis_run_stream_once(
+                client,
+                pool,
+                last_id=last_id,
+                tepp_client=tepp_client,
+                adjudication_client=adjudication_client,
+            )
+        except (redis.RedisError, OSError) as exc:
+            _worker_logger.warning(
+                "analysis-run Valkey poll failed; retrying (error_type=%s)", type(exc).__name__
+            )
+            await asyncio.sleep(_BROKER_RECOVERY_DELAY_SECONDS)

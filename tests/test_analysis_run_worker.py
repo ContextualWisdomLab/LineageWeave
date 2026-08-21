@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import asyncio
 from contextlib import contextmanager
 from unittest.mock import Mock
 
 import pytest
+import redis.asyncio as redis
 
 from backend.app import analysis_run_worker, post_content_worker
 from lineageweave.adjudication_client import NullAdjudicationClient
@@ -135,6 +137,61 @@ async def test_xread_failures_emit_diagnostic_spans_but_preserve_errors(monkeypa
 
     assert analysis_trace_names == ["lineageweave.valkey.analysis_outbox_xread"]
     assert post_content_trace_names == ["lineageweave.valkey.post_content_xread"]
+
+
+@pytest.mark.anyio
+async def test_workers_retry_transient_broker_errors_without_dropping_the_task(monkeypatch):
+    """A transient Valkey outage is retried; cancellation still stops each worker."""
+    analysis_calls = 0
+    post_content_calls = 0
+
+    class RecoveringAnalysisValkey:
+        async def xread(self, _streams, *, count, block):
+            nonlocal analysis_calls
+            assert (count, block) == (10, 1000)
+            analysis_calls += 1
+            if analysis_calls == 1:
+                raise redis.RedisError("synthetic broker outage")
+            raise asyncio.CancelledError
+
+    class RecoveringPostContentValkey:
+        async def xrevrange(self, _stream, *, count):
+            assert count == 1
+            return []
+
+        async def xread(self, _streams, *, count, block):
+            nonlocal post_content_calls
+            assert (count, block) == (10, 1000)
+            post_content_calls += 1
+            if post_content_calls == 1:
+                raise redis.RedisError("synthetic broker outage")
+            raise asyncio.CancelledError
+
+    async def no_sleep(*_args):
+        return None
+
+    monkeypatch.setattr(analysis_run_worker.asyncio, "sleep", no_sleep)
+    monkeypatch.setattr(post_content_worker.asyncio, "sleep", no_sleep)
+    monkeypatch.setattr(post_content_worker, "republish_queued_post_content_jobs", no_sleep)
+
+    with pytest.raises(asyncio.CancelledError):
+        await analysis_run_worker.run_analysis_run_worker(
+            RecoveringAnalysisValkey(),
+            _Pool(),
+            tepp_client=TeppClient(),
+            adjudication_client=NullAdjudicationClient(),
+        )
+    with pytest.raises(asyncio.CancelledError):
+        await post_content_worker.run_post_content_worker(
+            RecoveringPostContentValkey(),
+            _Pool(),
+            vision_factory=lambda: None,
+            embedding_factory=lambda: None,
+            structure_factory=lambda: None,
+        )
+
+    assert analysis_calls == 2
+    assert post_content_calls == 2
 
 
 @pytest.mark.anyio
