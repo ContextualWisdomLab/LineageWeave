@@ -398,7 +398,7 @@ ADR 0115. PR #311 remains an active stacked delivery candidate; its required
 checks and formal approval must be rechecked at the exact current head before
 any protected merge claim.
 
- ## Source-only indentation checkpoint: 2026-08-20
+## Source-only indentation checkpoint: 2026-08-20
 
 The semantic-unit parser now keeps source leading whitespace and declared
 HTML/CSS/OOXML or list-container indentation as separate evidence. Visual
@@ -415,7 +415,7 @@ nesting in the buyer view.
   formal review, terminal Checks, and post-merge browser evidence remain
   required.
 
- ## Partial visual-region checkpoint: 2026-08-20
+## Partial visual-region checkpoint: 2026-08-20
 
 The visual locator contract may return valid salient panels without complete
 image coverage. The normalizer now keeps those panel coordinates for
@@ -428,11 +428,11 @@ the existing whole-image fallback.
 - Local evidence: backend `734 passed, 16 skipped`; focused image/normalization
   tests `13 passed`; frontend lint, `136 passed`, build, and Storybook build
   passed.
- - Integration status: PR #320 is not protected-main truth; exact stack heads,
-   formal review, terminal Checks, and authorized post-merge image evidence
-   remain required.
+- Integration status: PR #320 is not protected-main truth; exact stack heads,
+  formal review, terminal Checks, and authorized post-merge image evidence
+  remain required.
 
- ## Image locator and buyer table checkpoint: 2026-08-20
+## Image locator and buyer table checkpoint: 2026-08-20
 
 A first bounded private reprocessing run completed five parent-image
 descriptions and five region embeddings, but aggregate inspection found five
