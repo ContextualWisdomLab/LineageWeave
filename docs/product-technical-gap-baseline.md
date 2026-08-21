@@ -90,6 +90,15 @@ next exact head and therefore requires the protected checks to rerun.
   `LanguageSwitcher` now renders inside `.app-header-top-menu` (`App.tsx`)
   instead of the GNB row; the now-unused `WorkspaceNav` `tools` prop and
   `.workspace-gnb-tools` CSS were removed.
+- **Authorized corp/PU scope — fixed in this worktree:** `/api/me` remains the
+  only source for GNB scope values, and that response is built from the
+  authenticated account's DB-backed `account_affiliation` rows. The header now
+  presents a compact code summary with a keyboard-operable disclosure for the
+  complete corporation/business-unit list, keeps corporation-only affiliations,
+  and omits the scope when no affiliation is authorized. Desktop and 390px
+  mobile Playwright checks cover the disclosure, no-unassigned-code behavior,
+  and no horizontal overflow; the external Keyverse/OIDC runtime gate remains
+  open below.
 - **Locale document metadata — substantially present:** `i18n.ts` synchronizes
   `document.documentElement.lang` after locale selection and `i18n.test.ts`
   covers the supported locales. `frontend/index.html` remains an English
@@ -193,7 +202,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Site map / utility menu | `SiteMapUtility`, accessible toggle/region, Escape and destination-close behavior, responsive CSS contract, locale coverage | source + unit; authenticated browser evidence open |
 | Noto Sans, palette, table/form/button conventions, modal 50% mask | ADR 0118, token CSS, component tests | source + unit |
 | Keyverse/OIDC login with real account | `auth.py`, OIDC discovery/JWKS boundary, local redirect check | source + local-integration; Keyverse open |
-| Authenticated corp/PU attributes | `/api/me` returns DB-backed codes; backend integration test covers `TEST-CORP`/`TEST-PU` and header displays them | source + local-integration |
+| Authenticated corp/PU attributes | `/api/me` returns DB-backed codes; backend integration test covers `TEST-CORP`/`TEST-PU`, the GNB disclosure is covered by `App.test.tsx`, and desktop/390px Playwright QA verifies the rendered scope | source + unit + local-integration + browser-mocked |
 | RBAC/ABAC, public/private visibility, tenant isolation | `_can_see_post`, API authorization tests, aggregate-only runtime checks | source + local-integration |
 | React product surface and PostgreSQL boundary | React routes/components, asyncpg API, Compose stack | source + local-integration |
 | Authorized PostgreSQL export import mapping | `scripts/import_postgresql_posts.py`, ADR 0121, hash-verified RFC 2557 MHTML resolver, and synthetic preflight/import tests; authorized relation has artifact-path metadata but no body/content/HTML field | source + unit + local-integration partial; operator artifact files and authorized live import open |

@@ -90,6 +90,8 @@ describe("App, authenticated", () => {
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
     pluralAffiliations?: boolean;
+    manyAffiliations?: boolean;
+    noAffiliations?: boolean;
     deferMe?: boolean;
     deferPosts?: boolean;
     meFailed?: boolean;
@@ -131,6 +133,61 @@ describe("App, authenticated", () => {
     let createdPendingTepp: Record<string, unknown> | null = null;
     let resolvedHintCode: string | null = null;
     let contentRequests = 0;
+    const authorizedAffiliations = options?.noAffiliations
+      ? []
+      : options?.manyAffiliations
+      ? [
+          {
+            corporate_entity_id: "corp-demo",
+            corporate_entity_code: "DEMO-CORP",
+            entity_name: "Demo Corp",
+            process_unit_id: "pu-demo",
+            process_unit_code: "DEMO-PU",
+            process_unit_name: "Demo PU",
+          },
+          {
+            corporate_entity_id: "corp-north",
+            corporate_entity_code: "NORTH-CORP",
+            entity_name: "North Corp",
+            process_unit_id: "pu-north",
+            process_unit_code: "NORTH-PU",
+            process_unit_name: "North PU",
+          },
+          {
+            corporate_entity_id: "corp-south",
+            corporate_entity_code: "SOUTH-CORP",
+            entity_name: "South Corp",
+            process_unit_id: "pu-south",
+            process_unit_code: "SOUTH-PU",
+            process_unit_name: "South PU",
+          },
+          {
+            corporate_entity_id: "corp-west",
+            corporate_entity_code: "WEST-CORP",
+            entity_name: "West Corp",
+            process_unit_id: "pu-west",
+            process_unit_code: "WEST-PU",
+            process_unit_name: "West PU",
+          },
+          {
+            corporate_entity_id: "corp-hq",
+            corporate_entity_code: "HQ-CORP",
+            entity_name: "HQ Corp",
+            process_unit_id: null,
+            process_unit_code: null,
+            process_unit_name: null,
+          },
+        ]
+      : [
+          {
+            corporate_entity_id: "corp-demo",
+            corporate_entity_code: "DEMO-CORP",
+            entity_name: "Demo Corp",
+            process_unit_id: "pu-demo",
+            process_unit_code: "DEMO-PU",
+            process_unit_name: "Demo PU",
+          },
+        ];
 
     let releaseMe = () => {};
     let releasePosts = () => {};
@@ -174,16 +231,7 @@ describe("App, authenticated", () => {
                   { corporate_entity_id: "corp-north", entity_name: "Northridge Grid" },
                 ]
               : [{ corporate_entity_id: "corp-demo", entity_name: "Demo Corp" }],
-            account_affiliations: [
-              {
-                corporate_entity_id: "corp-demo",
-                corporate_entity_code: "DEMO-CORP",
-                entity_name: "Demo Corp",
-                process_unit_id: "pu-demo",
-                process_unit_code: "DEMO-PU",
-                process_unit_name: "Demo PU",
-              },
-            ],
+            account_affiliations: authorizedAffiliations,
           });
         });
       }
@@ -4029,6 +4077,32 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByRole("searchbox", { name: "Search semantic evidence" })).toHaveFocus(),
     );
+  });
+
+  it("discloses every authorized corporation and business unit code", async () => {
+    stubBackend({ manyAffiliations: true });
+    render(<App />);
+
+    const scope = await screen.findByLabelText("Authorized scope");
+    const summary = scope.querySelector("summary");
+    expect(summary).not.toBeNull();
+    expect(summary).toHaveTextContent("DEMO-CORP / DEMO-PU");
+    expect(summary).toHaveTextContent("+2");
+    expect(scope).not.toHaveAttribute("open");
+
+    await userEvent.click(summary as HTMLElement);
+
+    expect(scope).toHaveAttribute("open", "");
+    expect(within(scope).getByText("NORTH-CORP / NORTH-PU")).toBeVisible();
+    expect(within(scope).getByText("HQ-CORP")).toBeVisible();
+  });
+
+  it("does not derive GNB scope from an unrelated entity list", async () => {
+    stubBackend({ noAffiliations: true, pluralAffiliations: true });
+    render(<App />);
+
+    await screen.findByRole("region", { name: "Board" });
+    expect(screen.queryByLabelText("Authorized scope")).not.toBeInTheDocument();
   });
 
   it("opens the site map utility and closes it after navigation or Escape", async () => {

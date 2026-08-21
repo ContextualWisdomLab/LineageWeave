@@ -51,6 +51,7 @@ import {
   updateTicketStatus,
   verifyPostRelations,
   type ActivityEvent,
+  type AccountAffiliation,
   type AskAgentResponse,
   type AskConversationCursor,
   type AskConversationSummary,
@@ -147,6 +148,49 @@ function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
         ))}
       </select>
     </label>
+  );
+}
+
+function AuthorizedScope({ affiliations }: { affiliations?: AccountAffiliation[] }) {
+  const scopeValues = Array.from(
+    new Set(
+      (affiliations ?? [])
+        .map((affiliation) => {
+          const corporateCode = affiliation.corporate_entity_code.trim();
+          if (!corporateCode) return null;
+          return affiliation.process_unit_code?.trim()
+            ? `${corporateCode} / ${affiliation.process_unit_code.trim()}`
+            : corporateCode;
+        })
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+  if (scopeValues.length === 0) return null;
+
+  const visibleScopeValues = scopeValues.slice(0, 3);
+  const hiddenScopeCount = scopeValues.length - visibleScopeValues.length;
+  const fullScopeLabel = scopeValues.join(", ");
+
+  return (
+    <details className="app-account-scope" aria-label={t("Authorized scope")}>
+      <summary title={fullScopeLabel}>
+        <span className="visually-hidden">{t("Authorized scope")}: </span>
+        <span className="app-account-scope-summary">
+          {visibleScopeValues.join(", ")}
+        </span>
+        {hiddenScopeCount > 0 ? (
+          <span className="app-account-scope-more">+{hiddenScopeCount}</span>
+        ) : null}
+      </summary>
+      <div className="app-account-scope-panel">
+        <p className="app-account-scope-heading">{t("Authorized scope")}</p>
+        <ul>
+          {scopeValues.map((scopeValue) => (
+            <li key={scopeValue}>{scopeValue}</li>
+          ))}
+        </ul>
+      </div>
+    </details>
   );
 }
 
@@ -5732,12 +5776,6 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
     return <p className="error">{t("Authenticated, but no access token was returned.")}</p>;
   }
 
-  const accountScope = currentUser?.account_affiliations
-    ?.map((affiliation) =>
-      `${affiliation.corporate_entity_code}${affiliation.process_unit_code ? ` / ${affiliation.process_unit_code}` : ""}`,
-    )
-    .join(", ");
-
   return (
     <div className="app-shell">
       <a
@@ -5767,11 +5805,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           <MenuIcon />
         </button>
         <div className="app-header-top-menu">
-          {accountScope ? (
-            <span className="app-account-scope" aria-label={t("Authorized scope")}>
-              {accountScope}
-            </span>
-          ) : null}
+          <AuthorizedScope affiliations={currentUser?.account_affiliations} />
           <span className="app-user-profile">{auth.user?.profile.preferred_username}</span>
           <LanguageSwitcher accessToken={accessToken} />
           <GlobalSearch
