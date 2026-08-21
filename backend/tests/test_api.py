@@ -164,6 +164,12 @@ pytestmark = pytest.mark.skipif(
 )
 
 
+@pytest.fixture(autouse=True)
+def disable_home_gateway_fallback_for_api_tests(monkeypatch) -> None:
+    """Keep API tests from sending requests through a developer's home config."""
+    monkeypatch.setattr("backend.app.config._home_dotenv_values", lambda names: {})
+
+
 def _fetch_demo_analyst_token() -> str:
     """Request a real resource-owner token for the synthetic demo.analyst user."""
     token_response = post_form(

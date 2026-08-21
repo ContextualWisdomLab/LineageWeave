@@ -105,3 +105,12 @@ cited post.
 From a GNB-focused popup, open a linked Event Lineage node: Event Lineage
 stays focused and names the new post as current (ADR 0097). A home-list
 DAG walk does not. Do not invent a theta.
+
+## GNB Event Lineage focuses Keyman (v2.19.0)
+
+A GNB-origin popup (Weekly VOC, Calendar, Customer master, Ask Agent, or a
+linked Event Lineage DAG walk from one of those) keeps Event Lineage
+current and moves focus to the Keyman heading once Keyman rows have
+settled (ADR 0100). The report-member auto-land chain to related nodes
+and Ask is not used for GNB origins. A home-list open does not gain that
+ focus. Do not invent a theta.
