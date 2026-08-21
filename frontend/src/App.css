@@ -1516,6 +1516,75 @@
   font-size: 0.9rem;
 }
 
+/* 5W1H had zero custom styling -- the browser's default <dl>/<details>
+   layout gave every value's evidence-source disclosure its own full-width
+   line, so 9 "누가" entries meant 18 stacked lines where R&R gets the same
+   information onto one compact line per entry. .semantic-provenance is
+   shared with the Projects/semantic evidence section below R&R. */
+.five-w1h dl {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.five-w1h dt {
+  margin: 0 0 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.five-w1h dd {
+  margin: 0;
+}
+
+.five-w1h ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.five-w1h li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.semantic-provenance {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.semantic-provenance summary {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-chip);
+  background: var(--bg);
+  color: var(--text-muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.semantic-provenance[open] summary {
+  border-color: var(--color-accent-border);
+  background: var(--color-accent-background);
+  color: var(--color-primary);
+}
+
+.semantic-provenance .post-badge {
+  margin: 0;
+}
+
 .verification-verify_pending {
   background: var(--badge-status-pending-bg);
   color: var(--badge-status-pending-text);

@@ -78,6 +78,7 @@ import {
   type PostSortOrder,
   type RankingList,
   type PersonRoleHistoryEntry,
+  type PostRoleResponsibility,
   type RelatedNode,
   type RelatedNodeType,
   type VocEvidence,
@@ -1699,6 +1700,41 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
   );
 }
 
+const ROLE_ACTOR_TYPE_RANK: Record<string, number> = {
+  prov_organization: 0,
+  prov_team: 1,
+  prov_person: 2,
+};
+
+// R&R read order follows the PROV-O broader/narrower direction (ADR 0004):
+// organizations, then the teams affiliated with them, then the people
+// affiliated with them -- not raw LLM extraction order. Within each tier,
+// entries group by affiliated organization so e.g. one org's people stay
+// adjacent instead of interleaving with another org's. A person's specific
+// team membership isn't part of PostRoleResponsibility, so people group by
+// their affiliated organization alongside that organization's teams, not
+// nested under one specific team.
+function sortRolesByOntologyOrder(
+  roles: PostRoleResponsibility[],
+): PostRoleResponsibility[] {
+  const groupKey = (role: PostRoleResponsibility) =>
+    role.actor_type_code === "prov_organization"
+      ? role.actor_name
+      : (role.affiliated_organization_name ?? "");
+  return roles
+    .map((role, index) => ({ role, index }))
+    .sort((a, b) => {
+      const rankCompare =
+        (ROLE_ACTOR_TYPE_RANK[a.role.actor_type_code] ?? 3) -
+        (ROLE_ACTOR_TYPE_RANK[b.role.actor_type_code] ?? 3);
+      if (rankCompare !== 0) return rankCompare;
+      const groupCompare = groupKey(a.role).localeCompare(groupKey(b.role));
+      if (groupCompare !== 0) return groupCompare;
+      return a.index - b.index;
+    })
+    .map(({ role }) => role);
+}
+
 function PostDetailPopup({
   postId,
   accessToken,
@@ -1997,7 +2033,7 @@ function PostDetailPopup({
                     <>
                       <h4>{t("R&R")}</h4>
                       <ul>
-                        {summary.roles_and_responsibilities.map((rr, i) => {
+                        {sortRolesByOntologyOrder(summary.roles_and_responsibilities).map((rr, i) => {
                           const isPerson = rr.actor_type_code === "prov_person";
                           const actorTypeLabel = t(
                             rr.actor_type_code === "prov_team"
