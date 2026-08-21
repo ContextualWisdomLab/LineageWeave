@@ -132,7 +132,9 @@ async def _load_facts(
     focus_node_id: str = "",
     maximum_depth: int = DEFAULT_MAXIMUM_DEPTH,
     maximum_edges: int = DEFAULT_MAXIMUM_EDGES,
+    knowledge_cutoff: datetime | None = None,
 ) -> list[NeighborhoodFact]:
+    """Load a bounded, cutoff-safe recursive fact window for the focus node."""
     if not visible_post_ids:
         return []
     rows = await conn.fetch(
@@ -152,6 +154,7 @@ async def _load_facts(
               join source_post post
                 on post.post_id = evidence.evidence_post_id
              where evidence.evidence_post_id = any($1::uuid[])
+               and ($6::timestamptz is null or post.created_at <= $6::timestamptz)
              group by edge.source_node_type_code, edge.source_node_id,
                       edge.target_node_type_code, edge.target_node_id,
                       edge.edge_type_code
@@ -201,6 +204,7 @@ async def _load_facts(
         focus_node_id,
         maximum_depth,
         min(HARD_MAXIMUM_EDGES, maximum_edges * (maximum_depth + 1) + 1),
+        knowledge_cutoff,
     )
     facts: list[NeighborhoodFact] = []
     for row in rows:
@@ -222,6 +226,7 @@ async def _load_facts(
 async def _load_skos_facts(
     conn: asyncpg.Connection, corporate_entity_ids: list[str]
 ) -> list[NeighborhoodFact]:
+    """Load governed corporate hierarchy facts for visible entities."""
     if not corporate_entity_ids:
         return []
     rows = await conn.fetch(
@@ -247,6 +252,7 @@ async def _load_skos_facts(
 async def _load_labels(
     conn: asyncpg.Connection, facts: list[NeighborhoodFact]
 ) -> dict[tuple[str, str], str]:
+    """Load only non-empty buyer-visible labels for fact endpoints."""
     ids_by_type = _node_ids_by_type(facts)
     person_ids = ids_by_type[NODE_PERSON]
     post_ids = ids_by_type[NODE_POST]
@@ -404,6 +410,8 @@ async def visible_ontology_neighborhood(
         )
     if not focus_node_id or focus_node_id.strip() != focus_node_id:
         raise OntologyNeighborhoodError("invalid_focus_id", "focus node id is empty or malformed")
+    if _is_uuid(focus_node_id):
+        focus_node_id = str(UUID(focus_node_id))
     if not await focus_catalog_exists(conn, focus_node_type_code, focus_node_id):
         raise OntologyNeighborhoodError("unknown_node_type", "focus node not found")
     visible_post_ids = await visible_post_ids_for_focus(
@@ -418,6 +426,7 @@ async def visible_ontology_neighborhood(
         focus_node_id=focus_node_id,
         maximum_depth=maximum_depth,
         maximum_edges=maximum_edges,
+        knowledge_cutoff=knowledge_cutoff,
     )
     corp_ids = [
         fact.source_node_id if fact.source_node_type_code == NODE_CORPORATE_ENTITY else fact.target_node_id
