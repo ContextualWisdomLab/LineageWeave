@@ -65,8 +65,8 @@ _DOM_BLOCK_TAGS = frozenset(
         "footer",
         "div",
         "p",
-        "ol",
         "ul",
+        "ol",
         "li",
         "footnote",
         "endnote",
@@ -101,7 +101,7 @@ _TABLE_CELL_TAGS = frozenset({"td", "th", "w:tc"})
 _LIST_ITEM_START = re.compile(
     r"^(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)"
 )
-_FOOTNOTE_START = re.compile(r"^[*†‡](?=\S)")
+_FOOTNOTE_START = re.compile(r"^(?:[*†‡](?=\S)|\[\d{1,3}\]\s+\S)")
 
 
 def _is_footnote_block(tag: str, attrs: list[tuple[str, str | None]]) -> bool:
@@ -353,10 +353,12 @@ class _BlockTextExtractor(HTMLParser):
         """Collect relevant text state when an HTML start tag is encountered."""
         if tag == "img":
             src = next((value for name, value in attrs if name == "src" and value), None)
-            if src:
-                decoded = _decode_data_uri_image(src)
-                if decoded is not None:
-                    self._finished.append(("image", decoded, "", None, 0, 0))
+            decoded = _decode_data_uri_image(src) if src else None
+            if decoded is None:
+                return
+            if self._stack and not any(entry[0] in _TABLE_ROW_TAGS for entry in self._stack):
+                self._flush_current_buffer()
+            self._finished.append(("image", decoded, "", None, 0, 0))
             return
         if tag in {"br", "w:br"} and self._stack:
             self._stack[-1][1].append("\n")
@@ -385,11 +387,8 @@ class _BlockTextExtractor(HTMLParser):
         if any(entry[0] in _TABLE_ROW_TAGS for entry in self._stack):
             return
         if tag in _DOM_BLOCK_TAGS:
-            if self._stack and self._stack[-1][1]:
-                tag_name, buffer, style, _, is_footnote = self._stack[-1]
-                declared_width = sum(entry[3] for entry in self._stack)
-                self._finish_block(tag_name, buffer, style, declared_width, is_footnote)
-                buffer.clear()
+            if self._stack:
+                self._flush_current_buffer()
             style = next((value for name, value in attrs if name == "style" and value), None)
             is_footnote = _is_footnote_block(tag, attrs) or any(
                 entry[4] for entry in self._stack
@@ -410,6 +409,20 @@ class _BlockTextExtractor(HTMLParser):
             declared_width = sum(entry[3] for entry in self._stack)
             tag_name, buffer, style, _, is_footnote = self._stack.pop()
             self._finish_block(tag_name, buffer, style, declared_width, is_footnote)
+
+    def _flush_current_buffer(self) -> None:
+        """Emit direct parent text before a nested block or embedded image."""
+        tag_name, buffer, style, indent_width, is_footnote = self._stack[-1]
+        if not buffer:
+            return
+        self._stack[-1] = (tag_name, [], style, indent_width, is_footnote)
+        self._finish_block(
+            tag_name,
+            buffer,
+            style,
+            sum(entry[3] for entry in self._stack),
+            is_footnote,
+        )
 
     def _finish_block(
         self,

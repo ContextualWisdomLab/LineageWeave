@@ -85,7 +85,9 @@ describe("App, authenticated", () => {
     pendingTeppRun?: boolean;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
+    deferPostOneSummary?: boolean;
     deferSecondAsk?: boolean;
+    invalidAskSessionOnce?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
@@ -126,6 +128,7 @@ describe("App, authenticated", () => {
     releaseSecondAsk: () => void;
     releaseGroupRelated: () => void;
     releaseDemoRelated: () => void;
+    releasePostOneSummary: () => void;
   } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -175,6 +178,12 @@ describe("App, authenticated", () => {
     const demoRelatedReady = options?.deferCustomerRelated
       ? new Promise<void>((resolve) => {
           releaseDemoRelated = resolve;
+        })
+      : Promise.resolve();
+    let releasePostOneSummary = () => {};
+    const postOneSummaryReady = options?.deferPostOneSummary
+      ? new Promise<void>((resolve) => {
+          releasePostOneSummary = resolve;
         })
       : Promise.resolve();
 
@@ -1239,7 +1248,7 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/summary")) {
-        return Promise.resolve(
+        return postOneSummaryReady.then(() =>
           jsonResponse({
             post_id: "post-1",
             korean_summary: "이것은 요약입니다.",
@@ -1671,6 +1680,15 @@ describe("App, authenticated", () => {
       }
       if (url.endsWith("/api/ask") && method === "POST") {
         askRequestCount += 1;
+        const requestBody = JSON.parse(String(init?.body ?? "{}")) as { session_id?: string };
+        if (options?.invalidAskSessionOnce && askRequestCount === 1 && requestBody.session_id) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "Global Ask session not found" }), {
+              status: 404,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         const ready =
           options?.deferSecondAsk && askRequestCount === 2
             ? secondAskReady
@@ -1678,6 +1696,7 @@ describe("App, authenticated", () => {
         return ready.then(() =>
           Promise.resolve(
           jsonResponse({
+            session_id: "session-1",
             answer_text: "The cited project is supported by the stored semantic evidence.",
             cited_post_ids: ["post-2"],
             cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
@@ -1691,6 +1710,20 @@ describe("App, authenticated", () => {
               },
             ],
             source_post_ids: ["post-1", "post-2"],
+            timeline: [
+              {
+                post_id: "post-1",
+                post_title: "Public post",
+                occurred_at: "2026-01-01T00:00:00Z",
+                timeline_kind: "lineage_anchor",
+              },
+              {
+                post_id: "post-2",
+                post_title: "Linked post",
+                occurred_at: "2026-01-02T00:00:00Z",
+                timeline_kind: "lineage_neighbor",
+              },
+            ],
           }),
           ),
         );
@@ -1793,6 +1826,7 @@ describe("App, authenticated", () => {
       releaseSecondAsk,
       releaseGroupRelated,
       releaseDemoRelated,
+      releasePostOneSummary,
     });
   }
 
@@ -1807,6 +1841,8 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("list", { name: "Evidence facts" })).toBeInTheDocument();
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Event Lineage timeline" })).toBeInTheDocument();
+    expect(screen.getByText("2026-01-01T00:00:00Z")).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
   });
 
@@ -1844,6 +1880,26 @@ describe("App, authenticated", () => {
         "The cited project is supported by the stored semantic evidence.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("replaces an invalid saved Ask session without requiring storage cleanup", async () => {
+    window.sessionStorage.setItem("lineageweave.globalAskSessionId", "stale-session");
+    const fetchMock = stubBackend({ invalidAskSessionOnce: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    await userEvent.type(within(ask).getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+
+    expect(
+      await within(ask).findByText("The cited project is supported by the stored semantic evidence."),
+    ).toBeInTheDocument();
+    const askBodies = fetchMock.mock.calls
+      .filter(([url]) => String(url).endsWith("/api/ask"))
+      .map(([, init]) => JSON.parse(String((init as RequestInit).body)) as { session_id?: string });
+    expect(askBodies.map((body) => body.session_id)).toEqual(["stale-session", undefined]);
+    expect(window.sessionStorage.getItem("lineageweave.globalAskSessionId")).toBe("session-1");
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
@@ -2243,6 +2299,67 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
   });
 
+  it("ignores a stale summary after Event Lineage navigation changes the selected post", async () => {
+    const fetchMock = stubBackend({ deferPostOneSummary: true });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    await userEvent.click(
+      within(board).getByRole("button", { name: "View post: Public post" }),
+    );
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+
+    const linkedPosts = screen.getAllByLabelText("Open post: Linked post");
+    await userEvent.click(linkedPosts[linkedPosts.length - 1]);
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+    expect(await screen.findByText("연결된 글입니다.")).toBeInTheDocument();
+
+    fetchMock.releasePostOneSummary();
+
+    await waitFor(() => {
+      expect(screen.getByText("연결된 글입니다.")).toBeInTheDocument();
+      expect(screen.queryByText("이것은 요약입니다.")).not.toBeInTheDocument();
+    });
+  });
+
+  it("opening a linked Event Lineage node from Ask Agent keeps GNB focus; a home-list DAG walk does not", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    await userEvent.type(within(ask).getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+    await userEvent.click(within(ask).getByRole("button", { name: "Open cited post: Linked post" }));
+
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
+      "Linked post is current in Event Lineage. Read Keyman and evaluation next.",
+    );
+
+    await userEvent.click(screen.getByLabelText("Open post: Public post"));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).toHaveFocus();
+    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
+      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    const boardAfterAsk = screen.getByRole("region", { name: "Board" });
+    await userEvent.click(within(boardAfterAsk).getByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    await userEvent.click(screen.getByLabelText("Open post: Linked post"));
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+  });
+
   it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {
     stubBackend();
     render(<App showLabPanels />);
@@ -2477,6 +2594,17 @@ describe("App, authenticated", () => {
       ).toBeGreaterThan(summaryCallsBeforeRetry),
     );
     expect(screen.getByRole("button", { name: "Retry summary refresh" })).toBeInTheDocument();
+  });
+
+  it("requests one summary per post open and keeps retry as the only second request", async () => {
+    const fetchMock = stubBackend();
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("이것은 요약입니다.")).toBeInTheDocument());
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/api/posts/post-1/summary")),
+    ).toHaveLength(1);
   });
 
   it("refreshes newly processed source content after summary generation", async () => {

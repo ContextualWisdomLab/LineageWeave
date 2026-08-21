@@ -1,4 +1,4 @@
-# ADR 0102: Preserve authored semantic source-unit boundaries
+# ADR 0108: Preserve authored semantic source-unit boundaries
 
 - Status: Accepted
 - Date: 2026-08-20

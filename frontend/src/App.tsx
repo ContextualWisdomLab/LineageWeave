@@ -102,7 +102,13 @@ import {
   useLocale,
 } from "./i18n";
 import { isoWeekFromCreatedAt, latestIsoWeek } from "./isoWeek";
+import {
+  analysisRunTargetClock,
+  type AnalysisRunNavigationContext,
+} from "./analysisRunNavigation";
 import "./App.css";
+
+const GLOBAL_ASK_SESSION_STORAGE_KEY = "lineageweave.globalAskSessionId";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
   if (err instanceof BackendError && err.status === 503) {
@@ -1713,31 +1719,58 @@ function PostDetailPopup({
   const [focusTeam, setFocusTeam] = useState<{ teamId: string; teamName: string } | null>(null);
   const contentReloadRef = useRef<() => void>(() => undefined);
 
+  const detailRequestGeneration = useRef(0);
+
   function reloadKeymen() {
+    const generation = detailRequestGeneration.current;
     fetchPostKeymen(accessToken, postId)
       .then((r) => {
+        if (detailRequestGeneration.current !== generation) return;
         setKeymen(r.keymen);
         setSourceAuthorContext(r.source_author_context ?? null);
       })
       .catch(() => {
+        if (detailRequestGeneration.current !== generation) return;
         setKeymen([]);
         setSourceAuthorContext(null);
       });
     fetchPostAffiliateTree(accessToken, postId)
-      .then((r) => setAffiliateTrees(r.trees))
-      .catch(() => setAffiliateTrees([]));
-    fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+      .then((r) => {
+        if (detailRequestGeneration.current === generation) setAffiliateTrees(r.trees);
+      })
+      .catch(() => {
+        if (detailRequestGeneration.current === generation) setAffiliateTrees([]);
+      });
+    fetchPostVocEvidence(accessToken, postId)
+      .then((value) => {
+        if (detailRequestGeneration.current === generation) setVocEvidence(value);
+      })
+      .catch(() => {
+        if (detailRequestGeneration.current === generation) setVocEvidence(null);
+      });
     reloadCounterparties();
   }
 
   function reloadCounterparties() {
+    const generation = detailRequestGeneration.current;
     fetchPostCounterparties(accessToken, postId)
-      .then((r) => setCounterparties(r.counterparties))
-      .catch(() => setCounterparties([]));
+      .then((r) => {
+        if (detailRequestGeneration.current === generation) {
+          setCounterparties(r.counterparties);
+        }
+      })
+      .catch(() => {
+        if (detailRequestGeneration.current === generation) setCounterparties([]);
+      });
   }
 
   useEffect(() => {
+    const generation = detailRequestGeneration.current + 1;
+    detailRequestGeneration.current = generation;
+    const isCurrent = () => detailRequestGeneration.current === generation;
+
     setPost(null);
+    setImageContent([]);
     setStructureUnits([]);
     setBookmarked(null);
     setBookmarkSaving(false);
@@ -1759,11 +1792,17 @@ function PostDetailPopup({
     let disposed = false;
     let contentPollTimer: number | undefined;
     const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
-    fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
+    fetchPost(accessToken, postId, asOf)
+      .then((value) => {
+        if (isCurrent()) setPost(value);
+      })
+      .catch((err) => {
+        if (isCurrent()) setError(String(err));
+      });
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)
         .then((content) => {
-          if (disposed) return;
+          if (disposed || !isCurrent()) return;
           setImageContent(content.images);
           setStructureUnits(content.units);
           if (content.status === "processing" && contentPollTimer === undefined) {
@@ -1774,43 +1813,77 @@ function PostDetailPopup({
           }
         })
         .catch(() => {
-          if (disposed) return;
+          if (disposed || !isCurrent()) return;
           setImageContent([]);
           setStructureUnits([]);
         });
     contentReloadRef.current = reloadContent;
-    reloadContent();
+    void reloadContent();
     fetchPostBookmark(accessToken, postId)
-      .then((r) => setBookmarked(r.bookmarked))
+      .then((r) => {
+        if (isCurrent()) setBookmarked(r.bookmarked);
+      })
       .catch(() => {
-        setBookmarked(null);
+        if (isCurrent()) setBookmarked(null);
       });
     fetchPostEvaluation(accessToken, postId)
-      .then((r) => setEvaluation(r.responses))
-      .catch(() => setEvaluation([]));
+      .then((r) => {
+        if (isCurrent()) setEvaluation(r.responses);
+      })
+      .catch(() => {
+        if (isCurrent()) setEvaluation([]);
+      });
     fetchPostFiveW1H(accessToken, postId)
-      .then(setFiveW1H)
-      .catch(() => setFiveW1H(null));
+      .then((value) => {
+        if (isCurrent()) setFiveW1H(value);
+      })
+      .catch(() => {
+        if (isCurrent()) setFiveW1H(null);
+      });
     fetchPostKeymen(accessToken, postId)
       .then((r) => {
+        if (!isCurrent()) return;
         setKeymen(r.keymen);
         setSourceAuthorContext(r.source_author_context ?? null);
       })
       .catch(() => {
+        if (!isCurrent()) return;
         setKeymen([]);
         setSourceAuthorContext(null);
       });
     fetchPostCounterparties(accessToken, postId)
-      .then((r) => setCounterparties(r.counterparties))
-      .catch(() => setCounterparties([]));
-    fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
+      .then((r) => {
+        if (isCurrent()) setCounterparties(r.counterparties);
+      })
+      .catch(() => {
+        if (isCurrent()) setCounterparties([]);
+      });
+    fetchPostLineage(accessToken, postId)
+      .then((value) => {
+        if (isCurrent()) setLineage(value);
+      })
+      .catch(() => {
+        if (isCurrent()) setLineage(null);
+      });
     fetchPostAffiliateTree(accessToken, postId)
-      .then((r) => setAffiliateTrees(r.trees))
-      .catch(() => setAffiliateTrees([]));
-    fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+      .then((r) => {
+        if (isCurrent()) setAffiliateTrees(r.trees);
+      })
+      .catch(() => {
+        if (isCurrent()) setAffiliateTrees([]);
+      });
+    fetchPostVocEvidence(accessToken, postId)
+      .then((value) => {
+        if (isCurrent()) setVocEvidence(value);
+      })
+      .catch(() => {
+        if (isCurrent()) setVocEvidence(null);
+      });
+
     return () => {
       disposed = true;
       if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
+      if (isCurrent()) detailRequestGeneration.current = generation + 1;
       if (contentReloadRef.current === reloadContent) {
         contentReloadRef.current = () => undefined;
       }
@@ -2542,6 +2615,7 @@ function analysisRunDigestPrefix(digest: string): string {
 type SelectPostOptions = {
   liveAfterCutoff?: boolean;
   knowledgeCutoff?: string;
+  analysisRunContext?: AnalysisRunNavigationContext;
   fromReportMember?: boolean;
   fromWeeklyVoc?: boolean;
   fromCalendar?: boolean;
@@ -2707,10 +2781,13 @@ function analysisRunReportPeriod(run: AnalysisRun): string | null {
  * title is marked rewritten after this run.
  */
 function analysisRunPostOpenOptions(run: AnalysisRun, postId: string): SelectPostOptions {
-  const post = run.visible_posts?.find((item) => item.post_id === postId);
-  return {
-    liveAfterCutoff: Boolean(post?.live_after_cutoff),
+  const analysisRunContext: AnalysisRunNavigationContext = {
     knowledgeCutoff: run.knowledge_cutoff,
+    visiblePosts: run.visible_posts ?? [],
+  };
+  return {
+    ...analysisRunTargetClock(analysisRunContext, postId),
+    analysisRunContext,
   };
 }
 
@@ -3616,6 +3693,8 @@ function PostList({
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [openedAfterCutoff, setOpenedAfterCutoff] = useState(false);
   const [openedCutoffIso, setOpenedCutoffIso] = useState<string | null>(null);
+  const [openedAnalysisRunContext, setOpenedAnalysisRunContext] =
+    useState<AnalysisRunNavigationContext | null>(null);
   const [canRebuild, setCanRebuild] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
@@ -3682,6 +3761,7 @@ function PostList({
     setFocusedGraph(null);
     setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
+    setOpenedAnalysisRunContext(options?.analysisRunContext ?? null);
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
     setOpenedFromWeeklyVoc(Boolean(options?.fromWeeklyVoc));
     setOpenedFromCalendar(Boolean(options?.fromCalendar));
@@ -3709,6 +3789,7 @@ function PostList({
     setSelectedPostId(null);
     setOpenedAfterCutoff(false);
     setOpenedCutoffIso(null);
+    setOpenedAnalysisRunContext(null);
     setOpenedFromReportMember(false);
     setOpenedFromWeeklyVoc(false);
     setOpenedFromCalendar(false);
@@ -4206,7 +4287,20 @@ function PostList({
           }
           focusAskOnLand={openedFromReportMember}
           onClose={closeSelectedPost}
-          onSelectPost={selectPost}
+          onSelectPost={(postId) => {
+            const cutoffOptions = openedAnalysisRunContext
+              ? analysisRunTargetClock(openedAnalysisRunContext, postId)
+              : {};
+            selectPost(postId, {
+              ...cutoffOptions,
+              analysisRunContext: openedAnalysisRunContext ?? undefined,
+              fromReportMember: openedFromReportMember,
+              fromWeeklyVoc: openedFromWeeklyVoc,
+              fromCalendar: openedFromCalendar,
+              fromCustomerMaster: openedFromCustomerMaster,
+              fromAskAgent: openedFromAskAgent,
+            });
+          }}
           onSearch={searchBoard}
         />
       )}
@@ -4455,6 +4549,9 @@ function AskAgentPanel({
   const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [sessionId, setSessionId] = useState<string | undefined>(() =>
+    window.sessionStorage.getItem(GLOBAL_ASK_SESSION_STORAGE_KEY) ?? undefined,
+  );
 
   async function handleAsk() {
     const normalized = question.trim();
@@ -4463,7 +4560,20 @@ function AskAgentPanel({
     setError(null);
     setAnswer(null);
     try {
-      setAnswer(await askAgent(accessToken, normalized));
+      let nextAnswer: AskAgentResponse;
+      try {
+        nextAnswer = await askAgent(accessToken, normalized, sessionId);
+      } catch (err) {
+        if (!(err instanceof BackendError) || err.status !== 404 || !sessionId) {
+          throw err;
+        }
+        setSessionId(undefined);
+        window.sessionStorage.removeItem(GLOBAL_ASK_SESSION_STORAGE_KEY);
+        nextAnswer = await askAgent(accessToken, normalized);
+      }
+      setAnswer(nextAnswer);
+      setSessionId(nextAnswer.session_id);
+      window.sessionStorage.setItem(GLOBAL_ASK_SESSION_STORAGE_KEY, nextAnswer.session_id);
     } catch (err) {
       setAnswer(null);
       setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
@@ -4495,6 +4605,26 @@ function AskAgentPanel({
           <h3>{t("Answer")}</h3>
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
           {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
+          {answer.timeline && answer.timeline.length > 0 ? (
+            <>
+              <h4>{t("Event Lineage timeline")}</h4>
+              <ol className="related-post-list" aria-label={t("Event Lineage timeline")}>
+                {answer.timeline.map((event) => (
+                  <li key={event.post_id}>
+                    <button
+                      type="button"
+                      className="post-list-item"
+                      aria-label={`${t("Open timeline post:")} ${event.post_title}`}
+                      onClick={() => onOpenPost(event.post_id)}
+                    >
+                      <strong>{event.post_title}</strong>
+                      {event.occurred_at ? <time dateTime={event.occurred_at}>{event.occurred_at}</time> : null}
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </>
+          ) : null}
           {answer.cited_posts && answer.cited_posts.length > 0 && (
             <>
               <p className="board-next-action" role="status" aria-label={t("Next action")}>
@@ -4634,7 +4764,15 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         </div>
         <div className="app-header-top-menu">
           <span className="app-user-profile">{auth.user?.profile.preferred_username}</span>
-          <button className="btn-secondary" onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
+          <button
+            className="btn-secondary"
+            onClick={() => {
+              window.sessionStorage.removeItem(GLOBAL_ASK_SESSION_STORAGE_KEY);
+              void auth.signoutRedirect();
+            }}
+          >
+            {t("Log out")}
+          </button>
         </div>
       </header>
       <BuyerNav

@@ -1,4 +1,4 @@
-# ADR 0100 — Major event actions retain requester and processor evidence
+# ADR 0102 — Major event actions retain requester and processor evidence
 
 **Decision status:** Accepted
 **Date:** 2026-08-20

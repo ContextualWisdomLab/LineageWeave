@@ -20,7 +20,7 @@ const BLOCK_TAG =
   /<\/?(?:article|blockquote|div|h[1-6]|li|ol|p|section|table|tbody|td|tfoot|th|thead|tr|ul|w:p|w:tbl|w:tr|w:tc)\b[^>]*>/gi;
 const WORD_INDENT_TAG = /<w:ind\b[^>]*\/?\s*>/gi;
 const LIST_ITEM_START = /^\s*(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)/;
-const FOOTNOTE_START = /^\s*[*†‡](?=\S)/;
+const FOOTNOTE_START = /^\s*(?:[*†‡](?=\S)|\[\d{1,3}\]\s+\S)/;
 const INDENT_MARKER = "\u0001lw-indent:";
 const INDENT_MARKER_END = "\u0002";
 const INDENT_MARKER_PATTERN = /lw-indent:(\d+)/g;
@@ -91,11 +91,27 @@ function indentMarker(width: number): string {
 
 function stripHtmlTags(text: string): string {
   text = text.replace(/<sup[^>]*>(.*?)<\/sup>/gi, "^$1");
+  const listIndentWidths: number[] = [];
+  let listIndent = 0;
   const withBoundaries = text
     .replace(BREAK_TAG, "\n")
     .replace(BLOCK_TAG, (tag) => {
-      if (/^<\//.test(tag)) return "\n\n";
-      return `\n\n${indentMarker(declaredIndentWidth(tag))}`;
+      const closing = /^<\//.test(tag);
+      const tagName = tag.match(/^<\/?\s*([a-z0-9:]+)/i)?.[1]?.toLowerCase() ?? "";
+      if (closing) {
+        if (tagName === "ul" || tagName === "ol") {
+          listIndent = Math.max(0, listIndent - (listIndentWidths.pop() ?? 4));
+          return `\n\n${indentMarker(listIndent)}`;
+        }
+        return "\n\n";
+      }
+      const width = declaredIndentWidth(tag);
+      if (tagName === "ul" || tagName === "ol") {
+        listIndentWidths.push(width);
+        listIndent += width;
+      }
+      const effectiveWidth = tagName === "li" ? Math.max(listIndent, width) : listIndent + width;
+      return `\n\n${indentMarker(effectiveWidth)}`;
     })
     .replace(WORD_INDENT_TAG, (tag) => indentMarker(declaredIndentWidth(tag)));
   const withoutTags = withBoundaries.replace(HTML_TAG, (tag) =>

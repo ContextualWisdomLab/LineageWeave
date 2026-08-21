@@ -100,6 +100,16 @@ _SUMMARY_FIVE_W1H_MIGRATION = (
 _POST_CONTENT_QUEUE_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0050_post_content_ingestion_queue.sql"
 )
+_ORGANIZATION_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0051_context_scoped_organization_name_resolution.sql"
+)
+_GLOBAL_ASK_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0052_global_ask_context.sql"
+)
 _MAJOR_EVENT_ACTION_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0100_major_event_action.sql"
 )
@@ -223,6 +233,8 @@ def seeded_db(demo_analyst_token):
             cur.execute(_IMAGE_REGION_EMBEDDING_MIGRATION.read_text())
             cur.execute(_SUMMARY_FIVE_W1H_MIGRATION.read_text())
             cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
+            cur.execute(_ORGANIZATION_CONTEXT_MIGRATION.read_text())
+            cur.execute(_GLOBAL_ASK_CONTEXT_MIGRATION.read_text())
             cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
@@ -3622,6 +3634,35 @@ def test_counterparties_resolve_cataloged_org_ids(client, demo_analyst_token, se
     by_name = {row["counterparty_entity_name"]: row for row in response.json()["counterparties"]}
     assert by_name["Test Corp"]["corporate_entity_id"] == seeded_db["own_corp_id"]
     assert by_name["Northridge Grid"]["corporate_entity_id"] is None
+
+
+def test_counterparties_do_not_expose_unauthorized_catalog_entity(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A public post must not resolve a name to a private catalog row."""
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into post_counterparty_entity "
+                "(post_id, counterparty_entity_name, relationship_type_code) "
+                "values (%s, 'Other Corp', 'rel_voc')",
+                (seeded_db["public_post_id"],),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}/counterparties",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    row = next(
+        item for item in response.json()["counterparties"]
+        if item["counterparty_entity_name"] == "Other Corp"
+    )
+    assert row["corporate_entity_id"] is None
 
 
 def test_counterparties_endpoint_is_empty_before_extraction(client, demo_analyst_token, seeded_db) -> None:
