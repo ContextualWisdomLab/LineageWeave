@@ -49,9 +49,12 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T15:42:24Z` from the
-GitHub API. A merged commit is identified as `merge_commit`; an open PR is
-identified by its exact `head` and `base`.
+`resolved` from intent alone. Observed at `2026-08-21T15:47:03Z` from the
+GitHub API. Checkpoint types are `merge_commit`, `head`, and
+`closed_without_merge`; the latter records a closed PR's exact `head` when
+`merged_at` and `merge_commit_sha` are both absent. A merged commit is
+identified by `merge_commit`; an open PR is identified by its exact `head` and
+`base`.
 
 Recently merged into the protected repository:
 
@@ -74,7 +77,7 @@ Open PRs at the same observation:
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #355: `head` `b606c2553f877fa85968d90dc46598ce16897fbf`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #368: `head` `34103b5b23503524cef6a6cf97b0e7b364b0f852`, base `main`
+- PR #368: `head` `79aa5739c4622079ea7011d2656676be09157c80`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `6b84bea10881e2f82fb676d5b01cf56f7d8f4adb`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
@@ -90,6 +93,11 @@ approval, and protected mergeability. Green Checks alone do not prove that a
 merge is authorized. PR #385's merge is the current parent of PR #258; PR #386
 is closed as a duplicate of the safer #373 login fix. The other open entries
 remain separate until their own merge commits are observed.
+
+Closed without merge at the same observation:
+
+- PR #386: `closed_without_merge` head `57a013deb88fc0b23ae6448c1d3474c770360a5e`.
+- PR #377: `closed_without_merge` head `a638e28af4345750e3be92f2b0f23012b24598e0`.
 
 ## 5. Local Buyer-Surface Verification
 
