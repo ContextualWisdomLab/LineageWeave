@@ -178,8 +178,16 @@ class ContextualOrchestratorKeymanExtractionClient:
 
     available = True
 
+    # 2026-08-22 live finding: ``mode="auto"`` can route to deep multi-agent
+    # orchestration (Fugu/Conductor/TRINITY test-time compute allocation --
+    # see AGENTS.md's paper-grounded model policy), which legitimately runs
+    # past 180s for a long post body. Orchestrator logs showed the request
+    # actually completed and then hit BrokenPipeError trying to write the
+    # response, because this client had already closed the socket on
+    # timeout. Accuracy, not latency, is the requirement here (a real user
+    # click, not a hot path), so the timeout is generous rather than tight.
     def __init__(
-        self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float = 180.0
+        self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float = 900.0
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
