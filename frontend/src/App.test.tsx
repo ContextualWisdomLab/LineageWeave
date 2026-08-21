@@ -2092,6 +2092,13 @@ describe("App, authenticated", () => {
     dialog.insertBefore(ariaHiddenTabStop, screen.getByRole("button", { name: "Close" }).nextSibling);
     await user.keyboard("{Tab}");
     expect(ariaHiddenTabStop).not.toHaveFocus();
+    const ariaHiddenGroup = document.createElement("div");
+    ariaHiddenGroup.setAttribute("aria-hidden", "true");
+    const nestedAriaHiddenTabStop = document.createElement("button");
+    ariaHiddenGroup.append(nestedAriaHiddenTabStop);
+    dialog.insertBefore(ariaHiddenGroup, screen.getByRole("button", { name: "Close" }).nextSibling);
+    await user.keyboard("{Tab}");
+    expect(nestedAriaHiddenTabStop).not.toHaveFocus();
     expect(dialog).toContainElement(document.activeElement as HTMLElement);
     await user.keyboard("{Shift>}{Tab}{/Shift}");
     expect(dialog).toContainElement(document.activeElement as HTMLElement);

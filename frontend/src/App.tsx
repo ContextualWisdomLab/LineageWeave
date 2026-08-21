@@ -1770,7 +1770,7 @@ function PostDetailPopup({
       const focusable = Array.from(panel.querySelectorAll<HTMLElement>(focusableSelector)).filter(
         (element) =>
           !element.hidden &&
-          element.getAttribute("aria-hidden") !== "true" &&
+          !element.closest('[aria-hidden="true"]') &&
           !element.closest("details:not([open])"),
       );
       if (focusable.length === 0) {

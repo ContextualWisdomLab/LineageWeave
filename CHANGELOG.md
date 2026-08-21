@@ -34,6 +34,9 @@ All notable changes to this project are documented here. Format follows
 - All OpenAI-compatible chat-completion consumers now validate the shared
   response envelope before parsing it, preventing malformed provider bodies
   from escaping as raw `KeyError` or response-shape details.
+- The post-detail dialog focus trap now excludes descendants of `aria-hidden`
+  content as well as collapsed `details`, keeping keyboard focus inside the
+  visible modal controls.
 
 ## [2.12.6] - 2026-08-20
 
