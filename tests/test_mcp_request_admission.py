@@ -164,7 +164,6 @@ async def test_chunked_body_is_bounded_without_content_length() -> None:
         [(b"content-length", b"-1")],
         [(b"content-length", b"not-a-number")],
         [(b"content-length", b"\xff")],
-        [(b"content-length", b"9" * 5000)],
         [(b"content-length", b"3"), (b"content-length", b"4")],
         [(b"content-length", b"3"), (b"transfer-encoding", b"chunked")],
     ],
@@ -177,6 +176,23 @@ async def test_ambiguous_or_invalid_length_fails_closed(headers) -> None:
 
     assert status == 400
     assert payload == {"error_code": "mcp_invalid_content_length"}
+    assert downstream.calls == 0
+
+
+@pytest.mark.asyncio
+async def test_huge_declared_length_is_too_large_without_integer_digit_limits() -> None:
+    """Oversized framing has stable 413 semantics independent of Python settings."""
+    downstream = _RecordingApp()
+    app = BoundedRequestBodyApp(downstream, maximum_bytes=8)
+
+    status, payload, _ = await _invoke(
+        app,
+        headers=[(b"content-length", b"9" * 5000)],
+        chunks=[b"123"],
+    )
+
+    assert status == 413
+    assert payload == {"error_code": "mcp_request_too_large"}
     assert downstream.calls == 0
 
 

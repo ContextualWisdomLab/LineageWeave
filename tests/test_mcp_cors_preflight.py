@@ -53,9 +53,9 @@ class _Pool:
         self.closed = True
 
 
-def _app():
+def _app(cfg: Settings | None = None):
     """Build the real MCP ASGI surface without a reachable database."""
-    cfg = _settings()
+    cfg = cfg or _settings()
     pool = _Pool()
 
     async def pool_factory(_database_url: str):
@@ -185,3 +185,25 @@ def test_no_origin_non_browser_post_keeps_oauth_challenge() -> None:
     assert "access-control-allow-origin" not in response.headers
     assert "resource_metadata" in response.headers["www-authenticate"]
     assert pool.closed is True
+
+
+def test_allowed_origin_can_read_bounded_request_error_code() -> None:
+    """Browser clients can act on a CORS-readable admission error."""
+    cfg = replace(_settings(), mcp_max_request_bytes=8)
+    app, _ = _app(cfg)
+
+    with TestClient(app) as client:
+        response = client.post(
+            "/mcp",
+            content=b"123456789",
+            headers={
+                "Origin": "https://buyer.example",
+                "Content-Type": "application/json",
+                "MCP-Protocol-Version": "2025-11-25",
+            },
+        )
+
+    assert response.status_code == 413
+    assert response.json() == {"error_code": "mcp_request_too_large"}
+    assert response.headers["access-control-allow-origin"] == "https://buyer.example"
+    assert "Origin" in response.headers["vary"]

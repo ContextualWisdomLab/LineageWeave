@@ -301,8 +301,12 @@ def build_mcp_http_app(
         allowed_origins=settings.mcp_allowed_origins,
     )
     sdk_app = server.streamable_http_app(transport_security=transport_security)
-    cors_app = CORSMiddleware(
+    bounded_app = BoundedRequestBodyApp(
         sdk_app,
+        maximum_bytes=settings.mcp_max_request_bytes,
+    )
+    cors_app = CORSMiddleware(
+        bounded_app,
         allow_origins=settings.mcp_allowed_origins,
         allow_methods=["GET", "POST", "DELETE"],
         allow_headers=[
@@ -321,11 +325,7 @@ def build_mcp_http_app(
         allow_credentials=False,
         max_age=600,
     )
-    bounded_app = BoundedRequestBodyApp(
-        cors_app,
-        maximum_bytes=settings.mcp_max_request_bytes,
-    )
-    return PreAuthTransportSecurityApp(bounded_app, transport_security)
+    return PreAuthTransportSecurityApp(cors_app, transport_security)
 
 
 _settings = load_settings()

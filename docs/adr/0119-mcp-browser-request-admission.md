@@ -49,7 +49,9 @@ for browser access.
 5. Preserve non-browser clients: a request without `Origin` remains valid and
    reaches the existing OAuth boundary.
 6. Place a pure-ASGI body admission wrapper after Host/Origin validation and
-   before CORS, OAuth, or SDK JSON parsing for every POST.
+   before OAuth or SDK JSON parsing for every POST. CORS wraps that admission
+   layer so allowed browser clients can read bounded 400/413 error payloads;
+   CORS still handles preflight without invoking body admission.
 7. Use `Content-Length` only for an early rejection. Independently count every
    received body chunk and stop once the configured byte limit would be
    exceeded.
@@ -75,8 +77,8 @@ The effective request path is:
 
 ```text
 Host/Origin transport validation
+→ exact CORS/preflight handling and response headers
 → bounded POST body admission
-→ exact CORS/preflight handling
 → OAuth resource-server middleware
 → MCP SDK JSON parsing and routing
 → database RBAC/ABAC
@@ -86,7 +88,8 @@ Host/Origin transport validation
 ## Consequences
 
 - Browser MCP clients can complete preflight and read the OAuth discovery
-  challenge without weakening exact-Origin validation.
+  challenge and bounded admission error codes without weakening exact-Origin
+  validation.
 - Fixed-length and streamed requests share one byte envelope before expensive
   parsing or authentication work.
 - A valid request is buffered once at the MCP ingress. The configured upper
