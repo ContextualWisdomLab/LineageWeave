@@ -4,6 +4,16 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.20.3] - 2026-08-22
+
+### Fixed
+
+- Persisted post-Ask history now loads and reauthorizes up to 64 exchanges and
+  256 citation occurrences in two bounded PostgreSQL queries. Each exchange
+  keeps its own knowledge cutoff and fail-closed tenant/publication decision;
+  oversized history returns an actionable error instead of partial evidence
+  (ADR 0129).
+
 ## [2.20.2] - 2026-08-21
 
 ### Fixed

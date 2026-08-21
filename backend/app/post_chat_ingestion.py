@@ -45,6 +45,10 @@ from lineageweave.post_chat import (
 from lineageweave.post_content_normalization import normalize_post_body
 
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
+from .ask_project_history import (
+    GLOBAL_ASK_SESSION_CITATION_LIMIT,
+    POST_ASK_HISTORY_EXCHANGE_LIMIT,
+)
 from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.ontology import ontology_annotations
 
@@ -69,6 +73,10 @@ class GlobalAskContext:
     summary_through_ordinal: int
     recent_turns: tuple[tuple[int, str, str], ...]
     compress_turns: tuple[tuple[int, str, str], ...]
+
+
+class PostChatHistoryLimitError(ValueError):
+    """Persisted post-Ask history exceeds its bounded read budget."""
 
 
 async def ensure_global_ask_session(
@@ -841,17 +849,87 @@ async def fetch_persisted_chat(
 
 
 async def fetch_persisted_chats(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
-    """Every stored exchange for ``post_id``, oldest first."""
+    """Return a bounded Ask history in one ordered database query."""
+
     rows = await conn.fetch(
-        "select question_norm from post_chat_result where post_id = $1 order by computed_at, question_norm",
+        """
+        with bounded_exchange as materialized (
+            select question_norm,
+                   question_text,
+                   answer_text,
+                   knowledge_cutoff,
+                   (row_number() over (
+                       order by computed_at, question_norm
+                   ))::integer as exchange_ordinal
+              from post_chat_result
+             where post_id = $1
+             order by computed_at, question_norm
+             limit $2
+        ), bounded_citation as materialized (
+            select bounded_exchange.exchange_ordinal,
+                   citation.citation_ordinal,
+                   citation.cited_post_id,
+                   (row_number() over (
+                       order by bounded_exchange.exchange_ordinal,
+                                citation.citation_ordinal
+                   ))::integer as history_citation_ordinal
+              from bounded_exchange
+              join post_chat_citation citation
+                on citation.post_id = $1
+               and citation.question_norm = bounded_exchange.question_norm
+        )
+        select bounded_exchange.exchange_ordinal,
+               bounded_exchange.question_text,
+               bounded_exchange.answer_text,
+               bounded_exchange.knowledge_cutoff,
+               bounded_citation.citation_ordinal,
+               bounded_citation.history_citation_ordinal,
+               bounded_citation.cited_post_id,
+               source_post.post_title
+          from bounded_exchange
+          left join bounded_citation
+            on bounded_citation.exchange_ordinal = bounded_exchange.exchange_ordinal
+           and bounded_citation.history_citation_ordinal <= $3
+          left join source_post
+            on source_post.post_id = bounded_citation.cited_post_id
+         order by bounded_exchange.exchange_ordinal,
+                  bounded_citation.citation_ordinal nulls last
+        """,
         post_id,
+        POST_ASK_HISTORY_EXCHANGE_LIMIT + 1,
+        GLOBAL_ASK_SESSION_CITATION_LIMIT + 1,
     )
-    exchanges: list[dict[str, Any]] = []
+    exchanges: dict[int, dict[str, Any]] = {}
     for row in rows:
-        payload = await _serialize_chat(conn, post_id, row["question_norm"])
-        if payload is not None:
-            exchanges.append(payload)
-    return exchanges
+        exchange_ordinal = int(row["exchange_ordinal"])
+        if exchange_ordinal > POST_ASK_HISTORY_EXCHANGE_LIMIT:
+            raise PostChatHistoryLimitError("exchange count exceeds the supported bound")
+        history_citation_ordinal = row.get("history_citation_ordinal")
+        if (
+            history_citation_ordinal is not None
+            and int(history_citation_ordinal) > GLOBAL_ASK_SESSION_CITATION_LIMIT
+        ):
+            raise PostChatHistoryLimitError(
+                "history citation count exceeds the supported bound"
+            )
+        payload = exchanges.setdefault(
+            exchange_ordinal,
+            {
+                "question_text": row["question_text"],
+                "answer_text": row["answer_text"],
+                "cited_post_ids": [],
+                "_knowledge_cutoff": row.get("knowledge_cutoff"),
+                "cited_posts": [],
+            },
+        )
+        cited_post_id = row.get("cited_post_id")
+        if cited_post_id is not None:
+            post_id_text = str(cited_post_id)
+            payload["cited_post_ids"].append(post_id_text)
+            payload["cited_posts"].append(
+                {"post_id": post_id_text, "post_title": row["post_title"]}
+            )
+    return list(exchanges.values())
 
 
 async def persist_post_chat(

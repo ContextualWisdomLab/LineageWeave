@@ -346,4 +346,23 @@ runtime note into a shipped/live claim.
 - Remaining causal-analysis work is explicitly outside this slice: temporal association
   and evidence navigation do not identify why a VOC occurred.
 
+## Batched persisted post-Ask reauthorization (2026-08-22)
+
+- Issue #358 remains proposed on its feature branch and is not protected-main
+  behavior. ADR 0129 bounds one post history at 64 exchanges and 256 citation
+  occurrences; excess history fails closed without returning a partial answer.
+- After the existing parent-post visibility lookup, the supported history phase
+  uses one ordered history query and one authorization/project-evidence query.
+  Tenant ABAC, publication eligibility, and each exchange's persisted knowledge
+  cutoff are evaluated in the latter query before partitioning.
+- Observed local PostgreSQL 18.4 evidence used 64 synthetic exchanges with one
+  citation each on a single loopback connection, five measured repetitions after
+  warmup. The previous-equivalent path made 193 queries with an 11.544 ms median;
+  the batched path made 2 queries with a 1.190 ms median, a 9.70x reduction for
+  this bounded fixture. This is query-path evidence, not a production latency SLO.
+- The real-PostgreSQL regression also executes mixed per-exchange cutoffs and a
+  private tenant mismatch. Its observed outcomes are cutoff miss, cutoff hit, and
+  tenant miss respectively; hidden evidence does not disclose answer prose, title,
+  identifier, count, or project link from the affected exchange.
+
 *This document is continuously updated by the hourly automated agent loop.*

@@ -9,7 +9,11 @@ from datetime import UTC, datetime
 import asyncpg
 import pytest
 
-from backend.app.post_chat_ingestion import gather_global_chat_sources
+from backend.app.ask_project_history import read_authorized_ask_evidence_batch
+from backend.app.post_chat_ingestion import (
+    fetch_persisted_chats,
+    gather_global_chat_sources,
+)
 
 
 CUTOFF = datetime(2026, 8, 20, 12, 0, tzinfo=UTC)
@@ -80,6 +84,131 @@ def test_final_global_source_query_binds_the_cutoff_in_real_postgresql() -> None
                 "00000000-0000-4000-8000-000000000001"
             ]
             assert boundary.final_args[3] == CUTOFF
+
+            await connection.execute(
+                """
+                create temporary table post_project_mention (
+                    post_id uuid not null,
+                    project_key text,
+                    project_name text
+                );
+                create temporary table post_chat_result (
+                    post_id uuid not null,
+                    question_norm text not null,
+                    question_text text not null,
+                    answer_text text not null,
+                    computed_at timestamptz not null,
+                    knowledge_cutoff timestamptz not null,
+                    primary key (post_id, question_norm)
+                );
+                create temporary table post_chat_citation (
+                    post_id uuid not null,
+                    question_norm text not null,
+                    citation_ordinal integer not null,
+                    cited_post_id uuid not null
+                );
+                insert into source_post (
+                    post_id,
+                    post_title,
+                    visibility_code,
+                    corporate_entity_id,
+                    created_at,
+                    source_project_code,
+                    source_project_name
+                ) values
+                    (
+                        '00000000-0000-4000-8000-000000000010',
+                        'Synthetic future evidence',
+                        'public',
+                        null,
+                        '2026-08-20T13:00:00Z',
+                        'P-10',
+                        'Synthetic project ten'
+                    ),
+                    (
+                        '00000000-0000-4000-8000-000000000020',
+                        'Synthetic tenant evidence',
+                        'private',
+                        '00000000-0000-4000-8000-000000000030',
+                        '2026-08-20T11:00:00Z',
+                        'P-20',
+                        'Synthetic project twenty'
+                    ),
+                    (
+                        '00000000-0000-4000-8000-000000000040',
+                        'Synthetic Ask root',
+                        'public',
+                        null,
+                        '2026-08-20T10:00:00Z',
+                        'P-40',
+                        'Synthetic project forty'
+                    )
+                """
+            )
+            await connection.execute(
+                """
+                insert into post_chat_result values
+                    (
+                        '00000000-0000-4000-8000-000000000040',
+                        'first',
+                        'First question',
+                        'First answer',
+                        '2026-08-20T11:00:00Z',
+                        '2026-08-20T11:00:00Z'
+                    ),
+                    (
+                        '00000000-0000-4000-8000-000000000040',
+                        'second',
+                        'Second question',
+                        'Second answer',
+                        '2026-08-20T12:00:00Z',
+                        '2026-08-20T12:00:00Z'
+                    );
+                insert into post_chat_citation values
+                    (
+                        '00000000-0000-4000-8000-000000000040',
+                        'first',
+                        0,
+                        '00000000-0000-4000-8000-000000000020'
+                    ),
+                    (
+                        '00000000-0000-4000-8000-000000000040',
+                        'second',
+                        0,
+                        '00000000-0000-4000-8000-000000000010'
+                    )
+                """
+            )
+            history = await fetch_persisted_chats(
+                connection,
+                "00000000-0000-4000-8000-000000000040",
+            )
+            assert [item["question_text"] for item in history] == [
+                "First question",
+                "Second question",
+            ]
+            future_id = "00000000-0000-4000-8000-000000000010"
+            private_id = "00000000-0000-4000-8000-000000000020"
+            later_cutoff = datetime(2026, 8, 20, 14, 0, tzinfo=UTC)
+            projections = await read_authorized_ask_evidence_batch(
+                connection,
+                exchanges=[
+                    ([future_id], CUTOFF),
+                    ([future_id], later_cutoff),
+                    ([private_id], later_cutoff),
+                ],
+                corporate_entity_ids=[
+                    "00000000-0000-4000-8000-000000000099"
+                ],
+            )
+            assert [item.all_citations_visible for item in projections] == [
+                False,
+                True,
+                False,
+            ]
+            assert projections[1].cited_posts[0]["post_title"] == (
+                "Synthetic future evidence"
+            )
         finally:
             await connection.close()
 
