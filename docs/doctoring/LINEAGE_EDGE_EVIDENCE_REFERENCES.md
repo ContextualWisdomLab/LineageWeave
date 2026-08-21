@@ -1,6 +1,6 @@
 # Event Lineage edge-evidence research and standards traceability
 
-**Status:** Supporting doctoring for proposed ADR 0103. It does not promote an
+**Status:** Supporting doctoring for proposed ADR 0129. It does not promote an
 active-PR implementation to protected-main truth.
 
 ## Traceability matrix
