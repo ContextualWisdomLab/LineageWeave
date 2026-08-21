@@ -883,6 +883,7 @@ function KeymanPanel({
   focusTeam,
   landFirstKeyman,
   landFirstRelated,
+  landOnAsk,
   afterList,
 }: {
   postId: string;
@@ -897,6 +898,7 @@ function KeymanPanel({
   focusTeam?: { teamId: string; teamName: string } | null;
   landFirstKeyman?: boolean;
   landFirstRelated?: boolean;
+  landOnAsk?: boolean;
   afterList?: ReactNode;
 }) {
   const [related, setRelated] = useState<RelatedNode[] | null>(null);
@@ -1004,13 +1006,13 @@ function KeymanPanel({
   }, [accessToken, landFirstRelated, related]);
 
   useEffect(() => {
-    if (!landFirstRelated || !landedRelatedName || landedRelated === null) {
+    if (!landFirstRelated || !landOnAsk || !landedRelatedName || landedRelated === null) {
       return;
     }
     const heading = document.getElementById("post-ask");
     heading?.focus();
     heading?.scrollIntoView?.({ block: "nearest" });
-  }, [landFirstRelated, landedRelatedName, landedRelated]);
+  }, [landFirstRelated, landedRelatedName, landedRelated, landOnAsk]);
 
   useEffect(() => {
     if (!focusPerson) return;
@@ -1709,6 +1711,7 @@ function PostDetailPopup({
   liveBodyWarning,
   knowledgeCutoff,
   focusEventLineage,
+  focusAskOnLand,
   onClose,
   onSelectPost,
   onSearch,
@@ -1720,6 +1723,7 @@ function PostDetailPopup({
   liveBodyWarning?: string | null;
   knowledgeCutoff?: string | null;
   focusEventLineage?: boolean;
+  focusAskOnLand?: boolean;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
@@ -2365,6 +2369,7 @@ function PostDetailPopup({
                 focusTeam={focusTeam}
                 landFirstKeyman
                 landFirstRelated
+                landOnAsk={focusAskOnLand}
                 afterList={
                   <>
                     <EvaluationPanel
@@ -2584,6 +2589,7 @@ type SelectPostOptions = {
   knowledgeCutoff?: string;
   fromReportMember?: boolean;
   fromWeeklyVoc?: boolean;
+  fromCalendar?: boolean;
   /** Set when re-entering a post from a popstate (browser back/forward) so
    * the handler doesn't push a duplicate history entry for a navigation
    * the browser already performed. */
@@ -3168,9 +3174,13 @@ function RankingsPanel({
 function CalendarPanel({
   accessToken,
   onSelectPost,
+  namedNextAction = false,
+  focusEventLineageOnSelect = false,
 }: {
   accessToken: string;
-  onSelectPost: (postId: string) => void;
+  onSelectPost: (postId: string, options?: SelectPostOptions) => void;
+  namedNextAction?: boolean;
+  focusEventLineageOnSelect?: boolean;
 }) {
   const [calendar, setCalendar] = useState<CalendarResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -3190,8 +3200,13 @@ function CalendarPanel({
   const caldavNextAction = calendar.calendar_sources?.caldav_next_action;
 
   return (
-    <section className="popup-section lineage-home">
-      <h2>{t("Calendar")}</h2>
+    <section className="popup-section lineage-home" aria-labelledby="calendar-title">
+      <h2 id="calendar-title">{t("Calendar")}</h2>
+      {namedNextAction && commitments.length > 0 ? (
+        <p className="board-next-action" role="status" aria-label={t("Next action")}>
+          {t("Authorized commitments are current. Open a commitment to read Event Lineage.")}
+        </p>
+      ) : null}
       <section className="popup-section">
         <h3>{t("CalDAV events")}</h3>
         {events.length === 0 ? (
@@ -3226,7 +3241,12 @@ function CalendarPanel({
                 <button
                   className="post-list-item"
                   aria-label={`${t("Open commitment for:")} ${entry.post_title}`}
-                  onClick={() => onSelectPost(entry.post_id)}
+                  onClick={() =>
+                    onSelectPost(
+                      entry.post_id,
+                      focusEventLineageOnSelect ? { fromCalendar: true } : undefined,
+                    )
+                  }
                 >
                   <span className="ticket-title">
                     {entry.commitment_summary ?? entry.ticket_title}
@@ -3623,6 +3643,7 @@ function PostList({
   accessToken,
   showLabPanels = false,
   postIdToOpen = null,
+  postOpenFromCalendar = false,
   onPostOpened,
   focusSearchRequest = 0,
   onSearchFocusHandled,
@@ -3630,6 +3651,7 @@ function PostList({
   accessToken: string;
   showLabPanels?: boolean;
   postIdToOpen?: string | null;
+  postOpenFromCalendar?: boolean;
   onPostOpened?: () => void;
   focusSearchRequest?: number;
   onSearchFocusHandled?: () => void;
@@ -3651,6 +3673,7 @@ function PostList({
   const [landOnComparison, setLandOnComparison] = useState(false);
   const [openedFromReportMember, setOpenedFromReportMember] = useState(false);
   const [openedFromWeeklyVoc, setOpenedFromWeeklyVoc] = useState(false);
+  const [openedFromCalendar, setOpenedFromCalendar] = useState(false);
   const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
   const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
   const [totalPosts, setTotalPosts] = useState(0);
@@ -3724,6 +3747,7 @@ function PostList({
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
     setOpenedFromWeeklyVoc(Boolean(options?.fromWeeklyVoc));
+    setOpenedFromCalendar(Boolean(options?.fromCalendar));
     if (!options?.fromPopState) {
       const url = new URL(window.location.href);
       if (url.searchParams.get("post") !== postId) {
@@ -3735,9 +3759,9 @@ function PostList({
 
   useEffect(() => {
     if (!postIdToOpen) return;
-    selectPost(postIdToOpen);
+    selectPost(postIdToOpen, postOpenFromCalendar ? { fromCalendar: true } : undefined);
     onPostOpened?.();
-  }, [onPostOpened, postIdToOpen]);
+  }, [onPostOpened, postIdToOpen, postOpenFromCalendar]);
 
   useEffect(() => {
     function handlePopState() {
@@ -3761,6 +3785,7 @@ function PostList({
     setOpenedCutoffIso(null);
     setOpenedFromReportMember(false);
     setOpenedFromWeeklyVoc(false);
+    setOpenedFromCalendar(false);
     const url = new URL(window.location.href);
     if (url.searchParams.has("post")) {
       url.searchParams.delete("post");
@@ -4249,7 +4274,8 @@ function PostList({
             openedAfterCutoff ? analysisRunOpenedBodyWarning(openedCutoffIso) : null
           }
           knowledgeCutoff={openedAfterCutoff ? openedCutoffIso : null}
-          focusEventLineage={openedFromReportMember || openedFromWeeklyVoc}
+          focusEventLineage={openedFromReportMember || openedFromWeeklyVoc || openedFromCalendar}
+          focusAskOnLand={openedFromReportMember}
           onClose={closeSelectedPost}
           onSelectPost={selectPost}
           onSearch={searchBoard}
@@ -4808,6 +4834,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("post");
   });
+  const [postOpenFromCalendar, setPostOpenFromCalendar] = useState(false);
   // Test-only compatibility for legacy analysis-panel coverage; this prop
   // never forces the panels open outside Vitest. In a real build the
   // advanced-review section (ADR 0037) is gated on PostList's own
@@ -4999,7 +5026,11 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             accessToken={accessToken}
             showLabPanels={testOnlyLabPanels}
             postIdToOpen={postToOpen}
-            onPostOpened={() => setPostToOpen(null)}
+            postOpenFromCalendar={postOpenFromCalendar}
+            onPostOpened={() => {
+              setPostToOpen(null);
+              setPostOpenFromCalendar(false);
+            }}
             focusSearchRequest={searchFocusRequest}
             onSearchFocusHandled={() => setSearchFocusRequest(0)}
           />
@@ -5016,8 +5047,11 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         {destination === "calendar" ? (
           <CalendarPanel
             accessToken={accessToken}
+            namedNextAction
+            focusEventLineageOnSelect
             onSelectPost={(postId) => {
               setPostToOpen(postId);
+              setPostOpenFromCalendar(true);
               changeDestination("board");
             }}
           />

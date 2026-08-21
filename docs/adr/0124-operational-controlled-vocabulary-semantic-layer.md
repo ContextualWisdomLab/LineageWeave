@@ -69,4 +69,3 @@ https://www.w3.org/TR/skos-reference/
 
 World Wide Web Consortium. (2017). *Shapes Constraint Language (SHACL)*.
 https://www.w3.org/TR/shacl/
-

@@ -1,4 +1,4 @@
-# ADR 0094: Preserve authorized internal evidence for relation verification
+# ADR 0095: Preserve authorized internal evidence for relation verification
 
 - Status: Accepted
 - Date: 2026-08-18

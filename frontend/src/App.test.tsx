@@ -2032,6 +2032,57 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
   });
 
+  it("does not scroll Calendar users away from Event Lineage when related evidence lands", async () => {
+    const scrolledIds: string[] = [];
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = function () {
+      scrolledIds.push(this.id);
+    };
+    try {
+      stubBackend();
+      render(<App />);
+
+      await userEvent.click(await screen.findByRole("button", { name: "Calendar" }));
+      const calendar = await screen.findByRole("region", { name: "Calendar" });
+      await userEvent.click(
+        within(calendar).getByRole("button", { name: "Open commitment for: Public post" }),
+      );
+
+      await screen.findByRole("status", { name: "Ask next action" });
+      expect(document.getElementById("post-event-lineage")).toHaveFocus();
+      expect(scrolledIds).not.toContain("post-ask");
+    } finally {
+      HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    }
+  });
+
+  it("opening a Calendar commitment focuses Event Lineage; a home list open does not", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Calendar" }));
+    const calendar = await screen.findByRole("region", { name: "Calendar" });
+    expect(within(calendar).getByLabelText("Next action")).toHaveTextContent(
+      "Authorized commitments are current. Open a commitment to read Event Lineage.",
+    );
+    await userEvent.click(
+      within(calendar).getByRole("button", { name: "Open commitment for: Public post" }),
+    );
+
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).toHaveFocus();
+    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
+      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    const board = screen.getByRole("region", { name: "Board" });
+    await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+  });
+
   it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {
     stubBackend();
     render(<App showLabPanels />);
@@ -2864,6 +2915,8 @@ describe("App, authenticated", () => {
     await userEvent.click(calendarButton);
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
   });
 
   it("shows the seeded analysis run on the home page", async () => {

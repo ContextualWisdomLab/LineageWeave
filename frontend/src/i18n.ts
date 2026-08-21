@@ -124,6 +124,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "All weeks": "모든 주",
     "Voice of Customer posts for {week} are current. Open a post to read Event Lineage.":
       "{week} Voice of Customer 글이 현재 표시되어 있습니다. 이벤트 계보를 읽으려면 글을 여세요.",
+    "Authorized commitments are current. Open a commitment to read Event Lineage.":
+      "권한이 있는 일정이 현재 표시되어 있습니다. 이벤트 계보를 읽으려면 일정을 여세요.",
     "Filter by visibility": "공개 여부로 필터",
     "Sort posts": "글 정렬",
     "All VOC types": "모든 VOC 유형",
@@ -489,6 +491,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "All weeks": "所有周次",
     "Voice of Customer posts for {week} are current. Open a post to read Event Lineage.":
       "{week} 的 Voice of Customer 文章为当前内容。打开一篇文章阅读事件谱系。",
+    "Authorized commitments are current. Open a commitment to read Event Lineage.":
+      "已授权承诺为当前内容。打开一项承诺阅读事件谱系。",
     "Filter by visibility": "按公开状态筛选",
     "Sort posts": "排序文章",
     "All VOC types": "所有 VOC 类型",
@@ -877,6 +881,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "All weeks": "すべての週",
     "Voice of Customer posts for {week} are current. Open a post to read Event Lineage.":
       "{week}のVoice of Customer投稿が現在表示されています。イベント系譜を読むには投稿を開いてください。",
+    "Authorized commitments are current. Open a commitment to read Event Lineage.":
+      "権限のある約束が現在表示されています。イベント系譜を読むには約束を開いてください。",
     "Filter by visibility": "公開状態で絞り込み",
     "Sort posts": "投稿を並べ替え",
     "All VOC types": "すべての VOC 種類",
@@ -1241,6 +1247,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "All weeks": "Tất cả các tuần",
     "Voice of Customer posts for {week} are current. Open a post to read Event Lineage.":
       "Các bài Voice of Customer của {week} đang hiện tại. Hãy mở một bài để đọc Dòng sự kiện.",
+    "Authorized commitments are current. Open a commitment to read Event Lineage.":
+      "Các cam kết được phép đang hiện tại. Hãy mở một cam kết để đọc Dòng sự kiện.",
     "Filter by visibility": "Lọc theo trạng thái hiển thị",
     "Sort posts": "Sắp xếp bài viết",
     "All VOC types": "Tất cả loại VOC",
