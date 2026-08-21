@@ -34,7 +34,7 @@
   header and footer rendered one configured `brandName` and the footer used
   the browser's current year. This observation remains historical and is not
   a claim about the current stacked head.
-- **Current exact-source mitigation at stacked PR #397 head `22b4660a`:**
+- **Current exact-source mitigation at stacked PR #397 head `4bfa642c`:**
   `tenant_settings` now persists separate `brandName`, `systemName`,
   `copyrightYear`, and `copyrightHolder` values. The header renders brand and
   system name separately, the footer uses the persisted year and rights
@@ -43,8 +43,9 @@
   old brand-only PATCH shape remains compatible. The latest review also fixed
   the asynchronous draft synchronization race and the Korean operation-note
   translation key, with the same operation note covered across all five
-  product locales. This is an open, unmerged PR; the exact upstream stack base
-  is `4fdd3032`.
+  product locales. The latest parent stack was fast-forwarded to #392 head
+  `fc040997`, and #397 was restacked with a normal merge commit. This is an
+  open, unmerged PR; the exact upstream stack base is `fc040997`.
 - **Remaining UI governance gap:** no approved CI/BI image asset or usage
   permission was supplied, so the implementation deliberately remains text
   based. Production release still requires the approved asset and legal
@@ -53,35 +54,36 @@
 
 ### 1.1.1 Exact implementation evidence for tenant identity metadata
 
-Observed at `2026-08-21T20:07:10Z` from the GitHub API and local worktree
-`/private/tmp/lineageweave-identity-metadata.8NPveY`:
+Observed at `2026-08-21T20:13:22Z` from the GitHub API and local worktree
+`/private/tmp/lineageweave-identity-restack`:
 
 - PR [#397](https://github.com/ContextualWisdomLab/LineageWeave/pull/397) is
-  open and ready at head `22b4660a99e3de182efc7a4baadf6b22fa19175f`, based on
-  exact stack branch head `4fdd3032de21d490767cf9aa24b25191ad8a814a`; it is
+  open and ready at head `4bfa642c0326035e67638eaf12c0dbd143ed8934`, based on
+  exact stack branch head `fc0409979c67d0c8af5c5cbf3f9f7d4f3f75c885`; it is
   `UNSTABLE` while hosted Checks and automated reviews run and has no formal
   review decision yet.
-- Local verification at the prior source-compatible head passed backend
-  `850 passed, 17 skipped`; the latest frontend-only review fix passed frontend
-  `203 passed`, lint, production build, and Storybook build.
+- Local verification at the latest restacked head passed the focused settings
+  API suite (`4 passed`), migration replay (`8 passed`), frontend `203 passed`,
+  lint, and production build. The earlier source-compatible head also passed
+  the full backend suite (`850 passed, 17 skipped`) and Storybook build.
   The focused API tests cover authentication, full metadata, legacy
   brand-only PATCH compatibility, blank values, and copyright-year bounds.
-- PR #392 remains open at head `4fdd3032de21d490767cf9aa24b25191ad8a814a`,
+- PR #392 remains open at head `fc0409979c67d0c8af5c5cbf3f9f7d4f3f75c885`,
   targets `main`, and is `BLOCKED` with `REVIEW_REQUIRED`; #397 is a stacked
   follow-up and must not be described as a protected-main merge.
 
 ## 4.1 Latest open-PR and Checks refresh
 
-Observed at `2026-08-21T20:07:10Z` from the GitHub API. The exact open
+Observed at `2026-08-21T20:13:22Z` from the GitHub API. The exact open
 application heads were: #258 `6dc040c6`, #349 `a6af4525`, #355 `b606c255`,
-#368 `f3a487ad`, #373 `151fe6e1`, #383 `4eaa0717`, #387 `16f6341a`, #392
-`4fdd3032`, #393 `1ac3a17a`, #394 `5219ed8b`, and #397 `22b4660a`. No PR in
+#368 `392a9dd5`, #373 `151fe6e1`, #383 `4eaa0717`, #387 `16f6341a`, #392
+`fc040997`, #393 `1ac3a17a`, #394 `5219ed8b`, and #397 `4bfa642c`. No PR in
 this set was reported as merged into protected `main`.
 
-- #397's latest head had only CodeRabbit and Devin Review queued at observation;
-  the full required Checks had not yet been published. The prior review found
-  and the latest push fixed the stale Korean translation key and the fetched
-  tenant-config draft race. There is no independent approval, so merge is not
+- #397's latest restacked head had Full test, frontend, CodeRabbit, and Devin
+  Review pending at observation. The prior review found and the latest pushes
+  fixed the stale Korean translation key, fetched tenant-config draft race, and
+  non-atomic settings update. There is no independent approval, so merge is not
   authorized.
 - #383 had a failed `osv-scan`. The failure remains the shared workflow's
   deprecated `--output=old-results.json` / `--output=new-results.json` contract,
@@ -137,7 +139,6 @@ Recently merged into the protected repository:
 - PR #370: `merge_commit` `aa38b29a95eed24de8073753552befc2e8cfaaae`.
 - PR #369: `merge_commit` `6e591f4b7ec4da6acf768298d8d06f841e3a2372`.
 - PR #287: `merge_commit` `bc8bcbee45c050cbd6775ca4f8455c00c25cc77d`.
-- PR #367: `merge_commit` `7a0d025215fbd9f6510727c7139885b561296149`.
 - PR #262: `merge_commit` `6bf75991b04601483d48384045e314db2a928e30`.
 
 Recently merged into an open stack base (not main):
@@ -152,6 +153,11 @@ Recently merged into an open stack base (not main):
   into PR #389's `feat/markdown-table-display` base.
 - PR #391: `merge_commit` `16f2b13caad10f4d999293d623405aefadeda52e`, merged
   into PR #387's `feat/event-lineage-channel-evidence` base.
+- PR #367: `merge_commit` `7a0d025215fbd9f6510727c7139885b561296149`, merged
+  into `docs/customer-master-scope-adr`, not protected `main`. Its historical
+  Full test run failed because that temporary base lacked migration `0105` and
+  had one stale SQL-suppression count; the current #392/#397 stack contains the
+  migration and must be judged by its own exact-head Checks.
 
 Open PRs at the same observation:
 
