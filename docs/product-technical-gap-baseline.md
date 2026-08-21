@@ -340,6 +340,21 @@ documentation-only. PR #397 was restacked again and pushed normally at
 Checks restarted and remained pending, with no independent approval; merge was
 not authorized.
 
+### 4.6 Current exact-head audit snapshot
+
+Observed at `2026-08-21T20:37:43Z` from the GitHub REST API. Parent PR #392 is
+open at `877dbf50aa16b65b13b25539ae16dceb84210fb9`, targeting protected `main`
+and blocked by its merge gates. PR #397 is open at
+`e9a562a41395eacae9d7d04e84a9674397f4dbbf`, based on that parent; its hosted
+Checks are pending and it has no independent approval. PR #368 was open at
+baseline head `ca4c117ac58231f9ffdb12ab6cb88eb27db02522`, targeting `main` and
+blocked by its merge gates. No merge is claimed for any of these PRs.
+
+- The current tenant branch includes migration replay hardening for legacy
+  blank or out-of-range identity values, plus worker-supervision changes from
+  the parent stack. Local verification passed migration/worker tests (`22
+  passed`) and the full backend suite (`864 passed, 17 skipped`).
+
 ## 5. Local Buyer-Surface Verification
 
 Observed at `2026-08-21T13:06:25Z` in the authorized local stack using a
