@@ -45,7 +45,7 @@ flowchart LR
 
     subgraph External services, all optional
         EMB[Embedding provider<br/>swap in for the text channel]
-        ORC[contextual-orchestrator<br/>mode=verify, llm channel]
+        ORC[contextual-orchestrator<br/>mode=auto, llm and vision channels]
         TEPP[TEPP<br/>AnalysisRunRequest v1,<br/>calibrated measurement]
     end
 
@@ -82,19 +82,15 @@ flowchart LR
 | `period_report.py` | Fit GRM/GPCM on persisted IRT rows, FIPC-select, EAP-score a period (ADR 0003 slice 3; Bock & Mislevy, 1982) |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |
 | `server.py` | Legacy stdlib HTTP server for the library-level synthetic fixture demo; production uses FastAPI/PostgreSQL |
+| `backend/app/mcp_server.py` | OAuth-protected Streamable HTTP MCP resource server exposing read-only, evidence-grounded Global Ask |
 | `web/index.html` | Legacy self-contained SVG DAG viewer; production UI is the React/Vite frontend |
 
-> **Known local-test-environment limitation:** `adjudication_client.py`'s
-> `mode="verify"` call depends on contextual-orchestrator's
-> `TaskOrchestrator.route_and_verify`, which as of this writing is still
-> an open, unmerged upstream PR
-> (`ContextualWisdomLab/contextual-orchestrator#149`). Until it merges,
-> the four adjudication/chat tests that exercise `mode="verify"` against
-> a real orchestrator fail with `invalid_mode` (the deployed `main` only
-> accepts `auto`/`route`/`conduct`) -- confirmed by reproducing the same
-> `400` directly against the orchestrator's own `/v1/chat/completions`,
-> not caused by anything in this repo. `mode="route"` (every other
-> pluggable client) is unaffected.
+> **Contextual-orchestrator contract:** Post Ask and MCP Global Ask use
+> `mode="auto"` and `reasoning_effort="auto"`; the gateway owns model
+> discovery, provider protocol, and multi-agent reasoning. Requests carry a
+> stable post-scoped session id and non-secret evidence metadata. Structured
+> responses use `json_schema`. LineageWeave never calls a provider directly
+> or falls back to the rejected legacy `verify` mode.
 
 ## Design decisions worth naming
 

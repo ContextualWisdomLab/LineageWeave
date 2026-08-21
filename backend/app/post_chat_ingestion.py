@@ -236,13 +236,15 @@ async def persist_global_ask_turn(
 async def _normalize_post_body_text(
     body: str,
     vision_client: ImageContentClient,
+    *,
+    session_id: str | None = None,
+    metadata: dict[str, str] | None = None,
 ) -> str:
     """Normalize one source body without blocking the request event loop."""
-    normalized = await asyncio.to_thread(
-        normalize_post_body,
-        body,
-        vision_client=vision_client,
-    )
+    kwargs: dict[str, Any] = {"vision_client": vision_client}
+    if session_id is not None or metadata:
+        kwargs.update(session_id=session_id, metadata=metadata)
+    normalized = await asyncio.to_thread(normalize_post_body, body, **kwargs)
     return normalized.text
 
 
@@ -338,7 +340,7 @@ _SOURCE_HINT_FIELDS = (
 )
 
 _GLOBAL_ASK_TERM_PATTERN = re.compile(r"[^\W_]+(?:-[^\W_]+)*", re.UNICODE)
-_POST_CHAT_SOURCE_LIMIT = 8
+_POST_CHAT_SOURCE_LIMIT = 6
 _POST_CHAT_CANDIDATE_LIMIT = 32
 
 
@@ -453,25 +455,21 @@ async def gather_chat_sources(
     post_id: str,
     can_see_post: Callable[[asyncpg.Record], bool],
     vision_client: ImageContentClient | None = None,
+    *,
+    session_id: str | None = None,
+    metadata: dict[str, str] | None = None,
 ) -> list[ChatSourceDocument]:
-    """Post `post_id` plus a bounded, deterministic linked-source window.
+    """Assemble a bounded source window without loading hidden post bodies.
 
-    Direct Event Lineage neighbors precede indirect Knowledge Graph
-    neighbors; both groups are identifier-sorted before ABAC filtering. The
-    current post plus at most seven visible linked posts become the numbered
-    source set that `post_chat` citations refer back to. Every source's body
-    is normalized (HTML tags/base64 images never reach the reason-and-cite
-    LLM call raw) before becoming a `ChatSourceDocument` -- see
-    `lineageweave.post_content_normalization`. `vision_client` defaults
-    to unavailable (embedded images become an explicit placeholder, not
-    a dropped or raw-base64 source) so this function stays callable
-    without a live provider.
+    Metadata is authorized first. Only the anchor and linked rows that pass
+    ``can_see_post`` enter the second body query and any vision/LLM work.
     """
     if vision_client is None:
         vision_client = NullImageContentClient()
 
-    this_post = await conn.fetchrow(
-        "select post_id, post_title, post_body, source_system_code, source_record_key, "
+    anchor = await conn.fetchrow(
+        "select post_id, post_title, visibility_code, corporate_entity_id, created_at, "
+        "source_system_code, source_record_key, "
         "source_author_code, source_author_name, source_company_code, source_company_name, "
         "source_process_unit_code, source_process_unit_name, "
         "source_sales_pool_code, source_sales_pool_name, "
@@ -479,20 +477,32 @@ async def gather_chat_sources(
         "source_project_name from source_post where post_id = $1",
         post_id,
     )
-    if this_post is None:
+    if anchor is None or not can_see_post(anchor):
         return []
-    source_id = str(this_post["post_id"])
+    anchor_body = await conn.fetchval(
+        "select post_body from source_post where post_id = $1",
+        post_id,
+    )
+    if anchor_body is None:
+        return []
+    source_id = str(anchor["post_id"])
     semantic_facts = await _semantic_facts_for_posts(conn, [source_id])
+    source_metadata = dict(metadata or {})
+    source_metadata["source_post_id"] = source_id
     normalized_body = await _normalize_post_body_text(
-        this_post["post_body"],
+        anchor_body,
         vision_client,
+        session_id=session_id,
+        metadata=source_metadata,
     )
     sources = [
         ChatSourceDocument(
             source_id,
-            this_post["post_title"],
+            anchor["post_title"],
             normalized_body,
-            evidence_facts=_source_hint_facts(this_post) + semantic_facts.get(source_id, ()),
+            evidence_facts=_source_hint_facts(anchor) + semantic_facts.get(source_id, ()),
+            occurred_at=_timestamp_text(anchor),
+            lineage_relation="anchor",
         )
     ]
 
@@ -505,26 +515,27 @@ async def gather_chat_sources(
         return sources
 
     rows = await conn.fetch(
-        "select post_id, post_title, post_body, visibility_code, corporate_entity_id, "
+        "select post_id, post_title, visibility_code, corporate_entity_id, created_at, "
         "source_system_code, source_record_key, source_author_code, source_author_name, "
         "source_company_code, source_company_name, source_process_unit_code, "
         "source_process_unit_name, source_sales_pool_code, source_sales_pool_name, "
         "source_customer_code, source_customer_name, "
         "source_project_code, source_project_name "
         "from source_post where post_id = any($1::uuid[]) "
-        "order by array_position($1::uuid[], post_id) limit $2",
+        "order by array_position($1::uuid[], post_id)",
         candidate_ids,
-        _POST_CHAT_CANDIDATE_LIMIT,
     )
-    visible_source_ids = [post_id]
-    visible_rows: list[asyncpg.Record] = []
-    for row in rows:
-        if not can_see_post(row):
-            continue
-        visible_rows.append(row)
-        visible_source_ids.append(str(row["post_id"]))
-        if len(visible_rows) >= _POST_CHAT_SOURCE_LIMIT - 1:
-            break
+    admitted_rows = [row for row in rows if can_see_post(row)]
+    direct_rows = sorted(
+        (row for row in admitted_rows if str(row["post_id"]) in linked.direct),
+        key=lambda row: str(row["post_id"]),
+    )
+    indirect_rows = sorted(
+        (row for row in admitted_rows if str(row["post_id"]) in linked.indirect),
+        key=lambda row: str(row["post_id"]),
+    )
+    visible_rows = (direct_rows + indirect_rows)[: _POST_CHAT_SOURCE_LIMIT - 1]
+    visible_source_ids = [source_id, *(str(row["post_id"]) for row in visible_rows)]
 
     semantic_facts = await _semantic_facts_for_posts(conn, visible_source_ids)
     graph_facts = await _graph_facts_for_posts(conn, visible_source_ids)
@@ -534,16 +545,41 @@ async def gather_chat_sources(
         sources[0].post_body,
         graph_facts=graph_facts,
         evidence_facts=sources[0].evidence_facts,
+        occurred_at=sources[0].occurred_at,
+        lineage_relation=sources[0].lineage_relation,
     )
+    selected_ids = [row["post_id"] for row in visible_rows]
+    body_rows = await conn.fetch(
+        "select post_id, post_body from source_post where post_id = any($1::uuid[])",
+        selected_ids,
+    )
+    bodies = {str(row["post_id"]): row["post_body"] for row in body_rows}
     for row in visible_rows:
-        normalized_body = await _normalize_post_body_text(row["post_body"], vision_client)
+        selected_post_id = str(row["post_id"])
+        body = bodies.get(selected_post_id)
+        if body is None:
+            continue
+        source_metadata = dict(metadata or {})
+        source_metadata["source_post_id"] = selected_post_id
+        normalized_body = await _normalize_post_body_text(
+            body,
+            vision_client,
+            session_id=session_id,
+            metadata=source_metadata,
+        )
         sources.append(
             ChatSourceDocument(
-                str(row["post_id"]),
+                selected_post_id,
                 row["post_title"],
                 normalized_body,
                 evidence_facts=_source_hint_facts(row)
-                + semantic_facts.get(str(row["post_id"]), ()),
+                + semantic_facts.get(selected_post_id, ()),
+                occurred_at=_timestamp_text(row),
+                lineage_relation=(
+                    "direct_lineage"
+                    if selected_post_id in linked.direct
+                    else "indirect_knowledge_graph"
+                ),
             )
         )
 
