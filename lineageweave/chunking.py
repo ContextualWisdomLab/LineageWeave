@@ -418,10 +418,14 @@ class _BlockTextExtractor(HTMLParser):
                 row_buffer = self._stack[-1][1]
                 row_key = id(row_buffer)
                 cell_count = self._table_cell_counts.get(row_key, 0)
+                row_text = "".join(row_buffer)
+                leading_empty_cells = not row_text.replace("|", "").strip()
                 first_cell_is_empty = (
-                    cell_count == 1 and not "".join(row_buffer).strip()
+                    cell_count == 1 and leading_empty_cells
                 )
-                if cell_count or "".join(row_buffer).strip():
+                if (cell_count or row_text.strip()) and not (
+                    cell_count > 1 and leading_empty_cells
+                ):
                     row_buffer.append(" | ")
                     if first_cell_is_empty:
                         row_buffer.append(" | ")

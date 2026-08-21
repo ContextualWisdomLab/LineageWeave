@@ -217,6 +217,14 @@ def test_chunk_by_dom_preserves_empty_table_cells_as_columns() -> None:
     assert [chunk.text for chunk in chunks] == ["|  | Company |  | Result"]
 
 
+def test_chunk_by_dom_does_not_add_phantom_column_for_multiple_leading_empty_cells() -> None:
+    html = "<table><tr><td></td><td></td><td>X</td></tr></table>"
+
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.text for chunk in chunks] == ["|  | X"]
+
+
 def test_chunk_by_dom_labels_ooxml_footnote_containers() -> None:
     chunks = chunk_by_dom(
         "<w:footnote w:id='1'><w:p>OOXML footnote body</w:p></w:footnote>"
