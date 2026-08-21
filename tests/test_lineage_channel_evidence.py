@@ -72,6 +72,26 @@ def test_contributions_reconcile_to_fused_score_within_tolerance() -> None:
     assert residual <= CHANNEL_EVIDENCE_TOLERANCE
 
 
+def test_rebuild_accepts_expected_multi_channel_quantization_error() -> None:
+    scores = {
+        "temporal": 0.1234567,
+        "secondary_key": 0.2345678,
+        "text": 0.3456789,
+        "llm": 0.4567891,
+    }
+    weights = {"temporal": 0.15, "secondary_key": 0.15, "text": 0.30, "llm": 0.40}
+    edge = Edge(
+        "parent-a",
+        "child-b",
+        sum(weights[name] * scores[name] for name in scores),
+        scores,
+    )
+
+    rows = channel_signal_rows(edge)
+    assert len(rows) == 4
+    assert lineage_rebuild_spec([edge]).signal_rows
+
+
 def test_mismatched_fused_score_is_rejected() -> None:
     edge = Edge("parent-a", "child-b", 0.99, {"temporal": 0.1, "secondary_key": 0.1, "text": 0.1})
     with pytest.raises(ValueError, match="do not reconcile"):
