@@ -1,6 +1,6 @@
 # Related-node affiliation references
 
-APA 7th sources for [ADR 0105](../adr/0105-related-node-business-captions.md).
+APA 7th sources for [ADR 0106](../adr/0106-related-node-business-captions.md).
 
 Browne, W. J., Goldstein, H., & Rasbash, J. (2001). Multiple membership
 multiple classification (MMMC) models. *Statistical Modelling, 1*(2),

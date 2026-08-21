@@ -1,7 +1,7 @@
 """Extractive VOC evidence: the sentences that actually name an org.
 
 A post's ``voc_type_code`` is a closed lookup (Voice of Customer / Market
-/ ...). The buyer-felt evidence for that label is not a second LLM
+/ ...). The reader-felt evidence for that label is not a second LLM
 guess -- it is the span in the post that mentions a classified
 counterparty or a Keyman's affiliated organization (ACE mention extent;
 Doddington et al., 2004). A name that never appears yields no excerpt:

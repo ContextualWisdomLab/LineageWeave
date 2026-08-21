@@ -1,4 +1,4 @@
-# ADR 0105: Related-node chips use business context, not ontology class
+# ADR 0106: Related-node chips use business context, not ontology class
 
 - Status: Accepted
 - Date: 2026-08-20

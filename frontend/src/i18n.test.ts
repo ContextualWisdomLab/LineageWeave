@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 describe("i18n", () => {
-  const requiredBuyerLabels = [
+  const requiredWorkspaceLabels = [
     "Language",
     "Evidence",
     "Ask",
@@ -36,9 +36,33 @@ describe("i18n", () => {
     "Calendar",
     "Board",
     "Search",
+    "Site map",
+    "Conversation",
+    "Start with a question about the evidence",
+    "Ask about an event, decision, or source post.",
+    "You",
+    "Thinking...",
+    "Open source",
+    "Enter to send. Shift+Enter for a new line.",
     "Page",
     "Answer",
     "Showing the first {shown} of {total} posts known at this cutoff.",
+    "Weekly VOC",
+    "Filter by ISO week",
+    "All weeks",
+  ] as const;
+  const eventLineageLabels = [
+    "Authorized scope",
+    "Open navigation",
+    "Skip to main content",
+    "Lineage legend",
+    "Root record",
+    "Branch point",
+    "Current record",
+    "Parent to child",
+    "Inference boundary",
+    "Edges explain reconstructed continuation only. They are not causal or authoritative facts.",
+    "Evidence (fused_score)",
   ] as const;
 
   it("supports the five product locales", () => {
@@ -47,14 +71,35 @@ describe("i18n", () => {
   });
 
   it.each(["ko", "zh", "ja", "vi"] as const)(
-    "translates all shared Buyer labels in %s",
+    "translates all shared workspace labels in %s",
     (locale) => {
       setLocale(locale);
-      for (const key of requiredBuyerLabels) {
+      for (const key of requiredWorkspaceLabels) {
         expect(t(key), `${locale}:${key}`).not.toBe(key);
       }
     },
   );
+
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "translates Event Lineage and authorization labels in %s",
+    (locale) => {
+      setLocale(locale);
+      for (const key of eventLineageLabels) {
+        expect(t(key), `${locale}:${key}`).not.toBe(key);
+      }
+    },
+  );
+
+  it.each([
+    ["ko", "작업공간 메뉴"],
+    ["zh", "工作区导航"],
+    ["ja", "ワークスペースナビゲーション"],
+    ["vi", "Điều hướng không gian làm việc"],
+  ] as const)("uses workspace terminology for navigation in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Workspace navigation")).toBe(expected);
+    expect(t("Workspace navigation").toLocaleLowerCase()).not.toContain("buyer");
+  });
 
   it.each([
     ["ko", "관련 글"],
@@ -73,9 +118,23 @@ describe("i18n", () => {
     ["zh", "DEMO 是事件谱系中的当前记录。接下来查看关键联系人和评估。"],
     ["ja", "DEMOはイベント系譜の現在の記録です。次にキーパーソンと評価を確認してください。"],
     ["vi", "DEMO là bản ghi hiện tại trong Dòng sự kiện. Hãy xem người liên hệ chính và đánh giá tiếp theo."],
-  ] as const)("formats dynamic buyer guidance in %s", (locale, expected) => {
+  ] as const)("formats dynamic reader guidance in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("{post} is current in Event Lineage. Read Keyman and evaluation next.", { post: "DEMO" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "2026-W01 Voice of Customer 글이 현재 표시되어 있습니다. 이벤트 계보를 읽으려면 글을 여세요."],
+    ["zh", "2026-W01 的 Voice of Customer 文章为当前内容。打开一篇文章阅读事件谱系。"],
+    ["ja", "2026-W01のVoice of Customer投稿が現在表示されています。イベント系譜を読むには投稿を開いてください。"],
+    ["vi", "Các bài Voice of Customer của 2026-W01 đang hiện tại. Hãy mở một bài để đọc Dòng sự kiện."],
+  ] as const)("formats weekly VOC next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf("Voice of Customer posts for {week} are current. Open a post to read Event Lineage.", {
+        week: "2026-W01",
+      }),
+    ).toBe(expected);
   });
 });
 

@@ -12,7 +12,7 @@ people: the UI uses an authorized unique affiliation only when one identity
 remains and otherwise says `multiple organizations`. The full N:N evidence
 stays on the Keyman surface, and the panel gives the buyer the next action.
 The implementation and APA 7th sources are recorded in
-[`docs/adr/0105-related-node-business-captions.md`](adr/0105-related-node-business-captions.md)
+[`docs/adr/0106-related-node-business-captions.md`](adr/0106-related-node-business-captions.md)
 and [`docs/doctoring/RELATED_NODE_AFFILIATION_REFERENCES.md`](doctoring/RELATED_NODE_AFFILIATION_REFERENCES.md).
 
 ## The problem this is answering
@@ -346,7 +346,7 @@ node, and an unresolved free-text affiliation is left as its own root
 rather than attached to the nearest name.
 
 VOC evidence is extractive, not abstractive. The post already carries a
-closed `voc_type_code`; the buyer-felt gap was the missing span that
+closed `voc_type_code`; the reader-felt gap was the missing span that
 justifies that label. `sentence_excerpts` returns the sentences that
 contain a classified organization name -- the ACE mention extent
 (Doddington et al., 2004) already used for Keyman -- and returns

@@ -16,7 +16,11 @@ from collections import defaultdict
 import rankweave as rw
 import threadweave as tw
 
-from .adjudication_client import AdjudicationClient, NullAdjudicationClient
+from .adjudication_client import (
+    AdjudicationClient,
+    AdjudicationClientError,
+    NullAdjudicationClient,
+)
 from .channels import secondary_key_match_score, temporal_score, text_similarity_score
 from .models import Edge, Record, Tree
 
@@ -109,7 +113,15 @@ def _reconstruct_group(
     edges: list[Edge] = []
     for index, record in enumerate(ordered):
         candidates = ordered[max(0, index - window) : index]
-        parent_choice = _best_parent(record, candidates, llm, weights, min_score)
+        try:
+            parent_choice = _best_parent(record, candidates, llm, weights, min_score)
+        except AdjudicationClientError:
+            # A malformed optional provider response makes that channel
+            # unavailable for this reconstruction; deterministic channels must
+            # continue with their renormalized weights.
+            llm = NullAdjudicationClient()
+            weights = active_weights(llm, weights)
+            parent_choice = _best_parent(record, candidates, llm, weights, min_score)
         references: list[str] = []
         if parent_choice is not None:
             parent, score, channel_scores = parent_choice
