@@ -2595,6 +2595,7 @@ type SelectPostOptions = {
    * the handler doesn't push a duplicate history entry for a navigation
    * the browser already performed. */
   fromPopState?: boolean;
+  fromAskAgent?: boolean;
 };
 
 /**
@@ -3646,6 +3647,7 @@ function PostList({
   postIdToOpen = null,
   postOpenFromCalendar = false,
   postOpenFromCustomerMaster = false,
+  postOpenFromAskAgent = false,
   onPostOpened,
   focusSearchRequest = 0,
   onSearchFocusHandled,
@@ -3655,6 +3657,7 @@ function PostList({
   postIdToOpen?: string | null;
   postOpenFromCalendar?: boolean;
   postOpenFromCustomerMaster?: boolean;
+  postOpenFromAskAgent?: boolean;
   onPostOpened?: () => void;
   focusSearchRequest?: number;
   onSearchFocusHandled?: () => void;
@@ -3678,6 +3681,7 @@ function PostList({
   const [openedFromWeeklyVoc, setOpenedFromWeeklyVoc] = useState(false);
   const [openedFromCalendar, setOpenedFromCalendar] = useState(false);
   const [openedFromCustomerMaster, setOpenedFromCustomerMaster] = useState(false);
+  const [openedFromAskAgent, setOpenedFromAskAgent] = useState(false);
   const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
   const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
   const [totalPosts, setTotalPosts] = useState(0);
@@ -3760,6 +3764,7 @@ function PostList({
         window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
       }
     }
+    setOpenedFromAskAgent(Boolean(options?.fromAskAgent));
   }
 
   useEffect(() => {
@@ -3767,9 +3772,16 @@ function PostList({
     selectPost(postIdToOpen, {
       fromCalendar: postOpenFromCalendar,
       fromCustomerMaster: postOpenFromCustomerMaster,
+      fromAskAgent: postOpenFromAskAgent,
     });
     onPostOpened?.();
-  }, [onPostOpened, postIdToOpen, postOpenFromCalendar, postOpenFromCustomerMaster]);
+  }, [
+    onPostOpened,
+    postIdToOpen,
+    postOpenFromCalendar,
+    postOpenFromCustomerMaster,
+    postOpenFromAskAgent,
+  ]);
 
   useEffect(() => {
     function handlePopState() {
@@ -3795,6 +3807,7 @@ function PostList({
     setOpenedFromWeeklyVoc(false);
     setOpenedFromCalendar(false);
     setOpenedFromCustomerMaster(false);
+    setOpenedFromAskAgent(false);
     const url = new URL(window.location.href);
     if (url.searchParams.has("post")) {
       url.searchParams.delete("post");
@@ -4287,7 +4300,8 @@ function PostList({
             openedFromReportMember ||
             openedFromWeeklyVoc ||
             openedFromCalendar ||
-            openedFromCustomerMaster
+            openedFromCustomerMaster ||
+            openedFromAskAgent
           }
           focusAskOnLand={openedFromReportMember}
           onClose={closeSelectedPost}
@@ -4573,7 +4587,12 @@ function AskAgentPanel({
   }
 
   return (
-    <section className="workspace-destination ask-agent-workspace" aria-labelledby="ask-agent-heading">
+    <section
+      className="workspace-destination ask-agent-workspace"
+      aria-labelledby="ask-agent-heading"
+      role="region"
+      aria-label={t("Ask Agent")}
+    >
       <header className="ask-agent-header">
         <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
         <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
@@ -4688,6 +4707,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   });
   const [postOpenFromCalendar, setPostOpenFromCalendar] = useState(false);
   const [postOpenFromCustomerMaster, setPostOpenFromCustomerMaster] = useState(false);
+  const [postOpenFromAskAgent, setPostOpenFromAskAgent] = useState(false);
   // Test-only compatibility for legacy analysis-panel coverage; this prop
   // never forces the panels open outside Vitest. In a real build the
   // advanced-review section (ADR 0037) is gated on PostList's own
@@ -4881,10 +4901,12 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             postIdToOpen={postToOpen}
             postOpenFromCalendar={postOpenFromCalendar}
             postOpenFromCustomerMaster={postOpenFromCustomerMaster}
+            postOpenFromAskAgent={postOpenFromAskAgent}
             onPostOpened={() => {
               setPostToOpen(null);
               setPostOpenFromCalendar(false);
               setPostOpenFromCustomerMaster(false);
+              setPostOpenFromAskAgent(false);
             }}
             focusSearchRequest={searchFocusRequest}
             onSearchFocusHandled={() => setSearchFocusRequest(0)}
@@ -4897,6 +4919,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               setPostToOpen(postId);
               setPostOpenFromCalendar(false);
               setPostOpenFromCustomerMaster(true);
+              setPostOpenFromAskAgent(false);
               changeDestination("board");
             }}
           />
@@ -4910,6 +4933,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               setPostToOpen(postId);
               setPostOpenFromCalendar(true);
               setPostOpenFromCustomerMaster(false);
+              setPostOpenFromAskAgent(false);
               changeDestination("board");
             }}
           />
@@ -4919,6 +4943,9 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             accessToken={accessToken}
             onOpenPost={(postId) => {
               setPostToOpen(postId);
+              setPostOpenFromCalendar(false);
+              setPostOpenFromCustomerMaster(false);
+              setPostOpenFromAskAgent(true);
               changeDestination("board");
             }}
           />

@@ -49,6 +49,7 @@ describe("i18n", () => {
     "All weeks",
     "Authorized commitments are current. Open a commitment to read Event Lineage.",
     "Authorized customer entities are current. Open a related post to read Event Lineage.",
+    "Authorized cited posts are current. Open a cited post to read Event Lineage.",
   ] as const;
   const eventLineageLabels = [
     "Authorized scope",
