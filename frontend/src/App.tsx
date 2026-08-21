@@ -2128,6 +2128,8 @@ function PostDetailPopup({
                       <h4>{t("Key events")}</h4>
                       <ul>
                         {(() => {
+                          const eventClues = summary?.event_clues ?? [];
+
                           function renderKeyEventBody(event: PostKeyEvent, index: number): ReactNode {
                             return (
                               <>
@@ -2136,10 +2138,10 @@ function PostDetailPopup({
                                     {t("Evidence")}: {event.evidence_text}
                                   </small>
                                 ) : null}
-                                {summary.event_clues?.filter((clue) => clue.event_index === index).length ? (
+                                {eventClues.filter((clue) => clue.event_index === index).length ? (
                                   <div className="summary-event-clues">
                                     <small>{t("Connected clues")}</small>
-                                    {summary.event_clues
+                                    {eventClues
                                       .filter((clue) => clue.event_index === index)
                                       .map((clue, clueIndex) => (
                                         <span className="post-badge" key={`${clue.clue_type_code}:${clueIndex}`}>
