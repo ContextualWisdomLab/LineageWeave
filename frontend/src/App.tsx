@@ -3406,10 +3406,32 @@ export default function App() {
 
   if (!auth.isAuthenticated) {
     return (
-      <main className="centered">
-        <h1>LineageWeave</h1>
-        <button onClick={() => auth.signinRedirect()}>Log in</button>
-      </main>
+      <div className="app-shell">
+        <main className="login-screen">
+          <div className="login-card">
+            <div className="login-header">
+              <h1>LineageWeave</h1>
+              <p className="login-subtitle">Marketing & Operational Lineage Intelligence</p>
+            </div>
+            <div className="login-controls">
+              <button className="btn-primary" onClick={() => auth.signinRedirect()}>
+                Log in
+              </button>
+            </div>
+            <div className="login-help">
+              <small>Enterprise SSO Authentication</small>
+            </div>
+          </div>
+        </main>
+        <footer className="app-footer" role="contentinfo">
+          <div className="app-footer-title">
+            <span className="app-footer-logo">LineageWeave</span>
+          </div>
+          <div className="app-footer-copyright">
+            <p>Copyright &copy; 2019 LineageWeave. All rights reserved.</p>
+          </div>
+        </footer>
+      </div>
     );
   }
 
@@ -3419,15 +3441,33 @@ export default function App() {
   }
 
   return (
-    <main>
+    <div className="app-shell">
       <header className="app-header">
-        <h1>LineageWeave</h1>
-        <div>
-          <span>{auth.user?.profile.preferred_username}</span>
-          <button onClick={() => auth.signoutRedirect()}>Log out</button>
+        <div className="app-header-logo">
+          <h1 className="app-header-title">LineageWeave</h1>
+        </div>
+        <div className="app-header-top-menu">
+          <span className="app-user-profile">{auth.user?.profile.preferred_username}</span>
+          <button className="btn-secondary" onClick={() => auth.signoutRedirect()}>
+            Log out
+          </button>
         </div>
       </header>
-      <PostList accessToken={accessToken} />
-    </main>
+      
+      {/* Drawer menu trigger for mobile will go here when GNB is integrated */}
+
+      <main>
+        <PostList accessToken={accessToken} />
+      </main>
+
+      <footer className="app-footer" role="contentinfo">
+        <div className="app-footer-title">
+          <span className="app-footer-logo">LineageWeave</span>
+        </div>
+        <div className="app-footer-copyright">
+          <p>Copyright &copy; 2019 LineageWeave. All rights reserved.</p>
+        </div>
+      </footer>
+    </div>
   );
 }
