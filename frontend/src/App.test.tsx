@@ -2012,7 +2012,7 @@ describe("App, authenticated", () => {
     const eventLineage = within(popup as HTMLElement).getByRole("heading", { name: "Event Lineage" });
     const affiliate = within(popup as HTMLElement).getByRole("heading", { name: "Affiliate tree" });
     const keyman = within(popup as HTMLElement).getByRole("heading", { name: "Keymen" });
-    expect(within(popup as HTMLElement).getByText("LINEAGE EVIDENCE")).toBeInTheDocument();
+    expect(within(popup as HTMLElement).getByText("Buyer evidence")).toBeInTheDocument();
     expect(within(popup as HTMLElement).getByText("Inference boundary")).toBeInTheDocument();
     expect(within(popup as HTMLElement).getByRole("table", { name: "Evidence trail" })).toBeInTheDocument();
     expect(evaluation.compareDocumentPosition(eventLineage) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(

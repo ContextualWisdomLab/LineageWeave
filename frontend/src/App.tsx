@@ -3612,9 +3612,19 @@ function PostList({
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
   const postsRequest = useRef(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const lastFocusedSearchRequest = useRef(0);
 
   useEffect(() => {
-    if (focusSearchRequest > 0) searchInputRef.current?.focus();
+    if (
+      focusSearchRequest <= 0 ||
+      focusSearchRequest === lastFocusedSearchRequest.current
+    ) {
+      return;
+    }
+    const input = searchInputRef.current;
+    if (!input) return;
+    input.focus();
+    lastFocusedSearchRequest.current = focusSearchRequest;
   }, [focusSearchRequest, posts]);
 
   function openReportFromAnalysisRun(
