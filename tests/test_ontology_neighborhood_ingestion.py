@@ -95,6 +95,7 @@ def test_neighborhood_error_http_status_is_fail_closed() -> None:
     assert neighborhood_error_http_status(OntologyNeighborhoodError("focus_not_visible", "x")) == 403
     assert neighborhood_error_http_status(OntologyNeighborhoodError("unknown_node_type", "x")) == 404
     assert neighborhood_error_http_status(OntologyNeighborhoodError("dangling_endpoint", "x")) == 404
+    assert neighborhood_error_http_status(OntologyNeighborhoodError("invalid_focus_id", "x")) == 422
     assert neighborhood_error_http_status(OntologyNeighborhoodError("unbounded_request", "x")) == 422
 
 

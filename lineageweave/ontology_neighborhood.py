@@ -385,7 +385,7 @@ def assemble_ontology_neighborhood(
     if focus_node_type_code not in KNOWN_NODE_TYPES:
         raise OntologyNeighborhoodError("unknown_node_type", f"unknown node type {focus_node_type_code!r}")
     if not focus_node_id or focus_node_id.strip() != focus_node_id:
-        raise OntologyNeighborhoodError("unknown_node_type", "focus node id is empty")
+        raise OntologyNeighborhoodError("invalid_focus_id", "focus node id is empty or malformed")
     if maximum_depth < 1 or maximum_depth > HARD_MAXIMUM_DEPTH:
         raise OntologyNeighborhoodError("excessive_depth", "neighborhood depth is out of bounds")
     if maximum_nodes < 1 or maximum_nodes > HARD_MAXIMUM_NODES:

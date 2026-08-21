@@ -176,6 +176,9 @@ from lineageweave.ontology_neighborhood import (
     DEFAULT_MAXIMUM_DEPTH,
     DEFAULT_MAXIMUM_EDGES,
     DEFAULT_MAXIMUM_NODES,
+    HARD_MAXIMUM_DEPTH,
+    HARD_MAXIMUM_EDGES,
+    HARD_MAXIMUM_NODES,
     OntologyNeighborhoodError,
 )
 from backend.app.post_chat_ingestion import (
@@ -1943,9 +1946,9 @@ async def read_related_team(
 async def read_ontology_neighborhood(
     focus_node_type: str = Query(..., min_length=1),
     focus_node_id: str = Query(..., min_length=1),
-    maximum_depth: int = Query(DEFAULT_MAXIMUM_DEPTH),
-    maximum_nodes: int = Query(DEFAULT_MAXIMUM_NODES),
-    maximum_edges: int = Query(DEFAULT_MAXIMUM_EDGES),
+    maximum_depth: int = Query(DEFAULT_MAXIMUM_DEPTH, ge=1, le=HARD_MAXIMUM_DEPTH),
+    maximum_nodes: int = Query(DEFAULT_MAXIMUM_NODES, ge=1, le=HARD_MAXIMUM_NODES),
+    maximum_edges: int = Query(DEFAULT_MAXIMUM_EDGES, ge=1, le=HARD_MAXIMUM_EDGES),
     allowed_property_codes: list[str] | None = Query(None),
     knowledge_cutoff: str | None = Query(None),
     cursor: str | None = Query(None),
@@ -1974,9 +1977,10 @@ async def read_ontology_neighborhood(
                 knowledge_cutoff=cutoff_clock,
                 cursor=cursor,
             )
+            payload = neighborhood_to_payload(neighborhood)
     except OntologyNeighborhoodError as exc:
         raise HTTPException(neighborhood_error_http_status(exc), str(exc)) from exc
-    return neighborhood_to_payload(neighborhood)
+    return payload
 
 
 @app.get("/api/posts/{post_id}/counterparties")

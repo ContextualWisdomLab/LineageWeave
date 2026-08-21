@@ -423,7 +423,7 @@ def test_unbounded_request_and_empty_focus_fail_closed() -> None:
             facts=[],
             labels=_labels(),
         )
-    assert empty.value.code == "unknown_node_type"
+    assert empty.value.code == "invalid_focus_id"
 
 
 def test_team_and_organization_mention_edges_round_trip() -> None:
