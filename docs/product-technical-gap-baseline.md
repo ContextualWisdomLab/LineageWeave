@@ -13,8 +13,8 @@ Audit anchor: the exact source state carried by this documentation commit at
 acceptance.
 
 Current implementation source/test exact head observed before this
-documentation update: `5fb4c1f9`, the demo-scope authorization fix on top of
-the keyboard-accessible post-popup fix,
+documentation update: `884dc97c`, the post-filter hierarchy-facet fix on top
+of the demo-scope authorization and keyboard-accessible post-popup fixes,
 top of PR #366's observed base `8bed77e7e7b91b633bb92d3a82d0187c387206af`.
 The documentation commit creates the next exact head; protected checks must
 rerun for the resulting PR head.
@@ -269,10 +269,12 @@ or an explicit unavailable result.
   `post_organization_mention` rows enrich navigation only when their source
   post is public or already authorized and eligible; they never widen ABAC,
   and unresolved counterparty names remain hints. Synthetic schema/API/UI
-  coverage is present at implementation head `5fb4c1f9`; the follow-up also
+  coverage is present at implementation head `884dc97c`; the follow-up also
   separates observed navigation IDs from authorized IDs for Keyman and
   relationship-network queries, with regression coverage preventing observed
-  non-authorized organizations from widening ABAC.
+  non-authorized organizations from widening ABAC. Hierarchy facets are
+  recomputed after synthetic filtering so removed children cannot leave stale
+  parent facets.
   The remaining product gap is authoritative scope backfill for existing live
   affiliations, persisted parent/hierarchy evidence, and a customer tree that
   can safely traverse admitted observed hierarchy nodes. Until that evidence
