@@ -67,7 +67,7 @@ class ImageContentResult:
     mime_type: str
     status_code: str
     description: ImageDescription | None = None
-    regions: tuple["ImageRegionResult", ...] = field(default_factory=tuple)
+    regions: tuple[ImageRegionResult, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
@@ -184,11 +184,14 @@ def _describe_image_chunk(
             regions = locator(chunk.image_data, chunk.label) if callable(locator) else ()
         except Exception:  # noqa: BLE001 - locator failure falls back to whole-image evidence.
             regions = ()
-        regions = tuple(
-            region
-            for region in (regions or ())
-            if _is_bounded_region(region)
-        )
+        try:
+            regions = tuple(
+                region
+                for region in (regions or ())
+                if _is_bounded_region(region)
+            )
+        except Exception:  # noqa: BLE001 - malformed locator output falls back safely.
+            regions = ()
         full_image_region = len(regions) == 1 and regions[0] == ImageRegion(0.0, 0.0, 1.0, 1.0)
         partial_regions = bool(regions) and not full_image_region and not regions_cover_image(regions)
         if not regions or full_image_region:
