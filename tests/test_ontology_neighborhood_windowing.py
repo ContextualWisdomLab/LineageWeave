@@ -159,6 +159,40 @@ def test_source_page_keeps_sql_reachable_edges_without_focus_bridge() -> None:
     assert neighborhood.edges[0].property_code == PROPERTY_AFFILIATED_WITH
 
 
+def test_source_page_deduplicates_edges_and_unions_evidence() -> None:
+    """Window expansion must not duplicate one relation or drop evidence."""
+    first_evidence = replace(
+        fact_from_knowledge_graph_edge(
+            source_node_type_code=NODE_PERSON,
+            source_node_id=PERSON_ID,
+            target_node_type_code=NODE_CORPORATE_ENTITY,
+            target_node_id=CORP_ID,
+            edge_type_code=EDGE_AFFILIATION,
+            recorded_at=T0,
+            evidence_references=(POST_ID,),
+        ),
+        source_hop_depth=1,
+    )
+    second_evidence = replace(first_evidence, evidence_references=("other-evidence",))
+
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        facts=[first_evidence, second_evidence],
+        labels={
+            (NODE_POST, POST_ID): "Focus",
+            (NODE_PERSON, PERSON_ID): "Person",
+            (NODE_CORPORATE_ENTITY, CORP_ID): "Organization",
+        },
+        maximum_depth=2,
+        maximum_edges=2,
+        source_truncated=True,
+    )
+
+    assert len(neighborhood.edges) == 1
+    assert neighborhood.edges[0].evidence_references == (POST_ID, "other-evidence")
+
+
 class CapturingWindowConnection:
     """Record the keyset query without a live PostgreSQL instance."""
 

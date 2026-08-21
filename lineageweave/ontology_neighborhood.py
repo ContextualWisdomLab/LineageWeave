@@ -14,7 +14,7 @@ Bechhofer, 2009); PROV-O (Lebo, Sahoo, & McGuinness, 2013); OWL-Time
 from __future__ import annotations
 
 from collections import defaultdict, deque
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from typing import Mapping, Sequence
 
@@ -489,13 +489,33 @@ def assemble_ontology_neighborhood(
         # already performed the authorized recursive BFS, so replay its
         # bounded hop metadata instead of requiring the page to contain the
         # earlier bridge facts.
-        collected = sorted(
+        deduplicated: dict[str, NeighborhoodFact] = {}
+        for fact in sorted(
             visible_facts,
             key=lambda fact: (
                 fact.source_hop_depth if fact.source_hop_depth is not None else maximum_depth,
                 _fact_sort_key(fact),
             ),
-        )
+        ):
+            edge_id = _edge_id(fact)
+            existing = deduplicated.get(edge_id)
+            if existing is None:
+                deduplicated[edge_id] = fact
+                continue
+            hop_depths = [
+                depth
+                for depth in (existing.source_hop_depth, fact.source_hop_depth)
+                if depth is not None
+            ]
+            deduplicated[edge_id] = replace(
+                existing,
+                recorded_at=min(existing.recorded_at, fact.recorded_at),
+                evidence_references=tuple(
+                    sorted(set(existing.evidence_references) | set(fact.evidence_references))
+                ),
+                source_hop_depth=min(hop_depths) if hop_depths else None,
+            )
+        collected = list(deduplicated.values())
         for fact in collected:
             seen_edges.add(_edge_id(fact))
             depth = fact.source_hop_depth if fact.source_hop_depth is not None else maximum_depth
