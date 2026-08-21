@@ -648,6 +648,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source record key": "来源记录键",
     "Source stage": "来源阶段状态",
     "Source detail state": "来源详细状态",
+    "Persist the brand, system, and copyright metadata used by the workspace shell.":
+      "保存工作区外壳使用的品牌、系统和版权元数据。",
     "Filter by source detail state": "按来源详细状态筛选",
     "W = writing in progress · D = pending approval · A = approved": "W 撰写中 · D 待审批 · A 已批准",
     "Writing in progress": "撰写中",
@@ -1090,6 +1092,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source record key": "原典レコードキー",
     "Source stage": "原典の段階状態",
     "Source detail state": "原典の詳細状態",
+    "Persist the brand, system, and copyright metadata used by the workspace shell.":
+      "ワークスペースシェルで使用するブランド、システム、著作権メタデータを保存します。",
     "Filter by source detail state": "原典の詳細状態で絞り込み",
     "W = writing in progress · D = pending approval · A = approved": "W 作成中 · D 承認待ち · A 承認済み",
     "Writing in progress": "作成中",
@@ -1505,6 +1509,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Source record key": "Khóa bản ghi nguồn",
     "Source stage": "Trạng thái giai đoạn nguồn",
     "Source detail state": "Trạng thái chi tiết nguồn",
+    "Persist the brand, system, and copyright metadata used by the workspace shell.":
+      "Lưu siêu dữ liệu thương hiệu, hệ thống và bản quyền được shell không gian làm việc sử dụng.",
     "Filter by source detail state": "Lọc theo trạng thái chi tiết nguồn",
     "W = writing in progress · D = pending approval · A = approved": "W Đang viết · D Chờ phê duyệt · A Đã phê duyệt",
     "Writing in progress": "Đang viết",
