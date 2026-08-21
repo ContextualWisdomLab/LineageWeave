@@ -88,7 +88,7 @@ Open PRs at the same observation:
   `ci/publish-ontology-pages-clean` (`6b84bea10881e2f82fb676d5b01cf56f7d8f4adb`).
 - PR #383: `head` `46e4d6d69c1964f0cbeb761281071db7861e31dd`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #384: `head` `0cbcededefad6d916947c74c073a2e010866139b`, base
+- PR #384: `head` `c8f7c4a4096a671178e659edeec01468e9ad2a9d`, base
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
 
 The open queue remains subject to exact-current-head Checks, formal independent
