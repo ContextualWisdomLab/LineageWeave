@@ -59,6 +59,12 @@ keeps the channel unavailable (never fabricates a verification result)
 when `SEARXNG_BASE_URL` is unset, same discipline as every other
 pluggable client in this repo.
 
+Evidence token selection excludes generic fixture descriptors such as
+`fictitious`, `nonexistent`, `placeholder`, `sample`, `example`, and `demo`.
+Those words can appear in unrelated search results and are not organization
+identity. This keeps synthetic demo data out of the corroboration signal while
+retaining distinctive organization tokens and cited URLs.
+
 Persistence: `post_counterparty_entity` gains
 `verification_status_code` (`common_lookup_value` category
 `relation_verification_status`: `verify_pending` / `verify_corroborated`

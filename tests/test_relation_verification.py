@@ -1,12 +1,4 @@
-"""Tests for lineageweave.relation_verification.
-
-SearxngRelationVerificationClient's tests run against a real local HTTP
-server (same pattern as tests/test_http_client.py), not a mocked
-transport -- proving the actual URL construction and response-shape
-handling, not just that a mock was called correctly. A real Searxng
-instance is exercised separately, gated behind docker compose (this
-repo's discipline: never fake a channel it can instead genuinely run).
-"""
+"""Tests for the real HTTP and evidence boundaries of relation verification."""
 
 from __future__ import annotations
 
@@ -38,15 +30,30 @@ class _ResultsHandler(BaseHTTPRequestHandler):
         query = parse_qs(parsed.query)
         type(self).received_query = query.get("q", [""])[0]
         if "Malformed" in type(self).received_query:
-            payload = {"query": type(self).received_query, "results": {"unexpected": True}}
+            payload = {
+                "query": type(self).received_query,
+                "results": {"unexpected": True},
+            }
         elif "Mixed" in type(self).received_query:
             payload = {
                 "query": type(self).received_query,
                 "results": [
                     None,
                     {"url": "https://other.example/item", "content": "unrelated"},
-                    {"url": "https://mixed.example/item", "content": "Mixed Signal"},
+                    {
+                        "url": "https://mixed.example/item",
+                        "content": "Mixed Signal",
+                    },
                 ],
+            }
+        elif "NoList" in type(self).received_query:
+            payload = {"query": type(self).received_query, "results": {}}
+        elif "Skip" in type(self).received_query:
+            payload = {"query": type(self).received_query, "results": [None]}
+        elif "NoEvidence" in type(self).received_query:
+            payload = {
+                "query": type(self).received_query,
+                "results": [{"url": "https://example.com/item", "content": ""}],
             }
         elif "Acme" in type(self).received_query:
             payload = {
@@ -68,7 +75,7 @@ class _ResultsHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def log_message(self, format: str, *args) -> None:
+    def log_message(self, format: str, *args: object) -> None:
         """Keep the test server quiet while preserving the stdlib signature."""
         return
 
@@ -100,8 +107,9 @@ def test_searxng_client_reports_corroborated_with_evidence_url() -> None:
     """A matching result returns corroboration and its evidence URL."""
     server, base = _serve()
     try:
-        client = SearxngRelationVerificationClient(base_url=base)
-        result = client.verify("Acme Corp", "Voice of Customer")
+        result = SearxngRelationVerificationClient(base_url=base).verify(
+            "Acme Corp", "Voice of Customer"
+        )
     finally:
         server.shutdown()
 
@@ -115,8 +123,26 @@ def test_searxng_client_reports_uncorroborated_with_no_evidence_url_when_search_
     """An empty result set remains explicitly uncorroborated."""
     server, base = _serve()
     try:
-        client = SearxngRelationVerificationClient(base_url=base)
-        result = client.verify("Totally Fictitious Nonexistent Org", "Voice of Customer")
+        result = SearxngRelationVerificationClient(base_url=base).verify(
+            "Totally Fictitious Nonexistent Org", "Voice of Customer"
+        )
+    finally:
+        server.shutdown()
+
+    assert result.status_code == STATUS_UNCORROBORATED
+    assert result.evidence_url is None
+
+
+@pytest.mark.parametrize("organization_name", ["NoList", "Skip", "NoEvidence"])
+def test_searxng_client_fails_closed_for_unusable_results(
+    organization_name: str,
+) -> None:
+    """Malformed and unciting search results remain explicitly negative."""
+    server, base = _serve()
+    try:
+        result = SearxngRelationVerificationClient(base_url=base).verify(
+            organization_name, "Voice of Customer"
+        )
     finally:
         server.shutdown()
 
@@ -185,7 +211,7 @@ def test_malformed_ipv6_url_is_not_evidence() -> None:
 
 
 def test_name_with_only_legal_suffixes_has_no_distinctive_token() -> None:
-    """Legal suffix stopwords alone cannot identify an organization."""
+    """Legal suffixes alone cannot identify an organization."""
     assert (
         corroborating_evidence_url(
             "Corp Ltd",
@@ -203,6 +229,21 @@ def test_org_token_in_result_host_is_corroboration() -> None:
             {"url": "https://www.acme.example/news", "title": "News", "content": ""},
         )
         == "https://www.acme.example/news"
+    )
+
+
+def test_short_name_token_inside_another_word_is_not_corroboration() -> None:
+    """A search snippet must contain the organization token as a word."""
+    assert (
+        corroborating_evidence_url(
+            "Alpha Corp",
+            {
+                "url": "https://unrelated.example/news",
+                "title": "Alphabetical index",
+                "content": "An alphabetical index of sample terms.",
+            },
+        )
+        is None
     )
 
 
@@ -293,7 +334,7 @@ def test_userinfo_tokens_are_not_hostname_evidence() -> None:
 
 
 def test_legal_suffix_alone_is_not_corroboration() -> None:
-    """'Corp' is in almost every corporate host; it is not evidence."""
+    """A legal suffix in a host is not organization evidence."""
     assert (
         corroborating_evidence_url(
             "Acme Corp",
@@ -303,30 +344,93 @@ def test_legal_suffix_alone_is_not_corroboration() -> None:
     )
 
 
-def test_hangul_org_name_token_is_corroboration() -> None:
-    """A complete Hangul organization token in content is evidence."""
+def test_fixture_descriptors_do_not_corrobate_an_unrelated_search_hit() -> None:
+    """Synthetic-data descriptors must not stand in for organization identity."""
+    assert (
+        corroborating_evidence_url(
+            "Zzqxvthorp Fictitious Nonexistent Org",
+            {
+                "url": "https://learn.microsoft.com/writing-style",
+                "title": "Fictitious names and addresses",
+                "content": "Documentation explains fictitious and nonexistent examples.",
+            },
+        )
+        is None
+    )
+
+
+def test_missing_url_and_all_generic_tokens_are_not_evidence() -> None:
+    """Missing URLs and fixture-only names cannot provide evidence."""
+    assert corroborating_evidence_url("Acme Corp", {"content": "Acme"}) is None
+    assert (
+        corroborating_evidence_url(
+            "Fictitious Nonexistent Org",
+            {"url": "https://example.com/item", "content": "Fictitious"},
+        )
+        is None
+    )
+
+
+def test_one_common_token_is_not_multi_token_corroboration() -> None:
+    """An unrelated page mentioning one name token is insufficient evidence."""
+    assert (
+        corroborating_evidence_url(
+            "Aurora Grid Power",
+            {
+                "url": "https://news.example/item",
+                "content": "The power outage affected the region.",
+            },
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize("particle", ["가", "에서", "으로"])
+def test_hangul_org_name_with_attached_particle_is_corroboration(particle: str) -> None:
+    """Attached Korean particles remain bounded evidence."""
     assert (
         corroborating_evidence_url(
             "한빛그리드",
             {
                 "url": "https://news.example/item",
                 "title": "News",
-                "content": "한빛그리드 announced a delivery window.",
+                "content": f"한빛그리드{particle} 발표했다.",
             },
         )
         == "https://news.example/item"
     )
 
 
-def test_hangul_org_name_with_particle_is_corroboration() -> None:
-    """A Korean particle attached to the complete name keeps the token match."""
+@pytest.mark.parametrize("particles", ["에서는", "으로는", "까지도"])
+def test_hangul_org_name_with_stacked_particles_is_corroboration(
+    particles: str,
+) -> None:
+    """Stacked Korean particles after a complete name remain bounded evidence."""
     assert (
         corroborating_evidence_url(
             "한빛그리드",
             {
                 "url": "https://news.example/item",
                 "title": "News",
-                "content": "한빛그리드가 공급 일정을 발표했다.",
+                "content": f"한빛그리드{particles} 발표했다.",
+            },
+        )
+        == "https://news.example/item"
+    )
+
+
+@pytest.mark.parametrize("particle", ["가", "이", "으로"])
+def test_latin_org_name_with_attached_korean_particle_is_corroboration(
+    particle: str,
+) -> None:
+    """Latin organization tokens also accept directly attached particles."""
+    assert (
+        corroborating_evidence_url(
+            "Acme",
+            {
+                "url": "https://news.example/item",
+                "title": "News",
+                "content": f"Acme{particle} 발표했다.",
             },
         )
         == "https://news.example/item"

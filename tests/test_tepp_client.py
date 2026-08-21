@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from backend.app.analysis_run_start import configured_tepp_client
@@ -31,6 +33,35 @@ def test_to_json_matches_tepp_published_schema_shape() -> None:
     }
 
 
+@pytest.mark.parametrize(
+    ("field_name", "value"),
+    [
+        ("idempotency_key", " "),
+        ("tenant_workspace_id", None),
+        ("snapshot_id", "\t"),
+        ("knowledge_cutoff", ""),
+        ("model_contract_version", "\n"),
+        ("output_profile", None),
+    ],
+)
+def test_request_rejects_non_blank_schema_fields(field_name: str, value: object) -> None:
+    """A v1 request must not send blank or non-text required fields."""
+    with pytest.raises(ValueError, match=field_name):
+        replace(_sample_request(), **{field_name: value})
+
+
+def test_request_rejects_unknown_contract_version() -> None:
+    """The adapter must not silently emit a request for another contract."""
+    with pytest.raises(ValueError, match="contract_version=1"):
+        replace(_sample_request(), contract_version=2)
+
+
+def test_request_rejects_boolean_contract_version() -> None:
+    """JSON booleans must not pass Python's integer type relationship."""
+    with pytest.raises(ValueError, match="contract_version=1"):
+        replace(_sample_request(), contract_version=True)
+
+
 def test_default_transport_fails_closed_until_tepp_ships_http() -> None:
     client = TeppClient()
     with pytest.raises(TeppNotAvailable):
@@ -52,6 +83,18 @@ def test_custom_transport_receives_the_exact_wire_payload() -> None:
     assert received["snapshot_id"] == "demo-snapshot-1"
 
 
+def test_custom_transport_provider_errors_are_not_exposed() -> None:
+    """Provider response text stays behind the stable unavailable error."""
+
+    def broken_transport(_payload: dict) -> dict:
+        raise RuntimeError("provider secret response body")
+
+    with pytest.raises(TeppNotAvailable, match="transport request failed") as error:
+        TeppClient(transport=broken_transport).submit_analysis_run(_sample_request())
+
+    assert "provider secret" not in str(error.value)
+
+
 def test_configured_transport_sends_optional_bearer_key(monkeypatch: pytest.MonkeyPatch) -> None:
     received = {}
 
@@ -66,3 +109,22 @@ def test_configured_transport_sends_optional_bearer_key(monkeypatch: pytest.Monk
 
     assert received["headers"] == {"authorization": "Bearer test-key"}
     assert received["payload"] == _sample_request().to_json()
+
+
+def test_configured_transport_provider_errors_are_not_exposed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The configured provider boundary does not return raw transport text."""
+
+    def broken_post_json(*args, **kwargs):
+        del args, kwargs
+        raise RuntimeError("provider secret response body")
+
+    monkeypatch.setattr("backend.app.analysis_run_start.post_json", broken_post_json)
+
+    with pytest.raises(TeppNotAvailable, match="transport request failed") as error:
+        configured_tepp_client("https://tepp.example/v1/analysis-runs").submit_analysis_run(
+            _sample_request()
+        )
+
+    assert "provider secret" not in str(error.value)
