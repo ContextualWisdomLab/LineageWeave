@@ -350,7 +350,7 @@ export function CustomerMasterTree({
 
   const selectedEntity = selectedEntityId ? entityById.get(selectedEntityId) : undefined;
   const selectedNode = selectedEntityId ? treeNodeById.get(selectedEntityId) : undefined;
-  const selectedParent = selectedEntity?.parent_entity_id
+  const selectedParent = selectedNode && !selectedNode.hierarchyIssue && selectedEntity?.parent_entity_id
     ? entityById.get(selectedEntity.parent_entity_id)
     : undefined;
   const selectedChildren = selectedNode?.children ?? [];

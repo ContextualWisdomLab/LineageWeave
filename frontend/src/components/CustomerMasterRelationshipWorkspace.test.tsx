@@ -193,6 +193,26 @@ describe("Customer Master three-pane workspace", () => {
     )).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText("No linked posts yet.")).toBeInTheDocument());
   });
+
+  it("does not show a malformed self-parent as an authoritative parent", async () => {
+    render(
+      <CustomerMasterTree
+        entities={[entity("self", "Self Parent", "self", "Company")]}
+        loadRelated={async () => []}
+        onOpenPost={() => undefined}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("treeitem", { name: /Self Parent.*unresolved/i }));
+    const focusPane = screen.getByRole("heading", { name: "Customer relationship focus" })
+      .closest("section");
+    expect(within(focusPane as HTMLElement).getByText(
+      "No parent organization is visible in the authorized scope.",
+    )).toBeInTheDocument();
+    expect(within(focusPane as HTMLElement).queryByRole("button", {
+      name: "Center this customer: Self Parent",
+    })).not.toBeInTheDocument();
+  });
 });
 
 describe("Customer Master workspace localization", () => {
