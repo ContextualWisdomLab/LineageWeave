@@ -18,8 +18,7 @@ class ProjectHistoryConnection(Protocol):
 
     async def fetch(self, query: str, *args: object) -> Sequence[Mapping[str, Any]]:
         """Execute a bounded read query and return mapping-like rows."""
-
-        ...
+        raise NotImplementedError  # pragma: no cover - protocol declaration
 
 
 _ELIGIBILITY = SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")

@@ -2586,9 +2586,15 @@ def global_ask_timeline(sources: list[ChatSourceDocument]) -> list[dict[str, str
     ]
 
 
-def _verification_next_action(status_code: str) -> str:
+def _verification_next_action(
+    status_code: str,
+    *,
+    has_authorized_sources: bool = True,
+) -> str:
     """Give the Buyer a bounded action without treating web evidence as authority."""
 
+    if not has_authorized_sources:
+        return "No authorized source posts are available for this question."
     return {
         VERIFICATION_SKIPPED: "Enable public verification to check eligible public claims.",
         VERIFICATION_UNAVAILABLE: "Configure public search and contextual-orchestrator, then retry.",
@@ -2816,7 +2822,10 @@ async def ask_agent(
             "timeline": [],
             "external_verification_status": verification_status,
             "external_claims": [claim.to_payload() for claim in external_claims],
-            "next_action": _verification_next_action(verification_status),
+            "next_action": _verification_next_action(
+                verification_status,
+                has_authorized_sources=False,
+            ),
         }
     try:
         answer = await asyncio.to_thread(
