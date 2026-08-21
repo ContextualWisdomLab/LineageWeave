@@ -334,6 +334,9 @@ def test_public_schema_exists_and_mirrors_contract_vocabularies() -> None:
         "generic_lineage",
     }
     assert schema["additionalProperties"] is False
+    assert set(
+        schema["$defs"]["LineageAnalysisResult"]["properties"]["llm_status_code"]["enum"]
+    ) == {"not_requested", "unavailable", "not_invoked", "completed"}
     pair_budget = schema["$defs"]["LineageAnalysisPolicy"][
         "properties"
     ]["maximum_pair_evaluations"]

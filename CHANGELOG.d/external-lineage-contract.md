@@ -9,3 +9,5 @@
 - Reject explicit-parent cycles and candidate-pair work above the caller-approved limit before optional LLM/provider activity.
 - Expose exact active channel scores, weights, contributions, LLM availability state, proposed project groupings, and deterministic result digests.
 - Add JSON Schema Draft 2020-12, one canonical ADR 0133, APA 7th doctoring, and focused TDD coverage.
+- Publish `not_invoked` in the JSON Schema and ADR when an available optional
+  LLM has no candidate pair to judge.
