@@ -35,6 +35,7 @@ from backend.app.post_content_queue import (
 
 _logger = logging.getLogger(__name__)
 _RECOVERY_INTERVAL_SECONDS = 30.0
+_WORKER_RESTART_DELAY_SECONDS = 1.0
 _INCOMPLETE_FAILURE_CODE = "post_content_ingestion_incomplete"
 _ATTEMPT_LIMIT_FAILURE_CODE = "post_content_ingestion_attempt_limit"
 _UNEXPECTED_FAILURE_DETAIL = "post-content ingestion failed; retry is scheduled"
@@ -333,3 +334,33 @@ async def run_post_content_worker(
             embedding_factory=embedding_factory,
             structure_factory=structure_factory,
         )
+
+
+async def run_post_content_worker_supervised(
+    client: redis.Redis,
+    pool: asyncpg.Pool,
+    *,
+    vision_factory: Callable[[], ImageContentClient],
+    embedding_factory: Callable[[], EmbeddingClient],
+    structure_factory: Callable[[], PostStructureClient],
+) -> None:
+    """Keep the durable worker alive after an unexpected iteration error.
+
+    Cancellation remains a shutdown signal. Other exceptions are logged and
+    the worker is restarted so a transient Valkey, database, or provider
+    error cannot silently disable recovery for the rest of the process.
+    """
+    while True:
+        try:
+            await run_post_content_worker(
+                client,
+                pool,
+                vision_factory=vision_factory,
+                embedding_factory=embedding_factory,
+                structure_factory=structure_factory,
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            _logger.exception("post-content worker crashed; restarting")
+            await asyncio.sleep(_WORKER_RESTART_DELAY_SECONDS)
