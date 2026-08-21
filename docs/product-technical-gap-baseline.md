@@ -466,7 +466,7 @@ No protected-main merge is claimed.
 
 ### 4.11 Current exact-head refresh
 
-Observed at `2026-08-21T21:23:18Z` from the GitHub REST API. This subsection
+Observed at `2026-08-21T21:50:22Z` from the GitHub REST API. This subsection
 supersedes the earlier queue snapshot without rewriting its historical
 evidence:
 
@@ -478,17 +478,17 @@ evidence:
   `806da65af40f27b24d2c8b77e1f7dd0b8558e67f`. None of these events is a
   protected `main` merge.
 - PR #392 is open against protected `main` at exact head
-  `5fc943477189640f42dfa8ad2d72678216bd1ea5`, and PR #368 is open against
-  protected `main` at exact head `c77ef760d56ad97d4b78ae7a57ea1847739f3dfe`.
+  `7d990ae2807895a870d125084e19cf0efd257f12`, and PR #368 is open against
+  protected `main` at exact head `e6cacf323962ede129b53d8ed7962d0882f201d8`.
   Both remain blocked pending current hosted Checks and independent review
   gates.
 - PR #383 remains open at `4eaa07172fde827f4ad89580326a0d2db5ceb0e4` and PR
   #394 at `2aee6ace0a9b293959bea609192a4e2ef4dc5924`; their `osv-scan` failures
   are the shared central result-path defect already tracked by
-  ContextualWisdomLab/.github PR #1158, not a vulnerability verdict. The
+  ContextualWisdomLab/.github PR #1209, not a vulnerability verdict. The
   central repair is open at exact head
-  `4748ced3e09c8c684d34b1b6f763c450f6d4e218`, with hosted checks still
-  recalculating and no independent approval recorded.
+  `e043ad82b8ed65cfd6f46ed844467c8ad9955665`; both OSV checks pass, while
+  remaining hosted checks and independent approval are still outstanding.
 - No protected-main merge is claimed. The next customer action is to obtain
   the independent current-head review, finish the required Checks, then let
   the protected merge queue promote #392 and #368 in dependency order.
