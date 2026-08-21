@@ -193,6 +193,47 @@ async def persist_global_ask_summary(
     )
 
 
+async def _persist_global_ask_turn_rows(
+    conn: asyncpg.Connection,
+    session_id: str,
+    question: str,
+    answer: str,
+    cited_post_ids: Iterable[str],
+) -> int:
+    """Append one turn while the caller owns the surrounding transaction."""
+    citations = list(dict.fromkeys(str(post_id) for post_id in cited_post_ids))
+    await conn.fetchrow(
+        "select global_ask_session_id from global_ask_session where global_ask_session_id = $1 for update",
+        session_id,
+    )
+    ordinal = int(
+        await conn.fetchval(
+            "select coalesce(max(turn_ordinal), 0) + 1 from global_ask_turn where global_ask_session_id = $1",
+            session_id,
+        )
+    )
+    await conn.execute(
+        "insert into global_ask_turn (global_ask_session_id, turn_ordinal, question_text, answer_text) values ($1, $2, $3, $4)",
+        session_id,
+        ordinal,
+        question,
+        answer,
+    )
+    for citation_ordinal, post_id in enumerate(citations):
+        await conn.execute(
+            "insert into global_ask_turn_citation (global_ask_session_id, turn_ordinal, citation_ordinal, cited_post_id) values ($1, $2, $3, $4)",
+            session_id,
+            ordinal,
+            citation_ordinal,
+            post_id,
+        )
+    await conn.execute(
+        "update global_ask_session set updated_at = now() where global_ask_session_id = $1",
+        session_id,
+    )
+    return ordinal
+
+
 async def persist_global_ask_turn(
     conn: asyncpg.Connection,
     session_id: str,
@@ -201,38 +242,31 @@ async def persist_global_ask_turn(
     cited_post_ids: Iterable[str],
 ) -> int:
     """Append one serialized turn and its normalized citation references."""
-    citations = list(dict.fromkeys(str(post_id) for post_id in cited_post_ids))
     async with conn.transaction():
-        await conn.fetchrow(
-            "select global_ask_session_id from global_ask_session where global_ask_session_id = $1 for update",
+        return await _persist_global_ask_turn_rows(
+            conn,
             session_id,
-        )
-        ordinal = int(
-            await conn.fetchval(
-                "select coalesce(max(turn_ordinal), 0) + 1 from global_ask_turn where global_ask_session_id = $1",
-                session_id,
-            )
-        )
-        await conn.execute(
-            "insert into global_ask_turn (global_ask_session_id, turn_ordinal, question_text, answer_text) values ($1, $2, $3, $4)",
-            session_id,
-            ordinal,
             question,
             answer,
+            cited_post_ids,
         )
-        for citation_ordinal, post_id in enumerate(citations):
-            await conn.execute(
-                "insert into global_ask_turn_citation (global_ask_session_id, turn_ordinal, citation_ordinal, cited_post_id) values ($1, $2, $3, $4)",
-                session_id,
-                ordinal,
-                citation_ordinal,
-                post_id,
-            )
-        await conn.execute(
-            "update global_ask_session set updated_at = now() where global_ask_session_id = $1",
-            session_id,
-        )
-    return ordinal
+
+
+async def persist_global_ask_turn_in_transaction(
+    conn: asyncpg.Connection,
+    session_id: str,
+    question: str,
+    answer: str,
+    cited_post_ids: Iterable[str],
+) -> int:
+    """Append one turn while the API owns the reauthorization transaction."""
+    return await _persist_global_ask_turn_rows(
+        conn,
+        session_id,
+        question,
+        answer,
+        cited_post_ids,
+    )
 
 
 async def _normalize_post_body_text(
