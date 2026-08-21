@@ -66,6 +66,10 @@ describe("LineageDag", () => {
 
     await user.keyboard("{Enter}");
     expect(onSelectPost).toHaveBeenLastCalledWith("child-post");
+
+    await user.keyboard(" ");
+    expect(onSelectPost).toHaveBeenLastCalledWith("child-post");
+    expect(onSelectPost).toHaveBeenCalledTimes(3);
   });
 
   it("makes direction, meaning, scrolling, and exact edge evidence accessible without hover", () => {
@@ -110,10 +114,14 @@ describe("LineageDag", () => {
     expect(screen.queryByRole("note")).not.toBeInTheDocument();
   });
 
-  it("renders the explicit empty state without graph controls", () => {
+  it("renders an actionable empty state without graph controls", () => {
     render(<LineageDag graph={{ nodes: [], edges: [] }} onSelectPost={vi.fn()} />);
 
-    expect(screen.getByText("No reconstructed lineage yet. Rebuild after seeding posts.")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "No reconstructed lineage yet. Add eligible source records, then rebuild Event Lineage.",
+      ),
+    ).toBeInTheDocument();
     expect(screen.queryByRole("group")).not.toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
