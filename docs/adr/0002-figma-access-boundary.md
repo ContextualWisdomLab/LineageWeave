@@ -73,6 +73,34 @@ organization content; future token or component work must keep that boundary.
 - This is consistent with, not an exception to, ADR 0001's reasoning --
   both ADRs name a real gap explicitly rather than fake or stall.
 
+## 2026-08-21 Event Lineage DAG refinement
+
+The buyer DAG remains a **reconstructed record/Event Lineage view**, not a
+complete OWL class/property explorer. Its horizontal position represents
+lineage depth, not elapsed time. The safe buyer-surface refinement therefore
+makes the existing meaning explicit instead of implying a different ontology
+product:
+
+- parent-to-child edges have visible arrowheads and stop outside node circles;
+- every node shows its source event date without pretending that X distance is
+  a duration scale;
+- deep graphs keep their deterministic layout width inside a keyboard-focusable
+  horizontal region rather than shrinking labels into unreadability;
+- the SVG is an accessible group, not an ARIA image that hides its interactive
+  descendant node controls;
+- an open-by-default, collapsible exact-value table preserves each visible
+  relation, source/target date, and fused reconstruction score for keyboard,
+  touch, print, and audit use; and
+- branching, selected-node, and empty states are represented with synthetic
+  fixtures in Storybook.
+
+These states use the same safe Figma design-system boundary identified above;
+no confidential frame or production record is copied. A future graph that
+renders `Post`, `Person`, `CorporateEntity`, `Project`, OWL properties, SKOS
+relations, provenance status, and temporal validity as heterogeneous nodes and
+edges is a separate ontology-explorer capability and must not be implied by
+this Event Lineage renderer.
+
 ## Related
 
 Builds directly on [ADR 0001](0001-demo-identity-and-data-boundary.md)
