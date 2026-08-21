@@ -43,7 +43,7 @@ commits Running plus a durable outbox row, then reconstructs that
 frozen cutoff bag (ADR 0021 / ADR 0023) or submits TEPP through
 `tepp_client` (ADR 0022 / ADR 0035). Status `recorded_at` is
 `greatest(clock_timestamp(), occurred_at)` so a Python-ahead
-occurrence does not fail the write-clock check (ADR 0013 / v2.12.6).
+occurrence does not fail the write-clock check (ADR 0013 / v2.12.7).
 A missing transport or unpublished
 envelope is Failed. A published accepted acknowledgement is Failed
 transport evidence, not a completed measurement. Failed TEPP is

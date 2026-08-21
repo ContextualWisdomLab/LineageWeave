@@ -114,7 +114,7 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     / "0102_project_bound_summary_event.sql"
 )
 _STATUS_WRITE_CLOCK_MIGRATION = (
-    Path(__file__).resolve().parents[2] / "migrations" / "0030_analysis_run_status_write_clock.sql"
+    Path(__file__).resolve().parents[2] / "migrations" / "0104_analysis_run_status_write_clock.sql"
 )
 
 

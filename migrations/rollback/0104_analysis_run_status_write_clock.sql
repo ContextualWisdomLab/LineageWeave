@@ -1,4 +1,4 @@
--- Fail-closed rollback for migration 0030.
+-- Fail-closed rollback for migration 0104.
 --
 -- Restores the 0018 write-clock assignment (database clock only). Replay of
 -- 0018 is not sufficient because that file also creates registry tables.

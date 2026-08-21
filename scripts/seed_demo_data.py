@@ -130,7 +130,7 @@ def seed(
             cur.execute((migrations / "0023_analysis_run_outbox.sql").read_text())
             cur.execute((migrations / "0024_source_post_revision.sql").read_text())
             cur.execute((migrations / "0025_role_person_catalog_identity.sql").read_text())
-            cur.execute((migrations / "0030_analysis_run_status_write_clock.sql").read_text())
+            cur.execute((migrations / "0104_analysis_run_status_write_clock.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values

@@ -31,7 +31,7 @@ general-purpose bitemporal database:
 - `occurred_at` and `recorded_at` distinguish lifecycle occurrence from durable
   database recording. `recorded_at` is `greatest(clock_timestamp(), occurred_at)`
   so a Python-ahead occurrence still satisfies `occurred_at <= recorded_at`
-  (v2.12.6). Do not clamp `occurred_at` down.
+  (v2.12.7). Do not clamp `occurred_at` down.
 
 The database requires the aggregate leakage boundary:
 

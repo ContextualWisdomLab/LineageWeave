@@ -215,7 +215,7 @@ cutoff bag through `reconstruct()` / `lineage_edge_specs` (ADR 0021 /
 v0.88.0). Do not invent a theta. Status `recorded_at` is
 `greatest(clock_timestamp(), occurred_at)` so a Python-ahead
 occurrence does not fail `occurred_at <= recorded_at` (ADR 0013 /
-v2.12.6). Do not clamp `occurred_at` down.
+v2.12.7). Do not clamp `occurred_at` down.
 Opening a cutoff-rewritten title shows **Body this run knew** from
 `source_post_revision` beside the live rewrite (ADR 0025 / v2.1.0).
 Do not invent the earlier sentence when no revision covers the cutoff.

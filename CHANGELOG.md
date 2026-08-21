@@ -6,7 +6,7 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
-## [2.12.6] - 2026-08-21
+## [2.12.7] - 2026-08-21
 
 ### Fixed
 
@@ -19,7 +19,7 @@ All notable changes to this project are documented here. Format follows
   **not** clamped down: that would break monotonicity against
   previously stored Python-ahead status events. Client-supplied
   `recorded_at` is still discarded. Same pattern as TEPP accepted
-  clocks (ADR 0013 follow-up). Additive migration 0030 updates
+  clocks (ADR 0013 follow-up). Additive migration 0104 updates
   existing volumes; fresh installs pick it up from 0018. After this
   lands, Demo Analyst can start a Pending lineage run on the live
   stack.
@@ -87,7 +87,7 @@ All notable changes to this project are documented here. Format follows
   as out of scope for this migration-catchup change (a different
   feature area -- analysis-run/TEPP lifecycle, not R&R/summary/
   verification) rather than rushed. 553 other tests unaffected.
-  Fixed in 2.12.6.
+  Fixed in 2.12.7.
 
 - `get_or_create_corporate_entity`'s post-lock duplicate-create re-check
   fuzzy-matched against every cataloged entity, not just an exact

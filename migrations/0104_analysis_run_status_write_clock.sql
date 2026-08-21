@@ -1,4 +1,4 @@
--- Analysis-run status write clock (ADR 0013 follow-up / v2.12.6).
+-- Analysis-run status write clock (ADR 0013 follow-up / v2.12.7).
 --
 -- Additive to 0018. Existing status rows stay in place. The 0018 BEFORE
 -- INSERT trigger overwrote recorded_at with clock_timestamp() after Python

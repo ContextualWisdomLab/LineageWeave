@@ -19,9 +19,9 @@ _ROOT = Path(__file__).resolve().parents[1]
 _INITIAL_MIGRATION = _ROOT / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = _ROOT / "migrations" / "0018_analysis_run_registry.sql"
 _REGISTRY_ROLLBACK = _ROOT / "migrations" / "rollback" / "0018_analysis_run_registry.sql"
-_WRITE_CLOCK_MIGRATION = _ROOT / "migrations" / "0030_analysis_run_status_write_clock.sql"
+_WRITE_CLOCK_MIGRATION = _ROOT / "migrations" / "0104_analysis_run_status_write_clock.sql"
 _WRITE_CLOCK_ROLLBACK = (
-    _ROOT / "migrations" / "rollback" / "0030_analysis_run_status_write_clock.sql"
+    _ROOT / "migrations" / "rollback" / "0104_analysis_run_status_write_clock.sql"
 )
 _RETENTION_MIGRATION = _ROOT / "migrations" / "0020_analysis_run_retention_purge.sql"
 _RETENTION_ROLLBACK = (
@@ -292,7 +292,7 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert "0027_analysis_run_tepp_result.sql" in dockerfile
     assert "0028_internal_relation_evidence.sql" in dockerfile
     assert "0030_report_project_grouping.sql" in dockerfile
-    assert "0030_analysis_run_status_write_clock.sql" in dockerfile
+    assert "0104_analysis_run_status_write_clock.sql" in dockerfile
     seed = (_ROOT / "scripts" / "seed_demo_data.py").read_text(encoding="utf-8")
     assert seed.index("0019_role_catalog_identity.sql") < seed.index(
         "0020_analysis_run_retention_purge.sql"
@@ -313,7 +313,7 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
         "0025_role_person_catalog_identity.sql"
     )
     assert seed.index("0025_role_person_catalog_identity.sql") < seed.index(
-        "0030_analysis_run_status_write_clock.sql"
+        "0104_analysis_run_status_write_clock.sql"
     )
     assert "analysis_run_registry_not_empty" in rollback
     retention = _RETENTION_MIGRATION.read_text(encoding="utf-8")
@@ -775,7 +775,7 @@ def test_status_requires_scope_and_cannot_predate_request(registry_db) -> None:
 
 
 def test_status_write_clock_migration_is_wired() -> None:
-    """0030 replaces the 0018 write clock additively for existing volumes."""
+    """0104 replaces the 0018 write clock additively for existing volumes."""
 
     migration = _WRITE_CLOCK_MIGRATION.read_text(encoding="utf-8")
     rollback = _WRITE_CLOCK_ROLLBACK.read_text(encoding="utf-8")
@@ -786,10 +786,10 @@ def test_status_write_clock_migration_is_wired() -> None:
     assert "analysis_run_status_time_too_far_in_future" in migration
     assert "new.occurred_at :=" not in migration
     assert "drop table" not in migration.casefold()
-    assert "0030_analysis_run_status_write_clock.sql" in dockerfile
-    assert "0030_analysis_run_status_write_clock.sql" in seed
+    assert "0104_analysis_run_status_write_clock.sql" in dockerfile
+    assert "0104_analysis_run_status_write_clock.sql" in seed
     assert seed.index("0025_role_person_catalog_identity.sql") < seed.index(
-        "0030_analysis_run_status_write_clock.sql"
+        "0104_analysis_run_status_write_clock.sql"
     )
     assert "new.recorded_at := clock_timestamp();" in rollback
     assert "greatest(clock_timestamp(), new.occurred_at)" not in rollback
