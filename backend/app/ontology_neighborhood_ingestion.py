@@ -42,6 +42,19 @@ FORBIDDEN_NEIGHBORHOOD_CODES = frozenset({"focus_hidden", "focus_not_visible"})
 NOT_FOUND_NEIGHBORHOOD_CODES = frozenset({"unknown_node_type", "dangling_endpoint"})
 
 
+class _LoadedFactWindow(list[NeighborhoodFact]):
+    """Bounded fact list plus whether the SQL source window was exhausted."""
+
+    def __init__(
+        self,
+        facts: Sequence[NeighborhoodFact] = (),
+        *,
+        truncated: bool = False,
+    ) -> None:
+        super().__init__(facts)
+        self.truncated = truncated
+
+
 def neighborhood_error_http_status(error: OntologyNeighborhoodError) -> int:
     """Map a fail-closed assembler error onto an HTTP status.
 
@@ -133,10 +146,15 @@ async def _load_facts(
     maximum_depth: int = DEFAULT_MAXIMUM_DEPTH,
     maximum_edges: int = DEFAULT_MAXIMUM_EDGES,
     knowledge_cutoff: datetime | None = None,
-) -> list[NeighborhoodFact]:
+) -> _LoadedFactWindow:
     """Load a bounded, cutoff-safe recursive fact window for the focus node."""
     if not visible_post_ids:
-        return []
+        return _LoadedFactWindow()
+    window_size = min(
+        HARD_MAXIMUM_EDGES,
+        maximum_edges * (maximum_depth + 1) + 1,
+    )
+    query_limit = min(HARD_MAXIMUM_EDGES + 1, window_size + 1)
     rows = await conn.fetch(
         """
         with recursive candidate_facts as (
@@ -203,9 +221,11 @@ async def _load_facts(
         focus_node_type_code,
         focus_node_id,
         maximum_depth,
-        min(HARD_MAXIMUM_EDGES, maximum_edges * (maximum_depth + 1) + 1),
+        query_limit,
         knowledge_cutoff,
     )
+    source_truncated = len(rows) > window_size
+    rows = rows[:window_size]
     facts: list[NeighborhoodFact] = []
     for row in rows:
         facts.append(
@@ -220,7 +240,7 @@ async def _load_facts(
                 provenance_reference="knowledge_graph_edge",
             )
         )
-    return facts
+    return _LoadedFactWindow(facts, truncated=source_truncated)
 
 
 async def _load_skos_facts(
@@ -419,7 +439,7 @@ async def visible_ontology_neighborhood(
     )
     if not visible_post_ids:
         raise OntologyNeighborhoodError("focus_not_visible", "focus node is not visible")
-    facts = await _load_facts(
+    fact_window = await _load_facts(
         conn,
         visible_post_ids,
         focus_node_type_code=focus_node_type_code,
@@ -428,6 +448,7 @@ async def visible_ontology_neighborhood(
         maximum_edges=maximum_edges,
         knowledge_cutoff=knowledge_cutoff,
     )
+    facts = list(fact_window)
     corp_ids = [
         fact.source_node_id if fact.source_node_type_code == NODE_CORPORATE_ENTITY else fact.target_node_id
         for fact in facts
@@ -508,4 +529,5 @@ async def visible_ontology_neighborhood(
         maximum_edges=maximum_edges,
         allowed_property_codes=allowed_property_codes,
         cursor=cursor,
+        source_truncated=fact_window.truncated,
     )
