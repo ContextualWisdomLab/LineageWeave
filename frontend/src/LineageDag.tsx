@@ -73,6 +73,7 @@ export function LineageDag({
                     d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
                     role="button"
                     tabIndex={0}
+                    aria-pressed={selected}
                     aria-label={tf("Open connection evidence: {from} to {to}", {
                       from: from.label,
                       to: to.label,
@@ -166,7 +167,7 @@ export function LineageDag({
             <details
               key={key}
               className="lineage-edge-evidence-item"
-              open
+              open={selectedEdge === key}
               onToggle={(event) => {
                 const details = event.currentTarget;
                 if (details.open) {
