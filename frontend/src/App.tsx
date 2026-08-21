@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
-  askAgent,
   BackendError,
   createAnalysisRun,
   startAnalysisRun,
@@ -48,7 +47,6 @@ import {
   updateTicketStatus,
   verifyPostRelations,
   type ActivityEvent,
-  type AskAgentResponse,
   type AffiliateNode,
   type AnalysisRun,
   type CalendarResponse,
@@ -91,6 +89,10 @@ import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
 import { CustomerMasterTree, CustomerRelatedPostCard } from "./components/CustomerMasterTree";
+import {
+  AskAgentWorkspace as AskAgentPanel,
+  GLOBAL_ASK_SESSION_STORAGE_KEY,
+} from "./components/AskAgentWorkspace";
 import { subgraphForPost } from "./lineageLayout";
 import {
   isSupportedLocale,
@@ -108,7 +110,6 @@ import {
 } from "./analysisRunNavigation";
 import "./App.css";
 
-const GLOBAL_ASK_SESSION_STORAGE_KEY = "lineageweave.globalAskSessionId";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
   if (err instanceof BackendError && err.status === 503) {
@@ -783,16 +784,6 @@ function projectProvenanceLabel(provenance: string): string {
   return t(PROJECT_PROVENANCE_LABELS[provenance] ?? "Recorded evidence");
 }
 
-const CHAT_EVIDENCE_KIND_LABELS: Record<string, string> = {
-  source_field: "Source field hint",
-  semantic_project: "Semantic project",
-  semantic_role: "Semantic role",
-  semantic_keyman: "Semantic Keyman",
-};
-
-function chatEvidenceKindLabel(kind: string): string {
-  return t(CHAT_EVIDENCE_KIND_LABELS[kind] ?? "Evidence");
-}
 
 const VERIFICATION_BADGE: Record<string, string> = {
   verify_pending: "Not yet checked",
@@ -4549,131 +4540,6 @@ function CustomerMasterPanel({
   );
 }
 
-function AskAgentPanel({
-  accessToken,
-  onOpenPost,
-}: {
-  accessToken: string;
-  onOpenPost: (postId: string) => void;
-}) {
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [asking, setAsking] = useState(false);
-  const [sessionId, setSessionId] = useState<string | undefined>(() =>
-    window.sessionStorage.getItem(GLOBAL_ASK_SESSION_STORAGE_KEY) ?? undefined,
-  );
-
-  async function handleAsk() {
-    const normalized = question.trim();
-    if (!normalized) return;
-    setAsking(true);
-    setError(null);
-    setAnswer(null);
-    try {
-      let nextAnswer: AskAgentResponse;
-      try {
-        nextAnswer = await askAgent(accessToken, normalized, sessionId);
-      } catch (err) {
-        if (!(err instanceof BackendError) || err.status !== 404 || !sessionId) {
-          throw err;
-        }
-        setSessionId(undefined);
-        window.sessionStorage.removeItem(GLOBAL_ASK_SESSION_STORAGE_KEY);
-        nextAnswer = await askAgent(accessToken, normalized);
-      }
-      setAnswer(nextAnswer);
-      setSessionId(nextAnswer.session_id);
-      window.sessionStorage.setItem(GLOBAL_ASK_SESSION_STORAGE_KEY, nextAnswer.session_id);
-    } catch (err) {
-      setAnswer(null);
-      setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
-    } finally {
-      setAsking(false);
-    }
-  }
-
-  return (
-    <section className="buyer-destination" aria-labelledby="ask-agent-heading">
-      <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
-      <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
-      <p className="buyer-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
-      {error ? <p className="error">{error}</p> : null}
-      <label className="ask-agent-source">
-        <span>{t("Ask a question")}</span>
-        <textarea
-          aria-label={t("Ask a question")}
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          rows={4}
-        />
-      </label>
-      <button className="keyman-select" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
-        {asking ? t("Asking...") : t("Ask")}
-      </button>
-      {answer && (
-        <section className="popup-section" aria-label={t("Answer")}>
-          <h3>{t("Answer")}</h3>
-          {answer.answer_text ? <p>{answer.answer_text}</p> : null}
-          {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
-          {answer.timeline && answer.timeline.length > 0 ? (
-            <>
-              <h4>{t("Event Lineage timeline")}</h4>
-              <ol className="related-post-list" aria-label={t("Event Lineage timeline")}>
-                {answer.timeline.map((event) => (
-                  <li key={event.post_id}>
-                    <button
-                      type="button"
-                      className="post-list-item"
-                      aria-label={`${t("Open timeline post:")} ${event.post_title}`}
-                      onClick={() => onOpenPost(event.post_id)}
-                    >
-                      <strong>{event.post_title}</strong>
-                      {event.occurred_at ? <time dateTime={event.occurred_at}>{event.occurred_at}</time> : null}
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            </>
-          ) : null}
-          {answer.cited_posts && answer.cited_posts.length > 0 && (
-            <>
-              <p className="board-next-action" role="status" aria-label={t("Next action")}>
-                {t("Authorized cited posts are current. Open a cited post to read Event Lineage.")}
-              </p>
-              <h4>{t("Cited posts")}</h4>
-              <ul className="related-post-list">
-                {answer.cited_posts.map((post) => (
-                  <li key={post.post_id}>
-                    <button
-                      className="post-list-item"
-                      aria-label={`${t("Open cited post:")} ${post.post_title}`}
-                      onClick={() => onOpenPost(post.post_id)}
-                    >
-                      <strong>{post.post_title}</strong>
-                    </button>
-                    {answer.cited_post_evidence?.find((item) => item.post_id === post.post_id)?.facts.length ? (
-                      <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
-                        {answer.cited_post_evidence
-                          .find((item) => item.post_id === post.post_id)
-                          ?.facts.map((fact, index) => (
-                            <li key={`${fact.kind}:${fact.text}:${index}`}>
-                              <span>{chatEvidenceKindLabel(fact.kind)}</span>
-                              <span>{fact.text}</span>
-                            </li>
-                          ))}
-                      </ul>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </section>
-      )}
-    </section>
-  );
-}
 
 export default function App({ showLabPanels = false }: { showLabPanels?: boolean } = {}) {
   useLocale();

@@ -1,5 +1,7 @@
 # Product & Technical Gap Baseline
 
+**Active Ask Agent design head:** PR #353, stacked directly on #264 exact head `39f21261052a9d2ae82c4b851a54831eaf909805`; this is proposed work until merged.
+
 ## 1. Known Parsing & Frontend Display Gaps
 - **Footnote Parsing**: `post=00505695-3e61-1fd1-83c5-263f88a9e77a` fails to recognize footnotes (li/oi level errors).
 - **Table Parsing**: `post=00505695-3e61-1fd1-80c6-86bb61c8ddc5` completely fails at parsing tables.
@@ -77,6 +79,7 @@ claims that an unmerged PR or historical runtime observation is live behavior.
 | FR-11 | Post summaries expose evidence-bearing events and R&R. Requester/processor actions are nullable and may only name actors already bound to the same post summary. | ADR 0052, ADR 0102 | Commit `15e1a378` is on PR #258 and the schema exists locally; the current database has zero populated action rows, so buyer-data acceptance remains unproven |
 | FR-12 | A hierarchy-enrichment timeout leaves the source-grounded summary readable and the actor unbound; it never creates a guessed catalog identity. | ADR 0101, ADR 0010, ADR 0026 | Commit `1c260f20` contains the boundary, ADR, and focused test; independent review, protected-main merge, and fresh runtime evidence remain pending |
 | FR-13 | Customer Master projects authorized corporate entities as a Group → Company → Plant tree. Real organization containment uses W3C ORG while Group/Company/Plant remain separate SKOS level concepts. Missing-parent, self-parent, and cyclic edges remain visible as unresolved roots; the UI owns nested `group` elements from their parent `treeitem`, supports Arrow/Home/End and Enter/Space operation, and opens source-backed evidence outside the tree. | ADR 0124, ADR 0004, ADR 0010 | Ontology/SHACL interoperability tests, `customerMasterTree.ts`, `CustomerMasterTree.tsx`, component tests, Storybook, and code commit `21074cf80cbfab3001bf18b6e1a618f75f4bed24` |
+| FR-14 | Global Ask presents a dedicated evidence workspace: semantic form submission, IME-safe keyboard behavior, explicit empty/loading/error/answer states, separated timeline and cited evidence, answer focus, responsive phone/tablet/PC layout, and the existing authorized cited-post → Event Lineage handoff. | ADR 0126, ADR 0002, ADR 0032, ADR 0090 | `AskAgentWorkspace.tsx`, focused component/token tests, Storybook state inventory, and existing App navigation regressions on #353 |
 
 ## TRD
 
@@ -153,6 +156,7 @@ sequenceDiagram
 | NFR-05 | Synthetic fixtures only; runtime validation returns aggregate, non-identifying evidence | repository scan and evidence-document review |
 | NFR-06 | ADR-first architectural change and paper-grounded model policy | ADR link check and review; unsupported policies remain unavailable |
 | NFR-07 | Buyer hierarchy controls meet WCAG 2.2 keyboard operation and the WAI-ARIA tree ownership contract without inventing ontology facts | Ontology tests, focused hierarchy tests, full frontend test/lint/build, Storybook build, and final-head hosted verification |
+| NFR-08 | Ask Agent uses shared UI-standard button/focus/color/radius tokens, clear focus differentiation, a primary content action, and 1024px/768px responsive transitions without horizontal scrolling | Focused component and CSS-contract tests, complete frontend build, Storybook state build, and UI/UX Standard Guide v3.0 review |
 
 ## Current aggregate data and runtime evidence
 
@@ -183,6 +187,7 @@ evidence for one authorized post, not a corpus-wide acceptance claim.
 
 | Closed gap | Root cause | Closure evidence | Remaining boundary |
 |---|---|---|---|
+| Ask Agent had no dedicated UI component or executable state inventory; its chatbox reused a Keyman link-style action and mixed answer, timeline, citations, and evidence facts in one generic section. | The Global Ask feature accumulated inside `App.tsx` while the stack focused on authorization and cross-surface navigation, leaving presentation without its own ownership boundary. | #353 extracts a token-based evidence workspace, uses a semantic and IME-safe form, focuses completed answers, separates source-backed result regions, and adds five Storybook scenes plus focused regressions. | Streaming and persisted conversation history remain separate future product work; final-head hosted Checks and independent approval are still required. |
 | Customer entities could disappear from the buyer surface when `parent_entity_id` formed a self-parent or cycle; the first tree refactor also placed child `group` content beside rather than inside its parent `treeitem`. | The old projection assembled only root-reachable nodes, overloaded evidence state with hierarchy semantics, and did not satisfy the APG ownership rule. | Code commit `21074cf80cbfab3001bf18b6e1a618f75f4bed24` promotes malformed edges to visible unresolved roots, keeps ORG containment separate from SKOS classification, makes every parent `treeitem` own its child `group`, separates evidence into an external region, and adds navigation, failure, stale-response, ontology, and Storybook regressions. | The API still exposes one parent context; authoritative acyclicity, level-transition rules, legal/operating/sales/billing contexts, and effective-dated history remain future normalized-model work. |
 
 ## Active PR audit
@@ -194,6 +199,7 @@ PR head, valid unresolved threads, qualifying independent review, and terminal h
 
 | PR | Proposed increment | Base → head | Snapshot state |
 |---|---|---|---|
+| #353 | Ask Agent evidence workspace and semantic chatbox | `#264` → `v2.18.0` | Exact-head verification and independent review required |
 | #301 | Global Ask knowledge cutoff | `#264 stack` → `v2.23.0` | Ready / UNSTABLE |
 | #298 | bounded async lineage LLM rebuild | `#276` → `v2.22.0` | Ready / UNSTABLE |
 | #287 | exact Event Lineage channel evidence | `#276` → feature | Ready / UNSTABLE |
