@@ -28,7 +28,7 @@ adapter can be added without changing reconstruction.
   evidence.
 - `knowledge_cutoff` excludes evidence whose `available_at` is later. Excluded
   evidence is reported as a limitation and cannot appear in any edge.
-- The implementation reuses `lineage_edge_specs()` and returns edges only in
+- The implementation reuses the existing `reconstruct()` pipeline and returns edges only in
   terms of submitted opaque evidence references, with channel scores and
   explicit `inferred` truth status.
 - Missing contextual-orchestrator adjudication is an explicit limitation; it
