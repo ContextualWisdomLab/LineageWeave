@@ -54,7 +54,7 @@ describe("LineageDag", () => {
     expect(onSelectPost).toHaveBeenLastCalledWith("child-post");
   });
 
-  it("makes lineage direction and exact edge evidence available without hover", () => {
+  it("makes direction, scrolling, and exact edge evidence accessible without hover", () => {
     render(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
 
     const arrowMarker = document.querySelector('marker[id^="lineage-dag-arrow-"]');
@@ -64,13 +64,23 @@ describe("LineageDag", () => {
     expect(edge?.getAttribute("marker-end")).toMatch(/^url\(#lineage-dag-arrow-/);
     expect(edge).toHaveTextContent("Root record → Child record (0.91)");
 
-    const scrollRegion = document.querySelector(".lineage-dag-scroll");
-    expect(scrollRegion).not.toBeNull();
+    const scrollRegion = screen.getByRole("region", { name: /synthetic-project/ });
+    expect(scrollRegion).toHaveClass("lineage-dag-scroll");
+    expect(scrollRegion).toHaveAttribute("tabindex", "0");
 
-    const evidenceTable = document.querySelector(".lineage-dag-evidence-table");
-    expect(evidenceTable).not.toBeNull();
-    expect(within(evidenceTable as HTMLElement).getByText("Root record → Child record")).toBeInTheDocument();
-    expect(within(evidenceTable as HTMLElement).getByText("0.91")).toBeInTheDocument();
-    expect(within(evidenceTable as HTMLElement).getByText("2026-01-01 → 2026-01-02")).toBeInTheDocument();
+    const evidenceTable = screen.getByRole("table", {
+      name: "synthetic-project lineage — Evidence trail",
+    });
+    expect(within(evidenceTable).getByText("Root record → Child record")).toBeInTheDocument();
+    expect(within(evidenceTable).getByText("0.91")).toBeInTheDocument();
+    expect(within(evidenceTable).getByText("2026-01-01 → 2026-01-02")).toBeInTheDocument();
+  });
+
+  it("renders the explicit empty state without graph controls", () => {
+    render(<LineageDag graph={{ nodes: [], edges: [] }} onSelectPost={vi.fn()} />);
+
+    expect(screen.getByText("No reconstructed lineage yet. Rebuild after seeding posts.")).toBeInTheDocument();
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 });
