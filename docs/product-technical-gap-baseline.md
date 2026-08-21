@@ -49,7 +49,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T18:29:27Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T18:39:50Z` from the
 GitHub API. Checkpoint types are `merge_commit`, `head`, and
 `closed_without_merge`; the latter records a closed PR's exact `head` when
 `merged_at` and `merge_commit_sha` are both absent. A merged commit is
@@ -84,19 +84,19 @@ Open PRs at the same observation:
 
 - PR #258: `head` `6621eb116a4e92eb33eeae989c70fbc602450c51`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #349: `head` `13e576ec00e73f90bf1d8d7f572ce69ead33ce0b`, base `main`
+- PR #349: `head` `202194a2d9ba6da49a011ca6127a00f6bf5394ba`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #355: `head` `b606c2553f877fa85968d90dc46598ce16897fbf`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`). The overlap with PR #379's
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `d5416641fea7388c520452746f34275274c32fbf` (the exact current
+- PR #368: `head` `27fc6caa6e49f7c261252ab9561bd31d59d0a14c` (the exact current
   documentation checkpoint), base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #383: `head` `6525127008b3ba74526e8ffb8d8bf25630cf58db`, base `main`
+- PR #383: `head` `3584c31c22a432399c694588a4786c445f943848`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #384: `head` `13bf132f06f52adb01997c6a805d440fea6f40f7`, base
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
@@ -112,15 +112,17 @@ bases through normal merge commits; PR #387 remains the open main-targeting
 parent carrying those changes. PR #258 still targets `main` at base
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` and remains open; PR #385's merge
 commit is later repository history, not PR #258's original base or a merge of
-#258. PR #386 is closed as a duplicate of the safer #373 login fix. PR #382's
+PR #258. PR #386 is closed as a duplicate of the safer #373 login fix. PR #382's
 stack merge is not a main merge; #373 must still pass its own current-head
 gates.
 
-Queue refresh at the same observation: PRs #387, #390, #349, and #368 remained
-open without an independent `APPROVED` review and with non-terminal Checks.
-PRs #388 and #389 were merged into stack bases only; their merge commits are
-not protected-main merges. The current exact HEAD, review, and terminal-check
-gates must be re-read before any future merge action.
+Queue refresh at `2026-08-21T18:39:50Z`: PRs #258, #355, #373, and #384 had
+terminal successful Checks but no independent `APPROVED` review, so none was
+authorized to merge. PRs #349, #368, #383, and #387 had no failed Checks
+observed at their exact heads but retained non-terminal Checks and no
+independent approval. PRs #388, #389, and #390 were merged into stack bases
+only; their merge commits are not protected-main merges. Re-read the exact
+current HEAD, review, and terminal-check gates before every future merge.
 
 Closed without merge at the same observation:
 
@@ -329,16 +331,15 @@ Observed at `2026-08-21T18:11:51Z` on PR #383's current head
   passed; hosted Checks, independent approval, and a protected merge commit
   remain absent.
 
-Observed at `2026-08-21T18:33:15Z` on PR #349's exact head
-`13e576ec00e73f90bf1d8d7f572ce69ead33ce0b`:
+Observed at `2026-08-21T18:39:50Z` on PR #349's exact head
+`202194a2d9ba6da49a011ca6127a00f6bf5394ba`:
 
 - The ontology source cursor now uses `src.v2.` AES-GCM with a fresh 96-bit
   nonce and prefix/version associated data; the custom v1 keystream format is
   rejected. The concurrent ontology page retry repair remains included.
-- ADR 0125 records the decision and NIST SP 800-38D APA 7 reference. Local
-  verification passed 7 focused backend tests, 172 frontend tests, lint,
-  TypeScript, and production build; hosted Checks and
-  independent approval remained open.
+- ADR 0125 records the decision and NIST SP 800-38D APA 7 reference. The
+  static SQL review contract repair passed 17 focused tests and compilation;
+  hosted Checks remained non-terminal and no independent approval was present.
 
 ## 6. Organization OpenTelemetry Evidence Boundary
 
@@ -350,16 +351,16 @@ OpenTelemetry attributes correlate the authorized operation across services;
 collector delivery, retention, access review, and no-export rollback are the
 GRC evidence subjects.
 
-The remaining PR #383 `osv-scan` failure is a central workflow defect: the scan
-exited successfully, but the follow-up treated a missing baseline result file
-as failure after the head checkout. Central `.github` PR #1158 now contains the
-direct-source result-file repair (`--output-file`) at observed exact head
-`c24ce16ab72c5b372d2c397f0af8f84dc1b63d2f`; its provenance, Python contracts,
-and exact-head policy checks pass while the remaining security/queue checks are
-still non-terminal. Central PR #1002 independently remains open at observed
-exact head `a5163b4db0f25c0f2463fdeb075a74c8c0f2f6bf` with the required checks
-still running. Neither PR has independent approval, so PR #383 is not reported
-green or mergeable from this historical failure alone.
+The historical PR #383 `osv-scan` failure was a central workflow defect: the
+scan exited successfully, but the follow-up treated a missing baseline result
+file as failure after the head checkout. Central `.github` PR #1158 now
+contains the direct-source result-file repair (`--output-file`) at observed
+exact head `c24ce16ab72c5b372d2c397f0af8f84dc1b63d2f`; its provenance, Python
+contracts, and exact-head policy checks pass. The current #383 head has no
+failed Checks observed but still has non-terminal Checks and no independent
+approval, so it is not authorized to merge. Central PR #1002 independently
+remains open at observed exact head
+`a5163b4db0f25c0f2463fdeb075a74c8c0f2f6bf` with required checks still running.
 
 ## 7. Next Implementation Order
 
