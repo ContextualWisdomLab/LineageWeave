@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import re
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 from backend.app.auth import CurrentAccount
@@ -117,7 +117,7 @@ def _timeline(sources: list[ChatSourceDocument]) -> tuple[dict[str, str], ...]:
         try:
             occurred_at = datetime.fromisoformat(source.occurred_at.replace("Z", "+00:00"))
         except ValueError:
-            occurred_at = datetime.max
+            occurred_at = datetime.max.replace(tzinfo=timezone.utc)
         return occurred_at, source.post_id
 
     return tuple(
