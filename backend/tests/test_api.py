@@ -1306,8 +1306,23 @@ def test_customer_master_returns_authorized_catalog_contract(
                 ),
             )
             cur.execute(
+                "insert into corporate_entity "
+                "(parent_entity_id, corporate_entity_code, entity_name, entity_level_code) "
+                "values (%s, 'DEMO-GRANTED-CHILD', 'Demo Granted Child', 'company') "
+                "returning corporate_entity_id",
+                (seeded_db["granted_corp_id"],),
+            )
+            demo_child_id = str(cur.fetchone()[0])
+            cur.execute(
+                "insert into account_affiliation "
+                "(user_account_id, corporate_entity_id, affiliation_scope_code) "
+                "select user_account_id, %s, 'scope_granted_entity' "
+                "from user_account where external_subject_id = %s",
+                (demo_child_id, subject),
+            )
+            cur.execute(
                 "insert into post_organization_mention (post_id, corporate_entity_id) "
-                "values (%s, %s), (%s, %s), (%s, %s)",
+                "values (%s, %s), (%s, %s), (%s, %s), (%s, %s)",
                 (
                     seeded_db["public_post_id"],
                     seeded_db["other_corp_id"],
@@ -1315,6 +1330,8 @@ def test_customer_master_returns_authorized_catalog_contract(
                     seeded_db["hidden_corp_id"],
                     seeded_db["public_post_id"],
                     seeded_db["own_corp_id"],
+                    seeded_db["public_post_id"],
+                    demo_child_id,
                 ),
             )
             cur.execute(
@@ -1347,14 +1364,9 @@ def test_customer_master_returns_authorized_catalog_contract(
                     seeded_db["public_post_id"],
                 ),
             )
-            # Once imported source context exists, this affiliated entity is
+            # Once imported source context exists, this affiliated child is
             # synthetic-only and must be removed consistently from the tree,
-            # Keymen, and account-affiliation hints.
-            cur.execute(
-                "update corporate_entity set corporate_entity_code = 'DEMO-GRANTED' "
-                "where corporate_entity_id = %s",
-                (seeded_db["granted_corp_id"],),
-            )
+            # stale observed hierarchy facets, Keymen, and account hints.
             cur.execute(
                 "insert into cataloged_person (person_name, person_side_code) "
                 "values ('Demo Grant Only', 'our_side') returning person_id",
@@ -1363,8 +1375,8 @@ def test_customer_master_returns_authorized_catalog_contract(
             cur.execute(
                 "insert into person_affiliation "
                 "(person_id, affiliated_organization_name, affiliated_corporate_entity_id) "
-                "values (%s, 'Granted Corp', %s)",
-                (demo_person_id, seeded_db["granted_corp_id"]),
+                "values (%s, 'Demo Granted Child', %s)",
+                (demo_person_id, demo_child_id),
             )
         admin_conn.commit()
     finally:
@@ -1392,7 +1404,9 @@ def test_customer_master_returns_authorized_catalog_contract(
     assert entity["scope_facets"] == ["authorized_own", "observed_hierarchy", "observed_organization"]
     parent = next(item for item in body["corporate_entities"] if item["entity_name"] == "Test Group")
     assert parent["scope_facets"] == ["authorized_granted", "observed_hierarchy"]
-    assert not any(item["entity_name"] == "Granted Corp" for item in body["corporate_entities"])
+    granted = next(item for item in body["corporate_entities"] if item["entity_name"] == "Granted Corp")
+    assert granted["scope_facets"] == ["authorized_granted"]
+    assert not any(item["entity_name"] == "Demo Granted Child" for item in body["corporate_entities"])
     observed = next(item for item in body["corporate_entities"] if item["entity_name"] == "Other Corp")
     assert observed["scope_facets"] == ["observed_organization"]
     assert not any(item["entity_name"] == "Hidden Corp" for item in body["corporate_entities"])
@@ -1408,7 +1422,7 @@ def test_customer_master_returns_authorized_catalog_contract(
     assert ada_west["person_side_label"] not in ("", "our_side")
 
     network = {row["counterparty_entity_name"]: row for row in body["relationship_network"]}
-    assert seeded_db["granted_corp_id"] not in relationship_entity_ids
+    assert demo_child_id not in relationship_entity_ids
     assert "Private Other Corp" not in network
     northridge = network["Northridge Grid"]
     assert northridge["multi_role"] is True
@@ -1464,8 +1478,12 @@ def test_customer_master_returns_authorized_catalog_contract(
         affiliation["entity_name"] == "Test Corp"
         for affiliation in author_hint[0]["account_affiliations"]
     )
-    assert not any(
+    assert any(
         affiliation["entity_name"] == "Granted Corp"
+        for affiliation in author_hint[0]["account_affiliations"]
+    )
+    assert not any(
+        affiliation["entity_name"] == "Demo Granted Child"
         for affiliation in author_hint[0]["account_affiliations"]
     )
     assert "account_affiliation.corporate_entity_id" in author_hint[0]["provenance"]

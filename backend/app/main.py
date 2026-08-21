@@ -1015,6 +1015,21 @@ async def read_customer_master(
                 for row in entity_rows
                 if str(row["corporate_entity_id"]) not in synthetic_only_entity_ids
             ]
+        surviving_entity_by_id = {
+            str(row["corporate_entity_id"]): row for row in entity_rows
+        }
+        for row in entity_rows:
+            row["scope_facets"].discard("observed_hierarchy")
+        for entity_id in observed_entity_ids:
+            entity = surviving_entity_by_id.get(entity_id)
+            if entity is None:
+                continue
+            parent_id = entity["parent_entity_id"]
+            parent = surviving_entity_by_id.get(str(parent_id)) if parent_id is not None else None
+            if parent is None:
+                continue
+            entity["scope_facets"].add("observed_hierarchy")
+            parent["scope_facets"].add("observed_hierarchy")
         authorized_entity_id_set = {str(entity_id) for entity_id in account.corporate_entity_ids}
         authorized_entity_ids = [
             str(row["corporate_entity_id"])
