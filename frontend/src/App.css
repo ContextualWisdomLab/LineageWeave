@@ -1612,15 +1612,8 @@ a:focus-visible {
   position: relative;
   background: var(--surface);
   color: var(--text);
-  width: min(90%, 820px);
+  width: min(90%, 1180px);
   max-height: 85vh;
-  /* Wide desktop viewports get more than the 820px mobile-safe cap so
-     multi-column sections (popup-analysis-grid, popup-secondary-grid)
-     have room to sit side by side instead of forcing a narrow single
-     column on a 1920px-wide shell. */
-  @media (min-width: 1280px) {
-    width: min(85%, 1180px);
-  }
   overflow-y: auto;
   padding: clamp(1.25rem, 3vw, 2rem);
   border: 1px solid var(--border);
