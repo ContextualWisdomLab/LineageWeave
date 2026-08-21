@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
 from datetime import datetime, timezone
 
 from backend.app.ontology_neighborhood_ingestion import _load_facts
@@ -122,6 +123,38 @@ def test_first_page_preserves_breadth_first_proximity_before_property_sort() -> 
     assert len(neighborhood.edges) == 1
     assert neighborhood.edges[0].property_code == PROPERTY_MENTIONS
     assert neighborhood.edges[0].property_code != PROPERTY_AFFILIATED_WITH
+
+
+def test_source_page_keeps_sql_reachable_edges_without_focus_bridge() -> None:
+    """A later source page may contain only a relation beyond the focus edge."""
+    second_hop = replace(
+        fact_from_knowledge_graph_edge(
+            source_node_type_code=NODE_PERSON,
+            source_node_id=PERSON_ID,
+            target_node_type_code=NODE_CORPORATE_ENTITY,
+            target_node_id=CORP_ID,
+            edge_type_code=EDGE_AFFILIATION,
+            recorded_at=T0,
+        ),
+        source_hop_depth=1,
+    )
+
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        facts=[second_hop],
+        labels={
+            (NODE_POST, POST_ID): "Focus",
+            (NODE_PERSON, PERSON_ID): "Person",
+            (NODE_CORPORATE_ENTITY, CORP_ID): "Organization",
+        },
+        maximum_depth=2,
+        maximum_edges=1,
+        source_truncated=True,
+    )
+
+    assert len(neighborhood.edges) == 1
+    assert neighborhood.edges[0].property_code == PROPERTY_AFFILIATED_WITH
 
 
 class CapturingWindowConnection:

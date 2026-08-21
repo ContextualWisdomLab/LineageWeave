@@ -141,6 +141,9 @@ class NeighborhoodFact:
     valid_to: datetime | None = None
     evidence_references: tuple[str, ...] = ()
     provenance_reference: str | None = None
+    # SQL source windows already computed this relation's focus distance. It
+    # is internal paging metadata, not buyer-facing evidence.
+    source_hop_depth: int | None = None
 
 
 @dataclass(frozen=True)
@@ -468,6 +471,7 @@ def assemble_ontology_neighborhood(
                 valid_to=fact.valid_to,
                 evidence_references=fact.evidence_references,
                 provenance_reference=fact.provenance_reference,
+                source_hop_depth=fact.source_hop_depth,
             )
         )
 
@@ -477,27 +481,49 @@ def assemble_ontology_neighborhood(
         adjacency[_node_key(fact.target_node_type_code, fact.target_node_id)].append(fact)
 
     reached: dict[str, int] = {focus_key: 0}
-    queue: deque[str] = deque([focus_key])
     collected: list[NeighborhoodFact] = []
     seen_edges: set[str] = set()
-    while queue:
-        current = queue.popleft()
-        depth = reached[current]
-        if depth >= maximum_depth:
-            continue
-        for fact in sorted(adjacency.get(current, ()), key=_fact_sort_key):
-            edge_id = _edge_id(fact)
-            if edge_id in seen_edges:
-                continue
-            seen_edges.add(edge_id)
-            collected.append(fact)
+    source_window_facts = [fact for fact in visible_facts if fact.source_hop_depth is not None]
+    if source_window_facts:
+        # A source-cursor page may begin after the focus edge. PostgreSQL has
+        # already performed the authorized recursive BFS, so replay its
+        # bounded hop metadata instead of requiring the page to contain the
+        # earlier bridge facts.
+        collected = sorted(
+            visible_facts,
+            key=lambda fact: (
+                fact.source_hop_depth if fact.source_hop_depth is not None else maximum_depth,
+                _fact_sort_key(fact),
+            ),
+        )
+        for fact in collected:
+            seen_edges.add(_edge_id(fact))
+            depth = fact.source_hop_depth if fact.source_hop_depth is not None else maximum_depth
             for endpoint in (
                 _node_key(fact.source_node_type_code, fact.source_node_id),
                 _node_key(fact.target_node_type_code, fact.target_node_id),
             ):
-                if endpoint not in reached:
-                    reached[endpoint] = depth + 1
-                    queue.append(endpoint)
+                reached.setdefault(endpoint, depth + 1)
+    else:
+        queue: deque[str] = deque([focus_key])
+        while queue:
+            current = queue.popleft()
+            depth = reached[current]
+            if depth >= maximum_depth:
+                continue
+            for fact in sorted(adjacency.get(current, ()), key=_fact_sort_key):
+                edge_id = _edge_id(fact)
+                if edge_id in seen_edges:
+                    continue
+                seen_edges.add(edge_id)
+                collected.append(fact)
+                for endpoint in (
+                    _node_key(fact.source_node_type_code, fact.source_node_id),
+                    _node_key(fact.target_node_type_code, fact.target_node_id),
+                ):
+                    if endpoint not in reached:
+                        reached[endpoint] = depth + 1
+                        queue.append(endpoint)
 
     start = 0
     if cursor is not None:

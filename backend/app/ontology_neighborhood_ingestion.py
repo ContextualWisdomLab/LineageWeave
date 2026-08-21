@@ -368,8 +368,7 @@ async def _load_facts(
     page_rows = list(rows[:maximum_edges])
     facts: list[NeighborhoodFact] = []
     for row in page_rows:
-        facts.append(
-            fact_from_knowledge_graph_edge(
+        fact = fact_from_knowledge_graph_edge(
                 source_node_type_code=row["source_node_type_code"],
                 source_node_id=str(row["source_node_id"]),
                 target_node_type_code=row["target_node_type_code"],
@@ -379,6 +378,14 @@ async def _load_facts(
                 evidence_references=tuple(row["evidence_ids"] or ()),
                 provenance_reference="knowledge_graph_edge",
             )
+        try:
+            hop_depth = row["hop_depth"]
+        except (KeyError, IndexError):
+            hop_depth = None
+        facts.append(
+            fact
+            if hop_depth is None
+            else replace(fact, source_hop_depth=int(hop_depth))
         )
     last_key = source_key_from_row(page_rows[-1]) if page_rows else None
     return _LoadedFactWindow(facts, truncated=source_truncated, last_source_key=last_key)
