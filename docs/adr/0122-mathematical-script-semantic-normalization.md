@@ -1,4 +1,4 @@
-# ADR 0105: Preserve explicit metric scripts in semantic text
+# ADR 0122: Preserve explicit metric scripts in semantic text
 
 **Status:** Accepted on this PR; not protected-main truth  
 **Date:** 2026-08-21  
