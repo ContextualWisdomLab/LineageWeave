@@ -52,6 +52,16 @@ rerun for the resulting PR head.
   is claimed. The prior PR #347 merged at
   `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`.
 
+- **Adjacent current parsing PR:** PR #367 remains open and unmerged at exact
+  head `b628722cb000717b0198e4337d12306d4306922d`, based on
+  `docs/customer-master-scope-adr` at `f66991699506ef14607de5946da1efcfd20ae6da`.
+  It addresses the supplied numbered-footnote and empty-table-cell cases,
+  removes a dead footnote-reference branch, and rejects short non-footnote IDs.
+  Its focused parser gate is `45 passed`, with `compileall` and
+  `git diff --check` passing. GitHub Tests run `32472915167` is queued,
+  Devin Review is pending, CodeRabbit is successful, and the three known
+  review threads are resolved; no independent approval or merge is claimed.
+
 ## 2. UI/UX Standard Guide v3.0 comparison
 
 ### 2.1 Satisfied or substantially present
@@ -215,7 +225,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | PU/team/project weekly/monthly reports | report API/UI and grouping controls | source + unit; TEPP-backed live report open |
 | TEPP calibrated measurement, dichotomous items, multilevel/MMM/time model | published import/REST boundary and TEPP ADR/PRD references | boundary-only; live-external open |
 | contextual-orchestrator routing, VISION, embedding, schema repair | clients and provenance/session boundary; synthetic authenticated route returned a judge score of `0.98`, OCR succeeded, and region location returned five regions | source + local-integration partial; corpus backfill, capability/readiness evidence, and schema-repair workflow open |
-| HTML semantic units, tables, indentation, footnotes, formulas | parser modules and synthetic tests; 11-case authenticated popup sweep had no popup errors and rendered the supplied footnote/table cases; bounded metric superscript/subscript normalization has backend/frontend focused coverage | source + unit + local-integration partial; arbitrary formula/semantic correctness open |
+| HTML semantic units, tables, indentation, footnotes, formulas | parser modules and synthetic tests; adjacent open PR #367 at exact head `b628722cb000717b0198e4337d12306d4306922d` adds numbered-footnote, leading-empty-cell, and short-ID regressions; 11-case authenticated popup sweep had no popup errors and rendered the supplied footnote/table cases; bounded metric superscript/subscript normalization has backend/frontend focused coverage | source + unit + local-integration partial; PR #367 protected checks, arbitrary formula/semantic correctness, and corpus re-backfill remain open |
 | Base64/file image regions and multimodal evidence | image-region schema and VISION client boundary; live aggregate has 12,823 images, 22 described images/regions, and 422 failed images; current synthetic VISION route returned five regions | source + local-integration partial; supplied image-table case re-backfill and complete corpus coverage open |
 | Abbreviation/multilingual alias/entity disambiguation | catalog hints and resolver boundary | source; live corroboration open |
 | SearXNG/internal relation fact check | verification endpoint and unavailable handling; local SearXNG health and JSON query both returned HTTP 200, while some upstream engines reported rate-limit/CAPTCHA results | source + local-integration partial; corroboration policy and reliable external coverage open |
