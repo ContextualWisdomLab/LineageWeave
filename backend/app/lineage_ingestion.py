@@ -10,6 +10,7 @@ not derived from process unit or voc type.
 
 from __future__ import annotations
 
+import asyncio
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, Mapping
@@ -131,7 +132,8 @@ async def rebuild_lineage(
         "process_unit_id, thread_group_key, secondary_grouping_key "
         f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
     )
-    edges = lineage_edge_specs(records_from_source_posts(rows), llm=llm)
+    records = records_from_source_posts(rows)
+    edges = await asyncio.to_thread(lineage_edge_specs, records, llm=llm)
     await persist_lineage_edges(conn, edges)
     return edges
 

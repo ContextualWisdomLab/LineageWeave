@@ -50,13 +50,19 @@ def test_rebuild_passes_the_configured_adjudication_client(monkeypatch) -> None:
     async def fake_persist_lineage_edges(_conn, _edges):
         return None
 
+    async def fake_to_thread(function, *args, **kwargs):
+        captured["offloaded_function"] = function
+        return function(*args, **kwargs)
+
     import backend.app.lineage_ingestion as ingestion
 
     monkeypatch.setattr(ingestion, "lineage_edge_specs", fake_lineage_edge_specs)
     monkeypatch.setattr(ingestion, "persist_lineage_edges", fake_persist_lineage_edges)
+    monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
     asyncio.run(rebuild_lineage(FakeConnection(), llm=client))
 
     assert captured["llm"] is client
+    assert captured["offloaded_function"] is fake_lineage_edge_specs
 
 
 def test_records_fall_back_to_corporate_entity_when_thread_keys_are_empty() -> None:
