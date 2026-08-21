@@ -4,13 +4,17 @@
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
-@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
 @prefix time: <http://www.w3.org/2006/time#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
 <https://contextualwisdomlab.github.io/lineageweave/event-intelligence>
     a owl:Ontology ;
+    owl:versionIRI <https://contextualwisdomlab.github.io/lineageweave/event-intelligence/1.0.0> ;
     owl:versionInfo "1.0.0" ;
+    owl:imports
+        <https://contextualwisdomlab.github.io/lineageweave/ontology>,
+        <http://www.w3.org/ns/prov-o>,
+        <http://www.w3.org/2006/time> ;
     rdfs:label "LineageWeave Event Intelligence Profile"@en ;
     rdfs:comment "A consumer-side profile joining LineageWeave graph evidence, TEPP temporal/topic artifacts, fast-mlsirm psychometric artifacts, and contextual-orchestrator judgments without transferring scientific authority."@en .
 
@@ -23,6 +27,12 @@
     rdfs:subClassOf prov:Entity ;
     rdfs:label "Event episode"@en ;
     rdfs:comment "A bounded or open-ended real-world episode represented as a first-class entity rather than a post label."@en .
+
+:EventAssertion
+    a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Event assertion"@en ;
+    rdfs:comment "A source-grounded assertion that describes an event episode without treating the source document as a cause of that event."@en .
 
 :EvidenceBundle
     a owl:Class ;
@@ -59,6 +69,12 @@
     rdfs:label "Event-intelligence dossier"@en ;
     rdfs:comment "A deterministic buyer artifact that composes, but does not average, its scientific and semantic channels."@en .
 
+:DossierGenerationActivity
+    a owl:Class ;
+    rdfs:subClassOf prov:Activity ;
+    rdfs:label "Dossier generation activity"@en ;
+    rdfs:comment "The deterministic composition activity that uses authorized assertions and an evidence bundle to generate one dossier entity."@en .
+
 :RelevanceMeasurement
     a owl:Class ;
     rdfs:subClassOf prov:Entity ;
@@ -72,7 +88,7 @@
     rdfs:comment "A buyer-facing statement whose complete evidence set is explicit."@en .
 
 #################################################################
-# Composition properties
+# Composition and evidence properties
 #################################################################
 
 :describesEvent
@@ -84,9 +100,37 @@
 :usesEvidenceBundle
     a owl:ObjectProperty ;
     rdfs:subPropertyOf prov:used ;
-    rdfs:domain :EventIntelligenceDossier ;
+    rdfs:domain :DossierGenerationActivity ;
     rdfs:range :EvidenceBundle ;
     rdfs:label "uses evidence bundle"@en .
+
+:usesEventAssertion
+    a owl:ObjectProperty ;
+    rdfs:subPropertyOf prov:used ;
+    rdfs:domain :DossierGenerationActivity ;
+    rdfs:range :EventAssertion ;
+    rdfs:label "uses event assertion"@en .
+
+:generatesDossier
+    a owl:ObjectProperty ;
+    rdfs:subPropertyOf prov:generated ;
+    rdfs:domain :DossierGenerationActivity ;
+    rdfs:range :EventIntelligenceDossier ;
+    rdfs:label "generates dossier"@en .
+
+:assertsEvent
+    a owl:ObjectProperty ;
+    rdfs:domain :EventAssertion ;
+    rdfs:range :EventEpisode ;
+    rdfs:label "asserts event"@en .
+
+:supportedBySource
+    a owl:ObjectProperty ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    rdfs:domain :EventAssertion ;
+    rdfs:range lw:Post ;
+    rdfs:label "supported by source"@en ;
+    rdfs:comment "The assertion is derived from an authorized source post; the post is not asserted to have influenced the real-world event."@en .
 
 :hasKnowledgeGraphProjection
     a owl:ObjectProperty ;
@@ -127,16 +171,39 @@
 :hasTemporalExtent
     a owl:ObjectProperty ;
     rdfs:domain :EventEpisode ;
-    rdfs:range time:TemporalEntity ;
+    rdfs:range time:Interval ;
     rdfs:label "has temporal extent"@en .
+
+:hasAssertionInstant
+    a owl:ObjectProperty ;
+    rdfs:domain :EventAssertion ;
+    rdfs:range time:Instant ;
+    rdfs:label "has assertion instant"@en .
+
+:hasDocumentInstant
+    a owl:ObjectProperty ;
+    rdfs:domain :EventAssertion ;
+    rdfs:range time:Instant ;
+    rdfs:label "has document instant"@en .
+
+:hasAvailableInstant
+    a owl:ObjectProperty ;
+    rdfs:domain prov:Entity ;
+    rdfs:range time:Instant ;
+    rdfs:label "has available instant"@en .
+
+:hasKnowledgeCutoffInstant
+    a owl:ObjectProperty ;
+    rdfs:domain :EvidenceBundle ;
+    rdfs:range time:Instant ;
+    rdfs:label "has knowledge-cutoff instant"@en .
 
 :evidencesEvent
     a owl:ObjectProperty ;
     rdfs:domain lw:Post ;
     rdfs:range :EventEpisode ;
-    rdfs:subPropertyOf prov:influenced ;
     rdfs:label "evidences event"@en ;
-    rdfs:comment "The source post is evidence for the event episode; it is not itself the event."@en .
+    rdfs:comment "A buyer read-model convenience edge projected from an authorized EventAssertion. It is deliberately not a PROV influence relation and carries no causal meaning."@en .
 
 :supportsClaim
     a owl:ObjectProperty ;
@@ -165,6 +232,30 @@
 #################################################################
 # Exact-value properties
 #################################################################
+
+:eventStart
+    a owl:DatatypeProperty ;
+    rdfs:domain :EventEpisode ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "event start"@en .
+
+:eventEnd
+    a owl:DatatypeProperty ;
+    rdfs:domain :EventEpisode ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "event end"@en .
+
+:assertionTime
+    a owl:DatatypeProperty ;
+    rdfs:domain :EventAssertion ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "assertion time"@en .
+
+:documentTime
+    a owl:DatatypeProperty ;
+    rdfs:domain :EventAssertion ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "document time"@en .
 
 :knowledgeCutoff
     a owl:DatatypeProperty ;
