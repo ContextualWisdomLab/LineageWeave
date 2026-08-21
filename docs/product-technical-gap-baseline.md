@@ -49,7 +49,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T18:17:06Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T18:27:23Z` from the
 GitHub API. Checkpoint types are `merge_commit`, `head`, and
 `closed_without_merge`; the latter records a closed PR's exact `head` when
 `merged_at` and `merge_commit_sha` are both absent. A merged commit is
@@ -73,6 +73,10 @@ Recently merged into an open stack base (not main):
 
 - PR #382: `merge_commit` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, merged
   into PR #373's `ci/publish-ontology-pages-clean` base.
+- PR #388: `merge_commit` `068ed6a44a7235e2f996450f0d6a7948bdd8732a`, merged
+  into PR #387's `feat/event-lineage-channel-evidence` base.
+- PR #389: `merge_commit` `778c5df1223ed60a6494e8896079b3ece97669f4`, merged
+  into PR #388's `feat/post-body-footnote-display` base.
 
 Open PRs at the same observation:
 
@@ -94,14 +98,11 @@ Open PRs at the same observation:
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #384: `head` `1bffa5adafa6f015cea355de1b82a370d5791f4b`, base
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
-- PR #387: `head` `cb79302831c0889007699ba7dca2aafa02c01e50`, base `main`
+- PR #387: `head` `13c102532f4485c732a83c7741e0844c77f082e5`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #388: `head` `caea21be9e3485086ae3967fe5e6d23199b5459`, base
-  `feat/event-lineage-channel-evidence`
-  (`cb79302831c0889007699ba7dca2aafa02c01e50`).
-- PR #389: `head` `d4a486b15412340734541efca7a6e5050a7cd02c`, base
+- PR #390: `head` `e2f0894b03036ea0881c00ec33c44da28e4a1dbd`, base
   `feat/post-body-footnote-display`
-  (`caea21be9e3485086ae3967fe5e6d23199b5459`).
+  (`778c5df1223ed60a6494e8896079b3ece97669f4`).
 
 The open queue remains subject to exact-current-head Checks, formal independent
 approval, and protected mergeability. Green Checks alone do not prove that a
@@ -115,11 +116,11 @@ commit is later repository history, not PR #258's original base or a merge of
 stack merge is not a main merge; #373 must still pass its own current-head
 gates.
 
-Queue refresh at the same observation: PRs #387, #388, #389, #349, and #368
-had no independent `APPROVED` review. Each still had at least one non-terminal
-required check (in-progress or queued), so none was merge-authorized. The
-current exact HEAD, review, and terminal-check gates must be re-read before any
-future merge action.
+Queue refresh at the same observation: PRs #387, #390, #349, and #368 remained
+open without an independent `APPROVED` review and with non-terminal Checks.
+PRs #388 and #389 were merged into stack bases only; their merge commits are
+not protected-main merges. The current exact HEAD, review, and terminal-check
+gates must be re-read before any future merge action.
 
 Closed without merge at the same observation:
 
@@ -288,8 +289,8 @@ Observed at `2026-08-21T18:17:06Z` on PR #389's exact head
   merge commit remain absent. This remains an open stacked fix, not a resolved
   production gap.
 
-Observed at `2026-08-21T18:14:02Z` on PR #387's exact head
-`cb79302831c0889007699ba7dca2aafa02c01e50`:
+Observed at `2026-08-21T18:27:23Z` on PR #387's exact head
+`13c102532f4485c732a83c7741e0844c77f082e5`:
 
 - The Event Lineage channel-evidence persistence check now budgets one
   half-quantum per six-decimal contribution plus a small floating-point guard,
@@ -298,10 +299,22 @@ Observed at `2026-08-21T18:14:02Z` on PR #387's exact head
 - A four-channel regression covers the former failure boundary. The async
   rebuild now offloads synchronous reconstruction and the visible graph bounds
   evidence reads to visible endpoint IDs. The rebuild transaction now starts
-  only after reconstruction, so slow orchestrator work cannot hold a pooled
-  connection idle in transaction. Local verification on this exact head passed
-  769 backend tests with 17 environment skips; hosted Checks were queued and
-  no independent approval or merge commit was present.
+  only after reconstruction, and the pooled connection is released until the
+  atomic replacement write, so slow orchestrator work cannot hold a pooled
+  connection idle in transaction. The current branch also includes the
+  merged Markdown-table and structured-footnote stack through regular merges.
+  Local verification on this exact head passed 770 backend tests with 17
+  environment skips; hosted Checks were non-terminal and no independent
+  approval or protected-main merge was present.
+
+Observed at `2026-08-21T18:27:23Z` on PR #390's exact head
+`e2f0894b03036ea0881c00ec33c44da28e4a1dbd`:
+
+- The follow-up keeps pipe-bearing list items as separate semantic segments,
+  then merges the current stacked base `778c5df1` normally to restore PR
+  ancestry. Local verification passed 156 frontend tests, lint, production
+  build, and `git diff --check`. Checks were queued and no independent
+  approval or protected-main merge was present.
 
 Observed at `2026-08-21T18:11:51Z` on PR #383's current head
 `6525127008b3ba74526e8ffb8d8bf25630cf58db`:
