@@ -393,12 +393,14 @@ def assemble_ontology_neighborhood(
     maximum_edges: int = DEFAULT_MAXIMUM_EDGES,
     allowed_property_codes: Sequence[str] | None = None,
     cursor: str | None = None,
+    source_truncated: bool = False,
 ) -> OntologyNeighborhood:
     """Walk a bounded typed neighborhood from an already-visible focus.
 
     Hidden endpoints remove the edge. Truncation never reports how many
     neighbors were omitted. OWL subclass facts are rejected. Inferred
-    facts stay inferred.
+    facts stay inferred. A bounded loader can set ``source_truncated`` so
+    an exhausted in-memory page never masquerades as the complete graph.
     """
     if focus_node_type_code not in KNOWN_NODE_TYPES:
         raise OntologyNeighborhoodError("unknown_node_type", f"unknown node type {focus_node_type_code!r}")
@@ -489,7 +491,6 @@ def assemble_ontology_neighborhood(
                     reached[endpoint] = depth + 1
                     queue.append(endpoint)
 
-    collected.sort(key=_fact_sort_key)
     start = 0
     if cursor is not None:
         token = cursor.removeprefix("after:")
@@ -502,7 +503,7 @@ def assemble_ontology_neighborhood(
         start = matched + 1
 
     page_edges = collected[start : start + maximum_edges]
-    truncated = (start + len(page_edges)) < len(collected) or len(reached) > maximum_nodes
+    truncated = source_truncated or (start + len(page_edges)) < len(collected) or len(reached) > maximum_nodes
     next_cursor = None
     if (start + len(page_edges)) < len(collected) and page_edges:
         next_cursor = f"after:{_edge_id(page_edges[-1])}"
