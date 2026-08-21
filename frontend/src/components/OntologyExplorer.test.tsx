@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { OntologyNeighborhoodPayload } from "../api";
-import { OntologyExplorer } from "./OntologyExplorer";
+import { filterNeighborhood, jsonldForNeighborhood, OntologyExplorer } from "./OntologyExplorer";
 
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
 const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
@@ -204,5 +204,31 @@ describe("OntologyExplorer", () => {
     expect(screen.queryByText(/omitted \d/i)).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Reset focus" }));
     expect(screen.getByLabelText("Search within this neighborhood")).toHaveValue("");
+  });
+
+  it("exports only the graph that remains visible after search", () => {
+    const payload = neighborhood({
+      jsonld: {
+        "@context": { lw: "https://example.test/" },
+        "@graph": [
+          { "@id": `lw:node/node_post/${POST_ID}` },
+          { "@id": `lw:node/node_person/${PERSON_ID}` },
+          { "@id": `lw:node/node_corporate_entity/${CORP_ID}` },
+          { "@id": "lw:edge/mentions:post-person" },
+          { "@id": "lw:edge/affiliated:person-corp" },
+          { "@id": "lw:node/node_person/hidden" },
+        ],
+      },
+    });
+    const visible = filterNeighborhood(payload, "Priya");
+    expect(visible).not.toBeNull();
+    const graph = jsonldForNeighborhood(visible!)["@graph"] as Array<Record<string, unknown>>;
+    expect(graph.map((item) => item["@id"])).toEqual([
+      `lw:node/node_post/${POST_ID}`,
+      `lw:node/node_person/${PERSON_ID}`,
+      `lw:node/node_corporate_entity/${CORP_ID}`,
+      "lw:edge/mentions:post-person",
+      "lw:edge/affiliated:person-corp",
+    ]);
   });
 });

@@ -132,7 +132,7 @@ export function OntologyExplorer({
     if (!visible) return;
     downloadFile(
       "ontology-neighborhood.jsonld",
-      `${JSON.stringify(visible.jsonld, null, 2)}\n`,
+      `${JSON.stringify(jsonldForNeighborhood(visible), null, 2)}\n`,
       "application/ld+json",
     );
   }
@@ -520,7 +520,7 @@ function OntologyEdgeDrawer({
   );
 }
 
-function filterNeighborhood(
+export function filterNeighborhood(
   payload: OntologyNeighborhoodPayload | null,
   query: string,
 ): OntologyNeighborhoodPayload | null {
@@ -550,6 +550,23 @@ function filterNeighborhood(
     edges.some((edge) => edge.edge_id === row.edge_id),
   );
   return { ...payload, nodes, edges, exact_value_rows };
+}
+
+export function jsonldForNeighborhood(payload: OntologyNeighborhoodPayload): Record<string, unknown> {
+  const graph = payload.jsonld["@graph"];
+  if (!Array.isArray(graph)) return { ...payload.jsonld, "@graph": [] };
+  const visibleIds = new Set([
+    ...payload.nodes.map((node) => `lw:node/${node.node_type_code}/${node.node_id}`),
+    ...payload.edges.map((edge) => `lw:edge/${edge.edge_id}`),
+  ]);
+  return {
+    ...payload.jsonld,
+    "@graph": graph.filter((item) => {
+      if (!item || typeof item !== "object" || Array.isArray(item)) return false;
+      const id = (item as Record<string, unknown>)["@id"];
+      return typeof id === "string" && visibleIds.has(id);
+    }),
+  };
 }
 
 function downloadFile(name: string, body: string, type: string) {
