@@ -208,6 +208,7 @@ def _render_term_sections(graph: Graph) -> tuple[str, str, int]:
                 str(subject),
             ),
         )
+        terms = [term for term in terms if term not in counted]
         if not terms:
             continue
         section_id = heading.lower().replace(" ", "-")

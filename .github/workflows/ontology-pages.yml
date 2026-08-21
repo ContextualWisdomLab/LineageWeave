@@ -22,14 +22,13 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: ontology-pages-${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   validate:
     name: Validate ontology publication
     if: github.event_name == 'pull_request'
+    concurrency:
+      group: ontology-pages-validation-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -71,6 +70,9 @@ jobs:
   publish:
     name: Publish ontology to GitHub Pages
     if: github.event_name != 'pull_request'
+    concurrency:
+      group: ontology-pages-publication
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     permissions:
       contents: read

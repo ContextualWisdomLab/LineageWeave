@@ -135,6 +135,20 @@ def test_helpers_cover_slash_fragments_json_lists_and_missing_ontology() -> None
         raise AssertionError("missing owl:Ontology declaration was accepted")
 
 
+def test_render_term_sections_keeps_one_anchor_for_multi_typed_terms() -> None:
+    builder = _load_builder()
+    graph = Graph()
+    term = builder.URIRef("https://example.test/ontology#SharedTerm")
+    graph.add((term, builder.RDF.type, builder.OWL.Class))
+    graph.add((term, builder.RDF.type, builder.SKOS.Concept))
+
+    nav, sections, term_count = builder._render_term_sections(graph)
+
+    assert nav.count("SharedTerm") == 0
+    assert sections.count('id="SharedTerm"') == 1
+    assert term_count == 1
+
+
 def test_builder_fails_closed_for_missing_sources_and_replaces_output(tmp_path: Path) -> None:
     builder = _load_builder()
     repository = tmp_path / "repository"
