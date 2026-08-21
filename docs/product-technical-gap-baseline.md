@@ -35,7 +35,7 @@
 The following states are evidence-bound and must not be changed to `merged` or
 `resolved` from intent alone:
 
-Observed at `2026-08-21T13:58:02Z` from the GitHub API. A merged commit is
+Observed at `2026-08-21T14:01:24Z` from the GitHub API. A merged commit is
 identified as `merge_commit`; an open PR is identified by its exact `head`.
 
 - LineageWeave PR #344: `merge_commit`
@@ -51,7 +51,7 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   provenance explorer remains open and required Checks and independent
   approval remain external gates.
 - LineageWeave PR #368: `head`
-  `7d4ee14210ea2a822dfc12af2d809f9ba6fd5f74`, base `main`; this baseline
+  `3a924014dbaafa22e74331df642a5fa4e4569f0d`, base `main`; this baseline
   checkpoint is updated by the stacked documentation PR for the newer queue
   evidence below.
 - LineageWeave PR #378: `merge_commit`
@@ -91,7 +91,7 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   cleanup are locally verified; required Checks and independent approval
   remain external gates.
 - LineageWeave PR #385: `head`
-  `23a5c139b2b732218b6154ba600ad6c3be970f45`, base
+  `d0c7decf4767902642c9805629bb8c7d5440ead8`, base
   `feat/analysis-run-name-evidence-lineage`; stacked on PR #258's exact head
   `481bdb6eafa1d3f074ca7d9d05275ce36a4708d8`, it hardens the external
   lineage contract, removes the self-modifying repair workflow, and fixes the
