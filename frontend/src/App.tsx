@@ -312,7 +312,7 @@ function ChatPanel({
             placeholder="What happened between these events?"
           />
           <button onClick={() => handleAsk()} disabled={loading || !question.trim()}>
-            {loading ? "Asking..." : "Ask"}
+            {loading ? "질의 중..." : "질의"}
           </button>
         </div>
       )}
@@ -959,7 +959,7 @@ function KeymanPanel({
         <h3>Keyman</h3>
         {canExtract && !orchestratorOff && (
           <button onClick={handleExtract} disabled={extracting}>
-            {extracting ? "Extracting..." : "Extract Keymen"}
+            {extracting ? "도출 중..." : "Keyman 도출"}
           </button>
         )}
       </div>
@@ -1099,7 +1099,7 @@ function EvaluationPanel({
         <h3>Post quality (IRT)</h3>
         {canExtract && !orchestratorOff && (
           <button onClick={handleEvaluate} disabled={evaluating}>
-            {evaluating ? "Evaluating..." : "Evaluate post"}
+            {evaluating ? "평가 중..." : "게시글 평가"}
           </button>
         )}
       </div>
@@ -1168,7 +1168,7 @@ function CounterpartyPanel({
         <h3>Counterparties</h3>
         {canExtract && hasPending && !searchOff && (
           <button onClick={handleVerify} disabled={verifying}>
-            {verifying ? "Verifying..." : "Verify against web search"}
+            {verifying ? "검증 중..." : "웹 검색 검증"}
           </button>
         )}
       </div>
@@ -1248,7 +1248,7 @@ function AbbreviationCrossCheckPanel({
         <h3>Abbreviation cross-check</h3>
         {canExtract && !searchOff && (
           <button onClick={handleCorroborate} disabled={checking}>
-            {checking ? "Checking..." : "Cross-check against customer group tree"}
+            {checking ? "검증 중..." : "고객사 트리 교차 검증"}
           </button>
         )}
       </div>
@@ -1372,7 +1372,7 @@ function IssueTicketPanel({
         <h3>이슈 티켓 (Issue tickets)</h3>
         {canExtract && !orchestratorOff && (
           <button onClick={handleDeriveCommitment} disabled={deriving}>
-            {deriving ? "Deriving..." : "Derive commitment"}
+            {deriving ? "도출 중..." : "Commitment 도출"}
           </button>
         )}
       </div>
@@ -1419,7 +1419,7 @@ function IssueTicketPanel({
           aria-label="Due date"
         />
         <button onClick={handleCreate} disabled={creating || !newTitle.trim()}>
-          {creating ? "Creating..." : "Create ticket"}
+          {creating ? "작성 중..." : "티켓 작성"}
         </button>
       </div>
     </section>
@@ -1458,7 +1458,7 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
     <section className="popup-section">
       <div className="lineage-home-header">
         <h3>Activity</h3>
-        <button onClick={reload}>Refresh</button>
+        <button onClick={reload}>조회</button>
       </div>
       {error && <p className="error">{error}</p>}
       {events === null ? (
@@ -1579,7 +1579,7 @@ function PostDetailPopup({
             <p className="post-meta">
               {post.voc_type_label ?? post.voc_type_code} &middot;{" "}
               {post.visibility_label ?? post.visibility_code} &middot;{" "}
-              {new Date(post.created_at).toLocaleString()}
+              {new Date(post.created_at).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\. /g, ".").replace(/\.$/, "") + " " + new Date(post.created_at).toLocaleTimeString("ko-KR", { hour12: false, hour: "2-digit", minute: "2-digit", second: "2-digit" })}
             </p>
             {post.known_at ? (
               <CutoffKnownBody
@@ -3114,7 +3114,7 @@ function ReportsPanel({
         <h2>Period reports</h2>
         {canRebuild && (
           <button onClick={handleRebuild} disabled={rebuilding}>
-            {rebuilding ? "Calibrating..." : "Rebuild report"}
+            {rebuilding ? "재생성 중..." : "보고서 재생성"}
           </button>
         )}
       </div>
@@ -3351,7 +3351,7 @@ function PostList({ accessToken }: { accessToken: string }) {
           <h2>Event Lineage</h2>
           {canRebuild && (
             <button onClick={handleRebuild} disabled={rebuilding}>
-              {rebuilding ? "Rebuilding..." : "Rebuild lineage"}
+              {rebuilding ? "재생성 중..." : "Lineage 재생성"}
             </button>
           )}
         </div>
@@ -3415,7 +3415,7 @@ export default function App() {
             </div>
             <div className="login-controls">
               <button className="btn-primary" onClick={() => auth.signinRedirect()}>
-                Log in
+                로그인
               </button>
             </div>
             <div className="login-help">
@@ -3428,7 +3428,7 @@ export default function App() {
             <span className="app-footer-logo">LineageWeave</span>
           </div>
           <div className="app-footer-copyright">
-            <p>Copyright &copy; 2019 LineageWeave. All rights reserved.</p>
+            <p>Copyright &copy; 2019 by BRAND. All rights reserved.</p>
           </div>
         </footer>
       </div>
@@ -3449,7 +3449,7 @@ export default function App() {
         <div className="app-header-top-menu">
           <span className="app-user-profile">{auth.user?.profile.preferred_username}</span>
           <button className="btn-secondary" onClick={() => auth.signoutRedirect()}>
-            Log out
+            로그아웃
           </button>
         </div>
       </header>
@@ -3465,7 +3465,7 @@ export default function App() {
           <span className="app-footer-logo">LineageWeave</span>
         </div>
         <div className="app-footer-copyright">
-          <p>Copyright &copy; 2019 LineageWeave. All rights reserved.</p>
+          <p>Copyright &copy; 2019 by BRAND. All rights reserved.</p>
         </div>
       </footer>
     </div>

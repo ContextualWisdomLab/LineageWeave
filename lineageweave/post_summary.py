@@ -97,6 +97,8 @@ class PostSummary:
     korean_summary: str
     key_events: tuple[str, ...] = field(default_factory=tuple)
     roles_and_responsibilities: tuple[RoleResponsibility, ...] = field(default_factory=tuple)
+    projects: tuple[str, ...] = field(default_factory=tuple)
+    five_w_one_h: dict[str, str] = field(default_factory=dict)
 
 
 class PostSummaryClient(Protocol):
@@ -125,19 +127,21 @@ class NullPostSummaryClient:
 
 _SUMMARY_PROMPT_TEMPLATE = """\
 Read the post below (it may be in English, Korean, or mixed) and produce
-three things:
+these items:
 
 1. A Korean-language summary (2-4 sentences) of what the post is about --
    genuinely condensed and re-worded, not copied sentences from the text.
 2. A list of key events: discrete, datable occurrences mentioned in the
    post (e.g. "a bid was submitted", "a delivery date was confirmed"),
    each as a short phrase.
-3. A list of roles & responsibilities: for each named actor in the post
+3. A list of multiple distinct projects (if any are mentioned) separated rather than mixed up. If there's only one project or no clear project, output an array of 1 or 0 items.
+4. Detailed 5W1H (Who, What, When, Where, Why, How) of the post. Fill out each field in detail. Ensure Who and What are explicitly stated.
+5. A list of roles & responsibilities: for each named actor in the post
    -- a person, an organization acting in its own name (e.g. "당사"
    [our company], "Demo Corp"), OR a named team/department inside an
    organization (e.g. "설계팀" [design team], "Sales Team") -- one short
    phrase describing what they are responsible for or did, according to
-   the text. Do not force an organization's name into a person slot, and
+   the text (e.g. who requested, who processes, who approved). Do not force an organization's name into a person slot, and
    do not force a team's name into an organization slot: a team is a
    sub-unit of a company, not the company itself -- decide which of the
    three each actor is, and say which.
@@ -153,6 +157,8 @@ Reply with ONLY a JSON object (no markdown fences, no prose) with exactly
 these fields:
   "korean_summary": string
   "key_events": array of strings
+  "projects": array of strings
+  "five_w_one_h": object with keys "who", "what", "when", "where", "why", "how" (each a string, use "None" if missing)
   "roles_and_responsibilities": array of objects, each with:
     "actor_name": string
     "responsibility": string
@@ -197,6 +203,21 @@ def parse_summary_response(content: str) -> PostSummary | None:
         key_events_raw, list
     ) else ()
 
+    projects_raw = parsed.get("projects") or []
+    projects = tuple(p.strip() for p in projects_raw if isinstance(p, str) and p.strip()) if isinstance(
+        projects_raw, list
+    ) else ()
+
+    five_w_one_h_raw = parsed.get("five_w_one_h")
+    five_w_one_h = {}
+    if isinstance(five_w_one_h_raw, dict):
+        for k in ["who", "what", "when", "where", "why", "how"]:
+            val = five_w_one_h_raw.get(k)
+            five_w_one_h[k] = val.strip() if isinstance(val, str) else "None"
+    else:
+        for k in ["who", "what", "when", "where", "why", "how"]:
+            five_w_one_h[k] = "None"
+
     rr_raw = parsed.get("roles_and_responsibilities") or []
     roles: list[RoleResponsibility] = []
     if isinstance(rr_raw, list):
@@ -237,6 +258,8 @@ def parse_summary_response(content: str) -> PostSummary | None:
         korean_summary=korean_summary.strip(),
         key_events=key_events,
         roles_and_responsibilities=tuple(roles),
+        projects=projects,
+        five_w_one_h=five_w_one_h,
     )
 
 

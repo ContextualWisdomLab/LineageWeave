@@ -122,11 +122,13 @@ class ImageDescription:
         caption: one-sentence description of what the image shows.
         tags: short tags for the main objects/subjects, for independent
             keyword search separate from the free-text caption.
+        ontology_mapping: Detailed mapping to relevant Knowledge Graph ontology entities.
     """
 
     extracted_text: str
     caption: str
     tags: tuple[str, ...]
+    ontology_mapping: str
 
 
 class ImageContentClient(Protocol):
@@ -154,18 +156,19 @@ class NullImageContentClient:
 
 
 _RESPONSE_FORMAT = (
-    "Examine this image. Reply with EXACTLY three lines, no extra commentary:\n"
+    "Examine this image. Reply with EXACTLY four lines, no extra commentary:\n"
     "TEXT: <all legible text in the image, verbatim, or NONE if there is none>\n"
-    "CAPTION: <one sentence describing what the image shows>\n"
-    "TAGS: <comma-separated short tags for the main objects/subjects>"
+    "CAPTION: <detailed description of what the image shows>\n"
+    "TAGS: <comma-separated short tags for the main objects/subjects>\n"
+    "ONTOLOGY_MAPPING: <detailed mapping to relevant knowledge graph ontology entities, e.g. equipment types, processes, actor roles>"
 )
 # TEXT may legitimately span multiple lines because OCR output is often
-# multi-line. CAPTION and TAGS are explicitly single-line fields. Synthetic
+# multi-line. CAPTION, TAGS, and ONTOLOGY_MAPPING are explicitly single-line fields. Synthetic
 # format-variation fixtures cover common provider drift such as bolded or
 # reordered labels without allowing trailing commentary to contaminate the
 # searchable caption or tag values.
 _LABEL_LINE = re.compile(
-    r"^\s*(?:[*_`>#\-]\s*)*(TEXT|CAPTION|TAGS)(?:\s*[*_`]+)?\s*:\s*"
+    r"^\s*(?:[*_`>#\-]\s*)*(TEXT|CAPTION|TAGS|ONTOLOGY_MAPPING)(?:\s*[*_`]+)?\s*:\s*"
     r"(?:(?:[*_`]+)(?=\s|$)\s*)?(.*)$",
     re.IGNORECASE,
 )
@@ -199,7 +202,7 @@ def _strip_outer_markdown_emphasis(value: str) -> str:
 
 
 def _parse_description(content: str) -> ImageDescription:
-    fields: dict[str, list[str]] = {"TEXT": [], "CAPTION": [], "TAGS": []}
+    fields: dict[str, list[str]] = {"TEXT": [], "CAPTION": [], "TAGS": [], "ONTOLOGY_MAPPING": []}
     multiline_field: str | None = None
     for line in content.splitlines():
         match = _LABEL_LINE.match(line)
@@ -232,7 +235,8 @@ def _parse_description(content: str) -> ImageDescription:
         for tag in tags_raw.split(",")
         if (cleaned := _strip_outer_markdown_emphasis(tag))
     )
-    return ImageDescription(extracted_text=extracted_text, caption=caption, tags=tags)
+    ontology_mapping = "\n".join(fields["ONTOLOGY_MAPPING"]).strip()
+    return ImageDescription(extracted_text=extracted_text, caption=caption, tags=tags, ontology_mapping=ontology_mapping)
 
 
 class OpenAiCompatibleVisionClient:

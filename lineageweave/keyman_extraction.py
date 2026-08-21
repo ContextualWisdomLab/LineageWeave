@@ -82,26 +82,26 @@ class NullKeymanExtractionClient:
 
 
 _EXTRACTION_PROMPT_TEMPLATE = """\
-Read the post below and list every named person it mentions. For each
-person, classify which side they are on, list every organization they
-are affiliated with according to the text (a person may belong to more
+Read the post below and list every named person, specific unnamed role (e.g., "PMs"), or team (e.g., "설계팀") it mentions. For each
+actor, classify which side they are on, list every organization they
+are affiliated with according to the text (an actor may belong to more
 than one organization, or none if the text does not say), and give their
 job title or position if the text states one. Two different real people
 can share the same name -- a stated title/position (e.g. "sales
 manager," "purchasing lead") is real evidence for telling them apart, so
-report it whenever the text gives one rather than leaving it out.
+report it whenever the text gives one rather than leaving it out. If a team or group like '설계팀' or 'PMs' is mentioned, treat them as a valid actor.
 
 Reply with ONLY a JSON array (no markdown fences, no prose), where each
 element has exactly these fields:
-  "name": the person's name as written in the text
+  "name": the actor's name, team name (e.g. "설계팀"), or role (e.g. "PMs") as written in the text
   "side": either "our_side" (the post author's own organization/group) or
           "counterparty" (an external customer, partner, competitor, or
           other outside organization)
   "affiliations": a JSON array of organization name strings (can be empty)
-  "job_title": the person's stated title/position as a string, or null
+  "job_title": the actor's stated title/position as a string, or null
                when the text does not give one
 
-If no people are named, reply with an empty JSON array: []
+If no people or specific roles/teams are named, reply with an empty JSON array: []
 
 Post title: {title}
 Post body: {body}

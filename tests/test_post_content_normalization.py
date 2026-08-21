@@ -65,7 +65,10 @@ def test_image_is_described_and_placed_at_its_document_position_not_dropped() ->
     b64 = base64.b64encode(_PNG_1X1).decode("ascii")
     html = f'<p>Before the image.</p><img src="data:image/png;base64,{b64}"/><p>After the image.</p>'
     description = ImageDescription(
-        extracted_text="Q3 2026", caption="a bar chart of quarterly revenue", tags=("chart", "revenue")
+        extracted_text="Q3 2026",
+        caption="a bar chart of quarterly revenue",
+        tags=("chart", "revenue"),
+        ontology_mapping="",
     )
     result = normalize_post_body(html, vision_client=_FakeVisionClient(description))
 
