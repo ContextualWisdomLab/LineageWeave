@@ -345,11 +345,7 @@ def test_summary_request_accepts_provider_response_without_key_events(monkeypatc
 
     def fake_post_json(url, payload, *, headers, timeout):
         prompt = payload["messages"][0]["content"]
-        content = (
-            "ROLES:\nNONE\nPROJECTS:\nNONE"
-            if "ROLES:" in prompt
-            else "본문 근거 요약"
-        )
+        content = "ROLES:\nNONE\nPROJECTS:\nNONE" if "ROLES:" in prompt else "본문 근거 요약"
         return {"choices": [{"message": {"content": content}}]}
 
     monkeypatch.setattr("lineageweave.post_summary.post_json", fake_post_json)
