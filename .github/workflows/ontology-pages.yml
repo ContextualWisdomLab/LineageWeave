@@ -1,0 +1,135 @@
+name: Ontology Pages
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/ontology/**"
+      - "scripts/build_ontology_site.py"
+      - "scripts/publish_ontology_site.py"
+      - "tests/test_ontology.py"
+      - "tests/test_ontology_site.py"
+      - "tests/test_publish_ontology_site.py"
+      - ".github/workflows/ontology-pages.yml"
+      - "pyproject.toml"
+      - "uv.lock"
+  push:
+    branches: [main]
+    paths:
+      - "docs/ontology/**"
+      - "scripts/build_ontology_site.py"
+      - "scripts/publish_ontology_site.py"
+      - "tests/test_ontology.py"
+      - "tests/test_ontology_site.py"
+      - "tests/test_publish_ontology_site.py"
+      - ".github/workflows/ontology-pages.yml"
+      - "pyproject.toml"
+      - "uv.lock"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate ontology publication
+    if: github.event_name == 'pull_request'
+    concurrency:
+      group: ontology-pages-validation-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked Python dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Install committed dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Verify ontology and publication contracts
+        run: |
+          uv run --frozen python -m pytest -q tests/test_ontology.py
+          uv run --frozen python -m coverage run --branch \
+            -m pytest -q tests/test_ontology_site.py tests/test_publish_ontology_site.py
+          uv run --frozen python -m coverage report \
+            --include=scripts/build_ontology_site.py,scripts/publish_ontology_site.py \
+            --fail-under=100
+
+      - name: Build static ontology site
+        run: uv run --frozen python scripts/publish_ontology_site.py --output-dir _site
+
+      - name: Compile owned Python surface
+        run: >-
+          uv run --frozen python -m compileall -q
+          scripts/build_ontology_site.py scripts/publish_ontology_site.py
+          tests/test_ontology_site.py tests/test_publish_ontology_site.py
+
+  publish:
+    name: Publish ontology to GitHub Pages
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    concurrency:
+      group: ontology-pages-publication
+      cancel-in-progress: false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Set up locked Python dependency manager
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: "0.11.28"
+          enable-cache: false
+
+      - name: Install committed dependencies
+        run: uv sync --frozen --extra dev
+
+      - name: Verify exact protected source before publication
+        run: |
+          uv run --frozen python -m pytest -q tests/test_ontology.py
+          uv run --frozen python -m coverage run --branch \
+            -m pytest -q tests/test_ontology_site.py tests/test_publish_ontology_site.py
+          uv run --frozen python -m coverage report \
+            --include=scripts/build_ontology_site.py,scripts/publish_ontology_site.py \
+            --fail-under=100
+
+      - name: Build deterministic publication artifact
+        run: uv run --frozen python scripts/publish_ontology_site.py --output-dir _site
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+
+      - name: Deploy GitHub Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128 # v5.0.0
