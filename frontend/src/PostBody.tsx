@@ -3,7 +3,7 @@ import { t } from "./i18n";
 import type { PostContentUnit, PostImageContent } from "./api";
 import type { ReactNode } from "react";
 
-function parsePipeDelimitedTable(text: string): string[][] | null {
+function parsePipeDelimitedTable(text: string, requireSeparator = true): string[][] | null {
   const rawRows = text
     .split(/\r?\n/)
     .map((row) => {
@@ -15,7 +15,7 @@ function parsePipeDelimitedTable(text: string): string[][] | null {
   const separatorIndex = rawRows.findIndex(
     (row) => row.length > 1 && row.every((cell) => /^:?-{3,}:?$/.test(cell)),
   );
-  if (separatorIndex < 1) return null;
+  if (requireSeparator && separatorIndex < 1) return null;
   const rows = rawRows
     .filter((_row, rowIndex) => rowIndex !== separatorIndex)
     .filter((row) => row.length > 1 && row.some(Boolean));
@@ -24,8 +24,13 @@ function parsePipeDelimitedTable(text: string): string[][] | null {
   return rows;
 }
 
-function renderPipeTable(text: string, className: string, keyPrefix: string): ReactNode | null {
-  const rows = parsePipeDelimitedTable(text);
+function renderPipeTable(
+  text: string,
+  className: string,
+  keyPrefix: string,
+  requireSeparator = true,
+): ReactNode | null {
+  const rows = parsePipeDelimitedTable(text, requireSeparator);
   if (!rows) return null;
   return (
     <table
@@ -48,7 +53,9 @@ function renderPipeTable(text: string, className: string, keyPrefix: string): Re
 
 function renderImageText(text: string) {
   return (
-    renderPipeTable(text, "post-body-table post-image-text-table", "post-image-text") ?? <p>{text}</p>
+    renderPipeTable(text, "post-body-table post-image-text-table", "post-image-text", false) ?? (
+      <p>{text}</p>
+    )
   );
 }
 

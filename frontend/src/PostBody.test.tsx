@@ -295,6 +295,27 @@ describe("PostBody", () => {
     expect(screen.getByText("Panel")).toBeInTheDocument();
   });
 
+  it("keeps separator-free OCR rows in the existing image table path", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "No. | Item\n1 | Panel",
+            caption: "A table image",
+            tags: [],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("table")).toHaveClass("post-image-text-table");
+    expect(screen.getAllByRole("row")).toHaveLength(2);
+  });
+
   it("renders a Markdown table in the source body and keeps empty cells", () => {
     render(
       <PostBody
