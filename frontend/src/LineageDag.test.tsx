@@ -57,11 +57,11 @@ describe("LineageDag", () => {
   it("makes lineage direction and exact edge evidence available without hover", () => {
     render(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
 
-    const arrowMarker = document.querySelector("marker#lineage-dag-arrow");
+    const arrowMarker = document.querySelector('marker[id^="lineage-dag-arrow-"]');
     expect(arrowMarker).not.toBeNull();
 
     const edge = document.querySelector(".lineage-dag-edge");
-    expect(edge).toHaveAttribute("marker-end", "url(#lineage-dag-arrow)");
+    expect(edge?.getAttribute("marker-end")).toMatch(/^url\(#lineage-dag-arrow-/);
     expect(edge).toHaveTextContent("Root record → Child record (0.91)");
 
     const scrollRegion = document.querySelector(".lineage-dag-scroll");
