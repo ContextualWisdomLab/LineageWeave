@@ -485,7 +485,6 @@ so they are not treated as current-head failures without a fresh matching scan.
 The current evidence supports continued review/check processing, not a merge
 claim. Re-read the exact head, current review commit, all required Checks, and
 stack dependency immediately before any protected merge.
-
 ### Provider-error checkpoint
 
 Provider failures are not buyer evidence. The API and browser boundaries must
