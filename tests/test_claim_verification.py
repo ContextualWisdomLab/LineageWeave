@@ -200,6 +200,23 @@ def test_searxng_orchestrated_client_uses_auto_structured_contract_and_selected_
     assert "format=json" in calls["search_url"]
 
 
+def test_searxng_orchestrated_client_rejects_empty_choice_payload(monkeypatch) -> None:
+    monkeypatch.setattr(
+        cv,
+        "get_json",
+        lambda url, *, timeout: {
+            "results": [{"url": "https://example.com/evidence", "title": "Evidence", "content": "Acme"}]
+        },
+    )
+    monkeypatch.setattr(cv, "post_json", lambda *args, **kwargs: {"choices": []})
+    client = cv.SearxngOrchestratedClaimVerificationClient(
+        "https://search.example", "https://orchestrator.example", "secret"
+    )
+
+    with pytest.raises(ValueError, match="did not contain message content"):
+        client.verify(cv.PublicClaimCandidate("project: Apollo", "semantic_project"))
+
+
 def test_searxng_orchestrated_client_returns_nei_when_search_has_no_usable_evidence(monkeypatch) -> None:
     monkeypatch.setattr(
         cv,

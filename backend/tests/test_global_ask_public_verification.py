@@ -129,3 +129,26 @@ async def test_verify_public_claims_returns_completed_separate_web_evidence(
     assert len(claims) == 1
     assert claims[0].status_code == CLAIM_SUPPORTED
     assert verified == ["project: Apollo"]
+
+
+@pytest.mark.anyio
+async def test_verify_public_claims_fails_closed_on_malformed_provider_response(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _MalformedClient:
+        available = True
+
+        def verify(self, claim: Any) -> ClaimVerificationResult:
+            raise IndexError("choices list is empty")
+
+    monkeypatch.setattr(main, "_claim_verification_client", lambda: _MalformedClient(), raising=False)
+
+    status_code, claims = await main._verify_public_claims(
+        "Apollo",
+        [_source("project: Apollo | evidence: public launch")],
+        ["11111111-1111-1111-1111-111111111111"],
+        verify_external=True,
+    )
+
+    assert status_code == VERIFICATION_UNAVAILABLE
+    assert claims == ()
