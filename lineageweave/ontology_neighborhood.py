@@ -60,7 +60,6 @@ PROPERTY_SKOS_BROADER = "skos_broader"
 PROPERTY_OWL_SUBCLASS_OF = "owl_subclass_of"
 
 SKOS_BROADER_IRI = "http://www.w3.org/2004/02/skos/core#broader"
-OWL_SUBCLASS_IRI = "http://www.w3.org/2002/07/owl#subClassOf"
 JSONLD_CONTEXT = {
     "lw": str(LW),
     "skos": "http://www.w3.org/2004/02/skos/core#",
