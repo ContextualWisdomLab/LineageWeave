@@ -1191,7 +1191,8 @@ function KeymanPanel({
         <button
           type="button"
           className="keyman-select"
-          onClick={() => setOntologyOpen(true)}
+          onClick={() => setOntologyOpen((open) => !open)}
+          aria-expanded={ontologyOpen}
         >
           {t("Inspect ontology neighborhood")}
         </button>
