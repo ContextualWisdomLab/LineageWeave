@@ -13,6 +13,9 @@ describe("board CSS contract", () => {
       ".board-controls {\n  margin-bottom: 1.5rem;"
     );
     expect(css).toContain(".board-search-row");
+    expect(css).toContain(
+      '.board-controls input[type="search"],\n.board-controls select {\n  font: inherit;'
+    );
     expect(css).not.toContain(
       "grid-template-columns: minmax(12rem, 2fr) repeat(3, minmax(8rem, 1fr)) auto;"
     );

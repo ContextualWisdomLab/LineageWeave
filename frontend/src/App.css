@@ -795,6 +795,7 @@
 
 .board-controls input[type="search"],
 .board-controls select {
+  font: inherit;
   width: 100%;
   min-height: var(--size-control-min);
   padding: 0.65rem 0.8rem;
