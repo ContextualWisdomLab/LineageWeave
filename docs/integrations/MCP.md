@@ -104,8 +104,9 @@ credentials.
 MCP_RESOURCE_URL=https://lineage.example.com/mcp
 MCP_AUDIENCE=https://lineage.example.com/mcp
 MCP_ALLOWED_HOSTS=lineage.example.com
-MCP_ALLOWED_ORIGINS=
+MCP_ALLOWED_ORIGINS=https://buyer.example.com
 MCP_REQUIRED_SCOPES=lineageweave:ask
+MCP_MAX_REQUEST_BYTES=65536
 ```
 
 The identity provider must issue access tokens whose `aud` includes the exact
@@ -114,8 +115,87 @@ RBAC is mandatory regardless; production deployments should provision and
 require `lineageweave:ask`.
 
 DNS-rebinding protection is enabled. Do not disable it to make a deployment
-work; add only the real public hostname and, for browser MCP clients, exact
-allowed origins.
+work; add only the real public hostname and exact browser origins. Each
+`MCP_ALLOWED_ORIGINS` entry must be an HTTP(S) origin with no wildcard,
+credentials, path, query, or fragment. `*`, `null`, malformed entries, and
+non-origin URLs prevent process startup.
+
+## Browser admission boundary
+
+A browser sends an unauthenticated CORS preflight before a cross-origin POST
+that uses `Authorization`, JSON, and MCP headers. LineageWeave handles that
+preflight **after exact Host/Origin transport validation and before OAuth**.
+The preflight never verifies a token, resolves an account, opens Global Ask, or
+consumes a tool invocation quota.
+
+The browser contract is deliberately narrow:
+
+```text
+Allowed origins: exact MCP_ALLOWED_ORIGINS entries only
+Allowed methods: GET, POST, DELETE
+Allowed request headers:
+  Accept
+  Authorization
+  Content-Type
+  Last-Event-ID
+  MCP-Protocol-Version
+  Mcp-Session-Id
+Exposed response headers:
+  MCP-Protocol-Version
+  Mcp-Session-Id
+  WWW-Authenticate
+Credentials/cookies: disabled
+Preflight cache: 600 seconds
+```
+
+`WWW-Authenticate` is exposed so an allowed browser client can read the OAuth
+protected-resource metadata challenge. It does not expose a credential.
+LineageWeave never reflects an arbitrary Origin and never accepts `*`. Prefix,
+suffix, `null`, and unrelated Origins fail with HTTP `403`. Origin-sensitive
+responses include `Vary: Origin`. Non-browser clients may omit `Origin`; they
+continue directly to the normal OAuth challenge or authenticated MCP request.
+
+Example preflight:
+
+```http
+OPTIONS /mcp HTTP/1.1
+Host: lineage.example.com
+Origin: https://buyer.example.com
+Access-Control-Request-Method: POST
+Access-Control-Request-Headers: authorization, content-type, mcp-protocol-version, mcp-session-id
+```
+
+## Request-byte admission
+
+For every MCP POST, the resource server validates and counts the request body
+before OAuth or MCP SDK JSON decoding. The default maximum is 65,536 bytes.
+`MCP_MAX_REQUEST_BYTES` may be set from 8,192 through 1,048,576 bytes; a value
+outside that range or a malformed integer prevents process startup.
+
+`Content-Length` enables an early rejection but is not trusted as the only
+boundary. Bodies without it remain supported and are counted chunk by chunk.
+The endpoint rejects:
+
+- a negative, nondecimal, non-ASCII, or duplicate `Content-Length`;
+- `Content-Length` together with `Transfer-Encoding`;
+- a declared length larger than the configured maximum;
+- an actual streamed body larger than the maximum;
+- declared and received byte counts that differ;
+- a disconnect or malformed ASGI body message during admission.
+
+An admitted body is replayed byte-for-byte once to the MCP SDK. Errors are
+bounded JSON, do not echo request content, and include `Cache-Control: no-store`:
+
+| HTTP | `error_code` | Operator/client action |
+|---:|---|---|
+| 400 | `mcp_invalid_content_length` | Remove ambiguous or malformed framing headers. |
+| 400 | `mcp_content_length_mismatch` | Correct the sender or intermediary framing. |
+| 400 | `mcp_request_disconnected` | Retry only after the transport is stable. |
+| 400 | `mcp_invalid_request_body` | Send a valid ASGI/HTTP request body. |
+| 413 | `mcp_request_too_large` | Reduce the MCP request; do not raise the limit without capacity review. |
+
+A reverse proxy must still implement HTTP framing correctly. Application-level
+admission is defense in depth and does not make an unsafe intermediary safe.
 
 External verification additionally requires all three service settings:
 
@@ -168,13 +248,15 @@ Start the required services with the one-shot audience reconciler included:
 docker compose up --build postgres keycloak keycloak_mcp_audience mcp
 ```
 
-The default endpoint is `http://localhost:18001/mcp`. A fresh demo database
-receives the audience through the rendered realm import template. Keycloak
-startup import deliberately skips a realm that already exists, so the separate
-`keycloak_mcp_audience` service then authenticates to the local Admin REST API
-and reconciles **only** the `lineageweave-mcp-audience` mapper on the
-`lineageweave-frontend` client. The MCP service waits for that one-shot job to
-finish successfully.
+The default endpoint is `http://localhost:18001/mcp`. The Compose demo renders
+the same `MCP_RESOURCE_URL` into the Keycloak audience mapper and MCP verifier,
+and passes `MCP_MAX_REQUEST_BYTES` into the dedicated MCP process rather than
+the product REST API. A fresh demo database receives the audience through the
+rendered realm import template. Keycloak startup import deliberately skips a
+realm that already exists, so the separate `keycloak_mcp_audience` service then
+authenticates to the local Admin REST API and reconciles **only** the
+`lineageweave-mcp-audience` mapper on the `lineageweave-frontend` client. The
+MCP service waits for that one-shot job to finish successfully.
 
 Consequently, changing the local published port is non-destructive:
 
@@ -194,12 +276,18 @@ reconciliation. A production deployment should provision a narrower Keycloak
 service account or external identity-management reconciler with only the client
 and protocol-mapper permissions it needs. A different public host still
 requires a corresponding exact IdP audience and environment change; do not
-accept the REST frontend audience as a substitute.
+accept the REST frontend audience as a substitute. The one-shot audience
+reconciler must also run after a persistent realm changes; `MCP_PORT=19001`
+alone is insufficient.
 
 ## Failure behavior
 
+- unsafe configured browser Origin: process startup fails
 - untrusted Host: HTTP `421` before authentication
-- no bearer or invalid bearer: HTTP `401`
+- invalid present Origin: HTTP `403` before authentication
+- invalid browser preflight: HTTP `400` or `403`, no bearer challenge
+- oversized or ambiguously framed POST: HTTP `400` or `413` before authentication
+- no bearer or invalid bearer: HTTP `401`, with browser-readable OAuth metadata for an allowed Origin
 - valid bearer without a required OAuth scope: HTTP `403`
 - unprovisioned subject or missing `post_read`: tool error, no evidence returned
 - no matching authorized evidence: tool error, no unrelated recent-post fallback
@@ -214,9 +302,10 @@ accept the REST frontend audience as a substitute.
 ## Operational checks
 
 A release must exercise the MCP SDK client against the in-process server, assert
-tool annotations and structured output, verify Host and unauthenticated HTTP
-rejection, and run the same auth, ABAC, source-boundary, citation,
-contextual-orchestrator mode, explicit-consent, untrusted-input, URL-safety,
-external-evidence, live-media-authorization, and persistent-audience
-reconciliation regressions in the normal test suite. `uv.lock` remains
+tool annotations and structured output, verify pre-auth Host, Origin, CORS,
+request-byte, OAuth-discovery, and unauthenticated HTTP behavior, and run the
+same auth, ABAC, source-boundary, citation, contextual-orchestrator mode,
+explicit-consent, untrusted-input, URL-safety, and external-evidence regressions
+in the normal test suite. It must also cover live-media-authorization,
+external-evidence, and persistent-audience reconciliation. `uv.lock` remains
 authoritative for the MCP SDK version.
