@@ -73,82 +73,6 @@ Observed at `2026-08-21T20:17:13Z` from the GitHub API and local worktree
   targets `main`, and is `BLOCKED` with `REVIEW_REQUIRED`; #397 is a stacked
   follow-up and must not be described as a protected-main merge.
 
-## 4.1 Latest open-PR and Checks refresh
-
-Observed at `2026-08-21T20:17:13Z` from the GitHub API. The exact open
-application heads were: #258 `6dc040c6`, #349 `a6af4525`, #355 `b606c255`,
-#368 `cc052a4d`, #373 `151fe6e1`, #383 `4eaa0717`, #387 `16f6341a`, #392
-`259ce60a`, #393 `1ac3a17a`, #394 `2aee6ace`, and #397 `8988fe71`. No PR in
-this set was reported as merged into protected `main`.
-
-- #397's latest restacked head had Full test, frontend, CodeRabbit, and Devin
-  Review pending at observation. The prior review found and the latest pushes
-  fixed the stale Korean translation key, fetched tenant-config draft race, and
-  non-atomic settings update. There is no independent approval, so merge is not
-  authorized.
-- #383 had a failed `osv-scan`. The failure remains the shared workflow's
-  deprecated `--output=old-results.json` / `--output=new-results.json` contract,
-  not a source vulnerability verdict. Central `.github` PR #1158 is open at
-  exact head `f61a8795`, adds the `--output-file` contract and provenance
-  classifier, and remains unmerged with hosted Checks pending. Do not duplicate
-  the central repair in LineageWeave.
-- The active protected ruleset `LineageWeave: no force pushes` has no bypass
-  actors and only the `non_fast_forward` rule. All stack pushes above were
-  normal fast-forward/new-branch pushes.
-- **Hourly automation boundary:** the central
-  [`ContextualWisdomLab/.github` merge scheduler](https://github.com/ContextualWisdomLab/.github/blob/main/.github/workflows/pr-review-merge-scheduler.yml)
-  runs its organization sweep at `0 * * * *`; the central target allowlist
-  includes `ContextualWisdomLab/LineageWeave`. Its reusable review-repair
-  workflow is product-neutral, so LineageWeave does not add a duplicate local
-  timer. The same exact-head, review, Checks, and protected-merge gates remain
-  authoritative; a scheduled run is not evidence of a merge.
-
-## 4.2 Current protected-merge gate refresh
-
-Observed at `2026-08-21T20:23:51Z` from the GitHub API. PR #397 remains open
-at head `8988fe7175c8b03e27c9ea6fe3a554955eb350a4`, based on stack head
-`259ce60abdb8e0d0993635facd8c987a2999cd58`; Devin Review passed, while the
-frontend and full-test Checks remain pending and no independent approval is
-present. PR #368 is open at documentation head
-`cee63d91c74515f5faf80d1aa8c07e345f1719df`, with its required Checks pending
-and `REVIEW_REQUIRED`. Neither PR is authorized to merge.
-
-- PR #383's only failed current-head Check is `osv-scan`. The scan itself
-  exited zero; the shared workflow then tested the obsolete
-  `old-results.json`/`new-results.json` paths after the scanner wrote only its
-  deprecated `--output=new-results.json` result. This is a shared workflow
-  contract failure, not a dependency-vulnerability verdict. Central
-  `.github` PR #1158 is the repair path; no duplicate product workaround is
-  added here.
-- PR #387's earlier migration replay concern is already fixed at its current
-  head by commit `eaea56d3`: the gated `0103_tenant_settings.sql` uses
-  `CREATE TABLE IF NOT EXISTS` and `ON CONFLICT DO NOTHING`. No duplicate
-  patch is required.
-- Active ruleset `LineageWeave: no force pushes` (ID `21065108`) has zero
-  bypass actors and only `non_fast_forward`; all pushes above used normal
-  non-force updates.
-
-## 4.3 Restacked tenant validation checkpoint
-
-Observed at `2026-08-21T20:27:03Z` from the GitHub REST API. Parent PR #392
-advanced normally to head `658edd0932b413420e1361c34f31adb5e14d4d04`. PR #397
-was then restacked and pushed normally at head
-`3aa77fc848bbcb33f5d329a21eb2822653f3b7f0`, based on that parent. The focused
-backend regression set passed (`28 passed, 135 deselected`), and the frontend
-suite/lint/build passed (`204 passed`). Hosted Checks for the new #397 head
-were pending at observation, so approval and merge remain unauthorized.
-The subsequent full backend run on the same restacked checkout passed
-(`862 passed, 17 skipped`, 14 deprecation/security warnings only).
-
-## 4.4 Parent restack follow-up
-
-Observed at `2026-08-21T20:29:48Z` from the GitHub REST API. Parent PR #392
-advanced normally to `943f011a6b9e7ff74ce9e8353ecf8d9c83f6b14f`; the change is
-documentation-only. PR #397 was restacked again and pushed normally at
-`367f76258b8437c65fb031ccbf3e352785327c06`, based on that parent. Its hosted
-Checks restarted and remain pending, with no independent approval; merge is
-not authorized.
-
 ## 2. LLM Extraction & Knowledge Graph Gaps
 - **Multiple Project Extraction**: A structured `key_events.project_name` implementation exists, but separate-event behavior still requires protected authorized-corpus evidence.
 - **5W1H Missing**: A structured 5W1H evidence-item implementation exists, but completeness and provenance still require protected authorized-corpus evidence.
@@ -349,11 +273,56 @@ this set was reported as merged into protected `main`.
   normal fast-forward/new-branch pushes.
 - **Hourly automation boundary:** the central
   [`ContextualWisdomLab/.github` merge scheduler](https://github.com/ContextualWisdomLab/.github/blob/main/.github/workflows/pr-review-merge-scheduler.yml)
-  runs its organization sweep at `0 * * * *`; the central target allowlist
-  includes `ContextualWisdomLab/LineageWeave`. Its reusable review-repair
+  runs the queue scan every 30 minutes and the organization-wide sweep every
+  15 minutes; the central target allowlist includes
+  `ContextualWisdomLab/LineageWeave`. Its reusable review-repair
   workflow is product-neutral, so LineageWeave does not add a duplicate local
   timer. The same exact-head, review, Checks, and protected-merge gates remain
   authoritative; a scheduled run is not evidence of a merge.
+
+### 4.2 Current protected-merge gate refresh
+
+Observed at `2026-08-21T20:23:51Z` from the GitHub API. PR #397 remained open
+at head `8988fe7175c8b03e27c9ea6fe3a554955eb350a4`, based on stack head
+`259ce60abdb8e0d0993635facd8c987a2999cd58`; Devin Review passed, while the
+frontend and full-test Checks remained pending and no independent approval was
+present. PR #368 was open at documentation head
+`cee63d91c74515f5faf80d1aa8c07e345f1719df`, with its required Checks pending
+and `REVIEW_REQUIRED`. Neither PR was authorized to merge.
+
+- PR #383's only failed current-head Check was `osv-scan`. Both scanner runs
+  completed before the cross-fork head checkout deleted the untracked base
+  result. This is a shared workflow isolation defect, not a dependency-
+  vulnerability verdict. Central `.github` PR #1209 confines both exact
+  checkouts to `source/`; no duplicate product workaround is added here.
+- PR #387's earlier migration replay concern was already fixed at its current
+  head by commit `eaea56d3`: the gated `0103_tenant_settings.sql` uses
+  `CREATE TABLE IF NOT EXISTS` and `ON CONFLICT DO NOTHING`. No duplicate
+  patch is required.
+- Active ruleset `LineageWeave: no force pushes` (ID `21065108`) had zero
+  bypass actors and only `non_fast_forward`; all pushes above used normal
+  non-force updates.
+
+### 4.3 Restacked tenant validation checkpoint
+
+Observed at `2026-08-21T20:27:03Z` from the GitHub REST API. Parent PR #392
+advanced normally to head `658edd0932b413420e1361c34f31adb5e14d4d04`. PR #397
+was then restacked and pushed normally at head
+`3aa77fc848bbcb33f5d329a21eb2822653f3b7f0`, based on that parent. The focused
+backend regression set passed (`28 passed, 135 deselected`), and the frontend
+suite/lint/build passed (`204 passed`). Hosted Checks for the new #397 head
+were pending at observation, so approval and merge remained unauthorized.
+The subsequent full backend run on the same restacked checkout passed
+(`862 passed, 17 skipped`, 14 deprecation/security warnings only).
+
+### 4.4 Parent restack follow-up
+
+Observed at `2026-08-21T20:29:48Z` from the GitHub REST API. Parent PR #392
+advanced normally to `943f011a6b9e7ff74ce9e8353ecf8d9c83f6b14f`; the change is
+documentation-only. PR #397 was restacked again and pushed normally at
+`367f76258b8437c65fb031ccbf3e352785327c06`, based on that parent. Its hosted
+Checks restarted and remained pending, with no independent approval; merge was
+not authorized.
 
 ## 5. Local Buyer-Surface Verification
 
