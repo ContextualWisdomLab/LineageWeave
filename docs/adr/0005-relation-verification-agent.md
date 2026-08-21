@@ -38,10 +38,14 @@ observed from LLM classification), not "this specific relationship
 claim is definitely true" -- a genuinely false relationship between two
 REAL organizations still returns results about each organization
 separately, so this is an existence/plausibility check, not a full
-relationship-truth adjudicator. That is a real upgrade path once real
-usage shows the coarser signal under- or over-trusting results in
-practice, not implemented here because nothing yet demonstrates the
-need for it over this cheaper stage.
+relationship-truth adjudicator. A result is accepted only when every
+distinctive token in the proposed organization name occurs in the
+result's non-search host or content snippet; the result title is excluded
+because search engines echo the query there. This prevents one generic
+word in an unrelated result from validating an invented multi-token name.
+That is a real upgrade path once real usage shows the coarser signal under-
+or over-trusting results in practice, not implemented here because
+nothing yet demonstrates the need for full NLI over this cheaper stage.
 
 The real implementation, `SearxngRelationVerificationClient`, queries a
 **self-hosted** Searxng instance (`docker/searxng/`), never a
