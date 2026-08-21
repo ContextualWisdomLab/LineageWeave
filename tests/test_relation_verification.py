@@ -18,10 +18,10 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 
 from lineageweave.relation_verification import (
-    RelationVerificationClient,
     STATUS_CORROBORATED,
     STATUS_UNCORROBORATED,
     NullRelationVerificationClient,
+    RelationVerificationClient,
     SearxngRelationVerificationClient,
     corroborating_evidence_url,
 )
@@ -30,7 +30,7 @@ from lineageweave.relation_verification import (
 class _ResultsHandler(BaseHTTPRequestHandler):
     received_query: str = ""
 
-    def do_GET(self) -> None:  # noqa: N802 -- BaseHTTPRequestHandler API
+    def do_GET(self) -> None:
         parsed = urlparse(self.path)
         query = parse_qs(parsed.query)
         type(self).received_query = query.get("q", [""])[0]
@@ -63,7 +63,7 @@ class _ResultsHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def log_message(self, format: str, *args) -> None:  # noqa: A002 -- stdlib signature
+    def log_message(self, format: str, *args) -> None:
         return
 
 
@@ -102,11 +102,15 @@ def test_searxng_client_reports_corroborated_with_evidence_url() -> None:
     assert "Voice of Customer" in _ResultsHandler.received_query
 
 
-def test_searxng_client_reports_uncorroborated_with_no_evidence_url_when_search_is_empty() -> None:
+def test_searxng_client_reports_uncorroborated_with_no_evidence_url_when_search_is_empty() -> (
+    None
+):
     server, base = _serve()
     try:
         client = SearxngRelationVerificationClient(base_url=base)
-        result = client.verify("Totally Fictitious Nonexistent Org", "Voice of Customer")
+        result = client.verify(
+            "Totally Fictitious Nonexistent Org", "Voice of Customer"
+        )
     finally:
         server.shutdown()
 
@@ -115,7 +119,9 @@ def test_searxng_client_reports_uncorroborated_with_no_evidence_url_when_search_
 
 
 @pytest.mark.parametrize("organization_name", ["NoList", "Skip", "NoEvidence"])
-def test_searxng_client_fails_closed_for_unusable_results(organization_name: str) -> None:
+def test_searxng_client_fails_closed_for_unusable_results(
+    organization_name: str,
+) -> None:
     """Malformed and unciting search results remain explicitly uncorroborated."""
     server, base = _serve()
     try:
@@ -203,6 +209,30 @@ def test_missing_url_and_all_generic_tokens_are_not_evidence() -> None:
             {"url": "https://example.com/item", "content": "Fictitious"},
         )
         is None
+    )
+
+
+def test_one_common_token_is_not_multi_token_corroboration() -> None:
+    """An unrelated page mentioning one name token is insufficient evidence."""
+    assert (
+        corroborating_evidence_url(
+            "Aurora Grid Power",
+            {
+                "url": "https://news.example/item",
+                "content": "The power outage affected the region.",
+            },
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "url", ["file://acme.example/item", "javascript://acme.example/item"]
+)
+def test_non_http_evidence_url_is_not_accepted(url: str) -> None:
+    """Evidence links must be browser-safe HTTP(S) resources."""
+    assert (
+        corroborating_evidence_url("Acme Corp", {"url": url, "content": "Acme"}) is None
     )
 
 

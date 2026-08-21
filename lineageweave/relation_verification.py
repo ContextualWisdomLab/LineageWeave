@@ -108,7 +108,9 @@ class RelationVerificationClient(Protocol):
 
     available: bool
 
-    def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:
+    def verify(
+        self, organization_name: str, relationship_label: str
+    ) -> RelationVerificationResult:
         """Search for corroborating evidence of ``organization_name``
         having the relationship ``relationship_label`` describes.
 
@@ -127,7 +129,9 @@ class NullRelationVerificationClient:
 
     available = False
 
-    def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:  # pragma: no cover
+    def verify(
+        self, organization_name: str, relationship_label: str
+    ) -> RelationVerificationResult:  # pragma: no cover
         """Verify whether the relationship has supporting external evidence."""
         raise RuntimeError(
             "NullRelationVerificationClient has no search channel; check .available first"
@@ -154,11 +158,15 @@ class SearxngRelationVerificationClient:
     def __init__(self, base_url: str, *, timeout: float = 15.0) -> None:
         parsed = urlparse(base_url)
         if parsed.scheme not in {"http", "https"}:
-            raise ValueError(f"unsupported Searxng base URL scheme: {parsed.scheme or 'missing'}")
+            raise ValueError(
+                f"unsupported Searxng base URL scheme: {parsed.scheme or 'missing'}"
+            )
         self._base_url = base_url.rstrip("/")
         self._timeout = timeout
 
-    def verify(self, organization_name: str, relationship_label: str) -> RelationVerificationResult:
+    def verify(
+        self, organization_name: str, relationship_label: str
+    ) -> RelationVerificationResult:
         """Verify whether the relationship has supporting external evidence."""
         query = f"{organization_name} {relationship_label}"
         body = get_json(
@@ -167,33 +175,46 @@ class SearxngRelationVerificationClient:
         )
         results = body.get("results")
         if not isinstance(results, list):
-            return RelationVerificationResult(status_code=STATUS_UNCORROBORATED, evidence_url=None)
+            return RelationVerificationResult(
+                status_code=STATUS_UNCORROBORATED, evidence_url=None
+            )
         for result in results:
             if not isinstance(result, dict):
                 continue
             evidence_url = corroborating_evidence_url(organization_name, result)
             if evidence_url is not None:
-                return RelationVerificationResult(status_code=STATUS_CORROBORATED, evidence_url=evidence_url)
-        return RelationVerificationResult(status_code=STATUS_UNCORROBORATED, evidence_url=None)
+                return RelationVerificationResult(
+                    status_code=STATUS_CORROBORATED, evidence_url=evidence_url
+                )
+        return RelationVerificationResult(
+            status_code=STATUS_UNCORROBORATED, evidence_url=None
+        )
 
 
-def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -> str | None:
+def corroborating_evidence_url(
+    organization_name: str, result: dict[str, Any]
+) -> str | None:
     """Return ``result['url']`` when it is a real-world footprint of ``organization_name``.
 
     Search engines echo the query in result titles, so "any hit" is not
     corroboration. A single distinctive token is not enough either -- an
     invented name can still contain an ordinary dictionary word (e.g.
     "Fictitious", "Nonexistent") that coincidentally appears on an
-    unrelated page, so a genuine multi-token name requires a majority of
-    its tokens to co-occur in the same result; a one-token name has no
-    majority to require and falls back to that single token. The host
-    must also not itself be a search page. Missing or empty URLs are not
-    evidence.
+    unrelated page, so every distinctive token in a multi-token name must
+    co-occur in the same result. A one-token name falls back to that single
+    token. The host must also not itself be a search page. Missing or empty
+    URLs are not evidence.
     """
     url = result.get("url")
     if not isinstance(url, str) or not url.strip():
         return None
-    host = urlparse(url).netloc.lower()
+    try:
+        parsed_url = urlparse(url)
+        host = (parsed_url.hostname or "").lower()
+    except ValueError:
+        return None
+    if parsed_url.scheme not in {"http", "https"}:
+        return None
     if not host or any(marker in host for marker in _SEARCH_HOST_MARKERS):
         return None
     tokens = [
@@ -207,6 +228,6 @@ def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -
     # Substring matches turn ``Alpha`` into a false hit for ``alphabetical``.
     # Word boundaries keep host labels, punctuation, and Hangul names usable
     # without accepting a token embedded inside an unrelated word.
-    if any(_contains_org_token(token, haystack) for token in tokens):
+    if all(_contains_org_token(token, haystack) for token in tokens):
         return url
     return None
