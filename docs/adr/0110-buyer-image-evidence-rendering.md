@@ -16,11 +16,16 @@ placeholder and is not buyer content.
 
 - Render a source image with its accessible caption, OCR, tags, and region
   evidence when the raw data URI is present.
+- At the render boundary, accept only canonical base64 data URIs for inert
+  raster image media types. Reject external, script, SVG, and malformed
+  sources and fall back to persisted caption/OCR/region evidence.
 - When the source image cannot be reattached, render only the persisted
   `PostImageContent` evidence in a figure; never render the image unit's
   internal `unit_text` as buyer prose.
 - Keep parent and region evidence visibly distinct, and translate the label
   used for image tags through the five-locale UI catalog.
+- When OCR preserves a consistent pipe-delimited row structure, render that
+  evidence as a buyer-facing HTML table; otherwise keep it as readable text.
 - Continue retaining the original source body and normalized image provenance;
   this is a presentation boundary, not evidence deletion.
 
