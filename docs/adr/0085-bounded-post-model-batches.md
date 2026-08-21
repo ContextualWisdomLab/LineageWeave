@@ -22,7 +22,10 @@ post appear complete and prevent retry.
    stored text are never truncated or rewritten.
 3. A failed structure or embedding batch is isolated. Successful batches are
    persisted; failed batches leave their signal absent and eligible for a
-   later retry.
+   later retry. Isolation covers expected channel transport, runtime, and
+   response-validation failures (`OSError`, `RuntimeError`, and `ValueError`);
+   unexpected defects such as `AssertionError` propagate to the durable worker
+   instead of being silently converted into an unavailable signal.
 4. `backfill_post_content` selects posts with either no content units or at
    least one content unit without an embedding. It requires a configured
    contextual-orchestrator embedding channel before writing content artifacts.

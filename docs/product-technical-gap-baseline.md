@@ -1,13 +1,14 @@
-# Product, technical, and gap baseline
+# Product & Technical Gap Baseline
 
-**Snapshot:** 2026-08-21 (Asia/Seoul)
-**Protected-main baseline:** `origin/main`; this document does not claim the active PR is shipped.
-**Audited PR code head:** #258 customer-hierarchy commit `21074cf80cbfab3001bf18b6e1a618f75f4bed24`; this active branch is not protected-main truth.
-**Active PR update:** Customer Master now has an ORG-grounded, cycle-safe hierarchy projection with
-explicit WAI-ARIA ownership; final-head hosted Checks and independent approval remain required.
-**Purpose:** connect the normative ADRs and research evidence to product
-requirements, technical contracts, implementation evidence, and active PRs.
-An active PR is proposed work, not shipped behavior.
+## 1. Known Parsing & Frontend Display Gaps
+- **Footnote and table parsing**: rich-text exports still require synthetic regression cases for footnote ownership, table-row grouping, and nested list semantics.
+- **Indentation**: mixed source whitespace, CSS, and OOXML indentation must remain distinguishable so visual alignment cannot manufacture hierarchy.
+- **Image/table OCR**: partial visual regions, table text, markdown-like source, and image captions require persisted, position-aware evidence or an explicit unavailable state.
+- **Math/superscripts**: superscript and formula-like source needs a semantic-unit grammar that preserves the original text and exposes normalized search text.
+- **Buyer navigation**: Board, Project History, Global Ask, Customer Master, Calendar, and Admin routes must preserve source focus and the next actionable step across transitions.
+
+Exact private runtime identifiers are intentionally omitted; the authorized
+runtime and synthetic fixtures retain the reproducibility detail.
 
 ## Historical exact-head checkpoint (2026-08-20 19:14 Asia/Seoul)
 
@@ -64,7 +65,12 @@ and `COPILOT_GITHUB_TOKEN` is not used.
 
 ## PRD
 
-### Problem and outcome
+## 3. General Architecture Gaps
+- **DB Architecture**: Ensure PostgreSQL is strictly used (no file DBs), 3rd normal form is maintained, and Hot Partitions are handled. DB locks must be managed (or use read/write replicas).
+- **Zotero Integration**: Papers and standards referenced by TEPP must be synced via Local Zotero API (http://localhost:23119/api/) and cited using APA 7th edition in docstrings.
+- **Testing**: We need actual testing of Psychometrics (Fast-MLSIRM parameter calibration, RMSE of estimates, Fixed-Item Parameter Calibration, CAT) against synthetic/demo data.
+- **Security & Compliance**: PII masking cannot break the system. Need SOC 2 and CSAP compliance alternatives to blind PII masking.
+- **LLM Orchestration**: Ensure ALL LLM calls route through `contextual-orchestrator` utilizing API keys (BYTEZ, NVIDIA, OPENROUTER, OPENAI) with auto model discovery and optimal reasoning effort allocation (Fugu/Conductor/TRINITY research).
 
 Buyers need to turn scattered, timestamped records into reviewable branching
 histories without confusing a plausible relation with a proven fact. The
@@ -337,3 +343,5 @@ runtime note into a shipped/live claim.
   keeps answers readable when a timeline or TEPP validation is unavailable.
 - Remaining causal-analysis work is explicitly outside this slice: temporal association
   and evidence navigation do not identify why a VOC occurred.
+
+*This document is continuously updated by the hourly automated agent loop.*

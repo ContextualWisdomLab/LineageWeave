@@ -29,7 +29,7 @@ from backend.app.analysis_run_outbox import (
 from backend.app.lineage_ingestion import records_from_source_posts
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.adjudication_client import AdjudicationClient
-from lineageweave.http_client import post_json
+from lineageweave.http_client import HttpClientError, post_json
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
@@ -103,8 +103,8 @@ def configured_tepp_client(transport_url: str = "", api_key: str = "") -> TeppCl
         try:
             headers = {"authorization": f"Bearer {api_key}"} if api_key.strip() else {}
             return post_json(url, payload, headers=headers, timeout=30.0)
-        except Exception as exc:
-            raise TeppNotAvailable("TEPP transport request failed") from exc
+        except (HttpClientError, OSError, ValueError, TypeError) as exc:
+            raise TeppNotAvailable("TEPP transport unavailable") from exc
 
     return TeppClient(transport=transport)
 

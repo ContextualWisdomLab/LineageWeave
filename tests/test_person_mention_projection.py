@@ -44,7 +44,10 @@ from lineageweave.knowledge_graph import (
 from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
     ACTOR_TYPE_PERSON,
+    KeyEvent,
+    MajorEventAction,
     PostSummary,
+    ProjectMention,
     RoleResponsibility,
 )
 
@@ -63,6 +66,16 @@ _SUMMARY_FIVE_W1H_MIGRATION = (
 )
 _MAJOR_EVENT_ACTION_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0100_major_event_action.sql"
+)
+_PROJECT_BOUND_ACTION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0101_project_bound_major_event_action.sql"
+)
+_PROJECT_BOUND_EVENT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0102_project_bound_summary_event.sql"
 )
 _SEMANTIC_SEARCH_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0032_semantic_search_trigram.sql"
@@ -150,6 +163,8 @@ def projection_database() -> str:
                 cursor.execute(_POST_SUMMARY_CONTRACT_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SUMMARY_FIVE_W1H_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(
                     """
                     insert into common_lookup_value
@@ -252,14 +267,50 @@ async def _exercise_projection_contract(
             post_id,
             PostSummary(
                 korean_summary="합성 요약",
+                key_event_details=(
+                    KeyEvent(event_text="합성 프로젝트 검토", project_key="Synthetic Project"),
+                ),
                 roles_and_responsibilities=(
                     RoleResponsibility(
                         actor_name="Summary Person",
                         responsibility="검토",
                     ),
                 ),
+                major_event_actions=(
+                    MajorEventAction(
+                        action_text="합성 프로젝트 검토 요청",
+                        requester_actor_name="Summary Person",
+                        processor_actor_name=None,
+                        evidence_text="합성 본문에 프로젝트 검토 요청이 기록됨",
+                        project_key="Synthetic Project",
+                    ),
+                    MajorEventAction(
+                        action_text="연결되지 않은 프로젝트 요청",
+                        requester_actor_name=None,
+                        processor_actor_name=None,
+                        evidence_text="프로젝트 연결 근거가 없음",
+                        project_key="unsupported-project",
+                    ),
+                ),
+                project_mentions=(
+                    ProjectMention(
+                        project_name="Synthetic Project",
+                        canonical_name="Synthetic Project",
+                        evidence="합성 본문에 프로젝트명이 있음",
+                        confidence=0.9,
+                    ),
+                ),
             ),
         )
+        summary_payload = await fetch_persisted_summary(connection, post_id)
+        assert summary_payload is not None
+        assert [
+            action["project_name"]
+            for action in summary_payload["major_event_actions"]
+        ] == ["Synthetic Project", None]
+        assert summary_payload["key_event_details"] == [
+            {"event_text": "합성 프로젝트 검토", "project_name": "Synthetic Project"}
+        ]
 
         keyman_rows = await connection.fetch(
             "select person_id from post_person_mention where post_id = $1",
