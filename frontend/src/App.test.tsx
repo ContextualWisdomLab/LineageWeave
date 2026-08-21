@@ -2334,6 +2334,23 @@ describe("App, authenticated", () => {
     expect(fetchMock).toHaveBeenCalled();
   });
 
+  it("does not request derived panels for writing posts", async () => {
+    const fetchMock = stubBackend({
+      sourceDetailStateCode: " w ",
+      sourceDetailStateOptions: [{ code: "W", label: "W" }],
+    });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await screen.findByText("The full body text.");
+
+    const urls = fetchMock.mock.calls.map(([url]) => String(url));
+    expect(
+      urls.some((url) =>
+        /\/api\/posts\/[^/]+\/(five-w1h|keymen|counterparties|lineage|knowledge-graph|affiliate-tree|voc-evidence|evaluation)(?:\?|$)/.test(url),
+      ),
+    ).toBe(false);
+  });
+
   it("opens a post from a DAG node click", async () => {
     stubBackend();
     render(<App showLabPanels />);

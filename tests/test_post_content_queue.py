@@ -120,7 +120,7 @@ def test_republish_query_recovers_due_queue_and_stale_running_leases() -> None:
             assert "status_code = $1" in query
             assert "status_code = $3" in query
             assert "join source_post post" in query
-            assert "source_detail_state_code" in query
+            assert "upper(btrim(post.source_detail_state_code))" in query
             assert "started_at < now() - $4::interval" in query
             assert args[0] == QUEUED
             assert args[2] == RUNNING

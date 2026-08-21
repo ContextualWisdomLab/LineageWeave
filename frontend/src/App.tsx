@@ -1957,7 +1957,44 @@ function PostDetailPopup({
     let disposed = false;
     let contentPollTimer: number | undefined;
     const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
-    fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
+    fetchPost(accessToken, postId, asOf)
+      .then((loadedPost) => {
+        if (disposed) return;
+        setPost(loadedPost);
+        if (loadedPost.source_detail_state_code?.trim().toUpperCase() === "W") return;
+        fetchPostBookmark(accessToken, postId)
+          .then((r) => setBookmarked(r.bookmarked))
+          .catch(() => {
+            setBookmarked(null);
+          });
+        fetchPostEvaluation(accessToken, postId)
+          .then((r) => setEvaluation(r.responses))
+          .catch(() => setEvaluation([]));
+        fetchPostFiveW1H(accessToken, postId)
+          .then(setFiveW1H)
+          .catch(() => setFiveW1H(null));
+        fetchPostKeymen(accessToken, postId)
+          .then((r) => {
+            setKeymen(r.keymen);
+            setSourceAuthorContext(r.source_author_context ?? null);
+          })
+          .catch(() => {
+            setKeymen([]);
+            setSourceAuthorContext(null);
+          });
+        fetchPostCounterparties(accessToken, postId)
+          .then((r) => setCounterparties(r.counterparties))
+          .catch(() => setCounterparties([]));
+        fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
+        fetchPostKnowledgeGraph(accessToken, postId)
+          .then(setKnowledgeGraph)
+          .catch(() => setKnowledgeGraph(null));
+        fetchPostAffiliateTree(accessToken, postId)
+          .then((r) => setAffiliateTrees(r.trees))
+          .catch(() => setAffiliateTrees([]));
+        fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+      })
+      .catch((err) => setError(String(err)));
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)
         .then((content) => {
@@ -1984,37 +2021,6 @@ function PostDetailPopup({
         });
     contentReloadRef.current = reloadContent;
     reloadContent();
-    fetchPostBookmark(accessToken, postId)
-      .then((r) => setBookmarked(r.bookmarked))
-      .catch(() => {
-        setBookmarked(null);
-      });
-    fetchPostEvaluation(accessToken, postId)
-      .then((r) => setEvaluation(r.responses))
-      .catch(() => setEvaluation([]));
-    fetchPostFiveW1H(accessToken, postId)
-      .then(setFiveW1H)
-      .catch(() => setFiveW1H(null));
-    fetchPostKeymen(accessToken, postId)
-      .then((r) => {
-        setKeymen(r.keymen);
-        setSourceAuthorContext(r.source_author_context ?? null);
-      })
-      .catch(() => {
-        setKeymen([]);
-        setSourceAuthorContext(null);
-      });
-    fetchPostCounterparties(accessToken, postId)
-      .then((r) => setCounterparties(r.counterparties))
-      .catch(() => setCounterparties([]));
-    fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
-    fetchPostKnowledgeGraph(accessToken, postId)
-      .then(setKnowledgeGraph)
-      .catch(() => setKnowledgeGraph(null));
-    fetchPostAffiliateTree(accessToken, postId)
-      .then((r) => setAffiliateTrees(r.trees))
-      .catch(() => setAffiliateTrees([]));
-    fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
     return () => {
       disposed = true;
       if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);

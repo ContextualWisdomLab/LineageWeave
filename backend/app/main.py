@@ -462,7 +462,6 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
     resolved = labels or {}
     voc = post["voc_type_code"]
     visibility = post["visibility_code"]
-    detail_state = str(post.get("source_detail_state_code") or "").strip().upper() or None
     project_evidence = post.get("project_evidence") or []
     if isinstance(project_evidence, str):
         project_evidence = json.loads(project_evidence)
