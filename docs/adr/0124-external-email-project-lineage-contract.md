@@ -39,3 +39,7 @@ Evidence becoming available after the cutoff is excluded even when it describes 
 - Explicit parent cycles and analysis work above the caller-approved pair budget fail closed before inference.
 - Project evidence can inform Naruon without mutating authoritative project/task/provider state.
 - The single generic secondary key reflects the current core kernel. Multiple independent typed secondary-key channels remain a future contract revision rather than being silently flattened.
+
+## References
+
+See `docs/doctoring/EXTERNAL_LINEAGE_CONTRACT_REFERENCES.md`.
