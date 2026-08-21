@@ -3338,6 +3338,52 @@ def test_live_chat_answer_publishes_an_activity_event(
     assert "What happened here that no seed already answers?" in events[0]["summary"]
 
 
+def test_post_chat_malformed_provider_reply_is_unavailable(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """A malformed provider envelope must not escape as an HTTP 500."""
+
+    class _MalformedChatClient:
+        available = True
+
+        def answer(self, question: str, sources) -> None:
+            del question, sources
+            raise TypeError("provider message content is not a string")
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _MalformedChatClient())
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/chat",
+        json={"question": "What happened here?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert response.status_code == 503
+    assert "no complete evidence object" in response.json()["detail"]
+
+
+def test_global_ask_malformed_provider_reply_is_unavailable(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Global Ask must degrade safely when provider content has the wrong type."""
+
+    class _MalformedChatClient:
+        available = True
+
+        def answer(self, question: str, sources) -> None:
+            del question, sources
+            raise TypeError("provider message content is not a string")
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _MalformedChatClient())
+    response = client.post(
+        "/api/ask",
+        json={"question": "What happened here?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert response.status_code == 503
+    assert "no complete evidence object" in response.json()["detail"]
+
+
 def test_evaluate_is_unavailable_without_orchestrator(client, demo_analyst_token, seeded_db) -> None:
     os.environ.pop("ORCHESTRATOR_BASE_URL", None)
     os.environ.pop("ORCHESTRATOR_API_KEY", None)
