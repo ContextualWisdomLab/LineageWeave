@@ -45,6 +45,13 @@ describe("PostBody", () => {
     expect(screen.queryByAltText(/character offset/i)).not.toBeInTheDocument();
   });
 
+  it("renders decoded markup as text instead of executable HTML", () => {
+    render(<PostBody body="<p>&lt;script&gt;alert(1)&lt;/script&gt;</p>" />);
+
+    expect(screen.getByText("alert(1)")).toBeInTheDocument();
+    expect(document.querySelector("script")).not.toBeInTheDocument();
+  });
+
   it("renders authoritative LLM structure levels for semantic list units", () => {
     render(
       <PostBody
