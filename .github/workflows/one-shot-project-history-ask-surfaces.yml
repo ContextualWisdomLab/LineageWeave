@@ -100,6 +100,7 @@ jobs:
         run: |
           python tools/apply_project_history_ask_surfaces.py
           python tools/repair_project_history_ask_transform.py
+          python tools/harden_project_history_ask_cutoff.py
 
       - name: Format and lint changed Python
         run: |
@@ -145,6 +146,7 @@ jobs:
           rm .github/workflows/one-shot-project-history-ask-surfaces.yml
           rm tools/apply_project_history_ask_surfaces.py
           rm tools/repair_project_history_ask_transform.py
+          rm tools/harden_project_history_ask_cutoff.py
           git diff --check
 
       - name: Publish verified product head
