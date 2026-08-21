@@ -33,3 +33,22 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
     ).read_text(encoding="utf-8")
 
     assert "0012_*" in script
+
+
+def test_mcp_api_key_migration_is_wired_for_existing_and_fresh_volumes() -> None:
+    """MCP key storage must exist on both Compose database paths."""
+    migrate = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "migrate.sh"
+    ).read_text(encoding="utf-8")
+    dockerfile = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "Dockerfile"
+    ).read_text(encoding="utf-8")
+
+    assert "0051_*)" in migrate
+    assert "migrations/0051_mcp_api_keys.sql" in dockerfile

@@ -326,4 +326,4 @@ def test_migration_contains_normalized_job_and_status_event_tables() -> None:
 
 def test_migration_replay_window_includes_post_content_queue() -> None:
     migrate = (_ROOT / "docker/postgres-init/migrate.sh").read_text()
-    assert "0050_*)" in migrate
+    assert "0050_*" in migrate
