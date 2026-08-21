@@ -1,12 +1,12 @@
 # Product, technical, and gap baseline
 
-**Snapshot:** 2026-08-21 05:46 (Asia/Seoul)
+**Snapshot:** 2026-08-21 11:57 (Asia/Seoul)
 **Protected-main baseline:** `origin/main`, product version `2.12.5`
-**Audited PR head:** #258 at `b83be708a9dc705df7485e1b18e779439bfb7b71` (current exact branch head; protected-main runtime evidence remains pending)
-**Active PR update:** Hosted Full test, frontend, PROV-O, CodeQL, SAST, supply-chain,
-and security Checks are successful on the current #258 head; Devin Review is
-failed and the OpenCode coverage check remains pending. Formal approval and
-protected-main acceptance are still required.
+**Audited PR head:** #258 at `99244658bc7edb7cf0c71cce2e3dcc59ff891b2b` (current exact branch head; protected-main runtime evidence remains pending)
+**Active PR update:** At this snapshot, PR #258 has one failed check (`Devin Review`),
+fourteen queued checks, seven skipped scheduler jobs, and successful CodeRabbit;
+no formal approval or protected-main acceptance is present. The current queue
+inventory below is a point-in-time gate record, not a merge or release claim.
 **Purpose:** connect the normative ADRs and research evidence to product
 requirements, technical contracts, implementation evidence, and active PRs.
 An active PR is proposed work, not shipped behavior.
@@ -707,3 +707,139 @@ Post-fix validation is Python `725 passed, 16 skipped, 4 warnings`, frontend
 passed. These are branch-local results. #333 remains gated until exact-head
 hosted Checks and independent formal approval are terminal-successful; #334
 must not enable API-key authentication before migration `0051` is deployed.
+## Buyer-reported gap mapping: 2026-08-21
+
+The following requirements are mapped from an authorized buyer report. The
+report's post URLs and record identifiers are intentionally omitted from this
+repository. Each row is a product contract to verify, not a claim that the
+listed active PR has shipped on protected `main`.
+
+| Buyer-observed gap | Contract to close | Relevant evidence | Current state and next proof |
+|---|---|---|---|
+| Numeric footnotes and `li`/`oi` nesting are misclassified | Preserve a footnote unit and list depth from HTML, Word, and OOXML source evidence; visual whitespace alone cannot create hierarchy | ADR 0102/0103; PR #302 head `1a317f24f3e5905a208fdbaf273acba0d458b272`; PR #319 | Branch-local tests cover the reported shapes; run the exact stack on protected `main` and browser-check the buyer popup |
+| Malformed tables lose row/column structure | Persist table rows as semantic units, keep surrounding prose, and render a valid accessible table | PR #302 head `1a317f24f3e5905a208fdbaf273acba0d458b272` | Local backend/frontend evidence exists; add a real-stack fixture with malformed closing tags and verify row order |
+| Indentation is wrong or inferred from authoring alignment | Rank explicit source widths, preserve unresolved evidence, and use orchestrator adjudication only when the source does not decide | ADR 0103; PR #319; PR #324 head `53c2b2553d19be6a0573294a2a9e9e693cdc4d2f` | Parser contracts are covered locally; verify mixed HTML/CSS/OOXML fixtures and persisted decision sources in PostgreSQL |
+| Two projects are mixed into one event stream | Bind event actions and project labels only to a same-post project mention; retain unbound status when evidence is ambiguous | ADR 0111/0112; PR #308 head `90b967d1ef9e4bad362b87c4c4ec3973f2a706fd` | Project binding is branch-local; acceptance still needs two-project source-backed data with aggregate, non-identifying counts |
+| Partner/customer/supplier roles and 5W1H are incomplete | Keep actor type, affiliation, role, direction, time, place, method, and reason as separate nullable evidence fields; never infer a relationship from a display label alone | ADR 0006-0010, 0026-0027, 0052, 0084; FR-06/FR-11 | Existing ontology contracts cover parts of the model; a corpus acceptance run must report bound, ambiguous, and absent fields separately |
+| Image tables are flattened and visual regions are shallow | Preserve OCR rows, parent-image placement, bounded region coordinates, region evidence, tags, and separate searchable embeddings; fallback must remain explicit | ADR 0077, 0104, 0110; PR #303 head `ba71bc16a1ec796dd6b8cd22236b9185589a4328`; PR #307; PR #309; PR #320 | The OCR colon-containing multiline loss was fixed and tested on #303; region decomposition remains unproven until authorized runtime evidence shows meaningful non-full-image boxes |
+| Markdown generated from image OCR is not rendered as a table | Parse only a bounded Markdown table shape, preserve prose, escape pipe characters, and expose header cells with accessible table semantics | PR #303 head `ba71bc16a1ec796dd6b8cd22236b9185589a4328` | Frontend tests/build pass locally; verify the same persisted OCR projection through the browser journey |
+| Acronyms, canonical names, translations, and external corroboration are disconnected | Persist normalized aliases and language links separately from entity identity; attach SearXNG corroboration as provenance with source, time, and status | ADR 0008, 0009, 0005; PR #316; PR #327 | Active branches are proposals; require exact-head checks and aggregate alias/corroboration outcomes before claiming search parity |
+| A PM mention lacks a person and affiliated organization | Represent person, team, organization, title, and affiliation as separate nodes/edges; preserve same-name ties and do not auto-create on ambiguity | ADR 0006-0010, 0026-0027; PR #258 | The schema boundary exists; buyer acceptance needs a bound/ambiguous/unavailable projection with no real names in repository artifacts |
+| Major events, R&R, requester/processor, and Git-like DAG are incomplete | Persist event evidence, requester/processor assignments, project scope, and directed parent/branch lineage with source navigation | ADR 0100, 0084; PR #287; PR #308; PR #330 | Action/project work is branch-local; verify the complete popup and Event Lineage graph in a browser against authorized aggregate evidence |
+| Who/what/how/payment details are missing | Add evidence-bearing fields for actor, action, method, payer, payee, amount/currency, and payment basis; keep unknown values null | ADR 0006, 0011, 0052, 0084 | This remains an open schema/product gap; write an ADR and migration only after an anonymized acceptance fixture defines the evidence contract |
+| Superscript/subscript mathematical units are not semantically explicit | Preserve MathML-compatible structure and a searchable normalized expression while retaining source presentation and unit semantics | ADR 0011, 0065, and the existing standards register | Open gap; first add a research-grounded ADR and parser contract for a synthetic `m³`/subscript fixture, then implement the smallest verified boundary |
+
+### Evidence and research boundary
+
+The implementation decisions above remain governed by the linked ADRs. Their
+APA 7th bibliographies and open-access research register are maintained in
+[`docs/lineage-bi-research-notes.md`](lineage-bi-research-notes.md) and the
+individual ADRs; this checkpoint adds no provider-quality claim beyond those
+sources. W3C PROV-O, W3C Organization, W3C Time, and the paper-grounded
+contextual-orchestrator policy remain the normative boundaries. A local test,
+active PR, queued Check, or private aggregate observation is never promoted to
+protected-main or release evidence.
+
+### Exact-head gate snapshot
+
+At this checkpoint the relevant active heads above have no independent formal
+approval and their required Checks are non-terminal or otherwise gated. The
+review loop remains: re-fetch the branch and dependency head, inspect current
+review findings, apply a minimal root-cause fix when needed, re-run local and
+hosted Checks, and merge only after normal protected-repository approval and
+post-merge SHA checks succeed. No self-approval, administrative bypass, force
+push, or synthetic runtime success is acceptable.
+
+| Audited PR | Current head at this loop | Local evidence | Protected gate |
+|---|---|---|---|
+| #303 image evidence | `ba71bc16a1ec796dd6b8cd22236b9185589a4328` | Backend `747 passed, 16 skipped`; frontend `139 passed`, lint, Vite, and Storybook passed | No approval; required Checks queued |
+| #323 TEPP/SearXNG boundary | `061e62130e3d6fc3e6bb3a5c0d941a0c7aac85cd` | Focused TEPP/relation/start tests `50 passed`; compileall and diff check passed | No approval; required Checks queued |
+| #325 gap baseline | `9dc8c7d143841a1e93459d0a5d35d6332184be0c` | Documentation diff check passed | No approval; required Checks queued |
+| #340 Naruon provider contract | `1e792a761f96e2184394a15f112cc947c7661c41` | Contract tests `11 passed`; module coverage `100%`; compileall and diff check passed | No approval; required Checks queued |
+| #344 metric script semantics | `922a38405e3f89779a0a70974a6ad1f8f2bb4793` | Backend focused `74 passed`; frontend focused `29 passed`, lint, and Vite build passed | Stacked on #303; no approval; required Checks queued |
+
+These four rows are exact-head observations from the current review loop. They
+do not establish that any behavior is present on protected `main`; re-fetch all
+heads and dependency bases before the next review or merge decision.
+
+## Live exact-head inventory: 2026-08-21 11:57 KST
+
+GitHub reported 48 open pull requests and 13 open issues at this snapshot. The
+following inventory records every open PR head and its advertised base SHA so
+the next loop can re-fetch the exact branch before review, repair, Checks, or a
+protected merge. A blank or non-terminal GitHub mergeability value is not
+treated as merge-ready. The `#335` base branch also requires special care:
+GitHub's pull-request payload still advertised `c0b8f533`, while the fetched
+`docs/current-gap-audit` branch resolved to `64ce5fba`; the branch ref, not a
+stale payload, is the source for the next restack.
+
+| PR | Head branch @ exact head | Advertised base branch @ SHA |
+|---:|---|---|
+| #346 | `feat/uiux-standard-guide-v3` @ `73d808113d2a1980dc20bb040c661c9a1cf74324` | `main` @ `2feba74b75863810869cde680b19032a93fba413` |
+| #345 | `fix/otel-session-telemetry` @ `228ac9e6c54a0f7dc917b2ed392ee98feb02d466` | `fix/buyer-safe-image-captions` @ `9b7ef93a4708993c7d5af28c67c28b227f59437a` |
+| #344 | `feat/math-semantic-units` @ `efcf16920d33b72242db664273a7b16dbd3218fa` | `feat/image-evidence-markdown-semantics` @ `d8e8ede425d6b7373b678776e5ccaeef83f7cec5` |
+| #343 | `feat/external-lineage-integration-contract` @ `cbc65a903cf46e863ea66bb601a97b9051e408dc` | `main` @ `2feba74b75863810869cde680b19032a93fba413` |
+| #342 | `feat/project-history-ask-surfaces-v2200` @ `bd9e965e3943ea19a115d53c0a8f39a0f70968d6` | `feat/tepp-project-history-recovery-v2210` @ `43262dc76622928fdf90b922653949b4ac7c6631` |
+| #340 | `feat/lineage-provider-contract-v1` @ `1e792a761f96e2184394a15f112cc947c7661c41` | `main` @ `2feba74b75863810869cde680b19032a93fba413` |
+| #339 | `feat/tepp-project-history-recovery-v2210` @ `43262dc76622928fdf90b922653949b4ac7c6631` | `feat/project-history-timeline-v2184-r3` @ `cfc125cb65f26ed7e834976dbff12b6b9790b59c` |
+| #337 | `feat/naruon-calendar-projection-contract` @ `44517b30d76dc2ac66c496b9b3cf6436b7955cd0` | `feat/calendar-open-focus-event-lineage-v2140` @ `221cc94db3780e82114ef553729c7a00da554532` |
+| #335 | `docs/current-gap-audit-current-checkpoint` @ `c43edff228878361a8d09b793aec4e7c85537d93` | `docs/current-gap-audit` @ `c0b8f5330ff3940b7a8907756a8ca4e5549dfde9` |
+| #331 | `feat/locale-deep-link-regression` @ `72e842bad482b73974d8ab4f09d2385582c300d6` | `fix/member-locale-bootstrap-race` @ `d0e159872147c7d7bd8bbf042c5552041eb44a4a` |
+| #330 | `feat/lineage-dag-regression` @ `f9df5ead44a2f2b1fd3b578bfd20f2fad15bb8aa` | `codex/normalize-source-indent-semantics` @ `e3f00eaae9255f5f56eaa5d93b6fa2ea6ea3e8c5` |
+| #329 | `fix/buyer-safe-image-captions` @ `9b7ef93a4708993c7d5af28c67c28b227f59437a` | `fix/validate-partial-image-regions` @ `53c2b2553d19be6a0573294a2a9a9e693cdc4d2f` |
+| #328 | `fix/member-locale-bootstrap-race` @ `d0e159872147c7d7bd8bbf042c5552041eb44a4a` | `fix/oidc-deep-link-locale` @ `3a32312b9cf9e368c58d7df5efb0c699dfe73152` |
+| #327 | `fix/searxng-corroboration-token-precision` @ `e6ef7cc53bcfef1e3dd61705b9ab243251860730` | `main` @ `2feba74b75863810869cde680b19032a93fba413` |
+| #326 | `fix/analysis-run-status-write-clock-v2126` @ `f9c53e7c18a696260d60bfcdd7c0af5e07c1dda6` | `fix/searxng-corroboration-token-precision` @ `e6ef7cc53bcfef1e3dd61705b9ab243251860730` |
+| #325 | `docs/current-gap-audit` @ `64ce5fbac4ed9c6233ecaab475d6702080a8e7e2` | `fix/validate-partial-image-regions` @ `53c2b2553d19be6a0573294a2a9a9e693cdc4d2f` |
+| #324 | `fix/validate-partial-image-regions` @ `53c2b2553d19be6a0573294a2a9a9e693cdc4d2f` | `codex/preserve-partial-image-regions` @ `cf7331ae25544f660ecad11a4fc965f9cef107f1` |
+| #323 | `fix/tepp-request-contract-validation` @ `eb1fc2a473ea2401a7cd259f08a22c6e257438ef` | `main` @ `2feba74b75863810869cde680b19032a93fba413` |
+| #322 | `feat/orchestrator-owned-embedding-consumer` @ `1c46edad6832e766f3a6f54d45a88b1a173dda78` | `fix/stale-summary-buyer-continuity` @ `17ff91195c921f3967bd22fb15dd58764519f45a` |
+| #320 | `codex/preserve-partial-image-regions` @ `cf7331ae25544f660ecad11a4fc965f9cef107f1` | `codex/normalize-source-indent-semantics` @ `e3f00eaae9255f5f56eaa5d93b6fa2ea6ea3e8c5` |
+| #319 | `codex/normalize-source-indent-semantics` @ `e3f00eaae9255f5f56eaa5d93b6fa2ea6ea3e8c5` | `codex/post-structure-case-fixes` @ `1faed2f680fa6d7bbe946a1a884522757d1639d6` |
+| #318 | `feat/verified-organization-label-evidence` @ `8ad157b43d0d33515e719860d32c7f14aabe5623` | `feat/multilingual-organization-label-search` @ `78434ce251cedd3d1dceb168603d9f2bc06f3438` |
+| #317 | `codex/post-structure-case-fixes` @ `1faed2f680fa6d7bbe946a1a884522757d1639d6` | `codex/fix-mixed-body-indentation-311` @ `e38df6256f03db06a9fe8dd07a8ab212540ea4c9` |
+| #316 | `feat/multilingual-organization-label-search` @ `78434ce251cedd3d1dceb168603d9f2bc06f3438` | `feat/global-ask-public-claim-verification-v2200` @ `41ad3b758618354457ff11641b52d1def290d1d1` |
+| #314 | `codex/fix-mixed-body-indentation-311` @ `254c2b131740cbdf94c4ce89707d5298553fcfbd` | `fix/stale-summary-buyer-continuity` @ `17ff91195c921f3967bd22fb15dd58764519f45a` |
+| #311 | `fix/stale-summary-buyer-continuity` @ `17ff91195c921f3967bd22fb15dd58764519f45a` | `fix/project-bound-summary-actions` @ `46ca53333963a725e9d38eef020800bba6ebb1ec` |
+| #309 | `feat/buyer-image-region-overlays` @ `75047741371c969d4e2114a34ddf9385d8412e96` | `fix/buyer-image-evidence` @ `fbecd77358c95ebaea02b4a87e32b795c70d5e15` |
+| #308 | `fix/project-bound-summary-actions` @ `90b967d1ef9e4bad362b87c4c4ec3973f2a706fd` | `fix/buyer-image-evidence` @ `fbecd77358c95ebaea02b4a87e32b795c70d5e15` |
+| #307 | `fix/buyer-image-evidence` @ `fbecd77358c95ebaea02b4a87e32b795c70d5e15` | `fix/oidc-deep-link-locale` @ `4e40e267f0e255f55e923ace97ece1e9963e8640` |
+| #306 | `fix/oidc-deep-link-locale` @ `dab3994ee49f299e86c4543a8c33845fe8d92eb8` | `feat/analysis-run-name-evidence-lineage` @ `4bb234476ca26aacdd645f3c495a161a2c441790` |
+| #303 | `feat/image-evidence-markdown-semantics` @ `d8e8ede425d6b7373b678776e5ccaeef83f7cec5` | `feat/buyer-evidence-gap-structure` @ `1a317f24f3e5905a208fdbaf273acba0d458b272` |
+| #302 | `feat/buyer-evidence-gap-structure` @ `1a317f24f3e5905a208fdbaf273acba0d458b272` | `feat/analysis-run-name-evidence-lineage` @ `99244658bc7edb7cf0c71cce2e3dcc59ff891b2b` |
+| #301 | `feat/global-ask-knowledge-cutoff-v2230` @ `d51093c1cacd2250c9fa758877ee8fb6e6688ccd` | `feat/event-lineage-node-keeps-gnb-focus-v2170` @ `2ff882642565bae3f5443c40dc4d0f9328a2653a` |
+| #298 | `feat/bounded-async-lineage-llm-rebuild-v2220` @ `5c5544ed6ffbc2d6c76d62add794dc4d585ebd05` | `feat/global-ask-public-claim-verification-v2200` @ `139cd24cbdc5282230ce0619617d113914efa7d6` |
+| #287 | `feat/event-lineage-channel-evidence-v2210` @ `c01dedf654ef33beb9a2117a5b02b064c85ff89d` | `feat/global-ask-public-claim-verification-v2200` @ `139cd24cbdc5282230ce0619617d113914efa7d6` |
+| #286 | `feat/mcp-browser-admission-v2131` @ `8be7fbb763eb256367828461b10ed39d716783e2` | `agent/authenticated-mcp-global-ask` @ `e1c31db3387ec051e6327332d373293242b9e5eb` |
+| #285 | `feat/project-history-timeline-v2184-r3` @ `68ca6cb63ef8915418eb62fb356cbab010d9e751` | `feat/event-lineage-node-keeps-gnb-focus-v2170` @ `2ff882642565bae3f5443c40dc4d0f9328a2653a` |
+| #276 | `feat/global-ask-public-claim-verification-v2200` @ `139cd24cbdc5282230ce0619617d113914efa7d6` | `feat/gnb-event-lineage-focus-keyman-v2190` @ `259b3b0d073eaa4c050ee5459a95ebb815a43f4f` |
+| #275 | `feat/evidence-bound-event-intelligence-v2183` @ `68974f5c71d0499fac1a52595880e803199a306b` | `agent/authenticated-mcp-global-ask` @ `e1c31db3387ec051e6327332d373293242b9e5eb` |
+| #270 | `agent/authenticated-mcp-global-ask` @ `e1c31db3387ec051e6327332d373293242b9e5eb` | `feat/event-lineage-node-keeps-gnb-focus-v2170` @ `bcdc4594abe467627c71378adeceb61624d02d67` |
+| #266 | `feat/gnb-event-lineage-focus-keyman-v2190` @ `259b3b0d073eaa4c050ee5459a95ebb815a43f4f` | `feat/event-lineage-node-keeps-gnb-focus-v2170` @ `bcdc4594abe467627c71378adeceb61624d02d67` |
+| #264 | `feat/event-lineage-node-keeps-gnb-focus-v2170` @ `bcdc4594abe467627c71378adeceb61624d02d67` | `feat/ask-agent-open-focus-event-lineage-v2160` @ `457e7e121adb79424f382a9868a84f6fb6e402f2` |
+| #263 | `feat/ask-agent-open-focus-event-lineage-v2160` @ `457e7e121adb79424f382a9868a84f6fb6e402f2` | `feat/customer-master-open-focus-event-lineage-v2150` @ `cc0a8907b74bfa2d9757e321a91fd06bff39e442` |
+| #262 | `feat/customer-master-open-focus-event-lineage-v2150` @ `cc0a8907b74bfa2d9757e321a91fd06bff39e442` | `feat/calendar-open-focus-event-lineage-v2140` @ `6c4d48dfd9eccae81f4809adf52cad51eb4c394b` |
+| #261 | `feat/calendar-open-focus-event-lineage-v2140` @ `6c4d48dfd9eccae81f4809adf52cad51eb4c394b` | `feat/board-weekly-voc-open-event-lineage-v2130` @ `b7625c3dd3c6dce6f6a933f0479740a3006450e8` |
+| #260 | `feat/board-weekly-voc-open-event-lineage-v2130` @ `b7625c3dd3c6dce6f6a933f0479740a3006450e8` | `feat/analysis-run-name-evidence-lineage` @ `99244658bc7edb7cf0c71cce2e3dcc59ff891b2b` |
+| #258 | `feat/analysis-run-name-evidence-lineage` @ `99244658bc7edb7cf0c71cce2e3dcc59ff891b2b` | `main` @ `2feba74b75863810869cde680b19032a93fba413` |
+| #192 | `feat/related-node-plural-next-action` @ `5b1f6da236fd46a6effffd251aad804d75738c3c` | `feat/analysis-run-name-evidence-lineage` @ `4bb234476ca26aacdd645f3c495a161a2c441790` |
+
+The inventory is refreshed before every merge decision. It intentionally does
+not assert that an open PR is merge-ready; review approval, all required
+terminal Checks, exact dependency heads, and post-merge SHA verification remain
+independent gates.
+
+## Live queue delta: 2026-08-21 12:03 KST
+
+The next read found the same aggregate queue size (48 open PRs and 13 open
+issues), but PR #346 is now closed and a replacement UI stack is open as PR
+#347. The exact current #347 head is
+`dd7156dadf62d5eff79def3aff2108f7d33e7e7d`, based on `main` at
+`2feba74b75863810869cde680b19032a93fba413`; GitHub still reports its
+mergeability as non-terminal. PR #345 remains at
+`228ac9e6c54a0f7dc917b2ed392ee98feb02d466`, #344 at
+`efcf16920d33b72242db664273a7b16dbd3218fa`, #342 at
+`bd9e965e3943ea19a115d53c0a8f39a0f70968d6`, #339 at
+`43262dc76622928fdf90b922653949b4ac7c6631`, and #335 at
+`c43edff228878361a8d09b793aec4e7c85537d93`. These are queue observations;
+none is a protected merge or release claim.
