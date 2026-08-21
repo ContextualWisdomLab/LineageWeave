@@ -290,6 +290,31 @@ def test_stale_worker_cannot_retry_after_lease_recovery() -> None:
     assert not any("set status_code" in query for query, _args in connection.executed)
 
 
+def test_worker_retry_clock_queries_cast_database_timestamps() -> None:
+    class RecordingConnection(_Connection):
+        def __init__(self, row):
+            super().__init__(row)
+            self.queries: list[str] = []
+
+        async def fetchval(self, query: str, *_args: object):
+            self.queries.append(query)
+            return False
+
+    connection = RecordingConnection(_row(QUEUED, 1))
+
+    claimed = asyncio.run(
+        post_content_worker._claim_job(
+            _Pool(connection),
+            "00000000-0000-0000-0000-000000000001",
+            "a" * 64,
+            embedding_model_code="",
+        )
+    )
+
+    assert claimed is None
+    assert any("$1::timestamptz + $2::interval" in query for query in connection.queries)
+
+
 def test_supervised_worker_restarts_after_unexpected_error(monkeypatch) -> None:
     calls = 0
 
