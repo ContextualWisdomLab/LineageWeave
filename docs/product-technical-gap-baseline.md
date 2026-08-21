@@ -251,6 +251,57 @@ or an explicit unavailable result.
 
 ## 5. Product and technical gaps
 
+- **R&R role/relationship conflation and catalog-linking boundary — evidence-backed (2026-08-21):**
+  Live UI/UX feedback on a real R&R extraction surfaced three related gaps,
+  root-caused against source rather than assumed:
+  1. **"카탈로그 미연결" is the designed fail-closed behavior, not a bug, but
+     is undiagnosable from the UI.** `_resolve_existing_cataloged_person_id`
+     (`backend/app/post_summary_ingestion.py`) is documented as never
+     inserting a `cataloged_person` row (ADR 0009 — "a missing catalog row
+     stays unbound rather than inventing a person"). Organization actors do
+     go through `get_or_create_corporate_entity` (ADR 0010), but that
+     function's `hierarchy_inference_client`/`verification_client` default to
+     Null clients whenever no live orchestrator/SearXNG corroboration is
+     wired — in that state it can only match an *already-cataloged* entity,
+     never create one, so an organization actor stays unlinked too. The
+     resulting "카탈로그 미연결" label is a correct, honest reflection of
+     missing live infrastructure, not a code defect — but it gives the
+     reader no way to tell "not yet processed" from "no live orchestrator in
+     this environment" from "verification declined to corroborate."
+  2. **Job title and relationship type are conflated into one free-text
+     field.** `RoleResponsibility.responsibility` (`lineageweave/post_summary.py`)
+     is documented as "what they are responsible for or did" — a single
+     string. An observed extraction produced `"상담고객 연구원"` in that one
+     field, gluing a *relationship-type* signal ("상담 고객", i.e. a
+     consulting/customer relationship — the same concept already modeled
+     elsewhere as `post_counterparty_entity.relationship_type_code`, e.g.
+     `rel_voc`) together with a *job title* ("연구원") that has no home of
+     its own on `RoleResponsibility` the way `last_known_job_title` does on
+     `Keyman`. Fixing this needs a new field plus an
+     `POST_SUMMARY_CONTRACT_VERSION` bump (currently `12`) and an extraction-
+     prompt change — not a display-layer patch, and not something to
+     implement without review given every future extraction depends on the
+     contract version.
+  3. **Planned-facility events don't become project/entity evidence, and no
+     operator inference exists.** A key event whose text names a specific
+     planned facility (e.g. "X 충전소 구축 계획") produces `key_events`/
+     `key_event_details` prose only — it is never checked against
+     `post_project_mention`/`ProjectEvidence`, so the facility itself is
+     not recognized as an entity, and no relationship is inferred between it
+     and the organization the post's own R&R evidence says would operate it.
+     This is a deliberate ontology-design question, not a quick fix:
+     inferring an "operates" relationship from event-adjacent context risks
+     inventing a fact the source text does not state, which is exactly what
+     ADR 0010's fail-closed design exists to prevent. Needs its own ADR
+     (a new PROV-O/SKOS relationship class and a conservative admission
+     rule) before any inference code is written.
+  Two related, safely-scoped UI fixes shipped alongside this finding: R&R
+  rows now nest under their affiliated organization's row instead of each
+  repeating "· 소속: X" as flat text (`buildRoleTree`, `frontend/src/App.tsx`),
+  and `key_events` sharing the same `project_name` now nest under one
+  heading instead of repeating the project name as a flat prefix
+  (`groupKeyEventsByProject`). Neither fix touches extraction, the summary
+  contract, or catalog creation.
 - **Customer master "customer tree" — scope gap, evidence-backed (2026-08-21):**
   `/api/customer-master`'s `corporate_entities` list (`backend/app/main.py`
   `read_customer_master`, `entity_rows` query) is scoped to
