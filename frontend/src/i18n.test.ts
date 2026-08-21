@@ -22,6 +22,7 @@ describe("i18n", () => {
     "unresolved",
     "Keymen",
     "Unknown",
+    "Image tags",
     "Counterparties",
     "due",
     "Activity",
@@ -51,6 +52,7 @@ describe("i18n", () => {
     "Collect stronger authoritative evidence before accepting the claim.",
     "Inspect the authorized cited posts and their evidence.",
     "Event Lineage timeline",
+    "Open timeline post:",
   ] as const;
 
   it("supports the five product locales", () => {

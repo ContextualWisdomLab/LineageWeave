@@ -371,7 +371,7 @@ class ContextualOrchestratorPostChatClient:
         content = body["choices"][0]["message"]["content"]
         answer = _parse_plain_chat_response(content, sources)
         if answer is None:
-            raise ValueError(f"chat response did not match the required format: {content!r}")
+            raise ValueError("chat response did not match the required format")
         return answer
 
     def compress_context(
