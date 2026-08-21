@@ -2065,7 +2065,7 @@ describe("App, authenticated", () => {
     expect(within(customers).getByLabelText("Next action")).toHaveTextContent(
       "Authorized customer entities are current. Open a related post to read Event Lineage.",
     );
-    await userEvent.click(within(customers).getByRole("button", { name: /Demo Corp/ }));
+    await userEvent.click(within(customers).getByRole("treeitem", { name: /Demo Corp/ }));
     await userEvent.click(
       await within(customers).findByRole("button", { name: "Open related post: Public post" }),
     );
@@ -2095,8 +2095,8 @@ describe("App, authenticated", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
     const customers = await screen.findByRole("region", { name: "Customer master" });
-    await userEvent.click(within(customers).getByRole("button", { name: /Demo Group/ }));
-    await userEvent.click(within(customers).getByRole("button", { name: /Demo Corp/ }));
+    await userEvent.click(within(customers).getByRole("treeitem", { name: /Demo Group/ }));
+    await userEvent.click(within(customers).getByRole("treeitem", { name: /Demo Corp/ }));
 
     fetchMock.releaseGroupRelated();
     await waitFor(() => expect(within(customers).getByText("Loading related posts...")).toBeInTheDocument());
