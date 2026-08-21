@@ -11,6 +11,7 @@ from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.project_history import (
     PROJECT_HISTORY_CONTRACT_VERSION,
     PROJECT_HISTORY_TIME_BASIS,
+    _as_utc,
     build_project_history_projection,
     normalize_project_key,
 )
@@ -19,6 +20,8 @@ PROJECT_HISTORY_DEFAULT_LIMIT = 64
 PROJECT_HISTORY_MAXIMUM_LIMIT = 128
 PROJECT_INDEX_DEFAULT_LIMIT = 100
 PROJECT_INDEX_MAXIMUM_LIMIT = 200
+PROJECT_INDEX_MINIMUM_SOURCE_POST_LIMIT = 1024
+PROJECT_INDEX_STATEMENT_TIMEOUT_MILLISECONDS = 5000
 
 
 class ProjectHistoryConnection(Protocol):
@@ -195,16 +198,33 @@ select edge.parent_post_id, edge.child_post_id, edge.fused_score
  order by edge.child_post_id, edge.parent_post_id
 """
 _INDEX_SQL = f"""
-with visible_post as materialized (
+with query_timeout as materialized (
+    select set_config(
+        'statement_timeout',
+        '{PROJECT_INDEX_STATEMENT_TIMEOUT_MILLISECONDS}',
+        true
+    )
+), recent_visible_post as materialized (
     select post.post_id,
            post.created_at,
            {_SOURCE_CODE} as source_project_code,
            {_SOURCE_NAME} as source_project_name
       from source_post post
+      cross join query_timeout
      where (post.visibility_code = 'public'
         or post.corporate_entity_id::text = any($1::text[]))
        and {_ELIGIBILITY}
        and post.created_at <= $2
+     order by post.created_at desc, post.post_id desc
+     limit ($4 + 1)
+), visible_post as materialized (
+    select post_id, created_at, source_project_code, source_project_name
+      from recent_visible_post
+     order by created_at desc, post_id desc
+     limit $4
+), source_scan as (
+    select count(*) > $4 as source_scan_truncated
+      from recent_visible_post
 ), project_evidence as (
     select visible_post.post_id,
            visible_post.created_at,
@@ -250,8 +270,10 @@ select normalized_project_key,
        project_name,
        truth_status_code,
        event_count,
-       latest_event_at
+       latest_event_at,
+       source_scan.source_scan_truncated
   from project_group
+  cross join source_scan
  order by latest_event_at desc, project_name, project_key, normalized_project_key
  limit $3
 """
@@ -291,15 +313,22 @@ async def fetch_project_history_index(
     if limit < 1 or limit > PROJECT_INDEX_MAXIMUM_LIMIT:
         raise ValueError("project index limit is outside the supported bound")
     _require_aware_cutoff(knowledge_cutoff)
+    source_post_limit = max(
+        PROJECT_INDEX_MINIMUM_SOURCE_POST_LIMIT,
+        (limit + 1) * PROJECT_HISTORY_DEFAULT_LIMIT,
+    )
     rows = list(
         await conn.fetch(
             _INDEX_SQL,
             list(corporate_entity_ids),
             knowledge_cutoff,
             limit + 1,
+            source_post_limit,
         )
     )
-    truncated = len(rows) > limit
+    truncated = len(rows) > limit or any(
+        bool(row["source_scan_truncated"]) for row in rows
+    )
     projects = [
         {
             "normalized_project_key": str(row["normalized_project_key"]),
@@ -307,14 +336,14 @@ async def fetch_project_history_index(
             "project_name": str(row["project_name"]),
             "truth_status_code": str(row["truth_status_code"]),
             "event_count": int(row["event_count"]),
-            "latest_event_at": row["latest_event_at"].isoformat(),
+            "latest_event_at": _as_utc(row["latest_event_at"]),
         }
         for row in rows[:limit]
     ]
     return {
         "contract_version": PROJECT_HISTORY_CONTRACT_VERSION,
         "time_basis_code": PROJECT_HISTORY_TIME_BASIS,
-        "knowledge_cutoff": knowledge_cutoff.isoformat(),
+        "knowledge_cutoff": _as_utc(knowledge_cutoff),
         "project_count": len(projects),
         "truncated": truncated,
         "projects": projects,
@@ -388,7 +417,7 @@ async def fetch_project_history_projection(
         edge_rows=edge_rows,
         truncated=truncated,
     )
-    projection["knowledge_cutoff"] = knowledge_cutoff.isoformat()
+    projection["knowledge_cutoff"] = _as_utc(knowledge_cutoff)
     projection["evidence_boundary_code"] = "authorized_visible_source_posts"
     return projection
 

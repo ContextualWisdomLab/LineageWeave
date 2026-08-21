@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { setLocale } from "./i18n";
+import { isoWeekFromCreatedAt } from "./isoWeek";
 
 const signinRedirect = vi.fn();
 const signoutRedirect = vi.fn();
@@ -88,6 +89,8 @@ describe("App, authenticated", () => {
     deferMe?: boolean;
     deferPostOneSummary?: boolean;
     deferSecondAsk?: boolean;
+    deferProjectHistory?: boolean;
+    invalidAskSessionOnce?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
@@ -111,12 +114,23 @@ describe("App, authenticated", () => {
       visibility_label?: string;
       created_at: string;
     };
+    isoWeekOptions?: string[];
+    weekFilteredPosts?: {
+      post_id: string;
+      post_title: string;
+      voc_type_code: string;
+      voc_type_label?: string;
+      visibility_code?: string;
+      visibility_label?: string;
+      created_at: string;
+    }[];
   }): ReturnType<typeof vi.fn> & {
     releaseMe: () => void;
     releaseSecondAsk: () => void;
     releaseGroupRelated: () => void;
     releaseDemoRelated: () => void;
     releasePostOneSummary: () => void;
+    releaseProjectHistory: () => void;
   } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -171,6 +185,12 @@ describe("App, authenticated", () => {
     const postOneSummaryReady = options?.deferPostOneSummary
       ? new Promise<void>((resolve) => {
           releasePostOneSummary = resolve;
+        })
+      : Promise.resolve();
+    let releaseProjectHistory = () => {};
+    const projectHistoryReady = options?.deferProjectHistory
+      ? new Promise<void>((resolve) => {
+          releaseProjectHistory = resolve;
         })
       : Promise.resolve();
 
@@ -1101,12 +1121,23 @@ describe("App, authenticated", () => {
               },
               ...(options?.boardPosts ?? []),
             ];
+        const isoWeekOptions = options?.isoWeekOptions ?? Array.from(
+          new Set(
+            boardPosts
+              .map((post) => isoWeekFromCreatedAt(post.created_at))
+              .filter((week): week is string => Boolean(week)),
+          ),
+        ).sort((left, right) => right.localeCompare(left));
+        const responsePosts =
+          postsUrl.searchParams.get("iso_week") && options?.weekFilteredPosts
+            ? options.weekFilteredPosts
+            : boardPosts;
         return Promise.resolve(
           jsonResponse(
             postsUrl.searchParams.get("search")
               ? []
               : {
-                  posts: boardPosts,
+                  posts: responsePosts,
                   total_count: 1,
                   limit: 50,
                   offset: 0,
@@ -1115,6 +1146,7 @@ describe("App, authenticated", () => {
                     { code: "vop", label: "Voice of Partner" },
                   ],
                   visibility_options: [{ code: "public", label: "Public" }],
+                  iso_week_options: isoWeekOptions,
                 },
           ),
         );
@@ -1628,6 +1660,15 @@ describe("App, authenticated", () => {
       }
       if (url.endsWith("/api/ask") && method === "POST") {
         askRequestCount += 1;
+        const requestBody = JSON.parse(String(init?.body ?? "{}")) as { session_id?: string };
+        if (options?.invalidAskSessionOnce && askRequestCount === 1 && requestBody.session_id) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "Global Ask session not found" }), {
+              status: 404,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         const ready =
           options?.deferSecondAsk && askRequestCount === 2
             ? secondAskReady
@@ -1635,6 +1676,7 @@ describe("App, authenticated", () => {
         return ready.then(() =>
           Promise.resolve(
           jsonResponse({
+            session_id: "session-1",
             answer_text: "The cited project is supported by the stored semantic evidence.",
             cited_post_ids: ["post-2"],
             cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
@@ -1777,7 +1819,7 @@ describe("App, authenticated", () => {
       }
       if (url.includes("/api/project-history?") && method === "GET") {
         projectHistoryRequestUrl = url;
-        return Promise.resolve(
+        return projectHistoryReady.then(() =>
           jsonResponse({
             contract_version: 1,
             project_key: "Semantic project",
@@ -1822,6 +1864,7 @@ describe("App, authenticated", () => {
       releaseGroupRelated,
       releaseDemoRelated,
       releasePostOneSummary,
+      releaseProjectHistory,
     });
   }
 
@@ -1875,6 +1918,26 @@ describe("App, authenticated", () => {
         "The cited project is supported by the stored semantic evidence.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("replaces an invalid saved Ask session without requiring storage cleanup", async () => {
+    window.sessionStorage.setItem("lineageweave.globalAskSessionId", "stale-session");
+    const fetchMock = stubBackend({ invalidAskSessionOnce: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    await userEvent.type(within(ask).getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+
+    expect(
+      await within(ask).findByText("The cited project is supported by the stored semantic evidence."),
+    ).toBeInTheDocument();
+    const askBodies = fetchMock.mock.calls
+      .filter(([url]) => String(url).endsWith("/api/ask"))
+      .map(([, init]) => JSON.parse(String((init as RequestInit).body)) as { session_id?: string });
+    expect(askBodies.map((body) => body.session_id)).toEqual(["stale-session", undefined]);
+    expect(window.sessionStorage.getItem("lineageweave.globalAskSessionId")).toBe("session-1");
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
@@ -2013,6 +2076,19 @@ describe("App, authenticated", () => {
     expect(projectHistoryRequestUrl).toContain("focus_post_id=post-1");
   });
 
+  it("shows a next-action loading state while project history is requested", async () => {
+    const fetchMock = stubBackend({ deferProjectHistory: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Open project history for: Semantic project" }),
+    );
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Loading project history...");
+    fetchMock.releaseProjectHistory();
+    expect(await screen.findByRole("heading", { name: "Project event timeline" })).toBeInTheDocument();
+  });
+
   it("clicking Weekly VOC keeps the 2026-W01 Voice of Customer post and names Event Lineage as the next action", async () => {
     stubBackend({
       boardPosts: [
@@ -2043,10 +2119,12 @@ describe("App, authenticated", () => {
     expect(within(board).getByRole("button", { name: "View post: Older Voice of Customer" })).toBeInTheDocument();
 
     const weeklyVoc = within(board).getByRole("button", { name: "Weekly VOC" });
+    await userEvent.selectOptions(within(board).getByLabelText("Sort posts"), "title");
     expect(weeklyVoc).toHaveAttribute("aria-pressed", "false");
     await userEvent.click(weeklyVoc);
 
     expect(weeklyVoc).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() => expect(within(board).getByLabelText("Sort posts")).toHaveValue("newest"));
     expect(within(board).getByLabelText("Filter by ISO week")).toHaveValue("2026-W01");
     expect(within(board).getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
     expect(within(board).queryByRole("button", { name: "View post: Internal memo" })).not.toBeInTheDocument();
@@ -2061,6 +2139,34 @@ describe("App, authenticated", () => {
     expect(weeklyVoc).toHaveAttribute("aria-pressed", "false");
     expect(within(board).getByRole("button", { name: "View post: Internal memo" })).toBeInTheDocument();
     expect(within(board).getByRole("button", { name: "View post: Older Voice of Customer" })).toBeInTheDocument();
+  });
+
+  it("shows authorized ISO weeks supplied by the API even when a week is outside the loaded page", async () => {
+    const fetchMock = stubBackend({
+      isoWeekOptions: ["2026-W08", "2026-W01"],
+      weekFilteredPosts: [
+        {
+          post_id: "post-voc-w08",
+          post_title: "Older page Voice of Customer",
+          voc_type_code: "voc",
+          voc_type_label: "Voice of Customer",
+          visibility_code: "public",
+          visibility_label: "Public",
+          created_at: "2026-02-18T00:00:00Z",
+        },
+      ],
+    });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    await userEvent.selectOptions(within(board).getByLabelText("Filter by ISO week"), "2026-W08");
+    await waitFor(() =>
+      expect(within(board).getByRole("button", { name: "View post: Older page Voice of Customer" })).toBeInTheDocument(),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("iso_week=2026-W08"),
+      expect.anything(),
+    );
   });
 
   it("gets the Weekly VOC week from the authorized newest VOC post, not the loaded page", async () => {
@@ -2186,7 +2292,7 @@ describe("App, authenticated", () => {
     expect(within(customers).getByLabelText("Next action")).toHaveTextContent(
       "Authorized customer entities are current. Open a related post to read Event Lineage.",
     );
-    await userEvent.click(within(customers).getByRole("button", { name: /Demo Corp/ }));
+    await userEvent.click(within(customers).getByRole("treeitem", { name: /Demo Corp/ }));
     await userEvent.click(
       await within(customers).findByRole("button", { name: "Open related post: Public post" }),
     );
@@ -2216,8 +2322,8 @@ describe("App, authenticated", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
     const customers = await screen.findByRole("region", { name: "Customer master" });
-    await userEvent.click(within(customers).getByRole("button", { name: /Demo Group/ }));
-    await userEvent.click(within(customers).getByRole("button", { name: /Demo Corp/ }));
+    await userEvent.click(within(customers).getByRole("treeitem", { name: /Demo Group/ }));
+    await userEvent.click(within(customers).getByRole("treeitem", { name: /Demo Corp/ }));
 
     fetchMock.releaseGroupRelated();
     await waitFor(() => expect(within(customers).getByText("Loading related posts...")).toBeInTheDocument());
@@ -3115,6 +3221,8 @@ describe("App, authenticated", () => {
     await userEvent.click(calendarButton);
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
   });
 
   it("shows the seeded analysis run on the home page", async () => {

@@ -16,6 +16,8 @@ async def cleanup_synthetic_seed(conn: Any, *, apply: bool = False) -> dict[str,
         """
         select post.post_id
           from source_post post
+          join corporate_entity entity
+            on entity.corporate_entity_id = post.corporate_entity_id
          where nullif(btrim(post.source_author_code), '') is null
            and nullif(btrim(post.source_author_name), '') is null
            and nullif(btrim(post.source_company_code), '') is null
@@ -28,6 +30,7 @@ async def cleanup_synthetic_seed(conn: Any, *, apply: bool = False) -> dict[str,
            and nullif(btrim(post.source_customer_name), '') is null
            and nullif(btrim(post.source_project_code), '') is null
            and nullif(btrim(post.source_project_name), '') is null
+           and entity.corporate_entity_code like 'DEMO-%'
            and exists (
                select 1
                  from source_post real_post
