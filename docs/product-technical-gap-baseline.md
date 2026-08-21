@@ -110,8 +110,6 @@ Open PRs at the same observation:
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #383: `head` `b1d32a93632164cf1379f24fc9aca71c5d29b746`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #384: `head` `a32bbda48e1ed873362e6e7bd6e47766d9998bb5`, base
-  `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
 - PR #387: `head` `eaea56d3b2f07f89a5dfcc7d81b032148048982d`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #392: `head` `a046da4e52c484807fc28111bd813d1acbc00816`, base `main`
@@ -132,16 +130,16 @@ gates.
 
 Queue refresh at `2026-08-21T18:56:50Z`: PRs #258, #355, and #373 had
 terminal successful Checks but no independent `APPROVED` review, so none was
-authorized to merge. PRs #349, #368, #383, #384, #387, and #391 had no failed
+authorized to merge. PRs #349, #368, #383, #387, and #392 had no failed
 Checks observed at their exact heads but retained non-terminal Checks and no
 independent approval. PR #355 also retained a `CHANGES_REQUESTED` review
 decision from the earlier stale coverage verdict; it remains unmergeable until
-the current-head review is refreshed. PRs #388, #389, and #390 were merged
-into stack bases only; their merge commits are not protected-main merges.
+the current-head review is refreshed. PRs #388, #389, #390, and #391 were
+merged into stack bases only; their merge commits are not protected-main merges.
 Re-read the exact current HEAD, review, and terminal-check gates before every
 future merge.
 
-Queue refresh at `2026-08-22T04:00:00Z`: PR #391 is now merged into the open
+Queue refresh at `2026-08-21T19:00:00Z`: PR #391 is now merged into the open
 #387 stack parent with merge commit
 `16f2b13caad10f4d999293d623405aefadeda52e`; this is not a protected-main
 merge. New PR #392 is open at exact head
@@ -390,14 +388,15 @@ Observed at `2026-08-21T18:27:23Z` on PR #390's exact head
   base with merge commit `b020378710a0e405974538d80f7ef68ae3badd7c`; this is
   not a protected-main merge.
 
-Observed at `2026-08-21T18:56:50Z` on PR #391's exact head
+Merged at `2026-08-21T18:54:35Z` from PR #391's exact head
 `e099a916cec6f06b86f335d31c89e01aae248dfd`:
 
 - Nested-list indentation now survives a block child such as
   `<li><p>Child</p></li>`; the regression is covered by the wrapped-child
   fixture. Local verification passed 157 frontend tests, lint, production
-  build, Storybook build, and `git diff --check`. Two hosted Checks remained
-  pending and no independent approval or merge was claimed.
+  build, Storybook build, and `git diff --check`. The normal stack merge into
+  #387 produced `16f2b13caad10f4d999293d623405aefadeda52e`; this is not a
+  protected-main merge.
 
 Observed at `2026-08-21T18:56:50Z` on PR #387's exact head
 `16f2b13caad10f4d999293d623405aefadeda52e`:
@@ -459,7 +458,7 @@ or bypass is authorized until the central repair and exact-head Checks pass.
 
 ## 7. Next Implementation Order
 
-1. Revalidate open PRs #258, #349, #355, #368, #373, #383, #384, #387, and #392 at
+1. Revalidate open PRs #258, #349, #355, #368, #373, #383, #387, and #392 at
    their exact current heads as Checks and formal independent approvals arrive;
    the #388/#389/#390 stack merges are already recorded above, so process the
   open #387 parent only after its current-head gates pass. PR #392 is a
