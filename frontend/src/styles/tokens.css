@@ -116,6 +116,7 @@
   --z-modal-backdrop: 300;
   --z-modal: 310;
   --z-evidence-panel: 250;
+  --z-skip-link: 400;
 
   /* Required Field Indicator */
   --color-required: #b91c1c;

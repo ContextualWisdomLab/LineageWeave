@@ -4679,6 +4679,16 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
 
   return (
     <div className="app-shell">
+      <a
+        href="#main-content"
+        className="skip-link"
+        onClick={(event) => {
+          event.preventDefault();
+          document.getElementById("main-content")?.focus();
+        }}
+      >
+        {t("Skip to main content")}
+      </a>
       <header className="app-header">
         <div className="app-header-logo">
           <h1 className="app-header-title">{brandName}</h1>
@@ -4739,7 +4749,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           </aside>
         </div>
       ) : null}
-      <main>
+      <main id="main-content" tabIndex={-1}>
         {destination === "board" ? (
           <PostList
             accessToken={accessToken}

@@ -40,6 +40,7 @@ describe("i18n", () => {
   const eventLineageLabels = [
     "Authorized scope",
     "Open navigation",
+    "Skip to main content",
     "Lineage legend",
     "Root record",
     "Branch point",

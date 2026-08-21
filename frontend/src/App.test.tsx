@@ -3545,6 +3545,19 @@ describe("App, authenticated", () => {
     );
   });
 
+  it("lets a keyboard user skip the header and GNB to reach main content", async () => {
+    stubBackend();
+    render(<App />);
+
+    await screen.findByRole("navigation", { name: "Workspace navigation" });
+    const skipLink = screen.getByRole("link", { name: "Skip to main content" });
+    expect(skipLink).toHaveAttribute("href", "#main-content");
+    const main = document.getElementById("main-content");
+    expect(main).not.toBeNull();
+    await userEvent.click(skipLink);
+    expect(main).toHaveFocus();
+  });
+
   it("does not steal focus after the global search request has been handled", async () => {
     const fetchMock = stubBackend();
     render(<App />);
