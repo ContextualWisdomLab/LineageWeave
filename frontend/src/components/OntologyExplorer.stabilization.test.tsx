@@ -110,7 +110,30 @@ describe("OntologyExplorer stabilization contracts", () => {
       next_cursor: "after:mentions:post-person",
       limitation_code: "neighborhood_truncated",
     });
-    const second = payload({ truncated: false, next_cursor: null, limitation_code: null });
+    const second = payload({
+      truncated: false,
+      next_cursor: null,
+      limitation_code: null,
+      nodes: [
+        payload().nodes[0],
+        { ...payload().nodes[1], node_id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2", display_label: "Second person" },
+      ],
+      edges: [
+        {
+          ...payload().edges[0],
+          edge_id: "mentions:post-second-person",
+          target_node_id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2",
+        },
+      ],
+      exact_value_rows: [
+        {
+          ...payload().exact_value_rows[0],
+          edge_id: "mentions:post-second-person",
+          target_node_id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2",
+          target_label: "Second person",
+        },
+      ],
+    });
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce({ ok: true, status: 200, json: async () => first })
@@ -136,6 +159,8 @@ describe("OntologyExplorer stabilization contracts", () => {
     expect(String(fetchMock.mock.calls[1][0])).toContain(
       "cursor=after%3Amentions%3Apost-person",
     );
+    expect(screen.getAllByText("Test person").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Second person").length).toBeGreaterThan(0);
   });
 
   it("names the next action when a hard source bound has no cursor", () => {

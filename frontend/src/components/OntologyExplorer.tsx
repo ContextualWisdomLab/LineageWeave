@@ -51,6 +51,48 @@ function nodeKey(node: Pick<OntologyGraphNodePayload, "node_type_code" | "node_i
   return `${node.node_type_code}:${node.node_id}`;
 }
 
+function mergeNeighborhoodPages(
+  previous: OntologyNeighborhoodPayload,
+  next: OntologyNeighborhoodPayload,
+): OntologyNeighborhoodPayload {
+  const nodes = Array.from(
+    new Map(
+      [...previous.nodes, ...next.nodes].map((node) => [nodeKey(node), node]),
+    ).values(),
+  );
+  const edges = Array.from(
+    new Map(
+      [...previous.edges, ...next.edges].map((edge) => [edge.edge_id, edge]),
+    ).values(),
+  );
+  const exactValueRows = Array.from(
+    new Map(
+      [...previous.exact_value_rows, ...next.exact_value_rows].map((row) => [row.edge_id, row]),
+    ).values(),
+  );
+  const previousGraph = Array.isArray(previous.jsonld["@graph"])
+    ? previous.jsonld["@graph"]
+    : [];
+  const nextGraph = Array.isArray(next.jsonld["@graph"]) ? next.jsonld["@graph"] : [];
+  const graph = Array.from(
+    new Map(
+      [...previousGraph, ...nextGraph].map((item, index) => [
+        typeof item === "object" && item !== null && "@id" in item
+          ? String(item["@id"])
+          : `graph-item-${index}`,
+        item,
+      ]),
+    ).values(),
+  );
+  return {
+    ...next,
+    nodes,
+    edges,
+    exact_value_rows: exactValueRows,
+    jsonld: { ...next.jsonld, "@graph": graph },
+  };
+}
+
 /**
  * Inspects a typed ontology neighborhood from an authorized focus node.
  *
@@ -116,7 +158,9 @@ export function OntologyExplorer({
     })
       .then((payload) => {
         if (cancelled) return;
-        setLoaded(payload);
+        setLoaded((previous) =>
+          cursor && previous ? mergeNeighborhoodPages(previous, payload) : payload,
+        );
         setStatus(statusFromPayload(payload, knowledgeCutoff));
       })
       .catch((error: unknown) => {
