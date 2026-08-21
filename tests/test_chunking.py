@@ -191,6 +191,45 @@ def test_chunk_by_dom_does_not_treat_non_numeric_superscript_as_footnote() -> No
     ]
 
 
+def test_chunk_by_dom_preserves_explicit_metric_superscripts() -> None:
+    """A unit exponent remains searchable mathematical evidence."""
+    chunks = chunk_by_dom("<p>Volume: 5m<sup>3</sup>.</p>")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Volume: 5m³."),
+    ]
+
+
+def test_chunk_by_dom_preserves_explicit_metric_subscripts() -> None:
+    """A unit subscript is retained without changing ordinary footnotes."""
+    chunks = chunk_by_dom("<p>Index m<sub>3</sub> is measured.</p>")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Index m₃ is measured."),
+    ]
+
+
+def test_chunk_by_source_body_normalizes_plain_metric_scripts() -> None:
+    """Plain-text metric scripts retain searchable exponent/index semantics."""
+    chunks = chunk_by_source_body("Volume: 5m^3; index m_3; braced m^{2}.")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("", "Volume: 5m³; index m₃; braced m²."),
+    ]
+
+
+def test_chunk_by_source_body_normalizes_metric_scripts_in_markdown_table_cells() -> None:
+    """Markdown table cells retain the same searchable metric semantics as prose."""
+    chunks = chunk_by_source_body(
+        "| Metric | Index |\n| --- | --- |\n| 5m^3 | m_3 |"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "Metric | Index"),
+        ("tr", "5m³ | m₃"),
+    ]
+
+
 def test_chunk_by_dom_preserves_nested_list_order_and_depth() -> None:
     """Nested list items retain source order and increasing depth."""
     chunks = chunk_by_dom(

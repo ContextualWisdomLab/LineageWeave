@@ -67,6 +67,18 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("preserves explicit metric superscripts and subscripts", () => {
+    expect(splitPostBody("<p>Volume: 5m<sup>3</sup>, index m<sub>3</sub>.</p>")).toEqual([
+      { kind: "text", text: "Volume: 5m³, index m₃." },
+    ]);
+  });
+
+  it("normalizes plain-text metric superscripts and subscripts", () => {
+    expect(splitPostBody("<p>Volume: 5m^3, index m_3, braced m^{2}.</p>")).toEqual([
+      { kind: "text", text: "Volume: 5m³, index m₃, braced m²." },
+    ]);
+  });
+
   it("preserves HTML and Word footnote blocks as footnote paragraphs", () => {
     expect(
       splitPostBody(
@@ -126,6 +138,12 @@ describe("splitPostBody", () => {
       { kind: "table", rows: [["Project", "Status"], ["Alpha", "Ready"]] },
       { kind: "prose", text: "Next action." },
     ]);
+  });
+
+  it("normalizes metric scripts inside Markdown table cells", () => {
+    expect(
+      splitMarkdownTableBody("| Metric | Index |\n| --- | --- |\n| 5m^3 | m<sub>3</sub> |"),
+    ).toEqual([{ kind: "table", rows: [["Metric", "Index"], ["5m³", "m₃"]] }]);
   });
 
   it("unescapes pipe characters inside Markdown cells without accepting a short delimiter", () => {
