@@ -12,7 +12,7 @@ Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
 Current source/test exact head observed before this documentation update:
-`b08b406c095f8eb9fa4b65042998676bf33a169d`. This documentation update will
+`379ee7e7643687cfb825ce7982efad8aeb1a257b`. This documentation update will
 create the next exact head and therefore requires the protected checks to
 rerun.
 
@@ -25,10 +25,15 @@ rerun.
   SearXNG corroboration, Local Zotero ingestion, real PostgreSQL import, and
   complete accessibility/edge-case browser workflows. Synthetic routes and
   health checks are recorded separately and are not corpus proof.
+- **Implemented in source:** an explicit body-column or hash-verified
+  `multipart/related` MHTML artifact resolver now gives the private importer a
+  fail-closed path for exports whose PostgreSQL rows contain artifact
+  provenance but no body column. The operator artifact root and raw artifacts
+  remain outside the repository.
 - **Figma reference:** ADR 0118 records file `1Su3lDRmiZdcUs47t1QwIX`; the
   inspected Event Lineage frames are desktop `5:14` and mobile `5:15`.
 - **Local quality evidence at the source/test head:** backend `uv run pytest -q`
-  passed `776` tests with `17` skips; frontend Vitest passed `167` tests in `18`
+  passed `784` tests with `17` skips; frontend Vitest passed `167` tests in `18`
   files, frontend lint/build passed, and Storybook build completed. These are
   local checks, not hosted protected-gate or independent-review evidence.
 - **Current PR gate:** PR #350 is open, `MERGEABLE` but `BLOCKED`, and has no
@@ -129,9 +134,12 @@ real React client rendered the protected board. Aggregate evidence only:
   zero popup errors.
 - The authorized PostgreSQL export relation contained 43,814 rows with
   complete title, source-key, and artifact-path metadata, but its schema had
-  no body/content/HTML column. The existing import adapter requires an
-  explicitly mapped body column, so this is source-mapping evidence only; no
-  real-corpus import or multimodal backfill is claimed from this relation.
+  no body/content/HTML column. The importer now accepts an explicit
+  body-column mapping or a path-column plus SHA-256-column mapping beneath an
+  operator-supplied artifact root; this is source and synthetic-fixture
+  evidence only because the authorized raw artifacts were not present in the
+  repository runtime. No real-corpus import or multimodal backfill is claimed
+  from this relation.
 - After replaying the tenant-settings migration on the existing PostgreSQL
   volume, authenticated `/api/settings` returned HTTP 200 and the fresh React
   browser session recorded zero console errors and zero warnings. At 390×958,
@@ -174,7 +182,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Authenticated corp/PU attributes | `/api/me` returns DB-backed codes; backend integration test covers `TEST-CORP`/`TEST-PU` and header displays them | source + local-integration |
 | RBAC/ABAC, public/private visibility, tenant isolation | `_can_see_post`, API authorization tests, aggregate-only runtime checks | source + local-integration |
 | React product surface and PostgreSQL boundary | React routes/components, asyncpg API, Compose stack | source + local-integration |
-| Authorized PostgreSQL export import mapping | bounded source-schema inspection found 43,814 rows and artifact-path metadata but no body/content/HTML field; the existing adapter rejects an absent body mapping | source + local-integration partial; approved artifact-to-body mapping open |
+| Authorized PostgreSQL export import mapping | `scripts/import_postgresql_posts.py`, ADR 0121, hash-verified RFC 2557 MHTML resolver, and synthetic preflight/import tests; authorized relation has artifact-path metadata but no body/content/HTML field | source + unit + local-integration partial; operator artifact files and authorized live import open |
 | Bounded large-body search migration | `0035_body_search_prefix.sql`, `0036_normalized_body_search.sql`; live replay completed after bounded rendered-text indexing | source + local-integration |
 | Public Compose liveness and tenant settings boundary | health-probe regression test, `0103_tenant_settings.sql`, replayed existing volume, one tenant-settings row, canonical `tenant_settings_id` after `0104`, rebuilt backend `/healthz` and authenticated `/api/settings` HTTP 200 | source + unit + local-integration |
 | Two-word snake_case database identifiers | ADR 0120, idempotent migration `0104`, live public-schema audit, zero invalid indexes | source + unit + local-integration |
@@ -240,11 +248,13 @@ or an explicit unavailable result.
   preserved across the backend parser and React renderer. Full formula AST,
   units, exponents, and ontology mapping remain an evidence-backed follow-up,
   not a claim of mathematical completeness.
-- **Authorized source mapping — open:** the inspected export relation exposes
-  metadata and artifact paths but no body/content/HTML field. Do not map an
-  unrelated metadata column as body; connect the approved artifact parser or
-  publish a runtime query that returns the authoritative body before import and
-  backfill.
+- **Authorized source mapping — partially implemented:** the inspected export
+  relation exposes metadata and artifact paths but no body/content/HTML field.
+  ADR 0121 and the importer now connect a path plus SHA-256 mapping to an
+  operator-local MHTML root, while rejecting traversal, missing files, and
+  digest mismatches before writes. The remaining acceptance work is to mount
+  the authorized raw artifacts and run the real import/backfill; do not map an
+  unrelated metadata column as body.
 - **TEPP measurement — boundary accepted, runtime open:** LineageWeave must
   call TEPP through its published import/REST contract and must not implement a
   local theta, psychometric calibration, CAT, or judge score. TEPP owns the
