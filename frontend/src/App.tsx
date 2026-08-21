@@ -1786,10 +1786,8 @@ function PostDetailPopup({
         : currentIndex < 0 || currentIndex === focusable.length - 1
           ? 0
           : currentIndex + 1;
-      if (currentIndex < 0 || nextIndex !== currentIndex + (event.shiftKey ? -1 : 1)) {
-        event.preventDefault();
-        focusable[nextIndex].focus();
-      }
+      event.preventDefault();
+      focusable[nextIndex].focus();
     };
 
     document.addEventListener("keydown", handleKeyDown);
