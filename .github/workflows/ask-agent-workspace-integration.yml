@@ -1,0 +1,92 @@
+name: Apply Ask Agent evidence workspace
+
+on:
+  push:
+    branches:
+      - feat/ask-agent-evidence-workspace-v2180
+    paths:
+      - .github/workflows/ask-agent-workspace-integration.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ask-agent-workspace-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  integrate-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
+        with:
+          ref: feat/ask-agent-evidence-workspace-v2180
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Apply bounded integration patch
+        env:
+          PR_NUMBER: "351"
+        run: python scripts/patch_ask_agent_workspace.py
+
+      - name: Verify patch shape
+        run: |
+          git diff --check
+          test -f frontend/src/components/AskAgentWorkspace.tsx
+          test -f docs/adr/0125-ask-agent-evidence-workspace.md
+          grep -F 'AskAgentWorkspace as AskAgentPanel' frontend/src/App.tsx
+          grep -F '| #351 | Ask Agent evidence workspace' docs/product-technical-gap-baseline.md
+          if grep -F 'function AskAgentPanel({' frontend/src/App.tsx; then
+            echo 'Legacy inline AskAgentPanel remains' >&2
+            exit 1
+          fi
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install locked frontend dependencies
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run focused Ask Agent tests
+        working-directory: frontend
+        run: pnpm run test -- src/components/AskAgentWorkspace.test.tsx
+
+      - name: Run frontend lint
+        working-directory: frontend
+        run: pnpm run lint
+
+      - name: Run full frontend tests
+        working-directory: frontend
+        run: pnpm run test
+
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm run build
+
+      - name: Build Storybook state inventory
+        working-directory: frontend
+        run: pnpm run build-storybook
+
+      - name: Publish verified source change and remove one-shot machinery
+        run: |
+          rm -rf frontend/dist frontend/storybook-static
+          rm -f scripts/patch_ask_agent_workspace.py
+          rm -f .github/workflows/ask-agent-workspace-integration.yml
+          git diff --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'feat: integrate verified Ask Agent evidence workspace'
+          git push origin HEAD:feat/ask-agent-evidence-workspace-v2180
