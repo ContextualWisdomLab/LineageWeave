@@ -154,6 +154,24 @@ def test_chunk_by_dom_labels_ooxml_footnote_containers() -> None:
     ]
 
 
+def test_chunk_by_dom_preserves_explicit_metric_superscripts() -> None:
+    """A metric exponent remains searchable mathematical evidence."""
+    chunks = chunk_by_dom("<p>Volume: 5m<sup>3</sup>.</p>")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Volume: 5m³.")
+    ]
+
+
+def test_chunk_by_dom_preserves_explicit_metric_subscripts() -> None:
+    """A metric subscript is retained without changing ordinary footnotes."""
+    chunks = chunk_by_dom("<p>Index m<sub>3</sub> is measured.</p>")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Index m₃ is measured.")
+    ]
+
+
 def test_chunk_by_dom_word_table_rows_also_group_cells() -> None:
     html = "<w:tbl><w:tr><w:tc>1</w:tc><w:tc>Acme Corp</w:tc></w:tr></w:tbl>"
     chunks = chunk_by_dom(html)

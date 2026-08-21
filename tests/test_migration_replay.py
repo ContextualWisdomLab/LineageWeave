@@ -33,3 +33,15 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
     ).read_text(encoding="utf-8")
 
     assert "0012_*" in script
+
+
+def test_migrate_sh_replays_tenant_settings_migration_on_existing_volumes() -> None:
+    """Existing Compose volumes must receive the tenant-settings table."""
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "migrate.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "0103_*" in script
