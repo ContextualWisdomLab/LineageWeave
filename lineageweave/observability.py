@@ -32,6 +32,33 @@ _FAILURE_COUNTER: Any = None
 _TRACE_PROVIDER: Any = None
 _METER_PROVIDER: Any = None
 _SERVER_FAILURE_OUTCOMES = {"provider_unavailable", "internal_error"}
+_ALLOWED_ATTRIBUTE_KEYS = frozenset(
+    {
+        "db.operation.name",
+        "db.system",
+        "http.request.method",
+        "http.response.status_code",
+        "lineageweave.error_type",
+        "lineageweave.failure_outcome",
+        "lineageweave.operation_code",
+        "lineageweave.session_id",
+        "lineageweave.stream.kind",
+        "service.peer.name",
+    }
+)
+_ALLOWED_OPERATION_CODES = frozenset(
+    {"global_ask", "http_post_json", "post_chat", "post_content_ingestion", "unknown"}
+)
+
+
+def _bounded_session_id(value: object) -> str | None:
+    """Return a short, printable session correlation value or ``None``."""
+    if not isinstance(value, str):
+        return None
+    value = value.strip()
+    if not value or any(ord(character) < 32 for character in value):
+        return None
+    return value[:128]
 
 
 def _otlp_trace_endpoint(endpoint: str) -> str:
@@ -59,7 +86,7 @@ def current_session_id() -> str | None:
 
     metadata = current_llm_metadata() or {}
     value = metadata.get("lineageweave_post_session_id") or metadata.get("session_id")
-    return value if isinstance(value, str) and value else None
+    return _bounded_session_id(value)
 
 
 def inject_trace_context(carrier: dict[str, str]) -> None:
@@ -74,11 +101,13 @@ def _safe_attributes(
     """Keep telemetry attributes scalar, bounded, and explicitly non-content."""
     result: dict[str, str | int | float | bool] = {}
     for key, value in (attributes or {}).items():
-        if (
-            not isinstance(key, str)
-            or not key
-            or isinstance(value, (dict, list, tuple, set))
-        ):
+        if key not in _ALLOWED_ATTRIBUTE_KEYS:
+            continue
+        if key == "lineageweave.session_id":
+            value = _bounded_session_id(value)
+            if value is None:
+                continue
+        if isinstance(value, (dict, list, tuple, set)):
             continue
         if isinstance(value, str):
             result[key] = value[:256]
@@ -223,7 +252,9 @@ def record_server_failure(
     """
     if outcome not in _SERVER_FAILURE_OUTCOMES:
         raise ValueError(f"unsupported server failure outcome: {outcome}")
-    bounded_operation = operation_code.strip()[:64]
+    bounded_operation = operation_code.strip() if isinstance(operation_code, str) else "unknown"
+    if bounded_operation not in _ALLOWED_OPERATION_CODES:
+        bounded_operation = "unknown"
     error_type = type(exc).__name__[:128]
     session_id = current_session_id() or ""
     counter = _failure_counter()

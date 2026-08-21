@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import time
 from collections.abc import Callable
 from uuid import UUID
@@ -16,7 +15,7 @@ from lineageweave.image_content import ImageContentClient
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_content_persistence import persist_post_content
-from lineageweave.observability import traced
+from lineageweave.observability import record_server_failure, traced
 from lineageweave.post_structure import PostStructureClient
 
 from backend.app.config import load_settings
@@ -34,7 +33,6 @@ from backend.app.post_content_queue import (
     republish_queued_post_content_jobs,
 )
 
-_logger = logging.getLogger(__name__)
 _RECOVERY_INTERVAL_SECONDS = 30.0
 _INCOMPLETE_FAILURE_CODE = "post_content_ingestion_incomplete"
 _ATTEMPT_LIMIT_FAILURE_CODE = "post_content_ingestion_attempt_limit"
@@ -66,7 +64,7 @@ async def _claim_job(
     async with pool.acquire() as conn:
         async with conn.transaction():
             row = await conn.fetchrow(
-                f"""
+                """
                 select p.*, j.source_body_sha256 as job_source_body_sha256,
                        j.status_code as job_status_code,
                        j.attempt_count as job_attempt_count,
@@ -271,8 +269,8 @@ async def process_post_content_job(
                     expected_attempt_count=attempt_count,
                 )
                 return
-    except Exception:  # noqa: BLE001 - durable failure is recorded for retry.
-        _logger.exception("post content ingestion failed")
+    except Exception as exc:  # noqa: BLE001 - durable failure is recorded for retry.
+        record_server_failure("post_content_ingestion", exc, outcome="internal_error")
         await _finish_failed_job(
             pool,
             post_id,

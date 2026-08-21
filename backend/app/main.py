@@ -201,44 +201,54 @@ async def lifespan(app: FastAPI):
     """Open one asyncpg pool and one Valkey client for the process, and
     close both on shutdown."""
     configure_telemetry("lineageweave")
-    settings = load_settings()
-    app.state.pool = await create_pool(settings.database_url)
-    app.state.valkey = create_valkey_client(settings.valkey_url)
-    app.state.analysis_run_worker = asyncio.create_task(
-        run_analysis_run_worker(
-            app.state.valkey,
-            app.state.pool,
-            tepp_client=configured_tepp_client(
-                settings.tepp_transport_url,
-                settings.tepp_api_key,
-            ),
-            adjudication_client=_adjudication_client(),
-        )
-    )
-    app.state.post_content_worker = asyncio.create_task(
-        run_post_content_worker(
-            app.state.valkey,
-            app.state.pool,
-            vision_factory=_vision_client,
-            embedding_factory=_embedding_client,
-            structure_factory=_post_structure_client,
-        )
-    )
+    pool = None
+    valkey = None
+    analysis_worker = None
+    content_worker = None
     try:
+        settings = load_settings()
+        pool = await create_pool(settings.database_url)
+        app.state.pool = pool
+        valkey = create_valkey_client(settings.valkey_url)
+        app.state.valkey = valkey
+        analysis_worker = asyncio.create_task(
+            run_analysis_run_worker(
+                valkey,
+                pool,
+                tepp_client=configured_tepp_client(
+                    settings.tepp_transport_url,
+                    settings.tepp_api_key,
+                ),
+                adjudication_client=_adjudication_client(),
+            )
+        )
+        app.state.analysis_run_worker = analysis_worker
+        content_worker = asyncio.create_task(
+            run_post_content_worker(
+                valkey,
+                pool,
+                vision_factory=_vision_client,
+                embedding_factory=_embedding_client,
+                structure_factory=_post_structure_client,
+            )
+        )
+        app.state.post_content_worker = content_worker
         yield
     finally:
-        app.state.analysis_run_worker.cancel()
-        app.state.post_content_worker.cancel()
-        await asyncio.gather(
-            app.state.analysis_run_worker,
-            app.state.post_content_worker,
-            return_exceptions=True,
-        )
+        workers = tuple(worker for worker in (analysis_worker, content_worker) if worker is not None)
+        for worker in workers:
+            worker.cancel()
+        if workers:
+            await asyncio.gather(*workers, return_exceptions=True)
         try:
-            await app.state.pool.close()
-            await app.state.valkey.aclose()
+            if pool is not None:
+                await pool.close()
         finally:
-            shutdown_telemetry()
+            try:
+                if valkey is not None:
+                    await valkey.aclose()
+            finally:
+                shutdown_telemetry()
 
 
 app = FastAPI(title="LineageWeave API", lifespan=lifespan)
@@ -2584,25 +2594,30 @@ async def chat_about_post(
                 "cited_posts": stored["cited_posts"],
                 "source_post_ids": source_ids,
             }
-        with use_llm_metadata(post_metadata):
-            client = _post_chat_client()
-            if not client.available:
-                record_server_failure(
-                    "post_chat",
-                    RuntimeError("orchestrator unavailable"),
-                    outcome="provider_unavailable",
-                )
-                raise HTTPException(
-                    status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post chat is temporarily unavailable. "
-                    "Saved evidence is still available.",
-                )
-            sources = await gather_chat_sources(
-                conn, post_id, lambda row: _can_see_post(account, row), vision_client=_vision_client()
+    with use_llm_metadata(post_metadata):
+        client = _post_chat_client()
+        if not client.available:
+            record_server_failure(
+                "post_chat",
+                RuntimeError("orchestrator unavailable"),
+                outcome="provider_unavailable",
+            )
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Post chat is temporarily unavailable. "
+                "Saved evidence is still available.",
             )
     try:
-        with traced("lineageweave.api.post_chat", {"operation_code": "post_chat"}):
+        async with pool.acquire() as conn:
             with use_llm_metadata(post_metadata):
+                sources = await gather_chat_sources(
+                    conn,
+                    post_id,
+                    lambda row: _can_see_post(account, row),
+                    vision_client=_vision_client(),
+                )
+        with use_llm_metadata(post_metadata):
+            with traced("lineageweave.api.post_chat", {"operation_code": "post_chat"}):
                 answer = await asyncio.to_thread(client.answer, question, sources)
     except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
         record_server_failure("post_chat", exc, outcome="provider_unavailable")

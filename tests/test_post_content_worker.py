@@ -193,7 +193,8 @@ def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch)
     assert any(args[1] == QUEUED and args[6] == "post_content_ingestion_incomplete" for args in updates)
 
 
-def test_transient_provider_error_is_requeued_before_attempt_limit(monkeypatch) -> None:
+def test_transient_provider_error_is_requeued_before_attempt_limit(monkeypatch, caplog) -> None:
+    caplog.set_level("ERROR")
     connection = _Connection(values=[2])
     pool = _Pool(connection)
 
@@ -236,6 +237,7 @@ def test_transient_provider_error_is_requeued_before_attempt_limit(monkeypatch) 
         for args in updates
     )
     assert all("provider timeout" not in str(args) for args in updates)
+    assert "provider timeout" not in caplog.text
 
 
 def test_failure_at_attempt_limit_is_terminal_and_visible() -> None:

@@ -73,7 +73,7 @@ async def publish_outbox_event(
     try:
         with traced(
             "lineageweave.valkey.analysis_outbox_xadd",
-            {"db.system": "redis", "db.operation.name": "xadd", "lineageweave.stream.kind": "analysis_outbox", "lineageweave.work_kind": work_kind_code},
+            {"db.system": "redis", "db.operation.name": "xadd", "lineageweave.stream.kind": "analysis_outbox"},
         ):
             entry_id = await client.xadd(
                 OUTBOX_STREAM_KEY,

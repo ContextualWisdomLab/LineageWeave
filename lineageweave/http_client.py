@@ -127,8 +127,7 @@ def post_json(
             request_payload["metadata"] = {**existing_metadata, **request_metadata}
         else:
             raise ValueError("metadata must be an object")
-    parsed = urlparse(url)
-    hostname = parsed.hostname or url
+    hostname = urlparse(url).hostname or url
     request_headers = {"content-type": "application/json", **headers}
     session_id = current_session_id()
     if session_id:
@@ -137,8 +136,7 @@ def post_json(
         "lineageweave.http.post_json",
         {
             "http.request.method": "POST",
-            "server.address": hostname,
-            "url.path": parsed.path or "/",
+            "lineageweave.operation_code": "http_post_json",
             "service.peer.name": service_peer_name,
         },
     ) as span:
