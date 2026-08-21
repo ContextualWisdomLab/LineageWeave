@@ -80,6 +80,7 @@ SUMMARY_SOURCE_BODY_MISSING = (
     "Post summary is unavailable: the source post body is empty. "
     "Re-import the source record with its body before requesting a summary."
 )
+SUMMARY_TARGET_UNAVAILABLE = "Writing-in-progress posts are not summary targets."
 
 
 def require_summary_source_body(body: str | None) -> str:
@@ -87,6 +88,16 @@ def require_summary_source_body(body: str | None) -> str:
     if not isinstance(body, str) or not body.strip():
         raise ValueError(SUMMARY_SOURCE_BODY_MISSING)
     return body
+
+
+async def require_summary_target(conn: asyncpg.Connection, post_id: str) -> None:
+    """Keep W out of both persisted and on-demand summary generation."""
+    state_code = await conn.fetchval(
+        "select source_detail_state_code from source_post where post_id = $1",
+        post_id,
+    )
+    if state_code == "W":
+        raise ValueError(SUMMARY_TARGET_UNAVAILABLE)
 
 
 async def fetch_persisted_summary(
@@ -398,6 +409,7 @@ async def persist_post_summary(
     summary replacement transaction while all post-owned rows still commit or
     roll back together.
     """
+    await require_summary_target(conn, post_id)
     if post_body is not None:
         require_summary_source_body(post_body)
 

@@ -286,7 +286,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
 	    "Summary is being prepared.": "요약을 준비하고 있습니다.",
 	    "The source evidence is still being analyzed.": "원문 근거를 분석하고 있습니다.",
 	    "Source evidence is still being processed.": "원문 근거를 처리하고 있습니다.",
-	    "Summary could not be generated.": "요약을 생성하지 못했습니다.",
+    "Summary could not be generated.": "요약을 생성하지 못했습니다.",
+    "Summary is not created for writing posts.": "작성 중인 글은 요약을 만들지 않습니다.",
+    "The source is still being written; analysis starts after approval.": "원문 작성이 끝난 뒤 결재 상태에서 분석을 시작합니다.",
 	    "The source record remains available.": "원문 기록은 계속 확인할 수 있습니다.",
 	    "No saved summary exists for this record.": "저장된 요약이 아직 없습니다.",
 	    "The source record is available, but no summary has been saved.":

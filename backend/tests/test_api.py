@@ -1666,6 +1666,11 @@ def test_post_list_filters_and_lists_source_detail_state_codes(
     try:
         with conn.cursor() as cur:
             cur.execute(
+                "select user_account_id from user_account "
+                "where email_address = 'other.analyst@example.test'"
+            )
+            other_account_id = cur.fetchone()[0]
+            cur.execute(
                 """
                 update source_post
                    set source_detail_state_code = case post_title
@@ -1681,6 +1686,15 @@ def test_post_list_filters_and_lists_source_detail_state_codes(
                  )
                 """
             )
+            cur.execute(
+                "update source_post set author_account_id = %s where post_title = %s",
+                (other_account_id, "Edited own-corp private post"),
+            )
+            cur.execute(
+                "update source_post set corporate_entity_id = %s, visibility_code = 'private' "
+                "where post_title = %s",
+                (seeded_db["other_corp_id"], "Public post"),
+            )
         conn.commit()
     finally:
         conn.close()
@@ -1691,12 +1705,58 @@ def test_post_list_filters_and_lists_source_detail_state_codes(
     assert {
         option["code"] for option in listed.json()["source_detail_state_options"]
     } == {"A", "D", "W"}
+    assert {post["post_title"] for post in listed.json()["posts"]} == {
+        "Public post",
+        "Own-corp private post",
+        "Late own-corp private post",
+    }
 
     filtered = client.get("/api/posts?source_detail_state=D", headers=headers)
     assert filtered.status_code == 200, filtered.text
     assert [post["post_title"] for post in filtered.json()["posts"]] == [
         "Own-corp private post"
     ]
+
+    writing = client.get("/api/posts?source_detail_state=W", headers=headers)
+    assert writing.status_code == 200, writing.text
+    assert {post["post_title"] for post in writing.json()["posts"]} == {"Public post"}
+
+    authored_detail = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}", headers=headers
+    )
+    assert authored_detail.status_code == 200, authored_detail.text
+    summary = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}/summary", headers=headers
+    )
+    assert summary.status_code == 422
+    assert "not analysis targets" in summary.json()["detail"]
+    for derived_path in (
+        "content",
+        "five-w1h",
+        "keymen",
+        "counterparties",
+        "lineage",
+        "knowledge-graph",
+        "evaluation",
+        "chat",
+    ):
+        derived = client.get(
+            f"/api/posts/{seeded_db['public_post_id']}/{derived_path}", headers=headers
+        )
+        assert derived.status_code == 422, (derived_path, derived.text)
+
+    hidden_detail = client.get(
+        f"/api/posts/{seeded_db['edited_own_post_id']}", headers=headers
+    )
+    assert hidden_detail.status_code == 403
+
+    _grant_post_admin(seeded_db["dsn"])
+    admin_list = client.get("/api/posts?source_detail_state=W", headers=headers)
+    assert admin_list.status_code == 200, admin_list.text
+    assert {post["post_title"] for post in admin_list.json()["posts"]} == {
+        "Public post",
+        "Edited own-corp private post",
+    }
 
 
 def test_post_list_supports_bounded_offset_pages(client, demo_analyst_token, seeded_db) -> None:

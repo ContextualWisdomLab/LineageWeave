@@ -283,7 +283,8 @@ async def visible_mention_post_ids(
     # Safe SQL: the eligibility predicate is an immutable schema fragment; person id is bound.
     rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
-        select post.post_id, post.visibility_code, post.corporate_entity_id
+        select post.post_id, post.visibility_code, post.corporate_entity_id,
+               post.author_account_id, post.source_detail_state_code
           from combined_post_person_mention mention
           join source_post post on post.post_id = mention.post_id
          where mention.person_id = $1
@@ -304,7 +305,8 @@ async def visible_affiliation_post_ids(
     rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select distinct post.post_id, post.visibility_code,
-                        post.corporate_entity_id, post.created_at
+                        post.corporate_entity_id, post.author_account_id,
+                        post.source_detail_state_code, post.created_at
           from source_post post
          where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
            and post.post_id in (
@@ -334,7 +336,8 @@ async def visible_team_mention_post_ids(
     # Safe SQL: the eligibility predicate is an immutable schema fragment; team id is bound.
     rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
-        select post.post_id, post.visibility_code, post.corporate_entity_id
+        select post.post_id, post.visibility_code, post.corporate_entity_id,
+               post.author_account_id, post.source_detail_state_code
           from post_team_mention mention
           join source_post post on post.post_id = mention.post_id
          where mention.team_id = $1

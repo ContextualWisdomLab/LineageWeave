@@ -2029,6 +2029,17 @@ function PostDetailPopup({
     setSummary(null);
     setSummaryError(null);
     setSummaryLoading(true);
+    if (!post) {
+      return () => {
+        disposed = true;
+      };
+    }
+    if (post?.source_detail_state_code?.trim().toUpperCase() === "W") {
+      setSummaryLoading(false);
+      return () => {
+        disposed = true;
+      };
+    }
     fetchPostSummary(accessToken, postId)
       .then((value) => {
         if (!disposed) {
@@ -2047,7 +2058,7 @@ function PostDetailPopup({
     return () => {
       disposed = true;
     };
-  }, [postId, accessToken, summaryRetry]);
+  }, [postId, accessToken, summaryRetry, post]);
 
   const permanentLink = (() => {
     const url = new URL(window.location.href);
@@ -2148,7 +2159,13 @@ function PostDetailPopup({
 					<div className="popup-analysis-grid">
               <section className="popup-section popup-analysis-col">
               <h3>{t("Summary")}</h3>
-              {!summary && (summaryLoading || contentStatus === "processing") ? (
+              {post.source_detail_state_code?.trim().toUpperCase() === "W" ? (
+                <SummaryStatus
+                  kind="empty"
+                  title={t("Summary is not created for writing posts.")}
+                  description={t("The source is still being written; analysis starts after approval.")}
+                />
+              ) : !summary && (summaryLoading || contentStatus === "processing") ? (
                 <SummaryStatus
                   kind="processing"
                   title={t("Summary is being prepared.")}

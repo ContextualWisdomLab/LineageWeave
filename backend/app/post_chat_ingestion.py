@@ -379,6 +379,7 @@ async def gather_chat_sources(
 
     rows = await conn.fetch(
         "select post_id, post_title, post_body, visibility_code, corporate_entity_id, "
+        "author_account_id, source_detail_state_code, "
         "source_system_code, source_record_key, source_author_code, source_author_name, "
         "source_company_code, source_company_name, source_process_unit_code, "
         "source_process_unit_name, source_sales_pool_code, source_sales_pool_name, "
@@ -650,6 +651,7 @@ async def gather_global_chat_sources(
     rows = await conn.fetch(
         """
         select post_id, post_title, post_body, visibility_code, corporate_entity_id,
+               author_account_id, source_detail_state_code,
                source_system_code, source_record_key, source_author_code, source_author_name,
                source_company_code, source_company_name, source_process_unit_code,
                source_process_unit_name, source_sales_pool_code, source_sales_pool_name,

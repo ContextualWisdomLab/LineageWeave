@@ -112,7 +112,8 @@ async def _visible_post_ids(
     rows = await conn.fetch(
         f"""
         select relation.{id_column}::text as post_id, relation.{ordinal_column} as ordinal,
-               post.post_title, post.visibility_code, post.corporate_entity_id
+               post.post_title, post.visibility_code, post.corporate_entity_id,
+               post.author_account_id, post.source_detail_state_code
           from {table} relation
           join source_post post on post.post_id = relation.{id_column}
          where relation.global_ask_session_id = $1

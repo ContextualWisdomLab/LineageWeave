@@ -552,6 +552,7 @@ async def fetch_period_reports(
         f"""
         select m.grouping_key, m.post_id, m.theta_eap, m.theta_sd, p.post_title,
                p.visibility_code, p.corporate_entity_id,
+               p.author_account_id, p.source_detail_state_code,
                ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context,
                t.due_date as ticket_due_date, t.ticket_title, t.ticket_status_code
         from report_member_score m
@@ -603,6 +604,7 @@ async def fetch_period_reports(
         select lp.grouping_key, lp.pair_kind, lp.post_id, lp.criterion_code,
                lp.leftover_distance, lp.leftover_residual, p.post_title,
                p.visibility_code, p.corporate_entity_id,
+               p.author_account_id, p.source_detail_state_code,
                ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_leftover_pair lp
         join source_post p on p.post_id = lp.post_id
@@ -664,6 +666,8 @@ async def fetch_period_reports(
                         "theta_sd": float(row["theta_sd"]),
                         "visibility_code": row["visibility_code"],
                         "corporate_entity_id": str(row["corporate_entity_id"]),
+                        "author_account_id": str(row["author_account_id"]),
+                        "source_detail_state_code": row["source_detail_state_code"],
                         "has_real_source_context": bool(row["has_real_source_context"]),
                         "ticket_due_date": (
                             None
@@ -700,6 +704,8 @@ async def fetch_period_reports(
                         "leftover_residual": float(row["leftover_residual"]),
                         "visibility_code": row["visibility_code"],
                         "corporate_entity_id": str(row["corporate_entity_id"]),
+                        "author_account_id": str(row["author_account_id"]),
+                        "source_detail_state_code": row["source_detail_state_code"],
                         "has_real_source_context": bool(row["has_real_source_context"]),
                     }
                     for row in leftover_by_group.get(header["grouping_key"], [])
@@ -731,7 +737,8 @@ async def list_period_report_summaries(
     # Safe SQL: the source-context expression is an immutable schema fragment; report keys are bound.
     members = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
-        select m.grouping_key, m.period_code, p.visibility_code, p.corporate_entity_id
+        select m.grouping_key, m.period_code, p.visibility_code, p.corporate_entity_id,
+               p.author_account_id, p.source_detail_state_code
                , ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_member_score m
         join source_post p on p.post_id = m.post_id
@@ -783,6 +790,8 @@ async def list_period_report_summaries(
                 {
                     "visibility_code": member["visibility_code"],
                     "corporate_entity_id": str(member["corporate_entity_id"]),
+                    "author_account_id": str(member["author_account_id"]),
+                    "source_detail_state_code": member["source_detail_state_code"],
                     "has_real_source_context": bool(member["has_real_source_context"]),
                 }
                 for member in members_by_key.get((row["grouping_key"], row["period_code"]), [])
@@ -847,7 +856,8 @@ async def fetch_period_comparison(
     # Safe SQL: the source-context expression is an immutable schema fragment; grouping filters are bound.
     members = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
-        select m.grouping_kind, m.grouping_key, p.visibility_code, p.corporate_entity_id
+        select m.grouping_kind, m.grouping_key, p.visibility_code, p.corporate_entity_id,
+               p.author_account_id, p.source_detail_state_code
                , ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_member_score m
         join source_post p on p.post_id = m.post_id
@@ -876,6 +886,8 @@ async def fetch_period_comparison(
                     {
                         "visibility_code": member["visibility_code"],
                         "corporate_entity_id": str(member["corporate_entity_id"]),
+                        "author_account_id": str(member["author_account_id"]),
+                        "source_detail_state_code": member["source_detail_state_code"],
                         "has_real_source_context": bool(member["has_real_source_context"]),
                     }
                     for member in members_by_key.get((row["grouping_kind"], row["grouping_key"]), [])

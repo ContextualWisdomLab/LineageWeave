@@ -7,7 +7,9 @@ resource type.
 
 ABAC gate, evaluated per row on top of the RBAC gate: a source_post is
 visible if it is public, or if it is private and the requesting account is
-affiliated with the post's owning corporate_entity_id. abac_policy's
+affiliated with the post's owning corporate_entity_id. A W source-detail row
+is raw-source-visible only to its author or post_admin; derived readers use a
+separate eligibility boundary that excludes W. abac_policy's
 condition_expression column is reserved for a future, richer per-policy
 DSL (documented in migrations/0001_initial_schema.sql); Phase 1 implements
 exactly this one fixed rule directly, since it is the only rule the
@@ -190,7 +192,12 @@ from backend.app.post_summary_ingestion import (
     persist_post_summary,
     require_summary_source_body,
 )
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.post_eligibility import (
+    SOURCE_POST_ELIGIBILITY_SQL,
+    SOURCE_POST_READER_ELIGIBILITY_SQL,
+    WRITING_SOURCE_DETAIL_STATE_CODE,
+    source_post_state_visibility_sql,
+)
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
     has_real_source_context,
@@ -424,10 +431,20 @@ def _rankweave_client():
 
 
 def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
-    """ABAC: public rows are visible; private rows require same-corp affiliation."""
+    """ABAC: W is author/admin-only; other rows use public/corp visibility."""
+    if post.get("source_detail_state_code") == WRITING_SOURCE_DETAIL_STATE_CODE:
+        return account.has_permission(_POST_ADMIN) or str(post["author_account_id"]) == account.user_account_id
     if post["visibility_code"] == "public":
         return True
     return str(post["corporate_entity_id"]) in account.corporate_entity_ids
+
+
+def _can_use_post_for_analysis(account: CurrentAccount, post: asyncpg.Record) -> bool:
+    """Derived features consume only non-W authorized source posts."""
+    return (
+        post.get("source_detail_state_code") != WRITING_SOURCE_DETAIL_STATE_CODE
+        and _can_see_post(account, post)
+    )
 
 
 def _is_synthetic_demo_member(member: dict[str, Any], demo_entity_ids: set[str]) -> bool:
@@ -551,9 +568,12 @@ async def _lookup_post_labels(conn: asyncpg.Connection, rows: list[asyncpg.Recor
 
 
 async def _post_filter_options(
-    conn: asyncpg.Connection, corporate_entity_ids: frozenset[str]
+    conn: asyncpg.Connection, account: CurrentAccount
 ) -> tuple[list[dict[str, str]], list[dict[str, str]], list[dict[str, str]]]:
     """Return every authorized filter value, not only values on the current page."""
+    state_visibility_sql = source_post_state_visibility_sql(
+        "post", corporate_param=1, account_param=2, admin_param=3
+    )
     visibility_sql = f"""
         select distinct post.visibility_code as code,
                coalesce(lookup.lookup_label, post.visibility_code) as label,
@@ -562,9 +582,8 @@ async def _post_filter_options(
           left join common_lookup_value lookup
             on lookup.lookup_category = 'post_visibility'
            and lookup.lookup_code = post.visibility_code
-         where (post.visibility_code = 'public'
-            or post.corporate_entity_id::text = any($1::text[]))
-           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+         where {state_visibility_sql}
+           and {SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
     """
     type_sql = f"""
@@ -575,34 +594,41 @@ async def _post_filter_options(
           left join common_lookup_value lookup
             on lookup.lookup_category = 'voc_type'
            and lookup.lookup_code = post.voc_type_code
-         where (post.visibility_code = 'public'
-            or post.corporate_entity_id::text = any($1::text[]))
-           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+         where {state_visibility_sql}
+           and {SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
     """
     detail_state_sql = f"""
         select distinct post.source_detail_state_code as code,
                post.source_detail_state_code as label
           from source_post post
-         where (post.visibility_code = 'public'
-            or post.corporate_entity_id::text = any($1::text[]))
-           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+         where {state_visibility_sql}
+           and {SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='post')}
            and nullif(btrim(post.source_detail_state_code), '') is not null
          order by code
     """
     # Safe SQL: both query strings are closed lookup statements; entity ids remain asyncpg parameters.
     visibility_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        visibility_sql, list(corporate_entity_ids)
+        visibility_sql,
+        list(account.corporate_entity_ids),
+        account.user_account_id,
+        account.has_permission(_POST_ADMIN),
     )
     # Safe SQL: both query strings are closed lookup statements; entity ids remain asyncpg parameters.
     type_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        type_sql, list(corporate_entity_ids)
+        type_sql,
+        list(account.corporate_entity_ids),
+        account.user_account_id,
+        account.has_permission(_POST_ADMIN),
     )
     # Detail-state codes intentionally remain raw here; the UI owns the
     # product-language explanation and preserves unknown source codes.
     # Safe SQL: a closed lookup statement identical in shape to visibility_sql/type_sql above; entity ids remain asyncpg parameters.
     detail_state_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        detail_state_sql, list(corporate_entity_ids)
+        detail_state_sql,
+        list(account.corporate_entity_ids),
+        account.user_account_id,
+        account.has_permission(_POST_ADMIN),
     )
     return (
         [{"code": row["code"], "label": row["label"]} for row in type_rows],
@@ -1212,7 +1238,7 @@ async def read_lineage_graph(
     async with pool.acquire() as conn:
         return await visible_lineage_graph(
             conn,
-            lambda row: _can_see_post(account, row),
+            lambda row: _can_use_post_for_analysis(account, row),
             limit=limit,
             focus_post_id=post_id,
         )
@@ -1251,7 +1277,7 @@ async def list_posts(
     search_term = search.strip() if search and search.strip() else None
     async with pool.acquire() as conn:
         voc_type_options, source_detail_state_options, visibility_options = await _post_filter_options(
-            conn, account.corporate_entity_ids
+            conn, account
         )
         body_search_ids: list[str] = []
         if search_term:
@@ -1260,7 +1286,8 @@ async def list_posts(
                 f"""
                 select post_id
                   from source_post
-                where {SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")}
+                where {source_post_state_visibility_sql("source_post", corporate_param=4, account_param=2, admin_param=3)}
+                  and {SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias="source_post")}
                   and (lower(left(source_post_search_text(post_body), 16384))
                            like '%' || lower($1) || '%'
                     or to_tsvector('simple', source_post_search_text(post_body))
@@ -1275,6 +1302,9 @@ async def list_posts(
                     post_id
                 """,
                 search_term,
+                account.user_account_id,
+                account.has_permission(_POST_ADMIN),
+                list(account.corporate_entity_ids),
             )
             body_search_ids = [str(row["post_id"]) for row in body_rows]
         # Safe SQL: page SQL is a closed schema query; every request value is an asyncpg parameter.
@@ -1292,7 +1322,7 @@ async def list_posts(
                        post.source_project_code, post.source_project_name,
                        post.source_system_code,
                        post.source_record_key,
-                       post.corporate_entity_id, post.created_at,
+                       post.corporate_entity_id, post.author_account_id, post.created_at,
                        case
                            when $1::text is null then 0
                            when lower(coalesce(post.post_title, '')) like '%' || lower($1) || '%' then 0
@@ -1301,9 +1331,8 @@ async def list_posts(
                        end as search_priority,
                        count(*) over() as total_count
                   from source_post post
-             where (post.visibility_code = 'public'
-                or post.corporate_entity_id::text = any($2::text[]))
-               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
+             where {source_post_state_visibility_sql("post", corporate_param=2, account_param=10, admin_param=11)}
+               and {SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias="post")}
                and (
                     $1::text is null
                     or post.post_title ilike '%' || $1 || '%'
@@ -1548,6 +1577,8 @@ async def list_posts(
             offset,
             limit,
             sort,
+            account.user_account_id,
+            account.has_permission(_POST_ADMIN),
         )
         visible = [row for row in rows if _can_see_post(account, row)]
         labels = await _lookup_post_labels(conn, visible)
@@ -1599,13 +1630,13 @@ async def read_post(
                 "source_process_unit.process_unit_name as source_process_unit_catalog_name, "
                 "source_sales_pool_code, source_sales_pool_name, "
                 "source_customer_code, source_customer_name, source_project_code, source_project_name, "
-                "source_system_code, source_record_key, "
+                "source_system_code, source_record_key, author_account_id, "
                 "source_post.corporate_entity_id, source_post.created_at "
             "from source_post "
             "left join process_unit source_process_unit "
             "on source_process_unit.process_unit_id = source_post.process_unit_id "
             "and source_process_unit.corporate_entity_id = source_post.corporate_entity_id "
-            f"where source_post.post_id = $1 and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
+            f"where source_post.post_id = $1 and {SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='source_post')}",
             post_id,
         )
         if row is None:
@@ -1795,6 +1826,7 @@ async def _load_visible_post(
             """
             select source_post.post_id, source_post.post_title, source_post.voc_type_code,
                    source_post.visibility_code, source_post.corporate_entity_id,
+                   source_post.source_detail_state_code,
                    source_post.created_at, source_post.author_account_id,
                    source_post.source_process_unit_code, source_post.source_author_code,
                    source_post.source_company_code, source_post.source_customer_code,
@@ -1805,13 +1837,18 @@ async def _load_visible_post(
                 on customer.corporate_entity_id = source_post.corporate_entity_id
              where source_post.post_id = $1
                and """
-            f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
+            f"{SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='source_post')}",
             post_id,
         )
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "post not found")
     if not _can_see_post(account, row):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this post")
+    if row.get("source_detail_state_code") == WRITING_SOURCE_DETAIL_STATE_CODE:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "Writing-in-progress posts are not analysis targets.",
+        )
     return row
 
 
@@ -2026,7 +2063,7 @@ async def read_related_keymen(
     async with pool.acquire() as conn:
         if not await person_exists(conn, person_id):
             raise HTTPException(status.HTTP_404_NOT_FOUND, "person not found")
-        visible_post_ids = await visible_mention_post_ids(conn, person_id, lambda row: _can_see_post(account, row))
+        visible_post_ids = await visible_mention_post_ids(conn, person_id, lambda row: _can_use_post_for_analysis(account, row))
         if not visible_post_ids:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this person")
         person = await conn.fetchrow(
@@ -2056,7 +2093,7 @@ async def read_related_corporate_entity(
         if not await corporate_entity_exists(conn, entity_id):
             raise HTTPException(status.HTTP_404_NOT_FOUND, "corporate entity not found")
         visible_post_ids = await visible_affiliation_post_ids(
-            conn, entity_id, lambda row: _can_see_post(account, row)
+            conn, entity_id, lambda row: _can_use_post_for_analysis(account, row)
         )
         if not visible_post_ids:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this entity")
@@ -2085,7 +2122,7 @@ async def read_related_team(
         if not await team_exists(conn, team_id):
             raise HTTPException(status.HTTP_404_NOT_FOUND, "team not found")
         visible_post_ids = await visible_team_mention_post_ids(
-            conn, team_id, lambda row: _can_see_post(account, row)
+            conn, team_id, lambda row: _can_use_post_for_analysis(account, row)
         )
         if not visible_post_ids:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this team")
@@ -2358,6 +2395,7 @@ async def read_post_lineage(
             # Safe SQL: the eligibility predicate is an immutable schema fragment; candidate ids are bound.
             fetched = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
                 "select post_id, post_title, visibility_code, corporate_entity_id, "
+                "author_account_id, source_detail_state_code, "
                 "btrim(left(source_post_search_text(post_body), 420)) as post_body_excerpt, "
                 "char_length(coalesce(post_body, '')) > 420 as post_body_truncated "
                 f"from source_post where post_id = any($1::uuid[]) and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
@@ -2374,7 +2412,7 @@ async def read_post_lineage(
                 "post_body_truncated": rows[post_id_].get("post_body_truncated", False),
             }
             for post_id_ in ids
-            if post_id_ in rows and _can_see_post(account, rows[post_id_])
+            if post_id_ in rows and _can_use_post_for_analysis(account, rows[post_id_])
         ]
 
     return {
@@ -2511,7 +2549,7 @@ async def compare_period_groupings(
         members = [
             member
             for member in row["members"]
-            if _can_see_post(account, member)
+            if _can_use_post_for_analysis(account, member)
             and not _is_synthetic_demo_member(member, demo_entity_ids)
         ]
         if not members:
@@ -2540,7 +2578,7 @@ async def list_period_reports(
         members = [
             member
             for member in summary["members"]
-            if _can_see_post(account, member)
+            if _can_use_post_for_analysis(account, member)
             and not _is_synthetic_demo_member(member, demo_entity_ids)
         ]
         if not members:
@@ -2574,7 +2612,7 @@ async def read_period_reports(
         members = [
             member
             for member in report["members"]
-            if _can_see_post(account, member)
+            if _can_use_post_for_analysis(account, member)
             and not _is_synthetic_demo_member(member, demo_entity_ids)
         ]
         if not members:
@@ -2582,7 +2620,7 @@ async def read_period_reports(
         leftover_pairs = [
             pair
             for pair in report.get("leftover_pairs", [])
-            if _can_see_post(account, pair)
+            if _can_use_post_for_analysis(account, pair)
             and not _is_synthetic_demo_member(pair, demo_entity_ids)
         ]
         members = [
@@ -2787,7 +2825,7 @@ async def read_post_five_w1h(
         return await load_five_w1h_slots(
             conn,
             post_id,
-            lambda row: _can_see_post(account, row),
+            lambda row: _can_use_post_for_analysis(account, row),
         )
 
 
@@ -2865,7 +2903,7 @@ async def chat_about_post(
                     "Post chat is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
                 )
             sources = await gather_chat_sources(
-                conn, post_id, lambda row: _can_see_post(account, row), vision_client=_vision_client()
+                conn, post_id, lambda row: _can_use_post_for_analysis(account, row), vision_client=_vision_client()
             )
     try:
         with use_llm_metadata(post_metadata):
@@ -2939,7 +2977,7 @@ async def read_ask_conversation(
             conn,
             account.user_account_id,
             conversation_id,
-            lambda row: _can_see_post(account, row),
+            lambda row: _can_use_post_for_analysis(account, row),
             turn_limit=limit,
             before_turn_ordinal=before_turn,
         )
@@ -2973,7 +3011,7 @@ async def ask_agent(
     async with pool.acquire() as conn:
         sources = await gather_global_chat_sources(
             conn,
-            lambda row: _can_see_post(account, row),
+            lambda row: _can_use_post_for_analysis(account, row),
             account.corporate_entity_ids,
             question=question,
         )
@@ -3474,7 +3512,7 @@ async def read_calendar(
         demo_entity_ids: set[str] = set()
         if commitments and await has_real_source_context(conn, list(account.corporate_entity_ids)):
             demo_entity_ids = await fetch_demo_corporate_entity_ids(conn)
-    visible = [c for c in commitments if _can_see_post(account, c)]
+    visible = [c for c in commitments if _can_use_post_for_analysis(account, c)]
     # Once real evidence is visible, the synthetic Demo Corp commitments
     # (ADR 0001 / ADR 0042) stop appearing beside it.
     if demo_entity_ids:
@@ -3507,7 +3545,7 @@ async def read_rankings(
     _require_post_read(account)
     async with pool.acquire() as conn:
         posts = await load_visible_ranking_posts(
-            conn, lambda row: _can_see_post(account, row)
+            conn, lambda row: _can_use_post_for_analysis(account, row)
         )
     return _rankweave_client().as_api_payload(
         posts, can_see_post=lambda _row: True

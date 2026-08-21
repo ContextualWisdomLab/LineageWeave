@@ -139,6 +139,7 @@ async def fetch_upcoming_commitments(conn: asyncpg.Connection) -> list[dict[str,
         "issue_ticket.commitment_summary, issue_ticket.created_at, "
         "issue_ticket.updated_at, "
         "p.post_title, p.visibility_code, p.corporate_entity_id, "
+        "p.author_account_id, p.source_detail_state_code, "
         f"({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context "
         "from issue_ticket "
         "join source_post p on p.post_id = issue_ticket.post_id "
@@ -154,6 +155,8 @@ async def fetch_upcoming_commitments(conn: asyncpg.Connection) -> list[dict[str,
                 "post_title": row["post_title"],
                 "visibility_code": row["visibility_code"],
                 "corporate_entity_id": str(row["corporate_entity_id"]),
+                "author_account_id": str(row["author_account_id"]),
+                "source_detail_state_code": row["source_detail_state_code"],
                 "has_real_source_context": bool(row["has_real_source_context"]),
             }
             for row in rows
