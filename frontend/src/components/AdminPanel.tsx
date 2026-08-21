@@ -345,8 +345,8 @@ export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessTo
               <input
                 id="copyrightYearInput"
                 type="number"
-                value={draftConfig.copyrightYear}
-                onChange={(e) => updateDraftField("copyrightYear", Number(e.target.value))}
+                value={Number.isNaN(draftConfig.copyrightYear) ? "" : draftConfig.copyrightYear}
+                onChange={(e) => updateDraftField("copyrightYear", e.target.value === "" ? Number.NaN : Number(e.target.value))}
                 aria-label={t("Tenant copyright year")}
                 min={COPYRIGHT_YEAR_MIN}
                 max={COPYRIGHT_YEAR_MAX}
@@ -366,10 +366,10 @@ export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessTo
                     || draftConfig.copyrightYear < COPYRIGHT_YEAR_MIN
                     || draftConfig.copyrightYear > COPYRIGHT_YEAR_MAX
                     || (
-                      draftConfig.brandName === currentTenantConfig.brandName
-                      && draftConfig.systemName === currentTenantConfig.systemName
+                      draftConfig.brandName.trim() === currentTenantConfig.brandName
+                      && draftConfig.systemName.trim() === currentTenantConfig.systemName
                       && draftConfig.copyrightYear === currentTenantConfig.copyrightYear
-                      && draftConfig.copyrightHolder === currentTenantConfig.copyrightHolder
+                      && draftConfig.copyrightHolder.trim() === currentTenantConfig.copyrightHolder
                     )
                   }
                 >
