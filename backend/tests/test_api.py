@@ -3455,6 +3455,33 @@ def test_commitment_provider_error_does_not_leak_raw_error(
     assert "raw-commitment-provider-secret" not in response.text
 
 
+def test_summary_enrichment_provider_error_does_not_leak_raw_error(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Summary enrichment failures stay a stable 503 at the API boundary."""
+    from lineageweave.post_summary import PostSummary
+
+    class _FakeSummaryClient:
+        available = True
+
+        def summarize(self, post_title: str, post_body: str) -> PostSummary:
+            return PostSummary(korean_summary="합성 요약")
+
+    async def _fail_persist(*args, **kwargs):
+        raise Exception("raw-summary-provider-secret")
+
+    monkeypatch.setattr("backend.app.main._post_summary_client", lambda: _FakeSummaryClient())
+    monkeypatch.setattr("backend.app.main.persist_post_summary", _fail_persist)
+
+    response = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert response.status_code == 503
+    assert "raw-summary-provider-secret" not in response.text
+
+
 def test_evaluate_is_unavailable_without_orchestrator(client, demo_analyst_token, seeded_db) -> None:
     os.environ.pop("ORCHESTRATOR_BASE_URL", None)
     os.environ.pop("ORCHESTRATOR_API_KEY", None)
