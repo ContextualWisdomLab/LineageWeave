@@ -147,7 +147,11 @@ def _render_relation_rows(
 def _render_term(graph: Graph, subject: URIRef, ontology_subjects: set[URIRef]) -> str:
     """Render one fragment-addressable ontology term section."""
     fragment = _fragment(subject)
-    label = _preferred_literal(graph, subject, RDFS.label) or fragment
+    label = (
+        _preferred_literal(graph, subject, RDFS.label)
+        or _preferred_literal(graph, subject, SKOS.prefLabel)
+        or fragment
+    )
     comment = _preferred_literal(graph, subject, RDFS.comment)
     lookup_predicate = URIRef(
         "https://contextualwisdomlab.github.io/lineageweave/ontology#lookupCode"
@@ -208,7 +212,11 @@ def _render_term_sections(graph: Graph) -> tuple[str, str, int]:
                 if isinstance(subject, URIRef)
             ),
             key=lambda subject: (
-                (_preferred_literal(graph, subject, RDFS.label) or _fragment(subject)).casefold(),
+                (
+                    _preferred_literal(graph, subject, RDFS.label)
+                    or _preferred_literal(graph, subject, SKOS.prefLabel)
+                    or _fragment(subject)
+                ).casefold(),
                 str(subject),
             ),
         )
