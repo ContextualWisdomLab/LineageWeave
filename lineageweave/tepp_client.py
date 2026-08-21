@@ -97,10 +97,5 @@ class TeppClient:
         self._transport = transport
 
     def submit_analysis_run(self, request: AnalysisRunRequest) -> dict[str, Any]:
-        """Submit a request; returns TEPP's published ``AnalysisRunAccepted`` envelope.
-
-        That acknowledgement is not a completed measurement. LineageWeave
-        stores it as aggregate transport evidence and never stamps
-        Succeeded from ``run_state=accepted``.
-        """
+        """Submit a request; returns TEPP's ``AnalysisRunAccepted`` envelope."""
         return self._transport(request.to_json())

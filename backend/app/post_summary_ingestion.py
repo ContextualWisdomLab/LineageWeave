@@ -42,12 +42,15 @@ from lineageweave.knowledge_graph import (
     NODE_PERSON,
     NODE_TEAM,
 )
-from lineageweave.ontology import ontology_annotations
+from lineageweave.ontology import LW, ontology_annotations
 from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
     ACTOR_TYPE_PERSON,
     ACTOR_TYPE_TEAM,
+    KeyEvent,
     PostSummary,
+    POST_SUMMARY_CONTRACT_VERSION,
+    normalize_project_key,
     RoleResponsibility,
 )
 from lineageweave.relation_verification import (
@@ -61,23 +64,53 @@ from .knowledge_graph import persist_edges_for_post
 from .team_ingestion import upsert_team
 
 
+SUMMARY_SOURCE_BODY_MISSING = (
+    "Post summary is unavailable: the source post body is empty. "
+    "Re-import the source record with its body before requesting a summary."
+)
+
+
+def require_summary_source_body(body: str | None) -> str:
+    """Reject summary derivation when the evidence body was not imported."""
+    if not isinstance(body, str) or not body.strip():
+        raise ValueError(SUMMARY_SOURCE_BODY_MISSING)
+    return body
+
+
 async def fetch_persisted_summary(
-    conn: asyncpg.Connection, post_id: str
+    conn: asyncpg.Connection,
+    post_id: str,
+    *,
+    allow_stale: bool = False,
 ) -> dict[str, Any] | None:
-    """Return the stored summary payload, or None when none has been written.
+    """Return the stored summary payload, or None when none is usable.
 
     ``catalog_node_id`` comes from the role row's catalog foreign keys
     (ADR 0019 / 0027). This function does not join ``corporate_entity``
-    by ``entity_name``. Person chips read ``cataloged_person_id``.
+    by ``entity_name``. Person chips read ``cataloged_person_id``. A stale
+    row is returned only when ``allow_stale`` is explicit so a caller can
+    preserve buyer continuity without presenting old semantics as current.
     """
     header = await conn.fetchrow(
-        "select korean_summary from post_summary_result where post_id = $1",
+        "select korean_summary, summary_contract_version "
+        "from post_summary_result where post_id = $1",
         post_id,
     )
     if header is None:
         return None
+    summary_contract_version = header["summary_contract_version"]
+    if summary_contract_version != POST_SUMMARY_CONTRACT_VERSION and not allow_stale:
+        return None
     events = await conn.fetch(
-        "select event_text from post_summary_event where post_id = $1 order by event_ordinal",
+        """
+        select event.event_text, event.project_key, mention.project_name
+          from post_summary_event event
+          left join post_project_mention mention
+            on mention.post_id = event.post_id
+           and mention.project_key = event.project_key
+         where event.post_id = $1
+         order by event.event_ordinal
+        """,
         post_id,
     )
     roles = await conn.fetch(
@@ -90,6 +123,30 @@ async def fetch_persisted_summary(
           from post_summary_role role
          where role.post_id = $1
          order by role.actor_name
+        """,
+        post_id,
+    )
+    projects = await conn.fetch(
+        """
+        select project_key, project_name, evidence_text, confidence, ontology_iri,
+               extraction_method
+          from post_project_mention
+         where post_id = $1
+         order by project_name, project_key
+        """,
+        post_id,
+    )
+    actions = await conn.fetch(
+        """
+        select action.action_text, action.requester_actor_name,
+               action.processor_actor_name, action.evidence_text,
+               mention.project_name
+          from post_summary_action action
+          left join post_project_mention mention
+            on mention.post_id = action.post_id
+           and mention.project_key = action.project_key
+         where action.post_id = $1
+         order by action.action_ordinal
         """,
         post_id,
     )
@@ -120,8 +177,42 @@ async def fetch_persisted_summary(
     return {
         "post_id": post_id,
         "korean_summary": header["korean_summary"],
+        "summary_status": (
+            "current"
+            if summary_contract_version == POST_SUMMARY_CONTRACT_VERSION
+            else "stale"
+        ),
+        "summary_contract_version": summary_contract_version,
         "key_events": [row["event_text"] for row in events],
+        "key_event_details": [
+            {
+                "event_text": row["event_text"],
+                "project_name": row.get("project_name"),
+            }
+            for row in events
+        ],
         "roles_and_responsibilities": payload_roles,
+        "major_event_actions": [
+            {
+                "action_text": row["action_text"],
+                "requester_actor_name": row["requester_actor_name"],
+                "processor_actor_name": row["processor_actor_name"],
+                "evidence_text": row["evidence_text"],
+                "project_name": row["project_name"],
+            }
+            for row in actions
+        ],
+        "project_mentions": [
+            {
+                "project_key": row["project_key"],
+                "project_name": row["project_name"],
+                "evidence": row["evidence_text"],
+                "confidence": float(row["confidence"]),
+                "ontology_iri": row["ontology_iri"],
+                "extraction_method": row["extraction_method"],
+            }
+            for row in projects
+        ],
     }
 
 
@@ -149,6 +240,9 @@ async def persist_post_summary(
     summary replacement transaction while all post-owned rows still commit or
     roll back together.
     """
+    if post_body is not None:
+        require_summary_source_body(post_body)
+
     hierarchy_inference_client = (
         hierarchy_inference_client or NullCorporateHierarchyInferenceClient()
     )
@@ -226,19 +320,76 @@ async def _replace_summary_projection(
     )
     await conn.execute("delete from post_team_mention where post_id = $1", post_id)
     await conn.execute("delete from post_organization_mention where post_id = $1", post_id)
+    await conn.execute("delete from post_summary_five_w1h where post_id = $1", post_id)
+    await conn.execute("delete from post_summary_action where post_id = $1", post_id)
     await conn.execute("delete from post_summary_result where post_id = $1", post_id)
+    await conn.execute("delete from post_project_mention where post_id = $1", post_id)
     await conn.execute(
-        "insert into post_summary_result (post_id, korean_summary) values ($1, $2)",
+        "insert into post_summary_result "
+        "(post_id, korean_summary, summary_contract_version) values ($1, $2, $3)",
         post_id,
         summary.korean_summary,
+        POST_SUMMARY_CONTRACT_VERSION,
     )
-    for ordinal, event_text in enumerate(summary.key_events):
+    for project in summary.project_mentions:
+        project_key = normalize_project_key(project.canonical_name)
+        if not project_key:
+            continue
         await conn.execute(
-            "insert into post_summary_event (post_id, event_ordinal, event_text) "
-            "values ($1, $2, $3)",
+            """
+            insert into post_project_mention
+                (post_id, project_key, project_name, evidence_text, confidence,
+                 ontology_iri, extraction_method)
+            values ($1, $2, $3, $4, $5, $6, 'contextual_orchestrator_semantic')
+            on conflict (post_id, project_key) do update set
+                project_name = excluded.project_name,
+                evidence_text = excluded.evidence_text,
+                confidence = excluded.confidence,
+                ontology_iri = excluded.ontology_iri,
+                extraction_method = excluded.extraction_method
+            """,
+            post_id,
+            project_key,
+            project.project_name,
+            project.evidence,
+            project.confidence,
+            str(LW.Project),
+        )
+    event_details = summary.key_event_details or tuple(
+        KeyEvent(event_text=event_text) for event_text in summary.key_events
+    )
+    project_keys = {
+        normalize_project_key(project.canonical_name)
+        for project in summary.project_mentions
+        if normalize_project_key(project.canonical_name)
+    }
+    for ordinal, event in enumerate(event_details):
+        normalized_event_project_key = (
+            normalize_project_key(event.project_key) if event.project_key else None
+        )
+        project_key = (
+            normalized_event_project_key
+            if normalized_event_project_key in project_keys
+            else None
+        )
+        await conn.execute(
+            "insert into post_summary_event (post_id, event_ordinal, event_text, project_key) "
+            "values ($1, $2, $3, $4)",
             post_id,
             ordinal,
-            event_text,
+            event.event_text,
+            project_key,
+        )
+    for ordinal, claim in enumerate(summary.five_w1h_evidence):
+        await conn.execute(
+            "insert into post_summary_five_w1h "
+            "(post_id, slot_code, value_ordinal, value_text, evidence_text) "
+            "values ($1, $2, $3, $4, $5)",
+            post_id,
+            claim.slot_code,
+            ordinal,
+            claim.value_text,
+            claim.evidence_text,
         )
     # ADR 0009 / 0019 / 0027: resolve catalog identity before writing
     # the role row so fetch never reconstructs it by a non-unique name.
@@ -299,6 +450,39 @@ async def _replace_summary_projection(
                 post_id,
                 cataloged_person_id,
             )
+    role_names = {role.actor_name for role in summary.roles_and_responsibilities}
+    project_keys = {
+        normalize_project_key(project.canonical_name)
+        for project in summary.project_mentions
+        if normalize_project_key(project.canonical_name)
+    }
+    for ordinal, action in enumerate(summary.major_event_actions):
+        actor_names = (action.requester_actor_name, action.processor_actor_name)
+        if any(name is not None and name not in role_names for name in actor_names):
+            continue
+        normalized_action_project_key = (
+            normalize_project_key(action.project_key) if action.project_key else None
+        )
+        project_key = (
+            normalized_action_project_key
+            if normalized_action_project_key in project_keys
+            else None
+        )
+        await conn.execute(
+            """
+            insert into post_summary_action
+                (post_id, action_ordinal, action_text, requester_actor_name,
+                 processor_actor_name, evidence_text, project_key)
+            values ($1, $2, $3, $4, $5, $6, $7)
+            """,
+            post_id,
+            ordinal,
+            action.action_text,
+            action.requester_actor_name,
+            action.processor_actor_name,
+            action.evidence_text,
+            project_key,
+        )
     await persist_edges_for_post(conn, post_id)
 
 

@@ -27,6 +27,22 @@ _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
 )
 _MIGRATION_PATH = Path(__file__).resolve().parents[1] / "migrations" / "0001_initial_schema.sql"
+_MAJOR_EVENT_ACTION_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0100_major_event_action.sql"
+)
+_PROJECT_MENTION_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0031_semantic_project_mentions.sql"
+)
+_PROJECT_BOUND_ACTION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0101_project_bound_major_event_action.sql"
+)
+_PROJECT_BOUND_EVENT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0102_project_bound_summary_event.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -59,6 +75,10 @@ def schema_db():
         try:
             with conn.cursor() as cur:
                 cur.execute(_MIGRATION_PATH.read_text())
+                cur.execute(_PROJECT_MENTION_MIGRATION.read_text())
+                cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
+                cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
+                cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -87,6 +107,7 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "abac_policy",
         "source_post",
         "post_counterparty_entity",
+        "post_project_mention",
         "cataloged_person",
         "person_affiliation",
         "post_person_mention",
@@ -104,11 +125,35 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_summary_result",
         "post_summary_event",
         "post_summary_role",
+        "post_summary_action",
         "post_chat_result",
         "post_chat_citation",
-        "abbreviation_tree_corroboration",
     }
     assert expected <= tables
+
+
+def test_major_event_action_project_reference_is_normalized(schema_db) -> None:
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select confrelid::regclass::text
+              from pg_constraint
+             where conname = 'post_summary_action_project_mention_fk'
+            """
+        )
+        assert cur.fetchone()[0] == "post_project_mention"
+
+
+def test_summary_event_project_reference_is_normalized(schema_db) -> None:
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select confrelid::regclass::text
+              from pg_constraint
+             where conname = 'post_summary_event_project_mention_fk'
+            """
+        )
+        assert cur.fetchone()[0] == "post_project_mention"
 
 
 def test_leftover_pair_references_member_and_item_rows(schema_db) -> None:

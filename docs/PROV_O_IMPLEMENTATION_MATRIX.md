@@ -1,5 +1,8 @@
 # PROV-O implementation matrix
 
+> Normative decision: [ADR 0065](adr/0065-prov-o-provenance-boundary.md).
+> This file remains the machine-reviewable coverage matrix.
+
 LineageWeave implements the W3C PROV-O Recommendation as a separate standards-complete provenance layer. The product-specific `knowledge_graph_edge` remains a compact navigation projection; it is not used to flatten literal-valued or qualified PROV-O assertions.
 
 ## Coverage contract

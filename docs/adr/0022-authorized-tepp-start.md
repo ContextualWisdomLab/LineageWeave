@@ -43,8 +43,7 @@ authorized transaction:
    or refused, or Failed / `tepp_result_not_persisted` when TEPP accepts
    an envelope this product cannot store yet.
 
-Succeeded TEPP remains unpublished; ADR 0035 stores accepted
-transport evidence without stamping Succeeded. This slice does not persist a local
+Succeeded TEPP stays later. This slice does not persist a local
 psychometric substitute, does not call contextual-orchestrator as TEPP,
 and does not stamp Succeeded from an `accepted` envelope. Failed remains
 terminal. `POST /api/analysis-runs` is lineage-only (ADR 0017) and does

@@ -25,14 +25,23 @@ makes the channel unavailable, never returns a placeholder description.
 from __future__ import annotations
 
 import base64
+import binascii
+import json
+import math
 import re
 from dataclasses import dataclass
-from html.parser import HTMLParser
+from io import BytesIO
 from typing import Protocol
 from urllib.parse import urlparse
 
-from .embedded_image_payload import decode_data_uri_image, source_offset
+from PIL import Image
+
 from .http_client import post_json
+
+_DATA_URI_IMG = re.compile(
+    r'<img\b[^>]*\bsrc\s*=\s*["\']data:(image/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)["\']',
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -56,60 +65,73 @@ class EmbeddedImage:
     data: bytes
 
 
-class _EmbeddedImageExtractor(HTMLParser):
-    """Collect raster ``data:image`` ``<img>`` tags in document order.
+@dataclass(frozen=True)
+class ImageRegion:
+    """A normalized visual region returned by the VISION locator."""
 
-    Uses the HTML parser so ``alt="Invoice > 1000"`` and unquoted
-    attributes still find the picture. Comments, ``<style>``, and
-    ``<script>`` are ignored -- the same contract as
-    :func:`lineageweave.chunking.chunk_by_dom`.
+    x: float
+    y: float
+    width: float
+    height: float
+
+
+def regions_cover_image(regions: tuple[ImageRegion, ...] | list[ImageRegion]) -> bool:
+    """Require returned regions to cover the image, including its edges.
+
+    ponytail: this bounded 32x32 sample is a cheap coverage guard; replace it
+    with exact rectangle-union arithmetic only if provider edge cases make
+    sampled coverage observably insufficient.
     """
-
-    def __init__(self, source: str) -> None:
-        """Bind the original HTML so ``getpos()`` can become a character offset."""
-        super().__init__()
-        self._source = source
-        self._skip_depth = 0
-        self.images: list[EmbeddedImage] = []
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        """Record a raster ``<img>`` or enter a skipped ``style``/``script``."""
-        if tag in {"style", "script"}:
-            self._skip_depth += 1
-        if self._skip_depth or tag != "img":
-            return
-        src = next((value for name, value in attrs if name == "src" and value), None)
-        if not src:
-            return
-        decoded = decode_data_uri_image(src)
-        if decoded is None:
-            return
-        mime_type, data = decoded
-        line, column = self.getpos()
-        self.images.append(
-            EmbeddedImage(
-                position=source_offset(self._source, line, column),
-                mime_type=mime_type,
-                data=data,
-            )
+    if not regions:
+        return False
+    if len(regions) == 1 and regions[0] == ImageRegion(0.0, 0.0, 1.0, 1.0):
+        return False
+    sample_count = 32
+    points = range(sample_count + 1)
+    return all(
+        any(
+            region.x <= x <= region.x + region.width
+            and region.y <= y <= region.y + region.height
+            for region in regions
         )
+        for x_index in points
+        for y_index in points
+        for x, y in ((x_index / sample_count, y_index / sample_count),)
+    )
 
-    def handle_endtag(self, tag: str) -> None:
-        """Leave a skipped ``style`` or ``script`` region."""
-        if tag in {"style", "script"} and self._skip_depth:
-            self._skip_depth -= 1
+
+def crop_image_region(image_bytes: bytes, mime_type: str, region: ImageRegion) -> tuple[bytes, str]:
+    """Normalize an image and crop one bounded region as opaque PNG."""
+    from .vision_image import normalize_vision_image
+
+    normalized, _ = normalize_vision_image(image_bytes, mime_type)
+    with Image.open(BytesIO(normalized)) as source:
+        left = max(0, min(source.width - 1, round(region.x * source.width)))
+        top = max(0, min(source.height - 1, round(region.y * source.height)))
+        right = max(left + 1, min(source.width, round((region.x + region.width) * source.width)))
+        bottom = max(top + 1, min(source.height, round((region.y + region.height) * source.height)))
+        output = BytesIO()
+        source.crop((left, top, right, bottom)).save(output, format="PNG")
+    return output.getvalue(), "image/png"
 
 
 def extract_base64_images(html: str) -> list[EmbeddedImage]:
-    """Find every raster ``<img src="data:...;base64,...">`` in document order.
+    """Find every ``<img src="data:...;base64,...">`` in document order.
 
-    Malformed base64, SVG, remote ``http(s)`` tags, and commented-out
-    pictures are skipped rather than raising -- one corrupt embedded
-    image must not fail extraction of the rest of the document.
+    Malformed base64 in a matched tag is skipped rather than raising --
+    one corrupt embedded image must not fail extraction of the rest of the
+    document.
     """
-    parser = _EmbeddedImageExtractor(html)
-    parser.feed(html)
-    return parser.images
+    images: list[EmbeddedImage] = []
+    for match in _DATA_URI_IMG.finditer(html):
+        mime_type = match.group(1)
+        raw_b64 = re.sub(r"\s+", "", match.group(2))
+        try:
+            data = base64.b64decode(raw_b64, validate=True)
+        except (binascii.Error, ValueError):
+            continue
+        images.append(EmbeddedImage(position=match.start(), mime_type=mime_type, data=data))
+    return images
 
 
 @dataclass(frozen=True)
@@ -150,14 +172,34 @@ class NullImageContentClient:
     available = False
 
     def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:  # pragma: no cover
+        """Describe the supplied image through the configured vision channel."""
         raise RuntimeError("NullImageContentClient has no image channel; check .available first")
 
 
 _RESPONSE_FORMAT = (
     "Examine this image. Reply with EXACTLY three lines, no extra commentary:\n"
-    "TEXT: <all legible text in the image, verbatim, or NONE if there is none>\n"
-    "CAPTION: <one sentence describing what the image shows>\n"
+    "TEXT: <all legible text in the image, verbatim, or NONE if there is none. "
+    "If the image contains a table, preserve its row/column structure: one row "
+    "per line, with ' | ' between that row's cell values, in reading order -- "
+    "never flatten a table into an unstructured word list.>\n"
+    "CAPTION: <2-4 concise, evidence-grounded sentences describing the visible layout, "
+    "objects, relationships, directions, measurements, and labels; do not guess "
+    "anything that is not visible>\n"
     "TAGS: <comma-separated short tags for the main objects/subjects>"
+)
+_REGION_RESPONSE_FORMAT = (
+    "Find distinct meaningful visual regions in this image for separate OCR and description. "
+    "The returned regions must collectively cover the entire image, edge to edge -- "
+    "do not stop at only the most visually striking parts and omit the rest; a "
+    "plain-looking area (a table, a block of body text) still needs its own "
+    "region if no existing region already covers it. "
+    "Return JSON only in this exact shape: "
+    '{"regions":[{"x":0.0,"y":0.0,"width":1.0,"height":1.0}]} . '
+    "Coordinates are normalized to 0..1, omit decorative borders, and return at most 12 regions."
+)
+_VISION_SYSTEM_ROLE = (
+    "You are the LineageWeave visual-evidence agent. Extract only evidence "
+    "visible in the supplied image; never invent people, projects, or text."
 )
 # TEXT may legitimately span multiple lines because OCR output is often
 # multi-line. CAPTION and TAGS are explicitly single-line fields. Synthetic
@@ -199,6 +241,7 @@ def _strip_outer_markdown_emphasis(value: str) -> str:
 
 
 def _parse_description(content: str) -> ImageDescription:
+    """Implement the _parse_description operation for this channel."""
     fields: dict[str, list[str]] = {"TEXT": [], "CAPTION": [], "TAGS": []}
     multiline_field: str | None = None
     for line in content.splitlines():
@@ -246,9 +289,9 @@ class OpenAiCompatibleVisionClient:
         self,
         base_url: str,
         api_key: str,
-        model: str,
+        model: str | None = None,
         *,
-        timeout: float = 60.0,
+        timeout: float = 180.0,
         allow_insecure_http: bool = False,
     ) -> None:
         parsed = urlparse(base_url)
@@ -267,35 +310,107 @@ class OpenAiCompatibleVisionClient:
             )
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
-        self._model = model
+        self._model = model.strip() if model else ""
         self._timeout = timeout
 
     def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
+        """Describe the supplied image through the configured vision channel."""
+        from .vision_image import normalize_vision_image
+
+        image_bytes, mime_type = normalize_vision_image(image_bytes, mime_type)
         data_uri = f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
+        payload = {
+            "messages": [
+                {"role": "system", "content": _VISION_SYSTEM_ROLE},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": _RESPONSE_FORMAT},
+                        {"type": "image_url", "image_url": {"url": data_uri}},
+                    ],
+                }
+            ],
+            "mode": "auto",
+            "reasoning_effort": "auto",
+            "max_tokens": 1024,
+        }
+        if self._model:
+            payload["model"] = self._model
         body = post_json(
             f"{self._base_url}/chat/completions",
-            {
-                "model": self._model,
-                "messages": [
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": _RESPONSE_FORMAT},
-                            {"type": "image_url", "image_url": {"url": data_uri}},
-                        ],
-                    }
-                ],
-                "max_tokens": 300,
-                "temperature": 0.0,
-            },
+            payload,
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
         content = body["choices"][0]["message"]["content"]
         return _parse_description(content)
 
+    def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
+        """Locate meaningful visual panels through the same orchestrator VISION model."""
+        from .vision_image import normalize_vision_image
 
-def orchestrator_vision_client(base_url: str, api_key: str, model: str) -> ImageContentClient:
+        image_bytes, mime_type = normalize_vision_image(image_bytes, mime_type)
+        data_uri = f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
+        payload = {
+            "messages": [
+                {"role": "system", "content": _VISION_SYSTEM_ROLE},
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": _REGION_RESPONSE_FORMAT},
+                        {"type": "image_url", "image_url": {"url": data_uri}},
+                    ],
+                }
+            ],
+            "mode": "auto",
+            "reasoning_effort": "auto",
+            "max_tokens": 2048,
+            "response_format": {"type": "json_object"},
+        }
+        if self._model:
+            payload["model"] = self._model
+        body = post_json(
+            f"{self._base_url}/chat/completions",
+            payload,
+            headers={"authorization": f"Bearer {self._api_key}"},
+            timeout=self._timeout,
+        )
+        content = body["choices"][0]["message"]["content"]
+        if not isinstance(content, str):
+            raise ValueError("vision region response was not text JSON")
+        fenced = re.sub(r"^\s*```(?:json)?\s*|\s*```\s*$", "", content, flags=re.IGNORECASE)
+        document = json.loads(fenced)
+        if not isinstance(document, dict):
+            raise ValueError("vision region response had no regions list")
+        regions = document.get("regions")
+        if not isinstance(regions, list):
+            single_region = tuple(document.get(name) for name in ("x", "y", "width", "height"))
+            if all(
+                isinstance(value, (int, float)) and math.isfinite(float(value))
+                for value in single_region
+            ):
+                regions = [document]
+            else:
+                raise ValueError("vision region response had no regions list")
+        accepted: list[ImageRegion] = []
+        seen: set[tuple[int, int, int, int]] = set()
+        for candidate in regions[:12]:
+            if not isinstance(candidate, dict):
+                continue
+            values = tuple(candidate.get(name) for name in ("x", "y", "width", "height"))
+            if not all(isinstance(value, (int, float)) and math.isfinite(float(value)) for value in values):
+                continue
+            x, y, width, height = (float(value) for value in values)
+            if x < 0 or y < 0 or width <= 0 or height <= 0 or x + width > 1 or y + height > 1:
+                continue
+            key = tuple(round(value * 1000) for value in (x, y, width, height))
+            if key not in seen:
+                accepted.append(ImageRegion(x, y, width, height))
+                seen.add(key)
+        return tuple(accepted)
+
+
+def orchestrator_vision_client(base_url: str, api_key: str, model: str | None = None) -> ImageContentClient:
     """Build a vision client against the same orchestrator root other channels use.
 
     Other clients POST ``{base_url}/v1/chat/completions``;
@@ -305,7 +420,7 @@ def orchestrator_vision_client(base_url: str, api_key: str, model: str) -> Image
     same URL. A construct-time error degrades to the unavailable null rather
     than crashing the request that asked for a description.
     """
-    if not (base_url and api_key and model):
+    if not (base_url and api_key):
         return NullImageContentClient()
     parsed = urlparse(base_url)
     vision_base = base_url.rstrip("/")

@@ -126,6 +126,7 @@ class ProvInverseSpec:
 
 
 def _class(local_name: str, *superclasses: str) -> ProvClassSpec:
+    """Implement the _class operation for this channel."""
     return ProvClassSpec(local_name, tuple(superclasses))
 
 
@@ -180,6 +181,7 @@ def _object(
     defined_inverse: str | None = None,
     symmetric: bool = False,
 ) -> ProvRelationSpec:
+    """Implement the _object operation for this channel."""
     return ProvRelationSpec(
         local_name=local_name,
         property_kind="object",
@@ -197,6 +199,7 @@ def _datatype(
     *,
     datatype_iri: str | None,
 ) -> ProvRelationSpec:
+    """Implement the _datatype operation for this channel."""
     return ProvRelationSpec(
         local_name=local_name,
         property_kind="datatype",
@@ -773,6 +776,7 @@ class ProvGraph:
 
     @staticmethod
     def _normalize_class_name(class_name: str) -> str:
+        """Implement the _normalize_class_name operation for this channel."""
         local_name = _local_name(class_name)
         if local_name not in PROV_CLASSES:
             raise ProvValidationError(f"unknown PROV-O class {class_name!r}")
@@ -780,6 +784,7 @@ class ProvGraph:
 
     @staticmethod
     def _normalize_relation_name(relation: str) -> tuple[str, bool]:
+        """Implement the _normalize_relation_name operation for this channel."""
         local_name = _local_name(relation)
         if local_name in PROV_RELATIONS:
             return local_name, False
@@ -789,6 +794,7 @@ class ProvGraph:
         return canonical, True
 
     def _validate_subject(self, subject_iri: str, spec: ProvRelationSpec) -> None:
+        """Implement the _validate_subject operation for this channel."""
         actual_types = self._resource_types.get(subject_iri)
         if actual_types is None:
             raise ProvValidationError(f"subject resource {subject_iri!r} has not been declared")
@@ -799,6 +805,7 @@ class ProvGraph:
             )
 
     def _validate_resource_object(self, object_iri: str, spec: ProvRelationSpec) -> None:
+        """Implement the _validate_resource_object operation for this channel."""
         actual_types = self._resource_types.get(object_iri)
         if actual_types is None:
             raise ProvValidationError(f"object resource {object_iri!r} has not been declared")
@@ -810,6 +817,7 @@ class ProvGraph:
 
     @staticmethod
     def _validate_literal_object(literal: ProvLiteral, spec: ProvRelationSpec) -> None:
+        """Implement the _validate_literal_object operation for this channel."""
         if spec.datatype_iri is not None and literal.datatype_iri != spec.datatype_iri:
             raise ProvValidationError(
                 f"{spec.local_name} requires datatype {spec.datatype_iri}, "
@@ -839,6 +847,7 @@ def _class_ancestors(class_name: str) -> frozenset[str]:
 
 
 def _matches_any_class(actual_types: Iterable[str], expected_types: Iterable[str]) -> bool:
+    """Implement the _matches_any_class operation for this channel."""
     expected = set(expected_types)
     return any(bool(_class_ancestors(actual) & expected) for actual in actual_types)
 

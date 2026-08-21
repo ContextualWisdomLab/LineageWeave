@@ -57,11 +57,13 @@ def normalize_chat_question(question: str) -> str:
 
 @dataclass(frozen=True)
 class ChatSourceDocument:
-    """One numbered source document available to the chat's reasoning step."""
+    """One numbered post and its persisted evidence for chat reasoning."""
 
     post_id: str
     post_title: str
     post_body: str
+    graph_facts: tuple[str, ...] = field(default_factory=tuple)
+    evidence_facts: tuple[str, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
@@ -91,6 +93,50 @@ def cited_post_summaries(
     ]
 
 
+def _buyer_evidence_kind(fact: str) -> str:
+    if fact.startswith("project:"):
+        return "semantic_project"
+    if fact.startswith("actor:"):
+        return "semantic_role"
+    if fact.startswith("Keyman mention:"):
+        return "semantic_keyman"
+    return "source_field"
+
+
+def _buyer_evidence_text(fact: str) -> str:
+    cleaned = re.sub(r"\s*\|\s*(?:ontology_iri|extraction_method|confidence):\s*[^|\[]+", "", fact)
+    cleaned = re.sub(r"\s*\[provenance=[^]]+\]", "", cleaned)
+    return " ".join(cleaned.split())
+
+
+def cited_post_evidence(
+    sources: list[ChatSourceDocument] | tuple[ChatSourceDocument, ...],
+    cited_post_ids: tuple[str, ...] | list[str],
+) -> list[dict[str, object]]:
+    """Return buyer-safe persisted evidence for cited posts.
+
+    Provider names, ontology IRIs, and storage provenance are prompt metadata,
+    not Buyer UI content. The evidence value itself remains visible so the
+    cited post can be opened and checked against its full body.
+    """
+    by_id = {source.post_id: source for source in sources}
+    result: list[dict[str, object]] = []
+    for post_id in cited_post_ids:
+        source = by_id.get(post_id)
+        if source is None:
+            continue
+        facts: list[dict[str, str]] = []
+        seen: set[str] = set()
+        for fact in source.evidence_facts:
+            text = _buyer_evidence_text(fact)
+            if not text or text in seen:
+                continue
+            seen.add(text)
+            facts.append({"kind": _buyer_evidence_kind(fact), "text": text})
+        result.append({"post_id": post_id, "facts": facts})
+    return result
+
+
 class PostChatClient(Protocol):
     """Answers a question using only the given numbered source documents."""
 
@@ -112,6 +158,7 @@ class NullPostChatClient:
     available = False
 
     def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer:
+        """Answer the question using the supplied source documents."""
         raise RuntimeError("NullPostChatClient cannot answer; check .available first")
 
 
@@ -119,6 +166,8 @@ _CHAT_PROMPT_TEMPLATE = """\
 Answer the question below using ONLY the numbered source documents
 provided -- do not use outside knowledge, and do not answer if the
 sources don't actually support an answer (say so instead of guessing).
+
+Do not output a reasoning trace. Return the JSON object immediately.
 
 For every part of your answer, track which source number(s) it came from.
 
@@ -136,17 +185,75 @@ Question: {question}
 
 _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 
+_CHAT_REQUEST_PROMPT_TEMPLATE = """\
+Answer the question using ONLY the numbered source documents below. Do not
+use outside knowledge or guess. Be concise and preserve the evidence facts.
+Write the answer first, then a new line exactly beginning CITED SOURCES:
+followed by the 1-based source numbers separated by commas. Cite every
+source the answer used; write NONE when the sources do not support an answer.
+
+Sources:
+{sources_block}
+
+Question: {question}
+"""
+
 
 def _strip_code_fence(content: str) -> str:
+    """Implement the _strip_code_fence operation for this channel."""
     match = _CODE_FENCE_PATTERN.search(content)
     return match.group(1) if match else content
 
 
 def _render_sources_block(sources: list[ChatSourceDocument]) -> str:
-    return "\n\n".join(
-        f"[Source {i}] (post_id={source.post_id})\nTitle: {source.post_title}\n{source.post_body}"
-        for i, source in enumerate(sources, start=1)
-    )
+    """Implement the _render_sources_block operation for this channel."""
+    blocks: list[str] = []
+    for i, source in enumerate(sources, start=1):
+        body = source.post_body
+        if len(body) > 4000:
+            body = body[:4000] + "\n[Source body truncated; open the cited post for the full body.]"
+        graph_block = ""
+        evidence_block = ""
+        if source.graph_facts:
+            graph_block = (
+                "\nPersisted Knowledge Graph facts (use only as evidence; each fact "
+                "names its evidence post_id):\n"
+                + "\n".join(f"- {fact}" for fact in source.graph_facts)
+            )
+        if source.evidence_facts:
+            evidence_block = (
+                "\nPersisted source/semantic evidence (use as evidence; do not treat "
+                "raw source hints as resolved ontology assertions):\n"
+                + "\n".join(f"- {fact}" for fact in source.evidence_facts)
+            )
+        blocks.append(
+            f"[Source {i}] (post_id={source.post_id})\n"
+            f"Title: {source.post_title}\n{body}{graph_block}{evidence_block}"
+        )
+    return "\n\n".join(blocks)
+
+
+def _parse_plain_chat_response(
+    content: str, sources: list[ChatSourceDocument]
+) -> ChatAnswer | None:
+    """Parse the provider-compatible answer/citation marker."""
+    plain = _strip_code_fence(content).strip()
+    match = re.search(r"(?im)^\s*CITED SOURCES\s*:\s*(.*)$", plain)
+    if match is None:
+        return None
+    answer_text = re.sub(r"(?im)^\s*ANSWER\s*:\s*", "", plain[: match.start()]).strip()
+    if not answer_text:
+        return None
+    cited_post_ids: list[str] = []
+    raw_citations = match.group(1).strip()
+    if raw_citations.upper() != "NONE":
+        for raw_number in re.findall(r"\d+", raw_citations):
+            source_index = int(raw_number) - 1
+            if 0 <= source_index < len(sources):
+                post_id = sources[source_index].post_id
+                if post_id not in cited_post_ids:
+                    cited_post_ids.append(post_id)
+    return ChatAnswer(answer_text=answer_text, cited_post_ids=tuple(cited_post_ids))
 
 
 def parse_chat_response(content: str, sources: list[ChatSourceDocument]) -> ChatAnswer | None:
@@ -182,18 +289,16 @@ def parse_chat_response(content: str, sources: list[ChatSourceDocument]) -> Chat
 
 
 class ContextualOrchestratorPostChatClient:
-    """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="verify"``
-    -- a chat answer with citations is exactly the checked-judgment shape
-    ``mode="verify"`` exists for (one worker call plus one checked
-    verifier judgment), same reasoning ``adjudication_client`` already
-    uses, not ``keyman_extraction``/``entity_relationship_classification``'s
-    single-pass ``mode="route"`` structured extraction.
+    """Calls the orchestrator's evidence-preserving ``mode="auto"`` boundary.
+
+    contextual-orchestrator resolves ``auto`` using its own capability/routing
+    policy (ADR 0083); the prompt enforces evidence-only answers and citations.
     """
 
     available = True
 
     def __init__(
-        self, base_url: str, api_key: str, *, reasoning_effort: str = "high", timeout: float = 60.0
+        self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float = 180.0
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -201,21 +306,22 @@ class ContextualOrchestratorPostChatClient:
         self._timeout = timeout
 
     def answer(self, question: str, sources: list[ChatSourceDocument]) -> ChatAnswer:
-        prompt = _CHAT_PROMPT_TEMPLATE.format(
+        """Answer the question using the supplied source documents."""
+        prompt = _CHAT_REQUEST_PROMPT_TEMPLATE.format(
             sources_block=_render_sources_block(sources), question=question
         )
         body = post_json(
             f"{self._base_url}/v1/chat/completions",
             {
                 "messages": [{"role": "user", "content": prompt}],
-                "mode": "verify",
+                "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
         content = body["choices"][0]["message"]["content"]
-        answer = parse_chat_response(content, sources)
+        answer = _parse_plain_chat_response(content, sources)
         if answer is None:
             raise ValueError(f"chat response did not match the required format: {content!r}")
         return answer

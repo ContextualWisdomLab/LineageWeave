@@ -77,13 +77,23 @@ def test_structured_consumers_request_auto_mode(
     monkeypatch, module_name, client_factory, invoke, content
 ) -> None:
     observed: dict[str, object] = {}
+    call_count = 0
 
     def fake_post_json(url, payload, *, headers, timeout):
+        nonlocal call_count
+        call_count += 1
         observed["url"] = url
         observed["payload"] = payload
         observed["headers"] = headers
         observed["timeout"] = timeout
-        return {"choices": [{"message": {"content": content}}]}
+        response_content = content
+        if module_name == "lineageweave.post_summary":
+            response_content = (
+                "요약\nKEY EVENTS: NONE"
+                if call_count == 1
+                else "ROLES:\nNONE\nPROJECTS:\nNONE"
+            )
+        return {"choices": [{"message": {"content": response_content}}]}
 
     module = __import__(module_name, fromlist=["post_json"])
     monkeypatch.setattr(module, "post_json", fake_post_json)
@@ -91,6 +101,9 @@ def test_structured_consumers_request_auto_mode(
     invoke(client_factory())
 
     assert observed["payload"]["mode"] == "auto"
+    assert observed["payload"]["reasoning_effort"] == "auto"
+    if module_name == "lineageweave.post_summary":
+        assert call_count == 2
 
 
 def test_post_evaluation_judge_defaults_to_auto(monkeypatch) -> None:
@@ -129,3 +142,4 @@ def test_post_evaluation_judge_defaults_to_auto(monkeypatch) -> None:
     client.evaluate("Title", "Body")
 
     assert observed["payload"]["mode"] == "auto"
+    assert observed["payload"]["reasoning_effort"] == "auto"

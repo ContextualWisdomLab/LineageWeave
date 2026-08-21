@@ -22,7 +22,9 @@ character-count split:
 - **dom**: sectioning-content element boundaries (WHATWG HTML Living
   Standard / W3C HTML5 -- ``article``, ``section``, ``nav``, ``aside``,
   ``header``, ``footer``, headings ``h1``-``h6``, and flow-content block
-  boundaries ``div``, ``p``, ``li``, ``td``). Relevant once a source
+  boundaries ``div``, ``p``, ``li``, ``ol``, ``ul``, ``tr`` -- a table row, not each
+  cell, since cells sharing a row are one unit; see ``_TABLE_CELL_TAGS``).
+  Relevant once a source
   document is HTML/MHTML rather than plain text (e.g. a raw ingested
   email). Each block's inline ``style`` attribute is
   captured on the resulting :class:`Chunk` as separate metadata, never
@@ -40,11 +42,12 @@ character-count split:
 
 from __future__ import annotations
 
+import base64
+import binascii
 import re
 from dataclasses import dataclass, field
+from html import unescape
 from html.parser import HTMLParser
-
-from .embedded_image_payload import decode_data_uri_image
 
 # WHATWG HTML Living Standard / W3C HTML5 sectioning-content and common
 # flow-content block elements -- boundaries a DOM-unit chunker should
@@ -62,8 +65,14 @@ _DOM_BLOCK_TAGS = frozenset(
         "footer",
         "div",
         "p",
+        "ol",
+        "ul",
         "li",
-        "td",
+        "footnote",
+        "endnote",
+        "w:footnote",
+        "w:endnote",
+        "tr",
         "blockquote",
         "h1",
         "h2",
@@ -71,8 +80,150 @@ _DOM_BLOCK_TAGS = frozenset(
         "h4",
         "h5",
         "h6",
+        "w:p",
+        "w:tbl",
+        "w:tr",
     }
 )
+
+# A table row is the block unit, not each cell -- a cell pushed as its own
+# block (the previous behavior for "td"/"w:tc") loses which cells shared a
+# row: `<tr><td>1</td><td>Acme Corp</td></tr>` flattened into two
+# independent one-line chunks "1" and "Acme Corp" is indistinguishable from
+# two unrelated one-line paragraphs, and a real 5-column x 13-row table
+# read this way degrades into an unrecoverable flat list (live bug,
+# 2026-08-19). Cells append inline into the open row's buffer instead,
+# delimited by " | ", so "1 | Acme Corp | ..." keeps each row's columns
+# readable and attributable as one unit.
+_TABLE_ROW_TAGS = frozenset({"tr", "w:tr"})
+_TABLE_CELL_TAGS = frozenset({"td", "th", "w:tc"})
+
+_LIST_ITEM_START = re.compile(
+    r"^(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)"
+)
+_FOOTNOTE_START = re.compile(r"^[*†‡](?=\S)")
+
+
+def _is_footnote_block(tag: str, attrs: list[tuple[str, str | None]]) -> bool:
+    """Recognize semantic footnote markup emitted by HTML and Word exports."""
+    if tag.casefold().rsplit(":", 1)[-1] in {"footnote", "endnote"}:
+        return True
+    values = " ".join(
+        value or ""
+        for name, value in attrs
+        if name.casefold() in {"class", "id", "role", "data-role"}
+    ).casefold()
+    return "footnote" in values or "endnote" in values
+
+
+def _is_footnote_reference(attrs: list[tuple[str, str | None]]) -> bool:
+    """Recognize a Word footnote-definition backlink, not its body citation."""
+    values = {
+        name.casefold(): (value or "").casefold()
+        for name, value in attrs
+        if name.casefold() in {"href", "id", "name"}
+    }
+    href = values.get("href", "")
+    anchor_values = (values.get("id", ""), values.get("name", ""))
+    return "ftnref" in href and any(
+        "ftn" in value and "ftnref" not in value for value in anchor_values
+    )
+
+
+def normalize_semantic_text(text: str) -> str:
+    """Remove visual hanging-indent breaks without changing source content."""
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    normalized: list[str] = []
+    for line in lines:
+        stripped = line.replace("\xa0", " ").strip()
+        if not stripped:
+            if normalized and normalized[-1] != "":
+                normalized.append("")
+            continue
+        if normalized and normalized[-1] != "" and not _LIST_ITEM_START.match(stripped):
+            normalized[-1] = f"{normalized[-1]} {stripped}"
+        else:
+            normalized.append(stripped)
+    return "\n".join(normalized).strip()
+
+
+def _source_indent_width(text: str) -> int:
+    """Measure leading source whitespace separately from semantic text."""
+    first_line = next((line for line in text.replace("\r", "\n").split("\n") if line.strip()), "")
+    leading = re.match(r"^[ \t]+", first_line)
+    if leading is None:
+        return 0
+    return sum(4 if character == "\t" else 1 for character in leading.group(0))
+
+
+def _length_to_indent_units(value: str) -> int:
+    """Convert common CSS/XML lengths to a comparable eight-pixel unit."""
+    match = re.fullmatch(
+        r"\s*([+-]?(?:\d+\.?\d*|\.\d+))\s*(px|pt|em|rem|in|cm|mm|%)?\s*",
+        value,
+        re.IGNORECASE,
+    )
+    if match is None:
+        return 0
+    amount = float(match.group(1))
+    if amount <= 0:
+        return 0
+    scale = {
+        "px": 1.0,
+        "pt": 96 / 72,
+        "em": 16.0,
+        "rem": 16.0,
+        "in": 96.0,
+        "cm": 96 / 2.54,
+        "mm": 96 / 25.4,
+        "%": 16 / 100,
+    }.get((match.group(2) or "px").lower(), 1.0)
+    return max(0, round(amount * scale / 8))
+
+
+def _shorthand_left_value(raw: str) -> str:
+    """Pick the left-side length out of a CSS 1-4 value box shorthand
+    (``margin``/``padding``), per the CSS box-model value-count rule:
+    1 value = all sides, 2 = vertical/horizontal, 3 = top/horizontal/bottom,
+    4 = top/right/bottom/left.
+    """
+    parts = raw.split()
+    if not parts:
+        return ""
+    if len(parts) == 1:
+        return parts[0]
+    if len(parts) >= 4:
+        return parts[3]
+    return parts[1]
+
+
+def _declared_indent_width(tag: str, attrs: list[tuple[str, str | None]]) -> int:
+    """Read HTML CSS and WordprocessingML paragraph indentation declarations."""
+    width = 4 if tag in {"blockquote", "ul", "ol"} else 0
+    style = next((value or "" for name, value in attrs if name == "style"), "")
+    for match in re.finditer(
+        r"(?:^|;)\s*(?:margin-left|padding-left|padding-inline-start|text-indent)\s*:\s*([^;]+)",
+        style,
+        re.IGNORECASE,
+    ):
+        width += _length_to_indent_units(match.group(1))
+    # A real editor (Word paste, Outlook compose) declares indentation with
+    # the box-model shorthand ("margin: 0cm 0cm 0cm 56px") far more often
+    # than the longhand "margin-left" the pattern above alone recognizes --
+    # every nested <li> in a real body used only the shorthand, so its
+    # indentation silently read as 0 and every nesting level collapsed flat
+    # (live bug, 2026-08-19).
+    for match in re.finditer(
+        r"(?:^|;)\s*(?:margin|padding)\s*:\s*([^;]+)", style, re.IGNORECASE
+    ):
+        width += _length_to_indent_units(_shorthand_left_value(match.group(1)))
+    for name, value in attrs:
+        if name in {"w:left", "w:start", "w:firstline"} and value:
+            try:
+                width += max(0, round(int(value) / 120))
+            except ValueError:
+                continue
+    return width
 
 
 @dataclass(frozen=True)
@@ -107,6 +258,12 @@ class Chunk:
             ``text``. ``None`` when the element had no ``style``
             attribute, distinct from an empty string (which would mean
             "had the attribute, but it was blank").
+        indent_width: source indentation in semantic units, retained as
+            structural metadata while presentation whitespace is removed from
+            ``text``.
+        declared_indent_width: indentation declared by HTML/CSS/OOXML or a
+            nested list container. Source-only leading spaces are excluded so
+            callers can distinguish authored structure from visual alignment.
     """
 
     text: str
@@ -115,6 +272,8 @@ class Chunk:
     label: str = ""
     image_data: bytes | None = field(default=None, compare=True)
     style: str | None = None
+    indent_width: int = 0
+    declared_indent_width: int = 0
 
 
 def chunk_by_paragraph(text: str) -> list[Chunk]:
@@ -128,7 +287,7 @@ def chunk_by_paragraph(text: str) -> list[Chunk]:
     of paragraph-free prose. Upgrade to real TextTiling scoring if a real
     document set turns out to need it.
     """
-    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", text) if p.strip()]
+    paragraphs = [normalize_semantic_text(p) for p in re.split(r"\n\s*\n", text) if p.strip()]
     if not paragraphs:
         return []
     return [Chunk(text=p, unit_type="paragraph", index=i) for i, p in enumerate(paragraphs)]
@@ -146,10 +305,24 @@ def chunk_by_sentence(text: str) -> list[Chunk]:
     real document set shows this matters. Good enough for short business
     records and paragraph-internal splitting.
     """
-    sentences = [s.strip() for s in _SENTENCE_BOUNDARY.split(text.strip()) if s.strip()]
+    sentences = [normalize_semantic_text(s) for s in _SENTENCE_BOUNDARY.split(text.strip()) if s.strip()]
     if not sentences:
         return []
     return [Chunk(text=s, unit_type="sentence", index=i) for i, s in enumerate(sentences)]
+
+
+def _decode_data_uri_image(src: str) -> tuple[str, bytes] | None:
+    """Parse a ``data:image/<mime>;base64,<data>`` src attribute value."""
+    if not src.lower().startswith("data:image/"):
+        return None
+    header, _, encoded = src.partition(",")
+    if ";base64" not in header:
+        return None
+    mime_type = header[len("data:") : header.index(";")]
+    try:
+        return mime_type, base64.b64decode(re.sub(r"\s+", "", encoded), validate=True)
+    except (binascii.Error, ValueError):
+        return None
 
 
 class _BlockTextExtractor(HTMLParser):
@@ -168,49 +341,217 @@ class _BlockTextExtractor(HTMLParser):
 
     def __init__(self) -> None:
         super().__init__()
-        self._stack: list[tuple[str, list[str], str | None]] = []
+        self._stack: list[tuple[str, list[str], str | None, int, bool]] = []
+        self._unscoped_buffer: list[str] = []
         # Each entry is ("text", str, tag_name, style) or
         # ("image", (mime_type, bytes), "", None) -- a single sequence in
         # true document order, so an image's index among its siblings
         # reflects where it actually sat.
-        self._finished: list[tuple[str, object, str, str | None]] = []
-        self._skip_depth = 0
+        self._finished: list[tuple[str, object, str, str | None, int, int]] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        if tag in {"style", "script"}:
-            self._skip_depth += 1
-        if self._skip_depth:
-            return
+        """Collect relevant text state when an HTML start tag is encountered."""
         if tag == "img":
             src = next((value for name, value in attrs if name == "src" and value), None)
             if src:
-                decoded = decode_data_uri_image(src)
+                decoded = _decode_data_uri_image(src)
                 if decoded is not None:
-                    self._finished.append(("image", decoded, "", None))
+                    self._finished.append(("image", decoded, "", None, 0, 0))
+            return
+        if tag in {"br", "w:br"} and self._stack:
+            self._stack[-1][1].append("\n")
+            return
+        if tag == "w:ind" and self._stack:
+            tag_name, buffer, style, indent_width, is_footnote = self._stack[-1]
+            self._stack[-1] = (
+                tag_name,
+                buffer,
+                style,
+                indent_width + _declared_indent_width(tag, attrs),
+                is_footnote,
+            )
+            return
+        if tag == "a" and self._stack and _is_footnote_reference(attrs):
+            tag_name, buffer, style, indent_width, _ = self._stack[-1]
+            self._stack[-1] = (tag_name, buffer, style, indent_width, True)
+            return
+        if tag in _TABLE_CELL_TAGS:
+            if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS and self._stack[-1][1]:
+                self._stack[-1][1].append(" | ")
+            return
+        # A rich-text editor commonly wraps a table cell in a nested <p> or
+        # <div>. Keep that content in the open row; otherwise the nested block
+        # closes first and destroys the row/column boundary.
+        if any(entry[0] in _TABLE_ROW_TAGS for entry in self._stack):
             return
         if tag in _DOM_BLOCK_TAGS:
+            if self._stack and self._stack[-1][1]:
+                tag_name, buffer, style, _, is_footnote = self._stack[-1]
+                declared_width = sum(entry[3] for entry in self._stack)
+                self._finish_block(tag_name, buffer, style, declared_width, is_footnote)
+                buffer.clear()
             style = next((value for name, value in attrs if name == "style" and value), None)
-            self._stack.append((tag, [], style))
+            is_footnote = _is_footnote_block(tag, attrs) or any(
+                entry[4] for entry in self._stack
+            )
+            self._stack.append(
+                (tag, [], style, _declared_indent_width(tag, attrs), is_footnote)
+            )
+
+    def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        """Handle self-closing block tags without losing XML indentation state."""
+        self.handle_starttag(tag, attrs)
+        if tag in _DOM_BLOCK_TAGS:
+            self.handle_endtag(tag)
 
     def handle_endtag(self, tag: str) -> None:
-        if tag in {"style", "script"} and self._skip_depth:
-            self._skip_depth -= 1
-            return
-        if tag in _DOM_BLOCK_TAGS and self._stack:
-            tag_name, buffer, style = self._stack.pop()
-            text = " ".join(buffer).strip()
+        """Close the relevant text state when an HTML end tag is encountered."""
+        if tag in _DOM_BLOCK_TAGS and self._stack and self._stack[-1][0] == tag:
+            declared_width = sum(entry[3] for entry in self._stack)
+            tag_name, buffer, style, _, is_footnote = self._stack.pop()
+            self._finish_block(tag_name, buffer, style, declared_width, is_footnote)
+
+    def _finish_block(
+        self,
+        tag_name: str,
+        buffer: list[str],
+        style: str | None,
+        declared_width: int,
+        is_footnote: bool = False,
+    ) -> None:
+        """Emit one block buffer, including a block closed only at EOF."""
+        raw_text = "".join(buffer)
+        for raw_unit, source_indent in _split_dom_units(raw_text):
+            text = normalize_semantic_text(raw_unit)
             if text:
-                self._finished.append(("text", text, tag_name, style))
+                indent_width = declared_width + source_indent
+                label = "footnote" if is_footnote or _FOOTNOTE_START.match(text) else tag_name
+                self._finished.append(
+                    (
+                        "text",
+                        text,
+                        label,
+                        style,
+                        indent_width,
+                        declared_width,
+                    )
+                )
 
     def handle_data(self, data: str) -> None:
-        if self._skip_depth:
-            return
-        text = data.strip()
-        if text and self._stack:
+        """Collect character data from the current HTML text region."""
+        text = data
+        for _ in range(3):
+            decoded = unescape(text)
+            if decoded == text:
+                break
+            text = decoded
+        had_nbsp = "\xa0" in text
+        text = text.replace("\xa0", " ")
+        if self._stack and (text.strip() or had_nbsp):
             self._stack[-1][1].append(text)
+        elif text.strip() or had_nbsp:
+            self._unscoped_buffer.append(text)
 
-    def finished(self) -> list[tuple[str, object, str, str | None]]:
+    def finished(self) -> list[tuple[str, object, str, str | None, int, int]]:
+        """Return the normalized records collected from the HTML fragment."""
+        while self._stack:
+            declared_width = sum(entry[3] for entry in self._stack)
+            tag_name, buffer, style, _, is_footnote = self._stack.pop()
+            self._finish_block(tag_name, buffer, style, declared_width, is_footnote)
+        if not self._finished:
+            fallback = normalize_semantic_text("".join(self._unscoped_buffer))
+            if fallback:
+                return [
+                    ("text", fallback, "", None, _source_indent_width(fallback), 0)
+                ]
         return self._finished
+
+
+def _split_dom_units(raw_text: str) -> list[tuple[str, int]]:
+    """Split forced visual lines at authored list starts, not arbitrary wraps."""
+    units: list[tuple[str, int]] = []
+    current: list[str] = []
+
+    def flush() -> None:
+        if current:
+            raw_unit = "\n".join(current)
+            if raw_unit.strip():
+                units.append((raw_unit, _source_indent_width(raw_unit)))
+            current.clear()
+
+    for line in raw_text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        if not line.strip():
+            flush()
+            continue
+        if current and _LIST_ITEM_START.match(line.strip()):
+            flush()
+        current.append(line.rstrip())
+    flush()
+    return units
+
+
+_MARKDOWN_TABLE_SEPARATOR = re.compile(
+    r"^\s*\|?\s*:?-{3,}:?\s*(?:\|\s*:?-{3,}:?\s*)+\|?\s*$"
+)
+
+
+def _is_markdown_table_row(line: str) -> bool:
+    """Recognize a pipe row only when it has at least two cells."""
+    cells = line.strip().strip("|").split("|")
+    return len(cells) >= 2 and all(cell.strip() for cell in cells)
+
+
+def _render_markdown_table_row(line: str) -> str:
+    """Keep Markdown table columns as searchable row evidence."""
+    return " | ".join(cell.strip() for cell in line.strip().strip("|").split("|"))
+
+
+def _split_plain_text_units(text: str) -> list[tuple[str, int, str]]:
+    """Split markup-free source into paragraphs, list items, and table rows."""
+    lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+    units: list[tuple[str, int, str]] = []
+    current: list[str] = []
+
+    def flush() -> None:
+        if current:
+            raw_unit = "\n".join(current)
+            normalized = normalize_semantic_text(raw_unit)
+            if normalized:
+                units.append((normalized, _source_indent_width(raw_unit), ""))
+            current.clear()
+
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        if not line.strip():
+            flush()
+            index += 1
+            continue
+        if _is_markdown_table_row(line):
+            rows: list[str] = []
+            while index < len(lines) and _is_markdown_table_row(lines[index]):
+                rows.append(lines[index])
+                index += 1
+            data_rows = [row for row in rows if not _MARKDOWN_TABLE_SEPARATOR.match(row)]
+            if len(data_rows) >= 2:
+                flush()
+                units.extend(
+                    (
+                        _render_markdown_table_row(row),
+                        _source_indent_width(row),
+                        "tr",
+                    )
+                    for row in data_rows
+                )
+                continue
+            current.extend(rows)
+            continue
+        if current and _LIST_ITEM_START.match(line.strip()):
+            flush()
+        current.append(line.rstrip())
+        index += 1
+    flush()
+    return units
 
 
 def chunk_by_dom(html: str) -> list[Chunk]:
@@ -231,15 +572,56 @@ def chunk_by_dom(html: str) -> list[Chunk]:
     parser.feed(html)
     entries = parser.finished()
     chunks: list[Chunk] = []
-    for index, (kind, value, tag_name, style) in enumerate(entries):
+    for index, (
+        kind,
+        value,
+        tag_name,
+        style,
+        indent_width,
+        declared_indent_width,
+    ) in enumerate(entries):
         if kind == "text":
-            chunks.append(Chunk(text=value, unit_type="dom", index=index, label=tag_name, style=style))
+            chunks.append(
+                Chunk(
+                    text=value,
+                    unit_type="plain_text" if not tag_name else "dom",
+                    index=index,
+                    label=tag_name,
+                    style=style,
+                    indent_width=indent_width,
+                    declared_indent_width=declared_indent_width,
+                )
+            )
         else:
             mime_type, image_bytes = value
             chunks.append(
-                Chunk(text="", unit_type="image", index=index, label=mime_type, image_data=image_bytes)
+                Chunk(
+                    text="",
+                    unit_type="image",
+                    index=index,
+                    label=mime_type,
+                    image_data=image_bytes,
+                )
             )
     return chunks
+
+
+def chunk_by_source_body(body: str) -> list[Chunk]:
+    """Chunk either a DOM body or markup-free authored semantic units."""
+    dom_chunks = chunk_by_dom(body)
+    if re.search(r"<[A-Za-z][^>]*>", body):
+        return dom_chunks
+    return [
+        Chunk(
+            text=text,
+            unit_type="plain_text",
+            index=index,
+            label=label,
+            indent_width=indent_width,
+            declared_indent_width=0,
+        )
+        for index, (text, indent_width, label) in enumerate(_split_plain_text_units(body))
+    ]
 
 
 @dataclass(frozen=True)

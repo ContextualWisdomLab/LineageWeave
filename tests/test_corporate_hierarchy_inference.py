@@ -7,12 +7,38 @@ Pure parse-function tests, same style as test_organization_name_resolution.py
 from __future__ import annotations
 
 from lineageweave.corporate_hierarchy_inference import (
+    ContextualOrchestratorHierarchyInferenceClient,
     LEVEL_COMPANY,
     LEVEL_GROUP,
     LEVEL_PLANT,
     HierarchyProposal,
     parse_inference_response,
 )
+
+
+def test_live_hierarchy_client_uses_adaptive_orchestrator_mode(monkeypatch) -> None:
+    seen: dict[str, object] = {}
+
+    def fake_post_json(url, body, *, headers, timeout):
+        seen.update(url=url, body=body, headers=headers, timeout=timeout)
+        return {
+            "choices": [
+                {"message": {"content": '{"level":"plant","parent_name":"Aurora Grid Power"}'}},
+            ]
+        }
+
+    monkeypatch.setattr("lineageweave.corporate_hierarchy_inference.post_json", fake_post_json)
+    client = ContextualOrchestratorHierarchyInferenceClient(
+        "http://orchestrator", "secret", reasoning_effort="high", timeout=13.0
+    )
+
+    assert client.infer("Aurora Grid Power South Plant", "synthetic plant context") == HierarchyProposal(
+        level_code=LEVEL_PLANT, parent_name="Aurora Grid Power"
+    )
+    assert seen["url"] == "http://orchestrator/v1/chat/completions"
+    assert seen["body"]["mode"] == "auto"
+    assert seen["body"]["reasoning_effort"] == "high"
+    assert seen["timeout"] == 13.0
 
 
 def test_parses_a_plant_with_a_parent() -> None:
