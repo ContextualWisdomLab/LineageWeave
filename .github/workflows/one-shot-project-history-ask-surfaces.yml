@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - feat/project-history-ask-surfaces-v2200
+  pull_request:
+    branches:
+      - feat/tepp-project-history-recovery-v2210
 
 permissions:
   contents: write
