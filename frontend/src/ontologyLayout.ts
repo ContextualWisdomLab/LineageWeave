@@ -209,3 +209,46 @@ export function filterNeighborhood(
     : payload.jsonld;
   return { ...payload, nodes, edges, exact_value_rows, jsonld };
 }
+
+/**
+ * Accumulate a later neighborhood page onto the already-visible graph.
+ *
+ * Next action: keep the selected evidence, then inspect or page again.
+ */
+export function accumulateNeighborhoodPages(
+  current: OntologyNeighborhoodPayload,
+  next: OntologyNeighborhoodPayload,
+): OntologyNeighborhoodPayload {
+  const nodes = new Map(current.nodes.map((node) => [nodeKey(node.node_type_code, node.node_id), node]));
+  for (const node of next.nodes) {
+    nodes.set(nodeKey(node.node_type_code, node.node_id), node);
+  }
+  const edges = new Map(current.edges.map((edge) => [edge.edge_id, edge]));
+  for (const edge of next.edges) {
+    edges.set(edge.edge_id, edge);
+  }
+  const rows = new Map(current.exact_value_rows.map((row) => [row.edge_id, row]));
+  for (const row of next.exact_value_rows) {
+    rows.set(row.edge_id, row);
+  }
+  const graphItems = new Map<string, Record<string, unknown>>();
+  for (const payload of [current, next]) {
+    const graph = payload.jsonld["@graph"];
+    if (!Array.isArray(graph)) continue;
+    for (const item of graph) {
+      if (typeof item === "object" && item !== null && typeof item["@id"] === "string") {
+        graphItems.set(item["@id"], item as Record<string, unknown>);
+      }
+    }
+  }
+  return {
+    ...next,
+    nodes: [...nodes.values()],
+    edges: [...edges.values()],
+    exact_value_rows: [...rows.values()],
+    jsonld: {
+      ...next.jsonld,
+      "@graph": [...graphItems.values()],
+    },
+  };
+}

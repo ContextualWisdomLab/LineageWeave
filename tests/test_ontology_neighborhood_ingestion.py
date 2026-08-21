@@ -102,6 +102,7 @@ def test_neighborhood_error_http_status_is_fail_closed() -> None:
     assert neighborhood_error_http_status(OntologyNeighborhoodError("dangling_endpoint", "x")) == 404
     assert neighborhood_error_http_status(OntologyNeighborhoodError("invalid_focus_id", "x")) == 422
     assert neighborhood_error_http_status(OntologyNeighborhoodError("unbounded_request", "x")) == 422
+    assert neighborhood_error_http_status(OntologyNeighborhoodError("stale_snapshot", "x")) == 422
 
 
 def test_focus_catalog_exists_rejects_unknown_and_non_uuid() -> None:

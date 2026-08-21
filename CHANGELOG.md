@@ -8,6 +8,9 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Ontology neighborhoods can continue beyond the bounded SQL source window
+  with a versioned opaque HMAC cursor and keyset pagination (ADR 0124 / #363).
+  A missing process secret keeps the truncated-without-cursor contract.
 - Bounded ontology/provenance neighborhood (`GET /api/ontology/neighborhood`)
   with typed Post/Person/CorporateEntity/Team nodes, SKOS broader distinct
   from OWL subclass, truth-status vocabulary, knowledge-cutoff binding, and
@@ -15,7 +18,7 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
-- `make smoke` and `make seed` now run through the locked project `uv`
+- `make smoke` and `make seed` now run through the locked `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 - Ontology neighborhoods now enforce request bounds before database access,

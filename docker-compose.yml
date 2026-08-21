@@ -169,6 +169,9 @@ services:
       TEPP_API_KEY: ${TEPP_API_KEY:-}
       CALDAV_BASE_URL: ${CALDAV_BASE_URL:-}
       RANKWEAVE_DISABLED: ${RANKWEAVE_DISABLED:-}
+      # Process HMAC for ontology source-window continuation. Empty keeps the
+      # truncated-without-cursor contract. Never reuse an OIDC or orchestrator secret.
+      ONTOLOGY_SOURCE_CURSOR_SECRET: ${ONTOLOGY_SOURCE_CURSOR_SECRET:-}
     ports:
       - "${BACKEND_PORT:-18420}:8000"
     depends_on:

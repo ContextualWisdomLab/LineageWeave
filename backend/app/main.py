@@ -1983,6 +1983,8 @@ async def read_ontology_neighborhood(
                 allowed_property_codes=parse_allowed_property_query(allowed_property_codes),
                 knowledge_cutoff=cutoff_clock,
                 cursor=cursor,
+                source_cursor_secret=load_settings().ontology_source_cursor_secret,
+                source_cursor_scope=account.user_account_id,
             )
             payload = neighborhood_to_payload(neighborhood)
     except OntologyNeighborhoodError as exc:

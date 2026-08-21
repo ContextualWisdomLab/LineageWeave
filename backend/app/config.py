@@ -49,6 +49,7 @@ class Settings:
     tepp_api_key: str
     caldav_base_url: str
     rankweave_disabled: bool
+    ontology_source_cursor_secret: str
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -139,4 +140,5 @@ def load_settings() -> Settings:
         .strip()
         .lower()
         in {"1", "true", "yes", "on"},
+        ontology_source_cursor_secret=os.environ.get("ONTOLOGY_SOURCE_CURSOR_SECRET", "").strip(),
     )

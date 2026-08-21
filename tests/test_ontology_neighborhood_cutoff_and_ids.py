@@ -45,7 +45,8 @@ def test_load_facts_filters_available_evidence_before_sql_limit() -> None:
 
     assert facts == []
     assert "post.created_at <= $6::timestamptz" in conn.sql
-    assert conn.args[-1] == CUTOFF
+    assert "offset" not in conn.sql.lower()
+    assert CUTOFF in conn.args
 
 
 def test_visible_neighborhood_canonicalizes_uppercase_uuid_before_traversal(
