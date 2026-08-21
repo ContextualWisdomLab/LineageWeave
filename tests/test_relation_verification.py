@@ -262,6 +262,21 @@ def test_compound_host_token_is_not_two_name_tokens() -> None:
     )
 
 
+def test_spaced_hangul_name_matches_contiguous_page_token() -> None:
+    """A page may concatenate the parts of a spaced Korean name."""
+    assert (
+        corroborating_evidence_url(
+            "한빛 그리드",
+            {
+                "url": "https://news.example/item",
+                "title": "News",
+                "content": "한빛그리드가 공급 일정을 발표했다.",
+            },
+        )
+        == "https://news.example/item"
+    )
+
+
 def test_userinfo_tokens_are_not_hostname_evidence() -> None:
     """URL credentials cannot corroborate an unrelated actual hostname."""
     assert (
