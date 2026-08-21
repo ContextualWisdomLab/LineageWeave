@@ -18,6 +18,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Global Ask now re-authorizes cited posts under row locks inside the same
+  persistence transaction, rolling back a raced turn without poisoning the
+  conversation or exposing an unauthorized answer (Issue #362).
+
 - Tenant settings now refresh their audit timestamp on every successful update,
   keep the year field visibly blank while it is edited, and disable no-op
   whitespace-only saves.
