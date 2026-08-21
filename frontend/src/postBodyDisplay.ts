@@ -290,6 +290,9 @@ function isMarkdownSeparatorRow(cells: string[] | null): boolean {
  * The return value preserves prose and skips only the delimiter row.
  */
 export function splitMarkdownTableBody(body: string): MarkdownBodyBlock[] | null {
+  // This renderer has no image node. Let splitPostBody preserve an embedded
+  // image's position instead of turning its source tag into visible prose.
+  if (new RegExp(DATA_URI_IMG.source, DATA_URI_IMG.flags).test(body)) return null;
   const lines = body.replace(/\r\n?/g, "\n").split("\n");
   const blocks: MarkdownBodyBlock[] = [];
   let prose: string[] = [];

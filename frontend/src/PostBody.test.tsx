@@ -247,6 +247,16 @@ describe("PostBody", () => {
     expect(screen.getByText("Next action.")).toBeInTheDocument();
   });
 
+  it("keeps an embedded image visible in a mixed Markdown-table fallback body", () => {
+    const body =
+      '<p>Attached evidence.</p><img src="data:image/png;base64,QQ==" />' +
+      "\n| Project | Status |\n| --- | --- |\n| Alpha | Ready |";
+    render(<PostBody body={body} />);
+
+    expect(screen.getByRole("img", { name: "Embedded image" })).toBeInTheDocument();
+    expect(screen.queryByText(/data:image\/png;base64/)).not.toBeInTheDocument();
+  });
+
   it("keeps a persisted Markdown table row searchable", () => {
     render(
       <PostBody
