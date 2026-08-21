@@ -164,6 +164,21 @@ Observed at `2026-08-21T16:01:40Z` in a fresh local Compose browser session:
   not complete within 30 seconds, so provider/model readiness remains open even
   though the Compose services are running.
 
+Observed at `2026-08-21T17:52:18Z` in an authenticated Playwright browser run
+against the local runtime, using the eleven supplied defect routes and
+aggregate-only assertions:
+
+- OIDC login completed with the local development account. Each of the eleven
+  post routes opened a detail dialog, its close control was clicked, and the
+  dialog closed again; no route produced horizontal overflow at 1280x1024.
+- Event Lineage was present in all eleven dialogs. A footnote evidence marker
+  was visible in one route and a rendered table in one route; the Keyman label
+  was not visible in any of the eleven dialogs. This keeps Keyman/entity
+  generation as an open runtime capability gap rather than treating a generic
+  R&R panel as Keyman evidence.
+- The run intentionally did not persist or print post titles, people,
+  organizations, source identifiers, credentials, tokens, or body text.
+
 These observations are runtime evidence, not a claim that the corresponding
 PRs are merged. The image-processing state and protected-corpus parsing cases
 remain open gaps.
