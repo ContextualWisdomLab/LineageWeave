@@ -980,10 +980,7 @@ class ContextualOrchestratorPostSummaryClient:
             context_hints=context_hints,
         )
         if details is None:
-            raise ValueError(
-                "summary semantic response did not match the required format: "
-                f"{details_body['choices'][0]['message']['content']!r}"
-            )
+            raise ValueError("summary semantic response did not match the required format")
         roles, projects, actions, five_w1h_evidence = details
         return PostSummary(
             korean_summary=korean_summary,
