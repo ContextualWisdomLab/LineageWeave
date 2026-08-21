@@ -35,6 +35,7 @@ from lineageweave.ontology_neighborhood import (
     HARD_MAXIMUM_NODES,
     NeighborhoodFact,
     OntologyGraphEdge,
+    OntologyNodeMetadata,
     OntologyNeighborhood,
     OntologyNeighborhoodError,
     assemble_ontology_neighborhood,
@@ -58,7 +59,7 @@ CUTOFF = datetime(2026, 1, 15, 12, 0, tzinfo=TZ)
 def _labels() -> dict[tuple[str, str], str]:
     return {
         (NODE_POST, POST_ID): "Demo public post",
-        (NODE_PERSON, PERSON_ID): "Priya Nair",
+        (NODE_PERSON, PERSON_ID): "Test Person",
         (NODE_CORPORATE_ENTITY, CORP_ID): "Demo Corp",
         (NODE_CORPORATE_ENTITY, GROUP_ID): "Demo Group",
         (NODE_PERSON, HIDDEN_PERSON): "Hidden Person",
@@ -115,6 +116,47 @@ def test_post_mentions_person_affiliated_with_corporate_entity_round_trips() -> 
     assert all(row["source_label"] and row["target_label"] for row in rows)
 
 
+def test_jsonld_keeps_colliding_identifiers_typed() -> None:
+    facts = [
+        fact_from_knowledge_graph_edge(
+            source_node_type_code=NODE_PERSON,
+            source_node_id=POST_ID,
+            target_node_type_code=NODE_POST,
+            target_node_id=POST_ID,
+            edge_type_code=EDGE_MENTION,
+            recorded_at=T0,
+            evidence_references=(POST_ID,),
+        ),
+        fact_from_knowledge_graph_edge(
+            source_node_type_code=NODE_PERSON,
+            source_node_id=POST_ID,
+            target_node_type_code=NODE_CORPORATE_ENTITY,
+            target_node_id=CORP_ID,
+            edge_type_code=EDGE_AFFILIATION,
+            recorded_at=T0,
+            evidence_references=(POST_ID,),
+        ),
+    ]
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        facts=facts,
+        labels={
+            (NODE_POST, POST_ID): "Test post",
+            (NODE_PERSON, POST_ID): "Test person",
+            (NODE_CORPORATE_ENTITY, CORP_ID): "Test organization",
+        },
+        maximum_depth=2,
+    )
+    edge_ids = {
+        item["@id"]: item
+        for item in neighborhood.jsonld_document()["@graph"]
+        if str(item["@id"]).startswith("lw:edge/")
+    }
+    mentions = next(item for key, item in edge_ids.items() if "/mentions:" in str(key))
+    assert mentions["lw:source"]["@id"] == f"lw:node/{NODE_POST}/{POST_ID}"
+
+
 def test_skos_broader_is_distinct_from_owl_class_subsumption() -> None:
     facts = _mention_affiliation() + [
         skos_broader_fact(
@@ -168,18 +210,29 @@ def test_inferred_edge_is_never_serialized_as_authoritative() -> None:
         recorded_at=T0,
         evidence_references=(POST_ID,),
     )
+    broader = skos_broader_fact(
+        narrower_entity_id=CORP_ID,
+        broader_entity_id=GROUP_ID,
+        recorded_at=T0,
+    )
     neighborhood = assemble_ontology_neighborhood(
         focus_node_type_code=NODE_PERSON,
         focus_node_id=PERSON_ID,
-        facts=[inferred],
+        facts=[inferred, broader],
         labels=_labels(),
     )
-    assert neighborhood.edges[0].truth_status_code == TRUTH_INFERRED
-    assert neighborhood.edges[0].truth_status_code != TRUTH_AUTHORITATIVE
+    inferred_edge = next(edge for edge in neighborhood.edges if edge.property_code == PROPERTY_AFFILIATED_WITH)
+    assert inferred_edge.truth_status_code == TRUTH_INFERRED
+    assert inferred_edge.truth_status_code != TRUTH_AUTHORITATIVE
+    corporate_node = next(node for node in neighborhood.nodes if node.node_id == CORP_ID)
+    assert corporate_node.truth_status_code != TRUTH_AUTHORITATIVE
+    assert corporate_node.evidence_count == 1
     document = neighborhood.jsonld_document()
+    node_item = next(item for item in document["@graph"] if item["@id"].endswith(f"/{CORP_ID}"))
+    assert node_item.get("lw:truthStatus") != TRUTH_AUTHORITATIVE
     statuses = [item["lw:truthStatus"] for item in document["@graph"] if "lw:truthStatus" in item]
     assert TRUTH_INFERRED in statuses
-    assert TRUTH_AUTHORITATIVE not in statuses
+    assert TRUTH_AUTHORITATIVE in statuses
 
 
 def test_hidden_endpoint_removes_edge_without_count_side_channel() -> None:
@@ -231,18 +284,18 @@ def test_cutoff_excludes_later_available_evidence() -> None:
     assert any(edge.property_code == PROPERTY_MENTIONS for edge in neighborhood.edges)
 
 
-def test_unknown_property_and_dangling_endpoint_fail_closed() -> None:
+def test_unknown_property_and_unlabeled_edge_fail_closed() -> None:
     with pytest.raises(OntologyNeighborhoodError) as unknown:
         canonicalize_property_code("edge_invented")
     assert unknown.value.code == "unknown_property"
-    with pytest.raises(OntologyNeighborhoodError) as dangling:
-        assemble_ontology_neighborhood(
-            focus_node_type_code=NODE_POST,
-            focus_node_id=POST_ID,
-            facts=_mention_affiliation(),
-            labels={(NODE_POST, POST_ID): "Demo public post", (NODE_PERSON, PERSON_ID): "Priya Nair"},
-        )
-    assert dangling.value.code == "dangling_endpoint"
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        facts=_mention_affiliation(),
+        labels={(NODE_POST, POST_ID): "Demo public post", (NODE_PERSON, PERSON_ID): "Test Person"},
+    )
+    assert [edge.property_code for edge in neighborhood.edges] == [PROPERTY_MENTIONS]
+    assert [node.node_id for node in neighborhood.nodes] == [POST_ID, PERSON_ID]
 
 
 def test_naive_timestamp_and_invalid_interval_fail_closed() -> None:
@@ -305,6 +358,45 @@ def test_excessive_depth_and_malformed_cursor_fail_closed() -> None:
             cursor="1",
         )
     assert cursor.value.code == "malformed_cursor"
+
+
+def test_invalid_focus_id_is_distinct_from_unknown_node_type() -> None:
+    for invalid_id in ("", " padded", "padded "):
+        with pytest.raises(OntologyNeighborhoodError) as raised:
+            assemble_ontology_neighborhood(
+                focus_node_type_code=NODE_POST,
+                focus_node_id=invalid_id,
+                facts=[],
+                labels=_labels(),
+            )
+        assert raised.value.code == "invalid_focus_id"
+
+
+def test_node_metadata_is_catalog_owned_and_missing_values_stay_absent() -> None:
+    metadata = {
+        (NODE_PERSON, PERSON_ID): OntologyNodeMetadata(
+            truth_status_code=TRUTH_OBSERVED,
+            recorded_at=T0,
+        )
+    }
+    with_metadata = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_PERSON,
+        focus_node_id=PERSON_ID,
+        facts=[_mention_affiliation()[1]],
+        labels=_labels(),
+        node_metadata=metadata,
+    )
+    person = next(node for node in with_metadata.nodes if node.node_id == PERSON_ID)
+    assert person.truth_status_code == TRUTH_OBSERVED
+    assert person.recorded_at == T0
+    without_metadata = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_PERSON,
+        focus_node_id=PERSON_ID,
+        facts=[],
+        labels=_labels(),
+    )
+    assert without_metadata.nodes[0].truth_status_code is None
+    assert without_metadata.nodes[0].recorded_at is None
 
 
 def test_truncation_is_flagged_without_omission_counts() -> None:
@@ -423,7 +515,7 @@ def test_unbounded_request_and_empty_focus_fail_closed() -> None:
             facts=[],
             labels=_labels(),
         )
-    assert empty.value.code == "unknown_node_type"
+    assert empty.value.code == "invalid_focus_id"
 
 
 def test_team_and_organization_mention_edges_round_trip() -> None:
@@ -576,7 +668,9 @@ def test_node_bound_truncation_drops_cursor_and_jsonld_rejects_dangling() -> Non
         edges=(
             OntologyGraphEdge(
                 edge_id="mentions:node_post:x:node_person:y",
+                source_node_type_code=NODE_POST,
                 source_node_id=POST_ID,
+                target_node_type_code=NODE_PERSON,
                 target_node_id=PERSON_ID,
                 property_code=PROPERTY_MENTIONS,
                 ontology_property_iri=str(LW.mentions),
@@ -626,15 +720,14 @@ def test_unlabeled_focus_fails_closed() -> None:
     assert unlabeled.value.code == "dangling_endpoint"
 
 
-def test_unlabeled_source_and_unknown_fact_node_type_fail_closed() -> None:
-    with pytest.raises(OntologyNeighborhoodError) as source:
-        assemble_ontology_neighborhood(
-            focus_node_type_code=NODE_CORPORATE_ENTITY,
-            focus_node_id=CORP_ID,
-            facts=[_mention_affiliation()[1]],
-            labels={(NODE_CORPORATE_ENTITY, CORP_ID): "Demo Corp"},
-        )
-    assert source.value.code == "dangling_endpoint"
+def test_unlabeled_source_is_skipped_and_unknown_fact_node_type_fails_closed() -> None:
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_CORPORATE_ENTITY,
+        focus_node_id=CORP_ID,
+        facts=[_mention_affiliation()[1]],
+        labels={(NODE_CORPORATE_ENTITY, CORP_ID): "Demo Corp"},
+    )
+    assert neighborhood.edges == ()
     with pytest.raises(OntologyNeighborhoodError) as node_type:
         assemble_ontology_neighborhood(
             focus_node_type_code=NODE_POST,

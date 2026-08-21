@@ -18,6 +18,10 @@ All notable changes to this project are documented here. Format follows
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
+- Ontology neighborhoods now enforce request bounds before database access,
+  apply node-level ABAC, omit unlabeled endpoints, preserve catalog-owned node
+  metadata, and keep typed endpoint IDs unambiguous. Workspace CSV and JSON-LD
+  exports now represent the same filtered graph.
 
 ## [2.12.6] - 2026-08-20
 

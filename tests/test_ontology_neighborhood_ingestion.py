@@ -10,6 +10,7 @@ import pytest
 from backend.app.ontology_neighborhood_ingestion import (
     _load_facts,
     _load_labels,
+    _load_node_metadata,
     _load_skos_facts,
     focus_catalog_exists,
     neighborhood_error_http_status,
@@ -29,6 +30,7 @@ from lineageweave.knowledge_graph import (
 from lineageweave.ontology_neighborhood import (
     NeighborhoodFact,
     OntologyNeighborhoodError,
+    OntologyNodeMetadata,
     PROPERTY_AFFILIATED_WITH,
     TRUTH_OBSERVED,
     assemble_ontology_neighborhood,
@@ -48,6 +50,7 @@ class ScriptedConn:
 
     def __init__(self, script: dict[str, object]) -> None:
         self.script = script
+        self.calls: list[tuple[str, tuple[object, ...]]] = []
 
     def _match(self, sql: str) -> object | None:
         compact = " ".join(sql.split())
@@ -58,6 +61,7 @@ class ScriptedConn:
         return hits[0][1]
 
     async def fetch(self, sql: str, *args: object) -> list[object]:
+        self.calls.append((sql, args))
         value = self._match(sql)
         if value is None:
             return []
@@ -66,6 +70,7 @@ class ScriptedConn:
         return [value]
 
     async def fetchrow(self, sql: str, *args: object) -> object | None:
+        self.calls.append((sql, args))
         value = self._match(sql)
         if isinstance(value, list):
             return value[0] if value else None
@@ -95,6 +100,7 @@ def test_neighborhood_error_http_status_is_fail_closed() -> None:
     assert neighborhood_error_http_status(OntologyNeighborhoodError("focus_not_visible", "x")) == 403
     assert neighborhood_error_http_status(OntologyNeighborhoodError("unknown_node_type", "x")) == 404
     assert neighborhood_error_http_status(OntologyNeighborhoodError("dangling_endpoint", "x")) == 404
+    assert neighborhood_error_http_status(OntologyNeighborhoodError("invalid_focus_id", "x")) == 422
     assert neighborhood_error_http_status(OntologyNeighborhoodError("unbounded_request", "x")) == 422
 
 
@@ -196,6 +202,7 @@ def test_load_facts_skos_and_labels() -> None:
         }
     )
     facts = asyncio.run(_load_facts(conn, [POST_ID]))
+    assert "with recursive" in conn.calls[0][0].lower()
     assert facts[0].property_code == "mentions"
     assert facts[0].source_node_id == POST_ID
     assert facts[1].evidence_references == ()
@@ -245,7 +252,7 @@ def test_load_facts_skos_and_labels() -> None:
         _load_labels(
             ScriptedConn(
                 {
-                    "from cataloged_person": [{"person_id": PERSON_ID, "person_name": "Priya Nair"}],
+                    "from cataloged_person": [{"person_id": PERSON_ID, "person_name": "Test Person"}],
                     "from source_post where post_id = any": [
                         {"post_id": POST_ID, "post_title": "Demo public post"}
                     ],
@@ -258,7 +265,7 @@ def test_load_facts_skos_and_labels() -> None:
             [mention, team_fact, affiliation],
         )
     )
-    assert labels[(NODE_PERSON, PERSON_ID)] == "Priya Nair"
+    assert labels[(NODE_PERSON, PERSON_ID)] == "Test Person"
     assert labels[(NODE_POST, POST_ID)] == "Demo public post"
     assert labels[(NODE_CORPORATE_ENTITY, CORP_ID)] == "Demo Corp"
     assert labels[(NODE_TEAM, TEAM_ID)] == "Demo Team"
@@ -266,15 +273,94 @@ def test_load_facts_skos_and_labels() -> None:
     assert empty_labels == {}
 
 
+def test_null_labels_are_not_returned_and_catalog_metadata_is_optional() -> None:
+    fact = fact_from_knowledge_graph_edge(
+        source_node_type_code=NODE_PERSON,
+        source_node_id=PERSON_ID,
+        target_node_type_code=NODE_POST,
+        target_node_id=POST_ID,
+        edge_type_code=EDGE_MENTION,
+        recorded_at=T0,
+    )
+    labels = asyncio.run(
+        _load_labels(
+            ScriptedConn(
+                {
+                    "from cataloged_person": [{"person_id": PERSON_ID, "person_name": None}],
+                    "from source_post where post_id": [{"post_id": POST_ID, "post_title": None}],
+                }
+            ),
+            [fact],
+        )
+    )
+    assert labels == {}
+    affiliation = fact_from_knowledge_graph_edge(
+        source_node_type_code=NODE_PERSON,
+        source_node_id=PERSON_ID,
+        target_node_type_code=NODE_CORPORATE_ENTITY,
+        target_node_id=CORP_ID,
+        edge_type_code=EDGE_AFFILIATION,
+        recorded_at=T0,
+    )
+    team = fact_from_knowledge_graph_edge(
+        source_node_type_code=NODE_TEAM,
+        source_node_id=TEAM_ID,
+        target_node_type_code=NODE_POST,
+        target_node_id=POST_ID,
+        edge_type_code="edge_mention_team",
+        recorded_at=T0,
+    )
+    assert asyncio.run(
+        _load_labels(
+            ScriptedConn(
+                {
+                    "from corporate_entity": [{"corporate_entity_id": CORP_ID, "entity_name": None}],
+                    "from cataloged_team": [{"team_id": TEAM_ID, "team_name": None}],
+                }
+            ),
+            [affiliation, team],
+        )
+    ) == {}
+    metadata = asyncio.run(
+        _load_node_metadata(
+            ScriptedConn(
+                {
+                    "select person_id, created_at": [{"person_id": PERSON_ID, "created_at": T0}],
+                    "select post_id, created_at": [{"post_id": POST_ID, "created_at": T0}],
+                }
+            ),
+            [fact],
+            focus_node_type_code=NODE_PERSON,
+            focus_node_id=PERSON_ID,
+        )
+    )
+    assert metadata[(NODE_PERSON, PERSON_ID)].recorded_at == T0
+    assert metadata[(NODE_PERSON, PERSON_ID)].truth_status_code is None
+
+
 def test_visible_ontology_neighborhood_round_trips_and_payload() -> None:
     conn = ScriptedConn(
         {
             "select 1 from source_post": {"ignored": 1},
-            "select post_id, visibility_code": {
-                "post_id": POST_ID,
-                "visibility_code": "visibility_public",
-                "corporate_entity_id": CORP_ID,
-            },
+                "select post_id, visibility_code": {
+                    "post_id": POST_ID,
+                    "visibility_code": "visibility_public",
+                    "corporate_entity_id": CORP_ID,
+                },
+                "select post.post_id, post.visibility_code": [
+                    {
+                        "post_id": POST_ID,
+                        "visibility_code": "visibility_public",
+                        "corporate_entity_id": CORP_ID,
+                    }
+                ],
+                "select distinct post.post_id": [
+                    {
+                        "post_id": POST_ID,
+                        "visibility_code": "visibility_public",
+                        "corporate_entity_id": CORP_ID,
+                    }
+                ],
             "knowledge_graph_edge": [
                 {
                     "source_node_type_code": NODE_PERSON,
@@ -295,7 +381,7 @@ def test_visible_ontology_neighborhood_round_trips_and_payload() -> None:
                     "evidence_ids": [POST_ID],
                 },
             ],
-            "select person_id, person_name": [{"person_id": PERSON_ID, "person_name": "Priya Nair"}],
+            "select person_id, person_name": [{"person_id": PERSON_ID, "person_name": "Test Person"}],
             "select post_id, post_title": [
                 {"post_id": POST_ID, "post_title": "Demo public post"}
             ],
@@ -320,6 +406,8 @@ def test_visible_ontology_neighborhood_round_trips_and_payload() -> None:
     properties = {edge["property_code"] for edge in payload["edges"]}
     assert "mentions" in properties
     assert "affiliatedWith" in properties
+    assert payload["edges"][0]["source_node_type_code"]
+    assert payload["edges"][0]["target_node_type_code"]
     assert payload["jsonld"]["@graph"]
     assert payload["exact_value_rows"]
     assert all(node["shape_code"] for node in payload["nodes"])
@@ -369,7 +457,7 @@ def test_visible_neighborhood_focus_variants_and_fail_closed() -> None:
                             "corporate_entity_id": CORP_ID,
                         }
                     ],
-                    "select person_name from cataloged_person": "Priya Nair",
+                    "select person_name from cataloged_person": "Test Person",
                 }
             ),
             focus_node_type_code=NODE_PERSON,
@@ -436,6 +524,42 @@ def test_visible_neighborhood_focus_variants_and_fail_closed() -> None:
     assert team_neighborhood.nodes[0].display_label == "Demo Team"
 
 
+def test_hidden_non_focus_node_is_removed_before_label_loading() -> None:
+    conn = ScriptedConn(
+        {
+            "select 1 from source_post": {"ignored": 1},
+            "select post_id, visibility_code": {
+                "post_id": POST_ID,
+                "visibility_code": "visibility_public",
+                "corporate_entity_id": CORP_ID,
+            },
+            "select post.post_id, post.visibility_code": [],
+            "knowledge_graph_edge": [
+                {
+                    "source_node_type_code": NODE_PERSON,
+                    "source_node_id": PERSON_ID,
+                    "target_node_type_code": NODE_POST,
+                    "target_node_id": POST_ID,
+                    "edge_type_code": EDGE_MENTION,
+                    "available_at": T0,
+                    "evidence_ids": [POST_ID],
+                }
+            ],
+            "select post_title from source_post": "Demo public post",
+        }
+    )
+    neighborhood = asyncio.run(
+        visible_ontology_neighborhood(
+            conn,
+            focus_node_type_code=NODE_POST,
+            focus_node_id=POST_ID,
+            can_see_post=lambda row: True,
+        )
+    )
+    assert neighborhood.edges == ()
+    assert [node.node_id for node in neighborhood.nodes] == [POST_ID]
+
+
 def test_focus_label_fetch_may_be_empty_when_facts_already_labeled() -> None:
     mention_row = {
         "source_node_type_code": NODE_PERSON,
@@ -466,7 +590,7 @@ def test_focus_label_fetch_may_be_empty_when_facts_already_labeled() -> None:
     }
     post_row = {"post_id": POST_ID, "visibility_code": "public", "corporate_entity_id": CORP_ID}
     shared_labels = {
-        "select person_id, person_name": [{"person_id": PERSON_ID, "person_name": "Priya Nair"}],
+        "select person_id, person_name": [{"person_id": PERSON_ID, "person_name": "Test Person"}],
         "select post_id, post_title": [{"post_id": POST_ID, "post_title": "Demo public post"}],
         "select corporate_entity_id, entity_name": [
             {"corporate_entity_id": CORP_ID, "entity_name": "Demo Corp"}
@@ -477,7 +601,8 @@ def test_focus_label_fetch_may_be_empty_when_facts_already_labeled() -> None:
         "select entity_name from corporate_entity": None,
         "select team_name from cataloged_team": None,
         "knowledge_graph_edge": [mention_row, affiliation_row, team_row],
-        "select post_id, visibility_code": post_row,
+            "select post_id, visibility_code": post_row,
+            "select post.post_id, post.visibility_code": [post_row],
         "combined_post_person_mention": [post_row],
         "person_affiliation affiliation": [post_row],
         "post_team_mention": [post_row],
@@ -553,8 +678,14 @@ def test_payload_serializes_optional_validity() -> None:
         focus_node_id=PERSON_ID,
         facts=[fact],
         labels={
-            (NODE_PERSON, PERSON_ID): "Priya Nair",
+            (NODE_PERSON, PERSON_ID): "Test Person",
             (NODE_CORPORATE_ENTITY, CORP_ID): "Demo Corp",
+        },
+        node_metadata={
+            (NODE_PERSON, PERSON_ID): OntologyNodeMetadata(
+                truth_status_code=TRUTH_OBSERVED,
+                recorded_at=T0,
+            )
         },
     )
     payload = neighborhood_to_payload(neighborhood)

@@ -698,17 +698,19 @@ export interface OntologyGraphNodePayload {
   node_type_code: string;
   ontology_class_iri: string;
   display_label: string;
-  truth_status_code: string;
+  truth_status_code: string | null;
   valid_from: string | null;
   valid_to: string | null;
-  recorded_at: string;
+  recorded_at: string | null;
   evidence_count: number;
   shape_code: string;
 }
 
 export interface OntologyGraphEdgePayload {
   edge_id: string;
+  source_node_type_code: string;
   source_node_id: string;
+  target_node_type_code: string;
   target_node_id: string;
   property_code: string;
   ontology_property_iri: string;
