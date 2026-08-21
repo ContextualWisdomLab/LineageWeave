@@ -574,3 +574,58 @@ runtime; they do not prove protected-main equivalence, complete-corpus
 correctness, authorization coverage, or release readiness. Re-run the same
 aggregate projection against the authorized deployment before treating it as
 buyer-facing evidence.
+
+## Buyer-reported gap mapping: 2026-08-21
+
+The following requirements are mapped from an authorized buyer report. The
+report's post URLs and record identifiers are intentionally omitted from this
+repository. Each row is a product contract to verify, not a claim that the
+listed active PR has shipped on protected `main`.
+
+| Buyer-observed gap | Contract to close | Relevant evidence | Current state and next proof |
+|---|---|---|---|
+| Numeric footnotes and `li`/`oi` nesting are misclassified | Preserve a footnote unit and list depth from HTML, Word, and OOXML source evidence; visual whitespace alone cannot create hierarchy | ADR 0102/0103; PR #302 head `1a317f24f3e5905a208fdbaf273acba0d458b272`; PR #319 | Branch-local tests cover the reported shapes; run the exact stack on protected `main` and browser-check the buyer popup |
+| Malformed tables lose row/column structure | Persist table rows as semantic units, keep surrounding prose, and render a valid accessible table | PR #302 head `1a317f24f3e5905a208fdbaf273acba0d458b272` | Local backend/frontend evidence exists; add a real-stack fixture with malformed closing tags and verify row order |
+| Indentation is wrong or inferred from authoring alignment | Rank explicit source widths, preserve unresolved evidence, and use orchestrator adjudication only when the source does not decide | ADR 0103; PR #319; PR #324 head `53c2b2553d19be6a0573294a2a9e9e693cdc4d2f` | Parser contracts are covered locally; verify mixed HTML/CSS/OOXML fixtures and persisted decision sources in PostgreSQL |
+| Two projects are mixed into one event stream | Bind event actions and project labels only to a same-post project mention; retain unbound status when evidence is ambiguous | ADR 0111/0112; PR #308 head `90b967d1ef9e4bad362b87c4c4ec3973f2a706fd` | Project binding is branch-local; acceptance still needs two-project source-backed data with aggregate, non-identifying counts |
+| Partner/customer/supplier roles and 5W1H are incomplete | Keep actor type, affiliation, role, direction, time, place, method, and reason as separate nullable evidence fields; never infer a relationship from a display label alone | ADR 0006-0010, 0026-0027, 0052, 0084; FR-06/FR-11 | Existing ontology contracts cover parts of the model; a corpus acceptance run must report bound, ambiguous, and absent fields separately |
+| Image tables are flattened and visual regions are shallow | Preserve OCR rows, parent-image placement, bounded region coordinates, region evidence, tags, and separate searchable embeddings; fallback must remain explicit | ADR 0077, 0104, 0110; PR #303 head `ba71bc16a1ec796dd6b8cd22236b9185589a4328`; PR #307; PR #309; PR #320 | The OCR colon-containing multiline loss was fixed and tested on #303; region decomposition remains unproven until authorized runtime evidence shows meaningful non-full-image boxes |
+| Markdown generated from image OCR is not rendered as a table | Parse only a bounded Markdown table shape, preserve prose, escape pipe characters, and expose header cells with accessible table semantics | PR #303 head `ba71bc16a1ec796dd6b8cd22236b9185589a4328` | Frontend tests/build pass locally; verify the same persisted OCR projection through the browser journey |
+| Acronyms, canonical names, translations, and external corroboration are disconnected | Persist normalized aliases and language links separately from entity identity; attach SearXNG corroboration as provenance with source, time, and status | ADR 0008, 0009, 0005; PR #316; PR #327 | Active branches are proposals; require exact-head checks and aggregate alias/corroboration outcomes before claiming search parity |
+| A PM mention lacks a person and affiliated organization | Represent person, team, organization, title, and affiliation as separate nodes/edges; preserve same-name ties and do not auto-create on ambiguity | ADR 0006-0010, 0026-0027; PR #258 | The schema boundary exists; buyer acceptance needs a bound/ambiguous/unavailable projection with no real names in repository artifacts |
+| Major events, R&R, requester/processor, and Git-like DAG are incomplete | Persist event evidence, requester/processor assignments, project scope, and directed parent/branch lineage with source navigation | ADR 0100, 0084; PR #287; PR #308; PR #330 | Action/project work is branch-local; verify the complete popup and Event Lineage graph in a browser against authorized aggregate evidence |
+| Who/what/how/payment details are missing | Add evidence-bearing fields for actor, action, method, payer, payee, amount/currency, and payment basis; keep unknown values null | ADR 0006, 0011, 0052, 0084 | This remains an open schema/product gap; write an ADR and migration only after an anonymized acceptance fixture defines the evidence contract |
+| Superscript/subscript mathematical units are not semantically explicit | Preserve MathML-compatible structure and a searchable normalized expression while retaining source presentation and unit semantics | ADR 0011, 0065, and the existing standards register | Open gap; first add a research-grounded ADR and parser contract for a synthetic `m³`/subscript fixture, then implement the smallest verified boundary |
+
+### Evidence and research boundary
+
+The implementation decisions above remain governed by the linked ADRs. Their
+APA 7th bibliographies and open-access research register are maintained in
+[`docs/lineage-bi-research-notes.md`](lineage-bi-research-notes.md) and the
+individual ADRs; this checkpoint adds no provider-quality claim beyond those
+sources. W3C PROV-O, W3C Organization, W3C Time, and the paper-grounded
+contextual-orchestrator policy remain the normative boundaries. A local test,
+active PR, queued Check, or private aggregate observation is never promoted to
+protected-main or release evidence.
+
+### Exact-head gate snapshot
+
+At this checkpoint the relevant active heads above have no independent formal
+approval and their required Checks are non-terminal or otherwise gated. The
+review loop remains: re-fetch the branch and dependency head, inspect current
+review findings, apply a minimal root-cause fix when needed, re-run local and
+hosted Checks, and merge only after normal protected-repository approval and
+post-merge SHA checks succeed. No self-approval, administrative bypass, force
+push, or synthetic runtime success is acceptable.
+
+| Audited PR | Current head at this loop | Local evidence | Protected gate |
+|---|---|---|---|
+| #303 image evidence | `ba71bc16a1ec796dd6b8cd22236b9185589a4328` | Backend `747 passed, 16 skipped`; frontend `139 passed`, lint, Vite, and Storybook passed | No approval; required Checks queued |
+| #323 TEPP/SearXNG boundary | `061e62130e3d6fc3e6bb3a5c0d941a0c7aac85cd` | Focused TEPP/relation/start tests `50 passed`; compileall and diff check passed | No approval; required Checks queued |
+| #325 gap baseline | `9dc8c7d143841a1e93459d0a5d35d6332184be0c` | Documentation diff check passed | No approval; required Checks queued |
+| #340 Naruon provider contract | `1e792a761f96e2184394a15f112cc947c7661c41` | Contract tests `11 passed`; module coverage `100%`; compileall and diff check passed | No approval; required Checks queued |
+| #344 metric script semantics | `922a38405e3f89779a0a70974a6ad1f8f2bb4793` | Backend focused `74 passed`; frontend focused `29 passed`, lint, and Vite build passed | Stacked on #303; no approval; required Checks queued |
+
+These four rows are exact-head observations from the current review loop. They
+do not establish that any behavior is present on protected `main`; re-fetch all
+heads and dependency bases before the next review or merge decision.
