@@ -99,6 +99,26 @@ def test_embedding_gap_is_not_complete_content() -> None:
     )
 
 
+def test_image_vision_gap_is_not_complete_content() -> None:
+    class FakeConnection:
+        async def fetchval(self, query: str, *_args: object) -> int:
+            assert "post_content_image" in query
+            assert "image.description_status_code <> 'described'" in query
+            assert "post_content_image_region" in query
+            return 0
+
+    assert (
+        asyncio.run(
+            post_content_is_complete(
+                FakeConnection(),
+                "00000000-0000-0000-0000-000000000001",
+                embedding_model_code="text-embedding-3-large",
+            )
+        )
+        is False
+    )
+
+
 def test_structure_gap_is_part_of_orchestrated_completeness() -> None:
     class FakeConnection:
         async def fetchval(self, query: str, *_args: object) -> int:

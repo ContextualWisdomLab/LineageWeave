@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import timedelta
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
 
 import asyncpg
@@ -102,6 +102,24 @@ async def post_content_is_complete(
                            )
                        )
                    )
+               and not exists(
+                   select 1
+                     from post_content_unit unit
+                     left join post_content_image image
+                       on image.post_content_unit_id = unit.post_content_unit_id
+                    where unit.post_id = $1
+                      and unit.unit_kind_code = 'image'
+                      and (
+                          image.post_content_image_id is null
+                          or image.description_status_code <> 'described'
+                          or exists(
+                              select 1
+                                from post_content_image_region region
+                               where region.post_content_image_id = image.post_content_image_id
+                                 and region.description_status_code <> 'described'
+                          )
+                      )
+               )
                and (
                        not $3::boolean
                        or not exists(
