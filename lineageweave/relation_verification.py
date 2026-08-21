@@ -68,10 +68,23 @@ _ORG_TOKEN_STOPWORDS = frozenset(
         "and",
     }
 )
+# Korean postpositions attach directly to nouns. They are allowed only when
+# the suffix itself ends at a non-word boundary; a longer Hangul word must not
+# turn a substring into corroborating evidence.
+_HANGUL_PARTICLE = r"(?:으로|에서|에게|한테|까지|부터|처럼|보다|마다|조차|마저|밖에|이랑|랑|은|는|이|가|을|를|에|와|과|로|의|도|만|뿐)"
 
 STATUS_PENDING = "verify_pending"
 STATUS_CORROBORATED = "verify_corroborated"
 STATUS_UNCORROBORATED = "verify_uncorroborated"
+
+
+def _contains_org_token(token: str, haystack: str) -> bool:
+    """Match one organization token without breaking Korean particle syntax."""
+    if re.search(r"[가-힣]", token):
+        pattern = rf"(?<!\w){re.escape(token)}(?:{_HANGUL_PARTICLE})?(?!\w)"
+    else:
+        pattern = rf"(?<!\w){re.escape(token)}(?!\w)"
+    return re.search(pattern, haystack) is not None
 
 
 @dataclass(frozen=True)
@@ -187,9 +200,6 @@ def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -
     # Substring matches turn ``Alpha`` into a false hit for ``alphabetical``.
     # Word boundaries keep host labels, punctuation, and Hangul names usable
     # without accepting a token embedded inside an unrelated word.
-    if any(
-        re.search(rf"(?<!\w){re.escape(token)}(?!\w)", haystack) is not None
-        for token in tokens
-    ):
+    if any(_contains_org_token(token, haystack) for token in tokens):
         return url
     return None

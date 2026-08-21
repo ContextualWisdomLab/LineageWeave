@@ -206,17 +206,33 @@ def test_missing_url_and_all_generic_tokens_are_not_evidence() -> None:
     )
 
 
-def test_hangul_org_name_token_is_corroboration() -> None:
+@pytest.mark.parametrize("particle", ["가", "에서", "으로"])
+def test_hangul_org_name_with_attached_particle_is_corroboration(particle: str) -> None:
     assert (
         corroborating_evidence_url(
             "한빛그리드",
             {
                 "url": "https://news.example/item",
                 "title": "News",
-                "content": "한빛그리드 announced a delivery window.",
+                "content": f"한빛그리드{particle} 발표했다.",
             },
         )
         == "https://news.example/item"
+    )
+
+
+def test_hangul_org_name_inside_a_larger_word_is_not_corroboration() -> None:
+    """A company token must not match an unrelated longer Hangul word."""
+    assert (
+        corroborating_evidence_url(
+            "한빛그리드",
+            {
+                "url": "https://news.example/item",
+                "title": "News",
+                "content": "한빛그리드산업의 발표.",
+            },
+        )
+        is None
     )
 
 
