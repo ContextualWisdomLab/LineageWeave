@@ -23,7 +23,12 @@ All notable changes to this project are documented here. Format follows
   pinned dependencies as CI.
 - The workspace Event Lineage global Search action now retries focus after the
   board finishes loading, so navigation from Customer master, Calendar, or
-  Ask Agent lands the cursor in the search box.
+  Ask Agent lands the cursor in the search box. The handled request is consumed,
+  so later board navigation does not steal focus, and Search closes an open
+  mobile drawer like every other destination change.
+- Mobile Event Lineage evidence cards now read their translated column labels
+  from the rendered cells instead of hardcoded English CSS, and the two drawer
+  close controls have distinct accessible names.
 - Event Lineage SVG edges now retain their instance-specific direction markers,
   so parent-to-child arrows remain visible when multiple lineage groups render.
 - All OpenAI-compatible chat-completion consumers now validate the shared
