@@ -153,6 +153,21 @@ def test_org_token_in_result_host_is_corroboration() -> None:
     )
 
 
+def test_short_name_token_inside_another_word_is_not_corroboration() -> None:
+    """A search snippet must contain the organization token as a word."""
+    assert (
+        corroborating_evidence_url(
+            "Alpha Corp",
+            {
+                "url": "https://unrelated.example/news",
+                "title": "Alphabetical index",
+                "content": "An alphabetical index of sample terms.",
+            },
+        )
+        is None
+    )
+
+
 def test_legal_suffix_alone_is_not_corroboration() -> None:
     """'Corp' is in almost every corporate host; it is not evidence."""
     assert (

@@ -184,6 +184,12 @@ def corroborating_evidence_url(organization_name: str, result: dict[str, Any]) -
     if not tokens:
         return None
     haystack = f"{host} {result.get('content') or ''}".lower()
-    if any(token in haystack for token in tokens):
+    # Substring matches turn ``Alpha`` into a false hit for ``alphabetical``.
+    # Word boundaries keep host labels, punctuation, and Hangul names usable
+    # without accepting a token embedded inside an unrelated word.
+    if any(
+        re.search(rf"(?<!\w){re.escape(token)}(?!\w)", haystack) is not None
+        for token in tokens
+    ):
         return url
     return None
