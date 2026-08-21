@@ -326,6 +326,45 @@ def test_visible_ontology_neighborhood_round_trips_and_payload() -> None:
     assert all(node["shape_code"] for node in payload["nodes"])
 
 
+def test_visible_neighborhood_drops_unlabeled_non_focus_edges() -> None:
+    neighborhood = asyncio.run(
+        visible_ontology_neighborhood(
+            ScriptedConn(
+                {
+                    "select 1 from source_post": {"ignored": 1},
+                    "select post_id, visibility_code": {
+                        "post_id": POST_ID,
+                        "visibility_code": "visibility_public",
+                        "corporate_entity_id": CORP_ID,
+                    },
+                    "knowledge_graph_edge": [
+                        {
+                            "source_node_type_code": NODE_PERSON,
+                            "source_node_id": PERSON_ID,
+                            "target_node_type_code": NODE_POST,
+                            "target_node_id": POST_ID,
+                            "edge_type_code": EDGE_MENTION,
+                            "available_at": T0,
+                            "evidence_ids": [POST_ID],
+                        }
+                    ],
+                    "select person_id, person_name": [],
+                    "select post_id, post_title": [
+                        {"post_id": POST_ID, "post_title": "Demo public post"}
+                    ],
+                    "select post_title from source_post": "Demo public post",
+                }
+            ),
+            focus_node_type_code=NODE_POST,
+            focus_node_id=POST_ID,
+            can_see_post=lambda row: True,
+        )
+    )
+    assert neighborhood.focus_node_id == POST_ID
+    assert neighborhood.edges == ()
+    assert neighborhood.limitation_code == "neighborhood_empty"
+
+
 def test_visible_neighborhood_focus_variants_and_fail_closed() -> None:
     with pytest.raises(OntologyNeighborhoodError) as unknown:
         asyncio.run(

@@ -345,6 +345,12 @@ async def visible_ontology_neighborhood(
         )
         if name:
             labels[(NODE_TEAM, focus_node_id)] = name
+    facts = [
+        fact
+        for fact in facts
+        if (fact.source_node_type_code, fact.source_node_id) in labels
+        and (fact.target_node_type_code, fact.target_node_id) in labels
+    ]
     return assemble_ontology_neighborhood(
         focus_node_type_code=focus_node_type_code,
         focus_node_id=focus_node_id,
