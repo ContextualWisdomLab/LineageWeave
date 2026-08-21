@@ -43,6 +43,13 @@ describe("i18n", () => {
     "Authorized cited posts are current. Open a cited post to read Event Lineage.",
     "Corroborated organization labels are current. Open a cited post to read Event Lineage.",
     "Verified organization label",
+    "No authorized source posts are available for this question.",
+    "Enable public verification to check eligible public claims.",
+    "Configure public search and contextual-orchestrator, then retry.",
+    "Inspect the internal cited posts; no public claim was eligible.",
+    "Inspect public evidence separately before any governed graph review.",
+    "Collect stronger authoritative evidence before accepting the claim.",
+    "Inspect the authorized cited posts and their evidence.",
   ] as const;
 
   it("supports the five product locales", () => {
