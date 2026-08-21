@@ -61,6 +61,22 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("labels HTML, Word, and OOXML footnotes in the fallback renderer", () => {
+    expect(
+      splitPostBody(
+        '<p>Body text</p>' +
+          '<ol class="footnotes"><li id="fn1"><p>HTML footnote body</p></li></ol>' +
+          '<p class="MsoFootnoteText"><a href="#_ftnref1"><sup>1</sup></a> Word footnote body</p>' +
+          "<w:footnote w:id='1'><w:p>OOXML footnote body</w:p></w:footnote>",
+      ),
+    ).toEqual([
+      { kind: "text", text: "Body text" },
+      { kind: "text", text: "HTML footnote body", role: "footnote" },
+      { kind: "text", text: "^1 Word footnote body", role: "footnote" },
+      { kind: "text", text: "OOXML footnote body", role: "footnote" },
+    ]);
+  });
+
   it("leaves a plain-text post unchanged so existing popups keep their wording", () => {
     expect(splitPostBody("The full body text.")).toEqual([
       { kind: "text", text: "The full body text." },
