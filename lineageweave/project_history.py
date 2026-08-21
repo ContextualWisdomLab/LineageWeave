@@ -300,6 +300,9 @@ def build_project_history_projection(
             {
                 "match_kind_code": match_kind,
                 "matched_value": matched_value,
+                "truth_status_code": (
+                    "observed" if match_kind.startswith("source_") else "inferred"
+                ),
                 "confidence": row.get("confidence"),
                 "ontology_iri": row.get("ontology_iri"),
                 "provenance": row.get("provenance"),
@@ -318,9 +321,8 @@ def build_project_history_projection(
                 "responsibility": row.get("responsibility"),
                 "actor_type_code": row.get("actor_type_code"),
                 "affiliated_organization_name": row.get("affiliated_organization_name"),
-                "cataloged_person_id": row.get("cataloged_person_id"),
-                "cataloged_team_id": row.get("cataloged_team_id"),
-                "cataloged_corporate_entity_id": row.get("cataloged_corporate_entity_id"),
+                "truth_status_code": "observed",
+                "provenance": "post_summary_role",
             }
         )
     for roles in roles_by_post.values():
@@ -345,16 +347,21 @@ def build_project_history_projection(
         projected_events.append(
             {
                 "event_id": event_id,
+                "source_post_id": event_id,
                 "event_title": str(row["post_title"]),
                 "occurred_at": _as_utc(row["created_at"]),
-                "event_code": classify_project_event(
+                "event_type_code": classify_project_event(
                     title=str(row["post_title"]),
                     source_stage_code=row.get("source_stage_code"),
                     source_detail_state_code=row.get("source_detail_state_code"),
                     voc_type_code=row.get("voc_type_code"),
                     is_focus=event_id == focus_event_id,
                 ),
-                "is_focus": event_id == focus_event_id,
+                "event_type_basis_code": "display_classification",
+                "time_basis_code": PROJECT_HISTORY_TIME_BASIS,
+                "voc_type_code": row.get("voc_type_code"),
+                "source_stage_code": row.get("source_stage_code"),
+                "source_detail_state_code": row.get("source_detail_state_code"),
                 "project_matches": sorted(
                     matches_by_post[event_id],
                     key=lambda item: (
@@ -377,9 +384,11 @@ def build_project_history_projection(
     }
     return {
         "contract_version": PROJECT_HISTORY_CONTRACT_VERSION,
-        "project_key": normalized_key,
-        "time_basis": PROJECT_HISTORY_TIME_BASIS,
+        "project_key": project_key.strip(),
+        "normalized_project_key": normalized_key,
+        "project_name": project_key.strip(),
         "focus_event_id": focus_event_id,
+        "time_basis_code": PROJECT_HISTORY_TIME_BASIS,
         "event_count": len(projected_events),
         "distinct_observed_actor_count": len(distinct_actor_keys),
         "truncated": truncated,

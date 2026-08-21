@@ -13,6 +13,7 @@ import pytest
 from backend.app.auth import CurrentAccount
 from backend.app import project_history_api as api
 from backend.app.project_history import ProjectHistoryNotFound
+from lineageweave.project_history import build_project_history_projection
 
 
 class _Acquire:
@@ -169,3 +170,49 @@ def test_endpoint_passes_exact_scope_cutoff_focus_and_limit(
     )
     assert captured["corporate_entity_ids"] == ["corp-1"]
     assert captured["limit"] == 32
+
+
+def test_real_projection_builder_matches_the_strict_http_contract() -> None:
+    """The repository builder must emit the exact response shape the endpoint validates."""
+
+    projection = build_project_history_projection(
+        project_key="P-100",
+        focus_event_id="post-1",
+        event_rows=[
+            {
+                "post_id": "post-1",
+                "post_title": "Contract awarded",
+                "created_at": datetime(2026, 1, 1, 9, tzinfo=timezone.utc),
+                "voc_type_code": "vom",
+                "source_stage_code": "award",
+                "source_detail_state_code": None,
+            }
+        ],
+        match_rows=[
+            {
+                "post_id": "post-1",
+                "match_kind_code": "source_project_code",
+                "matched_value": "P-100",
+                "confidence": None,
+                "ontology_iri": None,
+                "provenance": "source_post.source_project_code",
+            }
+        ],
+        role_rows=[
+            {
+                "post_id": "post-1",
+                "actor_name": "Demo Analyst",
+                "responsibility": "Own the event",
+                "actor_type_code": "prov_person",
+                "affiliated_organization_name": "Demo Organization",
+                "cataloged_person_id": "person-1",
+                "cataloged_team_id": None,
+                "cataloged_corporate_entity_id": None,
+            }
+        ],
+        edge_rows=[],
+    )
+
+    validated = api.ProjectHistoryProjection.model_validate(projection)
+    assert validated.normalized_project_key == "p-100"
+    assert validated.events[0].source_post_id == "post-1"
