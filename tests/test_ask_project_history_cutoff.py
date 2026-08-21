@@ -56,7 +56,9 @@ def test_persist_post_chat_writes_the_retrieval_cutoff_not_a_later_read_clock() 
         for query, args in conn.executions
         if "insert into post_chat_result" in query
     )
+    assert "computed_at" in insert[0]
     assert "knowledge_cutoff" in insert[0]
+    assert insert[1][-2] >= CUTOFF
     assert insert[1][-1] == CUTOFF
     assert result["_knowledge_cutoff"] == CUTOFF
 
