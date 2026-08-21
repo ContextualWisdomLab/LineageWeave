@@ -1,4 +1,4 @@
--- ADR 0092: PostgreSQL is the durable post-content job ledger; Valkey is only
+-- ADR 0098: PostgreSQL is the durable post-content job ledger; Valkey is only
 -- the wake-up transport. The body never enters the queue payload.
 create table if not exists post_content_ingestion_job (
     post_id uuid primary key references source_post(post_id) on delete cascade,

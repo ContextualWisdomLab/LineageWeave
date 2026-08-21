@@ -170,7 +170,7 @@ def test_global_sources_keep_hyphenated_source_codes_atomic() -> None:
     assert candidate_terms == ["p41-4182-202405-0015"]
 
 
-def test_global_sources_keep_unicode_search_terms_for_localized_buyers() -> None:
+def test_global_sources_keep_unicode_search_terms_for_localized_readers() -> None:
     calls: list[tuple[str, tuple[object, ...]]] = []
 
     class FakeConnection:

@@ -537,7 +537,17 @@ export interface CurrentUser {
   display_name: string;
   permission_codes: string[];
   corporate_entities?: CorporateEntityRef[];
+  account_affiliations?: AccountAffiliation[];
   preferred_locale?: string | null;
+}
+
+export interface AccountAffiliation {
+  corporate_entity_id: string;
+  corporate_entity_code: string;
+  entity_name: string;
+  process_unit_id: string | null;
+  process_unit_code: string | null;
+  process_unit_name: string | null;
 }
 
 export function fetchMe(accessToken: string): Promise<CurrentUser> {

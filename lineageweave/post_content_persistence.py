@@ -250,7 +250,7 @@ async def persist_post_content(
                     """
                     insert into post_content_unit_structure
                         (post_content_unit_id, indent_level, decision_source_code,
-                         confidence, evidence_text)
+                         structure_confidence, evidence_text)
                     values ($1, $2, $3, $4, $5)
                     """,
                     unit_id,
@@ -267,7 +267,7 @@ async def persist_post_content(
                 """
                 insert into post_content_image
                     (post_content_unit_id, mime_type, content_sha256, byte_length,
-                     description_status_code, extracted_text, caption)
+                     description_status_code, extracted_text, image_caption)
                 values ($1, $2, $3, $4, $5, $6, $7)
                 returning post_content_image_id
                 """,
@@ -291,7 +291,7 @@ async def persist_post_content(
                     insert into post_content_image_region
                         (post_content_image_id, region_index, x_ratio, y_ratio,
                          width_ratio, height_ratio, description_status_code,
-                         extracted_text, caption)
+                         extracted_text, image_caption)
                     values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                     returning post_content_image_region_id
                     """,
