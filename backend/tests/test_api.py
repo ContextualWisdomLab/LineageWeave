@@ -3315,6 +3315,79 @@ def test_live_chat_provider_error_does_not_leak_raw_error(
     assert "raw-provider-secret" not in response.text
 
 
+def test_keymen_provider_error_does_not_leak_raw_error(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Keymen provider failures become a stable 503 at the API boundary."""
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FailingKeymanClient:
+        available = True
+
+        def extract(self, post_title: str, post_body: str) -> object:
+            raise RuntimeError("raw-keyman-provider-secret")
+
+    monkeypatch.setattr("backend.app.main._keyman_extraction_client", lambda: _FailingKeymanClient())
+
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/extract-keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert response.status_code == 503
+    assert "raw-keyman-provider-secret" not in response.text
+
+
+def test_evaluation_provider_error_does_not_leak_raw_error(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Evaluation provider failures become a stable 503 at the API boundary."""
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FailingEvaluationClient:
+        available = True
+
+        def evaluate(self, post_title: str, post_body: str) -> object:
+            raise RuntimeError("raw-evaluation-provider-secret")
+
+    monkeypatch.setattr(
+        "backend.app.main._post_evaluation_client", lambda: _FailingEvaluationClient()
+    )
+
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/evaluate",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert response.status_code == 503
+    assert "raw-evaluation-provider-secret" not in response.text
+
+
+def test_commitment_provider_error_does_not_leak_raw_error(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Commitment provider failures become a stable 503 at the API boundary."""
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FailingCommitmentClient:
+        available = True
+
+        def extract(self, post_title: str, post_body: str, reference_date: str) -> object:
+            raise RuntimeError("raw-commitment-provider-secret")
+
+    monkeypatch.setattr(
+        "backend.app.main._commitment_extraction_client", lambda: _FailingCommitmentClient()
+    )
+
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/derive-commitment",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert response.status_code == 503
+    assert "raw-commitment-provider-secret" not in response.text
+
+
 def test_evaluate_is_unavailable_without_orchestrator(client, demo_analyst_token, seeded_db) -> None:
     os.environ.pop("ORCHESTRATOR_BASE_URL", None)
     os.environ.pop("ORCHESTRATOR_API_KEY", None)
