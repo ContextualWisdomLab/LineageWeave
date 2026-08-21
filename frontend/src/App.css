@@ -117,6 +117,38 @@
   color: var(--color-text-heading);
 }
 
+.mobile-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-drawer-backdrop);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.mobile-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(20rem, 88vw);
+  padding: 1rem;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow-y: auto;
+  z-index: var(--z-drawer);
+}
+
+.mobile-drawer-close {
+  display: block;
+  margin-left: auto;
+  min-width: var(--size-control-min);
+  min-height: var(--size-control-min);
+  border: 0;
+  background: transparent;
+  color: var(--text-h);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
 /* App Footer (§2.2.3 & §2.2.4) */
 .app-footer {
   margin-top: auto;
@@ -487,6 +519,65 @@
   margin: 0 0 1.25rem;
 }
 
+.lineage-dag-header {
+  margin-bottom: 1rem;
+}
+
+.lineage-dag-header h4 {
+  margin: 0.15rem 0 0.35rem;
+}
+
+.lineage-dag-description {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.lineage-dag-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.lineage-dag-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.lineage-dag-legend-mark {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface-muted);
+}
+
+.lineage-dag-legend-root {
+  border-color: var(--color-accent-info);
+}
+
+.lineage-dag-legend-branch {
+  border-color: var(--color-accent-orange);
+  background: var(--badge-actor-organization-bg);
+}
+
+.lineage-dag-legend-current {
+  border-color: var(--text-h);
+  border-width: 3px;
+}
+
+.lineage-dag-viewport {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
 .lineage-dag-group figcaption {
   font-size: 0.85rem;
   opacity: 0.8;
@@ -494,15 +585,15 @@
 }
 
 .lineage-dag svg {
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
+  display: block;
+  min-width: 100%;
 }
 
 .lineage-dag-edge {
   stroke: var(--border);
   stroke-width: 1.5;
   fill: none;
+  marker-end: url("#lineage-dag-arrow");
 }
 
 .lineage-dag-node {
@@ -541,6 +632,38 @@
 .lineage-dag-node[aria-current="true"] circle {
   stroke-width: 3;
   stroke: var(--text-h);
+}
+
+.lineage-dag-inference-note {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 3px solid var(--color-primary);
+  background: var(--color-accent-background);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.lineage-dag-inference-note strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  color: var(--text-h);
+}
+
+.lineage-dag-evidence {
+  margin-top: 1rem;
+}
+
+.lineage-dag-evidence h4 {
+  margin-bottom: 0.5rem;
+}
+
+.lineage-dag-evidence table {
+  width: 100%;
+}
+
+.lineage-dag-evidence td:last-child {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
 .keyman-list {
@@ -834,6 +957,89 @@
 
   .mobile-drawer-trigger {
     display: block;
+  }
+
+  .mobile-drawer .buyer-gnb {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    height: auto;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    gap: 0.25rem;
+    border-bottom: 0;
+  }
+
+  .mobile-drawer .buyer-gnb-item {
+    justify-content: flex-start;
+    width: 100%;
+    min-height: 3rem;
+    height: auto;
+    padding: 0.75rem;
+    border-radius: var(--radius-control);
+  }
+
+  .mobile-drawer .buyer-gnb-item[aria-current="page"]::after {
+    display: none;
+  }
+
+  .mobile-drawer .buyer-gnb-item[aria-current="page"] {
+    background: var(--color-accent-background);
+  }
+
+  .mobile-drawer .buyer-gnb-tools {
+    margin: 0.75rem 0 0;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .lineage-dag-viewport {
+    padding-bottom: 0.25rem;
+  }
+
+  .lineage-dag svg {
+    min-width: 42rem;
+  }
+
+  .lineage-dag-evidence td {
+    display: block;
+    text-align: left !important;
+  }
+
+  .lineage-dag-evidence tr {
+    display: block;
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+  }
+
+  .lineage-dag-evidence th {
+    display: none;
+  }
+
+  .lineage-dag-evidence td {
+    border: 0;
+  }
+
+  .lineage-dag-evidence td::before {
+    display: block;
+    margin-bottom: 0.15rem;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .lineage-dag-evidence td:nth-child(1)::before {
+    content: "Graph relation";
+  }
+
+  .lineage-dag-evidence td:nth-child(2)::before {
+    content: "When";
+  }
+
+  .lineage-dag-evidence td:nth-child(3)::before {
+    content: "Evidence (fused_score)";
   }
 
   .app-header {

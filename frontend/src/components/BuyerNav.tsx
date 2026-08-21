@@ -7,6 +7,8 @@ export type BuyerNavProps = {
   destination: BuyerDestination;
   onChange: (destination: BuyerDestination) => void;
   tools?: ReactNode;
+  drawer?: boolean;
+  id?: string;
 };
 
 const ITEMS: BuyerDestination[] = ["board", "customers", "calendar", "ask", "admin"];
@@ -19,9 +21,13 @@ const LABELS: Record<BuyerDestination, string> = {
   admin: "Admin",
 };
 
-export function BuyerNav({ destination, onChange, tools }: BuyerNavProps) {
+export function BuyerNav({ destination, onChange, tools, drawer = false, id }: BuyerNavProps) {
   return (
-    <nav className="buyer-gnb" aria-label={t("Buyer navigation")}>
+    <nav
+      id={id}
+      className={`buyer-gnb${drawer ? " buyer-gnb-drawer" : ""}`}
+      aria-label={t("Buyer navigation")}
+    >
       {ITEMS.map((id) => (
         <button
           key={id}
