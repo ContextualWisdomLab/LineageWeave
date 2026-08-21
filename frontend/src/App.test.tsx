@@ -127,6 +127,9 @@ describe("App, authenticated", () => {
       const url = String(input);
       const method = init?.method ?? "GET";
 
+      if (url.endsWith("/api/settings")) {
+        return Promise.resolve(jsonResponse({ brandName: "LineageWeave" }));
+      }
       if (url.endsWith("/api/me/preferences") && method === "PATCH") {
         const body = JSON.parse(String(init?.body));
         return Promise.resolve(jsonResponse({ preferred_locale: body.preferred_locale }));
@@ -1169,6 +1172,7 @@ describe("App, authenticated", () => {
               ? { summary_status: "stale", summary_contract_version: 4 }
               : {}),
             key_events: ["첫 번째 이벤트"],
+            key_event_details: [{ event_text: "첫 번째 이벤트", project_name: "Sample project" }],
             roles_and_responsibilities: [
               {
                 actor_name: "Ada West",
@@ -1207,6 +1211,15 @@ describe("App, authenticated", () => {
                 confidence: 0.9,
                 ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Project",
                 extraction_method: "contextual_orchestrator_semantic",
+              },
+            ],
+            major_event_actions: [
+              {
+                action_text: "출하 일정 확인",
+                requester_actor_name: "Ada West",
+                processor_actor_name: "Priya Nair",
+                evidence_text: "source body",
+                project_name: "Sample project",
               },
             ],
           }),
@@ -1963,6 +1976,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("contextual_orchestrator_semantic")).not.toBeInTheDocument();
     expect(screen.queryByText("https://contextualwisdomlab.github.io/lineageweave/ontology#Project")).not.toBeInTheDocument();
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
+    expect(screen.getByText("Sample project: 출하 일정 확인")).toBeInTheDocument();
     expect(screen.getByText(/우리 측 후속/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "R&R Keyman: Ada West" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "R&R person: Priya Nair" })).toBeInTheDocument();
