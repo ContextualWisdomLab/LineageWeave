@@ -2622,7 +2622,7 @@ async def chat_about_post(
                 {"lineageweave.operation_code": "post_chat"},
             ):
                 answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
+    except (HttpClientError, KeyError, OSError, ValueError) as exc:
         record_server_failure("post_chat", exc, outcome="provider_unavailable")
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -2700,7 +2700,7 @@ async def ask_agent(
             {"lineageweave.operation_code": "global_ask"},
         ):
             answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
+    except (HttpClientError, KeyError, OSError, ValueError) as exc:
         record_server_failure("global_ask", exc, outcome="provider_unavailable")
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,

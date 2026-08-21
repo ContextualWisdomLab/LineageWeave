@@ -254,7 +254,7 @@ def test_unexpected_worker_error_is_classified_as_internal(monkeypatch, caplog) 
         return _row(RUNNING, 1)
 
     async def persist(*_args, **_kwargs):
-        raise AttributeError("internal worker detail")
+        raise TypeError("internal worker detail")
 
     monkeypatch.setattr(post_content_worker, "_claim_job", claim)
     monkeypatch.setattr(post_content_worker, "persist_post_content", persist)
