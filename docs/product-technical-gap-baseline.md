@@ -51,7 +51,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T18:50:17Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T18:56:50Z` from the
 GitHub API. Checkpoint types are `merge_commit`, `head`, and
 `closed_without_merge`; the latter records a closed PR's exact `head` when
 `merged_at` and `merge_commit_sha` are both absent. A merged commit is
@@ -93,7 +93,7 @@ Open PRs at the same observation:
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `320be1af542343a8991b3da172bfd747d98e3c01` (the exact current
+- PR #368: `head` `468258dba1abc420b56c43acc0acab7e29606022` (the exact current
   documentation checkpoint), base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, base `main`
@@ -102,9 +102,9 @@ Open PRs at the same observation:
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #384: `head` `a32bbda48e1ed873362e6e7bd6e47766d9998bb5`, base
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
-- PR #387: `head` `7a0a5f649c766d967d73265ae7833aa7c070f542`, base `main`
+- PR #387: `head` `16f2b13caad10f4d999293d623405aefadeda52e`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #391: `head` `5a8dbc6229ec700da73e4d1f9e51147e186e44ab`, base PR #387
+- PR #391: `head` `e099a916cec6f06b86f335d31c89e01aae248dfd`, base PR #387
   (`7a0a5f649c766d967d73265ae7833aa7c070f542`).
 - PR #388, #389, and #390 are closed after the stack merges recorded above;
   they are not open PRs at this checkpoint.
@@ -120,7 +120,7 @@ PR #258. PR #386 is closed as a duplicate of the safer #373 login fix. PR #382's
 stack merge is not a main merge; #373 must still pass its own current-head
 gates.
 
-Queue refresh at `2026-08-21T18:50:17Z`: PRs #258, #355, and #373 had
+Queue refresh at `2026-08-21T18:56:50Z`: PRs #258, #355, and #373 had
 terminal successful Checks but no independent `APPROVED` review, so none was
 authorized to merge. PRs #349, #368, #383, #384, #387, and #391 had no failed
 Checks observed at their exact heads but retained non-terminal Checks and no
@@ -329,25 +329,23 @@ Observed at `2026-08-21T18:27:23Z` on PR #390's exact head
   base with merge commit `b020378710a0e405974538d80f7ef68ae3badd7c`; this is
   not a protected-main merge.
 
-Observed at `2026-08-22T03:50:18Z` on PR #391's exact head
-`5a8dbc6229ec700da73e4d1f9e51147e186e44ab`:
+Observed at `2026-08-21T18:56:50Z` on PR #391's exact head
+`e099a916cec6f06b86f335d31c89e01aae248dfd`:
 
-- The shared fallback parser now carries nested ordered/unordered-list depth
-  into semantic text-unit indentation and keeps sibling items at their parent
-  level. After a normal merge of the latest #387 parent, local verification
-  passed 156 frontend tests, lint, production build,
-  and `git diff --check`. Hosted Checks were one pass and three pending at the
-  observation; no independent approval or merge was claimed.
+- Nested-list indentation now survives a block child such as
+  `<li><p>Child</p></li>`; the regression is covered by the wrapped-child
+  fixture. Local verification passed 157 frontend tests, lint, production
+  build, Storybook build, and `git diff --check`. Two hosted Checks remained
+  pending and no independent approval or merge was claimed.
 
-Observed at `2026-08-22T03:44:00Z` on PR #387's exact head
-`7a0a5f649c766d967d73265ae7833aa7c070f542`:
+Observed at `2026-08-21T18:56:50Z` on PR #387's exact head
+`16f2b13caad10f4d999293d623405aefadeda52e`:
 
-- The remote branch advanced after the earlier local 770-test checkpoint.
-  Current hosted checks were still queued (15 pending, no failure observed) and
-  no independent approval was present; the earlier local result is not claimed
-  as evidence for this newer head.
+- The remote branch advanced again after the interaction and migration-test
+  repairs. No failed Checks were observed; 14 hosted Checks remained pending
+  and no independent approval was present.
 
-Observed at `2026-08-21T18:50:17Z` on PR #383's current head
+Observed at `2026-08-21T18:56:50Z` on PR #383's current head
 `6af3adc3e08fd1b0b11182d8cf3714b847c71ea8`:
 
 - `TypeError` from post-chat/global-agent and post-content-worker paths remains
