@@ -142,6 +142,39 @@ def test_chunk_by_dom_does_not_label_body_footnote_citation_as_footnote() -> Non
     ]
 
 
+def test_chunk_by_dom_labels_numbered_html_footnote_ids() -> None:
+    """Common Markdown HTML footnote ids identify the definition block."""
+    html = '<ol><li id="fn1"><a href="#fnref1">1</a> Definition.</li></ol>'
+
+    chunks = chunk_by_dom(html)
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("footnote", "1 Definition."),
+    ]
+
+
+def test_chunk_by_dom_keeps_numbered_footnote_backlinks_in_body_paragraphs() -> None:
+    html = (
+        '<p>Body cites <a href="#fn1" id="fnref1">[1]</a>.</p>'
+        '<p id="fn1">Definition.</p>'
+    )
+
+    chunks = chunk_by_dom(html)
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Body cites [1]."),
+        ("footnote", "Definition."),
+    ]
+
+
+def test_chunk_by_dom_preserves_empty_table_cells_as_columns() -> None:
+    html = "<table><tr><td></td><td>Company</td><td></td><td>Result</td></tr></table>"
+
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.text for chunk in chunks] == ["| Company |  | Result"]
+
+
 def test_chunk_by_dom_labels_ooxml_footnote_containers() -> None:
     chunks = chunk_by_dom(
         "<w:footnote w:id='1'><w:p>OOXML footnote body</w:p></w:footnote>"

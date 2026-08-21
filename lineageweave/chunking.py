@@ -102,18 +102,33 @@ _LIST_ITEM_START = re.compile(
     r"^(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)"
 )
 _FOOTNOTE_START = re.compile(r"^[*†‡](?=\S)")
+_FOOTNOTE_IDENTIFIER = re.compile(
+    r"^(?:fn|ftn|en|endnote)[-_]?\d+$",
+    re.IGNORECASE,
+)
+
+
+def _is_footnote_identifier(value: str) -> bool:
+    """Recognize a numbered footnote definition identifier, not a backlink."""
+    normalized = value.strip().lstrip("#_")
+    return bool(_FOOTNOTE_IDENTIFIER.fullmatch(normalized))
 
 
 def _is_footnote_block(tag: str, attrs: list[tuple[str, str | None]]) -> bool:
     """Recognize semantic footnote markup emitted by HTML and Word exports."""
     if tag.casefold().rsplit(":", 1)[-1] in {"footnote", "endnote"}:
         return True
-    values = " ".join(
+    values = [
         value or ""
         for name, value in attrs
         if name.casefold() in {"class", "id", "role", "data-role"}
-    ).casefold()
-    return "footnote" in values or "endnote" in values
+    ]
+    joined = " ".join(values).casefold()
+    return (
+        "footnote" in joined
+        or "endnote" in joined
+        or any(_is_footnote_identifier(value) for value in values)
+    )
 
 
 def _is_footnote_reference(attrs: list[tuple[str, str | None]]) -> bool:
@@ -125,8 +140,9 @@ def _is_footnote_reference(attrs: list[tuple[str, str | None]]) -> bool:
     }
     href = values.get("href", "")
     anchor_values = (values.get("id", ""), values.get("name", ""))
-    return "ftnref" in href and any(
-        "ftn" in value and "ftnref" not in value for value in anchor_values
+    href_is_reference = bool(re.search(r"(?:fn|ftn)ref[-_]?\d+", href))
+    return href_is_reference and any(
+        _is_footnote_identifier(value) for value in anchor_values
     )
 
 
@@ -364,6 +380,7 @@ class _BlockTextExtractor(HTMLParser):
         super().__init__()
         self._stack: list[tuple[str, list[str], str | None, int, bool]] = []
         self._unscoped_buffer: list[str] = []
+        self._table_cell_counts: dict[int, int] = {}
         # Each entry is ("text", str, tag_name, style) or
         # ("image", (mime_type, bytes), "", None) -- a single sequence in
         # true document order, so an image's index among its siblings
@@ -397,8 +414,13 @@ class _BlockTextExtractor(HTMLParser):
             self._stack[-1] = (tag_name, buffer, style, indent_width, True)
             return
         if tag in _TABLE_CELL_TAGS:
-            if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS and self._stack[-1][1]:
-                self._stack[-1][1].append(" | ")
+            if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS:
+                row_buffer = self._stack[-1][1]
+                row_key = id(row_buffer)
+                cell_count = self._table_cell_counts.get(row_key, 0)
+                if cell_count:
+                    row_buffer.append(" | ")
+                self._table_cell_counts[row_key] = cell_count + 1
             return
         # A rich-text editor commonly wraps a table cell in a nested <p> or
         # <div>. Keep that content in the open row; otherwise the nested block
@@ -442,6 +464,7 @@ class _BlockTextExtractor(HTMLParser):
     ) -> None:
         """Emit one block buffer, including a block closed only at EOF."""
         raw_text = "".join(buffer)
+        self._table_cell_counts.pop(id(buffer), None)
         for raw_unit, source_indent in _split_dom_units(raw_text):
             text = normalize_semantic_text(raw_unit)
             if text:
