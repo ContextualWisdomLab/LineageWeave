@@ -13,9 +13,10 @@ Audit anchor: the exact source state carried by this documentation commit at
 acceptance.
 
 Current implementation source/test exact head observed before this
-documentation update: `d38ef6f69b4f67a75781b8465714ecd00f12cf3c`, the
-fully-contained popup keyboard-navigation repair on top of the customer-scope
-facets and closed-details focus fixes, with PR #366 based on
+documentation update: `a5aa0daa`, the
+fully-contained popup keyboard-navigation repair including nested
+`aria-hidden` descendants, on top of the customer-scope facets and
+closed-details focus fixes, with PR #366 based on
 `8bed77e7e7b91b633bb92d3a82d0187c387206af`. The documentation commit creates
 the next exact head; protected checks must rerun for the resulting PR head.
 
@@ -46,7 +47,7 @@ the next exact head; protected checks must rerun for the resulting PR head.
   baseline at `8bed77e7e7b91b633bb92d3a82d0187c387206af`. This ADR/docs
   follow-up requires its own protected checks and independent approval;
   neither is claimed yet. PR #366 remains open at code head
-  `d38ef6f69b4f67a75781b8465714ecd00f12cf3c`; its hosted Tests run is queued,
+  `a5aa0daa`; its hosted Tests run is queued,
   Devin Review is pending, and no independent approval or merge is claimed.
   The prior PR #347 merged at
   `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`.
@@ -90,11 +91,12 @@ the next exact head; protected checks must rerun for the resulting PR head.
   synthetic forged-token test key-length warning; no test failure was hidden.
 
 - **#366 latest accessibility repair:** code head
-  `d38ef6f69b4f67a75781b8465714ecd00f12cf3c` always intercepts popup Tab events
-  and advances only through the filtered visible focus set, so native browser
-  tabbing cannot land on an `aria-hidden` control or a control inside closed
-  `details`. The synthetic `aria-hidden` tab-stop regression passed, and the
-  frontend whole gate at this code head passed: 177 tests in 19 files, lint,
+  `a5aa0daa` always intercepts popup Tab events and advances only through the
+  filtered visible focus set, so native browser tabbing cannot land on an
+  `aria-hidden` control, a nested descendant of an `aria-hidden` container, or
+  a control inside closed `details`. The synthetic direct and nested
+  `aria-hidden` tab-stop regressions passed, and the frontend whole gate at
+  the preceding code head passed: 177 tests in 19 files, lint,
   build, and Storybook. The existing Storybook bundle-size advisory is not a
   failure. Customer-scope filtering intentionally re-roots an authorized child
   when its parent is absent; the backend observed-hierarchy contract preserves
