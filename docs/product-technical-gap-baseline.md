@@ -140,6 +140,15 @@ were pending at observation, so approval and merge remain unauthorized.
 The subsequent full backend run on the same restacked checkout passed
 (`862 passed, 17 skipped`, 14 deprecation/security warnings only).
 
+## 4.4 Parent restack follow-up
+
+Observed at `2026-08-21T20:29:48Z` from the GitHub REST API. Parent PR #392
+advanced normally to `943f011a6b9e7ff74ce9e8353ecf8d9c83f6b14f`; the change is
+documentation-only. PR #397 was restacked again and pushed normally at
+`367f76258b8437c65fb031ccbf3e352785327c06`, based on that parent. Its hosted
+Checks restarted and remain pending, with no independent approval; merge is
+not authorized.
+
 ## 2. LLM Extraction & Knowledge Graph Gaps
 - **Multiple Project Extraction**: A structured `key_events.project_name` implementation exists, but separate-event behavior still requires protected authorized-corpus evidence.
 - **5W1H Missing**: A structured 5W1H evidence-item implementation exists, but completeness and provenance still require protected authorized-corpus evidence.
