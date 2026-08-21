@@ -1,4 +1,4 @@
-# ADR 0101 — Enrichment timeout does not block source-grounded summary
+# ADR 0126 — Enrichment timeout does not block source-grounded summary
 
 **Decision status:** Accepted on active PR
 **Date:** 2026-08-20
@@ -29,10 +29,10 @@ source summary is not discarded.
 ## Rationale
 
 The existing ADR 0010/0026 boundary distinguishes a catalog miss or tie from
-a verified identity. A transient orchestrator failure is neither a miss nor a
-negative identity claim. Keeping it unbound preserves evidence while avoiding
-the fail-closed screen behavior that prevents a buyer from reading the source
-post.
+a verified identity. A transient orchestrator failure is neither a miss nor
+a negative identity claim. Keeping it unbound preserves evidence while
+avoiding the fail-closed screen behavior that prevents a buyer from reading
+the source post.
 
 ## Consequences
 

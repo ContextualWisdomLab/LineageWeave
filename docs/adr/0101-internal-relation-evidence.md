@@ -1,4 +1,4 @@
-# ADR 0100: Preserve authorized internal evidence for relation verification
+# ADR 0101: Preserve authorized internal evidence for relation verification
 
 - Status: Accepted
 - Date: 2026-08-18

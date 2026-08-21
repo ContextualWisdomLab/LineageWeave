@@ -23,10 +23,7 @@ from __future__ import annotations
 
 import math
 import re
-from concurrent.futures import ThreadPoolExecutor
-from contextvars import Context, copy_context
 from dataclasses import dataclass, field
-from itertools import repeat
 
 from .chunking import Chunk, chunk_by_dom, normalize_semantic_text
 from .image_content import (
@@ -179,29 +176,6 @@ def _describe_image_region(
     return ImageRegionResult(region_index, region, "described", description)
 
 
-def _describe_image_region_in_context(
-    context: Context,
-    region_index: int,
-    image_bytes: bytes,
-    mime_type: str,
-    region: ImageRegion,
-    vision_client: ImageContentClient,
-    session_id: str | None,
-    metadata: dict[str, str] | None,
-) -> ImageRegionResult:
-    """Run a region task with the post's metadata context attached."""
-    return context.run(
-        _describe_image_region,
-        region_index,
-        image_bytes,
-        mime_type,
-        region,
-        vision_client,
-        session_id,
-        metadata,
-    )
-
-
 def _describe_image_chunk(
     chunk: Chunk,
     vision_client: ImageContentClient,
@@ -252,21 +226,18 @@ def _describe_image_chunk(
         # ponytail: serialize per-post VISION calls; nested image/region pools
         # overwhelmed the gateway and turned valid region evidence into failures.
         # Reintroduce bounded concurrency only after provider capacity is measured.
-        if regions:
-            with ThreadPoolExecutor(max_workers=min(8, len(regions))) as executor:
-                region_results.extend(
-                    executor.map(
-                        _describe_image_region_in_context,
-                        (copy_context() for _ in regions),
-                        range(len(regions)),
-                        repeat(chunk.image_data),
-                        repeat(chunk.label),
-                        regions,
-                        repeat(vision_client),
-                        repeat(session_id),
-                        repeat(metadata),
-                    )
-                )
+        region_results.extend(
+            _describe_image_region(
+                region_index,
+                chunk.image_data,
+                chunk.label,
+                region,
+                vision_client,
+                session_id,
+                metadata,
+            )
+            for region_index, region in enumerate(regions)
+        )
         successful_regions = [
             item.description for item in region_results if item.description is not None
         ]
@@ -317,23 +288,6 @@ def _describe_image_chunk(
     return result, description, _image_placeholder(description)
 
 
-def _describe_image_chunk_in_context(
-    context: Context,
-    chunk: Chunk,
-    vision_client: ImageContentClient,
-    session_id: str | None,
-    metadata: dict[str, str] | None,
-) -> tuple[ImageContentResult, ImageDescription | None, str]:
-    """Run one parallel vision task with the caller's request context."""
-    return context.run(
-        _describe_image_chunk,
-        chunk,
-        vision_client,
-        session_id,
-        metadata,
-    )
-
-
 def normalize_post_body(
     body: str,
     vision_client: ImageContentClient | None = None,
@@ -366,21 +320,15 @@ def normalize_post_body(
     image_outcomes: dict[int, tuple[ImageContentResult, ImageDescription | None, str]] = {}
     image_chunks = [chunk for chunk in chunks if chunk.unit_type == "image"]
     if image_chunks and vision_client.available:
-        # ponytail: cap independent provider calls at eight; raise only with measured throughput need.
-        with ThreadPoolExecutor(max_workers=min(8, len(image_chunks))) as executor:
-            image_outcomes.update(
-                zip(
-                    (chunk.index for chunk in image_chunks),
-                    executor.map(
-                        _describe_image_chunk_in_context,
-                        (copy_context() for _ in image_chunks),
-                        image_chunks,
-                        repeat(vision_client),
-                        repeat(session_id),
-                        repeat(metadata),
-                    ),
-                    strict=True,
-                )
+        # ponytail: serialize all provider calls for one post; nested image and
+        # region pools previously overwhelmed the gateway. Reintroduce bounded
+        # concurrency only after provider capacity is measured.
+        for chunk in image_chunks:
+            image_outcomes[chunk.index] = _describe_image_chunk(
+                chunk,
+                vision_client,
+                session_id,
+                metadata,
             )
 
     for chunk in chunks:
