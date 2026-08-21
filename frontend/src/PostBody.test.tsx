@@ -133,6 +133,76 @@ describe("PostBody", () => {
     expect(screen.queryAllByText("No.")).toHaveLength(1);
   });
 
+  it("keeps source indentation after a persisted table unit", () => {
+    render(
+      <PostBody
+        body="<table><tr><td>No.</td><td>Company</td></tr></table><p>&nbsp;&nbsp;Nested item</p>"
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "dom",
+            unit_label: "tr",
+            unit_text: "No. | Company",
+            indent_level: 0,
+            indent_source_code: "explicit",
+            indent_confidence: 1,
+            indent_evidence: "table row",
+          },
+          {
+            unit_index: 1,
+            unit_kind_code: "dom",
+            unit_text: "Nested item",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "",
+          },
+          {
+            unit_index: 2,
+            unit_kind_code: "dom",
+            unit_text: "Unavailable source unit",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Nested item")).toHaveAttribute("data-indent-level", "1");
+    expect(screen.getByText("Unavailable source unit")).toHaveAttribute("data-indent-level", "0");
+  });
+
+  it("keeps adjacent source tables as separate buyer-facing tables", () => {
+    render(
+      <PostBody
+        body={
+          "<table><tr><td>A</td><td>B</td></tr><tr><td>C</td><td>D</td></tr></table>" +
+          "<table><tr><td>E</td><td>F</td></tr><tr><td>G</td><td>H</td></tr></table>"
+        }
+        structureUnits={[
+          ["A", "B"],
+          ["C", "D"],
+          ["E", "F"],
+          ["G", "H"],
+        ].map(([left, right], unit_index) => ({
+          unit_index,
+          unit_kind_code: "dom",
+          unit_label: "tr",
+          unit_text: `${left} | ${right}`,
+          indent_level: 0,
+          indent_source_code: "explicit" as const,
+          indent_confidence: 1,
+          indent_evidence: "table row",
+        }))}
+      />,
+    );
+
+    expect(screen.getAllByRole("table")).toHaveLength(2);
+    expect(screen.getAllByRole("row")).toHaveLength(4);
+  });
+
   it("marks persisted footnotes as footnote evidence", () => {
     render(
       <PostBody

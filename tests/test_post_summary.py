@@ -340,6 +340,49 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
     assert summary.project_mentions[0].canonical_name == "hvdc-pilot"
 
 
+def test_summary_request_accepts_provider_response_without_key_events(monkeypatch) -> None:
+    """A provider may have no event evidence and omit the optional marker."""
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        prompt = payload["messages"][0]["content"]
+        content = (
+            "ROLES:\nNONE\nPROJECTS:\nNONE"
+            if "ROLES:" in prompt
+            else "본문 근거 요약"
+        )
+        return {"choices": [{"message": {"content": content}}]}
+
+    monkeypatch.setattr("lineageweave.post_summary.post_json", fake_post_json)
+    summary = ContextualOrchestratorPostSummaryClient(
+        "https://orchestrator.test", "token"
+    ).summarize("Synthetic title", "Synthetic body")
+
+    assert summary.korean_summary == "본문 근거 요약"
+    assert summary.key_events == ()
+    assert summary.key_event_details == ()
+
+
+def test_summary_parser_error_does_not_expose_provider_response(monkeypatch) -> None:
+    provider_secret = "provider-secret-and-hidden-prompt"
+    calls = 0
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        nonlocal calls
+        calls += 1
+        content = "본문 근거 요약\nKEY EVENTS: 확인" if calls == 1 else provider_secret
+        return {"choices": [{"message": {"content": content}}]}
+
+    monkeypatch.setattr("lineageweave.post_summary.post_json", fake_post_json)
+
+    with pytest.raises(ValueError) as error:
+        ContextualOrchestratorPostSummaryClient(
+            "https://orchestrator.test", "token"
+        ).summarize("Synthetic title", "Synthetic body")
+
+    assert str(error.value) == "summary semantic response did not match the required format"
+    assert provider_secret not in str(error.value)
+
+
 def test_title_match_can_supply_explicit_project_evidence_but_not_a_guess() -> None:
     details = _parse_plain_summary_details(
         "ROLES:\nNONE\nPROJECTS:\nNorthridge transformer bid | NONE | 1",

@@ -21,6 +21,7 @@ new claim of its own, it only combines the two.
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import dataclass, field
 
@@ -66,7 +67,7 @@ class ImageContentResult:
     mime_type: str
     status_code: str
     description: ImageDescription | None = None
-    regions: tuple["ImageRegionResult", ...] = field(default_factory=tuple)
+    regions: tuple[ImageRegionResult, ...] = field(default_factory=tuple)
 
 
 @dataclass(frozen=True)
@@ -118,7 +119,7 @@ def _image_placeholder(description: ImageDescription) -> str:
     caption = description.caption or "no caption available"
     ocr = description.extracted_text.strip()
     if ocr:
-        return f"[image: {caption} | text: {ocr}]"
+        return f"[image: {caption}]\n\n{ocr}\n"
     return f"[image: {caption}]"
 
 
@@ -128,6 +129,24 @@ def _merge_region_descriptions(descriptions: list[ImageDescription]) -> ImageDes
     captions = " ".join(item.caption.strip() for item in descriptions if item.caption.strip())
     tags = tuple(dict.fromkeys(tag for item in descriptions for tag in item.tags))
     return ImageDescription(extracted_text=extracted_text, caption=captions, tags=tags)
+
+
+def _is_bounded_region(region: ImageRegion) -> bool:
+    """Accept only finite, positive regions wholly inside the image."""
+    if not isinstance(region, ImageRegion):
+        return False
+    values = (region.x, region.y, region.width, region.height)
+    if not all(isinstance(value, (int, float)) for value in values):
+        return False
+    return (
+        all(math.isfinite(value) for value in values)
+        and 0.0 <= region.x <= 1.0
+        and 0.0 <= region.y <= 1.0
+        and 0.0 < region.width <= 1.0
+        and 0.0 < region.height <= 1.0
+        and region.x + region.width <= 1.0
+        and region.y + region.height <= 1.0
+    )
 
 
 def _describe_image_region(
@@ -165,9 +184,19 @@ def _describe_image_chunk(
             regions = locator(chunk.image_data, chunk.label) if callable(locator) else ()
         except Exception:  # noqa: BLE001 - locator failure falls back to whole-image evidence.
             regions = ()
-        if not regions_cover_image(regions):
-            # A partial or missing locator result is not a region. Preserve parent-image
-            # evidence below without inventing full-image coordinates.
+        try:
+            regions = tuple(
+                region
+                for region in (regions or ())
+                if _is_bounded_region(region)
+            )
+        except Exception:  # noqa: BLE001 - malformed locator output falls back safely.
+            regions = ()
+        full_image_region = len(regions) == 1 and regions[0] == ImageRegion(0.0, 0.0, 1.0, 1.0)
+        partial_regions = bool(regions) and not full_image_region and not regions_cover_image(regions)
+        if not regions or full_image_region:
+            # Missing or full-image locator output is not a decomposed region.
+            # Preserve parent-image evidence below without inventing coordinates.
             regions = ()
         # ponytail: serialize per-post VISION calls; nested image/region pools
         # overwhelmed the gateway and turned valid region evidence into failures.
@@ -186,11 +215,22 @@ def _describe_image_chunk(
         successful_regions = [
             item.description for item in region_results if item.description is not None
         ]
-        description = (
-            _merge_region_descriptions(successful_regions)
-            if successful_regions
-            else vision_client.describe(chunk.image_data, chunk.label)
-        )
+        if partial_regions:
+            # Keep valid salient panels instead of replacing them with a full-image
+            # crop, then ask once more for the uncovered parent image so text outside
+            # those panels remains searchable and its original location is preserved.
+            try:
+                description = vision_client.describe(chunk.image_data, chunk.label)
+            except Exception:
+                if not successful_regions:
+                    raise
+                description = _merge_region_descriptions(successful_regions)
+        else:
+            description = (
+                _merge_region_descriptions(successful_regions)
+                if successful_regions
+                else vision_client.describe(chunk.image_data, chunk.label)
+            )
     except Exception:  # noqa: BLE001 - a provider failure must not drop the whole post.
         return ImageContentResult(chunk.index, chunk.label, "failed"), None, "[image: content unavailable]"
 
