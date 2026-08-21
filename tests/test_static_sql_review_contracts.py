@@ -80,3 +80,9 @@ def test_summary_backfill_normalizes_writing_state_codes() -> None:
     """Backfill excludes transport-padded writing rows like the API gate."""
     source = (ROOT / "scripts/backfill_post_summaries.py").read_text(encoding="utf-8")
     assert "coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'" in source
+
+
+def test_content_backfill_normalizes_writing_state_codes() -> None:
+    """Content recovery excludes padded and lower-case writing rows."""
+    source = (ROOT / "scripts/queue_post_content_backfill.py").read_text(encoding="utf-8")
+    assert "coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'" in source

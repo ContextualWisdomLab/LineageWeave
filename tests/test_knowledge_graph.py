@@ -119,6 +119,19 @@ def test_post_knowledge_graph_relation_limit_boundary(
         async def fetchval(self, query: str, *args: object) -> str | None:
             return None
 
+        async def fetchrow(self, query: str, *args: object) -> dict[str, object | None]:
+            assert "from source_post" in query
+            return {
+                "source_customer_code": None,
+                "source_order_pool_code": None,
+                "source_sales_order_code": None,
+                "source_sales_order_item_number": None,
+                "source_stage_code": None,
+                "source_detail_state_code": None,
+                "source_inspection_point_code": None,
+                "source_deleted_flag": None,
+            }
+
     conn = Connection()
     result = asyncio.run(post_knowledge_graph(conn, post_id, relation_limit=1))
 

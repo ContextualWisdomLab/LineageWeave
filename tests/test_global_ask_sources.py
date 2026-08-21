@@ -310,7 +310,11 @@ def test_global_sources_expand_top_match_through_event_lineage() -> None:
     )
 
     assert [source.post_id for source in sources] == ["event-2", "event-1"]
-    assert sources[0].evidence_facts == ()
+    assert any(
+        "commercial_context=no_sales_identifier_candidate" in fact
+        for fact in sources[0].evidence_facts
+    )
+    assert any("source_lifecycle_vector=∅/∅/∅/∅" in fact for fact in sources[0].evidence_facts)
     assert any(
         "Event Lineage: reconstructed timeline neighbor of post_id=event-2" in fact
         for fact in sources[1].evidence_facts
@@ -357,4 +361,7 @@ def test_global_sources_do_not_leak_lineage_anchor_id_when_anchor_is_invisible()
     )
 
     assert [source.post_id for source in sources] == ["visible-neighbor"]
-    assert sources[0].evidence_facts == ()
+    assert any(
+        "commercial_context=no_sales_identifier_candidate" in fact
+        for fact in sources[0].evidence_facts
+    )
