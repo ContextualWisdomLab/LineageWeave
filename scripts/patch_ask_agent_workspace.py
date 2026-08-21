@@ -52,14 +52,6 @@ if "function AskAgentPanel({" in app:
     raise SystemExit("Legacy inline AskAgentPanel remains")
 app_path.write_text(app, encoding="utf-8")
 
-component_path = FRONTEND / "src/components/AskAgentWorkspace.tsx"
-component = component_path.read_text(encoding="utf-8")
-component = component.replace(
-    't("Authorized posts in this board.")',
-    't("Questions use authorized posts and their evidence.")',
-)
-component_path.write_text(component, encoding="utf-8")
-
 package_path = FRONTEND / "package.json"
 package = package_path.read_text(encoding="utf-8")
 if '"version": "2.17.0"' in package:
