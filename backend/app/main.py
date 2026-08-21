@@ -2926,8 +2926,12 @@ async def ask_agent(
         "cited_post_ids": cited_ids,
         "cited_posts": cited_post_citations(llm_sources, cited_ids),
         "cited_post_evidence": cited_post_evidence(llm_sources, cited_ids),
-        "source_post_ids": [source.post_id for source in llm_sources],
-        "timeline": global_ask_timeline(llm_sources),
+        # The timeline is the complete authorized retrieval boundary. A
+        # source without a retained cutoff body is still a real timeline
+        # event and must remain navigable, even though it is excluded from
+        # the LLM evidence bundle.
+        "source_post_ids": [source.post_id for source in sources],
+        "timeline": global_ask_timeline(sources),
         "knowledge_cutoff": cutoff_text,
         "grounding_status": grounding_status,
         "limitations": limitations,

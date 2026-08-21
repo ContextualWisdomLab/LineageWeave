@@ -16,6 +16,7 @@ from lineageweave.post_chat import (
     historical_body_limitations,
 )
 from backend.app.post_chat_ingestion import gather_global_chat_sources
+from backend.app.main import global_ask_timeline
 from backend.app.source_post_revision import parse_as_of_clock
 
 _CUTOFF = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
@@ -303,6 +304,10 @@ def test_missing_historical_body_is_explicit_and_never_live() -> None:
         {"post_id": "body-lost", "limitation_code": "historical_body_unavailable"}
     ]
     assert ask_grounding_status(sources, _CUTOFF) == PARTIALLY_CUTOFF_GROUNDED
+    assert [event["post_id"] for event in global_ask_timeline(sources)] == [
+        "anchor-post",
+        "body-lost",
+    ]
 
 
 def test_two_cutoffs_select_revision_specific_citations() -> None:
