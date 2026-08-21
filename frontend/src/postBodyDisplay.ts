@@ -90,6 +90,7 @@ function indentMarker(width: number): string {
 }
 
 function stripHtmlTags(text: string): string {
+  text = text.replace(/<sup[^>]*>(.*?)<\/sup>/gi, "^$1");
   const listIndentWidths: number[] = [];
   let listIndent = 0;
   const withBoundaries = text
