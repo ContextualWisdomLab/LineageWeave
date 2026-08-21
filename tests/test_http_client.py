@@ -9,6 +9,7 @@ import pytest
 
 from lineageweave.http_client import (
     HttpClientError,
+    chat_completion_content,
     get_json,
     get_json_list,
     post_form,
@@ -169,6 +170,23 @@ def test_get_json_rejects_invalid_response_byte_limit() -> None:
             timeout=1.0,
             maximum_response_bytes=0,
         )
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        None,
+        {"choices": []},
+        {"choices": [None]},
+        {"choices": [{}]},
+        {"choices": [{"message": []}]},
+        {"choices": [{"message": {"content": ""}}]},
+    ],
+)
+def test_chat_completion_content_rejects_malformed_envelopes_with_value_error(body) -> None:
+    """Malformed provider data must enter the callers' fail-closed 503 path."""
+    with pytest.raises(ValueError, match="provider response"):
+        chat_completion_content(body)
 
 
 def test_post_form_posts_urlencoded_fields() -> None:

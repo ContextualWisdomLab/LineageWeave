@@ -26,6 +26,7 @@ PUBLIC_BASE_URL = "https://contextualwisdomlab.github.io/LineageWeave"
 DOCUMENTATION_URL = f"{PUBLIC_BASE_URL}/ontology"
 SOURCE_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg.ttl")
 PROV_PROFILE_RELATIVE_PATH = Path("docs/ontology/prov-o-support-profile.ttl")
+BUILD_MARKER = ".lineageweave-ontology-site"
 TERM_TYPES: tuple[tuple[str, URIRef], ...] = (
     ("Classes", OWL.Class),
     ("Object properties", OWL.ObjectProperty),
@@ -390,6 +391,8 @@ def _write_manifest(
 def build_site(repository_root: Path, output_dir: Path) -> None:
     """Build the complete static ontology site under ``output_dir``."""
     root = repository_root.resolve()
+    if output_dir.is_symlink():
+        raise ValueError("refusing to build through a symlink output path")
     output = output_dir.resolve()
     source = root / SOURCE_RELATIVE_PATH
     prov_profile = root / PROV_PROFILE_RELATIVE_PATH
@@ -399,10 +402,15 @@ def build_site(repository_root: Path, output_dir: Path) -> None:
         raise FileNotFoundError(f"PROV-O support profile is missing: {prov_profile}")
 
     if output.exists():
+        if not output.is_dir() or not (output / BUILD_MARKER).is_file():
+            raise ValueError(
+                f"refusing to replace unmarked output directory: {output}"
+            )
         shutil.rmtree(output)
     ontology_dir = output / "ontology"
     ontology_dir.mkdir(parents=True)
 
+    (output / BUILD_MARKER).write_text("LineageWeave ontology site\n", encoding="utf-8")
     graph = Graph().parse(source, format="turtle")
     source_sha256 = _sha256(source)
     ontology_html, term_count = _render_ontology_page(graph, source_sha256)

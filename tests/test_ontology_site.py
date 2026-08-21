@@ -7,6 +7,7 @@ import importlib.util
 import json
 from pathlib import Path
 
+import pytest
 from rdflib import Graph
 from rdflib.compare import isomorphic
 
@@ -177,8 +178,22 @@ def test_builder_fails_closed_for_missing_sources_and_replaces_output(tmp_path: 
         raise AssertionError("missing PROV-O profile was accepted")
 
     (ontology_dir / "prov-o-support-profile.ttl").write_text("", encoding="utf-8")
+    (output / builder.BUILD_MARKER).write_text("LineageWeave ontology site\n", encoding="utf-8")
     builder.build_site(repository, output)
     assert not (output / "stale.txt").exists()
+
+
+def test_builder_refuses_to_delete_an_unmarked_output(tmp_path: Path) -> None:
+    """A caller-owned directory must survive an unsafe build request."""
+    builder = _load_builder()
+    output = tmp_path / "site"
+    output.mkdir()
+    (output / "caller-owned.txt").write_text("keep", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="unmarked output directory"):
+        builder.build_site(ROOT, output)
+
+    assert (output / "caller-owned.txt").read_text(encoding="utf-8") == "keep"
 
 
 def test_cli_main_and_module_entrypoint(tmp_path: Path, monkeypatch) -> None:
