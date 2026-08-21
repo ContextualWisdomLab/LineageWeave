@@ -72,6 +72,13 @@ const graph: LineageGraph = {
 describe("LineageDag channel evidence", () => {
   it("discloses exact inferred values without hover-only interaction", async () => {
     render(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
+    const disclosure = screen.getByText(/fused score 0.700000/).closest("details");
+    const edgeButton = screen.getByRole("button", {
+      name: "Open connection evidence: Kickoff recap to Pricing follow-up",
+    });
+    expect(disclosure).not.toHaveAttribute("open");
+    await userEvent.click(edgeButton);
+    expect(disclosure).toHaveAttribute("open");
     expect(
       screen.getByText("Each connection is inferred from independent signals. It is not a causal claim."),
     ).toBeInTheDocument();
@@ -81,10 +88,11 @@ describe("LineageDag channel evidence", () => {
     expect(screen.getByText("0.200000")).toBeInTheDocument();
     expect(screen.getByText(/fused score 0.700000/)).toBeInTheDocument();
     expect(screen.queryByText(/causal relationship/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open connection evidence: Kickoff recap to Pricing follow-up" })).toHaveAttribute(
-      "tabindex",
-      "0",
-    );
+    expect(edgeButton).toHaveAttribute("tabindex", "0");
+    expect(edgeButton).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(screen.getByText(/fused score 0.700000/));
+    expect(disclosure).not.toHaveAttribute("open");
+    expect(edgeButton).toHaveAttribute("aria-pressed", "false");
   });
 
   it("does not claim a missing LLM channel when no evidence was recorded", () => {
