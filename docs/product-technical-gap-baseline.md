@@ -49,7 +49,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T16:03:49Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T16:10:57Z` from the
 GitHub API. Checkpoint types are `merge_commit`, `head`, and
 `closed_without_merge`; the latter records a closed PR's exact `head` when
 `merged_at` and `merge_commit_sha` are both absent. A merged commit is
@@ -76,16 +76,19 @@ Open PRs at the same observation:
 - PR #349: `head` `df125094b93454cc61679a16b4b1c122c3f355ae`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #355: `head` `b606c2553f877fa85968d90dc46598ce16897fbf`, base `main`
-  (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #368: `head` `f6dd05809352057bf4cb6f27db76bf097ddbf58a`, base `main`
+  (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`). The overlap with PR #379's
+  merge commit is intentional: #355 is the open successor from the same
+  feature branch, now pointing at that merged branch tip, and is not itself
+  merged.
+- PR #368: `head` `0056e9c3406dc554489ab7d040f19779fa2daacd`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `6b84bea10881e2f82fb676d5b01cf56f7d8f4adb`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #382: `head` `5eb707f02209a46d4d046480cec960ac40f59375`, base
   `ci/publish-ontology-pages-clean` (`6b84bea10881e2f82fb676d5b01cf56f7d8f4adb`).
-- PR #383: `head` `745113829469a7c09e03fe783ea942ca884f2ea6`, base `main`
+- PR #383: `head` `46e4d6d69c1964f0cbeb761281071db7861e31dd`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #384: `head` `86e2f4dbadaf0c31d93fd38dfc1684ab7f19ef01`, base
+- PR #384: `head` `140f91ee246b4723a70da004258f4a14fcca4b5b`, base
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
 
 The open queue remains subject to exact-current-head Checks, formal independent
