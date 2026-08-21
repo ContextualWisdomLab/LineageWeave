@@ -18,12 +18,14 @@ chain of its own top match.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from typing import Any, Callable, Iterable
+from typing import Any
 from uuid import uuid4
 
 import asyncpg
 
+from lineageweave.claim_verification import GlobalAskSourceDocument
 from lineageweave.image_content import ImageContentClient, NullImageContentClient
 from lineageweave.knowledge_graph import (
     NODE_POST,
@@ -33,6 +35,7 @@ from lineageweave.knowledge_graph import (
     random_walk_with_restart,
     select_related_nodes,
 )
+from lineageweave.ontology import ontology_annotations
 from lineageweave.post_chat import (
     CANONICAL_CHAT_QUESTION,
     CANONICAL_COMMITMENT_QUESTION,
@@ -42,14 +45,12 @@ from lineageweave.post_chat import (
 )
 from lineageweave.post_content_normalization import normalize_post_body
 
-from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
 from .global_ask_retrieval import (
     global_ask_query_terms,
     public_external_claim_facts,
     semantic_candidate_post_ids,
 )
-from lineageweave.claim_verification import GlobalAskSourceDocument
-from lineageweave.ontology import ontology_annotations
+from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
 
 
 @dataclass(frozen=True)
@@ -687,7 +688,7 @@ async def gather_global_chat_sources(
           from source_post
          where (visibility_code = 'public'
             or corporate_entity_id::text = any($1::text[]))
-           and (not $4::boolean or post_id = any($2::uuid[]))
+           and ($4::boolean or post_id = any($2::uuid[]))
          order by array_position($2::uuid[], post_id) nulls last,
                   created_at desc, post_id desc
          limit $3
@@ -695,7 +696,7 @@ async def gather_global_chat_sources(
         list(authorized_corporate_entity_ids),
         candidate_ids,
         limit,
-        bool(question),
+        not bool(question),
     )
     candidate_id_set = frozenset(candidate_ids)
     visible_rows = [
