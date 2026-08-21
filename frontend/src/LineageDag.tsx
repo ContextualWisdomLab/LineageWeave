@@ -45,7 +45,13 @@ export function LineageDag({
   const instanceId = useId().replaceAll(":", "");
   const groups = layoutLineageDag(graph);
   if (graph.nodes.length === 0) {
-    return <p className="lineage-empty">{t("No reconstructed lineage yet. Rebuild after seeding posts.")}</p>;
+    return (
+      <p className="lineage-empty">
+        {lineageDagText(
+          "No reconstructed lineage yet. Add eligible source records, then rebuild Event Lineage.",
+        )}
+      </p>
+    );
   }
 
   return (
