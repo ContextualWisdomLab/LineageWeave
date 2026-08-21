@@ -52,6 +52,11 @@ def _parser() -> argparse.ArgumentParser:
         metavar="POST_ID",
         help="explicitly retry one terminal failed post; repeat for multiple posts",
     )
+    parser.add_argument(
+        "--retry-only",
+        action="store_true",
+        help="retry explicit post ids without scanning or queueing any other post",
+    )
     return parser
 
 
@@ -146,6 +151,7 @@ async def queue_post_content_backfill(
     *,
     limit: int | None,
     retry_post_ids: list[str] | None = None,
+    retry_only: bool = False,
 ) -> dict[str, int]:
     model = embedding_model.strip()
     if not model:
@@ -173,6 +179,10 @@ async def queue_post_content_backfill(
                 retry_post_ids or [],
             )
         )
+        if retry_only:
+            if not retry_post_ids:
+                raise ValueError("--retry-only requires at least one --retry-post-id")
+            return result
         rows = await connection.fetch(
             """
             select post_id, post_body
@@ -313,6 +323,7 @@ def main() -> None:
             args.embedding_model,
             limit=None if args.all else args.limit,
             retry_post_ids=args.retry_post_id,
+            retry_only=args.retry_only,
         )
     )
     print(result)
