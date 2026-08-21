@@ -12,7 +12,7 @@ Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
 Current source/test exact head observed before this documentation update:
-`d0cef47aeb9932751899ac8857ef08688c7b1955`. This documentation update will
+`5b8eda811107a5944a7f35d1d2decfbce9950160`. This documentation update will
 create the next exact head and therefore requires the protected checks to
 rerun.
 
