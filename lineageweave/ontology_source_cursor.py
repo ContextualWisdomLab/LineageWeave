@@ -1,13 +1,13 @@
-"""Opaque HMAC source-window cursor for ontology neighborhoods (ADR 0124).
+"""Opaque AES-GCM source-window cursor for ontology neighborhoods (ADR 0125).
 
 The in-memory ``after:`` token only pages facts already loaded. This module
-mints a versioned, encrypted, HMAC-integrity-protected continuation token
+mints a versioned, authenticated-encrypted continuation token
 so a later request can keyset-paginate the recursive SQL window. The token
 never carries hidden endpoint IDs, omitted counts, or tenant identifiers in
 plaintext.
 
-Grounding: HMAC-SHA256 (Krawczyk, Bellare, & Canetti, 1997, RFC 2104);
-Encrypt-then-MAC (Bellare & Namprempre, 2008).
+Grounding: AES-GCM authenticated encryption with associated data (Dworkin,
+2007, NIST SP 800-38D). HMAC-SHA256 remains the scope digest (RFC 2104).
 """
 
 from __future__ import annotations
@@ -22,16 +22,18 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from typing import Mapping, Sequence
 
+from cryptography.exceptions import InvalidTag
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+
 from lineageweave.ontology_neighborhood import OntologyNeighborhoodError
 
-SOURCE_CURSOR_PREFIX = "src.v1."
-SOURCE_CURSOR_VERSION = 1
+SOURCE_CURSOR_PREFIX = "src.v2."
+SOURCE_CURSOR_VERSION = 2
 SOURCE_CURSOR_TTL = timedelta(minutes=15)
 SOURCE_CURSOR_MIN_SECRET_BYTES = 32
-_NONCE_BYTES = 16
-_MAC_BYTES = 32
-_MAC_INFO = b"lw-ontology-src-mac-v1"
-_ENC_INFO = b"lw-ontology-src-enc-v1"
+_NONCE_BYTES = 12
+_TAG_BYTES = 16
+_ENC_INFO = b"lw-ontology-src-aesgcm-v2"
 
 
 @dataclass(frozen=True)
@@ -134,9 +136,12 @@ def mint_source_cursor(
     }
     plaintext = json.dumps(payload, separators=(",", ":"), sort_keys=True).encode("utf-8")
     nonce = os.urandom(_NONCE_BYTES)
-    ciphertext = _xor(plaintext, _keystream(_enc_key(secret), nonce, len(plaintext)))
-    mac = hmac.new(_mac_key(secret), nonce + ciphertext, hashlib.sha256).digest()
-    packed = nonce + mac + ciphertext
+    ciphertext = AESGCM(_enc_key(secret)).encrypt(
+        nonce,
+        plaintext,
+        SOURCE_CURSOR_PREFIX.encode("ascii"),
+    )
+    packed = nonce + ciphertext
     return SOURCE_CURSOR_PREFIX + _b64encode(packed)
 
 
@@ -168,17 +173,18 @@ def verify_source_cursor(
     if not token.startswith(SOURCE_CURSOR_PREFIX):
         raise OntologyNeighborhoodError("malformed_cursor", "cursor must be an opaque source token")
     packed = _b64decode(token[len(SOURCE_CURSOR_PREFIX) :])
-    if len(packed) < _NONCE_BYTES + _MAC_BYTES + 1:
+    if len(packed) < _NONCE_BYTES + _TAG_BYTES + 1:
         raise OntologyNeighborhoodError("malformed_cursor", "cursor is truncated")
     nonce = packed[:_NONCE_BYTES]
-    mac = packed[_NONCE_BYTES : _NONCE_BYTES + _MAC_BYTES]
-    ciphertext = packed[_NONCE_BYTES + _MAC_BYTES :]
-    expected = hmac.new(_mac_key(secret), nonce + ciphertext, hashlib.sha256).digest()
-    if not hmac.compare_digest(mac, expected):
-        raise OntologyNeighborhoodError("malformed_cursor", "cursor failed integrity verification")
+    ciphertext = packed[_NONCE_BYTES:]
     try:
-        payload = json.loads(_xor(ciphertext, _keystream(_enc_key(secret), nonce, len(ciphertext))))
-    except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
+        plaintext = AESGCM(_enc_key(secret)).decrypt(
+            nonce,
+            ciphertext,
+            SOURCE_CURSOR_PREFIX.encode("ascii"),
+        )
+        payload = json.loads(plaintext)
+    except (InvalidTag, UnicodeDecodeError, json.JSONDecodeError, ValueError) as exc:
         raise OntologyNeighborhoodError("malformed_cursor", "cursor payload is not readable") from exc
     if not isinstance(payload, dict):
         raise OntologyNeighborhoodError("malformed_cursor", "cursor payload is not an object")
@@ -277,25 +283,8 @@ def _validated_cursor(
     )
 
 
-def _mac_key(secret: bytes) -> bytes:
-    return hmac.new(secret, _MAC_INFO, hashlib.sha256).digest()
-
-
 def _enc_key(secret: bytes) -> bytes:
     return hmac.new(secret, _ENC_INFO, hashlib.sha256).digest()
-
-
-def _keystream(enc_key: bytes, nonce: bytes, length: int) -> bytes:
-    blocks: list[bytes] = []
-    counter = 0
-    while sum(len(block) for block in blocks) < length:
-        blocks.append(hmac.new(enc_key, nonce + counter.to_bytes(4, "big"), hashlib.sha256).digest())
-        counter += 1
-    return b"".join(blocks)[:length]
-
-
-def _xor(data: bytes, keystream: bytes) -> bytes:
-    return bytes(left ^ right for left, right in zip(data, keystream, strict=True))
 
 
 def _b64encode(data: bytes) -> str:

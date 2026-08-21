@@ -416,7 +416,7 @@ def test_source_continuation_uses_sealed_snapshot_and_rechecks_page_endpoints(mo
 
     def fake_mint(**kwargs):
         minted_keys.append(kwargs["last_key"])
-        return "src.v1.next"
+        return "src.v2.next"
 
     monkeypatch.setattr(ingestion, "focus_catalog_exists", fake_focus_exists)
     monkeypatch.setattr(ingestion, "visible_post_ids_for_focus", fake_visible_post_ids)
@@ -437,7 +437,7 @@ def test_source_continuation_uses_sealed_snapshot_and_rechecks_page_endpoints(mo
             maximum_depth=1,
             maximum_nodes=10,
             maximum_edges=1,
-            cursor="src.v1.synthetic",
+            cursor="src.v2.synthetic",
             source_cursor_secret="s" * 32,
             source_cursor_scope="account",
         )
@@ -545,7 +545,7 @@ def test_skos_overflow_mints_source_cursor_for_continuation(monkeypatch) -> None
 
     def fake_mint(**kwargs):
         minted_keys.append(kwargs["last_key"])
-        return "src.v1.synthetic-next"
+        return "src.v2.synthetic-next"
 
     monkeypatch.setattr(ingestion, "focus_catalog_exists", fake_focus_exists)
     monkeypatch.setattr(ingestion, "visible_post_ids_for_focus", fake_visible_post_ids)
@@ -585,7 +585,7 @@ def test_skos_overflow_mints_source_cursor_for_continuation(monkeypatch) -> None
         )
     )
 
-    assert first_page.next_cursor == "src.v1.synthetic-next"
+    assert first_page.next_cursor == "src.v2.synthetic-next"
     assert [edge.property_code for edge in second_page.edges] == ["skos_broader"]
     assert second_page.next_cursor is None
     assert load_after_keys == [None, None, last_key]

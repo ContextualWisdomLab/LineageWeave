@@ -302,7 +302,7 @@ describe("OntologyExplorer stabilization contracts", () => {
   it("accumulates the next page without losing the selected evidence", async () => {
     const first = payload({
       truncated: true,
-      next_cursor: "src.v1.opaque-token",
+      next_cursor: "src.v2.opaque-token",
       limitation_code: "neighborhood_truncated",
     });
     const second = payload({
@@ -344,6 +344,6 @@ describe("OntologyExplorer stabilization contracts", () => {
     expect(await screen.findByText("Paged person")).toBeInTheDocument();
     expect(screen.getAllByText("Demo post").length).toBeGreaterThan(0);
     expect(screen.getByLabelText("Edge provenance")).toBeInTheDocument();
-    expect(String(fetchMock.mock.calls[1][0])).toContain("cursor=src.v1.opaque-token");
+    expect(String(fetchMock.mock.calls[1][0])).toContain("cursor=src.v2.opaque-token");
   });
 });

@@ -139,3 +139,10 @@ def test_unknown_prefix_fails_closed() -> None:
     with pytest.raises(OntologyNeighborhoodError) as raised:
         _verify("after:mentions:post-person")
     assert raised.value.code == "malformed_cursor"
+
+
+def test_v1_custom_cursor_format_is_rejected_after_aead_upgrade() -> None:
+    legacy_token = _mint().replace("src.v2.", "src.v1.", 1)
+    with pytest.raises(OntologyNeighborhoodError) as raised:
+        _verify(legacy_token)
+    assert raised.value.code == "malformed_cursor"
