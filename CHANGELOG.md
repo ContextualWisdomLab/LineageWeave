@@ -18,6 +18,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- The post-detail dialog focus trap now excludes descendants of `aria-hidden`
+  content as well as collapsed `details`, keeping keyboard focus inside the
+  visible modal controls.
+
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.

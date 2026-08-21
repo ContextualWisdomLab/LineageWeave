@@ -1,15 +1,16 @@
 # Product & Technical Gap Baseline
 
-> Audit scope: the current `fix/uiux-standard-guide-v3-postmerge` worktree,
-> compared with `origin/main`, the UI/UX Standard Guide v3.0 supplied for this
+> Audit scope: the current `feat/customer-master-scope-facets` worktree and
+> open PR #366, compared with its exact base `feat/lineage-dag-regression`, the UI/UX Standard Guide v3.0 supplied for this
 > product, ADR 0118, the accepted TEPP PRD/contracts, and the
 > contextual-orchestrator architecture. Real source identifiers are deliberately
 > replaced with case labels; they must not enter repository artifacts.
 
 ## 1. Exact-head evidence
 
-Audit anchor: the exact source state carried by this commit at 2026-08-21;
-record the final PR head with `git rev-parse HEAD` during acceptance.
+Audit anchor: the exact source state carried by this documentation commit at
+2026-08-21; record the final PR head with `git rev-parse HEAD` during
+acceptance.
 
 Current source/test exact head observed before this documentation update:
 `8bed77e7e7b91b633bb92d3a82d0187c387206af`, the squash merge of PR #364
@@ -34,7 +35,7 @@ next exact head and therefore requires the protected checks to rerun.
 - **Figma reference:** ADR 0118 records file `1Su3lDRmiZdcUs47t1QwIX`; the
   inspected Event Lineage frames are desktop `5:14` and mobile `5:15`.
 - **Local quality evidence at the source/test head:** backend `uv run pytest -q`
-  passed `786` tests with `16` skips; frontend Vitest passed `174` tests in `19`
+  passed `788` tests with `17` skips; frontend Vitest passed `177` tests in `19`
   files, frontend lint/build passed, and Storybook build completed. These are
   local checks, not hosted protected-gate or independent-review evidence.
 - **Current PR gate:** PR #350 merged at
@@ -43,7 +44,10 @@ next exact head and therefore requires the protected checks to rerun.
   `feat/lineage-dag-regression`; PR #364 then merged the evidence-only
   baseline at `8bed77e7e7b91b633bb92d3a82d0187c387206af`. This ADR/docs
   follow-up requires its own protected checks and independent approval;
-  neither is claimed yet. The prior PR #347 merged at
+  neither is claimed yet. PR #366 remains open at code head
+  `a5aa0daa`; its hosted Tests run is queued,
+  Devin Review is pending, and no independent approval or merge is claimed.
+  The prior PR #347 merged at
   `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`.
 - **Current parsing PR:** PR #367 is open and unmerged at exact head
   `4093ac7f` (full SHA is recorded in the PR body), based on
@@ -74,6 +78,12 @@ next exact head and therefore requires the protected checks to rerun.
 - **Event Lineage Figma parity — fixed in this worktree:** the DAG now includes
   lineage-evidence context, legend, horizontal overflow on phones, inference
   boundary, direction markers, and an evidence trail table/cards treatment.
+- **Post detail modal keyboard access — fixed in this worktree:** the existing
+  50% backdrop now exposes a named modal dialog with `aria-modal`, moves focus
+  into the panel, closes on Escape, contains Tab focus, and restores focus to
+  the opener. Native interactive controls also share the token-based
+  `:focus-visible` ring. The behavior is covered by the authenticated React
+  and CSS tests; fresh browser evidence remains open.
 - **Approved CI/BI asset — open:** the header/footer currently render the
   tenant brand name as text. Do not invent or alter a corporate logo; add the
   approved asset only after the tenant CI/BI source and usage permission are
@@ -191,10 +201,10 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Approved CI/BI logo asset | Tenant text is present; approved asset and permission are absent | open |
 | User/logout/language/global search header actions | `App.tsx`, `i18n.ts`, handled/pending search-focus tests | source + unit |
 | Site map / utility menu | `SiteMapUtility`, accessible toggle/region, Escape and destination-close behavior, responsive CSS contract, locale coverage | source + unit; authenticated browser evidence open |
-| Noto Sans, palette, table/form/button conventions, modal 50% mask | ADR 0118, token CSS, component tests | source + unit |
+| Noto Sans, palette, table/form/button conventions, modal 50% mask and keyboard semantics | ADR 0118, token CSS, popup dialog implementation, frontend tests | source + unit |
 | Keyverse/OIDC login with real account | `auth.py`, OIDC discovery/JWKS boundary, local redirect check | source + local-integration; Keyverse open |
 | Authenticated corp/PU attributes | `/api/me` returns DB-backed codes; backend integration test covers `TEST-CORP`/`TEST-PU` and header displays them | source + local-integration |
-| RBAC/ABAC, public/private visibility, tenant isolation | `_can_see_post`, API authorization tests, aggregate-only runtime checks | source + local-integration |
+| RBAC/ABAC, public/private visibility, tenant isolation | `_can_see_post`, shared `SOURCE_POST_VISIBILITY_SQL`, API authorization tests, aggregate-only runtime checks | source + unit + local-integration |
 | React product surface and PostgreSQL boundary | React routes/components, asyncpg API, Compose stack | source + local-integration |
 | Authorized PostgreSQL export import mapping | `scripts/import_postgresql_posts.py`, ADR 0121, hash-verified RFC 2557 MHTML resolver, and synthetic preflight/import tests; authorized relation has artifact-path metadata but no body/content/HTML field | source + unit + local-integration partial; operator artifact files and authorized live import open |
 | Bounded large-body search migration | `0035_body_search_prefix.sql`, `0036_normalized_body_search.sql`; live replay completed after bounded rendered-text indexing | source + local-integration |
@@ -204,13 +214,13 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Keyman on both sides, titles, affiliations, related KG nodes | Keyman/affiliate-tree/related-node routes and popup | source + unit; live extraction open |
 | Ontology, semantic layer, provenance, W3C PROV-O projection | normalized schema, SKOS operational vocabulary concepts, `ontology_annotations` label fallback, ADR 0124, provenance modules, ADRs, evidence UI | source + unit; corpus verification open |
 | Branching Event Lineage DAG with evidence trail | `LineageDag.tsx`, Storybook story, Figma frames, accessible node-kind names for screen readers/tooltips, frontend tests; runtime cases include both a rendered DAG and honest empty states, while current corpus coverage remains sparse | source + unit + local-integration partial |
-| Customer master and hierarchy tree | `/api/customer-master`, affiliate tree, catalog migrations | source + unit; scoped to `account_affiliation` only, no own-company/customer distinction — see §5 |
+| Customer master and hierarchy tree | `/api/customer-master`, `scope_facets`, visible `post_organization_mention` enrichment, affiliate tree, migration `0105`, scope filter | source + unit + local-integration partial; authorized own/granted/unclassified facets, visible observed organizations, and admitted observed hierarchy facets are implemented, while authoritative scope backfill and broader hierarchy traversal remain open |
 | VOC/VOM/VOP/VOCC/VOCO/VOS role classification | common lookup values and relationship APIs | source + unit; live classification open |
 | Evidence-grounded chat and source navigation | `/chat`, `/ask`, citation/evidence UI | source + unit; synthetic orchestrator judge route verified, corpus chat/runtime evidence open |
 | PU/team/project weekly/monthly reports | report API/UI and grouping controls | source + unit; TEPP-backed live report open |
 | TEPP calibrated measurement, dichotomous items, multilevel/MMM/time model | published import/REST boundary and TEPP ADR/PRD references | boundary-only; live-external open |
 | contextual-orchestrator routing, VISION, embedding, schema repair | clients and provenance/session boundary; synthetic authenticated route returned a judge score of `0.98`, OCR succeeded, and region location returned five regions | source + local-integration partial; corpus backfill, capability/readiness evidence, and schema-repair workflow open |
-| HTML semantic units, tables, indentation, footnotes, formulas | parser modules and synthetic tests; 11-case authenticated popup sweep had no popup errors and rendered the supplied footnote/table cases; bounded metric superscript/subscript normalization has backend/frontend focused coverage | source + unit + local-integration partial; arbitrary formula/semantic correctness open |
+| HTML semantic units, tables, indentation, footnotes, formulas | parser modules and synthetic tests; adjacent open PR #367 at exact head `b628722cb000717b0198e4337d12306d4306922d` adds numbered-footnote, leading-empty-cell, and short-ID regressions; 11-case authenticated popup sweep had no popup errors and rendered the supplied footnote/table cases; bounded metric superscript/subscript normalization has backend/frontend focused coverage | source + unit + local-integration partial; PR #367 protected checks, arbitrary formula/semantic correctness, and corpus re-backfill remain open |
 | Base64/file image regions and multimodal evidence | image-region schema and VISION client boundary; live aggregate has 12,823 images, 22 described images/regions, and 422 failed images; current synthetic VISION route returned five regions | source + local-integration partial; supplied image-table case re-backfill and complete corpus coverage open |
 | Abbreviation/multilingual alias/entity disambiguation | catalog hints and resolver boundary | source; live corroboration open |
 | SearXNG/internal relation fact check | verification endpoint and unavailable handling; local SearXNG health and JSON query both returned HTTP 200, while some upstream engines reported rate-limit/CAPTCHA results | source + local-integration partial; corroboration policy and reliable external coverage open |
@@ -223,7 +233,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | External email/project lineage package boundary | PR #343 publishes strict v1.0.0 bounded request/result types, available-time cutoff handling, observed/inferred/proposed truth states, pair-budget enforcement, and no source/provider access | source + focused unit; exact-head hosted gates, independent review, and immutable release open |
 | Naruon calendar projection boundary | PR #337 is closed as superseded; draft PR #355 carries the strict read projection contract without making LineageWeave a CalDAV provider | source + focused unit; Naruon endpoint, runtime wiring, restack, and review open |
 | Hourly PR review/repair/merge loop | Central `ContextualWisdomLab/.github` scheduler owns `*/15 * * * *` sweep and `0 * * * *` heartbeat; no duplicate repo-local scheduler is required | boundary accepted; current-head runtime open |
-| 100% coverage/docstrings/edge-case/release gates | current checks and coverage evidence are not complete on PR #350 | open |
+| 100% coverage/docstrings/edge-case/release gates | current local checks pass, but repository-wide coverage/docstring reports, hosted checks, independent review, and release evidence are not complete on PR #366 | open |
 
 ## 4. Supplied parsing and semantic cases
 
@@ -387,8 +397,8 @@ or an explicit unavailable result.
 
 ## 6. Next acceptance loop
 
-1. Re-fetch the exact PR head and required reviews/checks for the workspace UI stack,
-   PR #343, and the superseding calendar contract PR #355.
+1. Re-fetch PR #366's exact head and required reviews/checks, then separately
+   audit PR #343 and the superseding calendar contract PR #355.
 2. Run frontend lint, tests, build, Storybook, backend tests, and authenticated
    browser checks when the local stack is available.
 3. Reproduce each case label using synthetic fixtures or authorized runtime

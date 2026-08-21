@@ -190,7 +190,10 @@ from backend.app.post_summary_ingestion import (
     persist_post_summary,
     require_summary_source_body,
 )
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.post_eligibility import (
+    SOURCE_POST_ELIGIBILITY_SQL,
+    SOURCE_POST_VISIBILITY_SQL,
+)
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
     has_real_source_context,
@@ -562,8 +565,7 @@ async def _post_filter_options(
           left join common_lookup_value lookup
             on lookup.lookup_category = 'post_visibility'
            and lookup.lookup_code = post.visibility_code
-         where (post.visibility_code = 'public'
-            or post.corporate_entity_id::text = any($1::text[]))
+         where {SOURCE_POST_VISIBILITY_SQL.format(alias='post', authorized_entity_ids='$1')}
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
     """
@@ -575,8 +577,7 @@ async def _post_filter_options(
           left join common_lookup_value lookup
             on lookup.lookup_category = 'voc_type'
            and lookup.lookup_code = post.voc_type_code
-         where (post.visibility_code = 'public'
-            or post.corporate_entity_id::text = any($1::text[]))
+         where {SOURCE_POST_VISIBILITY_SQL.format(alias='post', authorized_entity_ids='$1')}
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
     """
@@ -772,7 +773,7 @@ async def read_customer_master(
                   from source_post
                  where (nullif(btrim(source_customer_code), '') is not null
                         or nullif(btrim(source_customer_name), '') is not null)
-                   and (visibility_code = 'public' or corporate_entity_id = any($1::uuid[]))
+                   and {SOURCE_POST_VISIBILITY_SQL.format(alias='source_post', authorized_entity_ids='$1')}
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
             ), ranked as (
                 select scoped.*,
@@ -838,7 +839,7 @@ async def read_customer_master(
                   join user_account author on author.user_account_id = post.author_account_id
                  where post.source_author_code is not null
                    and btrim(post.source_author_code) <> ''
-                   and (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
+                   and {SOURCE_POST_VISIBILITY_SQL.format(alias='post', authorized_entity_ids='$1')}
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
             ), ranked as (
                 select scoped.*,
@@ -1016,7 +1017,7 @@ async def read_customer_master(
         source_author_affiliations = await _load_account_affiliation_hints(
             conn,
             [str(row["author_account_id"]) for row in source_author_rows],
-            [str(entity_id) for entity_id in entity_ids],
+            authorized_entity_ids,
         )
         keyman_rows = await conn.fetch(
             """
@@ -1033,11 +1034,11 @@ async def read_customer_master(
              where affiliation.affiliated_corporate_entity_id = any($1::uuid[])
              order by person.person_name, affiliation.affiliated_organization_name
             """,
-            entity_ids,
+            authorized_entity_ids,
         )
         side_labels = await labels_for_codes(conn, [row["person_side_code"] for row in keyman_rows])
         entity_level_labels = await labels_for_codes(conn, [row["entity_level_code"] for row in entity_rows])
-        relationship_network = await fetch_relationship_network(conn, entity_ids)
+        relationship_network = await fetch_relationship_network(conn, authorized_entity_ids)
 
     keymen_by_id: dict[str, dict[str, Any]] = {}
     for row in keyman_rows:
@@ -1076,6 +1077,7 @@ async def read_customer_master(
                 "entity_level_label": entity_level_labels.get(
                     row["entity_level_code"], row["entity_level_code"]
                 ),
+                "scope_facets": sorted(row["scope_facets"]),
                 "parent_entity_id": (
                     str(row["parent_entity_id"]) if row["parent_entity_id"] is not None else None
                 ),
@@ -1283,8 +1285,7 @@ async def list_posts(
                        end as search_priority,
                        count(*) over() as total_count
                   from source_post post
-             where (post.visibility_code = 'public'
-                or post.corporate_entity_id::text = any($2::text[]))
+             where {SOURCE_POST_VISIBILITY_SQL.format(alias='post', authorized_entity_ids='$2')}
                and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
                and (
                     $1::text is null

@@ -359,6 +359,15 @@
 }
 
 /* Button Standards (§4.3) */
+button:focus-visible,
+select:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--color-focus-border);
+  outline-offset: 2px;
+}
+
 .btn-primary {
   background: var(--color-btn-primary-bg);
   color: var(--color-btn-primary-text);
@@ -1015,6 +1024,29 @@
   margin: 1.25rem 0 0;
 }
 
+.customer-master-scope-filter {
+  display: grid;
+  grid-template-columns: auto minmax(12rem, 1fr);
+  align-items: center;
+  gap: 0.65rem;
+  margin-top: 1.25rem;
+}
+
+.customer-master-scope-filter label {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.customer-master-scope-filter select {
+  min-height: 2.75rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-h);
+}
+
 .customer-master-tree-children {
   margin-top: 0.55rem;
   padding-left: 1rem;
@@ -1045,6 +1077,22 @@
 .customer-entity-button span {
   color: var(--text-muted);
   font-size: 0.8rem;
+}
+
+.customer-entity-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.3rem 0.5rem;
+}
+
+.customer-scope-chip {
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  background: var(--color-accent-background);
+  color: var(--text-h) !important;
+  font-size: 0.72rem !important;
+  font-weight: 700;
 }
 
 .customer-related-posts {
@@ -2319,6 +2367,19 @@
 
   .board-voc-type-filter {
     grid-column: auto;
+  }
+
+  .customer-master-scope-filter {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-entity-button {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .customer-entity-meta {
+    justify-content: flex-start;
   }
 
   .post-list-item {
