@@ -45,6 +45,19 @@ describe("PostBody", () => {
     expect(screen.queryByAltText(/character offset/i)).not.toBeInTheDocument();
   });
 
+  it("rejects script and active SVG image sources before browser rendering", () => {
+    const { rerender } = render(<PostBody body={'<img src="javascript:alert(1)">'} />);
+
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+
+    rerender(
+      <PostBody body={'<img src="data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=" />'} />,
+    );
+
+    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.getByText("Embedded image")).toBeInTheDocument();
+  });
+
   it("renders authoritative LLM structure levels for semantic list units", () => {
     render(
       <PostBody
