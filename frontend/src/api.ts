@@ -254,6 +254,20 @@ export interface PostProjectMention {
   extraction_method: string;
 }
 
+export interface PostSemanticRelationship {
+  relation_ordinal: number;
+  subject_name: string;
+  subject_type: string;
+  predicate_code: string;
+  object_name: string;
+  object_type: string;
+  evidence_text: string;
+  confidence: number;
+  ontology_iri?: string;
+  ontology_label?: string;
+  extraction_method?: string;
+}
+
 export interface ProjectEvidence {
   project_key: string;
   project_name: string;
@@ -279,6 +293,7 @@ export interface PostAiSummary {
   project_mentions?: PostProjectMention[];
   quantitative_observations?: PostQuantitativeObservation[];
   source_grounded_facts?: PostSourceGroundedFact[];
+  semantic_relationships?: PostSemanticRelationship[];
 }
 
 export interface PostKeyEvent {

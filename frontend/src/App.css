@@ -1459,6 +1459,21 @@
   line-height: 1.4;
 }
 
+.source-lineage-presence {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.source-lineage-presence-item {
+  color: var(--text);
+}
+
+.source-lineage-presence-item.is-missing {
+  color: var(--text-muted);
+}
+
 .post-card-badges {
   max-width: 12rem;
   display: flex;
@@ -2105,6 +2120,48 @@
   margin: 0.35rem 0 0;
 }
 
+.source-lineage-fields {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+  padding: 0;
+  margin: 0.45rem 0 0;
+  list-style: none;
+}
+
+.source-lineage-fields li {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--bg);
+}
+
+.source-lineage-fields li span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+}
+
+.source-lineage-fields li strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+}
+
+.source-lineage-fields .is-missing strong {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+@media (max-width: 720px) {
+  .source-lineage-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .ontology-affiliation-link {
   font-weight: 600;
 }
@@ -2176,6 +2233,18 @@
 
 .semantic-provenance .post-badge {
   margin: 0;
+}
+
+.semantic-relationship-list li {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.semantic-relationship-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
 }
 
 .verification-verify_pending {

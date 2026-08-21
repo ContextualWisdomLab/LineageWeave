@@ -20,6 +20,17 @@ const FIELD_LABELS: Record<string, string> = {
   sales_order_item: "Sales-order item",
 };
 
+export const SOURCE_LINEAGE_FIELDS = [
+  "customer",
+  "order_pool",
+  "sales_order",
+  "sales_order_item",
+] as const;
+
+export function sourceLineageFieldIsPresent(hints: SourceLineageHints, field: string): boolean {
+  return hints.present_fields.includes(field);
+}
+
 export function sourceLineageContextLabel(hints: SourceLineageHints): string {
   return t(CONTEXT_LABELS[hints.commercial_context_code] ?? hints.commercial_context_code);
 }

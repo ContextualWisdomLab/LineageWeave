@@ -322,7 +322,7 @@ or an explicit unavailable result.
      `rel_voc`) together with a *job title* ("연구원") that has no home of
      its own on `RoleResponsibility` the way `last_known_job_title` does on
      `Keyman`. Fixing this needs a new field plus an
-     `POST_SUMMARY_CONTRACT_VERSION` bump (currently `12`) and an extraction-
+     `POST_SUMMARY_CONTRACT_VERSION` bump (currently `13`) and an extraction-
      prompt change — not a display-layer patch, and not something to
      implement without review given every future extraction depends on the
      contract version.

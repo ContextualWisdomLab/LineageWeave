@@ -87,6 +87,7 @@ import {
   type RankingList,
   type PersonRoleHistoryEntry,
   type PostRoleResponsibility,
+  type PostSemanticRelationship,
   type RelatedNode,
   type RelatedNodeType,
   type VocEvidence,
@@ -108,7 +109,12 @@ import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
-import { sourceLineageContextLabel, sourceLineageFieldLabel } from "./sourceLineageHints";
+import {
+  SOURCE_LINEAGE_FIELDS,
+  sourceLineageContextLabel,
+  sourceLineageFieldIsPresent,
+  sourceLineageFieldLabel,
+} from "./sourceLineageHints";
 import {
   isSupportedLocale,
   LOCALE_LABELS,
@@ -1759,6 +1765,21 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
   );
 }
 
+const SEMANTIC_RELATION_LABELS: Record<string, string> = {
+  org_member_of: "Organization member of",
+  org_unit_of: "Organization unit of",
+  org_suborganization_of: "Sub-organization of",
+  lw_supports: "Supports",
+};
+
+function semanticRelationLabel(relation: PostSemanticRelationship): string {
+  return t(
+    SEMANTIC_RELATION_LABELS[relation.predicate_code] ??
+      relation.ontology_label ??
+      relation.predicate_code,
+  );
+}
+
 const ROLE_ACTOR_TYPE_RANK: Record<string, number> = {
   prov_organization: 0,
   prov_team: 1,
@@ -2382,6 +2403,37 @@ function PostDetailPopup({
                       </ul>
                     </>
                   )}
+                  {summary.semantic_relationships && summary.semantic_relationships.length > 0 && (
+                    <>
+                      <h4>{t("Explicit semantic relationships")}</h4>
+                      <ul className="summary-action-list semantic-relationship-list">
+                        {summary.semantic_relationships.map((relation) => (
+                          <li key={`${relation.relation_ordinal}:${relation.subject_name}:${relation.object_name}`}>
+                            <div className="semantic-relationship-line">
+                              <strong>{relation.subject_name}</strong>
+                              <span className="post-badge">{semanticRelationLabel(relation)}</span>
+                              <strong>{relation.object_name}</strong>
+                            </div>
+                            <small>
+                              {t("Evidence")}: {relation.evidence_text} · {t("Confidence")}: {Math.round(relation.confidence * 100)}%
+                            </small>
+                            <details className="semantic-provenance">
+                              <summary>{t("Evidence provenance")}</summary>
+                              <span className="post-badge">
+                                {t("Subject type")}: {relation.subject_type}
+                              </span>
+                              <span className="post-badge">
+                                {t("Object type")}: {relation.object_type}
+                              </span>
+                              <span className="post-badge">
+                                {t("Extraction source")}: {relation.extraction_method ?? t("Recorded extraction")}
+                              </span>
+                            </details>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
+                  )}
                   {summary.major_event_actions && summary.major_event_actions.length > 0 && (
                     <>
                       <h4>{t("Major event actions")}</h4>
@@ -2721,12 +2773,30 @@ function PostDetailPopup({
                     <h4>{t("Source lineage combination")}</h4>
                     <p>
                       <strong>{sourceLineageContextLabel(post.source_lineage_hints)}</strong>{" "}
-                      <span className="post-badge">{post.source_lineage_hints.combination_code}</span>{" "}
+                      <span className="post-badge">{t("Combination code")}: {post.source_lineage_hints.combination_code}</span>{" "}
                       <span className="post-meta">{t("Inferred from field presence")}</span>
                     </p>
-                    <p className="post-meta">
-                      {t("Present fields")}: {post.source_lineage_hints.present_fields.map(sourceLineageFieldLabel).join(", ") || t("None")}
-                    </p>
+                    <p className="post-meta">{t("Field combination")}</p>
+                    <ul className="source-lineage-fields">
+                      {SOURCE_LINEAGE_FIELDS.map((field) => {
+                        const values: Record<string, string | null> = {
+                          customer: post.source_customer_code || post.source_customer_name || null,
+                          order_pool: post.source_order_pool_code || null,
+                          sales_order: post.source_sales_order_code || null,
+                          sales_order_item:
+                            post.source_sales_order_item_number === null || post.source_sales_order_item_number === undefined
+                              ? null
+                              : String(post.source_sales_order_item_number),
+                        };
+                        const present = sourceLineageFieldIsPresent(post.source_lineage_hints!, field);
+                        return (
+                          <li key={field} className={present ? "is-present" : "is-missing"}>
+                            <span>{sourceLineageFieldLabel(field)}</span>
+                            <strong>{present ? values[field] || t("Present") : t("Not present")}</strong>
+                          </li>
+                        );
+                      })}
+                    </ul>
                     <p className="post-meta">
                       {t("Lifecycle vector")}: {post.source_lineage_hints.lifecycle_vector} · {t("Raw codes only")}
                     </p>
@@ -4637,9 +4707,22 @@ function PostList({
                           </span>
                         ) : null}
                         {post.source_lineage_hints ? (
-                          <span className="post-meta">
-                            {t("Source context")}: {sourceLineageContextLabel(post.source_lineage_hints)} · {post.source_lineage_hints.combination_code}
-                          </span>
+                          <>
+                            <span className="post-meta">
+                              {t("Source context")}: {sourceLineageContextLabel(post.source_lineage_hints)} · {t("Combination code")}: {post.source_lineage_hints.combination_code}
+                            </span>
+                            <span className="post-meta source-lineage-presence" aria-label={t("Source fields") + ": " + SOURCE_LINEAGE_FIELDS.map((field) => `${sourceLineageFieldLabel(field)}: ${sourceLineageFieldIsPresent(post.source_lineage_hints!, field) ? t("Present") : t("Not present")}`).join(", ")}>
+                              <span>{t("Source fields")}:</span>
+                              {SOURCE_LINEAGE_FIELDS.map((field) => {
+                                const present = sourceLineageFieldIsPresent(post.source_lineage_hints!, field);
+                                return (
+                                  <span key={field} className={`source-lineage-presence-item ${present ? "is-present" : "is-missing"}`}>
+                                    {sourceLineageFieldLabel(field)} {present ? "✓" : "—"}
+                                  </span>
+                                );
+                              })}
+                            </span>
+                          </>
                         ) : null}
                         {post.project_evidence && post.project_evidence.length > 0 ? (
                           <span className="post-meta">
