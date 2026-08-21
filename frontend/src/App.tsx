@@ -96,6 +96,7 @@ import { FiveW1H } from "./components/FiveW1H";
 import { AskProjectHistoryLinks } from "./components/AskProjectHistoryLinks";
 import { ProjectHistoryTimeline } from "./components/ProjectHistoryTimeline";
 import {
+  normalizeProjectIdentity,
   projectHistoryText,
   type ProjectHistoryIndex,
   type ProjectHistoryProjection,
@@ -4765,11 +4766,15 @@ function ProjectHistoryPanel({
     fetchProjectHistoryIndex(accessToken)
       .then((result) => {
         if (!active) return;
+        const initialProject = initialProjectKey
+          ? result.projects.find(
+              (project) =>
+                project.normalized_project_key === normalizeProjectIdentity(initialProjectKey),
+            )
+          : undefined;
         setIndex(result);
-        setSelectedProjectKey((current) =>
-          initialProjectKey && result.projects.some((project) => project.project_key === initialProjectKey)
-            ? initialProjectKey
-            : current || result.projects[0]?.project_key || "",
+        setSelectedProjectKey(
+          (current) => initialProject?.project_key ?? (current || result.projects[0]?.project_key || ""),
         );
         setError(false);
       })
@@ -4801,7 +4806,10 @@ function ProjectHistoryPanel({
     setLoadingHistory(true);
     setError(false);
     const focusPostId =
-      initialProjectKey === selectedProjectKey ? initialFocusPostId ?? undefined : undefined;
+      initialProjectKey &&
+      normalizeProjectIdentity(initialProjectKey) === normalizeProjectIdentity(selectedProjectKey)
+        ? initialFocusPostId ?? undefined
+        : undefined;
     fetchProjectHistory(accessToken, selectedProjectKey, index.knowledge_cutoff, focusPostId)
       .then((result) => {
         if (request !== historyRequest.current) return;

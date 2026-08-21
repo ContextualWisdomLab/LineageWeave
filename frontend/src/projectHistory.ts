@@ -141,7 +141,7 @@ export interface ProjectEvidenceGroup {
   evidence: ProjectEvidence[];
 }
 
-function normalizeProjectIdentity(value: string): string {
+export function normalizeProjectIdentity(value: string): string {
   return value.normalize("NFKC").trim().toLocaleLowerCase("en-US");
 }
 

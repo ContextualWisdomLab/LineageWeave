@@ -118,7 +118,7 @@ def test_responsibility_transition_describes_document_evidence_only() -> None:
     assert responsibility_transition_code(["person:a"], []) == "assignment_gap"
 
 
-def test_assignment_gap_without_role_evidence_has_no_truth_status() -> None:
+def test_focused_assignment_gap_without_role_evidence_has_no_truth_status() -> None:
     """Two empty role sets must not manufacture an observed assignment fact."""
     second = _event_row("00000000-0000-0000-0000-000000000002")
     second["created_at"] = datetime(2022, 3, 12, 9, tzinfo=timezone.utc)
