@@ -4,7 +4,7 @@
 
 **Goal:** Publish a strict, store-agnostic LineageWeave contract that accepts bounded caller-authorized evidence and returns opaque-reference lineage and project projections for Naruon and other consumers.
 
-**Architecture:** Keep the existing reconstruction kernel authoritative for scoring and tree assembly. Add a pure contract/parser layer plus a pure execution adapter that performs available-time cutoff filtering, work-budget checks, explicit-vs-inferred relation separation, channel-evidence projection, and canonical digests without database or provider access.
+**Architecture:** Keep the existing reconstruction kernel authoritative for candidate scoring and RankWeave fusion. Add a pure contract/parser layer plus a pure execution adapter that performs available-time cutoff filtering, work-budget checks, explicit-vs-inferred relation separation, channel-evidence projection, and canonical digests without database or provider access. Caller-observed children bypass alternative inference and optional model disclosure while remaining available as candidate history for later records.
 
 **Tech Stack:** Python 3.12+, dataclasses, JSON Schema Draft 2020-12, pytest, coverage.py, Ruff, RankWeave, ThreadWeave.
 
@@ -16,6 +16,7 @@
 - `available_at <= knowledge_cutoff` is the historical-evidence admission rule.
 - Missing optional LLM evidence is unavailable, never a fabricated zero.
 - Observed RFC/thread relations remain distinct from inferred semantic lineage.
+- Children with an explicit observed parent consume no inferred-pair budget and are not sent to the optional LLM for an alternative edge.
 - Project projections remain proposed and cannot mutate caller or provider state.
 - No direct application-database access, provider credential, persistence, or network call is added to the pure execution adapter.
 - Changed production statement and branch coverage must be 100%; public symbols require docstrings.
@@ -46,14 +47,17 @@
 **Files:**
 - Create: `lineageweave/external_lineage_analysis.py`
 - Test: `tests/test_external_lineage_analysis.py`
+- Test: `tests/test_external_lineage_explicit_parent_budget.py`
 
 **Interfaces:**
-- Consumes: `LineageAnalysisRequest` and the existing `reconstruct()` kernel.
+- Consumes: `LineageAnalysisRequest` and the existing candidate-scoring/fusion kernel.
 - Produces: `analyze_external_lineage(request, *, llm=None) -> LineageAnalysisResult`.
 
 - [ ] Write failing tests for available-time cutoff exclusion, pair-budget rejection before channel execution, explicit observed parent precedence, explicit-parent validation, optional LLM status, project projection, deterministic output, and content-minimized evidence.
-- [ ] Run the focused execution tests and confirm the missing adapter is the failure cause.
-- [ ] Implement request revalidation, explicit-parent acyclicity/group/time checks, cutoff filtering, pair-budget calculation, core-record adaptation, channel projection, limitations, and result digesting.
+- [ ] Add a failing regression proving caller-observed children neither consume inferred-pair budget nor disclose alternative label pairs to an optional LLM.
+- [ ] Run the focused execution tests and confirm the missing or defective adapter is the failure cause.
+- [ ] Implement request revalidation, explicit-parent acyclicity/group/time checks, cutoff filtering, inference-only pair-budget calculation, core-record adaptation, channel projection, limitations, and result digesting.
+- [ ] Preserve an explicit child in candidate history so later unobserved records may still select it as an inferred parent.
 - [ ] Re-run the focused execution tests until they pass.
 
 ### Task 3: Public package, decision records, and quality gate
@@ -68,7 +72,7 @@
 - Produces: a supported package API for consumer contract tests.
 
 - [ ] Export the contract types, parser/serializer/digest functions, error type, and `analyze_external_lineage` from `lineageweave`.
-- [ ] Record the LineageWeave/Naruon authority split, truth statuses, cutoff semantics, and packaging boundary in the ADR.
+- [ ] Record the LineageWeave/Naruon authority split, truth statuses, cutoff semantics, model-disclosure minimization, and packaging boundary in the ADR.
 - [ ] Record APA 7th sources and a changelog fragment.
 - [ ] Run `uvx ruff check` on changed Python and test files.
 - [ ] Run focused statement/branch coverage with `--fail-under=100` for both new production modules.
