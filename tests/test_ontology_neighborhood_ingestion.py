@@ -454,6 +454,16 @@ def test_visible_neighborhood_drops_unlabeled_non_focus_edges() -> None:
 
 
 def test_visible_neighborhood_focus_variants_and_fail_closed() -> None:
+    with pytest.raises(OntologyNeighborhoodError) as invalid:
+        asyncio.run(
+            visible_ontology_neighborhood(
+                ScriptedConn({}),
+                focus_node_type_code=NODE_POST,
+                focus_node_id=" ",
+                can_see_post=lambda row: True,
+            )
+        )
+    assert invalid.value.code == "invalid_focus_id"
     with pytest.raises(OntologyNeighborhoodError) as unknown:
         asyncio.run(
             visible_ontology_neighborhood(
