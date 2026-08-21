@@ -1,7 +1,16 @@
 import { useId } from "react";
 import type { LineageGraph } from "./api";
+import "./LineageDag.css";
 import { t, tf } from "./i18n";
 import { layoutLineageDag } from "./lineageLayout";
+
+const NODE_RADIUS = 7;
+const EDGE_CLEARANCE = 4;
+
+interface Point {
+  x: number;
+  y: number;
+}
 
 function truncateLabel(label: string): string {
   return label.length > 34 ? `${label.slice(0, 33)}…` : label;
@@ -9,6 +18,18 @@ function truncateLabel(label: string): string {
 
 function eventDate(occurredAt: string): string {
   return occurredAt.slice(0, 10);
+}
+
+function edgePath(from: Point, to: Point): string {
+  const angle = Math.atan2(to.y - from.y, to.x - from.x);
+  const offsetX = Math.cos(angle) * (NODE_RADIUS + EDGE_CLEARANCE);
+  const offsetY = Math.sin(angle) * (NODE_RADIUS + EDGE_CLEARANCE);
+  const startX = from.x + offsetX;
+  const startY = from.y + offsetY;
+  const endX = to.x - offsetX;
+  const endY = to.y - offsetY;
+  const midX = (startX + endX) / 2;
+  return `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
 }
 
 export function LineageDag({
@@ -31,9 +52,11 @@ export function LineageDag({
       {groups.map((group, groupIndex) => {
         const byId = Object.fromEntries(group.nodes.map((node) => [node.id, node]));
         const arrowMarkerId = `lineage-dag-arrow-${instanceId}-${groupIndex}`;
+        const captionId = `lineage-dag-caption-${instanceId}-${groupIndex}`;
+        const lineageLabel = tf("{group} lineage", { group: group.heading });
         return (
           <figure key={group.group} className="lineage-dag-group">
-            <figcaption>
+            <figcaption id={captionId}>
               {tf("{group} ({records} records, {edges} lineage edges)", {
                 group: group.heading,
                 records: group.nodes.length,
@@ -42,16 +65,17 @@ export function LineageDag({
             </figcaption>
             <div
               className="lineage-dag-scroll"
+              role="region"
+              aria-labelledby={captionId}
               tabIndex={0}
-              style={{ maxWidth: "100%", overflowX: "auto", paddingBottom: "0.25rem" }}
             >
               <svg
+                className="lineage-dag-canvas"
                 viewBox={`0 0 ${group.width} ${group.height}`}
                 width={group.width}
                 height={Math.max(120, group.height)}
                 role="img"
-                aria-label={tf("{group} lineage", { group: group.heading })}
-                style={{ color: "canvastext", display: "block", maxWidth: "none" }}
+                aria-label={lineageLabel}
               >
                 <defs>
                   <marker
@@ -63,20 +87,19 @@ export function LineageDag({
                     orient="auto"
                     markerUnits="strokeWidth"
                   >
-                    <path className="lineage-dag-arrow" d="M 0 0 L 8 4 L 0 8 z" fill="currentColor" />
+                    <path className="lineage-dag-arrow" d="M 0 0 L 8 4 L 0 8 z" />
                   </marker>
                 </defs>
                 {group.edges.map((edge) => {
                   const from = byId[edge.source];
                   const to = byId[edge.target];
                   if (!from || !to) return null;
-                  const midX = (from.x + to.x) / 2;
                   return (
                     <path
                       key={`${edge.source}-${edge.target}`}
                       className="lineage-dag-edge"
                       markerEnd={`url(#${arrowMarkerId})`}
-                      d={`M ${from.x} ${from.y} C ${midX} ${from.y}, ${midX} ${to.y}, ${to.x} ${to.y}`}
+                      d={edgePath(from, to)}
                     >
                       <title>{`${from.label} → ${to.label} (${edge.fused_score.toFixed(2)})`}</title>
                     </path>
@@ -102,17 +125,11 @@ export function LineageDag({
                         }
                       }}
                     >
-                      <circle r={7} />
+                      <circle r={NODE_RADIUS} />
                       <text x={12} y={1}>
                         {truncateLabel(node.label)}
                       </text>
-                      <text
-                        className="lineage-dag-node-date"
-                        x={12}
-                        y={15}
-                        fontSize={9}
-                        opacity={0.7}
-                      >
+                      <text className="lineage-dag-node-date" x={12} y={15}>
                         {eventDate(node.occurred_at)}
                       </text>
                       <title>
@@ -126,13 +143,11 @@ export function LineageDag({
                 })}
               </svg>
             </div>
-            <details className="lineage-dag-evidence" open style={{ marginTop: "0.5rem" }}>
+            <details className="lineage-dag-evidence" open>
               <summary>{t("Evidence trail")}</summary>
-              <div className="lineage-dag-evidence-scroll" style={{ overflowX: "auto" }}>
-                <table
-                  className="lineage-dag-evidence-table"
-                  style={{ borderCollapse: "collapse", marginTop: "0.5rem", width: "100%" }}
-                >
+              <div className="lineage-dag-evidence-scroll">
+                <table className="lineage-dag-evidence-table">
+                  <caption className="visually-hidden">{`${lineageLabel} — ${t("Evidence trail")}`}</caption>
                   <thead>
                     <tr>
                       <th scope="col">{t("Graph relation")}</th>
