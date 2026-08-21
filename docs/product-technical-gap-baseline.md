@@ -491,7 +491,7 @@ an ad-hoc `user_account + post_id` session key.
 LineageWeave PR #383 at exact head
 `4eaa07172fde827f4ad89580326a0d2db5ceb0e4` emits bounded API/Valkey/session
 telemetry, and contextual-orchestrator PR #818 at exact head
-`51531d0c1144427c67649da3233bcbe1c5d53858` preserves the same post-scoped
+`f5e8107df065fe83ff616f92f070feeb3b153288` preserves the same post-scoped
 session correlation across provider, Responses, structured-output, VISION, and
 embedding work. These are separate open, protected PRs; their current Checks
 are not terminal and no independent approval or merge is claimed.
@@ -502,6 +502,21 @@ SLOs, and no-export rollback remain deployment evidence to be recorded by GRC.
 The current GRC `osv-scan` failure is the shared workflow's deprecated OSV
 output-file contract, not a source vulnerability verdict; no protected merge
 or bypass is authorized until the central repair and exact-head Checks pass.
+
+Observed at `2026-08-21T19:36:33Z` from the current hosted Checks:
+
+- contextual-orchestrator PR #820 remains open at exact head
+  `4959e805c5724e7d1620639ab0151a992d717a0c`. Its unit, property, fuzz,
+  supply-chain, Semgrep, and Strix checks passed; only `osv-scan` failed after
+  the scanner exited 0 and the shared workflow asserted files that the
+  deprecated `--output` option did not produce.
+- The central repair is ContextualWisdomLab/.github PR #1158 at exact head
+  `c45a776f9ec3be8b35ee105e966100c80b95c2cc`. Its direct-source, provenance,
+  path-policy, and bootstrap checks are successful while coverage and protected
+  approval remain pending. Downstream OSV checks must be rerun after its
+  protected merge; no local suppression is valid.
+- This is operational evidence for the organization boundary, not a claim that
+  a collector accepted telemetry or that any protected PR merged.
 
 ## 7. Next Implementation Order
 
@@ -522,5 +537,6 @@ or bypass is authorized until the central repair and exact-head Checks pass.
    external runtime, returning only aggregate or derived non-identifying
    evidence to repository artifacts.
 4. Keep the GRC and contextual-orchestrator OTEL evidence contracts aligned
-   with the exact merged application instrumentation; validate live collector
-   delivery separately from source and PR evidence.
+   with the exact application instrumentation; validate live collector delivery
+   separately from source and PR evidence, then rerun downstream OSV checks
+   after central `.github` PR #1158 is protected.
