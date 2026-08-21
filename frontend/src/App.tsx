@@ -88,6 +88,7 @@ import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
+import { MenuIcon, CloseIcon } from "./components/icons";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
@@ -4699,7 +4700,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           aria-controls="mobile-workspace-navigation"
           onClick={() => setMobileMenuOpen((open) => !open)}
         >
-          ☰
+          <MenuIcon />
         </button>
         <div className="app-header-top-menu">
           {accountScope ? (
@@ -4735,7 +4736,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               aria-label={t("Close")}
               onClick={() => setMobileMenuOpen(false)}
             >
-              ×
+              <CloseIcon />
             </button>
             <WorkspaceNav
               id="mobile-workspace-navigation"
