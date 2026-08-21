@@ -107,6 +107,14 @@
   gap: 0.75rem;
 }
 
+.app-header-brand {
+  color: var(--text-h);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
 .app-header-title {
   font-size: 1.4rem;
   font-weight: 700;
@@ -407,6 +415,15 @@
 
 .app-footer-copyright {
   color: var(--color-footer-text);
+}
+
+.login-brand {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 /* GNB Navigation (§2.3.1) */

@@ -126,6 +126,11 @@ _IDENTIFIER_MIGRATION = (
     / "migrations"
     / "0104_two_word_database_identifiers.sql"
 )
+_TENANT_IDENTITY_METADATA_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0132_tenant_identity_metadata.sql"
+)
 _AFFILIATION_SCOPE_FACET_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -282,6 +287,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
             cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
             cur.execute(_IDENTIFIER_MIGRATION.read_text())
+            cur.execute(_TENANT_IDENTITY_METADATA_MIGRATION.read_text())
             cur.execute(_AFFILIATION_SCOPE_FACET_MIGRATION.read_text())
             cur.execute(_EVENT_CLUE_MIGRATION.read_text())
             cur.execute(_BROAD_FACT_TYPES_MIGRATION.read_text())
@@ -1280,7 +1286,12 @@ def test_settings_get_requires_auth_and_returns_brand_name(client, demo_analyst_
 
     response = client.get("/api/settings", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200
-    assert response.json()["brandName"]
+    assert response.json() == {
+        "brandName": "LineageWeave",
+        "systemName": "LineageWeave",
+        "copyrightYear": 2026,
+        "copyrightHolder": "LineageWeave",
+    }
 
 
 def test_settings_patch_requires_post_admin(client, demo_analyst_token, seeded_db) -> None:
@@ -1294,14 +1305,54 @@ def test_settings_patch_requires_post_admin(client, demo_analyst_token, seeded_d
     _grant_post_admin(seeded_db["dsn"])
     allowed = client.patch(
         "/api/settings",
-        json={"brandName": "LineageWeave Demo"},
+        json={
+            "brandName": "LineageWeave Demo",
+            "systemName": "LineageWeave Intelligence",
+            "copyrightYear": 2025,
+            "copyrightHolder": "LineageWeave Demo",
+        },
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert allowed.status_code == 200
-    assert allowed.json() == {"brandName": "LineageWeave Demo"}
+    assert allowed.json() == {
+        "brandName": "LineageWeave Demo",
+        "systemName": "LineageWeave Intelligence",
+        "copyrightYear": 2025,
+        "copyrightHolder": "LineageWeave Demo",
+    }
+
+    legacy = client.patch(
+        "/api/settings",
+        json={"brandName": "Legacy Client Brand"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert legacy.status_code == 200
+    assert legacy.json() == {
+        "brandName": "Legacy Client Brand",
+        "systemName": "LineageWeave Intelligence",
+        "copyrightYear": 2025,
+        "copyrightHolder": "LineageWeave Demo",
+    }
 
     confirm = client.get("/api/settings", headers={"Authorization": f"Bearer {demo_analyst_token}"})
-    assert confirm.json() == {"brandName": "LineageWeave Demo"}
+    assert confirm.json() == legacy.json()
+
+
+def test_settings_patch_rejects_blank_identity_and_invalid_copyright_year(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    _grant_post_admin(seeded_db["dsn"])
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+
+    blank_system_name = client.patch(
+        "/api/settings", json={"systemName": "   "}, headers=headers
+    )
+    assert blank_system_name.status_code == 422
+
+    invalid_year = client.patch(
+        "/api/settings", json={"copyrightYear": 1899}, headers=headers
+    )
+    assert invalid_year.status_code == 422
 
 
 def test_customer_master_returns_authorized_catalog_contract(

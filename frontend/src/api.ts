@@ -1263,16 +1263,23 @@ export function fetchRankings(accessToken: string): Promise<RankingList> {
   return backendFetch("/api/rankings", accessToken);
 }
 
-export function fetchTenantConfig(accessToken: string): Promise<{ brandName: string }> {
+export interface TenantConfig {
+  brandName: string;
+  systemName: string;
+  copyrightYear: number;
+  copyrightHolder: string;
+}
+
+export function fetchTenantConfig(accessToken: string): Promise<TenantConfig> {
   return backendFetch("/api/settings", accessToken);
 }
 
 export function updateTenantConfig(
   accessToken: string,
-  brandName: string,
-): Promise<{ brandName: string }> {
+  tenantConfig: TenantConfig,
+): Promise<TenantConfig> {
   return backendFetch("/api/settings", accessToken, {
     method: "PATCH",
-    body: JSON.stringify({ brandName }),
+    body: JSON.stringify(tenantConfig),
   });
 }

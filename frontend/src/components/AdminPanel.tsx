@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { t } from "../i18n";
-import { updateTenantConfig, type CurrentUser } from "../api";
+import { updateTenantConfig, type CurrentUser, type TenantConfig } from "../api";
 import type { WorkspaceDestination } from "./WorkspaceNav";
 import "./AdminPanel.css";
 
 export type AdminBoardTool = "advanced" | "lineage" | "rankings" | "analysis" | "reports";
+
+const COPYRIGHT_YEAR_MIN = 1900;
+const COPYRIGHT_YEAR_MAX = 2100;
 
 type AdminSection =
   | "overview"
@@ -80,12 +83,12 @@ const ADMIN_OPERATIONS: AdminOperation[] = [
   { label: "Create analysis run", route: "POST /api/analysis-runs", permission: "post_read", note: "Create a pending cutoff lineage for an authorized account." },
   { label: "Start analysis run", route: "POST /api/analysis-runs/{id}/start", permission: "post_read", note: "Start the persisted run from its pending cutoff lineage." },
   { label: "Rebuild period report", route: "POST /api/reports/{grouping_kind}/{period_code}/rebuild", permission: "post_admin", note: "Rebuild a period report from the persisted report inputs." },
-  { label: "Update tenant settings", route: "PATCH /api/settings", permission: "post_admin", note: "Persist the tenant brand name used by the workspace shell." },
+  { label: "Update tenant settings", route: "PATCH /api/settings", permission: "post_admin", note: "Persist the brand, system, and copyright metadata used by the workspace shell." },
 ];
 
 export type AdminPanelProps = {
-  currentBrandName: string;
-  onBrandNameChange: (newName: string) => void;
+  currentTenantConfig: TenantConfig;
+  onTenantConfigChange: (tenantConfig: TenantConfig) => void;
   accessToken: string;
   currentUser?: CurrentUser | null;
   onNavigate: (destination: WorkspaceDestination) => void;
@@ -189,21 +192,61 @@ function AdminBoardHandoff({ title, description, tool, onOpenBoardTool }: { titl
   );
 }
 
-export function AdminPanel({ currentBrandName, onBrandNameChange, accessToken, currentUser, onNavigate, onOpenBoardTool }: AdminPanelProps) {
+export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessToken, currentUser, onNavigate, onOpenBoardTool }: AdminPanelProps) {
   const [activeSection, setActiveSection] = useState<AdminSection>("overview");
-  const [draftName, setDraftName] = useState(currentBrandName);
+  const [draftConfig, setDraftConfig] = useState<TenantConfig>(currentTenantConfig);
+  const touchedConfigFields = useRef(new Set<keyof TenantConfig>());
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    setDraftConfig((draft) => ({
+      brandName: touchedConfigFields.current.has("brandName") ? draft.brandName : currentTenantConfig.brandName,
+      systemName: touchedConfigFields.current.has("systemName") ? draft.systemName : currentTenantConfig.systemName,
+      copyrightYear: touchedConfigFields.current.has("copyrightYear") ? draft.copyrightYear : currentTenantConfig.copyrightYear,
+      copyrightHolder: touchedConfigFields.current.has("copyrightHolder") ? draft.copyrightHolder : currentTenantConfig.copyrightHolder,
+    }));
+  }, [currentTenantConfig]);
+
+  function updateDraftField<K extends keyof TenantConfig>(field: K, value: TenantConfig[K]) {
+    touchedConfigFields.current.add(field);
+    setDraftConfig((draft) => ({ ...draft, [field]: value }));
+  }
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    if (draftName.trim()) {
+    if (
+      touchedConfigFields.current.size > 0
+      &&
+      draftConfig.brandName.trim()
+      && draftConfig.systemName.trim()
+      && draftConfig.copyrightHolder.trim()
+      && Number.isInteger(draftConfig.copyrightYear)
+      && draftConfig.copyrightYear >= COPYRIGHT_YEAR_MIN
+      && draftConfig.copyrightYear <= COPYRIGHT_YEAR_MAX
+    ) {
+      const requestedConfig = {
+        brandName: draftConfig.brandName.trim(),
+        systemName: draftConfig.systemName.trim(),
+        copyrightYear: draftConfig.copyrightYear,
+        copyrightHolder: draftConfig.copyrightHolder.trim(),
+      };
+      if (
+        requestedConfig.brandName === currentTenantConfig.brandName
+        && requestedConfig.systemName === currentTenantConfig.systemName
+        && requestedConfig.copyrightYear === currentTenantConfig.copyrightYear
+        && requestedConfig.copyrightHolder === currentTenantConfig.copyrightHolder
+      ) {
+        return;
+      }
       setSaving(true);
       setError(null);
       try {
-        const config = await updateTenantConfig(accessToken, draftName.trim());
-        onBrandNameChange(config.brandName);
+        const config = await updateTenantConfig(accessToken, requestedConfig);
+        touchedConfigFields.current.clear();
+        setDraftConfig(config);
+        onTenantConfigChange(config);
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
       } catch (err: any) {
@@ -254,14 +297,82 @@ export function AdminPanel({ currentBrandName, onBrandNameChange, accessToken, c
               <input
                 id="brandNameInput"
                 type="text"
-                value={draftName}
-                onChange={(e) => setDraftName(e.target.value)}
+                value={draftConfig.brandName}
+                onChange={(e) => updateDraftField("brandName", e.target.value)}
                 aria-label={t("Tenant brand name")}
                 required
                 disabled={saving}
               />
+              <label htmlFor="systemNameInput">
+                <strong>
+                  <span className="required-mark" aria-hidden="true">*</span>
+                  {t("Tenant system name")}
+                </strong>
+                <span className="admin-field-help">{t("This name is shown as the web system title.")}</span>
+              </label>
+              <input
+                id="systemNameInput"
+                type="text"
+                value={draftConfig.systemName}
+                onChange={(e) => updateDraftField("systemName", e.target.value)}
+                aria-label={t("Tenant system name")}
+                required
+                disabled={saving}
+              />
+              <label htmlFor="copyrightHolderInput">
+                <strong>
+                  <span className="required-mark" aria-hidden="true">*</span>
+                  {t("Tenant copyright holder")}
+                </strong>
+                <span className="admin-field-help">{t("This approved rights holder is shown in the footer.")}</span>
+              </label>
+              <input
+                id="copyrightHolderInput"
+                type="text"
+                value={draftConfig.copyrightHolder}
+                onChange={(e) => updateDraftField("copyrightHolder", e.target.value)}
+                aria-label={t("Tenant copyright holder")}
+                required
+                disabled={saving}
+              />
+              <label htmlFor="copyrightYearInput">
+                <strong>
+                  <span className="required-mark" aria-hidden="true">*</span>
+                  {t("Tenant copyright year")}
+                </strong>
+                <span className="admin-field-help">{t("Use the approved major-open year, not the current browser year.")}</span>
+              </label>
+              <input
+                id="copyrightYearInput"
+                type="number"
+                value={draftConfig.copyrightYear}
+                onChange={(e) => updateDraftField("copyrightYear", Number(e.target.value))}
+                aria-label={t("Tenant copyright year")}
+                min={COPYRIGHT_YEAR_MIN}
+                max={COPYRIGHT_YEAR_MAX}
+                required
+                disabled={saving}
+              />
               <div className="admin-form-actions">
-                <button type="submit" className="btn-primary" disabled={saving || !draftName.trim() || draftName === currentBrandName}>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={
+                    saving
+                    || !draftConfig.brandName.trim()
+                    || !draftConfig.systemName.trim()
+                    || !draftConfig.copyrightHolder.trim()
+                    || !Number.isInteger(draftConfig.copyrightYear)
+                    || draftConfig.copyrightYear < COPYRIGHT_YEAR_MIN
+                    || draftConfig.copyrightYear > COPYRIGHT_YEAR_MAX
+                    || (
+                      draftConfig.brandName === currentTenantConfig.brandName
+                      && draftConfig.systemName === currentTenantConfig.systemName
+                      && draftConfig.copyrightYear === currentTenantConfig.copyrightYear
+                      && draftConfig.copyrightHolder === currentTenantConfig.copyrightHolder
+                    )
+                  }
+                >
                   {saving ? t("Saving...") : t("Save settings")}
                 </button>
                 {saved && <span className="admin-success" role="status">{t("Settings saved!")}</span>}
