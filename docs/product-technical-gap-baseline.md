@@ -185,6 +185,30 @@ only the existing chunk-size warning. This validates the current checkout;
 it does not turn the open PR into a protected-main merge or prove the
 authorized-corpus UI and image evidence gaps above.
 
+Queue refresh at `2026-08-21T19:30:47Z`: the latest open queue contains PR
+#394 at `5602096b61272a2ccb0c9997cbaddd261fa165af`, #393 at
+`97baed032533a71c6a04b51d7c70df6df535e53b`, #392 at
+`1412313d421445c1246a6970c5ab71a6304a483d`, #387 at
+`eaea56d3b2f07f89a5dfcc7d81b032148048982d`, #383 at
+`4eaa07172fde827f4ad89580326a0d2db5ceb0e4`, #373 at
+`151fe6e177416a5d83b5539a73d97737c12d1ce4`, #368 at
+`457fab8cbdc5a407fc8f1373481314f2dec3f6fb`, #355 at
+`b606c2553f877fa85968d90dc46598ce16897fbf`, #349 at
+`a6af452568ee907835689829d0a871b208053382`, and #258 at
+`6dc040c6b3ea0bfc4424bb7afb11b8afd7205d77`. Every open PR targeted
+`main` and remained `BLOCKED`; #373 and #349 required a fresh independent
+approval, #355 retained `CHANGES_REQUESTED`, and #258 had an approval-related
+review gate but no terminal Checks. The exact-head Checks snapshot had no
+failed bucket on any of these ten PRs; #392 had one passing, twelve pending,
+and eight skipped Checks after the static-SQL suppression push. No protected
+merge was authorized. The active no-force-push ruleset had no bypass actors.
+
+The #392 security repair at exact head `1412313d` passed Semgrep with zero
+findings, its two focused Global Ask history tests, and the backend suite with
+848 passed and 17 environment skips. The existing central OSV repair remains
+`.github` PR #1158; the earlier #383 failure is retained as historical
+evidence and is not treated as a current failure after its head advanced.
+
 Closed without merge at the same observation:
 
 - PR #386: `closed_without_merge` head `57a013deb88fc0b23ae6448c1d3474c770360a5e`.
