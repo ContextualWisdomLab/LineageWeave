@@ -3533,6 +3533,8 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute("aria-expanded", "false");
     const appHeader = document.querySelector<HTMLElement>("header.app-header");
     expect(appHeader).not.toBeNull();
+    expect(within(appHeader as HTMLElement).getByLabelText("Language")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Buyer navigation" })).not.toHaveTextContent("Language");
     await userEvent.click(
       within(appHeader as HTMLElement).getByRole("button", { name: "Search" }),
     );

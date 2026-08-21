@@ -1,12 +1,10 @@
 import { t } from "../i18n";
-import type { ReactNode } from "react";
 
 export type BuyerDestination = "board" | "customers" | "calendar" | "ask" | "admin";
 
 export type BuyerNavProps = {
   destination: BuyerDestination;
   onChange: (destination: BuyerDestination) => void;
-  tools?: ReactNode;
   drawer?: boolean;
   id?: string;
 };
@@ -21,7 +19,7 @@ const LABELS: Record<BuyerDestination, string> = {
   admin: "Admin",
 };
 
-export function BuyerNav({ destination, onChange, tools, drawer = false, id }: BuyerNavProps) {
+export function BuyerNav({ destination, onChange, drawer = false, id }: BuyerNavProps) {
   return (
     <nav
       id={id}
@@ -39,7 +37,6 @@ export function BuyerNav({ destination, onChange, tools, drawer = false, id }: B
           {t(LABELS[id])}
         </button>
       ))}
-      {tools ? <div className="buyer-gnb-tools">{tools}</div> : null}
     </nav>
   );
 }

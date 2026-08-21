@@ -229,12 +229,6 @@
   background-color: var(--gnb-active-indicator-color);
 }
 
-.buyer-gnb-tools {
-  margin-left: auto;
-  display: flex;
-  align-items: center;
-}
-
 /* Button Standards (§4.3) */
 .btn-primary {
   background: var(--color-btn-primary-bg);
@@ -998,12 +992,6 @@
 
   .mobile-drawer .buyer-gnb-item[aria-current="page"] {
     background: var(--color-accent-background);
-  }
-
-  .mobile-drawer .buyer-gnb-tools {
-    margin: 0.75rem 0 0;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--border);
   }
 
   .lineage-dag-viewport {

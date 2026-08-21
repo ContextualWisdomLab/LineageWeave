@@ -55,6 +55,12 @@ record the final PR head with `git rev-parse HEAD` during acceptance.
 - **Header utilities/search — partial:** the authenticated header now exposes a
   global Search action that focuses the existing board search; a dedicated
   site-map utility is still not implemented.
+- **Header top-menu language placement — fixed in this worktree:** UI/UX
+  Standard Guide v3.0 §2.2.2 assigns 언어설정 (language setting) to the header
+  top menu alongside user info, login/logout, search, and utility items.
+  `LanguageSwitcher` now renders inside `.app-header-top-menu` (`App.tsx`)
+  instead of the GNB row; the now-unused `BuyerNav` `tools` prop and
+  `.buyer-gnb-tools` CSS were removed.
 - **Locale document metadata — substantially present:** `i18n.ts` synchronizes
   `document.documentElement.lang` after locale selection and `i18n.test.ts`
   covers the supported locales. `frontend/index.html` remains an English

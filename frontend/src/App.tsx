@@ -4685,6 +4685,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             </span>
           ) : null}
           <span className="app-user-profile">{auth.user?.profile.preferred_username}</span>
+          <LanguageSwitcher accessToken={accessToken} />
           <button
             type="button"
             className="btn-secondary app-header-search"
@@ -4698,11 +4699,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           <button className="btn-secondary" onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
         </div>
       </header>
-      <BuyerNav
-        destination={destination}
-        onChange={changeDestination}
-        tools={<LanguageSwitcher accessToken={accessToken} />}
-      />
+      <BuyerNav destination={destination} onChange={changeDestination} />
       {mobileMenuOpen ? (
         <div className="mobile-drawer-backdrop" onClick={() => setMobileMenuOpen(false)}>
           <aside
@@ -4722,7 +4719,6 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               id="mobile-buyer-navigation"
               destination={destination}
               onChange={changeDestination}
-              tools={<LanguageSwitcher accessToken={accessToken} />}
               drawer
             />
           </aside>
