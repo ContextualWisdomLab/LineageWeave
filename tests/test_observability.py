@@ -79,6 +79,49 @@ def test_traced_rethrows_provider_errors():
         raise AssertionError("traced must preserve operation failures")
 
 
+def test_traced_disables_automatic_exception_recording(monkeypatch):
+    """OTel must not serialize an exception value or implicit stack trace."""
+    captured = {}
+
+    class _Span:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_args):
+            return False
+
+        def set_attribute(self, _key, _value):
+            pass
+
+        def add_event(self, name, attributes):
+            captured["event"] = (name, attributes)
+
+        def set_status(self, _status):
+            pass
+
+    class _Tracer:
+        def start_as_current_span(self, name, **kwargs):
+            captured["span"] = (name, kwargs)
+            return _Span()
+
+    class _Trace:
+        def get_tracer(self, _name):
+            return _Tracer()
+
+    monkeypatch.setattr(observability, "trace", _Trace())
+    try:
+        with observability.traced("lineageweave.test.sensitive"):
+            raise RuntimeError("secret provider response")
+    except RuntimeError:
+        pass
+
+    assert captured["span"] == (
+        "lineageweave.test.sensitive",
+        {"record_exception": False, "set_status_on_exception": False},
+    )
+    assert captured["event"][1] == {"exception.type": "RuntimeError"}
+
+
 def test_safe_attributes_keeps_allowlisted_operation_code():
     """Endpoint spans retain the bounded operation dimension."""
     assert _safe_attributes(

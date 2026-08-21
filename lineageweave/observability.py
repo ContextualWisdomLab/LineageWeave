@@ -310,7 +310,9 @@ def traced(
         yield None
         return
     tracer = trace.get_tracer(_TRACER_NAME)
-    with tracer.start_as_current_span(name) as span:
+    with tracer.start_as_current_span(
+        name, record_exception=False, set_status_on_exception=False
+    ) as span:
         safe = _safe_attributes(attributes)
         for key, value in safe.items():
             span.set_attribute(key, value)
