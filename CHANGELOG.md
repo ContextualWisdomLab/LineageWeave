@@ -4,6 +4,22 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.23.0] - 2026-08-20
+
+### Added
+
+- Ask Agent now accepts an optional knowledge cutoff. A dated question
+  matches retained source-post revisions from that clock and never
+  substitutes a live body or live rewrite text. Fully, partly, and
+  live-only answers are named separately. No TEPP theta is invented. No
+  as-of label is applied to a live query (ADR 0135 / ADR 0016 / ADR 0025).
+
+### Fixed
+
+- Partial cutoff answers now show which historical bodies were unavailable,
+  and commitment-derived ticket writes enforce the owning-post authorization
+  boundary before provider work.
+
 ## [2.20.0] - 2026-08-21
 
 ### Added
@@ -35,6 +51,15 @@ All notable changes to this project are documented here. Format follows
   bounded, authorized exact-project chronology. The release remains pending
   protected-main review and Checks (ADR 0111).
 
+### Added
+
+- Opening a Board Weekly VOC post, Calendar commitment, Customer master
+  related post, or Ask Agent cited post now keeps Event Lineage current
+  and focuses Keyman as the named next read. A linked Event Lineage DAG
+  walk from that popup keeps the same Keyman focus. A home-list open
+  does not add that focus or copy. No TEPP theta is invented. No cited
+  post, customer, week, or cutoff body is invented (ADR 0100 / ADR 0097
+  / ADR 0016).
 ## [2.17.0] - 2026-08-19
 
 ### Added
@@ -53,7 +78,7 @@ All notable changes to this project are documented here. Format follows
   and evaluation as the next read. After an authorized answer, Ask Agent
   names cited posts as current before that open. Home-list opens do not add
   that focus or copy. No TEPP theta is invented. No cited post is invented
-(ADR 0096 / ADR 0039 / ADR 0016).
+  (ADR 0096 / ADR 0039 / ADR 0016).
 
 ## [2.15.0] - 2026-08-19
 
@@ -63,7 +88,7 @@ All notable changes to this project are documented here. Format follows
   Keyman and evaluation as the next read. Customer master names authorized
   customer entities as current before that open. Home-list opens do not add
   that focus or copy. No TEPP theta is invented. No customer is invented
-(ADR 0095 / ADR 0037 / ADR 0016).
+  (ADR 0095 / ADR 0037 / ADR 0016).
 
 ## [2.14.0] - 2026-08-19
 

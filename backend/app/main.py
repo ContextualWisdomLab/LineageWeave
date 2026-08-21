@@ -73,8 +73,12 @@ from lineageweave.post_chat import (
     ChatSourceDocument,
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
+    ask_grounding_status,
+    ask_next_action,
+    cited_post_citations,
     cited_post_evidence,
     cited_post_summaries,
+    historical_body_limitations,
     render_global_ask_context,
 )
 from lineageweave.post_content_normalization import normalize_post_body
@@ -276,6 +280,22 @@ def _require_post_admin(account: CurrentAccount) -> None:
     """Raise 403 when the account has no ``post_admin`` permission at all."""
     if not account.has_permission(_POST_ADMIN):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "account lacks the post_admin permission")
+
+
+def _require_ticket_post_access(account: CurrentAccount, post: asyncpg.Record) -> None:
+    """Require ticket mutation access to the owning post, not visibility alone.
+
+    ``post_admin`` is necessary but intentionally not sufficient: a public post
+    can be read by every account, while ticket state is still a write to the
+    authoring account's corporate work area.
+    """
+    is_author = str(post["author_account_id"]) == account.user_account_id
+    is_affiliated = str(post["corporate_entity_id"]) in account.corporate_entity_ids
+    if not (is_author or is_affiliated):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "account is not authorized to modify tickets on this post",
+        )
 
 
 def _keyman_extraction_client():
@@ -2656,6 +2676,7 @@ class GlobalAskRequest(BaseModel):
 
     question: str
     session_id: str | None = None
+    knowledge_cutoff: str | None = None
 
 
 def global_ask_timeline(sources: list[ChatSourceDocument]) -> list[dict[str, str | None]]:
@@ -2839,7 +2860,15 @@ async def ask_agent(
             UUID(request.session_id)
         except ValueError:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "Global Ask session not found") from None
-    knowledge_cutoff = ask_knowledge_cutoff()
+    try:
+        knowledge_cutoff = ask_knowledge_cutoff(
+            request.knowledge_cutoff.strip() if request.knowledge_cutoff else None
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "knowledge_cutoff must be an ISO-8601 timestamp",
+        ) from exc
     client = _post_chat_client()
     if not client.available:
         raise HTTPException(
@@ -2905,7 +2934,17 @@ async def ask_agent(
         conversation.summary,
         conversation.recent_turns,
     )
-    if not sources:
+    try:
+        grounding_status = ask_grounding_status(sources, knowledge_cutoff)
+        limitations = historical_body_limitations(sources)
+        cutoff_text = knowledge_cutoff.isoformat() if knowledge_cutoff is not None else None
+        llm_sources = [source for source in sources if not source.historical_body_unavailable]
+    except Exception as exc:  # noqa: BLE001 - malformed evidence must fail closed.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
+        ) from exc
+    if not llm_sources:
         async with pool.acquire() as conn:
             await persist_global_ask_turn(conn, conversation.session_id, question, "", ())
         await publish_operation_event(
@@ -2918,20 +2957,26 @@ async def ask_agent(
             "session_id": conversation.session_id,
             "answer_text": "",
             "cited_post_ids": [],
-            "cited_posts": [],
-            "source_post_ids": [],
+            "source_post_ids": [source.post_id for source in sources],
             "cited_post_evidence": [],
-            "timeline": [],
             "project_histories": [],
             "project_histories_truncated": False,
-            "knowledge_cutoff": knowledge_cutoff.isoformat().replace("+00:00", "Z"),
-            "next_action": "No authorized source posts are available for this question.",
+            "cited_posts": [],
+            "knowledge_cutoff": cutoff_text,
+            "timeline": global_ask_timeline(sources),
+            "grounding_status": grounding_status,
+            "limitations": limitations,
+            "next_action": ask_next_action(
+                grounding_status,
+                has_sources=bool(sources),
+                has_retained_bodies=bool(llm_sources),
+            ),
         }
     try:
         answer = await asyncio.to_thread(
             client.answer,
             question,
-            sources,
+            llm_sources,
             conversation_context=conversation_context,
         )
     except (HttpClientError, KeyError, OSError, RuntimeError, ValueError) as exc:
@@ -2974,9 +3019,22 @@ async def ask_agent(
         "session_id": conversation.session_id,
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
-        "cited_post_evidence": cited_post_evidence(sources, cited_ids),
+        "cited_posts": cited_post_citations(llm_sources, cited_ids),
+        "cited_post_evidence": cited_post_evidence(llm_sources, cited_ids),
+        # The timeline is the complete authorized retrieval boundary. A
+        # source without a retained cutoff body is still a real timeline
+        # event and must remain navigable, even though it is excluded from
+        # the LLM evidence bundle.
         "source_post_ids": [source.post_id for source in sources],
         "timeline": global_ask_timeline(sources),
+        "knowledge_cutoff": cutoff_text,
+        "grounding_status": grounding_status,
+        "limitations": limitations,
+        "next_action": ask_next_action(
+            grounding_status,
+            has_sources=True,
+            has_retained_bodies=bool(llm_sources),
+        ),
         **answer_evidence.response_fields(),
     }
 
@@ -3076,7 +3134,8 @@ async def create_post_ticket(
     a ticket is a write action, same discipline as extract-keymen.
     """
     _require_post_admin(account)
-    await _load_visible_post(post_id, account, pool)
+    post = await _load_visible_post(post_id, account, pool)
+    _require_ticket_post_access(account, post)
     async with pool.acquire() as conn:
         try:
             ticket = await create_ticket(
@@ -3137,7 +3196,8 @@ async def patch_ticket(
         post_id = await fetch_ticket_post_id(conn, issue_ticket_id)
         if post_id is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "ticket not found")
-    await _load_visible_post(post_id, account, pool)
+    post = await _load_visible_post(post_id, account, pool)
+    _require_ticket_post_access(account, post)
     async with pool.acquire() as conn:
         try:
             ticket = await update_ticket(
@@ -3198,6 +3258,7 @@ async def derive_post_commitment(
     """
     _require_post_admin(account)
     post = await _load_visible_post(post_id, account, pool)
+    _require_ticket_post_access(account, post)
     post_metadata = build_post_llm_metadata(post_id, post)
     with use_llm_metadata(post_metadata):
         client = _commitment_extraction_client()

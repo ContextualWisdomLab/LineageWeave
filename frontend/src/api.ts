@@ -270,6 +270,11 @@ export interface PostLineage {
 export interface CitedPostRef {
   post_id: string;
   post_title: string;
+  source_revision_id?: string | null;
+  evidence_available_at?: string | null;
+  knowledge_cutoff?: string | null;
+  live_after_cutoff?: boolean;
+  historical_body_unavailable?: boolean;
 }
 
 export interface CitedPostEvidenceFact {
@@ -297,7 +302,7 @@ export interface ChatAnswer {
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
   source_post_ids: string[];
-  knowledge_cutoff?: string;
+  knowledge_cutoff?: string | null;
   project_histories?: ProjectHistoryLink[];
   project_histories_truncated?: boolean;
 }
@@ -307,7 +312,7 @@ export interface ChatExchange {
   answer_text: string;
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
-  knowledge_cutoff?: string;
+  knowledge_cutoff?: string | null;
   project_histories?: ProjectHistoryLink[];
   project_histories_truncated?: boolean;
 }
@@ -325,10 +330,17 @@ export interface AskAgentResponse {
   cited_post_evidence?: CitedPostEvidence[];
   source_post_ids: string[];
   timeline?: AskTimelineEntry[];
-  knowledge_cutoff?: string;
   project_histories?: ProjectHistoryLink[];
   project_histories_truncated?: boolean;
   next_action?: string;
+  knowledge_cutoff?: string | null;
+  grounding_status?: "live_only" | "fully_cutoff_grounded" | "partially_cutoff_grounded";
+  limitations?: AskLimitation[];
+}
+
+export interface AskLimitation {
+  post_id: string;
+  limitation_code: string;
 }
 
 export interface AskTimelineEntry {
@@ -925,10 +937,15 @@ export function askAgent(
   accessToken: string,
   question: string,
   sessionId?: string,
+  knowledgeCutoff?: string,
 ): Promise<AskAgentResponse> {
   return backendFetch("/api/ask", accessToken, {
     method: "POST",
-    body: JSON.stringify({ question, ...(sessionId ? { session_id: sessionId } : {}) }),
+    body: JSON.stringify({
+      question,
+      ...(sessionId ? { session_id: sessionId } : {}),
+      ...(knowledgeCutoff ? { knowledge_cutoff: knowledgeCutoff } : {}),
+    }),
   });
 }
 

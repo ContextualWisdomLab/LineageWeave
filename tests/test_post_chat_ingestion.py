@@ -67,6 +67,9 @@ class _SourceConnection:
     async def fetch(self, _query: str, *_args: object):
         return []
 
+    async def fetchval(self, _query: str, *_args: object):
+        return "<p>Body</p>"
+
 
 def test_gather_chat_sources_keeps_the_event_loop_responsive_during_body_normalization(
     monkeypatch: pytest.MonkeyPatch,
@@ -74,7 +77,9 @@ def test_gather_chat_sources_keeps_the_event_loop_responsive_during_body_normali
     order: list[str] = []
     release = Event()
 
-    def blocking_normalize(_body: str, *, vision_client: object) -> SimpleNamespace:
+    def blocking_normalize(
+        _body: str, *, vision_client: object, **_kwargs: object
+    ) -> SimpleNamespace:
         del vision_client
         order.append("normalization_started")
         assert release.wait(timeout=1.0)
@@ -161,6 +166,11 @@ def test_gather_chat_sources_bounds_and_orders_linked_context(
             }
 
         async def fetch(self, query: str, *args: object):
+            if "select post_id, post_body" in query:
+                return [
+                    {"post_id": post_id, "post_body": "Body"}
+                    for post_id in args[0]
+                ]
             if "from source_post where post_id = any" not in query:
                 return []
             self.candidate_query = query
@@ -195,14 +205,17 @@ def test_gather_chat_sources_bounds_and_orders_linked_context(
                 for post_id in self.candidate_ids
             ]
 
+        async def fetchval(self, _query: str, *_args: object):
+            return "Root body"
+
     conn = SourceBudgetConnection()
     sources = asyncio.run(gather_chat_sources(conn, root_id, lambda _row: True))
 
     expected_candidates = [*sorted(direct_ids), *sorted(indirect_ids)][:32]
     assert conn.candidate_ids == expected_candidates
     assert "array_position" in conn.candidate_query
-    assert [source.post_id for source in sources] == [root_id, *expected_candidates[:7]]
-    assert len(sources) == 8
+    assert [source.post_id for source in sources] == [root_id, *expected_candidates[:5]]
+    assert len(sources) == 6
 
 
 def test_normalize_question_rejects_empty_and_collapses_whitespace() -> None:
@@ -265,7 +278,11 @@ def test_contextual_chat_client_uses_auto_mode_and_evidence_prompt(monkeypatch: 
         captured.update({"url": url, "payload": payload, "headers": headers, "timeout": timeout})
         return {
             "choices": [
-                {"message": {"content": "supported\nCITED SOURCES: 1, 9"}},
+                {
+                    "message": {
+                        "content": '{"answer_text":"supported","cited_source_numbers":[1,9]}'
+                    }
+                },
             ]
         }
 
@@ -282,7 +299,8 @@ def test_contextual_chat_client_uses_auto_mode_and_evidence_prompt(monkeypatch: 
     payload = captured["payload"]
     assert payload["mode"] == "auto"
     assert payload["reasoning_effort"] == "low"
-    assert "fact" in payload["messages"][0]["content"]
+    assert "fact" in payload["messages"][1]["content"]
+    assert payload["response_format"]["type"] == "json_schema"
 
 
 def test_contextual_chat_client_rejects_malformed_provider_response(monkeypatch: pytest.MonkeyPatch) -> None:
