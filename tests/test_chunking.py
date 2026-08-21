@@ -162,6 +162,17 @@ def test_chunk_by_dom_word_table_rows_also_group_cells() -> None:
     assert chunks[0].label == "w:tr"
 
 
+def test_chunk_by_dom_nested_flow_blocks_keep_list_item_semantics() -> None:
+    chunks = chunk_by_dom(
+        "<ol><li><p>첫 항목</p></li><li><p>둘째 항목</p>"
+        "<ol><li><p>하위 항목</p></li></ol></li></ol>"
+    )
+
+    assert [chunk.label for chunk in chunks] == ["li", "li", "li"]
+    assert [chunk.text for chunk in chunks] == ["첫 항목", "둘째 항목", "하위 항목"]
+    assert [chunk.indent_width for chunk in chunks] == [4, 4, 8]
+
+
 def test_chunk_by_dom_keeps_indentation_as_metadata_not_embedding_text() -> None:
     html = "<p>&nbsp;&nbsp;Level one</p><p>&nbsp;&nbsp;&nbsp;&nbsp;Level two</p>"
     chunks = chunk_by_dom(html)
