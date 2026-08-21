@@ -1,10 +1,10 @@
 # Product, technical, and gap baseline
 
-**Snapshot:** 2026-08-20 17:08 (Asia/Seoul)
-**Protected-main baseline:** `origin/main`, product version `2.12.5`
-**Audited PR head:** #258 at `bf599aca` (integrated timeout boundary, fixture fix, worker repair, and SQL review evidence)
-**Active PR update:** ADR 0101 and the enrichment-timeout changes are pushed to
-PR #258; protected-main runtime evidence remains pending.
+**Snapshot:** 2026-08-21 (Asia/Seoul)
+**Protected-main baseline:** `origin/main`; this document does not claim the active PR is shipped.
+**Audited PR head:** #258 code commit `__TREE_CODE_SHA__` for customer-master hierarchy hardening.
+**Active PR update:** Customer Master now has a cycle-safe, accessible hierarchy projection; exact-head
+frontend and Storybook verification is required before merge.
 **Purpose:** connect the normative ADRs and research evidence to product
 requirements, technical contracts, implementation evidence, and active PRs.
 An active PR is proposed work, not shipped behavior.
@@ -66,6 +66,7 @@ claims that an unmerged PR or historical runtime observation is live behavior.
 | FR-10 | Standard provenance uses normalized PROV-O relations; qualified influence implies its unqualified relation and KG edges remain a navigation projection. | ADR 0011, 0065 | PROV-O implementation matrices, ontology, CI contract |
 | FR-11 | Post summaries expose evidence-bearing events and R&R. Requester/processor actions are nullable and may only name actors already bound to the same post summary. | ADR 0052, ADR 0100 | Commit `15e1a378` is on PR #258; one authorized target refresh stored three action rows, while corpus-wide buyer-data acceptance remains unproven |
 | FR-12 | A hierarchy-enrichment timeout leaves the source-grounded summary readable and the actor unbound; it never creates a guessed catalog identity. | ADR 0101, ADR 0010, ADR 0026 | Commit `1c260f20` contains the boundary, ADR, and focused test; independent review, protected-main merge, and fresh runtime evidence remain pending |
+| FR-13 | Customer Master projects authorized corporate entities as a Group → Company → Plant tree. Missing-parent, self-parent, and cyclic edges remain visible as unresolved roots; the UI supports WAI-ARIA tree keyboard navigation and opens source-backed posts independently from hierarchy disclosure. | ADR 0124, ADR 0004, ADR 0010 | `customerMasterTree.ts`, `CustomerMasterTree.tsx`, pure/component tests, and Storybook on code commit `__TREE_CODE_SHA__` |
 
 ## TRD
 
@@ -141,6 +142,7 @@ sequenceDiagram
 | NFR-04 | Python 3.12+ project-local environment; pinned Node/pnpm and Rust toolchain; checked lockfiles | clean-environment backend/frontend builds |
 | NFR-05 | Synthetic fixtures only; runtime validation returns aggregate, non-identifying evidence | repository scan and evidence-document review |
 | NFR-06 | ADR-first architectural change and paper-grounded model policy | ADR link check and review; unsupported policies remain unavailable |
+| NFR-07 | Buyer hierarchy controls meet WCAG 2.2 keyboard operation and the WAI-ARIA tree interaction contract without inventing ontology facts | Customer-tree component tests, lint, build, and Storybook exact-head verification |
 
 ## Current aggregate data and runtime evidence
 
@@ -166,6 +168,12 @@ not prove a browser-clicked buyer journey, current TEPP transport success,
 post-summary-action population across the corpus, or equivalence between every
 running container image and the PR head. The target refresh is bounded runtime
 evidence for one authorized post, not a corpus-wide acceptance claim.
+
+## Closed gap evidence
+
+| Closed gap | Root cause | Closure evidence | Remaining boundary |
+|---|---|---|---|
+| Customer entities could disappear from the buyer surface when `parent_entity_id` formed a self-parent or cycle, and the visual nesting lacked a real tree keyboard contract. | The UI recursively assembled only root-reachable nodes and reused `aria-expanded` for related-post evidence rather than hierarchy state. | Code commit `__TREE_CODE_SHA__` promotes malformed edges to visible unresolved roots, separates branch/evidence disclosure, and adds pure, component, and Storybook coverage. | The API still exposes one flat parent context; legal, operating, sales, billing, and time-valid hierarchies require a later normalized relation model. |
 
 ## Active PR audit
 
