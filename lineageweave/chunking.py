@@ -103,7 +103,7 @@ _LIST_ITEM_START = re.compile(
 )
 _FOOTNOTE_START = re.compile(r"^[*†‡](?=\S)")
 _FOOTNOTE_IDENTIFIER = re.compile(
-    r"^(?:fn|ftn|en|endnote)[:_-]?\d+(?:[:_-][a-z0-9]+)*$",
+    r"^(?:fn|ftn|endnote)[:_-]?\d+(?:[:_-][a-z0-9]+)*$",
     re.IGNORECASE,
 )
 

@@ -162,6 +162,15 @@ def test_chunk_by_dom_labels_numbered_html_footnote_ids() -> None:
     ]
 
 
+def test_chunk_by_dom_does_not_label_short_non_footnote_ids() -> None:
+    """Short application ids must not be mistaken for numbered footnotes."""
+    chunks = chunk_by_dom('<p id="en1">Engagement summary.</p>')
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Engagement summary."),
+    ]
+
+
 def test_chunk_by_dom_keeps_numbered_footnote_backlinks_in_body_paragraphs() -> None:
     html = (
         '<p>Body cites <a href="#fn1" id="fnref1">[1]</a>.</p>'
