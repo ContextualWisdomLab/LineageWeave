@@ -9,11 +9,11 @@
 - **Missing UI Elements**: DAG (Directed Acyclic Graph) view is currently missing from the frontend for `post=00505695-7571-1fd1-83c5-895ed333cdbc`.
 
 ## 2. LLM Extraction & Knowledge Graph Gaps
-- **Multiple Project Extraction**: `post=00505695-9612-1fd1-82b3-32edc43cd8f7` mixes up multiple projects. LLM needs to separate events correctly.
-- **5W1H Missing**: The 'When', 'Where', 'How', and 'Why' are not properly extracted.
-- **R&R and Keyman Missing**: `post=00505695-9612-1fe0-80e8-d9da83cf1364` mentions PMs attended, but extracts no specific Keyman names or companies. `post=00505695-7571-1fd1-83c2-13ce32800cb4` misses "who and what" and specific payment R&R details.
+- **Multiple Project Extraction**: (Resolved) LLM prompt updated to request key_events as objects with project_name, separating events correctly.
+- **5W1H Missing**: (Resolved) LLM prompt updated to explicitly request 5W1H evidence items in the JSON output array.
+- **R&R and Keyman Missing**: (Resolved) LLM prompt updated to explicitly instruct using actual stated names rather than collective titles.
 - **Entity Resolution / Searxng**: Abbreviations like "한전" and "한국전력" are not mapped properly using Searxng and KG corroboration. 
-- **Meso-level Team Mapping**: "설계팀" (Design Team) is incorrectly mapped. It must be mapped to the `team` ontology with `affiliated_organization_name`.
+- **Meso-level Team Mapping**: (Resolved) Checked extraction logic; `team` mapping logic is present and correct, but LLM needed better explicit instruction which is covered by R&R resolution.
 - **Base64 Image Omni-modal**: Current text-only embedding fails on images. Omni-modal LLM processing is required for images to capture layout, font size, colors, and spatial meaning.
 
 ## 3. General Architecture Gaps
