@@ -445,6 +445,18 @@ evidence or claim a protected-main merge.
   `6e2e845ca3b14c0e4c943c59753b9378a1cb8c47`, targets `main`, and is blocked
   while its hosted gates run. No protected-main merge is claimed.
 
+### 4.10 Latest queue snapshot
+
+Observed at `2026-08-21T21:09:30Z`. The central queue advanced parent PR #392
+to exact head `5fc943477189640f42dfa8ad2d72678216bd1ea5`; it remains open,
+`mergeable=true`, blocked, with all observed required checks pending and no
+formal review decision. Documentation PR #368 is at exact head
+`829b630a3608d0b800fabf9ea129d011091f7ca3`; it is likewise open,
+`mergeable=true`, blocked, and pending its hosted checks without independent
+approval. The stack branch still points to merged identity commit
+`202063bca2afa38d100199de3f0520fdd8c15e8c`. No protected-main merge is
+claimed.
+
 ## 5. Local Buyer-Surface Verification
 
 Observed at `2026-08-21T13:06:25Z` in the authorized local stack using a
