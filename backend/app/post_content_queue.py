@@ -54,7 +54,7 @@ def post_content_summary_status_message(status_code: str | None) -> str:
     job instead of implying that waiting will resolve a terminal failure.
     """
     if status_code == FAILED:
-        return "Post summary is unavailable: image evidence ingestion failed; retry the content job"
+        return "Post summary is unavailable: image evidence ingestion failed; contact an administrator to retry the content job"
     return "Post summary is unavailable: image evidence is still being processed"
 
 
