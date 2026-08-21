@@ -42,6 +42,13 @@ jobs:
           fetch-depth: 0
           persist-credentials: true
 
+      - name: Merge the latest parent head without rewriting history
+        run: |
+          git fetch origin feat/tepp-project-history-recovery-v2210
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git merge --no-edit origin/feat/tepp-project-history-recovery-v2210
+
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6
         with:
