@@ -97,7 +97,7 @@ current merge claim.
 - **Security & Compliance**: PII masking cannot break the system. Need SOC 2 and CSAP compliance alternatives to blind PII masking. 
 - **LLM Orchestration**: Ensure ALL LLM calls route through `contextual-orchestrator` utilizing API keys (BYTEZ, NVIDIA, OPENROUTER, OPENAI) with auto model discovery and optimal reasoning effort allocation (Fugu/Conductor/TRINITY research).
 
-### 2.1 Requirement traceability matrix
+### 3.1 Requirement traceability matrix
 
 The status vocabulary is evidence-bound: **verified** means the current source
 and a scoped test prove the contract; **partial** means local or synthetic
@@ -110,7 +110,7 @@ An open PR never counts as a protected-main merge.
 | UI shell, responsive tiers, Figma and Storybook | React shell, token tests, viewport/browser checks, Storybook scenes, ADR 0118 Figma File ID `1Su3lDRmiZdcUs47t1QwIX` | **Partial** — approved CI/BI asset, legal usage permission, no-JavaScript fallback, and protected runtime parity remain unproven. |
 | Corporate-code/PU login, logout, ABAC/RBAC and visibility | OIDC browser run, account affiliations, permission checks, post visibility predicates and API tests | **Partial** — authorized production identity and complete role/policy matrix remain unverified. |
 | Event DAG, branching and channel evidence | `LineageDag`, keyboard selection, branch/root/current states, persisted channel evidence and synthetic tests | **Partial** — current protected-corpus rendering and lineage quality remain unproven; PR #387 is open. |
-| TEPP import/REST boundary and PostgreSQL source | TEPP client contract, PostgreSQL migrations, import boundary and no-file-DB tests | **Partial** — the requested real `zcrht811_export_rows` analysis cannot be committed or claimed without protected authorized runtime evidence. |
+| TEPP import/REST boundary and PostgreSQL source | TEPP client contract, PostgreSQL migrations, import boundary and no-file-DB tests | **Partial** — the requested authorized export-row analysis cannot be committed or claimed without protected authorized runtime evidence. |
 | Keyman, R&R, 5W1H, multi-project events and commitments | Orchestrator clients, persistence schemas, popup routes and synthetic/API coverage | **Partial** — affiliation, requester/assignee, counterparty-side identity, provenance and corpus completeness remain unverified. |
 | Ontology, semantic layer, KG depth and customer master | normalized entity/relation/provenance schema, ABAC filters and customer/ontology routes | **Partial** — Searxng corroboration, abbreviation resolution, multi-company/team identity and per-node depth need live evidence. |
 | HTML/CSS structure, Base64 image and multimodal analysis | semantic units, region persistence, OCR/caption rendering and bounded VISION boundary | **Partial** — image-heavy summaries still return processing/unavailable states; complete region/OCR/embedding quality is not proven. |
@@ -457,6 +457,34 @@ approval. The stack branch still points to merged identity commit
 `139ecaa17b411451c645f12a888f095df3beb3b2`, which retains the identity merge
 `202063bca2afa38d100199de3f0520fdd8c15e8c` and the subsequent #399 rollback.
 No protected-main merge is claimed.
+
+### 4.11 Current exact-head refresh
+
+Observed at `2026-08-21T21:13:07Z` from the GitHub REST API. This subsection
+supersedes the earlier queue snapshot without rewriting its historical
+evidence:
+
+- PR #398 merged into the non-main stack at merge commit
+  `202063bca2afa38d100199de3f0520fdd8c15e8c`; PR #399 then merged the Global
+  Ask atomic-citation rollback at merge commit
+  `139ecaa17b411451c645f12a888f095df3beb3b2`. The stack branch now points to
+  `139ecaa17b411451c645f12a888f095df3beb3b2`; neither event is a protected
+  `main` merge.
+- PR #392 is open against protected `main` at exact head
+  `5fc943477189640f42dfa8ad2d72678216bd1ea5`, and PR #368 is open against
+  protected `main` at exact head `be661a246ac22016b8ce1b0e0446a620ae33e920`.
+  Both remain blocked pending current hosted Checks and independent review
+  gates.
+- PR #383 remains open at `4eaa07172fde827f4ad89580326a0d2db5ceb0e4` and PR
+  #394 at `2aee6ace0a9b293959bea609192a4e2ef4dc5924`; their `osv-scan` failures
+  are the shared central result-path defect already tracked by
+  ContextualWisdomLab/.github PR #1158, not a vulnerability verdict. The
+  central repair is open at exact head
+  `4748ced3e09c8c684d34b1b6f763c450f6d4e218`, with hosted checks still
+  recalculating and no independent approval recorded.
+- No protected-main merge is claimed. The next customer action is to obtain
+  the independent current-head review, finish the required Checks, then let
+  the protected merge queue promote #392 and #368 in dependency order.
 
 ## 5. Local Buyer-Surface Verification
 
