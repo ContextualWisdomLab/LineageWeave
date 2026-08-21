@@ -103,6 +103,11 @@ describe("LineageDag", () => {
     expect(within(evidenceTable).getByText("0.91")).toBeInTheDocument();
     expect(within(evidenceTable).getByText("2026-01-01 → 2026-01-02")).toBeInTheDocument();
     expect(within(evidenceTable).getByText("Evidence (fused_score)")).toBeInTheDocument();
+
+    const evidenceCells = within(evidenceTable).getAllByRole("cell");
+    expect(evidenceCells[0]).toHaveAttribute("data-label", "Graph relation");
+    expect(evidenceCells[1]).toHaveAttribute("data-label", "When");
+    expect(evidenceCells[2]).toHaveAttribute("data-label", "Evidence (fused_score)");
   });
 
   it("keeps an isolated root interactive without rendering an empty edge table", () => {
