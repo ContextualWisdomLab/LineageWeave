@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
@@ -21,15 +21,15 @@ from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
     fetch_visible_analysis_run,
 )
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from backend.app.analysis_run_outbox import (
     latest_outbox_delivery_is_claimed,
     latest_outbox_delivery_is_delivered,
     outbox_request_digest,
 )
 from backend.app.lineage_ingestion import records_from_source_posts
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.adjudication_client import AdjudicationClient
-from lineageweave.http_client import HttpClientError, post_json
+from lineageweave.http_client import post_json
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
@@ -103,8 +103,8 @@ def configured_tepp_client(transport_url: str = "", api_key: str = "") -> TeppCl
         try:
             headers = {"authorization": f"Bearer {api_key}"} if api_key.strip() else {}
             return post_json(url, payload, headers=headers, timeout=30.0)
-        except (HttpClientError, OSError, ValueError, TypeError) as exc:
-            raise TeppNotAvailable(str(exc)) from exc
+        except Exception as exc:
+            raise TeppNotAvailable("TEPP transport request failed") from exc
 
     return TeppClient(transport=transport)
 
@@ -119,12 +119,12 @@ def tepp_run_request(
     """Build TEPP's published request from the frozen run, never a theta."""
     cutoff = knowledge_cutoff
     if cutoff.tzinfo is None:
-        cutoff = cutoff.replace(tzinfo=timezone.utc)
+        cutoff = cutoff.replace(tzinfo=UTC)
     return AnalysisRunRequest(
         idempotency_key=idempotency_key,
         tenant_workspace_id=str(corporate_entity_id),
         snapshot_id=snapshot_sha256,
-        knowledge_cutoff=cutoff.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        knowledge_cutoff=cutoff.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
         model_contract_version=_TEPP_MODEL_CONTRACT,
         output_profile=_TEPP_OUTPUT_PROFILE,
     )
@@ -610,7 +610,7 @@ async def deliver_queued_analysis_run(
         return await _visible_or_404(
             conn, analysis_run_id, account_id, affiliated_entity_ids
         )
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     try:
         if not latest_outbox_delivery_is_claimed(latest):
             await _append_outbox_delivery(
@@ -636,9 +636,8 @@ async def deliver_queued_analysis_run(
                 affiliated_entity_ids=affiliated_entity_ids,
                 adjudication_client=adjudication_client,
             )
-        finished = datetime.now(timezone.utc)
-        if finished < now:
-            finished = now
+        finished = datetime.now(UTC)
+        finished = max(finished, now)
         await _append_outbox_delivery(
             conn,
             analysis_run_id,
@@ -699,7 +698,7 @@ async def _deliver_lineage_reconstruction(
     adjudication_client: AdjudicationClient | None = None,
 ) -> None:
     """Persist ThreadWeave parent choices for the frozen bag."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     member_rows = await _snapshot_member_posts(
         conn,
         locked["analysis_source_snapshot_id"],
@@ -715,9 +714,8 @@ async def _deliver_lineage_reconstruction(
         )
     edges = lineage_edge_specs(records_from_source_posts(rows), llm=adjudication_client)
     digest = reconstruction_result_digest(edges)
-    finished = datetime.now(timezone.utc)
-    if finished < now:
-        finished = now
+    finished = datetime.now(UTC)
+    finished = max(finished, now)
     await conn.execute(
         """
         insert into analysis_run_reconstruction
@@ -759,7 +757,7 @@ async def _deliver_tepp_measurement(
     tepp_client: TeppClient,
 ) -> None:
     """Submit the frozen snapshot through ``tepp_client``. Never persist a theta."""
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     request = tepp_run_request(
         idempotency_key=str(locked["idempotency_key"]),
         snapshot_sha256=str(locked["snapshot_sha256"]),
@@ -767,17 +765,15 @@ async def _deliver_tepp_measurement(
         corporate_entity_id=str(locked["corporate_entity_id"]),
     )
     status_code, failure_code, envelope = _tepp_submission(tepp_client, request)
-    if status_code == _SUCCEEDED and envelope is not None:
-        if not await _persist_tepp_result(
-            conn,
-            analysis_run_id=analysis_run_id,
-            envelope=envelope,
-        ):
-            status_code = _FAILED
-            failure_code = "tepp_result_not_persisted"
-    finished = datetime.now(timezone.utc)
-    if finished < now:
-        finished = now
+    if status_code == _SUCCEEDED and envelope is not None and not await _persist_tepp_result(
+        conn,
+        analysis_run_id=analysis_run_id,
+        envelope=envelope,
+    ):
+        status_code = _FAILED
+        failure_code = "tepp_result_not_persisted"
+    finished = datetime.now(UTC)
+    finished = max(finished, now)
     await _append_status(
         conn,
         analysis_run_id,
