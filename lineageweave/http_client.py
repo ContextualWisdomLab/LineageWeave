@@ -41,6 +41,27 @@ def _validated_response_limit(value: int | None) -> int | None:
     return value
 
 
+def _validated_expected_media_type(value: str | None) -> str | None:
+    """Return one exact lower-case type/subtype without parameters."""
+
+    if value is None:
+        return None
+    if (
+        not isinstance(value, str)
+        or value != value.strip()
+        or not value
+        or value != value.lower()
+        or ";" in value
+        or value.count("/") != 1
+        or any(character.isspace() for character in value)
+        or any(ord(character) < 32 or ord(character) == 127 for character in value)
+    ):
+        raise ValueError(
+            "expected_response_media_type must be an exact lower-case type/subtype"
+        )
+    return value
+
+
 def _read_response_body(
     response: http.client.HTTPResponse,
     *,
@@ -74,6 +95,15 @@ def _read_response_body(
     return raw
 
 
+def _response_media_type(response: http.client.HTTPResponse) -> str:
+    """Return the normalized media type without optional parameters."""
+
+    header = response.getheader("Content-Type")
+    if header is None:
+        return ""
+    return header.split(";", 1)[0].strip().lower()
+
+
 def _request(
     method: str,
     url: str,
@@ -82,10 +112,14 @@ def _request(
     headers: dict[str, str],
     timeout: float,
     maximum_response_bytes: int | None = None,
+    expected_response_media_type: str | None = None,
 ) -> tuple[int, bytes]:
     """Perform one bounded HTTP(S) request and return status plus raw bytes."""
 
     limit = _validated_response_limit(maximum_response_bytes)
+    expected_media_type = _validated_expected_media_type(
+        expected_response_media_type
+    )
     parsed = urlparse(url)
     if parsed.scheme not in _ALLOWED_SCHEMES:
         raise ValueError(
@@ -123,6 +157,13 @@ def _request(
             )
         connection.request(method, path, body=body, headers=headers)
         response = connection.getresponse()
+        if (
+            expected_media_type is not None
+            and _response_media_type(response) != expected_media_type
+        ):
+            raise HttpClientError(
+                f"unexpected response media type from {parsed.hostname}"
+            )
         raw = _read_response_body(
             response,
             maximum_response_bytes=limit,
@@ -235,6 +276,7 @@ def get_json(
     headers: dict[str, str] | None = None,
     timeout: float,
     maximum_response_bytes: int | None = None,
+    expected_response_media_type: str | None = None,
 ) -> dict:
     """GET ``url`` and return a decoded JSON object.
 
@@ -243,10 +285,12 @@ def get_json(
         headers: Optional request headers.
         timeout: Socket timeout in seconds.
         maximum_response_bytes: Optional strict response-body byte ceiling.
+        expected_response_media_type: Optional exact lower-case type/subtype.
 
     Raises:
-        ValueError: The URL or byte limit is invalid.
-        HttpClientError: The response is too large, HTTP >= 400, or non-JSON.
+        ValueError: The URL, byte limit, or expected media type is invalid.
+        HttpClientError: The response is too large, has the wrong media type,
+            returns HTTP >= 400, or is not a JSON object.
     """
 
     status, raw = _request(
@@ -256,6 +300,7 @@ def get_json(
         headers=headers or {},
         timeout=timeout,
         maximum_response_bytes=maximum_response_bytes,
+        expected_response_media_type=expected_response_media_type,
     )
     hostname = urlparse(url).hostname or url
     if status >= 400:
