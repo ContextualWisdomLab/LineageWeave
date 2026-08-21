@@ -32,7 +32,19 @@ async def consume_analysis_run_stream_once(
     Invalid or stale entries are acknowledged by advancing the cursor; the
     durable PostgreSQL outbox remains available for a later explicit retry.
     """
-    batches = await client.xread({OUTBOX_STREAM_KEY: last_id}, count=10, block=1000)
+    try:
+        batches = await client.xread({OUTBOX_STREAM_KEY: last_id}, count=10, block=1000)
+    except Exception:
+        # Keep idle polls silent, but retain a diagnostic span for broker failures.
+        with traced(
+            "lineageweave.valkey.analysis_outbox_xread",
+            {
+                "db.system": "redis",
+                "db.operation.name": "xread",
+                "lineageweave.stream.kind": "analysis_outbox",
+            },
+        ):
+            raise
     if not batches:
         return last_id
     with traced(

@@ -299,7 +299,19 @@ async def consume_post_content_stream_once(
     embedding_factory: Callable[[], EmbeddingClient],
     structure_factory: Callable[[], PostStructureClient],
 ) -> str:
-    batches = await client.xread({POST_CONTENT_STREAM_KEY: last_id}, count=10, block=1000)
+    try:
+        batches = await client.xread({POST_CONTENT_STREAM_KEY: last_id}, count=10, block=1000)
+    except Exception:
+        # Keep idle polls silent, but retain a diagnostic span for broker failures.
+        with traced(
+            "lineageweave.valkey.post_content_xread",
+            {
+                "db.system": "redis",
+                "db.operation.name": "xread",
+                "lineageweave.stream.kind": "post_content",
+            },
+        ):
+            raise
     if not batches:
         return last_id
     with traced(

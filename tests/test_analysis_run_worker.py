@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from unittest.mock import Mock
 
 import pytest
@@ -88,6 +89,52 @@ async def test_idle_worker_reads_do_not_emit_empty_spans(monkeypatch):
     ) == "0-0"
     analysis_trace.assert_not_called()
     post_content_trace.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_xread_failures_emit_diagnostic_spans_but_preserve_errors(monkeypatch):
+    """Broker failures are traced without turning idle polls into spans."""
+    analysis_trace_names = []
+    post_content_trace_names = []
+
+    @contextmanager
+    def analysis_trace(name, _attributes):
+        analysis_trace_names.append(name)
+        yield None
+
+    @contextmanager
+    def post_content_trace(name, _attributes):
+        post_content_trace_names.append(name)
+        yield None
+
+    class FailingValkey:
+        async def xread(self, _streams, *, count, block):
+            assert (count, block) == (10, 1000)
+            raise RuntimeError("synthetic broker outage")
+
+    monkeypatch.setattr(analysis_run_worker, "traced", analysis_trace)
+    monkeypatch.setattr(post_content_worker, "traced", post_content_trace)
+
+    with pytest.raises(RuntimeError, match="synthetic broker outage"):
+        await analysis_run_worker.consume_analysis_run_stream_once(
+            FailingValkey(),
+            _Pool(),
+            last_id="0-0",
+            tepp_client=TeppClient(),
+            adjudication_client=NullAdjudicationClient(),
+        )
+    with pytest.raises(RuntimeError, match="synthetic broker outage"):
+        await post_content_worker.consume_post_content_stream_once(
+            FailingValkey(),
+            _Pool(),
+            last_id="0-0",
+            vision_factory=lambda: None,
+            embedding_factory=lambda: None,
+            structure_factory=lambda: None,
+        )
+
+    assert analysis_trace_names == ["lineageweave.valkey.analysis_outbox_xread"]
+    assert post_content_trace_names == ["lineageweave.valkey.post_content_xread"]
 
 
 @pytest.mark.anyio
