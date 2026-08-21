@@ -1,0 +1,41 @@
+# ADR 0124: Publish a bounded external email/project lineage contract
+
+- Status: Accepted
+- Date: 2026-08-21
+
+## Context
+
+Naruon owns customer mail/calendar/file access, canonical message/thread identities, projects, tasks, commitments, provider credentials, authorization, and provider mutations. LineageWeave owns evidence-fused lineage reconstruction and the provenance explaining that reconstruction. Future integration must not give either product direct SQL access to the other's application database, duplicate source authority, or depend on a mutable branch/submodule.
+
+Email thread facts also have different truth semantics from reconstructed semantic continuation. RFC `Message-ID`, `References`, and `In-Reply-To` evidence may establish a caller-observed reply relation, while LineageWeave text/temporal/project signals produce an inferred relation. Flattening both into one unexplained score would make buyer correction and audit impossible.
+
+## Decision
+
+LineageWeave publishes contract version `1.0.0` through:
+
+- `lineageweave.external_lineage_contract` for strict immutable request/result shapes, canonical serialization, bounds, and deterministic digests;
+- `lineageweave.external_lineage_analysis` for adapting caller-authorized evidence to the existing reconstruction kernel.
+
+The initial implementation is a store-agnostic Python package boundary. It performs no database, mailbox, provider, or network operation. A later service or Naruon plugin adapter must preserve the same JSON Schema and truth boundaries.
+
+The caller supplies opaque evidence references, bounded text labels, occurrence and availability clocks, an optional secondary key, an optional project reference, and an optional caller-observed parent relation. Explicit observed parent relations replace an inferred parent for the same child and must form an acyclic graph. Reconstructed continuation remains `inferred`. Project groupings remain `proposed`.
+
+The caller also supplies `maximum_pair_evaluations` in the bounded policy. The package computes the exact candidate-parent pair count after knowledge-cutoff filtering and rejects work above the declared budget before any optional LLM/provider call. Contract v1 caps the declared budget at 5,000 pairs.
+
+Historical requests include evidence only when:
+
+```text
+available_at <= knowledge_cutoff
+```
+
+Evidence becoming available after the cutoff is excluded even when it describes an earlier occurrence.
+
+## Consequences
+
+- Naruon can eventually consume a released artifact without exposing credentials or application tables.
+- RFC reply/thread evidence stays distinguishable from semantic lineage.
+- The optional LLM channel is explicit as `not_requested`, `unavailable`, or `completed`; missing output is never zero.
+- Every result is deterministic for the same semantic request and carries a SHA-256 digest.
+- Explicit parent cycles and analysis work above the caller-approved pair budget fail closed before inference.
+- Project evidence can inform Naruon without mutating authoritative project/task/provider state.
+- The single generic secondary key reflects the current core kernel. Multiple independent typed secondary-key channels remain a future contract revision rather than being silently flattened.
