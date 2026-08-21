@@ -21,7 +21,7 @@ const DATA_URI_IMG =
 const HTML_TAG = /<\/?[a-zA-Z][^>]*>/g;
 const BREAK_TAG = /<br\b[^>]*>/gi;
 const BLOCK_TAG =
-  /<\/?(?:article|blockquote|div|h[1-6]|li|oi|ol|p|section|table|tbody|td|tfoot|th|thead|tr|ul|w:p|w:tbl|w:tr|w:tc)\b[^>]*>/gi;
+  /<\/?(?:article|blockquote|div|endnote|footnote|h[1-6]|li|oi|ol|p|section|table|tbody|td|tfoot|th|thead|tr|ul|w:endnote|w:footnote|w:p|w:tbl|w:tr|w:tc)\b[^>]*>/gi;
 const WORD_INDENT_TAG = /<w:ind\b[^>]*\/?\s*>/gi;
 const LIST_ITEM_START = /^\s*(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)/;
 const FOOTNOTE_START = /^\s*[*†‡]+(?=\S)/;
@@ -29,6 +29,8 @@ const INDENT_MARKER = "\u0001lw-indent:";
 const INDENT_MARKER_END = "\u0002";
 const INDENT_MARKER_PATTERN = /lw-indent:(\d+)/g;
 const NUMERIC_FOOTNOTE_MARKER = "\u0003lw-numeric-footnote\u0004";
+const FOOTNOTE_BLOCK_MARKER = "\u0005lw-footnote-block\u0006";
+const FOOTNOTE_BLOCK_OPEN = /<\s*(?:footnote|endnote|w:footnote|w:endnote)\b[^>]*>/gi;
 const NUMERIC_SUPERSCRIPT = /<sup\b[^>]*>\s*(\d{1,3})\s*<\/sup>/gi;
 
 function stripIndentMarkers(value: string): string {
@@ -110,6 +112,9 @@ function stripHtmlTags(text: string): string {
       if (listContainer) {
         listDepth += 1;
         return "\n\n";
+      }
+      if (/^<\s*\/?\s*(?:footnote|endnote|w:footnote|w:endnote)\b/i.test(tag)) {
+        return closing ? "\n\n" : `\n\n${FOOTNOTE_BLOCK_MARKER}`;
       }
       if (/^<\s*li\b/i.test(tag)) {
         return `\n\n${indentMarker(Math.max(listDepth * 4, declaredIndentWidth(tag)))}`;
@@ -219,12 +224,19 @@ function isDecodableBase64(raw: string): boolean {
 
 function pushText(segments: PostBodySegment[], raw: string, indentUnit: number): void {
   const text = stripHtmlTags(
-    raw.replace(NUMERIC_SUPERSCRIPT, `${NUMERIC_FOOTNOTE_MARKER}$1`),
+    raw
+      .replace(FOOTNOTE_BLOCK_OPEN, FOOTNOTE_BLOCK_MARKER)
+      .replace(NUMERIC_SUPERSCRIPT, `${NUMERIC_FOOTNOTE_MARKER}$1`),
   );
+  let pendingFootnoteBlock = false;
   for (const paragraph of splitSemanticParagraphs(text)) {
     const hasNumericSuperscriptMarker = paragraph.includes(NUMERIC_FOOTNOTE_MARKER);
+    const hasFootnoteBlockMarker = paragraph.includes(FOOTNOTE_BLOCK_MARKER);
+    pendingFootnoteBlock ||= hasFootnoteBlockMarker;
     const indentLevel = indentationLevel(paragraph, indentUnit);
-    const normalized = stripIndentMarkers(paragraph.replaceAll(NUMERIC_FOOTNOTE_MARKER, ""))
+    const normalized = stripIndentMarkers(
+      paragraph.replaceAll(NUMERIC_FOOTNOTE_MARKER, "").replaceAll(FOOTNOTE_BLOCK_MARKER, ""),
+    )
       .replace(/^[ \t]+/, "")
       .replace(/[ \t]+$/gm, "");
     if (normalized.trim()) {
@@ -232,10 +244,11 @@ function pushText(segments: PostBodySegment[], raw: string, indentUnit: number):
         kind: "text",
         text: normalized,
         ...(indentLevel > 0 ? { indentLevel } : {}),
-        ...(hasNumericSuperscriptMarker || FOOTNOTE_START.test(normalized)
+        ...(hasNumericSuperscriptMarker || pendingFootnoteBlock || FOOTNOTE_START.test(normalized)
           ? { role: "footnote" as const }
           : {}),
       });
+      pendingFootnoteBlock = false;
     }
   }
 }
