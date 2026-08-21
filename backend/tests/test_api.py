@@ -4228,6 +4228,48 @@ def test_post_activity_is_empty_before_any_mutation(client, demo_analyst_token, 
     assert response.json()["events"] == []
 
 
+def test_derive_commitment_cannot_write_a_public_post_owned_by_other_account(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Public read visibility must not authorize derived-ticket writes."""
+    _grant_post_admin(seeded_db["dsn"])
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                """
+                insert into source_post
+                    (author_account_id, corporate_entity_id, post_title, post_body,
+                     voc_type_code, visibility_code)
+                values (
+                    (select user_account_id from user_account
+                     where external_subject_id like 'other-%%' limit 1),
+                    %s, 'Public commitment from another account',
+                    'A commitment is present.', 'voc', 'public'
+                )
+                returning post_id
+                """,
+                (seeded_db["other_corp_id"],),
+            )
+            post_id = str(cur.fetchone()[0])
+    finally:
+        admin_conn.close()
+
+    class _UnexpectedClient:
+        available = True
+
+        def extract(self, *_args):
+            raise AssertionError("authorization must run before commitment extraction")
+
+    monkeypatch.setattr("backend.app.main._commitment_extraction_client", lambda: _UnexpectedClient())
+    response = client.post(
+        f"/api/posts/{post_id}/derive-commitment",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
 def test_ticket_mutations_publish_real_events_to_the_activity_feed(
     client, demo_analyst_token, seeded_db
 ) -> None:

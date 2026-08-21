@@ -20,7 +20,7 @@ from __future__ import annotations
 import asyncio
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Callable, Iterable
 from uuid import uuid4
 
@@ -857,7 +857,9 @@ async def gather_global_chat_sources(
         updated_at = _row_value(row, "updated_at")
         live_after_cutoff = False
         if knowledge_cutoff is not None and updated_at is not None:
-            live_clock = updated_at if getattr(updated_at, "tzinfo", None) else updated_at
+            live_clock = updated_at
+            if getattr(updated_at, "tzinfo", None) is None:
+                live_clock = updated_at.replace(tzinfo=timezone.utc)
             try:
                 live_after_cutoff = live_clock > knowledge_cutoff
             except TypeError:

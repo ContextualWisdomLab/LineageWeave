@@ -14,6 +14,12 @@ All notable changes to this project are documented here. Format follows
   live-only answers are named separately. No TEPP theta is invented. No
   as-of label is applied to a live query (ADR 0101 / ADR 0016 / ADR 0025).
 
+### Fixed
+
+- Partial cutoff answers now show which historical bodies were unavailable,
+  and commitment-derived ticket writes enforce the owning-post authorization
+  boundary before provider work.
+
 ## [2.18.0] - 2026-08-20
 
 ### Added

@@ -4705,6 +4705,23 @@ function AskAgentPanel({
               </ol>
             </>
           ) : null}
+          {answer.limitations && answer.limitations.length > 0 ? (
+            <section aria-label={t("Historical evidence limitations")}>
+              <h4>{t("Historical evidence limitations")}</h4>
+              <ul className="post-evidence-list">
+                {answer.limitations.map((limitation) => {
+                  const timelinePost = answer.timeline?.find(
+                    (event) => event.post_id === limitation.post_id,
+                  );
+                  return timelinePost ? (
+                    <li key={limitation.post_id}>
+                      <strong>{timelinePost.post_title}</strong>: {t("Historical body unavailable for this cited post. The live body was not used.")}
+                    </li>
+                  ) : null;
+                })}
+              </ul>
+            </section>
+          ) : null}
           {answer.cited_posts && answer.cited_posts.length > 0 && (
             <>
               <p className="board-next-action" role="status" aria-label={t("Next action")}>
@@ -5021,6 +5038,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             setPostOpenFromCalendar(false);
             setPostOpenFromCustomerMaster(true);
             setPostOpenFromAskAgent(false);
+            setPostOpenFromProjectHistory(false);
             setDestination("board");
           }}
         />
@@ -5035,6 +5053,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             setPostOpenFromCalendar(true);
             setPostOpenFromCustomerMaster(false);
             setPostOpenFromAskAgent(false);
+            setPostOpenFromProjectHistory(false);
             setDestination("board");
           }}
         />
@@ -5047,6 +5066,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             setPostOpenFromCalendar(false);
             setPostOpenFromCustomerMaster(false);
             setPostOpenFromAskAgent(true);
+            setPostOpenFromProjectHistory(false);
             setDestination("board");
           }}
         />

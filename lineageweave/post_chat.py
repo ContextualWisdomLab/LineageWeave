@@ -165,8 +165,13 @@ def ask_next_action(
     grounding_status: str,
     *,
     has_sources: bool,
+    has_retained_bodies: bool = True,
 ) -> str:
-    """Buyer next action for live versus cutoff-grounded Ask answers."""
+    """Buyer next action for live versus cutoff-grounded Ask answers.
+
+    ``has_retained_bodies`` distinguishes a partially grounded answer from a
+    cutoff result where every selected post lost its historical revision.
+    """
     if grounding_status == FULLY_CUTOFF_GROUNDED:
         if not has_sources:
             return "No authorized source posts are available at this cutoff."
@@ -175,6 +180,11 @@ def ask_next_action(
             "Open a cited post to compare the retained body."
         )
     if grounding_status == PARTIALLY_CUTOFF_GROUNDED:
+        if not has_retained_bodies:
+            return (
+                "No historical source bodies were retained at the requested cutoff. "
+                "Open a timeline post to review each unavailable source."
+            )
         return (
             "This answer is only partly grounded at the requested cutoff. "
             "Open a cited post to see which historical bodies were retained."

@@ -46,6 +46,7 @@ describe("i18n", () => {
     "This answer is fully grounded at the requested cutoff. Open a cited post to compare the retained body.",
     "This answer is only partly grounded at the requested cutoff. Open a cited post to see which historical bodies were retained.",
     "Historical body unavailable for this cited post. The live body was not used.",
+    "Historical evidence limitations",
     "This live source changed after the cutoff.",
     "Event Lineage timeline",
     "Open timeline post:",

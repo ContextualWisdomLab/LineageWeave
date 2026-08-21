@@ -310,6 +310,37 @@ def test_missing_historical_body_is_explicit_and_never_live() -> None:
     ]
 
 
+def test_naive_updated_at_is_compared_as_utc_at_cutoff() -> None:
+    rows = [
+        _row(
+            "naive-clock-post",
+            title="Phoenix live rewrite",
+            body="Live rewrite",
+            created_at=_JANUARY,
+            updated_at=_FEBRUARY.replace(tzinfo=None),
+        )
+    ]
+    revisions = [
+        {
+            "source_post_revision_id": "rev-naive-clock",
+            "post_id": "naive-clock-post",
+            "post_title": "Phoenix January note",
+            "post_body": "January body",
+            "written_at": _JANUARY,
+            "superseded_at": _FEBRUARY,
+        }
+    ]
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            _CutoffConnection(rows, revisions),
+            lambda _row: True,
+            question="Phoenix",
+            knowledge_cutoff=_CUTOFF,
+        )
+    )
+    assert sources[0].live_after_cutoff is True
+
+
 def test_two_cutoffs_select_revision_specific_citations() -> None:
     rows = [
         _row(
@@ -489,3 +520,11 @@ def test_ask_next_action_never_calls_live_only_an_as_of_answer() -> None:
         knowledge_cutoff=_CUTOFF.isoformat(),
     )
     assert ask_grounding_status([retained], _CUTOFF) == FULLY_CUTOFF_GROUNDED
+
+
+def test_ask_next_action_names_when_no_historical_body_was_retained() -> None:
+    assert "no historical source bodies" in ask_next_action(
+        PARTIALLY_CUTOFF_GROUNDED,
+        has_sources=True,
+        has_retained_bodies=False,
+    ).lower()

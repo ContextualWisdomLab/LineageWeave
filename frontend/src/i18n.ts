@@ -186,6 +186,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "이 답변은 요청한 기준 시각의 근거로 일부만 뒷받침됩니다. 인용된 글을 열어 남은 당시 본문을 확인하세요.",
     "Historical body unavailable for this cited post. The live body was not used.":
       "이 인용 글의 당시 본문을 찾을 수 없습니다. 현재 본문은 사용하지 않았습니다.",
+    "Historical evidence limitations": "과거 근거 제한",
     "This live source changed after the cutoff.": "현재 원문은 기준 시각 이후에 바뀌었습니다.",
     "No authorized source posts are available at this cutoff.":
       "이 기준 시각에 권한이 있는 원문 글이 없습니다.",
@@ -556,6 +557,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "此答案仅部分基于所请求截止时间的证据。打开一篇引用文章以查看保留了哪些当时正文。",
     "Historical body unavailable for this cited post. The live body was not used.":
       "找不到这篇引用文章当时的正文。未使用当前正文。",
+    "Historical evidence limitations": "历史证据限制",
     "This live source changed after the cutoff.": "当前原文在截止时间之后发生了更改。",
     "No authorized source posts are available at this cutoff.":
       "该截止时间没有可授权的原文文章。",
@@ -949,6 +951,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "この回答は指定した基準時刻の根拠で一部のみ裏付けられています。引用投稿を開いて残っている当時の本文を確認してください。",
     "Historical body unavailable for this cited post. The live body was not used.":
       "この引用投稿の当時の本文は見つかりません。現在の本文は使っていません。",
+    "Historical evidence limitations": "過去の証拠の制限",
     "This live source changed after the cutoff.": "現在の原文は基準時刻の後に変更されています。",
     "No authorized source posts are available at this cutoff.":
       "この基準時刻に権限のある原文投稿はありません。",
@@ -1318,6 +1321,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Câu trả lời này chỉ được căn cứ một phần theo mốc thời gian đã chọn. Hãy mở bài trích dẫn để xem nội dung lịch sử nào còn được lưu.",
     "Historical body unavailable for this cited post. The live body was not used.":
       "Không có nội dung tại mốc thời gian cho bài trích dẫn này. Nội dung hiện tại không được dùng.",
+    "Historical evidence limitations": "Giới hạn bằng chứng lịch sử",
     "This live source changed after the cutoff.": "Nguồn hiện tại đã thay đổi sau mốc thời gian.",
     "No authorized source posts are available at this cutoff.":
       "Không có bài nguồn được cấp quyền tại mốc thời gian này.",

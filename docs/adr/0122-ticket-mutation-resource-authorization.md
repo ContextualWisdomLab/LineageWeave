@@ -14,23 +14,27 @@ authoring boundary.
 
 ## Decision
 
-Ticket create and update require all of the following:
+Ticket create, update, and LLM-derived commitment-ticket creation require all
+of the following:
 
 1. `post_admin` permission;
 2. visibility of the owning post under the normal ABAC predicate; and
 3. either authorship of the owning post or affiliation with its corporate
    entity.
 
-The check is performed after resolving the ticket's owning post and before
-the ticket mutation. Public visibility remains a read property and does not
-grant cross-account ticket mutation. Unknown ticket identifiers still return
-404 before any authorization detail is disclosed.
+The check is performed after resolving the owning post and before both the
+commitment extraction call and any ticket mutation. Public visibility remains
+a read property and does not grant cross-account ticket mutation. Unknown
+ticket identifiers still return 404 before any authorization detail is
+disclosed.
 
 ## Consequences
 
 - A public post can be read without exposing its ticket workflow to unrelated
   administrators.
 - Private same-corporate ticket management remains unchanged.
+- A commitment extractor cannot spend provider cost or create a calendar row
+  for a public post owned by another account.
 - Future child resources must resolve and enforce the owning-post write
   boundary instead of copying a visibility check.
 

@@ -2886,7 +2886,11 @@ async def ask_agent(
             "knowledge_cutoff": cutoff_text,
             "grounding_status": grounding_status,
             "limitations": limitations,
-            "next_action": ask_next_action(grounding_status, has_sources=bool(sources)),
+            "next_action": ask_next_action(
+                grounding_status,
+                has_sources=bool(sources),
+                has_retained_bodies=bool(llm_sources),
+            ),
         }
     try:
         answer = await asyncio.to_thread(
@@ -2935,7 +2939,11 @@ async def ask_agent(
         "knowledge_cutoff": cutoff_text,
         "grounding_status": grounding_status,
         "limitations": limitations,
-        "next_action": ask_next_action(grounding_status, has_sources=True),
+        "next_action": ask_next_action(
+            grounding_status,
+            has_sources=True,
+            has_retained_bodies=bool(llm_sources),
+        ),
     }
 
 
@@ -3158,6 +3166,7 @@ async def derive_post_commitment(
     """
     _require_post_admin(account)
     post = await _load_visible_post(post_id, account, pool)
+    _require_ticket_post_access(account, post)
     post_metadata = build_post_llm_metadata(post_id, post)
     with use_llm_metadata(post_metadata):
         client = _commitment_extraction_client()

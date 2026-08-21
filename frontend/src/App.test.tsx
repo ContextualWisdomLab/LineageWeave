@@ -89,6 +89,7 @@ describe("App, authenticated", () => {
     deferMe?: boolean;
     deferPostOneSummary?: boolean;
     deferSecondAsk?: boolean;
+    partialCutoff?: boolean;
     deferProjectHistory?: boolean;
     invalidAskSessionOnce?: boolean;
     meFailed?: boolean;
@@ -1708,6 +1709,7 @@ describe("App, authenticated", () => {
             ? secondAskReady
             : Promise.resolve();
         const cutoffGrounded = Boolean(askBody.knowledge_cutoff);
+        const partialCutoff = cutoffGrounded && Boolean(options?.partialCutoff);
         return ready.then(() =>
           Promise.resolve(
           jsonResponse({
@@ -1742,11 +1744,20 @@ describe("App, authenticated", () => {
                   },
                 ],
             source_post_ids: ["post-1", "post-2"],
-            grounding_status: cutoffGrounded ? "fully_cutoff_grounded" : "live_only",
+            grounding_status: partialCutoff
+              ? "partially_cutoff_grounded"
+              : cutoffGrounded
+                ? "fully_cutoff_grounded"
+                : "live_only",
             knowledge_cutoff: askBody.knowledge_cutoff ?? null,
-            next_action: cutoffGrounded
-              ? "This answer is fully grounded at the requested cutoff. Open a cited post to compare the retained body."
-              : undefined,
+            next_action: partialCutoff
+              ? "This answer is only partly grounded at the requested cutoff. Open a cited post to see which historical bodies were retained."
+              : cutoffGrounded
+                ? "This answer is fully grounded at the requested cutoff. Open a cited post to compare the retained body."
+                : undefined,
+            limitations: partialCutoff
+              ? [{ post_id: "post-1", limitation_code: "historical_body_unavailable" }]
+              : [],
             timeline: [
               {
                 post_id: "post-1",
@@ -1964,6 +1975,23 @@ describe("App, authenticated", () => {
     expect(
       within(ask).queryByText("Authorized cited posts are current. Open a cited post to read Event Lineage."),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows unavailable historical bodies for a partially grounded Ask answer", async () => {
+    stubBackend({ partialCutoff: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    await userEvent.type(within(ask).getByRole("textbox", { name: "Ask a question" }), "What changed?");
+    fireEvent.change(within(ask).getByLabelText("Knowledge cutoff (optional)"), {
+      target: { value: "2026-01-15T12:00" },
+    });
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+
+    expect(await within(ask).findByRole("heading", { name: "Historical evidence limitations" })).toBeInTheDocument();
+    expect(within(ask).getByRole("region", { name: "Historical evidence limitations" })).toHaveTextContent(
+      "Public post: Historical body unavailable",
+    );
   });
 
   it("hides previous Ask evidence while a new answer is pending", async () => {
