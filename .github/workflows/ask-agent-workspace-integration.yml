@@ -17,6 +17,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 concurrency:
   group: ask-agent-workspace-${{ github.event.pull_request.number || github.ref }}
@@ -94,7 +95,11 @@ jobs:
         working-directory: frontend
         run: pnpm run build-storybook
 
-      - name: Publish verified source change and remove one-shot machinery
+      - name: Publish verified integration through a child pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GENERATED_BRANCH: automation/ask-agent-workspace-integration-353
+          TARGET_BRANCH: feat/ask-agent-evidence-workspace-v2180-r2
         run: |
           rm -rf frontend/dist frontend/storybook-static
           rm -f scripts/patch_ask_agent_workspace.py
@@ -105,4 +110,12 @@ jobs:
           git add -A
           git diff --cached --check
           git commit -m 'feat: integrate verified Ask Agent evidence workspace'
-          git push origin HEAD:feat/ask-agent-evidence-workspace-v2180-r2
+          git push origin HEAD:"${GENERATED_BRANCH}"
+          existing_pr="$(gh pr list --state open --head "${GENERATED_BRANCH}" --base "${TARGET_BRANCH}" --json number --jq '.[0].number // empty')"
+          if [ -z "${existing_pr}" ]; then
+            gh pr create \
+              --base "${TARGET_BRANCH}" \
+              --head "${GENERATED_BRANCH}" \
+              --title 'chore: apply verified Ask Agent integration' \
+              --body 'Generated only after the Ask Agent focused tests, complete 185-test frontend suite, zero-warning lint, production build, and Storybook build passed on the exact source head. This child PR exists because repository rules correctly require the generated source commit to enter the protected feature branch through a pull request.'
+          fi
