@@ -12,10 +12,10 @@ Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
 Current PR exact head observed before this documentation update:
-`c616a1145a7f844be67ff4c9d2a59770cd965a15`. The backend image was rebuilt from
-the health-probe fix commit in this stack; the frontend container also contains
-concurrent uncommitted workspace UI changes, so a clean current-head image
-rebuild remains an acceptance step.
+`35c89cfcc37f230a0a6f979e9be908186ff609c9`. The authenticated
+browser evidence below used the frontend image built from the preceding source
+head; the intervening remote commits add locale/test coverage and the current
+head still needs a clean acceptance rebuild.
 
 - **Implemented in source:** PostgreSQL-backed API boundaries, Keyverse/OIDC
   identity boundary, workspace navigation, post popup, ABAC/RBAC surfaces, Korean
@@ -79,9 +79,19 @@ rebuild remains an acceptance step.
   fell back to English. The three locale maps now contain those translations,
   and the i18n test rejects raw-key fallback for every supported non-English
   locale. This does not close the separate no-JavaScript fallback gap.
-- **Phone content affordance — locally verified:** the authenticated 390px
+- **Phone content affordance — fixed and covered:** the authenticated 390px
   browser sweep had a scrollable page and rendered the post list below the
-  sticky shell. Re-run after the current-head image rebuild before acceptance.
+  sticky shell. A duplicate phone `.app-header` rule that overrode the required
+  vertical padding was removed; `mobileHeaderCss.test.ts` now enforces one
+  phone rule with `0.6rem 1rem` padding. Re-run after the current-head image
+  rebuild before acceptance.
+- **Large-body search migration — fixed in this worktree:** current PostgreSQL
+  migration replay initially exhausted the 58.8 GB container overlay while
+  building a raw HTML/Base64 body FTS index. The normalized search function and
+  intermediate FTS index now bound indexed rendered text to 16,384 characters;
+  the raw indexes are dropped by migration 0036. After reclaiming only Docker
+  build cache (never the PostgreSQL volume), the live migration completed with
+  exit 0 and the bounded function/index aggregate was verified.
 
 ### 2.3 Authenticated runtime evidence
 
@@ -92,6 +102,10 @@ real React client rendered the protected board. Aggregate evidence only:
   affiliations, with corporate and process-unit code/name fields.
 - At a 390×958 viewport, logout, scope display, language control, 50 visible
   posts, drawer open/close, and global-search-to-input focus all worked.
+- On the rebuilt authenticated frontend, switching the header language to
+  Chinese set `html[lang]` to `zh`, localized the drawer, authorized-scope,
+  logout, summary, and Event Lineage labels, opened a post popup, and produced
+  zero popup errors.
 - All 11 supplied post cases opened a popup with a loaded title and zero popup
   error elements. The footnote case rendered one footnote, the table case one
   semantic table, the known lineage case one DAG, and the image-table case
@@ -129,6 +143,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Authenticated corp/PU attributes | `/api/me` returns DB-backed codes; backend integration test covers `TEST-CORP`/`TEST-PU` and header displays them | source + local-integration |
 | RBAC/ABAC, public/private visibility, tenant isolation | `_can_see_post`, API authorization tests, aggregate-only runtime checks | source + local-integration |
 | React product surface and PostgreSQL boundary | React routes/components, asyncpg API, Compose stack | source + local-integration |
+| Bounded large-body search migration | `0035_body_search_prefix.sql`, `0036_normalized_body_search.sql`; live replay completed after bounded rendered-text indexing | source + local-integration |
 | Public Compose liveness and tenant settings boundary | health-probe regression test, `0103_tenant_settings.sql`, rebuilt backend `/healthz` HTTP 200 | source + unit + local-integration |
 | Post list/detail popup, Korean summary, 5W1H, R&R, tickets/calendar | API routes, popup panels, backend/frontend tests | source + unit |
 | Keyman on both sides, titles, affiliations, related KG nodes | Keyman/affiliate-tree/related-node routes and popup | source + unit; live extraction open |
