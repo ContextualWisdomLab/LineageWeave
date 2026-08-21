@@ -1,6 +1,7 @@
 {
   "contract_version": "1.0.0",
   "analysis_id": "analysis:synthetic-email-lineage-001",
+  "authorization_scope_ref": "authorization-scope:synthetic",
   "analysis_scope_code": "email_lineage",
   "knowledge_cutoff": "2026-08-20T09:30:00Z",
   "policy": {

@@ -49,10 +49,12 @@ class _BoundedAdjudicationClient:
         """Wrap one available client without changing its provider behavior."""
 
         self._client = client
+        self.invocation_count = 0
 
     def judge(self, candidate_label: str, record_label: str) -> float:
         """Return one finite unit-interval score or fail with a stable code."""
 
+        self.invocation_count += 1
         try:
             score = self._client.judge(candidate_label, record_label)
         except Exception as exc:
@@ -150,7 +152,7 @@ def _selected_llm(
         return NullAdjudicationClient(), "not_requested"
     if llm is None or not getattr(llm, "available", False):
         return NullAdjudicationClient(), "unavailable"
-    return _BoundedAdjudicationClient(llm), "completed"
+    return _BoundedAdjudicationClient(llm), "not_invoked"
 
 
 def _included_records(
@@ -300,18 +302,19 @@ def _inferred_edges(
             )
             if parent_choice is None:
                 continue
-            parent, fused_score, channel_scores = parent_choice
+            parent, _fused_score, channel_scores = parent_choice
+            channel_evidence = _channel_evidence(channel_scores, weights)
+            contract_fused_score = sum(
+                item.contribution for item in channel_evidence
+            )
             edges.append(
                 LineageEdgeResult(
                     parent_evidence_ref=parent.record_id,
                     child_evidence_ref=source_record.evidence_ref,
                     relation_type_code="reconstructed_continuation",
                     truth_status_code="inferred",
-                    fused_score=float(fused_score),
-                    channel_evidence=_channel_evidence(
-                        channel_scores,
-                        weights,
-                    ),
+                    fused_score=contract_fused_score,
+                    channel_evidence=channel_evidence,
                 )
             )
     return edges
@@ -414,6 +417,12 @@ def analyze_external_lineage(
         selected_llm,
         validated,
     )
+    if (
+        llm_status == "not_invoked"
+        and isinstance(selected_llm, _BoundedAdjudicationClient)
+        and selected_llm.invocation_count > 0
+    ):
+        llm_status = "completed"
     explicit, explicit_children, explicit_limitations = _explicit_edges(
         included
     )
@@ -438,7 +447,11 @@ def analyze_external_lineage(
     limitations.extend(explicit_limitations)
 
     edge_order = {
-        record.evidence_ref: (record.group_ref, record.occurred_at, record.evidence_ref)
+        record.evidence_ref: (
+            record.group_ref,
+            record.occurred_at,
+            record.evidence_ref,
+        )
         for record in included
     }
     result = LineageAnalysisResult(

@@ -9,3 +9,4 @@
 - Reject explicit-parent cycles and candidate-pair work above the caller-approved limit before optional LLM/provider activity.
 - Expose exact active channel scores, weights, contributions, LLM availability state, proposed project groupings, and deterministic result digests.
 - Add JSON Schema Draft 2020-12, one canonical ADR 0133, APA 7th doctoring, and focused TDD coverage.
+- Bind each request to a caller-owned opaque authorization scope, distinguish a configured but uninvoked LLM from completed adjudication, and preserve graceful legacy reconstruction when a provider returns malformed confidence text.

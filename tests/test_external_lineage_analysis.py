@@ -117,6 +117,7 @@ def _request(
         {
             "contract_version": "1.0.0",
             "analysis_id": "analysis:integration-001",
+            "authorization_scope_ref": "authorization-scope:synthetic",
             "analysis_scope_code": scope,
             "knowledge_cutoff": cutoff,
             "policy": {
@@ -275,6 +276,26 @@ def test_llm_policy_is_explicit_and_never_fabricates_absent_scores(
         for channel in result.edges[0].channel_evidence
     }
     assert ("llm" in channels) is llm_present
+
+
+def test_llm_status_is_not_invoked_without_an_inferred_candidate_pair() -> None:
+    client = CountingLlm()
+    request = _request(
+        [
+            _record(
+                "email:single",
+                "One bounded record",
+                "2026-08-20T09:00:00Z",
+            )
+        ],
+        allow_llm=True,
+    )
+
+    result = analyze_external_lineage(request, llm=client)
+
+    assert client.call_count == 0
+    assert result.llm_status_code == "not_invoked"
+    assert result.edges == ()
 
 
 def test_project_projection_is_proposed_and_uses_only_included_evidence() -> None:
@@ -672,6 +693,7 @@ def test_pair_budget_rejects_before_any_optional_llm_call() -> None:
     payload = {
         "contract_version": "1.0.0",
         "analysis_id": "analysis:pair-budget",
+        "authorization_scope_ref": "authorization-scope:synthetic",
         "analysis_scope_code": "email_lineage",
         "knowledge_cutoff": None,
         "policy": {

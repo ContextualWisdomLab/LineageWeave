@@ -8,6 +8,7 @@
   "required": [
     "contract_version",
     "analysis_id",
+    "authorization_scope_ref",
     "analysis_scope_code",
     "policy",
     "records"
@@ -15,6 +16,7 @@
   "properties": {
     "contract_version": {"const": "1.0.0"},
     "analysis_id": {"$ref": "#/$defs/OpaqueReference"},
+    "authorization_scope_ref": {"$ref": "#/$defs/OpaqueReference"},
     "analysis_scope_code": {
       "type": "string",
       "enum": ["email_lineage", "project_history", "generic_lineage"]
@@ -231,7 +233,7 @@
         },
         "llm_status_code": {
           "type": "string",
-          "enum": ["not_requested", "unavailable", "completed"]
+          "enum": ["not_requested", "unavailable", "not_invoked", "completed"]
         },
         "edges": {
           "type": "array",

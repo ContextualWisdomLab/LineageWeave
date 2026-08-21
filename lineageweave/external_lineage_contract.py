@@ -28,14 +28,14 @@ SourceKindCode = Literal["email", "task", "commitment", "project_event", "generi
 CallerTruthStatusCode = Literal["observed", "authoritative_in_caller"]
 ExplicitRelationCode = Literal["rfc_reply", "provider_reply", "manual_parent"]
 ResultTruthStatusCode = Literal["observed", "inferred", "proposed"]
-LlmStatusCode = Literal["not_requested", "unavailable", "completed"]
+LlmStatusCode = Literal["not_requested", "unavailable", "not_invoked", "completed"]
 
 _ANALYSIS_SCOPES = frozenset({"email_lineage", "project_history", "generic_lineage"})
 _SOURCE_KINDS = frozenset({"email", "task", "commitment", "project_event", "generic"})
 _CALLER_TRUTH_STATUSES = frozenset({"observed", "authoritative_in_caller"})
 _EXPLICIT_RELATIONS = frozenset({"rfc_reply", "provider_reply", "manual_parent"})
 _EDGE_TRUTH_STATUSES = frozenset({"observed", "inferred"})
-_LLM_STATUSES = frozenset({"not_requested", "unavailable", "completed"})
+_LLM_STATUSES = frozenset({"not_requested", "unavailable", "not_invoked", "completed"})
 _OPAQUE_REFERENCE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:@+\-]*$")
 _RESULT_DIGEST = re.compile(r"^sha256:[0-9a-f]{64}$")
 _SCORE_TOLERANCE: Final = 1e-9
@@ -98,6 +98,7 @@ class LineageAnalysisRequest:
 
     contract_version: str
     analysis_id: str
+    authorization_scope_ref: str
     analysis_scope_code: AnalysisScopeCode
     knowledge_cutoff: datetime | None
     policy: LineageAnalysisPolicy
@@ -472,6 +473,7 @@ def parse_lineage_analysis_request(payload: object) -> LineageAnalysisRequest:
             {
                 "contract_version",
                 "analysis_id",
+                "authorization_scope_ref",
                 "analysis_scope_code",
                 "knowledge_cutoff",
                 "policy",
@@ -482,6 +484,7 @@ def parse_lineage_analysis_request(payload: object) -> LineageAnalysisRequest:
             {
                 "contract_version",
                 "analysis_id",
+                "authorization_scope_ref",
                 "analysis_scope_code",
                 "policy",
                 "records",
@@ -526,6 +529,13 @@ def parse_lineage_analysis_request(payload: object) -> LineageAnalysisRequest:
         analysis_id=cast(
             str,
             _opaque_reference(data["analysis_id"], field="analysis_id"),
+        ),
+        authorization_scope_ref=cast(
+            str,
+            _opaque_reference(
+                data["authorization_scope_ref"],
+                field="authorization_scope_ref",
+            ),
         ),
         analysis_scope_code=cast(
             AnalysisScopeCode,
@@ -595,6 +605,7 @@ def serialize_lineage_analysis_request(
     return {
         "contract_version": request.contract_version,
         "analysis_id": request.analysis_id,
+        "authorization_scope_ref": request.authorization_scope_ref,
         "analysis_scope_code": request.analysis_scope_code,
         "knowledge_cutoff": _time_text(request.knowledge_cutoff),
         "policy": {
