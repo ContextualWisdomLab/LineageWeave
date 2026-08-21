@@ -88,6 +88,28 @@ Observed at `2026-08-21T20:17:13Z` from the GitHub API and local worktree
 - **Security & Compliance**: PII masking cannot break the system. Need SOC 2 and CSAP compliance alternatives to blind PII masking. 
 - **LLM Orchestration**: Ensure ALL LLM calls route through `contextual-orchestrator` utilizing API keys (BYTEZ, NVIDIA, OPENROUTER, OPENAI) with auto model discovery and optimal reasoning effort allocation (Fugu/Conductor/TRINITY research).
 
+### 2.1 Requirement traceability matrix
+
+The status vocabulary is evidence-bound: **verified** means the current source
+and a scoped test prove the contract; **partial** means local or synthetic
+evidence exists but the requested authorized-corpus or production proof is
+absent; **open** means implementation or governance work is still required.
+An open PR never counts as a protected-main merge.
+
+| Requested capability | Current evidence | Status and remaining proof |
+| --- | --- | --- |
+| UI shell, responsive tiers, Figma and Storybook | React shell, token tests, viewport/browser checks, Storybook scenes, ADR 0118 Figma File ID `1Su3lDRmiZdcUs47t1QwIX` | **Partial** — approved CI/BI asset, legal usage permission, no-JavaScript fallback, and protected runtime parity remain unproven. |
+| Corporate-code/PU login, logout, ABAC/RBAC and visibility | OIDC browser run, account affiliations, permission checks, post visibility predicates and API tests | **Partial** — authorized production identity and complete role/policy matrix remain unverified. |
+| Event DAG, branching and channel evidence | `LineageDag`, keyboard selection, branch/root/current states, persisted channel evidence and synthetic tests | **Partial** — current protected-corpus rendering and lineage quality remain unproven; PR #387 is open. |
+| TEPP import/REST boundary and PostgreSQL source | TEPP client contract, PostgreSQL migrations, import boundary and no-file-DB tests | **Partial** — the requested real `zcrht811_export_rows` analysis cannot be committed or claimed without protected authorized runtime evidence. |
+| Keyman, R&R, 5W1H, multi-project events and commitments | Orchestrator clients, persistence schemas, popup routes and synthetic/API coverage | **Partial** — affiliation, requester/assignee, counterparty-side identity, provenance and corpus completeness remain unverified. |
+| Ontology, semantic layer, KG depth and customer master | normalized entity/relation/provenance schema, ABAC filters and customer/ontology routes | **Partial** — Searxng corroboration, abbreviation resolution, multi-company/team identity and per-node depth need live evidence. |
+| HTML/CSS structure, Base64 image and multimodal analysis | semantic units, region persistence, OCR/caption rendering and bounded VISION boundary | **Partial** — image-heavy summaries still return processing/unavailable states; complete region/OCR/embedding quality is not proven. |
+| Weekly/monthly reports and psychometric linking | report routes, TEPP/fast-mlsirm contracts and synthetic measurement tests | **Open** — authorized corpus calibration, RMSE/linking evidence, CAT/Fixed-Item calibration and buyer report acceptance are missing. |
+| Valkey event queue, retries, concurrency and operations | queue migrations, worker supervision tests, replay-safe migrations and lock-aware settings update | **Partial** — production throughput, hot-partition behavior, lock contention and recovery SLO evidence remain open. |
+| Orchestrator auto-discovery, VISION, embeddings and OTEL | provider-neutral gateway boundary, bounded provenance/session metadata and open upstream PR evidence | **Partial** — live model completion, collector delivery, retention/access review and downstream central workflow repair are not yet accepted. |
+| Security, CSAP/SOC 2 and PII-preserving controls | ABAC/authorization tests, redaction-safe telemetry contract and repository no-real-data rule | **Partial** — control-owner evidence, audit artifacts, key management and operational access reviews remain outside this repository. |
+
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
