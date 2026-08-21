@@ -40,13 +40,18 @@ export function LineageDag({
                 edges: group.edges.length,
               })}
             </figcaption>
-            <div className="lineage-dag-scroll" tabIndex={0}>
+            <div
+              className="lineage-dag-scroll"
+              tabIndex={0}
+              style={{ maxWidth: "100%", overflowX: "auto", paddingBottom: "0.25rem" }}
+            >
               <svg
                 viewBox={`0 0 ${group.width} ${group.height}`}
                 width={group.width}
                 height={Math.max(120, group.height)}
                 role="img"
                 aria-label={tf("{group} lineage", { group: group.heading })}
+                style={{ color: "canvastext", display: "block", maxWidth: "none" }}
               >
                 <defs>
                   <marker
@@ -58,7 +63,7 @@ export function LineageDag({
                     orient="auto"
                     markerUnits="strokeWidth"
                   >
-                    <path className="lineage-dag-arrow" d="M 0 0 L 8 4 L 0 8 z" />
+                    <path className="lineage-dag-arrow" d="M 0 0 L 8 4 L 0 8 z" fill="currentColor" />
                   </marker>
                 </defs>
                 {group.edges.map((edge) => {
@@ -101,7 +106,13 @@ export function LineageDag({
                       <text x={12} y={1}>
                         {truncateLabel(node.label)}
                       </text>
-                      <text className="lineage-dag-node-date" x={12} y={15}>
+                      <text
+                        className="lineage-dag-node-date"
+                        x={12}
+                        y={15}
+                        fontSize={9}
+                        opacity={0.7}
+                      >
                         {eventDate(node.occurred_at)}
                       </text>
                       <title>
@@ -115,10 +126,13 @@ export function LineageDag({
                 })}
               </svg>
             </div>
-            <details className="lineage-dag-evidence">
+            <details className="lineage-dag-evidence" style={{ marginTop: "0.5rem" }}>
               <summary>{t("Evidence trail")}</summary>
-              <div className="lineage-dag-evidence-scroll">
-                <table className="lineage-dag-evidence-table">
+              <div className="lineage-dag-evidence-scroll" style={{ overflowX: "auto" }}>
+                <table
+                  className="lineage-dag-evidence-table"
+                  style={{ borderCollapse: "collapse", marginTop: "0.5rem", width: "100%" }}
+                >
                   <thead>
                     <tr>
                       <th scope="col">{t("Graph relation")}</th>
