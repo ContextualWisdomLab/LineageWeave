@@ -33,3 +33,14 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
     ).read_text(encoding="utf-8")
 
     assert "0012_*" in script
+
+
+def test_tenant_settings_replay_is_idempotent() -> None:
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0103_tenant_settings.sql"
+    ).read_text(encoding="utf-8").lower()
+
+    assert "create table if not exists tenant_settings" in sql
+    assert "on conflict (id) do nothing" in sql
