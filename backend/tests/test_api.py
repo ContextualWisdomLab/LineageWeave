@@ -1127,7 +1127,28 @@ def test_start_analysis_run_recovers_the_a100_fork(
     assert "Pricing renegotiation: revised quote sent" in children
 
 
-def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> None:
+def test_me_reflects_the_authenticated_account(client, demo_analyst_token, seeded_db) -> None:
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "select corporate_entity_id, user_account_id from account_affiliation limit 1"
+            )
+            corporate_entity_id, account_id = cur.fetchone()
+            cur.execute(
+                "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
+                "values (%s, 'TEST-PU', 'Test PU') returning process_unit_id",
+                (corporate_entity_id,),
+            )
+            process_unit_id = cur.fetchone()[0]
+            cur.execute(
+                "update account_affiliation set process_unit_id = %s where user_account_id = %s",
+                (process_unit_id, account_id),
+            )
+        admin_conn.commit()
+    finally:
+        admin_conn.close()
+
     response = client.get("/api/me", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200
     body = response.json()
@@ -1136,6 +1157,16 @@ def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> No
     assert any(
         entity["entity_name"] == "Test Corp" for entity in body["corporate_entities"]
     )
+    assert body["account_affiliations"] == [
+        {
+            "corporate_entity_id": body["corporate_entities"][0]["corporate_entity_id"],
+            "corporate_entity_code": "TEST-CORP",
+            "entity_name": "Test Corp",
+            "process_unit_id": body["account_affiliations"][0]["process_unit_id"],
+            "process_unit_code": "TEST-PU",
+            "process_unit_name": "Test PU",
+        }
+    ]
 
 
 def test_customer_master_returns_authorized_catalog_contract(client, demo_analyst_token, seeded_db) -> None:

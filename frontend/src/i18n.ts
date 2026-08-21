@@ -137,6 +137,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Customer master": "고객 마스터",
     "Ask Agent": "Ask Agent",
     "Buyer navigation": "구매자 메뉴",
+    "Authorized scope": "권한 범위",
     "Authorized customer scope": "권한이 있는 고객 범위",
     "Customer entities available to this account.": "이 계정에서 사용할 수 있는 고객 엔터티입니다.",
     "Loading customer master...": "고객 마스터를 불러오는 중...",

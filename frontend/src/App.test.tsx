@@ -152,6 +152,16 @@ describe("App, authenticated", () => {
                   { corporate_entity_id: "corp-north", entity_name: "Northridge Grid" },
                 ]
               : [{ corporate_entity_id: "corp-demo", entity_name: "Demo Corp" }],
+            account_affiliations: [
+              {
+                corporate_entity_id: "corp-demo",
+                corporate_entity_code: "DEMO-CORP",
+                entity_name: "Demo Corp",
+                process_unit_id: "pu-demo",
+                process_unit_code: "DEMO-PU",
+                process_unit_name: "Demo PU",
+              },
+            ],
           });
         });
       }
@@ -3510,6 +3520,7 @@ describe("App, authenticated", () => {
 
     expect(await screen.findByRole("navigation", { name: "Buyer navigation" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Board" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByLabelText("Authorized scope")).toHaveTextContent("DEMO-CORP / DEMO-PU");
     expect(screen.queryByText("Advanced review tools")).not.toBeInTheDocument();
     const mobileMenu = screen.getByRole("button", { name: "Open navigation" });
     expect(mobileMenu).toHaveAttribute("aria-expanded", "false");
@@ -3520,5 +3531,11 @@ describe("App, authenticated", () => {
     expect(drawerClose).not.toBeNull();
     await userEvent.click(drawerClose as HTMLButtonElement);
     expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute("aria-expanded", "false");
+    const appHeader = document.querySelector<HTMLElement>("header.app-header");
+    expect(appHeader).not.toBeNull();
+    await userEvent.click(
+      within(appHeader as HTMLElement).getByRole("button", { name: "Search" }),
+    );
+    expect(screen.getByRole("searchbox", { name: "Search semantic evidence" })).toHaveFocus();
   });
 });

@@ -49,6 +49,7 @@ import {
   verifyPostRelations,
   type ActivityEvent,
   type AskAgentResponse,
+  type CurrentUser,
   type AffiliateNode,
   type AnalysisRun,
   type CalendarResponse,
@@ -3573,11 +3574,13 @@ function PostList({
   showLabPanels = false,
   postIdToOpen = null,
   onPostOpened,
+  focusSearchRequest = 0,
 }: {
   accessToken: string;
   showLabPanels?: boolean;
   postIdToOpen?: string | null;
   onPostOpened?: () => void;
+  focusSearchRequest?: number;
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [graph, setGraph] = useState<LineageGraph | null>(null);
@@ -3608,6 +3611,11 @@ function PostList({
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
   const postsRequest = useRef(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (focusSearchRequest > 0) searchInputRef.current?.focus();
+  }, [focusSearchRequest]);
 
   function openReportFromAnalysisRun(
     periodCode: string,
@@ -3841,6 +3849,7 @@ function PostList({
             <label>
               {t("Search semantic evidence")}
               <input
+                ref={searchInputRef}
                 type="search"
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
@@ -4553,6 +4562,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   const auth = useAuth();
   const [destination, setDestination] = useState<BuyerDestination>("board");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchFocusRequest, setSearchFocusRequest] = useState(0);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("post");
@@ -4587,9 +4598,13 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
     let active = true;
     fetchMe(accessToken)
       .then((member) => {
-        if (active && isSupportedLocale(member.preferred_locale)) setLocale(member.preferred_locale);
+        if (!active) return;
+        setCurrentUser(member);
+        if (isSupportedLocale(member.preferred_locale)) setLocale(member.preferred_locale);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (active) setCurrentUser(null);
+      });
     return () => {
       active = false;
     };
@@ -4641,6 +4656,12 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
     return <p className="error">{t("Authenticated, but no access token was returned.")}</p>;
   }
 
+  const accountScope = currentUser?.account_affiliations
+    ?.map((affiliation) =>
+      `${affiliation.corporate_entity_code}${affiliation.process_unit_code ? ` / ${affiliation.process_unit_code}` : ""}`,
+    )
+    .join(", ");
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -4658,7 +4679,22 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           ☰
         </button>
         <div className="app-header-top-menu">
+          {accountScope ? (
+            <span className="app-account-scope" aria-label={t("Authorized scope")}>
+              {accountScope}
+            </span>
+          ) : null}
           <span className="app-user-profile">{auth.user?.profile.preferred_username}</span>
+          <button
+            type="button"
+            className="btn-secondary app-header-search"
+            onClick={() => {
+              setDestination("board");
+              setSearchFocusRequest((request) => request + 1);
+            }}
+          >
+            {t("Search")}
+          </button>
           <button className="btn-secondary" onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
         </div>
       </header>
@@ -4699,6 +4735,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             showLabPanels={testOnlyLabPanels}
             postIdToOpen={postToOpen}
             onPostOpened={() => setPostToOpen(null)}
+            focusSearchRequest={searchFocusRequest}
           />
         ) : null}
         {destination === "customers" ? (

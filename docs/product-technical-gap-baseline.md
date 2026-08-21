@@ -52,15 +52,62 @@ record the final PR head with `git rev-parse HEAD` during acceptance.
   tenant brand name as text. Do not invent or alter a corporate logo; add the
   approved asset only after the tenant CI/BI source and usage permission are
   available.
-- **Header utilities/search — partial:** search exists on the board, but a
-  global header search and site-map utility are not yet implemented.
-- **Locale document metadata — open:** `frontend/index.html` has a fixed
-  `lang="en"`; it should follow the selected locale for accessibility.
+- **Header utilities/search — partial:** the authenticated header now exposes a
+  global Search action that focuses the existing board search; a dedicated
+  site-map utility is still not implemented.
+- **Locale document metadata — substantially present:** `i18n.ts` synchronizes
+  `document.documentElement.lang` after locale selection and `i18n.test.ts`
+  covers the supported locales. `frontend/index.html` remains an English
+  pre-JavaScript fallback, so a no-JavaScript locale check is still open.
 - **Phone content affordance — runtime verify:** the guide requires a visible
   portion of content below the fold. Verify this with Playwright at 390px after
   the authenticated runtime is available.
 
-## 3. Supplied parsing and semantic cases
+## 3. Requirement traceability
+
+Status is intentionally evidence-specific: `source` means the implementation
+boundary exists; `unit` means synthetic automated coverage exists;
+`local-integration` means the local PostgreSQL/Keycloak/Valkey stack exercised
+the path; `live-external` means the requested external service or authorized
+corpus was exercised; `open` means the requirement is not yet proven. A source
+adapter, fixture, or HTTP-shaped test double never upgrades a row to
+`live-external`.
+
+| Requirement | Evidence at this audit | Status |
+| --- | --- | --- |
+| 1024/1280/1920 layout and three responsive tiers | ADR 0118, `App.css`, frontend build/tests | source + unit |
+| Sticky header, footer, GNB, active state, phone drawer | `App.tsx`, `BuyerNav.tsx`, `App.test.tsx` | source + unit |
+| Approved CI/BI logo asset | Tenant text is present; approved asset and permission are absent | open |
+| User/logout/language/global search header actions | `App.tsx`, `i18n.ts`, search focus test | source + unit |
+| Site map / utility menu | No dedicated utility surface | open |
+| Noto Sans, palette, table/form/button conventions, modal 50% mask | ADR 0118, token CSS, component tests | source + unit |
+| Keyverse/OIDC login with real account | `auth.py`, OIDC discovery/JWKS boundary, local redirect check | source + local-integration; Keyverse open |
+| Authenticated corp/PU attributes | `/api/me` returns DB-backed codes; backend integration test covers `TEST-CORP`/`TEST-PU` and header displays them | source + local-integration |
+| RBAC/ABAC, public/private visibility, tenant isolation | `_can_see_post`, API authorization tests, aggregate-only runtime checks | source + local-integration |
+| React product surface and PostgreSQL boundary | React routes/components, asyncpg API, Compose stack | source + local-integration |
+| Post list/detail popup, Korean summary, 5W1H, R&R, tickets/calendar | API routes, popup panels, backend/frontend tests | source + unit |
+| Keyman on both sides, titles, affiliations, related KG nodes | Keyman/affiliate-tree/related-node routes and popup | source + unit; live extraction open |
+| Ontology, semantic layer, provenance, W3C PROV-O projection | normalized schema, provenance modules, ADRs, evidence UI | source; corpus verification open |
+| Branching Event Lineage DAG with evidence trail | `LineageDag.tsx`, Storybook story, Figma frames, frontend tests | source + unit |
+| Customer master and hierarchy tree | `/api/customer-master`, affiliate tree, catalog migrations | source + unit; live resolution open |
+| VOC/VOM/VOP/VOCC/VOCO/VOS role classification | common lookup values and relationship APIs | source + unit; live classification open |
+| Evidence-grounded chat and source navigation | `/chat`, `/ask`, citation/evidence UI | source + unit; orchestrator runtime open |
+| PU/team/project weekly/monthly reports | report API/UI and grouping controls | source + unit; TEPP-backed live report open |
+| TEPP calibrated measurement, dichotomous items, multilevel/MMM/time model | published import/REST boundary and TEPP ADR/PRD references | boundary-only; live-external open |
+| contextual-orchestrator routing, VISION, embedding, schema repair | clients and provenance/session boundary | source; live-external open |
+| HTML semantic units, tables, indentation, footnotes, formulas | parser modules and synthetic tests | source + unit; supplied runtime cases open |
+| Base64/file image regions and multimodal evidence | image-region schema and VISION client boundary | source; live-external open |
+| Abbreviation/multilingual alias/entity disambiguation | catalog hints and resolver boundary | source; live corroboration open |
+| SearXNG/internal relation fact check | verification endpoint and unavailable handling | source; SearXNG runtime open |
+| Valkey event queue and cloud-native Compose stack | queue modules, Compose services, health checks | source + local-integration; delivery stress open |
+| 3NF, hot partitions, locks, read/write contention | migrations and documented boundaries | source; operational evidence open |
+| Rust/GPU/CPU psychometric computation | delegated to TEPP, not reimplemented here | boundary accepted; live TEPP evidence open |
+| APA 7 doctoring and Zotero OA records | baseline bibliography, local Zotero API reachable, known metadata found | source + local-integration; OA attachment audit open |
+| Browser E2E from login through evidence | anonymous OIDC redirect verified at 390px; authenticated account flow not executed | partial; open |
+| Storybook scenes/edge events and design-token coverage | `LineageDag.stories.tsx`, inventory, Storybook build | source + unit |
+| 100% coverage/docstrings/edge-case/release gates | current checks and coverage evidence are not complete on PR #350 | open |
+
+## 4. Supplied parsing and semantic cases
 
 The following user-reported cases remain tracked without storing real post IDs:
 
@@ -82,7 +129,7 @@ These are not “resolved” merely because a prompt or heuristic was changed.
 Each requires synthetic unit coverage plus an authorized runtime reproduction
 or an explicit unavailable result.
 
-## 4. Product and technical gaps
+## 5. Product and technical gaps
 
 - **Entity and abbreviation resolution — open:** canonical names, aliases,
   multilingual labels, team-vs-organization typing, title-aware person
@@ -114,7 +161,7 @@ or an explicit unavailable result.
   complete on the exact current head; frontend, backend, browser, accessibility,
   Storybook, security, and coverage evidence must be collected before release.
 
-## 5. Next acceptance loop
+## 6. Next acceptance loop
 
 1. Re-fetch the exact PR head and required reviews/checks.
 2. Run frontend lint, tests, build, Storybook, backend tests, and authenticated
@@ -125,7 +172,7 @@ or an explicit unavailable result.
    gate. Do not self-approve, bypass protection, or claim a PR is merged without
    a merge SHA.
 
-## 6. References (APA 7th)
+## 7. References (APA 7th)
 
 ContextualWisdomLab. (2026). *TEPP* [Computer software]. GitHub.
 https://github.com/ContextualWisdomLab/TEPP

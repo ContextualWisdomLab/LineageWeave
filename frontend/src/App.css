@@ -107,6 +107,15 @@
   border: 1px solid var(--border);
 }
 
+.app-account-scope {
+  max-width: 22rem;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* Drawer Menu Trigger (Mobile) */
 .mobile-drawer-trigger {
   display: none;
@@ -942,6 +951,10 @@
   /* Tablet Breakpoint (768px - 1024px) */
   .app-header {
     padding: 0 1rem;
+  }
+
+  .app-account-scope {
+    display: none;
   }
   .buyer-gnb {
     padding: 0 1rem;

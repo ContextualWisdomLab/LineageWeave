@@ -630,30 +630,59 @@ async def read_me(
     ``POST /api/analysis-runs`` should cover.
     """
     entities: list[dict[str, str]] = []
+    account_affiliations: list[dict[str, Any]] = []
     if account.corporate_entity_ids:
         async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """
-                select corporate_entity_id, entity_name
-                  from corporate_entity
-                 where corporate_entity_id = any($1::uuid[])
-                 order by entity_name
+                select affiliation.corporate_entity_id,
+                       entity.corporate_entity_code,
+                       entity.entity_name,
+                       affiliation.process_unit_id,
+                       process.process_unit_code,
+                       process.process_unit_name
+                  from account_affiliation affiliation
+                  join corporate_entity entity
+                    on entity.corporate_entity_id = affiliation.corporate_entity_id
+                  left join process_unit process
+                    on process.process_unit_id = affiliation.process_unit_id
+                   and process.corporate_entity_id = affiliation.corporate_entity_id
+                 where affiliation.user_account_id = $1
+                   and affiliation.corporate_entity_id = any($2::uuid[])
+                 order by entity.entity_name, process.process_unit_code nulls first
                 """,
+                account.user_account_id,
                 list(account.corporate_entity_ids),
             )
-        entities = [
-            {
-                "corporate_entity_id": str(row["corporate_entity_id"]),
-                "entity_name": row["entity_name"],
-            }
-            for row in rows
-        ]
+        seen_entities: set[str] = set()
+        for row in rows:
+            entity_id = str(row["corporate_entity_id"])
+            if entity_id not in seen_entities:
+                entities.append(
+                    {
+                        "corporate_entity_id": entity_id,
+                        "corporate_entity_code": row["corporate_entity_code"],
+                        "entity_name": row["entity_name"],
+                    }
+                )
+                seen_entities.add(entity_id)
+            account_affiliations.append(
+                {
+                    "corporate_entity_id": entity_id,
+                    "corporate_entity_code": row["corporate_entity_code"],
+                    "entity_name": row["entity_name"],
+                    "process_unit_id": str(row["process_unit_id"]) if row["process_unit_id"] else None,
+                    "process_unit_code": row["process_unit_code"],
+                    "process_unit_name": row["process_unit_name"],
+                }
+            )
     return {
         "user_account_id": account.user_account_id,
         "display_name": account.display_name,
         "preferred_locale": account.preferred_locale,
         "permission_codes": sorted(account.permission_codes),
         "corporate_entities": entities,
+        "account_affiliations": account_affiliations,
     }
 
 
