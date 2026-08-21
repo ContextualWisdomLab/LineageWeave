@@ -81,13 +81,13 @@
           "type": "string",
           "minLength": 1,
           "maxLength": 256,
-          "pattern": "^(?!.*://)[^\\u0000-\\u001F\\u007F]+$"
+          "pattern": "^(?!\\s)(?!.*\\s$)(?!.*://)[^\\u0000-\\u001F\\u007F]+$"
         },
         "display_text": {
           "type": "string",
           "minLength": 1,
           "maxLength": 512,
-          "pattern": "^[^\\u0000-\\u001F\\u007F]+$"
+          "pattern": "^(?!\\s)(?!.*\\s$)[^\\u0000-\\u001F\\u007F]+$"
         },
         "starts_at": {
           "$ref": "#/$defs/rfc3339"
