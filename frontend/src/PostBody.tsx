@@ -12,7 +12,13 @@ function parsePipeDelimitedTable(text: string): string[][] | null {
       if (cells[cells.length - 1] === "") cells.pop();
       return cells;
     });
-  if (!parsedRows.some((row) => row.every((cell) => /^:?-{3,}:?$/.test(cell)))) return null;
+  if (
+    !parsedRows.some(
+      (row) => row.length > 0 && row.every((cell) => /^:?-{3,}:?$/.test(cell)),
+    )
+  ) {
+    return null;
+  }
   const rows = parsedRows
     .filter((row) => !row.every((cell) => /^:?-{3,}:?$/.test(cell)))
     .filter((row) => row.length > 1 && row.some(Boolean));
