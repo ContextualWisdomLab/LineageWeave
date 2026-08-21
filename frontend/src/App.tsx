@@ -4547,6 +4547,7 @@ function AskAgentPanel({
 
 export default function App({ showLabPanels = false }: { showLabPanels?: boolean } = {}) {
   useLocale();
+  const brandName = "LineageWeave"; // TODO: Fetch from admin/tenant config
   const auth = useAuth();
   const [destination, setDestination] = useState<BuyerDestination>("board");
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
@@ -4593,7 +4594,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         <main className="login-screen">
           <div className="login-card">
             <div className="login-header">
-              <h1>LineageWeave</h1>
+              <h1>{brandName}</h1>
               <p className="login-subtitle">Marketing & Operational Lineage Intelligence</p>
             </div>
             <div className="login-controls">
@@ -4611,10 +4612,10 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         </main>
         <footer className="app-footer" role="contentinfo">
           <div className="app-footer-title">
-            <span className="app-footer-logo">LineageWeave</span>
+            <span className="app-footer-logo">{brandName}</span>
           </div>
           <div className="app-footer-copyright">
-            <p>Copyright &copy; {new Date().getFullYear()} by BRAND. All rights reserved.</p>
+            <p>Copyright &copy; {new Date().getFullYear()} by {brandName}. All rights reserved.</p>
           </div>
         </footer>
       </div>
@@ -4629,7 +4630,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
     <div className="app-shell">
       <header className="app-header">
         <div className="app-header-logo">
-          <h1 className="app-header-title">LineageWeave</h1>
+          <h1 className="app-header-title">{brandName}</h1>
         </div>
         <div className="app-header-top-menu">
           <span className="app-user-profile">{auth.user?.profile.preferred_username}</span>
@@ -4680,10 +4681,10 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
       </main>
       <footer className="app-footer" role="contentinfo">
         <div className="app-footer-title">
-          <span className="app-footer-logo">LineageWeave</span>
+          <span className="app-footer-logo">{brandName}</span>
         </div>
         <div className="app-footer-copyright">
-          <p>Copyright &copy; {new Date().getFullYear()} by BRAND. All rights reserved.</p>
+          <p>Copyright &copy; {new Date().getFullYear()} by {brandName}. All rights reserved.</p>
         </div>
       </footer>
     </div>
