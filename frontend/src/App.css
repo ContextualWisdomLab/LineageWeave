@@ -119,6 +119,10 @@
 /* Drawer Menu Trigger (Mobile) */
 .mobile-drawer-trigger {
   display: none;
+  min-width: var(--size-control-min);
+  min-height: var(--size-control-min);
+  align-items: center;
+  justify-content: center;
   background: transparent;
   border: none;
   font-size: 1.5rem;
@@ -349,6 +353,11 @@
   position: absolute;
   top: var(--space-close-inset);
   right: var(--space-close-inset);
+  min-width: var(--size-control-min);
+  min-height: var(--size-control-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: none;
   border: none;
   font-size: var(--font-size-close);
@@ -995,7 +1004,7 @@
   }
 
   .mobile-drawer-trigger {
-    display: block;
+    display: flex;
   }
 
   .mobile-drawer .workspace-gnb {
