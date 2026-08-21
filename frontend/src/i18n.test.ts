@@ -22,6 +22,7 @@ describe("i18n", () => {
     "unresolved",
     "Keymen",
     "Unknown",
+    "Image tags",
     "Counterparties",
     "due",
     "Activity",
@@ -42,6 +43,11 @@ describe("i18n", () => {
     "Authorized customer entities are current. Open a related post to read Event Lineage.",
     "Authorized cited posts are current. Open a cited post to read Event Lineage.",
     "No authorized source posts are available for this question.",
+    "Check eligible public claims",
+    "Public verification",
+    "Supported by public evidence",
+    "Conflicts with public evidence",
+    "Not enough public information",
     "Enable public verification to check eligible public claims.",
     "Configure public search and contextual-orchestrator, then retry.",
     "Inspect the internal cited posts; no public claim was eligible.",
@@ -49,6 +55,7 @@ describe("i18n", () => {
     "Collect stronger authoritative evidence before accepting the claim.",
     "Inspect the authorized cited posts and their evidence.",
     "Event Lineage timeline",
+    "Open timeline post:",
   ] as const;
 
   it("supports the five product locales", () => {

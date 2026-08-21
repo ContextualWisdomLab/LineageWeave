@@ -4,9 +4,9 @@ from lineageweave.chunking import (
     ConversationTurn,
     chunk_by_conversation_turn,
     chunk_by_dom,
-    chunk_by_source_body,
     chunk_by_paragraph,
     chunk_by_sentence,
+    chunk_by_source_body,
     normalize_semantic_text,
 )
 
@@ -127,6 +127,48 @@ def test_chunk_by_dom_labels_markerless_footnotes() -> None:
     ]
 
 
+def test_chunk_by_dom_labels_html_and_word_footnote_markup() -> None:
+    html = (
+        "<p>Body text</p>"
+        '<ol class="footnotes"><li id="fn1"><p>HTML footnote body</p></li></ol>'
+        '<p class="MsoFootnoteText"><a href="#_ftnref1"><sup>1</sup></a> Word footnote body</p>'
+    )
+
+    chunks = chunk_by_dom(html)
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Body text"),
+        ("footnote", "HTML footnote body"),
+        ("footnote", "1 Word footnote body"),
+    ]
+
+
+def test_chunk_by_dom_does_not_label_body_footnote_citation_as_footnote() -> None:
+    html = (
+        '<p>Body cites <a href="#_ftn1" name="_ftnref1">[1]</a>.</p>'
+        '<p><a href="#_ftnref1" name="_ftn1">[1]</a> Footnote definition.</p>'
+    )
+
+    chunks = chunk_by_dom(html)
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Body cites [1]."),
+        ("footnote", "[1] Footnote definition."),
+    ]
+
+
+def test_chunk_by_dom_labels_ooxml_footnote_containers() -> None:
+    chunks = chunk_by_dom(
+        "<w:footnote w:id='1'><w:p>OOXML footnote body</w:p></w:footnote>"
+        "<w:endnote w:id='2'><w:p>OOXML endnote body</w:p></w:endnote>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("footnote", "OOXML footnote body"),
+        ("footnote", "OOXML endnote body"),
+    ]
+
+
 def test_chunk_by_dom_word_table_rows_also_group_cells() -> None:
     html = "<w:tbl><w:tr><w:tc>1</w:tc><w:tc>Acme Corp</w:tc></w:tr></w:tbl>"
     chunks = chunk_by_dom(html)
@@ -141,6 +183,7 @@ def test_chunk_by_dom_keeps_indentation_as_metadata_not_embedding_text() -> None
 
     assert [chunk.text for chunk in chunks] == ["Level one", "Level two"]
     assert [chunk.indent_width for chunk in chunks] == [2, 4]
+    assert [chunk.declared_indent_width for chunk in chunks] == [0, 0]
 
 
 def test_chunk_by_dom_reads_html_and_word_indentation_declarations() -> None:
@@ -153,6 +196,7 @@ def test_chunk_by_dom_reads_html_and_word_indentation_declarations() -> None:
 
     assert [chunk.text for chunk in chunks] == ["HTML", "Word"]
     assert [chunk.indent_width for chunk in chunks] == [4, 4]
+    assert [chunk.declared_indent_width for chunk in chunks] == [4, 4]
 
 
 def test_chunk_by_dom_reads_the_css_margin_shorthand_not_just_margin_left() -> None:
@@ -302,6 +346,28 @@ def test_chunk_by_dom_interleaves_image_inside_a_block_with_text() -> None:
         "Before the picture.",
         "After the picture.",
     ]
+
+
+def test_chunk_by_dom_keeps_an_inline_table_image_from_splitting_the_row() -> None:
+    tiny_png_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+    html = (
+        "<table><tr><td>Before "
+        f'<img src="data:image/png;base64,{tiny_png_b64}">'
+        "After</td><td>Second cell</td></tr></table>"
+    )
+
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.text for chunk in chunks if chunk.unit_type == "dom"] == [
+        "Before After | Second cell",
+    ]
+    assert [chunk.unit_type for chunk in chunks].count("image") == 1
+
+
+def test_chunk_by_dom_does_not_split_text_for_an_undecodable_inline_image() -> None:
+    chunks = chunk_by_dom('<p>Before<img src="https://example.test/image.png">After</p>')
+
+    assert [(chunk.unit_type, chunk.text) for chunk in chunks] == [("dom", "BeforeAfter")]
 
 
 def test_chunk_by_dom_labels_text_chunks_with_their_tag_name() -> None:
