@@ -49,9 +49,12 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T15:11:36Z` from the
-GitHub API. A merged commit is identified as `merge_commit`; an open PR is
-identified by its exact `head` and `base`.
+`resolved` from intent alone. Observed at `2026-08-21T15:43:49Z` from the
+GitHub API. Checkpoint types are `merge_commit`, `head`, and
+`closed_without_merge`; the latter records a closed PR's exact `head` when
+`merged_at` and `merge_commit_sha` are both absent. A merged commit is
+identified by `merge_commit`; an open PR is identified by its exact `head` and
+`base`.
 
 Recently merged into the protected repository:
 
@@ -63,20 +66,15 @@ Recently merged into the protected repository:
 Open PRs at the same observation:
 
 - PR #258: `head` `8b356a8399d40bcecc68a07bcfacab78eef303a0`, base `main`.
-- PR #287: `head` `0aedf64e2feac4feb33cf2f6c39f967e8eeb3c12`, base
-  `feat/global-ask-public-claim-verification-v2200`.
 - PR #349: `head` `feb55d029eb9d17c2b4f01cf8c86366fb603206a`, base `main`.
 - PR #355: `head` `b606c2553f877fa85968d90dc46598ce16897fbf`, base `main`.
-- PR #368: `head` `76630661963e79a68c23cd58948953cc7b36bcad`, base `main`.
-- PR #370: `head` `d5495162fbf4950ca180d43d5c13a636f1889e0c`, base
-  `feat/lineage-dag-regression`.
+- PR #368: `head` `34103b5b23503524cef6a6cf97b0e7b364b0f852`, base `main`.
 - PR #373: `head` `6b84bea10881e2f82fb676d5b01cf56f7d8f4adb`, base `main`.
-- PR #382: `head` `91bf532b4a30a050f6431ae3a29fcab5ccfa99ed`, base
+- PR #382: `head` `5eb707f02209a46d4d046480cec960ac40f59375`, base
   `ci/publish-ontology-pages-clean`.
-- PR #383: `head` `720004942dd155a85020af32da402d320038f46a`, base `main`.
-- PR #384: `head` `fb4bad5cb79d70b1a890f37cb651d0801fb61c16`, base
+- PR #383: `head` `745113829469a7c09e03fe783ea942ca884f2ea6`, base `main`.
+- PR #384: `head` `e8637fb82cb3abe216eaba64761d2a86011267e0`, base
   `docs/customer-master-scope-adr`.
-- PR #386: `head` `57a013deb88fc0b23ae6448c1d3474c770360a5e`, base `main`.
 
 The open queue remains subject to exact-current-head Checks, formal independent
 approval, and protected mergeability. Green Checks alone do not prove that a
@@ -134,9 +132,10 @@ GRC evidence subjects.
 
 ## 7. Next Implementation Order
 
-1. Let the protected Checks and independent approvals complete for open stacked
-   PRs #377, #382, and #385, then revalidate parent PRs #374, #373, and #258
-   at their exact current heads; PRs #367, #375, and #379 are already merged.
+1. Let the protected Checks and independent approvals complete for open PRs
+   #258, #349, #355, #368, #373, #382, #383, and #384, then revalidate each
+   exact current head before merge; PRs #367, #375, #379, and #385 are already
+   merged.
    Verify the synthetic footnote/table cases in the authenticated browser and
    use the protected external corpus only for aggregate, non-identifying
    runtime evidence.
