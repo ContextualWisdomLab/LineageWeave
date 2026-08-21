@@ -56,5 +56,5 @@ The runtime contract is:
   implementation.
 - Rebuilding the image is required after the upstream pin changes.
 - Protected-branch review and merge remain external gates; this pin does not
-  bypass ContextualWisdomLab/contextual-orchestrator#765 or
-  ContextualWisdomLab/contextual-orchestrator#779, #789, or #791.
+ bypass ContextualWisdomLab/contextual-orchestrator#765 or
+ ContextualWisdomLab/contextual-orchestrator#779, #789, or #791.
