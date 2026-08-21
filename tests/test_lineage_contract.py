@@ -30,6 +30,30 @@ class RawProviderFailure:
         raise RuntimeError("provider secret response body")
 
 
+class InvalidProviderScore:
+    """Available provider client that returns one invalid score value."""
+
+    available = True
+
+    def __init__(self, score: object) -> None:
+        """Store the hostile score for the contract test."""
+        self.score = score
+
+    def judge(self, candidate_label: str, record_label: str) -> object:
+        """Return the hostile score without raising a transport error."""
+        return self.score
+
+
+class ValidProvider:
+    """Available provider client that returns a bounded confidence."""
+
+    available = True
+
+    def judge(self, candidate_label: str, record_label: str) -> float:
+        """Return a valid synthetic confidence for the happy path."""
+        return 0.7
+
+
 def evidence(
     ref: str,
     *,
@@ -182,15 +206,68 @@ def test_analyze_lineage_reports_an_explicitly_unavailable_llm() -> None:
     assert any(item.code == "llm_channel_unavailable" for item in result.limitations)
 
 
-def test_analyze_lineage_sanitizes_unexpected_provider_failures() -> None:
-    """Raw provider messages do not cross the public lineage boundary."""
-    with pytest.raises(ValueError, match="LLM provider response unavailable") as captured:
-        analyze_lineage(
-            request((evidence("provider-failure-001"), evidence("provider-failure-002", occurred_at=BASE_TIME + timedelta(minutes=1)))),
-            llm=RawProviderFailure(),
-        )
+def test_analyze_lineage_drops_a_failed_provider_channel_without_raw_error() -> None:
+    """A provider failure degrades to non-LLM channels without leaking text."""
+    result = analyze_lineage(
+        request(
+            (
+                evidence("provider-failure-001"),
+                evidence("provider-failure-002", occurred_at=BASE_TIME + timedelta(minutes=1)),
+            )
+        ),
+        llm=RawProviderFailure(),
+    )
 
-    assert "provider secret" not in str(captured.value)
+    assert any(item.code == "llm_channel_unavailable" for item in result.limitations)
+    assert all(
+        all(channel.channel_code != "llm" for channel in edge.channel_evidence)
+        for edge in result.edges
+    )
+    assert "provider secret" not in result.to_json()
+
+
+@pytest.mark.parametrize("score", [True, "not-a-score", float("nan"), -0.1, 1.1])
+def test_analyze_lineage_drops_invalid_provider_scores(score: object) -> None:
+    """Boolean, non-finite, and out-of-range scores cannot enter fusion."""
+    result = analyze_lineage(
+        request(
+            (
+                evidence("invalid-score-001"),
+                evidence("invalid-score-002", occurred_at=BASE_TIME + timedelta(minutes=1)),
+            )
+        ),
+        llm=InvalidProviderScore(score),
+    )
+
+    assert any(item.code == "llm_channel_unavailable" for item in result.limitations)
+    assert all(
+        all(channel.channel_code != "llm" for channel in edge.channel_evidence)
+        for edge in result.edges
+    )
+
+
+def test_analyze_lineage_does_not_flatten_the_body_into_short_record_labels(monkeypatch) -> None:
+    """Large bodies stay bounded evidence and do not inflate pairwise text scoring."""
+    captured: list[Record] = []
+
+    def fake_reconstruct(records: list[Record], *, llm) -> list[Tree]:
+        captured.extend(records)
+        return []
+
+    monkeypatch.setattr(contract, "reconstruct", fake_reconstruct)
+    long_body = "x" * 4_000
+    record = LineageEvidenceRecord(**{**evidence("body-bound-001").__dict__, "body_text": long_body})
+
+    analyze_lineage(request((record,)))
+
+    assert captured[0].label == "HVDC design review"
+
+
+def test_analyze_lineage_accepts_empty_evidence_without_provider_work() -> None:
+    """An empty authorized evidence set returns no trees or inferred edges."""
+    result = analyze_lineage(request(()), llm=RawProviderFailure())
+
+    assert result.edges == ()
 
 
 def test_analyze_lineage_accepts_an_available_llm_without_candidates() -> None:
@@ -206,6 +283,22 @@ def test_analyze_lineage_accepts_an_available_llm_without_candidates() -> None:
     )
 
     assert not any(item.code == "llm_channel_unavailable" for item in result.limitations)
+
+
+def test_analyze_lineage_keeps_a_valid_provider_score() -> None:
+    """A bounded provider score remains available to the fused edge."""
+    result = analyze_lineage(
+        request(
+            (
+                evidence("valid-score-001"),
+                evidence("valid-score-002", occurred_at=BASE_TIME + timedelta(minutes=1)),
+            )
+        ),
+        llm=ValidProvider(),
+    )
+
+    assert result.edges
+    assert any(channel.channel_code == "llm" for channel in result.edges[0].channel_evidence)
 
 
 def test_analyze_lineage_excludes_events_that_occur_after_the_cutoff() -> None:

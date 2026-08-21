@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from hashlib import sha256
 
-from .adjudication_client import AdjudicationClient
+from .adjudication_client import AdjudicationClient, NullAdjudicationClient
 from .models import Record
 from .reconstruct import reconstruct
 
@@ -22,6 +22,10 @@ _MAX_REFERENCE_LENGTH = 200
 _MAX_TEXT_LENGTH = 8_000
 _MAX_PROJECT_HINTS = 500
 _MAX_EMAIL_REFS_PER_RECORD = 64
+
+
+class _ProviderChannelUnavailable(Exception):
+    """Private signal used to drop a failed provider channel safely."""
 
 
 class _SafeAdjudicationClient:
@@ -34,16 +38,16 @@ class _SafeAdjudicationClient:
         self._client = client
 
     def judge(self, candidate_label: str, record_label: str) -> float:
-        """Return a bounded score or a stable, non-sensitive contract error."""
+        """Return a bounded score or signal that the channel is unavailable."""
         try:
             score = self._client.judge(candidate_label, record_label)
         except Exception as exc:
-            raise ValueError("LLM provider response unavailable") from exc
+            raise _ProviderChannelUnavailable from exc
         if isinstance(score, bool) or not isinstance(score, (int, float)):
-            raise ValueError("LLM provider score was invalid")  # noqa: TRY004 - public contract uses ValueError
+            raise _ProviderChannelUnavailable
         number = float(score)
         if not math.isfinite(number) or not 0.0 <= number <= 1.0:
-            raise ValueError("LLM provider score was invalid")
+            raise _ProviderChannelUnavailable
         return number
 
 
@@ -391,7 +395,7 @@ def analyze_lineage(
         Record(
             record_id=record.evidence_ref,
             group_key=record.group_key,
-            label=f"{record.label}\n{record.body_text}".strip(),
+            label=record.label,
             occurred_at=_utc_timestamp(record.occurred_at, "evidence.occurred_at").replace(tzinfo=None),
             secondary_key=record.secondary_key,
         )
@@ -402,7 +406,19 @@ def analyze_lineage(
         if llm is not None and getattr(llm, "available", False)
         else llm
     )
-    trees = reconstruct(records, llm=effective_llm) if records else []
+    if not records:
+        trees = []
+    else:
+        try:
+            trees = reconstruct(records, llm=effective_llm)
+        except _ProviderChannelUnavailable:
+            limitations.append(
+                LineageLimitation(
+                    "llm_channel_unavailable",
+                    "The LLM channel failed safely; channel weights were renormalized.",
+                )
+            )
+            trees = reconstruct(records, llm=NullAdjudicationClient())
     edges = [edge for tree in trees for edge in tree.edges]
     eligible_refs = {record.evidence_ref for record in eligible}
     result_edges: list[LineageEdgeResult] = []

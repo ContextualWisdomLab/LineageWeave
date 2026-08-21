@@ -33,9 +33,13 @@ adapter can be added without changing reconstruction.
   explicit `inferred` truth status.
 - Missing contextual-orchestrator adjudication is an explicit limitation; it
   is not a zero score or a fabricated negative signal.
-- Provider exceptions and non-finite or out-of-range provider scores are
-  converted to stable contract errors at this boundary. Raw provider response
-  bodies and exception text never cross the public contract.
+- Provider exceptions and non-finite or out-of-range provider scores drop the
+  LLM channel and rerun the bounded reconstruction with renormalized channel
+  weights. Raw provider response bodies and exception text never cross the
+  public contract.
+- The reconstruction text channel receives the short evidence label only;
+  bounded body text remains request evidence and is not flattened into every
+  pairwise comparison.
 - The request digest is the idempotency identity. Persistence, retry, tenant
   authorization, and provider actions remain the consumer's responsibility.
 
