@@ -126,7 +126,7 @@ export function LineageDag({
                 })}
               </svg>
             </div>
-            <details className="lineage-dag-evidence" style={{ marginTop: "0.5rem" }}>
+            <details className="lineage-dag-evidence" open style={{ marginTop: "0.5rem" }}>
               <summary>{t("Evidence trail")}</summary>
               <div className="lineage-dag-evidence-scroll" style={{ overflowX: "auto" }}>
                 <table
