@@ -68,6 +68,23 @@ class _MalformedAdjudicationClient:
         raise AdjudicationClientError("malformed confidence")
 
 
+class _FailsAfterFirstAdjudicationClient:
+    """Available client that fails after an earlier pair was scored."""
+
+    available = True
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def judge(self, candidate_label: str, record_label: str) -> float:
+        """Return one score, then simulate a malformed provider response."""
+
+        self.calls += 1
+        if self.calls == 2:
+            raise AdjudicationClientError("malformed confidence")
+        return 1.0
+
+
 def test_llm_channel_is_used_and_scored_when_a_client_is_supplied() -> None:
     stub = _StubAdjudicationClient()
     trees = reconstruct(sample_records(), llm=stub)
@@ -83,6 +100,19 @@ def test_malformed_llm_response_falls_back_to_deterministic_channels() -> None:
     trees = reconstruct(sample_records(), llm=_MalformedAdjudicationClient())
     tree_a = next(t for t in trees if t.group_key == "A-100")
 
+    assert tree_a.edges
+    assert all("llm" not in edge.channel_scores for edge in tree_a.edges)
+
+
+def test_partial_llm_failure_rebuilds_the_group_without_mixed_channels() -> None:
+    """A mid-group provider failure must not preserve already-scored llm edges."""
+
+    client = _FailsAfterFirstAdjudicationClient()
+    records = [record for record in sample_records() if record.group_key == "A-100"]
+    trees = reconstruct(records, llm=client)
+    tree_a = next(t for t in trees if t.group_key == "A-100")
+
+    assert client.calls == 2
     assert tree_a.edges
     assert all("llm" not in edge.channel_scores for edge in tree_a.edges)
 

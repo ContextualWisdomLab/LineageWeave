@@ -118,10 +118,17 @@ def _reconstruct_group(
         except AdjudicationClientError:
             # A malformed optional provider response makes that channel
             # unavailable for this reconstruction; deterministic channels must
-            # continue with their renormalized weights.
-            llm = NullAdjudicationClient()
-            weights = active_weights(llm, weights)
-            parent_choice = _best_parent(record, candidates, llm, weights, min_score)
+            # continue with their renormalized weights. Restart the whole
+            # group so edges created before the failure do not retain a stale
+            # llm score beside deterministic-only edges.
+            fallback_llm = NullAdjudicationClient()
+            return _reconstruct_group(
+                records,
+                fallback_llm,
+                active_weights(fallback_llm, weights),
+                window,
+                min_score,
+            )
         references: list[str] = []
         if parent_choice is not None:
             parent, score, channel_scores = parent_choice
