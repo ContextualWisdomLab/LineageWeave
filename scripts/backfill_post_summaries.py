@@ -81,12 +81,15 @@ def _semantic_hints(row: asyncpg.Record) -> str:
         source_author_name=source_author_name,
         source_company_code=row["source_company_code"],
         source_company_name=row["source_company_name"],
+        source_company_catalog_name=row["source_company_catalog_name"],
         source_business_unit_code=row["source_process_unit_code"],
         source_process_unit_name=row["source_process_unit_name"],
+        source_process_unit_catalog_name=row["source_process_unit_catalog_name"],
         source_sales_pool_code=row["source_sales_pool_code"],
         source_sales_pool_name=row["source_sales_pool_name"],
         source_customer_code=row["source_customer_code"],
         source_customer_name=row["source_customer_name"],
+        source_customer_catalog_name=row["source_customer_catalog_name"],
         source_project_code=row["source_project_code"],
         source_project_name=row["source_project_name"],
     )
@@ -110,12 +113,15 @@ async def _load_posts(
                    post.source_author_name,
                    post.source_company_code,
                    post.source_company_name,
+                   source_company.entity_name as source_company_catalog_name,
                    post.source_process_unit_code,
                    post.source_process_unit_name,
+                   source_process_unit.process_unit_name as source_process_unit_catalog_name,
                    post.source_sales_pool_code,
                    post.source_sales_pool_name,
                    post.source_customer_code,
                    post.source_customer_name,
+                   source_customer.entity_name as source_customer_catalog_name,
                    post.source_project_code,
                    post.source_project_name,
                    post.secondary_grouping_key as project_field,
@@ -135,6 +141,12 @@ async def _load_posts(
                 on author.user_account_id = post.author_account_id
               left join corporate_entity customer
                 on customer.corporate_entity_id = post.corporate_entity_id
+              left join corporate_entity source_company
+                on source_company.corporate_entity_code = nullif(btrim(post.source_company_code), '')
+              left join process_unit source_process_unit
+                on source_process_unit.process_unit_code = nullif(btrim(post.source_process_unit_code), '')
+              left join corporate_entity source_customer
+                on source_customer.corporate_entity_code = nullif(btrim(post.source_customer_code), '')
              where nullif(btrim(post.source_draft_code), '') is null
                and nullif(btrim(post.source_deleted_flag), '') is null
                and not (

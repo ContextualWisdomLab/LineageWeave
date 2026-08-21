@@ -18,7 +18,7 @@ FAILED = "post_content_ingestion_failed"
 STALE_RUNNING_INTERVAL = timedelta(minutes=15)
 _ACTIVE = {QUEUED, RUNNING}
 POST_CONTENT_MAX_ATTEMPTS = 3
-POST_CONTENT_RETRY_INTERVAL = "5 minutes"
+POST_CONTENT_RETRY_INTERVAL = timedelta(minutes=5)
 
 
 @dataclass(frozen=True)
@@ -294,6 +294,110 @@ async def ensure_post_content_job(
         status_code,
         status_code == QUEUED,
     )
+
+
+async def requeue_failed_post_content_job(
+    conn: asyncpg.Connection,
+    post_id: str,
+    body: str,
+) -> PostContentJobRequest:
+    """Explicitly requeue one terminal job without weakening automatic retry limits."""
+    digest = source_body_sha256(body)
+    row = await conn.fetchrow(
+        """
+        select status_code
+        from post_content_ingestion_job
+        where post_id = $1
+        for update
+        """,
+        post_id,
+    )
+    if row is None:
+        raise ValueError(f"post-content job does not exist: {post_id}")
+    if str(row["status_code"]) != FAILED:
+        raise ValueError("only a failed post-content job can be explicitly requeued")
+    await conn.execute(
+        """
+        update post_content_ingestion_job
+        set source_body_sha256 = $2,
+            status_code = $3,
+            attempt_count = 0,
+            queued_at = now(),
+            started_at = null,
+            completed_at = null,
+            updated_at = now(),
+            last_error_code = null,
+            last_error_detail = null
+        where post_id = $1
+          and status_code = $4
+        """,
+        post_id,
+        digest,
+        QUEUED,
+        FAILED,
+    )
+    await _record_status(
+        conn,
+        post_id,
+        QUEUED,
+        detail_text="operator requested an explicit post-content retry",
+    )
+    return PostContentJobRequest(post_id, digest, QUEUED, True)
+
+
+async def record_post_content_backfill_success(
+    conn: asyncpg.Connection,
+    post_id: str,
+    body: str,
+) -> PostContentJobRequest:
+    """Synchronize a completed operator backfill with the durable job ledger."""
+    digest = source_body_sha256(body)
+    row = await conn.fetchrow(
+        """
+        select status_code
+        from post_content_ingestion_job
+        where post_id = $1
+        for update
+        """,
+        post_id,
+    )
+    if row is not None and str(row["status_code"]) in {QUEUED, RUNNING}:
+        raise ValueError("cannot finalize a backfill while the job is active")
+    if row is None:
+        await conn.execute(
+            """
+            insert into post_content_ingestion_job
+                (post_id, source_body_sha256, status_code, completed_at)
+            values ($1, $2, $3, now())
+            """,
+            post_id,
+            digest,
+            SUCCEEDED,
+        )
+    else:
+        await conn.execute(
+            """
+            update post_content_ingestion_job
+            set source_body_sha256 = $2,
+                status_code = $3,
+                started_at = null,
+                completed_at = now(),
+                updated_at = now(),
+                last_error_code = null,
+                last_error_detail = null
+            where post_id = $1
+            """,
+            post_id,
+            digest,
+            SUCCEEDED,
+        )
+    await _record_status(
+        conn,
+        post_id,
+        SUCCEEDED,
+        detail_text="operator backfill persisted post-content evidence",
+    )
+    return PostContentJobRequest(post_id, digest, SUCCEEDED, False)
 
 
 async def republish_queued_post_content_jobs(
