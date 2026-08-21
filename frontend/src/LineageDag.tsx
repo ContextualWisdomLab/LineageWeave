@@ -251,7 +251,7 @@ export function LineageDag({
                       </dd>
                     </div>
                   </dl>
-                  {!llmParticipated ? (
+                  {evidence.length > 0 && !llmParticipated ? (
                     <p className="post-meta">
                       {lineageEvidenceText("llmNotUsed")}
                     </p>
