@@ -347,3 +347,19 @@ runtime note into a shipped/live claim.
   and evidence navigation do not identify why a VOC occurred.
 
 *This document is continuously updated by the hourly automated agent loop.*
+
+## Global Ask atomic rollback gap (2026-08-21)
+
+- **Observed gap**: the final citation reauthorization ran after the new
+  Global Ask turn committed, so a visibility/publication race could leave a
+  rejected citation in session history and force a later 409 restart.
+- **Active remediation**: issue #362 and the stacked v2.20.3 feature branch
+  move turn persistence and final authorization into one outer PostgreSQL
+  transaction while keeping tenant ABAC, publication eligibility, knowledge
+  cutoff, session continuity, and the generic 503 boundary.
+- **Closure evidence**: a live PostgreSQL integration test forces the final
+  authorization to fail, verifies the rejected turn/citations are absent, then
+  makes the cited source ineligible and proves the same session can complete a
+  safe no-source follow-up with HTTP 200. Backend API and focused Ask suites
+  pass on the exact branch head; hosted Checks and independent approval remain
+  external gates.
