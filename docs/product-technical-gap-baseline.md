@@ -103,6 +103,31 @@ this set was reported as merged into protected `main`.
   timer. The same exact-head, review, Checks, and protected-merge gates remain
   authoritative; a scheduled run is not evidence of a merge.
 
+## 4.2 Current protected-merge gate refresh
+
+Observed at `2026-08-21T20:23:51Z` from the GitHub API. PR #397 remains open
+at head `8988fe7175c8b03e27c9ea6fe3a554955eb350a4`, based on stack head
+`259ce60abdb8e0d0993635facd8c987a2999cd58`; Devin Review passed, while the
+frontend and full-test Checks remain pending and no independent approval is
+present. PR #368 is open at documentation head
+`cee63d91c74515f5faf80d1aa8c07e345f1719df`, with its required Checks pending
+and `REVIEW_REQUIRED`. Neither PR is authorized to merge.
+
+- PR #383's only failed current-head Check is `osv-scan`. The scan itself
+  exited zero; the shared workflow then tested the obsolete
+  `old-results.json`/`new-results.json` paths after the scanner wrote only its
+  deprecated `--output=new-results.json` result. This is a shared workflow
+  contract failure, not a dependency-vulnerability verdict. Central
+  `.github` PR #1158 is the repair path; no duplicate product workaround is
+  added here.
+- PR #387's earlier migration replay concern is already fixed at its current
+  head by commit `eaea56d3`: the gated `0103_tenant_settings.sql` uses
+  `CREATE TABLE IF NOT EXISTS` and `ON CONFLICT DO NOTHING`. No duplicate
+  patch is required.
+- Active ruleset `LineageWeave: no force pushes` (ID `21065108`) has zero
+  bypass actors and only `non_fast_forward`; all pushes above used normal
+  non-force updates.
+
 ## 2. LLM Extraction & Knowledge Graph Gaps
 - **Multiple Project Extraction**: A structured `key_events.project_name` implementation exists, but separate-event behavior still requires protected authorized-corpus evidence.
 - **5W1H Missing**: A structured 5W1H evidence-item implementation exists, but completeness and provenance still require protected authorized-corpus evidence.
