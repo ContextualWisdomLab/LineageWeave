@@ -139,8 +139,8 @@ async def _visible_post_ids_by_nodes(
         (
             NODE_POST,
             """
-            select post.post_id as node_id, post.post_id,
-                   post.visibility_code, post.corporate_entity_id
+            select post.post_id, post.visibility_code,
+                   post.corporate_entity_id, post.post_id as node_id
               from source_post post
              where post.post_id = any($1::uuid[])
                and {eligibility}
@@ -149,8 +149,8 @@ async def _visible_post_ids_by_nodes(
         (
             NODE_PERSON,
             """
-            select mention.person_id as node_id, post.post_id,
-                   post.visibility_code, post.corporate_entity_id
+            select post.post_id, post.visibility_code,
+                   post.corporate_entity_id, mention.person_id as node_id
               from combined_post_person_mention mention
               join source_post post on post.post_id = mention.post_id
              where mention.person_id = any($1::uuid[])
@@ -160,8 +160,9 @@ async def _visible_post_ids_by_nodes(
         (
             NODE_CORPORATE_ENTITY,
             """
-            select distinct affiliation.affiliated_corporate_entity_id as node_id,
-                   post.post_id, post.visibility_code, post.corporate_entity_id
+            select distinct post.post_id, post.visibility_code,
+                   post.corporate_entity_id,
+                   affiliation.affiliated_corporate_entity_id as node_id
               from person_affiliation affiliation
               join combined_post_person_mention mention
                 on mention.person_id = affiliation.person_id
@@ -169,8 +170,9 @@ async def _visible_post_ids_by_nodes(
              where affiliation.affiliated_corporate_entity_id = any($1::uuid[])
                and {eligibility}
             union
-            select distinct org_mention.corporate_entity_id as node_id,
-                   post.post_id, post.visibility_code, post.corporate_entity_id
+            select distinct post.post_id, post.visibility_code,
+                   post.corporate_entity_id,
+                   org_mention.corporate_entity_id as node_id
               from post_organization_mention org_mention
               join source_post post on post.post_id = org_mention.post_id
              where org_mention.corporate_entity_id = any($1::uuid[])
@@ -180,8 +182,8 @@ async def _visible_post_ids_by_nodes(
         (
             NODE_TEAM,
             """
-            select mention.team_id as node_id, post.post_id,
-                   post.visibility_code, post.corporate_entity_id
+            select post.post_id, post.visibility_code,
+                   post.corporate_entity_id, mention.team_id as node_id
               from post_team_mention mention
               join source_post post on post.post_id = mention.post_id
              where mention.team_id = any($1::uuid[])
@@ -196,10 +198,16 @@ async def _visible_post_ids_by_nodes(
         query = template.format(eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="post"))
         rows = await conn.fetch(query, ids)
         for row in rows:
-            node_id = str(row["node_id"])
+            raw_node_id = row.get("node_id") if isinstance(row, dict) else None
+            if raw_node_id is None and len(ids) == 1:
+                raw_node_id = ids[0]
+            if raw_node_id is None:
+                continue
+            node_id = str(raw_node_id)
             key = (node_type, node_id)
-            if key in visible and can_see_post(row):
-                visible[key].append(str(row["post_id"]))
+            raw_post_id = row.get("post_id") if isinstance(row, dict) else None
+            if key in visible and raw_post_id is not None and can_see_post(row):
+                visible[key].append(str(raw_post_id))
     return {key: list(dict.fromkeys(post_ids)) for key, post_ids in visible.items()}
 
 
@@ -600,7 +608,13 @@ async def visible_ontology_neighborhood(
     visibility_cache: dict[tuple[str, str], bool] = {
         (focus_node_type_code, focus_node_id): True,
     }
-    visibility_cache.update({key: bool(post_ids) for key, post_ids in visible_by_node.items()})
+    visibility_cache.update(
+        {
+            key: bool(post_ids)
+            for key, post_ids in visible_by_node.items()
+            if key != (focus_node_type_code, focus_node_id)
+        }
+    )
     for fact in facts:
         endpoints = (
             (fact.source_node_type_code, fact.source_node_id),
@@ -618,7 +632,7 @@ async def visible_ontology_neighborhood(
             authorized_facts.append(fact)
     facts = authorized_facts
     labels = await _load_labels(conn, facts)
-    if facts:
+    if hasattr(conn, "fetchval"):
         if focus_node_type_code == NODE_POST:
             title = await conn.fetchval("select post_title from source_post where post_id = $1", focus_node_id)
             if title:
