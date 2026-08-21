@@ -32,44 +32,46 @@ async def consume_analysis_run_stream_once(
     Invalid or stale entries are acknowledged by advancing the cursor; the
     durable PostgreSQL outbox remains available for a later explicit retry.
     """
+    batches = await client.xread({OUTBOX_STREAM_KEY: last_id}, count=10, block=1000)
+    if not batches:
+        return last_id
     with traced(
-        "lineageweave.valkey.analysis_outbox_xread",
+        "lineageweave.valkey.analysis_outbox_batch",
         {
             "db.system": "redis",
             "db.operation.name": "xread",
             "lineageweave.stream.kind": "analysis_outbox",
         },
     ):
-        batches = await client.xread({OUTBOX_STREAM_KEY: last_id}, count=10, block=1000)
-    for _stream_name, entries in batches:
-        for entry_id, fields in entries:
-            analysis_run_id = str(fields.get("analysis_run_id", "")).strip()
-            try:
-                UUID(analysis_run_id)
-            except ValueError:
-                analysis_run_id = ""
-            if analysis_run_id:
-                async with pool.acquire() as conn:
-                    async with conn.transaction():
-                        owner = await conn.fetchrow(
-                            """
-                            select requested_by_account_id
-                            from analysis_run
-                            where analysis_run_id = $1::uuid
-                            """,
-                            analysis_run_id,
-                        )
-                        if owner is not None:
-                            await deliver_queued_analysis_run(
-                                conn,
-                                analysis_run_id=analysis_run_id,
-                                account_id=str(owner["requested_by_account_id"]),
-                                affiliated_entity_ids=[],
-                                tepp_client=tepp_client,
-                                adjudication_client=adjudication_client,
-                                valkey_stream_entry_id=str(entry_id),
+        for _stream_name, entries in batches:
+            for entry_id, fields in entries:
+                analysis_run_id = str(fields.get("analysis_run_id", "")).strip()
+                try:
+                    UUID(analysis_run_id)
+                except ValueError:
+                    analysis_run_id = ""
+                if analysis_run_id:
+                    async with pool.acquire() as conn:
+                        async with conn.transaction():
+                            owner = await conn.fetchrow(
+                                """
+                                select requested_by_account_id
+                                from analysis_run
+                                where analysis_run_id = $1::uuid
+                                """,
+                                analysis_run_id,
                             )
-            last_id = str(entry_id)
+                            if owner is not None:
+                                await deliver_queued_analysis_run(
+                                    conn,
+                                    analysis_run_id=analysis_run_id,
+                                    account_id=str(owner["requested_by_account_id"]),
+                                    affiliated_entity_ids=[],
+                                    tepp_client=tepp_client,
+                                    adjudication_client=adjudication_client,
+                                    valkey_stream_entry_id=str(entry_id),
+                                )
+                last_id = str(entry_id)
     return last_id
 
 

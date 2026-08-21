@@ -25,9 +25,13 @@ control contract in [ADR 0009](https://github.com/ContextualWisdomLab/governance
    orchestrator binds it to the request context and adds it to provider spans,
    so chat, Responses, structured output, VISION, and embedding work for one
    post can be investigated together.
-3. LineageWeave emits bounded HTTP and Valkey operation spans. Valkey spans
-   identify the operation and logical stream kind, not the stream key, post
-   body, summary, actor, source identifiers, token, or provider response.
+3. LineageWeave emits bounded HTTP and Valkey operation spans. HTTP client
+   failures follow the OpenTelemetry HTTP semantic conventions: error
+   responses and invalid response bodies end the client span with an error.
+   Valkey spans identify the operation and logical stream kind, not the stream
+   key, post body, summary, actor, source identifiers, token, or provider
+   response. Idle blocking reads do not emit empty spans; a non-empty batch
+   emits one bounded consumption span.
 4. Failure telemetry uses two fixed outcomes: `provider_unavailable` for
    explicitly classified provider, transport, or schema failures, and
    `internal_error` for unexpected programming failures. The counter labels
@@ -63,3 +67,7 @@ https://opentelemetry.io/docs/languages/python/instrumentation/
 
 OpenTelemetry Authors. (n.d.). *Service semantic conventions*. Retrieved
 August 21, 2026, from https://opentelemetry.io/docs/specs/semconv/registry/attributes/service/
+
+OpenTelemetry Authors. (n.d.). *Semantic conventions for HTTP spans*.
+Retrieved August 22, 2026, from
+https://opentelemetry.io/docs/specs/semconv/http/http-spans/

@@ -38,6 +38,49 @@ def test_post_json_sends_post_session_header(monkeypatch):
     assert captured["headers"]["traceparent"].startswith("00-1111")
 
 
+def test_post_json_marks_http_and_decode_failures_inside_the_span(monkeypatch):
+    """HTTP and invalid-body failures end the active client span as errors."""
+    for status, raw, error_type in (
+        (503, b"{}", "503"),
+        (200, b"not-json", "HttpClientError"),
+    ):
+        captured = {"attributes": {}}
+
+        class _Span:
+            def set_attribute(self, key, value):
+                captured["attributes"][key] = value
+
+        class _SpanContext:
+            def __enter__(self):
+                return _Span()
+
+            def __exit__(self, exception_type, *_args):
+                captured["exception_type"] = exception_type
+                return False
+
+        monkeypatch.setattr(http_client, "traced", lambda *_args, **_kwargs: _SpanContext())
+        monkeypatch.setattr(
+            http_client,
+            "_request",
+            lambda *_args, **_kwargs: (status, raw),
+        )
+
+        try:
+            http_client.post_json(
+                "https://orchestrator.example/v1/chat/completions",
+                {},
+                headers={},
+                timeout=1,
+            )
+        except http_client.HttpClientError:
+            pass
+        else:  # pragma: no cover
+            raise AssertionError("invalid provider responses must fail closed")
+
+        assert captured["exception_type"] is http_client.HttpClientError
+        assert captured["attributes"]["error.type"] == error_type
+
+
 def test_current_session_id_reads_existing_context():
     """Telemetry reuses the existing normalized LLM context, not a new store."""
     with use_llm_metadata({"lineageweave_post_session_id": "post-session-2"}):

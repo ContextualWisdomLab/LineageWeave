@@ -299,33 +299,35 @@ async def consume_post_content_stream_once(
     embedding_factory: Callable[[], EmbeddingClient],
     structure_factory: Callable[[], PostStructureClient],
 ) -> str:
+    batches = await client.xread({POST_CONTENT_STREAM_KEY: last_id}, count=10, block=1000)
+    if not batches:
+        return last_id
     with traced(
-        "lineageweave.valkey.post_content_xread",
+        "lineageweave.valkey.post_content_batch",
         {
             "db.system": "redis",
             "db.operation.name": "xread",
             "lineageweave.stream.kind": "post_content",
         },
     ):
-        batches = await client.xread({POST_CONTENT_STREAM_KEY: last_id}, count=10, block=1000)
-    for _stream_name, entries in batches:
-        for entry_id, fields in entries:
-            post_id = str(fields.get("post_id", "")).strip()
-            digest = str(fields.get("source_body_sha256", "")).strip()
-            try:
-                UUID(post_id)
-            except ValueError:
-                post_id = ""
-            if post_id and len(digest) == 64:
-                await process_post_content_job(
-                    pool,
-                    post_id=post_id,
-                    source_body_digest=digest,
-                    vision_factory=vision_factory,
-                    embedding_factory=embedding_factory,
-                    structure_factory=structure_factory,
-                )
-            last_id = str(entry_id)
+        for _stream_name, entries in batches:
+            for entry_id, fields in entries:
+                post_id = str(fields.get("post_id", "")).strip()
+                digest = str(fields.get("source_body_sha256", "")).strip()
+                try:
+                    UUID(post_id)
+                except ValueError:
+                    post_id = ""
+                if post_id and len(digest) == 64:
+                    await process_post_content_job(
+                        pool,
+                        post_id=post_id,
+                        source_body_digest=digest,
+                        vision_factory=vision_factory,
+                        embedding_factory=embedding_factory,
+                        structure_factory=structure_factory,
+                    )
+                last_id = str(entry_id)
     return last_id
 
 

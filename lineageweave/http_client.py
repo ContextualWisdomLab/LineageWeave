@@ -150,9 +150,16 @@ def post_json(
         )
         if span is not None:
             span.set_attribute("http.response.status_code", status)
-    if status >= 400:
-        raise HttpClientError(f"HTTP {status} from {hostname}")
-    return _decode_json_object(raw, hostname)
+        if status >= 400:
+            if span is not None:
+                span.set_attribute("error.type", str(status))
+            raise HttpClientError(f"HTTP {status} from {hostname}")
+        try:
+            return _decode_json_object(raw, hostname)
+        except HttpClientError:
+            if span is not None:
+                span.set_attribute("error.type", "HttpClientError")
+            raise
 
 
 def post_form(
