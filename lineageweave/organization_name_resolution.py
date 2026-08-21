@@ -27,7 +27,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
-from .http_client import post_json
+from .http_client import HttpClientError, post_json
 from .relation_verification import (
     STATUS_PENDING,
     RelationVerificationClient,
@@ -83,6 +83,7 @@ class NullOrganizationNameResolutionClient:
     available = False
 
     def resolve(self, raw_name: str, context_text: str) -> str | None:
+        """Resolve the raw organization name against the available evidence."""
         raise RuntimeError(
             "NullOrganizationNameResolutionClient cannot resolve; check .available first"
         )
@@ -124,12 +125,12 @@ def parse_resolution_response(content: str) -> str | None:
 
 
 class ContextualOrchestratorOrganizationNameResolutionClient:
-    """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="route"``."""
+    """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="auto"``."""
 
     available = True
 
     def __init__(
-        self, base_url: str, api_key: str, *, reasoning_effort: str = "medium", timeout: float = 30.0
+        self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float = 30.0
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
@@ -137,12 +138,13 @@ class ContextualOrchestratorOrganizationNameResolutionClient:
         self._timeout = timeout
 
     def resolve(self, raw_name: str, context_text: str) -> str | None:
+        """Resolve the raw organization name against the available evidence."""
         prompt = _RESOLUTION_PROMPT_TEMPLATE.format(raw_name=raw_name, context=context_text)
         body = post_json(
             f"{self._base_url}/v1/chat/completions",
             {
                 "messages": [{"role": "user", "content": prompt}],
-                "mode": "route",
+                "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},
@@ -187,7 +189,25 @@ def resolve_and_verify_organization_name(
             verification_evidence_url=None,
         )
 
-    result = verification_client.verify(resolved_name, raw_name)
+    try:
+        result = verification_client.verify(resolved_name, raw_name)
+    except (HttpClientError, OSError):
+        # A configured client (``.available`` True) can still fail at call
+        # time -- a transient search-provider outage, DNS blip, timeout.
+        # That is the same "search itself is unavailable" case the
+        # ``.available`` branch above already covers, not "searched and
+        # found nothing" (``STATUS_UNCORROBORATED``): the caller
+        # (`backend/app/keyman_ingestion.py`'s `ingest_post_keymen` ->
+        # `_resolve_affiliated_organization`) must not have this
+        # exception propagate uncaught into the FastAPI request handler
+        # and turn one flaky search call into a 500 that discards an
+        # otherwise-successful Keyman/R&R extraction.
+        return OrganizationNameResolution(
+            raw_organization_name=raw_name,
+            resolved_organization_name=resolved_name,
+            verification_status_code=STATUS_PENDING,
+            verification_evidence_url=None,
+        )
     return OrganizationNameResolution(
         raw_organization_name=raw_name,
         resolved_organization_name=resolved_name,

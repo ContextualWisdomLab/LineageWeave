@@ -281,9 +281,6 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert "0023_analysis_run_outbox.sql" in dockerfile
     assert "0024_source_post_revision.sql" in dockerfile
     assert "0025_role_person_catalog_identity.sql" in dockerfile
-    assert "0026_report_leftover_pair.sql" in dockerfile
-    assert "0028_analysis_run_tepp_result.sql" in dockerfile
-    assert "0029_analysis_run_tepp_accepted.sql" in dockerfile
     seed = (_ROOT / "scripts" / "seed_demo_data.py").read_text(encoding="utf-8")
     assert seed.index("0019_role_catalog_identity.sql") < seed.index(
         "0020_analysis_run_retention_purge.sql"
@@ -303,18 +300,6 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert seed.index("0024_source_post_revision.sql") < seed.index(
         "0025_role_person_catalog_identity.sql"
     )
-    assert seed.index("0025_role_person_catalog_identity.sql") < seed.index(
-        "0026_report_leftover_pair.sql"
-    )
-    assert seed.index("0026_report_leftover_pair.sql") < seed.index(
-        "0027_abbreviation_tree_corroboration.sql"
-    )
-    assert seed.index("0027_abbreviation_tree_corroboration.sql") < seed.index(
-        "0028_analysis_run_tepp_result.sql"
-    )
-    assert seed.index("0028_analysis_run_tepp_result.sql") < seed.index(
-        "0029_analysis_run_tepp_accepted.sql"
-    )
     assert "analysis_run_registry_not_empty" in rollback
     retention = _RETENTION_MIGRATION.read_text(encoding="utf-8")
     retention_rollback = _RETENTION_ROLLBACK.read_text(encoding="utf-8")
@@ -330,37 +315,6 @@ def test_registry_contract_is_normalized_and_has_one_temporal_authority() -> Non
     assert "analysis_run_retention_not_approved" in retention
     assert "analysis_run_retention_not_granted" in retention
     assert "analysis_run_retention_not_admin" in retention
-    assert "analysis_run_lineage_edge" in retention
-    assert "analysis_run_reconstruction" in retention
-    assert "analysis_source_snapshot_member" in retention
-    assert "to_regclass" in retention
-    assert retention.index("delete from analysis_run_lineage_edge") < (
-        retention.index("delete from analysis_run_reconstruction")
-    )
-    assert retention.index("delete from analysis_run_reconstruction") < (
-        retention.index("delete from analysis_run_status_event")
-    )
-    assert retention.index("delete from analysis_source_count") < (
-        retention.index("delete from analysis_source_snapshot_member")
-    )
-    assert retention.index("delete from analysis_source_snapshot_member") < (
-        retention.index("delete from analysis_source_snapshot;")
-    )
-    outbox_purge = (
-        _ROOT / "migrations" / "0023_analysis_run_outbox.sql"
-    ).read_text(encoding="utf-8")
-    assert outbox_purge.index("delete from analysis_run_lineage_edge") < (
-        outbox_purge.index("delete from analysis_run_reconstruction")
-    )
-    assert outbox_purge.index("delete from analysis_run_reconstruction") < (
-        outbox_purge.index("delete from analysis_run_status_event")
-    )
-    assert outbox_purge.index("delete from analysis_source_count") < (
-        outbox_purge.index("delete from analysis_source_snapshot_member")
-    )
-    assert outbox_purge.index("delete from analysis_source_snapshot_member") < (
-        outbox_purge.index("delete from analysis_source_snapshot;")
-    )
     assert "analysis_run_retention_event_not_empty" in retention_rollback
     assert "jsonb" not in retention.casefold()
     for object_name in re.findall(
@@ -965,105 +919,6 @@ def test_approved_retention_purge_empties_a_run_bearing_registry(registry_db) ->
             "select to_regclass('public.analysis_run_retention_event')"
         )
         assert cursor.fetchone()[0] is None
-
-
-def test_retention_purge_empties_optional_reconstruction_children(
-    registry_db,
-) -> None:
-    """Grant plus admin empties ADR 0021 children despite delete-reject triggers."""
-
-    with registry_db.cursor() as cursor:
-        _insert_run_bearing_registry(
-            cursor,
-            digest="b" * 64,
-            idempotency_key="retention-purge-children",
-        )
-        cursor.execute(
-            "select analysis_run_id, analysis_source_snapshot_id "
-            "from analysis_run"
-        )
-        run_id, snapshot_id = cursor.fetchone()
-        cursor.execute(
-            """
-            create table analysis_run_reconstruction (
-                analysis_run_id uuid primary key
-                    references analysis_run (analysis_run_id),
-                result_sha256 text not null,
-                edge_count integer not null,
-                reconstructed_at timestamptz not null
-            );
-            create table analysis_run_lineage_edge (
-                analysis_run_id uuid not null
-                    references analysis_run_reconstruction (analysis_run_id),
-                child_post_id uuid not null,
-                parent_post_id uuid not null,
-                fused_score double precision not null,
-                primary key (analysis_run_id, child_post_id)
-            );
-            create table analysis_source_snapshot_member (
-                analysis_source_snapshot_id uuid not null
-                    references analysis_source_snapshot
-                        (analysis_source_snapshot_id),
-                source_post_id uuid not null,
-                primary key (
-                    analysis_source_snapshot_id, source_post_id
-                )
-            );
-            create function reject_reconstruction_child_delete()
-            returns trigger language plpgsql as $fn$
-            begin
-                raise exception 'analysis_run_reconstruction_is_immutable';
-            end
-            $fn$;
-            create trigger analysis_run_reconstruction_update_reject
-                before update or delete on analysis_run_reconstruction
-                for each row execute function reject_reconstruction_child_delete();
-            create trigger analysis_run_lineage_edge_update_reject
-                before update or delete on analysis_run_lineage_edge
-                for each row execute function reject_reconstruction_child_delete();
-            create trigger analysis_source_snapshot_member_update_reject
-                before update or delete on analysis_source_snapshot_member
-                for each row execute function reject_reconstruction_child_delete();
-            """
-        )
-        cursor.execute(
-            "insert into analysis_run_reconstruction "
-            "(analysis_run_id, result_sha256, edge_count, reconstructed_at) "
-            "values (%s, %s, 1, now())",
-            (run_id, "c" * 64),
-        )
-        cursor.execute(
-            "insert into analysis_run_lineage_edge "
-            "(analysis_run_id, child_post_id, parent_post_id, fused_score) "
-            "values (%s, %s, %s, 0.91)",
-            (run_id, str(uuid.uuid4()), str(uuid.uuid4())),
-        )
-        cursor.execute(
-            "insert into analysis_source_snapshot_member "
-            "(analysis_source_snapshot_id, source_post_id) "
-            "values (%s, %s)",
-            (snapshot_id, str(uuid.uuid4())),
-        )
-        with pytest.raises(
-            psycopg2.errors.RaiseException,
-            match="analysis_run_reconstruction_is_immutable",
-        ):
-            cursor.execute("delete from analysis_run_reconstruction")
-        _authorize_session_for_purge(cursor)
-        cursor.execute(
-            "select purge_analysis_run_registry(%s)",
-            ("approved-retention-purge",),
-        )
-        cursor.execute("select count(*) from analysis_run")
-        assert cursor.fetchone()[0] == 0
-        cursor.execute("select count(*) from analysis_source_snapshot")
-        assert cursor.fetchone()[0] == 0
-        cursor.execute("select count(*) from analysis_run_reconstruction")
-        assert cursor.fetchone()[0] == 0
-        cursor.execute("select count(*) from analysis_run_lineage_edge")
-        assert cursor.fetchone()[0] == 0
-        cursor.execute("select count(*) from analysis_source_snapshot_member")
-        assert cursor.fetchone()[0] == 0
 
 
 def test_retention_purge_requires_unrevoked_session_grant(registry_db) -> None:

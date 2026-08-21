@@ -13,6 +13,7 @@ _BASE = datetime(2026, 1, 1)
 
 
 def _day(offset: int) -> datetime:
+    """Implement the _day operation for this channel."""
     return _BASE + timedelta(days=offset)
 
 

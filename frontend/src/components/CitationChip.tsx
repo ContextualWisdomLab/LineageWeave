@@ -20,7 +20,7 @@ export function CitationChip({
     <button
       type="button"
       className="citation-chip"
-      aria-label={`Open evidence: ${postTitle}`}
+      aria-label={tf("Open evidence: {title}", { title: postTitle })}
       aria-current={current ? "true" : undefined}
       onClick={() => onOpenEvidence(postId)}
     >
@@ -28,3 +28,4 @@ export function CitationChip({
     </button>
   );
 }
+import { tf } from "../i18n";

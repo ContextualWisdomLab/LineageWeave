@@ -14,7 +14,7 @@ import os
 
 import pytest
 
-from backend.app.post_summary_ingestion import seeded_fixture_summary
+from backend.app.post_summary_ingestion import require_summary_source_body, seeded_fixture_summary
 from lineageweave.fixtures import (
     ambiguous_commitment_post,
     ambiguous_keyman_post,
@@ -25,6 +25,10 @@ from lineageweave.post_summary import (
     ContextualOrchestratorPostSummaryClient,
     NullPostSummaryClient,
     RoleResponsibility,
+    _SUMMARY_REQUEST_PROMPT_TEMPLATE,
+    _parse_optional_project_key,
+    _parse_plain_summary_response,
+    _parse_plain_summary_details,
     parse_summary_response,
 )
 
@@ -34,6 +38,35 @@ def test_null_summary_client_is_unavailable_not_empty_summary() -> None:
     assert client.available is False
     with pytest.raises(RuntimeError):
         client.summarize("any title", "any body")
+
+
+def test_summary_prompt_requires_trigger_development_conclusion_structure() -> None:
+    """Feature request (2026-08-19): a flat 5W1H restatement in body
+    order was ruled a bug -- the prompt must ask for a legible
+    발단(trigger)/전개(development)/결론(conclusion) narrative arc so a
+    reader can tell what triggered the post, what was actually
+    considered, and what was decided or left open.
+    """
+    for marker in ("발단", "전개", "결론", "다음 조치는"):
+        assert marker in _SUMMARY_REQUEST_PROMPT_TEMPLATE
+
+
+def test_summary_prompt_requires_naming_actual_people_not_generic_titles() -> None:
+    """Live bug (2026-08-19): a real post's summary said "PM들이
+    참석했다" (a generic "PMs attended") even though the post body
+    literally named each attendee -- the same names a separate R&R
+    extraction call correctly pulled out. The summary call has no
+    knowledge of that separate call's output, so the summary prompt
+    itself must demand real names, not rely on R&R to carry them.
+    """
+    assert "PM들이 참석했다" in _SUMMARY_REQUEST_PROMPT_TEMPLATE
+    assert "홍길동" in _SUMMARY_REQUEST_PROMPT_TEMPLATE
+
+
+def test_summary_requires_imported_source_body() -> None:
+    assert require_summary_source_body("  body  ") == "  body  "
+    with pytest.raises(ValueError, match="source post body is empty"):
+        require_summary_source_body("")
 
 
 def test_parses_a_well_formed_json_object() -> None:
@@ -51,6 +84,106 @@ def test_parses_a_well_formed_json_object() -> None:
     assert role.actor_name == "Jordan Hale"
     assert role.actor_type_code == "prov_person"
     assert role.affiliated_organization_name == "Westfield Power"
+
+
+def test_parses_explicit_five_w1h_evidence_with_source_phrase() -> None:
+    summary = parse_summary_response(
+        '{"korean_summary":"요약", "key_events":[], '
+        '"five_w1h_evidence":[{"slot_code":"when", "value_text":"3월 4일", '
+        '"evidence_text":"3월 4일 현장 회의"}]}'
+    )
+    assert summary is not None
+    assert summary.five_w1h_evidence[0].slot_code == "when"
+    assert summary.five_w1h_evidence[0].evidence_text == "3월 4일 현장 회의"
+
+
+def test_parses_plain_summary_evidence_section() -> None:
+    details = _parse_plain_summary_details(
+        "ROLES:\nNONE\nPROJECTS:\nNONE\nEVIDENCE:\n"
+        "where | 제3공장 | 제3공장에서 협의했다"
+    )
+    assert details is not None
+    assert details[3][0].value_text == "제3공장"
+
+
+def test_parses_major_event_requester_and_processor() -> None:
+    details = _parse_plain_summary_details(
+        "ROLES:\n"
+        "홍길동 | 변경 요청 | person | 당사\n"
+        "김철수 | 도면 수정 | person | 고객사\n"
+        "PROJECTS:\nNONE\n"
+        "ACTIONS:\n"
+        "도면 변경 승인 | 홍길동 | 김철수 | 홍길동이 변경을 요청했고 김철수가 수정하기로 함"
+    )
+    assert details is not None
+    action = details[2][0]
+    assert action.requester_actor_name == "홍길동"
+    assert action.processor_actor_name == "김철수"
+
+
+def test_parses_project_bound_major_event_action() -> None:
+    details = _parse_plain_summary_details(
+        "ROLES:\n"
+        "홍길동 | 변경 요청 | person | 당사\n"
+        "김철수 | 도면 수정 | person | 고객사\n"
+        "PROJECTS:\n"
+        "HVDC Pilot | hvdc-pilot | 파일럿 도면 | 0.9\n"
+        "ACTIONS:\n"
+        "도면 변경 승인 | hvdc-pilot | 홍길동 | 김철수 | 프로젝트 도면 근거"
+    )
+    assert details is not None
+    assert details[2][0].project_key == "hvdc-pilot"
+
+
+def test_legacy_action_preserves_pipe_in_evidence_text() -> None:
+    details = _parse_plain_summary_details(
+        "ROLES:\n"
+        "Synthetic requester | 요청 | person | Synthetic organization\n"
+        "Synthetic processor | 처리 | person | Synthetic organization\n"
+        "PROJECTS:\nNONE\n"
+        "ACTIONS:\n"
+        "합성 조치 | Synthetic requester | Synthetic processor | 첫 근거 | 추가 근거"
+    )
+    assert details is not None
+    assert details[2][0].project_key is None
+    assert details[2][0].evidence_text == "첫 근거 | 추가 근거"
+
+
+def test_json_project_name_is_normalized_for_legacy_action_contract() -> None:
+    summary = parse_summary_response(
+        '{"korean_summary":"요약", "major_event_actions":['
+        '{"action_text":"검토", "project_name":"HVDC Pilot", '
+        '"evidence_text":"본문 근거"}]}'
+    )
+    assert summary is not None
+    assert summary.major_event_actions[0].project_key == "hvdc-pilot"
+
+
+def test_parses_project_bound_key_event_without_leaking_internal_key_to_text() -> None:
+    summary = parse_summary_response(
+        '{"korean_summary":"요약", "key_events":[{"event_text":"도면 검토",'
+        '"project_key":"HVDC Pilot"}]}'
+    )
+    assert summary is not None
+    assert summary.key_events == ("도면 검토",)
+    assert summary.key_event_details[0].project_key == "hvdc-pilot"
+
+
+def test_parses_project_bound_plain_key_event() -> None:
+    parsed = _parse_plain_summary_response(
+        "회의 요약\nKEY EVENTS: hvdc-pilot :: 도면 검토; NONE :: 공통 일정 확인"
+    )
+    assert parsed is not None
+    _summary, events, details = parsed
+    assert events == ("도면 검토", "공통 일정 확인")
+    assert details[0].project_key == "hvdc-pilot"
+    assert details[1].project_key is None
+
+
+def test_optional_project_key_normalizes_unicode_and_rejects_sentinels() -> None:
+    assert _parse_optional_project_key("  Project  Ω ") == "project-ω"
+    for sentinel in (None, "", "  ", "None", "N/A", "unknown", 42):
+        assert _parse_optional_project_key(sentinel) is None
 
 
 def test_organization_actor_is_not_forced_into_a_person_slot() -> None:
@@ -156,6 +289,85 @@ def test_malformed_roles_entries_are_skipped_not_crashed_on() -> None:
     summary = parse_summary_response(content)
     assert summary is not None
     assert summary.roles_and_responsibilities == ()
+
+
+def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None:
+    observed: list[dict[str, object]] = []
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        observed.append(payload)
+        prompt = payload["messages"][0]["content"]
+        if "ROLES:" in prompt:
+            content = (
+                "ROLES:\n"
+                "Jordan Hale | 입찰 일정 안내 | Westfield Power\n"
+                "PROJECTS:\n"
+                "HVDC pilot | pilot bid workshop | 0.9\n"
+                "Unsupported project | NONE | 1"
+            )
+        else:
+            content = "본문 근거 요약\n\nKEY EVENTS: 후속 확인"
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": content
+                    }
+                }
+            ]
+        }
+
+    monkeypatch.setattr("lineageweave.post_summary.post_json", fake_post_json)
+    summary = ContextualOrchestratorPostSummaryClient("https://orchestrator.test", "token").summarize(
+        "Synthetic title", "Synthetic body"
+    )
+
+    assert summary.korean_summary == "본문 근거 요약"
+    assert summary.key_events == ("후속 확인",)
+    assert len(observed) == 2
+    assert all(payload["mode"] == "auto" for payload in observed)
+    assert "KEY EVENTS" in observed[0]["messages"][0]["content"]
+    details_prompt = observed[1]["messages"][0]["content"]
+    assert "source_process_unit_name are PU/business-unit hints only" in details_prompt
+    assert "must never be" in details_prompt
+    assert "sales-pool/order-pool value" in details_prompt
+    assert "source_sales_pool_name are sales-pool/order-pool hints only" in details_prompt
+    assert "PU/business-unit value" in details_prompt
+    assert summary.roles_and_responsibilities[0].actor_name == "Jordan Hale"
+    assert summary.project_mentions[0].canonical_name == "hvdc-pilot"
+
+
+def test_title_match_can_supply_explicit_project_evidence_but_not_a_guess() -> None:
+    details = _parse_plain_summary_details(
+        "ROLES:\nNONE\nPROJECTS:\nNorthridge transformer bid | NONE | 1",
+        post_title="Follow-up after the Northridge transformer bid workshop",
+    )
+    assert details is not None
+    assert details[1][0].evidence == "Follow-up after the Northridge transformer bid workshop"
+
+    unrelated = _parse_plain_summary_details(
+        "ROLES:\nNONE\nPROJECTS:\nUnrelated project | NONE | 1",
+        post_title="Follow-up after the Northridge transformer bid workshop",
+    )
+    assert unrelated == ((), (), (), ())
+
+
+def test_role_matching_the_hinted_account_name_is_dropped_not_cataloged() -> None:
+    """Live finding: the model wrote a ROLES row for the logged-in
+    account's display name (from author_account_name in the hints)
+    even though that name never appeared in the post text -- see
+    _hallucinated_account_name's docstring.
+    """
+    details = _parse_plain_summary_details(
+        "ROLES:\n"
+        "Demo Analyst | met the customer | person | Demo Corp\n"
+        "Jordi Gil | approved the quote | person | Northwind Labs\n"
+        "PROJECTS:\nNONE",
+        context_hints="author_account_name=Demo Analyst [source_field=user_account.display_name]; "
+        "author_affiliations=Demo Corp [source_field=account_affiliation.corporate_entity_id]",
+    )
+    assert details is not None
+    assert [role.actor_name for role in details[0]] == ["Jordi Gil"]
 
 
 _ORCHESTRATOR_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL")

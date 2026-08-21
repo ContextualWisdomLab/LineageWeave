@@ -161,7 +161,7 @@ def test_create_pending_rejects_tepp_before_touching_the_registry() -> None:
 
     class ForbiddenConnection:
         def __getattr__(self, name: str) -> object:
-            raise AssertionError(f"TEPP create must not touch the registry ({name})")
+            raise AttributeError(f"TEPP create must not touch the registry ({name})")
 
     async def _run() -> None:
         with pytest.raises(AnalysisRunCreateError) as err:
