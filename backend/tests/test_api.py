@@ -3503,9 +3503,35 @@ def test_global_ask_failed_reauthorization_rolls_back_and_session_continues(
     monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _FakeAskClient())
     monkeypatch.setattr("backend.app.main.read_authorized_ask_evidence", hidden_after_persist)
 
+    session_id = str(uuid.uuid4())
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                """
+                insert into global_ask_session (global_ask_session_id, user_account_id)
+                select %s, user_account_id
+                  from user_account
+                 where email_address = 'test.analyst@example.test'
+                """,
+                (session_id,),
+            )
+            cur.execute(
+                "insert into global_ask_turn "
+                "(global_ask_session_id, turn_ordinal, question_text, answer_text) "
+                "values (%s, 1, 'Prior question', 'Prior answer')",
+                (session_id,),
+            )
+    finally:
+        admin_conn.close()
+
     failed = client.post(
         "/api/ask",
-        json={"question": "What happened before the authorization race?"},
+        json={
+            "question": "What happened before the authorization race?",
+            "session_id": session_id,
+        },
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert failed.status_code == 503
@@ -3515,17 +3541,6 @@ def test_global_ask_failed_reauthorization_rolls_back_and_session_continues(
     admin_conn.autocommit = True
     try:
         with admin_conn.cursor() as cur:
-            cur.execute(
-                """
-                select session.global_ask_session_id
-                  from global_ask_session session
-                  join user_account account on account.user_account_id = session.user_account_id
-                 where account.email_address = 'test.analyst@example.test'
-                 order by session.updated_at desc
-                 limit 1
-                """
-            )
-            session_id = str(cur.fetchone()[0])
             cur.execute(
                 "update source_post set source_draft_code = 'race-draft' where post_id = %s",
                 (seeded_db["public_post_id"],),
@@ -3555,7 +3570,10 @@ def test_global_ask_failed_reauthorization_rolls_back_and_session_continues(
                 "where global_ask_session_id = %s order by turn_ordinal",
                 (session_id,),
             )
-            assert cur.fetchall() == [("Continue after the race", "")]
+            assert cur.fetchall() == [
+                ("Prior question", "Prior answer"),
+                ("Continue after the race", ""),
+            ]
             cur.execute(
                 "select count(*) from global_ask_turn_citation where global_ask_session_id = %s",
                 (session_id,),
