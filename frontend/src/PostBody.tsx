@@ -76,7 +76,7 @@ function renderImageEvidence(
         </details>
       ) : null}
       {imageContent?.regions?.length ? (
-        <details className="post-image-regions">
+        <details className="post-image-regions" open>
           <summary>{t("Image regions")}</summary>
           <ol>
             {imageContent.regions.map((region) => {

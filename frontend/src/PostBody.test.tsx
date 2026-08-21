@@ -328,6 +328,7 @@ describe("PostBody", () => {
 
     expect(screen.getByText("Title block")).toBeInTheDocument();
     expect(screen.getByText("Region location: 10%, 20% – 40%, 60%")).toBeInTheDocument();
+    expect(screen.getByText("Image regions").closest("details")).toHaveAttribute("open");
     expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
   });
 
