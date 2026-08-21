@@ -85,8 +85,8 @@ Open PRs at the same observation:
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `22cf9d8b6463fc46c7927d8fef6e2b12a25cd776` (the checkpoint
-  parent before this baseline update), base `main`
+- PR #368: `head` `dcc916cd68d8ae3c495563332658fd0cbf8d760e` (the exact head
+  observed for this baseline update), base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
@@ -99,9 +99,12 @@ Open PRs at the same observation:
 
 The open queue remains subject to exact-current-head Checks, formal independent
 approval, and protected mergeability. Green Checks alone do not prove that a
-merge is authorized. PR #385's merge is the current parent of PR #258; PR #386
-is closed as a duplicate of the safer #373 login fix. PR #382's stack merge is
-not a main merge; #373 must still pass its own current-head gates.
+merge is authorized. PR #258 still targets `main` at base
+`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` and remains open; PR #385's merge
+commit is later repository history, not PR #258's original base or a merge of
+#258. PR #386 is closed as a duplicate of the safer #373 login fix. PR #382's
+stack merge is not a main merge; #373 must still pass its own current-head
+gates.
 
 Closed without merge at the same observation:
 
@@ -225,7 +228,7 @@ Observed at `2026-08-21T17:10:21Z` on PR #387's exact head
 
 ## 6. Organization OpenTelemetry Evidence Boundary
 
-GRC PR #42 records organization-level OTEL acceptance evidence through the
+GRC PR #51 records organization-level OTEL acceptance evidence through the
 existing purpose-bound evidence contract. It does not become a raw span store
 and must not copy prompts, post bodies, images, provider responses, secrets, or
 an ad-hoc `user_account + post_id` session key. W3C trace context and bounded
