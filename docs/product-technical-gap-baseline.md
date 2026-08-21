@@ -49,7 +49,7 @@
 ## 4. Current Checkpoint Evidence
 
 The following states are evidence-bound and must not be changed to `merged` or
-`resolved` from intent alone. Observed at `2026-08-21T16:45:06Z` from the
+`resolved` from intent alone. Observed at `2026-08-21T16:49:31Z` from the
 GitHub API. Checkpoint types are `merge_commit`, `head`, and
 `closed_without_merge`; the latter records a closed PR's exact `head` when
 `merged_at` and `merge_commit_sha` are both absent. A merged commit is
@@ -69,6 +69,11 @@ Recently merged into the protected repository:
 - PR #367: `merge_commit` `7a0d025215fbd9f6510727c7139885b561296149`.
 - PR #262: `merge_commit` `6bf75991b04601483d48384045e314db2a928e30`.
 
+Recently merged into an open stack base (not main):
+
+- PR #382: `merge_commit` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, merged
+  into PR #373's `ci/publish-ontology-pages-clean` base.
+
 Open PRs at the same observation:
 
 - PR #258: `head` `6621eb116a4e92eb33eeae989c70fbc602450c51`, base `main`
@@ -82,10 +87,8 @@ Open PRs at the same observation:
   merged.
 - PR #368: `head` `2863a08946ce5f7ecc40d7960dfdb6b70522155a`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #373: `head` `6b84bea10881e2f82fb676d5b01cf56f7d8f4adb`, base `main`
+- PR #373: `head` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
-- PR #382: `head` `5eb707f02209a46d4d046480cec960ac40f59375`, base
-  `ci/publish-ontology-pages-clean` (`6b84bea10881e2f82fb676d5b01cf56f7d8f4adb`).
 - PR #383: `head` `46e4d6d69c1964f0cbeb761281071db7861e31dd`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #384: `head` `cc0b50aa0838701582b373e1310279d6014c17db`, base
@@ -94,8 +97,8 @@ Open PRs at the same observation:
 The open queue remains subject to exact-current-head Checks, formal independent
 approval, and protected mergeability. Green Checks alone do not prove that a
 merge is authorized. PR #385's merge is the current parent of PR #258; PR #386
-is closed as a duplicate of the safer #373 login fix. The other open entries
-remain separate until their own merge commits are observed.
+is closed as a duplicate of the safer #373 login fix. PR #382's stack merge is
+not a main merge; #373 must still pass its own current-head gates.
 
 Closed without merge at the same observation:
 
