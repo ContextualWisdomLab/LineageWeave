@@ -662,6 +662,19 @@ resolved review threads, and terminal required Checks. #327 is an independent
 root that must be merged before #326; #323 can proceed independently. A queued
 workflow is active work, not a blocker or a pass.
 
+## Restack continuation: 2026-08-21 09:23 KST
+
+PR #258 advanced normally after the ADR 0083 pin correction. Its current head
+is now `4bb234476ca26aacdd645f3c495a161a2c441790`. The semantic-unit child
+PR #302 was merged normally with that current base and now has exact head
+`8e1bd783fa2cb3e565983fc3d7b9092d394ff814`; its local validation is Python
+`740 passed, 16 skipped, 4 warnings`, frontend `137 passed`, lint/build/
+Storybook passed, and chunking coverage remains 100%.
+
+The #302 restack carries #258's reviewed immutable orchestrator pin and ADR
+regression check. Hosted Checks and independent formal approval remain
+required for both exact heads; no merge or protected-main claim is made.
+
 ## Current queue refresh: 2026-08-21 09:21 KST
 
 The live queue now contains 45 open pull requests. The following branches were
