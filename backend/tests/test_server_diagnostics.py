@@ -116,3 +116,13 @@ def test_global_ask_internal_failure_is_buyer_safe_and_keeps_stack_without_value
     assert record.stack_trace
     assert sensitive not in record.stack_trace
     assert sensitive not in caplog.text
+
+
+def test_telemetry_without_endpoint_does_not_latch_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A disabled first call still permits a later operator configuration."""
+    monkeypatch.setattr(observability, "_CONFIGURED", False)
+    monkeypatch.delenv("OTEL_EXPORTER_OTLP_ENDPOINT", raising=False)
+    observability.configure_telemetry()
+    assert observability._CONFIGURED is False

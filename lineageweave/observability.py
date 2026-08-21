@@ -93,7 +93,6 @@ def configure_telemetry(service_name: str = "lineageweave") -> None:
     global _CONFIGURED
     if _CONFIGURED or os.getenv("OTEL_SDK_DISABLED", "").lower() == "true":
         return
-    _CONFIGURED = True
     endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip()
     if trace is None or not endpoint:
         return
@@ -119,6 +118,7 @@ def configure_telemetry(service_name: str = "lineageweave") -> None:
         )
     )
     trace.set_tracer_provider(provider)
+    _CONFIGURED = True
     if metrics is None:
         return
     try:
