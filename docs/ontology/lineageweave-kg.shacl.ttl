@@ -1,0 +1,40 @@
+@prefix : <https://contextualwisdomlab.github.io/lineageweave/ontology/shapes#> .
+@prefix lw: <https://contextualwisdomlab.github.io/lineageweave/ontology#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix org: <http://www.w3.org/ns/org#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+
+<https://contextualwisdomlab.github.io/lineageweave/ontology/shapes>
+    a owl:Ontology ;
+    owl:versionIRI <https://contextualwisdomlab.github.io/lineageweave/ontology/shapes/1.0.0> ;
+    owl:versionInfo "1.0.0" ;
+    owl:imports <https://contextualwisdomlab.github.io/lineageweave/ontology/1.0.0> ;
+    rdfs:label "LineageWeave core ontology SHACL shapes"@en .
+
+:CorporateEntityShape
+    a sh:NodeShape ;
+    sh:targetClass lw:CorporateEntity ;
+    sh:class org:Organization ;
+    sh:property [
+        sh:path lw:hasEntityLevel ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class lw:CorporateEntityLevel
+    ] ;
+    sh:property [
+        sh:path lw:subOrganizationOf ;
+        sh:maxCount 1 ;
+        sh:class lw:CorporateEntity
+    ] .
+
+:TeamShape
+    a sh:NodeShape ;
+    sh:targetClass lw:Team ;
+    sh:class org:OrganizationalUnit ;
+    sh:property [
+        sh:path lw:teamAffiliatedWith ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:class lw:CorporateEntity
+    ] .
