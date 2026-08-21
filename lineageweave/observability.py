@@ -101,7 +101,7 @@ def _safe_attributes(
     """Keep telemetry attributes scalar, bounded, and explicitly non-content."""
     result: dict[str, str | int | float | bool] = {}
     for key, value in (attributes or {}).items():
-        if key not in _ALLOWED_ATTRIBUTE_KEYS:
+        if not isinstance(key, str) or key not in _ALLOWED_ATTRIBUTE_KEYS:
             continue
         if key == "lineageweave.session_id":
             value = _bounded_session_id(value)
