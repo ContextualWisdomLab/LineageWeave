@@ -110,7 +110,6 @@ from backend.app.post_content_queue import (
     fetch_post_summary_source,
     post_content_api_status,
     post_content_is_complete,
-    post_content_summary_status_message,
     post_content_summary_is_ready,
     post_body_has_images,
     publish_post_content_event,
@@ -197,11 +196,8 @@ from backend.app.post_summary_ingestion import (
 from backend.app.post_eligibility import (
     SOURCE_POST_ELIGIBILITY_SQL,
     SOURCE_POST_READER_ELIGIBILITY_SQL,
-    SOURCE_POST_VISIBILITY_SQL,
     WRITING_SOURCE_DETAIL_STATE_CODE,
-    normalize_source_detail_state_code,
     source_post_state_visibility_sql,
-    SOURCE_POST_VISIBILITY_SQL,
 )
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
@@ -345,9 +341,7 @@ def _post_summary_client():
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullPostSummaryClient()
     return ContextualOrchestratorPostSummaryClient(
-        base_url=settings.orchestrator_base_url,
-        api_key=settings.orchestrator_api_key,
-        timeout=300.0,
+        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
     )
 
 
@@ -439,8 +433,7 @@ def _rankweave_client():
 
 def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
     """ABAC: W is author/admin-only; other rows use public/corp visibility."""
-    state_code = normalize_source_detail_state_code(post.get("source_detail_state_code"))
-    if state_code == WRITING_SOURCE_DETAIL_STATE_CODE:
+    if post.get("source_detail_state_code") == WRITING_SOURCE_DETAIL_STATE_CODE:
         return account.has_permission(_POST_ADMIN) or str(post["author_account_id"]) == account.user_account_id
     if post["visibility_code"] == "public":
         return True
@@ -450,8 +443,7 @@ def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
 def _can_use_post_for_analysis(account: CurrentAccount, post: asyncpg.Record) -> bool:
     """Derived features consume only non-W authorized source posts."""
     return (
-        normalize_source_detail_state_code(post.get("source_detail_state_code"))
-        != WRITING_SOURCE_DETAIL_STATE_CODE
+        post.get("source_detail_state_code") != WRITING_SOURCE_DETAIL_STATE_CODE
         and _can_see_post(account, post)
     )
 
@@ -479,9 +471,7 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
         "visibility_code": visibility,
         "visibility_label": resolved.get(visibility, visibility),
         "source_stage_code": post.get("source_stage_code"),
-        "source_detail_state_code": normalize_source_detail_state_code(
-            post.get("source_detail_state_code")
-        ),
+        "source_detail_state_code": post.get("source_detail_state_code"),
         "source_draft_code": post.get("source_draft_code"),
         "source_deleted_flag": post.get("source_deleted_flag"),
         "publication_state_code": _publication_state_code(post),
@@ -624,8 +614,8 @@ async def _post_filter_options(
          order by display_order, code
     """
     detail_state_sql = f"""
-        select distinct upper(btrim(post.source_detail_state_code)) as code,
-               upper(btrim(post.source_detail_state_code)) as label
+        select distinct post.source_detail_state_code as code,
+               post.source_detail_state_code as label
           from source_post post
          where {state_visibility_sql}
            and {SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='post')}
@@ -798,40 +788,16 @@ _AFFILIATION_SCOPE_CODE_TO_FACET = {
 }
 
 
-def _customer_master_scope_facets(
-    row: asyncpg.Record, observed_hierarchy_ids: set[str]
-) -> list[str]:
+def _customer_master_scope_facets(row: asyncpg.Record) -> list[str]:
     """Repeatable, provenance-bearing facets for one Customer Master row."""
     facets = [
         _AFFILIATION_SCOPE_CODE_TO_FACET[code]
         for code in row["scope_codes"]
         if code in _AFFILIATION_SCOPE_CODE_TO_FACET
     ]
-    if str(row["corporate_entity_id"]) in observed_hierarchy_ids:
-        facets.append("observed_hierarchy")
     if row["is_observed_organization"]:
         facets.append("observed_organization")
     return facets
-
-
-def _observed_hierarchy_ids(rows: list[asyncpg.Record]) -> set[str]:
-    """Return authorized ancestors of entities observed in visible posts."""
-    rows_by_id = {str(row["corporate_entity_id"]): row for row in rows}
-    hierarchy_ids: set[str] = set()
-    for row in rows:
-        if not row["is_observed_organization"]:
-            continue
-        if row["parent_entity_id"] is None:
-            continue
-        parent_id = row["parent_entity_id"]
-        while parent_id is not None:
-            parent_key = str(parent_id)
-            if parent_key in hierarchy_ids:
-                break
-            hierarchy_ids.add(parent_key)
-            parent = rows_by_id.get(parent_key)
-            parent_id = parent["parent_entity_id"] if parent is not None else None
-    return hierarchy_ids
 
 
 @app.get("/api/customer-master")
@@ -841,8 +807,7 @@ async def read_customer_master(
 ) -> dict[str, Any]:
     """Return the authorized customer catalog and its cataloged Keymen."""
     _require_post_read(account)
-    authorized_entity_ids = list(account.corporate_entity_ids)
-    if not authorized_entity_ids:
+    if not account.corporate_entity_ids:
         return {
             "corporate_entities": [],
             "keymen": [],
@@ -851,7 +816,6 @@ async def read_customer_master(
             "relationship_network": [],
         }
 
-    authorized_entity_ids = list(account.corporate_entity_ids)
     async with pool.acquire() as conn:
         # Safe SQL: the evidence query uses only closed schema fragments; authorized entity ids are bound.
         source_customer_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
@@ -866,7 +830,7 @@ async def read_customer_master(
                   from source_post
                  where (nullif(btrim(source_customer_code), '') is not null
                         or nullif(btrim(source_customer_name), '') is not null)
-                   and {SOURCE_POST_VISIBILITY_SQL.format(alias='source_post', authorized_entity_ids='$1')}
+                   and (visibility_code = 'public' or corporate_entity_id = any($1::uuid[]))
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
             ), ranked as (
                 select scoped.*,
@@ -911,7 +875,7 @@ async def read_customer_master(
                and related.customer_name_group is not distinct from top_groups.customer_name_group
              order by top_groups.post_count desc, top_groups.customer_code, top_groups.customer_name
             """,
-            authorized_entity_ids,
+            list(account.corporate_entity_ids),
         )
         # Safe SQL: the evidence query uses only closed schema fragments; authorized entity ids are bound.
         source_author_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
@@ -932,7 +896,7 @@ async def read_customer_master(
                   join user_account author on author.user_account_id = post.author_account_id
                  where post.source_author_code is not null
                    and btrim(post.source_author_code) <> ''
-                   and {SOURCE_POST_VISIBILITY_SQL.format(alias='post', authorized_entity_ids='$1')}
+                   and (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
             ), ranked as (
                 select scoped.*,
@@ -1048,12 +1012,12 @@ async def read_customer_master(
                and related.account_display_name = top_groups.account_display_name
              order by top_groups.post_count desc, top_groups.author_code
             """,
-            authorized_entity_ids,
+            list(account.corporate_entity_ids),
         )
         has_source_context = bool(source_customer_rows or source_author_rows)
         if not has_source_context:
             has_source_context = await has_real_source_context(
-                conn, authorized_entity_ids
+                conn, list(account.corporate_entity_ids)
             )
         synthetic_only_entity_ids: set[str] = set()
         if has_source_context:
@@ -1102,16 +1066,15 @@ async def read_customer_master(
                and not (entity.corporate_entity_id = any($3::uuid[]))
              order by entity.entity_name
             """,
-            authorized_entity_ids,
+            list(account.corporate_entity_ids),
             account.user_account_id,
             list(synthetic_only_entity_ids),
         )
-        observed_hierarchy_ids = _observed_hierarchy_ids(entity_rows)
         entity_ids = [row["corporate_entity_id"] for row in entity_rows]
         source_author_affiliations = await _load_account_affiliation_hints(
             conn,
             [str(row["author_account_id"]) for row in source_author_rows],
-            entity_ids,
+            [str(entity_id) for entity_id in entity_ids],
         )
         keyman_rows = await conn.fetch(
             """
@@ -1123,10 +1086,9 @@ async def read_customer_master(
                    entity.entity_name
               from cataloged_person person
               join person_affiliation affiliation on affiliation.person_id = person.person_id
-             left join corporate_entity entity
+              left join corporate_entity entity
                 on entity.corporate_entity_id = affiliation.affiliated_corporate_entity_id
              where affiliation.affiliated_corporate_entity_id = any($1::uuid[])
-               and person.person_side_code = 'our_side'
              order by person.person_name, affiliation.affiliated_organization_name
             """,
             entity_ids,
@@ -1175,7 +1137,7 @@ async def read_customer_master(
                 "parent_entity_id": (
                     str(row["parent_entity_id"]) if row["parent_entity_id"] is not None else None
                 ),
-                "scope_facets": _customer_master_scope_facets(row, observed_hierarchy_ids),
+                "scope_facets": _customer_master_scope_facets(row),
             }
             for row in entity_rows
         ],
@@ -1328,10 +1290,6 @@ async def list_posts(
     """List authorized posts, with semantic evidence search when requested."""
     _require_post_read(account)
     search_term = search.strip() if search and search.strip() else None
-    normalized_voc_types = [code.strip() for code in voc_type or [] if code.strip()]
-    normalized_detail_states = [
-        code.strip().upper() for code in source_detail_state or [] if code.strip()
-    ]
     async with pool.acquire() as conn:
         voc_type_options, source_detail_state_options, visibility_options = await _post_filter_options(
             conn, account
@@ -1566,7 +1524,7 @@ async def list_posts(
                     )
                )
                and ($3::text[] is null or post.voc_type_code = any($3::text[]))
-               and ($4::text[] is null or coalesce(upper(btrim(post.source_detail_state_code)), '') = any($4::text[]))
+               and ($4::text[] is null or post.source_detail_state_code = any($4::text[]))
                and ($5::text is null or post.visibility_code = $5)
                  order by
                     search_priority asc,
@@ -1635,8 +1593,10 @@ async def list_posts(
             """,
             search_term,
             list(account.corporate_entity_ids),
-            normalized_voc_types or None,
-            normalized_detail_states or None,
+            [code.strip() for code in voc_type if code.strip()] if voc_type else None,
+            [code.strip() for code in source_detail_state if code.strip()]
+            if source_detail_state
+            else None,
             visibility.strip() if visibility and visibility.strip() else None,
             body_search_ids,
             offset,
@@ -1911,7 +1871,7 @@ async def _load_visible_post(
         raise HTTPException(status.HTTP_404_NOT_FOUND, "post not found")
     if not _can_see_post(account, row):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this post")
-    if normalize_source_detail_state_code(row.get("source_detail_state_code")) == WRITING_SOURCE_DETAIL_STATE_CODE:
+    if row.get("source_detail_state_code") == WRITING_SOURCE_DETAIL_STATE_CODE:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "Writing-in-progress posts are not analysis targets.",
@@ -1985,6 +1945,9 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
             "source_sales_order_code",
             "source_sales_order_item_number",
             "source_inspection_point_code",
+            "source_stage_code",
+            "source_detail_state_code",
+            "source_deleted_flag",
             "source_customer_code",
             "source_customer_name",
             "source_project_code",
@@ -2708,19 +2671,12 @@ async def read_period_reports(
             if _can_use_post_for_analysis(account, pair)
             and not _is_synthetic_demo_member(pair, demo_entity_ids)
         ]
-        private_report_fields = {
-            "visibility_code",
-            "corporate_entity_id",
-            "author_account_id",
-            "source_detail_state_code",
-            "has_real_source_context",
-        }
         members = [
-            {key: value for key, value in member.items() if key not in private_report_fields}
+            {key: value for key, value in member.items() if key != "has_real_source_context"}
             for member in members
         ]
         leftover_pairs = [
-            {key: value for key, value in pair.items() if key not in private_report_fields}
+            {key: value for key, value in pair.items() if key != "has_real_source_context"}
             for pair in leftover_pairs
         ]
         visible.append(
@@ -2816,15 +2772,9 @@ async def read_post_summary(
                 )
                 queue_event = None
             if summary_waiting_for_images:
-                image_job_status = await conn.fetchval(
-                    "select status_code from post_content_ingestion_job where post_id = $1",
-                    post_id,
-                )
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    post_content_summary_status_message(
-                        str(image_job_status) if image_job_status is not None else None
-                    ),
+                    "Post summary is unavailable: image evidence is still being processed",
                 )
         with use_llm_metadata(post_metadata):
             client = _post_summary_client()
@@ -3618,13 +3568,7 @@ async def read_calendar(
             c for c in visible if not _is_synthetic_demo_member(c, demo_entity_ids)
         ]
     for c in visible:
-        del (
-            c["visibility_code"],
-            c["corporate_entity_id"],
-            c["author_account_id"],
-            c["source_detail_state_code"],
-            c["has_real_source_context"],
-        )
+        del c["visibility_code"], c["corporate_entity_id"], c["has_real_source_context"]
     return {
         "events": events,
         "commitments": visible,

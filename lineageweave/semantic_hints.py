@@ -26,9 +26,7 @@ _WEAK_CUSTOMER_VALUES = frozenset(
 )
 
 
-def _value(value: str | int | None) -> str:
-    if isinstance(value, int):
-        return str(value)
+def _value(value: str | None) -> str:
     return value.strip() if isinstance(value, str) and value.strip() else "none"
 
 
@@ -88,6 +86,9 @@ def format_semantic_hints(
             source_sales_order_code,
             source_sales_order_item_number,
             source_inspection_point_code,
+            source_stage_code,
+            source_detail_state_code,
+            source_deleted_flag,
             source_customer_code,
             source_customer_name,
             source_project_code,
