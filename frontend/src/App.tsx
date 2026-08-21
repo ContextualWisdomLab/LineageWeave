@@ -91,6 +91,7 @@ import {
   type PostSemanticRelationship,
   type RelatedNode,
   type RelatedNodeType,
+  type TenantConfig,
   type VocEvidence,
   fetchTenantConfig,
 } from "./api";
@@ -5898,9 +5899,16 @@ function updateWorkspaceLocation(
   window.history[mode === "replace" ? "replaceState" : "pushState"]({}, "", nextUrl);
 }
 
+const DEFAULT_TENANT_CONFIG: TenantConfig = {
+  brandName: "LineageWeave",
+  systemName: "LineageWeave",
+  copyrightYear: 2026,
+  copyrightHolder: "LineageWeave",
+};
+
 export default function App({ showLabPanels = false }: { showLabPanels?: boolean } = {}) {
   useLocale();
-  const [brandName, setBrandName] = useState("LineageWeave");
+  const [tenantConfig, setTenantConfig] = useState<TenantConfig>(DEFAULT_TENANT_CONFIG);
   const auth = useAuth();
   const [destination, setDestination] = useState<WorkspaceDestination>(() => workspaceDestinationFromLocation());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -5989,7 +5997,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   useEffect(() => {
     if (accessToken) {
       fetchTenantConfig(accessToken).then((config) => {
-        if (config.brandName) setBrandName(config.brandName);
+        setTenantConfig({ ...DEFAULT_TENANT_CONFIG, ...config });
       }).catch(console.error);
     }
   }, [accessToken]);
@@ -6031,7 +6039,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         <main className="login-screen">
           <div className="login-card">
             <div className="login-header">
-              <h1>{brandName}</h1>
+              <p className="login-brand">{tenantConfig.brandName}</p>
+              <h1>{tenantConfig.systemName}</h1>
               <p className="login-subtitle">Marketing & Operational Lineage Intelligence</p>
             </div>
             <div className="login-controls">
@@ -6049,10 +6058,10 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
       </main>
         <footer className="app-footer" role="contentinfo">
           <div className="app-footer-title">
-            <span className="app-footer-logo">{brandName}</span>
+            <span className="app-footer-logo">{tenantConfig.brandName}</span>
           </div>
           <div className="app-footer-copyright">
-            <p>Copyright &copy; {new Date().getFullYear()} by {brandName}. All rights reserved.</p>
+            <p>Copyright &copy; {tenantConfig.copyrightYear} by {tenantConfig.copyrightHolder}. All rights reserved.</p>
           </div>
         </footer>
       </div>
@@ -6077,7 +6086,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
       </a>
       <header className="app-header">
         <div className="app-header-logo">
-          <h1 className="app-header-title">{brandName}</h1>
+          <span className="app-header-brand">{tenantConfig.brandName}</span>
+          <h1 className="app-header-title">{tenantConfig.systemName}</h1>
         </div>
         <button
           type="button"
@@ -6184,14 +6194,14 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             }}
           />
         ) : null}
-        {activeDestination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} currentUser={currentUser} onNavigate={changeDestination} onOpenBoardTool={openAdminBoardTool} /> : null}
+        {activeDestination === "admin" ? <AdminPanel currentTenantConfig={tenantConfig} onTenantConfigChange={setTenantConfig} accessToken={accessToken} currentUser={currentUser} onNavigate={changeDestination} onOpenBoardTool={openAdminBoardTool} /> : null}
       </main>
       <footer className="app-footer" role="contentinfo">
         <div className="app-footer-title">
-          <span className="app-footer-logo">{brandName}</span>
+          <span className="app-footer-logo">{tenantConfig.brandName}</span>
         </div>
         <div className="app-footer-copyright">
-          <p>Copyright &copy; {new Date().getFullYear()} by {brandName}. All rights reserved.</p>
+          <p>Copyright &copy; {tenantConfig.copyrightYear} by {tenantConfig.copyrightHolder}. All rights reserved.</p>
         </div>
       </footer>
     </div>

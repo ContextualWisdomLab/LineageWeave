@@ -44,7 +44,12 @@ describe("backendFetch provider-error boundary", () => {
       ),
     );
 
-    await expect(updateTenantConfig("access-token", "Example tenant")).rejects.toMatchObject({
+    await expect(updateTenantConfig("access-token", {
+      brandName: "Example tenant",
+      systemName: "Example system",
+      copyrightYear: 2026,
+      copyrightHolder: "Example tenant",
+    })).rejects.toMatchObject({
       status: 500,
       message: "The service could not complete this request. Try again later.",
     });

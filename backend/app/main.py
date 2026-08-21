@@ -663,6 +663,45 @@ async def _post_filter_options(
     )
 
 
+_TENANT_SETTINGS_DEFAULTS: dict[str, str | int] = {
+    "brandName": "LineageWeave",
+    "systemName": "LineageWeave",
+    "copyrightYear": 2026,
+    "copyrightHolder": "LineageWeave",
+}
+
+
+def _tenant_settings_response(row: asyncpg.Record | None) -> dict[str, str | int]:
+    """Return the stable shell identity contract from one tenant settings row."""
+    if row is None:
+        return dict(_TENANT_SETTINGS_DEFAULTS)
+    return {
+        "brandName": row["brand_name"],
+        "systemName": row["system_name"],
+        "copyrightYear": row["copyright_year"],
+        "copyrightHolder": row["copyright_holder"],
+    }
+
+
+def _tenant_setting_text(payload: dict[str, Any], key: str, current: str) -> str:
+    """Validate and trim a required tenant display string at the API boundary."""
+    value = payload.get(key, current)
+    if not isinstance(value, str) or not value.strip():
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"{key} must not be blank")
+    return value.strip()
+
+
+def _tenant_copyright_year(payload: dict[str, Any], current: int) -> int:
+    """Validate the explicit copyright year instead of deriving it from the clock."""
+    value = payload.get("copyrightYear", current)
+    if isinstance(value, bool) or not isinstance(value, int) or not 1900 <= value <= 2100:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "copyrightYear must be an integer between 1900 and 2100",
+        )
+    return value
+
+
 @app.get("/api/settings", response_model=dict)
 async def read_tenant_settings(
     account: CurrentAccount = Depends(get_current_account),
@@ -670,28 +709,59 @@ async def read_tenant_settings(
 ):
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "SELECT brand_name FROM tenant_settings WHERE tenant_settings_id = 1"
+            """
+            SELECT brand_name, system_name, copyright_year, copyright_holder
+              FROM tenant_settings
+             WHERE tenant_settings_id = 1
+            """
         )
-    if not row:
-        return {"brandName": "LineageWeave"}
-    return {"brandName": row["brand_name"]}
+    return _tenant_settings_response(row)
 
 @app.patch("/api/settings", response_model=dict)
 async def update_tenant_settings(
-    payload: dict,
+    payload: dict[str, Any],
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ):
     # Only admins can change settings
     _require_post_admin(account)
-    brand_name = payload.get("brandName", "LineageWeave")
     async with pool.acquire() as conn:
-        await conn.execute(
-            "INSERT INTO tenant_settings (tenant_settings_id, brand_name) VALUES (1, $1) "
-            "ON CONFLICT (tenant_settings_id) DO UPDATE SET brand_name = $1",
-            brand_name
+        current_row = await conn.fetchrow(
+            """
+            SELECT brand_name, system_name, copyright_year, copyright_holder
+              FROM tenant_settings
+             WHERE tenant_settings_id = 1
+            """
         )
-    return {"brandName": brand_name}
+        current = _tenant_settings_response(current_row)
+        brand_name = _tenant_setting_text(payload, "brandName", str(current["brandName"]))
+        system_name = _tenant_setting_text(payload, "systemName", str(current["systemName"]))
+        copyright_year = _tenant_copyright_year(payload, int(current["copyrightYear"]))
+        copyright_holder = _tenant_setting_text(
+            payload, "copyrightHolder", str(current["copyrightHolder"])
+        )
+        await conn.execute(
+            """
+            INSERT INTO tenant_settings
+                (tenant_settings_id, brand_name, system_name, copyright_year, copyright_holder)
+            VALUES (1, $1, $2, $3, $4)
+            ON CONFLICT (tenant_settings_id) DO UPDATE SET
+                brand_name = EXCLUDED.brand_name,
+                system_name = EXCLUDED.system_name,
+                copyright_year = EXCLUDED.copyright_year,
+                copyright_holder = EXCLUDED.copyright_holder
+            """,
+            brand_name,
+            system_name,
+            copyright_year,
+            copyright_holder,
+        )
+    return {
+        "brandName": brand_name,
+        "systemName": system_name,
+        "copyrightYear": copyright_year,
+        "copyrightHolder": copyright_holder,
+    }
 
 
 @app.get("/healthz")

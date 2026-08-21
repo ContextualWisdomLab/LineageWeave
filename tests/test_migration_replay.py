@@ -93,3 +93,16 @@ def test_migrate_sh_replays_source_commercial_context_migration_on_existing_volu
     ).read_text(encoding="utf-8")
 
     assert "0130_*" in script
+
+
+def test_migrate_sh_replays_tenant_identity_metadata_migration_on_existing_volumes() -> None:
+    """Existing Compose volumes must receive explicit shell identity metadata."""
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(encoding="utf-8")
+    migration = (root / "migrations" / "0132_tenant_identity_metadata.sql").read_text(
+        encoding="utf-8"
+    )
+
+    assert "0132_*" in script
+    assert "add column if not exists system_name" in migration
+    assert "tenant_settings_copyright_year_range_check" in migration
