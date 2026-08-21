@@ -22,6 +22,9 @@ All notable changes to this project are documented here. Format follows
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
+- All OpenAI-compatible chat-completion consumers now validate the shared
+  response envelope before parsing it, preventing malformed provider bodies
+  from escaping as raw `KeyError` or response-shape details.
 
 ## [2.12.6] - 2026-08-20
 

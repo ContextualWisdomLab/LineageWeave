@@ -67,6 +67,22 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("preserves HTML and Word footnote blocks as footnote paragraphs", () => {
+    expect(
+      splitPostBody(
+        "<p>Body evidence.</p>" +
+          "<footnote>HTML note.</footnote>" +
+          "<w:footnote><w:p>Word note.</w:p></w:footnote>" +
+          "<p>Next action.</p>",
+      ),
+    ).toEqual([
+      { kind: "text", text: "Body evidence." },
+      { kind: "text", text: "HTML note.", role: "footnote" },
+      { kind: "text", text: "Word note.", role: "footnote" },
+      { kind: "text", text: "Next action." },
+    ]);
+  });
+
   it("limits numeric superscript footnote roles to their source paragraph", () => {
     expect(
       splitPostBody(
