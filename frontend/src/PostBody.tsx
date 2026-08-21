@@ -4,15 +4,20 @@ import type { PostContentUnit, PostImageContent } from "./api";
 import type { ReactNode } from "react";
 
 function parsePipeDelimitedTable(text: string): string[][] | null {
-  const rows = text
+  const rawRows = text
     .split(/\r?\n/)
     .map((row) => {
       const cells = row.split("|").map((cell) => cell.trim());
       if (cells[0] === "") cells.shift();
       if (cells[cells.length - 1] === "") cells.pop();
       return cells;
-    })
-    .filter((row) => !row.every((cell) => /^:?-{3,}:?$/.test(cell)))
+    });
+  const separatorIndex = rawRows.findIndex(
+    (row) => row.length > 1 && row.every((cell) => /^:?-{3,}:?$/.test(cell)),
+  );
+  if (separatorIndex < 1) return null;
+  const rows = rawRows
+    .filter((_row, rowIndex) => rowIndex !== separatorIndex)
     .filter((row) => row.length > 1 && row.some(Boolean));
   if (rows.length < 2 || rows.some((row) => row.length !== rows[0].length)) return null;
   if (rows[0].length < 2) return null;
@@ -23,7 +28,11 @@ function renderPipeTable(text: string, className: string, keyPrefix: string): Re
   const rows = parsePipeDelimitedTable(text);
   if (!rows) return null;
   return (
-    <table className={className} data-content-kind="table">
+    <table
+      key={`${keyPrefix}-table`}
+      className={className}
+      data-content-kind="table"
+    >
       <tbody>
         {rows.map((row, rowIndex) => (
           <tr key={`${keyPrefix}-row-${rowIndex}`}>
@@ -249,7 +258,7 @@ function renderStructuredUnits(
         ? unit.indent_level
         : undefined;
     rendered.push(
-      renderSegment(
+      renderTextSegment(
         {
           kind: "text",
           text: unit.unit_text,

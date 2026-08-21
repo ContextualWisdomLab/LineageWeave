@@ -309,6 +309,36 @@ describe("PostBody", () => {
     expect(screen.getByText("After")).toBeInTheDocument();
   });
 
+  it("does not turn pipe-delimited prose into a table", () => {
+    render(<PostBody body={"Alice | manager\nBob | engineer"} />);
+
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByText((text) => text.includes("Alice | manager"))).toBeInTheDocument();
+  });
+
+  it("renders Markdown tables when persisted text units are present", () => {
+    const table = "| Field | Value |\n| --- | --- |\n| Owner | Buyer |";
+    render(
+      <PostBody
+        body={table}
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "dom",
+            unit_text: table,
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("table")).toHaveClass("post-markdown-table");
+    expect(screen.getByText("Owner")).toBeInTheDocument();
+  });
+
   it("keeps source-image placement while showing persisted OCR and caption evidence", () => {
     render(
       <PostBody
