@@ -2087,6 +2087,11 @@ describe("App, authenticated", () => {
 
     await user.keyboard("{Tab}");
     expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
+    const evidenceSummary = screen.getByText("Evidence provenance");
+    for (let step = 0; step < 40 && document.activeElement !== evidenceSummary; step += 1) {
+      await user.keyboard("{Tab}");
+    }
+    expect(evidenceSummary).toHaveFocus();
     const ariaHiddenTabStop = document.createElement("button");
     ariaHiddenTabStop.setAttribute("aria-hidden", "true");
     dialog.insertBefore(ariaHiddenTabStop, screen.getByRole("button", { name: "Close" }).nextSibling);

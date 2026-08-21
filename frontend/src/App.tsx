@@ -1759,7 +1759,7 @@ function PostDetailPopup({
     panel.focus({ preventScroll: true });
 
     const focusableSelector =
-      'a[href], area[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+      'a[href], area[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), summary, [tabindex]:not([tabindex="-1"])';
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -1771,7 +1771,7 @@ function PostDetailPopup({
         (element) =>
           !element.hidden &&
           !element.closest('[aria-hidden="true"]') &&
-          !element.closest("details:not([open])"),
+          (!element.closest("details:not([open])") || element.matches("summary")),
       );
       if (focusable.length === 0) {
         event.preventDefault();
