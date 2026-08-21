@@ -41,6 +41,7 @@ from lineageweave.post_chat import (
     normalize_chat_question,
 )
 from lineageweave.post_content_normalization import normalize_post_body
+from lineageweave.source_lineage_hints import source_lineage_hint_facts
 
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
 from lineageweave.ontology import ontology_annotations
@@ -155,6 +156,10 @@ _SOURCE_HINT_FIELDS = (
     ("source_process_unit_name", "source business unit name (PU)"),
     ("source_sales_pool_code", "source sales pool"),
     ("source_sales_pool_name", "source sales pool name"),
+    ("source_order_pool_code", "source order pool"),
+    ("source_sales_order_code", "source sales order"),
+    ("source_sales_order_item_number", "source sales order item"),
+    ("source_inspection_point_code", "source inspection point"),
     ("source_customer_code", "source customer code"),
     ("source_customer_name", "source customer name"),
     ("source_project_code", "source project code"),
@@ -175,7 +180,16 @@ def _source_hint_facts(row: Any) -> tuple[str, ...]:
             facts.append(
                 f"{label}={str(value).strip()} [provenance=source_post.{field_name}; hint_only]"
             )
-    return tuple(facts)
+    return tuple(facts) + source_lineage_hint_facts(
+        customer_code=row.get("source_customer_code"),
+        order_pool_code=row.get("source_order_pool_code"),
+        sales_order_code=row.get("source_sales_order_code"),
+        sales_order_item_number=row.get("source_sales_order_item_number"),
+        stage_code=row.get("source_stage_code"),
+        detail_state_code=row.get("source_detail_state_code"),
+        inspection_point_code=row.get("source_inspection_point_code"),
+        deleted_flag=row.get("source_deleted_flag"),
+    )
 
 
 async def _semantic_facts_for_posts(
@@ -348,6 +362,8 @@ async def gather_chat_sources(
         "source_author_code, source_author_name, source_company_code, source_company_name, "
         "source_process_unit_code, source_process_unit_name, "
         "source_sales_pool_code, source_sales_pool_name, "
+        "source_order_pool_code, source_sales_order_code, source_sales_order_item_number, "
+        "source_inspection_point_code, source_stage_code, source_detail_state_code, source_deleted_flag, "
         "source_customer_code, source_customer_name, source_project_code, "
         "source_project_name from source_post where post_id = $1",
         post_id,
@@ -383,6 +399,8 @@ async def gather_chat_sources(
         "source_system_code, source_record_key, source_author_code, source_author_name, "
         "source_company_code, source_company_name, source_process_unit_code, "
         "source_process_unit_name, source_sales_pool_code, source_sales_pool_name, "
+        "source_order_pool_code, source_sales_order_code, source_sales_order_item_number, "
+        "source_inspection_point_code, source_stage_code, source_detail_state_code, source_deleted_flag, "
         "source_customer_code, source_customer_name, "
         "source_project_code, source_project_name "
         "from source_post where post_id = any($1::uuid[]) "
