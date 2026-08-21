@@ -72,36 +72,6 @@ Observed at `2026-08-21T20:13:22Z` from the GitHub API and local worktree
   targets `main`, and is `BLOCKED` with `REVIEW_REQUIRED`; #397 is a stacked
   follow-up and must not be described as a protected-main merge.
 
-## 4.1 Latest open-PR and Checks refresh
-
-Observed at `2026-08-21T20:13:22Z` from the GitHub API. The exact open
-application heads were: #258 `6dc040c6`, #349 `a6af4525`, #355 `b606c255`,
-#368 `392a9dd5`, #373 `151fe6e1`, #383 `4eaa0717`, #387 `16f6341a`, #392
-`fc040997`, #393 `1ac3a17a`, #394 `5219ed8b`, and #397 `4bfa642c`. No PR in
-this set was reported as merged into protected `main`.
-
-- #397's latest restacked head had Full test, frontend, CodeRabbit, and Devin
-  Review pending at observation. The prior review found and the latest pushes
-  fixed the stale Korean translation key, fetched tenant-config draft race, and
-  non-atomic settings update. There is no independent approval, so merge is not
-  authorized.
-- #383 had a failed `osv-scan`. The failure remains the shared workflow's
-  deprecated `--output=old-results.json` / `--output=new-results.json` contract,
-  not a source vulnerability verdict. Central `.github` PR #1158 is open at
-  exact head `f61a8795`, adds the `--output-file` contract and provenance
-  classifier, and remains unmerged with hosted Checks pending. Do not duplicate
-  the central repair in LineageWeave.
-- The active protected ruleset `LineageWeave: no force pushes` has no bypass
-  actors and only the `non_fast_forward` rule. All stack pushes above were
-  normal fast-forward/new-branch pushes.
-- **Hourly automation boundary:** the central
-  [`ContextualWisdomLab/.github` merge scheduler](https://github.com/ContextualWisdomLab/.github/blob/main/.github/workflows/pr-review-merge-scheduler.yml)
-  runs its organization sweep at `0 * * * *`; the central target allowlist
-  includes `ContextualWisdomLab/LineageWeave`. Its reusable review-repair
-  workflow is product-neutral, so LineageWeave does not add a duplicate local
-  timer. The same exact-head, review, Checks, and protected-merge gates remain
-  authoritative; a scheduled run is not evidence of a merge.
-
 ## 2. LLM Extraction & Knowledge Graph Gaps
 - **Multiple Project Extraction**: A structured `key_events.project_name` implementation exists, but separate-event behavior still requires protected authorized-corpus evidence.
 - **5W1H Missing**: A structured 5W1H evidence-item implementation exists, but completeness and provenance still require protected authorized-corpus evidence.
@@ -116,8 +86,6 @@ this set was reported as merged into protected `main`.
 - **Testing**: We need actual testing of Psychometrics (Fast-MLSIRM parameter calibration, RMSE of estimates, Fixed-Item Parameter Calibration, CAT) against synthetic/demo data.
 - **Security & Compliance**: PII masking cannot break the system. Need SOC 2 and CSAP compliance alternatives to blind PII masking. 
 - **LLM Orchestration**: Ensure ALL LLM calls route through `contextual-orchestrator` utilizing API keys (BYTEZ, NVIDIA, OPENROUTER, OPENAI) with auto model discovery and optimal reasoning effort allocation (Fugu/Conductor/TRINITY research).
-
-*This document is continuously updated by the hourly automated agent loop.*
 
 ## 4. Current Checkpoint Evidence
 
@@ -235,14 +203,12 @@ previous checkpoint. PR #393 is open at exact head
 `6621eb116a4e92eb33eeae989c70fbc602450c51`. All target `main` and are
 blocked by the protected merge gates. Checks had no failures for #393, #392,
 #387, #373, #368, #355, #349, or #258; #383 had one failed `osv-scan`, with
-15 passing, 2 pending, and 8 skipped checks. The failed job ran the central
-OSV workflow with deprecated `--output=new-results.json` and then asserted
-that `new-results.json` and `old-results.json` existed, although the scanner
-exited zero without creating those files. This is a shared-workflow defect,
-not a dependency-vulnerability verdict. Central `.github` PR #1158 is now at
-exact head `c45a776f9ec3be8b35ee105e966100c80b95c2cc`, with no failed checks
-but 16 pending checks and no independent approval; it remains the upstream
-repair path. No PR was merged from this observation.
+   15 passing, 2 pending, and 8 skipped checks. Later artifact inspection showed
+   both scanner invocations exited zero and the head result survived, while the
+   cross-fork head checkout had deleted the untracked base result. This is a
+   shared-workflow defect, not a dependency-vulnerability verdict. Central
+   `.github` PR #1209 is the upstream repair path. No PR was merged from this
+   observation.
 
 Exact-head local verification at `2026-08-21T19:16:46Z` on the working
 checkout at PR #392 head `a046da4e52c484807fc28111bd813d1acbc00816` passed
@@ -272,14 +238,45 @@ merge was authorized. The active no-force-push ruleset had no bypass actors.
 
 The #392 security repair at exact head `1412313d` passed Semgrep with zero
 findings, its two focused Global Ask history tests, and the backend suite with
-848 passed and 17 environment skips. The existing central OSV repair remains
-`.github` PR #1158; the earlier #383 failure is retained as historical
+848 passed and 17 environment skips. The existing central OSV repair is
+`.github` PR #1209; the earlier #383 failure is retained as historical
 evidence and is not treated as a current failure after its head advanced.
 
 Closed without merge at the same observation:
 
 - PR #386: `closed_without_merge` head `57a013deb88fc0b23ae6448c1d3474c770360a5e`.
 - PR #377: `closed_without_merge` head `a638e28af4345750e3be92f2b0f23012b24598e0`.
+
+### 4.1 Latest open-PR and Checks refresh
+
+Observed at `2026-08-21T20:13:22Z` from the GitHub API. The exact open
+application heads were: #258 `6dc040c6`, #349 `a6af4525`, #355 `b606c255`,
+#368 `392a9dd5`, #373 `151fe6e1`, #383 `4eaa0717`, #387 `16f6341a`, #392
+`fc040997`, #393 `1ac3a17a`, #394 `5219ed8b`, and #397 `4bfa642c`. No PR in
+this set was reported as merged into protected `main`.
+
+- #397's latest restacked head had Full test, frontend, CodeRabbit, and Devin
+  Review pending at observation. The prior review found and the latest pushes
+  fixed the stale Korean translation key, fetched tenant-config draft race, and
+  non-atomic settings update. There is no independent approval, so merge is not
+  authorized.
+- #383 had a failed `osv-scan`; both scanner invocations completed and wrote
+  results before a cross-fork head checkout replaced the workspace repository
+  and deleted the untracked base result. This is not a vulnerability verdict.
+  Central `.github` PR #1209 at exact head
+  `225c415179180606f9a935304f61b09dc3e5c084` confines both exact checkouts to
+  `source/` while retaining the proven scanner output flags. It remains
+  unmerged, so downstream checks still require a rerun after protected merge.
+- The active protected ruleset `LineageWeave: no force pushes` has no bypass
+  actors and only the `non_fast_forward` rule. All stack pushes above were
+  normal fast-forward/new-branch pushes.
+- **Hourly automation boundary:** the central
+  [`ContextualWisdomLab/.github` merge scheduler](https://github.com/ContextualWisdomLab/.github/blob/main/.github/workflows/pr-review-merge-scheduler.yml)
+  runs its organization sweep at `0 * * * *`; the central target allowlist
+  includes `ContextualWisdomLab/LineageWeave`. Its reusable review-repair
+  workflow is product-neutral, so LineageWeave does not add a duplicate local
+  timer. The same exact-head, review, Checks, and protected-merge gates remain
+  authoritative; a scheduled run is not evidence of a merge.
 
 ## 5. Local Buyer-Surface Verification
 
@@ -505,12 +502,11 @@ Observed at `2026-08-21T18:56:50Z` on PR #383's current head
   observed, but hosted Checks remain non-terminal and no independent approval
   or protected merge commit is present.
 
-- The former hosted `osv-scan` job `96871880120` failed after both scans exit 0:
-  the central workflow passes deprecated `--output=old-results.json` and
-  `--output=new-results.json`, then `test -s` cannot find those files. This is
-  the same central defect addressed, but not yet merged, by `.github` PR #1158;
-  the application PR remains unmergeable until its current Checks and approval
-  gates pass.
+- The former hosted `osv-scan` job `96871880120` failed after both scans exited
+  zero because the cross-fork head checkout replaced the repository workspace
+  and removed the untracked base result. This is the same central defect
+  addressed, but not yet merged, by `.github` PR #1209; the application PR
+  remains unmergeable until its current Checks and approval gates pass.
 
 Observed at `2026-08-21T18:39:50Z` on PR #349's exact head
 `202194a2d9ba6da49a011ca6127a00f6bf5394ba`:
@@ -566,22 +562,19 @@ are not terminal and no independent approval or merge is claimed.
 This establishes the organization integration contract, not production
 collector acceptance. Collector delivery, retention, access review, dashboard
 SLOs, and no-export rollback remain deployment evidence to be recorded by GRC.
-The current GRC `osv-scan` failure is the shared workflow's deprecated OSV
-output-file contract, not a source vulnerability verdict; no protected merge
-or bypass is authorized until the central repair and exact-head Checks pass.
+The current GRC `osv-scan` failure is the shared workflow's cross-fork checkout
+isolation defect, not a source vulnerability verdict; no protected merge or
+bypass is authorized until the central repair and exact-head Checks pass.
 
 Observed at `2026-08-21T19:36:33Z` from the current hosted Checks:
 
 - contextual-orchestrator PR #820 remains open at exact head
   `4959e805c5724e7d1620639ab0151a992d717a0c`. Its unit, property, fuzz,
   supply-chain, Semgrep, and Strix checks passed; only `osv-scan` failed after
-  the scanner exited 0 and the shared workflow asserted files that the
-  deprecated `--output` option did not produce.
-- The central repair is ContextualWisdomLab/.github PR #1158 at exact head
-  `c45a776f9ec3be8b35ee105e966100c80b95c2cc`. Its direct-source, provenance,
-  path-policy, and bootstrap checks are successful while coverage and protected
-  approval remain pending. Downstream OSV checks must be rerun after its
-  protected merge; no local suppression is valid.
+  the cross-fork head checkout deleted the base result produced by the scanner.
+- The central repair is ContextualWisdomLab/.github PR #1209 at exact head
+  `225c415179180606f9a935304f61b09dc3e5c084`. Downstream OSV checks must be
+  rerun after its protected merge; no local suppression is valid.
 - This is operational evidence for the organization boundary, not a claim that
   a collector accepted telemetry or that any protected PR merged.
 
@@ -606,4 +599,6 @@ Observed at `2026-08-21T19:36:33Z` from the current hosted Checks:
 4. Keep the GRC and contextual-orchestrator OTEL evidence contracts aligned
    with the exact application instrumentation; validate live collector delivery
    separately from source and PR evidence, then rerun downstream OSV checks
-   after central `.github` PR #1158 is protected.
+   after central `.github` PR #1209 is protected.
+
+*This document is continuously updated by the hourly automated agent loop.*
