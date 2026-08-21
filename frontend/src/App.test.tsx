@@ -2002,6 +2002,9 @@ describe("App, authenticated", () => {
     const eventLineage = within(popup as HTMLElement).getByRole("heading", { name: "Event Lineage" });
     const affiliate = within(popup as HTMLElement).getByRole("heading", { name: "Affiliate tree" });
     const keyman = within(popup as HTMLElement).getByRole("heading", { name: "Keymen" });
+    expect(within(popup as HTMLElement).getByText("BUYER EVIDENCE")).toBeInTheDocument();
+    expect(within(popup as HTMLElement).getByText("Inference boundary")).toBeInTheDocument();
+    expect(within(popup as HTMLElement).getByRole("table", { name: "Evidence trail" })).toBeInTheDocument();
     expect(evaluation.compareDocumentPosition(eventLineage) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
       0,
     );
@@ -3508,5 +3511,14 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("navigation", { name: "Buyer navigation" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Board" })).toHaveAttribute("aria-current", "page");
     expect(screen.queryByText("Advanced review tools")).not.toBeInTheDocument();
+    const mobileMenu = screen.getByRole("button", { name: "Open navigation" });
+    expect(mobileMenu).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(mobileMenu);
+    expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(2);
+    expect(document.getElementById("mobile-buyer-navigation")).toBeInTheDocument();
+    const drawerClose = document.querySelector<HTMLButtonElement>(".mobile-drawer-close");
+    expect(drawerClose).not.toBeNull();
+    await userEvent.click(drawerClose as HTMLButtonElement);
+    expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute("aria-expanded", "false");
   });
 });

@@ -101,7 +101,6 @@ import {
   tf,
   useLocale,
 } from "./i18n";
-import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -4553,6 +4552,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   const [brandName, setBrandName] = useState("LineageWeave");
   const auth = useAuth();
   const [destination, setDestination] = useState<BuyerDestination>("board");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("post");
@@ -4563,6 +4563,10 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   // post_admin check (`canRebuild`), not on this caller-supplied prop.
   const testOnlyLabPanels = import.meta.env.MODE === "test" && showLabPanels;
   const accessToken = auth.user?.access_token;
+  const changeDestination = (nextDestination: BuyerDestination) => {
+    setDestination(nextDestination);
+    setMobileMenuOpen(false);
+  };
 
   useEffect(() => {
     if (accessToken) {
@@ -4620,7 +4624,6 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               <small>Enterprise SSO Authentication</small>
             </div>
           </div>
-          {destination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
       </main>
         <footer className="app-footer" role="contentinfo">
           <div className="app-footer-title">
@@ -4644,6 +4647,16 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         <div className="app-header-logo">
           <h1 className="app-header-title">{brandName}</h1>
         </div>
+        <button
+          type="button"
+          className="mobile-drawer-trigger"
+          aria-label={mobileMenuOpen ? t("Close") : t("Open navigation")}
+          aria-expanded={mobileMenuOpen}
+          aria-controls="mobile-buyer-navigation"
+          onClick={() => setMobileMenuOpen((open) => !open)}
+        >
+          ☰
+        </button>
         <div className="app-header-top-menu">
           <span className="app-user-profile">{auth.user?.profile.preferred_username}</span>
           <button className="btn-secondary" onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
@@ -4651,9 +4664,34 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
       </header>
       <BuyerNav
         destination={destination}
-        onChange={setDestination}
+        onChange={changeDestination}
         tools={<LanguageSwitcher accessToken={accessToken} />}
       />
+      {mobileMenuOpen ? (
+        <div className="mobile-drawer-backdrop" onClick={() => setMobileMenuOpen(false)}>
+          <aside
+            className="mobile-drawer"
+            aria-label={t("Buyer navigation")}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="mobile-drawer-close"
+              aria-label={t("Close")}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              ×
+            </button>
+            <BuyerNav
+              id="mobile-buyer-navigation"
+              destination={destination}
+              onChange={changeDestination}
+              tools={<LanguageSwitcher accessToken={accessToken} />}
+              drawer
+            />
+          </aside>
+        </div>
+      ) : null}
       <main>
         {destination === "board" ? (
           <PostList
