@@ -8,6 +8,7 @@ import pytest
 
 from backend.app.post_chat_ingestion import (
     LinkedPostIds,
+    PostChatHistoryLimitError,
     fetch_persisted_chat,
     fetch_persisted_chats,
     gather_chat_sources,
@@ -35,8 +36,32 @@ class _Connection:
         return self.header
 
     async def fetch(self, query: str, *_args: object):
-        if "question_norm from post_chat_result" in query:
-            return [{"question_norm": "question"}]
+        if "bounded_exchange as materialized" in query:
+            if self.header is None:
+                return []
+            if not self.citations:
+                return [
+                    {
+                        "exchange_ordinal": 1,
+                        **self.header,
+                        "knowledge_cutoff": self.header.get("knowledge_cutoff"),
+                        "citation_ordinal": None,
+                        "history_citation_ordinal": None,
+                        "cited_post_id": None,
+                        "post_title": None,
+                    }
+                ]
+            return [
+                {
+                    "exchange_ordinal": 1,
+                    **self.header,
+                    "knowledge_cutoff": self.header.get("knowledge_cutoff"),
+                    "citation_ordinal": index,
+                    "history_citation_ordinal": index,
+                    **citation,
+                }
+                for index, citation in enumerate(self.citations, start=1)
+            ]
         return self.citations
 
 
@@ -233,6 +258,13 @@ def test_fetch_chat_handles_empty_and_missing_rows() -> None:
     assert asyncio.run(fetch_persisted_chat(missing, "post-1", " ")) is None
     assert asyncio.run(fetch_persisted_chat(missing, "post-1", "question")) is None
     assert asyncio.run(fetch_persisted_chats(missing, "post-1")) == []
+    no_citations = _Connection(
+        header={"question_text": "Question", "answer_text": "Answer"},
+        citations=[],
+    )
+    assert asyncio.run(fetch_persisted_chats(no_citations, "post-1"))[0][
+        "cited_post_ids"
+    ] == []
 
 
 def test_fetch_chat_list_serializes_existing_exchange() -> None:
@@ -243,6 +275,39 @@ def test_fetch_chat_list_serializes_existing_exchange() -> None:
     exchanges = asyncio.run(fetch_persisted_chats(conn, "post-1"))
     assert len(exchanges) == 1
     assert exchanges[0]["cited_posts"][0]["post_title"] == "Evidence A"
+
+
+@pytest.mark.parametrize(
+    ("row", "message"),
+    [
+        ({"exchange_ordinal": 65}, "exchange count"),
+        (
+            {"exchange_ordinal": 1, "history_citation_ordinal": 257},
+            "history citation count",
+        ),
+    ],
+)
+def test_fetch_chat_list_fails_closed_at_history_sentinels(
+    row: dict[str, int],
+    message: str,
+) -> None:
+    class SentinelConnection:
+        async def fetch(self, _query: str, *_args: object):
+            return [
+                {
+                    "question_text": "Question",
+                    "answer_text": "Answer",
+                    "knowledge_cutoff": None,
+                    "citation_ordinal": None,
+                    "history_citation_ordinal": None,
+                    "cited_post_id": None,
+                    "post_title": None,
+                    **row,
+                }
+            ]
+
+    with pytest.raises(PostChatHistoryLimitError, match=message):
+        asyncio.run(fetch_persisted_chats(SentinelConnection(), "post-1"))
 
 
 def test_parse_chat_response_strips_fence_and_drops_invalid_citations() -> None:

@@ -119,7 +119,7 @@ import {
 } from "./analysisRunNavigation";
 import "./App.css";
 
-const GLOBAL_ASK_SESSION_STORAGE_KEY = "lineageweave.globalAskSessionId";
+export const GLOBAL_ASK_SESSION_STORAGE_KEY = "lineageweave.globalAskSessionId";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
   if (err instanceof BackendError && err.status === 503) {
@@ -4614,7 +4614,7 @@ function AskAgentPanel({
   function acceptAnswer(nextAnswer: AskAgentResponse) {
     setAnswer(nextAnswer);
     setSessionId(nextAnswer.session_id);
-    window.sessionStorage.setItem("lineageweave.globalAskSessionId", nextAnswer.session_id);
+    window.sessionStorage.setItem(GLOBAL_ASK_SESSION_STORAGE_KEY, nextAnswer.session_id);
   }
 
   async function handleAsk() {
@@ -4638,7 +4638,7 @@ function AskAgentPanel({
       acceptAnswer(nextAnswer);
     } catch (err) {
       if (err instanceof BackendError && err.status === 409 && sessionId) {
-        window.sessionStorage.removeItem("lineageweave.globalAskSessionId");
+        window.sessionStorage.removeItem(GLOBAL_ASK_SESSION_STORAGE_KEY);
         setSessionId(undefined);
         try {
           acceptAnswer(await askAgent(accessToken, normalized));
