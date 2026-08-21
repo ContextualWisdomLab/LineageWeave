@@ -270,6 +270,7 @@ describe("PostBody", () => {
     expect(screen.getByText("A process diagram")).toBeInTheDocument();
     expect(screen.getByText("diagram, process")).toBeInTheDocument();
     expect(screen.getByText("Main panel")).toBeInTheDocument();
+    expect(screen.getByText("Region location: 0%, 0% – 100%, 100%")).toBeInTheDocument();
     expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
   });
 
@@ -293,6 +294,75 @@ describe("PostBody", () => {
     expect(screen.getByRole("table")).toBeInTheDocument();
     expect(screen.getAllByRole("row")).toHaveLength(2);
     expect(screen.getByText("Panel")).toBeInTheDocument();
+  });
+
+  it("shows persisted image-region bounding ranges beside captions", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "Visible OCR",
+            caption: "A process diagram",
+            tags: [],
+            regions: [
+              {
+                region_index: 0,
+                x_ratio: 0.1,
+                y_ratio: 0.2,
+                width_ratio: 0.3,
+                height_ratio: 0.4,
+                status_code: "described",
+                extracted_text: "Region OCR",
+                caption: "Title block",
+                tags: ["title"],
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Title block")).toBeInTheDocument();
+    expect(screen.getByText("Region location: 10%, 20% – 40%, 60%")).toBeInTheDocument();
+    expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
+  });
+
+  it("omits the location row when a region coordinate is non-finite", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: null,
+            caption: "A process diagram",
+            tags: [],
+            regions: [
+              {
+                region_index: 0,
+                x_ratio: Number.NaN,
+                y_ratio: 0.2,
+                width_ratio: 0.3,
+                height_ratio: 0.4,
+                status_code: "described",
+                extracted_text: "Region OCR",
+                caption: "Broken box",
+                tags: [],
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Broken box")).toBeInTheDocument();
+    expect(screen.queryByText(/Region location/)).not.toBeInTheDocument();
   });
 
   it("keeps source-image placement while showing persisted OCR and caption evidence", () => {
