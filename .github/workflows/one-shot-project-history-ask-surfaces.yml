@@ -85,7 +85,9 @@ jobs:
           fi
 
       - name: Apply exact-context integration
-        run: python tools/apply_project_history_ask_surfaces.py
+        run: |
+          python tools/apply_project_history_ask_surfaces.py
+          python tools/repair_project_history_ask_transform.py
 
       - name: Format and lint changed Python
         run: |
@@ -127,6 +129,7 @@ jobs:
         run: |
           rm .github/workflows/one-shot-project-history-ask-surfaces.yml
           rm tools/apply_project_history_ask_surfaces.py
+          rm tools/repair_project_history_ask_transform.py
           git diff --check
 
       - name: Publish verified product head
