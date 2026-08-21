@@ -132,11 +132,14 @@ async def _load_facts(
     focus_node_id: str = "",
     maximum_depth: int = DEFAULT_MAXIMUM_DEPTH,
     maximum_edges: int = DEFAULT_MAXIMUM_EDGES,
+    knowledge_cutoff: datetime | None = None,
 ) -> list[NeighborhoodFact]:
     if not visible_post_ids:
         return []
-    rows = await conn.fetch(
-        """
+    cutoff_filter = (
+        "and post.created_at <= $6::timestamptz" if knowledge_cutoff is not None else ""
+    )
+    query = f"""
         with recursive candidate_facts as (
             select edge.source_node_type_code,
                    edge.source_node_id::text as source_node_id,
@@ -149,9 +152,10 @@ async def _load_facts(
               from knowledge_graph_edge edge
               join knowledge_graph_edge_evidence evidence
                 on evidence.knowledge_graph_edge_id = edge.knowledge_graph_edge_id
-              join source_post post
+             join source_post post
                 on post.post_id = evidence.evidence_post_id
              where evidence.evidence_post_id = any($1::uuid[])
+               {cutoff_filter}
              group by edge.source_node_type_code, edge.source_node_id,
                       edge.target_node_type_code, edge.target_node_id,
                       edge.edge_type_code
@@ -195,13 +199,17 @@ async def _load_facts(
                   candidate.target_node_type_code,
                   candidate.target_node_id
          limit $5::integer
-        """,
+        """
+    args: list[object] = [
         visible_post_ids,
         focus_node_type_code,
         focus_node_id,
         maximum_depth,
         min(HARD_MAXIMUM_EDGES, maximum_edges * (maximum_depth + 1) + 1),
-    )
+    ]
+    if knowledge_cutoff is not None:
+        args.append(knowledge_cutoff)
+    rows = await conn.fetch(query, *args)
     facts: list[NeighborhoodFact] = []
     for row in rows:
         facts.append(
@@ -245,7 +253,11 @@ async def _load_skos_facts(
 
 
 async def _load_labels(
-    conn: asyncpg.Connection, facts: list[NeighborhoodFact]
+    conn: asyncpg.Connection,
+    facts: list[NeighborhoodFact],
+    *,
+    focus_node_type_code: str | None = None,
+    focus_node_id: str | None = None,
 ) -> dict[tuple[str, str], str]:
     ids_by_type = _node_ids_by_type(facts)
     person_ids = ids_by_type[NODE_PERSON]
@@ -282,6 +294,22 @@ async def _load_labels(
         ):
             if row["team_name"]:
                 labels[(NODE_TEAM, str(row["team_id"]))] = str(row["team_name"])
+    if focus_node_type_code and focus_node_id:
+        focus_key = (focus_node_type_code, focus_node_id)
+        if focus_key not in labels:
+            focus_queries = {
+                NODE_POST: ("select post_title from source_post where post_id = $1", "post_title"),
+                NODE_PERSON: ("select person_name from cataloged_person where person_id = $1", "person_name"),
+                NODE_CORPORATE_ENTITY: (
+                    "select entity_name from corporate_entity where corporate_entity_id = $1",
+                    "entity_name",
+                ),
+                NODE_TEAM: ("select team_name from cataloged_team where team_id = $1", "team_name"),
+            }
+            query, column = focus_queries[focus_node_type_code]
+            name = await conn.fetchval(query, focus_node_id)
+            if name:
+                labels[focus_key] = str(name)
     return labels
 
 
@@ -404,6 +432,9 @@ async def visible_ontology_neighborhood(
         )
     if not focus_node_id or focus_node_id.strip() != focus_node_id:
         raise OntologyNeighborhoodError("invalid_focus_id", "focus node id is empty or malformed")
+    if not _is_uuid(focus_node_id):
+        raise OntologyNeighborhoodError("invalid_focus_id", "focus node id is not a UUID")
+    focus_node_id = str(UUID(focus_node_id))
     if not await focus_catalog_exists(conn, focus_node_type_code, focus_node_id):
         raise OntologyNeighborhoodError("unknown_node_type", "focus node not found")
     visible_post_ids = await visible_post_ids_for_focus(
@@ -418,6 +449,7 @@ async def visible_ontology_neighborhood(
         focus_node_id=focus_node_id,
         maximum_depth=maximum_depth,
         maximum_edges=maximum_edges,
+        knowledge_cutoff=knowledge_cutoff,
     )
     corp_ids = [
         fact.source_node_id if fact.source_node_type_code == NODE_CORPORATE_ENTITY else fact.target_node_id
@@ -450,30 +482,12 @@ async def visible_ontology_neighborhood(
         if authorized:
             authorized_facts.append(fact)
     facts = authorized_facts
-    labels = await _load_labels(conn, facts)
-    if focus_node_type_code == NODE_POST:
-        title = await conn.fetchval("select post_title from source_post where post_id = $1", focus_node_id)
-        if title:
-            labels[(NODE_POST, focus_node_id)] = title
-    elif focus_node_type_code == NODE_PERSON:
-        name = await conn.fetchval(
-            "select person_name from cataloged_person where person_id = $1", focus_node_id
-        )
-        if name:
-            labels[(NODE_PERSON, focus_node_id)] = name
-    elif focus_node_type_code == NODE_CORPORATE_ENTITY:
-        name = await conn.fetchval(
-            "select entity_name from corporate_entity where corporate_entity_id = $1",
-            focus_node_id,
-        )
-        if name:
-            labels[(NODE_CORPORATE_ENTITY, focus_node_id)] = name
-    else:
-        name = await conn.fetchval(
-            "select team_name from cataloged_team where team_id = $1", focus_node_id
-        )
-        if name:
-            labels[(NODE_TEAM, focus_node_id)] = name
+    labels = await _load_labels(
+        conn,
+        facts,
+        focus_node_type_code=focus_node_type_code,
+        focus_node_id=focus_node_id,
+    )
     facts = [
         fact
         for fact in facts
