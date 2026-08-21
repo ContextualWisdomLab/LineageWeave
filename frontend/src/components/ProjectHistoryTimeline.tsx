@@ -8,6 +8,7 @@ import {
   projectHistoryText,
   projectHistoryTransitionLabel,
 } from "../projectHistory";
+import { TeppProjectHistoryEvidence } from "./TeppProjectHistoryEvidence";
 import "./ProjectHistoryTimeline.css";
 
 function formatDate(value: string): string {
@@ -117,6 +118,16 @@ export function ProjectHistoryTimeline({
         <p className="project-history-warning" role="status">
           {projectHistoryText(locale, "truncated")}
         </p>
+      ) : null}
+
+      {projection.tepp_validation ? (
+        <TeppProjectHistoryEvidence
+          validation={projection.tepp_validation}
+          onOpenPost={onOpenPost}
+          sourceLabels={Object.fromEntries(
+            projection.events.map((event) => [event.source_post_id, event.event_title]),
+          )}
+        />
       ) : null}
 
       <div

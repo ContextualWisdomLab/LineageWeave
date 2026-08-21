@@ -92,4 +92,20 @@ describe("TeppProjectHistoryEvidence", () => {
     expect(regions[0]).toHaveAttribute("aria-labelledby", headings[0].id);
     expect(regions[1]).toHaveAttribute("aria-labelledby", headings[1].id);
   });
+
+  it("fails closed when a validated response has no metadata", () => {
+    render(
+      <TeppProjectHistoryEvidence
+        validation={{
+          status: "validated",
+          project_history: null,
+          next_action_code: "open_source_evidence",
+        }}
+        onOpenPost={vi.fn()}
+        sourceLabels={{}}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent(/open the source evidence/i);
+  });
 });

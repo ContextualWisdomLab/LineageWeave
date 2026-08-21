@@ -196,6 +196,10 @@ from backend.app.project_history import (
     fetch_project_history_index,
     fetch_project_history_projection,
 )
+from backend.app.tepp_project_history import (
+    tenant_workspace_reference,
+    validate_project_history_with_tepp,
+)
 from lineageweave.project_history import normalize_project_key
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
@@ -3293,7 +3297,7 @@ async def read_project_history(
             ) from exc
     async with pool.acquire() as conn:
         try:
-            return await fetch_project_history_projection(
+            projection = await fetch_project_history_projection(
                 conn,
                 project_key=project_key,
                 focus_post_id=focus_post_id,
@@ -3303,6 +3307,13 @@ async def read_project_history(
             )
         except ProjectHistoryNotFound as exc:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "project history not found") from exc
+    projection["tepp_validation"] = await asyncio.to_thread(
+        validate_project_history_with_tepp,
+        projection=projection,
+        tenant_workspace_id=tenant_workspace_reference(account.corporate_entity_ids),
+        transport_url=load_settings().tepp_transport_url,
+    )
+    return projection
 
 
 @app.get("/api/rankings")

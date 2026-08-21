@@ -171,6 +171,18 @@ def test_mapper_uses_opaque_actor_references_and_bounded_source_evidence() -> No
     assert request["events"][0]["evidence_text"].startswith("Synthetic contract awarded")
 
 
+@pytest.mark.parametrize("timestamp", ["2026-08-20 12:00:00Z", "2026-08-20T12:00:00+0900"])
+def test_mapper_rejects_non_rfc3339_timestamp_shapes(timestamp: str) -> None:
+    projection = _canonical_projection()
+    projection["knowledge_cutoff"] = timestamp
+
+    with pytest.raises(TeppProjectHistoryUnavailable, match="RFC 3339"):
+        build_tepp_project_history_request(
+            projection=projection,
+            tenant_workspace_id=tenant_workspace_reference(["tenant-a"]),
+        )
+
+
 def test_strict_client_accepts_tepp_159_and_rejects_authority_or_evidence_drift() -> None:
     request = build_tepp_project_history_request(
         projection=_canonical_projection(),

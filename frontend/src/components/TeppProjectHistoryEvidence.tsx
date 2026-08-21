@@ -167,16 +167,20 @@ export function TeppProjectHistoryEvidence({
   const headingId = useId();
   const findingsHeadingId = useId();
 
-  if (validation.status !== "validated") {
+  const history = validation.project_history;
+  if (validation.status !== "validated" || history === null) {
+    const statusMessage =
+      validation.status === "validated"
+        ? copy.status.invalid_evidence
+        : copy.status[validation.status];
     return (
       <section className="tepp-project-evidence tepp-project-evidence-status" aria-labelledby={headingId}>
         <h4 id={headingId}>{copy.heading}</h4>
-        <p role="status">{copy.status[validation.status]}</p>
+        <p role="status">{statusMessage}</p>
       </section>
     );
   }
 
-  const history = validation.project_history;
   return (
     <section className="tepp-project-evidence" aria-labelledby={headingId}>
       <header>

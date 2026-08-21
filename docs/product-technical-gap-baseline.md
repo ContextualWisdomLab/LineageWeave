@@ -292,3 +292,19 @@ ADRs remain normative. This document is the product/technical traceability
 projection: update the affected FR/NFR row and Gap closure evidence when an ADR
 or PR changes product behavior. Never turn a PR title, green unit test, or old
 runtime note into a shipped/live claim.
+
+## Recovered TEPP project-history integration (2026-08-21)
+
+- The canonical Buyer project timeline remains owned by the stacked Project history PR.
+- The previously implemented TEPP work had become stranded in a closed parent and an
+  orphaned duplicate stack. This recovery consumes the canonical timeline instead of
+  introducing another project query, classifier, or timeline component.
+- The dependency is the exact `ContextualWisdomLab/TEPP#159` project-history contract.
+  Until that contract is merged and a TEPP endpoint is deployed, the UI reports an
+  actionable fail-closed state and keeps the authorized LineageWeave timeline readable.
+- TEPP receives opaque actor references and bounded source-field evidence only. Browser,
+  review, provider, and `TEPP_API_KEY` credentials are not forwarded.
+- `temporal_association_only` is the maximum accepted authority. Buyer copy must say
+  that a preceding event is related in time, not that it caused the VOC.
+- The next stacked slice attaches this same canonical timeline and TEPP metadata to
+  Global Ask and post-scoped Ask without re-retrieving hidden evidence.

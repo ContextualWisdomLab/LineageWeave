@@ -5,13 +5,13 @@ from __future__ import annotations
 import hashlib
 import json
 from collections.abc import Iterable, Mapping, Sequence
-from datetime import datetime, timezone
 from typing import Any
 
 from lineageweave.tepp_project_history import (
     PROJECT_HISTORY_CONTRACT_VERSION,
     TeppProjectHistoryClient,
     TeppProjectHistoryUnavailable,
+    parse_rfc3339_utc,
     validate_tepp_project_history_request,
 )
 
@@ -28,15 +28,7 @@ def tenant_workspace_reference(corporate_entity_ids: Iterable[str]) -> str:
 def _utc_text(value: object, field_name: str) -> str:
     """Return canonical UTC text from one offset-aware source timestamp."""
 
-    if not isinstance(value, str) or not value.strip():
-        raise TeppProjectHistoryUnavailable(f"{field_name} is required")
-    try:
-        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
-    except ValueError as exc:
-        raise TeppProjectHistoryUnavailable(f"{field_name} is not ISO-8601") from exc
-    if parsed.tzinfo is None or parsed.utcoffset() is None:
-        raise TeppProjectHistoryUnavailable(f"{field_name} must include an offset")
-    return parsed.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+    return parse_rfc3339_utc(value, field_name)[1]
 
 
 def _opaque_actor_ids(

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from datetime import datetime, timezone
+import re
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
@@ -20,6 +21,10 @@ PROJECT_HISTORY_PATH = "/v1/project-histories"
 PROJECT_HISTORY_INFERENCE_STATUS = "temporal_association_only"
 PROJECT_HISTORY_EVENT_LIMIT = 128
 PROJECT_HISTORY_ACTOR_LIMIT = 64
+_RFC3339_PATTERN = re.compile(
+    r"^[0-9]{4}-[0-9]{2}-[0-9]{2}[Tt][0-9]{2}:"
+    r"[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?(?:[Zz]|[+-][0-9]{2}:[0-9]{2})$"
+)
 
 _REQUEST_FIELDS = frozenset(
     {
@@ -88,18 +93,25 @@ def _text(value: Any, name: str, maximum: int = 4096) -> str:
     if (
         not normalized
         or len(normalized.encode("utf-8")) > maximum
-        or any(ord(character) < 0x20 for character in normalized)
+        or any(ord(character) < 0x20 or ord(character) == 0x7F for character in normalized)
     ):
         raise TeppProjectHistoryUnavailable(f"{name} is empty or outside its bound")
     return normalized
 
 
-def _utc_timestamp(value: Any, name: str) -> tuple[datetime, str]:
+def parse_rfc3339_utc(value: Any, name: str) -> tuple[datetime, str]:
     """Parse an RFC 3339 timestamp and return canonical UTC text."""
 
     raw = _text(value, name, 64)
+    if _RFC3339_PATTERN.fullmatch(raw) is None:
+        raise TeppProjectHistoryUnavailable(f"{name} is not RFC 3339")
+    normalized_text = raw[:10] + "T" + raw[11:]
     try:
-        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(
+            normalized_text[:-1] + "+00:00"
+            if normalized_text.endswith(("Z", "z"))
+            else normalized_text
+        )
     except ValueError as exc:
         raise TeppProjectHistoryUnavailable(f"{name} is not RFC 3339") from exc
     if parsed.tzinfo is None or parsed.utcoffset() is None:
@@ -121,8 +133,8 @@ def _event(value: Any, *, cutoff: datetime | None = None) -> dict[str, Any]:
     """Validate one exact source-grounded event."""
 
     payload = _exact_object(value, _EVENT_FIELDS, "project-history event")
-    occurred, occurred_text = _utc_timestamp(payload["occurred_at"], "occurred_at")
-    available, available_text = _utc_timestamp(payload["available_at"], "available_at")
+    occurred, occurred_text = parse_rfc3339_utc(payload["occurred_at"], "occurred_at")
+    available, available_text = parse_rfc3339_utc(payload["available_at"], "available_at")
     if cutoff is not None and (occurred > cutoff or available > cutoff):
         raise TeppProjectHistoryUnavailable("event exceeds the knowledge cutoff")
     raw_actors = payload["actor_ids"]
@@ -156,7 +168,7 @@ def validate_tepp_project_history_request(
     receipt = now or datetime.now(timezone.utc)
     if receipt.tzinfo is None or receipt.utcoffset() is None:
         raise TeppProjectHistoryUnavailable("request receipt clock must be offset-aware")
-    cutoff, cutoff_text = _utc_timestamp(payload["knowledge_cutoff"], "knowledge_cutoff")
+    cutoff, cutoff_text = parse_rfc3339_utc(payload["knowledge_cutoff"], "knowledge_cutoff")
     if cutoff > receipt.astimezone(timezone.utc):
         raise TeppProjectHistoryUnavailable("knowledge cutoff is after request receipt")
     raw_events = payload["events"]
@@ -239,7 +251,7 @@ def validate_tepp_project_history_projection(
         != validated_request["focus_event_id"]
     ):
         raise TeppProjectHistoryUnavailable("TEPP changed project or focus identity")
-    _, response_cutoff = _utc_timestamp(payload["knowledge_cutoff"], "knowledge_cutoff")
+    _, response_cutoff = parse_rfc3339_utc(payload["knowledge_cutoff"], "knowledge_cutoff")
     if response_cutoff != validated_request["knowledge_cutoff"]:
         raise TeppProjectHistoryUnavailable("TEPP changed the knowledge cutoff")
     raw_events = payload["events"]
@@ -262,8 +274,8 @@ def validate_tepp_project_history_projection(
         or participant_count != expected_participants
     ):
         raise TeppProjectHistoryUnavailable("participant count is not evidence-derived")
-    _, span_start = _utc_timestamp(payload["history_span_start"], "history_span_start")
-    _, span_end = _utc_timestamp(payload["history_span_end"], "history_span_end")
+    _, span_start = parse_rfc3339_utc(payload["history_span_start"], "history_span_start")
+    _, span_end = parse_rfc3339_utc(payload["history_span_end"], "history_span_end")
     if span_start != response_events[0]["occurred_at"] or span_end != response_events[-1]["occurred_at"]:
         raise TeppProjectHistoryUnavailable("history span does not match ordered events")
     raw_findings = payload["findings"]
