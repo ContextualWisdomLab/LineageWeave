@@ -215,7 +215,7 @@ def test_ontology_profile_is_versioned_and_unique(mutate, message: str) -> None:
         ),
         (
             lambda p: p["knowledge_graph"]["nodes"][0]["relevance"].update(estimate=2.0),
-            "uncertainty must contain",
+            "between 0.0 and 1.0",
         ),
         (
             lambda p: p["knowledge_graph"]["nodes"][0]["relevance"].update(authority_system="unknown"),

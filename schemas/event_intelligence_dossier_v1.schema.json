@@ -178,7 +178,7 @@
         "term_iri": {
           "type": "string",
           "format": "uri",
-          "pattern": "^https?://"
+          "pattern": "^(https?://|urn:)"
         },
         "preferred_label": {
           "$ref": "#/$defs/nonempty_string"

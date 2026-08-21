@@ -76,6 +76,19 @@ def test_canonical_example_round_trips_through_production_validator() -> None:
     assert dossier.to_dict() == payload
 
 
+def test_schema_and_runtime_accept_urn_ontology_terms() -> None:
+    """Ontology terms may use standards-compliant HTTP or URN IRIs."""
+    payload = load_example()
+    payload["event_ontology"][0]["term_iri"] = "urn:lineageweave:event-episode"
+
+    assert Draft202012Validator(load_schema()).is_valid(payload)
+    payload.pop("dossier_sha256")
+    assert (
+        event_intelligence_dossier_from_dict(payload, require_digest=False).event_id
+        == "event-1"
+    )
+
+
 def test_runtime_validator_owns_evidence_id_uniqueness() -> None:
     """Runtime validation rejects duplicate IDs even when object fields differ."""
     payload = load_example()

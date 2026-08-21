@@ -289,9 +289,9 @@ def _relevance(value: object, field: str, known: set[str]) -> None:
         raise EventIntelligenceValidationError(
             f"{field}.authority_system is not supported"
         )
-    estimate = _number(item["estimate"], f"{field}.estimate")
-    lower = _number(item["uncertainty_lower"], f"{field}.uncertainty_lower")
-    upper = _number(item["uncertainty_upper"], f"{field}.uncertainty_upper")
+    estimate = _probability(item["estimate"], f"{field}.estimate")
+    lower = _probability(item["uncertainty_lower"], f"{field}.uncertainty_lower")
+    upper = _probability(item["uncertainty_upper"], f"{field}.uncertainty_upper")
     if not lower <= estimate <= upper:
         raise EventIntelligenceValidationError(
             f"{field} uncertainty must contain the estimate"
