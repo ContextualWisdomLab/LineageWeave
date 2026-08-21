@@ -34,12 +34,22 @@ const SUPERSCRIPT_DIGITS = "⁰¹²³⁴⁵⁶⁷⁸⁹";
 const SUBSCRIPT_DIGITS = "₀₁₂₃₄₅₆₇₈₉";
 const METRIC_MARKUP =
   /((?<![A-Za-z])(?:\d+(?:\.\d+)?\s*)?(?:km|cm|mm|kg|m))\s*<(sup|sub)\b[^>]*>\s*(\d{1,3})\s*<\/\2>/gi;
+const METRIC_PLAIN_SCRIPT =
+  /((?<![A-Za-z])(?:\d+(?:\.\d+)?\s*)?(?:km|cm|mm|kg|m))\s*(\^|_)\s*(?:\{(\d{1,3})\}|(\d{1,3}))/gi;
 
 function normalizeMetricMarkup(raw: string): string {
-  return raw.replace(METRIC_MARKUP, (_match, base: string, kind: string, digits: string) => {
-    const table = kind.toLowerCase() === "sup" ? SUPERSCRIPT_DIGITS : SUBSCRIPT_DIGITS;
-    return `${base}${[...digits].map((digit) => table[Number(digit)]).join("")}`;
-  });
+  return raw
+    .replace(METRIC_MARKUP, (_match, base: string, kind: string, digits: string) => {
+      const table = kind.toLowerCase() === "sup" ? SUPERSCRIPT_DIGITS : SUBSCRIPT_DIGITS;
+      return `${base}${[...digits].map((digit) => table[Number(digit)]).join("")}`;
+    })
+    .replace(
+      METRIC_PLAIN_SCRIPT,
+      (_match, base: string, kind: string, bracedDigits: string, digits: string) => {
+        const table = kind === "^" ? SUPERSCRIPT_DIGITS : SUBSCRIPT_DIGITS;
+        return `${base}${[...(bracedDigits || digits)].map((digit) => table[Number(digit)]).join("")}`;
+      },
+    );
 }
 
 function stripIndentMarkers(value: string): string {

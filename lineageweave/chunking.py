@@ -134,6 +134,7 @@ def _is_footnote_reference(attrs: list[tuple[str, str | None]]) -> bool:
 
 def normalize_semantic_text(text: str) -> str:
     """Remove visual hanging-indent breaks without changing source content."""
+    text = _normalize_plain_metric_scripts(text)
     lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
     normalized: list[str] = []
     for line in lines:
@@ -303,6 +304,21 @@ _METRIC_MARKUP = re.compile(
     r"<(?P<kind>sup|sub)\b[^>]*>\s*(?P<digits>\d{1,3})\s*</(?P=kind)>",
     re.IGNORECASE,
 )
+_METRIC_PLAIN_SCRIPT = re.compile(
+    r"(?P<base>(?<![A-Za-z])(?:\d+(?:\.\d+)?\s*)?(?:km|cm|mm|kg|m))\s*"
+    r"(?P<kind>\^|_)\s*(?:\{(?P<braced_digits>\d{1,3})\}|(?P<digits>\d{1,3}))",
+    re.IGNORECASE,
+)
+
+
+def _normalize_plain_metric_scripts(text: str) -> str:
+    """Normalize bounded plain-text metric exponents and indices."""
+    def replace(match: re.Match[str]) -> str:
+        table = _SUPERSCRIPT_DIGITS if match.group("kind") == "^" else _SUBSCRIPT_DIGITS
+        digits = match.group("braced_digits") or match.group("digits") or ""
+        return f"{match.group('base')}{digits.translate(table)}"
+
+    return _METRIC_PLAIN_SCRIPT.sub(replace, text)
 
 
 def _normalize_metric_markup(html: str) -> str:

@@ -73,6 +73,12 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("normalizes plain-text metric superscripts and subscripts", () => {
+    expect(splitPostBody("<p>Volume: 5m^3, index m_3, braced m^{2}.</p>")).toEqual([
+      { kind: "text", text: "Volume: 5m³, index m₃, braced m²." },
+    ]);
+  });
+
   it("limits numeric superscript footnote roles to their source paragraph", () => {
     expect(
       splitPostBody(

@@ -209,6 +209,15 @@ def test_chunk_by_dom_preserves_explicit_metric_subscripts() -> None:
     ]
 
 
+def test_chunk_by_source_body_normalizes_plain_metric_scripts() -> None:
+    """Plain-text metric scripts retain searchable exponent/index semantics."""
+    chunks = chunk_by_source_body("Volume: 5m^3; index m_3; braced m^{2}.")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("", "Volume: 5m³; index m₃; braced m²."),
+    ]
+
+
 def test_chunk_by_dom_preserves_nested_list_order_and_depth() -> None:
     """Nested list items retain source order and increasing depth."""
     chunks = chunk_by_dom(
