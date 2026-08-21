@@ -27,7 +27,7 @@ from lineageweave.ontology import (
     load_ontology,
     ontology_annotations,
 )
-from rdflib.namespace import OWL, RDFS, SKOS
+from rdflib.namespace import OWL, RDF, RDFS, SKOS, XSD
 
 _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo_data.py"
 
@@ -199,3 +199,15 @@ def test_actor_mentions_follow_stored_edge_direction() -> None:
     assert (LW.mentionsTeam, RDFS.range, LW.Post) in graph
     assert (LW.mentionsOrganization, RDFS.domain, LW.CorporateEntity) in graph
     assert (LW.mentionsOrganization, RDFS.range, LW.Post) in graph
+
+
+def test_semantic_project_terms_preserve_post_evidence_and_confidence() -> None:
+    """ADR 0036's project vocabulary must remain machine-checkable."""
+    graph = load_ontology()
+    assert (LW.Project, RDF.type, OWL.Class) in graph
+    assert (LW.ProjectMention, RDF.type, OWL.Class) in graph
+    assert (LW.mentionsProject, RDFS.domain, LW.Post) in graph
+    assert (LW.mentionsProject, RDFS.range, LW.Project) in graph
+    assert (LW.projectEvidence, RDFS.domain, LW.ProjectMention) in graph
+    assert (LW.projectEvidence, RDFS.range, XSD.string) in graph
+    assert (LW.semanticConfidence, RDFS.range, XSD.decimal) in graph
