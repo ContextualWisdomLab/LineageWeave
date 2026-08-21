@@ -13,7 +13,8 @@ verified subject to its normalized `user_account` row.
 LineageWeave owns application-scoped MCP API-key lifecycle because the current
 Keyverse contract provides identity, OIDC claims, and operator-controlled
 identity administration, not a user-scoped application-key resource. The
-LineageWeave API therefore stores only a SHA-256 digest, a non-secret prefix,
+LineageWeave API therefore stores only a SHA-256 digest, the constant
+non-secret `lw_mcp_` family prefix,
 label, timestamps, and the owning `user_account_id`. The raw random key is
 returned once on creation and is never returned by list, revoke, logs, or
 runtime configuration.

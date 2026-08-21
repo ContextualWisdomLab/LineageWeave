@@ -71,7 +71,7 @@ async def create_mcp_api_key(
         """,
         user_account_id,
         display_name,
-        raw_key[:12],
+        KEY_PREFIX,
         _hash_api_key(raw_key),
         expires_at,
     )

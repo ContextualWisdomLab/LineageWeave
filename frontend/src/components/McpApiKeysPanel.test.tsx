@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { McpApiKeysPanel } from "./McpApiKeysPanel";
@@ -17,7 +17,7 @@ const revokeKey = vi.mocked(revokeMcpApiKey);
 const activeKey = {
   mcp_api_key_id: "key-1",
   display_name: "local client",
-  key_prefix: "lw_mcp_abc",
+  key_prefix: "lw_mcp_",
   created_at: "2026-08-21T00:00:00Z",
   expires_at: null,
   revoked_at: null,
@@ -54,5 +54,21 @@ describe("McpApiKeysPanel", () => {
     await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("MCP key revoked."));
     expect(revokeKey).toHaveBeenCalledWith("oidc-token", "key-1");
     expect(screen.queryByRole("button", { name: "Revoke" })).not.toBeInTheDocument();
+  });
+
+  it("sends the selected local calendar date's end as the expiry", async () => {
+    const user = userEvent.setup();
+    createKey.mockResolvedValue({ ...activeKey, api_key: "lw_mcp_secret" });
+    render(<McpApiKeysPanel accessToken="oidc-token" />);
+
+    await user.type(screen.getByLabelText("Key label"), "local client");
+    fireEvent.change(screen.getByLabelText("Expires"), { target: { value: "2026-08-21" } });
+    await user.click(screen.getByRole("button", { name: "Create key" }));
+
+    expect(createKey).toHaveBeenCalledWith(
+      "oidc-token",
+      "local client",
+      new Date(2026, 7, 21, 23, 59, 59, 999).toISOString(),
+    );
   });
 });

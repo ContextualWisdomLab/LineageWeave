@@ -40,7 +40,7 @@ def _row(*, revoked_at=None):
         "mcp_api_key_id": "key-id",
         "user_account_id": "account-id",
         "display_name": "automation",
-        "key_prefix": f"{KEY_PREFIX}abc",
+        "key_prefix": KEY_PREFIX,
         "created_at": now,
         "expires_at": now + timedelta(days=30),
         "revoked_at": revoked_at,
@@ -63,6 +63,7 @@ def test_create_returns_raw_secret_once_and_persists_only_digest() -> None:
     query, args = conn.fetchrow_args
     assert "insert into mcp_api_key" in query
     assert args[1] == "automation"
+    assert args[2] == KEY_PREFIX
     assert len(args[3]) == 64
     assert args[3] != created["api_key"]
 

@@ -11,6 +11,11 @@ function formatDate(value: string | null): string {
   return value ? new Date(value).toLocaleString() : "-";
 }
 
+function localDateEndOfDayIso(value: string): string {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day, 23, 59, 59, 999).toISOString();
+}
+
 export function McpApiKeysPanel({ accessToken }: { accessToken: string }) {
   const [keys, setKeys] = useState<McpApiKey[]>([]);
   const [displayName, setDisplayName] = useState("");
@@ -42,7 +47,11 @@ export function McpApiKeysPanel({ accessToken }: { accessToken: string }) {
     setError(null);
     setNotice(null);
     try {
-      const created = await createMcpApiKey(accessToken, displayName, expiresAt ? `${expiresAt}T23:59:59Z` : null);
+      const created = await createMcpApiKey(
+        accessToken,
+        displayName,
+        expiresAt ? localDateEndOfDayIso(expiresAt) : null,
+      );
       setKeys((current) => [created, ...current]);
       setNewKey(created.api_key);
       setDisplayName("");
