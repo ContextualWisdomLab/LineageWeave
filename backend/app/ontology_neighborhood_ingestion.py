@@ -123,7 +123,9 @@ async def focus_catalog_exists(
 
 
 async def _load_facts(
-    conn: asyncpg.Connection, visible_post_ids: list[str]
+    conn: asyncpg.Connection,
+    visible_post_ids: list[str],
+    maximum_edges: int = DEFAULT_MAXIMUM_EDGES,
 ) -> list[NeighborhoodFact]:
     if not visible_post_ids:
         return []
@@ -146,8 +148,11 @@ async def _load_facts(
          group by edge.source_node_type_code, edge.source_node_id,
                   edge.target_node_type_code, edge.target_node_id,
                   edge.edge_type_code
+         order by edge.edge_type_code, edge.source_node_id, edge.target_node_id
+         limit $2
         """,
         visible_post_ids,
+        maximum_edges,
     )
     facts: list[NeighborhoodFact] = []
     for row in rows:
@@ -312,7 +317,7 @@ async def visible_ontology_neighborhood(
     )
     if not visible_post_ids:
         raise OntologyNeighborhoodError("focus_not_visible", "focus node is not visible")
-    facts = await _load_facts(conn, visible_post_ids)
+    facts = await _load_facts(conn, visible_post_ids, maximum_edges)
     corp_ids = [
         fact.source_node_id if fact.source_node_type_code == NODE_CORPORATE_ENTITY else fact.target_node_id
         for fact in facts
