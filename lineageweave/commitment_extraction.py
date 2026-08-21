@@ -168,5 +168,5 @@ class ContextualOrchestratorCommitmentExtractionClient:
         content = chat_completion_content(body)
         commitment = parse_commitment_response(content)
         if commitment is None:
-            raise ValueError(f"commitment response did not match the required format: {content!r}")
+            raise ValueError("commitment response did not match the required format")
         return commitment
