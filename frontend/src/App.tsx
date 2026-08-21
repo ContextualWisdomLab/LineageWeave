@@ -4677,6 +4677,7 @@ function ProjectHistoryPanel({
   const [index, setIndex] = useState<ProjectHistoryIndex | null>(null);
   const [selectedProjectKey, setSelectedProjectKey] = useState("");
   const [projection, setProjection] = useState<ProjectHistoryProjection | null>(null);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [error, setError] = useState(false);
   const locale = useLocale();
   const historyRequest = useRef(0);
@@ -4714,19 +4715,27 @@ function ProjectHistoryPanel({
   useEffect(() => {
     if (!selectedProjectKey || !index?.knowledge_cutoff) {
       setProjection(null);
+      setLoadingHistory(false);
       return;
     }
     const request = ++historyRequest.current;
     setProjection(null);
+    setLoadingHistory(true);
     setError(false);
     const focusPostId =
       initialProjectKey === selectedProjectKey ? initialFocusPostId ?? undefined : undefined;
     fetchProjectHistory(accessToken, selectedProjectKey, index.knowledge_cutoff, focusPostId)
       .then((result) => {
-        if (request === historyRequest.current) setProjection(result);
+        if (request === historyRequest.current) {
+          setProjection(result);
+          setLoadingHistory(false);
+        }
       })
       .catch(() => {
-        if (request === historyRequest.current) setError(true);
+        if (request === historyRequest.current) {
+          setError(true);
+          setLoadingHistory(false);
+        }
       });
   }, [accessToken, index?.knowledge_cutoff, initialFocusPostId, initialProjectKey, selectedProjectKey]);
 
@@ -4736,6 +4745,7 @@ function ProjectHistoryPanel({
       <p className="buyer-destination-intro">{projectHistoryText(locale, "destinationIntro")}</p>
       {error ? <p className="error" role="alert">{projectHistoryText(locale, "historyUnavailable")}</p> : null}
       {index === null ? <p role="status">{projectHistoryText(locale, "loadingProjects")}</p> : null}
+      {loadingHistory ? <p role="status">{projectHistoryText(locale, "loadingHistory")}</p> : null}
       {index?.projects.length === 0 && !error ? (
         <p className="popup-placeholder">{projectHistoryText(locale, "noProjects")}</p>
       ) : null}

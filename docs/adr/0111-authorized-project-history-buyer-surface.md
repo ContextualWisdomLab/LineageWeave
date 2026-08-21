@@ -22,6 +22,11 @@ Add a bounded project index and project-history read model behind the existing
 checks. Normalize exact project identities with the same Unicode-compatible
 key on both reads. Apply the knowledge cutoff before selecting event IDs, then
 constrain matches, roles, and lineage paths to that authorized ID set.
+The project index first bounds its input to the newest authorized source rows,
+marks the response truncated when that bound is reached, and applies a local
+five-second PostgreSQL statement timeout. Expression and recency indexes support
+the bounded list and exact-detail paths; forward and rollback migrations remain
+symmetric. All response clocks use canonical UTC RFC 3339 `Z` serialization.
 
 Expose the read model through the Buyer `Project history` destination and the
 post-detail project-evidence card. Both entry points use the same
@@ -44,6 +49,8 @@ boundary states; no second component-specific token system is introduced.
   source project identity.
 - The current document-time fallback remains explicit until a durable event
   clock is introduced.
+- The project chooser is a bounded recent-project view, not an unbounded catalog
+  export; buyers are told when its source or display limit is reached.
 - A future customer-master graph may reuse the projection pattern, but this
   ADR deliberately does not invent organization roles or temporal facts that
   are absent from persisted evidence.

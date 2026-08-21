@@ -9,12 +9,12 @@ explicit WAI-ARIA ownership; final-head hosted Checks and independent approval r
 requirements, technical contracts, implementation evidence, and active PRs.
 An active PR is proposed work, not shipped behavior.
 
-## Exact-head checkpoint (2026-08-20 19:14 Asia/Seoul)
+## Historical exact-head checkpoint (2026-08-20 19:14 Asia/Seoul)
 
 The following is the current GitHub observation used for this branch. It
 supersedes the historical 17:08 snapshot and does not claim protected-main
 behavior. GitHub reports 24 open PRs from #190 through #309; none of the
-#258-and-later stack has an independent `APPROVED` review at this checkpoint.
+`#258`-and-later stack has an independent `APPROVED` review at this checkpoint.
 
 | PR group | Exact observed heads | Merge observation |
 |---|---|---|
@@ -32,7 +32,7 @@ timeline entry point, Storybook-compatible truth rendering, and live
 PostgreSQL/API regressions. The final exact head and Checks must be recorded
 after the ordinary push.
 
-## Exact-head refresh (2026-08-20 19:50 Asia/Seoul)
+## Historical exact-head refresh (2026-08-20 19:50 Asia/Seoul)
 
 This refresh supersedes the 19:14 checkpoint for the PRs it names. It records
 GitHub observations, not protected-main behavior. The repository has 25 open

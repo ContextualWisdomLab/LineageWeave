@@ -46,6 +46,7 @@ class _IndexConnection:
                 "truth_status_code": "observed",
                 "event_count": 2,
                 "latest_event_at": datetime(2026, 1, 2, tzinfo=timezone.utc),
+                "source_scan_truncated": False,
             }
         ]
         self.calls: list[tuple[str, tuple[object, ...]]] = []
@@ -115,6 +116,25 @@ def test_responsibility_transition_describes_document_evidence_only() -> None:
     assert responsibility_transition_code(["person:a"], ["person:a"]) == "continuous"
     assert responsibility_transition_code(["person:a"], ["person:b"]) == "handoff"
     assert responsibility_transition_code(["person:a"], []) == "assignment_gap"
+
+
+def test_assignment_gap_without_role_evidence_has_no_truth_status() -> None:
+    """Two empty role sets must not manufacture an observed assignment fact."""
+    second = _event_row("00000000-0000-0000-0000-000000000002")
+    second["created_at"] = datetime(2022, 3, 12, 9, tzinfo=timezone.utc)
+
+    projection = build_project_history_projection(
+        project_key="P-100",
+        focus_event_id=None,
+        event_rows=[_event_row(), second],
+        match_rows=[],
+        role_rows=[],
+        edge_rows=[],
+    )
+
+    transition = projection["events"][1]
+    assert transition["responsibility_transition_code"] == "assignment_gap"
+    assert transition["responsibility_transition_truth_status_code"] is None
 
 
 def test_matching_observed_project_code_keeps_its_distinct_display_name() -> None:
@@ -280,8 +300,24 @@ def test_project_history_index_is_authorized_bounded_and_versioned() -> None:
     assert result["contract_version"] == 1
     assert result["project_count"] == 1
     assert result["projects"][0]["truth_status_code"] == "observed"
+    assert result["projects"][0]["latest_event_at"] == "2026-01-02T00:00:00Z"
+    assert result["knowledge_cutoff"] == "2026-08-20T00:00:00Z"
     assert connection.calls[0][1][0] == ["corp-1"]
-    assert connection.calls[0][1][-1] == 2
+    assert connection.calls[0][1][-2] == 2
+    assert "set_config(" in connection.calls[0][0]
+    assert "'statement_timeout'" in connection.calls[0][0]
+    assert "limit ($4 + 1)" in connection.calls[0][0]
+
+    connection.rows[0]["source_scan_truncated"] = True
+    truncated = asyncio.run(
+        fetch_project_history_index(
+            connection,
+            knowledge_cutoff=datetime(2026, 8, 20, tzinfo=timezone.utc),
+            corporate_entity_ids=["corp-1"],
+            limit=1,
+        )
+    )
+    assert truncated["truncated"] is True
 
     with pytest.raises(ValueError):
         asyncio.run(
@@ -324,7 +360,7 @@ def test_project_history_projection_keeps_focus_and_authorization_bounds() -> No
 
     assert result["truncated"] is True
     assert result["focus_event_id"] == "00000000-0000-0000-0000-000000000099"
-    assert result["knowledge_cutoff"].endswith("+00:00")
+    assert result["knowledge_cutoff"] == "2026-08-20T00:00:00Z"
     assert len(connection.calls) == 5
     assert connection.calls[0][1][-1] == 3
 

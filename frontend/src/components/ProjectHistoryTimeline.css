@@ -26,7 +26,7 @@
 
 .project-history-warning,
 .project-history-boundary {
-  border-inline-start: 0.25rem solid currentColor;
+  border-inline-start: 0.25rem solid currentcolor;
   padding-inline-start: 0.75rem;
 }
 
@@ -62,15 +62,15 @@
 }
 
 .project-history-tab:focus-visible {
-  outline: 3px solid currentColor;
+  outline: 3px solid currentcolor;
   outline-offset: 0.25rem;
 }
 
 .project-history-marker {
-  background: currentColor;
+  background: currentcolor;
   border: 0.25rem solid var(--surface-color, #fff);
   border-radius: 50%;
-  box-shadow: 0 0 0 2px currentColor;
+  box-shadow: 0 0 0 2px currentcolor;
   height: 1rem;
   width: 1rem;
   z-index: 1;
@@ -156,7 +156,7 @@
 }
 
 .project-history-truth {
-  border: 1px solid currentColor;
+  border: 1px solid currentcolor;
   border-radius: 999px;
   font-size: 0.8rem;
   padding: 0.1rem 0.5rem;

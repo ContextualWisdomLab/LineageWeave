@@ -107,7 +107,12 @@ export function ProjectHistoryTimeline({
         </p>
       </header>
 
-      <p className="project-history-time-basis">{projectHistoryText(locale, "documentTime")}</p>
+      <p className="project-history-time-basis">
+        {projectHistoryText(
+          locale,
+          projection.time_basis_code === "document_time" ? "recordedDocumentTime" : "documentTime",
+        )}
+      </p>
       {projection.evidence_boundary_code ? (
         <p className="project-history-boundary">
           {projectHistoryText(locale, "evidenceBoundary")}

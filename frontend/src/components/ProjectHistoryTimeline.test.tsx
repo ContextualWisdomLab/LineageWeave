@@ -120,6 +120,18 @@ const projection: ProjectHistoryProjection = {
 };
 
 describe("ProjectHistoryTimeline", () => {
+  it("describes a recorded document clock without calling it a source-post fallback", () => {
+    render(
+      <ProjectHistoryTimeline
+        projection={{ ...projection, time_basis_code: "document_time" }}
+        onOpenPost={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/dates use the document time recorded by the source/i)).toBeInTheDocument();
+    expect(screen.queryByText(/separate event clock is not recorded/i)).not.toBeInTheDocument();
+  });
+
   it("shows the focus event, evidence gap, authorization boundary, and non-causal prior history", () => {
     const onOpenPost = vi.fn();
     render(<ProjectHistoryTimeline projection={projection} onOpenPost={onOpenPost} />);
