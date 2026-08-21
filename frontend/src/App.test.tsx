@@ -89,6 +89,7 @@ describe("App, authenticated", () => {
     deferMe?: boolean;
     deferPostOneSummary?: boolean;
     deferSecondAsk?: boolean;
+    invalidAskSessionOnce?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
@@ -1651,6 +1652,15 @@ describe("App, authenticated", () => {
       }
       if (url.endsWith("/api/ask") && method === "POST") {
         askRequestCount += 1;
+        const requestBody = JSON.parse(String(init?.body ?? "{}")) as { session_id?: string };
+        if (options?.invalidAskSessionOnce && askRequestCount === 1 && requestBody.session_id) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "Global Ask session not found" }), {
+              status: 404,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         const ready =
           options?.deferSecondAsk && askRequestCount === 2
             ? secondAskReady
@@ -1658,6 +1668,7 @@ describe("App, authenticated", () => {
         return ready.then(() =>
           Promise.resolve(
           jsonResponse({
+            session_id: "session-1",
             answer_text: "The cited project is supported by the stored semantic evidence.",
             cited_post_ids: ["post-2"],
             cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
@@ -1898,6 +1909,26 @@ describe("App, authenticated", () => {
         "The cited project is supported by the stored semantic evidence.",
       ),
     ).toBeInTheDocument();
+  });
+
+  it("replaces an invalid saved Ask session without requiring storage cleanup", async () => {
+    window.sessionStorage.setItem("lineageweave.globalAskSessionId", "stale-session");
+    const fetchMock = stubBackend({ invalidAskSessionOnce: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    await userEvent.type(within(ask).getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+
+    expect(
+      await within(ask).findByText("The cited project is supported by the stored semantic evidence."),
+    ).toBeInTheDocument();
+    const askBodies = fetchMock.mock.calls
+      .filter(([url]) => String(url).endsWith("/api/ask"))
+      .map(([, init]) => JSON.parse(String((init as RequestInit).body)) as { session_id?: string });
+    expect(askBodies.map((body) => body.session_id)).toEqual(["stale-session", undefined]);
+    expect(window.sessionStorage.getItem("lineageweave.globalAskSessionId")).toBe("session-1");
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
@@ -2239,7 +2270,7 @@ describe("App, authenticated", () => {
     expect(within(customers).getByLabelText("Next action")).toHaveTextContent(
       "Authorized customer entities are current. Open a related post to read Event Lineage.",
     );
-    await userEvent.click(within(customers).getByRole("button", { name: /Demo Corp/ }));
+    await userEvent.click(within(customers).getByRole("treeitem", { name: /Demo Corp/ }));
     await userEvent.click(
       await within(customers).findByRole("button", { name: "Open related post: Public post" }),
     );
@@ -2269,8 +2300,8 @@ describe("App, authenticated", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
     const customers = await screen.findByRole("region", { name: "Customer master" });
-    await userEvent.click(within(customers).getByRole("button", { name: /Demo Group/ }));
-    await userEvent.click(within(customers).getByRole("button", { name: /Demo Corp/ }));
+    await userEvent.click(within(customers).getByRole("treeitem", { name: /Demo Group/ }));
+    await userEvent.click(within(customers).getByRole("treeitem", { name: /Demo Corp/ }));
 
     fetchMock.releaseGroupRelated();
     await waitFor(() => expect(within(customers).getByText("Loading related posts...")).toBeInTheDocument());
