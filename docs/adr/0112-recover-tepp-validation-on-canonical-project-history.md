@@ -49,6 +49,9 @@ probability of causation, or an authoritative assignment record.
    tell the operator or Buyer what to do next.
 10. Global Ask and post-scoped Ask are a subsequent stacked slice and must reuse this same
     canonical projection and TEPP envelope.
+11. Any unexpected TEPP transport/provider exception is converted to the stable
+    `TEPP transport request failed` state. Raw response bodies and exception text remain
+    internal chained causes and never cross the public contract.
 
 ## Consequences
 
@@ -86,3 +89,10 @@ https://www.w3.org/TR/prov-o/
 
 World Wide Web Consortium. (2017). *Time ontology in OWL*.
 https://www.w3.org/TR/owl-time/
+
+MITRE. (n.d.). *CWE-209: Generation of error message containing sensitive information*.
+https://cwe.mitre.org/data/definitions/209.html
+
+National Institute of Standards and Technology. (2020). *Security and privacy controls
+for information systems and organizations: NIST SP 800-53 Rev. 5*.
+https://doi.org/10.6028/NIST.SP.800-53r5
