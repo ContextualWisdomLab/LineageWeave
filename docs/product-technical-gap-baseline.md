@@ -80,7 +80,7 @@ Open PRs at the same observation:
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `a1550c96abbb1d545c632980be00ac60bb589cc5`, base `main`
+- PR #368: `head` `3e564513beae35f222630f944c17859355439127`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `6b84bea10881e2f82fb676d5b01cf56f7d8f4adb`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
