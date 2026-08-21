@@ -617,3 +617,14 @@ review findings, apply a minimal root-cause fix when needed, re-run local and
 hosted Checks, and merge only after normal protected-repository approval and
 post-merge SHA checks succeed. No self-approval, administrative bypass, force
 push, or synthetic runtime success is acceptable.
+
+| Audited PR | Current head at this loop | Local evidence | Protected gate |
+|---|---|---|---|
+| #303 image evidence | `ba71bc16a1ec796dd6b8cd22236b9185589a4328` | Backend `747 passed, 16 skipped`; frontend `139 passed`, lint, Vite, and Storybook passed | No approval; required Checks queued |
+| #323 TEPP/SearXNG boundary | `061e62130e3d6fc3e6bb3a5c0d941a0c7aac85cd` | Focused TEPP/relation/start tests `50 passed`; compileall and diff check passed | No approval; required Checks queued |
+| #325 gap baseline | `9dc8c7d143841a1e93459d0a5d35d6332184be0c` | Documentation diff check passed | No approval; required Checks queued |
+| #340 Naruon provider contract | `1e792a761f96e2184394a15f112cc947c7661c41` | Contract tests `11 passed`; module coverage `100%`; compileall and diff check passed | No approval; required Checks queued |
+
+These four rows are exact-head observations from the current review loop. They
+do not establish that any behavior is present on protected `main`; re-fetch all
+heads and dependency bases before the next review or merge decision.
