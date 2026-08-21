@@ -51,7 +51,7 @@
 The following states are evidence-bound and must not be changed to `merged` or
 `resolved` from intent alone:
 
-Observed at `2026-08-21T14:21:29Z` from the GitHub API. A merged commit is
+Observed at `2026-08-21T14:39:29Z` from the GitHub API. A merged commit is
 identified as `merge_commit`; an open PR is identified by its exact `head`.
 
 - LineageWeave PR #344: `merge_commit`
@@ -67,7 +67,7 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   provenance explorer remains open and required Checks and independent
   approval remain external gates.
 - LineageWeave PR #368: `head`
-  `d739d7ae195ca272e4bbdbcf26c4c8e1a374dacd`, base `main`; this baseline
+  `a3781119625e50213f64cbe1d04d045accf4e979`, base `main`; this baseline
   checkpoint is updated by the stacked documentation PR for the newer queue
   evidence below.
 - LineageWeave PR #378: `merge_commit`
@@ -113,10 +113,11 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   lineage contract, removes the self-modifying repair workflow, and fixes the
   responsive board CSS. Checks and independent approval remain external gates.
 - LineageWeave PR #384: `head`
-  `a9dcd343c651726ee35d0ff49f1618b5a383bc17`, base
+  `caf3872ea48e565ba444d7b4b4042a9f3b7e61c5`, base
   `docs/customer-master-scope-adr`; it normalizes padded source-detail-state
   codes across filtering, ABAC, analysis eligibility, and content-worker
-  boundaries, with transaction-test-double coverage. Checks and independent
+  boundaries, removes authorization-only fields at report/calendar response
+  boundaries, and hides unavailable state filters. Checks and independent
   approval remain external gates.
 - LineageWeave PR #373: `head`
   `84fd2993fcec5d3d683c391818f85e27ebd7347f`, base `main`; ontology
@@ -134,17 +135,18 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   `b606c2553f877fa85968d90dc46598ce16897fbf`, base `main`; it remains
   open and is not treated as merged solely because stacked PR #379 merged.
 - LineageWeave PR #382: `head`
-  `d14dc49025886a00251a3f579f4e9d53ed55f0ba`, base
+  `aab1e60c2c2ec4b57ca34585e5539d5ce1a7f9dd`, base
   `ci/publish-ontology-pages-clean`; it carries the ontology-site safety
   repair stacked on PR #373 and remains gated by Checks and approval.
 - LineageWeave PR #383: `head`
-  `c9e95e738062936c8d6239989860fc4fd6fabbf3`, base `main`; buyer-safe
+  `b0c9bc6466c77b9b53f5e0e17224c868bfe08be6`, base `main`; buyer-safe
   worker diagnostics and distinct TEPP telemetry peer labeling remain gated
   by Checks and approval.
 - LineageWeave PR #384: `head`
-  `e3476662cf936eff2fde54a673e8c925f13b9f89`, base
-  `docs/customer-master-scope-adr`; source-detail state copy and filtering
-  remain gated by Checks and approval.
+  `caf3872ea48e565ba444d7b4b4042a9f3b7e61c5`, base
+  `docs/customer-master-scope-adr`; source-detail state normalization,
+  buyer-safe report/calendar serialization, and empty-filter UX remain gated by
+  Checks and approval.
 - LineageWeave PR #386: `head`
   `57a013deb88fc0b23ae6448c1d3474c770360a5e`, base `main`; the login
   build-type repair remains gated by Checks and approval.
