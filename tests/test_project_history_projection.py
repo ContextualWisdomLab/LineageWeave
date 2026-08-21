@@ -6,7 +6,11 @@ from datetime import datetime, timezone
 
 import pytest
 
+from backend.app.project_history_api import ProjectHistoryProjection
 from lineageweave.project_history import (
+    _prior_paths,
+    _normalized_matches,
+    _score,
     build_project_history_projection,
     classify_project_event,
     normalize_project_key,
@@ -127,6 +131,11 @@ def test_projection_deduplicates_matches_and_explains_visible_prior_paths() -> N
         role_rows=roles,
         edge_rows=edges,
     )
+    validated = ProjectHistoryProjection.model_validate(projection)
+
+    assert validated.focus_event_id == "voc"
+    assert validated.time_basis_code == "document_time"
+    assert normalize_project_key(validated.project_name) == "p-100"
 
     assert [item["event_id"] for item in projection["events"]] == [
         "award",
@@ -173,4 +182,106 @@ def test_projection_rejects_invisible_focus_and_out_of_bound_options() -> None:
             role_rows=[],
             edge_rows=[],
             maximum_depth=0,
+        )
+
+
+def test_projection_rejects_oversized_keys_and_invalid_scores() -> None:
+    """Identity and numeric trust boundaries fail before producing evidence."""
+
+    with pytest.raises(ValueError, match="exceeds"):
+        normalize_project_key("x" * 257)
+    with pytest.raises(ValueError, match="numeric"):
+        _score(True)
+    with pytest.raises(ValueError, match="finite"):
+        _score(float("inf"))
+    assert not _normalized_matches(None, "p-100")
+
+
+def test_projection_handles_dag_depth_path_and_unbound_child_edges() -> None:
+    """Bounded path traversal remains deterministic at depth and path limits."""
+
+    bounded = _prior_paths(
+        ["a", "b", "c"],
+        [
+            {"parent_post_id": "a", "child_post_id": "b", "fused_score": 0.9},
+            {"parent_post_id": "a", "child_post_id": "c", "fused_score": 0.8},
+            {"parent_post_id": "b", "child_post_id": "c", "fused_score": 0.7},
+            {"parent_post_id": "unknown", "child_post_id": "c", "fused_score": 1.0},
+        ],
+        maximum_depth=1,
+        maximum_paths_per_event=1,
+    )
+    assert len(bounded["c"]) == 1
+    depth_limited = _prior_paths(
+        ["a", "b", "c"],
+        [{"parent_post_id": "a", "child_post_id": "b", "fused_score": 0.9}],
+        maximum_depth=1,
+        maximum_paths_per_event=32,
+    )
+    assert depth_limited["b"]
+
+    diamond = _prior_paths(
+        ["a", "b", "c"],
+        [
+            {"parent_post_id": "a", "child_post_id": "b", "fused_score": 0.9},
+            {"parent_post_id": "a", "child_post_id": "c", "fused_score": 0.8},
+            {"parent_post_id": "b", "child_post_id": "c", "fused_score": 0.7},
+        ],
+        maximum_depth=8,
+        maximum_paths_per_event=32,
+    )
+    assert [path["source_event_id"] for path in diamond["c"]] == ["a", "b"]
+
+
+def test_projection_discards_unbound_matches_and_roles() -> None:
+    """Rows outside the visible event set or exact identity never leak in."""
+
+    projection = build_project_history_projection(
+        project_key="P-100",
+        focus_event_id=None,
+        event_rows=[event("visible", "Account note", 1)],
+        match_rows=[
+            {**match("hidden"), "identity_key": "P-100"},
+            {**match("visible"), "identity_key": "P-200"},
+            {**match("visible"), "identity_key": "x" * 257},
+        ],
+        role_rows=[
+            {
+                **role("hidden", "Hidden", None),
+                "cataloged_team_id": "team-1",
+            },
+            {
+                **role("visible", "Team", None),
+                "cataloged_team_id": "team-1",
+            },
+            role("visible", "Text", None),
+        ],
+        edge_rows=[],
+    )
+    assert projection["focus_event_id"] == "visible"
+    assert projection["events"][0]["project_matches"] == []
+    actor_keys = {
+        item["actor_key"] for item in projection["events"][0]["observed_responsibilities"]
+    }
+    assert "team:team-1" in actor_keys
+    assert any(key.startswith("text:") for key in actor_keys)
+
+    with pytest.raises(ValueError, match="maximum_paths"):
+        build_project_history_projection(
+            project_key="P-100",
+            focus_event_id="visible",
+            event_rows=[event("visible", "Account note", 1)],
+            match_rows=[],
+            role_rows=[],
+            edge_rows=[],
+            maximum_paths_per_event=0,
+        )
+    with pytest.raises(ValueError, match="at least one"):
+        build_project_history_projection(
+            project_key="P-100",
+            focus_event_id=None,
+            event_rows=[],
+            match_rows=[],
+            role_rows=[],
+            edge_rows=[],
         )

@@ -73,43 +73,61 @@ select post.post_id,
 _MATCH_SQL = """
 select post.post_id,
        'source_project_code'::text as match_kind_code,
+       post.source_project_code as identity_key,
        post.source_project_code as matched_value,
        null::numeric as confidence,
        null::text as ontology_iri,
        'source_post.source_project_code'::text as provenance
   from source_post post
  where post.post_id = any($1::uuid[])
+   and nullif(btrim(post.source_project_code), '') is not null
    and lower(normalize(btrim(coalesce(post.source_project_code, '')), NFKC)) = $2
 union all
 select post.post_id,
        'source_project_name'::text,
-       post.source_project_name,
+       coalesce(nullif(btrim(post.source_project_code), ''), nullif(btrim(post.source_project_name), '')) as identity_key,
+       post.source_project_name as matched_value,
        null::numeric,
        null::text,
        'source_post.source_project_name'::text
   from source_post post
  where post.post_id = any($1::uuid[])
-   and lower(normalize(btrim(coalesce(post.source_project_name, '')), NFKC)) = $2
+   and nullif(btrim(post.source_project_name), '') is not null
+   and (
+        (nullif(btrim(post.source_project_code), '') is not null
+         and lower(normalize(btrim(post.source_project_code), NFKC)) = $2)
+        or (nullif(btrim(post.source_project_code), '') is null
+            and lower(normalize(btrim(post.source_project_name), NFKC)) = $2)
+   )
 union all
 select mention.post_id,
        'semantic_project_key'::text,
-       mention.project_key,
+       nullif(btrim(mention.project_key), '') as identity_key,
+       mention.project_key as matched_value,
        mention.confidence,
        mention.ontology_iri,
        'post_project_mention.project_key'::text
   from post_project_mention mention
  where mention.post_id = any($1::uuid[])
+   and nullif(btrim(mention.project_key), '') is not null
    and lower(normalize(btrim(mention.project_key), NFKC)) = $2
 union all
 select mention.post_id,
        'semantic_project_name'::text,
-       mention.project_name,
+       coalesce(nullif(btrim(mention.project_key), ''), nullif(btrim(mention.project_name), '')) as identity_key,
+       mention.project_name as matched_value,
        mention.confidence,
        mention.ontology_iri,
        'post_project_mention.project_name'::text
   from post_project_mention mention
  where mention.post_id = any($1::uuid[])
-   and lower(normalize(btrim(mention.project_name), NFKC)) = $2
+   and nullif(btrim(mention.project_name), '') is not null
+   and (
+        (nullif(btrim(mention.project_key), '') is not null
+         and lower(normalize(btrim(mention.project_key), NFKC)) = $2)
+        or (nullif(btrim(mention.project_key), '') is null
+            and lower(normalize(btrim(mention.project_name), NFKC)) = $2)
+   )
 order by post_id, match_kind_code, matched_value
 """
 _ROLE_SQL = """

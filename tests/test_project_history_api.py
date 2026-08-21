@@ -93,6 +93,36 @@ def test_endpoint_rejects_invalid_cutoff_before_database_access() -> None:
     assert pool.acquired is False
 
 
+def test_cutoff_defaults_to_utc_when_omitted() -> None:
+    """A live project-history request gets an explicit UTC knowledge clock."""
+
+    cutoff = api._parse_knowledge_cutoff(None)
+    assert cutoff.tzinfo == timezone.utc
+
+
+def test_endpoint_maps_invalid_projection_request_to_422(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Repository validation failures become a client error, not a 500."""
+
+    async def invalid(*args: object, **kwargs: object) -> dict[str, Any]:
+        raise ValueError("invalid project history")
+
+    monkeypatch.setattr(api, "fetch_project_history_projection", invalid)
+    with pytest.raises(HTTPException) as captured:
+        asyncio.run(
+            api.read_project_history(
+                project_key="P-100",
+                focus_post_id=None,
+                knowledge_cutoff="2026-01-31T23:59:59Z",
+                limit=64,
+                account=_account("post_read"),
+                pool=_Pool(),  # type: ignore[arg-type]
+            )
+        )
+    assert captured.value.status_code == 422
+
+
 def test_endpoint_maps_hidden_and_missing_history_to_the_same_404(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
