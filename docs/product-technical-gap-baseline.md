@@ -45,11 +45,13 @@
   translation key, with the same operation note covered across all five
   product locales. PR #397 merged into the non-main stack branch; the
   protected `main` branch still depends on the separate parent PR #392.
-- **Current follow-up at PR #398 head `f101ab93`:** the settings upsert now
-  refreshes `tenant_settings.updated_at`, and clearing the numeric copyright
-  year stays visibly blank and blocks submission instead of coercing the
-  draft to a valid-looking value. Local backend and frontend evidence is
-  recorded below; hosted Checks and independent approval remain required.
+- **Current follow-up merged into the non-main stack at `202063bc`:** the
+  settings upsert refreshes `tenant_settings.updated_at`, clearing the numeric
+  copyright year stays visibly blank through an explicit invalid sentinel, and
+  whitespace-only identity edits remain disabled no-ops. The merged review
+  repair also trims the system-name comparison and closes test connections
+  explicitly. This changes the stack branch only; protected `main` still
+  depends on parent PR #392.
 - **Remaining UI governance gap:** no approved CI/BI image asset or usage
   permission was supplied, so the implementation deliberately remains text
   based. Production release still requires the approved asset and legal
@@ -425,6 +427,23 @@ restarted and remain pending, with no independent approval, so merge is not
 authorized. Parent PR #392 is currently at `a6d754a7` and baseline PR #368 at
 `331206425fa0acf3538f7c8edff261663f2ad606`; both remain open while their
 respective merge gates recalculate.
+
+### 4.9 Current stack-merge snapshot
+
+Observed at `2026-08-21T21:07:49Z` from the GitHub REST API. PR #398's final
+head was `19c68217ae0c57d4496009b6447fda79007e68ed`; it merged into the
+non-main stack branch with merge commit
+`202063bca2afa38d100199de3f0520fdd8c15e8c`, based on stack head `2e51a777`.
+The commit checks visible at observation were still queued, so this records
+the stack merge fact only and does not promote queued Checks to terminal pass
+evidence or claim a protected-main merge.
+
+- Parent PR #392 remains open at
+  `a6d754a7f7a13c05b81b61e684246de295078463`, targets protected `main`, and is
+  blocked without a formal independent approval.
+- Baseline PR #368 remains open at
+  `6e2e845ca3b14c0e4c943c59753b9378a1cb8c47`, targets `main`, and is blocked
+  while its hosted gates run. No protected-main merge is claimed.
 
 ## 5. Local Buyer-Surface Verification
 
