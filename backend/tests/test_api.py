@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 import uuid
+from contextlib import closing
 from pathlib import Path
 
 import jwt
@@ -1321,6 +1322,12 @@ def test_settings_patch_requires_post_admin(client, demo_analyst_token, seeded_d
         "copyrightHolder": "LineageWeave Demo",
     }
 
+    with closing(psycopg2.connect(seeded_db["dsn"])) as connection:
+        with connection, connection.cursor() as cursor:
+            cursor.execute(
+                "update tenant_settings set updated_at = '2000-01-01T00:00:00Z' where tenant_settings_id = 1"
+            )
+
     legacy = client.patch(
         "/api/settings",
         json={"brandName": "Legacy Client Brand"},
@@ -1333,6 +1340,11 @@ def test_settings_patch_requires_post_admin(client, demo_analyst_token, seeded_d
         "copyrightYear": 2025,
         "copyrightHolder": "LineageWeave Demo",
     }
+
+    with closing(psycopg2.connect(seeded_db["dsn"])) as connection:
+        with connection, connection.cursor() as cursor:
+            cursor.execute("select updated_at from tenant_settings where tenant_settings_id = 1")
+            assert cursor.fetchone()[0].year > 2000
 
     confirm = client.get("/api/settings", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert confirm.json() == legacy.json()
