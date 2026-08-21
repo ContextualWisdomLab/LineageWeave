@@ -35,7 +35,7 @@
 The following states are evidence-bound and must not be changed to `merged` or
 `resolved` from intent alone:
 
-Observed at `2026-08-21T13:44:58Z` from the GitHub API. A merged commit is
+Observed at `2026-08-21T13:49:32Z` from the GitHub API. A merged commit is
 identified as `merge_commit`; an open PR is identified by its exact `head`.
 
 - LineageWeave PR #344: `merge_commit`
@@ -91,9 +91,9 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   cleanup are locally verified; required Checks and independent approval
   remain external gates.
 - LineageWeave PR #385: `head`
-  `b1537164e67e622e1b5758f3e0b4e3260af81112`, base
+  `2a3a464e2e3878ad18138cec4c48790ffca7f126`, base
   `feat/analysis-run-name-evidence-lineage`; stacked on PR #258's exact head
-  `3f9a0cfadc0164a44bad4bbe0c4af3f5e2e4d3bd`, it hardens the external
+  `aba828ebcdd74328449498e6f9082e11488b6f5e`, it hardens the external
   lineage contract, removes the self-modifying repair workflow, and fixes the
   responsive board CSS. Checks and independent approval remain external gates.
 - LineageWeave PR #373: `head`
@@ -115,7 +115,7 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   `ci/publish-ontology-pages-clean`; it carries the ontology-site safety
   repair stacked on PR #373 and remains gated by Checks and approval.
 - Legacy open PR #258: `head`
-  `3f9a0cfadc0164a44bad4bbe0c4af3f5e2e4d3bd`, base `main`; hardening stack
+  `aba828ebcdd74328449498e6f9082e11488b6f5e`, base `main`; hardening stack
   #385 is open and parent delivery remains gated by Checks and review.
 - Legacy open PR #262: `head`
   `be7255d9cd7f8c890f2ba2de9fc05c6750073293`, base
