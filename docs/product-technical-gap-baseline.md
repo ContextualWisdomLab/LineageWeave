@@ -12,9 +12,10 @@ Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
 Current source/test exact head observed before this documentation update:
-`819ef876270212305c89743e5443b3ce0b871e66`. This documentation update will
-create the next exact head and therefore requires the protected checks to
-rerun.
+`b1ecf91178aa88089af6ef216100575c6b0a1063`. The frontend and backend evidence
+below was executed at source head `819ef876270212305c89743e5443b3ce0b871e66`
+before this docs-only follow-up; this update creates the next exact head and
+therefore requires protected checks to rerun.
 
 - **Implemented in source:** PostgreSQL-backed API boundaries, Keyverse/OIDC
   identity boundary, workspace navigation, post popup, ABAC/RBAC surfaces, Korean
@@ -36,11 +37,13 @@ rerun.
   passed `786` tests with `16` skips; frontend Vitest passed `174` tests in `19`
   files, frontend lint/build passed, and Storybook build completed. These are
   local checks, not hosted protected-gate or independent-review evidence.
-- **Current PR gate:** PR #350 is open, `MERGEABLE` but `BLOCKED`, and has no
-  independent approval. Its current-head OpenCode/Noema/product/security
-  checks are pending after the latest push. The prior PR #347 merged at
-  `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`, before this clean post-merge PR
-  was opened. PR #350 is still unmerged; this is not merge-ready evidence.
+- **Current PR gate:** PR #350 merged at
+  `819ef876270212305c89743e5443b3ce0b871e66` into
+  `feat/lineage-dag-regression`. The current docs-only commit
+  `b1ecf91178aa88089af6ef216100575c6b0a1063` was pushed after that merge and
+  requires a separate protected follow-up; no approval or hosted gate is
+  claimed for it yet. The prior PR #347 merged at
+  `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`.
 
 ## 2. UI/UX Standard Guide v3.0 comparison
 
