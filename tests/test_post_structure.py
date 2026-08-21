@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from lineageweave.post_structure import ContextualOrchestratorPostStructureClient
 
 
@@ -58,3 +60,31 @@ def test_structure_client_validates_complete_decisions(monkeypatch) -> None:
     assert ordered_unit["source_indent_width"] == 2
     assert ordered_unit["declared_indent_width"] == 2
     assert captured[0]["max_tokens"] == 4096
+
+
+@pytest.mark.parametrize(
+    "units",
+    [
+        [{}],
+        [{"unit_index": "0"}],
+        [{"unit_index": None}],
+        [{"unit_index": -1}],
+        [{"unit_index": True}],
+        [{"unit_index": 0}, {"unit_index": 0}],
+    ],
+)
+def test_structure_client_rejects_invalid_unit_indexes_before_transport(
+    monkeypatch, units
+) -> None:
+    """Malformed or duplicate indexes fail before reaching the orchestrator."""
+
+    def unexpected_post(*args, **kwargs):
+        raise AssertionError("invalid units must not cross the orchestrator boundary")
+
+    monkeypatch.setattr("lineageweave.post_structure.post_json", unexpected_post)
+    client = ContextualOrchestratorPostStructureClient(
+        "http://orchestrator", "test-key"
+    )
+
+    with pytest.raises(ValueError, match="unique non-negative integer indexes"):
+        client.infer("Title", units)

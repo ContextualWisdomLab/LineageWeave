@@ -73,6 +73,18 @@ class ContextualOrchestratorPostStructureClient:
     ) -> tuple[StructureDecision, ...]:
         if not units:
             return ()
+        expected_indexes: set[int] = set()
+        for unit in units:
+            unit_index = unit.get("unit_index") if isinstance(unit, dict) else None
+            if (
+                type(unit_index) is not int
+                or unit_index < 0
+                or unit_index in expected_indexes
+            ):
+                raise ValueError(
+                    "structure adjudication units require unique non-negative integer indexes"
+                )
+            expected_indexes.add(unit_index)
         response = post_json(
             f"{self.base_url}/v1/chat/completions",
             {
@@ -122,7 +134,6 @@ class ContextualOrchestratorPostStructureClient:
                 "structure adjudication response has no decisions array"
             )
 
-        expected_indexes = {int(unit["unit_index"]) for unit in units}
         decisions: list[StructureDecision] = []
         for item in parsed["decisions"]:
             if not isinstance(item, dict):
