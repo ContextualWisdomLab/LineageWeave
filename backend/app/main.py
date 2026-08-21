@@ -2071,22 +2071,28 @@ async def extract_post_keymen(
             # tags dilute the model's attention and a base64 payload sent as
             # literal text either blows the token budget or is silently
             # ignored (see lineageweave/post_content_normalization.py).
-            post_body = (
-                await asyncio.to_thread(normalize_post_body, raw_body, _vision_client())
-            ).text
             context_hints = await _load_post_semantic_hints(conn, post_id)
-            mentions = await ingest_post_keymen(
-                conn,
-                keyman_client,
-                post_id,
-                post["post_title"],
-                post_body,
-                resolution_client=_organization_name_resolution_client(),
-                verification_client=_relation_verification_client(),
-                hierarchy_inference_client=_corporate_hierarchy_inference_client(),
-                context_hints=context_hints,
-                persist_graph=False,
-            )
+            try:
+                post_body = (
+                    await asyncio.to_thread(normalize_post_body, raw_body, _vision_client())
+                ).text
+                mentions = await ingest_post_keymen(
+                    conn,
+                    keyman_client,
+                    post_id,
+                    post["post_title"],
+                    post_body,
+                    resolution_client=_organization_name_resolution_client(),
+                    verification_client=_relation_verification_client(),
+                    hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+                    context_hints=context_hints,
+                    persist_graph=False,
+                )
+            except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
             # Live bug (2026-08-19): an organization affiliated ONLY with an
             # our_side person (our own factory, our own affiliate) got fed
             # into the counterparty-relationship classifier the same as any
@@ -2102,9 +2108,15 @@ async def extract_post_keymen(
                     for name in mention.affiliated_organization_names
                 }
             )
-            relationships = await ingest_post_entity_relationships(
-                conn, relationship_client, post_id, post["post_title"], post_body, organization_names
-            )
+            try:
+                relationships = await ingest_post_entity_relationships(
+                    conn, relationship_client, post_id, post["post_title"], post_body, organization_names
+                )
+            except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
             async with conn.transaction():
                 await persist_edges_for_post(conn, post_id)
     await publish_activity_event(
@@ -2232,17 +2244,23 @@ async def evaluate_post(
             )
         async with pool.acquire() as conn:
             body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-        normalized_body = (
-            await asyncio.to_thread(
-                normalize_post_body,
-                "" if body_row is None else body_row["post_body"],
-                _vision_client(),
-            )
-        ).text
-        async with pool.acquire() as conn:
-            rows = await ingest_post_evaluation(
-                conn, client, post_id, post["post_title"], normalized_body
-            )
+        try:
+            normalized_body = (
+                await asyncio.to_thread(
+                    normalize_post_body,
+                    "" if body_row is None else body_row["post_body"],
+                    _vision_client(),
+                )
+            ).text
+            async with pool.acquire() as conn:
+                rows = await ingest_post_evaluation(
+                    conn, client, post_id, post["post_title"], normalized_body
+                )
+        except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Post evaluation is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
     await publish_activity_event(
         valkey,
         post_id,
@@ -2588,7 +2606,7 @@ async def chat_about_post(
     try:
         with use_llm_metadata(post_metadata):
             answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, ValueError) as exc:
+    except (HttpClientError, KeyError, OSError, RuntimeError, ValueError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
@@ -2647,10 +2665,10 @@ async def ask_agent(
         }
     try:
         answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, ValueError) as exc:
+    except (HttpClientError, KeyError, OSError, RuntimeError, ValueError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            f"Ask Agent is unavailable: {exc}",
+            "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
     return {
@@ -2881,14 +2899,20 @@ async def derive_post_commitment(
             )
         async with pool.acquire() as conn:
             body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-        normalized_body = (
-            await asyncio.to_thread(normalize_post_body, body_row["post_body"], _vision_client())
-        ).text
-        # TimeML/TempEval document creation time, not wall-clock now: "by next
-        # Friday" in a January post must resolve to that January, not to the
-        # Friday after the operator clicked Derive.
-        reference_date = post["created_at"].date().isoformat()
-        commitment = client.extract(post["post_title"], normalized_body, reference_date)
+        try:
+            normalized_body = (
+                await asyncio.to_thread(normalize_post_body, body_row["post_body"], _vision_client())
+            ).text
+            # TimeML/TempEval document creation time, not wall-clock now: "by next
+            # Friday" in a January post must resolve to that January, not to the
+            # Friday after the operator clicked Derive.
+            reference_date = post["created_at"].date().isoformat()
+            commitment = client.extract(post["post_title"], normalized_body, reference_date)
+        except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Commitment derivation is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
     if not commitment.has_commitment:
         return {"post_id": str(post["post_id"]), "has_commitment": False, "ticket": None}
     async with pool.acquire() as conn:
