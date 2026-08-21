@@ -60,12 +60,16 @@ async def _select_posts(
                    and nullif(btrim(post.source_deleted_flag), '') is null
                    and not (
                        (
-                           nullif(btrim(post.source_author_code), '') is null
+                           nullif(btrim(post.source_system_code), '') is null
+                           and nullif(btrim(post.source_record_key), '') is null
+                           and nullif(btrim(post.source_author_code), '') is null
                            and nullif(btrim(post.source_author_name), '') is null
                            and nullif(btrim(post.source_company_code), '') is null
                            and nullif(btrim(post.source_company_name), '') is null
                            and nullif(btrim(post.source_process_unit_code), '') is null
                            and nullif(btrim(post.source_process_unit_name), '') is null
+                           and nullif(btrim(post.source_stage_code), '') is null
+                           and nullif(btrim(post.source_detail_state_code), '') is null
                            and nullif(btrim(post.source_sales_pool_code), '') is null
                            and nullif(btrim(post.source_sales_pool_name), '') is null
                            and nullif(btrim(post.source_customer_code), '') is null
@@ -77,12 +81,16 @@ async def _select_posts(
                            select 1
                              from source_post real_post
                             where (
-                                nullif(btrim(real_post.source_author_code), '') is not null
+                                nullif(btrim(real_post.source_system_code), '') is not null
+                                or nullif(btrim(real_post.source_record_key), '') is not null
+                                or nullif(btrim(real_post.source_author_code), '') is not null
                                 or nullif(btrim(real_post.source_author_name), '') is not null
                                 or nullif(btrim(real_post.source_company_code), '') is not null
                                 or nullif(btrim(real_post.source_company_name), '') is not null
                                 or nullif(btrim(real_post.source_process_unit_code), '') is not null
                                 or nullif(btrim(real_post.source_process_unit_name), '') is not null
+                                or nullif(btrim(real_post.source_stage_code), '') is not null
+                                or nullif(btrim(real_post.source_detail_state_code), '') is not null
                                 or nullif(btrim(real_post.source_sales_pool_code), '') is not null
                                 or nullif(btrim(real_post.source_sales_pool_name), '') is not null
                                 or nullif(btrim(real_post.source_customer_code), '') is not null
@@ -108,12 +116,16 @@ async def _select_posts(
                and nullif(btrim(post.source_deleted_flag), '') is null
                and not (
                    (
-                       nullif(btrim(post.source_author_code), '') is null
+                       nullif(btrim(post.source_system_code), '') is null
+                       and nullif(btrim(post.source_record_key), '') is null
+                       and nullif(btrim(post.source_author_code), '') is null
                        and nullif(btrim(post.source_author_name), '') is null
                        and nullif(btrim(post.source_company_code), '') is null
                        and nullif(btrim(post.source_company_name), '') is null
                        and nullif(btrim(post.source_process_unit_code), '') is null
                        and nullif(btrim(post.source_process_unit_name), '') is null
+                       and nullif(btrim(post.source_stage_code), '') is null
+                       and nullif(btrim(post.source_detail_state_code), '') is null
                        and nullif(btrim(post.source_sales_pool_code), '') is null
                        and nullif(btrim(post.source_sales_pool_name), '') is null
                        and nullif(btrim(post.source_customer_code), '') is null
@@ -125,12 +137,16 @@ async def _select_posts(
                        select 1
                          from source_post real_post
                         where (
-                            nullif(btrim(real_post.source_author_code), '') is not null
+                            nullif(btrim(real_post.source_system_code), '') is not null
+                            or nullif(btrim(real_post.source_record_key), '') is not null
+                            or nullif(btrim(real_post.source_author_code), '') is not null
                             or nullif(btrim(real_post.source_author_name), '') is not null
                             or nullif(btrim(real_post.source_company_code), '') is not null
                             or nullif(btrim(real_post.source_company_name), '') is not null
                             or nullif(btrim(real_post.source_process_unit_code), '') is not null
                             or nullif(btrim(real_post.source_process_unit_name), '') is not null
+                            or nullif(btrim(real_post.source_stage_code), '') is not null
+                            or nullif(btrim(real_post.source_detail_state_code), '') is not null
                             or nullif(btrim(real_post.source_sales_pool_code), '') is not null
                             or nullif(btrim(real_post.source_sales_pool_name), '') is not null
                             or nullif(btrim(real_post.source_customer_code), '') is not null

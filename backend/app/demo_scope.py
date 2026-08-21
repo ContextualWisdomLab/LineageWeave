@@ -32,12 +32,16 @@ async def has_real_source_context(
                  where (visibility_code = 'public'
                         or corporate_entity_id = any($1::uuid[]))
                    and (
-                       nullif(btrim(source_post.source_author_code), '') is not null
+                       nullif(btrim(source_post.source_system_code), '') is not null
+                       or nullif(btrim(source_post.source_record_key), '') is not null
+                       or nullif(btrim(source_post.source_author_code), '') is not null
                        or nullif(btrim(source_post.source_author_name), '') is not null
                        or nullif(btrim(source_post.source_company_code), '') is not null
                        or nullif(btrim(source_post.source_company_name), '') is not null
                        or nullif(btrim(source_post.source_process_unit_code), '') is not null
                        or nullif(btrim(source_post.source_process_unit_name), '') is not null
+                       or nullif(btrim(source_post.source_stage_code), '') is not null
+                       or nullif(btrim(source_post.source_detail_state_code), '') is not null
                        or nullif(btrim(source_post.source_sales_pool_code), '') is not null
                        or nullif(btrim(source_post.source_sales_pool_name), '') is not null
                        or nullif(btrim(source_post.source_order_pool_code), '') is not null
@@ -68,12 +72,16 @@ async def fetch_demo_corporate_entity_ids(conn: asyncpg.Connection) -> set[str]:
                  from source_post real_post
                 where real_post.corporate_entity_id = entity.corporate_entity_id
                   and (
-                      nullif(btrim(real_post.source_author_code), '') is not null
+                      nullif(btrim(real_post.source_system_code), '') is not null
+                      or nullif(btrim(real_post.source_record_key), '') is not null
+                      or nullif(btrim(real_post.source_author_code), '') is not null
                       or nullif(btrim(real_post.source_author_name), '') is not null
                       or nullif(btrim(real_post.source_company_code), '') is not null
                       or nullif(btrim(real_post.source_company_name), '') is not null
                       or nullif(btrim(real_post.source_process_unit_code), '') is not null
                       or nullif(btrim(real_post.source_process_unit_name), '') is not null
+                      or nullif(btrim(real_post.source_stage_code), '') is not null
+                      or nullif(btrim(real_post.source_detail_state_code), '') is not null
                       or nullif(btrim(real_post.source_sales_pool_code), '') is not null
                       or nullif(btrim(real_post.source_sales_pool_name), '') is not null
                       or nullif(btrim(real_post.source_order_pool_code), '') is not null

@@ -73,12 +73,16 @@ async def queue_post_content_backfill(
                and nullif(btrim(source_deleted_flag), '') is null
                and coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'
                and (
-                   nullif(btrim(source_author_code), '') is not null
+                   nullif(btrim(post.source_system_code), '') is not null
+                   or nullif(btrim(post.source_record_key), '') is not null
+                   or nullif(btrim(source_author_code), '') is not null
                    or nullif(btrim(source_author_name), '') is not null
                    or nullif(btrim(source_company_code), '') is not null
                    or nullif(btrim(source_company_name), '') is not null
                    or nullif(btrim(source_process_unit_code), '') is not null
                    or nullif(btrim(source_process_unit_name), '') is not null
+                   or nullif(btrim(post.source_stage_code), '') is not null
+                   or nullif(btrim(post.source_detail_state_code), '') is not null
                    or nullif(btrim(source_sales_pool_code), '') is not null
                    or nullif(btrim(source_sales_pool_name), '') is not null
                    or nullif(btrim(source_customer_code), '') is not null

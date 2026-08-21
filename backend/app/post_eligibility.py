@@ -26,12 +26,16 @@ def source_post_state_visibility_sql(
     )
 
 SOURCE_CONTEXT_COLUMNS = (
+    "source_system_code",
+    "source_record_key",
     "source_author_code",
     "source_author_name",
     "source_company_code",
     "source_company_name",
     "source_process_unit_code",
     "source_process_unit_name",
+    "source_stage_code",
+    "source_detail_state_code",
     "source_sales_pool_code",
     "source_sales_pool_name",
     "source_order_pool_code",

@@ -53,6 +53,8 @@ describe("i18n", () => {
     "Answer",
     "Showing the first {shown} of {total} posts known at this cutoff.",
     "Persist the brand, system, and copyright metadata used by the workspace shell.",
+    "Review the source body or related posts for this dimension.",
+    "Review source evidence for this dimension.",
   ] as const;
   const eventLineageLabels = [
     "Authorized scope",

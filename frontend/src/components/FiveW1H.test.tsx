@@ -12,14 +12,21 @@ describe("FiveW1H", () => {
             values: [],
             empty_next_action_code: "inspect_source_body_or_related_posts",
           },
+          {
+            slot_code: "why",
+            values: [],
+            empty_next_action_code: "future_action_code",
+          },
         ]}
       />,
     );
 
-    expect(screen.getByText("No grounded evidence for this dimension.")).toBeInTheDocument();
+    expect(screen.getAllByText("No grounded evidence for this dimension.")).toHaveLength(2);
     expect(
       screen.getByText("Review the source body or related posts for this dimension."),
     ).toBeInTheDocument();
+    expect(screen.getByText("Review source evidence for this dimension.")).toBeInTheDocument();
     expect(screen.queryByText("inspect_source_body_or_related_posts")).not.toBeInTheDocument();
+    expect(screen.queryByText("future_action_code")).not.toBeInTheDocument();
   });
 });
