@@ -353,6 +353,7 @@ function ChatPanel({
             onChange={(event) => setQuestion(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && handleAsk()}
             placeholder={t("What happened between these events?")}
+            aria-label={t("What happened between these events?")}
           />
           <button onClick={() => handleAsk()} disabled={loading || !question.trim()}>
             {loading ? t("Asking...") : t("Ask")}
@@ -1592,6 +1593,7 @@ function IssueTicketPanel({
           onChange={(event) => setNewTitle(event.target.value)}
           onKeyDown={(event) => event.key === "Enter" && handleCreate()}
           placeholder={t("New ticket title")}
+          aria-label={t("New ticket title")}
         />
         <input
           type="date"
