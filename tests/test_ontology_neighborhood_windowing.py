@@ -6,6 +6,7 @@ import asyncio
 from dataclasses import replace
 from datetime import datetime, timezone
 
+from backend.app import ontology_neighborhood_ingestion as ingestion
 from backend.app.ontology_neighborhood_ingestion import _load_facts
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
@@ -20,6 +21,7 @@ from lineageweave.ontology_neighborhood import (
     assemble_ontology_neighborhood,
     fact_from_knowledge_graph_edge,
 )
+from lineageweave.ontology_source_cursor import OntologySourceCursor, OntologySourceKey
 
 POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1"
 PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1"
@@ -203,3 +205,147 @@ def test_load_facts_uses_keyset_not_offset() -> None:
     assert conn.arguments[10] == POST_ID
     assert conn.arguments[12] == PERSON_ID
     assert window == []
+
+
+def test_load_facts_binds_edges_to_the_sealed_snapshot() -> None:
+    """New graph edges must not splice into an already sealed continuation."""
+    conn = CapturingWindowConnection()
+    asyncio.run(
+        _load_facts(
+            conn,  # type: ignore[arg-type]
+            [POST_ID],
+            focus_node_type_code=NODE_POST,
+            focus_node_id=POST_ID,
+            maximum_depth=1,
+            maximum_edges=1,
+            snapshot_at=T0,
+        )
+    )
+    normalized = " ".join(conn.query.lower().split())
+    assert "edge.created_at <= $7::timestamptz" in normalized
+    assert conn.arguments[6] == T0
+
+
+def test_loaded_display_edge_keeps_its_raw_sql_cursor_key() -> None:
+    """A reversed display relation must still resume with the raw SQL orientation."""
+    window = asyncio.run(
+        _load_facts(
+            WindowConnection(),  # type: ignore[arg-type]
+            [POST_ID],
+            focus_node_type_code=NODE_POST,
+            focus_node_id=POST_ID,
+            maximum_depth=1,
+            maximum_edges=1,
+        )
+    )
+    display_key = next(iter(window.source_keys_by_edge))
+    source_key = window.source_keys_by_edge[display_key]
+    assert display_key[0] == PROPERTY_MENTIONS
+    assert display_key[1] == NODE_PERSON
+    assert source_key.edge_type_code == EDGE_MENTION
+    assert source_key.source_node_id == POST_ID
+
+
+class CursorConnection:
+    """Supply the focus label used by the in-memory continuation regression."""
+
+    async def fetchval(self, query: str, *_args: object) -> str | None:
+        """Return only the synthetic focus title."""
+        return "Focus" if "post_title" in query else None
+
+
+def test_source_continuation_uses_sealed_snapshot_and_rechecks_page_endpoints(monkeypatch) -> None:
+    """Continuation must use the sealed time and authorize newly loaded endpoints."""
+    fact = replace(
+        fact_from_knowledge_graph_edge(
+            source_node_type_code=NODE_POST,
+            source_node_id=POST_ID,
+            target_node_type_code=NODE_PERSON,
+            target_node_id=PERSON_ID,
+            edge_type_code=EDGE_MENTION,
+            recorded_at=T0,
+            evidence_references=(POST_ID,),
+        ),
+        source_hop_depth=0,
+    )
+    last_key = OntologySourceKey(
+        hop_depth=0,
+        edge_type_code=EDGE_MENTION,
+        source_node_type_code=NODE_POST,
+        source_node_id=POST_ID,
+        target_node_type_code=NODE_PERSON,
+        target_node_id=PERSON_ID,
+    )
+    claims = OntologySourceCursor(
+        focus_node_type_code=NODE_POST,
+        focus_node_id=POST_ID,
+        knowledge_cutoff=None,
+        maximum_depth=1,
+        maximum_nodes=10,
+        maximum_edges=1,
+        allowed_property_codes=None,
+        last_key=last_key,
+        snapshot_at=T0,
+        eligibility_digest="digest",
+        expires_at=T0,
+    )
+    load_snapshots: list[datetime | None] = []
+    load_after_keys: list[OntologySourceKey | None] = []
+    verify_modes: list[bool] = []
+
+    async def fake_load_facts(*_args, snapshot_at=None, after_key=None, **_kwargs):
+        load_snapshots.append(snapshot_at)
+        load_after_keys.append(after_key)
+        return ingestion._LoadedFactWindow([fact], truncated=True, last_source_key=last_key)
+
+    async def fake_visible_post_ids(*_args, **_kwargs):
+        return [POST_ID]
+
+    async def fake_focus_exists(*_args, **_kwargs):
+        return True
+
+    async def fake_visible_by_nodes(_conn, endpoint_keys, _can_see_post):
+        assert (NODE_PERSON, PERSON_ID) in endpoint_keys
+        return {(NODE_PERSON, PERSON_ID): [POST_ID]}
+
+    async def fake_skos(*_args, **_kwargs):
+        return []
+
+    async def fake_labels(*_args, **_kwargs):
+        return {(NODE_POST, POST_ID): "Focus", (NODE_PERSON, PERSON_ID): "Person"}
+
+    async def fake_metadata(*_args, **_kwargs):
+        return {}
+
+    def fake_verify(_token, **kwargs):
+        verify_modes.append(kwargs["validate_eligibility"])
+        return claims
+
+    monkeypatch.setattr(ingestion, "focus_catalog_exists", fake_focus_exists)
+    monkeypatch.setattr(ingestion, "visible_post_ids_for_focus", fake_visible_post_ids)
+    monkeypatch.setattr(ingestion, "_load_facts", fake_load_facts)
+    monkeypatch.setattr(ingestion, "_visible_post_ids_by_nodes", fake_visible_by_nodes)
+    monkeypatch.setattr(ingestion, "_load_skos_facts", fake_skos)
+    monkeypatch.setattr(ingestion, "_load_labels", fake_labels)
+    monkeypatch.setattr(ingestion, "_load_node_metadata", fake_metadata)
+    monkeypatch.setattr(ingestion, "verify_source_cursor", fake_verify)
+
+    result = asyncio.run(
+        ingestion.visible_ontology_neighborhood(
+            CursorConnection(),  # type: ignore[arg-type]
+            focus_node_type_code=NODE_POST,
+            focus_node_id=POST_ID,
+            can_see_post=lambda _row: True,
+            maximum_depth=1,
+            maximum_nodes=10,
+            maximum_edges=1,
+            cursor="src.v1.synthetic",
+            source_cursor_secret="s" * 32,
+            source_cursor_scope="account",
+        )
+    )
+
+    assert verify_modes == [False, True]
+    assert load_snapshots == [T0, T0]
+    assert load_after_keys == [None, last_key]
+    assert result.edges

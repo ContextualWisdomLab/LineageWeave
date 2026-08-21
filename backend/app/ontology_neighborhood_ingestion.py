@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from datetime import datetime, timezone
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Mapping, Sequence
 from uuid import UUID
 
 import asyncpg
@@ -41,6 +41,7 @@ from lineageweave.ontology_neighborhood import (
 )
 from lineageweave.ontology_source_cursor import (
     OntologySourceKey,
+    OntologySourceCursor,
     SOURCE_CURSOR_PREFIX,
     mint_source_cursor,
     source_cursor_secret_from_env,
@@ -61,10 +62,14 @@ class _LoadedFactWindow(list[NeighborhoodFact]):
         *,
         truncated: bool = False,
         last_source_key: OntologySourceKey | None = None,
+        source_keys_by_edge: Mapping[
+            tuple[str, str, str, str, str], OntologySourceKey
+        ] | None = None,
     ) -> None:
         super().__init__(facts)
         self.truncated = truncated
         self.last_source_key = last_source_key
+        self.source_keys_by_edge = dict(source_keys_by_edge or {})
 
 
 def neighborhood_error_http_status(error: OntologyNeighborhoodError) -> int:
@@ -281,6 +286,7 @@ async def _load_facts(
              where evidence.evidence_post_id = any($1::uuid[])
                and ($6::timestamptz is null or post.created_at <= $6::timestamptz)
                and ($7::timestamptz is null or post.created_at <= $7::timestamptz)
+               and ($7::timestamptz is null or edge.created_at <= $7::timestamptz)
              group by edge.source_node_type_code, edge.source_node_id,
                       edge.target_node_type_code, edge.target_node_id,
                       edge.edge_type_code
@@ -367,6 +373,7 @@ async def _load_facts(
     source_truncated = len(rows) >= query_limit
     page_rows = list(rows[:maximum_edges])
     facts: list[NeighborhoodFact] = []
+    source_keys_by_edge: dict[tuple[str, str, str, str, str], OntologySourceKey] = {}
     for row in page_rows:
         fact = fact_from_knowledge_graph_edge(
                 source_node_type_code=row["source_node_type_code"],
@@ -387,8 +394,22 @@ async def _load_facts(
             if hop_depth is None
             else replace(fact, source_hop_depth=int(hop_depth))
         )
+        source_keys_by_edge[
+            (
+                fact.property_code,
+                fact.source_node_type_code,
+                fact.source_node_id,
+                fact.target_node_type_code,
+                fact.target_node_id,
+            )
+        ] = source_key_from_row(row)
     last_key = source_key_from_row(page_rows[-1]) if page_rows else None
-    return _LoadedFactWindow(facts, truncated=source_truncated, last_source_key=last_key)
+    return _LoadedFactWindow(
+        facts,
+        truncated=source_truncated,
+        last_source_key=last_key,
+        source_keys_by_edge=source_keys_by_edge,
+    )
 
 
 async def _load_skos_facts(
@@ -593,11 +614,28 @@ async def visible_ontology_neighborhood(
     secret = source_cursor_secret_from_env(source_cursor_secret)
     snapshot_at = datetime.now(timezone.utc)
     after_key: OntologySourceKey | None = None
+    source_cursor_claims: OntologySourceCursor | None = None
     assembler_cursor = cursor
     if cursor is not None and cursor.startswith(SOURCE_CURSOR_PREFIX):
         assembler_cursor = None
         if secret is None or not source_cursor_scope:
             raise OntologyNeighborhoodError("malformed_cursor", "source cursor is unavailable")
+        source_cursor_claims = verify_source_cursor(
+            cursor,
+            secret=secret,
+            user_account_id=source_cursor_scope,
+            focus_node_type_code=focus_node_type_code,
+            focus_node_id=focus_node_id,
+            knowledge_cutoff=knowledge_cutoff,
+            maximum_depth=maximum_depth,
+            maximum_nodes=maximum_nodes,
+            maximum_edges=maximum_edges,
+            allowed_property_codes=allowed_property_codes,
+            visible_post_ids=(),
+            validate_eligibility=False,
+        )
+        snapshot_at = source_cursor_claims.snapshot_at
+        after_key = source_cursor_claims.last_key
     elif cursor is not None and not cursor.startswith("after:"):
         raise OntologyNeighborhoodError("malformed_cursor", "cursor must be an opaque after: or source token")
     fact_window = await _load_facts(
@@ -611,6 +649,8 @@ async def visible_ontology_neighborhood(
         snapshot_at=snapshot_at,
     )
     facts = list(fact_window)
+    expansion_truncated = bool(getattr(fact_window, "truncated", False))
+    expanded_source_keys = dict(getattr(fact_window, "source_keys_by_edge", {}))
     loaded_post_ids = set(visible_post_ids)
     visible_by_node: dict[tuple[str, str], list[str]] = {}
     for _ in range(maximum_depth):
@@ -643,6 +683,8 @@ async def visible_ontology_neighborhood(
             knowledge_cutoff=knowledge_cutoff,
             snapshot_at=snapshot_at,
         )
+        expansion_truncated = expansion_truncated or bool(getattr(expanded_window, "truncated", False))
+        expanded_source_keys.update(getattr(expanded_window, "source_keys_by_edge", {}))
         for fact in expanded_window:
             if fact not in facts:
                 facts.append(fact)
@@ -663,10 +705,10 @@ async def visible_ontology_neighborhood(
                 conn, endpoint_keys, can_see_post
             )
     frozen_posts = sorted(loaded_post_ids)
-    if cursor is not None and cursor.startswith(SOURCE_CURSOR_PREFIX):
+    if source_cursor_claims is not None:
         if secret is None or source_cursor_scope is None:
             raise OntologyNeighborhoodError("malformed_cursor", "source cursor is unavailable")
-        claims = verify_source_cursor(
+        source_cursor_claims = verify_source_cursor(
             cursor,
             secret=secret,
             user_account_id=source_cursor_scope,
@@ -678,9 +720,10 @@ async def visible_ontology_neighborhood(
             maximum_edges=maximum_edges,
             allowed_property_codes=allowed_property_codes,
             visible_post_ids=frozen_posts,
+            validate_eligibility=True,
         )
-        snapshot_at = claims.snapshot_at
-        after_key = claims.last_key
+        snapshot_at = source_cursor_claims.snapshot_at
+        after_key = source_cursor_claims.last_key
     page_window = fact_window
     if after_key is not None:
         page_window = await _load_facts(
@@ -697,12 +740,26 @@ async def visible_ontology_neighborhood(
     else:
         page_window = _LoadedFactWindow(
             facts,
-            truncated=bool(getattr(fact_window, "truncated", False)),
+            truncated=expansion_truncated,
             last_source_key=getattr(fact_window, "last_source_key", None),
+            source_keys_by_edge=expanded_source_keys,
         )
     facts = list(page_window)
     source_truncated = bool(getattr(page_window, "truncated", False))
     last_source_key = getattr(page_window, "last_source_key", None)
+    source_keys_by_edge = getattr(page_window, "source_keys_by_edge", {})
+    endpoint_keys = {
+        (fact.source_node_type_code, fact.source_node_id)
+        for fact in facts
+    } | {
+        (fact.target_node_type_code, fact.target_node_id)
+        for fact in facts
+    }
+    if endpoint_keys:
+        # Continuation pages can introduce endpoints absent from the first
+        # window. Rebuild the authorization cache for the actual page before
+        # discarding unseen relations.
+        visible_by_node = await _visible_post_ids_by_nodes(conn, endpoint_keys, can_see_post)
     corp_ids = [
         fact.source_node_id if fact.source_node_type_code == NODE_CORPORATE_ENTITY else fact.target_node_id
         for fact in facts
@@ -807,6 +864,21 @@ async def visible_ontology_neighborhood(
         cursor=assembler_cursor,
         source_truncated=source_truncated,
     )
+    last_source_key = None
+    neighborhood_edges = getattr(neighborhood, "edges", ())
+    for edge in reversed(neighborhood_edges):
+        source_key = source_keys_by_edge.get(
+            (
+                edge.property_code,
+                edge.source_node_type_code,
+                edge.source_node_id,
+                edge.target_node_type_code,
+                edge.target_node_id,
+            )
+        )
+        if source_key is not None:
+            last_source_key = source_key
+            break
     if (
         secret is not None
         and source_cursor_scope
@@ -814,7 +886,7 @@ async def visible_ontology_neighborhood(
         and source_truncated
         and neighborhood.truncated
         and len(page_node_keys) <= maximum_nodes
-        and neighborhood.edges
+        and neighborhood_edges
     ):
         return replace(
             neighborhood,

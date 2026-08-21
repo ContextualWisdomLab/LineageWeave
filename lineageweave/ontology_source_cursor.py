@@ -153,9 +153,15 @@ def verify_source_cursor(
     maximum_edges: int,
     allowed_property_codes: Sequence[str] | None,
     visible_post_ids: Sequence[str],
+    validate_eligibility: bool = True,
     now: datetime | None = None,
 ) -> OntologySourceCursor:
     """Open a source cursor and fail closed on tamper, scope, or snapshot drift.
+
+    ``validate_eligibility=False`` is only for the first authenticated pass of
+    a continuation request. It verifies the sealed request, scope, expiry, and
+    snapshot before the caller reconstructs the frozen eligibility set; the
+    caller must run this function again with that reconstructed set.
 
     Next action: bind the returned last key into the recursive keyset query.
     """
@@ -188,6 +194,7 @@ def verify_source_cursor(
         maximum_edges=maximum_edges,
         allowed_property_codes=allowed_property_codes,
         visible_post_ids=visible_post_ids,
+        validate_eligibility=validate_eligibility,
         now=now or datetime.now(timezone.utc),
     )
 
@@ -218,6 +225,7 @@ def _validated_cursor(
     maximum_edges: int,
     allowed_property_codes: Sequence[str] | None,
     visible_post_ids: Sequence[str],
+    validate_eligibility: bool,
     now: datetime,
 ) -> OntologySourceCursor:
     if payload.get("v") != SOURCE_CURSOR_VERSION:
@@ -241,7 +249,7 @@ def _validated_cursor(
     expected_properties = ",".join(sorted(allowed_property_codes)) if allowed_property_codes else ""
     if payload.get("properties") != expected_properties:
         raise OntologyNeighborhoodError("malformed_cursor", "cursor does not match property filter")
-    if payload.get("elig") != eligibility_digest(visible_post_ids):
+    if validate_eligibility and payload.get("elig") != eligibility_digest(visible_post_ids):
         raise OntologyNeighborhoodError("stale_snapshot", "cursor snapshot no longer matches visible evidence")
     snapshot_at = datetime.fromisoformat(str(payload["snapshot"]))
     if snapshot_at.tzinfo is None:

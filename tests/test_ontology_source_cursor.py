@@ -120,6 +120,14 @@ def test_changed_visible_posts_fail_as_stale_snapshot() -> None:
     assert raised.value.code == "stale_snapshot"
 
 
+def test_cursor_claims_can_be_authenticated_before_eligibility_reconstruction() -> None:
+    """Continuation can recover its sealed snapshot before rebuilding its post set."""
+    token = _mint()
+    claims = _verify(token, visible_post_ids=[], validate_eligibility=False)
+    assert claims.snapshot_at == SNAPSHOT
+    assert claims.last_key == LAST_KEY
+
+
 def test_expired_cursor_fails_closed() -> None:
     token = _mint(now=SNAPSHOT)
     with pytest.raises(OntologyNeighborhoodError) as raised:
