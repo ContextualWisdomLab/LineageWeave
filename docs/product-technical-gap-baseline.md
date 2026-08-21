@@ -95,7 +95,7 @@ Open PRs at the same observation:
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `7d7c200715ac4c26733b3a0b57f932f24eec780f` (the exact current
+- PR #368: `head` `7855f2af0c516a0a4f6228e0b9230e6062d326be` (the exact current
   documentation checkpoint), base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `151fe6e177416a5d83b5539a73d97737c12d1ce4`, base `main`
@@ -104,7 +104,7 @@ Open PRs at the same observation:
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #384: `head` `a32bbda48e1ed873362e6e7bd6e47766d9998bb5`, base
   `docs/customer-master-scope-adr` (`83ace331edc982208c290763cb0d389c1884e21b`).
-- PR #387: `head` `16f2b13caad10f4d999293d623405aefadeda52e`, base `main`
+- PR #387: `head` `eaea56d3b2f07f89a5dfcc7d81b032148048982d`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #392: `head` `a046da4e52c484807fc28111bd813d1acbc00816`, base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
@@ -141,6 +141,13 @@ merge. New PR #392 is open at exact head
 non-skipped Checks and no independent approval. The remaining open PRs were
 not authorized to merge from this observation because approval and/or terminal
 Checks were still absent.
+
+Queue refresh at `2026-08-21T19:07:01Z`: exact-current inspection found no
+failed Checks on the eight open LineageWeave PRs. PR #387 advanced to
+`eaea56d3b2f07f89a5dfcc7d81b032148048982d`; PR #392 remains at
+`a046da4e52c484807fc28111bd813d1acbc00816`; the baseline PR itself is at
+`7855f2af0c516a0a4f6228e0b9230e6062d326be`. All had no independent approval;
+the green-only PRs remain unmerged under the protected-main policy.
 
 Closed without merge at the same observation:
 
@@ -402,13 +409,12 @@ The former PR #383 `osv-scan` failure at head
 scan exited successfully, but the follow-up treated a missing baseline result
 file as failure after the head checkout. Central `.github` PR #1158 now
 contains the direct-source result-file repair (`--output-file`) at observed
-exact head `fca5cd1e3d14418b8a5fc5cd3636815582228457`; its provenance, Python
-contracts, and exact-head policy checks are non-terminal on this new head, with
-no failure presently observed. The current #383 head
-`6af3adc3e08fd1b0b11182d8cf3714b847c71ea8` has no failed Checks observed but
+exact head `eb7efe560fe697b54f174a2295dd0950a6984e37`; its current Checks have
+no failure presently observed but remain non-terminal. The current #383 head
+`b1d32a93632164cf1379f24fc9aca71c5d29b746` has no failed Checks observed but
 remains non-terminal and unauthorized to merge. Central PR #1002 independently
 remains open at observed exact head
-`a9880aeb86d424967b94417ac15c38fb94950aab` with required checks still running.
+`1c09f8db1876af8388d21fe14c9993ec6c1d8688` with required checks still running.
 
 ## 7. Next Implementation Order
 
