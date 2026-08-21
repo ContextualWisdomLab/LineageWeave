@@ -1473,6 +1473,12 @@ def test_customer_master_scope_facets_reflect_authorization_and_observed_evidenc
                 "values ('OBSERVED-CORP', 'Case Observed Corp', 'company') returning corporate_entity_id"
             )
             observed_corp_id = cur.fetchone()[0]
+            # Enter the real-source branch used by production to hide
+            # demo-only entities once imported source context exists.
+            cur.execute(
+                "update source_post set source_customer_code = %s where post_id = %s",
+                ("CASE-CUSTOMER-001", seeded_db["own_private_post_id"]),
+            )
             cur.execute(
                 "insert into post_organization_mention (post_id, corporate_entity_id) values (%s, %s)",
                 (seeded_db["own_private_post_id"], observed_corp_id),
@@ -1481,6 +1487,21 @@ def test_customer_master_scope_facets_reflect_authorization_and_observed_evidenc
                 "insert into post_organization_mention (post_id, corporate_entity_id) values (%s, %s)",
                 (seeded_db["public_post_id"], observed_corp_id),
             )
+            cur.execute(
+                "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
+                "values ('DEMO-CAP-CORP', 'Demo Cap Corp', 'company') returning corporate_entity_id"
+            )
+            demo_cap_corp_id = cur.fetchone()[0]
+            for post_id in (
+                seeded_db["public_post_id"],
+                seeded_db["own_private_post_id"],
+                seeded_db["late_own_private_post_id"],
+                seeded_db["edited_own_post_id"],
+            ):
+                cur.execute(
+                    "insert into post_organization_mention (post_id, corporate_entity_id) values (%s, %s)",
+                    (post_id, demo_cap_corp_id),
+                )
             for index in range(101):
                 cur.execute(
                     "insert into corporate_entity "
@@ -1522,6 +1543,7 @@ def test_customer_master_scope_facets_reflect_authorization_and_observed_evidenc
     assert facets_by_name["Case Granted Corp"] == {"authorized_granted"}
     assert facets_by_name["Case Unclassified Corp"] == set()
     assert facets_by_name["Case Observed Corp"] == {"observed_organization"}
+    assert "Demo Cap Corp" not in facets_by_name
     assert "Case Hidden Observed Corp" not in facets_by_name
     observed_entities = [
         row for row in entities if "observed_organization" in row["scope_facets"]

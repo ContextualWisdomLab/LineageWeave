@@ -956,6 +956,14 @@ async def read_customer_master(
             """,
             list(account.corporate_entity_ids),
         )
+        has_source_context = bool(source_customer_rows or source_author_rows)
+        if not has_source_context:
+            has_source_context = await has_real_source_context(
+                conn, list(account.corporate_entity_ids)
+            )
+        synthetic_only_entity_ids: set[str] = set()
+        if has_source_context:
+            synthetic_only_entity_ids = await fetch_demo_corporate_entity_ids(conn)
         # ADR 0125: an entity reaches Customer Master either through this
         # account's own account_affiliation grants (authorized_own /
         # authorized_granted, per its explicit affiliation_scope_code -- an
@@ -982,6 +990,7 @@ async def read_customer_master(
                   join source_post post on post.post_id = org_mention.post_id
                  where (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+                   and not (org_mention.corporate_entity_id = any($3::uuid[]))
                  group by org_mention.corporate_entity_id
                  order by count(distinct org_mention.post_id) desc,
                           org_mention.corporate_entity_id
@@ -994,25 +1003,15 @@ async def read_customer_master(
               from corporate_entity entity
               left join own_affiliation on own_affiliation.corporate_entity_id = entity.corporate_entity_id
               left join observed on observed.corporate_entity_id = entity.corporate_entity_id
-             where own_affiliation.corporate_entity_id is not null
-                or observed.corporate_entity_id is not null
+             where (own_affiliation.corporate_entity_id is not null
+                    or observed.corporate_entity_id is not null)
+               and not (entity.corporate_entity_id = any($3::uuid[]))
              order by entity.entity_name
             """,
             list(account.corporate_entity_ids),
             account.user_account_id,
+            list(synthetic_only_entity_ids),
         )
-        has_source_context = bool(source_customer_rows or source_author_rows)
-        if not has_source_context:
-            has_source_context = await has_real_source_context(
-                conn, list(account.corporate_entity_ids)
-            )
-        if has_source_context:
-            synthetic_only_entity_ids = await fetch_demo_corporate_entity_ids(conn)
-            entity_rows = [
-                row
-                for row in entity_rows
-                if str(row["corporate_entity_id"]) not in synthetic_only_entity_ids
-            ]
         entity_ids = [row["corporate_entity_id"] for row in entity_rows]
         source_author_affiliations = await _load_account_affiliation_hints(
             conn,
