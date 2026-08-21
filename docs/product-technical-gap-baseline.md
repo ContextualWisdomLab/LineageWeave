@@ -200,6 +200,7 @@ PR head, valid unresolved threads, qualifying independent review, and terminal h
 | #261 | Calendar commitment to Event Lineage | `#260` → `v2.14.0` | Ready / BLOCKED / review required |
 | #260 | Weekly VOC to Event Lineage | `#258` → `v2.13.0` | Ready / DIRTY / review required |
 | #258 | buyer evidence board, standards-composed ontology, and cycle-safe Customer Master tree | `main` → `21074cf80cbfab3001bf18b6e1a618f75f4bed24` | Ready / mergeable / final-head Checks and independent approval pending |
+| #258 | buyer evidence board, standards-composed ontology, and cycle-safe Customer Master tree | `main` → `21074cf80cbfab3001bf18b6e1a618f75f4bed24` | Ready / mergeable / final-head Checks and independent approval pending |
 | #192 | plural affiliation next action | `main` → `v0.77.0` | Ready / DIRTY / review required |
 | #190 | duplicate-numbered entity-resolution ADR | `main` → docs | Ready / BLOCKED |
 
