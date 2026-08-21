@@ -3,15 +3,23 @@
 WRITING_SOURCE_DETAIL_STATE_CODE = "W"
 
 
+def normalize_source_detail_state_code(value: object) -> str | None:
+    """Return a source detail state code without transport padding."""
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    return normalized or None
+
+
 def source_post_state_visibility_sql(
     alias: str, *, corporate_param: int, account_param: int, admin_param: int
 ) -> str:
     """Apply public/corp visibility, with an author/admin exception for W."""
     return (
-        f"(({alias}.source_detail_state_code = '{WRITING_SOURCE_DETAIL_STATE_CODE}' "
+        f"((btrim({alias}.source_detail_state_code) = '{WRITING_SOURCE_DETAIL_STATE_CODE}' "
         f"and ({alias}.author_account_id = ${account_param}::uuid "
         f"or ${admin_param}::boolean)) "
-        f"or ({alias}.source_detail_state_code is distinct from "
+        f"or (btrim({alias}.source_detail_state_code) is distinct from "
         f"'{WRITING_SOURCE_DETAIL_STATE_CODE}' and ({alias}.visibility_code = 'public' "
         f"or {alias}.corporate_entity_id::text = any(${corporate_param}::text[]))))"
     )
