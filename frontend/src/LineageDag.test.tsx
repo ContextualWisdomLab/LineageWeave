@@ -27,7 +27,7 @@ const graph: LineageGraph = {
 };
 
 describe("LineageDag", () => {
-  it("renders the graph and opens a post from click and keyboard activation", async () => {
+  it("renders an interactive graph and opens a post from click and keyboard activation", async () => {
     const user = userEvent.setup();
     const onSelectPost = vi.fn();
 
@@ -39,7 +39,7 @@ describe("LineageDag", () => {
       />,
     );
 
-    expect(screen.getByRole("img", { name: "synthetic-project lineage" })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "synthetic-project lineage" })).toBeInTheDocument();
     expect(document.querySelectorAll(".lineage-dag-edge")).toHaveLength(1);
     expect(screen.getByRole("button", { name: "Open post: Root record" })).toHaveAttribute(
       "aria-current",
@@ -80,7 +80,7 @@ describe("LineageDag", () => {
     render(<LineageDag graph={{ nodes: [], edges: [] }} onSelectPost={vi.fn()} />);
 
     expect(screen.getByText("No reconstructed lineage yet. Rebuild after seeding posts.")).toBeInTheDocument();
-    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(screen.queryByRole("group")).not.toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 });
