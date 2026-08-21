@@ -61,10 +61,13 @@ projection. A raw abbreviation, local-language name, or translated name that
 has actually appeared in a post context can therefore nominate the same posts
 as its canonical corporate-entity name. The projection joins the corroborated
 `resolved_organization_name` back to `corporate_entity`; pending and
-uncorroborated rows remain invisible. It does not generate translations or
-infer aliases at query time. This preserves the source-observed label and the
-SKOS preferred/alternative-label distinction while applying the document-level
-context required by multilingual entity linking (De Cao et al., 2022).
+uncorroborated rows remain invisible. After ABAC-visible posts are selected,
+Global Ask discloses the matched raw→canonical pair on cited-post evidence and
+names opening Event Lineage as the next action (ADR 0107). It does not generate
+translations or infer aliases at query time. This preserves the source-observed
+label and the SKOS preferred/alternative-label distinction while applying the
+document-level context required by multilingual entity linking (De Cao et al.,
+2022).
 
 Only a search-corroborated resolution is ever substituted in for
 downstream entity matching (`resolve_corporate_entity`) -- an

@@ -2,7 +2,6 @@ from pathlib import Path
 
 
 def test_shared_metric_migration_does_not_narrow_later_report_dimensions() -> None:
-    """The shared metric migration preserves later team and project dimensions."""
     sql = (
         Path(__file__).resolve().parents[1]
         / "migrations"
@@ -49,7 +48,6 @@ def test_migrate_sh_replays_context_scoped_name_cache_migration() -> None:
 
 
 def test_migrate_sh_replays_global_ask_context_migration() -> None:
-    """Existing volumes must receive the Global Ask context migration."""
     script = (
         Path(__file__).resolve().parents[1]
         / "docker"
@@ -60,8 +58,8 @@ def test_migrate_sh_replays_global_ask_context_migration() -> None:
     assert "0052_*" in script
 
 
-def test_migrate_sh_replays_verified_organization_label_search_migration() -> None:
-    """Existing volumes must receive multilingual organization search indexes."""
+def test_migrate_sh_replays_verified_label_and_catalog_identity_migrations() -> None:
+    """Existing Compose volumes receive both Global Ask schema upgrades."""
     script = (
         Path(__file__).resolve().parents[1]
         / "docker"
@@ -70,3 +68,22 @@ def test_migrate_sh_replays_verified_organization_label_search_migration() -> No
     ).read_text(encoding="utf-8")
 
     assert "0055_*" in script
+    assert "0103_*" in script
+
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0103_organization_resolution_entity_id.sql"
+    ).read_text(encoding="utf-8")
+    rollback = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "rollback"
+        / "0103_organization_resolution_entity_id.sql"
+    ).read_text(encoding="utf-8")
+    assert migration.strip().casefold().startswith("begin;")
+    assert migration.strip().casefold().endswith("commit;")
+    assert "resolved_corporate_entity_id" in migration
+    assert "references corporate_entity" in migration
+    assert "drop index if exists organization_name_resolution_entity_id_idx" in rollback
+    assert "drop column if exists resolved_corporate_entity_id" in rollback

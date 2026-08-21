@@ -418,3 +418,43 @@ def test_global_sources_overfetch_before_abac_so_visible_hits_are_not_dropped() 
     )
 
     assert [source.post_id for source in sources] == ["visible-match"]
+
+
+def test_global_sources_disclose_corroborated_organization_labels() -> None:
+    rows = [
+        {
+            "post_id": "11111111-1111-1111-1111-111111111111",
+            "post_title": "Demo Corp shipment",
+            "post_body": "DC delayed the synthetic shipment.",
+            "visibility_code": "public",
+            "corporate_entity_id": None,
+            "matched_in": "title",
+        }
+    ]
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            if "from source_post" in query or "array_position($2::uuid[], post_id)" in query:
+                return rows
+            if "matched_organization_label" in query:
+                return [
+                    {
+                        "post_id": "11111111-1111-1111-1111-111111111111",
+                        "raw_organization_name": "DC",
+                        "resolved_organization_name": "Demo Corp",
+                    }
+                ]
+            return []
+
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda row: True,
+            question="DC",
+            limit=1,
+        )
+    )
+
+    assert len(sources) == 1
+    assert "verified organization label: DC → Demo Corp" in sources[0].evidence_facts
+    assert all("verify_pending" not in fact for fact in sources[0].evidence_facts)

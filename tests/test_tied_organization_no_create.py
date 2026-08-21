@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import asyncio
 import uuid
-from types import SimpleNamespace
-from typing import Any
+from types import SimpleNamespace, TracebackType
+from typing import Any, Self
 
 from backend.app import corporate_entity_ingestion, keyman_ingestion
 from lineageweave.corporate_hierarchy_inference import HierarchyProposal
 from lineageweave.corporate_hierarchy_resolution import CorporateEntityCandidate
 from lineageweave.relation_verification import STATUS_CORROBORATED
-
 
 _TIED_CANDIDATES = [
     CorporateEntityCandidate("tied-a", "Tied Energy"),
@@ -57,10 +56,15 @@ class _TimeoutInferenceClient:
 class _Transaction:
     """Minimal async transaction context manager."""
 
-    async def __aenter__(self) -> "_Transaction":
+    async def __aenter__(self) -> Self:
         return self
 
-    async def __aexit__(self, exc_type: Any, exc: Any, traceback: Any) -> bool:
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> bool:
         return False
 
 

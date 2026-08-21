@@ -43,6 +43,102 @@ _STOP_WORDS = frozenset(
 _TOKEN = re.compile(r"[^\W_]+(?:-[^\W_]+)*", re.UNICODE)
 _EVIDENCE_POST_IDS = re.compile(r"\[evidence_post_id=([^]]+)\]")
 
+VERIFIED_ORGANIZATION_LABEL_PREFIX = "verified organization label:"
+VERIFIED_ORGANIZATION_LABEL_NEXT_ACTION = (
+    "Corroborated organization labels are current. Open a cited post to read Event Lineage."
+)
+
+
+def verified_organization_label_fact(
+    raw_organization_name: str,
+    resolved_organization_name: str,
+) -> str:
+    """Return one buyer-visible SKOS altLabel → prefLabel pair."""
+
+    return (
+        f"{VERIFIED_ORGANIZATION_LABEL_PREFIX} {raw_organization_name} → "
+        f"{resolved_organization_name}"
+    )
+
+
+async def verified_organization_label_facts(
+    conn: asyncpg.Connection,
+    question: str | None,
+    post_ids: list[str],
+    *,
+    maximum_terms: int = 8,
+) -> dict[str, tuple[str, ...]]:
+    """Disclose corroborated raw→canonical labels for already-visible posts.
+
+    Pending and uncorroborated aliases never appear. Nomination remains
+    identifier-only; this query runs after ABAC-visible post ids are known.
+    """
+
+    if not post_ids:
+        return {}
+    terms = global_ask_query_terms(question, maximum_terms=maximum_terms)
+    if not terms:
+        return {}
+    rows = await conn.fetch(
+        """
+        with query_terms as (
+            select unnest($1::text[]) as term
+        ), nominated_post as (
+            select unnest($2::uuid[]) as post_id
+        ), verified_organization as (
+            select distinct
+                   entity.corporate_entity_id,
+                   resolution.raw_organization_name,
+                   resolution.resolved_organization_name
+              from organization_name_resolution resolution
+              join corporate_entity entity
+                on resolution.resolved_corporate_entity_id = entity.corporate_entity_id
+              join query_terms term
+                on resolution.raw_organization_name ilike '%' || term.term || '%'
+                or resolution.resolved_organization_name ilike '%' || term.term || '%'
+             where resolution.verification_status_code = 'verify_corroborated'
+        ), matched_organization_label as (
+            select distinct
+                   mention.post_id,
+                   organization.raw_organization_name,
+                   organization.resolved_organization_name
+              from post_organization_mention mention
+              join verified_organization organization
+                on organization.corporate_entity_id = mention.corporate_entity_id
+              join nominated_post nominated
+                on nominated.post_id = mention.post_id
+            union
+            select distinct
+                   mention.post_id,
+                   organization.raw_organization_name,
+                   organization.resolved_organization_name
+              from post_person_mention mention
+              join person_affiliation affiliation
+                on affiliation.person_id = mention.person_id
+              join verified_organization organization
+                on organization.corporate_entity_id = affiliation.affiliated_corporate_entity_id
+              join nominated_post nominated
+                on nominated.post_id = mention.post_id
+        )
+        select post_id::text as post_id,
+               raw_organization_name,
+               resolved_organization_name
+          from matched_organization_label
+         order by post_id, raw_organization_name, resolved_organization_name
+        """,
+        list(terms),
+        list(post_ids),
+    )
+    facts: dict[str, list[str]] = {}
+    for row in rows:
+        facts.setdefault(str(row["post_id"]), []).append(
+            verified_organization_label_fact(
+                row["raw_organization_name"],
+                row["resolved_organization_name"],
+            )
+        )
+    return {post_id: tuple(dict.fromkeys(values)) for post_id, values in facts.items()}
+
 
 def global_ask_query_terms(question: str | None, *, maximum_terms: int = 8) -> tuple[str, ...]:
     """Return bounded, de-duplicated lexical terms from a Global Ask query."""
@@ -90,7 +186,7 @@ async def semantic_candidate_post_ids(
             select distinct entity.corporate_entity_id
               from organization_name_resolution resolution
               join corporate_entity entity
-                on entity.entity_name = resolution.resolved_organization_name
+                on resolution.resolved_corporate_entity_id = entity.corporate_entity_id
               join query_terms term
                 on resolution.raw_organization_name ilike '%' || term.term || '%'
                 or resolution.resolved_organization_name ilike '%' || term.term || '%'
@@ -233,8 +329,12 @@ def _public_semantic_fact(fact: str) -> str:
 
 
 __all__ = [
+    "VERIFIED_ORGANIZATION_LABEL_NEXT_ACTION",
+    "VERIFIED_ORGANIZATION_LABEL_PREFIX",
     "global_ask_query_terms",
     "graph_fact_evidence_post_ids",
     "public_external_claim_facts",
     "semantic_candidate_post_ids",
+    "verified_organization_label_fact",
+    "verified_organization_label_facts",
 ]

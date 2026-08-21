@@ -4,6 +4,19 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.21.0] - 2026-08-20
+
+### Added
+
+- Global Ask now discloses search-corroborated organization labels on
+  cited-post evidence (for example `DC → Demo Corp`) and names opening
+  a cited post to read Event Lineage as the next action. Pending and
+  uncorroborated aliases stay hidden. No TEPP theta is invented
+  (ADR 0107 / ADR 0008 / ADR 0106).
+- Verified aliases join the catalog through a stable entity id rather than a
+  display-name match, and existing Compose volumes replay the identity
+  migration (ADR 0122).
+
 ## [2.19.0] - 2026-08-20
 
 ### Added

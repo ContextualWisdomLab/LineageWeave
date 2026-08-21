@@ -63,4 +63,44 @@ describe("AskAgentPanel public verification", () => {
     ).toHaveAttribute("href", "https://example.com/apollo");
     expect(screen.getByText("Internal Apollo post")).toBeInTheDocument();
   });
+
+  it("discloses corroborated organization labels and names Event Lineage next", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          answer_text: "DC is a corroborated label for Demo Corp.",
+          cited_post_ids: ["post-1"],
+          cited_posts: [{ post_id: "post-1", post_title: "Demo Corp shipment" }],
+          cited_post_evidence: [
+            {
+              post_id: "post-1",
+              facts: [
+                {
+                  kind: "verified_organization_label",
+                  text: "verified organization label: DC → Demo Corp",
+                },
+              ],
+            },
+          ],
+          source_post_ids: ["post-1"],
+          next_action:
+            "Corroborated organization labels are current. Open a cited post to read Event Lineage.",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<AskAgentPanel accessToken="access-token" onOpenPost={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText("Ask a question"), "DC");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByLabelText("Next action")).toHaveTextContent(
+      "Corroborated organization labels are current. Open a cited post to read Event Lineage.",
+    );
+    expect(screen.getByText("Verified organization label")).toBeInTheDocument();
+    expect(screen.getByText("verified organization label: DC → Demo Corp")).toBeInTheDocument();
+    expect(screen.queryByText("verify_pending")).not.toBeInTheDocument();
+  });
 });

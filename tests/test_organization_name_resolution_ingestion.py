@@ -6,7 +6,10 @@ from types import SimpleNamespace
 import pytest
 
 import backend.app.organization_name_resolution_ingestion as ingestion
-from lineageweave.relation_verification import STATUS_CORROBORATED, STATUS_UNCORROBORATED
+from lineageweave.relation_verification import (
+    STATUS_CORROBORATED,
+    STATUS_UNCORROBORATED,
+)
 
 
 class _Connection:
@@ -85,3 +88,22 @@ def test_new_resolution_is_persisted_but_only_verified_name_is_returned(
     assert result == expected
     assert len(conn.executed) == 1
     assert "organization_name_resolution" in conn.executed[0][0]
+
+
+def test_verified_resolution_links_to_the_stable_corporate_entity_id() -> None:
+    """Persist the catalog identity instead of rejoining by display name."""
+    conn = _Connection()
+
+    asyncio.run(
+        ingestion.link_verified_organization_entity(
+            conn,
+            "AGP",
+            "context",
+            "entity-id",
+        )
+    )
+
+    query, args = conn.executed[0]
+    assert "resolved_corporate_entity_id" in query
+    assert "verification_status_code = 'verify_corroborated'" in query
+    assert args == ("entity-id", "AGP", ingestion._context_sha256("context"))

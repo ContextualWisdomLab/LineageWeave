@@ -865,7 +865,10 @@ Grounded in SKOS `skos:altLabel`/`skos:prefLabel` (Miles & Bechhofer,
 2009). Wired into `backend/app/keyman_ingestion.py`'s affiliation loop
 and the offline synthetic-batch script's paced re-implementation of it
 (the batch script's own copy was also missing `role_title` persistence
-entirely -- fixed alongside this).
+entirely -- fixed alongside this). Global Ask discloses corroborated
+raw→canonical pairs on cited-post evidence after ABAC and names opening
+Event Lineage as the next action; pending and uncorroborated aliases
+stay hidden ([ADR 0107](docs/adr/0107-verified-organization-label-evidence.md)).
 
 Also fixed while running this against synthetic embedded-image fixtures:
 `image_content.py`'s `_parse_description` required an exact single-pass

@@ -42,6 +42,8 @@ describe("i18n", () => {
     "Authorized commitments are current. Open a commitment to read Event Lineage.",
     "Authorized customer entities are current. Open a related post to read Event Lineage.",
     "Authorized cited posts are current. Open a cited post to read Event Lineage.",
+    "Corroborated organization labels are current. Open a cited post to read Event Lineage.",
+    "Verified organization label",
     "No authorized source posts are available for this question.",
     "Enable public verification to check eligible public claims.",
     "Configure public search and contextual-orchestrator, then retry.",

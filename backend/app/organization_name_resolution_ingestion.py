@@ -23,6 +23,33 @@ def _context_sha256(context_text: str) -> str:
     return hashlib.sha256(context_text.encode("utf-8")).hexdigest()
 
 
+async def link_verified_organization_entity(
+    conn: asyncpg.Connection,
+    raw_name: str,
+    context_text: str,
+    corporate_entity_id: str,
+) -> None:
+    """Attach a corroborated resolution to its stable catalog entity id.
+
+    Display names are not identity keys: two catalog entities may legitimately
+    share one name. Only the exact raw-name/context cache row is linked, and
+    only after external verification has corroborated the resolution.
+    """
+    await conn.execute(
+        """
+        update organization_name_resolution
+           set resolved_corporate_entity_id = $1,
+               resolved_at = now()
+         where raw_organization_name = $2
+           and context_sha256 = $3
+           and verification_status_code = 'verify_corroborated'
+        """,
+        corporate_entity_id,
+        raw_name,
+        _context_sha256(context_text),
+    )
+
+
 async def resolve_organization_name(
     conn: asyncpg.Connection,
     resolution_client: OrganizationNameResolutionClient,

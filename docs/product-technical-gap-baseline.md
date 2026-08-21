@@ -260,4 +260,37 @@ projection: update the affected FR/NFR row and Gap closure evidence when an ADR
 or PR changes product behavior. Never turn a PR title, green unit test, or old
 runtime note into a shipped/live claim.
 
+## Exact-head CI repair: PR #318, 2026-08-21 KST
+
+The previous exact head `63ebb11ce2dfb39209d163ad90eff4deff0cb80d` failed the
+Full test suite in `tests/test_global_ask_public_integration.py` because its
+test connection double rejected the new `matched_organization_label` query.
+The production query was already the intended post-ABAC lookup; the fixture
+had not been updated to return the valid empty result for a synthetic post
+without a corroborated label.
+
+Commit `b50e51f733983478937c3c8304f4828ca8e8083c` adds only that explicit
+empty-result branch. The exact-head local evidence is Python `781 passed, 16
+skipped`, frontend `168 passed`, lint, production build, and Storybook build.
+GitHub's two required checks are queued for this exact head, and no formal
+independent approval has been observed; this is therefore a repaired PR, not
+protected-main or release evidence.
+
+## Exact-head organization identity repair: PR #318, 2026-08-21 KST
+
+The verified organization-label path previously joined the resolved display
+name to `corporate_entity.entity_name`. That could cross-match two catalog
+entities with the same label. The current head `a64bdf0a3cee71d79ca3af882ad50ee5aa1f46f2`,
+restacked on PR #316 current head `1d4e65707abbdea2d0d131cbc03742fe9cfb8ab0`,
+adds the normalized `resolved_corporate_entity_id` foreign key, links only a
+corroborated raw-name/context row inside the Keyman write transaction, and
+replays migrations `0055_*` and `0103_*` for existing Compose volumes. No
+historical row is backfilled by display name (ADR 0122).
+
+The exact-head local evidence is Python `783 passed, 16 skipped, 4 warnings`,
+frontend `169 passed`, lint, production build, Storybook build, `actionlint`,
+and `git diff --check`. Hosted Checks remain queued and no formal independent
+approval has been observed; this is proposed PR evidence, not protected-main
+or release evidence.
+
 *This document is continuously updated by the hourly automated agent loop.*

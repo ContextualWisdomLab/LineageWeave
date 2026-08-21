@@ -788,10 +788,26 @@ const CHAT_EVIDENCE_KIND_LABELS: Record<string, string> = {
   semantic_project: "Semantic project",
   semantic_role: "Semantic role",
   semantic_keyman: "Semantic Keyman",
+  verified_organization_label: "Verified organization label",
 };
 
 function chatEvidenceKindLabel(kind: string): string {
   return t(CHAT_EVIDENCE_KIND_LABELS[kind] ?? "Evidence");
+}
+
+function askCitedPostsNextAction(answer: AskAgentResponse): string {
+  const hasVerifiedOrganizationLabel = Boolean(
+    answer.cited_post_evidence?.some((item) =>
+      item.facts.some((fact) => fact.kind === "verified_organization_label"),
+    ),
+  );
+  if (hasVerifiedOrganizationLabel) {
+    return (
+      answer.next_action ||
+      "Corroborated organization labels are current. Open a cited post to read Event Lineage."
+    );
+  }
+  return "Authorized cited posts are current. Open a cited post to read Event Lineage.";
 }
 
 const VERIFICATION_BADGE: Record<string, string> = {
@@ -4695,7 +4711,7 @@ export function AskAgentPanel({
           {answer.cited_posts && answer.cited_posts.length > 0 && (
             <>
               <p className="board-next-action" role="status" aria-label={t("Next action")}>
-                {t("Authorized cited posts are current. Open a cited post to read Event Lineage.")}
+                {t(askCitedPostsNextAction(answer))}
               </p>
               <h4>{t("Cited posts")}</h4>
               <ul className="related-post-list">

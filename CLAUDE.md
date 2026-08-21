@@ -114,3 +114,10 @@ current and moves focus to the Keyman heading once Keyman rows have
 settled (ADR 0100). The report-member auto-land chain to related nodes
 and Ask is not used for GNB origins. A home-list open does not gain that
  focus. Do not invent a theta.
+
+## Verified organization labels on Global Ask (v2.21.0)
+
+Ask a corroborated synthetic alias such as `DC`. Cited-post evidence
+names `DC → Demo Corp` and tells the buyer to open that cited post to
+read Event Lineage (ADR 0107). Pending and uncorroborated aliases stay
+hidden. Do not invent a theta.

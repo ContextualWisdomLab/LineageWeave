@@ -88,6 +88,7 @@ from lineageweave.post_chat import (
     cited_post_summaries,
     render_global_ask_context,
 )
+from backend.app.global_ask_retrieval import VERIFIED_ORGANIZATION_LABEL_NEXT_ACTION
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_evaluation import (
     ContextualOrchestratorPostEvaluationClient,
@@ -2708,6 +2709,21 @@ def _verification_next_action(
     }.get(status_code, "Inspect the authorized cited posts and their evidence.")
 
 
+def _ask_next_action(
+    status_code: str,
+    cited_evidence: list[dict[str, object]],
+) -> str:
+    """Name Event Lineage when a corroborated organization label nominated the cite."""
+
+    if any(
+        isinstance(fact, dict) and fact.get("kind") == "verified_organization_label"
+        for item in cited_evidence
+        for fact in item.get("facts", [])
+    ):
+        return VERIFIED_ORGANIZATION_LABEL_NEXT_ACTION
+    return _verification_next_action(status_code)
+
+
 async def _verify_public_claims(
     question: str,
     sources: list[ChatSourceDocument],
@@ -2960,6 +2976,7 @@ async def ask_agent(
         cited_ids,
         verify_external=request.verify_external,
     )
+    evidence = cited_post_evidence(sources, cited_ids)
     async with pool.acquire() as conn:
         await persist_global_ask_turn(
             conn,
@@ -2979,12 +2996,12 @@ async def ask_agent(
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
         "cited_posts": cited_post_summaries(sources, cited_ids),
-        "cited_post_evidence": cited_post_evidence(sources, cited_ids),
+        "cited_post_evidence": evidence,
         "source_post_ids": [source.post_id for source in sources],
         "timeline": global_ask_timeline(sources),
         "external_verification_status": verification_status,
         "external_claims": [claim.to_payload() for claim in external_claims],
-        "next_action": _verification_next_action(verification_status),
+        "next_action": _ask_next_action(verification_status, evidence),
     }
 
 

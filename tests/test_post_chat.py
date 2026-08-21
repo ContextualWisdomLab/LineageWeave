@@ -191,6 +191,36 @@ def test_cited_post_evidence_hides_prompt_metadata_but_keeps_semantic_facts() ->
     ]
 
 
+def test_cited_post_evidence_discloses_verified_organization_labels() -> None:
+    source = ChatSourceDocument(
+        "post-label",
+        "Demo Corp shipment",
+        "body",
+        evidence_facts=(
+            "verified organization label: DC → Demo Corp",
+            "project: Semantic project | evidence: Body evidence | ontology_iri: https://example.test/ontology#Project [provenance=post_project_mention]",
+        ),
+    )
+
+    evidence = cited_post_evidence((source,), ("post-label",))
+
+    assert evidence == [
+        {
+            "post_id": "post-label",
+            "facts": [
+                {
+                    "kind": "verified_organization_label",
+                    "text": "verified organization label: DC → Demo Corp",
+                },
+                {
+                    "kind": "semantic_project",
+                    "text": "project: Semantic project | evidence: Body evidence",
+                },
+            ],
+        }
+    ]
+
+
 def test_chat_render_includes_persisted_graph_facts_with_source_evidence() -> None:
     source = ChatSourceDocument(
         "post-graph",

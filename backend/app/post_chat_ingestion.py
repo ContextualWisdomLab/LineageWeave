@@ -49,6 +49,7 @@ from .global_ask_retrieval import (
     global_ask_query_terms,
     public_external_claim_facts,
     semantic_candidate_post_ids,
+    verified_organization_label_facts,
 )
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
 
@@ -707,6 +708,7 @@ async def gather_global_chat_sources(
     visible_ids = [str(row["post_id"]) for row in visible_rows]
     anchor_is_visible = lineage_anchor_id in visible_ids
     semantic_facts = await _semantic_facts_for_posts(conn, visible_ids)
+    label_facts = await verified_organization_label_facts(conn, question, visible_ids)
     graph_facts = (await _graph_facts_for_posts(conn, visible_ids))[:16]
     public_post_ids = frozenset(
         str(row["post_id"])
@@ -741,7 +743,9 @@ async def gather_global_chat_sources(
                 graph_facts=graph_facts if index == 0 else (),
                 evidence_facts=_source_hint_facts(row)
                 + semantic_facts.get(post_id, ())
+                + label_facts.get(post_id, ())
                 + lineage_fact,
+
                 occurred_at=_timestamp_text(row),
                 timeline_kind=(
                     "lineage_neighbor"
