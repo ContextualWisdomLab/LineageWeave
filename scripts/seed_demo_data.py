@@ -231,8 +231,9 @@ def seed(
                 account_ids[username] = account_id
 
                 cur.execute(
-                    "insert into account_affiliation (user_account_id, corporate_entity_id, process_unit_id) "
-                    "values (%s, %s, %s) on conflict do nothing",
+                    "insert into account_affiliation "
+                    "(user_account_id, corporate_entity_id, process_unit_id, affiliation_scope_code) "
+                    "values (%s, %s, %s, 'scope_own_entity') on conflict do nothing",
                     (account_id, corporate_entity_id, process_units[pu_code]),
                 )
                 cur.execute(

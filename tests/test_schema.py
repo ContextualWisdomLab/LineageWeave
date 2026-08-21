@@ -51,6 +51,16 @@ _IDENTIFIER_MIGRATION = (
     / "migrations"
     / "0104_two_word_database_identifiers.sql"
 )
+_GLOBAL_ASK_HISTORY_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0105_global_ask_conversation_history.sql"
+)
+_AFFILIATION_SCOPE_FACET_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0106_account_affiliation_scope_facet.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -91,6 +101,10 @@ def schema_db():
                 identifier_migration = _IDENTIFIER_MIGRATION.read_text()
                 cur.execute(identifier_migration)
                 cur.execute(identifier_migration)
+                cur.execute(_GLOBAL_ASK_HISTORY_MIGRATION.read_text())
+                affiliation_scope_migration = _AFFILIATION_SCOPE_FACET_MIGRATION.read_text()
+                cur.execute(affiliation_scope_migration)
+                cur.execute(affiliation_scope_migration)
             conn.commit()
             yield conn
         finally:
@@ -141,6 +155,11 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_chat_result",
         "post_chat_citation",
         "post_bookmark",
+        "global_ask_session",
+        "global_ask_turn",
+        "global_ask_turn_citation",
+        "global_ask_turn_source",
+        "global_ask_turn_evidence",
     }
     assert expected <= tables
 
@@ -245,6 +264,42 @@ def test_invalid_lookup_code_is_rejected_by_a_real_foreign_key(schema_db) -> Non
             cur.execute(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
                 "values ('BAD-ENTITY', 'Bad Entity', 'not_a_real_code')"
+            )
+    schema_db.rollback()
+
+
+def test_affiliation_scope_facet_defaults_to_unclassified_and_rejects_bad_codes(schema_db) -> None:
+    """ADR 0125 step 1: an account_affiliation row that doesn't specify a
+    scope facet lands on the honest 'unclassified' state, not a silently
+    guessed own/customer label, and the column is a real foreign key.
+    """
+    with schema_db.cursor() as cur:
+        cur.execute(
+            "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+            "values ('corporate_entity_level', 'company', 'Company') on conflict do nothing"
+        )
+        cur.execute(
+            "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
+            "values ('CASE-ENTITY', 'Case Entity', 'company') returning corporate_entity_id"
+        )
+        entity_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into user_account (external_subject_id, display_name, email_address) "
+            "values ('case-subject', 'Case User', 'case@example.test') returning user_account_id"
+        )
+        account_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into account_affiliation (user_account_id, corporate_entity_id) "
+            "values (%s, %s) returning affiliation_scope_code",
+            (account_id, entity_id),
+        )
+        assert cur.fetchone()[0] == "scope_unclassified"
+
+        with pytest.raises(psycopg2.errors.ForeignKeyViolation):
+            cur.execute(
+                "insert into account_affiliation (user_account_id, corporate_entity_id, affiliation_scope_code) "
+                "values (%s, %s, 'not_a_real_scope')",
+                (account_id, entity_id),
             )
     schema_db.rollback()
 

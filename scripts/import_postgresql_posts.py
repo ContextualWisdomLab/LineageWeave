@@ -388,7 +388,9 @@ async def _ensure_scope(conn: asyncpg.Connection, args: argparse.Namespace) -> t
             args.process_unit_name or args.process_unit_code,
         )
     await conn.execute(
-        "insert into account_affiliation (user_account_id, corporate_entity_id, process_unit_id) values ($1, $2, $3) on conflict do nothing",
+        "insert into account_affiliation "
+        "(user_account_id, corporate_entity_id, process_unit_id, affiliation_scope_code) "
+        "values ($1, $2, $3, 'scope_own_entity') on conflict do nothing",
         account_id,
         corporate_id,
         process_unit_id,
