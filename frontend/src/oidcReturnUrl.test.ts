@@ -18,6 +18,11 @@ describe("OIDC return URL handling", () => {
     expect(returnUrlFromLocation({ pathname: "//evil.example", search: "", hash: "" })).toBe("/");
   });
 
+  it("rejects backslash and control-character paths that can change URL parsing", () => {
+    expect(restoreOidcReturnUrl({ returnUrl: "/\\evil.example" })).toBe("/");
+    expect(restoreOidcReturnUrl({ returnUrl: "/\u0000post=abc" })).toBe("/");
+  });
+
   it("restores an object or serialized OIDC state before storage fallback", () => {
     rememberOidcReturnUrl("/?post=stored-before-direct");
     expect(restoreOidcReturnUrl("/?post=from-direct-state")).toBe(

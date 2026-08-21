@@ -1,4 +1,4 @@
-# Product, technical, and gap baseline
+# Product & Technical Gap Baseline
 
 **Snapshot:** 2026-08-21 05:46 (Asia/Seoul)
 **Protected-main baseline:** `origin/main`, product version `2.12.5`
@@ -11,9 +11,28 @@ protected-main acceptance are still required.
 requirements, technical contracts, implementation evidence, and active PRs.
 An active PR is proposed work, not shipped behavior.
 
-## PRD
+## 1. Known Parsing & Frontend Display Gaps
+- **Footnote parsing**: authorized source samples still need coverage for nested ordered and unordered notes.
+- **Table parsing**: authorized source samples still need coverage for merged cells and table boundaries.
+- **Indentation**: continuation-line normalization needs browser evidence for mixed list and paragraph content.
+- **Image/table OCR**: image-region extraction needs acceptance evidence for tabular text and spatial context.
+- **Math/superscripts**: formula-preserving semantic units need an explicit grammar contract and fixtures.
+- **Lineage navigation**: a buyer-facing graph view remains a product gap where a timeline is insufficient.
 
-### Problem and outcome
+## 2. LLM Extraction & Knowledge Graph Gaps
+- **Multiple Project Extraction**: (Resolved) LLM prompt updated to request key_events as objects with project_name, separating events correctly.
+- **5W1H Missing**: (Resolved) LLM prompt updated to explicitly request 5W1H evidence items in the JSON output array.
+- **R&R and Keyman Missing**: (Resolved) LLM prompt updated to explicitly instruct using actual stated names rather than collective titles.
+- **Entity Resolution / Searxng**: Abbreviations like "한전" and "한국전력" are not mapped properly using Searxng and KG corroboration.
+- **Meso-level Team Mapping**: (Resolved) Checked extraction logic; `team` mapping logic is present and correct, but LLM needed better explicit instruction which is covered by R&R resolution.
+- **Base64 Image Omni-modal**: Current text-only embedding fails on images. Omni-modal LLM processing is required for images to capture layout, font size, colors, and spatial meaning.
+
+## 3. General Architecture Gaps
+- **DB Architecture**: Ensure PostgreSQL is strictly used (no file DBs), 3rd normal form is maintained, and Hot Partitions are handled. DB locks must be managed (or use read/write replicas).
+- **Zotero Integration**: Papers and standards referenced by TEPP must be synced via Local Zotero API (http://localhost:23119/api/) and cited using APA 7th edition in docstrings.
+- **Testing**: We need actual testing of Psychometrics (Fast-MLSIRM parameter calibration, RMSE of estimates, Fixed-Item Parameter Calibration, CAT) against synthetic/demo data.
+- **Security & Compliance**: PII masking cannot break the system. Need SOC 2 and CSAP compliance alternatives to blind PII masking.
+- **LLM Orchestration**: Ensure ALL LLM calls route through `contextual-orchestrator` utilizing API keys (BYTEZ, NVIDIA, OPENROUTER, OPENAI) with auto model discovery and optimal reasoning effort allocation (Fugu/Conductor/TRINITY research).
 
 Buyers need to turn scattered, timestamped records into reviewable branching
 histories without confusing a plausible relation with a proven fact. The
@@ -340,7 +359,6 @@ The integrated `60b52f26` checkpoint passes the full backend suite: `723 passed,
 16 skipped`, with no test failures. Frontend lint, `131 passed`, and production
 build also pass. Four existing dependency deprecation/security warnings remain
 non-failing and are not reclassified as product evidence.
-
 ## Stale-summary continuity checkpoint: 2026-08-20
 
 The private PostgreSQL runtime showed three inspected target rows with summary
@@ -549,9 +567,9 @@ open at `49804b0f`; its current `Analyze (python)` check is queued and its merge
 state is blocked. Earlier SQL/SAST comments are bound to predecessor commits,
 so they are not treated as current-head failures without a fresh matching scan.
 
-  The current evidence supports continued review/check processing, not a merge
-  claim. Re-read the exact head, current review commit, all required Checks, and
-  stack dependency immediately before any protected merge.
+The current evidence supports continued review/check processing, not a merge
+claim. Re-read the exact head, current review commit, all required Checks, and
+stack dependency immediately before any protected merge.
 
 ## Fresh runtime aggregate evidence: 2026-08-21 KST
 
@@ -629,3 +647,9 @@ push, or synthetic runtime success is acceptable.
 These four rows are exact-head observations from the current review loop. They
 do not establish that any behavior is present on protected `main`; re-fetch all
 heads and dependency bases before the next review or merge decision.
+### Provider-error checkpoint
+
+Provider failures are not buyer evidence. The API and browser boundaries must
+return stable next actions while retaining the original exception only for
+in-process operator diagnostics. See ADR 0123 and the client regression tests
+for this protected boundary.
