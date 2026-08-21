@@ -3539,15 +3539,17 @@ describe("App, authenticated", () => {
     expect(appHeader).not.toBeNull();
     expect(within(appHeader as HTMLElement).getByLabelText("Language")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Workspace navigation" })).not.toHaveTextContent("Language");
-    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
-    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
-    await userEvent.click(
-      within(appHeader as HTMLElement).getByRole("button", { name: "Search" }),
-    );
+    const mobileNavigation = document.getElementById("mobile-workspace-navigation");
+    expect(mobileNavigation).not.toBeNull();
+    await userEvent.click(within(mobileNavigation as HTMLElement).getByRole("button", { name: "Customer master" }));
+    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute(
       "aria-expanded",
       "false",
+    );
+    await userEvent.click(
+      within(appHeader as HTMLElement).getByRole("button", { name: "Search" }),
     );
     expect(document.getElementById("mobile-workspace-navigation")).not.toBeInTheDocument();
     await waitFor(() =>
