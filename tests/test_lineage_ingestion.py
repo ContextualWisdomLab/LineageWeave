@@ -201,6 +201,9 @@ class _RecordingConnection:
 
 def test_visible_graph_attaches_ranked_channel_evidence() -> None:
     class FakeConnection:
+        def __init__(self) -> None:
+            self.queries: list[str] = []
+
         posts = [
             {
                 "post_id": "post-a",
@@ -264,6 +267,7 @@ def test_visible_graph_attaches_ranked_channel_evidence() -> None:
         ]
 
         async def fetch(self, query: str, *_args):
+            self.queries.append(query)
             if "post_lineage_edge_signal" in query:
                 return self.signals
             if "event_lineage_rebuild_channel" in query:
@@ -272,13 +276,17 @@ def test_visible_graph_attaches_ranked_channel_evidence() -> None:
                 return self.rebuilds
             return self.edges if "post_lineage_edge" in query else self.posts
 
-    graph = asyncio.run(visible_lineage_graph(FakeConnection(), lambda row: True))
+    connection = FakeConnection()
+    graph = asyncio.run(visible_lineage_graph(connection, lambda row: True))
     evidence = graph["edges"][0]["channel_evidence"]
     assert [item["signal_code"] for item in evidence] == ["secondary_key", "text", "temporal"]
     assert [item["rank"] for item in evidence] == [1, 2, 3]
     assert "llm" not in {item["signal_code"] for item in evidence}
     assert graph["reconstruction"]["reconstruction_version"] == "lineageweave.reconstruct/2.14.0"
     assert graph["reconstruction"]["active_weights"][0]["signal_code"] == "temporal"
+    weight_query = next(query for query in connection.queries if "event_lineage_rebuild_channel" in query)
+    assert "join common_lookup_value as lookup" in weight_query
+    assert "order by lookup.display_order, channel.signal_code" in weight_query
 
 
 def test_abac_never_reveals_channel_evidence_for_an_invisible_endpoint() -> None:

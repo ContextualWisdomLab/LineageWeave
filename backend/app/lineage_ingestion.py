@@ -173,8 +173,12 @@ async def visible_lineage_graph(
         "from event_lineage_rebuild"
     )
     weight_rows = await conn.fetch(
-        "select signal_code, signal_weight from event_lineage_rebuild_channel "
-        "order by signal_code"
+        "select channel.signal_code, channel.signal_weight "
+        "from event_lineage_rebuild_channel as channel "
+        "join common_lookup_value as lookup "
+        "on lookup.lookup_code = channel.signal_code "
+        "where channel.rebuild_lock = true "
+        "order by lookup.display_order, channel.signal_code"
     )
 
     if focus_post_id is None:
