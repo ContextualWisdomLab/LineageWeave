@@ -36,8 +36,7 @@ provider boundary retain their client-actionable 422 detail.
   into buyer-visible provider diagnostics.
 - Server-side debugging keeps exception chaining without exposing it to buyers.
 - Regression tests exercise unexpected exceptions, not only known transport
-  subclasses, and assert that provider secrets do not appear in server or
-  browser responses.
+  subclasses, and assert that provider secrets do not appear in responses.
 
 ## References — APA 7th
 
