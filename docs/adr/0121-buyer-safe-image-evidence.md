@@ -32,6 +32,11 @@ is explicitly enabled. Compose uses the service name `orchestrator` for its
 local HTTP route; a caller cannot opt into an internal IP destination by
 setting `allow_insecure_http`.
 
+Vision parse failures and unexpected provider failures are also trust-boundary
+events. Their raw response or exception text is never returned in an API
+payload or persisted as post-content detail; the product exposes a stable
+unavailable message and schedules a retry where applicable.
+
 ## Consequences
 
 - Buyer screens cannot expose the analysis agent's instruction as post content.
@@ -42,3 +47,14 @@ setting `allow_insecure_http`.
   pattern and a regression test rather than a broad caption guess.
 - A malformed or attacker-controlled Vision endpoint fails closed at client
   construction, before an API key or image payload is sent.
+- A malformed provider response cannot disclose gateway diagnostics through a
+  buyer-facing error or durable ingestion record.
+
+## References — APA 7th
+
+MITRE. (2026). *CWE-209: Generation of error message containing sensitive
+information*. https://cwe.mitre.org/data/definitions/209.html
+
+National Institute of Standards and Technology. (2020). *Security and privacy
+controls for information systems and organizations* (NIST Special Publication
+800-53 Rev. 5). https://doi.org/10.6028/NIST.SP.800-53r5
