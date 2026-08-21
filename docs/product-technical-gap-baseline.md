@@ -2,7 +2,7 @@
 
 **Snapshot:** 2026-08-21 (Asia/Seoul)
 **Protected-main baseline:** `origin/main`; this document does not claim the active PR is shipped.
-**Audited PR head:** #258 code commit `__TREE_CODE_SHA__` for customer-master hierarchy hardening.
+**Audited PR head:** #258 code commit `4228c48fd8795586ed6859ad4df047508a12f86f` for synchronized ontology and customer-master hierarchy hardening.
 **Active PR update:** Customer Master now has a cycle-safe, accessible hierarchy projection; exact-head
 frontend and Storybook verification is required before merge.
 **Purpose:** connect the normative ADRs and research evidence to product
@@ -66,7 +66,7 @@ claims that an unmerged PR or historical runtime observation is live behavior.
 | FR-10 | Standard provenance uses normalized PROV-O relations; qualified influence implies its unqualified relation and KG edges remain a navigation projection. | ADR 0011, 0065 | PROV-O implementation matrices, ontology, CI contract |
 | FR-11 | Post summaries expose evidence-bearing events and R&R. Requester/processor actions are nullable and may only name actors already bound to the same post summary. | ADR 0052, ADR 0100 | Commit `15e1a378` is on PR #258; one authorized target refresh stored three action rows, while corpus-wide buyer-data acceptance remains unproven |
 | FR-12 | A hierarchy-enrichment timeout leaves the source-grounded summary readable and the actor unbound; it never creates a guessed catalog identity. | ADR 0101, ADR 0010, ADR 0026 | Commit `1c260f20` contains the boundary, ADR, and focused test; independent review, protected-main merge, and fresh runtime evidence remain pending |
-| FR-13 | Customer Master projects authorized corporate entities as a Group → Company → Plant tree. Missing-parent, self-parent, and cyclic edges remain visible as unresolved roots; the UI supports WAI-ARIA tree keyboard navigation and opens source-backed posts independently from hierarchy disclosure. | ADR 0124, ADR 0004, ADR 0010 | `customerMasterTree.ts`, `CustomerMasterTree.tsx`, pure/component tests, and Storybook on code commit `__TREE_CODE_SHA__` |
+| FR-13 | Customer Master projects authorized corporate entities as a Group → Company → Plant tree. Missing-parent, self-parent, and cyclic edges remain visible as unresolved roots; the UI supports WAI-ARIA tree keyboard navigation and opens source-backed posts independently from hierarchy disclosure. | ADR 0124, ADR 0004, ADR 0010 | `customerMasterTree.ts`, `CustomerMasterTree.tsx`, pure/component tests, and Storybook on code commit `4228c48fd8795586ed6859ad4df047508a12f86f` |
 
 ## TRD
 
@@ -173,7 +173,7 @@ evidence for one authorized post, not a corpus-wide acceptance claim.
 
 | Closed gap | Root cause | Closure evidence | Remaining boundary |
 |---|---|---|---|
-| Customer entities could disappear from the buyer surface when `parent_entity_id` formed a self-parent or cycle, and the visual nesting lacked a real tree keyboard contract. | The UI recursively assembled only root-reachable nodes and reused `aria-expanded` for related-post evidence rather than hierarchy state. | Code commit `__TREE_CODE_SHA__` promotes malformed edges to visible unresolved roots, separates branch/evidence disclosure, and adds pure, component, and Storybook coverage. | The API still exposes one flat parent context; legal, operating, sales, billing, and time-valid hierarchies require a later normalized relation model. |
+| Customer entities could disappear from the buyer surface when `parent_entity_id` formed a self-parent or cycle, and the visual nesting lacked a real tree keyboard contract. | The UI recursively assembled only root-reachable nodes and reused `aria-expanded` for related-post evidence rather than hierarchy state. | Code commit `4228c48fd8795586ed6859ad4df047508a12f86f` promotes malformed edges to visible unresolved roots, separates branch/evidence disclosure, and adds pure, component, and Storybook coverage. | The API still exposes one flat parent context; legal, operating, sales, billing, and time-valid hierarchies require a later normalized relation model. |
 
 ## Active PR audit
 
