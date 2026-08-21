@@ -20,7 +20,7 @@ from urllib.parse import urlencode, urlparse
 import certifi
 
 from .llm_context import current_llm_metadata
-from .observability import current_session_id, traced
+from .observability import current_session_id, inject_trace_context, traced
 
 # Some interpreter distributions don't reliably inherit the OS trust store.
 # Pointing at certifi keeps full chain validation without weakening TLS.
@@ -139,6 +139,7 @@ def post_json(
             "service.peer.name": "contextual-orchestrator",
         },
     ) as span:
+        inject_trace_context(request_headers)
         status, raw = _request(
             "POST",
             url,

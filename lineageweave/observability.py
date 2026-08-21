@@ -15,9 +15,11 @@ from typing import Any
 
 try:
     from opentelemetry import trace
+    from opentelemetry.propagate import inject as _otel_inject
     from opentelemetry.trace import Status, StatusCode
 except ImportError:  # pragma: no cover - dependency is declared by the project
     trace = None  # type: ignore[assignment]
+    _otel_inject = None
     Status = None  # type: ignore[assignment,misc]
     StatusCode = None  # type: ignore[assignment,misc]
 
@@ -41,6 +43,12 @@ def current_session_id() -> str | None:
     metadata = current_llm_metadata() or {}
     value = metadata.get("lineageweave_post_session_id") or metadata.get("session_id")
     return value if isinstance(value, str) and value else None
+
+
+def inject_trace_context(carrier: dict[str, str]) -> None:
+    """Inject the active W3C trace context without adding request content."""
+    if _otel_inject is not None:
+        _otel_inject(carrier)
 
 
 def _safe_attributes(

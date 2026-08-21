@@ -17,7 +17,11 @@ def test_post_json_sends_post_session_header(monkeypatch):
         captured.update(method=method, headers=headers)
         return 200, b"{}"
 
+    def fake_inject(headers):
+        headers["traceparent"] = "00-11111111111111111111111111111111-2222222222222222-01"
+
     monkeypatch.setattr(http_client, "_request", fake_request)
+    monkeypatch.setattr(http_client, "inject_trace_context", fake_inject)
     with use_llm_metadata({"lineageweave_post_session_id": "post-session-1"}):
         http_client.post_json(
             "https://orchestrator.example/v1/chat/completions",
@@ -28,6 +32,7 @@ def test_post_json_sends_post_session_header(monkeypatch):
 
     assert captured["method"] == "POST"
     assert captured["headers"]["x-lineageweave-session-id"] == "post-session-1"
+    assert captured["headers"]["traceparent"].startswith("00-1111")
 
 
 def test_current_session_id_reads_existing_context():
