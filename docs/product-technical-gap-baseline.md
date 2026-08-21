@@ -12,20 +12,20 @@ Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
 Current PR exact head observed before this documentation update:
-`1982348b1e2a92ec559da953d4c1d4431f325aa6`. The authenticated
-browser evidence below used the frontend image built from the preceding source
-head; the intervening remote commits add locale/test coverage and the current
-head still needs a clean acceptance rebuild.
+`e254a2b13f28df9ce6eda813ce4a214311df4b49`. The authenticated browser
+evidence below used the frontend image rebuilt from this source head; this
+documentation update will create the next exact head and therefore requires
+the protected checks to rerun.
 
 - **Implemented in source:** PostgreSQL-backed API boundaries, Keyverse/OIDC
   identity boundary, workspace navigation, post popup, ABAC/RBAC surfaces, Korean
   summary, 5W1H, R&R/Keyman, customer hierarchy, tickets/calendar, chat,
   provenance/evidence, and reconstructed lineage API/DAG layout.
 - **Implemented in source, runtime evidence still required:** TEPP import/API
-  transport, contextual-orchestrator LLM/VISION transport, SearXNG
-  corroboration, Local Zotero ingestion, real PostgreSQL import, and browser
-  login-to-evidence workflows. A source adapter or a synthetic test is not live
-  integration proof.
+  transport, contextual-orchestrator processing of the authorized corpus,
+  SearXNG corroboration, Local Zotero ingestion, real PostgreSQL import, and
+  complete accessibility/edge-case browser workflows. Synthetic routes and
+  health checks are recorded separately and are not corpus proof.
 - **Figma reference:** ADR 0118 records file `1Su3lDRmiZdcUs47t1QwIX`; the
   inspected Event Lineage frames are desktop `5:14` and mobile `5:15`.
 - **Current PR gate:** PR #350 is open and review-required; its required
@@ -83,8 +83,9 @@ head still needs a clean acceptance rebuild.
   browser sweep had a scrollable page and rendered the post list below the
   sticky shell. A duplicate phone `.app-header` rule that overrode the required
   vertical padding was removed; `mobileHeaderCss.test.ts` now enforces one
-  phone rule with `0.6rem 1rem` padding. Re-run after the current-head image
-  rebuild before acceptance.
+  phone rule with `0.6rem 1rem` padding. The current exact-head frontend image
+  was rebuilt and the authenticated 390px sweep reconfirmed the header and
+  below-the-fold content affordance.
 - **Large-body search migration — fixed in this worktree:** current PostgreSQL
   migration replay initially exhausted the 58.8 GB container overlay while
   building a raw HTML/Base64 body FTS index. The normalized search function and
@@ -151,19 +152,19 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Branching Event Lineage DAG with evidence trail | `LineageDag.tsx`, Storybook story, Figma frames, frontend tests; runtime cases include both a rendered DAG and honest empty states, while current corpus coverage remains sparse | source + unit + local-integration partial |
 | Customer master and hierarchy tree | `/api/customer-master`, affiliate tree, catalog migrations | source + unit; live resolution open |
 | VOC/VOM/VOP/VOCC/VOCO/VOS role classification | common lookup values and relationship APIs | source + unit; live classification open |
-| Evidence-grounded chat and source navigation | `/chat`, `/ask`, citation/evidence UI | source + unit; orchestrator runtime open |
+| Evidence-grounded chat and source navigation | `/chat`, `/ask`, citation/evidence UI | source + unit; synthetic orchestrator judge route verified, corpus chat/runtime evidence open |
 | PU/team/project weekly/monthly reports | report API/UI and grouping controls | source + unit; TEPP-backed live report open |
 | TEPP calibrated measurement, dichotomous items, multilevel/MMM/time model | published import/REST boundary and TEPP ADR/PRD references | boundary-only; live-external open |
-| contextual-orchestrator routing, VISION, embedding, schema repair | clients and provenance/session boundary | source; live-external open |
+| contextual-orchestrator routing, VISION, embedding, schema repair | clients and provenance/session boundary; synthetic authenticated route returned a judge score of `0.98`, OCR succeeded, and region location returned five regions | source + local-integration partial; corpus backfill, capability/readiness evidence, and schema-repair workflow open |
 | HTML semantic units, tables, indentation, footnotes, formulas | parser modules and synthetic tests; 11-case authenticated popup sweep had no popup errors and rendered the supplied footnote/table cases | source + unit + local-integration partial; formula/semantic correctness open |
-| Base64/file image regions and multimodal evidence | image-region schema and VISION client boundary; image-table case rendered five images but zero region panels | source + local-integration partial; live-external open |
+| Base64/file image regions and multimodal evidence | image-region schema and VISION client boundary; live aggregate has 12,823 images, 22 described images/regions, and 422 failed images; current synthetic VISION route returned five regions | source + local-integration partial; supplied image-table case re-backfill and complete corpus coverage open |
 | Abbreviation/multilingual alias/entity disambiguation | catalog hints and resolver boundary | source; live corroboration open |
-| SearXNG/internal relation fact check | verification endpoint and unavailable handling | source; SearXNG runtime open |
+| SearXNG/internal relation fact check | verification endpoint and unavailable handling; local SearXNG health and JSON query both returned HTTP 200, while some upstream engines reported rate-limit/CAPTCHA results | source + local-integration partial; corroboration policy and reliable external coverage open |
 | Valkey event queue and cloud-native Compose stack | queue modules, Compose services, health checks | source + local-integration; delivery stress open |
 | 3NF, hot partitions, locks, read/write contention | migrations and documented boundaries | source; operational evidence open |
 | Rust/GPU/CPU psychometric computation | delegated to TEPP, not reimplemented here | boundary accepted; live TEPP evidence open |
 | APA 7 doctoring and Zotero OA records | baseline bibliography, local Zotero API reachable, known metadata found | source + local-integration; OA attachment audit open |
-| Browser E2E from login through evidence | authenticated local OIDC login, protected list, drawer/search, popup sweep, and aggregate evidence checks; image predates current exact head | local-integration partial; current-head redeploy open |
+| Browser E2E from login through evidence | authenticated local OIDC login, protected list, drawer/search, popup sweep, and aggregate evidence checks at 390x958 on current exact head `e254a2b13f28df9ce6eda813ce4a214311df4b49`; `htmlLang=zh`, localized drawer/scope/logout, popup, summary, Event Lineage, and zero popup errors | source + local-integration; external provider/runtime evidence remains open |
 | Storybook scenes/edge events and design-token coverage | `LineageDag.stories.tsx`, inventory, Storybook build | source + unit |
 | External email/project lineage package boundary | PR #343 publishes strict v1.0.0 bounded request/result types, available-time cutoff handling, observed/inferred/proposed truth states, pair-budget enforcement, and no source/provider access | source + focused unit; exact-head hosted gates, independent review, and immutable release open |
 | Naruon calendar projection boundary | PR #337 defines a strict read projection contract without making LineageWeave a CalDAV provider | source + focused unit; Naruon endpoint, runtime wiring, restack, and review open |
