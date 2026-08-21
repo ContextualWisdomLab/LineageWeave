@@ -33,6 +33,9 @@ adapter can be added without changing reconstruction.
   explicit `inferred` truth status.
 - Missing contextual-orchestrator adjudication is an explicit limitation; it
   is not a zero score or a fabricated negative signal.
+- Provider exceptions and non-finite or out-of-range provider scores are
+  converted to stable contract errors at this boundary. Raw provider response
+  bodies and exception text never cross the public contract.
 - The request digest is the idempotency identity. Persistence, retry, tenant
   authorization, and provider actions remain the consumer's responsibility.
 
@@ -53,7 +56,14 @@ contract and evidence policy.
 - World Wide Web Consortium. (2013). *PROV-O: The PROV ontology*.
 - Internet Engineering Task Force. (2008). *RFC 5322: Internet message format*.
 - World Wide Web Consortium. (2017). *OWL-Time ontology*.
+- National Institute of Standards and Technology. (2020). *Security and
+  privacy controls for information systems and organizations: NIST SP
+  800-53 Rev. 5*. https://doi.org/10.6028/NIST.SP.800-53r5
+- OWASP Foundation. (2024). *Application Security Verification Standard
+  5.0.0*. https://github.com/OWASP/ASVS
+- MITRE. (n.d.). *CWE-209: Generation of error message containing sensitive
+  information*. https://cwe.mitre.org/data/definitions/209.html
 
-These standards support explicit provenance, separate message evidence, and
-distinct event/availability clocks; they do not authorize a cross-service
-database dependency.
+These standards support explicit provenance, separate message evidence,
+distinct event/availability clocks, and prevention of sensitive information in
+error messages; they do not authorize a cross-service database dependency.

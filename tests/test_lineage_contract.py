@@ -20,6 +20,16 @@ from lineageweave.models import Edge, Record, Tree
 BASE_TIME = datetime(2026, 1, 1, 9, tzinfo=UTC)
 
 
+class RawProviderFailure:
+    """Available provider client that exposes a secret-bearing failure."""
+
+    available = True
+
+    def judge(self, candidate_label: str, record_label: str) -> float:
+        """Raise the raw provider failure that the contract must sanitize."""
+        raise RuntimeError("provider secret response body")
+
+
 def evidence(
     ref: str,
     *,
@@ -170,6 +180,17 @@ def test_analyze_lineage_reports_an_explicitly_unavailable_llm() -> None:
     )
 
     assert any(item.code == "llm_channel_unavailable" for item in result.limitations)
+
+
+def test_analyze_lineage_sanitizes_unexpected_provider_failures() -> None:
+    """Raw provider messages do not cross the public lineage boundary."""
+    with pytest.raises(ValueError, match="LLM provider response unavailable") as captured:
+        analyze_lineage(
+            request((evidence("provider-failure-001"), evidence("provider-failure-002", occurred_at=BASE_TIME + timedelta(minutes=1)))),
+            llm=RawProviderFailure(),
+        )
+
+    assert "provider secret" not in str(captured.value)
 
 
 def test_analyze_lineage_accepts_an_available_llm_without_candidates() -> None:

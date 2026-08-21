@@ -8,6 +8,7 @@ that was not present in the request.
 from __future__ import annotations
 
 import json
+import math
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from hashlib import sha256
@@ -21,6 +22,29 @@ _MAX_REFERENCE_LENGTH = 200
 _MAX_TEXT_LENGTH = 8_000
 _MAX_PROJECT_HINTS = 500
 _MAX_EMAIL_REFS_PER_RECORD = 64
+
+
+class _SafeAdjudicationClient:
+    """Keep raw provider failures outside the public contract boundary."""
+
+    available = True
+
+    def __init__(self, client: AdjudicationClient) -> None:
+        """Wrap one available provider client."""
+        self._client = client
+
+    def judge(self, candidate_label: str, record_label: str) -> float:
+        """Return a bounded score or a stable, non-sensitive contract error."""
+        try:
+            score = self._client.judge(candidate_label, record_label)
+        except Exception as exc:
+            raise ValueError("LLM provider response unavailable") from exc
+        if isinstance(score, bool) or not isinstance(score, (int, float)):
+            raise ValueError("LLM provider score was invalid")  # noqa: TRY004 - public contract uses ValueError
+        number = float(score)
+        if not math.isfinite(number) or not 0.0 <= number <= 1.0:
+            raise ValueError("LLM provider score was invalid")
+        return number
 
 
 def _required_text(value: str, field_name: str, *, maximum: int = _MAX_REFERENCE_LENGTH) -> str:
@@ -373,7 +397,12 @@ def analyze_lineage(
         )
         for record in eligible
     ]
-    trees = reconstruct(records, llm=llm) if records else []
+    effective_llm = (
+        _SafeAdjudicationClient(llm)
+        if llm is not None and getattr(llm, "available", False)
+        else llm
+    )
+    trees = reconstruct(records, llm=effective_llm) if records else []
     edges = [edge for tree in trees for edge in tree.edges]
     eligible_refs = {record.evidence_ref for record in eligible}
     result_edges: list[LineageEdgeResult] = []
