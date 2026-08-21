@@ -235,7 +235,7 @@ def _render_term_sections(graph: Graph) -> tuple[str, str, int]:
         sections.append(
             f'<section class="term-section" id="{section_id}">'
             f"<h2>{html.escape(heading)}</h2>"
-            f'<div class="term-grid'>{"".join(cards)}</div>'
+            '<div class="term-grid">' + "".join(cards) + "</div>"
             "</section>"
         )
     return "".join(nav_items), "".join(sections), len(counted)
