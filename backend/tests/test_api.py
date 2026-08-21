@@ -3583,6 +3583,88 @@ def test_global_ask_failed_reauthorization_rolls_back_and_session_continues(
         verify_conn.close()
 
 
+def test_post_chat_failed_reauthorization_rolls_back_and_retry_succeeds(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """A post-chat citation race rolls back its cached answer before retry."""
+    from lineageweave.post_chat import ChatAnswer
+    from backend.app.ask_project_history import AskEvidenceProjection
+
+    class _FakePostChatClient:
+        available = True
+
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def answer(self, question: str, sources) -> ChatAnswer:
+            del question, sources
+            self.calls += 1
+            if self.calls == 1:
+                return ChatAnswer(
+                    answer_text="Synthetic answer that must be rolled back",
+                    cited_post_ids=(seeded_db["public_post_id"],),
+                )
+            return ChatAnswer(answer_text="Recovered post-chat answer", cited_post_ids=())
+
+    chat_client = _FakePostChatClient()
+    authorization_checks = 0
+
+    async def reauthorization(*_args, **_kwargs) -> AskEvidenceProjection:
+        nonlocal authorization_checks
+        authorization_checks += 1
+        return AskEvidenceProjection(
+            all_citations_visible=authorization_checks > 1,
+            cited_posts=(),
+            project_histories=(),
+            project_histories_truncated=False,
+            knowledge_cutoff="2026-08-21T00:00:00Z",
+        )
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: chat_client)
+    monkeypatch.setattr("backend.app.main.read_authorized_ask_evidence", reauthorization)
+
+    post_id = seeded_db["own_private_post_id"]
+    first_question = "Post chat authorization race"
+    failed = client.post(
+        f"/api/posts/{post_id}/chat",
+        json={"question": first_question},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert failed.status_code == 503
+    assert "Synthetic answer" not in failed.text
+
+    retry = client.post(
+        f"/api/posts/{post_id}/chat",
+        json={"question": "Retry after post chat race"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert retry.status_code == 200, retry.text
+    assert retry.json()["answer_text"] == "Recovered post-chat answer"
+
+    verify_conn = psycopg2.connect(seeded_db["dsn"])
+    verify_conn.autocommit = True
+    try:
+        with verify_conn.cursor() as cur:
+            cur.execute(
+                "select count(*) from post_chat_result where post_id = %s and question_text = %s",
+                (post_id, first_question),
+            )
+            assert cur.fetchone()[0] == 0
+            cur.execute(
+                "select question_text, answer_text from post_chat_result "
+                "where post_id = %s order by computed_at, question_norm",
+                (post_id,),
+            )
+            assert cur.fetchall() == [("Retry after post chat race", "Recovered post-chat answer")]
+            cur.execute(
+                "select count(*) from post_chat_citation where post_id = %s",
+                (post_id,),
+            )
+            assert cur.fetchone()[0] == 0
+    finally:
+        verify_conn.close()
+
+
 def test_keymen_provider_error_does_not_leak_raw_error(
     client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
