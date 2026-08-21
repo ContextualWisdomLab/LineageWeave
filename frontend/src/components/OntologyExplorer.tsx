@@ -7,7 +7,7 @@ import {
   type OntologyNeighborhoodPayload,
 } from "../api";
 import { t, tf } from "../i18n";
-import { layoutOntologyNeighborhood, neighborhoodCsv } from "../ontologyLayout";
+import { filterNeighborhood, layoutOntologyNeighborhood, neighborhoodCsv } from "../ontologyLayout";
 
 export type OntologyExplorerStatus =
   | "ready"
@@ -46,6 +46,10 @@ const TRUTH_LABEL: Record<string, string> = {
   truth_rejected: "Rejected",
 };
 
+function nodeKey(node: Pick<OntologyGraphNodePayload, "node_type_code" | "node_id">): string {
+  return `${node.node_type_code}:${node.node_id}`;
+}
+
 /**
  * Inspects a typed ontology neighborhood from an authorized focus node.
  *
@@ -64,7 +68,7 @@ export function OntologyExplorer({
   const [loaded, setLoaded] = useState<OntologyNeighborhoodPayload | null>(provided ?? null);
   const [status, setStatus] = useState<OntologyExplorerStatus>(providedStatus ?? (provided ? statusFromPayload(provided) : "loading"));
   const [query, setQuery] = useState("");
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [focusType, setFocusType] = useState(focusNodeType);
   const [focusId, setFocusId] = useState(focusNodeId);
@@ -112,13 +116,13 @@ export function OntologyExplorer({
 
   const visible = useMemo(() => filterNeighborhood(loaded, query), [loaded, query]);
   const layout = useMemo(() => (visible ? layoutOntologyNeighborhood(visible) : null), [visible]);
-  const selectedNode = visible?.nodes.find((node) => node.node_id === selectedNodeId) ?? null;
+  const selectedNode = visible?.nodes.find((node) => nodeKey(node) === selectedNodeKey) ?? null;
   const selectedEdge = visible?.edges.find((edge) => edge.edge_id === selectedEdgeId) ?? null;
 
   function resetFocus() {
     setFocusType(focusNodeType);
     setFocusId(focusNodeId);
-    setSelectedNodeId(null);
+    setSelectedNodeKey(null);
     setSelectedEdgeId(null);
     setQuery("");
   }
@@ -132,7 +136,7 @@ export function OntologyExplorer({
     if (!visible) return;
     downloadFile(
       "ontology-neighborhood.jsonld",
-      `${JSON.stringify(jsonldForNeighborhood(visible), null, 2)}\n`,
+      `${JSON.stringify(visible.jsonld, null, 2)}\n`,
       "application/ld+json",
     );
   }
@@ -178,15 +182,15 @@ export function OntologyExplorer({
           <div className="ontology-graph-desktop">
             <OntologyGraph
               layout={layout}
-              selectedNodeId={selectedNodeId}
+              selectedNodeKey={selectedNodeKey}
               selectedEdgeId={selectedEdgeId}
               onSelectNode={(node) => {
-                setSelectedNodeId(node.node_id);
+                setSelectedNodeKey(nodeKey(node));
                 setSelectedEdgeId(null);
               }}
               onSelectEdge={(edge) => {
                 setSelectedEdgeId(edge.edge_id);
-                setSelectedNodeId(null);
+                setSelectedNodeKey(null);
               }}
             />
           </div>
@@ -195,7 +199,7 @@ export function OntologyExplorer({
             selectedEdgeId={selectedEdgeId}
             onSelectEdge={(edgeId) => {
               setSelectedEdgeId(edgeId);
-              setSelectedNodeId(null);
+              setSelectedNodeKey(null);
             }}
           />
         </>
@@ -212,7 +216,7 @@ export function OntologyExplorer({
               ? () => (onSelectPost ?? onOpenEvidence)?.(selectedNode.node_id)
               : undefined
           }
-          onClose={() => setSelectedNodeId(null)}
+          onClose={() => setSelectedNodeKey(null)}
         />
       ) : null}
       {selectedEdge ? (
@@ -284,13 +288,13 @@ function OntologyLegend() {
 
 function OntologyGraph({
   layout,
-  selectedNodeId,
+  selectedNodeKey,
   selectedEdgeId,
   onSelectNode,
   onSelectEdge,
 }: {
   layout: ReturnType<typeof layoutOntologyNeighborhood>;
-  selectedNodeId: string | null;
+  selectedNodeKey: string | null;
   selectedEdgeId: string | null;
   onSelectNode: (node: OntologyGraphNodePayload) => void;
   onSelectEdge: (edge: OntologyGraphEdgePayload) => void;
@@ -330,8 +334,8 @@ function OntologyGraph({
               tabIndex={0}
               aria-label={tf("Select edge: {property} from {source} to {target}", {
                 property: edge.property_label,
-                source: edge.source_node_id,
-                target: edge.target_node_id,
+                source: `${edge.source_node_type_code}:${edge.source_node_id}`,
+                target: `${edge.target_node_type_code}:${edge.target_node_id}`,
               })}
               aria-pressed={selected ? "true" : "false"}
               onClick={() => onSelectEdge(edge)}
@@ -347,13 +351,13 @@ function OntologyGraph({
       })}
       {layout.nodes.map((node) => (
         <g
-          key={node.node_id}
-          className={node.node_id === selectedNodeId ? "ontology-node ontology-node-selected" : "ontology-node"}
+          key={nodeKey(node)}
+          className={nodeKey(node) === selectedNodeKey ? "ontology-node ontology-node-selected" : "ontology-node"}
           transform={`translate(${node.x}, ${node.y})`}
           role="button"
           tabIndex={0}
           aria-label={tf("Select node: {label}", { label: `${t(NODE_TYPE_LABEL[node.node_type_code] ?? node.node_type_code)} ${node.display_label}` })}
-          aria-pressed={node.node_id === selectedNodeId ? "true" : "false"}
+          aria-pressed={nodeKey(node) === selectedNodeKey ? "true" : "false"}
           onClick={() => onSelectNode(node)}
           onKeyDown={(event) => {
             if (event.key === "Enter" || event.key === " ") {
@@ -450,10 +454,10 @@ function OntologyNodeDrawer({
     <aside className="ontology-drawer" aria-label={t("Node evidence")}>
       <h4>{node.display_label}</h4>
       <p>
-        {t(NODE_TYPE_LABEL[node.node_type_code] ?? node.node_type_code)} · {t(TRUTH_LABEL[node.truth_status_code] ?? node.truth_status_code)}
+        {t(NODE_TYPE_LABEL[node.node_type_code] ?? node.node_type_code)} · {t(TRUTH_LABEL[node.truth_status_code ?? ""] ?? node.truth_status_code ?? "Unknown")}
       </p>
       <p>{t("Ontology class")}: {node.ontology_class_iri}</p>
-      <p>{t("Recorded at")}: {node.recorded_at.slice(0, 10)}</p>
+      <p>{t("Recorded at")}: {node.recorded_at?.slice(0, 10) ?? t("Unknown")}</p>
       <div className="ontology-explorer-actions">
         <button type="button" onClick={onFocus}>
           {t("Focus this node next")}
@@ -482,8 +486,12 @@ function OntologyEdgeDrawer({
   onOpenEvidence?: (postId: string) => void;
   onClose: () => void;
 }) {
-  const source = payload?.nodes.find((node) => node.node_id === edge.source_node_id);
-  const target = payload?.nodes.find((node) => node.node_id === edge.target_node_id);
+  const source = payload?.nodes.find(
+    (node) => node.node_type_code === edge.source_node_type_code && node.node_id === edge.source_node_id,
+  );
+  const target = payload?.nodes.find(
+    (node) => node.node_type_code === edge.target_node_type_code && node.node_id === edge.target_node_id,
+  );
   return (
     <aside className="ontology-drawer" aria-label={t("Edge provenance")}>
       <h4>{edge.property_label}</h4>
@@ -520,65 +528,19 @@ function OntologyEdgeDrawer({
   );
 }
 
-export function filterNeighborhood(
-  payload: OntologyNeighborhoodPayload | null,
-  query: string,
-): OntologyNeighborhoodPayload | null {
-  if (!payload) return null;
-  const needle = query.trim().toLowerCase();
-  if (!needle) return payload;
-  const nodeMatch = (node: OntologyGraphNodePayload) =>
-    `${node.display_label} ${node.node_type_code} ${node.truth_status_code}`.toLowerCase().includes(needle);
-  const edgeMatch = (edge: OntologyGraphEdgePayload) =>
-    `${edge.property_label} ${edge.property_code} ${edge.truth_status_code}`.toLowerCase().includes(needle);
-  const nodesById = new Map(payload.nodes.map((node) => [node.node_id, node]));
-  const edges = payload.edges.filter((edge) => {
-    const source = nodesById.get(edge.source_node_id);
-    const target = nodesById.get(edge.target_node_id);
-    return edgeMatch(edge) || Boolean(source && nodeMatch(source)) || Boolean(target && nodeMatch(target));
-  });
-  const keep = new Set<string>([payload.focus_node_id]);
-  for (const edge of edges) {
-    keep.add(edge.source_node_id);
-    keep.add(edge.target_node_id);
-  }
-  for (const node of payload.nodes) {
-    if (nodeMatch(node)) keep.add(node.node_id);
-  }
-  const nodes = payload.nodes.filter((node) => keep.has(node.node_id));
-  const exact_value_rows = payload.exact_value_rows.filter((row) =>
-    edges.some((edge) => edge.edge_id === row.edge_id),
-  );
-  return { ...payload, nodes, edges, exact_value_rows };
-}
-
-export function jsonldForNeighborhood(payload: OntologyNeighborhoodPayload): Record<string, unknown> {
-  const graph = payload.jsonld["@graph"];
-  if (!Array.isArray(graph)) return { ...payload.jsonld, "@graph": [] };
-  const visibleIds = new Set([
-    ...payload.nodes.map((node) => `lw:node/${node.node_type_code}/${node.node_id}`),
-    ...payload.edges.map((edge) => `lw:edge/${edge.edge_id}`),
-  ]);
-  return {
-    ...payload.jsonld,
-    "@graph": graph.filter((item) => {
-      if (!item || typeof item !== "object" || Array.isArray(item)) return false;
-      const id = (item as Record<string, unknown>)["@id"];
-      return typeof id === "string" && visibleIds.has(id);
-    }),
-  };
-}
-
 function downloadFile(name: string, body: string, type: string) {
   const blob = new Blob([body], { type });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
   link.download = name;
-  document.body.appendChild(link);
-  link.click();
-  window.setTimeout(() => {
-    URL.revokeObjectURL(url);
-    link.remove();
-  }, 0);
+  document.body.append(link);
+  try {
+    link.click();
+  } finally {
+    window.setTimeout(() => {
+      URL.revokeObjectURL(url);
+      link.remove();
+    }, 0);
+  }
 }

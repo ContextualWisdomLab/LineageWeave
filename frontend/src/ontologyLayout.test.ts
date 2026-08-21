@@ -30,7 +30,7 @@ function payload(): OntologyNeighborhoodPayload {
         node_id: PERSON_ID,
         node_type_code: "node_person",
         ontology_class_iri: "https://example.test/Person",
-        display_label: "Priya Nair",
+        display_label: "Test Person",
         truth_status_code: "truth_observed",
         valid_from: null,
         valid_to: null,
@@ -54,7 +54,9 @@ function payload(): OntologyNeighborhoodPayload {
     edges: [
       {
         edge_id: "mentions:post-person",
+        source_node_type_code: "node_post",
         source_node_id: POST_ID,
+        target_node_type_code: "node_person",
         target_node_id: PERSON_ID,
         property_code: "mentions",
         ontology_property_iri: "https://example.test/mentions",
@@ -68,7 +70,9 @@ function payload(): OntologyNeighborhoodPayload {
       },
       {
         edge_id: "affiliated:person-corp",
+        source_node_type_code: "node_person",
         source_node_id: PERSON_ID,
+        target_node_type_code: "node_corporate_entity",
         target_node_id: CORP_ID,
         property_code: "affiliatedWith",
         ontology_property_iri: "https://example.test/affiliatedWith",
@@ -91,7 +95,7 @@ function payload(): OntologyNeighborhoodPayload {
         property_label: "mentions",
         ontology_property_iri: "https://example.test/mentions",
         target_node_id: PERSON_ID,
-        target_label: "Priya Nair",
+        target_label: "Test Person",
         target_type_code: "node_person",
         truth_status_code: "truth_observed",
         recorded_at: "2026-01-10T12:00:00+00:00",
@@ -113,6 +117,28 @@ describe("ontologyLayout", () => {
     expect(new Set(first.nodes.map((node) => `${node.x},${node.y}`)).size).toBe(first.nodes.length);
   });
 
+  it("keeps node identity typed when identifiers collide across catalogs", () => {
+    const source = payload();
+    const collided: OntologyNeighborhoodPayload = {
+      ...source,
+      nodes: source.nodes.map((node) =>
+        node.node_type_code === "node_person" ? { ...node, node_id: POST_ID } : node,
+      ),
+      edges: source.edges.map((edge) =>
+        edge.source_node_type_code === "node_person" || edge.target_node_type_code === "node_person"
+          ? {
+              ...edge,
+              source_node_id: edge.source_node_type_code === "node_person" ? POST_ID : edge.source_node_id,
+              target_node_id: edge.target_node_type_code === "node_person" ? POST_ID : edge.target_node_id,
+            }
+          : edge,
+      ),
+    };
+    const layout = layoutOntologyNeighborhood(collided);
+    expect(layout.nodes).toHaveLength(3);
+    expect(layout.edges).toHaveLength(2);
+  });
+
   it("exports CSV without leaking omitted counts", () => {
     const csv = neighborhoodCsv(payload());
     expect(csv).toContain("Demo public post");
@@ -128,31 +154,31 @@ describe("ontologyLayout", () => {
       ],
     });
     expect(quoted).toContain('"Demo, ""quoted"" post"');
-    const formulaSafe = neighborhoodCsv({
+    const formula = neighborhoodCsv({
       ...payload(),
-      exact_value_rows: [{ ...payload().exact_value_rows[0], source_label: "=1+1" }],
+      exact_value_rows: [
+        {
+          ...payload().exact_value_rows[0],
+          source_label: "=1+1",
+        },
+      ],
     });
-    expect(formulaSafe).toContain("'=1+1");
+    expect(formula).toContain("'=1+1");
   });
 
-  it("uses locale-independent code-unit ordering for node placement", () => {
-    const ordered = layoutOntologyNeighborhood({
-      ...payload(),
-      nodes: payload().nodes.map((node) =>
-        node.node_id === PERSON_ID ? { ...node, display_label: "ä" } :
-        node.node_id === CORP_ID ? { ...node, display_label: "z" } : node,
-      ),
-      edges: payload().edges.map((edge) =>
-        edge.edge_id === "affiliated:person-corp"
-          ? { ...edge, source_node_id: POST_ID }
-          : edge,
-      ),
+  it("uses code-unit ordering instead of the runtime locale", () => {
+    const unordered = payload();
+    const laidOut = layoutOntologyNeighborhood({
+      ...unordered,
+      edges: [],
+      exact_value_rows: [],
+      nodes: [
+        { ...unordered.nodes[0], display_label: "Focus" },
+        { ...unordered.nodes[1], display_label: "ä" },
+        { ...unordered.nodes[2], display_label: "z" },
+      ],
     });
-    expect(
-      ordered.nodes
-        .filter((node) => node.depth === 1)
-        .sort((left, right) => left.y - right.y)
-        .map((node) => node.node_id),
-    ).toEqual([CORP_ID, PERSON_ID]);
+    const byId = new Map(laidOut.nodes.map((node) => [node.node_id, node]));
+    expect(byId.get(CORP_ID)!.y).toBeLessThan(byId.get(PERSON_ID)!.y);
   });
 });

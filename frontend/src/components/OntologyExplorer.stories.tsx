@@ -29,7 +29,7 @@ const demoNeighborhood: OntologyNeighborhoodPayload = {
       node_id: PERSON_ID,
       node_type_code: "node_person",
       ontology_class_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Person",
-      display_label: "Priya Nair",
+        display_label: "Test Person",
       truth_status_code: "truth_observed",
       valid_from: null,
       valid_to: null,
@@ -53,7 +53,9 @@ const demoNeighborhood: OntologyNeighborhoodPayload = {
   edges: [
     {
       edge_id: `mentions:node_post:${POST_ID}:node_person:${PERSON_ID}`,
+      source_node_type_code: "node_post",
       source_node_id: POST_ID,
+      target_node_type_code: "node_person",
       target_node_id: PERSON_ID,
       property_code: "mentions",
       ontology_property_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#mentions",
@@ -67,7 +69,9 @@ const demoNeighborhood: OntologyNeighborhoodPayload = {
     },
     {
       edge_id: `affiliatedWith:node_person:${PERSON_ID}:node_corporate_entity:${CORP_ID}`,
+      source_node_type_code: "node_person",
       source_node_id: PERSON_ID,
+      target_node_type_code: "node_corporate_entity",
       target_node_id: CORP_ID,
       property_code: "affiliatedWith",
       ontology_property_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#affiliatedWith",
@@ -90,7 +94,7 @@ const demoNeighborhood: OntologyNeighborhoodPayload = {
       property_label: "mentions",
       ontology_property_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#mentions",
       target_node_id: PERSON_ID,
-      target_label: "Priya Nair",
+      target_label: "Test Person",
       target_type_code: "node_person",
       truth_status_code: "truth_observed",
       recorded_at: "2026-01-10T12:00:00+00:00",
@@ -101,7 +105,7 @@ const demoNeighborhood: OntologyNeighborhoodPayload = {
     {
       edge_id: `affiliatedWith:node_person:${PERSON_ID}:node_corporate_entity:${CORP_ID}`,
       source_node_id: PERSON_ID,
-      source_label: "Priya Nair",
+      source_label: "Test Person",
       source_type_code: "node_person",
       property_code: "affiliatedWith",
       property_label: "affiliated with",
@@ -166,14 +170,46 @@ type Story = StoryObj<typeof meta>;
 export const DesktopNeighborhood: Story = {};
 
 export const NarrowExactValue: Story = {
-  globals: { viewport: { value: "mobile1" } },
+  decorators: [
+    (Story) => (
+      <div style={{ maxWidth: 420 }}>
+        <Story />
+      </div>
+    ),
+  ],
 };
 
-export const NodeDrawer: Story = {};
+export const NodeDrawer: Story = {
+  play: ({ canvasElement }) => {
+    const node = [...canvasElement.querySelectorAll("[role=button]")].find((element) =>
+      element.getAttribute("aria-label")?.startsWith("Select node:"),
+    );
+    if (!node) throw new Error("Ontology node control was not rendered");
+    node.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  },
+};
 
-export const EdgeDrawer: Story = {};
+export const EdgeDrawer: Story = {
+  play: ({ canvasElement }) => {
+    const edge = [...canvasElement.querySelectorAll("[role=button]")].find((element) =>
+      element.getAttribute("aria-label")?.startsWith("Select edge:"),
+    );
+    if (!edge) throw new Error("Ontology edge control was not rendered");
+    edge.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  },
+};
 
-export const LegendAndFilter: Story = {};
+export const LegendAndFilter: Story = {
+  play: ({ canvasElement }) => {
+    const search = canvasElement.querySelector<HTMLInputElement>(
+      'input[aria-label="Search within this neighborhood"]',
+    );
+    if (!search) throw new Error("Ontology search control was not rendered");
+    const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+    setValue?.call(search, "Priya");
+    search.dispatchEvent(new Event("input", { bubbles: true }));
+  },
+};
 
 export const Empty: Story = {
   args: {

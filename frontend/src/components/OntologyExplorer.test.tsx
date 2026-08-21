@@ -2,7 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { OntologyNeighborhoodPayload } from "../api";
-import { filterNeighborhood, jsonldForNeighborhood, OntologyExplorer } from "./OntologyExplorer";
+import { OntologyExplorer } from "./OntologyExplorer";
+import { filterNeighborhood } from "../ontologyLayout";
 
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
 const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
@@ -32,7 +33,7 @@ function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): Ont
         node_id: PERSON_ID,
         node_type_code: "node_person",
         ontology_class_iri: "https://example.test/Person",
-        display_label: "Priya Nair",
+        display_label: "Test Person",
         truth_status_code: "truth_observed",
         valid_from: null,
         valid_to: null,
@@ -56,7 +57,9 @@ function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): Ont
     edges: [
       {
         edge_id: "mentions:post-person",
+        source_node_type_code: "node_post",
         source_node_id: POST_ID,
+        target_node_type_code: "node_person",
         target_node_id: PERSON_ID,
         property_code: "mentions",
         ontology_property_iri: "https://example.test/mentions",
@@ -70,7 +73,9 @@ function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): Ont
       },
       {
         edge_id: "affiliated:person-corp",
+        source_node_type_code: "node_person",
         source_node_id: PERSON_ID,
+        target_node_type_code: "node_corporate_entity",
         target_node_id: CORP_ID,
         property_code: "affiliatedWith",
         ontology_property_iri: "https://example.test/affiliatedWith",
@@ -93,7 +98,7 @@ function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): Ont
         property_label: "mentions",
         ontology_property_iri: "https://example.test/mentions",
         target_node_id: PERSON_ID,
-        target_label: "Priya Nair",
+        target_label: "Test Person",
         target_type_code: "node_person",
         truth_status_code: "truth_observed",
         recorded_at: "2026-01-10T12:00:00+00:00",
@@ -104,7 +109,7 @@ function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): Ont
       {
         edge_id: "affiliated:person-corp",
         source_node_id: PERSON_ID,
-        source_label: "Priya Nair",
+        source_label: "Test Person",
         source_type_code: "node_person",
         property_code: "affiliatedWith",
         property_label: "affiliated with",
@@ -127,13 +132,14 @@ function neighborhood(overrides: Partial<OntologyNeighborhoodPayload> = {}): Ont
 describe("OntologyExplorer", () => {
   it("lets keyboard users open node and edge evidence", async () => {
     const onSelectPost = vi.fn();
+    const onOpenEvidence = vi.fn();
     render(
       <OntologyExplorer
         focusNodeType="node_post"
         focusNodeId={POST_ID}
         neighborhood={neighborhood()}
         onSelectPost={onSelectPost}
-        onOpenEvidence={onSelectPost}
+        onOpenEvidence={onOpenEvidence}
       />,
     );
     expect(
@@ -143,8 +149,11 @@ describe("OntologyExplorer", () => {
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Open evidence post" }));
     expect(onSelectPost).toHaveBeenCalledWith(POST_ID);
+    expect(onOpenEvidence).not.toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: /Select edge: mentions from/ }));
     expect(screen.getByText(/Property IRI/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: `Open evidence: ${POST_ID}` }));
+    expect(onOpenEvidence).toHaveBeenCalledWith(POST_ID);
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
@@ -199,36 +208,33 @@ describe("OntologyExplorer", () => {
         neighborhood={neighborhood()}
       />,
     );
-    await userEvent.type(screen.getByLabelText("Search within this neighborhood"), "Priya");
-    expect(screen.getAllByText("Priya Nair").length).toBeGreaterThan(0);
+    await userEvent.type(screen.getByLabelText("Search within this neighborhood"), "Test");
+    expect(screen.getAllByText("Test Person").length).toBeGreaterThan(0);
     expect(screen.queryByText(/omitted \d/i)).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Reset focus" }));
     expect(screen.getByLabelText("Search within this neighborhood")).toHaveValue("");
   });
 
-  it("exports only the graph that remains visible after search", () => {
-    const payload = neighborhood({
-      jsonld: {
-        "@context": { lw: "https://example.test/" },
-        "@graph": [
-          { "@id": `lw:node/node_post/${POST_ID}` },
-          { "@id": `lw:node/node_person/${PERSON_ID}` },
-          { "@id": `lw:node/node_corporate_entity/${CORP_ID}` },
-          { "@id": "lw:edge/mentions:post-person" },
-          { "@id": "lw:edge/affiliated:person-corp" },
-          { "@id": "lw:node/node_person/hidden" },
-        ],
-      },
-    });
-    const visible = filterNeighborhood(payload, "Priya");
-    expect(visible).not.toBeNull();
-    const graph = jsonldForNeighborhood(visible!)["@graph"] as Array<Record<string, unknown>>;
+  it("keeps JSON-LD aligned with the filtered graph", () => {
+    const filtered = filterNeighborhood(
+      neighborhood({
+        jsonld: {
+          "@graph": [
+            { "@id": `lw:node/node_post/${POST_ID}` },
+            { "@id": `lw:node/node_person/${PERSON_ID}` },
+            { "@id": `lw:node/node_corporate_entity/${CORP_ID}` },
+            { "@id": "lw:edge/mentions:post-person" },
+            { "@id": "lw:edge/affiliated:person-corp" },
+          ],
+        },
+      }),
+      "Demo public",
+    );
+    const graph = filtered?.jsonld["@graph"] as Array<{ "@id": string }>;
     expect(graph.map((item) => item["@id"])).toEqual([
       `lw:node/node_post/${POST_ID}`,
       `lw:node/node_person/${PERSON_ID}`,
-      `lw:node/node_corporate_entity/${CORP_ID}`,
       "lw:edge/mentions:post-person",
-      "lw:edge/affiliated:person-corp",
     ]);
   });
 });

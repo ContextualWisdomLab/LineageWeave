@@ -15,7 +15,7 @@ from __future__ import annotations
 
 from collections import defaultdict, deque
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Mapping, Sequence
 
 from lineageweave.knowledge_graph import (
@@ -151,12 +151,25 @@ class OntologyGraphNode:
     node_type_code: str
     ontology_class_iri: str
     display_label: str
-    truth_status_code: str
+    truth_status_code: str | None
     valid_from: datetime | None
     valid_to: datetime | None
-    recorded_at: datetime
+    recorded_at: datetime | None
     evidence_count: int
     shape_code: str
+
+
+@dataclass(frozen=True)
+class OntologyNodeMetadata:
+    """Catalog-owned metadata for one heterogeneous ontology node.
+
+    ``None`` means the catalog has not supplied that value. Edge metadata is
+    never used as a substitute because doing so changes a node's meaning when
+    pagination or filtering changes.
+    """
+
+    truth_status_code: str | None = None
+    recorded_at: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -164,7 +177,9 @@ class OntologyGraphEdge:
     """One typed ontology/KG edge in the bounded neighborhood."""
 
     edge_id: str
+    source_node_type_code: str
     source_node_id: str
+    target_node_type_code: str
     target_node_id: str
     property_code: str
     ontology_property_iri: str
@@ -192,21 +207,20 @@ class OntologyNeighborhood:
     def exact_value_rows(self) -> tuple[dict[str, str], ...]:
         """Keyboard/print/CSV rows for the same visible graph."""
         rows: list[dict[str, str]] = []
-        labels = {node.node_id: node.display_label for node in self.nodes}
-        types = {node.node_id: node.node_type_code for node in self.nodes}
+        labels = {(node.node_type_code, node.node_id): node.display_label for node in self.nodes}
         for edge in self.edges:
             rows.append(
                 {
                     "edge_id": edge.edge_id,
                     "source_node_id": edge.source_node_id,
-                    "source_label": labels[edge.source_node_id],
-                    "source_type_code": types[edge.source_node_id],
+                    "source_label": labels[(edge.source_node_type_code, edge.source_node_id)],
+                    "source_type_code": edge.source_node_type_code,
                     "property_code": edge.property_code,
                     "property_label": edge.property_label,
                     "ontology_property_iri": edge.ontology_property_iri,
                     "target_node_id": edge.target_node_id,
-                    "target_label": labels[edge.target_node_id],
-                    "target_type_code": types[edge.target_node_id],
+                    "target_label": labels[(edge.target_node_type_code, edge.target_node_id)],
+                    "target_type_code": edge.target_node_type_code,
                     "truth_status_code": edge.truth_status_code,
                     "recorded_at": edge.recorded_at.isoformat(),
                     "valid_from": edge.valid_from.isoformat() if edge.valid_from else "",
@@ -225,32 +239,35 @@ class OntologyNeighborhood:
                     "@id": f"lw:node/{node.node_type_code}/{node.node_id}",
                     "@type": node.ontology_class_iri,
                     "rdfs:label": node.display_label,
-                    "lw:truthStatus": node.truth_status_code,
                     "lw:nodeType": node.node_type_code,
                 }
             )
+            if node.truth_status_code is not None:
+                graph[-1]["lw:truthStatus"] = node.truth_status_code
         for edge in self.edges:
             item: dict[str, object] = {
                 "@id": f"lw:edge/{edge.edge_id}",
                 "@type": "prov:Entity",
                 edge.ontology_property_iri: {
-                    "@id": f"lw:node/{_node_type_for(self.nodes, edge.target_node_id)}/{edge.target_node_id}"
+                    "@id": f"lw:node/{_node_type_for(self.nodes, edge.target_node_type_code, edge.target_node_id)}/{edge.target_node_id}"
                 },
                 "prov:wasDerivedFrom": [
                     {"@id": f"lw:evidence/{reference}"} for reference in edge.evidence_references
                 ],
                 "lw:truthStatus": edge.truth_status_code,
                 "lw:source": {
-                    "@id": f"lw:node/{_node_type_for(self.nodes, edge.source_node_id)}/{edge.source_node_id}"
+                    "@id": f"lw:node/{_node_type_for(self.nodes, edge.source_node_type_code, edge.source_node_id)}/{edge.source_node_id}"
                 },
             }
             graph.append(item)
         return {"@context": JSONLD_CONTEXT, "@graph": graph}
 
 
-def _node_type_for(nodes: Sequence[OntologyGraphNode], node_id: str) -> str:
+def _node_type_for(
+    nodes: Sequence[OntologyGraphNode], node_type_code: str, node_id: str
+) -> str:
     for node in nodes:
-        if node.node_id == node_id:
+        if node.node_type_code == node_type_code and node.node_id == node_id:
             return node.node_type_code
     raise OntologyNeighborhoodError("dangling_endpoint", "visible edge references a missing node")
 
@@ -368,6 +385,7 @@ def assemble_ontology_neighborhood(
     focus_node_id: str,
     facts: Sequence[NeighborhoodFact],
     labels: Mapping[tuple[str, str], str],
+    node_metadata: Mapping[tuple[str, str], OntologyNodeMetadata] | None = None,
     hidden_node_keys: frozenset[str] = frozenset(),
     knowledge_cutoff: datetime | None = None,
     maximum_depth: int = DEFAULT_MAXIMUM_DEPTH,
@@ -385,7 +403,7 @@ def assemble_ontology_neighborhood(
     if focus_node_type_code not in KNOWN_NODE_TYPES:
         raise OntologyNeighborhoodError("unknown_node_type", f"unknown node type {focus_node_type_code!r}")
     if not focus_node_id or focus_node_id.strip() != focus_node_id:
-        raise OntologyNeighborhoodError("invalid_focus_id", "focus node id is empty or malformed")
+        raise OntologyNeighborhoodError("invalid_focus_id", "focus node id is empty or padded")
     if maximum_depth < 1 or maximum_depth > HARD_MAXIMUM_DEPTH:
         raise OntologyNeighborhoodError("excessive_depth", "neighborhood depth is out of bounds")
     if maximum_nodes < 1 or maximum_nodes > HARD_MAXIMUM_NODES:
@@ -424,9 +442,9 @@ def assemble_ontology_neighborhood(
         if source_key in hidden_node_keys or target_key in hidden_node_keys:
             continue
         if (fact.source_node_type_code, fact.source_node_id) not in labels:
-            raise OntologyNeighborhoodError("dangling_endpoint", "source endpoint is unlabeled")
+            continue
         if (fact.target_node_type_code, fact.target_node_id) not in labels:
-            raise OntologyNeighborhoodError("dangling_endpoint", "target endpoint is unlabeled")
+            continue
         visible_facts.append(
             NeighborhoodFact(
                 source_node_type_code=fact.source_node_type_code,
@@ -489,41 +507,34 @@ def assemble_ontology_neighborhood(
     if (start + len(page_edges)) < len(collected) and page_edges:
         next_cursor = f"after:{_edge_id(page_edges[-1])}"
 
-    node_meta: dict[str, tuple[str, str, datetime, int, str]] = {}
+    catalog_metadata = node_metadata or {}
     node_evidence: dict[str, set[str]] = defaultdict(set)
+    node_meta: dict[str, tuple[str, str, str | None, datetime | None]] = {}
     focus_label = labels[(focus_node_type_code, focus_node_id)]
-    fallback_recorded = knowledge_cutoff or datetime(1970, 1, 1, tzinfo=timezone.utc)
+    focus_metadata = catalog_metadata.get((focus_node_type_code, focus_node_id), OntologyNodeMetadata())
     node_meta[focus_key] = (
         focus_node_type_code,
         focus_label,
-        fallback_recorded,
-        0,
-        TRUTH_OBSERVED,
+        focus_metadata.truth_status_code,
+        focus_metadata.recorded_at,
     )
     for fact in page_edges:
-        for node_type, node_id, truth in (
-            (fact.source_node_type_code, fact.source_node_id, fact.truth_status_code),
-            (fact.target_node_type_code, fact.target_node_id, fact.truth_status_code),
+        for node_type, node_id in (
+            (fact.source_node_type_code, fact.source_node_id),
+            (fact.target_node_type_code, fact.target_node_id),
         ):
             key = _node_key(node_type, node_id)
             label = labels[(node_type, node_id)]
-            current = node_meta.get(key)
             node_evidence[key].update(fact.evidence_references)
-            recorded = fact.recorded_at
+            current = node_meta.get(key)
             if current is None:
-                node_meta[key] = (node_type, label, recorded, 0, truth)
-            else:
-                _, _, prior_recorded, prior_evidence, prior_truth = current
+                metadata = catalog_metadata.get((node_type, node_id), OntologyNodeMetadata())
                 node_meta[key] = (
                     node_type,
                     label,
-                    min(prior_recorded, recorded),
-                    prior_evidence,
-                    prior_truth if prior_truth == TRUTH_AUTHORITATIVE else truth,
+                    metadata.truth_status_code,
+                    metadata.recorded_at,
                 )
-
-    for key, (node_type, label, recorded, _, truth) in node_meta.items():
-        node_meta[key] = (node_type, label, recorded, len(node_evidence[key]), truth)
 
     ordered_keys = [focus_key] + sorted(key for key in node_meta if key != focus_key)
     if len(ordered_keys) > maximum_nodes:
@@ -546,11 +557,11 @@ def assemble_ontology_neighborhood(
                 "ontology_iri", str(LW[node_meta[key][0]])
             ),
             display_label=node_meta[key][1],
-            truth_status_code=node_meta[key][4],
+            truth_status_code=node_meta[key][2],
             valid_from=None,
             valid_to=None,
-            recorded_at=node_meta[key][2],
-            evidence_count=node_meta[key][3],
+            recorded_at=node_meta[key][3],
+            evidence_count=len(node_evidence.get(key, set())),
             shape_code=NODE_SHAPE[node_meta[key][0]],
         )
         for key in ordered_keys
@@ -558,7 +569,9 @@ def assemble_ontology_neighborhood(
     edges = tuple(
         OntologyGraphEdge(
             edge_id=_edge_id(fact),
+            source_node_type_code=fact.source_node_type_code,
             source_node_id=fact.source_node_id,
+            target_node_type_code=fact.target_node_type_code,
             target_node_id=fact.target_node_id,
             property_code=fact.property_code,
             ontology_property_iri=_PROPERTY_IRI[fact.property_code],
@@ -627,6 +640,7 @@ __all__ = [
     "NODE_SHAPE",
     "OntologyGraphEdge",
     "OntologyGraphNode",
+    "OntologyNodeMetadata",
     "OntologyNeighborhood",
     "OntologyNeighborhoodError",
     "PROPERTY_AFFILIATED_WITH",
