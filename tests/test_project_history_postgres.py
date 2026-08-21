@@ -14,6 +14,7 @@ import psycopg2
 from psycopg2 import sql
 import pytest
 
+from backend.app.project_history_api import ProjectHistoryProjection
 from backend.app.project_history import fetch_project_history_projection
 
 
@@ -360,6 +361,8 @@ def test_hidden_draft_deleted_and_future_evidence_cannot_change_history(
             await connection.close()
 
     projection, hidden_post_id = asyncio.run(run())
+    validated = ProjectHistoryProjection.model_validate(projection)
+    assert validated.project_name == "Northridge renewal"
     titles = [event["event_title"] for event in projection["events"]]
     assert titles == [
         "Contract awarded",
@@ -380,4 +383,6 @@ def test_hidden_draft_deleted_and_future_evidence_cannot_change_history(
         for event in projection["events"]
         for path in event["related_prior_paths"]
     )
-    assert len(projection["events"][0]["project_matches"]) == 2
+    assert [
+        match["matched_value"] for match in projection["events"][0]["project_matches"]
+    ] == ["P-100", "Northridge renewal", "P-100", "Northridge renewal"]

@@ -50,6 +50,7 @@ describe("i18n", () => {
     "Inspect public evidence separately before any governed graph review.",
     "Collect stronger authoritative evidence before accepting the claim.",
     "Inspect the authorized cited posts and their evidence.",
+    "Event Lineage timeline",
   ] as const;
 
   it("supports the five product locales", () => {

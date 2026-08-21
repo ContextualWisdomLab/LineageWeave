@@ -53,7 +53,6 @@ import {
   type ChatAnswer,
   type ChatExchange,
   type CorporateEntityRef,
-  type CustomerMasterEntity,
   type CustomerMasterResponse,
   type Counterparty,
   type EvaluationResponse,
@@ -84,6 +83,7 @@ import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
+import { CustomerMasterTree, CustomerRelatedPostCard } from "./components/CustomerMasterTree";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
@@ -105,6 +105,8 @@ import {
 } from "./analysisRunNavigation";
 import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import "./App.css";
+
+const GLOBAL_ASK_SESSION_STORAGE_KEY = "lineageweave.globalAskSessionId";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
   if (err instanceof BackendError && err.status === 503) {
@@ -4309,148 +4311,6 @@ function PostList({
   );
 }
 
-interface CustomerEntityTreeNode {
-  entity: CustomerMasterEntity;
-  children: CustomerEntityTreeNode[];
-}
-
-// Live bug (2026-08-19): Customer Master's own entity list rendered every
-// corporate_entity as an independent top-level row, even though the API
-// already carries parent_entity_id and the codebase already knows how to
-// build a real forest from it (lineageweave/affiliate_tree.py, used for
-// the post-detail popup's Affiliate tree) -- a group holding company and
-// its subsidiaries showed up as an unrelated flat list with no visual
-// hierarchy at all. A parent not present in this account's own visible
-// entity list (a real possibility -- ABAC can authorize a child entity
-// without its parent) is not dropped; that entity becomes a root here
-// instead of disappearing.
-function buildCustomerEntityTree(entities: CustomerMasterEntity[]): CustomerEntityTreeNode[] {
-  const byId = new Map(entities.map((entity) => [entity.corporate_entity_id, entity]));
-  const childrenByParent = new Map<string, CustomerMasterEntity[]>();
-  const roots: CustomerMasterEntity[] = [];
-  for (const entity of entities) {
-    if (entity.parent_entity_id && byId.has(entity.parent_entity_id)) {
-      const siblings = childrenByParent.get(entity.parent_entity_id) ?? [];
-      siblings.push(entity);
-      childrenByParent.set(entity.parent_entity_id, siblings);
-    } else {
-      roots.push(entity);
-    }
-  }
-  const toNode = (entity: CustomerMasterEntity): CustomerEntityTreeNode => ({
-    entity,
-    children: (childrenByParent.get(entity.corporate_entity_id) ?? []).map(toNode),
-  });
-  return roots.map(toNode);
-}
-
-function CustomerEntityTreeRow({
-  node,
-  depth,
-  expandedEntityId,
-  relatedByEntity,
-  relatedLoading,
-  onToggle,
-  onOpenPost,
-}: {
-  node: CustomerEntityTreeNode;
-  depth: number;
-  expandedEntityId: string | null;
-  relatedByEntity: Record<string, RelatedNode[]>;
-  relatedLoading: string | null;
-  onToggle: (entityId: string) => void;
-  onOpenPost: (postId: string) => void;
-}) {
-  const { entity, children } = node;
-  const relatedPosts = (relatedByEntity[entity.corporate_entity_id] ?? []).filter(
-    (related) => related.node_type_code === NODE_POST,
-  );
-  return (
-    <li style={{ marginInlineStart: depth * 20 }}>
-      <button
-        type="button"
-        className="customer-entity-button"
-        aria-expanded={expandedEntityId === entity.corporate_entity_id}
-        onClick={() => onToggle(entity.corporate_entity_id)}
-      >
-        <strong>{entity.entity_name}</strong>
-        <span>{entity.corporate_entity_code} · {entity.entity_level_label}</span>
-      </button>
-      {expandedEntityId === entity.corporate_entity_id ? (
-        <div className="customer-related-posts">
-          {relatedLoading === entity.corporate_entity_id ? <p>{t("Loading related posts...")}</p> : null}
-          {relatedLoading !== entity.corporate_entity_id && relatedPosts.length === 0 ? (
-            <p className="popup-placeholder">{t("No linked posts yet.")}</p>
-          ) : null}
-          {relatedPosts.length > 0 ? (
-            <ul aria-label={`${t("Related posts")}: ${entity.entity_name}`}>
-              {relatedPosts.map((related) => (
-                <li key={related.node_id}>
-                  <CustomerRelatedPostCard
-                    postId={related.node_id}
-                    postTitle={related.label ?? related.node_id}
-                    postBodyExcerpt={related.post_body_excerpt}
-                    postBodyTruncated={related.post_body_truncated}
-                    onOpenPost={onOpenPost}
-                  />
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      ) : null}
-      {children.length > 0 ? (
-        <ul className="customer-master-list customer-master-tree-children" aria-label={tf("Affiliates of {name}", { name: entity.entity_name })}>
-          {children.map((child) => (
-            <CustomerEntityTreeRow
-              key={child.entity.corporate_entity_id}
-              node={child}
-              depth={depth + 1}
-              expandedEntityId={expandedEntityId}
-              relatedByEntity={relatedByEntity}
-              relatedLoading={relatedLoading}
-              onToggle={onToggle}
-              onOpenPost={onOpenPost}
-            />
-          ))}
-        </ul>
-      ) : null}
-    </li>
-  );
-}
-
-function CustomerRelatedPostCard({
-  postId,
-  postTitle,
-  postBodyExcerpt,
-  postBodyTruncated,
-  onOpenPost,
-}: {
-  postId: string;
-  postTitle: string;
-  postBodyExcerpt?: string | null;
-  postBodyTruncated?: boolean;
-  onOpenPost: (postId: string) => void;
-}) {
-  return (
-    <button
-      type="button"
-      className="related-post-card"
-      aria-label={tf("Open related post: {label}", { label: postTitle })}
-      onClick={() => onOpenPost(postId)}
-    >
-      <span className="related-post-content">
-        <strong>{postTitle}</strong>
-        <span className="post-body-excerpt" aria-label={t("Post body preview")}>
-          {postBodyExcerpt || t("No post body.")}
-          {postBodyTruncated ? " ..." : ""}
-        </span>
-      </span>
-      <span>{t("Open record")}</span>
-    </button>
-  );
-}
-
 function CustomerMasterPanel({
   accessToken,
   onOpenPost,
@@ -4460,9 +4320,6 @@ function CustomerMasterPanel({
 }) {
   const [master, setMaster] = useState<CustomerMasterResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
-  const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
-  const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
   const [resolvingHint, setResolvingHint] = useState<string | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
   // Fetched independently, same pattern as PostList's own canRebuild --
@@ -4509,24 +4366,6 @@ function CustomerMasterPanel({
     }
   }
 
-  async function toggleEntity(entityId: string) {
-    if (expandedEntityId === entityId) {
-      setExpandedEntityId(null);
-      return;
-    }
-    setExpandedEntityId(entityId);
-    if (relatedByEntity[entityId]) return;
-    setRelatedLoading(entityId);
-    try {
-      const response = await fetchRelatedEntity(accessToken, entityId);
-      setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
-    } catch {
-      setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
-    } finally {
-      setRelatedLoading((current) => (current === entityId ? null : current));
-    }
-  }
-
   return (
     <section className="buyer-destination" aria-labelledby="customer-master-heading">
       <p className="section-eyebrow">{t("Authorized customer scope")}</p>
@@ -4543,20 +4382,13 @@ function CustomerMasterPanel({
         <p className="popup-placeholder">{t("No customer entities are connected to this account.")}</p>
       ) : null}
       {master && master.corporate_entities.length > 0 ? (
-        <ul className="customer-master-list customer-master-tree" aria-label={t("Customer entities available to this account.")}>
-          {buildCustomerEntityTree(master.corporate_entities).map((node) => (
-            <CustomerEntityTreeRow
-              key={node.entity.corporate_entity_id}
-              node={node}
-              depth={0}
-              expandedEntityId={expandedEntityId}
-              relatedByEntity={relatedByEntity}
-              relatedLoading={relatedLoading}
-              onToggle={toggleEntity}
-              onOpenPost={onOpenPost}
-            />
-          ))}
-        </ul>
+        <CustomerMasterTree
+          entities={master.corporate_entities}
+          loadRelated={(entityId) =>
+            fetchRelatedEntity(accessToken, entityId).then((response) => response.related)
+          }
+          onOpenPost={onOpenPost}
+        />
       ) : null}
       {master && (master.relationship_network ?? []).length > 0 ? (
         <section className="customer-keymen" aria-labelledby="relationship-network-heading">
@@ -4719,7 +4551,7 @@ export function AskAgentPanel({
   const [asking, setAsking] = useState(false);
   const [verifyExternal, setVerifyExternal] = useState(false);
   const [sessionId, setSessionId] = useState<string | undefined>(() =>
-    window.sessionStorage.getItem("lineageweave.globalAskSessionId") ?? undefined,
+    window.sessionStorage.getItem(GLOBAL_ASK_SESSION_STORAGE_KEY) ?? undefined,
   );
 
   async function handleAsk() {
@@ -4729,10 +4561,20 @@ export function AskAgentPanel({
     setError(null);
     setAnswer(null);
     try {
-      const nextAnswer = await askAgent(accessToken, normalized, verifyExternal, sessionId);
+      let nextAnswer: AskAgentResponse;
+      try {
+        nextAnswer = await askAgent(accessToken, normalized, verifyExternal, sessionId);
+      } catch (err) {
+        if (!(err instanceof BackendError) || err.status !== 404 || !sessionId) {
+          throw err;
+        }
+        setSessionId(undefined);
+        window.sessionStorage.removeItem(GLOBAL_ASK_SESSION_STORAGE_KEY);
+        nextAnswer = await askAgent(accessToken, normalized, verifyExternal);
+      }
       setAnswer(nextAnswer);
       setSessionId(nextAnswer.session_id);
-      window.sessionStorage.setItem("lineageweave.globalAskSessionId", nextAnswer.session_id);
+      window.sessionStorage.setItem(GLOBAL_ASK_SESSION_STORAGE_KEY, nextAnswer.session_id);
     } catch (err) {
       setAnswer(null);
       setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
@@ -4802,8 +4644,8 @@ export function AskAgentPanel({
           ) : null}
           {answer.timeline && answer.timeline.length > 0 ? (
             <>
-              <h4>Event Lineage timeline</h4>
-              <ol className="related-post-list" aria-label="Event Lineage timeline">
+              <h4>{t("Event Lineage timeline")}</h4>
+              <ol className="related-post-list" aria-label={t("Event Lineage timeline")}>
                 {answer.timeline.map((event) => (
                   <li key={event.post_id}>
                     <button
@@ -4932,7 +4774,14 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         <h1>LineageWeave</h1>
         <div>
           <span>{auth.user?.profile.preferred_username}</span>
-          <button onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
+          <button
+            onClick={() => {
+              window.sessionStorage.removeItem(GLOBAL_ASK_SESSION_STORAGE_KEY);
+              void auth.signoutRedirect();
+            }}
+          >
+            {t("Log out")}
+          </button>
         </div>
       </header>
       <BuyerNav
