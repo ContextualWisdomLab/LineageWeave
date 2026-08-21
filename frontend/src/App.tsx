@@ -4624,14 +4624,26 @@ function AskAgentPanel({
                   {exchange.status === "pending" ? <p className="ask-agent-pending">{t("Thinking...")}</p> : null}
                   {exchange.status === "error" ? <p className="ask-agent-error">{exchange.error}</p> : null}
                   {response?.answer_text ? <p>{response.answer_text}</p> : null}
-                  {response?.next_action ? <p className="post-meta">{t(response.next_action)}</p> : null}
+                  {response?.next_action ? (
+                    <p className="post-meta" role="status" aria-label={t("Next action")}>
+                      {t(response.next_action)}
+                    </p>
+                  ) : response?.cited_posts?.length ? (
+                    <p className="board-next-action" role="status" aria-label={t("Next action")}>
+                      {t("Authorized cited posts are current. Open a cited post to read Event Lineage.")}
+                    </p>
+                  ) : null}
                   {response?.cited_posts && response.cited_posts.length > 0 ? (
                     <section className="ask-agent-citations" aria-label={t("Cited posts")}>
                       <h4>{t("Cited posts")}</h4>
                       <ul className="ask-agent-citation-list">
                         {response.cited_posts.map((post) => (
                           <li key={post.post_id}>
-                            <button className="ask-agent-citation" onClick={() => onOpenPost(post.post_id)}>
+                            <button
+                              className="ask-agent-citation"
+                              aria-label={`${t("Open cited post:")} ${post.post_title}`}
+                              onClick={() => onOpenPost(post.post_id)}
+                            >
                               <strong>{post.post_title}</strong>
                               <span>{t("Open source")}</span>
                             </button>
