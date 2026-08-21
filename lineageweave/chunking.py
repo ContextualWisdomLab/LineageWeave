@@ -73,15 +73,6 @@ _DOM_BLOCK_TAGS = frozenset(
         "w:footnote",
         "w:endnote",
         "tr",
-        "table",
-        "th",
-        "tbody",
-        "thead",
-        "tfoot",
-        "dl",
-        "dt",
-        "dd",
-        "pre",
         "blockquote",
         "h1",
         "h2",
@@ -104,16 +95,7 @@ _DOM_BLOCK_TAGS = frozenset(
 # 2026-08-19). Cells append inline into the open row's buffer instead,
 # delimited by " | ", so "1 | Acme Corp | ..." keeps each row's columns
 # readable and attributable as one unit.
-_TABLE_ROW_TAGS = frozenset({"tr",
-        "table",
-        "th",
-        "tbody",
-        "thead",
-        "tfoot",
-        "dl",
-        "dt",
-        "dd",
-        "pre", "w:tr"})
+_TABLE_ROW_TAGS = frozenset({"tr", "w:tr"})
 _TABLE_CELL_TAGS = frozenset({"td", "th", "w:tc"})
 
 _LIST_ITEM_START = re.compile(
@@ -558,15 +540,6 @@ def _split_plain_text_units(text: str) -> list[tuple[str, int, str]]:
                         _render_markdown_table_row(row),
                         _source_indent_width(row),
                         "tr",
-        "table",
-        "th",
-        "tbody",
-        "thead",
-        "tfoot",
-        "dl",
-        "dt",
-        "dd",
-        "pre",
                     )
                     for row in data_rows
                 )
