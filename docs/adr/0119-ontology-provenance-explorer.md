@@ -11,7 +11,7 @@
 
 1. PostgreSQL remains authoritative. OWL/RDF/JSON-LD is a governed projection, not a second mutable store.
 2. `GET /api/ontology/neighborhood` returns a bounded typed neighborhood with explicit `focus_node_type`, `focus_node_id`, depth/node/edge bounds, property filter, `knowledge_cutoff`, and opaque `after:` cursor.
-3. RBAC/ABAC and source eligibility run before any node, edge, label, count, or path enters the response. A hidden endpoint removes the edge. Truncation never reports how many neighbors were omitted.
+3. RBAC/ABAC and source eligibility run before any node, edge, label, count, or path enters the response. A hidden endpoint removes the edge. Truncation never reports how many neighbors were omitted. Corporate hierarchy parents use the same visible-post evidence gate as other corporate-entity endpoints; a visible child alone does not reveal a hidden parent label.
 4. Truth status is one of `truth_authoritative`, `truth_observed`, `truth_inferred`, `truth_proposed`, `truth_superseded`, `truth_rejected`. Display never promotes inference to authority.
 5. SKOS broader is projected from `corporate_entity.parent_entity_id`. OWL class subsumption is schema, not an instance neighborhood edge, and fails closed.
 6. `knowledge_cutoff` binds `available_time` (`min(source_post.created_at)` of supporting evidence). Current-only facts without a time contract stay out of an as-of response.

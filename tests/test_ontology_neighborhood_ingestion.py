@@ -80,6 +80,17 @@ class ScriptedConn:
         return row
 
 
+class ParentVisibilityConn(ScriptedConn):
+    """Script a visible child entity while withholding its parent entity."""
+
+    async def fetch(self, sql: str, *args: object) -> list[object]:
+        if "person_affiliation affiliation" in " ".join(sql.split()):
+            if args and args[0] == GROUP_ID:
+                return []
+            return [{"post_id": POST_ID, "visibility_code": "public", "corporate_entity_id": CORP_ID}]
+        return await super().fetch(sql, *args)
+
+
 def test_parse_allowed_property_query_splits_and_drops_empty() -> None:
     assert parse_allowed_property_query(None) is None
     assert parse_allowed_property_query(["  ", ","]) is None
@@ -474,6 +485,39 @@ def test_visible_neighborhood_focus_variants_and_fail_closed() -> None:
         )
     )
     assert team_neighborhood.nodes[0].display_label == "Demo Team"
+
+
+def test_hidden_corporate_parent_is_not_exposed_by_visible_child() -> None:
+    neighborhood = asyncio.run(
+        visible_ontology_neighborhood(
+            ParentVisibilityConn(
+                {
+                    "select 1 from corporate_entity": {"ignored": 1},
+                    "person_affiliation affiliation": [
+                        {"post_id": POST_ID, "visibility_code": "public", "corporate_entity_id": CORP_ID}
+                    ],
+                    "parent_entity_id": [
+                        {
+                            "corporate_entity_id": CORP_ID,
+                            "parent_entity_id": GROUP_ID,
+                            "created_at": T0,
+                        }
+                    ],
+                    "select corporate_entity_id, entity_name": [
+                        {"corporate_entity_id": CORP_ID, "entity_name": "Demo Corp"},
+                        {"corporate_entity_id": GROUP_ID, "entity_name": "Hidden Group"},
+                    ],
+                    "select entity_name from corporate_entity": "Demo Corp",
+                }
+            ),
+            focus_node_type_code=NODE_CORPORATE_ENTITY,
+            focus_node_id=CORP_ID,
+            can_see_post=lambda row: True,
+        )
+    )
+
+    assert all(node.display_label != "Hidden Group" for node in neighborhood.nodes)
+    assert all(edge.target_node_id != GROUP_ID for edge in neighborhood.edges)
 
 
 def test_focus_label_fetch_may_be_empty_when_facts_already_labeled() -> None:

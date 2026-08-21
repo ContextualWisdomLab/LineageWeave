@@ -191,6 +191,25 @@ async def _load_skos_facts(
     ]
 
 
+async def _visible_corporate_entity_ids(
+    conn: asyncpg.Connection,
+    corporate_entity_ids: list[str],
+    can_see_post: Callable[[asyncpg.Record], bool],
+) -> set[str]:
+    """Return catalog entities supported by at least one visible post.
+
+    Corporate hierarchy rows do not carry their own post visibility. A
+    parent entity therefore cannot be exposed merely because a visible child
+    points at it; it needs the same visible evidence gate as every other
+    corporate-entity endpoint.
+    """
+    visible: set[str] = set()
+    for entity_id in dict.fromkeys(corporate_entity_ids):
+        if await visible_affiliation_post_ids(conn, entity_id, can_see_post):
+            visible.add(entity_id)
+    return visible
+
+
 async def _load_labels(
     conn: asyncpg.Connection, facts: list[NeighborhoodFact]
 ) -> dict[tuple[str, str], str]:
@@ -320,7 +339,31 @@ async def visible_ontology_neighborhood(
     ]
     if focus_node_type_code == NODE_CORPORATE_ENTITY:
         corp_ids.append(focus_node_id)
-    facts.extend(await _load_skos_facts(conn, list(dict.fromkeys(corp_ids))))
+    skos_facts = await _load_skos_facts(conn, list(dict.fromkeys(corp_ids)))
+    corp_endpoint_ids = [
+        endpoint_id
+        for fact in skos_facts
+        for endpoint_type, endpoint_id in (
+            (fact.source_node_type_code, fact.source_node_id),
+            (fact.target_node_type_code, fact.target_node_id),
+        )
+        if endpoint_type == NODE_CORPORATE_ENTITY and endpoint_id != focus_node_id
+    ]
+    visible_corp_ids = await _visible_corporate_entity_ids(
+        conn, corp_endpoint_ids, can_see_post
+    )
+    visible_corp_ids.add(focus_node_id)
+    facts.extend(
+        fact
+        for fact in skos_facts
+        if all(
+            endpoint_type != NODE_CORPORATE_ENTITY or endpoint_id in visible_corp_ids
+            for endpoint_type, endpoint_id in (
+                (fact.source_node_type_code, fact.source_node_id),
+                (fact.target_node_type_code, fact.target_node_id),
+            )
+        )
+    )
     labels = await _load_labels(conn, facts)
     if focus_node_type_code == NODE_POST:
         title = await conn.fetchval("select post_title from source_post where post_id = $1", focus_node_id)
