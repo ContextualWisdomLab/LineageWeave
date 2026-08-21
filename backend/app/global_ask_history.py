@@ -40,7 +40,7 @@ async def list_conversations(
     before_updated_at: datetime | None = None,
     before_conversation_id: UUID | None = None,
 ) -> dict[str, Any]:
-    rows = await conn.fetch(  # nosemgrep: placeholders bind all values; SQL text is static.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         """
         select session.global_ask_session_id,
                coalesce(
@@ -168,7 +168,7 @@ async def fetch_conversation(
         conversation_id,
     )
     if before_turn_ordinal is None:
-        turns = await conn.fetch(  # nosemgrep: placeholders bind all values; SQL text is static.
+        turns = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             """
         select turn_ordinal, question_text, answer_text, next_action
           from global_ask_turn
@@ -180,7 +180,7 @@ async def fetch_conversation(
             turn_limit + 1,
         )
     else:
-        turns = await conn.fetch(  # nosemgrep: placeholders bind all values; SQL text is static.
+        turns = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             """
         select turn_ordinal, question_text, answer_text, next_action
           from global_ask_turn
