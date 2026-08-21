@@ -12,13 +12,11 @@ Audit anchor: the exact source state carried by this documentation commit at
 2026-08-21; record the final PR head with `git rev-parse HEAD` during
 acceptance.
 
-Current implementation source/test exact head observed before this
-documentation update: `a5aa0daa`, the
-fully-contained popup keyboard-navigation repair including nested
-`aria-hidden` descendants, on top of the customer-scope facets and
-closed-details focus fixes, with PR #366 based on
-`8bed77e7e7b91b633bb92d3a82d0187c387206af`. The documentation commit creates
-the next exact head; protected checks must rerun for the resulting PR head.
+Current source/test exact head observed before this documentation update:
+`8bed77e7e7b91b633bb92d3a82d0187c387206af`, the squash merge of PR #364
+(docs-only) on top of PR #350. The runtime source was last tested at
+`0e63ba0a2e23949630f8997cbe001b6e13b2d274`; this ADR/docs update creates the
+next exact head and therefore requires the protected checks to rerun.
 
 - **Implemented in source:** PostgreSQL-backed API boundaries, Keyverse/OIDC
   identity boundary, workspace navigation, post popup, ABAC/RBAC surfaces, Korean
@@ -51,69 +49,13 @@ the next exact head; protected checks must rerun for the resulting PR head.
   Devin Review is pending, and no independent approval or merge is claimed.
   The prior PR #347 merged at
   `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`.
-
-- **Adjacent current parsing PR:** PR #367 remains open and unmerged at exact
-  head `5194d267b90430d7a27a9752a49d73617cb5756c`, based on
+- **Current parsing PR:** PR #367 is open and unmerged at exact head
+  `4093ac7f` (full SHA is recorded in the PR body), based on
   `docs/customer-master-scope-adr` at `f66991699506ef14607de5946da1efcfd20ae6da`.
-  It addresses the supplied numbered-footnote and empty-table-cell cases,
-  removes a dead footnote-reference branch, and rejects short non-footnote IDs.
-  Its focused parser gate is `47 passed`, with `compileall` and
-  `git diff --check` passing. GitHub Tests run `32474961105` is queued,
-  Devin Review is successful, CodeRabbit is successful, and no unresolved
-  review thread, independent approval, or merge is claimed.
-
-- **Latest #366 review repair before this documentation commit:** code head
-  `e2ebd156c89fb810de44207c25a57a92372ab5d2` removes the discarded pre-filter
-  hierarchy pass and centralizes the public-or-authorized-corporate-entity SQL
-  projection used by post lists, filter options, source hints, and observed
-  organization enrichment. The focused PostgreSQL/API regression set passed
-  `3 passed` and the shared SQL contract test passed; full API-file execution
-  remains unclaimed because its external integration setup did not terminate.
-
-- **#366 latest review repair:** code head `09b47ccb` excludes descendants of
-  closed `details` elements from the post-popup focus-trap candidate set, so
-  keyboard focus cannot land on collapsed related-post controls. The same
-  change removes the now-dead observed-hierarchy discard loop after scope
-  filtering. The focused frontend keyboard regression passed (`1 passed`, 86
-  deselected), the customer-master/API regression set passed (`3 passed`), and
-  `compileall` plus `git diff --check` passed. The final documentation commit
-  records the resulting PR head below; hosted Checks and review state remain
-  external evidence.
-
-- **#366 current-head frontend gate:** at `fbffec488a7db4029682b19bf22f4818ae17037e`,
-  `pnpm run lint`, `pnpm run test` (`177 passed` in 19 files), `pnpm run build`,
-  and `pnpm run build-storybook` all passed. Storybook emitted only the existing
-  post-build bundle-size advisory; no build failure was observed.
-
-- **#366 current-head backend gate:** at `e6d94c23ae74c39007f97fbe0afddcfe8e27451c`,
-  `uv run pytest -q` completed with `788 passed, 17 skipped, 4 warnings` in
-  117.45 seconds. The warnings are existing Starlette deprecations and the
-  synthetic forged-token test key-length warning; no test failure was hidden.
-
-- **#366 latest accessibility repair:** code head
-  `a5aa0daa` always intercepts popup Tab events and advances only through the
-  filtered visible focus set, so native browser tabbing cannot land on an
-  `aria-hidden` control, a nested descendant of an `aria-hidden` container, or
-  a control inside closed `details`. The synthetic direct and nested
-  `aria-hidden` tab-stop regressions passed, and the frontend whole gate at
-  the preceding code head passed: 177 tests in 19 files, lint,
-  build, and Storybook. The existing Storybook bundle-size advisory is not a
-  failure. Customer-scope filtering intentionally re-roots an authorized child
-  when its parent is absent; the backend observed-hierarchy contract preserves
-  the hierarchy facet without reintroducing an unauthorized parent.
-
-- **Canonical ontology explorer PR:** PR #349 remains open and unmerged at
-  exact head `e88f3862215e76d0702204f29aba75ddc902d19f`, based on `main` at
-  `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`. Its latest stabilization fixes
-  final-depth endpoint visibility, bounded stale-summary diagnostics, node
-  evidence after node-bound trimming, replay-safe tenant settings migration,
-  login return-path sanitization, OWL-Time citation accuracy, cursor-page
-  graph merging, and the intentional ontology direction contract. Its current
-  local gate is `812 passed, 17 skipped, 4 warnings` in the backend and 168
-  frontend tests in 20 files with lint, build, and Storybook passing. The
-  baseline's historical case references are sanitized to non-identifying case
-  labels. Hosted Tests, Security, SAST, PROV-O, and Devin Review remain
-  pending/queued, so no approval or merge is claimed.
+  It preserves numbered footnotes and empty-cell positions, avoids short-id
+  collisions, and drops table rows made only of empty cells. The focused
+  parser gate is `47 passed`; `compileall` and `git diff --check` passed.
+  Hosted Checks remain queued and no approval or merge is claimed.
 
 ## 2. UI/UX Standard Guide v3.0 comparison
 
@@ -319,32 +261,83 @@ or an explicit unavailable result.
 
 ## 5. Product and technical gaps
 
-- **Customer master "customer tree" — scope facet slice implemented, hierarchy gap open (2026-08-21):**
-  ADR 0125 defines `account_affiliation` as the authorization source and adds
-  the normalized `affiliation_scope_code` lookup-backed attribute. Migration
-  `0105_customer_master_scope_facets.sql` defaults existing rows to
-  `scope_unclassified`; it does not infer own-company or granted scope from a
-  token, PU, title, or corporate name. `/api/customer-master` now returns
-  repeatable `scope_facets` (`authorized_own`, `authorized_granted`,
-  `scope_unclassified`, `observed_organization`, and admitted
-  `observed_hierarchy`) and the React Customer Master panel can filter those
-  server-provided facets. `observed_hierarchy` is emitted only when a visible
-  observed child and its already-admitted parent are both in the response.
-  Resolved
-  `post_organization_mention` rows enrich navigation only when their source
-  post is public or already authorized and eligible; they never widen ABAC,
-  and unresolved counterparty names remain hints. Synthetic schema/API/UI
-  coverage is present at implementation head `1eef321b`; the follow-up also
-  separates observed navigation IDs from authorized IDs for Keyman and
-  relationship-network queries, with regression coverage preventing observed
-  non-authorized organizations from widening ABAC. Hierarchy facets are
-  recomputed after synthetic filtering so removed children cannot leave stale
-  parent facets.
-  The remaining product gap is authoritative scope backfill for existing live
-  affiliations, persisted parent/hierarchy evidence, and a customer tree that
-  can safely traverse admitted observed hierarchy nodes. Until that evidence
-  exists, the UI must retain `scope_unclassified` rather than inventing a
-  customer label.
+- **R&R role/relationship conflation and catalog-linking boundary — evidence-backed (2026-08-21):**
+  Live UI/UX feedback on a real R&R extraction surfaced three related gaps,
+  root-caused against source rather than assumed:
+  1. **"카탈로그 미연결" is the designed fail-closed behavior, not a bug, but
+     is undiagnosable from the UI.** `_resolve_existing_cataloged_person_id`
+     (`backend/app/post_summary_ingestion.py`) is documented as never
+     inserting a `cataloged_person` row (ADR 0009 — "a missing catalog row
+     stays unbound rather than inventing a person"). Organization actors do
+     go through `get_or_create_corporate_entity` (ADR 0010), but that
+     function's `hierarchy_inference_client`/`verification_client` default to
+     Null clients whenever no live orchestrator/SearXNG corroboration is
+     wired — in that state it can only match an *already-cataloged* entity,
+     never create one, so an organization actor stays unlinked too. The
+     resulting "카탈로그 미연결" label is a correct, honest reflection of
+     missing live infrastructure, not a code defect — but it gives the
+     reader no way to tell "not yet processed" from "no live orchestrator in
+     this environment" from "verification declined to corroborate."
+  2. **Job title and relationship type are conflated into one free-text
+     field.** `RoleResponsibility.responsibility` (`lineageweave/post_summary.py`)
+     is documented as "what they are responsible for or did" — a single
+     string. An observed extraction produced `"상담고객 연구원"` in that one
+     field, gluing a *relationship-type* signal ("상담 고객", i.e. a
+     consulting/customer relationship — the same concept already modeled
+     elsewhere as `post_counterparty_entity.relationship_type_code`, e.g.
+     `rel_voc`) together with a *job title* ("연구원") that has no home of
+     its own on `RoleResponsibility` the way `last_known_job_title` does on
+     `Keyman`. Fixing this needs a new field plus an
+     `POST_SUMMARY_CONTRACT_VERSION` bump (currently `12`) and an extraction-
+     prompt change — not a display-layer patch, and not something to
+     implement without review given every future extraction depends on the
+     contract version.
+  3. **Planned-facility events don't become project/entity evidence, and no
+     operator inference exists.** A key event whose text names a specific
+     planned facility (e.g. "X 충전소 구축 계획") produces `key_events`/
+     `key_event_details` prose only — it is never checked against
+     `post_project_mention`/`ProjectEvidence`, so the facility itself is
+     not recognized as an entity, and no relationship is inferred between it
+     and the organization the post's own R&R evidence says would operate it.
+     This is a deliberate ontology-design question, not a quick fix:
+     inferring an "operates" relationship from event-adjacent context risks
+     inventing a fact the source text does not state, which is exactly what
+     ADR 0010's fail-closed design exists to prevent. Needs its own ADR
+     (a new PROV-O/SKOS relationship class and a conservative admission
+     rule) before any inference code is written.
+  Two related, safely-scoped UI fixes shipped alongside this finding: R&R
+  rows now nest under their affiliated organization's row instead of each
+  repeating "· 소속: X" as flat text (`buildRoleTree`, `frontend/src/App.tsx`),
+  and `key_events` sharing the same `project_name` now nest under one
+  heading instead of repeating the project name as a flat prefix
+  (`groupKeyEventsByProject`). Neither fix touches extraction, the summary
+  contract, or catalog creation.
+- **Customer master "customer tree" — scope gap, evidence-backed (2026-08-21):**
+  `/api/customer-master`'s `corporate_entities` list (`backend/app/main.py`
+  `read_customer_master`, `entity_rows` query) is scoped to
+  `account.corporate_entity_ids`, which comes only from `account_affiliation`
+  rows (`backend/app/auth.py` `get_current_account`) — the account's own
+  employer plus any explicitly granted entities. A live query against the
+  seeded stack confirms the Demo Corp account's `account_affiliation` grants
+  exactly one entity (Demo Corp itself) with zero `source_customer_code`/
+  `source_customer_name` hints on its posts, so `buildCustomerEntityTree`
+  (`frontend/src/App.tsx`) renders a single un-nested node, not the "Harbor
+  Group -> Harbor Devices Korea" customer-affiliate tree ADR 0004 and ADR 0010
+  describe as a standing requirement. Counterparty `corporate_entity` rows
+  that ADR 0010's `get_or_create_corporate_entity` auto-creates are never
+  linked via `account_affiliation`, so they cannot reach this endpoint no
+  matter how well-populated the corpus becomes — the tree needs to traverse
+  observed post/VOC/affiliate-tree evidence, not `account_affiliation` alone.
+  Separately, there is no schema signal distinguishing "own company" from
+  "granted customer entity" inside `account_affiliation`: both use the same
+  `process_unit_id`-bearing row shape (the Demo Analyst account's grants into
+  "Source company H504"/"H904" carry `process_unit_id` exactly like Demo
+  Corp's own grant does), so a same-screen filter separating 자사(own
+  company) attributes from customer attributes has no field to filter on
+  yet. Needs an ADR before implementation: either an explicit
+  `account_affiliation`/`corporate_entity` scope flag, or a customer-tree
+  query redesign: guessing at either without a reviewed decision risks an
+  ABAC-adjacent regression.
 - **Entity and abbreviation resolution — open:** canonical names, aliases,
   multilingual labels, team-vs-organization typing, title-aware person
   disambiguation, and SearXNG/internal corroboration need end-to-end evidence.

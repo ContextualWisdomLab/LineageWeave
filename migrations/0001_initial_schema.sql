@@ -454,6 +454,8 @@ alter table post_summary_role
 -- same-named Keyman row. At most one catalog FK is set.
 alter table post_summary_role
     add column cataloged_person_id uuid references cataloged_person (person_id),
+    add column cataloged_affiliated_corporate_entity_id uuid
+        references corporate_entity (corporate_entity_id),
     add constraint post_summary_role_one_catalog_chk check (
         (cataloged_team_id is not null)::int
         + (cataloged_corporate_entity_id is not null)::int
@@ -467,6 +469,10 @@ alter table post_summary_role
             or actor_type_code = 'prov_organization'
         )
         and (cataloged_person_id is null or actor_type_code = 'prov_person')
+        and (
+            cataloged_affiliated_corporate_entity_id is null
+            or actor_type_code in ('prov_person', 'prov_team')
+        )
     );
 
 -- ---------------------------------------------------------------------

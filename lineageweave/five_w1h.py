@@ -12,7 +12,7 @@ from .ontology import ontology_annotations
 
 FIVE_W1H_SLOTS = ("who", "what", "when", "where", "why", "how")
 _SLOT_LOOKUP_CODES = {
-    "who": ("prov_person", "prov_organization", "prov_team"),
+    "who": ("prov_person", "prov_organization", "prov_team", "prov_software_agent"),
     "what": ("node_post",),
     "when": (),
     "where": ("prov_organization",),

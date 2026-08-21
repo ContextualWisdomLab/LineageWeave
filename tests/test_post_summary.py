@@ -28,8 +28,13 @@ from lineageweave.post_summary import (
     ContextualOrchestratorPostSummaryClient,
     NullPostSummaryClient,
     RoleResponsibility,
+    SemanticRelationship,
     _SUMMARY_REQUEST_PROMPT_TEMPLATE,
+    _formalize_korean_summary,
     _parse_optional_project_key,
+    _parse_plain_quantitative_observations,
+    _parse_plain_source_facts,
+    _parse_plain_semantic_relationships,
     _parse_plain_summary_details,
     _parse_plain_summary_response,
     parse_summary_response,
@@ -89,6 +94,52 @@ def test_parses_a_well_formed_json_object() -> None:
     assert role.affiliated_organization_name == "Westfield Power"
 
 
+def test_parses_allow_list_semantic_relationships_with_evidence() -> None:
+    summary = parse_summary_response(
+        '{"korean_summary":"요약", "key_events":[], "semantic_relationships":['
+        '{"subject_name":"설계팀", "subject_type":"team", '
+        '"predicate_code":"org_unit_of", "object_name":"Demo Corp", '
+        '"object_type":"organization", "evidence_text":"Demo Corp 설계팀", '
+        '"confidence":0.93}]}'
+    )
+    assert summary is not None
+    relation = summary.semantic_relationships[0]
+    assert relation == SemanticRelationship(
+        subject_name="설계팀",
+        subject_type="team",
+        predicate_code="org_unit_of",
+        object_name="Demo Corp",
+        object_type="organization",
+        evidence_text="Demo Corp 설계팀",
+        confidence=0.93,
+    )
+
+
+def test_parses_standard_profile_relation_for_industrial_why_path() -> None:
+    summary = parse_summary_response(
+        '{"korean_summary":"요약", "key_events":[], "semantic_relationships":['
+        '{"subject_name":"합성 공정", "subject_type":"industrial_process", '
+        '"predicate_code":"prov_was_influenced_by", "object_name":"설비 상태", '
+        '"object_type":"industrial_asset", "evidence_text":"합성 공정은 설비 상태의 영향을 받음", '
+        '"confidence":0.8}]}'
+    )
+    assert summary is not None
+    relation = summary.semantic_relationships[0]
+    assert relation.subject_type == "industrial_process"
+    assert relation.predicate_code == "prov_was_influenced_by"
+    assert relation.object_type == "industrial_asset"
+
+
+def test_plain_relation_parser_drops_unallowlisted_predicates() -> None:
+    relations = _parse_plain_semantic_relationships(
+        "RELATIONS:\n"
+        "설계팀 | team | org_unit_of | Demo Corp | organization | Demo Corp 설계팀 | 0.9\n"
+        "설계팀 | team | invented_relation | Demo Corp | organization | 추정 | 1"
+    )
+    assert len(relations) == 1
+    assert relations[0].predicate_code == "org_unit_of"
+
+
 def test_parses_explicit_five_w1h_evidence_with_source_phrase() -> None:
     summary = parse_summary_response(
         '{"korean_summary":"요약", "key_events":[], '
@@ -100,6 +151,69 @@ def test_parses_explicit_five_w1h_evidence_with_source_phrase() -> None:
     assert summary.five_w1h_evidence[0].evidence_text == "3월 4일 현장 회의"
 
 
+def test_parses_source_grounded_quantitative_observations() -> None:
+    summary = parse_summary_response(
+        '{"korean_summary":"요약", "quantitative_observations":['
+        '{"measurement_type_code":"measurement_budget_amount",'
+        '"label_text":"합성 최대 예산", "value_numeric":1700000000,'
+        '"unit_code":"unit_krw", "raw_value_text":"약 17억원",'
+        '"evidence_text":"합성 최대 예산은 부가세 포함 약 17억원",'
+        '"qualifier_text":"VAT 포함·약"},'
+        '{"measurement_type_code":"measurement_capacity",'
+        '"label_text":"합성 탱크 용량", "value_numeric":5,'
+        '"unit_code":"unit_kg", "quantity_numeric":2,'
+        '"quantity_unit_code":"unit_tractor", "raw_value_text":"5kg",'
+        '"evidence_text":"5kg 장비 2대"}]}'
+    )
+    assert summary is not None
+    assert len(summary.quantitative_observations) == 2
+    assert str(summary.quantitative_observations[0].value_numeric) == "1700000000"
+    assert summary.quantitative_observations[1].quantity_numeric == 2
+
+
+def test_plain_measurement_contract_keeps_each_atomic_capacity() -> None:
+    observations = _parse_plain_quantitative_observations(
+        "MEASUREMENTS:\n"
+        "measurement_capacity | 합성 탱크 용량 | 5 | unit_kg | 2 | unit_tractor | 기준 | 5kg | 5kg 장비 2대\n"
+        "measurement_capacity | 합성 탱크 용량 | 9 | unit_kg | 3 | unit_tractor | 기준 | 9kg | 9kg 장비 3대\n"
+        "measurement_daily_capacity | 합성 일충전량 | 20 | unit_kg | NONE | NONE | 약·내외 | 약 20kg 내외 | 합성 일충전량이 약 20kg 내외"
+    )
+    assert [observation.value_numeric for observation in observations] == [5, 9, 20]
+    assert [observation.quantity_numeric for observation in observations] == [2, 3, None]
+
+
+def test_source_fact_contract_preserves_negation_and_year_basis() -> None:
+    facts = _parse_plain_source_facts(
+        "FACTS:\n"
+        "fact_condition | 합성 사용 목적 | 판매 목적이 아님 | non_commercial | assertion_negated | NONE | NONE | NONE | 합성 장비는 판매 목적이 아님\n"
+        "fact_condition | 합성 충전 수준 | 충전량이 낮음 | low_charging_volume | assertion_affirmed | NONE | NONE | NONE | 충전량이 낮다는 점을 고려\n"
+        "fact_date | 합성 상담일 | 3월 14일 | NONE | assertion_affirmed | 2031-03-14 | day | 본문의 2031년 단서와 3월 14일 | 3월 14일 상담"
+    )
+    assert len(facts) == 3
+    assert facts[0].assertion_code == "assertion_negated"
+    assert facts[1].normalized_value_text == "low_charging_volume"
+    assert facts[2].normalized_date.isoformat() == "2031-03-14"
+    assert "2031년" in facts[2].normalization_evidence_text
+
+
+def test_source_fact_contract_accepts_broad_question_dimensions() -> None:
+    facts = _parse_plain_source_facts(
+        "FACTS:\n"
+        "fact_organization | 소속 조직 | Synthetic Works | NONE | assertion_affirmed | NONE | NONE | NONE | Synthetic Works가 담당함\n"
+        "fact_industrial_asset | 설비 | 합성 장비 | NONE | assertion_affirmed | NONE | NONE | NONE | 합성 장비를 사용함\n"
+        "fact_normative | 준수 조건 | 승인 필요 | NONE | assertion_affirmed | NONE | NONE | NONE | 승인 필요 조건을 명시함\n"
+        "fact_result | 결과 | 점검 완료 | NONE | assertion_affirmed | NONE | NONE | NONE | 점검 완료로 기록됨\n"
+        "fact_next_step | 다음 단계 | 재검토 | NONE | assertion_unknown | NONE | NONE | NONE | 재검토 예정 여부는 확인 필요함"
+    )
+    assert [fact.fact_type_code for fact in facts] == [
+        "fact_organization",
+        "fact_industrial_asset",
+        "fact_normative",
+        "fact_result",
+        "fact_next_step",
+    ]
+
+
 def test_parses_plain_summary_evidence_section() -> None:
     details = _parse_plain_summary_details(
         "ROLES:\nNONE\nPROJECTS:\nNONE\nEVIDENCE:\n"
@@ -107,6 +221,32 @@ def test_parses_plain_summary_evidence_section() -> None:
     )
     assert details is not None
     assert details[3][0].value_text == "제3공장"
+
+
+def test_parses_event_clues_without_inventing_a_relationship() -> None:
+    details = _parse_plain_summary_details(
+        "ROLES:\nSynthetic operator | 점검 | person | Synthetic Works\n"
+        "PROJECTS:\nNONE\n"
+        "CLUES:\n"
+        "0 | clue_actor | Synthetic operator | Synthetic operator | NONE | assertion_affirmed | 점검 담당자로 명시됨\n"
+        "0 | clue_cause | 설비 상태 확인 필요 | NONE | NONE | assertion_unknown | 상태 확인이 필요하다고 기재됨\n"
+    )
+    assert details is not None
+    assert len(details[4]) == 2
+    assert details[4][0].clue_type_code == "clue_actor"
+    assert details[4][1].assertion_code == "assertion_unknown"
+
+
+def test_json_key_event_evidence_and_clue_are_retained() -> None:
+    summary = parse_summary_response(
+        '{"korean_summary":"합성 요약", "key_events":['
+        '{"event_text":"합성 점검", "evidence_text":"합성 설비를 점검함"}],'
+        '"event_clues":[{"event_index":0,"clue_type_code":"clue_result",'
+        '"clue_text":"점검 결과 기록", "evidence_text":"점검 결과를 기록함"}]}'
+    )
+    assert summary is not None
+    assert summary.key_event_details[0].evidence_text == "합성 설비를 점검함"
+    assert summary.event_clues[0].event_index == 0
 
 
 def test_parses_major_event_requester_and_processor() -> None:
@@ -228,6 +368,28 @@ def test_team_actor_is_meso_level_not_organization() -> None:
     assert role.affiliated_organization_name == "Demo Corp"
 
 
+def test_software_agent_actor_is_not_forced_into_a_person_slot() -> None:
+    summary = parse_summary_response(
+        '{"korean_summary":"자동화가 점검했습니다.", "key_events":[], '
+        '"roles_and_responsibilities":[{"actor_name":"배치 스케줄러", '
+        '"responsibility":"점검 실행", "actor_type":"software_agent", '
+        '"affiliated_organization_name":null}]}'
+    )
+    assert summary is not None
+    assert summary.roles_and_responsibilities[0].actor_type_code == "prov_software_agent"
+
+
+def test_generic_business_unit_label_is_not_cataloged_as_a_team() -> None:
+    content = (
+        '{"korean_summary": "요약", "key_events": [], '
+        '"roles_and_responsibilities": [{"actor_name": "사업부", "responsibility": "검토", '
+        '"actor_type": "team", "affiliated_organization_name": null}]}'
+    )
+    summary = parse_summary_response(content)
+    assert summary is not None
+    assert summary.roles_and_responsibilities == ()
+
+
 def test_unknown_actor_type_code_is_rejected() -> None:
     with pytest.raises(ValueError, match="actor_type_code"):
         RoleResponsibility(actor_name="Ada West", responsibility="후속", actor_type_code="person")
@@ -325,7 +487,7 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
         "Synthetic title", "Synthetic body"
     )
 
-    assert summary.korean_summary == "본문 근거 요약"
+    assert summary.korean_summary == "본문 근거 요약입니다."
     assert summary.key_events == ("후속 확인",)
     assert len(observed) == 2
     assert all(payload["mode"] == "auto" for payload in observed)
@@ -389,7 +551,7 @@ def test_title_match_can_supply_explicit_project_evidence_but_not_a_guess() -> N
         "ROLES:\nNONE\nPROJECTS:\nUnrelated project | NONE | 1",
         post_title="Follow-up after the Northridge transformer bid workshop",
     )
-    assert unrelated == ((), (), (), ())
+    assert unrelated == ((), (), (), (), ())
 
 
 def test_role_matching_the_hinted_account_name_is_dropped_not_cataloged() -> None:
@@ -408,6 +570,20 @@ def test_role_matching_the_hinted_account_name_is_dropped_not_cataloged() -> Non
     )
     assert details is not None
     assert [role.actor_name for role in details[0]] == ["Jordi Gil"]
+
+
+def test_summary_uses_formal_nida_endings_and_drops_technical_acronym_actor() -> None:
+    assert _formalize_korean_summary("이 글에서 별도의 의사결정이나 다음 조치는 본문에 없음.") == (
+        "이 글에서 별도의 의사결정이나 다음 조치는 본문에 없습니다."
+    )
+    details = _parse_plain_summary_details(
+        "ROLES:\n"
+        "HSWG | 적용 방식 | organization | NONE\n"
+        "PROJECTS:\nNONE",
+        post_body="원적외선 건조방식(Heat Spreader Wave Guide, HSWG)을 적용했습니다.",
+    )
+    assert details is not None
+    assert details[0] == ()
 
 
 _ORCHESTRATOR_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL")

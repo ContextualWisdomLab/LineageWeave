@@ -20,4 +20,10 @@ describe("WorkspaceNav", () => {
     fireEvent.click(screen.getByRole("button", { name: "Calendar" }));
     expect(onChange).toHaveBeenCalledWith("calendar");
   });
+
+  it("hides the admin destination when the account lacks admin permission", () => {
+    render(<WorkspaceNav destination="board" onChange={vi.fn()} showAdmin={false} />);
+
+    expect(screen.queryByRole("button", { name: "Admin" })).not.toBeInTheDocument();
+  });
 });

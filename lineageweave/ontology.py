@@ -96,6 +96,22 @@ def all_declared_lookup_codes() -> set[str]:
     return {str(value) for value in ONTOLOGY.objects(None, LOOKUP_CODE)}
 
 
+def semantic_predicate_annotations(predicate_code: str) -> dict[str, str]:
+    """Resolve an extracted predicate code to its standards/profile IRI."""
+    for mapping in ONTOLOGY.subjects(LW.predicateCode, None):
+        if str(ONTOLOGY.value(mapping, LW.predicateCode)) != predicate_code:
+            continue
+        iri = ONTOLOGY.value(mapping, LW.predicateIri)
+        if iri is None:
+            return {}
+        fields = {"ontology_iri": str(iri)}
+        label = ONTOLOGY.value(mapping, RDFS.label)
+        if label is not None:
+            fields["ontology_label"] = str(label)
+        return fields
+    return {}
+
+
 __all__ = [
     "LOOKUP_CODE",
     "LW",
@@ -108,4 +124,5 @@ __all__ = [
     "iri_for_lookup_code",
     "load_ontology",
     "ontology_annotations",
+    "semantic_predicate_annotations",
 ]

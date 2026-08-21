@@ -1,0 +1,115 @@
+@prefix lw: <https://contextualwisdomlab.github.io/lineageweave/ontology#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+#################################################################
+# SHACL contract for the standards-aligned semantic layer (ADR 0129).
+# This graph describes the minimum evidence needed for KG rendering and
+# Ask retrieval; it does not authorize or hydrate a private database row.
+#################################################################
+
+lw:ObservationRecordShape a sh:NodeShape ;
+    sh:targetClass lw:ObservationRecord ;
+    sh:property [
+        sh:path lw:observationOf ;
+        sh:class prov:Entity ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "An observation must point to its source-derived entity."@en
+    ] ;
+    sh:property [
+        sh:path lw:assertionStatus ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:message "An observation must expose asserted/derived/inferred status."@en
+    ] .
+
+lw:EventObservationShape a sh:NodeShape ;
+    sh:targetClass lw:EventObservation ;
+    sh:property [
+        sh:path lw:observesEvent ;
+        sh:class lw:Event ;
+        sh:minCount 1 ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path lw:hasEvidenceClue ;
+        sh:class lw:EvidenceClue ;
+        sh:minCount 1
+    ] .
+
+lw:EvidenceClueShape a sh:NodeShape ;
+    sh:targetClass lw:EvidenceClue ;
+    sh:property [
+        sh:path lw:clueText ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path lw:clueFor ;
+        sh:class prov:Entity ;
+        sh:minCount 1
+    ] ;
+    sh:property [
+        sh:path lw:clueSource ;
+        sh:class prov:Entity ;
+        sh:minCount 1
+    ] .
+
+lw:QuantitativeObservationShape a sh:NodeShape ;
+    sh:targetClass lw:QuantitativeObservation ;
+    sh:property [
+        sh:path lw:numericValue ;
+        sh:datatype xsd:decimal ;
+        sh:minCount 1 ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path lw:measurementUnit ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path lw:sourceEvidence ;
+        sh:datatype xsd:string ;
+        sh:minCount 1
+    ] .
+
+lw:SourceGroundedFactShape a sh:NodeShape ;
+    sh:targetClass lw:SourceGroundedFact ;
+    sh:property [
+        sh:path lw:factValue ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path lw:factAssertion ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:maxCount 1
+    ] ;
+    sh:property [
+        sh:path lw:factSourceEvidence ;
+        sh:datatype xsd:string ;
+        sh:minCount 1
+    ] .
+
+lw:NormativeStatementShape a sh:NodeShape ;
+    sh:targetClass lw:NormativeStatement ;
+    sh:property [
+        sh:path lw:normativeTarget ;
+        sh:minCount 1
+    ] ;
+    sh:property [
+        sh:path lw:normativeAction ;
+        sh:minCount 1
+    ] ;
+    sh:property [
+        sh:path lw:assertionStatus ;
+        sh:minCount 1 ;
+        sh:maxCount 1
+    ] .

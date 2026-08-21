@@ -203,6 +203,9 @@ class _SummaryConnection:
                 "korean_summary": "합성 요약",
                 "summary_contract_version": POST_SUMMARY_CONTRACT_VERSION,
             }
+        if compact.startswith("select resolved_organization_name, verification_status_code"):
+            assert not self.in_transaction
+            return None
         if compact.startswith("select person_id from cataloged_person"):
             assert self.in_transaction
             return None
@@ -213,6 +216,14 @@ class _SummaryConnection:
         self._events.append(("fetch", compact))
         assert not self.in_transaction
         if "from post_summary_action" in compact:
+            return []
+        if "from post_summary_quantitative_observation" in compact:
+            return []
+        if "from post_summary_source_fact" in compact:
+            return []
+        if "from post_summary_semantic_relationship" in compact:
+            return []
+        if "from post_summary_event_clue" in compact:
             return []
         if "from post_summary_event" in compact:
             return [{"event_text": "검토 완료"}]
@@ -230,6 +241,7 @@ class _SummaryConnection:
                     "cataloged_team_id": None,
                     "cataloged_corporate_entity_id": None,
                     "cataloged_person_id": None,
+                    "cataloged_affiliated_corporate_entity_id": None,
                 }
             ]
         raise AssertionError(f"unexpected fetch query: {compact}")
@@ -519,6 +531,14 @@ def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
             events.append(("fetch", compact))
             if "from post_summary_action" in compact:
                 return []
+            if "from post_summary_quantitative_observation" in compact:
+                return []
+            if "from post_summary_source_fact" in compact:
+                return []
+            if "from post_summary_semantic_relationship" in compact:
+                return []
+            if "from post_summary_event_clue" in compact:
+                return []
             if "from post_summary_event" in compact:
                 return []
             if "from post_project_mention" in compact:
@@ -534,6 +554,7 @@ def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
                         "cataloged_team_id": None,
                         "cataloged_corporate_entity_id": None,
                         "cataloged_person_id": person_id,
+                        "cataloged_affiliated_corporate_entity_id": None,
                     }
                 ]
             raise AssertionError(f"unexpected fetch query: {compact}")

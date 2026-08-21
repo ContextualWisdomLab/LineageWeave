@@ -18,6 +18,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- The post-detail dialog focus trap now excludes descendants of `aria-hidden`
+  content as well as collapsed `details`, keeping keyboard focus inside the
+  visible modal controls.
+
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
@@ -34,9 +38,11 @@ All notable changes to this project are documented here. Format follows
 - All OpenAI-compatible chat-completion consumers now validate the shared
   response envelope before parsing it, preventing malformed provider bodies
   from escaping as raw `KeyError` or response-shape details.
-- The post-detail dialog focus trap now excludes descendants of `aria-hidden`
-  content as well as collapsed `details`, keeping keyboard focus inside the
-  visible modal controls.
+- Customer Master integration fixtures no longer reference an unshipped
+  Global Ask history migration; Global Ask remains stateless as documented by
+  ADR 0090, while the shipped scope-facet migration is applied directly.
+- The static SQL review contract now counts the Customer Master evidence query
+  that uses closed schema fragments and bound entity ids.
 
 ## [2.12.6] - 2026-08-20
 

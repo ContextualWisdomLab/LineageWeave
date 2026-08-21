@@ -16,6 +16,8 @@ constant anyone hardcoded, and (3) the algorithm is symmetric-graph-fair
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
 from lineageweave.knowledge_graph import (
@@ -30,6 +32,7 @@ from lineageweave.knowledge_graph import (
     random_walk_with_restart,
     select_related_nodes,
 )
+from backend.app.knowledge_graph import post_knowledge_graph
 
 
 @pytest.fixture
@@ -70,6 +73,58 @@ def test_adaptive_depth_hub_reaches_more_nodes_than_a_sparse_node(synthetic_grap
     assert len(hub_related) == 5  # all five spokes
     assert len(loner_related) == 1  # only "far" -- nothing else is reachable
     assert len(hub_related) > len(loner_related)
+
+
+@pytest.mark.parametrize(("overflow", "expected_truncated"), [(False, False), (True, True)])
+def test_post_knowledge_graph_relation_limit_boundary(
+    overflow: bool, expected_truncated: bool
+) -> None:
+    """A look-ahead row distinguishes an exact page from an overflow page."""
+    post_id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1"
+    organization_id = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1"
+
+    class Connection:
+        def __init__(self) -> None:
+            self.semantic_query = ""
+            self.semantic_rows = [
+                {
+                    "relation_ordinal": 1,
+                    "subject_name": "Synthetic source",
+                    "subject_type": "organization",
+                    "predicate_code": "rel_voc",
+                    "object_name": "Synthetic customer",
+                    "object_type": "organization",
+                    "evidence_text": "Synthetic evidence",
+                    "relation_confidence": 0.9,
+                }
+            ]
+            if overflow:
+                self.semantic_rows.append({**self.semantic_rows[0], "relation_ordinal": 2})
+
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            normalized = " ".join(query.lower().split())
+            if "select distinct person_id" in normalized:
+                return []
+            if "select distinct team_id" in normalized:
+                return []
+            if "select distinct corporate_entity_id" in normalized:
+                return [{"corporate_entity_id": organization_id}]
+            if "from knowledge_graph_edge edge" in normalized:
+                return []
+            if "from post_summary_semantic_relationship" in normalized:
+                self.semantic_query = normalized
+                return self.semantic_rows
+            return []
+
+        async def fetchval(self, query: str, *args: object) -> str | None:
+            return None
+
+    conn = Connection()
+    result = asyncio.run(post_knowledge_graph(conn, post_id, relation_limit=1))
+
+    assert "limit ($2 + 1)" in conn.semantic_query
+    assert result["truncated"] is expected_truncated
+    assert len(result["edges"]) == 1
 
 
 def test_start_node_absent_from_graph_returns_only_itself() -> None:

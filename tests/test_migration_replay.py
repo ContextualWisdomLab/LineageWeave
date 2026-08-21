@@ -71,13 +71,13 @@ def test_migrate_sh_replays_database_identifier_migration_on_existing_volumes() 
     assert "0104_*" in script
 
 
-def test_migrate_sh_replays_customer_master_scope_migration_on_existing_volumes() -> None:
-    """Existing Compose volumes must receive Customer Master scope facets."""
-    script = (
-        Path(__file__).resolve().parents[1]
-        / "docker"
-        / "postgres-init"
-        / "migrate.sh"
-    ).read_text(encoding="utf-8")
+def test_migrate_sh_replays_global_ask_history_migration_on_existing_volumes() -> None:
+    """Compose must create Global Ask history tables on every volume."""
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(encoding="utf-8")
+    migration = (root / "migrations" / "0105_global_ask_conversation_history.sql").read_text(
+        encoding="utf-8"
+    )
 
     assert "0105_*" in script
+    assert "create table if not exists global_ask_session" in migration
