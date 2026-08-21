@@ -24,6 +24,8 @@ All notable changes to this project are documented here. Format follows
 - The workspace Event Lineage global Search action now retries focus after the
   board finishes loading, so navigation from Customer master, Calendar, or
   Ask Agent lands the cursor in the search box.
+- Event Lineage SVG edges now retain their instance-specific direction markers,
+  so parent-to-child arrows remain visible when multiple lineage groups render.
 
 ## [2.12.6] - 2026-08-20
 

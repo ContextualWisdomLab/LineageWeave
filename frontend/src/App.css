@@ -612,7 +612,6 @@
   stroke: var(--border);
   stroke-width: 1.5;
   fill: none;
-  marker-end: url("#lineage-dag-arrow");
 }
 
 .lineage-dag-node {
