@@ -440,7 +440,8 @@ def build_project_history_projection(
         transition_truth = None
         if transition is not None:
             combined_truth = (previous_truth or set()) | current_truth
-            transition_truth = "inferred" if "inferred" in combined_truth else "observed"
+            if combined_truth:
+                transition_truth = "inferred" if "inferred" in combined_truth else "observed"
         evidence = roles_by_event[event_id]
         events.append(
             {

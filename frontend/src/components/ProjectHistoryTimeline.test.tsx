@@ -150,4 +150,21 @@ describe("ProjectHistoryTimeline", () => {
     expect(screen.getByText("post_summary_role")).toBeInTheDocument();
     expect(screen.queryByText("Observed award owner")).not.toBeInTheDocument();
   });
+
+  it("labels the projection's actual time basis", () => {
+    const { rerender } = render(
+      <ProjectHistoryTimeline projection={projection} onOpenPost={vi.fn()} />,
+    );
+    expect(
+      screen.getByText("Dates use source-post creation time because a separate event clock is not recorded."),
+    ).toBeInTheDocument();
+
+    rerender(
+      <ProjectHistoryTimeline
+        projection={{ ...projection, time_basis_code: "document_time" }}
+        onOpenPost={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Dates use the recorded document time.")).toBeInTheDocument();
+  });
 });

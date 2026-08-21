@@ -94,6 +94,7 @@ describe("App, authenticated", () => {
     manyCustomerHints?: number;
     customerEntityHierarchy?: boolean;
     deferCustomerRelated?: boolean;
+    deferProjectHistory?: boolean;
     boardPosts?: {
       post_id: string;
       post_title: string;
@@ -128,6 +129,7 @@ describe("App, authenticated", () => {
     releaseGroupRelated: () => void;
     releaseDemoRelated: () => void;
     releasePostOneSummary: () => void;
+    releaseProjectHistory: () => void;
   } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -182,6 +184,12 @@ describe("App, authenticated", () => {
     const postOneSummaryReady = options?.deferPostOneSummary
       ? new Promise<void>((resolve) => {
           releasePostOneSummary = resolve;
+        })
+      : Promise.resolve();
+    let releaseProjectHistory = () => {};
+    const projectHistoryReady = options?.deferProjectHistory
+      ? new Promise<void>((resolve) => {
+          releaseProjectHistory = resolve;
         })
       : Promise.resolve();
 
@@ -1800,7 +1808,7 @@ describe("App, authenticated", () => {
       }
       if (url.includes("/api/project-history?") && method === "GET") {
         projectHistoryRequestUrl = url;
-        return Promise.resolve(
+        return projectHistoryReady.then(() =>
           jsonResponse({
             contract_version: 1,
             project_key: "Semantic project",
@@ -1845,6 +1853,7 @@ describe("App, authenticated", () => {
       releaseGroupRelated,
       releaseDemoRelated,
       releasePostOneSummary,
+      releaseProjectHistory,
     });
   }
 
@@ -2034,6 +2043,19 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("combobox", { name: "Select project" })).toHaveValue("semantic-project");
     expect(screen.getByRole("button", { name: "Open source record: Public post" })).toBeInTheDocument();
     expect(projectHistoryRequestUrl).toContain("focus_post_id=post-1");
+  });
+
+  it("shows a next-action loading state while project history is requested", async () => {
+    const fetchMock = stubBackend({ deferProjectHistory: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Open project history for: Semantic project" }),
+    );
+
+    expect(await screen.findByText("Loading project history...")).toBeInTheDocument();
+    fetchMock.releaseProjectHistory();
+    expect(await screen.findByRole("heading", { name: "Project event timeline" })).toBeInTheDocument();
   });
 
   it("clicking Weekly VOC keeps the 2026-W01 Voice of Customer post and names Event Lineage as the next action", async () => {

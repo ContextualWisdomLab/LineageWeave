@@ -4836,6 +4836,7 @@ function ProjectHistoryPanel({
   const [selectedProjectKey, setSelectedProjectKey] = useState("");
   const [projection, setProjection] = useState<ProjectHistoryProjection | null>(null);
   const [error, setError] = useState(false);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const locale = useLocale();
   const historyRequest = useRef(0);
 
@@ -4872,19 +4873,25 @@ function ProjectHistoryPanel({
   useEffect(() => {
     if (!selectedProjectKey || !index?.knowledge_cutoff) {
       setProjection(null);
+      setLoadingHistory(false);
       return;
     }
     const request = ++historyRequest.current;
     setProjection(null);
     setError(false);
+    setLoadingHistory(true);
     const focusPostId =
       initialProjectKey === selectedProjectKey ? initialFocusPostId ?? undefined : undefined;
     fetchProjectHistory(accessToken, selectedProjectKey, index.knowledge_cutoff, focusPostId)
       .then((result) => {
-        if (request === historyRequest.current) setProjection(result);
+        if (request !== historyRequest.current) return;
+        setProjection(result);
+        setLoadingHistory(false);
       })
       .catch(() => {
-        if (request === historyRequest.current) setError(true);
+        if (request !== historyRequest.current) return;
+        setError(true);
+        setLoadingHistory(false);
       });
   }, [accessToken, index?.knowledge_cutoff, initialFocusPostId, initialProjectKey, selectedProjectKey]);
 
@@ -4917,6 +4924,9 @@ function ProjectHistoryPanel({
             ))}
           </select>
         </label>
+      ) : null}
+      {loadingHistory && !error ? (
+        <p role="status">{projectHistoryText(locale, "loadingHistory")}</p>
       ) : null}
       {projection ? <ProjectHistoryTimeline projection={projection} onOpenPost={onOpenPost} /> : null}
     </section>
