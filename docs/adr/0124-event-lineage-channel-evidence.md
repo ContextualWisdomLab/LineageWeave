@@ -43,11 +43,16 @@ authoritative; PROV-O/RDF export is a projection.
    `event_lineage_rebuild_channel` stores the active weight profile.
    Analysis-run reconstruction (`analysis_run_lineage_edge`) stays a
    separate immutable run-scoped table.
+   The administrator-triggered live rebuild and PostgreSQL import pass the
+   configured contextual-orchestrator adjudication client through the same
+   reconstruction boundary; when it is unavailable, the LLM channel is
+   dropped and the remaining weights are renormalized.
 5. `GET /api/lineage` returns an additive `channel_evidence` collection
    on each visible edge (`signal_code`, `signal_label`, `score`,
    `weight`, `contribution`, `rank`) ordered by contribution, then
-   controlled signal order. ABAC never reveals evidence for an invisible
-   endpoint.
+   controlled signal order. The rebuild profile is returned in the same
+   controlled order using `common_lookup_value.display_order`. ABAC never
+   reveals evidence for an invisible endpoint.
 6. The Buyer DAG provides an accessible edge-detail disclosure (not
    hover-only), labels the relation as inferred rather than causal, and
    states when no LLM channel participated only when at least one
