@@ -1566,7 +1566,7 @@ def test_persisted_summary_is_returned_without_an_llm(client, demo_analyst_token
 
 
 def test_stale_summary_is_returned_labeled_when_orchestrator_is_unavailable(
-    client, demo_analyst_token, seeded_db
+    client, demo_analyst_token, seeded_db, caplog
 ) -> None:
     """A legacy saved summary preserves buyer continuity with an explicit label."""
     os.environ.pop("ORCHESTRATOR_BASE_URL", None)
@@ -1596,6 +1596,8 @@ def test_stale_summary_is_returned_labeled_when_orchestrator_is_unavailable(
     assert body["summary_status"] == "stale"
     assert body["summary_contract_version"] == POST_SUMMARY_CONTRACT_VERSION - 1
     assert body["korean_summary"] == "보관된 이전 계약 요약입니다."
+    assert "post_summary_stale_fallback" in caplog.text
+    assert "reason=orchestrator_unavailable" in caplog.text
 
 
 def test_seed_demo_summary_surfaces_on_get_summary(client, demo_analyst_token, seeded_db) -> None:

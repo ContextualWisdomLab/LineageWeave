@@ -663,6 +663,7 @@ def test_node_bound_truncation_drops_cursor_and_jsonld_rejects_dangling() -> Non
     assert neighborhood.next_cursor is None
     assert len(neighborhood.nodes) == 1
     node = neighborhood.nodes[0]
+    assert node.evidence_count == 0
     dangling = OntologyNeighborhood(
         focus_node_id=POST_ID,
         focus_node_type_code=NODE_POST,
