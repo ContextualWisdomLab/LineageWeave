@@ -151,7 +151,7 @@ def test_rank_is_contribution_then_controlled_signal_order() -> None:
 def test_migrate_sh_replays_channel_evidence_and_tenant_settings() -> None:
     migrate = (_ROOT / "docker/postgres-init/migrate.sh").read_text()
     assert "0103_*" in migrate
-    assert "0104_*" in migrate
+    assert "0104_*" not in migrate
     assert "0105_*" in migrate
 
 
