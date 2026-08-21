@@ -629,14 +629,57 @@
   position: relative;
   background: var(--surface);
   color: var(--text);
-  max-width: 720px;
-  width: 90%;
+  width: min(90%, 820px);
   max-height: 85vh;
   overflow-y: auto;
-  padding: 2rem;
-  border-radius: 12px;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
   z-index: var(--z-modal);
   box-shadow: var(--shadow);
+}
+
+.popup-panel > h2 {
+  max-width: calc(100% - 3rem);
+  margin: 0 0 0.35rem;
+  font-size: clamp(1.2rem, 2.3vw, 1.6rem);
+  line-height: 1.35;
+}
+
+.post-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.8rem;
+}
+
+.post-actions button {
+  min-height: var(--size-control-min);
+  padding: 0.45rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text-h);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.post-actions button:hover,
+.post-actions button[aria-pressed="true"] {
+  border-color: var(--color-primary);
+  background: var(--color-accent-background);
+  color: var(--color-primary);
+}
+
+.post-actions button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.post-action-status {
+  margin-top: 0.6rem;
+  color: var(--color-primary);
+  font-size: 0.85rem;
 }
 
 .popup-close {
