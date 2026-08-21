@@ -3,6 +3,14 @@
 WRITING_SOURCE_DETAIL_STATE_CODE = "W"
 
 
+def normalize_source_detail_state_code(value: object) -> str | None:
+    """Return a canonical, case-insensitive source detail state code."""
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip().upper()
+    return normalized or None
+
+
 def source_post_state_visibility_sql(
     alias: str, *, corporate_param: int, account_param: int, admin_param: int
 ) -> str:
