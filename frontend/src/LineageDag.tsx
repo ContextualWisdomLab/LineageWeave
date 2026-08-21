@@ -143,35 +143,37 @@ export function LineageDag({
                 })}
               </svg>
             </div>
-            <details className="lineage-dag-evidence" open>
-              <summary>{t("Evidence trail")}</summary>
-              <div className="lineage-dag-evidence-scroll">
-                <table className="lineage-dag-evidence-table">
-                  <caption className="visually-hidden">{`${lineageLabel} — ${t("Evidence trail")}`}</caption>
-                  <thead>
-                    <tr>
-                      <th scope="col">{t("Graph relation")}</th>
-                      <th scope="col">{t("When")}</th>
-                      <th scope="col">{t("Evidence")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {group.edges.map((edge) => {
-                      const from = byId[edge.source];
-                      const to = byId[edge.target];
-                      if (!from || !to) return null;
-                      return (
-                        <tr key={`${edge.source}-${edge.target}-evidence`}>
-                          <td>{`${from.label} → ${to.label}`}</td>
-                          <td>{`${eventDate(from.occurred_at)} → ${eventDate(to.occurred_at)}`}</td>
-                          <td>{edge.fused_score.toFixed(2)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </details>
+            {group.edges.length > 0 ? (
+              <details className="lineage-dag-evidence" open>
+                <summary>{t("Evidence trail")}</summary>
+                <div className="lineage-dag-evidence-scroll">
+                  <table className="lineage-dag-evidence-table">
+                    <caption className="visually-hidden">{`${lineageLabel} — ${t("Evidence trail")}`}</caption>
+                    <thead>
+                      <tr>
+                        <th scope="col">{t("Graph relation")}</th>
+                        <th scope="col">{t("When")}</th>
+                        <th scope="col">{`${t("Evidence")} (fused_score)`}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {group.edges.map((edge) => {
+                        const from = byId[edge.source];
+                        const to = byId[edge.target];
+                        if (!from || !to) return null;
+                        return (
+                          <tr key={`${edge.source}-${edge.target}-evidence`}>
+                            <td>{`${from.label} → ${to.label}`}</td>
+                            <td>{`${eventDate(from.occurred_at)} → ${eventDate(to.occurred_at)}`}</td>
+                            <td>{edge.fused_score.toFixed(2)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            ) : null}
           </figure>
         );
       })}
