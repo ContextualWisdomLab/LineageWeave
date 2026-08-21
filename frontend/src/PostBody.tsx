@@ -134,6 +134,10 @@ function isStructuredTableRow(unit: PostContentUnit): boolean {
   );
 }
 
+function structuredTableCells(unit: PostContentUnit): string[] {
+  return unit.unit_text.split(/\s*\|\s*/);
+}
+
 /**
  * Match a persisted unit to its source-rendering counterpart without relying
  * on ordinal position. A table row can occupy a persisted non-text unit while
@@ -189,12 +193,17 @@ function renderStructuredUnits(
         rows.push(structureUnits[index]);
         index += 1;
       }
+      for (const row of rows) {
+        for (const cell of structuredTableCells(row)) {
+          sourceTextForUnit(cell);
+        }
+      }
       rendered.push(
         <table className="post-body-table" key={`post-body-table-${index}`}>
           <tbody>
             {rows.map((row, rowIndex) => (
               <tr key={`post-body-table-row-${row.unit_index}-${rowIndex}`}>
-                {row.unit_text.split(/\s*\|\s*/).map((cell, cellIndex) => (
+                {structuredTableCells(row).map((cell, cellIndex) => (
                   <td key={`post-body-table-cell-${row.unit_index}-${cellIndex}`}>{cell}</td>
                 ))}
               </tr>
@@ -249,7 +258,6 @@ export function PostBody({
     <div className="post-body">
       {splitPostBody(body).map((segment, index) => {
         const content = segment.kind === "image" ? imageContent[imageOrdinal++] : undefined;
-        if (segment.kind !== "text") return renderSegment(segment, index, content);
         return renderSegment(segment, index, content);
       })}
     </div>
