@@ -2130,6 +2130,11 @@ a:focus-visible {
   font-size: 0.9rem;
 }
 
+.rr-job-title {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
 .ontology-role {
   padding: 0.3rem 0;
 }

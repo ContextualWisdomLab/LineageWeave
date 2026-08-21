@@ -200,6 +200,7 @@ export interface PostRoleResponsibility {
   responsibility: string;
   actor_type_code: string;
   affiliated_organization_name: string | null;
+  job_title?: string | null;
   catalog_node_id?: string | null;
   catalog_node_type_code?: string | null;
   affiliated_organization_catalog_id?: string | null;

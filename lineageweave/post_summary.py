@@ -218,7 +218,7 @@ EVENT_CLUE_TYPES = frozenset(
 )
 # Stored rows without this contract version are legacy summaries and must be
 # regenerated from the current source body before the popup treats them as evidence.
-POST_SUMMARY_CONTRACT_VERSION = 13
+POST_SUMMARY_CONTRACT_VERSION = 14
 
 _GENERIC_TEAM_ACTOR_NAMES = frozenset(
     {"사업부", "부서", "팀", "business unit", "department", "division"}
@@ -285,12 +285,17 @@ class RoleResponsibility:
             name already answers "which organization"). A team actor
             without this is an unplaced team -- the text should usually
             support it since a team is always someone's team.
+        job_title: a person actor's stated position or title (e.g. "PM",
+            "Sales Director"), kept separate from ``responsibility`` so a
+            title never stands in for a concrete responsibility. ``None``
+            when the text states no title.
     """
 
     actor_name: str
     responsibility: str
     actor_type_code: str = ACTOR_TYPE_PERSON
     affiliated_organization_name: str | None = None
+    job_title: str | None = None
 
     def __post_init__(self) -> None:
         if self.actor_type_code not in _VALID_ACTOR_TYPE_CODES:
@@ -808,7 +813,7 @@ Write exactly these eight section markers, each on its own line:
 
 ROLES:
 <one row per named actor, in this exact column order:>
-actor name | responsibility | person, organization, team, or software_agent | affiliation or NONE
+actor name | responsibility | person, organization, team, or software_agent | affiliation or NONE | job title or NONE
 
 Column 1 is always the actor's own name (a person's name, an organization's
 name, a team's name, or a named software agent) -- never a role description or a category label
@@ -822,6 +827,17 @@ role or responsibility: do not write a ROLES row whose only meaning is
 post explicitly connects that person or organization to a key event. When
 several actors have concrete work, write one row per actor rather than
 merging them.
+
+Column 5 is a person actor's stated position or title (e.g. PM, PRO, Sales
+Director), exactly as the post names it, or NONE when the post states none.
+A bare job title is not a responsibility: never write column 2 as a copy or
+paraphrase of column 5. When a person's only source-grounded detail beyond
+attendance is their stated title, ground column 2 in what the post says
+happened in their presence instead -- what their side proposed, requested,
+reviewed, or was told -- and keep the title itself only in column 5. If the
+post gives no such grounded detail for that person at all, still write the
+row (a stated name, organization, and title are themselves source-grounded
+facts) rather than dropping them to CLUES, but do not invent an action.
 
 Technical terms are not actors. Do not write a ROLES row for a material,
 product, process, method, equipment, acronym, or parenthetical expansion.
@@ -841,9 +857,10 @@ post title or body independently names that same person doing something
 -- an account name appearing only in the hints is not post evidence.
 
 Worked examples (fictional names, format only, not real post's content):
-홍길동 | 견적 승인 검토 | person | Acme Electronics
-Acme Renewables | 기술 세미나에서 제품 설명 | organization | NONE
-설계팀 | 도면 검토 지원 | team | Acme Electronics
+홍길동 | 견적 승인 검토 | person | Acme Electronics | NONE
+Acme Renewables | 기술 세미나에서 제품 설명 | organization | NONE | NONE
+설계팀 | 도면 검토 지원 | team | Acme Electronics | NONE
+김민수 | Acme Renewables의 기술 지원 제안 청취 | person | Acme Electronics | PM
 
 PROJECTS:
 project name | canonical name | shortest supporting evidence | confidence from 0 to 1
@@ -1330,9 +1347,14 @@ def _parse_plain_summary_details(
         row.casefold()
         for row in (
             "actor name | responsibility | person, organization, or team | affiliation or none",
+            "actor name | responsibility | person, organization, team, or software_agent | affiliation or none | job title or none",
             "홍길동 | 견적 승인 검토 | person | acme electronics",
             "acme renewables | 기술 세미나 참석 | organization | none",
             "설계팀 | 도면 검토 지원 | team | acme electronics",
+            "홍길동 | 견적 승인 검토 | person | acme electronics | none",
+            "acme renewables | 기술 세미나에서 제품 설명 | organization | none | none",
+            "설계팀 | 도면 검토 지원 | team | acme electronics | none",
+            "김민수 | acme renewables의 기술 지원 제안 청취 | person | acme electronics | pm",
         )
     )
     hallucinated_account_name = _hallucinated_account_name(context_hints)
@@ -1341,12 +1363,15 @@ def _parse_plain_summary_details(
         row = raw_row.strip().lstrip("-* ").strip()
         if not row or row.casefold() in empty_values or row.casefold() in _template_echo_rows:
             continue
-        parts = [part.strip() for part in row.split("|", 3)]
+        parts = [part.strip() for part in row.split("|", 4)]
+        job_title_raw = ""
         if len(parts) == 3:
             actor_name, responsibility, affiliation = parts
             actor_type = "person"
         elif len(parts) == 4:
             actor_name, responsibility, actor_type, affiliation = parts
+        elif len(parts) == 5:
+            actor_name, responsibility, actor_type, affiliation, job_title_raw = parts
         else:
             continue
         if (
@@ -1390,6 +1415,9 @@ def _parse_plain_summary_details(
                 actor_type_code=actor_type_code,
                 affiliated_organization_name=(
                     None if affiliation.casefold() in empty_values else affiliation
+                ),
+                job_title=(
+                    None if job_title_raw.casefold() in empty_values else job_title_raw
                 ),
             )
         )
