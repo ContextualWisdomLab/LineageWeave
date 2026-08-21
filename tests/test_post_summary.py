@@ -10,11 +10,14 @@ warranty language messy), which is exactly the "non-trivial" shape Phase
 
 from __future__ import annotations
 
+import asyncio
 import os
 
 import pytest
 
 from backend.app.post_summary_ingestion import (
+    SUMMARY_TARGET_UNAVAILABLE,
+    require_summary_target,
     require_summary_source_body,
     seeded_fixture_summary,
 )
@@ -75,6 +78,17 @@ def test_summary_requires_imported_source_body() -> None:
     assert require_summary_source_body("  body  ") == "  body  "
     with pytest.raises(ValueError, match="source post body is empty"):
         require_summary_source_body("")
+
+
+def test_summary_target_rejects_transport_padded_writing_state() -> None:
+    class _Connection:
+        async def fetchval(self, query: str, post_id: str) -> str:
+            assert "source_detail_state_code" in query
+            assert post_id == "post-1"
+            return " w "
+
+    with pytest.raises(ValueError, match=SUMMARY_TARGET_UNAVAILABLE):
+        asyncio.run(require_summary_target(_Connection(), "post-1"))
 
 
 def test_parses_a_well_formed_json_object() -> None:

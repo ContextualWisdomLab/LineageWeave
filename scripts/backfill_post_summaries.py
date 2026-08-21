@@ -150,7 +150,7 @@ async def _load_posts(
                 on source_customer.corporate_entity_code = nullif(btrim(post.source_customer_code), '')
              where nullif(btrim(post.source_draft_code), '') is null
                and nullif(btrim(post.source_deleted_flag), '') is null
-               and post.source_detail_state_code is distinct from 'W'
+               and coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'
                and not (
                    (
                        nullif(btrim(post.source_author_code), '') is null

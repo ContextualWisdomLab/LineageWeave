@@ -74,6 +74,7 @@ from .keyman_ingestion import (
     _resolve_affiliated_organization,
 )
 from .knowledge_graph import persist_edges_for_post
+from .post_eligibility import normalize_source_detail_state_code
 from .team_ingestion import upsert_team
 
 SUMMARY_SOURCE_BODY_MISSING = (
@@ -96,7 +97,7 @@ async def require_summary_target(conn: asyncpg.Connection, post_id: str) -> None
         "select source_detail_state_code from source_post where post_id = $1",
         post_id,
     )
-    if state_code == "W":
+    if normalize_source_detail_state_code(state_code) == "W":
         raise ValueError(SUMMARY_TARGET_UNAVAILABLE)
 
 

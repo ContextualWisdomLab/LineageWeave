@@ -4540,6 +4540,8 @@ def test_calendar_hides_other_corp_private_commitments_and_sorts_by_due_date(
     assert commitments[0]["commitment_summary"] == "Send the revised quote"
     assert "visibility_code" not in commitments[0]
     assert "corporate_entity_id" not in commitments[0]
+    assert "author_account_id" not in commitments[0]
+    assert "source_detail_state_code" not in commitments[0]
 
 
 def test_calendar_keeps_real_ticket_when_demo_code_is_shared(
@@ -5206,6 +5208,21 @@ def test_seed_period_report_member_click_lands_on_decorated_fixture(
             first = report["members"][0]
             assert first["post_title"] in decorated, first["post_title"]
             assert not first["post_title"].startswith(("High-band", "Low-band"))
+            assert not {
+                "visibility_code",
+                "corporate_entity_id",
+                "author_account_id",
+                "source_detail_state_code",
+                "has_real_source_context",
+            } & first.keys()
+            for pair in report.get("leftover_pairs", []):
+                assert not {
+                    "visibility_code",
+                    "corporate_entity_id",
+                    "author_account_id",
+                    "source_detail_state_code",
+                    "has_real_source_context",
+                } & pair.keys()
 
     threads = client.get("/api/reports/thread_group/2026-W02", headers=headers)
     a100 = next(report for report in threads.json()["reports"] if report["grouping_key"] == "A-100")

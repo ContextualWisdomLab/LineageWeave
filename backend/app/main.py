@@ -2629,12 +2629,19 @@ async def read_period_reports(
             if _can_use_post_for_analysis(account, pair)
             and not _is_synthetic_demo_member(pair, demo_entity_ids)
         ]
+        private_report_fields = {
+            "visibility_code",
+            "corporate_entity_id",
+            "author_account_id",
+            "source_detail_state_code",
+            "has_real_source_context",
+        }
         members = [
-            {key: value for key, value in member.items() if key != "has_real_source_context"}
+            {key: value for key, value in member.items() if key not in private_report_fields}
             for member in members
         ]
         leftover_pairs = [
-            {key: value for key, value in pair.items() if key != "has_real_source_context"}
+            {key: value for key, value in pair.items() if key not in private_report_fields}
             for pair in leftover_pairs
         ]
         visible.append(
@@ -3526,7 +3533,13 @@ async def read_calendar(
             c for c in visible if not _is_synthetic_demo_member(c, demo_entity_ids)
         ]
     for c in visible:
-        del c["visibility_code"], c["corporate_entity_id"], c["has_real_source_context"]
+        del (
+            c["visibility_code"],
+            c["corporate_entity_id"],
+            c["author_account_id"],
+            c["source_detail_state_code"],
+            c["has_real_source_context"],
+        )
     return {
         "events": events,
         "commitments": visible,

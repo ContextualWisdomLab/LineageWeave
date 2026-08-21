@@ -74,3 +74,9 @@ def test_post_structure_protocol_stub_fails_explicitly() -> None:
     """The protocol method cannot silently return ``None`` when invoked directly."""
     with pytest.raises(NotImplementedError):
         PostStructureClient.infer(object(), "title", [])
+
+
+def test_summary_backfill_normalizes_writing_state_codes() -> None:
+    """Backfill excludes transport-padded writing rows like the API gate."""
+    source = (ROOT / "scripts/backfill_post_summaries.py").read_text(encoding="utf-8")
+    assert "coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'" in source
