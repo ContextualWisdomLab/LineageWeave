@@ -1,145 +1,235 @@
-# ADR 0004 — Knowledge Graph as a real Ontology + Semantic Layer, not just a polymorphic edge table
+# ADR 0004 — Standards-composed Knowledge Graph ontology and semantic layer
 
-**Decision status:** Accepted (this ADR covers the first slice: a real,
-machine-validated ontology artifact and the vocabulary contract other
-code and future consumers use; it does not add a triple store or a
-SPARQL endpoint -- see Consequences)
-**Date:** 2026-08-13
+**Decision status:** Accepted; amended 2026-08-21  
+**Original date:** 2026-08-13  
+**Related:** ADR 0006, ADR 0007, ADR 0009, ADR 0036, ADR 0065
 
 ## Context
 
-The product brief's latest revision is explicit that every place the
-Knowledge Graph is used -- Keyman-to-related-node traversal, the
-integrated customer/corporate hierarchy tree, entity-relationship
-classification (VOC/VOM/VOP/VOCC/VOCO/VOS), indirect lineage linking,
-and the in-popup chat's evidence retrieval -- rests on a real Ontology
-and a real Semantic Layer, "FULL 표준" (full standard), not an informal
-convention.
+Every Buyer surface that uses the Knowledge Graph—Keyman traversal, customer
+and corporate hierarchy, VOC/VOM/VOP relationship classification, indirect
+lineage nomination, project evidence, and Ask retrieval—needs a governed,
+machine-checkable semantic contract rather than an informal collection of
+lookup strings.
 
-What already exists (`migrations/0001_initial_schema.sql`):
+The relational model already contains the core facts:
 
-- `knowledge_graph_edge`: `(source_node_type_code, source_node_id) --
-  [edge_type_code] --> (target_node_type_code, target_node_id)`. This
-  is *already*, structurally, an RDF triple (subject, predicate,
-  object) -- W3C's RDF 1.1 Concepts and Abstract Syntax (Cyganiak,
-  Wood, & Lanthaler, 2014) defines a triple in exactly this shape.
-- `common_lookup_value`: the closed vocabulary for `node_type_code`
-  (`node_person`, `node_corporate_entity`, `node_post`), `edge_type_code`
-  (`edge_mention`, `edge_affiliation`, `edge_co_mention`), and
-  `entity_relationship_type` (`rel_voc`/`rel_vom`/`rel_vop`/`rel_vocc`/
-  `rel_voco`/`rel_vos`) -- a controlled vocabulary in substance, but
-  documented only as human-readable code/label pairs, with no formal
-  class hierarchy, no declared domain/range constraints on the
-  properties, and no artifact any other system (or a future reasoner)
-  could actually load and validate against.
-- `corporate_entity`'s self-referencing `parent_entity_id` is a real
-  broader/narrower hierarchy (Acme Group -> Acme Electronics Korea ->
-  Acme Electronics Gwangju Plant) but, again, undocumented as a formal
-  taxonomy relation.
+- `knowledge_graph_edge` has a subject–predicate–object shape;
+- `common_lookup_value` owns the controlled codes for node, edge,
+  relationship, person-side, corporate level, and role-actor vocabularies;
+- `corporate_entity.parent_entity_id` stores real organizational containment;
+- `corporate_entity.entity_level_code` classifies an organization as Group,
+  Company, or Plant; and
+- `cataloged_team.affiliated_corporate_entity_id` binds a team to the
+  organization that owns it.
 
-So the gap is not "there is no graph" -- the gap is that the graph's
-vocabulary has never been published as a real ontology a standard tool
-can parse, validate, or reason over, and nothing currently checks that
-the *database's own* `common_lookup_value` rows stay consistent with
-whatever the intended vocabulary is.
+The first ontology slice correctly introduced OWL 2, RDFS, SKOS, PROV-O, and
+W3C ORG terms and tested relational lookup-code drift. It nevertheless modeled
+`CorporateEntity` itself as a subclass of `skos:Concept` and described
+`parent_entity_id` with `skos:broader`/`skos:narrower`.
+
+That conflates two different things:
+
+1. a real organization that can own teams, appear in records, and participate
+   in business relationships; and
+2. a classification concept such as Group, Company, or Plant.
+
+SKOS broader/narrower is appropriate for the second. W3C ORG organization and
+sub-organization relations are appropriate for the first. Leaving them
+conflated would make standards-aware consumers treat an actual customer or
+company as a taxonomy term and would obscure the difference between
+organizational containment and level classification.
+
+OWL and RDFS also use open-world semantics: domain/range statements support
+inference but do not provide the closed-world required-cardinality validation
+needed by an interchange contract. A separate SHACL profile is therefore
+needed rather than misusing OWL restrictions as database-style validation.
 
 ## Decision
 
-Publish the existing vocabulary as a real OWL 2 / RDF Schema ontology,
-in Turtle syntax (`docs/ontology/lineageweave-kg.ttl`), and make it
-the single source of truth the relational schema's controlled
-vocabulary must match -- checked by a real, running test, not just
-prose:
+Publish the relational vocabulary as a versioned, standards-composed ontology
+in `docs/ontology/lineageweave-kg.ttl`, with PostgreSQL remaining the source of
+record.
 
-- **Classes** (`owl:Class`): `Post`, `Person`, `CorporateEntity`,
-  plus `Person` split into `OurSidePerson` /
-  `CounterpartyPerson` subclasses (`rdfs:subClassOf`) matching
-  `person_side_code`. Issue tickets stay a separate table
-  (`issue_ticket`), not a knowledge-graph node type.
-- **Object properties** (`owl:ObjectProperty`, each with
-  `rdfs:domain`/`rdfs:range`): `mentionedIn` (Person -> Post, the
-  canonical direction stored by `edge_mention`; `mentions` is its
-  declared RDF inverse), `affiliatedWith` (Person -> CorporateEntity, from
-  `edge_affiliation`), `coMentionedWith` (symmetric, Person <-> Person,
-  from `edge_co_mention`), and one object property per entity-
-  relationship-type code (`hasVocRelationship`, `hasVomRelationship`,
-  etc., domain `Post`, range `CorporateEntity`).
-- **Taxonomy relation**: `CorporateEntity`'s hierarchy is modeled with
-  SKOS (Miles & Bechhofer, 2009) `skos:broader`/`skos:narrower` on top
-  of the OWL class, rather than inventing a bespoke relation -- SKOS is
-  the W3C standard specifically for this kind of organizational/
-  concept hierarchy, and it composes with OWL rather than competing
-  with it.
-- **The "semantic layer"** is this ontology file itself, in the sense
-  W3C's own stack uses the term: RDFS/OWL is the standard technology
-  for a governed, machine-checkable conceptual layer over raw relational
-  data (Cyganiak et al., 2014; W3C OWL Working Group, 2012) -- not a
-  separate BI-metrics product. `lineageweave/ontology.py` exposes the
-  same IRIs as importable Python constants so application code has one
-  canonical name for each class/property instead of re-typing the
-  `common_lookup_value` lookup codes as bare strings.
-- **A real correctness test**, not just a parseable file:
-  `tests/test_ontology.py` loads the Turtle file with `rdflib` (the
-  standard Python RDF/OWL library) and asserts every `node_type_code`,
-  `edge_type_code`, and `entity_relationship_type` lookup code the
-  relational schema actually defines has a corresponding class or
-  property IRI in the ontology, and vice versa -- the two are not
-  allowed to drift apart silently.
+### RDF, RDFS, and OWL 2
+
+- Classes, object properties, datatype properties, inverse properties, and
+  symmetric properties use RDF/RDFS/OWL 2.
+- The ontology has a stable ontology IRI, `owl:versionIRI` 1.0.0, and
+  `owl:versionInfo`.
+- `owl:imports` records the exact external semantic dependencies—W3C ORG,
+  PROV-O, and SKOS—as metadata. Runtime loading parses committed local
+  artifacts and never dereferences imports over the network.
+
+### W3C ORG for real organizational structure
+
+- `CorporateEntity` is an `org:Organization`.
+- `Team` is an `org:OrganizationalUnit`.
+- local `subOrganizationOf` specializes `org:subOrganizationOf` and represents
+  `corporate_entity.parent_entity_id`.
+- local `hasSubOrganization` is its inverse and specializes
+  `org:hasSubOrganization`.
+- `teamAffiliatedWith` specializes `org:unitOf`, preserving the existing
+  Team-to-CorporateEntity stored edge direction.
+
+These properties express real organizational containment and unit ownership;
+they are not taxonomy links.
+
+### SKOS for controlled classification and labels
+
+- `CorporateEntityLevel` is a class of SKOS concepts.
+- `GroupLevel`, `CompanyLevel`, and `PlantLevel` are instances of that class in
+  `corporateEntityLevelScheme`.
+- `skos:broader`/`skos:narrower` orders the classification concepts from Group
+  to Company to Plant.
+- `hasEntityLevel` binds one real `CorporateEntity` to one level concept.
+- verified organization aliases continue to map naturally to `skos:altLabel`
+  and canonical names to `skos:prefLabel`; the relational alias-resolution
+  evidence remains authoritative.
+
+### PROV-O for acting parties and provenance
+
+- role actors retain their separate PROV-O grounding:
+  `RoleActorPerson` subclasses `prov:Person` and
+  `RoleActorOrganization` subclasses `prov:Organization`.
+- the standards-complete provenance assertion store in ADR 0065 remains
+  separate from the compact Buyer navigation graph. This ontology does not
+  flatten qualified PROV-O assertions or literal properties into
+  `knowledge_graph_edge`.
+
+### Product vocabulary and relational lookup codes
+
+- `Post`, `Person`, `CorporateEntity`, and `Team` remain the navigation node
+  classes associated with `node_type` lookup codes.
+- mention, affiliation, co-mention, team, organization, VOC/VOM/VOP/VOCC/VOCO/
+  VOS, and semantic-project properties retain explicit domain and range.
+- every term backed by `common_lookup_value` carries exactly one `lookupCode`
+  annotation. Application code resolves these IRIs through
+  `lineageweave.ontology` instead of retyping strings.
+- `tests/test_ontology.py` continues the bidirectional check between committed
+  seed/migration lookup codes and ontology annotations.
+
+### SHACL for closed-world interchange constraints
+
+Publish `docs/ontology/lineageweave-kg.shacl.ttl` as a separately versioned
+SHACL shapes graph.
+
+The first profile requires:
+
+- exactly one corporate-entity level per `CorporateEntity`;
+- at most one direct parent organization, matching the current relational
+  self-reference;
+- exactly one owning organization per `Team`; and
+- the corresponding W3C ORG and LineageWeave classes.
+
+SHACL is the external RDF validation contract. PostgreSQL foreign keys,
+not-null constraints, and application authorization remain authoritative for
+stored product data.
 
 ## Rationale
 
-- Ponytail: the relational `knowledge_graph_edge` table already has
-  the right *shape* (a triple store, functionally) -- the fix is
-  publishing its vocabulary formally and testing it against reality,
-  not replacing working Postgres storage with a parallel RDF triple
-  store the rest of this codebase (random-walk-with-restart, ABAC
-  joins, the reconstruct pipeline) would then have to be rewritten
-  around.
-- SKOS for the corporate hierarchy specifically, rather than folding
-  it into OWL class subsumption, because a corporate entity being
-  "part of" a larger one is an organizational/concept relationship
-  (concept scheme), not a taxonomic is-a relationship in the OWL sense
-  -- SKOS is the standard built for exactly that distinction.
-- A round-trip test against the live `common_lookup_value` vocabulary
-  is the only way "grounded in a real standard" is actually verified
-  rather than merely asserted in a docstring; every other pluggable
-  channel in this repo already keeps this discipline (real LLM calls,
-  real Docker verification) and the ontology should not be the one
-  place that's citation-only.
+### Do not replace PostgreSQL with a parallel triple store
+
+The existing relational model, ABAC joins, reconstruction pipeline, and Buyer
+queries are operationally useful. Publishing formal semantics and validation
+does not require duplicating mutable truth in a new RDF database. An external
+SPARQL service can be added later as a projection if a concrete consumer
+requires it.
+
+### Keep organizations and classifications distinct
+
+A company is not a kind of taxonomy term. The company may be classified by a
+level concept, while independently participating in an organization hierarchy.
+W3C ORG and SKOS complement one another precisely when these responsibilities
+are separated.
+
+### Keep inference and validation distinct
+
+RDFS/OWL domain, range, subclass, inverse, and symmetry axioms define meaning
+and support inference. SHACL defines required cardinalities and accepted graph
+shape. Conflating them either weakens validation or distorts the ontology.
+
+### Keep provenance and navigation distinct
+
+PROV-O represents activities, entities, agents, qualified influences, and
+literal-valued properties. `knowledge_graph_edge` remains a bounded,
+removable navigation projection and must not become the provenance assertion
+store.
 
 ## Consequences
 
-- No new runtime dependency on a triple store or SPARQL engine --
-  `knowledge_graph_edge` stays the source of record; the ontology is a
-  published specification and validation artifact, not a second
-  database. If a future need justifies real SPARQL querying (e.g. an
-  external Ontology/Semantic-Layer consumer), that is an additive,
-  separate slice building on this vocabulary, not a rewrite of it.
-- `rdflib` becomes a real dependency (pure Python, no Rust/C toolchain
-  requirement, unlike `fast-mlsirm` -- see ADR 0003), used both for the
-  correctness test and by `lineageweave/ontology.py` at import time to
-  parse the Turtle file once.
-- Every future addition to `common_lookup_value`'s `node_type`,
-  `edge_type`, or `entity_relationship_type` categories must add the
-  matching class/property to `lineageweave-kg.ttl` in the same PR, or
-  `tests/test_ontology.py` fails -- this is the enforcement mechanism,
-  not a style guideline.
+### Positive
 
-## Related
+- External consumers can distinguish an actual customer organization from its
+  Group/Company/Plant classification.
+- Corporate and team containment reuse standard W3C ORG relations.
+- SKOS remains focused on controlled concepts and multilingual labels.
+- Versioned ontology and SHACL artifacts can be pinned by APIs, dossiers, and
+  downstream MCP consumers.
+- Lookup-code drift, semantic-role drift, and cardinality regressions are
+  covered by separate tests.
 
-Builds on the existing `knowledge_graph.py` (Tong, Faloutsos, & Pan,
-2006, random-walk-with-restart) and `affiliate_tree.py` modules, and
-on [ADR 0003](0003-fast-mlsirm-report-integration.md)'s reuse-not-
-reimplement discipline for external standards.
+### Costs and limitations
 
-## References (APA 7th)
+- RDF producers must emit both real organization relations and level
+  classifications instead of overloading one SKOS edge.
+- The current SHACL profile covers the high-value organization boundaries, not
+  every relational constraint in the product schema.
+- `owl:imports` is metadata only in the runtime; integrated offline reasoner
+  and full SHACL-engine conformance remain additive validation lanes.
+- The ontology does not itself grant access. Every product projection must pass
+  the existing authenticated RBAC/ABAC boundary before exposing an IRI, node,
+  relation, label, or source body.
 
-Cyganiak, R., Wood, D., & Lanthaler, M. (Eds.). (2014). *RDF 1.1 concepts and abstract syntax*. World Wide Web Consortium. https://www.w3.org/TR/rdf11-concepts/
+## Rejected alternatives
 
-Brickley, D., & Guha, R. V. (Eds.). (2014). *RDF Schema 1.1*. World Wide Web Consortium. https://www.w3.org/TR/rdf-schema/
+### Keep CorporateEntity as `skos:Concept`
 
-Miles, A., & Bechhofer, S. (Eds.). (2009). *SKOS Simple Knowledge Organization System reference*. World Wide Web Consortium. https://www.w3.org/TR/skos-reference/
+Rejected because it conflates a real organization with its classification and
+uses taxonomy hierarchy for organizational containment.
 
-Prud'hommeaux, E., & Carothers, G. (Eds.). (2014). *RDF 1.1 Turtle: Terse RDF Triple Language*. World Wide Web Consortium. https://www.w3.org/TR/turtle/
+### Use only W3C ORG and drop SKOS
 
-W3C OWL Working Group. (2012). *OWL 2 Web Ontology Language document overview* (2nd ed.). World Wide Web Consortium. https://www.w3.org/TR/owl2-overview/
+Rejected because organization levels, canonical labels, aliases, and other
+controlled vocabularies still need a concept-scheme model independent of the
+organization instances.
+
+### Treat OWL domain/range as data validation
+
+Rejected because OWL/RDFS primarily infer types under open-world semantics;
+they do not provide the required closed-world cardinality contract.
+
+### Add a second mutable RDF system of record
+
+Rejected because it would duplicate PostgreSQL authority and force every
+write, authorization, migration, and repair path to coordinate two stores.
+
+## References — APA 7th
+
+Brickley, D., & Guha, R. V. (Eds.). (2014). *RDF Schema 1.1*. World Wide Web
+Consortium. https://www.w3.org/TR/rdf-schema/
+
+Cyganiak, R., Wood, D., & Lanthaler, M. (Eds.). (2014). *RDF 1.1 concepts and
+abstract syntax*. World Wide Web Consortium.
+https://www.w3.org/TR/rdf11-concepts/
+
+Knublauch, H., & Kontokostas, D. (Eds.). (2017). *Shapes constraint language
+(SHACL).* World Wide Web Consortium. https://www.w3.org/TR/shacl/
+
+Lebo, T., Sahoo, S., McGuinness, D., Belhajjame, K., Cheney, J., Corsar, D.,
+Garijo, D., Soiland-Reyes, S., Zednik, S., & Zhao, J. (Eds.). (2013).
+*PROV-O: The PROV ontology*. World Wide Web Consortium.
+https://www.w3.org/TR/prov-o/
+
+Miles, A., & Bechhofer, S. (Eds.). (2009). *SKOS Simple Knowledge Organization
+System reference*. World Wide Web Consortium.
+https://www.w3.org/TR/skos-reference/
+
+Prud'hommeaux, E., & Carothers, G. (Eds.). (2014). *RDF 1.1 Turtle: Terse RDF
+Triple Language*. World Wide Web Consortium. https://www.w3.org/TR/turtle/
+
+Reynolds, D. (Ed.). (2014). *The organization ontology*. World Wide Web
+Consortium. https://www.w3.org/TR/vocab-org/
+
+W3C OWL Working Group. (2012). *OWL 2 Web Ontology Language document overview*
+(2nd ed.). World Wide Web Consortium. https://www.w3.org/TR/owl2-overview/
