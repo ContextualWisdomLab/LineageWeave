@@ -18,6 +18,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Global Ask now re-authorizes cited posts under row locks inside the same
+  persistence transaction, rolling back a raced turn without poisoning the
+  conversation or exposing an unauthorized answer (Issue #362).
+
 - Tenant settings now refresh their audit timestamp on every successful update,
   keep the year field visibly blank while it is edited, and disable no-op
   whitespace-only saves.
@@ -46,9 +50,9 @@ All notable changes to this project are documented here. Format follows
 - All OpenAI-compatible chat-completion consumers now validate the shared
   response envelope before parsing it, preventing malformed provider bodies
   from escaping as raw `KeyError` or response-shape details.
-- Customer Master integration fixtures no longer reference an unshipped
-  Global Ask history migration; Global Ask remains stateless as documented by
-  ADR 0090, while the shipped scope-facet migration is applied directly.
+- Customer Master integration fixtures apply only the migrations needed by
+  their scope; persisted Global Ask history is covered by its own 0105
+  migration and the real API fixture.
 - The static SQL review contract now counts the Customer Master evidence query
   that uses closed schema fragments and bound entity ids.
 

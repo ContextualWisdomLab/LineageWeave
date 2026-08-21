@@ -127,6 +127,11 @@ _IDENTIFIER_MIGRATION = (
     / "migrations"
     / "0104_two_word_database_identifiers.sql"
 )
+_GLOBAL_ASK_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0105_global_ask_conversation_history.sql"
+)
 _TENANT_IDENTITY_METADATA_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -288,6 +293,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
             cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
             cur.execute(_IDENTIFIER_MIGRATION.read_text())
+            cur.execute(_GLOBAL_ASK_MIGRATION.read_text())
             cur.execute(_TENANT_IDENTITY_METADATA_MIGRATION.read_text())
             cur.execute(_AFFILIATION_SCOPE_FACET_MIGRATION.read_text())
             cur.execute(_EVENT_CLUE_MIGRATION.read_text())
@@ -3958,6 +3964,104 @@ def test_global_ask_provider_error_does_not_leak_raw_error(
 
     assert response.status_code == 503
     assert "raw-global-provider-secret" not in response.text
+
+
+def test_global_ask_rejects_raced_citation_without_poisoning_session(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """A citation that becomes W is rolled back, while the session remains usable."""
+    from lineageweave.post_chat import ChatAnswer
+
+    class _RaceChatClient:
+        available = True
+        calls = 0
+        raced_post_id: str | None = None
+
+        def answer(self, question: str, sources) -> ChatAnswer:
+            self.calls += 1
+            if self.calls == 2:
+                cited_post_id = sources[0].post_id
+                self.raced_post_id = cited_post_id
+                race_conn = psycopg2.connect(seeded_db["dsn"])
+                race_conn.autocommit = True
+                try:
+                    with race_conn.cursor() as cur:
+                        cur.execute(
+                            "update source_post set source_detail_state_code = 'W' where post_id = %s",
+                            (cited_post_id,),
+                        )
+                finally:
+                    race_conn.close()
+                return ChatAnswer("answer must be rolled back", (cited_post_id,))
+            return ChatAnswer(f"safe answer {self.calls}")
+
+    fake_client = _RaceChatClient()
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: fake_client)
+    monkeypatch.setattr(
+        "backend.app.main.cited_post_evidence",
+        lambda sources, cited_ids: [
+            {"post_id": cited_ids[0], "facts": [{"kind": "source_field", "text": "synthetic evidence"}]}
+        ]
+        if cited_ids
+        else [],
+    )
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+
+    first = client.post("/api/ask", json={"question": "Public post"}, headers=headers)
+    assert first.status_code == 200, first.text
+    conversation_id = first.json()["conversation_id"]
+
+    raced = client.post(
+        "/api/ask",
+        json={"question": "Public post", "conversation_id": conversation_id},
+        headers=headers,
+    )
+    assert raced.status_code == 503
+    assert "answer must be rolled back" not in raced.text
+    assert "retry" in raced.text
+
+    with psycopg2.connect(seeded_db["dsn"]) as check_conn, check_conn.cursor() as cur:
+        cur.execute(
+            "select count(*) from global_ask_turn where global_ask_session_id = %s",
+            (conversation_id,),
+        )
+        assert cur.fetchone()[0] == 1
+        cur.execute(
+            "select count(*) from global_ask_turn_citation where global_ask_session_id = %s",
+            (conversation_id,),
+        )
+        assert cur.fetchone()[0] == 0
+        cur.execute(
+            "select count(*) from global_ask_turn_evidence where global_ask_session_id = %s",
+            (conversation_id,),
+        )
+        assert cur.fetchone()[0] == 0
+
+    restore_conn = psycopg2.connect(seeded_db["dsn"])
+    restore_conn.autocommit = True
+    try:
+        with restore_conn.cursor() as cur:
+            cur.execute(
+                "update source_post set source_detail_state_code = null where post_id = %s",
+                (fake_client.raced_post_id,),
+            )
+    finally:
+        restore_conn.close()
+
+    follow_up = client.post(
+        "/api/ask",
+        json={"question": "Public post", "conversation_id": conversation_id},
+        headers=headers,
+    )
+    assert follow_up.status_code == 200, follow_up.text
+    assert follow_up.json()["conversation_id"] == conversation_id
+
+    with psycopg2.connect(seeded_db["dsn"]) as check_conn, check_conn.cursor() as cur:
+        cur.execute(
+            "select count(*) from global_ask_turn where global_ask_session_id = %s",
+            (conversation_id,),
+        )
+        assert cur.fetchone()[0] == 2
 
 
 def test_keymen_provider_error_does_not_leak_raw_error(

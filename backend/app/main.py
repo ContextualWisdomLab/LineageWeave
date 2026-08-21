@@ -137,6 +137,7 @@ from backend.app.entity_relationship_ingestion import (
 from backend.app.five_w1h_ingestion import load_five_w1h_slots
 from backend.app.global_ask_history import (
     GlobalAskConversationNotFound,
+    GlobalAskEvidenceChanged,
     conversation_exists,
     fetch_conversation,
     list_conversations,
@@ -3254,7 +3255,13 @@ async def ask_agent(
                 response["source_post_ids"],
                 response["cited_post_ids"],
                 response["cited_post_evidence"],
+                can_see_post=lambda row: _can_use_post_for_analysis(account, row),
             )
+        except GlobalAskEvidenceChanged as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask Agent is unavailable: authorized evidence changed; retry the question",
+            ) from exc
         except GlobalAskConversationNotFound as exc:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "conversation not found") from exc
     response["conversation_id"] = str(persisted_conversation_id)
