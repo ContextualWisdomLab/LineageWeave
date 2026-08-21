@@ -85,7 +85,7 @@ Open PRs at the same observation:
   merge commit is intentional: #355 is the open successor from the same
   feature branch, now pointing at that merged branch tip, and is not itself
   merged.
-- PR #368: `head` `66a66a91c4f8ec3cfb2fc47e6ef5390b38c9b62f` (the checkpoint
+- PR #368: `head` `22cf9d8b6463fc46c7927d8fef6e2b12a25cd776` (the checkpoint
   parent before this baseline update), base `main`
   (`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`).
 - PR #373: `head` `43e24783ae38d65d03df7cb901f93b8ac8731b9b`, base `main`
