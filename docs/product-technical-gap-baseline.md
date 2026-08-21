@@ -70,6 +70,16 @@ rerun for the resulting PR head.
   `3 passed` and the shared SQL contract test passed; full API-file execution
   remains unclaimed because its external integration setup did not terminate.
 
+- **#366 latest review repair:** code head `09b47ccb` excludes descendants of
+  closed `details` elements from the post-popup focus-trap candidate set, so
+  keyboard focus cannot land on collapsed related-post controls. The same
+  change removes the now-dead observed-hierarchy discard loop after scope
+  filtering. The focused frontend keyboard regression passed (`1 passed`, 86
+  deselected), the customer-master/API regression set passed (`3 passed`), and
+  `compileall` plus `git diff --check` passed. The final documentation commit
+  records the resulting PR head below; hosted Checks and review state remain
+  external evidence.
+
 - **Canonical ontology explorer PR:** PR #349 remains open and unmerged at
   exact head `1cb9f7000224aec55e4df184044d04e170b5960e`, based on `main` at
   `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`. Its latest stabilization fixes
