@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { splitPostBody, type PostBodySegment } from "./postBodyDisplay";
 import { t } from "./i18n";
 import type { PostContentUnit, PostImageContent, PostImageRegion } from "./api";
@@ -82,6 +82,10 @@ function ImageEvidenceFigure({
   const overlayRegions = sourceImageSrc ? regions.filter(hasPersistedOverlayBox) : [];
   const selectedRegion = overlayRegions.find((region) => region.region_index === selectedRegionIndex);
 
+  useEffect(() => {
+    setSelectedRegionIndex(null);
+  }, [sourceImageSrc, imageContent?.unit_index, imageContent?.caption, imageContent?.regions]);
+
   return (
     <figure className="post-embedded-image">
       {sourceImageSrc ? (
@@ -121,11 +125,9 @@ function ImageEvidenceFigure({
       {imageContent?.caption || !sourceImageSrc ? (
         <figcaption>{imageContent?.caption || t("Embedded image")}</figcaption>
       ) : null}
-      {selectedRegion ? (
-        <p className="post-image-current-region" aria-live="polite">
-          {t("Current image region")}: {regionBuyerLabel(selectedRegion)}
-        </p>
-      ) : null}
+      <p className="post-image-current-region" role="status" aria-live="polite" aria-atomic="true">
+        {selectedRegion ? `${t("Current image region")}: ${regionBuyerLabel(selectedRegion)}` : null}
+      </p>
       {imageContent?.tags.length ? (
         <p className="post-image-tags">
           <strong>{t("Image tags")}:</strong> {imageContent.tags.join(", ")}
@@ -144,12 +146,10 @@ function ImageEvidenceFigure({
             {regions.map((region) => (
               <li key={region.region_index}>
                 {region.caption ? <p>{region.caption}</p> : null}
-                {region.extracted_text && parsePipeDelimitedTable(region.extracted_text) ? (
+                {region.extracted_text ? (
                   <div className="post-image-region-text">
                     {renderImageText(region.extracted_text)}
                   </div>
-                ) : !region.caption && region.extracted_text ? (
-                  <p>{region.extracted_text}</p>
                 ) : !region.caption ? (
                   t("Unknown")
                 ) : null}

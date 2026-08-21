@@ -93,4 +93,11 @@ describe("design tokens", () => {
     expect(appCss).toContain(".evidence-panel");
     expect(appCss).toContain("z-index: var(--z-evidence-panel);");
   });
+
+  it("keeps image overlays transparent outside their accessible controls", () => {
+    expect(appCss).toContain(".post-image-region-overlays");
+    expect(appCss).toContain("pointer-events: none;");
+    expect(appCss).toContain(".post-image-region-overlay");
+    expect(appCss).toContain("pointer-events: auto;");
+  });
 });

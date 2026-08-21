@@ -377,7 +377,7 @@ describe("PostBody", () => {
     expect(screen.getByRole("button", { name: "Image region: Edge panel" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Overflow panel/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Invented box must not render/)).not.toBeInTheDocument();
+    expect(screen.getByText("Invented box must not render")).toBeInTheDocument();
     expect(screen.getByText("Overflow panel")).toBeInTheDocument();
 
     overlay.focus();
@@ -467,10 +467,10 @@ describe("PostBody", () => {
 
     expect(screen.queryByRole("group", { name: "Image regions" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Image region/ })).not.toBeInTheDocument();
-    expect(screen.getByText("NaN box")).toBeInTheDocument();
-    expect(screen.getByText("Negative box")).toBeInTheDocument();
-    expect(screen.getByText("Zero box")).toBeInTheDocument();
-    expect(screen.getByText("Overflow box")).toBeInTheDocument();
+    expect(screen.getAllByText("NaN box")).toHaveLength(2);
+    expect(screen.getAllByText("Negative box")).toHaveLength(2);
+    expect(screen.getAllByText("Zero box")).toHaveLength(2);
+    expect(screen.getAllByText("Overflow box")).toHaveLength(2);
     expect(screen.getByAltText("Embedded image")).toBeInTheDocument();
   });
 
@@ -622,6 +622,54 @@ describe("PostBody", () => {
     );
 
     expect(screen.getByAltText("Second diagram")).toBeInTheDocument();
+    expect(screen.queryByText(/Current image region/)).not.toBeInTheDocument();
+  });
+
+  it("clears a selected region when region evidence changes for the same image", async () => {
+    const user = userEvent.setup();
+    const source =
+      '<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />';
+    const structureUnits = [
+      {
+        unit_index: 0,
+        unit_kind_code: "image" as const,
+        unit_label: "img",
+        unit_text: "internal image instruction",
+        indent_level: 0,
+        indent_source_code: "unresolved" as const,
+        indent_confidence: 0,
+        indent_evidence: "",
+      },
+    ];
+    const makeImageContent = (caption: string) => [{
+      unit_index: 0,
+      mime_type: "image/png",
+      status_code: "described",
+      extracted_text: "OCR",
+      caption: "Same diagram",
+      tags: [],
+      regions: [{
+        region_index: 0,
+        x_ratio: 0.1,
+        y_ratio: 0.2,
+        width_ratio: 0.3,
+        height_ratio: 0.4,
+        status_code: "described",
+        extracted_text: "Region OCR",
+        caption,
+        tags: [],
+      }],
+    }];
+    const { rerender } = render(
+      <PostBody body={source} structureUnits={structureUnits} imageContent={makeImageContent("First panel")} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /First panel/ }));
+    expect(screen.getByText("Current image region: First panel")).toBeInTheDocument();
+    rerender(
+      <PostBody body={source} structureUnits={structureUnits} imageContent={makeImageContent("Second panel")} />,
+    );
+
     expect(screen.queryByText(/Current image region/)).not.toBeInTheDocument();
   });
 });

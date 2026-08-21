@@ -199,7 +199,7 @@
 }
 
 .error {
-  color: #b91c1c;
+  color: var(--color-status-alert);
 }
 
 .post-list {
@@ -526,6 +526,7 @@
 .post-image-region-overlays {
   position: absolute;
   inset: 0;
+  pointer-events: none;
 }
 
 .post-image-region-overlay {
@@ -537,6 +538,7 @@
   background: var(--color-accent-info-background);
   cursor: pointer;
   appearance: none;
+  pointer-events: auto;
 }
 
 .post-image-region-overlay[aria-pressed="true"] {
@@ -553,6 +555,10 @@
   margin: 0.4rem 0 0;
   font-size: 0.85rem;
   color: var(--text-h);
+}
+
+.post-image-current-region:empty {
+  display: none;
 }
 
 @media (prefers-reduced-motion: no-preference) {
