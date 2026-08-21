@@ -95,11 +95,7 @@ jobs:
         working-directory: frontend
         run: pnpm run build-storybook
 
-      - name: Publish verified integration through a child pull request
-        env:
-          GH_TOKEN: ${{ github.token }}
-          GENERATED_BRANCH: automation/ask-agent-workspace-integration-353
-          TARGET_BRANCH: feat/ask-agent-evidence-workspace-v2180-r2
+      - name: Materialize verified integration commit and bundle
         run: |
           rm -rf frontend/dist frontend/storybook-static
           rm -f scripts/patch_ask_agent_workspace.py
@@ -110,6 +106,28 @@ jobs:
           git add -A
           git diff --cached --check
           git commit -m 'feat: integrate verified Ask Agent evidence workspace'
+          mkdir -p generated-integration/frontend/src generated-integration/docs
+          cp frontend/src/App.tsx generated-integration/frontend/src/App.tsx
+          cp frontend/package.json generated-integration/frontend/package.json
+          cp docs/product-technical-gap-baseline.md generated-integration/docs/product-technical-gap-baseline.md
+          cp docs/storybook-inventory.md generated-integration/docs/storybook-inventory.md
+          git format-patch -1 --stdout > generated-integration/ask-agent-integration.patch
+          git rev-parse HEAD > generated-integration/generated-commit.txt
+
+      - name: Upload verified integration bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # actions/upload-artifact@v4
+        with:
+          name: ask-agent-integration-${{ github.sha }}
+          path: generated-integration
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Publish verified integration through a child pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GENERATED_BRANCH: automation/ask-agent-workspace-integration-353
+          TARGET_BRANCH: feat/ask-agent-evidence-workspace-v2180-r2
+        run: |
           git push origin HEAD:"${GENERATED_BRANCH}"
           existing_pr="$(gh pr list --state open --head "${GENERATED_BRANCH}" --base "${TARGET_BRANCH}" --json number --jq '.[0].number // empty')"
           if [ -z "${existing_pr}" ]; then
