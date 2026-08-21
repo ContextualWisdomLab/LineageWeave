@@ -1255,8 +1255,20 @@ def test_settings_patch_requires_post_admin(client, demo_analyst_token, seeded_d
     assert confirm.json() == {"brandName": "LineageWeave Demo"}
 
 
-def test_customer_master_returns_authorized_catalog_contract(client, demo_analyst_token, seeded_db) -> None:
+def test_customer_master_returns_authorized_catalog_contract(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
     subject = jwt.decode(demo_analyst_token, options={"verify_signature": False})["sub"]
+    from backend.app import main as main_module
+
+    relationship_entity_ids: list[str] = []
+    original_relationship_network = main_module.fetch_relationship_network
+
+    async def capture_relationship_entity_ids(conn, corporate_entity_ids):
+        relationship_entity_ids.extend(corporate_entity_ids)
+        return await original_relationship_network(conn, corporate_entity_ids)
+
+    monkeypatch.setattr(main_module, "fetch_relationship_network", capture_relationship_entity_ids)
     admin_conn = psycopg2.connect(seeded_db["dsn"])
     try:
         with admin_conn.cursor() as cur:
@@ -1335,6 +1347,25 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
                     seeded_db["public_post_id"],
                 ),
             )
+            # Once imported source context exists, this affiliated entity is
+            # synthetic-only and must be removed consistently from the tree,
+            # Keymen, and account-affiliation hints.
+            cur.execute(
+                "update corporate_entity set corporate_entity_code = 'DEMO-GRANTED' "
+                "where corporate_entity_id = %s",
+                (seeded_db["granted_corp_id"],),
+            )
+            cur.execute(
+                "insert into cataloged_person (person_name, person_side_code) "
+                "values ('Demo Grant Only', 'our_side') returning person_id",
+            )
+            demo_person_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into person_affiliation "
+                "(person_id, affiliated_organization_name, affiliated_corporate_entity_id) "
+                "values (%s, 'Granted Corp', %s)",
+                (demo_person_id, seeded_db["granted_corp_id"]),
+            )
         admin_conn.commit()
     finally:
         admin_conn.close()
@@ -1361,13 +1392,13 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
     assert entity["scope_facets"] == ["authorized_own", "observed_hierarchy", "observed_organization"]
     parent = next(item for item in body["corporate_entities"] if item["entity_name"] == "Test Group")
     assert parent["scope_facets"] == ["authorized_granted", "observed_hierarchy"]
-    granted = next(item for item in body["corporate_entities"] if item["entity_name"] == "Granted Corp")
-    assert granted["scope_facets"] == ["authorized_granted"]
+    assert not any(item["entity_name"] == "Granted Corp" for item in body["corporate_entities"])
     observed = next(item for item in body["corporate_entities"] if item["entity_name"] == "Other Corp")
     assert observed["scope_facets"] == ["observed_organization"]
     assert not any(item["entity_name"] == "Hidden Corp" for item in body["corporate_entities"])
     assert isinstance(body["keymen"], list)
     assert not any(item["person_name"] == "Other Corp Only" for item in body["keymen"])
+    assert not any(item["person_name"] == "Demo Grant Only" for item in body["keymen"])
     ada_west = next(item for item in body["keymen"] if item["person_name"] == "Ada West")
     assert ada_west["person_side_code"] == "our_side"
     # Live UI finding (2026-08-19): the Customer Master Keymen list falls
@@ -1377,6 +1408,7 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
     assert ada_west["person_side_label"] not in ("", "our_side")
 
     network = {row["counterparty_entity_name"]: row for row in body["relationship_network"]}
+    assert seeded_db["granted_corp_id"] not in relationship_entity_ids
     assert "Private Other Corp" not in network
     northridge = network["Northridge Grid"]
     assert northridge["multi_role"] is True
@@ -1430,6 +1462,10 @@ def test_customer_master_returns_authorized_catalog_contract(client, demo_analys
     assert author_hint[0]["resolution_status"] == "our_side_context_only"
     assert any(
         affiliation["entity_name"] == "Test Corp"
+        for affiliation in author_hint[0]["account_affiliations"]
+    )
+    assert not any(
+        affiliation["entity_name"] == "Granted Corp"
         for affiliation in author_hint[0]["account_affiliations"]
     )
     assert "account_affiliation.corporate_entity_id" in author_hint[0]["provenance"]

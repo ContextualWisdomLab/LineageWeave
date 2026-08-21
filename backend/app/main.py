@@ -1015,8 +1015,12 @@ async def read_customer_master(
                 for row in entity_rows
                 if str(row["corporate_entity_id"]) not in synthetic_only_entity_ids
             ]
-        entity_ids = [row["corporate_entity_id"] for row in entity_rows]
-        authorized_entity_ids = [str(entity_id) for entity_id in account.corporate_entity_ids]
+        authorized_entity_id_set = {str(entity_id) for entity_id in account.corporate_entity_ids}
+        authorized_entity_ids = [
+            str(row["corporate_entity_id"])
+            for row in entity_rows
+            if str(row["corporate_entity_id"]) in authorized_entity_id_set
+        ]
         source_author_affiliations = await _load_account_affiliation_hints(
             conn,
             [str(row["author_account_id"]) for row in source_author_rows],
