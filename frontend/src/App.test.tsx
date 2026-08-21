@@ -2596,6 +2596,17 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: "Retry summary refresh" })).toBeInTheDocument();
   });
 
+  it("requests one summary per post open and keeps retry as the only second request", async () => {
+    const fetchMock = stubBackend();
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("이것은 요약입니다.")).toBeInTheDocument());
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/api/posts/post-1/summary")),
+    ).toHaveLength(1);
+  });
+
   it("refreshes newly processed source content after summary generation", async () => {
     stubBackend({ contentAfterSummary: true });
     render(<App showLabPanels />);

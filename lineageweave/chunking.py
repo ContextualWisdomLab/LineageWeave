@@ -352,13 +352,13 @@ class _BlockTextExtractor(HTMLParser):
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Collect relevant text state when an HTML start tag is encountered."""
         if tag == "img":
-            if self._stack:
-                self._flush_current_buffer()
             src = next((value for name, value in attrs if name == "src" and value), None)
-            if src:
-                decoded = _decode_data_uri_image(src)
-                if decoded is not None:
-                    self._finished.append(("image", decoded, "", None, 0, 0))
+            decoded = _decode_data_uri_image(src) if src else None
+            if decoded is None:
+                return
+            if self._stack and not any(entry[0] in _TABLE_ROW_TAGS for entry in self._stack):
+                self._flush_current_buffer()
+            self._finished.append(("image", decoded, "", None, 0, 0))
             return
         if tag in {"br", "w:br"} and self._stack:
             self._stack[-1][1].append("\n")
