@@ -3622,11 +3622,13 @@ function PostList({
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
   const postsRequest = useRef(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const lastFocusedSearchRequest = useRef(0);
 
   useEffect(() => {
-    if (focusSearchRequest <= 0) return;
+    if (focusSearchRequest <= lastFocusedSearchRequest.current) return;
     const input = searchInputRef.current;
     if (!input) return;
+    lastFocusedSearchRequest.current = focusSearchRequest;
     input.focus();
     onSearchFocusHandled?.();
   }, [focusSearchRequest, onSearchFocusHandled, posts]);
@@ -4770,7 +4772,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             accessToken={accessToken}
             onOpenPost={(postId) => {
               setPostToOpen(postId);
-              setDestination("board");
+              changeDestination("board");
             }}
           />
         ) : null}
@@ -4779,7 +4781,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             accessToken={accessToken}
             onSelectPost={(postId) => {
               setPostToOpen(postId);
-              setDestination("board");
+              changeDestination("board");
             }}
           />
         ) : null}
@@ -4788,7 +4790,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             accessToken={accessToken}
             onOpenPost={(postId) => {
               setPostToOpen(postId);
-              setDestination("board");
+              changeDestination("board");
             }}
           />
         ) : null}

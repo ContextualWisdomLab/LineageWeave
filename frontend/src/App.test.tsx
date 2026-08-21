@@ -3555,6 +3555,8 @@ describe("App, authenticated", () => {
       "aria-expanded",
       "false",
     );
+    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    expect(screen.getByRole("button", { name: "Close Workspace navigation" })).toBeInTheDocument();
     await userEvent.click(
       within(appHeader as HTMLElement).getByRole("button", { name: "Search" }),
     );
