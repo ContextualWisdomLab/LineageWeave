@@ -391,12 +391,13 @@ The former PR #383 `osv-scan` failure at head
 scan exited successfully, but the follow-up treated a missing baseline result
 file as failure after the head checkout. Central `.github` PR #1158 now
 contains the direct-source result-file repair (`--output-file`) at observed
-exact head `c24ce16ab72c5b372d2c397f0af8f84dc1b63d2f`; its provenance, Python
-contracts, and exact-head policy checks pass. The current #383 head
+exact head `fca5cd1e3d14418b8a5fc5cd3636815582228457`; its provenance, Python
+contracts, and exact-head policy checks are non-terminal on this new head, with
+no failure presently observed. The current #383 head
 `6af3adc3e08fd1b0b11182d8cf3714b847c71ea8` has no failed Checks observed but
 remains non-terminal and unauthorized to merge. Central PR #1002 independently
 remains open at observed exact head
-`a5163b4db0f25c0f2463fdeb075a74c8c0f2f6bf` with required checks still running.
+`a9880aeb86d424967b94417ac15c38fb94950aab` with required checks still running.
 
 ## 7. Next Implementation Order
 
