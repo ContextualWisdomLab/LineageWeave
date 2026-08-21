@@ -47,6 +47,19 @@ function renderImageText(text: string) {
   );
 }
 
+function buyerSafeImageCaption(caption: string | null | undefined): string | undefined {
+  const cleaned = caption?.replace(/\s+/g, " ").trim();
+  if (!cleaned) return undefined;
+  if (
+    /^(?:this post is an image(?:\s*[.!?]|.*(?:ask questions|read its text).*)|이 글의 이미지입니다(?:\s*[.!?]|.*(?:Keyman\s*(?:을|를)\s*추출|질문해.*텍스트를\s*읽으세요|이미지\s*안의\s*텍스트를\s*읽으세요).*)|(?:this image|이 이미지는).*(?:Keyman\s*(?:을|를)\s*추출|ask questions|read its text|질문해.*(?:읽으세요|추출하세요)|텍스트를\s*(?:읽으세요|추출하세요)).*)$/i.test(
+      cleaned,
+    )
+  ) {
+    return undefined;
+  }
+  return cleaned;
+}
+
 const SAFE_EMBEDDED_IMAGE_SOURCE =
   /^data:image\/(?:png|jpe?g|gif|webp|avif|bmp|x-icon|vnd\.microsoft\.icon);base64,[A-Za-z0-9+/]+={0,2}$/i;
 
@@ -55,15 +68,16 @@ function renderImageEvidence(
   imageContent?: PostImageContent,
   sourceImage?: Extract<PostBodySegment, { kind: "image" }>,
 ) {
+  const caption = buyerSafeImageCaption(imageContent?.caption);
   const sourceImageSrc =
     sourceImage && SAFE_EMBEDDED_IMAGE_SOURCE.test(sourceImage.src) ? sourceImage.src : undefined;
   return (
     <figure key={`post-body-image-${index}`} className="post-embedded-image">
       {sourceImageSrc ? (
-        <img src={sourceImageSrc} alt={imageContent?.caption || t("Embedded image")} />
+        <img src={sourceImageSrc} alt={caption || t("Embedded image")} />
       ) : null}
-      {imageContent?.caption || !sourceImageSrc ? (
-        <figcaption>{imageContent?.caption || t("Embedded image")}</figcaption>
+      {caption || !sourceImageSrc ? (
+        <figcaption>{caption || t("Embedded image")}</figcaption>
       ) : null}
       {imageContent?.tags.length ? (
         <p className="post-image-tags">
@@ -80,23 +94,26 @@ function renderImageEvidence(
         <details className="post-image-regions">
           <summary>{t("Image regions")}</summary>
           <ol>
-            {imageContent.regions.map((region) => (
-              <li key={region.region_index}>
-                {region.caption ? <p>{region.caption}</p> : null}
-                {region.extracted_text ? (
-                  <div className="post-image-region-text">
-                    {renderImageText(region.extracted_text)}
-                  </div>
-                ) : region.caption ? null : (
-                  t("Unknown")
-                )}
-                {region.tags.length ? (
-                  <small>
-                    {t("Image tags")}: {region.tags.join(", ")}
-                  </small>
-                ) : null}
-              </li>
-            ))}
+            {imageContent.regions.map((region) => {
+              const caption = buyerSafeImageCaption(region.caption);
+              return (
+                <li key={region.region_index}>
+                  {caption ? <p>{caption}</p> : null}
+                  {region.extracted_text ? (
+                    <div className="post-image-region-text">
+                      {renderImageText(region.extracted_text)}
+                    </div>
+                  ) : caption ? null : (
+                    t("Unknown")
+                  )}
+                  {region.tags.length ? (
+                    <small>
+                      {t("Image tags")}: {region.tags.join(", ")}
+                    </small>
+                  ) : null}
+                </li>
+              );
+            })}
           </ol>
         </details>
       ) : null}

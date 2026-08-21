@@ -363,4 +363,83 @@ describe("PostBody", () => {
     expect(screen.getByText("Before").compareDocumentPosition(screen.getByAltText("Source diagram")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByAltText("Source diagram").compareDocumentPosition(screen.getByText("After")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
+
+  it("hides a legacy internal image caption while keeping the image evidence", () => {
+    render(
+      <PostBody
+        body="<p>legacy image</p>"
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "image",
+            unit_label: "img",
+            unit_text: "legacy image",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "",
+          },
+        ]}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "Visible OCR",
+            caption: "이 글의 이미지입니다. Keyman을 추출하거나 질문해 이미지 안의 텍스트를 읽으세요.",
+            tags: [],
+            regions: [
+              {
+                region_index: 0,
+                x_ratio: 0,
+                y_ratio: 0,
+                width_ratio: 1,
+                height_ratio: 1,
+                status_code: "described",
+                extracted_text: "Region OCR",
+                caption: "This post is an image. Ask questions to read its text.",
+                tags: [],
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.queryByText(/이 글의 이미지입니다/)).not.toBeInTheDocument();
+    expect(screen.getByText("Visible OCR")).toBeInTheDocument();
+    expect(screen.getByText("Region OCR")).toBeInTheDocument();
+  });
+
+  it("keeps a legitimate Korean caption that mentions visible text", () => {
+    render(
+      <PostBody
+        body="<p>image with a useful caption</p>"
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "image",
+            unit_label: "img",
+            unit_text: "image with a useful caption",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "",
+          },
+        ]}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "",
+            caption: "이 이미지는 텍스트가 포함된 다이어그램을 보여줍니다",
+            tags: [],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("이 이미지는 텍스트가 포함된 다이어그램을 보여줍니다")).toBeInTheDocument();
+  });
 });

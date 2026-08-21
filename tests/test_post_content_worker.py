@@ -229,7 +229,12 @@ def test_transient_provider_error_is_requeued_before_attempt_limit(monkeypatch) 
     )
 
     updates = [args for query, args in connection.executed if "set status_code" in query]
-    assert any(args[1] == QUEUED and args[6] == "post_content_ingestion_failed" for args in updates)
+    assert any(
+        args[1] == QUEUED
+        and args[6] == "post_content_ingestion_failed"
+        and args[7] == post_content_worker._UNEXPECTED_FAILURE_DETAIL
+        for args in updates
+    )
     assert all("provider timeout" not in str(args) for args in updates)
 
 

@@ -16,6 +16,7 @@ from lineageweave.image_content import ImageContentClient
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_content_persistence import persist_post_content
+from lineageweave.observability import traced
 from lineageweave.post_structure import PostStructureClient
 
 from backend.app.config import load_settings
@@ -42,7 +43,15 @@ _UNEXPECTED_FAILURE_DETAIL = "post-content ingestion failed; retry is scheduled"
 
 async def _stream_tail(client: redis.Redis) -> str:
     """Start after historical wake-ups; the normalized ledger drives recovery."""
-    rows = await client.xrevrange(POST_CONTENT_STREAM_KEY, count=1)
+    with traced(
+        "lineageweave.valkey.post_content_xrevrange",
+        {
+            "db.system": "redis",
+            "db.operation.name": "xrevrange",
+            "lineageweave.stream.kind": "post_content",
+        },
+    ):
+        rows = await client.xrevrange(POST_CONTENT_STREAM_KEY, count=1)
     return str(rows[0][0]) if rows else "0-0"
 
 
@@ -57,7 +66,7 @@ async def _claim_job(
     async with pool.acquire() as conn:
         async with conn.transaction():
             row = await conn.fetchrow(
-                f"""
+                """
                 select p.*, j.source_body_sha256 as job_source_body_sha256,
                        j.status_code as job_status_code,
                        j.attempt_count as job_attempt_count,
@@ -284,7 +293,15 @@ async def consume_post_content_stream_once(
     embedding_factory: Callable[[], EmbeddingClient],
     structure_factory: Callable[[], PostStructureClient],
 ) -> str:
-    batches = await client.xread({POST_CONTENT_STREAM_KEY: last_id}, count=10, block=1000)
+    with traced(
+        "lineageweave.valkey.post_content_xread",
+        {
+            "db.system": "redis",
+            "db.operation.name": "xread",
+            "lineageweave.stream.kind": "post_content",
+        },
+    ):
+        batches = await client.xread({POST_CONTENT_STREAM_KEY: last_id}, count=10, block=1000)
     for _stream_name, entries in batches:
         for entry_id, fields in entries:
             post_id = str(fields.get("post_id", "")).strip()

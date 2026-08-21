@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import ipaddress
 import json
 import math
 import re
@@ -151,6 +152,27 @@ class ImageDescription:
     tags: tuple[str, ...]
 
 
+_INTERNAL_IMAGE_INSTRUCTION = re.compile(
+    r"^(?:"
+    r"this post is an image(?:\s*[.!?]|.*(?:ask\s+questions|read\s+its\s+text).*)"
+    r"|이 글의 이미지입니다(?:\s*[.!?]|.*(?:keyman\s*(?:을|를)\s*추출|질문해.*텍스트를\s*읽으세요|이미지\s*안의\s*텍스트를\s*읽으세요).*)"
+    r"|(?:this image|이 이미지는).*(?:keyman\s*(?:을|를)\s*추출|ask\s+questions|read\s+its\s+text|질문해.*(?:읽으세요|추출하세요)|텍스트를\s*(?:읽으세요|추출하세요)).*"
+    r")$",
+    re.IGNORECASE,
+)
+
+
+def buyer_safe_image_caption(caption: str | None) -> str:
+    """Return a useful image caption, excluding internal LLM instructions.
+
+    Older ingestion runs may have persisted prompt guidance intended for the
+    analysis agent as the image caption. The original image and all other
+    evidence remain available; only that non-content caption is suppressed.
+    """
+    cleaned = " ".join((caption or "").split())
+    return "" if _INTERNAL_IMAGE_INSTRUCTION.fullmatch(cleaned) else cleaned
+
+
 class ImageContentClient(Protocol):
     """Turns image bytes into searchable text content."""
 
@@ -212,6 +234,14 @@ _LABEL_LINE = re.compile(
     re.IGNORECASE,
 )
 _MARKDOWN_EMPHASIS_MARKERS = ("**", "__", "`", "*", "_")
+_BLOCKED_VISION_HOSTNAMES = frozenset(
+    {
+        "localhost",
+        "localhost.localdomain",
+        "metadata",
+        "metadata.google.internal",
+    }
+)
 
 
 class ImageDescriptionParseError(ValueError):
@@ -297,6 +327,38 @@ class OpenAiCompatibleVisionClient:
             raise ValueError(
                 f"unsupported vision client URL scheme: {parsed.scheme or 'missing'}"
             )
+        hostname = parsed.hostname
+        if not hostname:
+            raise ValueError("vision client URL is missing a hostname")
+        if parsed.username or parsed.password:
+            raise ValueError("vision client URL must not contain user credentials")
+        try:
+            parsed.port
+        except ValueError as exc:
+            raise ValueError("vision client URL has an invalid port") from exc
+        normalized_hostname = hostname.rstrip(".").casefold()
+        if (
+            normalized_hostname in _BLOCKED_VISION_HOSTNAMES
+            or normalized_hostname.endswith(".localhost")
+        ):
+            raise ValueError(
+                "vision client URL points to a private, loopback, link-local, or metadata destination"
+            )
+        try:
+            address = ipaddress.ip_address(hostname)
+        except ValueError:
+            address = None
+        if address is not None and (
+            address.is_private
+            or address.is_loopback
+            or address.is_link_local
+            or address.is_reserved
+            or address.is_multicast
+            or address.is_unspecified
+        ):
+            raise ValueError(
+                "vision client URL points to a private, loopback, link-local, or metadata destination"
+            )
         if parsed.scheme == "http" and not allow_insecure_http:
             # A plain-HTTP endpoint sends the Bearer API key and every raw
             # image over the wire unencrypted. Secure-by-default: require
@@ -375,11 +437,11 @@ class OpenAiCompatibleVisionClient:
         )
         content = body["choices"][0]["message"]["content"]
         if not isinstance(content, str):
-            raise ValueError("vision region response was not text JSON")
+            raise TypeError("vision region response was not text JSON")
         fenced = re.sub(r"^\s*```(?:json)?\s*|\s*```\s*$", "", content, flags=re.IGNORECASE)
         document = json.loads(fenced)
         if not isinstance(document, dict):
-            raise ValueError("vision region response had no regions list")
+            raise TypeError("vision region response had no regions list")
         regions = document.get("regions")
         if not isinstance(regions, list):
             single_region = tuple(document.get(name) for name in ("x", "y", "width", "height"))
