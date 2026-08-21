@@ -12,7 +12,7 @@ Audit anchor: the exact source state carried by this commit at 2026-08-21;
 record the final PR head with `git rev-parse HEAD` during acceptance.
 
 Current source/test exact head observed before this documentation update:
-`5b8eda811107a5944a7f35d1d2decfbce9950160`. This documentation update will
+`7ff03dfaa4c4e5adee3ff94688be3ec709a54d68`. This documentation update will
 create the next exact head and therefore requires the protected checks to
 rerun.
 
@@ -28,7 +28,7 @@ rerun.
 - **Figma reference:** ADR 0118 records file `1Su3lDRmiZdcUs47t1QwIX`; the
   inspected Event Lineage frames are desktop `5:14` and mobile `5:15`.
 - **Local quality evidence at the source/test head:** backend `uv run pytest -q`
-  passed `776` tests with `17` skips; frontend Vitest passed `166` tests in `18`
+  passed `776` tests with `17` skips; frontend Vitest passed `167` tests in `18`
   files, frontend lint/build passed, and Storybook build completed. These are
   local checks, not hosted protected-gate or independent-review evidence.
 - **Current PR gate:** PR #350 is open, `MERGEABLE` but `BLOCKED`, and has no
@@ -265,7 +265,7 @@ or an explicit unavailable result.
   across 1,929 participating posts, while the bounded current view exposed one
   edge and some focused posts had no component. Add a rebuild/coverage gate that
   distinguishes genuinely isolated posts from missing extraction or grouping
-  evidence before presenting a buyer-facing branching DAG as complete.
+  evidence before presenting a reader-facing branching DAG as complete.
 - **Cross-repository email/project lineage — provider boundary implemented,
   consumer open:** PR #343 provides the store-agnostic LineageWeave contract but
   remains unmerged and unreleased. Naruon issue #1437 still needs a disabled-by-
@@ -286,7 +286,7 @@ or an explicit unavailable result.
 
 ## 6. Next acceptance loop
 
-1. Re-fetch the exact PR head and required reviews/checks for the buyer UI stack,
+1. Re-fetch the exact PR head and required reviews/checks for the workspace UI stack,
    PR #343, and the superseding calendar contract PR #355.
 2. Run frontend lint, tests, build, Storybook, backend tests, and authenticated
    browser checks when the local stack is available.
