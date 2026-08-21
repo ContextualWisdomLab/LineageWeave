@@ -35,7 +35,7 @@
 The following states are evidence-bound and must not be changed to `merged` or
 `resolved` from intent alone:
 
-Observed at `2026-08-21T14:01:24Z` from the GitHub API. A merged commit is
+Observed at `2026-08-21T14:07:36Z` from the GitHub API. A merged commit is
 identified as `merge_commit`; an open PR is identified by its exact `head`.
 
 - LineageWeave PR #344: `merge_commit`
@@ -51,7 +51,7 @@ identified as `merge_commit`; an open PR is identified by its exact `head`.
   provenance explorer remains open and required Checks and independent
   approval remain external gates.
 - LineageWeave PR #368: `head`
-  `3a924014dbaafa22e74331df642a5fa4e4569f0d`, base `main`; this baseline
+  `3e233eeb6ba4e8649006e4c7eb42d74cc48e5a03`, base `main`; this baseline
   checkpoint is updated by the stacked documentation PR for the newer queue
   evidence below.
 - LineageWeave PR #378: `merge_commit`
@@ -163,6 +163,19 @@ synthetic browser account and aggregate-only evidence:
   disclosure-summary focus path remains covered by the unit test because the
   local authorized corpus did not expose a disclosure element in the sampled
   popup.
+
+Observed at `2026-08-21T14:07:36Z` through the local browser runtime with a
+synthetic Keycloak account and aggregate-only assertions:
+
+- The real OIDC redirect completed and returned to the board with the signed-in
+  state, authorized-scope disclosure, and logout control visible.
+- The board exposed 50 post controls. Clicking one opened the detail surface;
+  the popup exposed Event Lineage and Knowledge Graph sections, and its close
+  control removed the detail surface.
+- The site-map control changed the visible navigation state. No post title,
+  person, organization, source identifier, or image payload was persisted in
+  this repository. Image-heavy processing remains an explicit processing-state
+  gap, not a live-success claim.
 
 These observations are runtime evidence, not a claim that the corresponding
 PRs are merged. The image-processing state and protected-corpus parsing cases
