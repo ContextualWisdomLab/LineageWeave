@@ -14,6 +14,9 @@ vi.mock("react-oidc-context", () => ({
 
 beforeEach(() => {
   setLocale("en");
+  window.history.replaceState({}, "", "/");
+  window.sessionStorage.clear();
+  window.localStorage.clear();
   signinRedirect.mockReset();
   signoutRedirect.mockReset();
   mockAuth = {
@@ -27,19 +30,26 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  window.history.replaceState({}, "", "/");
+  window.sessionStorage.clear();
+  window.localStorage.clear();
   vi.unstubAllGlobals();
 });
 
 describe("App, unauthenticated", () => {
   it("shows a login button that starts the real OIDC redirect", async () => {
+    window.history.replaceState({}, "", "/?post=buyer-evidence#summary");
     render(<App showLabPanels />);
     const button = screen.getByRole("button", { name: /log in/i });
     await userEvent.click(button);
     expect(signinRedirect).toHaveBeenCalledTimes(1);
     expect(signinRedirect).toHaveBeenCalledWith(
       expect.objectContaining({
-        state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
+        state: expect.objectContaining({ returnUrl: "/?post=buyer-evidence#summary" }),
       }),
+    );
+    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toBe(
+      "/?post=buyer-evidence#summary",
     );
   });
 });
