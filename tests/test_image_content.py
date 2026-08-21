@@ -85,6 +85,18 @@ def test_parse_description_preserves_multiline_ocr_text() -> None:
     assert description.caption == "A scanned page."
 
 
+def test_parse_description_preserves_ocr_lines_that_contain_colons() -> None:
+    """A colon in a scanned field is OCR content, not a new response field."""
+    content = (
+        "TEXT: Invoice\nDate: 2026-08-21\nTotal: 100\n"
+        "CAPTION: A synthetic invoice.\nTAGS: invoice"
+    )
+
+    description = _parse_description(content)
+
+    assert description.extracted_text == "Invoice\nDate: 2026-08-21\nTotal: 100"
+
+
 def test_parse_description_preserves_table_row_structure_in_ocr_text() -> None:
     """Live gap (2026-08-19): an image containing a table used to have its
     text flattened into an unstructured word list on OCR, the same

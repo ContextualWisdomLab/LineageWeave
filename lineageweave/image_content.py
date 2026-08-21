@@ -256,10 +256,10 @@ def _parse_description(content: str) -> ImageDescription:
             multiline_field = "TEXT" if label == "TEXT" else None
             continue
 
-        if re.match(r"^\s*[*_`>#\-\s]*[A-Za-z][A-Za-z0-9 _-]*\s*:", line):
-            multiline_field = None
-            continue
         if multiline_field == "TEXT" and line.strip():
+            # A colon is common inside OCR (for example ``Date: 2026-08-21``).
+            # Only the known response labels above end the TEXT section;
+            # treating every colon as a provider label loses real image text.
             fields["TEXT"].append(_strip_outer_markdown_emphasis(line))
 
     if not fields["TEXT"] and not fields["CAPTION"]:
