@@ -435,9 +435,14 @@ def _rankweave_client():
 
 def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
     """ABAC: W is author/admin-only; other rows use public/corp visibility."""
-    state_code = normalize_source_detail_state_code(post.get("source_detail_state_code"))
+    try:
+        state_code = normalize_source_detail_state_code(post["source_detail_state_code"])
+    except KeyError:
+        return False
     if state_code == WRITING_SOURCE_DETAIL_STATE_CODE:
-        return account.has_permission(_POST_ADMIN) or str(post["author_account_id"]) == account.user_account_id
+        return account.has_permission(_POST_ADMIN) or str(
+            post.get("author_account_id")
+        ) == account.user_account_id
     if post["visibility_code"] == "public":
         return True
     return str(post["corporate_entity_id"]) in account.corporate_entity_ids

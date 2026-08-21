@@ -652,7 +652,7 @@ async def post_knowledge_graph(
                     "node_type_code": f"semantic_{node_type}",
                     "node_id": key,
                     "label": name,
-                    "ontology_iri": _SEMANTIC_NODE_CLASS_IRIS[node_type],
+                    "ontology_iri": _SEMANTIC_NODE_CLASS_IRIS.get(node_type),
                     "ontology_label": node_type,
                     "is_focus": False,
                     "is_evidence_text_node": True,

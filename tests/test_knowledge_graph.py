@@ -76,8 +76,9 @@ def test_adaptive_depth_hub_reaches_more_nodes_than_a_sparse_node(synthetic_grap
 
 
 @pytest.mark.parametrize(("overflow", "expected_truncated"), [(False, False), (True, True)])
+@pytest.mark.parametrize("semantic_node_type", ["organization", "future_type"])
 def test_post_knowledge_graph_relation_limit_boundary(
-    overflow: bool, expected_truncated: bool
+    overflow: bool, expected_truncated: bool, semantic_node_type: str
 ) -> None:
     """A look-ahead row distinguishes an exact page from an overflow page."""
     post_id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1"
@@ -90,10 +91,10 @@ def test_post_knowledge_graph_relation_limit_boundary(
                 {
                     "relation_ordinal": 1,
                     "subject_name": "Synthetic source",
-                    "subject_type": "organization",
+                    "subject_type": semantic_node_type,
                     "predicate_code": "rel_voc",
                     "object_name": "Synthetic customer",
-                    "object_type": "organization",
+                    "object_type": semantic_node_type,
                     "evidence_text": "Synthetic evidence",
                     "relation_confidence": 0.9,
                 }

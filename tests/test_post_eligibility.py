@@ -5,7 +5,7 @@ import pytest
 from fastapi import HTTPException
 
 from backend.app.auth import CurrentAccount
-from backend.app.main import _load_visible_post
+from backend.app.main import _can_see_post, _load_visible_post
 
 from backend.app.post_eligibility import (
     SOURCE_CONTEXT_COLUMNS,
@@ -73,6 +73,31 @@ def test_author_bookmark_can_read_w_post_but_analysis_default_rejects() -> None:
     with pytest.raises(HTTPException) as raised:
         asyncio.run(_load_visible_post("post-w", account, pool))
     assert raised.value.status_code == 422
+
+
+def test_visibility_feeder_contract_fails_closed_when_w_columns_are_missing() -> None:
+    """Incomplete feeder projections deny access instead of raising or bypassing W."""
+    account = CurrentAccount(
+        user_account_id="account-1",
+        external_subject_id="subject-1",
+        display_name="Anonymous user",
+        preferred_locale="en",
+        corporate_entity_ids=frozenset({"entity-1"}),
+        permission_codes=frozenset({"post_read"}),
+    )
+
+    assert not _can_see_post(
+        account,
+        {"visibility_code": "public", "corporate_entity_id": "entity-1"},
+    )
+    assert not _can_see_post(
+        account,
+        {
+            "visibility_code": "public",
+            "corporate_entity_id": "entity-1",
+            "source_detail_state_code": "W",
+        },
+    )
 
 
 def test_real_source_context_hides_pure_seed_rows_at_read_boundary() -> None:
