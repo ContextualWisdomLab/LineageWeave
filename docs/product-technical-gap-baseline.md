@@ -636,3 +636,32 @@ this update and remain proposed, not shipped:
 This continuation checkpoint supersedes the earlier #332 documentation-only
 snapshot by retaining its root-head evidence and adding the later MCP, locale,
 image-caption, and DAG gate state above.
+
+## Current exact-head continuation: 2026-08-21 09:09 KST
+
+The review/fix loop re-fetched the independent roots and the status-clock
+dependent stack after concurrent branch updates. The following are the only
+current hashes used as merge evidence in this loop:
+
+| PR | Exact head | Base | Local evidence | Hosted gate |
+|---|---|---|---|---|
+| #258 buyer evidence board and ontology surface | `41036e2cd8095c5e7b9c333fd72c542cb676ef5e` | `main@2feba74b75863810869cde680b19032a93fba413` | Python `718 passed, 16 skipped`; cleanup branch coverage `100%`; focused suite `18 passed` | required workflows queued; no formal approval; Devin review failure remains unresolved as a review gate |
+| #323 TEPP request and search evidence boundaries | `3b57e1cad490b47496d0c25553d28a0c1e3e2ca3` | `main@2feba74b75863810869cde680b19032a93fba413` | Python `570 passed, 16 skipped, 4 warnings`; boolean contract-version regression added | Tests, Semgrep, and Security Scan queued; Devin is a comment-only review, not formal approval |
+| #327 Searxng corroboration token precision | `e6ef7cc53bcfef1e3dd61705b9ab243251860730` | `main@2feba74b75863810869cde680b19032a93fba413` | Python `573 passed, 16 skipped`; focused relation suite `25 passed`; isolated line/branch coverage `100%` | required workflows queued; comment-only reviews; no formal approval |
+| #326 Python-ahead status write clock | `f9c53e7c18a696260d60bfcdd7c0af5e07c1dda6` | `#327@e6ef7cc53bcfef1e3dd61705b9ab243251860730` | stacked Python `578 passed, 16 skipped, 4 warnings`; clock boundary tests `5 passed`; additive `0030` fixture path exercised | required workflows queued after the new exact head; no formal approval |
+
+Claude's #323 review found no confirmed correctness, security, data-loss, or
+authorization defect. The proposed SHA-format concern was checked against
+TEPP's current published request schema and dismissed because `snapshot_id`
+is specified as non-blank text, not as a SHA. The confirmed boolean type-test
+gap was closed in #323. Claude's #326 review found no high-severity defect;
+the valid CodeRabbit upgrade-path finding was closed by running migration
+`0030` in the PostgreSQL fixture and testing 59 seconds, exactly one minute,
+and two minutes.
+
+These results are branch-local observations and hosted queue/review state;
+they are not protected-main or release evidence. The next merge candidate is
+#258 only after its exact current head has independent formal approval,
+resolved review threads, and terminal required Checks. #327 is an independent
+root that must be merged before #326; #323 can proceed independently. A queued
+workflow is active work, not a blocker or a pass.
