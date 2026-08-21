@@ -63,6 +63,7 @@ _EVENT_PATTERNS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ),
 )
 _VOC_CODES = frozenset({"voc", "vocc", "voco", "vom", "vop"})
+_DISPLAY_NAME_ORDER = {"source_project_name": 0, "semantic_project_name": 1}
 
 
 def normalize_project_key(value: str) -> str:
@@ -164,6 +165,30 @@ def _score(value: object) -> float:
     return result
 
 
+def _normalized_matches(value: object, normalized_key: str) -> bool:
+    """Return whether one non-empty identity value exactly matches a key."""
+
+    if value is None:
+        return False
+    try:
+        return normalize_project_key(str(value)) == normalized_key
+    except ValueError:
+        return False
+
+
+def _match_belongs_to_project(
+    row: Mapping[str, Any],
+    *,
+    normalized_key: str,
+) -> bool:
+    """Keep a display name only when its authoritative identity matched."""
+
+    identity_key = row.get("identity_key")
+    if identity_key is not None and str(identity_key).strip():
+        return _normalized_matches(identity_key, normalized_key)
+    return _normalized_matches(row.get("matched_value"), normalized_key)
+
+
 def _prior_paths(
     ordered_event_ids: Sequence[str],
     edge_rows: Sequence[Mapping[str, Any]],
@@ -206,8 +231,6 @@ def _prior_paths(
                 continue
             for edge in reverse_edges[current]:
                 parent = edge["parent_event_id"]
-                if parent in reverse_event_path:
-                    continue
                 next_depth = depth + 1
                 if best_depth.get(parent, maximum_depth + 1) <= next_depth:
                     continue
@@ -245,23 +268,23 @@ def _prior_paths(
 def build_project_history_projection(
     *,
     project_key: str,
-    focus_event_id: str,
+    focus_event_id: str | None,
     event_rows: Sequence[Mapping[str, Any]],
     match_rows: Sequence[Mapping[str, Any]],
     role_rows: Sequence[Mapping[str, Any]],
     edge_rows: Sequence[Mapping[str, Any]],
+    truncated: bool = False,
     maximum_depth: int = PROJECT_HISTORY_MAX_DEPTH,
     maximum_paths_per_event: int = PROJECT_HISTORY_MAX_PATHS_PER_EVENT,
-    truncated: bool = False,
 ) -> dict[str, Any]:
-    """Build a deterministic project-history projection from visible evidence.
+    """Build the strict Buyer project-history response from visible evidence.
 
-    Every input row must already be caller-authorized. The function does not
-    query storage or infer missing project membership, people, dates, or edges.
-    ``truncated`` records that the storage boundary returned a bounded slice;
-    it does not imply that any hidden row was inspected or inferred.
+    Inputs must already be authorized, eligible, and cutoff-bounded. The
+    returned keys intentionally match ``ProjectHistoryProjection`` so the
+    HTTP boundary validates the same shape that the storage projection builds.
     """
 
+    normalized_key = normalize_project_key(project_key)
     if not 1 <= maximum_depth <= PROJECT_HISTORY_MAX_DEPTH:
         raise ValueError(f"maximum_depth must be between 1 and {PROJECT_HISTORY_MAX_DEPTH}")
     if not 1 <= maximum_paths_per_event <= PROJECT_HISTORY_MAX_PATHS_PER_EVENT:
@@ -269,29 +292,36 @@ def build_project_history_projection(
             "maximum_paths_per_event must be between 1 and "
             f"{PROJECT_HISTORY_MAX_PATHS_PER_EVENT}"
         )
-    normalized_key = normalize_project_key(project_key)
+
     unique_events: dict[str, Mapping[str, Any]] = {}
     for row in event_rows:
         post_id = str(row["post_id"])
-        unique_events.setdefault(post_id, row)
-    if focus_event_id not in unique_events:
-        raise ValueError("focus event must be visible in the project history")
+        current = unique_events.get(post_id)
+        if current is None or (row["created_at"], post_id) < (current["created_at"], post_id):
+            unique_events[post_id] = row
+    if not unique_events:
+        raise ValueError("project history requires at least one visible event")
     ordered_events = sorted(
         unique_events.values(),
         key=lambda row: (row["created_at"], str(row["post_id"])),
     )
     event_ids = [str(row["post_id"]) for row in ordered_events]
+    event_index = {event_id: index for index, event_id in enumerate(event_ids)}
+    effective_focus = focus_event_id or event_ids[-1]
+    if effective_focus not in unique_events:
+        raise ValueError("focus event must be visible in the project history")
 
     matches_by_post: dict[str, list[dict[str, Any]]] = {event_id: [] for event_id in event_ids}
+    display_names: list[tuple[int, int, str, str]] = []
     seen_matches: set[tuple[str, str, str]] = set()
     for row in match_rows:
         post_id = str(row["post_id"])
         if post_id not in matches_by_post:
             continue
+        if not _match_belongs_to_project(row, normalized_key=normalized_key):
+            continue
         match_kind = str(row["match_kind_code"])
         matched_value = str(row["matched_value"])
-        if normalize_project_key(matched_value) != normalized_key:
-            continue
         dedupe_key = (post_id, match_kind, matched_value)
         if dedupe_key in seen_matches:
             continue
@@ -300,13 +330,30 @@ def build_project_history_projection(
             {
                 "match_kind_code": match_kind,
                 "matched_value": matched_value,
-                "truth_status_code": (
-                    "observed" if match_kind.startswith("source_") else "inferred"
-                ),
+                "truth_status_code": "observed"
+                if match_kind.startswith("source_")
+                else "inferred",
                 "confidence": row.get("confidence"),
                 "ontology_iri": row.get("ontology_iri"),
-                "provenance": row.get("provenance"),
+                "provenance": str(row["provenance"]),
             }
+        )
+        if match_kind in _DISPLAY_NAME_ORDER:
+            display_names.append(
+                (
+                    _DISPLAY_NAME_ORDER[match_kind],
+                    event_index[post_id],
+                    normalize("NFKC", matched_value).strip().lower(),
+                    matched_value,
+                )
+            )
+    for matches in matches_by_post.values():
+        matches.sort(
+            key=lambda item: (
+                item["truth_status_code"] != "observed",
+                item["match_kind_code"],
+                item["matched_value"],
+            )
         )
 
     roles_by_post: dict[str, list[dict[str, Any]]] = {event_id: [] for event_id in event_ids}
@@ -317,9 +364,9 @@ def build_project_history_projection(
         roles_by_post[post_id].append(
             {
                 "actor_key": _actor_key(row),
-                "actor_name": row.get("actor_name"),
-                "responsibility": row.get("responsibility"),
-                "actor_type_code": row.get("actor_type_code"),
+                "actor_name": str(row.get("actor_name") or ""),
+                "responsibility": str(row.get("responsibility") or ""),
+                "actor_type_code": str(row.get("actor_type_code") or "unknown"),
                 "affiliated_organization_name": row.get("affiliated_organization_name"),
                 "truth_status_code": "observed",
                 "provenance": "post_summary_role",
@@ -349,26 +396,20 @@ def build_project_history_projection(
                 "event_id": event_id,
                 "source_post_id": event_id,
                 "event_title": str(row["post_title"]),
-                "occurred_at": _as_utc(row["created_at"]),
                 "event_type_code": classify_project_event(
                     title=str(row["post_title"]),
                     source_stage_code=row.get("source_stage_code"),
                     source_detail_state_code=row.get("source_detail_state_code"),
                     voc_type_code=row.get("voc_type_code"),
-                    is_focus=event_id == focus_event_id,
+                    is_focus=event_id == effective_focus,
                 ),
                 "event_type_basis_code": "display_classification",
+                "occurred_at": _as_utc(row["created_at"]),
                 "time_basis_code": PROJECT_HISTORY_TIME_BASIS,
                 "voc_type_code": row.get("voc_type_code"),
                 "source_stage_code": row.get("source_stage_code"),
                 "source_detail_state_code": row.get("source_detail_state_code"),
-                "project_matches": sorted(
-                    matches_by_post[event_id],
-                    key=lambda item: (
-                        item["match_kind_code"],
-                        item["matched_value"],
-                    ),
-                ),
+                "project_matches": matches_by_post[event_id],
                 "observed_responsibilities": roles_by_post[event_id],
                 "responsibility_transition_code": transition,
                 "related_prior_paths": paths_by_post[event_id],
@@ -376,21 +417,22 @@ def build_project_history_projection(
         )
         previous_actor_keys = actor_keys
 
-    distinct_actor_keys = {
+    distinct_observed_actor_keys = {
         role["actor_key"]
         for roles in roles_by_post.values()
         for role in roles
         if role["actor_key"]
     }
+    project_name = min(display_names)[3] if display_names else project_key.strip()
     return {
         "contract_version": PROJECT_HISTORY_CONTRACT_VERSION,
-        "project_key": project_key.strip(),
+        "project_key": normalized_key,
         "normalized_project_key": normalized_key,
-        "project_name": project_key.strip(),
-        "focus_event_id": focus_event_id,
+        "project_name": project_name,
+        "focus_event_id": effective_focus,
         "time_basis_code": PROJECT_HISTORY_TIME_BASIS,
         "event_count": len(projected_events),
-        "distinct_observed_actor_count": len(distinct_actor_keys),
-        "truncated": truncated,
+        "distinct_observed_actor_count": len(distinct_observed_actor_keys),
+        "truncated": bool(truncated),
         "events": projected_events,
     }
