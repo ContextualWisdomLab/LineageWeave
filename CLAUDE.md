@@ -111,5 +111,14 @@ DAG walk does not. Do not invent a theta.
 Open Ask Agent. Optionally set a knowledge cutoff. A dated question uses
 retained source-post revisions from that clock. A live query stays
 live-only and is never labeled as-of. A missing historical body is named
-and the live rewrite is not used (ADR 0101). Do not invent a theta or a
+and the live rewrite is not used (ADR 0135). Do not invent a theta or a
 cutoff body.
+
+## GNB Event Lineage focuses Keyman (v2.19.0)
+
+A GNB-origin popup (Weekly VOC, Calendar, Customer master, Ask Agent, or a
+linked Event Lineage DAG walk from one of those) keeps Event Lineage
+current and moves focus to the Keyman heading once Keyman rows have
+settled (ADR 0100). The report-member auto-land chain to related nodes
+and Ask is not used for GNB origins. A home-list open does not gain that
+ focus. Do not invent a theta.

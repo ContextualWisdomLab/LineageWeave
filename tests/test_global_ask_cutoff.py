@@ -1,4 +1,4 @@
-"""Global Ask optional knowledge cutoff keeps retrieval evidence-honest (ADR 0101)."""
+"""Global Ask optional knowledge cutoff keeps retrieval evidence-honest (ADR 0135)."""
 
 from __future__ import annotations
 

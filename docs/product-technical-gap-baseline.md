@@ -1,10 +1,10 @@
 # Product & Technical Gap Baseline
 
-**Snapshot:** 2026-08-20 17:08 (Asia/Seoul)
-**Protected-main baseline:** `origin/main`, product version `2.12.5`
-**Audited PR head:** #258 at `bf599aca` (integrated timeout boundary, fixture fix, worker repair, and SQL review evidence)
-**Active PR update:** ADR 0126 and the enrichment-timeout changes are pushed to
-PR #258; protected-main runtime evidence remains pending.
+**Snapshot:** 2026-08-21 (Asia/Seoul)
+**Protected-main baseline:** `origin/main`; this document does not claim the active PR is shipped.
+**Audited PR head:** #258 at `99244658bc7edb7cf0c71cce2e3dcc59ff891b2b`; the customer-hierarchy implementation entered earlier at `21074cf80cbfab3001bf18b6e1a618f75f4bed24`, and neither commit is protected-main truth.
+**Active PR update:** Customer Master now has an ORG-grounded, cycle-safe hierarchy projection with
+explicit WAI-ARIA ownership; final-head hosted Checks and independent approval remain required.
 **Purpose:** connect the normative ADRs and research evidence to product
 requirements, technical contracts, implementation evidence, and active PRs.
 An active PR is proposed work, not shipped behavior.
@@ -245,8 +245,8 @@ evidence for one authorized post, not a corpus-wide acceptance claim.
 
 ## Active PR audit
 
-A focused 2026-08-21 refresh found PR #258 open and mergeable at customer-hierarchy
-code commit `21074cf80cbfab3001bf18b6e1a618f75f4bed24`. The organization queue has changed since the 18-row inventory below, so the
+A focused 2026-08-21 refresh found PR #258 open and mergeable at exact head
+`99244658bc7edb7cf0c71cce2e3dcc59ff891b2b`. The organization queue has changed since the 18-row inventory below, so the
 table is retained only as historical stack topology. Current acceptance must be read from the final
 PR head, valid unresolved threads, qualifying independent review, and terminal hosted Checks.
 
@@ -267,8 +267,7 @@ PR head, valid unresolved threads, qualifying independent review, and terminal h
 | #262 | Customer post to Event Lineage | `#261` → `v2.15.0` | Ready / BLOCKED / review required |
 | #261 | Calendar commitment to Event Lineage | `#260` → `v2.14.0` | Ready / BLOCKED / review required |
 | #260 | Weekly VOC to Event Lineage | `#258` → `v2.13.0` | Ready / DIRTY / review required |
-| #258 | buyer evidence board, standards-composed ontology, and cycle-safe Customer Master tree | `main` → `21074cf80cbfab3001bf18b6e1a618f75f4bed24` | Ready / mergeable / final-head Checks and independent approval pending |
-| #258 | buyer evidence board, standards-composed ontology, and cycle-safe Customer Master tree | `main` → `21074cf80cbfab3001bf18b6e1a618f75f4bed24` | Ready / mergeable / final-head Checks and independent approval pending |
+| #258 | buyer evidence board, standards-composed ontology, and cycle-safe Customer Master tree | `main` → `99244658bc7edb7cf0c71cce2e3dcc59ff891b2b` | Ready / mergeable / final-head Checks and independent approval pending |
 | #192 | plural affiliation next action | `main` → `v0.77.0` | Ready / DIRTY / review required |
 | #190 | duplicate-numbered entity-resolution ADR | `main` → docs | Ready / BLOCKED |
 
@@ -292,7 +291,7 @@ the exact-head disposition.
 | P0 | No protected-main integrated buyer journey for the active feature stack | Main is 2.12.5; 18 open PRs span dependent and parallel bases | Establish one reviewed integration order, update each exact head, pass required checks, merge without bypass, then run login-to-source browser acceptance on main |
 | P0 | Current runtime proof is incomplete | The current aggregate/OIDC/ABAC checks cover data presence and selected boundaries; 2026-08-18/19 notes cover other slices, but no evidence set proves the entire PR head or main journey | Complete the real-stack matrix on an exact revision: browser login/navigation, Ask, reports, Vision, TEPP availability, action population, and cleanup |
 | P0 | PR #190's duplicate ADR identity was corrected but is not protected-main truth | Active PR head `ac1b4e17` now uses ADR 0038 and aligns the entity-resolution claims with implementation; independent review and Checks remain pending | Re-audit exact head, obtain independent approval, pass required Checks, and merge normally; never merge a duplicate ADR identity |
-| P0 | PR #258 still requires final-head review and hosted CI | Customer hierarchy code is at `21074cf80cbfab3001bf18b6e1a618f75f4bed24`; branch-local verification does not transfer to the following documentation-only head | Re-read review threads, obtain qualifying independent approval, require all final-head hosted Checks to reach terminal success, and merge only through normal protection |
+| P0 | PR #258 still requires final-head review and hosted CI | Exact head is `99244658bc7edb7cf0c71cce2e3dcc59ff891b2b`; branch-local verification does not transfer to a later head | Re-read review threads, obtain qualifying independent approval, require all final-head hosted Checks to reach terminal success, and merge only through normal protection |
 | P1 | Requirements were implicit across ADRs and architecture phases | No prior PRD/TRD/requirement traceability baseline existed | Keep FR/NFR IDs in this document linked from ADR index; require new product PRs to name affected IDs and runtime evidence |
 | P1 | Active PR topology obscures release truth | 8 blocked, 8 unstable, and 2 dirty; many bases are other open branches | Publish a dependency order, retire obsolete/duplicate branches, and avoid version claims until their base chain reaches main |
 | P1 | ADR 0102 schema exists but current data does not exercise it | Commit `15e1a378` is on PR #258 and the table exists, but 95 summaries yield zero requester/processor action rows | Regenerate an authorized bounded sample, report aggregate accepted/dropped/absent counts, verify source evidence and actor FKs, then exercise the buyer popup without exposing record content |

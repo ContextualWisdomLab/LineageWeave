@@ -9,6 +9,7 @@ tests/test_image_content.py and does not need re-proving here.
 from __future__ import annotations
 
 import base64
+import time
 from threading import Lock
 
 from lineageweave.chunking import Chunk
@@ -107,6 +108,33 @@ class _PartialRegionFailureVisionClient(_FakeVisionClient):
 
     def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
         raise RuntimeError("synthetic region and parent outage")
+
+
+class _ConcurrencyTrackingVisionClient(_FakeVisionClient):
+    """Record provider overlap so one post cannot fan out nested calls."""
+
+    def __init__(self, description: ImageDescription) -> None:
+        super().__init__(description)
+        self._lock = Lock()
+        self._active_calls = 0
+        self.max_active_calls = 0
+
+    def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
+        return (
+            ImageRegion(0.0, 0.0, 0.25, 0.25),
+            ImageRegion(0.5, 0.5, 0.25, 0.25),
+        )
+
+    def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
+        with self._lock:
+            self._active_calls += 1
+            self.max_active_calls = max(self.max_active_calls, self._active_calls)
+        try:
+            time.sleep(0.01)
+            return super().describe(image_bytes, mime_type)
+        finally:
+            with self._lock:
+                self._active_calls -= 1
 
 
 def test_plain_text_passes_through_unchanged() -> None:
@@ -308,6 +336,19 @@ def test_image_analysis_preserves_post_scoped_llm_metadata() -> None:
     assert len(result.image_descriptions) == 2
     assert len(client.seen_metadata) == 2
     assert all(seen == metadata for seen in client.seen_metadata)
+
+
+def test_image_analysis_serializes_provider_calls_per_post() -> None:
+    b64 = base64.b64encode(_PNG_1X1).decode("ascii")
+    html = f'<img src="data:image/png;base64,{b64}"/><img src="data:image/png;base64,{b64}"/>'
+    client = _ConcurrencyTrackingVisionClient(
+        ImageDescription(extracted_text="panel", caption="chart", tags=("chart",))
+    )
+
+    result = normalize_post_body(html, vision_client=client)
+
+    assert len(result.image_results) == 2
+    assert client.max_active_calls == 1
 
 
 def test_partial_region_response_retains_panel_and_parent_evidence() -> None:

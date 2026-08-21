@@ -1,4 +1,4 @@
-# ADR 0101: Global Ask optional knowledge cutoff is evidence-honest
+# ADR 0135: Global Ask optional knowledge cutoff is evidence-honest
 
 - Status: Accepted
 - Date: 2026-08-20

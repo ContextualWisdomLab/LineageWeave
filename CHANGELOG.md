@@ -12,7 +12,7 @@ All notable changes to this project are documented here. Format follows
   matches retained source-post revisions from that clock and never
   substitutes a live body or live rewrite text. Fully, partly, and
   live-only answers are named separately. No TEPP theta is invented. No
-  as-of label is applied to a live query (ADR 0101 / ADR 0016 / ADR 0025).
+  as-of label is applied to a live query (ADR 0135 / ADR 0016 / ADR 0025).
 
 ### Fixed
 
@@ -27,6 +27,18 @@ All notable changes to this project are documented here. Format follows
 - Added a Buyer Project history destination and post-detail entry point for
   bounded, authorized exact-project chronology. The release remains pending
   protected-main review and Checks (ADR 0111).
+
+## [2.19.0] - 2026-08-20
+
+### Added
+
+- Opening a Board Weekly VOC post, Calendar commitment, Customer master
+  related post, or Ask Agent cited post now keeps Event Lineage current
+  and focuses Keyman as the named next read. A linked Event Lineage DAG
+  walk from that popup keeps the same Keyman focus. A home-list open
+  does not add that focus or copy. No TEPP theta is invented. No cited
+  post, customer, week, or cutoff body is invented (ADR 0100 / ADR 0097
+  / ADR 0016).
 
 ## [2.17.0] - 2026-08-19
 
@@ -46,7 +58,7 @@ All notable changes to this project are documented here. Format follows
   and evaluation as the next read. After an authorized answer, Ask Agent
   names cited posts as current before that open. Home-list opens do not add
   that focus or copy. No TEPP theta is invented. No cited post is invented
-(ADR 0096 / ADR 0039 / ADR 0016).
+  (ADR 0096 / ADR 0039 / ADR 0016).
 
 ## [2.15.0] - 2026-08-19
 
@@ -56,7 +68,7 @@ All notable changes to this project are documented here. Format follows
   Keyman and evaluation as the next read. Customer master names authorized
   customer entities as current before that open. Home-list opens do not add
   that focus or copy. No TEPP theta is invented. No customer is invented
-(ADR 0095 / ADR 0037 / ADR 0016).
+  (ADR 0095 / ADR 0037 / ADR 0016).
 
 ## [2.14.0] - 2026-08-19
 

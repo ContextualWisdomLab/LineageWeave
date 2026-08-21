@@ -143,7 +143,7 @@ def test_decode_requires_configured_resource_audience(monkeypatch: pytest.Monkey
 
     def fake_decode(token, **kwargs):
         captured.update(kwargs)
-        return {"sub": "subject-1"}
+        return {"sub": "subject-1", "exp": 1_800_000_000}
 
     monkeypatch.setattr(auth.jwt, "decode", fake_decode)
     settings = SimpleNamespace(
@@ -158,7 +158,7 @@ def test_decode_requires_configured_resource_audience(monkeypatch: pytest.Monkey
     assert captured["issuer"] == "https://id.example"
     assert captured["audience"] == "https://lineage.example/api"
     assert captured["algorithms"] == ["RS256"]
-    assert "options" not in captured
+    assert captured["options"] == {"require": ["exp"]}
 
 
 def test_decode_rejects_missing_subject(monkeypatch: pytest.MonkeyPatch) -> None:

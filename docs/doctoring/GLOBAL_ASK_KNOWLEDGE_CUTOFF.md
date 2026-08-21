@@ -1,4 +1,4 @@
-# Global Ask knowledge cutoff (ADR 0101 / v2.23.0)
+# Global Ask knowledge cutoff (ADR 0135 / v2.23.0)
 
 Ask Agent now accepts an optional ISO-8601 `knowledge_cutoff`.
 

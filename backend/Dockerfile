@@ -35,5 +35,5 @@ RUN uv sync --frozen --no-dev --extra backend --no-editable \
     && chown -R appuser:appuser /app
 
 USER appuser
-EXPOSE 8000
+EXPOSE 8000 8001
 CMD ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8000"]
