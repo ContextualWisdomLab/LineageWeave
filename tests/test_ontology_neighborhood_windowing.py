@@ -20,12 +20,14 @@ from lineageweave.ontology_neighborhood import (
     PROPERTY_MENTIONS,
     assemble_ontology_neighborhood,
     fact_from_knowledge_graph_edge,
+    skos_broader_fact,
 )
 from lineageweave.ontology_source_cursor import OntologySourceCursor, OntologySourceKey
 
 POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1"
 PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1"
 CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1"
+GROUP_ID = "eeeeeeee-eeee-eeee-eeee-eeeeeeeeeee1"
 T0 = datetime(2026, 1, 10, 12, 0, tzinfo=timezone.utc)
 
 
@@ -446,3 +448,145 @@ def test_source_continuation_uses_sealed_snapshot_and_rechecks_page_endpoints(mo
     assert load_after_keys == [None, last_key]
     assert minted_keys == [last_key]
     assert result.edges
+
+
+def test_skos_overflow_mints_source_cursor_for_continuation(monkeypatch) -> None:
+    """Derived SKOS overflow must not expose an unusable in-memory cursor."""
+    fact = replace(
+        fact_from_knowledge_graph_edge(
+            source_node_type_code=NODE_PERSON,
+            source_node_id=PERSON_ID,
+            target_node_type_code=NODE_CORPORATE_ENTITY,
+            target_node_id=CORP_ID,
+            edge_type_code=EDGE_AFFILIATION,
+            recorded_at=T0,
+            evidence_references=(POST_ID,),
+        ),
+        source_hop_depth=0,
+        source_order_key=(
+            0,
+            EDGE_AFFILIATION,
+            NODE_PERSON,
+            PERSON_ID,
+            NODE_CORPORATE_ENTITY,
+            CORP_ID,
+        ),
+    )
+    skos = skos_broader_fact(
+        narrower_entity_id=CORP_ID,
+        broader_entity_id=GROUP_ID,
+        recorded_at=T0,
+    )
+    last_key = OntologySourceKey(
+        hop_depth=0,
+        edge_type_code=EDGE_AFFILIATION,
+        source_node_type_code=NODE_PERSON,
+        source_node_id=PERSON_ID,
+        target_node_type_code=NODE_CORPORATE_ENTITY,
+        target_node_id=CORP_ID,
+    )
+    claims = OntologySourceCursor(
+        focus_node_type_code=NODE_CORPORATE_ENTITY,
+        focus_node_id=CORP_ID,
+        knowledge_cutoff=None,
+        maximum_depth=1,
+        maximum_nodes=10,
+        maximum_edges=1,
+        allowed_property_codes=None,
+        last_key=last_key,
+        snapshot_at=T0,
+        eligibility_digest="digest",
+        expires_at=T0,
+    )
+    load_after_keys: list[OntologySourceKey | None] = []
+    minted_keys: list[OntologySourceKey] = []
+
+    async def fake_load_facts(*_args, after_key=None, **_kwargs):
+        load_after_keys.append(after_key)
+        if after_key is not None:
+            return ingestion._LoadedFactWindow()  # type: ignore[attr-defined]
+        return ingestion._LoadedFactWindow(  # type: ignore[attr-defined]
+            [fact],
+            source_keys_by_edge={
+                (
+                    fact.property_code,
+                    fact.source_node_type_code,
+                    fact.source_node_id,
+                    fact.target_node_type_code,
+                    fact.target_node_id,
+                ): last_key
+            },
+        )
+
+    async def fake_visible_post_ids(*_args, **_kwargs):
+        return [POST_ID]
+
+    async def fake_focus_exists(*_args, **_kwargs):
+        return True
+
+    async def fake_visible_by_nodes(_conn, endpoint_keys, _can_see_post):
+        return {key: [POST_ID] for key in endpoint_keys}
+
+    async def fake_skos(*_args, **_kwargs):
+        return [skos]
+
+    async def fake_labels(*_args, **_kwargs):
+        return {
+            (NODE_PERSON, PERSON_ID): "Person",
+            (NODE_CORPORATE_ENTITY, CORP_ID): "Organization",
+            (NODE_CORPORATE_ENTITY, GROUP_ID): "Group",
+        }
+
+    async def fake_metadata(*_args, **_kwargs):
+        return {}
+
+    def fake_verify(_token, **_kwargs):
+        return claims
+
+    def fake_mint(**kwargs):
+        minted_keys.append(kwargs["last_key"])
+        return "src.v1.synthetic-next"
+
+    monkeypatch.setattr(ingestion, "focus_catalog_exists", fake_focus_exists)
+    monkeypatch.setattr(ingestion, "visible_post_ids_for_focus", fake_visible_post_ids)
+    monkeypatch.setattr(ingestion, "_load_facts", fake_load_facts)
+    monkeypatch.setattr(ingestion, "_visible_post_ids_by_nodes", fake_visible_by_nodes)
+    monkeypatch.setattr(ingestion, "_load_skos_facts", fake_skos)
+    monkeypatch.setattr(ingestion, "_load_labels", fake_labels)
+    monkeypatch.setattr(ingestion, "_load_node_metadata", fake_metadata)
+    monkeypatch.setattr(ingestion, "verify_source_cursor", fake_verify)
+    monkeypatch.setattr(ingestion, "mint_source_cursor", fake_mint)
+
+    first_page = asyncio.run(
+        ingestion.visible_ontology_neighborhood(
+            CursorConnection(),  # type: ignore[arg-type]
+            focus_node_type_code=NODE_CORPORATE_ENTITY,
+            focus_node_id=CORP_ID,
+            can_see_post=lambda _row: True,
+            maximum_depth=1,
+            maximum_nodes=10,
+            maximum_edges=1,
+            source_cursor_secret="s" * 32,
+            source_cursor_scope="account",
+        )
+    )
+    second_page = asyncio.run(
+        ingestion.visible_ontology_neighborhood(
+            CursorConnection(),  # type: ignore[arg-type]
+            focus_node_type_code=NODE_CORPORATE_ENTITY,
+            focus_node_id=CORP_ID,
+            can_see_post=lambda _row: True,
+            maximum_depth=1,
+            maximum_nodes=10,
+            maximum_edges=1,
+            cursor=first_page.next_cursor,
+            source_cursor_secret="s" * 32,
+            source_cursor_scope="account",
+        )
+    )
+
+    assert first_page.next_cursor == "src.v1.synthetic-next"
+    assert [edge.property_code for edge in second_page.edges] == ["skos_broader"]
+    assert second_page.next_cursor is None
+    assert load_after_keys == [None, None, last_key]
+    assert minted_keys == [last_key]

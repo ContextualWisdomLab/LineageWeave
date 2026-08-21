@@ -894,8 +894,8 @@ async def visible_ontology_neighborhood(
         secret is not None
         and source_cursor_scope
         and last_source_key is not None
-        and source_truncated
         and neighborhood.truncated
+        and (source_truncated or neighborhood.next_cursor is not None)
         and len(page_node_keys) <= maximum_nodes
         and neighborhood_edges
     ):
