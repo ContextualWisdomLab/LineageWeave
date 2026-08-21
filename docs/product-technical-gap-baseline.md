@@ -458,26 +458,28 @@ to exact head `5fc943477189640f42dfa8ad2d72678216bd1ea5`; it remains open,
 formal review decision. Documentation PR #368 is at exact head
 `829b630a3608d0b800fabf9ea129d011091f7ca3`; it is likewise open,
 `mergeable=true`, blocked, and pending its hosted checks without independent
-approval. The stack branch still points to merged identity commit
-`139ecaa17b411451c645f12a888f095df3beb3b2`, which retains the identity merge
-`202063bca2afa38d100199de3f0520fdd8c15e8c` and the subsequent #399 rollback.
+approval. The stack branch now points to
+`806da65af40f27b24d2c8b77e1f7dd0b8558e67f`, which retains the identity merge
+`202063bca2afa38d100199de3f0520fdd8c15e8c`, the #399 rollback, and the #400
+ADR reference.
 No protected-main merge is claimed.
 
 ### 4.11 Current exact-head refresh
 
-Observed at `2026-08-21T21:13:07Z` from the GitHub REST API. This subsection
+Observed at `2026-08-21T21:23:18Z` from the GitHub REST API. This subsection
 supersedes the earlier queue snapshot without rewriting its historical
 evidence:
 
 - PR #398 merged into the non-main stack at merge commit
   `202063bca2afa38d100199de3f0520fdd8c15e8c`; PR #399 then merged the Global
   Ask atomic-citation rollback at merge commit
-  `139ecaa17b411451c645f12a888f095df3beb3b2`. The stack branch now points to
-  `139ecaa17b411451c645f12a888f095df3beb3b2`; neither event is a protected
-  `main` merge.
+  `139ecaa17b411451c645f12a888f095df3beb3b2`. Documentation PR #400 then
+  added the APA 7th PostgreSQL locking reference at stack commit
+  `806da65af40f27b24d2c8b77e1f7dd0b8558e67f`. None of these events is a
+  protected `main` merge.
 - PR #392 is open against protected `main` at exact head
   `5fc943477189640f42dfa8ad2d72678216bd1ea5`, and PR #368 is open against
-  protected `main` at exact head `be661a246ac22016b8ce1b0e0446a620ae33e920`.
+  protected `main` at exact head `c77ef760d56ad97d4b78ae7a57ea1847739f3dfe`.
   Both remain blocked pending current hosted Checks and independent review
   gates.
 - PR #383 remains open at `4eaa07172fde827f4ad89580326a0d2db5ceb0e4` and PR
