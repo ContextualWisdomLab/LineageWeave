@@ -41,5 +41,5 @@ though the source post remains authorized and available.
 
 - [ADR 0052](0052-plain-orchestrator-semantic-evidence.md)
 - [ADR 0100](0100-major-event-requester-processor.md)
-- [ADR 0101](0101-enrichment-timeout-does-not-block-summary.md)
+- [ADR 0126](0126-enrichment-timeout-does-not-block-summary.md)
 - [ADR 0076](0076-paper-grounded-model-policy.md)
