@@ -1209,6 +1209,12 @@ describe("App, authenticated", () => {
                 catalog_node_type_code: "node_person",
               },
               {
+                actor_name: "Northridge Grid Devices",
+                responsibility: "부품 납품",
+                actor_type_code: "prov_organization",
+                affiliated_organization_name: "Northridge Grid",
+              },
+              {
                 actor_name: "당사",
                 responsibility: "출하 일정 확정",
                 actor_type_code: "prov_organization",
@@ -2008,17 +2014,25 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: "R&R person: Priya Nair" })).toBeInTheDocument();
     expect(screen.getByText("당사").closest("li")).toHaveTextContent("Organization");
     expect(screen.queryByRole("button", { name: "R&R Keyman: 당사" })).not.toBeInTheDocument();
-    // R&R reads organization, then team, then person (ADR 0004's PROV-O
-    // broader/narrower direction), not raw extraction order -- the fixture
-    // lists Ada West (person) before 당사 (organization) and 설계팀 (team).
+    // R&R groups by affiliated organization, then orders each group
+    // organization-first, then team, then person (ADR 0004's PROV-O
+    // broader/narrower direction) -- not raw extraction order. "Northridge
+    // Grid Devices" is itself an organization row, but it is affiliated
+    // with "Northridge Grid" and must cluster with Priya Nair under that
+    // parent, not stand as its own separate group.
     const rrList = screen.getByText("당사").closest("ul");
     const rrOrder = within(rrList as HTMLElement)
       .getAllByRole("listitem")
       .map((item) => item.textContent);
-    expect(rrOrder[0]).toContain("당사");
-    expect(rrOrder[1]).toContain("설계팀");
-    expect(rrOrder[2]).toContain("Ada West");
-    expect(rrOrder[3]).toContain("Priya Nair");
+    const demoCorpGroup = rrOrder.slice(
+      rrOrder.findIndex((text) => text?.includes("설계팀")),
+      rrOrder.findIndex((text) => text?.includes("Ada West")) + 1,
+    );
+    expect(demoCorpGroup[0]).toContain("설계팀");
+    expect(demoCorpGroup[1]).toContain("Ada West");
+    const northridgeGroupStart = rrOrder.findIndex((text) => text?.includes("Northridge Grid Devices"));
+    expect(rrOrder[northridgeGroupStart]).toContain("Northridge Grid Devices");
+    expect(rrOrder[northridgeGroupStart + 1]).toContain("Priya Nair");
     const relatedPosts = screen.getByRole("heading", { name: "Related posts", level: 3 }).closest(
       ".related-posts-section",
     );

@@ -1707,29 +1707,34 @@ const ROLE_ACTOR_TYPE_RANK: Record<string, number> = {
 };
 
 // R&R read order follows the PROV-O broader/narrower direction (ADR 0004):
-// organizations, then the teams affiliated with them, then the people
-// affiliated with them -- not raw LLM extraction order. Within each tier,
-// entries group by affiliated organization so e.g. one org's people stay
-// adjacent instead of interleaving with another org's. A person's specific
-// team membership isn't part of PostRoleResponsibility, so people group by
+// an organization, then the teams affiliated with it, then the people
+// affiliated with it -- not raw LLM extraction order. Grouping is keyed by
+// `affiliated_organization_name` for every actor type, including
+// organization rows themselves (a subsidiary org's row is affiliated with
+// its parent org and must cluster under it, not stand as its own group)
+// -- a row only anchors its own group when it has no
+// affiliated_organization_name at all. A person's specific team
+// membership isn't part of PostRoleResponsibility, so people group by
 // their affiliated organization alongside that organization's teams, not
 // nested under one specific team.
 function sortRolesByOntologyOrder(
   roles: PostRoleResponsibility[],
 ): PostRoleResponsibility[] {
   const groupKey = (role: PostRoleResponsibility) =>
-    role.actor_type_code === "prov_organization"
-      ? role.actor_name
-      : (role.affiliated_organization_name ?? "");
+    role.affiliated_organization_name || role.actor_name;
+  const isGroupAnchor = (role: PostRoleResponsibility) =>
+    role.actor_type_code === "prov_organization" && !role.affiliated_organization_name;
   return roles
     .map((role, index) => ({ role, index }))
     .sort((a, b) => {
+      const groupCompare = groupKey(a.role).localeCompare(groupKey(b.role));
+      if (groupCompare !== 0) return groupCompare;
+      const anchorCompare = Number(isGroupAnchor(b.role)) - Number(isGroupAnchor(a.role));
+      if (anchorCompare !== 0) return anchorCompare;
       const rankCompare =
         (ROLE_ACTOR_TYPE_RANK[a.role.actor_type_code] ?? 3) -
         (ROLE_ACTOR_TYPE_RANK[b.role.actor_type_code] ?? 3);
       if (rankCompare !== 0) return rankCompare;
-      const groupCompare = groupKey(a.role).localeCompare(groupKey(b.role));
-      if (groupCompare !== 0) return groupCompare;
       return a.index - b.index;
     })
     .map(({ role }) => role);
