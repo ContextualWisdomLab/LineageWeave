@@ -28,7 +28,7 @@ rerun.
 - **Figma reference:** ADR 0118 records file `1Su3lDRmiZdcUs47t1QwIX`; the
   inspected Event Lineage frames are desktop `5:14` and mobile `5:15`.
 - **Local quality evidence at the source/test head:** backend `uv run pytest -q`
-  passed `762` tests with `17` skips; frontend Vitest passed `163` tests in `17`
+  passed `776` tests with `17` skips; frontend Vitest passed `166` tests in `18`
   files, frontend lint/build passed, and Storybook build completed. These are
   local checks, not hosted protected-gate or independent-review evidence.
 - **Current PR gate:** PR #350 is open, `MERGEABLE` but `BLOCKED`, and has no
