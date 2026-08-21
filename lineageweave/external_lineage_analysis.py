@@ -31,7 +31,7 @@ from .external_lineage_contract import (
     serialize_lineage_analysis_request,
 )
 from .models import Record
-from .reconstruct import active_weights, reconstruct
+from .reconstruct import _best_parent, active_weights
 
 
 def _contract_error(code: str, message: str, field: str | None = None) -> None:
@@ -176,21 +176,36 @@ def _included_records(
     return included, excluded
 
 
+def _ordered_contract_groups(
+    records: tuple[LineageEvidenceRecord, ...],
+) -> tuple[tuple[LineageEvidenceRecord, ...], ...]:
+    """Return deterministic groups ordered by time and opaque reference."""
+
+    grouped: dict[str, list[LineageEvidenceRecord]] = defaultdict(list)
+    for record in records:
+        grouped[record.group_ref].append(record)
+    return tuple(
+        tuple(
+            sorted(
+                grouped[group_ref],
+                key=lambda item: (item.occurred_at, item.evidence_ref),
+            )
+        )
+        for group_ref in sorted(grouped)
+    )
+
+
 def _pair_evaluation_count(
     records: tuple[LineageEvidenceRecord, ...],
     candidate_window: int,
 ) -> int:
-    """Count candidate-parent evaluations before running any channel."""
+    """Count only candidate pairs that require inferred parent selection."""
 
-    counts: dict[str, int] = defaultdict(int)
-    for record in records:
-        counts[record.group_ref] += 1
     return sum(
-        sum(
-            min(index, candidate_window)
-            for index in range(record_count)
-        )
-        for record_count in counts.values()
+        min(index, candidate_window)
+        for group_records in _ordered_contract_groups(records)
+        for index, record in enumerate(group_records)
+        if record.explicit_parent is None
     )
 
 
@@ -213,29 +228,16 @@ def _enforce_pair_budget(
     return pair_count
 
 
-def _core_records(
-    records: tuple[LineageEvidenceRecord, ...],
-) -> list[Record]:
-    """Convert contract records to deterministic core reconstruction records."""
+def _core_record(record: LineageEvidenceRecord) -> Record:
+    """Convert one contract record to the core reconstruction shape."""
 
-    ordered = sorted(
-        records,
-        key=lambda item: (
-            item.group_ref,
-            item.occurred_at,
-            item.evidence_ref,
-        ),
+    return Record(
+        record_id=record.evidence_ref,
+        group_key=record.group_ref,
+        label=record.label,
+        occurred_at=record.occurred_at,
+        secondary_key=record.secondary_key or "",
     )
-    return [
-        Record(
-            record_id=record.evidence_ref,
-            group_key=record.group_ref,
-            label=record.label,
-            occurred_at=record.occurred_at,
-            secondary_key=record.secondary_key or "",
-        )
-        for record in ordered
-    ]
 
 
 def _channel_evidence(
@@ -275,32 +277,44 @@ def _inferred_edges(
     llm: AdjudicationClient,
     request: LineageAnalysisRequest,
 ) -> list[LineageEdgeResult]:
-    """Run the core kernel and project inferred edge/channel evidence."""
+    """Select inferred parents without rescoring explicit observed children."""
 
     if not records:
         return []
     weights = active_weights(llm)
-    trees = reconstruct(
-        _core_records(records),
-        llm=llm,
-        candidate_window=request.policy.candidate_window,
-        min_fused_score=request.policy.minimum_fused_score,
-    )
-    return [
-        LineageEdgeResult(
-            parent_evidence_ref=edge.parent_id,
-            child_evidence_ref=edge.child_id,
-            relation_type_code="reconstructed_continuation",
-            truth_status_code="inferred",
-            fused_score=float(edge.fused_score),
-            channel_evidence=_channel_evidence(
-                edge.channel_scores,
+    edges: list[LineageEdgeResult] = []
+    for group_records in _ordered_contract_groups(records):
+        core_records = [_core_record(record) for record in group_records]
+        for index, source_record in enumerate(group_records):
+            if source_record.explicit_parent is not None:
+                continue
+            candidates = core_records[
+                max(0, index - request.policy.candidate_window) : index
+            ]
+            parent_choice = _best_parent(
+                core_records[index],
+                candidates,
+                llm,
                 weights,
-            ),
-        )
-        for tree in trees
-        for edge in tree.edges
-    ]
+                request.policy.minimum_fused_score,
+            )
+            if parent_choice is None:
+                continue
+            parent, fused_score, channel_scores = parent_choice
+            edges.append(
+                LineageEdgeResult(
+                    parent_evidence_ref=parent.record_id,
+                    child_evidence_ref=source_record.evidence_ref,
+                    relation_type_code="reconstructed_continuation",
+                    truth_status_code="inferred",
+                    fused_score=float(fused_score),
+                    channel_evidence=_channel_evidence(
+                        channel_scores,
+                        weights,
+                    ),
+                )
+            )
+    return edges
 
 
 def _explicit_edges(
