@@ -79,7 +79,7 @@ def test_all_supported_provider_credentials_leave_the_process_environment(monkey
     assert all(name not in os.environ for name in expected)
 
 
-def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch) -> None:
+def test_bootstrap_does_not_select_embedding_model(monkeypatch) -> None:
     module = _load_start_module()
     captured: dict[str, object] = {}
 
@@ -119,7 +119,7 @@ def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch
     monkeypatch.setenv("LLM_GATEWAY_API_KEY", "provider-key")
     monkeypatch.setenv("CONTEXTUAL_ORCHESTRATOR_TOKEN", "orchestrator-token")
     monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://gateway.example")
-    monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", "embedding-model")
+    monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", "legacy-selector")
 
     module.main()
 
@@ -127,21 +127,19 @@ def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch
     assert isinstance(argv, list)
     assert "--embedding-provider-url" not in argv
     assert "--embedding-model" not in argv
+    assert "LLM_GATEWAY_EMBEDDING_MODEL" not in os.environ
     assert captured["credentials"] == [
         ("NVIDIA_NIM_API_KEY", "provider-key"),
         ("LLM_GATEWAY_API_KEY", "provider-key"),
     ]
     agents = captured["agents"]
     assert isinstance(agents, dict)
-    embedding_agents = [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])]
-    assert embedding_agents == [
-        {
-            "id": "llm_gateway_embedding_agent",
-            "model": "embedding-model",
-            "base_url": "https://gateway.example/v1",
-            "credential_key": "LLM_GATEWAY_API_KEY",
-            "provider_protocol": "auto",
-            "tags": ["embedding"],
-            "priority": 0,
-        }
-    ]
+    assert agents == {
+        "agents": [
+            {
+                "base_url": "https://gateway.example/v1",
+                "credential_key": "LLM_GATEWAY_API_KEY",
+                "provider_protocol": "auto",
+            }
+        ]
+    }

@@ -21,10 +21,10 @@ These credentials are not interchangeable. The first is the local service
 boundary; the second is the provider credential.
 
 The backend must not load `~/.env` wholesale. Compose injects the provider
-credential, URL, and embedding-agent allowlist only into
+credential and URL only into
 contextual-orchestrator; the backend receives only its internal orchestrator
-credential. This prevents an unrelated application process from holding a
-provider secret or selector while preserving the single LLM/Vision boundary.
+credential. This prevents an unrelated application process from holding the
+provider secret while preserving the single LLM/Vision boundary.
 
 ## Decision
 
@@ -64,13 +64,12 @@ local score, summary, extraction, or answer when the gateway is unavailable.
   `host.docker.internal:8080` text gateway and `host.docker.internal:18082`
   Vision gateway when `LINEAGEWEAVE_ALLOW_LOCAL_LLM_HTTP=1`; arbitrary local
   HTTP ports remain rejected.
-- `LLM_GATEWAY_MODEL` and `VISION_MODEL` are not selected by LineageWeave.
-  When they are blank, contextual-orchestrator resolves the registered agent
-  model, so a local or provider-specific model name cannot leak into this
-  application or be assumed available on an external gateway.
-- `LLM_GATEWAY_EMBEDDING_MODEL` is the explicit allowlisted semantic embedding
-  model. If it is absent, contextual-orchestrator rejects embedding work
-  instead of returning its standalone eight-dimensional heuristic vector.
+- `LLM_GATEWAY_MODEL`, `VISION_MODEL`, and
+  `LLM_GATEWAY_EMBEDDING_MODEL` are not LineageWeave runtime settings. The
+  contextual-orchestrator receives blank capability agents and owns discovery,
+  capability selection, and model provenance for text, vision, and embedding
+  work. A provider-specific model name is never selected or assumed available
+  by this application.
 - `LLM_API_KEY`, `LLM_API_GATEWAY`, and `LLM_GATEWAY_URL` are compatibility
   aliases only; `LLM_GATEWAY_API_KEY` and `LLM_GATEWAY_API_URL` are the
   canonical names for

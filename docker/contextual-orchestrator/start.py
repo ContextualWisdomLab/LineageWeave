@@ -7,9 +7,9 @@ process environment before request handling begins.
 
 from __future__ import annotations
 
+import json
 import os
 import sys
-import json
 from pathlib import Path
 
 _PROVIDER_CREDENTIAL_NAMES = (
@@ -75,28 +75,9 @@ def main() -> None:
         agent["base_url"] = provider_url
         agent["credential_key"] = "LLM_GATEWAY_API_KEY"
         agent.setdefault("provider_protocol", "auto")
-    embedding_model = os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
-    if embedding_model:
-        embedding_agents = [
-            agent
-            for agent in agents["agents"]
-            if "embedding" in agent.get("tags", [])
-        ]
-        if embedding_agents:
-            for agent in embedding_agents:
-                agent["model"] = embedding_model
-        else:
-            agents["agents"].append(
-                {
-                    "id": "llm_gateway_embedding_agent",
-                    "model": embedding_model,
-                    "base_url": provider_url,
-                    "credential_key": "LLM_GATEWAY_API_KEY",
-                    "provider_protocol": "auto",
-                    "tags": ["embedding"],
-                    "priority": 0,
-                }
-            )
+    # A legacy embedding selector must never reach the upstream server. Model
+    # capability discovery and selection belong to contextual-orchestrator.
+    os.environ.pop("LLM_GATEWAY_EMBEDDING_MODEL", None)
     agents_path.write_text(json.dumps(agents), encoding="utf-8")
 
     from contextual_orchestrator.credentials import register_credential
@@ -118,7 +99,6 @@ def main() -> None:
     del provider_key
     del gateway_key
     del provider_credentials
-    del registered_names
     sys.argv = [
         "contextual_orchestrator",
         "--serve",
