@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import math
 from dataclasses import dataclass
-from typing import Any, Protocol
+from typing import Any, ClassVar, Protocol
 
 from .http_client import post_json
 
@@ -40,7 +40,7 @@ class NullPostStructureClient:
 class ContextualOrchestratorPostStructureClient:
     available = True
 
-    _DECISION_ITEM_SCHEMA = {
+    _DECISION_ITEM_SCHEMA: ClassVar[dict[str, object]] = {
         "type": "object",
         "properties": {
             "unit_index": {"type": "integer", "minimum": 0},
@@ -51,7 +51,7 @@ class ContextualOrchestratorPostStructureClient:
         "required": ["unit_index", "indent_level", "confidence", "evidence"],
         "additionalProperties": False,
     }
-    _DECISION_SCHEMA = {
+    _DECISION_SCHEMA: ClassVar[dict[str, object]] = {
         "type": "object",
         "properties": {
             "decisions": {
@@ -83,8 +83,13 @@ class ContextualOrchestratorPostStructureClient:
                             "Adjudicate the indentation level of every supplied document unit. "
                             "Return one JSON object with a decisions array, with one decision for "
                             "each unit_index. Determine indentation from ordering, numbering, "
-                            "bullets, paragraph semantics, and visible explicit formatting. Do not "
-                            "invent nesting. If evidence is insufficient, use level 0 and low "
+                            "bullets, paragraph semantics, and visible explicit formatting. The "
+                            "input also reports source_indent_width from leading spaces or NBSP "
+                            "and declared_indent_width from HTML/CSS/OOXML. Treat declared "
+                            "formatting as explicit evidence and source whitespace as supporting "
+                            "evidence only. Do not mistake continuation-line alignment after a "
+                            "bullet or number for a new hierarchy level. Do not invent nesting. "
+                            "If evidence conflicts or is insufficient, use level 0 and low "
                             "confidence."
                         ),
                     },
@@ -113,7 +118,9 @@ class ContextualOrchestratorPostStructureClient:
         )
         parsed = json.loads(_response_content(response))
         if not isinstance(parsed, dict) or not isinstance(parsed.get("decisions"), list):
-            raise ValueError("structure adjudication response has no decisions array")
+            raise ValueError(  # noqa: TRY004 - invalid provider shape is a retriable channel error.
+                "structure adjudication response has no decisions array"
+            )
 
         expected_indexes = {int(unit["unit_index"]) for unit in units}
         decisions: list[StructureDecision] = []
