@@ -128,6 +128,16 @@ and `REVIEW_REQUIRED`. Neither PR is authorized to merge.
   bypass actors and only `non_fast_forward`; all pushes above used normal
   non-force updates.
 
+## 4.3 Restacked tenant validation checkpoint
+
+Observed at `2026-08-21T20:27:03Z` from the GitHub REST API. Parent PR #392
+advanced normally to head `658edd0932b413420e1361c34f31adb5e14d4d04`. PR #397
+was then restacked and pushed normally at head
+`3aa77fc848bbcb33f5d329a21eb2822653f3b7f0`, based on that parent. The focused
+backend regression set passed (`28 passed, 135 deselected`), and the frontend
+suite/lint/build passed (`204 passed`). Hosted Checks for the new #397 head
+were pending at observation, so approval and merge remain unauthorized.
+
 ## 2. LLM Extraction & Knowledge Graph Gaps
 - **Multiple Project Extraction**: A structured `key_events.project_name` implementation exists, but separate-event behavior still requires protected authorized-corpus evidence.
 - **5W1H Missing**: A structured 5W1H evidence-item implementation exists, but completeness and provenance still require protected authorized-corpus evidence.
