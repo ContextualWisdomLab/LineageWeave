@@ -107,10 +107,9 @@ Open PRs at the same observation:
 
 The open queue remains subject to exact-current-head Checks, formal independent
 approval, and protected mergeability. Green Checks alone do not prove that a
-merge is authorized. PR #388 is stacked on PR #387 and now follows its current
-branch head through a normal branch merge; neither has a protected merge
-commit. PR #389 is stacked on #388 and follows #388 through a normal branch
-merge. PR #258 still targets `main` at base
+merge is authorized. PRs #388, #389, and #390 were merged into non-main stack
+bases through normal merge commits; PR #387 remains the open main-targeting
+parent carrying those changes. PR #258 still targets `main` at base
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` and remains open; PR #385's merge
 commit is later repository history, not PR #258's original base or a merge of
 #258. PR #386 is closed as a duplicate of the safer #373 login fix. PR #382's
@@ -272,8 +271,10 @@ Observed at `2026-08-21T18:28:15Z` on PR #388's exact head
   matching no longer strips tag names that merely start with `a`. A labeled
   `div` wrapper around an unlabeled HTML list now marks the nested footnotes,
   while closing the wrapper returns to ordinary content. Local verification
-  passed 149 frontend tests, lint, build, and diff check. Hosted Checks and
-  independent approval remain open.
+  passed 149 frontend tests, lint, build, and diff check. The PR was merged into
+  the non-main #387 stack base with merge commit
+  `068ed6a44a7235e2f996450f0d6a7948bdd8732a`; this is not a protected-main
+  merge.
 
 Observed at `2026-08-21T18:28:15Z` on PR #389's exact head
 `788bacd998634f09ca7debc1745fe279d788122f`:
@@ -287,9 +288,9 @@ Observed at `2026-08-21T18:28:15Z` on PR #389's exact head
   footnote fix is included through a regular stack merge. The PR ref also
   contains the current backend lineage parent, so exact-head verification
   passed 21 focused backend tests and 155 Vitest tests, lint, production build,
-  and `git diff --check`. Hosted Checks, independent approval, and a protected
-  merge commit remain absent. This remains an open stacked fix, not a resolved
-  production gap.
+  and `git diff --check`. The PR was merged into the non-main #388 stack base
+  with merge commit `778c5df1223ed60a6494e8896079b3ece97669f4`; this is not a
+  protected-main merge.
 
 Observed at `2026-08-21T18:29:27Z` on PR #387's exact head
 `13c102532f4485c732a83c7741e0844c77f082e5`:
@@ -315,8 +316,9 @@ Observed at `2026-08-21T18:27:23Z` on PR #390's exact head
 - The follow-up keeps pipe-bearing list items as separate semantic segments,
   then merges the current stacked base `778c5df1` normally to restore PR
   ancestry. Local verification passed 156 frontend tests, lint, production
-  build, and `git diff --check`. Checks were queued and no independent
-  approval or protected-main merge was present.
+  build, and `git diff --check`. The PR was merged into the non-main #389 stack
+  base with merge commit `b020378710a0e405974538d80f7ef68ae3badd7c`; this is
+  not a protected-main merge.
 
 Observed at `2026-08-21T18:11:51Z` on PR #383's current head
 `6525127008b3ba74526e8ffb8d8bf25630cf58db`:
@@ -327,15 +329,15 @@ Observed at `2026-08-21T18:11:51Z` on PR #383's current head
   passed; hosted Checks, independent approval, and a protected merge commit
   remain absent.
 
-Observed at `2026-08-21T17:32:25Z` on PR #349's exact head
-`979b4290bc62ab83668aab99cc09c2a297db8464`:
+Observed at `2026-08-21T18:33:15Z` on PR #349's exact head
+`13e576ec00e73f90bf1d8d7f572ce69ead33ce0b`:
 
 - The ontology source cursor now uses `src.v2.` AES-GCM with a fresh 96-bit
   nonce and prefix/version associated data; the custom v1 keystream format is
   rejected. The concurrent ontology page retry repair remains included.
 - ADR 0125 records the decision and NIST SP 800-38D APA 7 reference. Local
-  verification passed 830 backend tests with 17 environment skips, 172
-  frontend tests, lint, TypeScript, and production build; hosted Checks and
+  verification passed 7 focused backend tests, 172 frontend tests, lint,
+  TypeScript, and production build; hosted Checks and
   independent approval remained open.
 
 ## 6. Organization OpenTelemetry Evidence Boundary
@@ -352,18 +354,18 @@ The remaining PR #383 `osv-scan` failure is a central workflow defect: the scan
 exited successfully, but the follow-up treated a missing baseline result file
 as failure after the head checkout. Central `.github` PR #1158 is the broader
 source-provenance repair at exact head
-`9b44801730a05c21e82095e3fede3efbfaeadd13`; central PR #1002 independently
+`c24ce16ab72c5b372d2c397f0af8f84dc1b63d2f`; central PR #1002 independently
 adds the minimal result-preservation and review-placeholder repair at exact
-head `8a1e12960d6b91ebe6b1f857e67fe69a8cd2e539`. Both remain open with non-terminal
+head `a5163b4db0f25c0f2463fdeb075a74c8c0f2f6bf`. Both remain open with non-terminal
 Checks and no independent approval, so PR #383 is not reported green or
 mergeable from this historical failure alone.
 
 ## 7. Next Implementation Order
 
-1. Revalidate open PRs #258, #349, #355, #368, #373, #383, #384, #387, #388,
-   and #389 at
+1. Revalidate open PRs #258, #349, #355, #368, #373, #383, #384, and #387 at
    their exact current heads as Checks and formal independent approvals arrive;
-   process stacked parents only after their child merge commits are observed.
+   the #388/#389/#390 stack merges are already recorded above, so process the
+   open #387 parent only after its current-head gates pass.
    Verify the synthetic footnote/table cases in the authenticated browser and
    use the protected external corpus only for aggregate, non-identifying
    runtime evidence.
