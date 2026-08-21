@@ -38,6 +38,11 @@ _PROJECT_BOUND_ACTION_MIGRATION = (
     / "migrations"
     / "0101_project_bound_major_event_action.sql"
 )
+_PROJECT_BOUND_EVENT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0102_project_bound_summary_event.sql"
+)
 _CHANNEL_EVIDENCE_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0105_post_lineage_edge_signal.sql"
 )
