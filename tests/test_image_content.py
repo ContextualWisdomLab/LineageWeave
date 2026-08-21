@@ -5,12 +5,12 @@ import base64
 import pytest
 
 from lineageweave.image_content import (
+    _REGION_RESPONSE_FORMAT,
+    _RESPONSE_FORMAT,
     ImageContentClient,
     ImageDescriptionParseError,
     NullImageContentClient,
     OpenAiCompatibleVisionClient,
-    _RESPONSE_FORMAT,
-    _REGION_RESPONSE_FORMAT,
     _parse_description,
     extract_base64_images,
     orchestrator_vision_client,

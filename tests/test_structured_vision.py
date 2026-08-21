@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import json
 
+import pytest
 from PIL import Image
 
 from lineageweave.image_content import OpenAiCompatibleVisionClient
@@ -31,3 +32,30 @@ def test_vision_region_locator_uses_json_object_and_returns_regions(monkeypatch)
     assert body["reasoning_effort"] == "auto"
     assert body["response_format"]["type"] == "json_object"
     assert "temperature" not in body
+
+
+@pytest.mark.parametrize(
+    ("content", "message"),
+    [
+        (None, "vision region response was not text JSON"),
+        ("[]", "vision region response had no regions list"),
+    ],
+)
+def test_vision_region_locator_rejects_wrong_response_types(
+    monkeypatch, content: object, message: str
+) -> None:
+    """Reject provider response types outside the structured region contract."""
+    monkeypatch.setattr(
+        "lineageweave.vision_image.normalize_vision_image",
+        lambda image_bytes, mime_type: (image_bytes, mime_type),
+    )
+    monkeypatch.setattr(
+        "lineageweave.image_content.post_json",
+        lambda *args, **kwargs: {"choices": [{"message": {"content": content}}]},
+    )
+    client = OpenAiCompatibleVisionClient(
+        "http://orchestrator/v1", "secret", allow_insecure_http=True
+    )
+
+    with pytest.raises(TypeError, match=message):
+        client.locate_regions(b"image-bytes", "image/png")

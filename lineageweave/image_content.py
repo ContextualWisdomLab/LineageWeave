@@ -398,11 +398,11 @@ class OpenAiCompatibleVisionClient:
         )
         content = body["choices"][0]["message"]["content"]
         if not isinstance(content, str):
-            raise ValueError("vision region response was not text JSON")
+            raise TypeError("vision region response was not text JSON")
         fenced = re.sub(r"^\s*```(?:json)?\s*|\s*```\s*$", "", content, flags=re.IGNORECASE)
         document = json.loads(fenced)
         if not isinstance(document, dict):
-            raise ValueError("vision region response had no regions list")
+            raise TypeError("vision region response had no regions list")
         regions = document.get("regions")
         if not isinstance(regions, list):
             single_region = tuple(document.get(name) for name in ("x", "y", "width", "height"))
