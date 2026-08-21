@@ -59,7 +59,7 @@ describe("LineageDag", () => {
       "aria-current",
       "true",
     );
-    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+    expect(document.querySelector(".lineage-list")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Open post: Child record" }));
     expect(onSelectPost).toHaveBeenLastCalledWith("child-post");
@@ -68,8 +68,18 @@ describe("LineageDag", () => {
     expect(onSelectPost).toHaveBeenLastCalledWith("child-post");
   });
 
-  it("makes direction, scrolling, and exact edge evidence accessible without hover", () => {
-    render(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
+  it("makes direction, meaning, scrolling, and exact edge evidence accessible without hover", () => {
+    render(<LineageDag graph={graph} onSelectPost={vi.fn()} currentPostId="root-post" />);
+
+    const legend = screen.getByRole("list", { name: "Lineage legend" });
+    expect(within(legend).getByText("Root record")).toBeInTheDocument();
+    expect(within(legend).getByText("Branch point")).toBeInTheDocument();
+    expect(within(legend).getByText("Current record")).toBeInTheDocument();
+    expect(within(legend).getByText("Parent → child")).toBeInTheDocument();
+
+    expect(screen.getByRole("note")).toHaveTextContent(
+      "Reconstructed edges suggest continuation; they do not prove causality or authoritative fact.",
+    );
 
     const arrowMarker = document.querySelector('marker[id^="lineage-dag-arrow-"]');
     expect(arrowMarker).not.toBeNull();
@@ -97,6 +107,7 @@ describe("LineageDag", () => {
     expect(screen.getByRole("group", { name: "isolated-project lineage" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open post: Unlinked record" })).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
   });
 
   it("renders the explicit empty state without graph controls", () => {
