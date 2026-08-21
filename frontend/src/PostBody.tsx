@@ -42,10 +42,16 @@ const SAFE_EMBEDDED_IMAGE_SOURCE =
 
 function formatImageRegionLocation(region: PostImageRegion): string | null {
   const values = [region.x_ratio, region.y_ratio, region.width_ratio, region.height_ratio];
-  if (values.some((value) => !Number.isFinite(value))) return null;
-  const percent = (value: number) => `${Math.round(value * 100)}%`;
   const right = region.x_ratio + region.width_ratio;
   const bottom = region.y_ratio + region.height_ratio;
+  if (
+    values.some((value) => !Number.isFinite(value) || value < 0 || value > 1) ||
+    right > 1 ||
+    bottom > 1
+  ) {
+    return null;
+  }
+  const percent = (value: number) => `${Math.round(value * 100)}%`;
   return `${t("Region location")}: ${percent(region.x_ratio)}, ${percent(region.y_ratio)} – ${percent(right)}, ${percent(bottom)}`;
 }
 
@@ -83,7 +89,11 @@ function renderImageEvidence(
               const location = formatImageRegionLocation(region);
               return (
                 <li key={region.region_index}>
-                  <span>{region.caption || region.extracted_text || t("Unknown")}</span>
+                  {region.caption ? <span>{region.caption}</span> : null}
+                  {region.extracted_text && region.extracted_text !== region.caption ? (
+                    <small>{t("Text detected in image")}: {region.extracted_text}</small>
+                  ) : null}
+                  {!region.caption && !region.extracted_text ? <span>{t("Unknown")}</span> : null}
                   {region.tags.length ? (
                     <small>
                       {t("Image tags")}: {region.tags.join(", ")}
