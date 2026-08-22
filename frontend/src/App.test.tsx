@@ -90,6 +90,7 @@ describe("App, authenticated", () => {
     customerEntityHierarchy?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
+    askImageCitation?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -1560,6 +1561,19 @@ describe("App, authenticated", () => {
                 ],
               },
             ],
+            cited_post_images: options?.askImageCitation
+              ? [
+                  {
+                    post_id: "post-2",
+                    unit_index: 1,
+                    mime_type: "image/png",
+                    status_code: "described",
+                    extracted_text: "Error code 500 on checkout",
+                    caption: "Screenshot of the checkout error",
+                    tags: ["screenshot", "error"],
+                  },
+                ]
+              : [],
             source_post_ids: ["post-1", "post-2"],
           }),
         );
@@ -1672,6 +1686,30 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
+
+  it("cites a cited post's persisted image evidence under that post", async () => {
+    stubBackend({ askImageCitation: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByText(/Image evidence: Screenshot of the checkout error/)).toBeInTheDocument();
+    expect(screen.getByText(/Error code 500 on checkout/)).toBeInTheDocument();
+  });
+
+  it("shows no image evidence line when the answer cites no image", async () => {
+    stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByRole("list", { name: "Evidence facts" })).toBeInTheDocument();
+    expect(screen.queryByText(/Image evidence:/)).not.toBeInTheDocument();
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {

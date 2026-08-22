@@ -167,6 +167,7 @@ from backend.app.knowledge_graph import (
 )
 from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
 from backend.app.post_chat_ingestion import (
+    cited_post_images,
     fetch_persisted_chat,
     fetch_persisted_chats,
     find_linked_post_ids,
@@ -2643,6 +2644,7 @@ async def ask_agent(
             "cited_posts": [],
             "source_post_ids": [],
             "cited_post_evidence": [],
+            "cited_post_images": [],
             "next_action": "No authorized source posts are available for this question.",
         }
     try:
@@ -2653,11 +2655,14 @@ async def ask_agent(
             f"Ask Agent is unavailable: {exc}",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
+    async with pool.acquire() as conn:
+        images = await cited_post_images(conn, cited_ids)
     return {
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
         "cited_posts": cited_post_summaries(sources, cited_ids),
         "cited_post_evidence": cited_post_evidence(sources, cited_ids),
+        "cited_post_images": images,
         "source_post_ids": [source.post_id for source in sources],
     }
 

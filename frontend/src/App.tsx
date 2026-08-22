@@ -4537,6 +4537,17 @@ function AskAgentPanel({
                           ))}
                       </ul>
                     ) : null}
+                    {answer.cited_post_images
+                      ?.filter((image) => image.post_id === post.post_id)
+                      .map((image) => (
+                        <p
+                          key={`${image.post_id}:${image.unit_index}`}
+                          className="post-meta ask-agent-image-citation"
+                        >
+                          {t("Image evidence")}: {image.caption ?? t("Untitled image")}
+                          {image.extracted_text ? ` — ${image.extracted_text}` : ""}
+                        </p>
+                      ))}
                   </li>
                 ))}
               </ul>
