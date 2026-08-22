@@ -1,7 +1,19 @@
-import { splitPostBody, type PostBodySegment } from "./postBodyDisplay";
+import { splitPostBody, splitScriptRuns, normalizeScriptText, type PostBodySegment } from "./postBodyDisplay";
 import { t } from "./i18n";
 import type { PostContentUnit, PostImageContent } from "./api";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
+
+function renderStyledText(text: string): ReactNode {
+  return splitScriptRuns(text).map((run, index) => {
+    if (run.script === "super") {
+      return <sup key={`post-body-sup-${index}`}>{run.text}</sup>;
+    }
+    if (run.script === "sub") {
+      return <sub key={`post-body-sub-${index}`}>{run.text}</sub>;
+    }
+    return <Fragment key={`post-body-text-run-${index}`}>{run.text}</Fragment>;
+  });
+}
 
 function parsePipeDelimitedTable(text: string): string[][] | null {
   const rows = text
@@ -21,14 +33,14 @@ function parsePipeDelimitedTable(text: string): string[][] | null {
 
 function renderImageText(text: string) {
   const rows = parsePipeDelimitedTable(text);
-  if (!rows) return <p>{text}</p>;
+  if (!rows) return <p>{renderStyledText(text)}</p>;
   return (
     <table className="post-body-table post-image-text-table">
       <tbody>
         {rows.map((row, rowIndex) => (
           <tr key={`post-image-text-row-${rowIndex}`}>
             {row.map((cell, cellIndex) => (
-              <td key={`post-image-text-cell-${rowIndex}-${cellIndex}`}>{cell}</td>
+              <td key={`post-image-text-cell-${rowIndex}-${cellIndex}`}>{renderStyledText(cell)}</td>
             ))}
           </tr>
         ))}
@@ -102,7 +114,7 @@ function renderSegment(segment: PostBodySegment, index: number, imageContent?: P
               : undefined
           }
         >
-          {segment.text}
+          {renderStyledText(segment.text)}
         </p>
       );
     case "image":
@@ -129,7 +141,7 @@ function isStructuredTableRow(unit: PostContentUnit): boolean {
  * indentation for every later unresolved unit.
  */
 function normalizedUnitText(value: string): string {
-  return value.replace(/\s+/g, " ").trim();
+  return normalizeScriptText(value.replace(/\s+/g, " ").trim());
 }
 
 /**
@@ -220,7 +232,7 @@ function renderStructuredUnits(
             {rows.map((row, rowIndex) => (
               <tr key={`post-body-table-row-${row.unit_index}-${rowIndex}`}>
                 {row.unit_text.split(/\s*\|\s*/).map((cell, cellIndex) => (
-                  <td key={`post-body-table-cell-${row.unit_index}-${cellIndex}`}>{cell}</td>
+                  <td key={`post-body-table-cell-${row.unit_index}-${cellIndex}`}>{renderStyledText(cell)}</td>
                 ))}
               </tr>
             ))}

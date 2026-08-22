@@ -318,4 +318,27 @@ describe("PostBody", () => {
     expect(screen.getByText("Before").compareDocumentPosition(screen.getByAltText("Source diagram")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByAltText("Source diagram").compareDocumentPosition(screen.getByText("After")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
+
+  it("renders quantity superscripts as text-level sup without using innerHTML", () => {
+    const { container } = render(<PostBody body="<p>Tank volume is 12 m<sup>3</sup>.</p>" />);
+
+    const paragraph = container.querySelector("p.post-body-text");
+    const superscript = paragraph?.querySelector("sup");
+    expect(superscript?.textContent).toBe("3");
+    expect(paragraph?.textContent).toBe("Tank volume is 12 m3.");
+  });
+
+  it("renders caret exponents and subscripts from mixed source text", () => {
+    const { container } = render(<PostBody body="Coolant is H<sub>2</sub>O at 12 m^3." />);
+
+    expect(container.querySelector("sub")?.textContent).toBe("2");
+    expect(container.querySelector("sup")?.textContent).toBe("3");
+  });
+
+  it("keeps comparison operators visible as ordinary text", () => {
+    render(<PostBody body="Need delivery if qty < 50 and price > 10." />);
+
+    expect(screen.getByText("Need delivery if qty < 50 and price > 10.")).toBeInTheDocument();
+    expect(document.querySelector("sup")).not.toBeInTheDocument();
+  });
 });
