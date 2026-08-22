@@ -1712,6 +1712,27 @@ describe("App, authenticated", () => {
     expect(screen.queryByText(/Image evidence:/)).not.toBeInTheDocument();
   });
 
+  it("opens a cited post's evidence in a Layer Popup without leaving the answer", async () => {
+    stubBackend({ askImageCitation: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    await userEvent.click(await screen.findByRole("button", { name: "View evidence" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Linked post" });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText(/project: Semantic project/)).toBeInTheDocument();
+    expect(within(dialog).getByText("Screenshot of the checkout error")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Close evidence panel" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    // The answer itself is still on screen -- the layer never navigated away.
+    expect(screen.getByRole("button", { name: "View evidence" })).toBeInTheDocument();
+  });
+
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
     // Live UI finding (2026-08-19): read_customer_master() skipped the
     // common_lookup_value join both endpoints elsewhere already use,
