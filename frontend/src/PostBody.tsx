@@ -1,6 +1,6 @@
 import { splitPostBody, type PostBodySegment } from "./postBodyDisplay";
 import { t } from "./i18n";
-import type { PostContentUnit, PostImageContent } from "./api";
+import type { PostContentUnit, PostImageContent, PostImageRegion } from "./api";
 import type { ReactNode } from "react";
 
 function parsePipeDelimitedTable(text: string): string[][] | null {
@@ -40,6 +40,21 @@ function renderImageText(text: string) {
 const SAFE_EMBEDDED_IMAGE_SOURCE =
   /^data:image\/(?:png|jpe?g|gif|webp|avif|bmp|x-icon|vnd\.microsoft\.icon);base64,[A-Za-z0-9+/]+={0,2}$/i;
 
+function formatImageRegionLocation(region: PostImageRegion): string | null {
+  const values = [region.x_ratio, region.y_ratio, region.width_ratio, region.height_ratio];
+  const right = region.x_ratio + region.width_ratio;
+  const bottom = region.y_ratio + region.height_ratio;
+  if (
+    values.some((value) => !Number.isFinite(value) || value < 0 || value > 1) ||
+    right > 1 + Number.EPSILON * 4 ||
+    bottom > 1 + Number.EPSILON * 4
+  ) {
+    return null;
+  }
+  const percent = (value: number) => `${Math.round(value * 100)}%`;
+  return `${t("Region location")}: ${percent(region.x_ratio)}, ${percent(region.y_ratio)} – ${percent(right)}, ${percent(bottom)}`;
+}
+
 function renderImageEvidence(
   index: number,
   imageContent?: PostImageContent,
@@ -67,19 +82,29 @@ function renderImageEvidence(
         </details>
       ) : null}
       {imageContent?.regions?.length ? (
-        <details className="post-image-regions">
+        <details className="post-image-regions" open>
           <summary>{t("Image regions")}</summary>
           <ol>
-            {imageContent.regions.map((region) => (
-              <li key={region.region_index}>
-                <span>{region.caption || region.extracted_text || t("Unknown")}</span>
-                {region.tags.length ? (
-                  <small>
-                    {t("Image tags")}: {region.tags.join(", ")}
-                  </small>
-                ) : null}
-              </li>
-            ))}
+            {imageContent.regions.map((region) => {
+              const location = formatImageRegionLocation(region);
+              return (
+                <li key={region.region_index}>
+                  {region.caption ? <span>{region.caption}</span> : null}
+                  {region.extracted_text && region.extracted_text !== region.caption ? (
+                    <small>{t("Text detected in image")}: {region.extracted_text}</small>
+                  ) : null}
+                  {!region.caption && !region.extracted_text ? <span>{t("Unknown")}</span> : null}
+                  {region.tags.length ? (
+                    <small>
+                      {t("Image tags")}: {region.tags.join(", ")}
+                    </small>
+                  ) : null}
+                  {location ? (
+                    <small className="post-image-region-location">{location}</small>
+                  ) : null}
+                </li>
+              );
+            })}
           </ol>
         </details>
       ) : null}

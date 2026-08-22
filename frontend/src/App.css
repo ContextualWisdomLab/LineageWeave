@@ -370,6 +370,22 @@
   color: var(--text);
 }
 
+.post-image-regions li {
+  margin: 0.45rem 0;
+}
+
+.post-image-regions li > span,
+.post-image-regions li > small {
+  display: block;
+}
+
+.post-image-region-location {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
 .popup-placeholder {
   margin-top: 1.5rem;
   padding: 1rem;
