@@ -4542,6 +4542,9 @@ function AskAgentPanel({
               </ul>
             </>
           )}
+          {answer.lineage_graph && answer.lineage_graph.nodes.length > 0 ? (
+            <LineageDag graph={answer.lineage_graph} onSelectPost={onOpenPost} />
+          ) : null}
         </section>
       )}
     </section>
