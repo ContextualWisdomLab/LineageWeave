@@ -77,3 +77,18 @@ export const UntitledImage: Story = {
     ],
   },
 };
+
+// Edge case: some sources persist an empty caption rather than null. The buyer
+// still needs a visible label that explains what to do with the evidence row.
+export const BlankImageCaption: Story = {
+  args: {
+    facts: [],
+    images: [
+      {
+        unit_index: 0,
+        caption: "",
+        extracted_text: "Diagram OCR text remains available",
+      },
+    ],
+  },
+};
