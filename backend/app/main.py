@@ -332,10 +332,15 @@ def _adjudication_client():
 
     reconstruct.py's DEFAULT_CHANNEL_WEIGHTS gives this channel the most
     weight (0.40) of the four -- it is the only one that reasons about
-    content instead of approximating it (ADR 0064) -- but nothing ever
-    passed a real client through lineage_edge_specs() to reconstruct(),
-    so every lineage reconstruction had silently run on the weaker
-    3-channel fallback since the feature was built.
+    content instead of approximating it (ADR 0064). Passed into both
+    corpus-wide reconstruction paths: the async analysis-run worker
+    (lifespan(), above) and POST /api/lineage/rebuild
+    (rebuild_lineage_graph -> backend.app.lineage_ingestion.rebuild_lineage
+    -> lineage_edge_specs(..., llm=...)). A caller that builds its own
+    reconstruction path (e.g. scripts/import_postgresql_posts.py, which
+    can't import this factory) must build and pass an equivalent client
+    itself -- lineage_edge_specs' llm defaults to None, which silently
+    drops this channel and renormalizes the rest rather than failing.
     """
     settings = load_settings()
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
@@ -1112,7 +1117,7 @@ async def rebuild_lineage_graph(
     _require_post_admin(account)
     async with pool.acquire() as conn:
         async with conn.transaction():
-            edges = await rebuild_lineage(conn)
+            edges = await rebuild_lineage(conn, adjudication_client=_adjudication_client())
     return {"edge_count": len(edges)}
 
 

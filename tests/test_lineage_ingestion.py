@@ -5,12 +5,17 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timezone
 
+import pytest
+
 from backend.app.lineage_ingestion import (
     reconstruct_group_key,
     records_from_source_posts,
+    rebuild_lineage,
     visible_lineage_graph,
 )
+from lineageweave.adjudication_client import ContextualOrchestratorAdjudicationClient
 from lineageweave.fixtures import sample_records
+from lineageweave.http_client import HttpClientError
 from lineageweave.lineage_persistence import lineage_edge_specs
 
 
@@ -150,3 +155,122 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
     assert len(focused["edges"]) == 1
     assert focused["truncated"] is False
     assert isolated == {"nodes": [], "edges": [], "truncated": False}
+
+
+def test_rebuild_lineage_passes_the_adjudication_client_through(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Live bug (2026-08-22): rebuild_lineage() called lineage_edge_specs()
+    without llm=, so the corpus-wide rebuild (POST /api/lineage/rebuild and
+    scripts/import_postgresql_posts.py) silently ran reconstruct() on the
+    weaker 3-channel fallback -- the highest-weighted channel
+    (DEFAULT_CHANNEL_WEIGHTS, ADR 0064) never actually reasoned about any
+    real corpus. Assert the caller-supplied client reaches
+    lineage_edge_specs unchanged, without depending on reconstruct()'s own
+    decision about when to actually invoke it.
+    """
+    captured: dict[str, object] = {}
+
+    def fake_lineage_edge_specs(records, *, llm=None):
+        captured["llm"] = llm
+        return []
+
+    monkeypatch.setattr(
+        "backend.app.lineage_ingestion.lineage_edge_specs", fake_lineage_edge_specs
+    )
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            return []
+
+        async def execute(self, query: str, *args: object) -> str:
+            return "OK"
+
+    sentinel_client = object()
+    asyncio.run(rebuild_lineage(FakeConnection(), adjudication_client=sentinel_client))
+    assert captured["llm"] is sentinel_client
+
+
+def test_rebuild_lineage_defaults_to_no_adjudication_client(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The default stays None (lineage_edge_specs/reconstruct's own
+    documented fallback) -- this only guards that rebuild_lineage's new
+    keyword argument doesn't silently require a client everywhere.
+    """
+    captured: dict[str, object] = {"llm": "unset"}
+
+    def fake_lineage_edge_specs(records, *, llm=None):
+        captured["llm"] = llm
+        return []
+
+    monkeypatch.setattr(
+        "backend.app.lineage_ingestion.lineage_edge_specs", fake_lineage_edge_specs
+    )
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            return []
+
+        async def execute(self, query: str, *args: object) -> str:
+            return "OK"
+
+    asyncio.run(rebuild_lineage(FakeConnection()))
+    assert captured["llm"] is None
+
+
+def test_rebuild_lineage_fails_closed_when_adjudication_cannot_be_parsed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """CodeRabbit-flagged data-integrity bug (PR #434): a genuine judge()
+    parse failure must abort the corpus-wide rebuild before any
+    post_lineage_edge write, instead of quietly persisting an edge fused
+    from a fabricated "definitely unrelated" 0.0. Exercises the real
+    ContextualOrchestratorAdjudicationClient -> reconstruct -> rebuild_lineage
+    path end to end, not a stub.
+    """
+    monkeypatch.setattr(
+        "lineageweave.adjudication_client.post_json",
+        lambda *args, **kwargs: {"choices": [{"message": {"content": "no number in this reply"}}]},
+    )
+    client = ContextualOrchestratorAdjudicationClient(
+        base_url="http://orchestrator:8000", api_key="synthetic-token"
+    )
+
+    rows = [
+        {
+            "post_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+            "post_title": "Initial inquiry",
+            "voc_type_code": "voc",
+            "created_at": datetime(2026, 1, 1, tzinfo=timezone.utc),
+            "corporate_entity_id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+            "process_unit_id": None,
+            "thread_group_key": "A-100",
+            "secondary_grouping_key": "",
+        },
+        {
+            "post_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+            "post_title": "Follow-up on inquiry",
+            "voc_type_code": "voc",
+            "created_at": datetime(2026, 1, 2, tzinfo=timezone.utc),
+            "corporate_entity_id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+            "process_unit_id": None,
+            "thread_group_key": "A-100",
+            "secondary_grouping_key": "",
+        },
+    ]
+
+    class FakeConnection:
+        def __init__(self) -> None:
+            self.executed: list[str] = []
+
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            return rows
+
+        async def execute(self, query: str, *args: object) -> str:
+            self.executed.append(query)
+            return "OK"
+
+    connection = FakeConnection()
+    with pytest.raises(HttpClientError):
+        asyncio.run(rebuild_lineage(connection, adjudication_client=client))
+
+    # No delete-then-insert of post_lineage_edge happened: the failure was
+    # raised while computing edges, strictly before persist_lineage_edges runs.
+    assert connection.executed == []

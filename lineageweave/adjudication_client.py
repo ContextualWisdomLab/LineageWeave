@@ -15,11 +15,17 @@ from __future__ import annotations
 import re
 from typing import Protocol
 
-from .http_client import post_json
+from .http_client import HttpClientError, post_json
 
 
 class AdjudicationClient(Protocol):
-    """Judges one (candidate parent, record) pair; returns confidence in [0, 1]."""
+    """Judges one (candidate parent, record) pair; returns confidence in [0, 1].
+
+    Implementations must raise rather than return a placeholder score when a
+    call fails (bad transport, malformed response, unparseable content):
+    ``0.0`` is also a real "definitely unrelated" judgment, so a failure and
+    a genuine negative verdict must stay distinguishable to every caller.
+    """
 
     available: bool
 
@@ -59,7 +65,17 @@ class ContextualOrchestratorAdjudicationClient:
         self._timeout = timeout
 
     def judge(self, candidate_label: str, record_label: str) -> float:
-        """Score the candidate and record labels for semantic adjudication."""
+        """Score the candidate and record labels for semantic adjudication.
+
+        Raises:
+            HttpClientError: the gateway responded but its content could not
+                be parsed into a confidence score (missing/malformed message
+                shape, or no ``[01](\\.\\d+)?`` number in the reply). This is
+                a channel failure, not a real judgment -- ``0.0`` is also a
+                legitimate "definitely unrelated" score, so a parse failure
+                must never be conflated with one by returning it silently
+                (see module docstring and ``NullAdjudicationClient``).
+        """
         prompt = (
             "On a scale from 0.0 (definitely unrelated) to 1.0 (definitely the same "
             "thread, B directly follows from A), how confident are you that record B "
@@ -76,8 +92,15 @@ class ContextualOrchestratorAdjudicationClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = body["choices"][0]["message"]["content"]
+        try:
+            content = body["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise HttpClientError(
+                "adjudication response is missing choices[0].message.content"
+            ) from exc
         match = _CONFIDENCE_PATTERN.search(content)
         if match is None:
-            return 0.0
+            raise HttpClientError(
+                f"adjudication response had no parseable confidence score: {content!r}"
+            )
         return max(0.0, min(1.0, float(match.group(1))))
