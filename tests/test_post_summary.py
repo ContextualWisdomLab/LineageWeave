@@ -155,6 +155,19 @@ def test_plain_relation_parser_drops_unallowlisted_predicates() -> None:
     assert relations[0].predicate_code == "org_unit_of"
 
 
+def test_plain_relation_parser_accepts_a_source_stated_organization_alias() -> None:
+    relations = _parse_plain_semantic_relationships(
+        "RELATIONS:\n"
+        "Case Corp | organization | prov_alternate_of | Case Legacy Corp | organization | "
+        "Case Corp(구 Case Legacy Corp) | 0.9"
+    )
+    assert len(relations) == 1
+    relation = relations[0]
+    assert relation.predicate_code == "prov_alternate_of"
+    assert relation.subject_name == "Case Corp"
+    assert relation.object_name == "Case Legacy Corp"
+
+
 def test_attendance_only_is_not_a_role_but_concrete_work_is() -> None:
     details = _parse_plain_summary_details(
         "ROLES:\n"

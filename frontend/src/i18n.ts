@@ -69,6 +69,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Organization unit of": "조직 단위",
     "Sub-organization of": "하위 조직",
     Supports: "지원함",
+    "Responsible for": "담당함",
+    "Alternate of": "이전/별칭 명칭",
     "Negated condition": "부정 조건",
     "Normalized date": "정규화 날짜",
     "Normalization evidence": "정규화 근거",
