@@ -174,3 +174,40 @@ async def visible_lineage_graph(
         for row in visible_edges
     ]
     return {"nodes": nodes, "edges": edges, "truncated": truncated}
+
+
+async def lineage_graphs_for_posts(
+    conn: asyncpg.Connection,
+    can_see_post,
+    post_ids: list[str],
+) -> dict[str, Any]:
+    """Merge each post's full reconstructed thread into one ``LineageGraph``.
+
+    An Ask Agent answer can cite several posts from unrelated reconstruct
+    threads -- e.g. two separate customer complaints that happen to share a
+    keyword. The frontend's ``LineageDag`` already renders one ``LineageGraph``
+    as several independent git-branch-style figures, one per
+    ``reconstruct_group_key`` (see ``lineageLayout.ts``'s ``layoutLineageDag``);
+    merging every cited post's thread into a single graph is enough to get
+    that multi-graph rendering for free, no new frontend layout needed.
+
+    ponytail: one ``visible_lineage_graph`` call per post (each a bounded
+    ``source_post`` + full ``post_lineage_edge`` scan) -- fine for the
+    existing citation cap (``_POST_CHAT_SOURCE_LIMIT`` = 8), revisit with a
+    single batched query if that cap grows materially.
+    """
+    nodes_by_id: dict[str, dict[str, Any]] = {}
+    edges_by_key: dict[tuple[str, str], dict[str, Any]] = {}
+    truncated = False
+    for post_id in dict.fromkeys(post_ids):
+        graph = await visible_lineage_graph(conn, can_see_post, focus_post_id=post_id)
+        truncated = truncated or graph["truncated"]
+        for node in graph["nodes"]:
+            nodes_by_id[node["id"]] = node
+        for edge in graph["edges"]:
+            edges_by_key[(edge["source"], edge["target"])] = edge
+    return {
+        "nodes": list(nodes_by_id.values()),
+        "edges": list(edges_by_key.values()),
+        "truncated": truncated,
+    }
