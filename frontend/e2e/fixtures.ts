@@ -8,7 +8,10 @@ const DEMO_USERNAME = process.env.LINEAGEWEAVE_E2E_USERNAME ?? "demo.analyst";
 const DEMO_PASSWORD = process.env.LINEAGEWEAVE_E2E_PASSWORD ?? "lineageweave-demo-only";
 
 export const test = base.extend({
-  page: async ({ page }, use) => {
+  // oxlint's react-hooks rule pattern-matches a parameter literally named
+  // "use" as React's use() hook; Playwright's fixture-injection callback
+  // has no such meaning, so it is named runFixture here instead.
+  page: async ({ page }, runFixture) => {
     await page.goto("/");
     const loginButton = page.getByRole("button", { name: /login|log in/i });
     if (await loginButton.isVisible({ timeout: 5000 }).catch(() => false)) {
@@ -20,7 +23,7 @@ export const test = base.extend({
       await page.waitForURL((url) => !url.pathname.includes("/realms/"), { timeout: 15000 });
     }
     await page.waitForLoadState("networkidle");
-    await use(page);
+    await runFixture(page);
   },
 });
 
