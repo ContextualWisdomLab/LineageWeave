@@ -12,6 +12,9 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from rdflib import Graph, URIRef
+from rdflib.namespace import OWL, RDF, RDFS, SKOS, XSD
+
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
     EDGE_CO_MENTION,
@@ -26,10 +29,12 @@ from lineageweave.ontology import (
     iri_for_lookup_code,
     load_ontology,
     ontology_annotations,
+    semantic_predicate_annotations,
 )
-from rdflib.namespace import OWL, RDF, RDFS, SKOS, XSD
+from lineageweave.post_summary import SEMANTIC_RELATION_PREDICATES
 
 _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo_data.py"
+_SHAPES_PATH = Path(__file__).resolve().parents[1] / "docs" / "ontology" / "lineageweave-shapes.ttl"
 
 # Several covered categories add lookup rows via their own migration
 # SQL rather than literally embedded in seed_demo_data.py's own source
@@ -41,12 +46,16 @@ _ADDITIONAL_LOOKUP_MIGRATION_PATHS = (
     Path(__file__).resolve().parents[1] / "migrations" / "0060_role_responsibility_agent_type.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0014_role_responsibility_team_actor_type.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0016_cross_post_actor_identity.sql",
+    Path(__file__).resolve().parents[1] / "migrations" / "0108_post_summary_quantitative_observation.sql",
+    Path(__file__).resolve().parents[1] / "migrations" / "0109_post_summary_source_fact.sql",
+    Path(__file__).resolve().parents[1] / "migrations" / "0110_role_responsibility_software_agent.sql",
+    Path(__file__).resolve().parents[1] / "migrations" / "0113_broad_source_fact_types.sql",
 )
 
 # The categories this ontology covers (ADR 0004's scope). seed_demo_data.py
-# also seeds categories this ontology deliberately does not model yet
-# (post_visibility, voc_type, permission, ticket_status) -- those are
-# real, expected gaps, not a test bug.
+# also seeds categories this ontology does not model as KG node/edge
+# predicates. Operational categories below are still modeled as SKOS
+# concepts, so the full controlled vocabulary remains machine-checkable.
 _ONTOLOGY_COVERED_CATEGORIES = frozenset(
     {
         "node_type",
@@ -55,6 +64,14 @@ _ONTOLOGY_COVERED_CATEGORIES = frozenset(
         "person_side",
         "corporate_entity_level",
         "prov_agent_type",
+        "post_visibility",
+        "voc_type",
+        "permission",
+        "ticket_status",
+        "measurement_type",
+        "measurement_unit",
+        "fact_type",
+        "fact_assertion",
     }
 )
 
@@ -81,6 +98,47 @@ def _seeded_lookup_codes_for_covered_categories() -> set[str]:
 def test_ontology_parses_as_valid_turtle() -> None:
     graph = load_ontology()
     assert len(graph) > 0
+
+
+def test_standards_profile_shapes_parse_as_valid_turtle() -> None:
+    graph = Graph()
+    graph.parse(_SHAPES_PATH, format="turtle")
+    assert len(graph) > 0
+
+
+def test_broad_profile_preserves_source_observation_and_clue_paths() -> None:
+    graph = load_ontology()
+    assert (LW.ObservationRecord, RDFS.subClassOf, URIRef("http://www.w3.org/ns/prov#Entity")) in graph
+    assert (LW.EventObservation, RDFS.subClassOf, LW.ObservationRecord) in graph
+    assert (LW.EvidenceClue, RDFS.subClassOf, URIRef("http://www.w3.org/ns/oa#Annotation")) in graph
+    assert (LW.observesEvent, RDFS.range, LW.Event) in graph
+    assert (LW.clueSource, RDFS.subPropertyOf, URIRef("http://www.w3.org/ns/prov#hadPrimarySource")) in graph
+    assert (LW.hasEventTime, RDFS.subPropertyOf, URIRef("http://www.w3.org/2006/time#hasTime")) in graph
+    assert (LW.factNormalizedDate, RDFS.subPropertyOf, URIRef("http://www.w3.org/2006/time#inXSDDate")) in graph
+
+
+def test_profile_expands_actor_industrial_normative_and_quality_classes() -> None:
+    graph = load_ontology()
+    for term, parent in (
+        (LW.RoleActorPerson, LW.Actor),
+        (LW.RoleActorOrganization, LW.Actor),
+        (LW.RoleActorTeam, LW.Actor),
+        (LW.RoleActorSoftwareAgent, LW.Actor),
+        (LW.IndustrialAsset, URIRef("http://www.w3.org/ns/prov#Entity")),
+        (LW.IndustrialProcess, URIRef("http://www.w3.org/ns/prov#Activity")),
+        (LW.NormativeStatement, URIRef("http://www.w3.org/ns/odrl/2/Rule")),
+        (LW.QualityAssessment, LW.ObservationRecord),
+        (LW.RiskStatement, LW.ObservationRecord),
+    ):
+        assert (term, RDFS.subClassOf, parent) in graph
+
+
+def test_profile_declares_inverse_and_property_chain_for_graph_drawing() -> None:
+    graph = load_ontology()
+    assert (LW.hasCause, OWL.inverseOf, LW.causedBy) in graph
+    assert (LW.hasConsequence, OWL.inverseOf, LW.consequenceOf) in graph
+    assert (LW.hasNextStep, OWL.inverseOf, LW.nextStepOf) in graph
+    assert graph.value(LW.affiliatedWith, OWL.propertyChainAxiom) is not None
 
 
 def test_every_seeded_lookup_code_is_declared_in_the_ontology() -> None:
@@ -137,9 +195,31 @@ def test_ontology_annotations_carry_iri_and_label_for_a_node_type() -> None:
 
 def test_ontology_annotations_are_empty_for_an_undeclared_code() -> None:
     assert ontology_annotations("not_a_real_lookup_code") == {}
-    # `open` is a real ticket_status lookup code this ontology
-    # deliberately does not cover -- missing, not a fake label.
-    assert ontology_annotations("open") == {}
+    assert ontology_annotations("open") == {
+        "ontology_iri": str(LW.OpenTicketStatus),
+        "ontology_label": "Open",
+    }
+
+
+def test_operational_controlled_vocabulary_uses_skos_concepts() -> None:
+    """Visibility, VOC, permission, and ticket state are semantic concepts,
+    not untyped strings or invented graph edge predicates.
+    """
+    graph = load_ontology()
+    for code, term in (
+        ("public", LW.PublicVisibility),
+        ("voc", LW.VoiceOfCustomer),
+        ("post_read", LW.ReadPostsPermission),
+        ("open", LW.OpenTicketStatus),
+    ):
+        assert iri_for_lookup_code(code) == str(term)
+        assert (term, RDF.type, SKOS.Concept) in graph
+        assert (term, SKOS.inScheme, None) in graph
+
+    assert (LW.hasPostVisibility, RDFS.domain, LW.Post) in graph
+    assert (LW.hasPostVisibility, RDFS.range, SKOS.Concept) in graph
+    assert (LW.hasPermission, RDFS.domain, LW.AccessRole) in graph
+    assert (LW.hasTicketStatus, RDFS.domain, LW.IssueTicket) in graph
 
 
 def test_mentioned_in_property_matches_canonical_edge_direction() -> None:
@@ -166,6 +246,9 @@ def test_prov_agent_type_terms_resolve_and_subclass_real_prov_o() -> None:
     assert iri_for_lookup_code("prov_organization") == str(LW.RoleActorOrganization)
     assert (LW.RoleActorPerson, RDFS.subClassOf, URIRef(prov.Person)) in graph
     assert (LW.RoleActorOrganization, RDFS.subClassOf, URIRef(prov.Organization)) in graph
+    assert iri_for_lookup_code("prov_software_agent") == str(LW.RoleActorSoftwareAgent)
+    assert (LW.RoleActorSoftwareAgent, RDFS.subClassOf, URIRef(prov.SoftwareAgent)) in graph
+    assert (LW.RoleActorPerson, RDFS.subClassOf, LW.RoleActorAgent) in graph
 
 
 def test_prov_team_type_resolves_and_subclasses_real_org_ontology() -> None:
@@ -210,4 +293,49 @@ def test_semantic_project_terms_preserve_post_evidence_and_confidence() -> None:
     assert (LW.mentionsProject, RDFS.range, LW.Project) in graph
     assert (LW.projectEvidence, RDFS.domain, LW.ProjectMention) in graph
     assert (LW.projectEvidence, RDFS.range, XSD.string) in graph
+
+
+def test_standard_backbone_and_semantic_verbs_are_drawable() -> None:
+    from rdflib.namespace import Namespace
+
+    prov = Namespace("http://www.w3.org/ns/prov#")
+    graph = load_ontology()
+    assert (LW.Post, RDFS.subClassOf, prov.Entity) in graph
+    assert (LW.Person, RDFS.subClassOf, prov.Person) in graph
+    assert (LW.CorporateEntity, RDFS.subClassOf, prov.Organization) in graph
+    assert (LW.hasRoleResponsibility, RDFS.range, LW.RoleResponsibility) in graph
+    assert (LW.roleResponsibilityOf, OWL.inverseOf, LW.hasRoleResponsibility) in graph
+    assert (LW.roleResponsibilityOf, RDFS.subPropertyOf, prov.wasDerivedFrom) in graph
+    assert (LW.hasSemanticAssertion, RDFS.range, LW.SemanticAssertion) in graph
+    assert semantic_predicate_annotations("prov_was_influenced_by") == {
+        "ontology_iri": "http://www.w3.org/ns/prov#wasInfluencedBy",
+        "ontology_label": "Was influenced by",
+    }
+    assert semantic_predicate_annotations("lw_has_cause")["ontology_iri"] == str(LW.hasCause)
+    assert all(semantic_predicate_annotations(code) for code in SEMANTIC_RELATION_PREDICATES)
+
+
+def test_property_chains_capture_only_explicit_contextual_inference() -> None:
+    from rdflib import URIRef
+    from rdflib.namespace import Namespace
+
+    owl = Namespace("http://www.w3.org/2002/07/owl#")
+    graph = load_ontology()
+    for property_iri, expected in (
+        (LW.hasAffiliatedCorporateContext, [LW.mentions, LW.affiliatedWith]),
+        (LW.hasTeamCorporateContext, [LW.postMentionsTeam, LW.teamAffiliatedWith]),
+        (LW.mentionsProject, [LW.hasProjectMention, LW.projectMentionFor]),
+    ):
+        chain = graph.value(property_iri, URIRef(owl.propertyChainAxiom))
+        assert list(graph.items(chain)) == expected
+
+
+def test_shacl_shapes_norm_relation_evidence_and_confidence() -> None:
+    from rdflib.namespace import Namespace
+
+    sh = Namespace("http://www.w3.org/ns/shacl#")
+    graph = load_ontology()
+    assert (LW.SemanticRelationshipShape, RDF.type, sh.NodeShape) in graph
+    assert (LW.SemanticRelationshipShape, sh.targetClass, LW.SemanticRelationship) in graph
+    assert (LW.ProjectMentionShape, sh.targetClass, LW.ProjectMention) in graph
     assert (LW.semanticConfidence, RDFS.range, XSD.decimal) in graph

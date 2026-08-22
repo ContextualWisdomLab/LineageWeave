@@ -35,7 +35,8 @@ async def load_five_w1h_slots(
     linked_titles: list[str] = []
     if candidate_ids:
         rows = await conn.fetch(
-            "select post_id, post_title, visibility_code, corporate_entity_id "
+            "select post_id, post_title, visibility_code, corporate_entity_id, "
+            "author_account_id, source_detail_state_code "
             "from source_post where post_id = any($1::uuid[])",
             candidate_ids,
         )

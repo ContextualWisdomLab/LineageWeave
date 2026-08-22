@@ -35,8 +35,10 @@ from backend.app.post_content_queue import (
 
 _logger = logging.getLogger(__name__)
 _RECOVERY_INTERVAL_SECONDS = 30.0
+_WORKER_RESTART_DELAY_SECONDS = 1.0
 _INCOMPLETE_FAILURE_CODE = "post_content_ingestion_incomplete"
 _ATTEMPT_LIMIT_FAILURE_CODE = "post_content_ingestion_attempt_limit"
+_UNEXPECTED_FAILURE_DETAIL = "post-content ingestion failed; retry is scheduled"
 
 
 async def _stream_tail(client: redis.Redis) -> str:
@@ -56,7 +58,7 @@ async def _claim_job(
     async with pool.acquire() as conn:
         async with conn.transaction():
             row = await conn.fetchrow(
-                f"""
+                """
                 select p.*, j.source_body_sha256 as job_source_body_sha256,
                        j.status_code as job_status_code,
                        j.attempt_count as job_attempt_count,
@@ -66,12 +68,15 @@ async def _claim_job(
                 join source_post p on p.post_id = j.post_id
                 where j.post_id = $1::uuid
                   and j.source_body_sha256 = $2
+                  and coalesce(upper(btrim(p.source_detail_state_code)), '') <> 'W'
                 for update of j, p
                 """,
                 post_id,
                 source_body_digest,
             )
             if row is None:
+                return None
+            if str(row.get("source_detail_state_code") or "").strip().upper() == "W":
                 return None
             status_code = str(row["job_status_code"])
             attempt_count = int(row["job_attempt_count"])
@@ -97,7 +102,7 @@ async def _claim_job(
                 return None
             if status_code == QUEUED and attempt_count > 0:
                 retry_ready = await conn.fetchval(
-                    "select now() >= $1 + $2::interval",
+                    "select now() >= $1::timestamptz + $2::interval",
                     row["job_queued_at"],
                     POST_CONTENT_RETRY_INTERVAL,
                 )
@@ -114,7 +119,7 @@ async def _claim_job(
                     return None
             if status_code == RUNNING and row["job_started_at"] is not None:
                 stale = await conn.fetchval(
-                    "select now() - $1 > $2::interval",
+                    "select now() - $1::timestamptz > $2::interval",
                     row["job_started_at"],
                     STALE_RUNNING_INTERVAL,
                 )
@@ -261,13 +266,13 @@ async def process_post_content_job(
                     expected_attempt_count=attempt_count,
                 )
                 return
-    except Exception as exc:  # noqa: BLE001 - durable failure is recorded for retry.
+    except Exception:  # noqa: BLE001 - durable failure is recorded for retry.
         _logger.exception("post content ingestion failed for post_id=%s", post_id)
         await _finish_failed_job(
             pool,
             post_id,
             failure_code="post_content_ingestion_failed",
-            detail_text=str(exc)[:1000],
+            detail_text=_UNEXPECTED_FAILURE_DETAIL,
             expected_attempt_count=attempt_count,
         )
         return
@@ -329,3 +334,33 @@ async def run_post_content_worker(
             embedding_factory=embedding_factory,
             structure_factory=structure_factory,
         )
+
+
+async def run_post_content_worker_supervised(
+    client: redis.Redis,
+    pool: asyncpg.Pool,
+    *,
+    vision_factory: Callable[[], ImageContentClient],
+    embedding_factory: Callable[[], EmbeddingClient],
+    structure_factory: Callable[[], PostStructureClient],
+) -> None:
+    """Keep the durable worker alive after an unexpected iteration error.
+
+    Cancellation remains a shutdown signal. Other exceptions are logged and
+    the worker is restarted so a transient Valkey, database, or provider
+    error cannot silently disable recovery for the rest of the process.
+    """
+    while True:
+        try:
+            await run_post_content_worker(
+                client,
+                pool,
+                vision_factory=vision_factory,
+                embedding_factory=embedding_factory,
+                structure_factory=structure_factory,
+            )
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            _logger.exception("post-content worker crashed; restarting")
+            await asyncio.sleep(_WORKER_RESTART_DELAY_SECONDS)

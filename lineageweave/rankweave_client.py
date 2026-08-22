@@ -4,7 +4,7 @@
 library, not an HTTP service. Reconstruction already calls
 ``weighted_convex_fuse`` inside ``reconstruct.py``; this module is the
 only LineageWeave port that may call ``weighted_reciprocal_rank_fuse``
-for the buyer-facing Rankings surface. It never invents a fused score,
+for the reader-facing Rankings surface. It never invents a fused score,
 a theta, or a hidden post.
 
 The default transport raises :class:`RankWeaveNotAvailable` so a
@@ -224,11 +224,11 @@ class LibraryRankWeaveTransport:
                 )
             except Exception as exc:
                 raise RankWeaveNotAvailable(
-                    f"rankweave_not_available: weighted_reciprocal_rank_fuse failed ({exc})"
+                    "rankweave_not_available: weighted_reciprocal_rank_fuse failed"
                 ) from exc
         except Exception as exc:
             raise RankWeaveNotAvailable(
-                f"rankweave_not_available: weighted_reciprocal_rank_fuse failed ({exc})"
+                "rankweave_not_available: weighted_reciprocal_rank_fuse failed"
             ) from exc
         projected: list[dict[str, Any]] = []
         for hit in hits:
@@ -268,7 +268,7 @@ class RankWeaveClient:
             raise
         except Exception as exc:
             raise RankWeaveNotAvailable(
-                f"rankweave_not_available: ranking transport failed ({exc})"
+                "rankweave_not_available: ranking transport failed"
             ) from exc
         return project_ranking_list(raw, titles_by_id)
 
@@ -278,7 +278,7 @@ class RankWeaveClient:
         can_see_post: Callable[[Mapping[str, Any]], bool],
         query: str = DEFAULT_RANKING_QUERY,
     ) -> dict[str, Any]:
-        """Buyer-visible ranking status. Never invents a fused score."""
+        """Reader-visible ranking status. Never invents a fused score."""
         channels = ranking_channels_from_rows(posts, can_see_post, query=query)
         titles_by_id = {
             post_id: str(row.get("post_title") or "").strip()

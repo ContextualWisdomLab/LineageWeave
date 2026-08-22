@@ -64,6 +64,14 @@ the API enqueue path. A successful job that has units but lacks the configured
 unit or described-region embeddings is still eligible for Valkey requeue and
 MUST NOT be silently skipped by checking only for unit presence.
 
+The same predicate MUST reject an image unit when its persisted parent image
+is missing or its VISION status is not `described`, and MUST reject it when
+any persisted visual region is not `described`. The operator selector uses
+the same image/region condition, so an unavailable image cannot become a
+permanent false-ready result merely because its text-unit embeddings exist.
+The existing bounded automatic retry limit and the explicit terminal retry
+operation in ADR 0115 remain unchanged.
+
 When contextual-orchestrator is configured, the same predicate also requires
 every persisted unit to have a non-`unresolved` structure decision. Without an
 available structure channel, `unresolved` remains an explicit unavailable

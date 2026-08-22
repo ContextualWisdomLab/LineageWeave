@@ -14,7 +14,7 @@ attributes.
 
 ## Decision
 
-Use a `bookmark` table with:
+Use a `post_bookmark` table with:
 
 - `bookmark_id` as the independent surrogate primary key;
 - `user_account_id` as a foreign key to `user_account`;
@@ -25,9 +25,14 @@ Use a `bookmark` table with:
 
 The composite account/post pair is therefore a business invariant only, never
 the primary identity of the bookmark entity. No display name, post title, or
-authorization scope is duplicated in `bookmark`; those values remain in their
+authorization scope is duplicated in `post_bookmark`; those values remain in their
 normalized source tables. Every read and write still performs the normal
 visible-post ABAC check for the requesting account.
+
+The historical migration introduced this entity as `bookmark`; ADR 0120
+renames the persistent relation to `post_bookmark` to enforce the repository's
+two-word database-identifier rule. The entity and authorization decision stay
+unchanged.
 
 ## Consequences
 

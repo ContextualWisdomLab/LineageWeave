@@ -6,6 +6,8 @@ import asyncio
 from contextlib import asynccontextmanager
 from types import SimpleNamespace
 
+import pytest
+
 from backend.app import post_content_worker
 from backend.app.post_content_queue import (
     FAILED,
@@ -63,6 +65,7 @@ def _row(status: str, attempt_count: int, *, started_at: object = None) -> dict[
         "job_attempt_count": attempt_count,
         "job_started_at": started_at,
         "job_queued_at": "queued-at",
+        "source_detail_state_code": "A",
         "post_body": "A synthetic post body with a retrieval unit.",
         "post_title": "Synthetic post title",
     }
@@ -80,6 +83,27 @@ def test_worker_starts_after_historical_stream_tail() -> None:
 
 def test_terminal_failed_job_ignores_a_stale_duplicate_wakeup() -> None:
     connection = _Connection(_row(FAILED, POST_CONTENT_MAX_ATTEMPTS))
+
+    claimed = asyncio.run(
+        post_content_worker._claim_job(
+            _Pool(connection),
+            "00000000-0000-0000-0000-000000000001",
+            "a" * 64,
+            embedding_model_code="",
+        )
+    )
+
+    assert claimed is None
+    assert connection.executed == []
+
+
+@pytest.mark.parametrize("source_detail_state_code", ["W", " w "])
+def test_worker_drops_a_writing_post_even_if_a_stale_job_row_leaks_through(
+    source_detail_state_code: str,
+) -> None:
+    connection = _Connection(
+        {**_row(QUEUED, 0), "source_detail_state_code": source_detail_state_code}
+    )
 
     claimed = asyncio.run(
         post_content_worker._claim_job(
@@ -230,6 +254,7 @@ def test_transient_provider_error_is_requeued_before_attempt_limit(monkeypatch) 
 
     updates = [args for query, args in connection.executed if "set status_code" in query]
     assert any(args[1] == QUEUED and args[6] == "post_content_ingestion_failed" for args in updates)
+    assert all("provider timeout" not in str(args) for args in updates)
 
 
 def test_failure_at_attempt_limit_is_terminal_and_visible() -> None:
@@ -263,6 +288,61 @@ def test_stale_worker_cannot_retry_after_lease_recovery() -> None:
     )
 
     assert not any("set status_code" in query for query, _args in connection.executed)
+
+
+def test_worker_retry_clock_queries_cast_database_timestamps() -> None:
+    class RecordingConnection(_Connection):
+        def __init__(self, row):
+            super().__init__(row)
+            self.queries: list[str] = []
+
+        async def fetchval(self, query: str, *_args: object):
+            self.queries.append(query)
+            return False
+
+    connection = RecordingConnection(_row(QUEUED, 1))
+
+    claimed = asyncio.run(
+        post_content_worker._claim_job(
+            _Pool(connection),
+            "00000000-0000-0000-0000-000000000001",
+            "a" * 64,
+            embedding_model_code="",
+        )
+    )
+
+    assert claimed is None
+    assert any("$1::timestamptz + $2::interval" in query for query in connection.queries)
+
+
+def test_supervised_worker_restarts_after_unexpected_error(monkeypatch) -> None:
+    calls = 0
+
+    async def run_once(*_args, **_kwargs) -> None:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise RuntimeError("transient worker failure")
+        raise asyncio.CancelledError
+
+    async def no_delay(_seconds: float) -> None:
+        return None
+
+    monkeypatch.setattr(post_content_worker, "run_post_content_worker", run_once)
+    monkeypatch.setattr(post_content_worker.asyncio, "sleep", no_delay)
+
+    with pytest.raises(asyncio.CancelledError):
+        asyncio.run(
+            post_content_worker.run_post_content_worker_supervised(
+                SimpleNamespace(),
+                SimpleNamespace(),
+                vision_factory=lambda: SimpleNamespace(),
+                embedding_factory=lambda: SimpleNamespace(),
+                structure_factory=lambda: SimpleNamespace(),
+            )
+        )
+
+    assert calls == 2
 
 
 def test_stale_worker_cannot_mark_recovered_attempt_succeeded() -> None:

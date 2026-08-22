@@ -37,21 +37,31 @@ from lineageweave.corporate_hierarchy_inference import (
     NullCorporateHierarchyInferenceClient,
 )
 from lineageweave.fixtures import fixture_thread_cast
+from lineageweave.http_client import HttpClientError
 from lineageweave.knowledge_graph import (
     NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_TEAM,
 )
-from lineageweave.ontology import LW, ontology_annotations
+from lineageweave.ontology import (
+    LW,
+    ontology_annotations,
+    semantic_predicate_annotations,
+)
+from lineageweave.organization_name_resolution import (
+    NullOrganizationNameResolutionClient,
+    OrganizationNameResolutionClient,
+)
 from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
     ACTOR_TYPE_PERSON,
     ACTOR_TYPE_TEAM,
+    POST_SUMMARY_CONTRACT_VERSION,
     KeyEvent,
     PostSummary,
-    POST_SUMMARY_CONTRACT_VERSION,
-    normalize_project_key,
     RoleResponsibility,
+    is_generic_team_actor,
+    normalize_project_key,
 )
 from lineageweave.relation_verification import (
     NullRelationVerificationClient,
@@ -59,15 +69,19 @@ from lineageweave.relation_verification import (
 )
 
 from .corporate_entity_ingestion import get_or_create_corporate_entity
-from .keyman_ingestion import _load_corporate_entity_candidates
+from .keyman_ingestion import (
+    _load_corporate_entity_candidates,
+    _resolve_affiliated_organization,
+)
 from .knowledge_graph import persist_edges_for_post
+from .post_eligibility import normalize_source_detail_state_code
 from .team_ingestion import upsert_team
-
 
 SUMMARY_SOURCE_BODY_MISSING = (
     "Post summary is unavailable: the source post body is empty. "
     "Re-import the source record with its body before requesting a summary."
 )
+SUMMARY_TARGET_UNAVAILABLE = "Writing-in-progress posts are not summary targets."
 
 
 def require_summary_source_body(body: str | None) -> str:
@@ -75,6 +89,16 @@ def require_summary_source_body(body: str | None) -> str:
     if not isinstance(body, str) or not body.strip():
         raise ValueError(SUMMARY_SOURCE_BODY_MISSING)
     return body
+
+
+async def require_summary_target(conn: asyncpg.Connection, post_id: str) -> None:
+    """Keep W out of both persisted and on-demand summary generation."""
+    state_code = await conn.fetchval(
+        "select source_detail_state_code from source_post where post_id = $1",
+        post_id,
+    )
+    if normalize_source_detail_state_code(state_code) == "W":
+        raise ValueError(SUMMARY_TARGET_UNAVAILABLE)
 
 
 async def fetch_persisted_summary(
@@ -89,7 +113,7 @@ async def fetch_persisted_summary(
     (ADR 0019 / 0027). This function does not join ``corporate_entity``
     by ``entity_name``. Person chips read ``cataloged_person_id``. A stale
     row is returned only when ``allow_stale`` is explicit so a caller can
-    preserve buyer continuity without presenting old semantics as current.
+    preserve reader continuity without presenting old semantics as current.
     """
     header = await conn.fetchrow(
         "select korean_summary, summary_contract_version "
@@ -103,7 +127,8 @@ async def fetch_persisted_summary(
         return None
     events = await conn.fetch(
         """
-        select event.event_text, event.project_key, mention.project_name
+        select event.event_ordinal, event.event_text, event.evidence_text,
+               event.project_key, mention.project_name
           from post_summary_event event
           left join post_project_mention mention
             on mention.post_id = event.post_id
@@ -115,11 +140,12 @@ async def fetch_persisted_summary(
     )
     roles = await conn.fetch(
         """
-        select role.actor_name, role.responsibility, role.actor_type_code,
+        select role.actor_name, role.responsibility_text, role.actor_type_code,
                role.affiliated_organization_name,
                role.cataloged_team_id,
                role.cataloged_corporate_entity_id,
-               role.cataloged_person_id
+               role.cataloged_person_id,
+               role.cataloged_affiliated_corporate_entity_id
           from post_summary_role role
          where role.post_id = $1
          order by role.actor_name
@@ -128,7 +154,7 @@ async def fetch_persisted_summary(
     )
     projects = await conn.fetch(
         """
-        select project_key, project_name, evidence_text, confidence, ontology_iri,
+        select project_key, project_name, evidence_text, mention_confidence, ontology_iri,
                extraction_method
           from post_project_mention
          where post_id = $1
@@ -150,6 +176,67 @@ async def fetch_persisted_summary(
         """,
         post_id,
     )
+    quantitative_observations = await conn.fetch(
+        """
+        select observation.measurement_type_code,
+               observation.label_text,
+               observation.value_numeric,
+               observation.unit_code,
+               observation.quantity_numeric,
+               observation.quantity_unit_code,
+               observation.qualifier_text,
+               observation.raw_value_text,
+               observation.evidence_text,
+               observation.ontology_iri,
+               observation.extraction_method
+          from post_summary_quantitative_observation observation
+         where observation.post_id = $1
+         order by observation.observation_ordinal
+        """,
+        post_id,
+    )
+    source_grounded_facts = await conn.fetch(
+        """
+        select fact.fact_type_code,
+               fact.label_text,
+               fact.value_text,
+               fact.normalized_value_text,
+               fact.assertion_code,
+               fact.normalized_date,
+               fact.date_precision_code,
+               fact.normalization_evidence_text,
+               fact.qualifier_text,
+               fact.evidence_text,
+               fact.ontology_iri,
+               fact.extraction_method
+          from post_summary_source_fact fact
+         where fact.post_id = $1
+         order by fact.fact_ordinal
+        """,
+        post_id,
+    )
+    semantic_relationships = await conn.fetch(
+        """
+        select relation_ordinal, subject_name, subject_type, predicate_code,
+               object_name, object_type, evidence_text, relation_confidence,
+               extraction_method
+          from post_summary_semantic_relationship
+         where post_id = $1
+         order by relation_ordinal
+        """,
+        post_id,
+    )
+    event_clues = await conn.fetch(
+        """
+        select event_ordinal, clue_ordinal, clue_type_code, clue_text,
+               target_text, normalized_value_text, assertion_code,
+               evidence_text, ontology_iri, extraction_method
+          from post_summary_event_clue
+         where post_id = $1
+         order by event_ordinal, clue_ordinal
+        """,
+        post_id,
+    )
     payload_roles: list[dict[str, Any]] = []
     for row in roles:
         catalog_node_id = None
@@ -166,11 +253,16 @@ async def fetch_persisted_summary(
         payload_roles.append(
             {
                 "actor_name": row["actor_name"],
-                "responsibility": row["responsibility"],
+                "responsibility": row["responsibility_text"],
                 "actor_type_code": row["actor_type_code"],
                 "affiliated_organization_name": row["affiliated_organization_name"],
                 "catalog_node_id": catalog_node_id,
                 "catalog_node_type_code": catalog_node_type_code,
+                "affiliated_organization_catalog_id": (
+                    str(row["cataloged_affiliated_corporate_entity_id"])
+                    if row["cataloged_affiliated_corporate_entity_id"] is not None
+                    else None
+                ),
                 **ontology_annotations(row["actor_type_code"]),
             }
         )
@@ -188,8 +280,23 @@ async def fetch_persisted_summary(
             {
                 "event_text": row["event_text"],
                 "project_name": row.get("project_name"),
+                "evidence_text": row.get("evidence_text"),
             }
             for row in events
+        ],
+        "event_clues": [
+            {
+                "event_index": row["event_ordinal"],
+                "clue_type_code": row["clue_type_code"],
+                "clue_text": row["clue_text"],
+                "target_text": row["target_text"],
+                "normalized_value_text": row["normalized_value_text"],
+                "assertion_code": row["assertion_code"],
+                "evidence_text": row["evidence_text"],
+                "ontology_iri": row["ontology_iri"],
+                "extraction_method": row["extraction_method"],
+            }
+            for row in event_clues
         ],
         "roles_and_responsibilities": payload_roles,
         "major_event_actions": [
@@ -202,12 +309,74 @@ async def fetch_persisted_summary(
             }
             for row in actions
         ],
+        "quantitative_observations": [
+            {
+                "measurement_type_code": row["measurement_type_code"],
+                "label_text": row["label_text"],
+                "value_numeric": str(row["value_numeric"]),
+                "unit_code": row["unit_code"],
+                "quantity_numeric": (
+                    str(row["quantity_numeric"])
+                    if row["quantity_numeric"] is not None
+                    else None
+                ),
+                "quantity_unit_code": row["quantity_unit_code"],
+                "qualifier_text": row["qualifier_text"],
+                "raw_value_text": row["raw_value_text"],
+                "evidence_text": row["evidence_text"],
+                "ontology_iri": row["ontology_iri"],
+                "ontology_label": ontology_annotations(
+                    row["measurement_type_code"]
+                ).get("ontology_label"),
+                "extraction_method": row["extraction_method"],
+            }
+            for row in quantitative_observations
+        ],
+        "source_grounded_facts": [
+            {
+                "fact_type_code": row["fact_type_code"],
+                "label_text": row["label_text"],
+                "value_text": row["value_text"],
+                "normalized_value_text": row["normalized_value_text"],
+                "assertion_code": row["assertion_code"],
+                "normalized_date": (
+                    row["normalized_date"].isoformat()
+                    if row["normalized_date"] is not None
+                    else None
+                ),
+                "date_precision_code": row["date_precision_code"],
+                "normalization_evidence_text": row["normalization_evidence_text"],
+                "qualifier_text": row["qualifier_text"],
+                "evidence_text": row["evidence_text"],
+                "ontology_iri": row["ontology_iri"],
+                "ontology_label": ontology_annotations(row["fact_type_code"]).get(
+                    "ontology_label"
+                ),
+                "extraction_method": row["extraction_method"],
+            }
+            for row in source_grounded_facts
+        ],
+        "semantic_relationships": [
+            {
+                "relation_ordinal": row["relation_ordinal"],
+                "subject_name": row["subject_name"],
+                "subject_type": row["subject_type"],
+                "predicate_code": row["predicate_code"],
+                "object_name": row["object_name"],
+                "object_type": row["object_type"],
+                "evidence_text": row["evidence_text"],
+                "confidence": float(row["relation_confidence"]),
+                "extraction_method": row["extraction_method"],
+                **semantic_predicate_annotations(row["predicate_code"]),
+            }
+            for row in semantic_relationships
+        ],
         "project_mentions": [
             {
                 "project_key": row["project_key"],
                 "project_name": row["project_name"],
                 "evidence": row["evidence_text"],
-                "confidence": float(row["confidence"]),
+                "confidence": float(row["mention_confidence"]),
                 "ontology_iri": row["ontology_iri"],
                 "extraction_method": row["extraction_method"],
             }
@@ -222,6 +391,7 @@ async def persist_post_summary(
     summary: PostSummary,
     *,
     post_body: str | None = None,
+    resolution_client: OrganizationNameResolutionClient | None = None,
     hierarchy_inference_client: CorporateHierarchyInferenceClient | None = None,
     verification_client: RelationVerificationClient | None = None,
 ) -> dict[str, Any]:
@@ -240,12 +410,14 @@ async def persist_post_summary(
     summary replacement transaction while all post-owned rows still commit or
     roll back together.
     """
+    await require_summary_target(conn, post_id)
     if post_body is not None:
         require_summary_source_body(post_body)
 
     hierarchy_inference_client = (
         hierarchy_inference_client or NullCorporateHierarchyInferenceClient()
     )
+    resolution_client = resolution_client or NullOrganizationNameResolutionClient()
     verification_client = verification_client or NullRelationVerificationClient()
 
     context_text = post_body if post_body is not None else summary.korean_summary
@@ -255,8 +427,30 @@ async def persist_post_summary(
         else []
     )
     resolved_organization_ids: dict[int, str] = {}
+    resolved_affiliation_names: dict[int, str] = {}
+    resolved_affiliation_ids: dict[int, str] = {}
     for role_index, role in enumerate(summary.roles_and_responsibilities):
+        if role.actor_type_code == ACTOR_TYPE_TEAM and is_generic_team_actor(role.actor_name):
+            continue
         if role.actor_type_code != ACTOR_TYPE_ORGANIZATION:
+            if role.actor_type_code in {ACTOR_TYPE_PERSON, ACTOR_TYPE_TEAM} and role.affiliated_organization_name:
+                try:
+                    _, resolved_name, corporate_entity_id = await _resolve_affiliated_organization(
+                        conn,
+                        role.affiliated_organization_name,
+                        context_text,
+                        resolution_client,
+                        verification_client,
+                        hierarchy_inference_client,
+                        candidates,
+                    )
+                except (HttpClientError, OSError, TimeoutError, ValueError):
+                    # R&R affiliation is enrichment. A provider outage must
+                    # preserve the raw source name and the summary itself.
+                    resolved_name, corporate_entity_id = role.affiliated_organization_name, None
+                resolved_affiliation_names[role_index] = resolved_name
+                if corporate_entity_id is not None:
+                    resolved_affiliation_ids[role_index] = corporate_entity_id
             continue
         corporate_entity_id = await get_or_create_corporate_entity(
             conn,
@@ -276,6 +470,8 @@ async def persist_post_summary(
             summary,
             candidates,
             resolved_organization_ids,
+            resolved_affiliation_names,
+            resolved_affiliation_ids,
         )
 
     payload = await fetch_persisted_summary(conn, post_id)
@@ -310,6 +506,8 @@ async def _replace_summary_projection(
     summary: PostSummary,
     candidates: list[Any],
     resolved_organization_ids: dict[int, str],
+    resolved_affiliation_names: dict[int, str],
+    resolved_affiliation_ids: dict[int, str],
 ) -> None:
     """Write one atomic replacement using pre-resolved shared identities."""
     # Summary replacement owns only R&R projections. Keyman mentions remain
@@ -321,6 +519,14 @@ async def _replace_summary_projection(
     await conn.execute("delete from post_team_mention where post_id = $1", post_id)
     await conn.execute("delete from post_organization_mention where post_id = $1", post_id)
     await conn.execute("delete from post_summary_five_w1h where post_id = $1", post_id)
+    await conn.execute(
+        "delete from post_summary_quantitative_observation where post_id = $1", post_id
+    )
+    await conn.execute("delete from post_summary_source_fact where post_id = $1", post_id)
+    await conn.execute(
+        "delete from post_summary_semantic_relationship where post_id = $1", post_id
+    )
+    await conn.execute("delete from post_summary_event_clue where post_id = $1", post_id)
     await conn.execute("delete from post_summary_action where post_id = $1", post_id)
     await conn.execute("delete from post_summary_result where post_id = $1", post_id)
     await conn.execute("delete from post_project_mention where post_id = $1", post_id)
@@ -338,13 +544,13 @@ async def _replace_summary_projection(
         await conn.execute(
             """
             insert into post_project_mention
-                (post_id, project_key, project_name, evidence_text, confidence,
+                (post_id, project_key, project_name, evidence_text, mention_confidence,
                  ontology_iri, extraction_method)
             values ($1, $2, $3, $4, $5, $6, 'contextual_orchestrator_semantic')
             on conflict (post_id, project_key) do update set
                 project_name = excluded.project_name,
                 evidence_text = excluded.evidence_text,
-                confidence = excluded.confidence,
+                mention_confidence = excluded.mention_confidence,
                 ontology_iri = excluded.ontology_iri,
                 extraction_method = excluded.extraction_method
             """,
@@ -354,6 +560,25 @@ async def _replace_summary_projection(
             project.evidence,
             project.confidence,
             str(LW.Project),
+        )
+    for ordinal, relation in enumerate(summary.semantic_relationships):
+        await conn.execute(
+            """
+            insert into post_summary_semantic_relationship
+                (post_id, relation_ordinal, subject_name, subject_type,
+                 predicate_code, object_name, object_type, evidence_text,
+                 relation_confidence)
+            values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            """,
+            post_id,
+            ordinal,
+            relation.subject_name,
+            relation.subject_type,
+            relation.predicate_code,
+            relation.object_name,
+            relation.object_type,
+            relation.evidence_text,
+            relation.confidence,
         )
     event_details = summary.key_event_details or tuple(
         KeyEvent(event_text=event_text) for event_text in summary.key_events
@@ -373,12 +598,39 @@ async def _replace_summary_projection(
             else None
         )
         await conn.execute(
-            "insert into post_summary_event (post_id, event_ordinal, event_text, project_key) "
-            "values ($1, $2, $3, $4)",
+            "insert into post_summary_event "
+            "(post_id, event_ordinal, event_text, evidence_text, project_key, ontology_iri, extraction_method) "
+            "values ($1, $2, $3, $4, $5, $6, $7)",
             post_id,
             ordinal,
             event.event_text,
+            event.evidence_text,
             project_key,
+            str(LW.KeyEvent),
+            "contextual_orchestrator_event",
+        )
+    for clue_ordinal, clue in enumerate(summary.event_clues):
+        if clue.event_index >= len(event_details):
+            continue
+        await conn.execute(
+            """
+            insert into post_summary_event_clue
+                (post_id, event_ordinal, clue_ordinal, clue_type_code, clue_text,
+                 target_text, normalized_value_text, assertion_code, evidence_text,
+                 ontology_iri, extraction_method)
+            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            """,
+            post_id,
+            clue.event_index,
+            clue_ordinal,
+            clue.clue_type_code,
+            clue.clue_text,
+            clue.target_text,
+            clue.normalized_value_text,
+            clue.assertion_code,
+            clue.evidence_text,
+            str(LW.EvidenceClue),
+            "contextual_orchestrator_event_clue",
         )
     for ordinal, claim in enumerate(summary.five_w1h_evidence):
         await conn.execute(
@@ -391,17 +643,72 @@ async def _replace_summary_projection(
             claim.value_text,
             claim.evidence_text,
         )
+    for ordinal, observation in enumerate(summary.quantitative_observations):
+        await conn.execute(
+            """
+            insert into post_summary_quantitative_observation
+                (post_id, observation_ordinal, measurement_type_code, label_text,
+                 value_numeric, unit_code, quantity_numeric, quantity_unit_code,
+                 qualifier_text, raw_value_text, evidence_text, ontology_iri,
+                 extraction_method)
+            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+            """,
+            post_id,
+            ordinal,
+            observation.measurement_type_code,
+            observation.label_text,
+            observation.value_numeric,
+            observation.unit_code,
+            observation.quantity_numeric,
+            observation.quantity_unit_code,
+            observation.qualifier_text,
+            observation.raw_value_text,
+            observation.evidence_text,
+            str(LW.QuantitativeObservation),
+            "contextual_orchestrator_quantitative",
+        )
+    for ordinal, fact in enumerate(summary.source_grounded_facts):
+        await conn.execute(
+            """
+            insert into post_summary_source_fact
+                (post_id, fact_ordinal, fact_type_code, label_text, value_text,
+                 normalized_value_text, assertion_code, normalized_date,
+                 date_precision_code, normalization_evidence_text, qualifier_text,
+                 evidence_text, ontology_iri, extraction_method)
+            values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            """,
+            post_id,
+            ordinal,
+            fact.fact_type_code,
+            fact.label_text,
+            fact.value_text,
+            fact.normalized_value_text,
+            fact.assertion_code,
+            fact.normalized_date,
+            fact.date_precision_code,
+            fact.normalization_evidence_text,
+            fact.qualifier_text,
+            fact.evidence_text,
+            str(LW.SourceGroundedFact),
+            "contextual_orchestrator_source_fact",
+        )
     # ADR 0009 / 0019 / 0027: resolve catalog identity before writing
     # the role row so fetch never reconstructs it by a non-unique name.
     for role_index, role in enumerate(summary.roles_and_responsibilities):
+        if role.actor_type_code == ACTOR_TYPE_TEAM and is_generic_team_actor(role.actor_name):
+            continue
         cataloged_team_id = None
         cataloged_corporate_entity_id = None
         cataloged_person_id = None
+        cataloged_affiliated_corporate_entity_id = resolved_affiliation_ids.get(role_index)
+        affiliation_name = resolved_affiliation_names.get(
+            role_index, role.affiliated_organization_name
+        )
         if role.actor_type_code == ACTOR_TYPE_TEAM:
             cataloged_team_id = await upsert_team(
                 conn,
                 role.actor_name,
-                role.affiliated_organization_name,
+                affiliation_name,
                 candidates,
             )
         elif role.actor_type_code == ACTOR_TYPE_ORGANIZATION:
@@ -415,10 +722,11 @@ async def _replace_summary_projection(
             )
         await conn.execute(
             "insert into post_summary_role "
-            "(post_id, actor_name, responsibility, actor_type_code, "
+            "(post_id, actor_name, responsibility_text, actor_type_code, "
             "affiliated_organization_name, cataloged_team_id, "
-            "cataloged_corporate_entity_id, cataloged_person_id) values "
-            "($1, $2, $3, $4, $5, $6, $7, $8)",
+            "cataloged_corporate_entity_id, cataloged_person_id, "
+            "cataloged_affiliated_corporate_entity_id) values "
+            "($1, $2, $3, $4, $5, $6, $7, $8, $9)",
             post_id,
             role.actor_name,
             role.responsibility,
@@ -427,6 +735,7 @@ async def _replace_summary_projection(
             cataloged_team_id,
             cataloged_corporate_entity_id,
             cataloged_person_id,
+            cataloged_affiliated_corporate_entity_id,
         )
         if cataloged_team_id is not None:
             await conn.execute(
@@ -435,22 +744,31 @@ async def _replace_summary_projection(
                 post_id,
                 cataloged_team_id,
             )
-        elif cataloged_corporate_entity_id is not None:
+        organization_ids = []
+        if cataloged_corporate_entity_id is not None:
+            organization_ids.append(cataloged_corporate_entity_id)
+        if cataloged_affiliated_corporate_entity_id is not None:
+            organization_ids.append(cataloged_affiliated_corporate_entity_id)
+        for organization_id in dict.fromkeys(organization_ids):
             await conn.execute(
                 "insert into post_organization_mention "
                 "(post_id, corporate_entity_id) values ($1, $2) "
                 "on conflict do nothing",
                 post_id,
-                cataloged_corporate_entity_id,
+                organization_id,
             )
-        elif cataloged_person_id is not None:
+        if cataloged_person_id is not None:
             await conn.execute(
                 "insert into post_summary_person_mention (post_id, person_id) "
                 "values ($1, $2) on conflict do nothing",
                 post_id,
                 cataloged_person_id,
             )
-    role_names = {role.actor_name for role in summary.roles_and_responsibilities}
+    role_names = {
+        role.actor_name
+        for role in summary.roles_and_responsibilities
+        if not (role.actor_type_code == ACTOR_TYPE_TEAM and is_generic_team_actor(role.actor_name))
+    }
     project_keys = {
         normalize_project_key(project.canonical_name)
         for project in summary.project_mentions

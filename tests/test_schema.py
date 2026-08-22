@@ -43,6 +43,59 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     / "migrations"
     / "0102_project_bound_summary_event.sql"
 )
+_BOOKMARK_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0043_bookmark.sql"
+)
+_IDENTIFIER_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0104_two_word_database_identifiers.sql"
+)
+_AFFILIATION_SCOPE_FACET_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0106_account_affiliation_scope_facet.sql"
+)
+_ROLE_AFFILIATION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0107_role_affiliation_catalog_identity.sql"
+)
+_QUANTITATIVE_OBSERVATION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0108_post_summary_quantitative_observation.sql"
+)
+_SOURCE_FACT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0109_post_summary_source_fact.sql"
+)
+_SOFTWARE_AGENT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0110_role_responsibility_software_agent.sql"
+)
+_SEMANTIC_RELATIONSHIP_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0111_post_summary_semantic_relationship.sql"
+)
+_EVENT_CLUE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0112_event_clue_semantic_projection.sql"
+)
+_BROAD_FACT_TYPES_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0113_broad_source_fact_types.sql"
+)
+_SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0114_semantic_relationship_standard_predicates.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -79,6 +132,23 @@ def schema_db():
                 cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
+                cur.execute(_BOOKMARK_MIGRATION.read_text())
+                identifier_migration = _IDENTIFIER_MIGRATION.read_text()
+                cur.execute(identifier_migration)
+                cur.execute(identifier_migration)
+                affiliation_scope_migration = _AFFILIATION_SCOPE_FACET_MIGRATION.read_text()
+                cur.execute(affiliation_scope_migration)
+                cur.execute(affiliation_scope_migration)
+                role_affiliation_migration = _ROLE_AFFILIATION_MIGRATION.read_text()
+                cur.execute(role_affiliation_migration)
+                cur.execute(role_affiliation_migration)
+                cur.execute(_QUANTITATIVE_OBSERVATION_MIGRATION.read_text())
+                cur.execute(_SOURCE_FACT_MIGRATION.read_text())
+                cur.execute(_SOFTWARE_AGENT_MIGRATION.read_text())
+                cur.execute(_SEMANTIC_RELATIONSHIP_MIGRATION.read_text())
+                cur.execute(_EVENT_CLUE_MIGRATION.read_text())
+                cur.execute(_BROAD_FACT_TYPES_MIGRATION.read_text())
+                cur.execute(_SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -124,10 +194,15 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "report_leftover_pair",
         "post_summary_result",
         "post_summary_event",
+        "post_summary_event_clue",
         "post_summary_role",
         "post_summary_action",
         "post_chat_result",
         "post_chat_citation",
+        "post_bookmark",
+        "post_summary_quantitative_observation",
+        "post_summary_source_fact",
+        "post_summary_semantic_relationship",
     }
     assert expected <= tables
 
@@ -236,6 +311,42 @@ def test_invalid_lookup_code_is_rejected_by_a_real_foreign_key(schema_db) -> Non
     schema_db.rollback()
 
 
+def test_affiliation_scope_facet_defaults_to_unclassified_and_rejects_bad_codes(schema_db) -> None:
+    """ADR 0125 step 1: an account_affiliation row that doesn't specify a
+    scope facet lands on the honest 'unclassified' state, not a silently
+    guessed own/customer label, and the column is a real foreign key.
+    """
+    with schema_db.cursor() as cur:
+        cur.execute(
+            "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+            "values ('corporate_entity_level', 'company', 'Company') on conflict do nothing"
+        )
+        cur.execute(
+            "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
+            "values ('CASE-ENTITY', 'Case Entity', 'company') returning corporate_entity_id"
+        )
+        entity_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into user_account (external_subject_id, display_name, email_address) "
+            "values ('case-subject', 'Case User', 'case@example.test') returning user_account_id"
+        )
+        account_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into account_affiliation (user_account_id, corporate_entity_id) "
+            "values (%s, %s) returning affiliation_scope_code",
+            (account_id, entity_id),
+        )
+        assert cur.fetchone()[0] == "scope_unclassified"
+
+        with pytest.raises(psycopg2.errors.ForeignKeyViolation):
+            cur.execute(
+                "insert into account_affiliation (user_account_id, corporate_entity_id, affiliation_scope_code) "
+                "values (%s, %s, 'not_a_real_scope')",
+                (account_id, entity_id),
+            )
+    schema_db.rollback()
+
+
 def test_lookup_code_is_unique_across_categories(schema_db) -> None:
     """The deliberate simplification documented in the migration: a single-
     column FK to common_lookup_value requires lookup_code to be globally
@@ -268,6 +379,32 @@ def test_every_created_table_name_has_at_least_two_words() -> None:
     for name in names:
         words = name.split("_")
         assert len(words) >= 2, f"table {name!r} must be two or more snake_case words"
+
+
+def test_identifier_migration_leaves_no_single_word_public_identifiers(schema_db) -> None:
+    """The current schema contract covers tables, views, and their columns."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select table_name
+              from information_schema.tables
+             where table_schema = 'public'
+               and table_type = 'BASE TABLE'
+               and table_name !~ '^[a-z][a-z0-9]*(_[a-z0-9]+)+$'
+            """
+        )
+        invalid_tables = {row[0] for row in cur.fetchall()}
+        cur.execute(
+            """
+            select table_name, column_name
+              from information_schema.columns
+             where table_schema = 'public'
+               and column_name !~ '^[a-z][a-z0-9]*(_[a-z0-9]+)+$'
+            """
+        )
+        invalid_columns = {(row[0], row[1]) for row in cur.fetchall()}
+    assert invalid_tables == set()
+    assert invalid_columns == set()
 
 
 def test_cataloged_team_null_affiliation_is_unique(schema_db) -> None:

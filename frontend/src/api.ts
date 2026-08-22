@@ -17,19 +17,35 @@ export interface PostSummary {
   source_company_name?: string | null;
   source_process_unit_code?: string | null;
   source_process_unit_name?: string | null;
+  source_process_unit_catalog_name?: string | null;
   source_sales_pool_code?: string | null;
   source_sales_pool_name?: string | null;
+  source_order_pool_code?: string | null;
+  source_sales_order_code?: string | null;
+  source_sales_order_item_number?: number | null;
+  source_inspection_point_code?: string | null;
   source_customer_code?: string | null;
   source_customer_name?: string | null;
   source_project_code?: string | null;
   source_project_name?: string | null;
   source_system_code?: string | null;
   source_record_key?: string | null;
+  source_lineage_hints?: SourceLineageHints;
   publication_state_code?: string;
   post_body_excerpt?: string | null;
   post_body_truncated?: boolean;
   project_evidence?: ProjectEvidence[];
   created_at: string;
+}
+
+export interface SourceLineageHints {
+  combination_code: string;
+  commercial_context_code: string;
+  inference_status_code: string;
+  present_fields: string[];
+  missing_fields: string[];
+  lifecycle_vector: string;
+  deleted_marker_present: boolean;
 }
 
 export interface PostPage {
@@ -38,6 +54,7 @@ export interface PostPage {
   limit: number;
   offset: number;
   voc_type_options?: PostFilterOption[];
+  source_detail_state_options?: PostFilterOption[];
   visibility_options?: PostFilterOption[];
 }
 
@@ -185,6 +202,7 @@ export interface PostRoleResponsibility {
   affiliated_organization_name: string | null;
   catalog_node_id?: string | null;
   catalog_node_type_code?: string | null;
+  affiliated_organization_catalog_id?: string | null;
 }
 
 export interface PostMajorEventAction {
@@ -195,6 +213,37 @@ export interface PostMajorEventAction {
   project_name?: string | null;
 }
 
+export interface PostQuantitativeObservation {
+  measurement_type_code: string;
+  label_text: string;
+  value_numeric: string;
+  unit_code: string;
+  quantity_numeric: string | null;
+  quantity_unit_code: string | null;
+  qualifier_text: string | null;
+  raw_value_text: string;
+  evidence_text: string;
+  ontology_iri: string;
+  ontology_label?: string;
+  extraction_method: string;
+}
+
+export interface PostSourceGroundedFact {
+  fact_type_code: string;
+  label_text: string;
+  value_text: string;
+  normalized_value_text: string | null;
+  assertion_code: string | null;
+  normalized_date: string | null;
+  date_precision_code: string | null;
+  normalization_evidence_text: string | null;
+  qualifier_text: string | null;
+  evidence_text: string;
+  ontology_iri: string;
+  ontology_label?: string;
+  extraction_method: string;
+}
+
 export interface PostProjectMention {
   project_key: string;
   project_name: string;
@@ -203,6 +252,20 @@ export interface PostProjectMention {
   ontology_iri: string;
   ontology_label?: string;
   extraction_method: string;
+}
+
+export interface PostSemanticRelationship {
+  relation_ordinal: number;
+  subject_name: string;
+  subject_type: string;
+  predicate_code: string;
+  object_name: string;
+  object_type: string;
+  evidence_text: string;
+  confidence: number;
+  ontology_iri?: string;
+  ontology_label?: string;
+  extraction_method?: string;
 }
 
 export interface ProjectEvidence {
@@ -224,14 +287,31 @@ export interface PostAiSummary {
   summary_contract_version?: number | null;
   key_events: string[];
   key_event_details?: PostKeyEvent[];
+  event_clues?: PostEventClue[];
   roles_and_responsibilities: PostRoleResponsibility[];
   major_event_actions?: PostMajorEventAction[];
   project_mentions?: PostProjectMention[];
+  quantitative_observations?: PostQuantitativeObservation[];
+  source_grounded_facts?: PostSourceGroundedFact[];
+  semantic_relationships?: PostSemanticRelationship[];
 }
 
 export interface PostKeyEvent {
   event_text: string;
   project_name?: string | null;
+  evidence_text?: string | null;
+}
+
+export interface PostEventClue {
+  event_index: number;
+  clue_type_code: string;
+  clue_text: string;
+  target_text?: string | null;
+  normalized_value_text?: string | null;
+  assertion_code?: string | null;
+  evidence_text: string;
+  ontology_iri?: string;
+  extraction_method?: string;
 }
 
 export interface FiveW1HValue {
@@ -302,12 +382,46 @@ export interface ChatHistory {
 }
 
 export interface AskAgentResponse {
+  conversation_id?: string;
   answer_text: string;
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
   cited_post_evidence?: CitedPostEvidence[];
   source_post_ids: string[];
   next_action?: string;
+}
+
+export interface AskConversationSummary {
+  conversation_id: string;
+  title: string;
+  updated_at: string;
+  turn_count: number;
+}
+
+export interface AskConversationCursor {
+  updated_at: string;
+  conversation_id: string;
+}
+
+export interface AskConversationPage {
+  conversations: AskConversationSummary[];
+  next_cursor?: AskConversationCursor | null;
+}
+
+export interface AskConversation {
+  conversation_id: string;
+  title: string;
+  older_cursor?: string | null;
+  exchanges: Array<{
+    turn_id: string;
+    question_text: string;
+    answer_text: string;
+    cited_post_ids: string[];
+    cited_posts?: CitedPostRef[];
+    cited_post_evidence?: CitedPostEvidence[];
+    source_post_ids: string[];
+    next_action?: string;
+  }>;
 }
 
 export interface IssueTicket {
@@ -359,7 +473,15 @@ export class BackendError extends Error {
   readonly status: number;
 
   constructor(path: string, status: number, detail?: string) {
-    super(detail && detail.trim() ? detail : `${path} -> HTTP ${status}`);
+    const message =
+      status === 0
+        ? "The service is unreachable. Try again later."
+        : status >= 500
+          ? "The service could not complete this request. Try again later."
+          : detail && detail.trim()
+            ? detail
+            : `${path} -> HTTP ${status}`;
+    super(message);
     this.name = "BackendError";
     this.status = status;
   }
@@ -370,14 +492,19 @@ async function backendFetch<T>(
   accessToken: string,
   init?: RequestInit,
 ): Promise<T> {
-  const response = await fetch(`${config.backendBaseUrl}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-      ...init?.headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${config.backendBaseUrl}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        ...(init?.body ? { "Content-Type": "application/json" } : {}),
+        ...init?.headers,
+      },
+    });
+  } catch {
+    throw new BackendError(path, 0);
+  }
   if (!response.ok) {
     let detail: string | undefined;
     try {
@@ -414,6 +541,35 @@ export interface LineageGraph {
   truncated?: boolean;
 }
 
+export interface KnowledgeGraphNode {
+  id: string;
+  node_type_code: string;
+  node_id: string;
+  label: string;
+  ontology_iri?: string | null;
+  ontology_label?: string | null;
+  is_focus: boolean;
+  is_evidence_text_node?: boolean;
+}
+
+export interface KnowledgeGraphEdge {
+  source: string;
+  target: string;
+  edge_type_code: string;
+  ontology_iri?: string | null;
+  ontology_label?: string | null;
+  confidence: number;
+  evidence_text?: string;
+  evidence_post_ids: string[];
+}
+
+export interface KnowledgeGraph {
+  post_id: string;
+  nodes: KnowledgeGraphNode[];
+  edges: KnowledgeGraphEdge[];
+  truncated?: boolean;
+}
+
 export function fetchLineageGraph(accessToken: string, postId?: string): Promise<LineageGraph> {
   const query = postId ? `?post_id=${encodeURIComponent(postId)}` : "";
   return backendFetch<LineageGraph>(`/api/lineage${query}`, accessToken);
@@ -429,7 +585,15 @@ export interface CustomerMasterEntity extends CorporateEntityRef {
   entity_level_code: string;
   entity_level_label: string;
   parent_entity_id: string | null;
+  scope_facets: CustomerMasterScopeFacet[];
 }
+
+export type CustomerMasterScopeFacet =
+  | "authorized_own"
+  | "authorized_granted"
+  | "scope_unclassified"
+  | "observed_organization"
+  | "observed_hierarchy";
 
 export interface CustomerMasterKeymanAffiliation {
   organization_name: string;
@@ -523,7 +687,17 @@ export interface CurrentUser {
   display_name: string;
   permission_codes: string[];
   corporate_entities?: CorporateEntityRef[];
+  account_affiliations?: AccountAffiliation[];
   preferred_locale?: string | null;
+}
+
+export interface AccountAffiliation {
+  corporate_entity_id: string;
+  corporate_entity_code: string;
+  entity_name: string;
+  process_unit_id: string | null;
+  process_unit_code: string | null;
+  process_unit_name: string | null;
 }
 
 export function fetchMe(accessToken: string): Promise<CurrentUser> {
@@ -540,8 +714,15 @@ export function setPreferredLocale(
   });
 }
 
-export function fetchCustomerMaster(accessToken: string): Promise<CustomerMasterResponse> {
-  return backendFetch<CustomerMasterResponse>("/api/customer-master", accessToken);
+export function fetchCustomerMaster(
+  accessToken: string,
+  hintCode?: string,
+): Promise<CustomerMasterResponse> {
+  const normalizedHintCode = hintCode?.trim();
+  const query = normalizedHintCode
+    ? `?hint_code=${encodeURIComponent(normalizedHintCode)}`
+    : "";
+  return backendFetch<CustomerMasterResponse>(`/api/customer-master${query}`, accessToken);
 }
 
 export interface CustomerHintResolution {
@@ -571,6 +752,7 @@ export function fetchPosts(
   offset?: number,
   search?: string,
   vocTypes?: string[],
+  sourceDetailStates?: string[],
   visibility?: string,
   sort?: PostSortOrder,
 ): Promise<PostPage> {
@@ -584,6 +766,9 @@ export function fetchPosts(
   }
   for (const vocType of vocTypes ?? []) {
     params.append("voc_type", vocType);
+  }
+  for (const sourceDetailState of sourceDetailStates ?? []) {
+    params.append("source_detail_state", sourceDetailState);
   }
   if (visibility) {
     params.set("visibility", visibility);
@@ -860,6 +1045,10 @@ export function fetchPostLineage(accessToken: string, postId: string): Promise<P
   return backendFetch(`/api/posts/${postId}/lineage`, accessToken);
 }
 
+export function fetchPostKnowledgeGraph(accessToken: string, postId: string): Promise<KnowledgeGraph> {
+  return backendFetch(`/api/posts/${postId}/knowledge-graph`, accessToken);
+}
+
 export function fetchPostChat(accessToken: string, postId: string): Promise<ChatHistory> {
   return backendFetch(`/api/posts/${postId}/chat`, accessToken);
 }
@@ -871,10 +1060,33 @@ export function askPostChat(accessToken: string, postId: string, question: strin
   });
 }
 
-export function askAgent(accessToken: string, question: string): Promise<AskAgentResponse> {
+export function fetchAskConversations(
+  accessToken: string,
+  cursor?: AskConversationCursor | null,
+): Promise<AskConversationPage> {
+  const query = cursor
+    ? `?before_updated_at=${encodeURIComponent(cursor.updated_at)}&before_conversation_id=${encodeURIComponent(cursor.conversation_id)}`
+    : "";
+  return backendFetch(`/api/ask/conversations${query}`, accessToken);
+}
+
+export function fetchAskConversation(
+  accessToken: string,
+  conversationId: string,
+  beforeTurn?: number | null,
+): Promise<AskConversation> {
+  const query = beforeTurn ? `?before_turn=${encodeURIComponent(beforeTurn)}` : "";
+  return backendFetch(`/api/ask/conversations/${conversationId}${query}`, accessToken);
+}
+
+export function askAgent(
+  accessToken: string,
+  question: string,
+  conversationId?: string | null,
+): Promise<AskAgentResponse> {
   return backendFetch("/api/ask", accessToken, {
     method: "POST",
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({ question, ...(conversationId ? { conversation_id: conversationId } : {}) }),
   });
 }
 
@@ -1051,27 +1263,23 @@ export function fetchRankings(accessToken: string): Promise<RankingList> {
   return backendFetch("/api/rankings", accessToken);
 }
 
-export async function fetchTenantConfig(accessToken: string): Promise<{ brandName: string }> {
-  const response = await fetch(`${config.backendBaseUrl}/api/settings`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch tenant config: ${response.status}`);
-  }
-  return response.json();
+export interface TenantConfig {
+  brandName: string;
+  systemName: string;
+  copyrightYear: number;
+  copyrightHolder: string;
 }
 
-export async function updateTenantConfig(accessToken: string, brandName: string): Promise<{ brandName: string }> {
-  const response = await fetch(`${config.backendBaseUrl}/api/settings`, {
+export function fetchTenantConfig(accessToken: string): Promise<TenantConfig> {
+  return backendFetch("/api/settings", accessToken);
+}
+
+export function updateTenantConfig(
+  accessToken: string,
+  tenantConfig: TenantConfig,
+): Promise<TenantConfig> {
+  return backendFetch("/api/settings", accessToken, {
     method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ brandName }),
+    body: JSON.stringify(tenantConfig),
   });
-  if (!response.ok) {
-    throw new Error(`Failed to update tenant config: ${response.status}`);
-  }
-  return response.json();
 }

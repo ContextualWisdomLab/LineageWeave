@@ -549,21 +549,38 @@ create trigger analysis_run_status_transition_guard
 before insert on analysis_run_status_event
 for each row execute function enforce_analysis_run_status_transition();
 
-create or replace view analysis_run_current_status as
-select distinct on (status_event.analysis_run_id)
-       status_event.analysis_run_id,
-       status_event.status_code,
-       status_event.status_ordinal,
-       status_event.occurred_at,
-       status_event.recorded_at,
-       status_event.failure_code,
-       status_event.retryable
-  from analysis_run_status_event as status_event
- order by status_event.analysis_run_id,
-          status_event.status_ordinal desc;
-
-comment on view analysis_run_current_status is
-    'Latest append-only status projection for each run; never a second mutable '
-    'lifecycle authority.';
+do $$
+declare
+    retryable_column text;
+begin
+    if exists (
+        select 1
+          from information_schema.columns
+         where table_schema = 'public'
+           and table_name = 'analysis_run_status_event'
+           and column_name = 'is_retryable'
+    ) then
+        retryable_column := 'status_event.is_retryable';
+    else
+        retryable_column := 'status_event.retryable';
+    end if;
+    execute format($view$
+        create or replace view analysis_run_current_status as
+        select distinct on (status_event.analysis_run_id)
+               status_event.analysis_run_id,
+               status_event.status_code,
+               status_event.status_ordinal,
+               status_event.occurred_at,
+               status_event.recorded_at,
+               status_event.failure_code,
+               %s
+          from analysis_run_status_event as status_event
+         order by status_event.analysis_run_id,
+                  status_event.status_ordinal desc
+    $view$, retryable_column);
+    comment on view analysis_run_current_status is
+        'Latest append-only status projection for each run; never a second mutable lifecycle authority.';
+end
+$$;
 
 commit;

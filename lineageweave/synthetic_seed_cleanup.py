@@ -9,46 +9,28 @@ from __future__ import annotations
 
 from typing import Any
 
+from backend.app.post_eligibility import (
+    source_context_missing_sql,
+    source_context_present_sql,
+)
+
 
 async def cleanup_synthetic_seed(conn: Any, *, apply: bool = False) -> dict[str, int]:
     """Dry-run or apply conservative row-level synthetic cleanup."""
-    candidates = await conn.fetch(
-        """
+    # Safe SQL: both fragments interpolate only the fixed SOURCE_CONTEXT_COLUMNS identifier list shared with demo_scope; no request-derived value is composed.
+    candidates = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
         select post.post_id
           from source_post post
           join corporate_entity entity
             on entity.corporate_entity_id = post.corporate_entity_id
-         where nullif(btrim(post.source_author_code), '') is null
-           and nullif(btrim(post.source_author_name), '') is null
-           and nullif(btrim(post.source_company_code), '') is null
-           and nullif(btrim(post.source_company_name), '') is null
-           and nullif(btrim(post.source_process_unit_code), '') is null
-           and nullif(btrim(post.source_process_unit_name), '') is null
-           and nullif(btrim(post.source_sales_pool_code), '') is null
-           and nullif(btrim(post.source_sales_pool_name), '') is null
-           and nullif(btrim(post.source_customer_code), '') is null
-           and nullif(btrim(post.source_customer_name), '') is null
-           and nullif(btrim(post.source_project_code), '') is null
-           and nullif(btrim(post.source_project_name), '') is null
+         where {source_context_missing_sql('post')}
            and entity.corporate_entity_code like 'DEMO-%'
            and exists (
                select 1
                  from source_post real_post
                 where real_post.corporate_entity_id = post.corporate_entity_id
-                  and (
-                      nullif(btrim(real_post.source_author_code), '') is not null
-                      or nullif(btrim(real_post.source_author_name), '') is not null
-                      or nullif(btrim(real_post.source_company_code), '') is not null
-                      or nullif(btrim(real_post.source_company_name), '') is not null
-                      or nullif(btrim(real_post.source_process_unit_code), '') is not null
-                      or nullif(btrim(real_post.source_process_unit_name), '') is not null
-                      or nullif(btrim(real_post.source_sales_pool_code), '') is not null
-                      or nullif(btrim(real_post.source_sales_pool_name), '') is not null
-                      or nullif(btrim(real_post.source_customer_code), '') is not null
-                      or nullif(btrim(real_post.source_customer_name), '') is not null
-                      or nullif(btrim(real_post.source_project_code), '') is not null
-                      or nullif(btrim(real_post.source_project_name), '') is not null
-                  )
+                  and ({source_context_present_sql('real_post')})
            )
         """
     )

@@ -9,7 +9,6 @@ import pytest
 
 from lineageweave.post_structure import PostStructureClient
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SQL_REVIEW_PATHS = (
     "backend/app/analysis_run_ingestion.py",
@@ -28,7 +27,7 @@ SQL_REVIEW_PATHS = (
 )
 ASYNC_STATEMENT_METHODS = {"execute", "fetch", "fetchrow", "fetchval"}
 SQL_REVIEW_RULE = "python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli"
-EXPECTED_SQL_SUPPRESSION_COUNT = 35
+EXPECTED_SQL_SUPPRESSION_COUNT = 38
 
 
 @pytest.mark.parametrize("relative_path", SQL_REVIEW_PATHS)
@@ -74,3 +73,149 @@ def test_post_structure_protocol_stub_fails_explicitly() -> None:
     """The protocol method cannot silently return ``None`` when invoked directly."""
     with pytest.raises(NotImplementedError):
         PostStructureClient.infer(object(), "title", [])
+
+
+def test_summary_backfill_normalizes_writing_state_codes() -> None:
+    """Backfill excludes transport-padded writing rows like the API gate."""
+    source = (ROOT / "scripts/backfill_post_summaries.py").read_text(encoding="utf-8")
+    assert "coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'" in source
+
+
+def test_summary_backfill_uses_all_source_commercial_context_fields() -> None:
+    """Seed eligibility matches the reader's complete source-context contract."""
+    source = (ROOT / "scripts/backfill_post_summaries.py").read_text(encoding="utf-8")
+    for field_name in (
+        "source_order_pool_code",
+        "source_sales_order_code",
+        "source_sales_order_item_number",
+        "source_inspection_point_code",
+    ):
+        assert f"post.{field_name}" in source
+        assert f"real_post.{field_name}" in source
+
+
+def test_content_recovery_backfill_uses_all_source_commercial_context_fields() -> None:
+    """Content recovery's own eligibility matches the reader's complete contract.
+
+    ``scripts/backfill_post_content.py`` re-processes a stored post through the
+    content pipeline; it must recognize the same order-pool/sales-order/
+    inspection-point identity evidence the summary and queue scripts already
+    check, or a commercial-context-only imported row is silently skipped.
+    """
+    source = (ROOT / "scripts/backfill_post_content.py").read_text(encoding="utf-8")
+    for field_name in (
+        "source_order_pool_code",
+        "source_sales_order_code",
+        "source_sales_order_item_number",
+        "source_inspection_point_code",
+    ):
+        assert f"post.{field_name}" in source
+        assert f"real_post.{field_name}" in source
+
+
+def test_keymen_backfill_uses_all_source_commercial_context_fields() -> None:
+    """Keyman backfill's own eligibility matches the reader's complete contract.
+
+    ``scripts/backfill_post_keymen.py`` selects posts for Keyman extraction; it
+    must recognize the same order-pool/sales-order/inspection-point identity
+    evidence the summary and queue scripts already check, or a commercial-
+    context-only imported row is silently excluded from extraction.
+    """
+    source = (ROOT / "scripts/backfill_post_keymen.py").read_text(encoding="utf-8")
+    for field_name in (
+        "source_order_pool_code",
+        "source_sales_order_code",
+        "source_sales_order_item_number",
+        "source_inspection_point_code",
+    ):
+        assert f"post.{field_name}" in source
+        assert f"real_post.{field_name}" in source
+
+
+def test_content_backfill_normalizes_writing_state_codes() -> None:
+    """Content recovery excludes padded and lower-case writing rows."""
+    source = (ROOT / "scripts/queue_post_content_backfill.py").read_text(encoding="utf-8")
+    assert "coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'" in source
+
+
+def test_content_backfill_uses_all_source_commercial_context_fields() -> None:
+    """Content recovery queues posts identified only by commercial context."""
+    source = (ROOT / "scripts/queue_post_content_backfill.py").read_text(encoding="utf-8")
+    for field_name in (
+        "source_system_code",
+        "source_record_key",
+        "source_stage_code",
+        "source_detail_state_code",
+        "source_order_pool_code",
+        "source_sales_order_code",
+        "source_sales_order_item_number",
+        "source_inspection_point_code",
+    ):
+        assert field_name in source
+    assert "image.description_status_code <> 'described'" in source
+    assert "post_content_image_region" in source
+
+
+@pytest.mark.parametrize(
+    "relative_path",
+    (
+        "backend/app/demo_scope.py",
+        "scripts/backfill_post_content.py",
+        "scripts/backfill_post_keymen.py",
+        "scripts/backfill_post_summaries.py",
+    ),
+)
+def test_real_source_identity_context_is_preserved_in_operator_scope(relative_path: str) -> None:
+    """Metadata-only imported rows are not mistaken for synthetic seed rows."""
+    source = (ROOT / relative_path).read_text(encoding="utf-8")
+    for field_name in (
+        "source_system_code",
+        "source_record_key",
+        "source_stage_code",
+        "source_detail_state_code",
+    ):
+        assert f"source_post.{field_name}" in source or f"post.{field_name}" in source
+        assert f"real_post.{field_name}" in source
+
+
+def test_synthetic_cleanup_shares_demo_scope_real_evidence_predicate() -> None:
+    """Cleanup's real-evidence predicate must not diverge from demo_scope's.
+
+    A draft/deleted lifecycle marker (ADR 0040) is not identity/content
+    evidence that a post is a real imported record -- it is a publication
+    lifecycle signal (ADR 0058), tracked separately from source context.
+    ``demo_scope.has_real_source_context`` deliberately omits
+    ``source_draft_code``/``source_deleted_flag`` from its "real evidence"
+    check; ``synthetic_seed_cleanup.cleanup_synthetic_seed`` must agree, and
+    must derive its column list from the shared
+    ``backend.app.post_eligibility.SOURCE_CONTEXT_COLUMNS`` predicate instead
+    of hand-maintaining its own copy that can drift.
+    """
+    cleanup_source = (ROOT / "lineageweave/synthetic_seed_cleanup.py").read_text(encoding="utf-8")
+    demo_scope_source = (ROOT / "backend/app/demo_scope.py").read_text(encoding="utf-8")
+
+    assert "source_context_missing_sql" in cleanup_source
+    assert "source_context_present_sql" in cleanup_source
+    for source in (cleanup_source, demo_scope_source):
+        assert "source_draft_code" not in source
+        assert "source_deleted_flag" not in source
+
+
+@pytest.mark.parametrize(
+    "relative_path, qualified_column",
+    [
+        ("backend/app/post_content_worker.py", "p.source_detail_state_code"),
+        ("backend/app/post_content_queue.py", "post.source_detail_state_code"),
+        ("scripts/backfill_post_content.py", "post.source_detail_state_code"),
+        ("scripts/backfill_post_keymen.py", "post.source_detail_state_code"),
+        ("scripts/queue_post_content_backfill.py", "post.source_detail_state_code"),
+        ("scripts/requeue_failed_post_content.py", "post.source_detail_state_code"),
+    ],
+)
+def test_post_content_writing_state_gates_are_case_insensitive(
+    relative_path: str,
+    qualified_column: str,
+) -> None:
+    """Queue and worker gates reject transport-padded lowercase writing states."""
+    source = (ROOT / relative_path).read_text(encoding="utf-8")
+    assert f"coalesce(upper(btrim({qualified_column})), '') <> 'W'" in source

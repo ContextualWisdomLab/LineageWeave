@@ -145,6 +145,36 @@ def test_cleanup_deletes_only_entangled_synthetic_rows(migrated_db: str) -> None
                 demo_entity,
                 demo_pu,
             )
+            # Source metadata alone is real import evidence and must not be
+            # treated as a pure synthetic row.
+            metadata_post = await conn.fetchval(
+                "insert into source_post "
+                "(author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, "
+                " voc_type_code, visibility_code, source_system_code, source_record_key, "
+                " source_stage_code, source_detail_state_code, source_order_pool_code, "
+                " source_sales_order_code, source_sales_order_item_number, source_inspection_point_code, "
+                " created_at, updated_at) "
+                "values ($1, $2, $3, 'Metadata-only imported post', 'real metadata body', 'voc', 'public', "
+                " 'SOURCE-SYSTEM', 'SOURCE-RECORD', 'published', 'complete', 'POOL-1', 'ORDER-1', 1, "
+                " 'INSPECTION-1', now(), now()) returning post_id",
+                account,
+                demo_entity,
+                demo_pu,
+            )
+            # A lifecycle marker alone (draft/deleted) is not identity/content
+            # evidence of a real imported record -- it must not protect a
+            # post from cleanup, matching demo_scope.has_real_source_context's
+            # deliberate omission of source_draft_code/source_deleted_flag.
+            lifecycle_only_post = await conn.fetchval(
+                "insert into source_post "
+                "(author_account_id, corporate_entity_id, process_unit_id, post_title, post_body, "
+                " voc_type_code, visibility_code, source_draft_code, created_at, updated_at) "
+                "values ($1, $2, $3, 'Draft-marked synthetic post', 'draft body', 'voc', 'public', 'D', now(), now()) "
+                "returning post_id",
+                account,
+                demo_entity,
+                demo_pu,
+            )
             # A second synthetic post that an analysis run has already
             # reconstructed over -- must be reported as blocked, never deleted.
             blocked_synthetic_post = await conn.fetchval(
@@ -242,6 +272,16 @@ def test_cleanup_deletes_only_entangled_synthetic_rows(migrated_db: str) -> None
                 await conn.fetchval("select count(*) from source_post where post_id = $1", real_post) == 1
             ), "the real post must survive"
             assert (
+                await conn.fetchval("select count(*) from source_post where post_id = $1", metadata_post)
+                == 1
+            ), "source metadata alone must protect an imported post"
+            assert (
+                await conn.fetchval(
+                    "select count(*) from source_post where post_id = $1", lifecycle_only_post
+                )
+                == 0
+            ), "a draft/deleted marker alone is not real evidence and must not protect a post"
+            assert (
                 await conn.fetchval(
                     "select count(*) from source_post where post_id = $1", blocked_synthetic_post
                 )
@@ -278,7 +318,7 @@ def test_cleanup_deletes_only_entangled_synthetic_rows(migrated_db: str) -> None
             await conn.close()
 
     result = asyncio.run(run())
-    assert result["candidate_posts"] == 2
+    assert result["candidate_posts"] == 3
     assert result["blocked_posts"] == 1
-    assert result["deletable_posts"] == 1
-    assert result["deleted_posts"] == 1
+    assert result["deletable_posts"] == 2
+    assert result["deleted_posts"] == 2
