@@ -101,7 +101,6 @@ import {
   tf,
   useLocale,
 } from "./i18n";
-import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -4542,6 +4541,9 @@ function AskAgentPanel({
               </ul>
             </>
           )}
+          {answer.lineage_graph && answer.lineage_graph.nodes.length > 0 ? (
+            <LineageDag graph={answer.lineage_graph} onSelectPost={onOpenPost} />
+          ) : null}
         </section>
       )}
     </section>
@@ -4620,7 +4622,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               <small>Enterprise SSO Authentication</small>
             </div>
           </div>
-          {destination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
+          {destination === "admin" && accessToken ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
       </main>
         <footer className="app-footer" role="contentinfo">
           <div className="app-footer-title">
@@ -4690,7 +4692,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             }}
           />
         ) : null}
-        {destination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
+        {destination === "admin" && accessToken ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
       </main>
       <footer className="app-footer" role="contentinfo">
         <div className="app-footer-title">

@@ -308,6 +308,7 @@ export interface AskAgentResponse {
   cited_post_evidence?: CitedPostEvidence[];
   source_post_ids: string[];
   next_action?: string;
+  lineage_graph?: LineageGraph;
 }
 
 export interface IssueTicket {
