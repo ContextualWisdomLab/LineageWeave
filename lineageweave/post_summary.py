@@ -742,6 +742,13 @@ Post title: {title}
 Post body: {body}
 """
 _SUMMARY_MAX_TOKENS = 2048
+# The details response covers eight structured sections (ROLES through
+# RELATIONS); RELATIONS is last, so on a content-rich post a tight budget
+# truncates it first while ROLES/EVIDENCE still look complete -- observed
+# live: identical extraction requests returned RELATIONS some runs and
+# silently dropped it (no error, just an empty section) other runs, purely
+# from response-length variance against a shared 2048-token cap.
+_DETAILS_MAX_TOKENS = 4096
 
 _CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 
@@ -975,12 +982,28 @@ the shortest exact supporting phrase. In particular:
   similarity, or outside knowledge -- an unstated merger/acquisition/
   rename relationship is not evidence this section may assert;
 - do not turn attendance, an affiliation field, or a project mention alone
-  into a relation.
+  into a relation;
+- for a specific, named product/system/equipment the post connects to an
+  org or project, object_name is the product/equipment name itself, not a
+  generic material, process, or category term -- pick the predicate and
+  subject/object order by direction: when the org/project created,
+  developed, or built the named product ("Northwind Services developed the
+  Coil Sentinel monitoring unit"), subject_type is industrial_asset,
+  predicate is prov_was_attributed_to, object_type is organization or
+  project (the product was attributed to its creator); when the org/project
+  instead employed, installed, or applied an already-existing named product
+  ("installed the Coil Sentinel unit", "[product] was applied to
+  [project]"), subject_type is organization or project, predicate is
+  prov_used, object_type is industrial_asset. Only emit either for a
+  specific named product/equipment, not a generic technical term with no
+  proper name.
 Fictional format examples only:
 Northwind Services | organization | org_member_of | Northwind Group | organization | joined Northwind Group | 0.98
 Northwind Services | organization | lw_supports | Highland HVDC | project | provided installation support for Highland HVDC | 0.9
 Prime Contractor | organization | lw_supports | Highland HVDC | project | Prime Contractor was the main contractor | 0.95
 Northgate Systems | organization | prov_alternate_of | Northgate Robotics | organization | Northgate Systems(구 Northgate Robotics) | 0.9
+Coil Sentinel monitoring unit | industrial_asset | prov_was_attributed_to | Northwind Services | organization | Coil Sentinel 모니터링 장비를 개발했다고 설명함 | 0.85
+Highland HVDC | project | prov_used | Coil Sentinel monitoring unit | industrial_asset | Highland HVDC 현장에 Coil Sentinel 장비를 설치함 | 0.85
 A full predicate registry is supplied by the application contract; if no
 predicate fits, omit the relation rather than inventing a verb.
 Post title: {title}
@@ -2009,7 +2032,7 @@ class ContextualOrchestratorPostSummaryClient:
                 ],
                 "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
-                "max_tokens": _SUMMARY_MAX_TOKENS,
+                "max_tokens": _DETAILS_MAX_TOKENS,
             },
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,

@@ -581,6 +581,34 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
     assert summary.project_mentions[0].canonical_name == "hvdc-pilot"
 
 
+def test_details_request_gets_a_larger_token_budget_than_summary(monkeypatch) -> None:
+    """The details response covers eight structured sections (ROLES through
+    RELATIONS); a shared, tight budget truncates RELATIONS first since it is
+    last -- observed live: identical requests returned RELATIONS some runs
+    and silently dropped it other runs, purely from response-length
+    variance against the same cap the short summary call also used.
+    """
+    observed: list[dict[str, object]] = []
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        observed.append(payload)
+        prompt = payload["messages"][0]["content"]
+        if "ROLES:" in prompt:
+            content = "ROLES:\nNONE\nPROJECTS:\nNONE"
+        else:
+            content = "본문 근거 요약\n\nKEY EVENTS: 후속 확인"
+        return {"choices": [{"message": {"content": content}}]}
+
+    monkeypatch.setattr("lineageweave.post_summary.post_json", fake_post_json)
+    ContextualOrchestratorPostSummaryClient("https://orchestrator.test", "token").summarize(
+        "Synthetic title", "Synthetic body"
+    )
+
+    assert len(observed) == 2
+    summary_tokens, details_tokens = observed[0]["max_tokens"], observed[1]["max_tokens"]
+    assert details_tokens > summary_tokens
+
+
 def test_summary_details_parse_failure_does_not_expose_provider_response(monkeypatch) -> None:
     """Malformed provider output gets a stable parser error, never raw text."""
     responses = iter(
