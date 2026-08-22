@@ -249,6 +249,7 @@ to reach protected `main`.
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
 | Event Lineage evidence | Channel evidence and Allen relations live on #387 / #484 | Persist channel scores, explain them in the popup, never invent a fused score |
 | Scientific measurement | #496 preserves an already accepted TEPP receipt across an unavailable recheck, but its exact-head Strix check failed and approvals remain zero; #499 is merged only into a hidden docs stack, while #507 is the clean protected-main restack with its own Strix failure | Repair exact-head Strix findings, then protect delivery of persisted accepted envelopes and fail-closed weighting; calibration/recovery RMSE; no invented theta |
+| TEPP topic-identity lineage (TRSL-TM) and CHRONOS/TDT event-intelligence overlay on the Event Lineage DAG | ADR 0132 defines the consumption contract (citing TEPP ADR 0012 TRSL-TM and ADR 0016 CHRONOS/TDT, APA 7th); `zcrht811_export_rows` posts are the source corpus; extends, does not replace, the existing evidence-fusion lineage tree (ADR 0064/0084) | ADR-only; `topic_lineage` analysis-run kind, DB projection, API endpoint, DAG overlay, Storybook states, and e2e coverage are open; blocked upstream on TEPP's topic-identity/CHRONOS result contract (TEPP `tepp_api` currently exposes only `AnalysisRunRequest`/`AnalysisRunAccepted`; TEPP issue #156 tracks the completed-result contract) |
 | Planned-facility intent | #505 and its #509 follow-up are merged only into open #490's non-default branch; current #490 is `63f3231d249f20b0f34f7fc56fbd3f28f62f6d0c` with core/OpenCode checks passing, Strix running, Devin failed, and zero approvals | Settle #490's exact-head gate and obtain independent review, then deliver the stack through protected `main` before making a release claim |
 | Accessibility and responsive UX | Unit coverage exists for major surfaces; Storybook inventory incomplete | Keyboard, screen-reader, mobile, and authenticated Playwright acceptance on the exact release head |
 | Design tokens and repeated objects | Token extraction started; sanitized Figma Event Lineage desktop/mobile frames exist, while other repeated product surfaces remain incomplete | Tokens in CSS + Storybook stories for board, popup, DAG, Ask, calendar, forms, charts; same-viewport Figma/runtime visual comparison before release |
@@ -374,3 +375,29 @@ of leverage; open connector PRs there when the defect is upstream:
 
 Citations in doctoring and ADRs use APA 7th. Do not invent a heuristic where
 the papers leave the decision undecided.
+
+## 12. References
+
+ContextualWisdomLab. (2026). *ADR 0012: Temporal relational shared-latent
+topic measurement* [ADR]. GitHub.
+https://github.com/ContextualWisdomLab/TEPP/blob/main/docs/adr/0012-temporal-relational-shared-latent-topic-measurement.md
+
+ContextualWisdomLab. (2026). *ADR 0016: TDT, CHRONOS, and Event Ontology
+intelligence boundary* [ADR]. GitHub.
+https://github.com/ContextualWisdomLab/TEPP/blob/main/docs/adr/0016-tdt-chronos-event-intelligence-boundary.md
+
+Roberts, M. E., Stewart, B. M., & Tingley, D. (2019). stm: An R package for
+structural topic models. *Journal of Statistical Software, 91*(2), 1–40.
+https://doi.org/10.18637/jss.v091.i02
+
+Mimno, D., Wallach, H. M., Naradowsky, J., Smith, D. A., & McCallum, A.
+(2009). Polylingual topic models. In *Proceedings of the 2009 Conference on
+Empirical Methods in Natural Language Processing* (pp. 880–889). Association
+for Computational Linguistics. https://aclanthology.org/D09-1092/
+
+Allan, J. (Ed.). (2002). *Topic detection and tracking: Event-based
+information organization*. Springer. https://doi.org/10.1007/978-1-4615-0933-2
+
+Kalashnikov, D. V., Chen, Z., Mehrotra, S., & Nuray-Turan, R. (2007). CHRONOS:
+Facilitating history discovery by linking temporal records. *Proceedings of
+the VLDB Endowment*. https://doi.org/10.14778/2367502.2367559
