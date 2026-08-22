@@ -44,10 +44,12 @@ the table -- cannot serve as a draft signal; see below), `pgcode_field`,
 `erdpt_field`/`erdlo_field`/`ertlo_field`/`ertcd_field`,
 `aedlo_field`/`aetlo_field`/`aetcd_field`, `source_artifact_path` /
 `source_artifact_sha256` (present on this table but not used by this
-mapping; a body stored as an external artifact would need
-`--body-artifact-path-column`/`--body-artifact-sha256-column` instead of
-`--body-column` if `voccts_field` is ever empty for a real row -- not
-observed in the rows sampled here, all of which had inline body content).
+mapping; `scripts/import_postgresql_posts.py` has no artifact-based body
+flag today -- if `voccts_field` is ever empty for a real row and the body
+must be recovered from an external artifact instead, the importer would
+need a new `--body-artifact-path-column`/`--body-artifact-sha256-column`
+pair added before this mapping could use it -- not observed in the rows
+sampled here, all of which had inline body content).
 
 ## Publication-state gating
 
@@ -82,7 +84,7 @@ means, not an arbitrary reuse of one column for two purposes.
 ## Verified import (throwaway database only)
 
 Ran the unmodified `scripts/import_postgresql_posts.py` against
-`postgresql://seonghobae@localhost/postgres` `public.zcrht811_export_rows`
+`postgresql://<user>@<host>/<db>` `public.zcrht811_export_rows`
 (10 non-deleted rows with non-empty body content, `--allow-demo-corporate-entity`
 with a clearly-marked `DEMO-SAP-VERIFY-*` scope), targeting a throwaway
 database created and dropped in the same session:
