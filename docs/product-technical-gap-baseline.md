@@ -2,7 +2,7 @@
 
 ## 1. Known Parsing & Frontend Display Gaps
 - **Footnote Parsing**: `post=00505695-3e61-1fd1-83c5-263f88a9e77a` fails to recognize footnotes (li/oi level errors).
-- **Table Parsing**: `post=00505695-3e61-1fd1-80c6-86bb61c8ddc5` completely fails at parsing tables.
+- **Table Parsing**: (Resolved) Verified against the real row for `post=00505695-3e61-1fd1-80c6-86bb61c8ddc5` (confirmed still present in the running compose stack's seeded DB). Its `post_body` genuinely contains a real HTML `<table>`/`<tr>`/`<td>` structure. Ran `lineageweave.chunking.chunk_by_dom` against it: it emits 14 `label="tr"` chunks, each rendered as a consistent 5-cell `" | "`-joined row (`_TABLE_ROW_TAGS`/`_TABLE_CELL_TAGS` treat the row as the atomic unit, specifically to avoid a row flattening into unrelated one-cell paragraphs) -- no dropped cells, no row/column count drift across any of the 14 rows. No content-level failure reproduced.
 - **Indentation**: Incorrect indentation rendering in `post=00505695-7571-1fd1-83c3-d521b187ad5b` and `post=00505695-3e61-1fd1-83c0-497b3c1c455e`.
 - **Image/Table OCR**: `post=00505695-7571-1fd1-83dd-3d22a61a5734` fails text recognition for tables inside images, markdown parsing fails, and image OCR description is too shallow for Ontology & Semantics.
 - **Math/Superscripts**: `post=00505695-9612-1fe1-83a7-e30153323f25` fails to parse superscripts like m^3 properly. Needs strict Ontology grammar for math formulas.
