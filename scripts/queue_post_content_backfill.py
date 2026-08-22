@@ -71,6 +71,7 @@ async def queue_post_content_backfill(
               from source_post post
              where nullif(btrim(source_draft_code), '') is null
                and nullif(btrim(source_deleted_flag), '') is null
+               and coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'
                and (
                    nullif(btrim(source_author_code), '') is not null
                    or nullif(btrim(source_author_name), '') is not null
@@ -84,6 +85,10 @@ async def queue_post_content_backfill(
                    or nullif(btrim(source_customer_name), '') is not null
                    or nullif(btrim(source_project_code), '') is not null
                    or nullif(btrim(source_project_name), '') is not null
+                   or nullif(btrim(source_order_pool_code), '') is not null
+                   or nullif(btrim(source_sales_order_code), '') is not null
+                   or nullif(btrim(source_sales_order_item_number::text), '') is not null
+                   or nullif(btrim(source_inspection_point_code), '') is not null
                )
                and (
                    not exists (

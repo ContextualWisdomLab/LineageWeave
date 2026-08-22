@@ -201,6 +201,7 @@ def test_gather_chat_sources_bounds_and_orders_linked_context(
     expected_candidates = [*sorted(direct_ids), *sorted(indirect_ids)][:32]
     assert conn.candidate_ids == expected_candidates
     assert "array_position" in conn.candidate_query
+    assert conn.candidate_query.count("source_detail_state_code") == 1
     assert [source.post_id for source in sources] == [root_id, *expected_candidates[:7]]
     assert len(sources) == 8
 

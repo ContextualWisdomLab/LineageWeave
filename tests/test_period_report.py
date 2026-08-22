@@ -77,7 +77,7 @@ def test_high_category_posts_outrank_low_category_posts() -> None:
 def test_fipc_keeps_all_high_week_above_mixed_reference() -> None:
     """Independent refit of an all-high week recenters near 0. Scoring
     the same rows on the mixed week's item bank must keep mean θ above
-    the reference -- that is the buyer-visible week-over-week signal.
+    the reference -- that is the reader-visible week-over-week signal.
     """
     items = CRITERION_CODES
     high_ids = [f"high-{idx}" for idx in range(4)]
@@ -128,7 +128,7 @@ def test_shared_metric_ranks_high_group_above_low_group() -> None:
 
     Independent refits each re-center near 0, so the gap collapses.
     Scoring both on one pooled bank must keep the high unit above the
-    low unit -- that is the buyer-visible multilevel signal.
+    low unit -- that is the reader-visible multilevel signal.
     """
     items = CRITERION_CODES
     high_ids = [f"high-{idx}" for idx in range(4)]

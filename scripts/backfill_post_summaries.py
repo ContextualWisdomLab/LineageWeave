@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Backfill evidence-backed summaries for posts without a project field.
 
-This is an operator command, not a buyer HTTP route. It uses the existing
+This is an operator command, not a reader-facing HTTP route. It uses the existing
 post-summary contract through contextual-orchestrator, keeps one metadata
 session per post, and never prints source bodies or model responses.
 """
@@ -87,6 +87,13 @@ def _semantic_hints(row: asyncpg.Record) -> str:
         source_process_unit_catalog_name=row["source_process_unit_catalog_name"],
         source_sales_pool_code=row["source_sales_pool_code"],
         source_sales_pool_name=row["source_sales_pool_name"],
+        source_order_pool_code=row["source_order_pool_code"],
+        source_sales_order_code=row["source_sales_order_code"],
+        source_sales_order_item_number=row["source_sales_order_item_number"],
+        source_inspection_point_code=row["source_inspection_point_code"],
+        source_stage_code=row["source_stage_code"],
+        source_detail_state_code=row["source_detail_state_code"],
+        source_deleted_flag=row["source_deleted_flag"],
         source_customer_code=row["source_customer_code"],
         source_customer_name=row["source_customer_name"],
         source_customer_catalog_name=row["source_customer_catalog_name"],
@@ -108,6 +115,7 @@ async def _load_posts(
                    post.post_title,
                    post.post_body,
                    post.author_account_id,
+                   post.source_detail_state_code,
                    author.display_name as author_name,
                    post.source_author_code,
                    post.source_author_name,
@@ -119,6 +127,12 @@ async def _load_posts(
                    source_process_unit.process_unit_name as source_process_unit_catalog_name,
                    post.source_sales_pool_code,
                    post.source_sales_pool_name,
+                   post.source_order_pool_code,
+                   post.source_sales_order_code,
+                   post.source_sales_order_item_number,
+                   post.source_inspection_point_code,
+                   post.source_stage_code,
+                   post.source_deleted_flag,
                    post.source_customer_code,
                    post.source_customer_name,
                    source_customer.entity_name as source_customer_catalog_name,
@@ -149,6 +163,7 @@ async def _load_posts(
                 on source_customer.corporate_entity_code = nullif(btrim(post.source_customer_code), '')
              where nullif(btrim(post.source_draft_code), '') is null
                and nullif(btrim(post.source_deleted_flag), '') is null
+               and coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'
                and not (
                    (
                        nullif(btrim(post.source_author_code), '') is null
@@ -159,6 +174,10 @@ async def _load_posts(
                        and nullif(btrim(post.source_process_unit_name), '') is null
                        and nullif(btrim(post.source_sales_pool_code), '') is null
                        and nullif(btrim(post.source_sales_pool_name), '') is null
+                       and nullif(btrim(post.source_order_pool_code), '') is null
+                       and nullif(btrim(post.source_sales_order_code), '') is null
+                       and nullif(btrim(post.source_sales_order_item_number::text), '') is null
+                       and nullif(btrim(post.source_inspection_point_code), '') is null
                        and nullif(btrim(post.source_customer_code), '') is null
                        and nullif(btrim(post.source_customer_name), '') is null
                        and nullif(btrim(post.source_project_code), '') is null
@@ -176,6 +195,10 @@ async def _load_posts(
                             or nullif(btrim(real_post.source_process_unit_name), '') is not null
                             or nullif(btrim(real_post.source_sales_pool_code), '') is not null
                             or nullif(btrim(real_post.source_sales_pool_name), '') is not null
+                            or nullif(btrim(real_post.source_order_pool_code), '') is not null
+                            or nullif(btrim(real_post.source_sales_order_code), '') is not null
+                            or nullif(btrim(real_post.source_sales_order_item_number::text), '') is not null
+                            or nullif(btrim(real_post.source_inspection_point_code), '') is not null
                             or nullif(btrim(real_post.source_customer_code), '') is not null
                             or nullif(btrim(real_post.source_customer_name), '') is not null
                             or nullif(btrim(real_post.source_project_code), '') is not null
@@ -221,7 +244,9 @@ async def backfill_post_summaries(
     vision_client = orchestrator_vision_client(base_url, api_key)
     if not vision_client.available:
         raise RuntimeError("VISION is unavailable; configure contextual-orchestrator before backfill")
-    summary_client = ContextualOrchestratorPostSummaryClient(base_url, api_key, timeout=180.0)
+    # Local orchestrator runs may perform two structured extraction passes;
+    # keep the operator backfill timeout aligned with the API route.
+    summary_client = ContextualOrchestratorPostSummaryClient(base_url, api_key, timeout=300.0)
     embedding_model = os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
     embedding_client = orchestrator_embedding_client(base_url, api_key, embedding_model)
     structure_client = (

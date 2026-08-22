@@ -203,16 +203,35 @@ class _SummaryConnection:
                 "korean_summary": "합성 요약",
                 "summary_contract_version": POST_SUMMARY_CONTRACT_VERSION,
             }
+        if compact.startswith("select resolved_organization_name, verification_status_code"):
+            assert not self.in_transaction
+            return None
         if compact.startswith("select person_id from cataloged_person"):
             assert self.in_transaction
             return None
         raise AssertionError(f"unexpected fetchrow query: {compact}")
+
+    async def fetchval(self, query: str, *args: Any) -> Any:
+        compact = " ".join(query.split())
+        self._events.append(("fetchval", compact))
+        if compact.startswith("select source_detail_state_code from source_post"):
+            assert not self.in_transaction
+            return None
+        raise AssertionError(f"unexpected fetchval query: {compact}")
 
     async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
         compact = " ".join(query.split())
         self._events.append(("fetch", compact))
         assert not self.in_transaction
         if "from post_summary_action" in compact:
+            return []
+        if "from post_summary_quantitative_observation" in compact:
+            return []
+        if "from post_summary_source_fact" in compact:
+            return []
+        if "from post_summary_semantic_relationship" in compact:
+            return []
+        if "from post_summary_event_clue" in compact:
             return []
         if "from post_summary_event" in compact:
             return [{"event_text": "검토 완료"}]
@@ -224,12 +243,13 @@ class _SummaryConnection:
             return [
                 {
                     "actor_name": "Synthetic Design Team",
-                    "responsibility": "도면 검토",
+                    "responsibility_text": "도면 검토",
                     "actor_type_code": ACTOR_TYPE_TEAM,
                     "affiliated_organization_name": "Synthetic Energy",
                     "cataloged_team_id": None,
                     "cataloged_corporate_entity_id": None,
                     "cataloged_person_id": None,
+                    "cataloged_affiliated_corporate_entity_id": None,
                 }
             ]
         raise AssertionError(f"unexpected fetch query: {compact}")
@@ -519,6 +539,14 @@ def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
             events.append(("fetch", compact))
             if "from post_summary_action" in compact:
                 return []
+            if "from post_summary_quantitative_observation" in compact:
+                return []
+            if "from post_summary_source_fact" in compact:
+                return []
+            if "from post_summary_semantic_relationship" in compact:
+                return []
+            if "from post_summary_event_clue" in compact:
+                return []
             if "from post_summary_event" in compact:
                 return []
             if "from post_project_mention" in compact:
@@ -528,12 +556,13 @@ def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
                 return [
                     {
                         "actor_name": "Priya Nair",
-                        "responsibility": "고객 측 수신",
+                        "responsibility_text": "고객 측 수신",
                         "actor_type_code": ACTOR_TYPE_PERSON,
                         "affiliated_organization_name": "Northridge Grid",
                         "cataloged_team_id": None,
                         "cataloged_corporate_entity_id": None,
                         "cataloged_person_id": person_id,
+                        "cataloged_affiliated_corporate_entity_id": None,
                     }
                 ]
             raise AssertionError(f"unexpected fetch query: {compact}")

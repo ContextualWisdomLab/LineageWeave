@@ -10,6 +10,8 @@ from typing import Any
 import asyncpg
 import redis.asyncio as redis
 
+from lineageweave.chunking import chunk_by_source_body
+
 POST_CONTENT_STREAM_KEY = "post-content-ingestion"
 QUEUED = "post_content_ingestion_queued"
 RUNNING = "post_content_ingestion_running"
@@ -42,6 +44,18 @@ def post_content_api_status(status_code: str | None, *, content_present: bool) -
     if content_present:
         return "ready"
     return "unavailable"
+
+
+def post_content_summary_status_message(status_code: str | None) -> str:
+    """Return an honest buyer-facing image-evidence status message.
+
+    A terminal ingestion failure is not still processing. Keeping those two
+    states distinct lets the popup tell the operator to retry the durable
+    job instead of implying that waiting will resolve a terminal failure.
+    """
+    if status_code == FAILED:
+        return "Post summary is unavailable: image evidence ingestion failed; contact an administrator to retry the content job"
+    return "Post summary is unavailable: image evidence is still being processed"
 
 
 async def post_content_is_complete(
@@ -109,6 +123,70 @@ async def post_content_is_complete(
             require_structure,
         )
     )
+
+
+async def post_content_summary_is_ready(
+    conn: asyncpg.Connection,
+    post_id: str,
+) -> bool:
+    """Require every embedded image and visual region to have VISION evidence."""
+    return bool(
+        await conn.fetchval(
+            """
+            select exists(
+                       select 1
+                         from post_content_unit unit
+                        where unit.post_id = $1
+                   )
+               and not exists(
+                   select 1
+                     from post_content_unit unit
+                     left join post_content_image image
+                       on image.post_content_unit_id = unit.post_content_unit_id
+                    where unit.post_id = $1
+                      and unit.unit_kind_code = 'image'
+                      and (
+                          image.post_content_image_id is null
+                          or image.description_status_code <> 'described'
+                          or exists(
+                              select 1
+                                from post_content_image_region region
+                               where region.post_content_image_id = image.post_content_image_id
+                                 and region.description_status_code <> 'described'
+                          )
+                      )
+               )
+            """,
+            post_id,
+        )
+    )
+
+
+async def fetch_post_summary_source(
+    conn: asyncpg.Connection,
+    post_id: str,
+) -> str | None:
+    """Return persisted semantic units, including completed image evidence."""
+    rows = await conn.fetch(
+        """
+        select unit_text
+          from post_content_unit
+         where post_id = $1
+         order by unit_index
+        """,
+        post_id,
+    )
+    source = "\n\n".join(
+        str(row["unit_text"]).strip()
+        for row in rows
+        if isinstance(row["unit_text"], str) and row["unit_text"].strip()
+    )
+    return source or None
+
+
+def post_body_has_images(body: str) -> bool:
+    """Detect image units without exposing or copying the raw body."""
+    return any(chunk.unit_type == "image" for chunk in chunk_by_source_body(body))
 
 
 def post_content_stream_fields(*, post_id: str, source_body_digest: str) -> dict[str, str]:
@@ -410,21 +488,26 @@ async def republish_queued_post_content_jobs(
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            select post_id, source_body_sha256
+            select post_content_ingestion_job.post_id,
+                   post_content_ingestion_job.source_body_sha256
             from post_content_ingestion_job
-            where (
-                status_code = $1
-                and (
-                    attempt_count = 0
-                    or queued_at <= now() - $2::interval
+            join source_post post on post.post_id = post_content_ingestion_job.post_id
+            where coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'
+              and (
+                    (
+                        post_content_ingestion_job.status_code = $1
+                        and (
+                            post_content_ingestion_job.attempt_count = 0
+                            or post_content_ingestion_job.queued_at <= now() - $2::interval
+                        )
+                    )
+                    or (
+                        post_content_ingestion_job.status_code = $3
+                        and post_content_ingestion_job.started_at is not null
+                        and post_content_ingestion_job.started_at < now() - $4::interval
+                    )
                 )
-            )
-               or (
-                    status_code = $3
-                    and started_at is not null
-                    and started_at < now() - $4::interval
-               )
-            order by queued_at
+            order by post_content_ingestion_job.queued_at
             limit $5
             """,
             QUEUED,

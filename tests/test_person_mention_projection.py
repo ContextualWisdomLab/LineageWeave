@@ -2,7 +2,7 @@
 
 Keyman extraction and post-summary R&R are independent evidence channels. A
 replacement in either channel must remove only that channel's stale person
-mentions, then reconcile the buyer-facing Knowledge Graph from the currently
+mentions, then reconcile the reader-facing Knowledge Graph from the currently
 supported union. Orphan graph-registry rows must never become visible.
 """
 
@@ -77,6 +77,16 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     / "migrations"
     / "0102_project_bound_summary_event.sql"
 )
+_IDENTIFIER_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0104_two_word_database_identifiers.sql"
+)
+_SOURCE_COMMERCIAL_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0130_source_commercial_context.sql"
+)
 _SEMANTIC_SEARCH_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0032_semantic_search_trigram.sql"
 )
@@ -97,6 +107,41 @@ _SOURCE_NAMED_HINTS_MIGRATION = (
 )
 _SOURCE_ORG_NAMED_HINTS_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0039_source_org_named_hints.sql"
+)
+_QUANTITATIVE_OBSERVATION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0108_post_summary_quantitative_observation.sql"
+)
+_SOURCE_FACT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0109_post_summary_source_fact.sql"
+)
+_SOFTWARE_AGENT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0110_role_responsibility_software_agent.sql"
+)
+_SEMANTIC_RELATIONSHIP_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0111_post_summary_semantic_relationship.sql"
+)
+_EVENT_CLUE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0112_event_clue_semantic_projection.sql"
+)
+_BROAD_FACT_TYPES_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0113_broad_source_fact_types.sql"
+)
+_SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0114_semantic_relationship_standard_predicates.sql"
 )
 
 
@@ -156,15 +201,26 @@ def projection_database() -> str:
                 cursor.execute(_SEMANTIC_SEARCH_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SOURCE_STATE_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SOURCE_CONTEXT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(
+                    _SOURCE_COMMERCIAL_CONTEXT_MIGRATION.read_text(encoding="utf-8")
+                )
                 cursor.execute(_NORMALIZED_BODY_SEARCH_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SOURCE_RECORD_IDENTITY_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SOURCE_NAMED_HINTS_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SOURCE_ORG_NAMED_HINTS_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_POST_SUMMARY_CONTRACT_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SUMMARY_FIVE_W1H_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_QUANTITATIVE_OBSERVATION_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SOURCE_FACT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SOFTWARE_AGENT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SEMANTIC_RELATIONSHIP_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_EVENT_CLUE_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_BROAD_FACT_TYPES_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_IDENTIFIER_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(
                     """
                     insert into common_lookup_value
@@ -309,7 +365,11 @@ async def _exercise_projection_contract(
             for action in summary_payload["major_event_actions"]
         ] == ["Synthetic Project", None]
         assert summary_payload["key_event_details"] == [
-            {"event_text": "합성 프로젝트 검토", "project_name": "Synthetic Project"}
+            {
+                "event_text": "합성 프로젝트 검토",
+                "project_name": "Synthetic Project",
+                "evidence_text": None,
+            }
         ]
 
         keyman_rows = await connection.fetch(
@@ -448,7 +508,7 @@ def test_cross_post_identity_upgrade_keeps_keyman_mention_context(
             cursor.execute(
                 """
                 insert into post_summary_role
-                    (post_id, actor_name, responsibility, actor_type_code)
+                    (post_id, actor_name, responsibility_text, actor_type_code)
                 values (%s, 'Summary Person', '검토', 'prov_person')
                 """,
                 (post_id,),

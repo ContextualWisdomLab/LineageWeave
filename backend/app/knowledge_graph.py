@@ -8,13 +8,13 @@ nodes, and a Keyman who is only mentioned on such posts is forbidden.
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 from uuid import UUID
 
 import asyncpg
 
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
-from lineageweave.ontology import ontology_annotations
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
     EDGE_CO_MENTION,
@@ -34,9 +34,35 @@ from lineageweave.knowledge_graph import (
     random_walk_with_restart,
     select_related_nodes,
 )
-
+from lineageweave.ontology import ontology_annotations, semantic_predicate_annotations
+from lineageweave.source_lineage_hints import source_lineage_hints
 
 _GRAPH_PROJECTION_LOCK_KEY = "lineageweave:knowledge_graph_projection"
+
+_SEMANTIC_NODE_CLASS_IRIS = {
+    "person": "http://www.w3.org/ns/prov#Person",
+    "organization": "http://www.w3.org/ns/prov#Organization",
+    "team": "http://www.w3.org/ns/org#OrganizationalUnit",
+    "software_agent": "http://www.w3.org/ns/prov#SoftwareAgent",
+    "project": "https://contextualwisdomlab.github.io/lineageweave/ontology#Project",
+    "corporate_entity": "https://contextualwisdomlab.github.io/lineageweave/ontology#CorporateEntity",
+    "post": "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+    "event": "https://contextualwisdomlab.github.io/lineageweave/ontology#Event",
+    "event_observation": "https://contextualwisdomlab.github.io/lineageweave/ontology#EventObservation",
+    "evidence_clue": "https://contextualwisdomlab.github.io/lineageweave/ontology#EvidenceClue",
+    "place": "https://contextualwisdomlab.github.io/lineageweave/ontology#Place",
+    "industrial_asset": "https://contextualwisdomlab.github.io/lineageweave/ontology#IndustrialAsset",
+    "industrial_process": "https://contextualwisdomlab.github.io/lineageweave/ontology#IndustrialProcess",
+    "document": "https://contextualwisdomlab.github.io/lineageweave/ontology#Document",
+    "observation": "https://contextualwisdomlab.github.io/lineageweave/ontology#Observation",
+    "activity": "https://contextualwisdomlab.github.io/lineageweave/ontology#Activity",
+    "temporal_entity": "https://contextualwisdomlab.github.io/lineageweave/ontology#TemporalEntity",
+    "normative_statement": "https://contextualwisdomlab.github.io/lineageweave/ontology#NormativeStatement",
+    "quality_assessment": "https://contextualwisdomlab.github.io/lineageweave/ontology#QualityAssessment",
+    "risk_statement": "https://contextualwisdomlab.github.io/lineageweave/ontology#RiskStatement",
+    "organization_context": "https://contextualwisdomlab.github.io/lineageweave/ontology#OrganizationContext",
+    "source_observation": "https://contextualwisdomlab.github.io/lineageweave/ontology#Observation",
+}
 
 
 def edge_spec_from_row(row: asyncpg.Record) -> KnowledgeGraphEdgeSpec:
@@ -259,7 +285,8 @@ async def visible_mention_post_ids(
     # Safe SQL: the eligibility predicate is an immutable schema fragment; person id is bound.
     rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
-        select post.post_id, post.visibility_code, post.corporate_entity_id
+        select post.post_id, post.visibility_code, post.corporate_entity_id,
+               post.author_account_id, post.source_detail_state_code
           from combined_post_person_mention mention
           join source_post post on post.post_id = mention.post_id
          where mention.person_id = $1
@@ -280,7 +307,8 @@ async def visible_affiliation_post_ids(
     rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select distinct post.post_id, post.visibility_code,
-                        post.corporate_entity_id, post.created_at
+                        post.corporate_entity_id, post.author_account_id,
+                        post.source_detail_state_code, post.created_at
           from source_post post
          where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
            and post.post_id in (
@@ -310,7 +338,8 @@ async def visible_team_mention_post_ids(
     # Safe SQL: the eligibility predicate is an immutable schema fragment; team id is bound.
     rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
-        select post.post_id, post.visibility_code, post.corporate_entity_id
+        select post.post_id, post.visibility_code, post.corporate_entity_id,
+               post.author_account_id, post.source_detail_state_code
           from post_team_mention mention
           join source_post post on post.post_id = mention.post_id
          where mention.team_id = $1
@@ -539,6 +568,192 @@ async def hydrate_related_nodes(
     return payload
 
 
+async def post_knowledge_graph(
+    conn: asyncpg.Connection,
+    post_id: str,
+    *,
+    relation_limit: int = 64,
+) -> dict[str, Any]:
+    """Return an evidence-scoped KG view for one authorized post.
+
+    Compact catalog edges come from ``knowledge_graph_edge``. Semantic
+    relations stay normalized and are projected into post-scoped text nodes;
+    this preserves unresolved-name uncertainty while making the extracted
+    relation drawable.
+    """
+    catalog_edges = await load_visible_subgraph(conn, [post_id])
+    endpoint_keys = {node_key(NODE_POST, post_id)}
+    endpoint_keys.update(
+        node_key(edge.source_node_type_code, edge.source_node_id) for edge in catalog_edges
+    )
+    endpoint_keys.update(
+        node_key(edge.target_node_type_code, edge.target_node_id) for edge in catalog_edges
+    )
+    catalog_nodes = await hydrate_related_nodes(
+        conn, [(key, 1.0 if key == node_key(NODE_POST, post_id) else 0.0) for key in endpoint_keys]
+    )
+    nodes: dict[str, dict[str, Any]] = {
+        node_key(item["node_type_code"], item["node_id"]): {
+            "id": node_key(item["node_type_code"], item["node_id"]),
+            "node_type_code": item["node_type_code"],
+            "node_id": item["node_id"],
+            "label": item["label"],
+            "ontology_iri": item.get("ontology_iri"),
+            "ontology_label": item.get("ontology_label"),
+            "is_focus": item["node_type_code"] == NODE_POST and item["node_id"] == post_id,
+        }
+        for item in catalog_nodes
+    }
+    edges: list[dict[str, Any]] = []
+    for edge in catalog_edges[:relation_limit]:
+        source = node_key(edge.source_node_type_code, edge.source_node_id)
+        target = node_key(edge.target_node_type_code, edge.target_node_id)
+        annotation = ontology_annotations(edge.edge_type_code)
+        edges.append(
+            {
+                "source": source,
+                "target": target,
+                "edge_type_code": edge.edge_type_code,
+                "ontology_iri": annotation.get("ontology_iri"),
+                "ontology_label": annotation.get("ontology_label", edge.edge_type_code),
+                "confidence": edge.edge_weight,
+                "evidence_post_ids": [post_id],
+            }
+        )
+
+    relation_rows = await conn.fetch(
+        """
+        select relation_ordinal, subject_name, subject_type, predicate_code,
+               object_name, object_type, evidence_text, relation_confidence
+          from post_summary_semantic_relationship
+         where post_id = $1
+         order by relation_ordinal
+         limit ($2 + 1)
+        """,
+        post_id,
+        relation_limit,
+    )
+
+    def semantic_key(node_type: str, name: str) -> str:
+        digest = hashlib.sha256(f"{node_type}\0{name}".encode()).hexdigest()[:16]
+        return f"semantic:{post_id}:{digest}"
+
+    for row in relation_rows[:relation_limit]:
+        source = semantic_key(row["subject_type"], row["subject_name"])
+        target = semantic_key(row["object_type"], row["object_name"])
+        for key, node_type, name in (
+            (source, row["subject_type"], row["subject_name"]),
+            (target, row["object_type"], row["object_name"]),
+        ):
+            nodes.setdefault(
+                key,
+                {
+                    "id": key,
+                    "node_type_code": f"semantic_{node_type}",
+                    "node_id": key,
+                    "label": name,
+                    "ontology_iri": _SEMANTIC_NODE_CLASS_IRIS[node_type],
+                    "ontology_label": node_type,
+                    "is_focus": False,
+                    "is_evidence_text_node": True,
+                },
+            )
+        annotation = semantic_predicate_annotations(row["predicate_code"])
+        edges.append(
+            {
+                "source": source,
+                "target": target,
+                "edge_type_code": row["predicate_code"],
+                "ontology_iri": annotation.get("ontology_iri"),
+                "ontology_label": annotation.get("ontology_label", row["predicate_code"]),
+                "confidence": float(row["relation_confidence"]),
+                "evidence_text": row["evidence_text"],
+                "evidence_post_ids": [post_id],
+            }
+        )
+
+    source_row = await conn.fetchrow(
+        """
+        select source_customer_code, source_order_pool_code,
+               source_sales_order_code, source_sales_order_item_number,
+               source_stage_code, source_detail_state_code,
+               source_inspection_point_code, source_deleted_flag
+          from source_post
+         where post_id = $1
+        """,
+        post_id,
+    )
+    if source_row is not None:
+        source_values = dict(source_row)
+        observed_source_fields = any(
+            value is not None and (not isinstance(value, str) or bool(value.strip()))
+            for value in source_values.values()
+        )
+        if observed_source_fields:
+            source_hints = source_lineage_hints(
+                customer_code=source_row["source_customer_code"],
+                order_pool_code=source_row["source_order_pool_code"],
+                sales_order_code=source_row["source_sales_order_code"],
+                sales_order_item_number=source_row["source_sales_order_item_number"],
+                stage_code=source_row["source_stage_code"],
+                detail_state_code=source_row["source_detail_state_code"],
+                inspection_point_code=source_row["source_inspection_point_code"],
+                deleted_flag=source_row["source_deleted_flag"],
+            )
+            source_observations = [
+                (
+                    "commercial_context",
+                    f"Commercial context: {source_hints['commercial_context_code']}",
+                    "combination="
+                    f"{source_hints['combination_code']}; "
+                    f"present_fields={','.join(source_hints['present_fields']) or 'none'}; "
+                    "inference=inferred; provenance=source_post.field_presence",
+                ),
+                (
+                    "lifecycle_vector",
+                    f"Lifecycle vector: {source_hints['lifecycle_vector']}",
+                    "raw_codes_only; provenance=source_post.lifecycle_fields",
+                ),
+            ]
+            predicate = semantic_predicate_annotations("prov_was_derived_from")
+            for kind, label, evidence_text in source_observations:
+                digest = hashlib.sha256(
+                    f"{post_id}\0{kind}\0{label}".encode()
+                ).hexdigest()[:16]
+                observation_key = f"source-observation:{post_id}:{digest}"
+                nodes.setdefault(
+                    observation_key,
+                    {
+                        "id": observation_key,
+                        "node_type_code": "semantic_source_observation",
+                        "node_id": observation_key,
+                        "label": label,
+                        "ontology_iri": _SEMANTIC_NODE_CLASS_IRIS["source_observation"],
+                        "ontology_label": "Observation",
+                        "is_focus": False,
+                        "is_evidence_text_node": True,
+                    },
+                )
+                edges.append(
+                    {
+                        "source": observation_key,
+                        "target": node_key(NODE_POST, post_id),
+                        "edge_type_code": "prov_was_derived_from",
+                        "ontology_iri": predicate.get("ontology_iri"),
+                        "ontology_label": predicate.get("ontology_label", "Was derived from"),
+                        "confidence": 1.0,
+                        "evidence_text": evidence_text,
+                        "evidence_post_ids": [post_id],
+                    }
+                )
+    return {
+        "post_id": post_id,
+        "nodes": list(nodes.values()),
+        "edges": edges,
+        "truncated": len(catalog_edges) > relation_limit or len(relation_rows) > relation_limit,
+    }
+
+
 async def related_for_start(
     conn: asyncpg.Connection,
     node_type_code: str,
@@ -576,7 +791,7 @@ async def fetch_person_role_history(
     responsibility, in posts at different times (a job change, a title
     change, a move between projects). ``post_summary_role`` already
     carries this per post; this simply orders it chronologically for
-    one person instead of leaving a buyer to open every post that
+    one person instead of leaving a reader to open every post that
     mentions them and compare manually.
 
     ``visible_post_ids`` must already be ABAC-filtered by the caller
@@ -590,7 +805,7 @@ async def fetch_person_role_history(
     rows = await conn.fetch(
         """
         select role.post_id, post.post_title, post.created_at,
-               role.responsibility, role.affiliated_organization_name
+               role.responsibility_text, role.affiliated_organization_name
           from post_summary_role role
           join source_post post on post.post_id = role.post_id
          where role.cataloged_person_id = $1
@@ -605,7 +820,7 @@ async def fetch_person_role_history(
             "post_id": str(row["post_id"]),
             "post_title": row["post_title"],
             "created_at": row["created_at"].isoformat(),
-            "responsibility": row["responsibility"],
+            "responsibility": row["responsibility_text"],
             "affiliated_organization_name": row["affiliated_organization_name"],
         }
         for row in rows

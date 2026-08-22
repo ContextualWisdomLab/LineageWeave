@@ -34,11 +34,13 @@ from lineageweave import __version__ as PACKAGE_VERSION
 _LINEAGE_RUN_KIND = "analysis_run_lineage"
 _TEPP_RUN_KIND = "analysis_run_tepp"
 _REPORT_RUN_KIND = "analysis_run_report"
+_TOPIC_LINEAGE_RUN_KIND = "analysis_run_topic_lineage"
 _CORPORATE_SCOPE = "analysis_scope_corporate_entity"
 _CAPTURE_CONTRACT_VERSION = "analysis-run-capture-v1"
 _KIND_SCHEMA_VERSION = {
     "analysis_run_lineage": "lineage-run-v1",
     "analysis_run_tepp": "tepp-run-v1",
+    "analysis_run_topic_lineage": "topic-lineage-run-v1",
 }
 
 _RUN_LIST_SQL = f"""
@@ -249,7 +251,7 @@ async def fetch_outbox_deliveries(
     """Labeled claim/delivery events for one already-visible run.
 
     Missing outbox tables mean migration 0023 is not applied. Stream
-    entry ids stay off the payload -- they are not buyer evidence.
+    entry ids stay off the payload -- they are not reader-facing evidence.
     """
     try:
         rows = await conn.fetch(
@@ -285,7 +287,7 @@ async def _serialize_runs(
     conn: asyncpg.Connection,
     rows: list[asyncpg.Record],
 ) -> list[dict[str, Any]]:
-    """Project registry rows into the authorized buyer-facing payload."""
+    """Project registry rows into the authorized reader-facing payload."""
     if not rows:
         return []
     count_rows = await _counts_by_run(conn, [str(row["analysis_run_id"]) for row in rows])
@@ -346,7 +348,7 @@ async def fetch_visible_analysis_runs(
     """Runs the account requested or whose scope they may already walk.
 
     Once real source-import evidence is visible, the synthetic `make seed`
-    Demo Corp runs stop appearing here -- a buyer must not mistake that
+    Demo Corp runs stop appearing here -- a reader must not mistake that
     fabricated narrative for real evidence (ADR 0001 / ADR 0042).
     """
     # Safe SQL: this immutable module query contains only closed schema SQL; request values remain bound below.
@@ -611,17 +613,24 @@ class AnalysisRunCreateError(Exception):
 
 
 def _require_lineage_create_kind(run_kind_code: str) -> None:
-    """Reject TEPP and report writes so this path cannot fake those products.
+    """Reject TEPP, topic-lineage, and report writes so this path cannot fake those products.
 
-    TEPP stays a ``tepp_client`` wire path. Period reports stay on the
-    Reports panel rebuild. A Pending TEPP row that never called the
-    transport is a fabricated measurement request.
+    TEPP and topic-lineage stay ``tepp_client`` wire paths (ADR 0022 /
+    ADR 0132). Period reports stay on the Reports panel rebuild. A Pending
+    TEPP or topic-lineage row that never called the transport is a
+    fabricated measurement request.
     """
     if run_kind_code == _TEPP_RUN_KIND:
         raise AnalysisRunCreateError(
             422,
             "Connect a TEPP transport from a Failed TEPP row; this endpoint "
             "does not invent a measurement.",
+        )
+    if run_kind_code == _TOPIC_LINEAGE_RUN_KIND:
+        raise AnalysisRunCreateError(
+            422,
+            "Connect a TEPP transport from a Failed topic-lineage row; this "
+            "endpoint does not invent a topic model.",
         )
     if run_kind_code == _REPORT_RUN_KIND:
         raise AnalysisRunCreateError(

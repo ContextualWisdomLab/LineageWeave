@@ -28,7 +28,7 @@ SQL_REVIEW_PATHS = (
 )
 ASYNC_STATEMENT_METHODS = {"execute", "fetch", "fetchrow", "fetchval"}
 SQL_REVIEW_RULE = "python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli"
-EXPECTED_SQL_SUPPRESSION_COUNT = 35
+EXPECTED_SQL_SUPPRESSION_COUNT = 37
 
 
 @pytest.mark.parametrize("relative_path", SQL_REVIEW_PATHS)
@@ -74,3 +74,57 @@ def test_post_structure_protocol_stub_fails_explicitly() -> None:
     """The protocol method cannot silently return ``None`` when invoked directly."""
     with pytest.raises(NotImplementedError):
         PostStructureClient.infer(object(), "title", [])
+
+
+def test_summary_backfill_normalizes_writing_state_codes() -> None:
+    """Backfill excludes transport-padded writing rows like the API gate."""
+    source = (ROOT / "scripts/backfill_post_summaries.py").read_text(encoding="utf-8")
+    assert "coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'" in source
+
+
+def test_summary_backfill_uses_all_source_commercial_context_fields() -> None:
+    """Seed eligibility matches the reader's complete source-context contract."""
+    source = (ROOT / "scripts/backfill_post_summaries.py").read_text(encoding="utf-8")
+    for field_name in (
+        "source_order_pool_code",
+        "source_sales_order_code",
+        "source_sales_order_item_number",
+        "source_inspection_point_code",
+    ):
+        assert f"post.{field_name}" in source
+        assert f"real_post.{field_name}" in source
+
+
+def test_content_backfill_normalizes_writing_state_codes() -> None:
+    """Content recovery excludes padded and lower-case writing rows."""
+    source = (ROOT / "scripts/queue_post_content_backfill.py").read_text(encoding="utf-8")
+    assert "coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'" in source
+
+
+def test_content_backfill_uses_all_source_commercial_context_fields() -> None:
+    """Content recovery queues posts identified only by commercial context."""
+    source = (ROOT / "scripts/queue_post_content_backfill.py").read_text(encoding="utf-8")
+    for field_name in (
+        "source_order_pool_code",
+        "source_sales_order_code",
+        "source_sales_order_item_number",
+        "source_inspection_point_code",
+    ):
+        assert field_name in source
+
+
+@pytest.mark.parametrize(
+    "relative_path, qualified_column",
+    [
+        ("backend/app/post_content_worker.py", "p.source_detail_state_code"),
+        ("backend/app/post_content_queue.py", "post.source_detail_state_code"),
+        ("scripts/queue_post_content_backfill.py", "post.source_detail_state_code"),
+    ],
+)
+def test_post_content_writing_state_gates_are_case_insensitive(
+    relative_path: str,
+    qualified_column: str,
+) -> None:
+    """Queue and worker gates reject transport-padded lowercase writing states."""
+    source = (ROOT / relative_path).read_text(encoding="utf-8")
+    assert f"coalesce(upper(btrim({qualified_column})), '') <> 'W'" in source

@@ -98,7 +98,8 @@ async def visible_lineage_graph(
     """
     posts = await conn.fetch(
         "select post_id, post_title, voc_type_code, visibility_code, "
-        "corporate_entity_id, process_unit_id, thread_group_key, created_at "
+        "corporate_entity_id, author_account_id, source_detail_state_code, "
+        "process_unit_id, thread_group_key, created_at "
         f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
     )
     visible_all = [row for row in posts if can_see_post(row)]

@@ -45,6 +45,7 @@ DEMO_SOURCE_SNAPSHOT_MATERIAL = b"lineageweave-synthetic-demo-snapshot-v1"
 DEMO_SOURCE_CONTRACT_VERSION = "demo-source-contract-v1"
 DEMO_LINEAGE_IDEMPOTENCY_KEY = "demo-lineage-seed-2026-w02"
 DEMO_TEPP_IDEMPOTENCY_KEY = "demo-tepp-seed-2026-w02"
+DEMO_TOPIC_LINEAGE_IDEMPOTENCY_KEY = "demo-topic-lineage-seed-2026-w02"
 DEMO_REPORT_IDEMPOTENCY_KEY = "demo-report-seed-2026-w02"
 
 # (post_title, ticket_title, due_date) -- Event Lineage fixtures a report
@@ -231,8 +232,9 @@ def seed(
                 account_ids[username] = account_id
 
                 cur.execute(
-                    "insert into account_affiliation (user_account_id, corporate_entity_id, process_unit_id) "
-                    "values (%s, %s, %s) on conflict do nothing",
+                    "insert into account_affiliation "
+                    "(user_account_id, corporate_entity_id, process_unit_id, affiliation_scope_code) "
+                    "values (%s, %s, %s, 'scope_own_entity') on conflict do nothing",
                     (account_id, corporate_entity_id, process_units[pu_code]),
                 )
                 cur.execute(
@@ -439,6 +441,11 @@ def seed(
                 account_ids["demo.analyst"],
                 corporate_entity_id,
             )
+            _seed_demo_topic_lineage_run(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
+            )
             _seed_demo_report_run(
                 cur,
                 account_ids["demo.analyst"],
@@ -549,7 +556,7 @@ def _write_post_summary(cur, post_id, summary) -> None:
                 cataloged_person_id = str(person_row[0])
         cur.execute(
             "insert into post_summary_role "
-            "(post_id, actor_name, responsibility, actor_type_code, "
+            "(post_id, actor_name, responsibility_text, actor_type_code, "
             "affiliated_organization_name, cataloged_person_id) "
             "values (%s, %s, %s, %s, %s, %s)",
             (
@@ -1162,7 +1169,7 @@ def _persist_seed_period_report(
         cur.execute(
             "insert into report_item_parameter ("
             "grouping_kind, grouping_key, period_code, rubric_version, "
-            "item_code, item_index, slope, cat_params"
+            "item_code, item_index, item_slope, cat_params"
             ") values (%s,%s,%s,%s,%s,%s,%s,%s)",
             (
                 grouping_kind,
@@ -1179,7 +1186,7 @@ def _persist_seed_period_report(
         cur.execute(
             "insert into report_item_information ("
             "grouping_kind, grouping_key, period_code, rubric_version, "
-            "item_code, item_rank, information"
+            "item_code, item_rank, information_value"
             ") values (%s,%s,%s,%s,%s,%s,%s)",
             (
                 grouping_kind,
@@ -1216,7 +1223,7 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
 
     High-band and low-band posts live in different process units. A
     pooled free-calibrate writes the shared bank; each unit is then
-    FIPC-scored so the buyer can compare them. W03 is all-high on the
+    FIPC-scored so the reader can compare them. W03 is all-high on the
     high unit. Categories are constructed; thetas come only from
     ``score_groups_on_shared_metric``. A-100 fixtures (and the
     Riverbend calendar post) fold into the high unit; B-200 fixtures
@@ -1670,6 +1677,115 @@ def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> No
     _seed_demo_run_outbox(cur, run_id)
 
 
+def topic_lineage_seed_request() -> AnalysisRunRequest:
+    """Build the Demo Corp topic-lineage request against the shared snapshot digest.
+
+    Same wire shape as :func:`tepp_seed_request` (ADR 0132) -- only the
+    model contract and output profile select TRSL-TM topic identity plus
+    CHRONOS/TDT event-intelligence status instead of calibrated
+    psychometric measurement.
+    """
+    return AnalysisRunRequest(
+        idempotency_key=DEMO_TOPIC_LINEAGE_IDEMPOTENCY_KEY,
+        tenant_workspace_id="demo-workspace",
+        snapshot_id=demo_source_snapshot_sha256(),
+        knowledge_cutoff="2026-01-12T12:00:00Z",
+        model_contract_version="tepp-topic-lineage-v1",
+        output_profile="topic_identity_lineage",
+    )
+
+
+def topic_lineage_seed_outcome(client: TeppClient | None = None) -> tuple[str, str | None]:
+    """Ask TEPP through the published client. A missing transport is Failed.
+
+    Never invents a topic identity or CHRONOS/TDT event prediction.
+    ``tepp_not_available`` means the channel was dropped, not an abstained
+    measurement. A live envelope is also not yet a persistable result in
+    this seed, so the run is not stamped Succeeded.
+    """
+    request = topic_lineage_seed_request()
+    try:
+        (client or TeppClient()).submit_analysis_run(request)
+    except TeppNotAvailable:
+        return "analysis_status_failed", "tepp_not_available"
+    return "analysis_status_failed", "tepp_result_not_persisted"
+
+
+def _seed_demo_topic_lineage_run(cur, requested_by_account_id, corporate_entity_id) -> None:
+    """Insert one Demo-Corp topic-lineage run so the kind is visible without a live TEPP.
+
+    Mirrors :func:`_seed_demo_tepp_run` (ADR 0132). Default transport is
+    unavailable, so the run ends Failed / ``tepp_not_available`` -- never
+    a fabricated topic model.
+    """
+    snapshot_id = _ensure_demo_source_snapshot(cur)
+    _ensure_demo_source_counts(cur, snapshot_id)
+    _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id)
+    cur.execute(
+        """
+        select analysis_run_id from analysis_run
+        where requested_by_account_id = %s
+          and idempotency_key = %s
+        """,
+        (requested_by_account_id, DEMO_TOPIC_LINEAGE_IDEMPOTENCY_KEY),
+    )
+    run_row = cur.fetchone()
+    if run_row is None:
+        cur.execute(
+            """
+            insert into analysis_run
+                (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                 requested_by_account_id, knowledge_cutoff,
+                 configuration_schema_version, configuration_sha256,
+                 code_revision_sha, requested_at)
+            values (%s, 'analysis_run_topic_lineage', %s,
+                    %s, '2026-01-12T12:00:00Z', 'topic-lineage-run-v1', %s, %s,
+                    '2026-01-12T12:34:00Z')
+            returning analysis_run_id
+            """,
+            (
+                snapshot_id,
+                DEMO_TOPIC_LINEAGE_IDEMPOTENCY_KEY,
+                requested_by_account_id,
+                "d" * 64,
+                "e" * 40,
+            ),
+        )
+        run_id = cur.fetchone()[0]
+    else:
+        run_id = run_row[0]
+    cur.execute(
+        """
+        insert into analysis_run_scope
+            (analysis_run_id, scope_kind_code, corporate_entity_id)
+        values (%s, 'analysis_scope_corporate_entity', %s)
+        on conflict (analysis_run_id) do nothing
+        """,
+        (run_id, corporate_entity_id),
+    )
+    final_status, failure_code = topic_lineage_seed_outcome()
+    events = [
+        (1, "analysis_status_pending", "2026-01-12T12:35:00Z", None),
+        (2, "analysis_status_running", "2026-01-12T12:36:00Z", None),
+        (3, final_status, "2026-01-12T12:37:00Z", failure_code),
+    ]
+    cur.execute(
+        "select 1 from analysis_run_status_event where analysis_run_id = %s limit 1",
+        (run_id,),
+    )
+    if cur.fetchone() is None:
+        for ordinal, status, occurred, fail in events:
+            cur.execute(
+                """
+                insert into analysis_run_status_event
+                    (analysis_run_id, status_ordinal, status_code, occurred_at, failure_code)
+                values (%s, %s, %s, %s, %s)
+                """,
+                (run_id, ordinal, status, occurred, fail),
+            )
+    _seed_demo_run_outbox(cur, run_id)
+
+
 def _seed_demo_report_run(cur, requested_by_account_id, corporate_entity_id) -> None:
     """Record the already-built Demo Corp period report on the shared snapshot.
 
@@ -1780,7 +1896,7 @@ def _seed_demo_run_outbox(cur, analysis_run_id) -> None:
         snapshot_sha256=snapshot_sha256,
         knowledge_cutoff=knowledge_cutoff,
     )
-    if work_kind_code == "analysis_run_tepp":
+    if work_kind_code in ("analysis_run_tepp", "analysis_run_topic_lineage"):
         claimed = datetime(2026, 1, 12, 12, 36, tzinfo=timezone.utc)
         delivered = datetime(2026, 1, 12, 12, 37, tzinfo=timezone.utc)
     else:
