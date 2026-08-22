@@ -24,6 +24,14 @@ const FOOTNOTE_START = /^\s*[*†‡](?=\S)/;
 const INDENT_MARKER = "\u0001lw-indent:";
 const INDENT_MARKER_END = "\u0002";
 const INDENT_MARKER_PATTERN = /lw-indent:(\d+)/g;
+// A stripped inline tag (<span>, <b>, a non-data-URI <img>, ...) becomes this
+// marker instead of a literal space. A literal space would be
+// indistinguishable from real author-typed indentation once nbsp is decoded
+// to a plain space below, so a <span> wrapping the very first word of a
+// paragraph -- common in WYSIWYG-authored posts -- was silently counted as
+// one indentation level while an unwrapped sibling bullet on the next line
+// stayed flush, corrupting the whole paragraph's indentation reading.
+const TAG_GAP_MARKER = "\u0003";
 const SUPERSCRIPT_DIGITS = "⁰¹²³⁴⁵⁶⁷⁸⁹";
 const SUBSCRIPT_DIGITS = "₀₁₂₃₄₅₆₇₈₉";
 const METRIC_MARKUP =
@@ -113,14 +121,19 @@ function stripHtmlTags(text: string): string {
     })
     .replace(WORD_INDENT_TAG, (tag) => indentMarker(declaredIndentWidth(tag)));
   const withoutTags = withBoundaries.replace(HTML_TAG, (tag) =>
-    /^<\/?w:/i.test(tag) ? "" : " ",
+    /^<\/?w:/i.test(tag) ? "" : TAG_GAP_MARKER,
   );
   const decoded = decodeHtmlEntities(withoutTags);
+  const leadingRun = new RegExp(`^(?:[^\\S\\n]|${TAG_GAP_MARKER})*`);
   return decoded
     .split("\n")
     .map((line) => {
       if (!line.trim()) return "";
-      const leading = line.match(/^[^\S\n]*/)?.[0] ?? "";
+      // A marker mixed into the leading run (a <span> etc. wrapping the
+      // start of real nbsp indentation) must stay part of "leading", not
+      // terminate it -- otherwise the nbsp count right behind the marker
+      // gets swept into the internal-whitespace collapse below and lost.
+      const leading = line.match(leadingRun)?.[0] ?? "";
       return `${leading}${line
         .slice(leading.length)
         .replace(/[^\S\n]+/g, " ")}`;
@@ -154,6 +167,7 @@ function splitSemanticParagraphs(text: string): string[] {
 function indentationWidth(line: string): number {
   let width = 0;
   for (const character of line) {
+    if (character === TAG_GAP_MARKER) continue;
     if (character === " " || character === "\u00a0") width += 1;
     else if (character === "\t") width += 4;
     else break;
@@ -216,6 +230,9 @@ function pushText(segments: PostBodySegment[], raw: string, indentUnit: number):
   for (const paragraph of splitSemanticParagraphs(text)) {
     const indentLevel = indentationLevel(paragraph, indentUnit);
     const normalized = stripIndentMarkers(paragraph)
+      .split(TAG_GAP_MARKER)
+      .join(" ")
+      .replace(/ {2,}/g, " ")
       .replace(/^[ \t]+/, "")
       .replace(/[ \t]+$/gm, "");
     if (normalized.trim()) {
