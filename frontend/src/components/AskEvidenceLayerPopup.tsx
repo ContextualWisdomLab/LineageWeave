@@ -51,9 +51,16 @@ export function AskEvidenceLayerPopup({
   const factsHeadingId = useId();
   const imagesHeadingId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
+  const restoreFocusOnUnmountRef = useRef(true);
 
   useEffect(() => {
+    const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     panelRef.current?.focus();
+    return () => {
+      if (restoreFocusOnUnmountRef.current && previouslyFocused?.isConnected) {
+        previouslyFocused.focus();
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -95,6 +102,15 @@ export function AskEvidenceLayerPopup({
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
+
+  function handleOpenPost() {
+    // Opening the full post is a workflow transition rather than returning to
+    // the invoking citation, so do not restore focus to the old trigger while
+    // the destination surface is being mounted.
+    restoreFocusOnUnmountRef.current = false;
+    onClose();
+    onOpenPost(postId);
+  }
 
   return (
     <div className="popup-backdrop" onClick={onClose}>
@@ -138,7 +154,7 @@ export function AskEvidenceLayerPopup({
             </ul>
           </section>
         ) : null}
-        <button type="button" className="keyman-select" onClick={() => onOpenPost(postId)}>
+        <button type="button" className="keyman-select" onClick={handleOpenPost}>
           {tf("Open post: {label}", { label: postTitle })}
         </button>
       </div>
