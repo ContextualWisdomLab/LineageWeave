@@ -52,7 +52,10 @@ async def list_conversations(
         arguments.extend([before_updated_at, before_conversation_id])
     arguments.append(limit + 1)
     limit_placeholder = f"${len(arguments)}"
-    rows = await conn.fetch(
+    # Safe SQL: cursor_clause is one of two hardcoded literals and
+    # limit_placeholder is a computed positional index ($N); no request
+    # value is ever interpolated, all bound below.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select session.global_ask_session_id,
                coalesce(
@@ -109,7 +112,9 @@ async def _visible_post_ids(
     table = "global_ask_turn_source" if source else "global_ask_turn_citation"
     id_column = "source_post_id" if source else "cited_post_id"
     ordinal_column = "source_ordinal" if source else "citation_ordinal"
-    rows = await conn.fetch(
+    # Safe SQL: table/id_column/ordinal_column are each one of two hardcoded
+    # literals selected by the boolean `source` argument, not request input.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select relation.{id_column}::text as post_id, relation.{ordinal_column} as ordinal,
                post.post_title, post.visibility_code, post.corporate_entity_id,
@@ -159,7 +164,8 @@ async def fetch_conversation(
         conversation_id,
     )
     if before_turn_ordinal is None:
-        turns = await conn.fetch(
+        # Safe SQL: fully parameterized, no interpolation of any kind.
+        turns = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             """
         select turn_ordinal, question_text, answer_text, next_action
           from global_ask_turn
@@ -171,7 +177,8 @@ async def fetch_conversation(
             turn_limit + 1,
         )
     else:
-        turns = await conn.fetch(
+        # Safe SQL: fully parameterized, no interpolation of any kind.
+        turns = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             """
         select turn_ordinal, question_text, answer_text, next_action
           from global_ask_turn
