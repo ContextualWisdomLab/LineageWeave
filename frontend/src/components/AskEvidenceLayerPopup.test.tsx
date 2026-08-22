@@ -77,19 +77,22 @@ describe("AskEvidenceLayerPopup", () => {
     expect(onClose).toHaveBeenCalledTimes(3);
   });
 
-  it("opens the cited post from the layer", async () => {
+  it("closes the evidence layer before opening the cited post", async () => {
+    const onClose = vi.fn();
     const onOpenPost = vi.fn();
     render(
       <AskEvidenceLayerPopup
         {...baseProps}
         facts={[]}
         images={[]}
-        onClose={vi.fn()}
+        onClose={onClose}
         onOpenPost={onOpenPost}
       />,
     );
     await userEvent.click(screen.getByRole("button", { name: "Open post: Checkout error follow-up" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
     expect(onOpenPost).toHaveBeenCalledWith("post-demo-public");
+    expect(onClose.mock.invocationCallOrder[0]).toBeLessThan(onOpenPost.mock.invocationCallOrder[0]);
   });
 
   it("moves initial focus onto the dialog panel", () => {
@@ -113,5 +116,21 @@ describe("AskEvidenceLayerPopup", () => {
     closeButton.focus();
     await userEvent.tab({ shift: true });
     expect(openPostButton).toHaveFocus();
+  });
+
+  it("returns focus to the element that invoked the modal when the layer unmounts", () => {
+    const opener = document.createElement("button");
+    opener.textContent = "View evidence";
+    document.body.append(opener);
+    opener.focus();
+
+    const { unmount } = render(
+      <AskEvidenceLayerPopup {...baseProps} facts={[]} images={[]} onClose={vi.fn()} onOpenPost={vi.fn()} />,
+    );
+    expect(screen.getByRole("dialog")).toHaveFocus();
+
+    unmount();
+    expect(opener).toHaveFocus();
+    opener.remove();
   });
 });
