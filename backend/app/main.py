@@ -1380,6 +1380,11 @@ async def list_posts(
                        case
                            when $1::text is null then 0
                            when lower(coalesce(post.post_title, '')) like '%' || lower($1) || '%' then 0
+                           -- A structured project/order-pool code field match is a stronger,
+                           -- more precise "this post belongs to X" signal than an incidental
+                           -- free-text body mention -- rank it with title matches, not below
+                           -- posts that merely happen to reference the code somewhere in prose.
+                           when lower(coalesce(post.source_order_pool_code, '')) like '%' || lower($1) || '%' then 0
                            when post.post_id = any($6::uuid[]) then 1
                            else 2
                        end as search_priority,
