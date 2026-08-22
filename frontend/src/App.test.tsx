@@ -2290,6 +2290,7 @@ describe("App, authenticated", () => {
         { code: "W", label: "W" },
         { code: "D", label: "D" },
         { code: "A", label: "A" },
+        { code: "R", label: "R" },
       ],
     });
     render(<App showLabPanels />);
@@ -2302,15 +2303,25 @@ describe("App, authenticated", () => {
       within(board).getByRole("checkbox", { name: "W — Writing in progress" }),
     ).toBeInTheDocument();
     expect(
-      within(board).getByRole("checkbox", { name: "D — Pending approval" }),
+      within(board).getByRole("checkbox", { name: "D — Pending approval (unconfirmed)" }),
     ).toBeInTheDocument();
     expect(
-      within(board).getByRole("checkbox", { name: "A — Approved" }),
+      within(board).getByRole("checkbox", { name: "A — Approved (unconfirmed)" }),
+    ).toBeInTheDocument();
+    expect(
+      within(board).getByRole("checkbox", { name: "R — Rejected (unconfirmed)" }),
     ).toBeInTheDocument();
     expect(within(board).getByText("D", { selector: ".board-source-detail-state-code" })).toBeInTheDocument();
     expect(within(board).getByText("Pending approval", { selector: ".board-source-detail-state-description" })).toBeInTheDocument();
+    // Unconfirmed codes carry the warning styling class; W (confirmed) does not.
+    expect(
+      within(board).getByText("D", { selector: ".board-source-detail-state-code" }).className,
+    ).toContain("board-source-detail-state-code-unconfirmed");
+    expect(
+      within(board).getByText("W", { selector: ".board-voc-type-code" }).className,
+    ).not.toContain("board-source-detail-state-code-unconfirmed");
 
-    await userEvent.click(within(board).getByRole("checkbox", { name: "D — Pending approval" }));
+    await userEvent.click(within(board).getByRole("checkbox", { name: "D — Pending approval (unconfirmed)" }));
     await waitFor(() =>
       expect(fetchMock.mock.calls.some(([url]) => String(url).includes("source_detail_state=D"))).toBe(true),
     );
@@ -2318,7 +2329,7 @@ describe("App, authenticated", () => {
     setLocale("ko");
     await waitFor(() =>
       expect(
-        within(board).getByRole("checkbox", { name: "D — 결재 중 (Pending approval)" }),
+        within(board).getByRole("checkbox", { name: "D — 결재 중 (Pending approval) (미확인)" }),
       ).toBeInTheDocument(),
     );
   });
