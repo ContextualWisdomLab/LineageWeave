@@ -1138,6 +1138,45 @@ def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> No
     )
 
 
+def test_update_me_preferences_persists_a_supported_locale(client, demo_analyst_token) -> None:
+    response = client.patch(
+        "/api/me/preferences",
+        json={"preferred_locale": "ko"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    assert response.json() == {"preferred_locale": "ko"}
+
+    me_response = client.get("/api/me", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert me_response.json()["preferred_locale"] == "ko"
+
+
+def test_update_me_preferences_rejects_an_unsupported_locale(client, demo_analyst_token) -> None:
+    response = client.patch(
+        "/api/me/preferences",
+        json={"preferred_locale": "fr"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 422
+
+
+def test_rankings_never_crashes_and_never_invents_a_score_when_unavailable(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    response = client.get("/api/rankings", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["port"] == "rankweave"
+    assert body["status"] in ("accepted", "unavailable")
+    if body["status"] == "unavailable":
+        assert body["rankings"] == []
+
+
+def test_rankings_requires_authentication(client) -> None:
+    response = client.get("/api/rankings")
+    assert response.status_code in (401, 403)
+
+
 def test_customer_master_returns_authorized_catalog_contract(client, demo_analyst_token, seeded_db) -> None:
     admin_conn = psycopg2.connect(seeded_db["dsn"])
     try:
@@ -4135,6 +4174,35 @@ def test_derive_commitment_unavailable_without_orchestrator(
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert response.status_code == 503
+
+
+def test_ask_rejects_an_empty_question(client, demo_analyst_token, seeded_db) -> None:
+    response = client.post(
+        "/api/ask",
+        json={"question": "   "},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 422
+
+
+def test_ask_is_unavailable_without_orchestrator_credentials(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Null chat client must 503, not invent an answer."""
+    from lineageweave.post_chat import NullPostChatClient
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: NullPostChatClient())
+    response = client.post(
+        "/api/ask",
+        json={"question": "What happened with the public post?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 503
+
+
+def test_ask_requires_authentication(client) -> None:
+    response = client.post("/api/ask", json={"question": "Any question"})
+    assert response.status_code in (401, 403)
 
 
 def test_derive_commitment_uses_post_created_at_and_does_not_duplicate(
