@@ -12,15 +12,24 @@ until pg_isready -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" -U "$POSTGRES_USER" -d 
     sleep 1
 done
 
-# ponytail: gate at the existing 0012 boundary; replace with a migration ledger
-# when a new non-idempotent migration family is introduced.
+# ponytail: gate at the existing 0012 boundary; replace with a migration
+# ledger when a new non-idempotent migration family is introduced.
+#
+# This used to be an explicit case-pattern whitelist of every file number
+# from 0012 up. It silently fell behind as new migrations were added past
+# the last-updated number (0103_tenant_settings.sql shipped with no entry
+# here, so a fresh deployment never got it) -- a numeric boundary check
+# can't go stale the same way. $((10#...)) forces base-10 arithmetic so a
+# leading-zero number like "0103" isn't misread as octal.
 for migration in /opt/lineageweave/migrations/*.sql; do
     migration_name=${migration##*/}
-    case "$migration_name" in
-        0012_*|0013_*|0014_*|0015_*|0016_*|0017_*|0018_*|0019_*|0020_*|0021_*|0022_*|0023_*|0024_*|0025_*|0026_*|0027_*|0028_*|0029_*|0030_*|0031_*|0032_*|0033_*|0034_*|0035_*|0036_*|0037_*|0038_*|0039_*|0040_*|0041_*|0042_*|0043_*|0044_*|0045_*|0046_*|0047_*|0048_*|0049_*|0050_*) ;;
-        0060_*|0100_*|0101_*|0102_*) ;;
-        *) continue ;;
-    esac
+    migration_number=$((10#${migration_name%%_*}))
+    # 0001-0011 are baked into the postgres image's
+    # docker-entrypoint-initdb.d (docker/postgres-init/Dockerfile) at
+    # container creation and must not be re-applied here.
+    if [ "$migration_number" -lt 12 ]; then
+        continue
+    fi
     printf 'Applying %s\n' "$migration_name"
     psql -X -v ON_ERROR_STOP=1 \
         -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" \
