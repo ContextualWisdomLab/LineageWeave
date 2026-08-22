@@ -1540,6 +1540,24 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/corporate-entities/corp-demo/related")) {
+        return Promise.resolve(
+          jsonResponse({
+            corporate_entity_id: "corp-demo",
+            entity_name: "Demo Corp",
+            related: [
+              {
+                node_id: "post-2",
+                node_type_code: "node_post",
+                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                ontology_label: "Post",
+                label: "Linked post",
+                relevance: 0.6,
+              },
+            ],
+          }),
+        );
+      }
       if (url.endsWith("/api/posts/post-1/affiliate-tree")) {
         return Promise.resolve(
           jsonResponse({
@@ -2084,6 +2102,35 @@ describe("App, authenticated", () => {
     // The subsidiary's <li> is nested inside the parent's <li>, not a
     // sibling at the same top level.
     expect(parentRow?.contains(subsidiaryRow)).toBe(true);
+  });
+
+  it("opens a customer's related post in place instead of jumping to the Board", async () => {
+    // Bug report: clicking a customer, then one of its related posts, sent
+    // the whole workspace to the Board destination instead of showing the
+    // post's content next to the customer -- a jarring, unrequested
+    // navigation. The post must open in this same screen's own
+    // right-docked popup, leaving Customer Master as the active destination.
+    stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    expect(await screen.findByText("Demo Corp")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Demo Corp/ }));
+
+    const relatedPostButton = await screen.findByRole("button", { name: "Open related post: Linked post" });
+    await userEvent.click(relatedPostButton);
+
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+    // Still on Customer Master -- the Board never mounted.
+    expect(screen.getByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Board" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    expect(screen.queryByText("The evidence panel should show exactly this text.")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Customer master" })).toBeInTheDocument();
   });
 
   it("filters the customer master tree by scope facet", async () => {
