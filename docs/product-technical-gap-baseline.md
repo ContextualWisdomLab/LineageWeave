@@ -267,6 +267,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | OpenTelemetry across LineageWeave, contextual-orchestrator, Valkey, and GRC | LineageWeave PR #383 adds API/Valkey/session spans; contextual-orchestrator PR #765 carries session/provider telemetry; governance-risk-compliance PR #50 adds request telemetry, W3C trace context, OTLP export, and ADR 0009 | source + PR; protected merge and end-to-end collector evidence open |
 | PU/team/project weekly/monthly reports | report API/UI and grouping controls | source + unit; TEPP-backed live report open |
 | TEPP calibrated measurement, dichotomous items, multilevel/MMM/time model | published import/REST boundary and TEPP ADR/PRD references | boundary-only; live-external open |
+| TEPP topic-identity lineage (TRSL-TM) and CHRONOS/TDT event-intelligence overlay on the Event Lineage DAG | ADR 0132 defines the consumption contract (citing TEPP ADR 0012 TRSL-TM and ADR 0016 CHRONOS/TDT, APA 7th); `zcrht811_export_rows` posts are the source corpus; extends, does not replace, the existing evidence-fusion lineage tree (ADR 0064/0084) | ADR-only; `topic_lineage` analysis-run kind, DB projection, API endpoint, DAG overlay, Storybook states, and e2e coverage are open; blocked upstream on TEPP's topic-identity/CHRONOS result contract (TEPP `tepp_api` currently exposes only `AnalysisRunRequest`/`AnalysisRunAccepted`; TEPP issue #156 tracks the completed-result contract) |
 | contextual-orchestrator routing, VISION, embedding, schema repair | clients and provenance/session boundary; synthetic authenticated route returned a judge score of `0.98`, OCR succeeded, and region location returned five regions | source + local-integration partial; corpus backfill, capability/readiness evidence, and schema-repair workflow open |
 | HTML semantic units, tables, indentation, footnotes, formulas | parser modules and synthetic tests; adjacent open PR #367 at exact head `b628722cb000717b0198e4337d12306d4306922d` adds numbered-footnote, leading-empty-cell, and short-ID regressions; 11-case authenticated popup sweep had no popup errors and rendered the supplied footnote/table cases; bounded metric superscript/subscript normalization has backend/frontend focused coverage | source + unit + local-integration partial; PR #367 protected checks, arbitrary formula/semantic correctness, and corpus re-backfill remain open |
 | Base64/file image regions and multimodal evidence | image-region schema and VISION client boundary; live aggregate has 12,823 images, 22 described images/regions, and 422 failed images; current synthetic VISION route returned five regions | source + local-integration partial; supplied image-table case re-backfill and complete corpus coverage open |
@@ -483,3 +484,27 @@ https://doi.org/10.48550/arXiv.2512.04695
 
 World Wide Web Consortium. (2024). *Web Content Accessibility Guidelines
  (WCAG) 2.2* (W3C Recommendation). https://www.w3.org/TR/WCAG22/
+
+ContextualWisdomLab. (2026). *ADR 0012: Temporal relational shared-latent
+topic measurement* [ADR]. GitHub.
+https://github.com/ContextualWisdomLab/TEPP/blob/main/docs/adr/0012-temporal-relational-shared-latent-topic-measurement.md
+
+ContextualWisdomLab. (2026). *ADR 0016: TDT, CHRONOS, and Event Ontology
+intelligence boundary* [ADR]. GitHub.
+https://github.com/ContextualWisdomLab/TEPP/blob/main/docs/adr/0016-tdt-chronos-event-intelligence-boundary.md
+
+Roberts, M. E., Stewart, B. M., & Tingley, D. (2019). stm: An R package for
+structural topic models. *Journal of Statistical Software, 91*(2), 1–40.
+https://doi.org/10.18637/jss.v091.i02
+
+Mimno, D., Wallach, H. M., Naradowsky, J., Smith, D. A., & McCallum, A.
+(2009). Polylingual topic models. In *Proceedings of the 2009 Conference on
+Empirical Methods in Natural Language Processing* (pp. 880–889). Association
+for Computational Linguistics. https://aclanthology.org/D09-1092/
+
+Allan, J. (Ed.). (2002). *Topic detection and tracking: Event-based
+information organization*. Springer. https://doi.org/10.1007/978-1-4615-0933-2
+
+Kalashnikov, D. V., Chen, Z., Mehrotra, S., & Nuray-Turan, R. (2007). CHRONOS:
+Facilitating history discovery by linking temporal records. *Proceedings of
+the VLDB Endowment*. https://doi.org/10.14778/2367502.2367559
