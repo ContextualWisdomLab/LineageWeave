@@ -2105,6 +2105,56 @@ def test_stale_summary_is_returned_labeled_when_orchestrator_is_unavailable(
     assert body["korean_summary"] == "보관된 이전 계약 요약입니다."
 
 
+def test_five_w1h_who_and_what_survive_a_stale_summary_contract_version(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A post_summary_result row older than the current contract version
+    must not silently empty 5W1H's "who"/"what" -- those slots read
+    post_summary_role/post_summary_event, which are valid regardless of
+    contract version; only the Korean summary text and newer fields
+    change semantically across a contract bump. Live-reproduced
+    (2026-08-22): a real post's who/what went empty in the API response
+    even though post_summary_role/post_summary_event had rows, because
+    load_five_w1h_slots called fetch_persisted_summary without
+    allow_stale=True.
+    """
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into post_summary_result "
+                "(post_id, korean_summary, summary_contract_version) values (%s, %s, %s)",
+                (
+                    seeded_db["public_post_id"],
+                    "보관된 이전 계약 요약입니다.",
+                    POST_SUMMARY_CONTRACT_VERSION - 1,
+                ),
+            )
+            cur.execute(
+                "insert into post_summary_event (post_id, event_ordinal, event_text) "
+                "values (%s, 0, '저장된 이벤트')",
+                (seeded_db["public_post_id"],),
+            )
+            cur.execute(
+                "insert into post_summary_role "
+                "(post_id, actor_name, responsibility_text, actor_type_code, affiliated_organization_name) "
+                "values (%s, 'Ada West', '후속 연락', 'prov_person', 'Demo Corp')",
+                (seeded_db["public_post_id"],),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}/five-w1h",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    slots = {row["slot_code"]: row["values"] for row in response.json()["slots"]}
+    assert [item["text"] for item in slots["who"]] == ["Ada West"]
+    assert [item["text"] for item in slots["what"]] == ["저장된 이벤트"]
+
+
 def test_seed_demo_summary_surfaces_on_get_summary(client, demo_analyst_token, seeded_db) -> None:
     """The same helper `make seed` calls must produce a row GET summary
     returns -- even with the orchestrator unset.
