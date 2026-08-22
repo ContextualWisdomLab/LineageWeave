@@ -2427,6 +2427,8 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
           return "Open this run, then start reconstruction. Reconstruction has not started yet.";
         case "analysis_run_tepp":
           return "Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.";
+        case "analysis_run_topic_lineage":
+          return "Open this run to confirm which posts TEPP will thread into topic lineage. Topic-lineage analysis has not started yet — this is not a calibrated topic result.";
         case "analysis_run_report":
           return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
         default: {
@@ -2438,6 +2440,8 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
           return "Open this run to see why it failed, then connect the measurement service and re-run.";
+        case "analysis_run_topic_lineage":
+          return "Open this run to see why it failed, then connect the topic-lineage service and re-run.";
         case "analysis_run_lineage":
           return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
         case "analysis_run_report":
@@ -2470,6 +2474,11 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
         "No posts were available at this cutoff for TEPP to measure. " +
         "Open a later run, or ask an administrator to capture a newer snapshot."
       );
+    case "analysis_run_topic_lineage":
+      return (
+        "No posts were available at this cutoff for topic-lineage analysis. " +
+        "Open a later run, or ask an administrator to capture a newer snapshot."
+      );
     case "analysis_run_lineage":
       return (
         "No posts were available at this cutoff for reconstruction. " +
@@ -2488,31 +2497,35 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
 }
 
 /**
- * Corpus copy for a TEPP run that already has cutoff posts.
+ * Corpus copy for a TEPP or topic-lineage run that already has cutoff posts.
  *
  * Those titles are the measurement bag, not a reconstruction result.
- * Pending or running must not claim a calibrated measurement.
+ * Pending or running must not claim a calibrated measurement or topic.
  */
 function analysisRunCorpusHint(run: AnalysisRun): string | null {
-  if (run.run_kind_code !== "analysis_run_tepp") return null;
+  const isTopicLineage = run.run_kind_code === "analysis_run_topic_lineage";
+  if (run.run_kind_code !== "analysis_run_tepp" && !isTopicLineage) return null;
+  const service = isTopicLineage ? "topic-lineage" : "TEPP";
+  const verb = isTopicLineage ? "thread" : "measure";
+  const verbPast = isTopicLineage ? "threaded" : "measured";
   switch (run.status_code) {
     case "analysis_status_failed":
       return (
-        "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
+        `These posts are the cutoff corpus ${service} would ${verb}. Connect a ${service} ` +
         "transport, then re-run, to replace Failed with a calibrated result."
       );
     case "analysis_status_succeeded":
-      return "These posts are the cutoff corpus this TEPP run measured.";
+      return `These posts are the cutoff corpus this ${service} run ${verbPast}.`;
     case "analysis_status_pending":
     case "analysis_status_running":
-      return "These posts are the cutoff corpus TEPP will measure once this run finishes.";
+      return `These posts are the cutoff corpus ${service} will ${verb} once this run finishes.`;
     case "analysis_status_cancelled":
       return (
-        "These posts are the cutoff corpus this TEPP run would have measured. " +
+        `These posts are the cutoff corpus this ${service} run would have ${verbPast}. ` +
         "The run was cancelled before a calibrated result."
       );
     case null:
-      return "These posts are the cutoff corpus attached to this TEPP run.";
+      return `These posts are the cutoff corpus attached to this ${service} run.`;
     default: {
       const unexpected: never = run.status_code;
       return unexpected;
@@ -2622,21 +2635,31 @@ function AnalysisRunReproducibilityDigests({
  */
 function analysisRunCanStart(run: AnalysisRun): boolean {
   return (
-    (run.run_kind_code === "analysis_run_lineage" || run.run_kind_code === "analysis_run_tepp") &&
+    (run.run_kind_code === "analysis_run_lineage" ||
+      run.run_kind_code === "analysis_run_tepp" ||
+      run.run_kind_code === "analysis_run_topic_lineage") &&
     (run.status_code === "analysis_status_pending" ||
       run.status_code === "analysis_status_running")
   );
 }
 
 function analysisRunStartLabel(run: AnalysisRun): string {
-  return run.run_kind_code === "analysis_run_tepp"
-    ? "Start TEPP measurement"
-    : "Start reconstruction";
+  if (run.run_kind_code === "analysis_run_tepp") {
+    return "Start TEPP measurement";
+  }
+  if (run.run_kind_code === "analysis_run_topic_lineage") {
+    return "Start topic lineage";
+  }
+  return "Start reconstruction";
 }
 
-/** Failed TEPP is terminal. Create cannot invent a Pending TEPP row. */
+/** Failed TEPP/topic-lineage is terminal. Create cannot invent a Pending row. */
 function analysisRunCanRequestTeppRetry(run: AnalysisRun): boolean {
-  return run.run_kind_code === "analysis_run_tepp" && run.status_code === "analysis_status_failed";
+  return (
+    (run.run_kind_code === "analysis_run_tepp" ||
+      run.run_kind_code === "analysis_run_topic_lineage") &&
+    run.status_code === "analysis_status_failed"
+  );
 }
 
 const REPORT_PERIOD_KEY = /^\d{4}-W\d{2}$/;
@@ -2915,14 +2938,19 @@ function AnalysisRunsPanel({
               {starting
                 ? selected.run_kind_code === "analysis_run_tepp"
                   ? "Submitting the TEPP request..."
-                  : "Reconstructing the cutoff bag..."
+                  : selected.run_kind_code === "analysis_run_topic_lineage"
+                    ? "Submitting the topic-lineage request..."
+                    : "Reconstructing the cutoff bag..."
                 : analysisRunStartLabel(selected)}
             </button>
           )}
           {analysisRunCanRequestTeppRetry(selected) && (
             <p className="post-meta">
-              Connect a TEPP transport from this Failed row. Request a lineage
-              reconstruction does not invent a measurement.
+              {selected.run_kind_code === "analysis_run_topic_lineage"
+                ? "Connect a topic-lineage transport from this Failed row. Request a " +
+                  "lineage reconstruction does not invent a topic model."
+                : "Connect a TEPP transport from this Failed row. Request a lineage " +
+                  "reconstruction does not invent a measurement."}
             </p>
           )}
           {analysisRunReportPeriod(selected) && onSelectReportPeriod && (
