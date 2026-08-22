@@ -6,6 +6,19 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- Registered the `analysis_run_topic_lineage` analysis-run kind (migrations
+  0131/0132, ADR 0132), the LineageWeave-side consumption boundary for
+  TEPP's Temporal Relational Shared-Latent Topic Measurement (TRSL-TM,
+  TEPP ADR 0012) and CHRONOS/TDT event-intelligence status (TEPP ADR 0016).
+  It mirrors the existing TEPP measurement path exactly: submits through
+  `tepp_client`, fails closed (`tepp_not_available` /
+  `tepp_result_not_persisted`) until TEPP publishes a completed envelope,
+  and never computes a topic identity or event prediction locally.
+  `make seed` now also writes a Demo Corp topic-lineage run alongside the
+  existing lineage/TEPP/period-report rows.
+
 ### Changed
 
 - Renamed "Buyer" terminology to reader/workspace naming across the frontend

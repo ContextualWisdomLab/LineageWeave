@@ -93,3 +93,41 @@ def test_migrate_sh_replays_source_commercial_context_migration_on_existing_volu
     ).read_text(encoding="utf-8")
 
     assert "0130_*" in script
+
+
+def test_migrate_sh_replays_topic_lineage_migrations_on_existing_volumes() -> None:
+    """Existing Compose volumes must receive the topic-lineage kind and result table."""
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "migrate.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "0131_*" in script
+    assert "0132_*" in script
+
+
+def test_topic_lineage_kind_migration_is_idempotent_for_replay() -> None:
+    """The kind-widening migration must not fail after a second apply."""
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0131_analysis_run_topic_lineage_kind.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "on conflict (lookup_code) do nothing" in migration
+    assert "drop constraint if exists analysis_run_kind_check" in migration
+    assert "analysis_run_topic_lineage" in migration
+
+
+def test_topic_lineage_result_migration_is_idempotent_for_replay() -> None:
+    """The result-table migration must not fail after a second apply."""
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0132_analysis_run_topic_lineage_result.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "create table if not exists analysis_run_topic_lineage_result" in migration
+    assert "create index if not exists" in migration
