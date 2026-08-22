@@ -165,7 +165,10 @@ from backend.app.knowledge_graph import (
     visible_mention_post_ids,
     visible_team_mention_post_ids,
 )
-from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
+from backend.app.lineage_ingestion import (
+    rebuild_lineage_from_pool,
+    visible_lineage_graph,
+)
 from backend.app.post_chat_ingestion import (
     fetch_persisted_chat,
     fetch_persisted_chats,
@@ -183,7 +186,6 @@ from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
     has_real_source_context,
-    is_demo_scope,
 )
 from lineageweave.http_client import HttpClientError
 
@@ -332,10 +334,10 @@ def _adjudication_client():
 
     reconstruct.py's DEFAULT_CHANNEL_WEIGHTS gives this channel the most
     weight (0.40) of the four -- it is the only one that reasons about
-    content instead of approximating it (ADR 0064) -- but nothing ever
-    passed a real client through lineage_edge_specs() to reconstruct(),
-    so every lineage reconstruction had silently run on the weaker
-    3-channel fallback since the feature was built.
+    content instead of approximating it (ADR 0064). The same client is
+    shared by analysis-run reconstruction and the administrator-triggered
+    live graph rebuild; an unconfigured gateway remains an explicit
+    three-channel fallback.
     """
     settings = load_settings()
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
@@ -1110,9 +1112,7 @@ async def rebuild_lineage_graph(
     post_admin only: this is a corpus-wide write. Reads stay ABAC-gated.
     """
     _require_post_admin(account)
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            edges = await rebuild_lineage(conn)
+    edges = await rebuild_lineage_from_pool(pool, llm=_adjudication_client())
     return {"edge_count": len(edges)}
 
 

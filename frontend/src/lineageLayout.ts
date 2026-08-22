@@ -92,6 +92,8 @@ export function subgraphForPost(graph: LineageGraph, postId: string): LineageGra
   return {
     nodes,
     edges: graph.edges.filter((edge) => ids.has(edge.source) && ids.has(edge.target)),
+    truncated: graph.truncated,
+    reconstruction: graph.reconstruction,
   };
 }
 

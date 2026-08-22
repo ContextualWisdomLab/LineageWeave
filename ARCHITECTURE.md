@@ -68,7 +68,7 @@ flowchart LR
 | `tepp_client.py` | TEPP's published `AnalysisRunRequest` wire contract, pluggable transport |
 | `rankweave_client.py` | Fail-closed RankWeave ranking port (`weighted_reciprocal_rank_fuse` in-process; never invent a fused score or a theta) |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
-| `lineage_persistence.py` | Flattens reconstruct trees into `post_lineage_edge` row specs (parent, child, fused_score) |
+| `lineage_persistence.py` | Flattens reconstruct trees into `post_lineage_edge` rows plus `post_lineage_edge_signal` channel evidence |
 | `knowledge_graph.py` | Random-walk-with-restart relevance + per-node adaptive related-node cutoff (Tong et al., 2006) -- pure graph math, no Postgres |
 | `keyman_extraction.py` | Pluggable LLM extraction of two-sided (our-side/counterparty) person mentions + N:N org affiliations from a post |
 | `entity_relationship_classification.py` | Pluggable LLM classification of a named organization's relationship to the post author (`rel_voc`/`rel_vom`/`rel_vop`/`rel_vocc`/`rel_voco`/`rel_vos`) |
@@ -213,13 +213,16 @@ lives in `lineageweave/keyman_extraction.py` and talks to
 contextual-orchestrator; persist is `backend/app/keyman_ingestion.py`.
 
 `GET /api/lineage` returns the ABAC-filtered reconstruct graph
-(`{nodes, edges}`) from persisted `post_lineage_edge` rows. Each node
-includes `group` from the same `reconstruct_group_key()` rebuild uses
-(persisted `thread_group_key`, else process unit, else corp).
-`POST /api/lineage/rebuild` (`post_admin`) re-runs `reconstruct()` over
-every `source_post` and rewrites those edges. Reconstruct grouping is
-stored on the post as `thread_group_key` / `secondary_grouping_key`
-(not derived from process unit or voc type).
+(`{nodes, edges, reconstruction}`) from persisted `post_lineage_edge`
+rows. Each edge includes additive `channel_evidence` from
+`post_lineage_edge_signal`. Evidence for an endpoint the account cannot
+see is omitted. Each node includes `group` from the same
+`reconstruct_group_key()` rebuild uses (persisted `thread_group_key`,
+else process unit, else corp). `POST /api/lineage/rebuild` (`post_admin`)
+re-runs `reconstruct()` over every `source_post` and rewrites those
+edges and signals atomically. Reconstruct grouping is stored on the post
+as `thread_group_key` / `secondary_grouping_key` (not derived from
+process unit or voc type).
 
 Phase 3 adds `GET /api/posts/{post_id}/counterparties` (same RBAC+ABAC
 gate) and extends `POST /api/posts/{post_id}/extract-keymen` to also

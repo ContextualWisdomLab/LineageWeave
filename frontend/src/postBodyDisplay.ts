@@ -24,10 +24,62 @@ const FOOTNOTE_START = /^\s*[*†‡](?=\S)/;
 const INDENT_MARKER = "\u0001lw-indent:";
 const INDENT_MARKER_END = "\u0002";
 const INDENT_MARKER_PATTERN = /lw-indent:(\d+)/g;
+const FOOTNOTE_MARKER = "\u0001lw-footnote\u0002";
+const FOOTNOTE_MARKER_PATTERN = new RegExp(FOOTNOTE_MARKER, "g");
+
+function markFootnoteTags(markup: string): string {
+  let footnoteDepth = 0;
+  const openTags: Array<{ name: string; isFootnote: boolean }> = [];
+  const voidTags = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "w:br"]);
+  return markup.replace(HTML_TAG, (tag) => {
+    const match = tag.match(/^<\s*(\/?)\s*([a-z][a-z0-9:-]*)\b/i);
+    if (!match) return tag;
+    const closing = Boolean(match[1]);
+    const name = match[2].toLowerCase();
+    const hasFootnoteLabel = [...tag.matchAll(/\b(?:class|role)\s*=\s*(["'])(.*?)\1/gi)].some(
+      (attribute) =>
+        /\b(?:footnotes?|endnotes?|msofootnotetext|msoendnotetext)\b/i.test(attribute[2]),
+    );
+    const isContainer =
+      hasFootnoteLabel && (name === "div" || name === "ol" || name === "ul");
+    const isWordParagraph =
+      name === "p" && hasFootnoteLabel;
+    const isOoxmlContainer = name === "w:footnote" || name === "w:endnote";
+
+    if (closing) {
+      const matchingIndex = openTags.map((entry) => entry.name).lastIndexOf(name);
+      if (matchingIndex >= 0) {
+        const closedTags = openTags.splice(matchingIndex);
+        footnoteDepth = Math.max(
+          0,
+          footnoteDepth - closedTags.filter((entry) => entry.isFootnote).length,
+        );
+      }
+      return tag;
+    }
+    const selfClosing = /\/\s*>$/.test(tag) || voidTags.has(name);
+    const opensFootnote = isOoxmlContainer || isContainer;
+    if (!selfClosing) {
+      openTags.push({ name, isFootnote: opensFootnote });
+    }
+    if (opensFootnote) {
+      if (!selfClosing) footnoteDepth += 1;
+      return `${tag}${FOOTNOTE_MARKER}`;
+    }
+    if (
+      isWordParagraph ||
+      (footnoteDepth > 0 && (name === "li" || name === "p" || name === "w:p"))
+    ) {
+      return `${tag}${FOOTNOTE_MARKER}`;
+    }
+    return tag;
+  });
+}
 
 function stripIndentMarkers(value: string): string {
   return value
     .replace(INDENT_MARKER_PATTERN, "")
+    .replace(FOOTNOTE_MARKER_PATTERN, "")
     .split(String.fromCharCode(1))
     .join("")
     .split(String.fromCharCode(2))
@@ -90,17 +142,27 @@ function indentMarker(width: number): string {
 }
 
 function stripHtmlTags(text: string): string {
-  text = text.replace(/<sup[^>]*>(.*?)<\/sup>/gi, "^$1");
+  text = markFootnoteTags(text).replace(/<sup[^>]*>(.*?)<\/sup>/gi, "^$1");
+  let listDepth = 0;
   const withBoundaries = text
     .replace(BREAK_TAG, "\n")
     .replace(BLOCK_TAG, (tag) => {
-      if (/^<\//.test(tag)) return "\n\n";
-      return `\n\n${indentMarker(declaredIndentWidth(tag))}`;
+      const name = tag.match(/^<\/?\s*([a-z0-9:]+)/i)?.[1]?.toLowerCase() ?? "";
+      const closing = /^<\//.test(tag);
+      if (name === "ul" || name === "ol") {
+        if (closing) listDepth = Math.max(0, listDepth - 1);
+        else listDepth += 1;
+        return "\n\n";
+      }
+      if (closing) return "\n\n";
+      const nestedListIndent = !closing && listDepth > 0 ? Math.max(0, listDepth - 1) * 4 : 0;
+      return `\n\n${indentMarker(declaredIndentWidth(tag) + nestedListIndent)}`;
     })
     .replace(WORD_INDENT_TAG, (tag) => indentMarker(declaredIndentWidth(tag)));
-  const withoutTags = withBoundaries.replace(HTML_TAG, (tag) =>
-    /^<\/?w:/i.test(tag) ? "" : " ",
-  );
+  const withoutTags = withBoundaries.replace(HTML_TAG, (tag) => {
+    if (/^<\/?(?:a\b|w:)/i.test(tag)) return "";
+    return " ";
+  });
   const decoded = decodeHtmlEntities(withoutTags);
   return decoded
     .split("\n")
@@ -119,13 +181,36 @@ function stripHtmlTags(text: string): string {
 function splitSemanticParagraphs(text: string): string[] {
   const paragraphs: string[] = [];
   let lines: string[] = [];
+  let pipeTableRows: string[] = [];
   const flush = () => {
     const paragraph = lines.join(" ").trimEnd();
     if (paragraph.trim()) paragraphs.push(paragraph);
     lines = [];
   };
+  const flushPipeTableRows = () => {
+    const hasSeparator = pipeTableRows.some((row) => {
+      const cells = row.trim().replace(/^\|/, "").replace(/\|$/, "").split("|");
+      return cells.length >= 2 && cells.every((cell) => /^\s*:?-{3,}:?\s*$/.test(cell));
+    });
+    if (pipeTableRows.length >= 2 && hasSeparator) {
+      flush();
+      paragraphs.push(pipeTableRows.map((row) => row.trim()).join("\n"));
+    } else {
+      lines.push(...pipeTableRows);
+    }
+    pipeTableRows = [];
+  };
 
   for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed.includes("|")) {
+      const cells = trimmed.replace(/^\|/, "").replace(/\|$/, "").split("|");
+      if (cells.length >= 2 && cells.some((cell) => cell.trim())) {
+        pipeTableRows.push(line);
+        continue;
+      }
+    }
+    if (pipeTableRows.length > 0) flushPipeTableRows();
     if (!line.trim()) {
       flush();
       continue;
@@ -133,6 +218,7 @@ function splitSemanticParagraphs(text: string): string[] {
     if (lines.length > 0 && LIST_ITEM_START.test(line)) flush();
     lines.push(lines.length === 0 ? line.replace(/[ \t]+$/g, "") : line.trim());
   }
+  if (pipeTableRows.length > 0) flushPipeTableRows();
   flush();
   return paragraphs;
 }
@@ -200,6 +286,7 @@ function isDecodableBase64(raw: string): boolean {
 function pushText(segments: PostBodySegment[], raw: string, indentUnit: number): void {
   const text = stripHtmlTags(raw);
   for (const paragraph of splitSemanticParagraphs(text)) {
+    const isMarkedFootnote = paragraph.includes(FOOTNOTE_MARKER);
     const indentLevel = indentationLevel(paragraph, indentUnit);
     const normalized = stripIndentMarkers(paragraph)
       .replace(/^[ \t]+/, "")
@@ -209,7 +296,9 @@ function pushText(segments: PostBodySegment[], raw: string, indentUnit: number):
         kind: "text",
         text: normalized,
         ...(indentLevel > 0 ? { indentLevel } : {}),
-        ...(FOOTNOTE_START.test(normalized) ? { role: "footnote" as const } : {}),
+        ...(isMarkedFootnote || FOOTNOTE_START.test(normalized)
+          ? { role: "footnote" as const }
+          : {}),
       });
     }
   }
@@ -243,7 +332,7 @@ export function splitPostBody(body: string): PostBodySegment[] {
   }
   pushText(segments, body.slice(lastIndex), indentUnit);
   if (segments.length === 0) {
-    return [{ kind: "text", text: stripHtmlTags(body) }];
+    return [{ kind: "text", text: stripIndentMarkers(stripHtmlTags(body)) }];
   }
   return segments;
 }
