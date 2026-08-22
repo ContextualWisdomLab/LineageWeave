@@ -122,3 +122,21 @@ current and moves focus to the Keyman heading once Keyman rows have
 settled (ADR 0100). The report-member auto-land chain to related nodes
 and Ask is not used for GNB origins. A home-list open does not gain that
  focus. Do not invent a theta.
+
+## Analysis-run topic lineage (ADR 0147)
+
+`make seed` also writes a Demo Corp topic-lineage run on the same shared
+snapshot, alongside the lineage, TEPP, and period-report rows. The
+topic-lineage kind (`analysis_run_topic_lineage`, migration 0131) submits
+through the same `tepp_client` boundary as TEPP (ADR 0022), requesting
+TEPP's `trsl_tm_cpu_f64_v1` Temporal Relational Shared-Latent Topic
+Measurement (TRSL-TM) result instead of calibrated psychometric measurement.
+A missing transport or an unused accepted envelope is Failed
+(`tepp_not_available` / `tepp_result_not_persisted`), the same as TEPP. Do
+not invent a topic identity or a local topic model of any kind. `POST
+/api/analysis-runs` still 422s this kind — Create
+does not invent a Pending topic-lineage row; connect a TEPP transport from
+a Failed topic-lineage row and re-run through
+`POST /api/analysis-runs/{id}/start`, exactly like TEPP. A Succeeded
+envelope persists into `analysis_run_topic_lineage_result` (migration 0132)
+only after its exact `tepp.trsl_topic_lineage.v1` artifact validates.
