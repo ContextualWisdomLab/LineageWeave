@@ -143,6 +143,11 @@ _SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION = (
     / "migrations"
     / "0114_semantic_relationship_standard_predicates.sql"
 )
+_CATALOG_UNRESOLVED_REASON_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0134_catalog_unresolved_reason.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -221,6 +226,7 @@ def projection_database() -> str:
                 cursor.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_IDENTIFIER_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_CATALOG_UNRESOLVED_REASON_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(
                     """
                     insert into common_lookup_value
@@ -648,8 +654,8 @@ async def _exercise_homonym_organization_role_binding(
             )
         )
 
-        async def resolve_mentioned_organization(*_args, **_kwargs) -> str:
-            return mentioned_id
+        async def resolve_mentioned_organization(*_args, **_kwargs) -> tuple[str, None]:
+            return mentioned_id, None
 
         original = summary_ingestion.get_or_create_corporate_entity
         summary_ingestion.get_or_create_corporate_entity = resolve_mentioned_organization

@@ -203,6 +203,10 @@ export interface PostRoleResponsibility {
   catalog_node_id?: string | null;
   catalog_node_type_code?: string | null;
   affiliated_organization_catalog_id?: string | null;
+  /** ADR 0141: why catalog_node_id is null, or null when linked/historical. */
+  catalog_unresolved_reason_code?: string | null;
+  /** ADR 0141: why affiliated_organization_catalog_id is null, or null when linked/historical. */
+  affiliation_catalog_unresolved_reason_code?: string | null;
 }
 
 export interface PostMajorEventAction {

@@ -568,6 +568,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "관측된 원본 작성자 {total}명 중 게시물 수 기준 상위 {shown}명을 표시합니다.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "대화형 질문을 지금 사용할 수 없습니다. 저장된 근거는 계속 확인할 수 있습니다.",
+    "Multiple equally likely matches": "카탈로그 후보가 동점으로 여러 개",
+    "No live enrichment service configured": "실시간 보강 서비스 미설정",
+    "Checked, not independently corroborated": "확인했으나 독립 검증 안 됨",
+    "No matching catalog entry yet": "일치하는 카탈로그 항목 없음",
   },
   zh: {
     "Unknown": "未知",
@@ -985,6 +989,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Edges explain reconstructed continuation only. They are not causal or authoritative facts.":
       "连接线仅说明重建的连续性，不表示因果关系或权威事实。",
     "Evidence (fused_score)": "证据（fused_score）",
+    "Multiple equally likely matches": "多个候选并列，无法唯一确定",
+    "No live enrichment service configured": "未配置实时增强服务",
+    "Checked, not independently corroborated": "已核查，但未获独立验证",
+    "No matching catalog entry yet": "尚无匹配的目录条目",
   },
   ja: {
     "Unknown": "不明",
@@ -1402,6 +1410,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Edges explain reconstructed continuation only. They are not causal or authoritative facts.":
       "接続線は再構築された連続性のみを示し、因果関係や権威ある事実を示すものではありません。",
     "Evidence (fused_score)": "証拠（fused_score）",
+    "Multiple equally likely matches": "候補が同点で複数存在",
+    "No live enrichment service configured": "リアルタイム補強サービス未設定",
+    "Checked, not independently corroborated": "確認済みだが独立検証は未了",
+    "No matching catalog entry yet": "一致するカタログ項目がまだありません",
   },
   vi: {
     "Unknown": "Không rõ",
@@ -1819,6 +1831,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Edges explain reconstructed continuation only. They are not causal or authoritative facts.":
       "Các đường nối chỉ giải thích tính liên tục được tái dựng; chúng không phải là quan hệ nhân quả hay sự thật có thẩm quyền.",
     "Evidence (fused_score)": "Bằng chứng (fused_score)",
+    "Multiple equally likely matches": "Nhiều ứng viên có điểm ngang nhau",
+    "No live enrichment service configured": "Chưa cấu hình dịch vụ làm giàu trực tiếp",
+    "Checked, not independently corroborated": "Đã kiểm tra nhưng chưa được xác minh độc lập",
+    "No matching catalog entry yet": "Chưa có mục danh mục phù hợp",
   },
 };
 
