@@ -1817,7 +1817,6 @@ async def read_post_content(
     """Return persisted content evidence; never derive or invent reader-facing copy."""
     await _load_visible_post(post_id, account, pool)
     queue_event: tuple[str, str] | None = None
-    summary_waiting_for_images = False
     async with pool.acquire() as conn:
         unit_rows = await conn.fetch(
             """
