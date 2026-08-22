@@ -326,6 +326,16 @@ or an explicit unavailable result.
      missing live infrastructure, not a code defect — but it gives the
      reader no way to tell "not yet processed" from "no live orchestrator in
      this environment" from "verification declined to corroborate."
+     **Update (2026-08-22):** the resolution path for an uncataloged person
+     already exists and is a defined action, not a missing feature —
+     `POST /api/posts/{id}/extract-keymen` ("Extract Keymen" in the Keymen
+     panel's "Evidence operations"), gated `post_admin`, runs Keyman
+     extraction and populates `cataloged_person` for names the extractor
+     finds. It had simply never been run for the specific post that
+     surfaced this finding. Live-verified the mechanism up through the
+     LLM extraction step itself (see "Orchestrator client timeouts" below);
+     confirming the catalog row and R&R link actually land is currently
+     blocked by unrelated environment schema drift, not this design.
   2. **RESOLVED (2026-08-22, PR #407): job title and responsibility were
      conflated into one free-text field.** `RoleResponsibility.responsibility`
      (`lineageweave/post_summary.py`) was documented as "what they are
@@ -414,9 +424,41 @@ or an explicit unavailable result.
   `post_lineage_edge` chain with fused scores above the 0.3 floor); the
   dataset-wide backfill and import-script fix remain open and need their
   own reviewed checkpoint before running against the full corpus.
-- **Entity and abbreviation resolution — open:** canonical names, aliases,
-  multilingual labels, team-vs-organization typing, title-aware person
-  disambiguation, and SearXNG/internal corroboration need end-to-end evidence.
+- **Entity and abbreviation resolution — source-stated case fixed
+  (2026-08-22), inferred case open:** an organization's former/alternate
+  name (e.g. "X(구 Y)") the post text itself states was dropped entirely
+  during extraction, even though `prov_alternate_of` was already a fully
+  declared predicate end-to-end (ontology term, allowlist, frontend label)
+  with nothing extracting it. Fixed with a RELATIONS prompt rule
+  requiring the post text to state the name change directly -- never
+  inferred from context, similarity, or outside knowledge. The
+  SearXNG-verified INFERRED-alias path (for a relationship the source
+  text does not state, e.g. an unstated real-world merger/acquisition)
+  remains open and needs its own resolution/verification client wiring
+  analogous to `organization_name_resolution.py`, plus a dedicated ADR --
+  not implemented here to avoid silent unverified inference. Canonical
+  names, multilingual labels, team-vs-organization typing, and
+  title-aware person disambiguation beyond this specific case still need
+  end-to-end evidence.
+- **Search ranking for structured field matches — fixed (2026-08-22):** a
+  search matching a post's own `source_order_pool_code` (project/order-pool
+  code) exactly fell into the same generic relevance tier as any unrelated
+  post that merely mentioned the code string in free-text body prose,
+  scattering a project's own records below loosely related noise for that
+  exact search term. Promoted a structured field match to the same top
+  priority tier as a title match.
+- **Playwright E2E coverage — infrastructure added (2026-08-22), narrow
+  scope:** Playwright was an unused devDependency with no config or `e2e/`
+  directory. Added `playwright.config.ts`, a login fixture, and one
+  regression spec covering the Knowledge-Graph black-node fix end-to-end
+  against a live authenticated browser+backend+database, discovering a
+  target post through the app's own API at runtime rather than a post id
+  fixed in the file (this repository's synthetic-only-artifact rule
+  forbids committing a specific private record's identifier). Broader
+  E2E coverage (R&R job-title/org-anchor rendering, Event Lineage
+  connection, search ranking) against seeded synthetic data with fresh
+  LLM-populated content remains open; that logic is covered today at the
+  unit/integration level (vitest, pytest) but not through a real browser.
 - **Image/HTML semantic units — partially implemented:** source DOM, layout
   metadata, region evidence, and provenance must remain separate from embedding
   text; transparent/unsupported image conversion and multimodal processing need
@@ -448,11 +490,44 @@ or an explicit unavailable result.
   behavior, lock boundaries, Valkey event delivery, multithreaded server
   behavior, retention grants, and read/write contention on the local Compose
   stack.
-- **Lineage coverage — open:** the persisted graph has 1,308 post-lineage edges
-  across 1,929 participating posts, while the bounded current view exposed one
-  edge and some focused posts had no component. Add a rebuild/coverage gate that
-  distinguishes genuinely isolated posts from missing extraction or grouping
-  evidence before presenting a reader-facing branching DAG as complete.
+- **Lineage coverage — open, root cause identified (2026-08-22):** superseded
+  by the more precise "Event Lineage thread grouping" finding above -- the
+  dataset-wide `thread_group_key` mismapping is the dominant reason most
+  posts have no lineage component, not a genuine absence of a real thread.
+  After the targeted single-family fix and a full rebuild (still LLM-free,
+  see that entry), the persisted graph has 943 post-lineage edges (down
+  from a stale pre-fix snapshot of 1,308 that predated the current
+  `SOURCE_POST_ELIGIBILITY_SQL` filter -- not itself a regression). A
+  rebuild/coverage gate distinguishing genuinely isolated posts from
+  missing extraction/grouping evidence remains open pending the dataset-
+  wide `thread_group_key` backfill and import-script fix.
+- **Orchestrator client timeouts — fixed, evidence-backed (2026-08-22):**
+  three separate `ContextualOrchestratorXClient` classes
+  (`keyman_extraction.py`, `organization_name_resolution.py`,
+  `corporate_hierarchy_inference.py`) defaulted to 30-180s timeouts too
+  short for `mode="auto"`'s deep multi-agent orchestration; a live
+  "Extract Keymen" call reproducibly hit `BrokenPipeError` in
+  contextual-orchestrator's own logs (the request completed, but the
+  client had already given up and closed the socket) and, once that was
+  fixed, a `TimeoutError` one step further down the same call chain.
+  Raised all three to 600-900s (this is a real user-triggered action, not
+  a hot path). `relation_verification.py`'s SearXNG client (15s, a plain
+  search HTTP call, not `mode="auto"`) was left unchanged since nothing
+  reproduced a problem there. Contextual-orchestrator's own "agent pool"
+  work (PR #795 merged, #804 open in that repo) may independently reduce
+  how often the ceiling is needed; not duplicated here.
+- **`organization_name_resolution` schema drift — open, environment-only:**
+  the live shared dev database has a `context_sha256` column and a
+  composite primary key on `organization_name_resolution` that exists in
+  NO committed migration (0015 defines a plain `raw_organization_name`
+  primary key, matching the current application code exactly). This is
+  uncommitted, in-progress work from a different concurrent session
+  applied directly to the shared database rather than through source
+  control -- not a code defect. It currently blocks a live end-to-end
+  verification that an uncataloged person becomes clickable after a
+  fresh "Extract Keymen" run (the mechanism itself, and every timeout fix
+  above it in the call chain, are confirmed correct up to this point).
+  Resolves once that session's migration lands.
 - **Cross-repository email/project lineage — provider boundary implemented,
   consumer open:** PR #343 merged at
   `125a8069a1554874d8067a15047e19d780ea6b7b`, but the contract remains
