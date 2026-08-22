@@ -50,6 +50,7 @@ _ADDITIONAL_LOOKUP_MIGRATION_PATHS = (
     Path(__file__).resolve().parents[1] / "migrations" / "0109_post_summary_source_fact.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0110_role_responsibility_software_agent.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0113_broad_source_fact_types.sql",
+    Path(__file__).resolve().parents[1] / "migrations" / "0133_measurement_unit_volume.sql",
 )
 
 # The categories this ontology covers (ADR 0004's scope). seed_demo_data.py
@@ -75,7 +76,7 @@ _ONTOLOGY_COVERED_CATEGORIES = frozenset(
     }
 )
 
-_INSERT_TUPLE_PATTERN = re.compile(r"\('([a-z_]+)',\s*'([a-z_]+)'")
+_INSERT_TUPLE_PATTERN = re.compile(r"\('([a-z_]+)',\s*'([a-z0-9_]+)'")
 
 
 def _seeded_lookup_codes_for_covered_categories() -> set[str]:

@@ -73,6 +73,17 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("renders a plain-text caret exponent as a real superscript", () => {
+    // Source posts write this directly as typed text (no <sup> tag) --
+    // "m^3" must render as "m³", not the literal caret.
+    expect(splitPostBody("<p>Volume noted as m^3, please add liters(L) too.</p>")).toEqual([
+      { kind: "text", text: "Volume noted as m³, please add liters(L) too." },
+    ]);
+    expect(splitPostBody("<p>Capacity: 12.5m^3</p>")).toEqual([
+      { kind: "text", text: "Capacity: 12.5m³" },
+    ]);
+  });
+
   it("keeps comparison operators that look like broken HTML", () => {
     expect(splitPostBody("qty < 50 and price > 10")).toEqual([
       { kind: "text", text: "qty < 50 and price > 10" },

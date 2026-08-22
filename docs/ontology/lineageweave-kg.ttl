@@ -371,6 +371,16 @@
     skos:prefLabel "Tractor"@en ;
     :lookupCode "unit_tractor" .
 
+:CubicMeterUnit a skos:Concept ;
+    skos:inScheme :measurementUnitScheme ;
+    skos:prefLabel "Cubic meter (m³)"@en ;
+    :lookupCode "unit_m3" .
+
+:LiterUnit a skos:Concept ;
+    skos:inScheme :measurementUnitScheme ;
+    skos:prefLabel "Liter (L)"@en ;
+    :lookupCode "unit_liter" .
+
 :factTypeScheme a skos:ConceptScheme ;
     rdfs:label "Source fact type scheme"@en .
 
