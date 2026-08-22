@@ -8,5 +8,9 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/setupTests.ts'],
+    // e2e/ runs under Playwright (npx playwright test), against a live
+    // authenticated stack -- vitest's default include pattern would
+    // otherwise also try to run those specs under jsdom.
+    exclude: ['**/node_modules/**', 'e2e/**'],
   },
 })
