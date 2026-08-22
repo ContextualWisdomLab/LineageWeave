@@ -94,6 +94,44 @@ def test_summary_backfill_uses_all_source_commercial_context_fields() -> None:
         assert f"real_post.{field_name}" in source
 
 
+def test_content_recovery_backfill_uses_all_source_commercial_context_fields() -> None:
+    """Content recovery's own eligibility matches the reader's complete contract.
+
+    ``scripts/backfill_post_content.py`` re-processes a stored post through the
+    content pipeline; it must recognize the same order-pool/sales-order/
+    inspection-point identity evidence the summary and queue scripts already
+    check, or a commercial-context-only imported row is silently skipped.
+    """
+    source = (ROOT / "scripts/backfill_post_content.py").read_text(encoding="utf-8")
+    for field_name in (
+        "source_order_pool_code",
+        "source_sales_order_code",
+        "source_sales_order_item_number",
+        "source_inspection_point_code",
+    ):
+        assert f"post.{field_name}" in source
+        assert f"real_post.{field_name}" in source
+
+
+def test_keymen_backfill_uses_all_source_commercial_context_fields() -> None:
+    """Keyman backfill's own eligibility matches the reader's complete contract.
+
+    ``scripts/backfill_post_keymen.py`` selects posts for Keyman extraction; it
+    must recognize the same order-pool/sales-order/inspection-point identity
+    evidence the summary and queue scripts already check, or a commercial-
+    context-only imported row is silently excluded from extraction.
+    """
+    source = (ROOT / "scripts/backfill_post_keymen.py").read_text(encoding="utf-8")
+    for field_name in (
+        "source_order_pool_code",
+        "source_sales_order_code",
+        "source_sales_order_item_number",
+        "source_inspection_point_code",
+    ):
+        assert f"post.{field_name}" in source
+        assert f"real_post.{field_name}" in source
+
+
 def test_content_backfill_normalizes_writing_state_codes() -> None:
     """Content recovery excludes padded and lower-case writing rows."""
     source = (ROOT / "scripts/queue_post_content_backfill.py").read_text(encoding="utf-8")

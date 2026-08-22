@@ -125,6 +125,10 @@ async def backfill_post_content(
                        and nullif(btrim(post.source_detail_state_code), '') is null
                        and nullif(btrim(post.source_sales_pool_code), '') is null
                        and nullif(btrim(post.source_sales_pool_name), '') is null
+                       and nullif(btrim(post.source_order_pool_code), '') is null
+                       and nullif(btrim(post.source_sales_order_code), '') is null
+                       and nullif(btrim(post.source_sales_order_item_number::text), '') is null
+                       and nullif(btrim(post.source_inspection_point_code), '') is null
                        and nullif(btrim(post.source_customer_code), '') is null
                        and nullif(btrim(post.source_customer_name), '') is null
                        and nullif(btrim(post.source_project_code), '') is null
@@ -146,6 +150,10 @@ async def backfill_post_content(
                             or nullif(btrim(real_post.source_detail_state_code), '') is not null
                             or nullif(btrim(real_post.source_sales_pool_code), '') is not null
                             or nullif(btrim(real_post.source_sales_pool_name), '') is not null
+                            or nullif(btrim(real_post.source_order_pool_code), '') is not null
+                            or nullif(btrim(real_post.source_sales_order_code), '') is not null
+                            or nullif(btrim(real_post.source_sales_order_item_number::text), '') is not null
+                            or nullif(btrim(real_post.source_inspection_point_code), '') is not null
                             or nullif(btrim(real_post.source_customer_code), '') is not null
                             or nullif(btrim(real_post.source_customer_name), '') is not null
                             or nullif(btrim(real_post.source_project_code), '') is not null
