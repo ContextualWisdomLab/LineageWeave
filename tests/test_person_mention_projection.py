@@ -87,6 +87,9 @@ _SOURCE_COMMERCIAL_CONTEXT_MIGRATION = (
     / "migrations"
     / "0130_source_commercial_context.sql"
 )
+_ROLE_JOB_TITLE_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0131_role_job_title.sql"
+)
 _SEMANTIC_SEARCH_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0032_semantic_search_trigram.sql"
 )
@@ -221,6 +224,7 @@ def projection_database() -> str:
                 cursor.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_IDENTIFIER_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_ROLE_JOB_TITLE_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(
                     """
                     insert into common_lookup_value

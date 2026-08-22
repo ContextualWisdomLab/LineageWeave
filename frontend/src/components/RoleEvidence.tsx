@@ -7,6 +7,7 @@ export type RoleEvidenceProps = {
   actorTypeCode: string;
   actorTypeLabel: string;
   responsibility: string;
+  jobTitle?: string | null;
   affiliationName: string | null;
   affiliationCatalogId?: string | null;
   affiliationLabel: string;
@@ -26,6 +27,7 @@ export function RoleEvidence({
   actorTypeCode,
   actorTypeLabel,
   responsibility,
+  jobTitle,
   affiliationName,
   affiliationCatalogId,
   affiliationLabel,
@@ -42,6 +44,7 @@ export function RoleEvidence({
     <li className={genericTeam ? "ontology-role ontology-role-unresolved" : "ontology-role"}>
       <span className={`actor-type-badge actor-type-${actorTypeCode}`}>{actorTypeLabel}</span>{" "}
       {actorContent}
+      {jobTitle ? <span className="rr-job-title">{` (${jobTitle})`}</span> : null}
       {affiliationName ? (
         <span className="rr-affiliation">
           {` · ${affiliationLabel}: `}

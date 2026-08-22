@@ -1823,7 +1823,13 @@ function sortRolesByOntologyOrder(
 }
 
 interface RoleTreeNode {
-  role: PostRoleResponsibility;
+  // null marks a synthetic organization-anchor node: the affiliated
+  // organization has no ROLES row of its own (no org-level action was
+  // extracted for it), so there is no PostRoleResponsibility to show --
+  // only a grouping heading for its members.
+  role: PostRoleResponsibility | null;
+  organizationName?: string;
+  organizationCatalogId?: string | null;
   children: RoleTreeNode[];
 }
 
@@ -1832,6 +1838,13 @@ interface RoleTreeNode {
 // under that row instead of repeating "· 소속: X" as a flat, disconnected
 // bullet next to it -- two researchers at the same institute now share a
 // visual parent instead of just sorting adjacent to each other.
+//
+// When 2+ people/teams share an affiliated_organization_name that has no
+// ROLES row of its own (the source names attendees and their org but
+// never describes the org acting on its own), they still get grouped
+// under a synthetic anchor for that name -- inventing a heading is not
+// inventing a fact (ADR 0010 fail-closed: no responsibility text is
+// attributed to the org, only its already-stated name is repeated).
 function buildRoleTree(roles: PostRoleResponsibility[]): RoleTreeNode[] {
   const sorted = sortRolesByOntologyOrder(roles);
   const organizationsByName = new Map<string, PostRoleResponsibility>();
@@ -1840,19 +1853,48 @@ function buildRoleTree(roles: PostRoleResponsibility[]): RoleTreeNode[] {
       organizationsByName.set(role.actor_name, role);
     }
   }
+  const unanchoredCounts = new Map<string, number>();
+  // Any member row can carry the resolved catalog id for its unanchored
+  // organization (ADR 0009/0010's resolution runs per-row); take it from
+  // whichever row has it rather than assuming the first-encountered one does.
+  const unanchoredCatalogIds = new Map<string, string>();
+  for (const role of sorted) {
+    const orgName = role.affiliated_organization_name;
+    if (orgName && !organizationsByName.has(orgName)) {
+      unanchoredCounts.set(orgName, (unanchoredCounts.get(orgName) ?? 0) + 1);
+      if (role.affiliated_organization_catalog_id && !unanchoredCatalogIds.has(orgName)) {
+        unanchoredCatalogIds.set(orgName, role.affiliated_organization_catalog_id);
+      }
+    }
+  }
   const nodesByRole = new Map<PostRoleResponsibility, RoleTreeNode>();
   for (const role of sorted) nodesByRole.set(role, { role, children: [] });
+  const virtualAnchors = new Map<string, RoleTreeNode>();
   const roots: RoleTreeNode[] = [];
   for (const role of sorted) {
-    const parent = role.affiliated_organization_name
-      ? organizationsByName.get(role.affiliated_organization_name)
-      : undefined;
     const node = nodesByRole.get(role) as RoleTreeNode;
-    if (parent && parent !== role) {
-      (nodesByRole.get(parent) as RoleTreeNode).children.push(node);
-    } else {
-      roots.push(node);
+    const orgName = role.affiliated_organization_name;
+    const realParent = orgName ? organizationsByName.get(orgName) : undefined;
+    if (realParent && realParent !== role) {
+      (nodesByRole.get(realParent) as RoleTreeNode).children.push(node);
+      continue;
     }
+    if (orgName && (unanchoredCounts.get(orgName) ?? 0) >= 2) {
+      let anchor = virtualAnchors.get(orgName);
+      if (!anchor) {
+        anchor = {
+          role: null,
+          organizationName: orgName,
+          organizationCatalogId: unanchoredCatalogIds.get(orgName) ?? null,
+          children: [],
+        };
+        virtualAnchors.set(orgName, anchor);
+        roots.push(anchor);
+      }
+      anchor.children.push(node);
+      continue;
+    }
+    roots.push(node);
   }
   return roots;
 }
@@ -2359,6 +2401,45 @@ function PostDetailPopup({
                       <ul>
                         {(() => {
                           function renderRoleNode(node: RoleTreeNode, isChild: boolean): ReactNode {
+                          if (node.role === null) {
+                            const orgCatalogId = node.organizationCatalogId;
+                            return (
+                              <li
+                                key={`org-anchor:${node.organizationName ?? ""}`}
+                                className="ontology-role ontology-role-org-anchor"
+                              >
+                                <span className="actor-type-badge actor-type-prov_organization">
+                                  {t("Organization")}
+                                </span>{" "}
+                                {orgCatalogId ? (
+                                  <button
+                                    type="button"
+                                    className="keyman-select"
+                                    aria-label={tf("R&R organization: {name}", {
+                                      name: node.organizationName ?? "",
+                                    })}
+                                    onClick={() => {
+                                      setFocusPerson(null);
+                                      setFocusTeam(null);
+                                      setFocusEntity({
+                                        entityId: orgCatalogId,
+                                        entityName: node.organizationName ?? "",
+                                      });
+                                    }}
+                                  >
+                                    <strong>{node.organizationName}</strong>
+                                  </button>
+                                ) : (
+                                  <strong>{node.organizationName}</strong>
+                                )}
+                                {node.children.length > 0 ? (
+                                  <ul className="customer-master-tree-children">
+                                    {node.children.map((child) => renderRoleNode(child, true))}
+                                  </ul>
+                                ) : null}
+                              </li>
+                            );
+                          }
                           const rr = node.role;
                           const isPerson = rr.actor_type_code === "prov_person";
                           const actorTypeLabel = t(
@@ -2448,6 +2529,7 @@ function PostDetailPopup({
                               actorTypeCode={rr.actor_type_code}
                               actorTypeLabel={actorTypeLabel}
                               responsibility={rr.responsibility}
+                              jobTitle={rr.job_title}
                               // A row nested under its affiliated org's <li>
                               // already shows that relationship structurally
                               // -- repeating "· 소속: X" next to it would be

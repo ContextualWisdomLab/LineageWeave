@@ -85,6 +85,9 @@ _SOURCE_ORG_NAMED_HINTS_MIGRATION = (
 _SOURCE_COMMERCIAL_CONTEXT_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0130_source_commercial_context.sql"
 )
+_ROLE_JOB_TITLE_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0131_role_job_title.sql"
+)
 _MEMBER_LOCALE_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0044_member_locale_preference.sql"
 )
@@ -267,6 +270,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_SOURCE_NAMED_HINTS_MIGRATION.read_text())
             cur.execute(_SOURCE_ORG_NAMED_HINTS_MIGRATION.read_text())
             cur.execute(_SOURCE_COMMERCIAL_CONTEXT_MIGRATION.read_text())
+            cur.execute(_ROLE_JOB_TITLE_MIGRATION.read_text())
             cur.execute(
                 (Path(__file__).resolve().parents[2] / "migrations" / "0040_post_summary_contract.sql")
                 .read_text()

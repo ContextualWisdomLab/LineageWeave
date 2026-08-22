@@ -2504,29 +2504,35 @@ describe("App, authenticated", () => {
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
     expect(screen.getByText(/우리 측 후속/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "R&R Keyman: Ada West" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "R&R affiliation: Demo Corp" })).toBeInTheDocument();
+    // Ada West and 설계팀 both name "Demo Corp" as their affiliation, and
+    // "Demo Corp" has no ROLES row of its own -- they now nest under a
+    // synthetic organization-anchor <li> instead of each repeating a flat
+    // "· 소속: Demo Corp" link next to them.
+    const demoCorpAnchorButton = screen.getByRole("button", { name: "R&R organization: Demo Corp" });
+    expect(demoCorpAnchorButton).toBeInTheDocument();
+    const demoCorpAnchorItem = demoCorpAnchorButton.closest("li");
+    expect(demoCorpAnchorItem).not.toBeNull();
+    expect(within(demoCorpAnchorItem as HTMLElement).getByRole("button", { name: "R&R Keyman: Ada West" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "R&R person: Priya Nair" })).toBeInTheDocument();
     expect(screen.getByText("당사").closest("li")).toHaveTextContent("Organization");
     expect(screen.queryByRole("button", { name: "R&R Keyman: 당사" })).not.toBeInTheDocument();
-    // R&R groups by affiliated organization, then orders each group
-    // organization-first, then team, then person (ADR 0004's PROV-O
-    // broader/narrower direction) -- not raw extraction order. "Northridge
-    // Grid Devices" is itself an organization row, but it is affiliated
-    // with "Northridge Grid" and must cluster with Priya Nair under that
-    // parent, not stand as its own separate group.
-    const rrList = screen.getByText("당사").closest("ul");
-    const rrOrder = within(rrList as HTMLElement)
-      .getAllByRole("listitem")
-      .map((item) => item.textContent);
-    const demoCorpGroup = rrOrder.slice(
-      rrOrder.findIndex((text) => text?.includes("설계팀")),
-      rrOrder.findIndex((text) => text?.includes("Ada West")) + 1,
-    );
-    expect(demoCorpGroup[0]).toContain("설계팀");
-    expect(demoCorpGroup[1]).toContain("Ada West");
-    const northridgeGroupStart = rrOrder.findIndex((text) => text?.includes("Northridge Grid Devices"));
-    expect(rrOrder[northridgeGroupStart]).toContain("Northridge Grid Devices");
-    expect(rrOrder[northridgeGroupStart + 1]).toContain("Priya Nair");
+    // 설계팀 shares Demo Corp's synthetic anchor with Ada West (ADR 0004's
+    // PROV-O broader/narrower direction) instead of merely sorting adjacent
+    // to it.
+    expect(within(demoCorpAnchorItem as HTMLElement).getByText(/설계팀/)).toBeInTheDocument();
+    // "Northridge Grid Devices" is itself an organization row, but it is
+    // affiliated with "Northridge Grid" -- which has no ROLES row of its
+    // own -- so it clusters with Priya Nair under a synthetic anchor too,
+    // not as its own separate top-level group.
+    const northridgeGridDevicesItem = screen.getByText(/Northridge Grid Devices/).closest("li");
+    expect(northridgeGridDevicesItem).not.toBeNull();
+    const northridgeAnchorItem = northridgeGridDevicesItem
+      ?.closest("ul.customer-master-tree-children")
+      ?.parentElement;
+    expect(northridgeAnchorItem).not.toBeNull();
+    expect(
+      within(northridgeAnchorItem as HTMLElement).getByRole("button", { name: "R&R person: Priya Nair" }),
+    ).toBeInTheDocument();
     const relatedPosts = screen.getByRole("heading", { name: "Related posts", level: 3 }).closest(
       ".related-posts-section",
     );

@@ -141,7 +141,7 @@ async def fetch_persisted_summary(
     roles = await conn.fetch(
         """
         select role.actor_name, role.responsibility_text, role.actor_type_code,
-               role.affiliated_organization_name,
+               role.affiliated_organization_name, role.job_title_text,
                role.cataloged_team_id,
                role.cataloged_corporate_entity_id,
                role.cataloged_person_id,
@@ -256,6 +256,7 @@ async def fetch_persisted_summary(
                 "responsibility": row["responsibility_text"],
                 "actor_type_code": row["actor_type_code"],
                 "affiliated_organization_name": row["affiliated_organization_name"],
+                "job_title": row["job_title_text"],
                 "catalog_node_id": catalog_node_id,
                 "catalog_node_type_code": catalog_node_type_code,
                 "affiliated_organization_catalog_id": (
@@ -723,15 +724,16 @@ async def _replace_summary_projection(
         await conn.execute(
             "insert into post_summary_role "
             "(post_id, actor_name, responsibility_text, actor_type_code, "
-            "affiliated_organization_name, cataloged_team_id, "
+            "affiliated_organization_name, job_title_text, cataloged_team_id, "
             "cataloged_corporate_entity_id, cataloged_person_id, "
             "cataloged_affiliated_corporate_entity_id) values "
-            "($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+            "($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
             post_id,
             role.actor_name,
             role.responsibility,
             role.actor_type_code,
             role.affiliated_organization_name,
+            role.job_title,
             cataloged_team_id,
             cataloged_corporate_entity_id,
             cataloged_person_id,
