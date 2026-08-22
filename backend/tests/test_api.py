@@ -113,6 +113,9 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     / "migrations"
     / "0102_project_bound_summary_event.sql"
 )
+_TENANT_SETTINGS_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0103_tenant_settings.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -226,6 +229,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
+            cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -1959,6 +1963,47 @@ def test_nonexistent_post_is_not_found(client, demo_analyst_token) -> None:
         f"/api/posts/{uuid.uuid4()}", headers={"Authorization": f"Bearer {demo_analyst_token}"}
     )
     assert response.status_code == 404
+
+
+def test_healthz_is_reachable_without_a_token(client) -> None:
+    # Live bug (2026-08-22): two @app.get decorators stacked before
+    # read_tenant_settings meant "/healthz" and "/api/settings" both routed
+    # to that auth-required handler, and the real healthz() below had no
+    # route at all -- the docker-compose backend healthcheck
+    # (urllib.request.urlopen against /healthz, no Authorization header)
+    # would have failed on every fresh deployment.
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_settings_get_returns_the_seeded_brand_name(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get("/api/settings", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert response.status_code == 200
+    assert response.json() == {"brandName": "LineageWeave"}
+
+
+def test_update_settings_requires_post_admin(client, demo_analyst_token, seeded_db) -> None:
+    response = client.patch(
+        "/api/settings",
+        json={"brandName": "Someone Else's Brand"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_update_settings_as_admin_changes_the_brand_name(client, demo_analyst_token, seeded_db) -> None:
+    _grant_post_admin(seeded_db["dsn"])
+    patch_response = client.patch(
+        "/api/settings",
+        json={"brandName": "Renamed Corp"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert patch_response.status_code == 200
+    assert patch_response.json() == {"brandName": "Renamed Corp"}
+
+    get_response = client.get("/api/settings", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert get_response.json() == {"brandName": "Renamed Corp"}
 
 
 def test_missing_token_is_unauthorized(client) -> None:

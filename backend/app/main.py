@@ -583,8 +583,6 @@ async def _post_filter_options(
     )
 
 
-@app.get("/healthz")
-
 @app.get("/api/settings", response_model=dict)
 async def read_tenant_settings(
     account: CurrentAccount = Depends(get_current_account),
@@ -614,6 +612,7 @@ async def update_tenant_settings(
     return {"brandName": brand_name}
 
 
+@app.get("/healthz")
 async def healthz() -> dict[str, str]:
     """Liveness probe: the process is up. Does not touch Postgres."""
     return {"status": "ok"}
