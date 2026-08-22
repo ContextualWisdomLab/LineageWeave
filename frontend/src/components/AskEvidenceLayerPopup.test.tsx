@@ -30,6 +30,9 @@ describe("AskEvidenceLayerPopup", () => {
     expect(screen.getByText(/project: Checkout revamp/)).toBeInTheDocument();
     expect(screen.getByText("Screenshot of the checkout error")).toBeInTheDocument();
     expect(screen.getByText("Error code 500 on checkout")).toBeInTheDocument();
+    expect(
+      screen.getByRole("list", { name: "Checkout error follow-up Evidence facts" }),
+    ).toBeInTheDocument();
   });
 
   it("shows an explicit placeholder when the citation has no persisted evidence", () => {
@@ -39,6 +42,19 @@ describe("AskEvidenceLayerPopup", () => {
     expect(
       screen.getByText("No persisted evidence is available for this citation."),
     ).toBeInTheDocument();
+  });
+
+  it("uses the untitled fallback when an image caption is blank", () => {
+    render(
+      <AskEvidenceLayerPopup
+        {...baseProps}
+        facts={[]}
+        images={[{ unit_index: 0, caption: "", extracted_text: null }]}
+        onClose={vi.fn()}
+        onOpenPost={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Untitled image")).toBeInTheDocument();
   });
 
   it("closes on backdrop click, close button click, and Escape, but not on panel click", async () => {
@@ -81,5 +97,21 @@ describe("AskEvidenceLayerPopup", () => {
       <AskEvidenceLayerPopup {...baseProps} facts={[]} images={[]} onClose={vi.fn()} onOpenPost={vi.fn()} />,
     );
     expect(screen.getByRole("dialog")).toHaveFocus();
+  });
+
+  it("contains Tab and Shift+Tab focus within the modal layer", async () => {
+    render(
+      <AskEvidenceLayerPopup {...baseProps} facts={[]} images={[]} onClose={vi.fn()} onOpenPost={vi.fn()} />,
+    );
+    const closeButton = screen.getByRole("button", { name: "Close evidence panel" });
+    const openPostButton = screen.getByRole("button", { name: "Open post: Checkout error follow-up" });
+
+    openPostButton.focus();
+    await userEvent.tab();
+    expect(closeButton).toHaveFocus();
+
+    closeButton.focus();
+    await userEvent.tab({ shift: true });
+    expect(openPostButton).toHaveFocus();
   });
 });
