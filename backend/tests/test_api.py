@@ -5641,3 +5641,57 @@ def test_post_search_matches_source_record_key_and_one_character_typo(
     fuzzy = client.get("/api/posts", params={"search": typo}, headers=headers)
     assert fuzzy.status_code == 200, fuzzy.text
     assert any(post["post_id"] == seeded_db["own_private_post_id"] for post in fuzzy.json()["posts"])
+
+
+def test_post_search_ranks_project_code_field_match_above_body_mention(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A structured project-code field match outranks an incidental body mention.
+
+    Two posts share the same search term: one has it as its own
+    source_order_pool_code (the authoritative "this post belongs to
+    project X" signal), the other merely mentions the code string
+    somewhere in unrelated body prose. The field match must rank first.
+    """
+    project_code = "TEST-PROJECT-CODE-9001"
+    conn = psycopg2.connect(seeded_db["dsn"])
+    conn.autocommit = True
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "update source_post set source_order_pool_code = %s where post_id = %s",
+                (project_code, seeded_db["own_private_post_id"]),
+            )
+            cur.execute(
+                "select author_account_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_account_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into source_post "
+                "(author_account_id, corporate_entity_id, post_title, post_body, "
+                "voc_type_code, visibility_code, source_author_code, created_at, updated_at) "
+                "values (%s, %s, %s, %s, 'voc', 'private', %s, now(), now()) "
+                "returning post_id",
+                (
+                    author_account_id,
+                    seeded_db["own_corp_id"],
+                    "Unrelated body-mention post",
+                    f"An unrelated update. (see also {project_code} for reference)",
+                    # A source-context field must be present -- SOURCE_POST_READER_ELIGIBILITY_SQL
+                    # hides a context-less post once ANY post anywhere has one, and the sibling
+                    # post above was just given a source_order_pool_code.
+                    "TEST-AUTHOR-CODE",
+                ),
+            )
+            body_mention_post_id = str(cur.fetchone()[0])
+    finally:
+        conn.close()
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    response = client.get("/api/posts", params={"search": project_code}, headers=headers)
+    assert response.status_code == 200, response.text
+    post_ids = [post["post_id"] for post in response.json()["posts"]]
+    assert seeded_db["own_private_post_id"] in post_ids
+    assert body_mention_post_id in post_ids
+    assert post_ids.index(seeded_db["own_private_post_id"]) < post_ids.index(body_mention_post_id)
