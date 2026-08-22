@@ -553,6 +553,62 @@ async def gather_global_chat_sources(
     return sources
 
 
+async def cited_post_images(
+    conn: asyncpg.Connection,
+    cited_post_ids: list[str],
+) -> list[dict[str, Any]]:
+    """Persisted image evidence (caption/OCR/tags) for already-cited posts.
+
+    Global Ask cites a post's *text*; when that post's evidence actually
+    came from an embedded picture (a screenshot, a diagram), the reader has
+    no way to tell the difference -- the answer just reads as a text claim.
+    This surfaces the same persisted, never-raw-bytes image description
+    `GET /api/posts/{id}/content` already renders (`post_content_image`,
+    ADR-tracked alongside its region locations), scoped to the posts this
+    answer already cited.
+
+    No ABAC re-check here: `cited_post_ids` only ever contains ids drawn
+    from `gather_global_chat_sources`'s already-authorized source set, the
+    same trust boundary `cited_post_evidence`/`cited_post_summaries` rely
+    on (`lineageweave.post_chat`).
+    """
+    if not cited_post_ids:
+        return []
+    rows = await conn.fetch(
+        """
+        select unit.post_id, unit.unit_index, image.mime_type,
+               image.description_status_code, image.extracted_text, image.caption,
+               coalesce(
+                   array_agg(tag.tag_text order by tag.tag_text)
+                       filter (where tag.tag_text is not null),
+                   '{}'::text[]
+               ) as tags
+          from post_content_unit unit
+          join post_content_image image
+            on image.post_content_unit_id = unit.post_content_unit_id
+          left join post_content_image_tag tag
+            on tag.post_content_image_id = image.post_content_image_id
+         where unit.post_id = any($1::uuid[])
+         group by unit.post_id, unit.unit_index, image.mime_type,
+                  image.description_status_code, image.extracted_text, image.caption
+         order by unit.post_id, unit.unit_index
+        """,
+        cited_post_ids,
+    )
+    return [
+        {
+            "post_id": str(row["post_id"]),
+            "unit_index": row["unit_index"],
+            "mime_type": row["mime_type"],
+            "status_code": row["description_status_code"],
+            "extracted_text": row["extracted_text"],
+            "caption": row["caption"],
+            "tags": list(row["tags"] or []),
+        }
+        for row in rows
+    ]
+
+
 @dataclass(frozen=True)
 class SeededChat:
     """Synthetic Q&A for a reconstruct/calendar/demo fixture -- not an LLM."""

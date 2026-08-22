@@ -301,11 +301,22 @@ export interface ChatHistory {
   exchanges: ChatExchange[];
 }
 
+export interface CitedPostImage {
+  post_id: string;
+  unit_index: number;
+  mime_type: string;
+  status_code: string;
+  extracted_text: string | null;
+  caption: string | null;
+  tags: string[];
+}
+
 export interface AskAgentResponse {
   answer_text: string;
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
   cited_post_evidence?: CitedPostEvidence[];
+  cited_post_images?: CitedPostImage[];
   source_post_ids: string[];
   next_action?: string;
 }
