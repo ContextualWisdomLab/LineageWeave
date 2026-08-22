@@ -562,6 +562,62 @@ or an explicit unavailable result.
    gate. Do not self-approve, bypass protection, or claim a PR is merged without
    a merge SHA.
 
+## 6a. 2026-08-22 update: 5W1H/KG evidence-contract checkpoint (`docs/customer-master-scope-adr`)
+
+Exact head after this update: `dbd8422c0ed094b94d1f778ffa70a2a6438a50e7`
+(squash merge of PR #430 on top of #425, #424, #423, #416, #413, all merged
+this session). Real post identifiers and business names are deliberately
+excluded per this repo's de-identification discipline.
+
+- **Closed this checkpoint:** a corpus-wide 5W1H `who`/`what` regression
+  (stale-contract summaries silently emptied both slots regardless of
+  whether the underlying evidence rows existed -- PR #413); relative "when"
+  phrases (올해/내년-style) had no absolute-date resolution mechanism, now
+  added via a `resolved_date_text` field anchored to the post's own
+  authored date, never a guess (PR #416); the MEASUREMENTS unit registry
+  had no volume unit at all (`unit_m3`/`unit_liter` added, PR #424) and the
+  active extraction prompt never enumerated any valid unit code, not even
+  the pre-existing three; a stripped inline HTML tag (`<span>` etc.) could
+  fabricate a phantom indentation level indistinguishable from real nbsp
+  indentation (PR #423); product/equipment RELATIONS extraction had zero
+  prompt guidance despite the KG renderer already supporting the node type
+  generically (PR #416); a details-response token budget shared with the
+  short summary call silently truncated RELATIONS on content-rich posts
+  (PR #416); the source detail-state W/D/A panel asserted an unverified
+  LOVEM/SAP label as settled fact with no confidence signal at all (PR
+  #425, now confirmed/unconfirmed throughout the UI, R added as a
+  moderately-evidenced hypothesis via multivariate analysis of the raw
+  export, not LOVEM-confirmed); a bare meeting clock-time with no date
+  anywhere in the post had no resolution path (PR #430, the model now
+  judges same-day-filing plausibility explicitly, never asserting the
+  filing timestamp as the event's own time).
+- **Investigated, no code defect found:** an embedded-image email's date
+  clue not reaching 5W1H turned out to be a stale-contract artifact already
+  fixed by PR #413's mechanism, confirmed via 4 live reproductions; a
+  external supplier's product-announcement post's empty who/what/when was
+  the same stale-contract pattern, confirmed already resolved live.
+- **Investigated, genuine external blocker, not fixed:** "TEPP-based
+  cross-post connection" -- TEPP is architecturally an analysis-run *kind*
+  (psychometric theta measurement per corporate entity per period) with no
+  code path anywhere linking posts to each other; building one would be a
+  new feature, not a bug fix, and is separately blocked on TEPP's own
+  production readiness (its most recent merged PR is explicitly scoped
+  "not a production... service", loopback-only, non-durable; see
+  `tepp_readiness_watch` session memory for the standing watch).
+- **Not investigated this checkpoint:** the day1/2/3 post-family lineage
+  connection and search-ranking complaint (carried over from a prior,
+  already-closed goal); org→project→org KG structure, R&R
+  job-title/catalog-link, a competitor's former-name alias resolution, black-KG rendering,
+  and event-lineage tracing for the carried-over introduction-meeting post
+  family (also carried over from that prior goal, already resolved per its
+  own closure record) were not re-verified this checkpoint.
+- **Local quality evidence at this exact head:** backend `pytest tests/ -q`
+  722 passed / 11 skipped; frontend `npx vitest run` 200-203 passed across
+  the individual PR heads; `npx tsc --noEmit` clean on each frontend PR.
+  These are local checks at PR-branch heads, not independent-review or
+  hosted-protected-gate evidence at the current merged head -- rerun after
+  merge before treating this exact head as release-ready.
+
 ## 7. References (APA 7th)
 
 ContextualWisdomLab. (2026). *TEPP* [Computer software]. GitHub.
