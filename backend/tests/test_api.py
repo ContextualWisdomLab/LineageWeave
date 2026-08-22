@@ -4239,6 +4239,89 @@ def test_other_corp_private_post_summary_is_forbidden(client, demo_analyst_token
     assert response.status_code == 403
 
 
+def test_post_summary_with_failed_content_job_reports_failure_not_processing(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A terminal post-content ingestion failure must tell the reader to
+    retry the durable job, not claim the image evidence is merely still
+    processing -- waiting will never resolve a FAILED job. See
+    backend/app/main.py's read_post_summary and
+    backend/app/post_content_queue.py's post_content_summary_status_message.
+    """
+    from backend.app.post_content_queue import FAILED, source_body_sha256
+
+    tiny_png_b64 = (
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk"
+        "+A8AAQUBAScY42YAAAAASUVORK5CYII="
+    )
+    html_body = f'<p>failed content job</p><img src="data:image/png;base64,{tiny_png_b64}"/>'
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
+                "select author_account_id, corporate_entity_id, 'Failed content job post', %s, 'voc', 'public' "
+                "from source_post where post_id = %s returning post_id",
+                (html_body, seeded_db["own_private_post_id"]),
+            )
+            new_post_id = str(cur.fetchone()[0])
+            cur.execute(
+                "insert into post_content_ingestion_job (post_id, source_body_sha256, status_code) "
+                "values (%s, %s, %s)",
+                (new_post_id, source_body_sha256(html_body), FAILED),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/posts/{new_post_id}/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 503
+    detail = response.json()["detail"]
+    assert "ingestion failed" in detail
+    assert "still being processed" not in detail
+
+
+def test_post_summary_with_queued_content_job_still_reports_processing(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Regression: a job that is genuinely still queued/running keeps the
+    original still-processing guidance -- only a terminal FAILED job gets
+    the failure-specific message.
+    """
+    tiny_png_b64 = (
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk"
+        "+A8AAQUBAScY42YAAAAASUVORK5CYII="
+    )
+    html_body = f'<p>still queued post</p><img src="data:image/png;base64,{tiny_png_b64}"/>'
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into source_post (author_account_id, corporate_entity_id, post_title, post_body, voc_type_code, visibility_code) "
+                "select author_account_id, corporate_entity_id, 'Queued content job post', %s, 'voc', 'public' "
+                "from source_post where post_id = %s returning post_id",
+                (html_body, seeded_db["own_private_post_id"]),
+            )
+            new_post_id = str(cur.fetchone()[0])
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/posts/{new_post_id}/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 503
+    assert response.json()["detail"] == (
+        "Post summary is unavailable: image evidence is still being processed"
+    )
+
+
 def test_other_corp_private_post_chat_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
     posted = client.post(

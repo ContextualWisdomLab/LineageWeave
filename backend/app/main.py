@@ -111,6 +111,7 @@ from backend.app.post_content_queue import (
     post_content_api_status,
     post_content_is_complete,
     post_content_summary_is_ready,
+    post_content_summary_status_message,
     post_body_has_images,
     publish_post_content_event,
 )
@@ -2922,7 +2923,7 @@ async def read_post_summary(
             if summary_waiting_for_images:
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post summary is unavailable: image evidence is still being processed",
+                    post_content_summary_status_message(job.status_code),
                 )
         with use_llm_metadata(post_metadata):
             client = _post_summary_client()
