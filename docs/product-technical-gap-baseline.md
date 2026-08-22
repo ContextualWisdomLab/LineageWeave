@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
 ## 1. Known Parsing & Frontend Display Gaps
-- **Footnote Parsing**: `post=00505695-3e61-1fd1-83c5-263f88a9e77a` fails to recognize footnotes (li/oi level errors).
+- **Footnote Parsing**: (Resolved) Verified against the real row for `post=00505695-3e61-1fd1-83c5-263f88a9e77a` (reachable in the running compose stack's seeded DB, confirmed to still exist -- not a stale/missing post id). Ran `lineageweave.chunking.chunk_by_dom` against its actual `post_body`: it correctly emits a distinct `label="footnote"` chunk (via `_is_footnote_block`), separate from 11 correctly-populated `label="li"` chunks (each with real, non-empty text -- none dropped or merged). No garbling reproduced. The original "li/oi level errors" phrasing is not fully decodable from the doc alone (possibly a typo for "ol", which this post's HTML does not use at all -- it is a flat, single-level `<ul>`), so if a genuinely different defect was meant, it did not reproduce against this post's real content either way.
 - **Table Parsing**: `post=00505695-3e61-1fd1-80c6-86bb61c8ddc5` completely fails at parsing tables.
 - **Indentation**: Incorrect indentation rendering in `post=00505695-7571-1fd1-83c3-d521b187ad5b` and `post=00505695-3e61-1fd1-83c0-497b3c1c455e`.
 - **Image/Table OCR**: `post=00505695-7571-1fd1-83dd-3d22a61a5734` fails text recognition for tables inside images, markdown parsing fails, and image OCR description is too shallow for Ontology & Semantics.
