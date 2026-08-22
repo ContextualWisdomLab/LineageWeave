@@ -33,6 +33,7 @@ from lineageweave.post_summary import (
     NullPostSummaryClient,
     RoleResponsibility,
     SemanticRelationship,
+    _DETAILS_REQUEST_PROMPT_TEMPLATE,
     _SUMMARY_REQUEST_PROMPT_TEMPLATE,
     _formalize_korean_summary,
     _parse_optional_project_key,
@@ -306,6 +307,28 @@ def test_parses_when_evidence_resolved_date_column() -> None:
     assert when_evidence.value_text == "올해 말까지"
     assert when_evidence.resolved_date_text == "2026-12"
     assert how_evidence.resolved_date_text is None
+
+
+def test_parses_when_evidence_resolved_from_a_bare_time_with_no_date() -> None:
+    """Live gap (2026-08-22): a real post stated only a meeting clock time
+    ("11:00~11:40") with no date anywhere in the body. The prompt now lets
+    the model judge whether the post's own authored date is a plausible
+    same-day-minutes match, without turning the filing timestamp into the
+    event's own time -- see the EVIDENCE section's bare-clock-time guidance.
+    """
+    details = _parse_plain_summary_details(
+        "ROLES:\nNONE\nPROJECTS:\nNONE\nEVIDENCE:\n"
+        "when | 11:00~11:40 | 11:00~11:40 | 2026-02-20"
+    )
+    assert details is not None
+    when_evidence = details[3][0]
+    assert when_evidence.value_text == "11:00~11:40"
+    assert when_evidence.resolved_date_text == "2026-02-20"
+
+
+def test_details_prompt_lets_the_model_judge_a_bare_time_same_day_match() -> None:
+    for marker in ("only a clock time", "plausibility judgment", "not a certain fact"):
+        assert marker in _DETAILS_REQUEST_PROMPT_TEMPLATE
 
 
 def test_five_w1h_evidence_rejects_resolved_date_outside_when_slot() -> None:

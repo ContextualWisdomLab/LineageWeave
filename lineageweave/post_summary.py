@@ -926,6 +926,19 @@ NONE in the 4th column when the "when" value is already an absolute date,
 or when the post gives no basis to resolve it (e.g. "다음 분기" with no
 stated fiscal calendar). For where/why/how rows, always write NONE in the
 4th column.
+Separately, when a "when" value states only a clock time (e.g. "11:00~11:40")
+and the post gives no date anywhere else in it, you may resolve the 4th
+column to {reference_date}'s date -- the day the post was authored -- but
+only as a plausibility judgment, not a certain fact: same-day meeting
+minutes (a meeting happens, the write-up is filed later the same day) is a
+common but not universal pattern. Weigh it against the rest of the post --
+if anything suggests the write-up happened on a different day (e.g. "어제",
+"지난주", a reference to already having sent minutes), or you are not
+reasonably confident, write NONE instead of guessing. This is still not
+the record's filing timestamp standing in for the event's own time: you are
+judging only which calendar day a same-day meeting most likely falls on,
+never asserting an exact event time, and the original clock-time phrase in
+column 2 stays unchanged either way.
 For CLUES, emit one row for every explicit event-connected clue. The event
 index is zero-based and must refer to a key event. Use the narrowest clue type
 that the source supports. A clue may target a named actor, organization,
