@@ -3,6 +3,15 @@ import { chatEvidenceKindLabel } from "../evidenceKindLabels";
 import { t, tf } from "../i18n";
 import { PopupCloseButton } from "./PopupCloseButton";
 
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(",");
+
 export type AskEvidenceLayerFact = {
   kind: string;
   text: string;
@@ -39,6 +48,8 @@ export function AskEvidenceLayerPopup({
   onOpenPost,
 }: AskEvidenceLayerPopupProps) {
   const headingId = useId();
+  const factsHeadingId = useId();
+  const imagesHeadingId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -47,7 +58,39 @@ export function AskEvidenceLayerPopup({
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab") return;
+
+      const panel = panelRef.current;
+      if (!panel) return;
+      const focusable = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+        (element) => !element.hasAttribute("hidden") && element.getAttribute("aria-hidden") !== "true",
+      );
+      if (focusable.length === 0) {
+        event.preventDefault();
+        panel.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const active = document.activeElement;
+      if (active === panel || !panel.contains(active)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+        return;
+      }
+      if (event.shiftKey && active === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && active === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
@@ -71,8 +114,8 @@ export function AskEvidenceLayerPopup({
         ) : null}
         {facts.length > 0 ? (
           <section className="popup-section">
-            <h3>{t("Evidence facts")}</h3>
-            <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
+            <h3 id={factsHeadingId}>{t("Evidence facts")}</h3>
+            <ul className="post-evidence-list" aria-labelledby={`${headingId} ${factsHeadingId}`}>
               {facts.map((fact, index) => (
                 <li key={`${fact.kind}:${fact.text}:${index}`}>
                   <span>{chatEvidenceKindLabel(fact.kind)}</span>
@@ -84,11 +127,11 @@ export function AskEvidenceLayerPopup({
         ) : null}
         {images.length > 0 ? (
           <section className="popup-section">
-            <h3>{t("Image evidence")}</h3>
-            <ul className="post-evidence-list" aria-label={t("Image evidence")}>
+            <h3 id={imagesHeadingId}>{t("Image evidence")}</h3>
+            <ul className="post-evidence-list" aria-labelledby={`${headingId} ${imagesHeadingId}`}>
               {images.map((image) => (
                 <li key={image.unit_index}>
-                  <span>{image.caption ?? t("Untitled image")}</span>
+                  <span>{image.caption?.trim() ? image.caption : t("Untitled image")}</span>
                   {image.extracted_text ? <span>{image.extracted_text}</span> : null}
                 </li>
               ))}
