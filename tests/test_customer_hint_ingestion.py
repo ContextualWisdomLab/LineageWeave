@@ -29,9 +29,14 @@ class _UnavailableClient:
 
 
 class _Connection:
-    def __init__(self, *, sample_rows=None, existing_entity=None) -> None:
+    def __init__(self, *, sample_rows=None, existing_entity=None, canonical_name=None) -> None:
         self._sample_rows = sample_rows or []
         self._existing_entity = existing_entity
+        # None means "no divergence to simulate" -- resolve_customer_hint
+        # falls back to the resolved name it already has when fetchval
+        # returns nothing, same as a real corporate_entity row always
+        # having a name would.
+        self._canonical_name = canonical_name
         self.executed: list[tuple[str, tuple[object, ...]]] = []
 
     async def fetch(self, query: str, *args: object):
@@ -48,6 +53,11 @@ class _Connection:
         if "insert into corporate_entity" in query:
             self.executed.append((query, args))
             return {"corporate_entity_id": "new-entity-id"}
+        return None
+
+    async def fetchval(self, query: str, *args: object):
+        if "select entity_name from corporate_entity" in query:
+            return self._canonical_name
         return None
 
 
@@ -122,6 +132,33 @@ def test_corroborated_resolution_uses_the_hierarchy_aware_placement(monkeypatch)
         "verification_evidence_url": "https://evidence.example/result",
     }
     assert all("insert into corporate_entity" not in call[0] for call in conn.executed)
+
+
+def test_response_reports_the_bound_entitys_actual_catalog_name(monkeypatch) -> None:
+    # get_or_create_corporate_entity can bind this hint to an existing
+    # entity via fuzzy similarity matching whose stored name differs from
+    # the freshly LLM-resolved name (punctuation, casing, a legal suffix).
+    # The response must report that entity's real catalog name, not the
+    # possibly-divergent resolved name -- otherwise it claims a name that
+    # disagrees with what is actually bound.
+    monkeypatch.setattr(
+        ingestion, "resolve_and_verify_organization_name", lambda *_args: _resolution(STATUS_CORROBORATED)
+    )
+    monkeypatch.setattr(ingestion, "_load_corporate_entity_candidates", _fake_load_candidates())
+
+    async def fake_get_or_create(conn, entity_name, context_text, hierarchy_client, verification_client, candidates):
+        return "hierarchy-placed-entity-id"
+
+    monkeypatch.setattr(ingestion, "get_or_create_corporate_entity", fake_get_or_create)
+    conn = _Connection(
+        sample_rows=[{"post_title": "Visit", "post_body": "<p>Visit notes</p>"}],
+        canonical_name="Northridge Grid Co., Ltd.",
+    )
+    result = asyncio.run(
+        ingestion.resolve_customer_hint(conn, _Client(), _Client(), _Client(), "0019999999")
+    )
+
+    assert result["entity_name"] == "Northridge Grid Co., Ltd."
 
 
 def test_tied_similarity_match_stays_unresolved_and_creates_nothing(monkeypatch) -> None:

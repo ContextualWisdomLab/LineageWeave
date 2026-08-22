@@ -206,9 +206,20 @@ async def resolve_customer_hint(
         entity_id,
         hint_code,
     )
+    # get_or_create_corporate_entity may have bound this hint to an
+    # existing entity via fuzzy similarity matching, whose stored name can
+    # differ from the freshly LLM-resolved name (e.g. punctuation/casing);
+    # the exact-match fallback above can differ too (its lookup is
+    # case-insensitive). Report the entity's actual catalog name, not the
+    # possibly-divergent resolved name, so the response never claims a
+    # name that disagrees with what is actually bound.
+    canonical_name = await conn.fetchval(
+        "select entity_name from corporate_entity where corporate_entity_id = $1",
+        entity_id,
+    )
     return {
         "corporate_entity_id": str(entity_id),
-        "entity_name": entity_name,
+        "entity_name": canonical_name or entity_name,
         "linked_post_count": len(linked),
         "verification_evidence_url": resolution.verification_evidence_url,
     }
