@@ -2792,7 +2792,18 @@ function PostDetailPopup({
                         const presentation = presentSourceDetailState(post.source_detail_state_code);
                         return (
                           <dd aria-label={presentation.accessibleName}>
-                            <strong className="board-source-detail-state-code">{presentation.code}</strong> · {presentation.description}
+                            <strong
+                              className={`board-source-detail-state-code${presentation.confirmed ? "" : " board-source-detail-state-code-unconfirmed"}`}
+                            >
+                              {presentation.code}
+                            </strong>{" "}
+                            · {presentation.description}
+                            {presentation.confirmed ? null : (
+                              <span className="board-source-detail-state-unconfirmed-note">
+                                {" "}
+                                ({t("unconfirmed")})
+                              </span>
+                            )}
                           </dd>
                         );
                       })()}
@@ -4313,27 +4324,50 @@ function presentVocType(option: PostFilterOption): {
   };
 }
 
-const SOURCE_DETAIL_STATE_PRESENTATIONS: Record<string, string> = {
-  W: "Writing in progress",
-  D: "Pending approval",
-  A: "Approved",
+// Only W's label is confirmed: this app's own eligibility rule (see
+// backend post_eligibility.py) hides W-state posts from everyone but the
+// author, which is an observed behavior, not a guess about meaning. None
+// of D/A/R has a documented LOVEM/status-code cross-reference in this
+// source system, so all three read as an unverified working hypothesis,
+// never a confirmed fact (see this goal's no-fabrication constraint).
+// A and D each have direct supporting evidence: a curated reference table
+// built from real SAP screen captures documents a generic "진행상태: 승인"
+// (progress status: Approval) value elsewhere in this system's vocabulary,
+// and the raw source's separate stage field (ststs) pairs 1:1 with D on
+// an in-progress stage value, consistent with "pending". R's hypothesis is
+// weaker but not baseless: multivariate analysis of the raw source
+// (2026-08-22) found R pairs 1:1 with the SAME terminal stage value as A
+// (unlike D, which pairs with an in-progress stage), and R's empty-body
+// rate (18.8%) is far closer to D/W's than to A's (2.0%) -- consistent
+// with a terminal outcome distinct from Approved, i.e. Rejected/Returned,
+// but this is inference from data patterns, not a documented fact.
+const SOURCE_DETAIL_STATE_PRESENTATIONS: Record<string, { label: string; confirmed: boolean }> = {
+  W: { label: "Writing in progress", confirmed: true },
+  D: { label: "Pending approval", confirmed: false },
+  A: { label: "Approved", confirmed: false },
+  R: { label: "Rejected", confirmed: false },
 };
 
 function presentSourceDetailState(code: string): {
   code: string;
   description: string;
+  confirmed: boolean;
   accessibleName: string;
 } {
   const normalizedCode = code.trim().toUpperCase();
-  const englishLabel = SOURCE_DETAIL_STATE_PRESENTATIONS[normalizedCode] ?? "Unmapped source detail state";
+  const presentation = SOURCE_DETAIL_STATE_PRESENTATIONS[normalizedCode];
+  const englishLabel = presentation?.label ?? "Unmapped source detail state";
+  const confirmed = presentation?.confirmed ?? false;
   const description = t(englishLabel);
+  const unconfirmedSuffix = presentation && !confirmed ? ` (${t("unconfirmed")})` : "";
   return {
     code: normalizedCode || code,
     description,
+    confirmed,
     accessibleName:
-      description === englishLabel
+      (description === englishLabel
         ? `${normalizedCode || code} — ${englishLabel}`
-        : `${normalizedCode || code} — ${description} (${englishLabel})`,
+        : `${normalizedCode || code} — ${description} (${englishLabel})`) + unconfirmedSuffix,
   };
 }
 
@@ -4754,7 +4788,9 @@ function PostList({
                 <fieldset className="board-voc-type-filter board-source-detail-state-filter">
                   <legend>{t("Filter by source detail state")}</legend>
                   <p className="board-source-detail-state-help">
-                    {t("W = writing in progress · D = pending approval · A = approved")}
+                    {t(
+                      "W is confirmed by this app's own behavior. Other codes are an unconfirmed working hypothesis, not a verified fact.",
+                    )}
                   </p>
                   {sourceDetailStateOptions.map((option) => {
                     const presentation = presentSourceDetailState(option.code);
@@ -4772,8 +4808,15 @@ function PostList({
                             )
                           }
                         />
-                        <span className="board-voc-type-code">{presentation.code}</span>
-                        <span className="board-voc-type-description">{presentation.description}</span>
+                        <span
+                          className={`board-voc-type-code${presentation.confirmed ? "" : " board-source-detail-state-code-unconfirmed"}`}
+                        >
+                          {presentation.code}
+                        </span>
+                        <span className="board-voc-type-description">
+                          {presentation.description}
+                          {presentation.confirmed ? null : ` (${t("unconfirmed")})`}
+                        </span>
                       </label>
                     );
                   })}
@@ -4897,8 +4940,18 @@ function PostList({
                         <span className="post-badge">{t(post.voc_type_label ?? post.voc_type_code)}</span>
                         <span className="post-badge">{t(post.visibility_label ?? post.visibility_code)}</span>
                         {sourceDetailState ? (
-                          <span className="post-badge" aria-label={`${t("Source detail state")}: ${sourceDetailState.accessibleName}`}>
-                            {t("Source detail state")}: <strong className="board-source-detail-state-code">{sourceDetailState.code}</strong> · <span className="board-source-detail-state-description">{sourceDetailState.description}</span>
+                          <span
+                            className={`post-badge${sourceDetailState.confirmed ? "" : " post-badge-unconfirmed"}`}
+                            aria-label={`${t("Source detail state")}: ${sourceDetailState.accessibleName}`}
+                          >
+                            {t("Source detail state")}:{" "}
+                            <strong
+                              className={`board-source-detail-state-code${sourceDetailState.confirmed ? "" : " board-source-detail-state-code-unconfirmed"}`}
+                            >
+                              {sourceDetailState.code}
+                            </strong>{" "}
+                            · <span className="board-source-detail-state-description">{sourceDetailState.description}</span>
+                            {sourceDetailState.confirmed ? null : ` (${t("unconfirmed")})`}
                           </span>
                         ) : null}
                       </span>

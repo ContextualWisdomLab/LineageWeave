@@ -1858,6 +1858,44 @@ a:focus-visible {
   opacity: 0.8;
 }
 
+/* Source detail-state code: a small mono chip so W/D/A/R reads as a code,
+   not prose. Unconfirmed variant reuses the same warning token as
+   .summary-status-unavailable -- this label is an unverified hypothesis,
+   not a fact, and must look distinct from a confirmed one at a glance. */
+.board-source-detail-state-code {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--color-accent-info);
+  border-radius: var(--radius-chip);
+  background: var(--color-accent-info-background);
+  color: var(--color-accent-info);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.85em;
+  font-weight: 700;
+}
+
+.board-source-detail-state-code-unconfirmed {
+  border-color: var(--color-accent-orange);
+  background: var(--color-accent-background);
+  color: var(--color-accent-orange);
+}
+
+.board-source-detail-state-unconfirmed-note {
+  color: var(--color-accent-orange);
+  font-style: italic;
+}
+
+.board-source-detail-state-help {
+  margin: 0 0 0.5rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.post-badge-unconfirmed {
+  border-color: var(--color-accent-orange);
+}
+
 .lineage-list {
   list-style: none;
   padding: 0;
