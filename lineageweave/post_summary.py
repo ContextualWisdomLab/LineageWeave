@@ -932,12 +932,22 @@ the shortest exact supporting phrase. In particular:
   [project]", or "was the main contractor for [project]";
 - emit separate organization-to-project rows when the source explicitly
   assigns different organizations different project responsibilities;
+- use prov_alternate_of when the post states a former or alternate name
+  for the same organization, e.g. "Acme Renewables(구 Acme Wind)" or
+  "Northgate Systems (formerly Northgate Robotics)" -- object_name is
+  the stated former/alternate name, both subject_type and object_type
+  are organization. Only emit
+  this for a name change or alias the post text itself states; never
+  infer that two organizations are the same entity from context,
+  similarity, or outside knowledge -- an unstated merger/acquisition/
+  rename relationship is not evidence this section may assert;
 - do not turn attendance, an affiliation field, or a project mention alone
   into a relation.
 Fictional format examples only:
 Northwind Services | organization | org_member_of | Northwind Group | organization | joined Northwind Group | 0.98
 Northwind Services | organization | lw_supports | Highland HVDC | project | provided installation support for Highland HVDC | 0.9
 Prime Contractor | organization | lw_supports | Highland HVDC | project | Prime Contractor was the main contractor | 0.95
+Northgate Systems | organization | prov_alternate_of | Northgate Robotics | organization | Northgate Systems(구 Northgate Robotics) | 0.9
 A full predicate registry is supplied by the application contract; if no
 predicate fits, omit the relation rather than inventing a verb.
 Post title: {title}
