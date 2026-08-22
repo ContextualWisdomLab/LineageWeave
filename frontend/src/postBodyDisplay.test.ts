@@ -156,4 +156,25 @@ describe("splitPostBody", () => {
       { text: "." },
     ]);
   });
+
+  it("decodes a stored superscript letter deterministically to lowercase", () => {
+    // "n" and "N" both encode to the same Unicode "ⁿ" (there is no distinct
+    // uppercase superscript N), so decoding must pick one case consistently
+    // rather than depending on object key iteration order (regression: used
+    // to always decode to uppercase because "N"/"I" were inserted after
+    // "n"/"i" in the forward table).
+    expect(splitScriptRuns("mⁿ")).toEqual([
+      { text: "m" },
+      { text: "n", script: "super" },
+    ]);
+    expect(splitScriptRuns("xⁱ")).toEqual([
+      { text: "x" },
+      { text: "i", script: "super" },
+    ]);
+    expect(splitPostBody("m<sup>N</sup>")).toEqual([{ kind: "text", text: "mⁿ" }]);
+    expect(splitScriptRuns(normalizeScriptText("m<sup>N</sup>"))).toEqual([
+      { text: "m" },
+      { text: "n", script: "super" },
+    ]);
+  });
 });

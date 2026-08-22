@@ -534,6 +534,13 @@ class _BlockTextExtractor(HTMLParser):
         is_footnote: bool = False,
     ) -> None:
         """Emit one block buffer, including a block closed only at EOF."""
+        # An unclosed <sup>/<sub> never reaches handle_endtag, so nothing else
+        # pops it off _script_stack. Every block boundary (a sibling block
+        # opening, this block's own endtag, or EOF) routes through here, so
+        # clearing here stops a dangling script tag from bleeding into later,
+        # unrelated blocks -- mirroring how a browser would not let inline
+        # formatting survive a block-level boundary.
+        self._script_stack.clear()
         raw_text = "".join(buffer)
         for raw_unit, source_indent in _split_dom_units(raw_text):
             text = normalize_semantic_text(raw_unit)

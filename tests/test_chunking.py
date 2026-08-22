@@ -427,6 +427,23 @@ def test_chunk_by_dom_keeps_html_quantity_scripts_as_unicode() -> None:
     assert [chunk.text for chunk in chunks] == ["Tank volume is 12 m³ of H₂O."]
 
 
+def test_chunk_by_dom_unclosed_sup_does_not_corrupt_later_paragraphs() -> None:
+    """A malformed, never-closed <sup> must not leak its script context into
+    every later block. HTMLParser (unlike a browser) does not implicitly
+    close an unclosed inline tag at a block boundary, so a naive
+    _script_stack would otherwise stay "open" for the rest of the document."""
+    html = (
+        "<p>Tank volume is 12 m<sup>3</p>"
+        "<p>Unrelated paragraph mentions n2 and o2 plainly.</p>"
+    )
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.text for chunk in chunks] == [
+        "Tank volume is 12 m³",
+        "Unrelated paragraph mentions n2 and o2 plainly.",
+    ]
+
+
 def test_chunk_by_source_body_maps_plain_caret_quantities() -> None:
     chunks = chunk_by_source_body("Reserve 12 m^3 and 10^{-3} M stock.")
 

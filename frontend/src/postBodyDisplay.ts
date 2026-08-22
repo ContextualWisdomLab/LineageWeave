@@ -140,12 +140,20 @@ const SUB_ASCII_TO_UNI: Record<string, string> = {
   t: "ₜ",
   x: "ₓ",
 };
-const SUPER_UNI_TO_ASCII = Object.fromEntries(
-  Object.entries(SUPER_ASCII_TO_UNI).map(([ascii, uni]) => [uni, ascii]),
-);
-const SUB_UNI_TO_ASCII = Object.fromEntries(
-  Object.entries(SUB_ASCII_TO_UNI).map(([ascii, uni]) => [uni, ascii]),
-);
+// Two ASCII keys can map to the same Unicode character (e.g. "n" and "N"
+// both produce "ⁿ"). Building the reverse table naively lets the
+// last-inserted ASCII key win, so decoding always yields one fixed case
+// regardless of what was actually stored. Keep the first (lowercase, since
+// it is listed first above) mapping instead, so round-tripping preserves case.
+function buildUnicodeToAsciiTable(table: Record<string, string>): Record<string, string> {
+  const reverse: Record<string, string> = {};
+  for (const [ascii, uni] of Object.entries(table)) {
+    if (!(uni in reverse)) reverse[uni] = ascii;
+  }
+  return reverse;
+}
+const SUPER_UNI_TO_ASCII = buildUnicodeToAsciiTable(SUPER_ASCII_TO_UNI);
+const SUB_UNI_TO_ASCII = buildUnicodeToAsciiTable(SUB_ASCII_TO_UNI);
 const CARET_EXPONENT =
   /(?<=[A-Za-z0-9µμ°ΩÅåÅ)])\^(?:\{([+-]?\d{1,3}|[nNiI])\}|([+-]?\d{1,3}|[nNiI]))/g;
 
