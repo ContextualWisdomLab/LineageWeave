@@ -16,6 +16,7 @@ import asyncio
 from types import SimpleNamespace
 
 import backend.app.customer_hint_ingestion as ingestion
+from lineageweave.corporate_hierarchy_resolution import CorporateEntityCandidate
 from lineageweave.relation_verification import STATUS_CORROBORATED, STATUS_UNCORROBORATED
 
 
@@ -123,12 +124,42 @@ def test_corroborated_resolution_uses_the_hierarchy_aware_placement(monkeypatch)
     assert all("insert into corporate_entity" not in call[0] for call in conn.executed)
 
 
+def test_tied_similarity_match_stays_unresolved_and_creates_nothing(monkeypatch) -> None:
+    # ADR 0026: a tied top similarity score among *existing* catalog
+    # entities must stay unbound -- never create a third same-named row.
+    # Two distinct entities that already share the exact resolved name
+    # force a tie; resolve_customer_hint must return None before even
+    # calling get_or_create_corporate_entity, not fall back to a flat
+    # insert the way a genuine miss (no hierarchy channel) does.
+    monkeypatch.setattr(
+        ingestion, "resolve_and_verify_organization_name", lambda *_args: _resolution(STATUS_CORROBORATED)
+    )
+    tied_candidates = [
+        CorporateEntityCandidate("entity-a", "Northridge Grid"),
+        CorporateEntityCandidate("entity-b", "Northridge Grid"),
+    ]
+    monkeypatch.setattr(ingestion, "_load_corporate_entity_candidates", _fake_load_candidates(tied_candidates))
+
+    def fail_if_called(*args, **kwargs):
+        raise AssertionError("get_or_create_corporate_entity must not run for a tied match")
+
+    monkeypatch.setattr(ingestion, "get_or_create_corporate_entity", fail_if_called)
+    conn = _Connection(sample_rows=[{"post_title": "Visit", "post_body": "<p>Visit notes</p>"}])
+    result = asyncio.run(
+        ingestion.resolve_customer_hint(conn, _Client(), _Client(), _Client(), "0019999999")
+    )
+
+    assert result is None
+    assert conn.executed == []
+
+
 def test_declined_hierarchy_placement_falls_back_to_a_flat_new_entity(monkeypatch) -> None:
-    # No hierarchy-inference channel configured, a tied similarity match,
-    # or an inferred placement that did not corroborate must not regress
-    # an already name-corroborated hint back to fully unresolved -- it
-    # falls back to the flat, unparented entity this pathway always
-    # created before hierarchy inference existed.
+    # No hierarchy-inference channel configured, or an inferred placement
+    # that did not corroborate, must not regress an already
+    # name-corroborated hint back to fully unresolved (a genuine
+    # similarity tie is handled separately above and does not reach this
+    # fallback) -- it falls back to the flat, unparented entity this
+    # pathway always created before hierarchy inference existed.
     monkeypatch.setattr(
         ingestion, "resolve_and_verify_organization_name", lambda *_args: _resolution(STATUS_CORROBORATED)
     )

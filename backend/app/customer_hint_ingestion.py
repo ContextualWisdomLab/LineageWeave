@@ -15,6 +15,12 @@ a bare same-level insert, so a SAP-sourced customer code that resolves to
 e.g. "Acme Electronics South Plant" gets its inferred parent chain
 (plant -> company -> group) at resolution time instead of landing as a
 permanently flat, unparented row.
+
+A genuine similarity tie among *existing* catalog entities is checked for
+separately, before that hierarchy-aware path runs, and stays unbound per
+ADR 0026 (a tie must never create a third same-named row) -- it is not
+treated as "no hierarchy channel configured" and does not fall back to a
+flat insert.
 """
 
 from __future__ import annotations
@@ -25,6 +31,7 @@ from typing import Any
 import asyncpg
 
 from lineageweave.corporate_hierarchy_inference import CorporateHierarchyInferenceClient
+from lineageweave.corporate_hierarchy_resolution import RESOLUTION_TIE, score_corporate_entity
 from lineageweave.customer_hint_resolution import CustomerHintResolutionClient
 from lineageweave.image_content import NullImageContentClient
 from lineageweave.organization_name_resolution import resolve_and_verify_organization_name
@@ -125,6 +132,13 @@ async def resolve_customer_hint(
 
     entity_name = resolution.resolved_organization_name
     candidates = await _load_corporate_entity_candidates(conn)
+    if score_corporate_entity(entity_name, candidates).kind == RESOLUTION_TIE:
+        # ADR 0026: a tied top similarity score among *existing* catalog
+        # entities must stay unbound, never create a third same-named row.
+        # This is checked before get_or_create_corporate_entity runs so a
+        # tie is never mistaken for "no hierarchy channel configured" below
+        # and quietly given a flat fallback entity anyway.
+        return None
     entity_id = await get_or_create_corporate_entity(
         conn,
         entity_name,
@@ -134,16 +148,16 @@ async def resolve_customer_hint(
         candidates,
     )
     if entity_id is None:
-        # get_or_create_corporate_entity declined -- no hierarchy inference
-        # channel configured, a tied similarity match among existing
-        # entities, or an inferred placement that did not corroborate.
+        # get_or_create_corporate_entity declined for a genuine miss -- no
+        # hierarchy inference channel configured, or an inferred placement
+        # that did not corroborate (a tie was already ruled out above).
         # `resolve_and_verify_organization_name` above already independently
         # corroborated the NAME itself, so a declined *placement* must not
         # regress this hint back to fully unresolved: fall back to the
         # flat, unparented entity this pathway always created before
         # hierarchy inference existed. A later re-resolve (once a hierarchy
-        # channel is configured, or the tie is deliberately reconciled) can
-        # still enrich it with a real parent by matching this same name.
+        # channel is configured) can still enrich it with a real parent by
+        # matching this same name.
         existing = await conn.fetchrow(
             "select corporate_entity_id from corporate_entity where lower(entity_name) = lower($1)",
             entity_name,
