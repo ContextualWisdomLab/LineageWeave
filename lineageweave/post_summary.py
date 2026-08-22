@@ -158,7 +158,9 @@ MEASUREMENT_TYPES = frozenset(
 UNIT_KRW = "unit_krw"
 UNIT_KG = "unit_kg"
 UNIT_TRACTOR = "unit_tractor"
-MEASUREMENT_UNITS = frozenset({UNIT_KRW, UNIT_KG, UNIT_TRACTOR})
+UNIT_M3 = "unit_m3"
+UNIT_LITER = "unit_liter"
+MEASUREMENT_UNITS = frozenset({UNIT_KRW, UNIT_KG, UNIT_TRACTOR, UNIT_M3, UNIT_LITER})
 FACT_TYPE_CONDITION = "fact_condition"
 FACT_TYPE_DATE = "fact_date"
 FACT_TYPE_OBSERVATION = "fact_observation"
@@ -934,7 +936,12 @@ Only write MEASUREMENTS rows for explicit source facts. Use one row for each
 atomic value. The normalized value must be a number, not a Korean unit
 shorthand such as 억원; do not perform a calculation unless the post itself
 states the resulting number. Keep the original phrase in raw value phrase
-and preserve qualifiers such as 약, 최대, or VAT 포함.
+and preserve qualifiers such as 약, 최대, or VAT 포함. Unit code and quantity
+unit code are each exactly one of: unit_krw (Korean won), unit_kg
+(kilogram), unit_tractor (tractor count), unit_m3 (cubic meter -- covers a
+stated exponent form such as m^3, m³, or 세제곱미터), or unit_liter (liter,
+including the abbreviation L). Do not invent a unit code outside this set;
+omit the row instead when the post states a unit this set does not cover.
 For FACTS, do not turn a negated condition into an affirmative one. Use
 assertion_negated for an explicit "아니다/아님" condition. A date with no
 supported year remains unnormalized rather than receiving a guessed year;

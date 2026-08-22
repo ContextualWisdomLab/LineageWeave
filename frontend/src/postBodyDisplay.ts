@@ -36,15 +36,31 @@ const SUPERSCRIPT_DIGITS = "⁰¹²³⁴⁵⁶⁷⁸⁹";
 const SUBSCRIPT_DIGITS = "₀₁₂₃₄₅₆₇₈₉";
 const METRIC_MARKUP =
   /((?<![A-Za-z])(?:\d+(?:\.\d+)?\s*)?(?:km|cm|mm|kg|m))\s*<(sup|sub)\b[^>]*>\s*(\d{1,3})\s*<\/\2>/gi;
+// A plain-text caret exponent (m^3), not an HTML <sup> tag -- the same
+// notation a source author types directly in a WYSIWYG editor. No
+// established plain-text convention exists for subscript, so this only
+// covers the caret/superscript case actually observed in source posts;
+// inventing an underscore-subscript convention with no source evidence
+// would be a guess, not a grounded notation.
+const CARET_EXPONENT_MARKUP =
+  /((?<![A-Za-z])(?:\d+(?:\.\d+)?\s*)?(?:km|cm|mm|kg|m))\^(\d{1,3})\b/gi;
+
+function toSuperscriptOrSubscript(digits: string, kind: "sup" | "sub"): string {
+  const table = kind === "sup" ? SUPERSCRIPT_DIGITS : SUBSCRIPT_DIGITS;
+  return [...digits].map((digit) => table[Number(digit)]).join("");
+}
 
 function normalizeMetricMarkup(raw: string): string {
-  return raw.replace(
-    METRIC_MARKUP,
-    (_match, base: string, kind: string, digits: string) => {
-      const table = kind.toLowerCase() === "sup" ? SUPERSCRIPT_DIGITS : SUBSCRIPT_DIGITS;
-      return `${base}${[...digits].map((digit) => table[Number(digit)]).join("")}`;
-    },
-  );
+  return raw
+    .replace(
+      METRIC_MARKUP,
+      (_match, base: string, kind: string, digits: string) =>
+        `${base}${toSuperscriptOrSubscript(digits, kind.toLowerCase() as "sup" | "sub")}`,
+    )
+    .replace(
+      CARET_EXPONENT_MARKUP,
+      (_match, base: string, digits: string) => `${base}${toSuperscriptOrSubscript(digits, "sup")}`,
+    );
 }
 
 function stripIndentMarkers(value: string): string {

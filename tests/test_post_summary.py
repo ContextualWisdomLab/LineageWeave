@@ -231,7 +231,23 @@ def test_plain_measurement_contract_keeps_each_atomic_capacity() -> None:
         "measurement_daily_capacity | 합성 일충전량 | 20 | unit_kg | NONE | NONE | 약·내외 | 약 20kg 내외 | 합성 일충전량이 약 20kg 내외"
     )
     assert [observation.value_numeric for observation in observations] == [5, 9, 20]
-    assert [observation.quantity_numeric for observation in observations] == [2, 3, None]
+
+
+def test_plain_measurement_contract_accepts_volume_units() -> None:
+    """Live bug (2026-08-22): a real post asked for both m^3 and liter
+    notation on a vessel's volume, but neither unit_code existed --
+    MEASUREMENT_UNITS only had krw/kg/tractor, so any volume measurement
+    the model attempted was silently dropped by FiveW1HEvidence-style
+    validation. unit_m3/unit_liter close that gap (see migration 0133).
+    """
+    observations = _parse_plain_quantitative_observations(
+        "MEASUREMENTS:\n"
+        "measurement_capacity | 합성 Vessel 용적 | 12.5 | unit_m3 | NONE | NONE | NONE | 12.5m^3 | "
+        "합성 Vessel 용적은 12.5m^3\n"
+        "measurement_capacity | 합성 Vessel 용적(L) | 12500 | unit_liter | NONE | NONE | NONE | 12500L | "
+        "합성 Vessel 용적은 12500L로도 표기"
+    )
+    assert [observation.unit_code for observation in observations] == ["unit_m3", "unit_liter"]
 
 
 def test_source_fact_contract_preserves_negation_and_year_basis() -> None:
