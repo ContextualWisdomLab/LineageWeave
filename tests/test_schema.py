@@ -43,6 +43,14 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     / "migrations"
     / "0102_project_bound_summary_event.sql"
 )
+_BOOKMARK_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0043_bookmark.sql"
+)
+_IDENTIFIER_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0104_two_word_database_identifiers.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -79,6 +87,10 @@ def schema_db():
                 cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
+                cur.execute(_BOOKMARK_MIGRATION.read_text())
+                identifier_migration = _IDENTIFIER_MIGRATION.read_text()
+                cur.execute(identifier_migration)
+                cur.execute(identifier_migration)
             conn.commit()
             yield conn
         finally:
@@ -128,6 +140,7 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_summary_action",
         "post_chat_result",
         "post_chat_citation",
+        "post_bookmark",
     }
     assert expected <= tables
 
@@ -268,6 +281,32 @@ def test_every_created_table_name_has_at_least_two_words() -> None:
     for name in names:
         words = name.split("_")
         assert len(words) >= 2, f"table {name!r} must be two or more snake_case words"
+
+
+def test_identifier_migration_leaves_no_single_word_public_identifiers(schema_db) -> None:
+    """The current schema contract covers tables, views, and their columns."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select table_name
+              from information_schema.tables
+             where table_schema = 'public'
+               and table_type = 'BASE TABLE'
+               and table_name !~ '^[a-z][a-z0-9]*(_[a-z0-9]+)+$'
+            """
+        )
+        invalid_tables = {row[0] for row in cur.fetchall()}
+        cur.execute(
+            """
+            select table_name, column_name
+              from information_schema.columns
+             where table_schema = 'public'
+               and column_name !~ '^[a-z][a-z0-9]*(_[a-z0-9]+)+$'
+            """
+        )
+        invalid_columns = {(row[0], row[1]) for row in cur.fetchall()}
+    assert invalid_tables == set()
+    assert invalid_columns == set()
 
 
 def test_cataloged_team_null_affiliation_is_unique(schema_db) -> None:

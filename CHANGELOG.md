@@ -6,11 +6,58 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Related-node chips now show authorized business context: a unique
+  affiliation, a truthful `multiple organizations` signal, or the
+  cataloged entity level. Post chips retain the source title only.
+- The plural-affiliation panel tells the reader to read the complete
+  Keyman list before continuing the graph walk, preserving every
+  membership instead of inventing a primary organization.
+- Renamed "Buyer" terminology to reader/workspace naming across the frontend
+  shell, backend evidence helpers, and living docs (ADR 0131). Historical ADRs
+  and changelog entries retain their point-in-time wording.
+
 ### Fixed
+
+- Preserve source-order nested list units, numeric superscript footnotes,
+  HTML/OOXML table rows, and recognizable Markdown table rows across the
+  semantic-unit parser and reader-facing body renderer. See the [product and
+  technical gap baseline](docs/product-technical-gap-baseline.md) and
+  [ADR 0103](docs/adr/0103-semantic-document-evidence-contract.md).
+- Preserve multiline VISION table rows, render parent and region OCR tables
+  accessibly, and request source-visible entity, relationship, layout, and
+  document-purpose evidence instead of a generic image caption. VISION calls
+  now share the structure channel's 600-second deep-agent runtime boundary;
+  an empty same-image retry can no longer erase previously observed OCR.
+- Removed the completed one-shot Global Ask package-manager repair workflow;
+  normal product CI remains the only branch validation path.
 
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
+- All OpenAI-compatible chat-completion consumers now validate the shared
+  response envelope before parsing it, preventing malformed provider bodies
+  from escaping as raw `KeyError` or response-shape details.
+
+## [2.13.0] - 2026-08-19
+
+### Added
+
+- Opening a Voice of Customer post from an active Weekly VOC filter now
+  focuses Event Lineage and names Keyman and evaluation as the next read.
+  Home-list opens do not add that focus or copy. No TEPP theta is
+  invented. No cutoff body is invented (ADR 0093 / ADR 0016).
+
+## [2.12.0] - 2026-08-19
+
+### Added
+
+- Board now names Weekly VOC as an ISO-8601 week list filter. The control
+  keeps Voice of Customer posts for the latest week present in the loaded
+  list (UTC Thursday rule) and tells the reader to open a post to read
+  Event Lineage. Reset filters returns every VOC type and every week.
+  No TEPP theta is invented (ADR 0092).
 
 ## [2.12.6] - 2026-08-20
 

@@ -36,7 +36,7 @@ from urllib.parse import urlparse
 
 from PIL import Image
 
-from .http_client import post_json
+from .http_client import chat_completion_content, post_json
 
 _DATA_URI_IMG = re.compile(
     r'<img\b[^>]*\bsrc\s*=\s*["\']data:(image/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)["\']',
@@ -141,7 +141,8 @@ class ImageDescription:
     Attributes:
         extracted_text: OCR result -- every piece of legible text found in
             the image, empty string if none.
-        caption: one-sentence description of what the image shows.
+        caption: factual description of the visible entities, relationships,
+            and layout that make the image useful as semantic evidence.
         tags: short tags for the main objects/subjects, for independent
             keyword search separate from the free-text caption.
     """
@@ -177,15 +178,18 @@ class NullImageContentClient:
 
 
 _RESPONSE_FORMAT = (
-    "Examine this image. Reply with EXACTLY three lines, no extra commentary:\n"
+    "Examine this image. Reply with exactly the three labeled sections below and no "
+    "extra commentary. TEXT may span multiple lines; CAPTION and TAGS stay on their "
+    "labeled lines.\n"
     "TEXT: <all legible text in the image, verbatim, or NONE if there is none. "
-    "If the image contains a table, preserve its row/column structure: one row "
-    "per line, with ' | ' between that row's cell values, in reading order -- "
-    "never flatten a table into an unstructured word list.>\n"
+    "If the image contains a table, preserve its row/column structure as a Markdown "
+    "pipe table: one row per line, with a separator row immediately after the visible "
+    "header. Never flatten a table into an unstructured word list or invent a header "
+    "that is not visible.>\n"
     "CAPTION: <2-4 concise, evidence-grounded sentences describing the visible layout, "
     "objects, relationships, directions, measurements, and labels; do not guess "
-    "anything that is not visible>\n"
-    "TAGS: <comma-separated short tags for the main objects/subjects>"
+    "anything that is not visible. Omit anything the pixels do not support.>\n"
+    "TAGS: <comma-separated short tags for visible named entities, objects, and document types>"
 )
 _REGION_RESPONSE_FORMAT = (
     "Find distinct meaningful visual regions in this image for separate OCR and description. "
@@ -251,19 +255,18 @@ def _parse_description(content: str) -> ImageDescription:
             remainder = _strip_outer_markdown_emphasis(match.group(2))
             if remainder:
                 fields[label].append(remainder)
-            multiline_field = "TEXT" if label == "TEXT" else None
+            multiline_field = label if label in {"TEXT", "CAPTION"} else None
             continue
 
-        if re.match(r"^\s*[*_`>#\-\s]*[A-Za-z][A-Za-z0-9 _-]*\s*:", line):
-            multiline_field = None
-            continue
-        if multiline_field == "TEXT" and line.strip():
-            fields["TEXT"].append(_strip_outer_markdown_emphasis(line))
+        if multiline_field in {"TEXT", "CAPTION"} and line.strip():
+            # A colon is common inside OCR (for example ``Date: 2026-08-21``).
+            # Only the known response labels above end the active section;
+            # treating every colon as a provider label loses real image text
+            # or the continuation of a detailed caption.
+            fields[multiline_field].append(_strip_outer_markdown_emphasis(line))
 
     if not fields["TEXT"] and not fields["CAPTION"]:
-        raise ImageDescriptionParseError(
-            f"vision response had neither TEXT nor CAPTION content: {content!r}"
-        )
+        raise ImageDescriptionParseError("vision response had no usable TEXT or CAPTION content")
 
     extracted_text = "\n".join(fields["TEXT"]).strip()
     if extracted_text.upper() == "NONE":
@@ -291,7 +294,7 @@ class OpenAiCompatibleVisionClient:
         api_key: str,
         model: str | None = None,
         *,
-        timeout: float = 180.0,
+        timeout: float = 600.0,
         allow_insecure_http: bool = False,
     ) -> None:
         parsed = urlparse(base_url)
@@ -342,7 +345,7 @@ class OpenAiCompatibleVisionClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = body["choices"][0]["message"]["content"]
+        content = chat_completion_content(body)
         return _parse_description(content)
 
     def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
@@ -375,13 +378,11 @@ class OpenAiCompatibleVisionClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = body["choices"][0]["message"]["content"]
-        if not isinstance(content, str):
-            raise ValueError("vision region response was not text JSON")
+        content = chat_completion_content(body)
         fenced = re.sub(r"^\s*```(?:json)?\s*|\s*```\s*$", "", content, flags=re.IGNORECASE)
         document = json.loads(fenced)
         if not isinstance(document, dict):
-            raise ValueError("vision region response had no regions list")
+            raise TypeError("vision region response had no regions list")
         regions = document.get("regions")
         if not isinstance(regions, list):
             single_region = tuple(document.get(name) for name in ("x", "y", "width", "height"))

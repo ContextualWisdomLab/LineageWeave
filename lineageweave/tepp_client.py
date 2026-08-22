@@ -8,30 +8,31 @@ database tables directly, and never present this repo's own heuristic
 lineage scores as TEPP's calibrated psychometric measurement (they answer
 different questions -- see docs/lineage-bi-research-notes.md).
 
-TEPP does not expose a live HTTP endpoint yet (as of this writing it is
-Rust-crate-only; see ``docs/API_CONTRACT.md`` in that repo). This client
-builds and validates the exact wire shape TEPP has published
-(``schemas/analysis_run_request_v1.json``) so wiring in a real transport is
-a one-line change (:meth:`TeppClient.__init__`'s ``transport`` argument) once
-that endpoint exists, instead of a redesign.
+TEPP's current protected main exposes Rust library/domain contracts and an
+accepted target API contract, not a deployed HTTP service (see
+``docs/API_CONTRACT.md`` in that repo). This client builds and validates the
+exact wire shape TEPP has published
+(``schemas/analysis_run_request_v1.json``), so an executable transport can be
+added through :meth:`TeppClient.__init__` without a consumer redesign.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 
 class TeppNotAvailable(RuntimeError):
-    """Raised by the default transport: TEPP has no live REST API yet."""
+    """Raised when no executable TEPP transport is configured."""
 
 
 def _no_transport(request: dict[str, Any]) -> dict[str, Any]:
-    """Implement the _no_transport operation for this channel."""
+    """Fail closed while TEPP exposes no executable transport."""
     raise TeppNotAvailable(
-        "TEPP has no live HTTP endpoint yet (Rust-crate-only as of this writing). "
-        "Pass a transport= callable to TeppClient once one exists, or consume TEPP "
-        "as a Rust crate directly per its own docs/API_CONTRACT.md."
+        "No executable TEPP transport is configured. TEPP currently publishes "
+        "Rust library/domain contracts and an accepted target API contract; "
+        "configure transport= when an executable service is available."
     )
 
 
@@ -51,8 +52,26 @@ class AnalysisRunRequest:
     output_profile: str
     contract_version: int = 1
 
+    def __post_init__(self) -> None:
+        """Reject payloads that violate TEPP's v1 schema before transport."""
+        if type(self.contract_version) is not int or self.contract_version != 1:
+            raise ValueError("TEPP AnalysisRunRequest requires contract_version=1")
+        for field_name in (
+            "idempotency_key",
+            "tenant_workspace_id",
+            "snapshot_id",
+            "knowledge_cutoff",
+            "model_contract_version",
+            "output_profile",
+        ):
+            value = getattr(self, field_name)
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(
+                    f"TEPP AnalysisRunRequest field {field_name} must be non-blank text"
+                )
+
     def to_json(self) -> dict[str, Any]:
-        """Serialize the accepted TEPP result into its wire representation."""
+        """Serialize the validated request into TEPP's v1 wire representation."""
         return {
             "contract_version": self.contract_version,
             "idempotency_key": self.idempotency_key,
@@ -80,4 +99,9 @@ class TeppClient:
 
     def submit_analysis_run(self, request: AnalysisRunRequest) -> dict[str, Any]:
         """Submit a request; returns TEPP's ``AnalysisRunAccepted`` envelope."""
-        return self._transport(request.to_json())
+        try:
+            return self._transport(request.to_json())
+        except TeppNotAvailable:
+            raise
+        except Exception as exc:
+            raise TeppNotAvailable("TEPP transport request failed") from exc

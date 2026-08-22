@@ -34,7 +34,7 @@ describe("PostBody", () => {
     expect(screen.getByText("Root item")).toHaveAttribute("data-indent-level", "0");
   });
 
-  it("uses a buyer-facing accessible label instead of a source character offset", () => {
+  it("uses a reader-facing accessible label instead of a source character offset", () => {
     render(
       <PostBody
         body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
@@ -133,6 +133,39 @@ describe("PostBody", () => {
     expect(screen.queryAllByText("No.")).toHaveLength(1);
   });
 
+  it("renders persisted Markdown table rows as a table", () => {
+    render(
+      <PostBody
+        body="| Project | Status |\n| --- | --- |\n| Alpha | Ready |"
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "plain_text",
+            unit_label: "markdown_tr",
+            unit_text: "Project | Status",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "Markdown table row",
+          },
+          {
+            unit_index: 1,
+            unit_kind_code: "plain_text",
+            unit_label: "markdown_tr",
+            unit_text: "Alpha | Ready",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "Markdown table row",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getAllByRole("row")).toHaveLength(2);
+  });
+
   it("keeps source indentation after a persisted table unit", () => {
     render(
       <PostBody
@@ -174,7 +207,7 @@ describe("PostBody", () => {
     expect(screen.getByText("Unavailable source unit")).toHaveAttribute("data-indent-level", "0");
   });
 
-  it("keeps adjacent source tables as separate buyer-facing tables", () => {
+  it("keeps adjacent source tables as separate reader-facing tables", () => {
     render(
       <PostBody
         body={
@@ -201,6 +234,96 @@ describe("PostBody", () => {
 
     expect(screen.getAllByRole("table")).toHaveLength(2);
     expect(screen.getAllByRole("row")).toHaveLength(4);
+  });
+
+  it("renders a raw Markdown table when persisted structure is unavailable", () => {
+    render(
+      <PostBody body={"Intro.\n\n| Project | Status |\n| --- | --- |\n| Alpha | Ready |\n\nNext action."} />,
+    );
+
+    expect(screen.getByRole("table")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Project" })).toBeInTheDocument();
+    expect(screen.getByText("Intro.")).toBeInTheDocument();
+    expect(screen.getByText("Next action.")).toBeInTheDocument();
+  });
+
+  it("keeps an embedded image visible in a mixed Markdown-table fallback body", () => {
+    const body =
+      '<p>Attached evidence.</p><img src="data:image/png;base64,QQ==" />' +
+      "\n| Project | Status |\n| --- | --- |\n| Alpha | Ready |";
+    render(<PostBody body={body} />);
+
+    expect(screen.getByRole("img", { name: "Embedded image" })).toBeInTheDocument();
+    expect(screen.queryByText(/data:image\/png;base64/)).not.toBeInTheDocument();
+  });
+
+  it("keeps a persisted Markdown table row searchable", () => {
+    render(
+      <PostBody
+        body="| Project | Status |\n| --- | --- |\n| Alpha | Ready |"
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "plain_text",
+            unit_label: "markdown_tr",
+            unit_text: "Project | Status",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "Markdown table row",
+          },
+          {
+            unit_index: 1,
+            unit_kind_code: "plain_text",
+            unit_label: "markdown_tr",
+            unit_text: "Alpha | Ready",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "Markdown table row",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getAllByRole("row")).toHaveLength(2);
+  });
+
+  it("renders table-shaped image OCR as accessible evidence", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,QQ==" />'}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "completed",
+            extracted_text: "| Project | Status |\n| --- | --- |\n| Alpha | Ready |",
+            caption: "A synthetic project status table.",
+            tags: ["table"],
+            regions: [
+              {
+                region_index: 0,
+                x_ratio: 0,
+                y_ratio: 0,
+                width_ratio: 1,
+                height_ratio: 1,
+                status_code: "completed",
+                extracted_text: "| Owner | Action |\n| --- | --- |\n| Team A | Review |",
+                caption: "The table region assigns an action to a team.",
+                tags: ["assignment"],
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getAllByRole("table")).toHaveLength(2);
+    expect(screen.getByRole("columnheader", { name: "Project" })).toBeInTheDocument();
+    expect(screen.getByText("Ready")).toBeInTheDocument();
+    expect(screen.getByText("The table region assigns an action to a team.")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Owner" })).toBeInTheDocument();
   });
 
   it("marks persisted footnotes as footnote evidence", () => {
@@ -273,7 +396,7 @@ describe("PostBody", () => {
     expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
   });
 
-  it("renders pipe-delimited image OCR as a buyer-facing table", () => {
+  it("renders pipe-delimited image OCR as a reader-facing table", () => {
     render(
       <PostBody
         body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
@@ -293,6 +416,67 @@ describe("PostBody", () => {
     expect(screen.getByRole("table")).toBeInTheDocument();
     expect(screen.getAllByRole("row")).toHaveLength(2);
     expect(screen.getByText("Panel")).toBeInTheDocument();
+  });
+
+  it("keeps escaped pipes and does not invent headers for unmarked region OCR", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "| Item | State |\n| --- | --- |\n| Review \\| approve | Ready |",
+            caption: "A table image",
+            tags: [],
+            regions: [
+              {
+                region_index: 0,
+                x_ratio: 0,
+                y_ratio: 0,
+                width_ratio: 1,
+                height_ratio: 1,
+                status_code: "described",
+                extracted_text: "| 1 | Panel |\n| 2 | Ready |",
+                caption: "An OCR region without a Markdown header marker.",
+                tags: [],
+              },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Review | approve")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Item" })).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "1" })).not.toBeInTheDocument();
+    expect(document.querySelector(".post-image-region-text p")?.textContent).toBe(
+      "| 1 | Panel |\n| 2 | Ready |",
+    );
+  });
+
+  it("does not treat a blank OCR line as a Markdown table separator", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "| 1 | Panel |\n\n| 2 | Ready |",
+            caption: "Unmarked OCR with a blank line",
+            tags: [],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(document.querySelector(".post-image-text p")?.textContent).toBe(
+      "| 1 | Panel |\n\n| 2 | Ready |",
+    );
   });
 
   it("keeps source-image placement while showing persisted OCR and caption evidence", () => {

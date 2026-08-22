@@ -64,11 +64,13 @@ flowchart LR
 | `chunking.py` | Splits a document into meaning-identifiable units (paragraph, sentence, DOM, conversation-turn) plus embedded-image extraction, in document order |
 | `embedding_client.py` | Pluggable text-embedding channel (`Null` default, `OpenAiCompatible` real impl) + `chunked_max_similarity` |
 | `adjudication_client.py` | Pluggable LLM-judgment channel (`Null` default, `ContextualOrchestrator` real impl) |
-| `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl). The product popup (`frontend/src/PostBody.tsx`) renders each `data:image` payload in document order so the buyer sees the picture, not the base64 string; GET does not call the vision client. |
+| `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl). The product popup (`frontend/src/PostBody.tsx`) renders each `data:image` payload in document order so the reader sees the picture, not the base64 string; GET does not call the vision client. |
 | `tepp_client.py` | TEPP's published `AnalysisRunRequest` wire contract, pluggable transport |
 | `rankweave_client.py` | Fail-closed RankWeave ranking port (`weighted_reciprocal_rank_fuse` in-process; never invent a fused score or a theta) |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
 | `lineage_persistence.py` | Flattens reconstruct trees into `post_lineage_edge` row specs (parent, child, fused_score) |
+| `external_lineage_contract.py` | Sole versioned, store-agnostic external boundary for bounded authorized evidence and opaque-reference results (ADR 0133) |
+| `external_lineage_analysis.py` | Adapts the external contract to the existing reconstruction kernel without database or provider authority |
 | `knowledge_graph.py` | Random-walk-with-restart relevance + per-node adaptive related-node cutoff (Tong et al., 2006) -- pure graph math, no Postgres |
 | `keyman_extraction.py` | Pluggable LLM extraction of two-sided (our-side/counterparty) person mentions + N:N org affiliations from a post |
 | `entity_relationship_classification.py` | Pluggable LLM classification of a named organization's relationship to the post author (`rel_voc`/`rel_vom`/`rel_vop`/`rel_vocc`/`rel_voco`/`rel_vos`) |
@@ -280,7 +282,9 @@ Keycloak (`src/main.tsx`'s `AuthProvider`) -- no mocked auth, no static
 HTML. `src/api.ts` calls the FastAPI backend directly with the token
 Keycloak issued; `src/App.tsx` renders a git-branch SVG of
 `GET /api/lineage` (click a node to open that post; `post_admin` can
-rebuild), the post list, and a full detail popup: Korean
+rebuild), the post list with a named Weekly VOC ISO-8601 week filter
+(ADR 0092; opening that filtered post focuses Event Lineage, ADR 0093),
+and a full detail popup: Korean
 summary/key-events/R&R, VOC evidence excerpts, an Event Lineage panel
 (direct vs. indirect links; a link opens that post), the Keyman
 affiliate tree (resolved ancestors plus unresolved org roots), Keyman +
@@ -326,7 +330,7 @@ Keymen are affiliated with (`lineageweave/affiliate_tree.py`, loaded by
 set of those leaves, not the whole company directory -- a sibling the
 post never mentions is omitted. People on the tree are buttons that
 reuse `GET /api/keymen/{person_id}/related` so the popup Keyman walk
-starts from the affiliation the buyer clicked. A resolved organization
+starts from the affiliation the reader clicked. A resolved organization
 is the same walk via `GET /api/corporate-entities/{id}/related`. An affiliation that did not resolve to
 a `corporate_entity` row stays as its own root (`resolved=false`); that
 is the same never-guess-a-parent rule
@@ -336,6 +340,13 @@ Keyman sides are labeled from `common_lookup_value` (`Our side`,
 codes when a label exists. Related-node person chips use the same
 side lookup label (for example, `Our side` or `Counterparty`) rather
 than exposing the generic PROV-O `Person` class as business context.
+When a person has several distinct affiliation identities, the API emits
+`affiliation_ambiguous` and the reusable `RelatedNodeChip` says
+`multiple organizations`; it never chooses the first row as a primary.
+When exactly one identity remains, the chip includes that organization.
+Organization chips use the cataloged entity-level label and post chips use
+the source title only. The full N:N list stays visible on the Keyman panel,
+which names the next action before the buyer continues the walk.
 
 `GET /api/posts` and `GET /api/posts/{post_id}` include
 `voc_type_label` / `visibility_label` from `common_lookup_value` so
@@ -467,7 +478,7 @@ truly have no dated open tickets.
 
 ## Phase 6-M2: authorized analysis-run evidence (read projection)
 
-Issue #79's first buyer-visible Milestone 2 slice is a source-redacting
+Issue #79's first reader-visible Milestone 2 slice is a source-redacting
 read of the #89 registry. `GET /api/analysis-runs` and
 `GET /api/analysis-runs/{id}` require `post_read` and apply the scope
 in SQL: the requester always sees their own run; a corporate-entity or
@@ -475,7 +486,7 @@ process-unit scope is visible only to affiliated accounts; a
 thread-group scope is visible only when the account can already see a
 post in that group; `all_visible` is requester-only. Hidden runs 404. Detail also lists ABAC-visible post titles in the
 run's scope whose `created_at` is at or before `knowledge_cutoff`
-(ADR 0016) so a buyer can open a post the run was allowed to know
+(ADR 0016) so a reader can open a post the run was allowed to know
 without seeing later live rows or hidden bodies. Detail also returns
 revision and configuration digest prefixes.
 `POST /api/analysis-runs` records a Pending lineage run on a new
@@ -925,7 +936,7 @@ code. Wired into both `keyman_ingestion.py`'s affiliation loop and
 ## Standards-complete W3C PROV-O provenance layer
 
 ADR 0011 separates standards-complete provenance from the compact
-buyer-facing navigation graph. `lineageweave/prov_o.py` validates
+reader-facing navigation graph. `lineageweave/prov_o.py` validates
 and materializes all 50 normative PROV-O properties, including
 literal-valued times/values and qualified Influence resources.
 `migrations/0017_prov_o_standard_relations.sql` stores definitions,

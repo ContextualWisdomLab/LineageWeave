@@ -49,6 +49,7 @@ import {
   verifyPostRelations,
   type ActivityEvent,
   type AskAgentResponse,
+  type CurrentUser,
   type AffiliateNode,
   type AnalysisRun,
   type CalendarResponse,
@@ -86,12 +87,15 @@ import { CitationChip } from "./components/CitationChip";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
-import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
+import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
+import { MenuIcon, CloseIcon, SendIcon } from "./components/icons";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
+import { RelatedNodeChip } from "./RelatedNodeChip";
+import { relatedAffiliationNextAction } from "./relatedNodeCaption";
 import {
   isSupportedLocale,
   LOCALE_LABELS,
@@ -101,6 +105,7 @@ import {
   tf,
   useLocale,
 } from "./i18n";
+import { isoWeekFromCreatedAt, latestIsoWeek } from "./isoWeek";
 import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import "./App.css";
 
@@ -133,6 +138,38 @@ function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
         ))}
       </select>
     </label>
+  );
+}
+
+function SiteMapUtility({
+  destination,
+  onChange,
+  open,
+  onToggle,
+}: {
+  destination: WorkspaceDestination;
+  onChange: (destination: WorkspaceDestination) => void;
+  open: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <div className="site-map-utility">
+      <button
+        type="button"
+        className="btn-secondary"
+        aria-expanded={open}
+        aria-controls="site-map-menu"
+        aria-haspopup="true"
+        onClick={onToggle}
+      >
+        {t("Site map")}
+      </button>
+      {open ? (
+        <div id="site-map-menu" className="site-map-menu" role="region" aria-label={t("Site map")}>
+          <WorkspaceNav destination={destination} onChange={onChange} id="site-map-navigation" />
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -352,8 +389,10 @@ function ChatPanel({
             onChange={(event) => setQuestion(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && handleAsk()}
             placeholder={t("What happened between these events?")}
+            aria-label={t("What happened between these events?")}
           />
           <button onClick={() => handleAsk()} disabled={loading || !question.trim()}>
+            <SendIcon />
             {loading ? t("Asking...") : t("Ask")}
           </button>
         </div>
@@ -1062,6 +1101,11 @@ function KeymanPanel({
           </ol>
         </div>
       ) : null}
+      {related !== null && related.some((node) => node.affiliation_ambiguous) ? (
+        <p className="related-affiliation-hint">
+          {relatedAffiliationNextAction(Boolean(keymen && keymen.length > 0))}
+        </p>
+      ) : null}
       {related === null ? (
         <p>{t("Loading related nodes...")}</p>
       ) : related.length === 0 ? (
@@ -1103,42 +1147,38 @@ function KeymanPanel({
               case NODE_PERSON:
                 return (
                   <li key={key}>
-                    <button
-                      className="keyman-select"
-                      aria-label={tf("Related nodes for {name}", { name: caption })}
-                      aria-current={
-                        landFirstRelated && related[0]?.node_id === node.node_id
-                          ? "true"
-                          : undefined
+                    <RelatedNodeChip
+                      node={node}
+                      action="walk_person"
+                      current={landFirstRelated && related[0]?.node_id === node.node_id}
+                      onSelect={(selected) =>
+                        handleSelect(selected.node_id, selected.label ?? selected.node_id)
                       }
-                      onClick={() => handleSelect(node.node_id, node.label ?? node.node_id)}
-                    >
-                      {caption}
-                    </button>
+                    />
                   </li>
                 );
               case NODE_CORPORATE_ENTITY:
                 return (
                   <li key={key}>
-                    <button
-                      className="keyman-select"
-                      aria-label={tf("Related nodes for {name}", { name: node.label ?? node.node_id })}
-                      onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
-                    >
-                      {caption}
-                    </button>
+                    <RelatedNodeChip
+                      node={node}
+                      action="walk_entity"
+                      onSelect={(selected) =>
+                        handleSelectEntity(selected.node_id, selected.label ?? selected.node_id)
+                      }
+                    />
                   </li>
                 );
               case NODE_TEAM:
                 return (
                   <li key={key}>
-                    <button
-                      className="keyman-select"
-                      aria-label={tf("Related nodes for {name}", { name: node.label ?? node.node_id })}
-                      onClick={() => handleSelectTeam(node.node_id, node.label ?? node.node_id)}
-                    >
-                      {caption}
-                    </button>
+                    <RelatedNodeChip
+                      node={node}
+                      action="walk_team"
+                      onSelect={(selected) =>
+                        handleSelectTeam(selected.node_id, selected.label ?? selected.node_id)
+                      }
+                    />
                   </li>
                 );
               default: {
@@ -1591,6 +1631,7 @@ function IssueTicketPanel({
           onChange={(event) => setNewTitle(event.target.value)}
           onKeyDown={(event) => event.key === "Enter" && handleCreate()}
           placeholder={t("New ticket title")}
+          aria-label={t("New ticket title")}
         />
         <input
           type="date"
@@ -1929,191 +1970,9 @@ function PostDetailPopup({
                 {liveBodyWarning}
               </p>
             ) : null}
-            <section className="popup-section post-source-body" aria-label={t("Post body")}>
-              <h3>{t("Post body")}</h3>
-              {post.post_body.trim() ? (
-                <PostBody body={post.post_body} imageContent={imageContent} structureUnits={structureUnits} />
-              ) : (
-                <p className="popup-placeholder" role="status">
-                  {t("Source body was not imported; summary and semantic extraction are unavailable.")}
-                </p>
-              )}
-            </section>
-            {(post.source_stage_code ||
-              post.source_detail_state_code ||
-              post.source_draft_code ||
-              post.source_deleted_flag ||
-              post.source_author_code ||
-              post.source_author_name ||
-              post.source_company_code ||
-              post.source_company_name ||
-              post.source_process_unit_code ||
-              post.source_process_unit_name ||
-              post.source_sales_pool_code ||
-              post.source_sales_pool_name ||
-              post.source_customer_code ||
-              post.source_customer_name ||
-              post.source_project_code ||
-              post.source_project_name ||
-              post.source_system_code ||
-              post.source_record_key) && (
-              <section className="popup-section" aria-label={t("Original source state")}>
-                <h3>{t("Original source state")}</h3>
-                <dl>
-                  {post.source_stage_code ? (
-                    <>
-                      <dt>{t("Source stage")}</dt>
-                      <dd>{post.source_stage_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_detail_state_code ? (
-                    <>
-                      <dt>{t("Source detail state")}</dt>
-                      <dd>{post.source_detail_state_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_draft_code ? (
-                    <>
-                      <dt>{t("Source draft marker")}</dt>
-                      <dd>{post.source_draft_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_deleted_flag ? (
-                    <>
-                      <dt>{t("Source deletion marker")}</dt>
-                      <dd>{post.source_deleted_flag}</dd>
-                    </>
-                  ) : null}
-                  {post.source_author_code ? (
-                    <>
-                      <dt>{t("Source author code")}</dt>
-                      <dd>{post.source_author_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_author_name ? (
-                    <>
-                      <dt>{t("Source author name")}</dt>
-                      <dd>{post.source_author_name}</dd>
-                    </>
-                  ) : null}
-                  {post.source_company_code ? (
-                    <>
-                      <dt>{t("Source company code")}</dt>
-                      <dd>{post.source_company_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_company_name ? (
-                    <>
-                      <dt>{t("Source company name")}</dt>
-                      <dd>{post.source_company_name}</dd>
-                    </>
-                  ) : null}
-                  {post.source_process_unit_name ? (
-                    <>
-                      <dt>{t("Source process unit name")}</dt>
-                      <dd>{post.source_process_unit_name}</dd>
-                    </>
-                  ) : null}
-                  {post.source_process_unit_code ? (
-                    <>
-                      <dt>{t("Source business unit")}</dt>
-                      <dd>{post.source_process_unit_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_sales_pool_code ? (
-                    <>
-                      <dt>{t("Source sales pool")}</dt>
-                      <dd>{post.source_sales_pool_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_sales_pool_name ? (
-                    <>
-                      <dt>{t("Source sales pool name")}</dt>
-                      <dd>{post.source_sales_pool_name}</dd>
-                    </>
-                  ) : null}
-                  {post.source_customer_code ? (
-                    <>
-                      <dt>{t("Source customer code")}</dt>
-                      <dd>{post.source_customer_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_customer_name ? (
-                    <>
-                      <dt>{t("Source customer name")}</dt>
-                      <dd>{post.source_customer_name}</dd>
-                    </>
-                  ) : null}
-                  {post.source_project_code ? (
-                    <>
-                      <dt>{t("Source project code")}</dt>
-                      <dd>{post.source_project_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_project_name ? (
-                    <>
-                      <dt>{t("Source project name")}</dt>
-                      <dd>{post.source_project_name}</dd>
-                    </>
-                  ) : null}
-                  {post.source_system_code ? (
-                    <>
-                      <dt>{t("Source system")}</dt>
-                      <dd>{post.source_system_code}</dd>
-                    </>
-                  ) : null}
-                  {post.source_record_key ? (
-                    <>
-                      <dt>{t("Source record key")}</dt>
-                      <dd>{post.source_record_key}</dd>
-                    </>
-                  ) : null}
-                </dl>
-                <p className="post-meta">{t("Raw source codes are shown; no state label was inferred.")}</p>
-              </section>
-            )}
 
-					<FiveW1H slots={fiveW1H?.slots ?? null} />
-
-				{post.project_evidence && post.project_evidence.length > 0 ? (
-              <section className="popup-section" aria-label={t("Projects / semantic evidence")}>
-                <h3>{t("Projects / semantic evidence")}</h3>
-                <ul>
-                  {post.project_evidence.map((project) => (
-                    <li key={`${project.resolution_status}:${project.project_key}`}>
-                      <button
-                        type="button"
-                        className="related-post-card"
-                        aria-label={tf("Search related posts for: {name}", { name: project.project_name })}
-                        onClick={() => onSearch?.(project.project_name)}
-                        disabled={!onSearch}
-                      >
-                        <strong>{project.project_name}</strong>
-                        <span>{t("Search related posts")}</span>
-                      </button>{" "}
-                      {project.confidence === null
-                        ? `(${t("Hint only")})`
-                        : `(${Math.round(project.confidence * 100)}%)`}
-                      : {project.evidence}
-                      <details className="semantic-provenance">
-                        <summary>{t("Evidence provenance")}</summary>
-                        <span className="post-badge">
-                          {t("Ontology class")}: {t(project.ontology_label ?? "Project")}
-                        </span>
-                        <span className="post-badge">
-                          {t("Extraction source")}: {projectExtractionLabel(project.extraction_method)}
-                        </span>
-                        <span className="post-badge">
-                          {t("Evidence field")}: {projectProvenanceLabel(project.provenance)}
-                        </span>
-                      </details>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ) : null}
-
-            <section className="popup-section">
+					<div className="popup-analysis-grid">
+              <section className="popup-section popup-analysis-col">
               <h3>{t("Summary")}</h3>
               {summary ? (
                 <>
@@ -2266,6 +2125,195 @@ function PostDetailPopup({
                 <p className="error">{summaryError}</p>
               ) : (
                 <p className="popup-placeholder">{t("No summary is available for this record yet.")}</p>
+              )}
+              </section>
+              <div className="popup-analysis-col">
+                <FiveW1H slots={fiveW1H?.slots ?? null} />
+              </div>
+            </div>
+
+            <div className="popup-secondary-grid">
+            {post.project_evidence && post.project_evidence.length > 0 ? (
+              <section className="popup-section" aria-label={t("Projects / semantic evidence")}>
+                <h3>{t("Projects / semantic evidence")}</h3>
+                <ul>
+                  {post.project_evidence.map((project) => (
+                    <li key={`${project.resolution_status}:${project.project_key}`}>
+                      <button
+                        type="button"
+                        className="related-post-card"
+                        aria-label={tf("Search related posts for: {name}", { name: project.project_name })}
+                        onClick={() => onSearch?.(project.project_name)}
+                        disabled={!onSearch}
+                      >
+                        <strong>{project.project_name}</strong>
+                        <span>{t("Search related posts")}</span>
+                      </button>{" "}
+                      {project.confidence === null
+                        ? `(${t("Hint only")})`
+                        : `(${Math.round(project.confidence * 100)}%)`}
+                      : {project.evidence}
+                      <details className="semantic-provenance">
+                        <summary>{t("Evidence provenance")}</summary>
+                        <span className="post-badge">
+                          {t("Ontology class")}: {t(project.ontology_label ?? "Project")}
+                        </span>
+                        <span className="post-badge">
+                          {t("Extraction source")}: {projectExtractionLabel(project.extraction_method)}
+                        </span>
+                        <span className="post-badge">
+                          {t("Evidence field")}: {projectProvenanceLabel(project.provenance)}
+                        </span>
+                      </details>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+
+            {(post.source_stage_code ||
+              post.source_detail_state_code ||
+              post.source_draft_code ||
+              post.source_deleted_flag ||
+              post.source_author_code ||
+              post.source_author_name ||
+              post.source_company_code ||
+              post.source_company_name ||
+              post.source_process_unit_code ||
+              post.source_process_unit_name ||
+              post.source_sales_pool_code ||
+              post.source_sales_pool_name ||
+              post.source_customer_code ||
+              post.source_customer_name ||
+              post.source_project_code ||
+              post.source_project_name ||
+              post.source_system_code ||
+              post.source_record_key) && (
+              <section className="popup-section" aria-label={t("Original source state")}>
+                <h3>{t("Original source state")}</h3>
+                <dl>
+                  {post.source_stage_code ? (
+                    <>
+                      <dt>{t("Source stage")}</dt>
+                      <dd>{post.source_stage_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_detail_state_code ? (
+                    <>
+                      <dt>{t("Source detail state")}</dt>
+                      <dd>{post.source_detail_state_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_draft_code ? (
+                    <>
+                      <dt>{t("Source draft marker")}</dt>
+                      <dd>{post.source_draft_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_deleted_flag ? (
+                    <>
+                      <dt>{t("Source deletion marker")}</dt>
+                      <dd>{post.source_deleted_flag}</dd>
+                    </>
+                  ) : null}
+                  {post.source_author_code ? (
+                    <>
+                      <dt>{t("Source author code")}</dt>
+                      <dd>{post.source_author_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_author_name ? (
+                    <>
+                      <dt>{t("Source author name")}</dt>
+                      <dd>{post.source_author_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_company_code ? (
+                    <>
+                      <dt>{t("Source company code")}</dt>
+                      <dd>{post.source_company_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_company_name ? (
+                    <>
+                      <dt>{t("Source company name")}</dt>
+                      <dd>{post.source_company_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_process_unit_name ? (
+                    <>
+                      <dt>{t("Source process unit name")}</dt>
+                      <dd>{post.source_process_unit_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_process_unit_code ? (
+                    <>
+                      <dt>{t("Source business unit")}</dt>
+                      <dd>{post.source_process_unit_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_sales_pool_code ? (
+                    <>
+                      <dt>{t("Source sales pool")}</dt>
+                      <dd>{post.source_sales_pool_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_sales_pool_name ? (
+                    <>
+                      <dt>{t("Source sales pool name")}</dt>
+                      <dd>{post.source_sales_pool_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_customer_code ? (
+                    <>
+                      <dt>{t("Source customer code")}</dt>
+                      <dd>{post.source_customer_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_customer_name ? (
+                    <>
+                      <dt>{t("Source customer name")}</dt>
+                      <dd>{post.source_customer_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_project_code ? (
+                    <>
+                      <dt>{t("Source project code")}</dt>
+                      <dd>{post.source_project_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_project_name ? (
+                    <>
+                      <dt>{t("Source project name")}</dt>
+                      <dd>{post.source_project_name}</dd>
+                    </>
+                  ) : null}
+                  {post.source_system_code ? (
+                    <>
+                      <dt>{t("Source system")}</dt>
+                      <dd>{post.source_system_code}</dd>
+                    </>
+                  ) : null}
+                  {post.source_record_key ? (
+                    <>
+                      <dt>{t("Source record key")}</dt>
+                      <dd>{post.source_record_key}</dd>
+                    </>
+                  ) : null}
+                </dl>
+                <p className="post-meta">{t("Raw source codes are shown; no state label was inferred.")}</p>
+              </section>
+            )}
+            </div>
+
+            <section className="popup-section post-source-body" aria-label={t("Post body")}>
+              <h3>{t("Post body")}</h3>
+              {post.post_body.trim() ? (
+                <PostBody body={post.post_body} imageContent={imageContent} structureUnits={structureUnits} />
+              ) : (
+                <p className="popup-placeholder" role="status">
+                  {t("Source body was not imported; summary and semantic extraction are unavailable.")}
+                </p>
               )}
             </section>
 
@@ -2538,6 +2586,11 @@ type SelectPostOptions = {
   liveAfterCutoff?: boolean;
   knowledgeCutoff?: string;
   fromReportMember?: boolean;
+  fromWeeklyVoc?: boolean;
+  /** Set when re-entering a post from a popstate (browser back/forward) so
+   * the handler doesn't push a duplicate history entry for a navigation
+   * the browser already performed. */
+  fromPopState?: boolean;
 };
 
 /**
@@ -3574,11 +3627,15 @@ function PostList({
   showLabPanels = false,
   postIdToOpen = null,
   onPostOpened,
+  focusSearchRequest = 0,
+  onSearchFocusHandled,
 }: {
   accessToken: string;
   showLabPanels?: boolean;
   postIdToOpen?: string | null;
   onPostOpened?: () => void;
+  focusSearchRequest?: number;
+  onSearchFocusHandled?: () => void;
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [graph, setGraph] = useState<LineageGraph | null>(null);
@@ -3596,6 +3653,7 @@ function PostList({
   const [openedGroupingLabel, setOpenedGroupingLabel] = useState<string | null>(null);
   const [landOnComparison, setLandOnComparison] = useState(false);
   const [openedFromReportMember, setOpenedFromReportMember] = useState(false);
+  const [openedFromWeeklyVoc, setOpenedFromWeeklyVoc] = useState(false);
   const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
   const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
   const [totalPosts, setTotalPosts] = useState(0);
@@ -3605,10 +3663,30 @@ function PostList({
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [vocTypeFilterOptions, setVocTypeFilterOptions] = useState<PostFilterOption[]>([]);
+  const [weekFilter, setWeekFilter] = useState("all");
+  const [isoWeekFilterOptions, setIsoWeekFilterOptions] = useState<string[]>([]);
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
   const postsRequest = useRef(0);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const lastFocusedSearchRequest = useRef(0);
+
+  useEffect(() => {
+    if (focusSearchRequest <= 0) {
+      // The parent intentionally reuses 1 after each handled request resets
+      // its counter to 0. Reset the local guard with it so the next global
+      // Search action can focus the input again.
+      lastFocusedSearchRequest.current = 0;
+      return;
+    }
+    if (focusSearchRequest <= lastFocusedSearchRequest.current) return;
+    const input = searchInputRef.current;
+    if (!input) return;
+    lastFocusedSearchRequest.current = focusSearchRequest;
+    input.focus();
+    onSearchFocusHandled?.();
+  }, [focusSearchRequest, onSearchFocusHandled, posts]);
 
   function openReportFromAnalysisRun(
     periodCode: string,
@@ -3648,6 +3726,14 @@ function PostList({
     setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
+    setOpenedFromWeeklyVoc(Boolean(options?.fromWeeklyVoc));
+    if (!options?.fromPopState) {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("post") !== postId) {
+        url.searchParams.set("post", postId);
+        window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
+      }
+    }
   }
 
   useEffect(() => {
@@ -3656,11 +3742,29 @@ function PostList({
     onPostOpened?.();
   }, [onPostOpened, postIdToOpen]);
 
+  useEffect(() => {
+    function handlePopState() {
+      const postId = new URLSearchParams(window.location.search).get("post");
+      if (postId) {
+        selectPost(postId, { fromPopState: true });
+      } else {
+        setSelectedPostId(null);
+        setOpenedAfterCutoff(false);
+        setOpenedCutoffIso(null);
+        setOpenedFromReportMember(false);
+        setOpenedFromWeeklyVoc(false);
+      }
+    }
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   function closeSelectedPost() {
     setSelectedPostId(null);
     setOpenedAfterCutoff(false);
     setOpenedCutoffIso(null);
     setOpenedFromReportMember(false);
+    setOpenedFromWeeklyVoc(false);
     const url = new URL(window.location.href);
     if (url.searchParams.has("post")) {
       url.searchParams.delete("post");
@@ -3690,12 +3794,14 @@ function PostList({
         typeFilter.length > 0 ? typeFilter : undefined,
         visibilityFilter === "all" ? undefined : visibilityFilter,
         sort,
+        weekFilter === "all" ? undefined : weekFilter,
       );
       if (requestId !== postsRequest.current) return;
       setPosts(response.posts);
       setTotalPosts(response.total_count);
       setVocTypeFilterOptions(response.voc_type_options ?? []);
       setVisibilityFilterOptions(response.visibility_options ?? []);
+      setIsoWeekFilterOptions(response.iso_week_options ?? []);
       setCurrentPage(page);
     } catch (err) {
       if (requestId !== postsRequest.current) return;
@@ -3703,7 +3809,7 @@ function PostList({
     } finally {
       if (requestId === postsRequest.current) setLoadingPage(false);
     }
-  }, [accessToken, searchQuery, sortOrder, typeFilter, visibilityFilter]);
+  }, [accessToken, searchQuery, sortOrder, typeFilter, visibilityFilter, weekFilter]);
 
   useEffect(() => {
     void loadPostPage(1);
@@ -3776,7 +3882,9 @@ function PostList({
     .filter((post) => {
       const matchesType = typeFilter.length === 0 || typeFilter.includes(post.voc_type_code);
       const matchesVisibility = visibilityFilter === "all" || post.visibility_code === visibilityFilter;
-      return matchesType && matchesVisibility;
+      const matchesWeek =
+        weekFilter === "all" || isoWeekFromCreatedAt(post.created_at) === weekFilter;
+      return matchesType && matchesVisibility && matchesWeek;
     })
     .sort((left, right) => {
       if (sortOrder === "title") {
@@ -3785,7 +3893,46 @@ function PostList({
       const direction = sortOrder === "newest" ? -1 : 1;
       return direction * left.created_at.localeCompare(right.created_at);
     });
-  const hasBoardFilters = Boolean(searchInput.trim()) || Boolean(searchQuery) || typeFilter.length > 0 || visibilityFilter !== "all";
+  const weeklyVocActive =
+    typeFilter.length === 1 && typeFilter[0] === "voc" && weekFilter !== "all";
+  const weekOptions = isoWeekFilterOptions.length
+    ? isoWeekFilterOptions
+    : Array.from(
+        new Set(
+          loadedPosts
+            .map((post) => isoWeekFromCreatedAt(post.created_at))
+            .filter((week): week is string => Boolean(week)),
+        ),
+      ).sort((left, right) => right.localeCompare(left));
+  const applyWeeklyVoc = async () => {
+    try {
+      const latestVocPage = await fetchPosts(
+        accessToken,
+        1,
+        0,
+        undefined,
+        ["voc"],
+        undefined,
+        "newest",
+      );
+      const vocWeek = latestIsoWeek(
+        latestVocPage.posts.map((post) => isoWeekFromCreatedAt(post.created_at)),
+      );
+      setTypeFilter(["voc"]);
+      setWeekFilter(vocWeek ?? "all");
+      setSortOrder("newest");
+      setCurrentPage(1);
+      setError(null);
+    } catch (err) {
+      setError(String(err));
+    }
+  };
+  const hasBoardFilters =
+    Boolean(searchInput.trim()) ||
+    Boolean(searchQuery) ||
+    typeFilter.length > 0 ||
+    visibilityFilter !== "all" ||
+    weekFilter !== "all";
   const totalPages = Math.max(1, Math.ceil(totalPosts / POST_PAGE_SIZE));
   const pageItems: Array<number | "ellipsis"> =
     totalPages <= 7
@@ -3835,74 +3982,111 @@ function PostList({
               setSearchInput("");
               setSearchQuery("");
               setTypeFilter([]);
+              setWeekFilter("all");
               setVisibilityFilter("all");
               setSortOrder("newest");
             }}
           >
-            <label>
-              {t("Search semantic evidence")}
-              <input
-                type="search"
-                value={searchInput}
-                onChange={(event) => setSearchInput(event.target.value)}
-                placeholder={t("Search semantic evidence")}
-                aria-label={t("Search semantic evidence")}
-              />
-            </label>
-            <button type="submit">{t("Search")}</button>
+            <div className="board-search-row">
+              <label>
+                {t("Search semantic evidence")}
+                <input
+                  ref={searchInputRef}
+                  type="search"
+                  value={searchInput}
+                  onChange={(event) => setSearchInput(event.target.value)}
+                  placeholder={t("Search semantic evidence")}
+                  aria-label={t("Search semantic evidence")}
+                />
+              </label>
+              <button type="submit" className="btn-primary">{t("Search")}</button>
+            </div>
             <p className="board-search-help post-meta">{t("Search includes post text and semantic evidence.")}</p>
-            <fieldset className="board-voc-type-filter">
-              <legend>{t("Filter by VOC type")}</legend>
-              {vocTypeOptions.map((option) => (
-                <label key={option.code}>
-                  <input
-                    type="checkbox"
-                    checked={typeFilter.includes(option.code)}
-                    onChange={(event) =>
-                      setTypeFilter((current) =>
-                        event.target.checked
-                          ? [...current, option.code]
-                          : current.filter((code) => code !== option.code),
-                      )
-                    }
-                  />
-                  {t(option.label)}
-                </label>
-              ))}
-            </fieldset>
-            <label>
-              {t("Filter by visibility")}
-              <select
-                value={visibilityFilter}
-                onChange={(event) => setVisibilityFilter(event.target.value)}
-                aria-label={t("Filter by visibility")}
-              >
-                <option value="all">{t("All visibility")}</option>
-                {visibilityOptions.map((option) => (
-                  <option key={option.code} value={option.code}>
+            <div className="board-filter-row">
+              <fieldset className="board-voc-type-filter">
+                <legend>{t("Filter by VOC type")}</legend>
+                {vocTypeOptions.map((option) => (
+                  <label key={option.code}>
+                    <input
+                      type="checkbox"
+                      checked={typeFilter.includes(option.code)}
+                      onChange={(event) =>
+                        setTypeFilter((current) =>
+                          event.target.checked
+                            ? [...current, option.code]
+                            : current.filter((code) => code !== option.code),
+                        )
+                      }
+                    />
                     {t(option.label)}
-                  </option>
+                  </label>
                 ))}
-              </select>
-            </label>
-            <label>
-              {t("Sort posts")}
-              <select
-                value={sortOrder}
-                onChange={(event) => setSortOrder(event.target.value as BoardSortOrder)}
-                aria-label={t("Sort posts")}
+              </fieldset>
+              <button
+                type="button"
+                className="board-weekly-voc"
+                aria-pressed={weeklyVocActive}
+                onClick={applyWeeklyVoc}
               >
-                <option value="newest">{t("Newest first")}</option>
-                <option value="oldest">{t("Oldest first")}</option>
-                <option value="title">{t("Title A-Z")}</option>
-              </select>
-            </label>
-            {hasBoardFilters && (
-              <button type="reset" className="board-reset">
-                {t("Reset filters")}
+                {t("Weekly VOC")}
               </button>
-            )}
+              <label>
+                {t("Filter by ISO week")}
+                <select
+                  value={weekFilter}
+                  onChange={(event) => setWeekFilter(event.target.value)}
+                  aria-label={t("Filter by ISO week")}
+                >
+                  <option value="all">{t("All weeks")}</option>
+                  {weekOptions.map((week) => (
+                    <option key={week} value={week}>
+                      {week}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                {t("Filter by visibility")}
+                <select
+                  value={visibilityFilter}
+                  onChange={(event) => setVisibilityFilter(event.target.value)}
+                  aria-label={t("Filter by visibility")}
+                >
+                  <option value="all">{t("All visibility")}</option>
+                  {visibilityOptions.map((option) => (
+                    <option key={option.code} value={option.code}>
+                      {t(option.label)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                {t("Sort posts")}
+                <select
+                  value={sortOrder}
+                  onChange={(event) => setSortOrder(event.target.value as BoardSortOrder)}
+                  aria-label={t("Sort posts")}
+                >
+                  <option value="newest">{t("Newest first")}</option>
+                  <option value="oldest">{t("Oldest first")}</option>
+                  <option value="title">{t("Title A-Z")}</option>
+                </select>
+              </label>
+              {hasBoardFilters && (
+                <button type="reset" className="board-reset btn-secondary">
+                  {t("Reset filters")}
+                </button>
+              )}
+            </div>
           </form>
+          {weeklyVocActive ? (
+            <p className="board-next-action" role="status" aria-label={t("Next action")}>
+              {tf(
+                "Voice of Customer posts for {week} are current. Open a post to read Event Lineage.",
+                { week: weekFilter },
+              )}
+            </p>
+          ) : null}
           {posts.length === 0 ? (
             <p className="board-empty" role="status">
               {hasBoardFilters
@@ -3921,7 +4105,12 @@ function PostList({
                     <button
                       className="post-list-item"
                       aria-label={`${t("View post:")} ${post.post_title}`}
-                      onClick={() => selectPost(post.post_id)}
+                      onClick={() =>
+                        selectPost(
+                          post.post_id,
+                          weeklyVocActive ? { fromWeeklyVoc: true } : undefined,
+                        )
+                      }
                     >
                       <span className="post-card-main">
                         <span className="post-title">{post.post_title}</span>
@@ -4064,7 +4253,7 @@ function PostList({
             openedAfterCutoff ? analysisRunOpenedBodyWarning(openedCutoffIso) : null
           }
           knowledgeCutoff={openedAfterCutoff ? openedCutoffIso : null}
-          focusEventLineage={openedFromReportMember}
+          focusEventLineage={openedFromReportMember || openedFromWeeklyVoc}
           onClose={closeSelectedPost}
           onSelectPost={selectPost}
           onSearch={searchBoard}
@@ -4293,10 +4482,10 @@ function CustomerMasterPanel({
   }
 
   return (
-    <section className="buyer-destination" aria-labelledby="customer-master-heading">
+    <section className="workspace-destination" aria-labelledby="customer-master-heading">
       <p className="section-eyebrow">{t("Authorized customer scope")}</p>
       <h2 id="customer-master-heading">{t("Customer master")}</h2>
-      <p className="buyer-destination-intro">{t("Customer entities available to this account.")}</p>
+      <p className="workspace-destination-intro">{t("Customer entities available to this account.")}</p>
       {error ? <p className="error">{error}</p> : null}
       {master === null && !error ? <p>{t("Loading customer master...")}</p> : null}
       {master?.corporate_entities.length === 0 ? (
@@ -4321,7 +4510,7 @@ function CustomerMasterPanel({
       {master && (master.relationship_network ?? []).length > 0 ? (
         <section className="customer-keymen" aria-labelledby="relationship-network-heading">
           <h3 id="relationship-network-heading">{t("Relationship network")}</h3>
-          <p className="buyer-destination-intro">
+          <p className="workspace-destination-intro">
             {t("A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.")}
           </p>
           <ul className="customer-master-list">
@@ -4344,7 +4533,7 @@ function CustomerMasterPanel({
       {master && master.source_customer_hints.length > 0 ? (
         <section className="customer-keymen" aria-labelledby="observed-customer-evidence-heading">
           <h3 id="observed-customer-evidence-heading">{t("Observed customer evidence")}</h3>
-          <p className="buyer-destination-intro">
+          <p className="workspace-destination-intro">
             {t("Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.")}
           </p>
           {master.source_customer_hints.length > HINT_RENDER_LIMIT && (
@@ -4466,6 +4655,14 @@ function CustomerMasterPanel({
   );
 }
 
+type AskAgentExchange = {
+  id: number;
+  question: string;
+  status: "pending" | "complete" | "error";
+  response?: AskAgentResponse;
+  error?: string;
+};
+
 function AskAgentPanel({
   accessToken,
   onOpenPost,
@@ -4474,76 +4671,130 @@ function AskAgentPanel({
   onOpenPost: (postId: string) => void;
 }) {
   const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [exchanges, setExchanges] = useState<AskAgentExchange[]>([]);
   const [asking, setAsking] = useState(false);
+  const exchangeIdRef = useRef(0);
 
   async function handleAsk() {
     const normalized = question.trim();
-    if (!normalized) return;
+    if (!normalized || asking) return;
+    const exchangeId = ++exchangeIdRef.current;
+    setExchanges((current) => [...current, { id: exchangeId, question: normalized, status: "pending" }]);
+    setQuestion("");
     setAsking(true);
-    setError(null);
     try {
-      setAnswer(await askAgent(accessToken, normalized));
+      const response = await askAgent(accessToken, normalized);
+      setExchanges((current) => current.map((exchange) => (
+        exchange.id === exchangeId ? { ...exchange, status: "complete", response } : exchange
+      )));
     } catch (err) {
-      setAnswer(null);
-      setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
+      setExchanges((current) => current.map((exchange) => (
+        exchange.id === exchangeId
+          ? { ...exchange, status: "error", error: orchestratorUnavailableMessage(err, t("Ask Agent")) }
+          : exchange
+      )));
     } finally {
       setAsking(false);
     }
   }
 
   return (
-    <section className="buyer-destination" aria-labelledby="ask-agent-heading">
-      <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
-      <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
-      <p className="buyer-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
-      {error ? <p className="error">{error}</p> : null}
-      <label className="ask-agent-source">
-        <span>{t("Ask a question")}</span>
-        <textarea
-          aria-label={t("Ask a question")}
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          rows={4}
-        />
-      </label>
-      <button className="keyman-select" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
-        {asking ? t("Asking...") : t("Ask")}
-      </button>
-      {answer && (
-        <section className="popup-section" aria-label={t("Answer")}>
-          <h3>{t("Answer")}</h3>
-          {answer.answer_text ? <p>{answer.answer_text}</p> : null}
-          {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
-          {answer.cited_posts && answer.cited_posts.length > 0 && (
-            <>
-              <h4>{t("Cited posts")}</h4>
-              <ul className="related-post-list">
-                {answer.cited_posts.map((post) => (
-                  <li key={post.post_id}>
-                    <button className="post-list-item" onClick={() => onOpenPost(post.post_id)}>
-                      <strong>{post.post_title}</strong>
-                    </button>
-                    {answer.cited_post_evidence?.find((item) => item.post_id === post.post_id)?.facts.length ? (
-                      <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
-                        {answer.cited_post_evidence
-                          .find((item) => item.post_id === post.post_id)
-                          ?.facts.map((fact, index) => (
-                            <li key={`${fact.kind}:${fact.text}:${index}`}>
-                              <span>{chatEvidenceKindLabel(fact.kind)}</span>
-                              <span>{fact.text}</span>
-                            </li>
-                          ))}
+    <section className="workspace-destination ask-agent-workspace" aria-labelledby="ask-agent-heading">
+      <header className="ask-agent-header">
+        <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
+        <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
+        <p className="workspace-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
+      </header>
+
+      <div className="ask-agent-thread" role="log" aria-label={t("Conversation")} aria-live="polite" aria-busy={asking}>
+        {exchanges.length === 0 ? (
+          <div className="ask-agent-empty">
+            <span className="ask-agent-mark" aria-hidden="true">LW</span>
+            <h3>{t("Start with a question about the evidence")}</h3>
+            <p>{t("Ask about an event, decision, or source post.")}</p>
+          </div>
+        ) : exchanges.map((exchange) => {
+          const response = exchange.response;
+          return (
+            <article className="ask-agent-turn" key={exchange.id}>
+              <div className="ask-agent-message-row">
+                <span className="ask-agent-avatar ask-agent-user-avatar" aria-hidden="true">U</span>
+                <div className="ask-agent-message ask-agent-user-message">
+                  <p className="ask-agent-message-label">{t("You")}</p>
+                  <p>{exchange.question}</p>
+                </div>
+              </div>
+              <div className="ask-agent-message-row">
+                <span className="ask-agent-avatar ask-agent-assistant-avatar" aria-hidden="true">LW</span>
+                <div className="ask-agent-message ask-agent-assistant-message">
+                  <p className="ask-agent-message-label">{t("Ask Agent")}</p>
+                  {exchange.status === "pending" ? <p className="ask-agent-pending">{t("Thinking...")}</p> : null}
+                  {exchange.status === "error" ? <p className="ask-agent-error">{exchange.error}</p> : null}
+                  {response?.answer_text ? <p>{response.answer_text}</p> : null}
+                  {response?.next_action ? <p className="post-meta">{t(response.next_action)}</p> : null}
+                  {response?.cited_posts && response.cited_posts.length > 0 ? (
+                    <section className="ask-agent-citations" aria-label={t("Cited posts")}>
+                      <h4>{t("Cited posts")}</h4>
+                      <ul className="ask-agent-citation-list">
+                        {response.cited_posts.map((post) => (
+                          <li key={post.post_id}>
+                            <button className="ask-agent-citation" onClick={() => onOpenPost(post.post_id)}>
+                              <strong>{post.post_title}</strong>
+                              <span>{t("Open source")}</span>
+                            </button>
+                            {response.cited_post_evidence?.find((item) => item.post_id === post.post_id)?.facts.length ? (
+                              <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
+                                {response.cited_post_evidence
+                                  .find((item) => item.post_id === post.post_id)
+                                  ?.facts.map((fact, index) => (
+                                    <li key={fact.kind + ":" + fact.text + ":" + index}>
+                                      <span>{chatEvidenceKindLabel(fact.kind)}</span>
+                                      <span>{fact.text}</span>
+                                    </li>
+                                  ))}
+                              </ul>
+                            ) : null}
+                          </li>
+                        ))}
                       </ul>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </section>
-      )}
+                    </section>
+                  ) : null}
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      <form
+        className="ask-agent-composer"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void handleAsk();
+        }}
+      >
+        <label className="sr-only" htmlFor="ask-agent-input">{t("Ask a question")}</label>
+        <div className="ask-agent-composer-field">
+          <textarea
+            id="ask-agent-input"
+            aria-label={t("Ask a question")}
+            placeholder={t("What happened between these events?")}
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                void handleAsk();
+              }
+            }}
+            rows={1}
+          />
+          <button className="ask-agent-send" type="submit" aria-label={t("Ask")} disabled={asking || !question.trim()}>
+            <SendIcon />
+          </button>
+        </div>
+        <p className="ask-agent-composer-help">{t("Enter to send. Shift+Enter for a new line.")}</p>
+      </form>
     </section>
   );
 }
@@ -4552,7 +4803,11 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   useLocale();
   const [brandName, setBrandName] = useState("LineageWeave");
   const auth = useAuth();
-  const [destination, setDestination] = useState<BuyerDestination>("board");
+  const [destination, setDestination] = useState<WorkspaceDestination>("board");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [siteMapOpen, setSiteMapOpen] = useState(false);
+  const [searchFocusRequest, setSearchFocusRequest] = useState(0);
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("post");
@@ -4563,6 +4818,21 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   // post_admin check (`canRebuild`), not on this caller-supplied prop.
   const testOnlyLabPanels = import.meta.env.MODE === "test" && showLabPanels;
   const accessToken = auth.user?.access_token;
+  const changeDestination = (nextDestination: WorkspaceDestination) => {
+    setDestination(nextDestination);
+    setMobileMenuOpen(false);
+    setSiteMapOpen(false);
+    if (nextDestination !== "board") setSearchFocusRequest(0);
+  };
+
+  useEffect(() => {
+    if (!siteMapOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSiteMapOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [siteMapOpen]);
 
   useEffect(() => {
     if (accessToken) {
@@ -4583,9 +4853,13 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
     let active = true;
     fetchMe(accessToken)
       .then((member) => {
-        if (active && isSupportedLocale(member.preferred_locale)) setLocale(member.preferred_locale);
+        if (!active) return;
+        setCurrentUser(member);
+        if (isSupportedLocale(member.preferred_locale)) setLocale(member.preferred_locale);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (active) setCurrentUser(null);
+      });
     return () => {
       active = false;
     };
@@ -4610,7 +4884,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             </div>
             <div className="login-controls">
               <button className="btn-primary" onClick={() => {
-                const returnUrl = window.location.pathname + window.location.search;
+                const returnUrl = returnUrlFromLocation();
+                rememberOidcReturnUrl(returnUrl);
                 void auth.signinRedirect({ state: { returnUrl } });
               }}>
                 {t("Log in")}
@@ -4620,7 +4895,6 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               <small>Enterprise SSO Authentication</small>
             </div>
           </div>
-          {destination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
       </main>
         <footer className="app-footer" role="contentinfo">
           <div className="app-footer-title">
@@ -4638,29 +4912,100 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
     return <p className="error">{t("Authenticated, but no access token was returned.")}</p>;
   }
 
+  const accountScope = currentUser?.account_affiliations
+    ?.map((affiliation) =>
+      `${affiliation.corporate_entity_code}${affiliation.process_unit_code ? ` / ${affiliation.process_unit_code}` : ""}`,
+    )
+    .join(", ");
+
   return (
     <div className="app-shell">
+      <a
+        href="#main-content"
+        className="skip-link"
+        onClick={(event) => {
+          event.preventDefault();
+          document.getElementById("main-content")?.focus();
+        }}
+      >
+        {t("Skip to main content")}
+      </a>
       <header className="app-header">
         <div className="app-header-logo">
           <h1 className="app-header-title">{brandName}</h1>
         </div>
+        <button
+          type="button"
+          className="mobile-drawer-trigger"
+          aria-label={
+            mobileMenuOpen ? `${t("Close")} ${t("Workspace navigation")}` : t("Open navigation")
+          }
+          aria-expanded={mobileMenuOpen}
+          aria-controls="mobile-workspace-navigation"
+          onClick={() => setMobileMenuOpen((open) => !open)}
+        >
+          <MenuIcon />
+        </button>
         <div className="app-header-top-menu">
+          {accountScope ? (
+            <span className="app-account-scope" aria-label={t("Authorized scope")}>
+              {accountScope}
+            </span>
+          ) : null}
           <span className="app-user-profile">{auth.user?.profile.preferred_username}</span>
+          <LanguageSwitcher accessToken={accessToken} />
+          <button
+            type="button"
+            className="btn-secondary app-header-search"
+            onClick={() => {
+              changeDestination("board");
+              setSearchFocusRequest((request) => request + 1);
+            }}
+          >
+            {t("Search")}
+          </button>
+          <SiteMapUtility
+            destination={destination}
+            onChange={changeDestination}
+            open={siteMapOpen}
+            onToggle={() => setSiteMapOpen((open) => !open)}
+          />
           <button className="btn-secondary" onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
         </div>
       </header>
-      <BuyerNav
-        destination={destination}
-        onChange={setDestination}
-        tools={<LanguageSwitcher accessToken={accessToken} />}
-      />
-      <main>
+      <WorkspaceNav destination={destination} onChange={changeDestination} />
+      {mobileMenuOpen ? (
+        <div className="mobile-drawer-backdrop" onClick={() => setMobileMenuOpen(false)}>
+          <aside
+            className="mobile-drawer"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="mobile-drawer-close"
+              aria-label={t("Close")}
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <CloseIcon />
+            </button>
+            <WorkspaceNav
+              id="mobile-workspace-navigation"
+              destination={destination}
+              onChange={changeDestination}
+              drawer
+            />
+          </aside>
+        </div>
+      ) : null}
+      <main id="main-content" tabIndex={-1}>
         {destination === "board" ? (
           <PostList
             accessToken={accessToken}
             showLabPanels={testOnlyLabPanels}
             postIdToOpen={postToOpen}
             onPostOpened={() => setPostToOpen(null)}
+            focusSearchRequest={searchFocusRequest}
+            onSearchFocusHandled={() => setSearchFocusRequest(0)}
           />
         ) : null}
         {destination === "customers" ? (
@@ -4668,7 +5013,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             accessToken={accessToken}
             onOpenPost={(postId) => {
               setPostToOpen(postId);
-              setDestination("board");
+              changeDestination("board");
             }}
           />
         ) : null}
@@ -4677,7 +5022,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             accessToken={accessToken}
             onSelectPost={(postId) => {
               setPostToOpen(postId);
-              setDestination("board");
+              changeDestination("board");
             }}
           />
         ) : null}
@@ -4686,7 +5031,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             accessToken={accessToken}
             onOpenPost={(postId) => {
               setPostToOpen(postId);
-              setDestination("board");
+              changeDestination("board");
             }}
           />
         ) : null}

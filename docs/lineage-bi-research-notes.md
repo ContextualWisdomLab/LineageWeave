@@ -5,6 +5,16 @@ in [ADR 0064](adr/0064-lineage-evidence-and-tree-assembly.md), [ADR 0062](adr/00
 and the existing channel-specific ADRs; update this file as literature and
 validation evidence changes, not as an untracked architecture decision.
 
+## Related-node business captions
+
+ADR 0103 keeps compact graph navigation truthful for multiple-membership
+people: the UI uses an authorized unique affiliation only when one identity
+remains and otherwise says `multiple organizations`. The full N:N evidence
+stays on the Keyman surface, and the panel gives the buyer the next action.
+The implementation and APA 7th sources are recorded in
+[`docs/adr/0106-related-node-business-captions.md`](adr/0106-related-node-business-captions.md)
+and [`docs/doctoring/RELATED_NODE_AFFILIATION_REFERENCES.md`](doctoring/RELATED_NODE_AFFILIATION_REFERENCES.md).
+
 ## The problem this is answering
 
 Given a pile of short, timestamped records that are only loosely grouped
@@ -261,10 +271,21 @@ not yet a resolved person node, and a mention whose side cannot be
 classified into the closed `{our_side, counterparty}` set is dropped
 rather than guessed. N:N organization attachments are slot-filling on
 that mention (a person may have zero, one, or several affiliations in
-the same post), not a second independent NER pass. The live client
+the same post), not a second independent NER pass. Compact related-node
+chips therefore add an organization only when exactly one organization
+identity is known. Resolved catalog aliases collapse; distinct
+memberships stay distinct and the chip says `multiple organizations`
+so a plural set is not mistaken for a missing affiliation. Collapsing
+several memberships into a sorted "primary" would repeat the
+atomistic fallacy Browne et al. (2001) warn against for
+multiple-membership structures. The related panel names that next
+action: read the Keyman list (or extract Keymen), then click the
+chip to continue the walk. Citations live in
+[`docs/doctoring/RELATED_NODE_AFFILIATION_REFERENCES.md`](doctoring/RELATED_NODE_AFFILIATION_REFERENCES.md). The live client
 calls contextual-orchestrator (`mode="auto"`) rather than a raw LLM
-API so adaptive reasoning-effort allocation stays centralized with the
-adjudication channel. Proven for real during development against
+API so the orchestration plane can allocate route, verify, or a
+deeper workflow; adjudication and post-chat keep explicit
+`mode="verify"`. Proven for real during development against
 `fixtures.ambiguous_keyman_post` when orchestrator credentials are set;
 the default suite asserts the parser and the never-fake null client.
 
@@ -279,7 +300,10 @@ adaptive cutoff (a relevance-ratio threshold against the top score) --
 `tests/test_knowledge_graph.py` proves this concretely: the same ratio
 threshold yields a five-node related-set from a well-connected "hub" node
 and a one-node related-set from a sparsely-connected node, with no hop-count
-constant anywhere in the algorithm or the test.
+constant anywhere in the algorithm or the test. Hydrated related-node
+chips (ADR 0103) then replace the ontology class with the authorized
+side or entity-level label so the next click is a business decision,
+not a class reminder.
 
 ## Entity-relationship classification and corporate hierarchy resolution (Phase 3)
 
@@ -322,7 +346,7 @@ node, and an unresolved free-text affiliation is left as its own root
 rather than attached to the nearest name.
 
 VOC evidence is extractive, not abstractive. The post already carries a
-closed `voc_type_code`; the buyer-felt gap was the missing span that
+closed `voc_type_code`; the reader-felt gap was the missing span that
 justifies that label. `sentence_excerpts` returns the sentences that
 contain a classified organization name -- the ACE mention extent
 (Doddington et al., 2004) already used for Keyman -- and returns
