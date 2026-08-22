@@ -29,6 +29,7 @@ from lineageweave.fixtures import (
 )
 from lineageweave.post_summary import (
     ContextualOrchestratorPostSummaryClient,
+    FiveW1HEvidence,
     NullPostSummaryClient,
     RoleResponsibility,
     SemanticRelationship,
@@ -272,6 +273,33 @@ def test_parses_plain_summary_evidence_section() -> None:
     )
     assert details is not None
     assert details[3][0].value_text == "제3공장"
+
+
+def test_parses_when_evidence_resolved_date_column() -> None:
+    """A 4th EVIDENCE column resolves a relative "when" phrase to an
+    absolute date using the post's own authored date as the anchor; the
+    original phrase in column 2 is kept verbatim (see FiveW1HEvidence).
+    """
+    details = _parse_plain_summary_details(
+        "ROLES:\nNONE\nPROJECTS:\nNONE\nEVIDENCE:\n"
+        "when | 올해 말까지 | 올해 말까지 정비 작업을 완료할 계획 | 2026-12\n"
+        "how | 지정 협력업체를 통해 | 지정 협력업체를 통해 정비 작업을 진행 | NONE"
+    )
+    assert details is not None
+    when_evidence, how_evidence = details[3]
+    assert when_evidence.value_text == "올해 말까지"
+    assert when_evidence.resolved_date_text == "2026-12"
+    assert how_evidence.resolved_date_text is None
+
+
+def test_five_w1h_evidence_rejects_resolved_date_outside_when_slot() -> None:
+    with pytest.raises(ValueError, match="only valid for the 'when' slot"):
+        FiveW1HEvidence("how", "지정 협력업체를 통해", "지정 협력업체를 통해 진행", "2026-12")
+
+
+def test_five_w1h_evidence_rejects_malformed_resolved_date() -> None:
+    with pytest.raises(ValueError, match="YYYY, YYYY-MM, or YYYY-MM-DD"):
+        FiveW1HEvidence("when", "올해 말까지", "올해 말까지 완료 예정", "말경")
 
 
 def test_parses_event_clues_without_inventing_a_relationship() -> None:

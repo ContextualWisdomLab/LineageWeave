@@ -62,3 +62,31 @@ def test_five_w1h_uses_only_explicit_claims_for_missing_dimensions() -> None:
     assert slots["when"][0]["evidence_text"] == "3월 4일 현장 회의"
     assert slots["how"][0]["text"] == "화상 회의로"
     assert slots["where"] == []
+
+
+def test_five_w1h_when_slot_carries_a_resolved_absolute_date() -> None:
+    """A relative "when" phrase (올해 말) keeps its original text and gains a
+    resolved_date_text field; the "how" slot has no such field since
+    resolution only applies to "when" (see post_summary.py FiveW1HEvidence).
+    """
+    slots = assemble_five_w1h_slots(
+        roles=[],
+        key_events=[],
+        evidence_claims=[
+            {
+                "slot_code": "when",
+                "value_text": "올해 말까지",
+                "evidence_text": "올해 말까지 정비 작업을 완료할 계획",
+                "resolved_date_text": "2026-12",
+            },
+            {
+                "slot_code": "how",
+                "value_text": "지정 협력업체를 통해",
+                "evidence_text": "지정 협력업체를 통해 정비 작업을 진행",
+                "resolved_date_text": None,
+            },
+        ],
+    )
+    assert slots["when"][0]["text"] == "올해 말까지"
+    assert slots["when"][0]["resolved_date_text"] == "2026-12"
+    assert "resolved_date_text" not in slots["how"][0]

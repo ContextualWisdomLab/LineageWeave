@@ -636,13 +636,14 @@ async def _replace_summary_projection(
     for ordinal, claim in enumerate(summary.five_w1h_evidence):
         await conn.execute(
             "insert into post_summary_five_w1h "
-            "(post_id, slot_code, value_ordinal, value_text, evidence_text) "
-            "values ($1, $2, $3, $4, $5)",
+            "(post_id, slot_code, value_ordinal, value_text, evidence_text, resolved_date_text) "
+            "values ($1, $2, $3, $4, $5, $6)",
             post_id,
             claim.slot_code,
             ordinal,
             claim.value_text,
             claim.evidence_text,
+            claim.resolved_date_text,
         )
     for ordinal, observation in enumerate(summary.quantitative_observations):
         await conn.execute(
