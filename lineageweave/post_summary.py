@@ -218,7 +218,7 @@ EVENT_CLUE_TYPES = frozenset(
 )
 # Stored rows without this contract version are legacy summaries and must be
 # regenerated from the current source body before the popup treats them as evidence.
-POST_SUMMARY_CONTRACT_VERSION = 14
+POST_SUMMARY_CONTRACT_VERSION = 15
 
 _GENERIC_TEAM_ACTOR_NAMES = frozenset(
     {"사업부", "부서", "팀", "business unit", "department", "division"}
@@ -393,6 +393,9 @@ class EventClue:
                 raise ValueError(f"{field_name} must be non-empty when provided")
 
 
+_RESOLVED_DATE_PATTERN = re.compile(r"^\d{4}(-\d{2}(-\d{2})?)?$")
+
+
 @dataclass(frozen=True)
 class FiveW1HEvidence:
     """One explicitly stated 5W1H value and its supporting source phrase."""
@@ -400,12 +403,23 @@ class FiveW1HEvidence:
     slot_code: str
     value_text: str
     evidence_text: str
+    # Only meaningful for slot_code == "when": a relative phrase ("올해 말",
+    # "내년") resolved to an absolute year/month/day using the post's own
+    # authored date as the deictic anchor -- the phrase itself is preserved
+    # unchanged in value_text, this is an added resolution, not a
+    # replacement (see PostSummaryClient.summarize_with_hints reference_date).
+    resolved_date_text: str | None = None
 
     def __post_init__(self) -> None:
         if self.slot_code not in FIVE_W1H_EVIDENCE_SLOTS:
             raise ValueError(f"unsupported 5W1H evidence slot: {self.slot_code!r}")
         if not self.value_text.strip() or not self.evidence_text.strip():
             raise ValueError("5W1H evidence requires a value and supporting text")
+        if self.resolved_date_text is not None:
+            if self.slot_code != "when":
+                raise ValueError("resolved_date_text is only valid for the 'when' slot")
+            if not _RESOLVED_DATE_PATTERN.match(self.resolved_date_text):
+                raise ValueError("resolved_date_text must be YYYY, YYYY-MM, or YYYY-MM-DD")
 
 
 def _parse_decimal(value: object) -> Decimal | None:
@@ -565,7 +579,7 @@ class NullPostSummaryClient:
         raise RuntimeError("NullPostSummaryClient cannot summarize; check .available first")
 
     def summarize_with_hints(
-        self, post_title: str, post_body: str, context_hints: str
+        self, post_title: str, post_body: str, context_hints: str, reference_date: str
     ) -> PostSummary:
         """Summarize the post while using contextual hints as non-authoritative priors."""
         raise RuntimeError("NullPostSummaryClient cannot summarize; check .available first")
@@ -869,7 +883,16 @@ ACTIONS:
 major event or action | project canonical key or NONE | requester actor name or NONE | processor actor name or NONE | shortest supporting evidence
 
 EVIDENCE:
-slot (when, where, why, or how) | value stated in the post | shortest supporting phrase
+slot (when, where, why, or how) | value stated in the post | shortest supporting phrase | resolved absolute date (when slot only)
+
+A "how" row must capture cost/payment responsibility when the post states
+it, not only a technical method -- "who pays" or "who processes the cost"
+is as much a "how" fact as the mechanism itself. Worked example (fictional,
+format only): a post stating "정비 작업은 지정 협력업체를 통해 진행하며 비용은
+발주 부서가 직접 처리할 예정임" supports two separate "how" rows, one for the
+method and one for the payment responsibility:
+how | 지정 협력업체를 통해 진행 | 지정 협력업체를 통해 진행하며 | NONE
+how | 비용은 발주 부서가 직접 처리 | 비용은 발주 부서가 직접 처리할 예정임 | NONE
 
 CLUES:
 event index | clue type code | clue text | target or NONE | normalized value or NONE | assertion code or NONE | shortest supporting phrase
@@ -891,6 +914,16 @@ actor. Do not invent actors, projects, affiliations, actions, or confidence.
 Only write EVIDENCE rows when the post explicitly supports the value; do not
 turn the record's filing timestamp into an event time and do not infer a
 place, reason, or method from a title alone.
+For a "when" row only, the 4th column resolves a relative time phrase (올해,
+내년, 이번 달, 올해 말, 내년 초, and similar) to an absolute YYYY, YYYY-MM, or
+YYYY-MM-DD value, using {reference_date} as the date the post itself was
+written -- the same date-anchoring the post's author had when they wrote
+"올해"/"내년". Keep the original relative phrase in column 2 unchanged; the
+4th column only adds the resolution, it does not replace anything. Write
+NONE in the 4th column when the "when" value is already an absolute date,
+or when the post gives no basis to resolve it (e.g. "다음 분기" with no
+stated fiscal calendar). For where/why/how rows, always write NONE in the
+4th column.
 For CLUES, emit one row for every explicit event-connected clue. The event
 index is zero-based and must refer to a key event. Use the narrowest clue type
 that the source supports. A clue may target a named actor, organization,
@@ -953,6 +986,8 @@ predicate fits, omit the relation rather than inventing a verb.
 Post title: {title}
 Post body: {body}
 Context hints: {context_hints}
+Reference date (the date this post was written, for resolving "when" EVIDENCE
+rows only): {reference_date}
 """
 
 
@@ -1507,11 +1542,15 @@ def _parse_plain_summary_details(
         row = raw_row.strip().lstrip("-* ").strip()
         if not row or row.casefold() in empty_values:
             continue
-        parts = [part.strip() for part in row.split("|", 2)]
-        if len(parts) != 3 or parts[0].casefold() not in FIVE_W1H_EVIDENCE_SLOTS:
+        parts = [part.strip() for part in row.split("|", 3)]
+        if len(parts) not in (3, 4) or parts[0].casefold() not in FIVE_W1H_EVIDENCE_SLOTS:
             continue
+        resolved_date = parts[3] if len(parts) == 4 else ""
+        resolved_date = None if resolved_date.casefold() in empty_values or not resolved_date else resolved_date
         try:
-            evidence.append(FiveW1HEvidence(parts[0].casefold(), parts[1], parts[2]))
+            evidence.append(
+                FiveW1HEvidence(parts[0].casefold(), parts[1], parts[2], resolved_date)
+            )
         except ValueError:
             continue
     clues: list[EventClue] = []
@@ -1917,12 +1956,21 @@ class ContextualOrchestratorPostSummaryClient:
 
     def summarize(self, post_title: str, post_body: str) -> PostSummary:
         """Summarize the post and extract its supported semantic signals."""
-        return self.summarize_with_hints(post_title, post_body, "")
+        return self.summarize_with_hints(post_title, post_body, "", date.today().isoformat())
 
     def summarize_with_hints(
-        self, post_title: str, post_body: str, context_hints: str
+        self,
+        post_title: str,
+        post_body: str,
+        context_hints: str,
+        reference_date: str = "",
     ) -> PostSummary:
-        """Summarize the post while using contextual hints as non-authoritative priors."""
+        """Summarize the post while using contextual hints as non-authoritative priors.
+
+        ``reference_date`` (ISO 8601) anchors "when" EVIDENCE resolution --
+        it should be the post's own authored date, not today's date, since a
+        relative phrase like 올해/내년 is deictic to when the author wrote it.
+        """
         prompt = _SUMMARY_REQUEST_PROMPT_TEMPLATE.format(
             title=post_title,
             body=post_body,
@@ -1955,6 +2003,7 @@ class ContextualOrchestratorPostSummaryClient:
                             title=post_title,
                             body=post_body,
                             context_hints=context_hints.strip() or "none available",
+                            reference_date=reference_date.strip() or "unknown",
                         ),
                     }
                 ],

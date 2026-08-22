@@ -2856,8 +2856,16 @@ async def read_post_summary(
                         await asyncio.to_thread(normalize_post_body, raw_body)
                     ).text
                 if callable(summarize_with_hints):
+                    # reference_date anchors "when" EVIDENCE resolution to the
+                    # post's own authored date, not today's -- a relative phrase
+                    # like 올해/내년 is deictic to when the author wrote it.
+                    reference_date = post["created_at"].date().isoformat()
                     summary = await asyncio.to_thread(
-                        summarize_with_hints, post["post_title"], normalized_body, context_hints
+                        summarize_with_hints,
+                        post["post_title"],
+                        normalized_body,
+                        context_hints,
+                        reference_date,
                     )
                 else:
                     summary = await asyncio.to_thread(client.summarize, post["post_title"], normalized_body)

@@ -93,6 +93,8 @@ def assemble_five_w1h_slots(
         )
         if item:
             item["evidence_text"] = claim.get("evidence_text", "")
+            if slot == "when":
+                item["resolved_date_text"] = claim.get("resolved_date_text")
             slots[slot].append(item)
     if not slots["what"]:
         for title in lineage_node_labels or []:

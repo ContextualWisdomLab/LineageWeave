@@ -29,7 +29,7 @@ async def load_five_w1h_slots(
     summary = await fetch_persisted_summary(conn, post_id, allow_stale=True) or {}
     evidence_claims = await conn.fetch(
         """
-        select slot_code, value_text, evidence_text
+        select slot_code, value_text, evidence_text, resolved_date_text
           from post_summary_five_w1h
          where post_id = $1
          order by slot_code, value_ordinal
