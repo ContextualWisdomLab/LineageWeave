@@ -27,7 +27,7 @@ SQL_REVIEW_PATHS = (
 )
 ASYNC_STATEMENT_METHODS = {"execute", "fetch", "fetchrow", "fetchval"}
 SQL_REVIEW_RULE = "python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli"
-EXPECTED_SQL_SUPPRESSION_COUNT = 37
+EXPECTED_SQL_SUPPRESSION_COUNT = 38
 
 
 @pytest.mark.parametrize("relative_path", SQL_REVIEW_PATHS)
@@ -176,6 +176,29 @@ def test_real_source_identity_context_is_preserved_in_operator_scope(relative_pa
     ):
         assert f"source_post.{field_name}" in source or f"post.{field_name}" in source
         assert f"real_post.{field_name}" in source
+
+
+def test_synthetic_cleanup_shares_demo_scope_real_evidence_predicate() -> None:
+    """Cleanup's real-evidence predicate must not diverge from demo_scope's.
+
+    A draft/deleted lifecycle marker (ADR 0040) is not identity/content
+    evidence that a post is a real imported record -- it is a publication
+    lifecycle signal (ADR 0058), tracked separately from source context.
+    ``demo_scope.has_real_source_context`` deliberately omits
+    ``source_draft_code``/``source_deleted_flag`` from its "real evidence"
+    check; ``synthetic_seed_cleanup.cleanup_synthetic_seed`` must agree, and
+    must derive its column list from the shared
+    ``backend.app.post_eligibility.SOURCE_CONTEXT_COLUMNS`` predicate instead
+    of hand-maintaining its own copy that can drift.
+    """
+    cleanup_source = (ROOT / "lineageweave/synthetic_seed_cleanup.py").read_text(encoding="utf-8")
+    demo_scope_source = (ROOT / "backend/app/demo_scope.py").read_text(encoding="utf-8")
+
+    assert "source_context_missing_sql" in cleanup_source
+    assert "source_context_present_sql" in cleanup_source
+    for source in (cleanup_source, demo_scope_source):
+        assert "source_draft_code" not in source
+        assert "source_deleted_flag" not in source
 
 
 @pytest.mark.parametrize(

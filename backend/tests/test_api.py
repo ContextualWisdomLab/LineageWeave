@@ -137,6 +137,11 @@ _AFFILIATION_SCOPE_FACET_MIGRATION = (
     / "migrations"
     / "0106_account_affiliation_scope_facet.sql"
 )
+_ROLE_AFFILIATION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0107_role_affiliation_catalog_identity.sql"
+)
 _QUANTITATIVE_OBSERVATION_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -290,6 +295,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_IDENTIFIER_MIGRATION.read_text())
             cur.execute(_TENANT_IDENTITY_METADATA_MIGRATION.read_text())
             cur.execute(_AFFILIATION_SCOPE_FACET_MIGRATION.read_text())
+            cur.execute(_ROLE_AFFILIATION_MIGRATION.read_text())
             cur.execute(_EVENT_CLUE_MIGRATION.read_text())
             cur.execute(_BROAD_FACT_TYPES_MIGRATION.read_text())
             cur.execute(_QUANTITATIVE_OBSERVATION_MIGRATION.read_text())

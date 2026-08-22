@@ -108,6 +108,11 @@ _SOURCE_NAMED_HINTS_MIGRATION = (
 _SOURCE_ORG_NAMED_HINTS_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0039_source_org_named_hints.sql"
 )
+_ROLE_AFFILIATION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0107_role_affiliation_catalog_identity.sql"
+)
 _QUANTITATIVE_OBSERVATION_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
@@ -221,6 +226,7 @@ def projection_database() -> str:
                 cursor.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_IDENTIFIER_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_ROLE_AFFILIATION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(
                     """
                     insert into common_lookup_value
