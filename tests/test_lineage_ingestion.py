@@ -5,9 +5,12 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timezone
 
+import pytest
+
 from backend.app.lineage_ingestion import (
     reconstruct_group_key,
     records_from_source_posts,
+    rebuild_lineage,
     visible_lineage_graph,
 )
 from lineageweave.fixtures import sample_records
@@ -150,3 +153,61 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
     assert len(focused["edges"]) == 1
     assert focused["truncated"] is False
     assert isolated == {"nodes": [], "edges": [], "truncated": False}
+
+
+def test_rebuild_lineage_passes_the_adjudication_client_through(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Live bug (2026-08-22): rebuild_lineage() called lineage_edge_specs()
+    without llm=, so the corpus-wide rebuild (POST /api/lineage/rebuild and
+    scripts/import_postgresql_posts.py) silently ran reconstruct() on the
+    weaker 3-channel fallback -- the highest-weighted channel
+    (DEFAULT_CHANNEL_WEIGHTS, ADR 0064) never actually reasoned about any
+    real corpus. Assert the caller-supplied client reaches
+    lineage_edge_specs unchanged, without depending on reconstruct()'s own
+    decision about when to actually invoke it.
+    """
+    captured: dict[str, object] = {}
+
+    def fake_lineage_edge_specs(records, *, llm=None):
+        captured["llm"] = llm
+        return []
+
+    monkeypatch.setattr(
+        "backend.app.lineage_ingestion.lineage_edge_specs", fake_lineage_edge_specs
+    )
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            return []
+
+        async def execute(self, query: str, *args: object) -> str:
+            return "OK"
+
+    sentinel_client = object()
+    asyncio.run(rebuild_lineage(FakeConnection(), adjudication_client=sentinel_client))
+    assert captured["llm"] is sentinel_client
+
+
+def test_rebuild_lineage_defaults_to_no_adjudication_client(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The default stays None (lineage_edge_specs/reconstruct's own
+    documented fallback) -- this only guards that rebuild_lineage's new
+    keyword argument doesn't silently require a client everywhere.
+    """
+    captured: dict[str, object] = {"llm": "unset"}
+
+    def fake_lineage_edge_specs(records, *, llm=None):
+        captured["llm"] = llm
+        return []
+
+    monkeypatch.setattr(
+        "backend.app.lineage_ingestion.lineage_edge_specs", fake_lineage_edge_specs
+    )
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            return []
+
+        async def execute(self, query: str, *args: object) -> str:
+            return "OK"
+
+    asyncio.run(rebuild_lineage(FakeConnection()))
+    assert captured["llm"] is None

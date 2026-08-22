@@ -16,6 +16,7 @@ from typing import Any, Mapping
 import asyncpg
 
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from lineageweave.adjudication_client import AdjudicationClient
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge, Record
 
@@ -72,14 +73,29 @@ async def persist_lineage_edges(conn: asyncpg.Connection, edges: list[Edge]) -> 
         )
 
 
-async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
-    """Reconstruct lineage for every ``source_post`` and persist the edges."""
+async def rebuild_lineage(
+    conn: asyncpg.Connection,
+    *,
+    adjudication_client: AdjudicationClient | None = None,
+) -> list[Edge]:
+    """Reconstruct lineage for every ``source_post`` and persist the edges.
+
+    ``adjudication_client`` defaults to ``None`` -- same fallback
+    ``lineage_edge_specs`` itself documents -- but a real client should
+    always be passed here in practice: this is the corpus-wide rebuild
+    (``POST /api/lineage/rebuild``, and the same path
+    ``scripts/import_postgresql_posts.py`` uses), so skipping it means
+    every persisted ``post_lineage_edge`` for the whole corpus was built
+    without the highest-weighted reconstruction channel
+    (``DEFAULT_CHANNEL_WEIGHTS``, the only channel that reasons about
+    content instead of approximating it, ADR 0064).
+    """
     rows = await conn.fetch(
         "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
         "process_unit_id, thread_group_key, secondary_grouping_key "
         f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
     )
-    edges = lineage_edge_specs(records_from_source_posts(rows))
+    edges = lineage_edge_specs(records_from_source_posts(rows), llm=adjudication_client)
     await persist_lineage_edges(conn, edges)
     return edges
 
