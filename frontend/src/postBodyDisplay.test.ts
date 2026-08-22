@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { splitPostBody } from "./postBodyDisplay";
+import { splitPostBody, splitScriptRuns, normalizeScriptText } from "./postBodyDisplay";
 
 /** 1x1 transparent PNG — the same synthetic fixture the Python vision tests use. */
 const TINY_PNG_B64 =
@@ -131,5 +131,29 @@ describe("splitPostBody", () => {
       "See",
     );
     expect(JSON.stringify(segments)).not.toContain("https://example.test");
+  });
+
+  it("turns HTML and caret quantity exponents into unicode without flattening them", () => {
+    expect(splitPostBody("<p>Tank volume is 12 m<sup>3</sup>.</p>")).toEqual([
+      { kind: "text", text: "Tank volume is 12 m³." },
+    ]);
+    expect(splitPostBody("Tank volume is 12 m^3.")).toEqual([
+      { kind: "text", text: "Tank volume is 12 m³." },
+    ]);
+    expect(splitPostBody("Coolant is H<sub>2</sub>O at 10^{-3} M.")).toEqual([
+      { kind: "text", text: "Coolant is H₂O at 10⁻³ M." },
+    ]);
+  });
+
+  it("does not treat a leading footnote caret or a comparison as an exponent", () => {
+    expect(splitPostBody("^1 See the tank note.")).toEqual([
+      { kind: "text", text: "^1 See the tank note." },
+    ]);
+    expect(normalizeScriptText("qty < 50 and price > 10")).toBe("qty < 50 and price > 10");
+    expect(splitScriptRuns("Tank volume is 12 m³.")).toEqual([
+      { text: "Tank volume is 12 m" },
+      { text: "3", script: "super" },
+      { text: "." },
+    ]);
   });
 });

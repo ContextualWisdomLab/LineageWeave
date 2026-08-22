@@ -7,6 +7,7 @@ from lineageweave.chunking import (
     chunk_by_paragraph,
     chunk_by_sentence,
     chunk_by_source_body,
+    normalize_script_text,
     normalize_semantic_text,
 )
 
@@ -124,7 +125,7 @@ def test_chunk_by_dom_labels_html_and_word_footnote_markup() -> None:
     assert [(chunk.label, chunk.text) for chunk in chunks] == [
         ("p", "Body text"),
         ("footnote", "HTML footnote body"),
-        ("footnote", "1 Word footnote body"),
+        ("footnote", "¹ Word footnote body"),
     ]
 
 
@@ -410,3 +411,23 @@ def test_chunk_by_dom_preserves_style_per_block_independently() -> None:
 
     assert chunks[0].style == "color:blue"
     assert chunks[1].style is None
+
+
+def test_normalize_script_text_maps_quantity_exponents_and_leaves_comparisons() -> None:
+    assert normalize_script_text("Tank volume is 12 m<sup>3</sup>.") == "Tank volume is 12 m³."
+    assert normalize_script_text("Tank volume is 12 m^3.") == "Tank volume is 12 m³."
+    assert normalize_script_text("Coolant is H<sub>2</sub>O.") == "Coolant is H₂O."
+    assert normalize_script_text("qty < 50 and price > 10") == "qty < 50 and price > 10"
+    assert normalize_script_text("^1 See the tank note.") == "^1 See the tank note."
+
+
+def test_chunk_by_dom_keeps_html_quantity_scripts_as_unicode() -> None:
+    chunks = chunk_by_dom("<p>Tank volume is 12 m<sup>3</sup> of H<sub>2</sub>O.</p>")
+
+    assert [chunk.text for chunk in chunks] == ["Tank volume is 12 m³ of H₂O."]
+
+
+def test_chunk_by_source_body_maps_plain_caret_quantities() -> None:
+    chunks = chunk_by_source_body("Reserve 12 m^3 and 10^{-3} M stock.")
+
+    assert chunks[0].text == "Reserve 12 m³ and 10⁻³ M stock."

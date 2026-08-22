@@ -5,7 +5,10 @@
 - **Table Parsing**: `post=00505695-3e61-1fd1-80c6-86bb61c8ddc5` completely fails at parsing tables.
 - **Indentation**: Incorrect indentation rendering in `post=00505695-7571-1fd1-83c3-d521b187ad5b` and `post=00505695-3e61-1fd1-83c0-497b3c1c455e`.
 - **Image/Table OCR**: `post=00505695-7571-1fd1-83dd-3d22a61a5734` fails text recognition for tables inside images, markdown parsing fails, and image OCR description is too shallow for Ontology & Semantics.
-- **Math/Superscripts**: `post=00505695-9612-1fe1-83a7-e30153323f25` fails to parse superscripts like m^3 properly. Needs strict Ontology grammar for math formulas.
+- **Math/Superscripts**: (Display/unit text, ADR 0119) Quantity HTML
+  `<sup>`/`<sub>` and caret exponents such as `m^3` now render as
+  superscripts and persist as Unicode in semantic units. Full formula
+  ontology grammar remains open.
 - **Missing UI Elements**: DAG (Directed Acyclic Graph) view is currently missing from the frontend for `post=00505695-7571-1fd1-83c5-895ed333cdbc`.
 
 ## 2. LLM Extraction & Knowledge Graph Gaps

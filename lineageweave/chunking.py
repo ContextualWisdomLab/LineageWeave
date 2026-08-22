@@ -130,6 +130,109 @@ def _is_footnote_reference(attrs: list[tuple[str, str | None]]) -> bool:
     )
 
 
+# Unicode Super/Subscript blocks (The Unicode Consortium, 2024, §22.4) plus the
+# Latin-1 superscript digits. Quantity display uses these so embeddings keep
+# "m³" distinct from "m3" without retaining HTML in the semantic text (ADR 0119).
+_SUPERSCRIPT = {
+    "0": "\u2070",
+    "1": "\u00b9",
+    "2": "\u00b2",
+    "3": "\u00b3",
+    "4": "\u2074",
+    "5": "\u2075",
+    "6": "\u2076",
+    "7": "\u2077",
+    "8": "\u2078",
+    "9": "\u2079",
+    "+": "\u207a",
+    "-": "\u207b",
+    "=": "\u207c",
+    "(": "\u207d",
+    ")": "\u207e",
+    "n": "\u207f",
+    "N": "\u207f",
+    "i": "\u2071",
+    "I": "\u2071",
+}
+_SUBSCRIPT = {
+    "0": "\u2080",
+    "1": "\u2081",
+    "2": "\u2082",
+    "3": "\u2083",
+    "4": "\u2084",
+    "5": "\u2085",
+    "6": "\u2086",
+    "7": "\u2087",
+    "8": "\u2088",
+    "9": "\u2089",
+    "+": "\u208a",
+    "-": "\u208b",
+    "=": "\u208c",
+    "(": "\u208d",
+    ")": "\u208e",
+    "a": "\u2090",
+    "e": "\u2091",
+    "h": "\u2095",
+    "i": "\u1d62",
+    "k": "\u2096",
+    "l": "\u2097",
+    "m": "\u2098",
+    "n": "\u2099",
+    "o": "\u2092",
+    "p": "\u209a",
+    "s": "\u209b",
+    "t": "\u209c",
+    "x": "\u2093",
+}
+_SUPERSCRIPT_VALUES = frozenset(_SUPERSCRIPT.values())
+_SUBSCRIPT_VALUES = frozenset(_SUBSCRIPT.values())
+_INLINE_SCRIPT_TAGS = frozenset({"sup", "sub"})
+_HTML_SUP = re.compile(r"<sup\b[^>]*>(.*?)</sup>", re.IGNORECASE | re.DOTALL)
+_HTML_SUB = re.compile(r"<sub\b[^>]*>(.*?)</sub>", re.IGNORECASE | re.DOTALL)
+_INNER_TAG = re.compile(r"<[^>]+>")
+# Quantity caret after a unit/digit, not a leading footnote marker such as `^1`.
+_CARET_EXPONENT = re.compile(
+    r"(?<=[A-Za-z0-9µμ°ΩÅåÅ)])\^(?:\{([+\-]?\d{1,3}|[nNiI])\}|([+\-]?\d{1,3}|[nNiI]))"
+)
+
+
+def apply_unicode_script(text: str, kind: str) -> str:
+    """Map a short exponent/index run to Unicode, or keep a caret/underscore."""
+    table = _SUPERSCRIPT if kind == "sup" else _SUBSCRIPT
+    values = _SUPERSCRIPT_VALUES if kind == "sup" else _SUBSCRIPT_VALUES
+    compact = text.strip()
+    if not compact:
+        return text
+    if all(ch in table or ch in values or ch.isspace() for ch in compact):
+        return "".join(table.get(ch, ch) for ch in text)
+    prefix = "^" if kind == "sup" else "_"
+    leading_len = len(text) - len(text.lstrip())
+    trailing_len = len(text) - len(text.rstrip())
+    leading = text[:leading_len]
+    trailing = text[len(text) - trailing_len :] if trailing_len else ""
+    return f"{leading}{prefix}{compact}{trailing}"
+
+
+def _replace_html_script(match: re.Match[str], kind: str) -> str:
+    inner = _INNER_TAG.sub("", match.group(1))
+    for _ in range(3):
+        decoded = unescape(inner)
+        if decoded == inner:
+            break
+        inner = decoded
+    return apply_unicode_script(inner, kind)
+
+
+def normalize_script_text(text: str) -> str:
+    """Turn HTML/caret quantity scripts into Unicode without treating comparisons as tags."""
+    replaced = _HTML_SUP.sub(lambda match: _replace_html_script(match, "sup"), text)
+    replaced = _HTML_SUB.sub(lambda match: _replace_html_script(match, "sub"), replaced)
+    return _CARET_EXPONENT.sub(
+        lambda match: apply_unicode_script(match.group(1) or match.group(2), "sup"),
+        replaced,
+    )
+
+
 def normalize_semantic_text(text: str) -> str:
     """Remove visual hanging-indent breaks without changing source content."""
     lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
@@ -144,7 +247,7 @@ def normalize_semantic_text(text: str) -> str:
             normalized[-1] = f"{normalized[-1]} {stripped}"
         else:
             normalized.append(stripped)
-    return "\n".join(normalized).strip()
+    return normalize_script_text("\n".join(normalized).strip())
 
 
 def _source_indent_width(text: str) -> int:
@@ -343,6 +446,7 @@ class _BlockTextExtractor(HTMLParser):
         super().__init__()
         self._stack: list[tuple[str, list[str], str | None, int, bool]] = []
         self._unscoped_buffer: list[str] = []
+        self._script_stack: list[str] = []
         # Each entry is ("text", str, tag_name, style) or
         # ("image", (mime_type, bytes), "", None) -- a single sequence in
         # true document order, so an image's index among its siblings
@@ -351,6 +455,9 @@ class _BlockTextExtractor(HTMLParser):
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Collect relevant text state when an HTML start tag is encountered."""
+        if tag in _INLINE_SCRIPT_TAGS:
+            self._script_stack.append(tag)
+            return
         if tag == "img":
             src = next((value for name, value in attrs if name == "src" and value), None)
             if src:
@@ -401,11 +508,18 @@ class _BlockTextExtractor(HTMLParser):
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Handle self-closing block tags without losing XML indentation state."""
         self.handle_starttag(tag, attrs)
-        if tag in _DOM_BLOCK_TAGS:
+        if tag in _DOM_BLOCK_TAGS or tag in _INLINE_SCRIPT_TAGS:
             self.handle_endtag(tag)
 
     def handle_endtag(self, tag: str) -> None:
         """Close the relevant text state when an HTML end tag is encountered."""
+        if tag in _INLINE_SCRIPT_TAGS:
+            if tag in self._script_stack:
+                while self._script_stack:
+                    closed = self._script_stack.pop()
+                    if closed == tag:
+                        break
+            return
         if tag in _DOM_BLOCK_TAGS and self._stack and self._stack[-1][0] == tag:
             declared_width = sum(entry[3] for entry in self._stack)
             tag_name, buffer, style, _, is_footnote = self._stack.pop()
@@ -447,6 +561,8 @@ class _BlockTextExtractor(HTMLParser):
             text = decoded
         had_nbsp = "\xa0" in text
         text = text.replace("\xa0", " ")
+        if self._script_stack:
+            text = apply_unicode_script(text, self._script_stack[-1])
         if self._stack and (text.strip() or had_nbsp):
             self._stack[-1][1].append(text)
         elif text.strip() or had_nbsp:
