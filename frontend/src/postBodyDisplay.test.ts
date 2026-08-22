@@ -36,6 +36,39 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("does not read a stripped inline tag's word-separating space as indentation", () => {
+    // A <span> (font styling, common from WYSIWYG editors) wrapping the very
+    // first word of a paragraph must not fabricate an indentation level --
+    // it carries no indentation intent, only a font hint. A sibling bullet
+    // with no wrapping span, and a paragraph with real nbsp indentation
+    // elsewhere in the same body, must both keep reading correctly.
+    expect(
+      splitPostBody(
+        '<p><span style="font-family: Arial;">1. Attendees:</span></p>' +
+          '<p><span style="font-family: Arial;">- Alpha Corp</span></p>' +
+          "<p>- Beta Corp</p>" +
+          "<p>&nbsp;&nbsp;Nested detail</p>",
+      ),
+    ).toEqual([
+      { kind: "text", text: "1. Attendees:" },
+      { kind: "text", text: "- Alpha Corp" },
+      { kind: "text", text: "- Beta Corp" },
+      { kind: "text", text: "Nested detail", indentLevel: 1 },
+    ]);
+  });
+
+  it("keeps real indentation behind a stripped inline tag and collapses the resulting gap to one space", () => {
+    expect(
+      splitPostBody('<p><span style="color: red;">&nbsp;&nbsp;Indented under a span</span></p><p>Root</p>'),
+    ).toEqual([
+      { kind: "text", text: "Indented under a span", indentLevel: 1 },
+      { kind: "text", text: "Root" },
+    ]);
+    expect(
+      splitPostBody("<p>before <b>bold</b> after</p>"),
+    ).toEqual([{ kind: "text", text: "before bold after" }]);
+  });
+
   it("includes HTML and Word XML indentation declarations", () => {
     expect(
       splitPostBody(
