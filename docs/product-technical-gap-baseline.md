@@ -326,20 +326,25 @@ or an explicit unavailable result.
      missing live infrastructure, not a code defect — but it gives the
      reader no way to tell "not yet processed" from "no live orchestrator in
      this environment" from "verification declined to corroborate."
-  2. **Job title and relationship type are conflated into one free-text
-     field.** `RoleResponsibility.responsibility` (`lineageweave/post_summary.py`)
-     is documented as "what they are responsible for or did" — a single
-     string. An observed extraction produced `"상담고객 연구원"` in that one
-     field, gluing a *relationship-type* signal ("상담 고객", i.e. a
-     consulting/customer relationship — the same concept already modeled
-     elsewhere as `post_counterparty_entity.relationship_type_code`, e.g.
-     `rel_voc`) together with a *job title* ("연구원") that has no home of
-     its own on `RoleResponsibility` the way `last_known_job_title` does on
-     `Keyman`. Fixing this needs a new field plus an
-     `POST_SUMMARY_CONTRACT_VERSION` bump (currently `13`) and an extraction-
-     prompt change — not a display-layer patch, and not something to
-     implement without review given every future extraction depends on the
-     contract version.
+  2. **RESOLVED (2026-08-22, PR #407): job title and responsibility were
+     conflated into one free-text field.** `RoleResponsibility.responsibility`
+     (`lineageweave/post_summary.py`) was documented as "what they are
+     responsible for or did" — a single string. A live extraction on a real
+     post produced a bare job title (e.g. a person's title alone, such as
+     "PM") standing in for their entire responsibility, with no separate
+     field to distinguish the two. Fixed: `POST_SUMMARY_CONTRACT_VERSION`
+     bumped `13` -> `14`; the ROLES extraction contract gained a 5th column
+     (job title or NONE) with an explicit prompt rule against copying the
+     title into the responsibility column; `RoleResponsibility.job_title`
+     threads through the parser, `post_summary_role.job_title_text`
+     (migration 0131), persistence, and the frontend (`RoleEvidence`'s new
+     job-title badge). Also fixed in the same PR: `buildRoleTree` now groups
+     2+ people/teams sharing an affiliated organization that has no ROLES
+     row of its own under a synthetic organization-anchor node (fail-closed
+     — the heading only repeats an already-stated name, it does not invent
+     an org-level responsibility), so a host organization with only named
+     attendees and no org-level action still renders as a real tree instead
+     of flat, disconnected roots.
   3. **Planned-facility events don't become project/entity evidence, and no
      operator inference exists.** A key event whose text names a specific
      planned facility (e.g. "X 충전소 구축 계획") produces `key_events`/
@@ -386,6 +391,29 @@ or an explicit unavailable result.
   `account_affiliation`/`corporate_entity` scope flag, or a customer-tree
   query redesign: guessing at either without a reviewed decision risks an
   ABAC-adjacent regression.
+- **Event Lineage thread grouping — systemic mismapping, evidence-backed
+  (2026-08-22):** `reconstruct_group_key` (`backend/app/lineage_ingestion.py`)
+  uses `source_post.thread_group_key` first when non-empty, falling back to
+  `process_unit_id`/`corporate_entity_id`. A live query found 43,814 of
+  43,839 `source_post` rows (99.94%) have `thread_group_key` equal to that
+  same row's own `source_record_key` — not a genuine thread/story
+  identifier — so `reconstruct()`'s `_group_by` treats nearly every real
+  imported post as its own singleton group and never even considers it as a
+  lineage candidate against anything else, regardless of scoring. This
+  explains reports of "day 3 has no visible day 1/day 2" for records that
+  share an obvious project code: they were never compared, not scored low.
+  Traced to `scripts/import_postgresql_posts.py`'s `mapping.thread_group`
+  column resolution defaulting to a record-unique source column for this
+  import; `source_order_pool_code` is reliably captured on the same rows
+  and is the best available real thread signal for records that carry a
+  project/order-pool code, but not every row has one, so the correct
+  fallback chain needs design (this is not solvable by a blind
+  find-and-replace across the dataset). A minimal, targeted fix shipped for
+  this baseline's two named posts only (`thread_group_key` corrected to the
+  shared project code for one 3-post family, verified via a rebuilt
+  `post_lineage_edge` chain with fused scores above the 0.3 floor); the
+  dataset-wide backfill and import-script fix remain open and need their
+  own reviewed checkpoint before running against the full corpus.
 - **Entity and abbreviation resolution — open:** canonical names, aliases,
   multilingual labels, team-vs-organization typing, title-aware person
   disambiguation, and SearXNG/internal corroboration need end-to-end evidence.
