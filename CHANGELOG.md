@@ -6,6 +6,21 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- Global Ask now understands Korean relative-time expressions ("어제",
+  "작년 이맘때쯤", "재작년에", "3일 전", ...) and scopes retrieval to the
+  resolved date range (ADR 0119).
+- Global Ask answers now render every cited post's Event Lineage thread as
+  its own git-branch-style graph, not a single-anchor summary (ADR 0120).
+- Global Ask cites a post's persisted image evidence (caption and OCR
+  text) when the evidence came from an embedded picture, not just the
+  post's written body (ADR 0121).
+- A citation's evidence can now be opened in a focused Layer Popup without
+  leaving the answer (ADR 0122).
+- A Playwright e2e harness (`frontend/e2e/`, `pnpm run e2e`) covers the
+  four Ask Agent capabilities above.
+
 ### Fixed
 
 - `make smoke` and `make seed` now run through the locked project `uv`

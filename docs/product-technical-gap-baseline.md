@@ -23,4 +23,36 @@
 - **Security & Compliance**: PII masking cannot break the system. Need SOC 2 and CSAP compliance alternatives to blind PII masking. 
 - **LLM Orchestration**: Ensure ALL LLM calls route through `contextual-orchestrator` utilizing API keys (BYTEZ, NVIDIA, OPENROUTER, OPENAI) with auto model discovery and optimal reasoning effort allocation (Fugu/Conductor/TRINITY research).
 
+## 4. Ask Agent Gaps
+- **Korean relative-time understanding**: (Resolved, PR #415 / ADR 0119)
+  Global Ask could not answer "어제", "오늘", "그제", "작년 이맘때쯤",
+  "재작년에", "언젠가", or the general "N일/주/개월/년 전" pattern -- the
+  expression only ever became a literal keyword search term. Resolved by
+  `lineageweave.temporal_expressions.resolve_korean_relative_time`, wired
+  into `gather_global_chat_sources` as a `created_at` retrieval bound.
+- **Multi-thread Event Lineage in answers**: (Resolved, PR #418 / ADR 0120)
+  An Ask answer could speak to at most one connected Event Lineage
+  timeline (ADR 0090's single-top-match expansion), shown as prose only.
+  Resolved by `lineage_graphs_for_posts` merging every cited post's full
+  thread into one `lineage_graph` response field, rendered as N
+  independent git-branch-style figures by the existing `LineageDag`
+  component.
+- **Image citation in answers**: (Resolved, PR #419 / ADR 0121) A citation
+  whose evidence came from an embedded picture read as an unmarked text
+  claim. Resolved by `cited_post_images`, surfacing the same persisted
+  caption/OCR/tags `GET /api/posts/{id}/content` already renders, scoped
+  to cited posts -- no new image-serving mechanism, consistent with this
+  codebase's existing never-raw-bytes boundary.
+- **Evidence Layer Popup**: (Resolved, PR #420 / ADR 0122) Inspecting one
+  citation's evidence meant either scanning every citation's facts inline
+  at once or leaving the answer for the full post detail popup. Resolved
+  by `AskEvidenceLayerPopup`, a focused modal opened per citation.
+- **Ask Agent e2e coverage**: (Resolved, PR #421) No Playwright config
+  existed despite `playwright` already being a frontend devDependency.
+  Resolved by `frontend/playwright.config.ts` + `frontend/e2e/` (a
+  Keycloak-OIDC login helper, a verified-passing smoke spec, and a spec
+  covering all four capabilities above -- the latter requires PRs
+  #415/#418/#419/#420 merged and the images rebuilt from `main` before it
+  can pass; not yet true as of this entry).
+
 *This document is continuously updated by the hourly automated agent loop.*
