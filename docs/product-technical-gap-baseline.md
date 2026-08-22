@@ -6,7 +6,7 @@
 - **Indentation**: Incorrect indentation rendering in `post=00505695-7571-1fd1-83c3-d521b187ad5b` and `post=00505695-3e61-1fd1-83c0-497b3c1c455e`.
 - **Image/Table OCR**: `post=00505695-7571-1fd1-83dd-3d22a61a5734` fails text recognition for tables inside images, markdown parsing fails, and image OCR description is too shallow for Ontology & Semantics.
 - **Math/Superscripts**: `post=00505695-9612-1fe1-83a7-e30153323f25` fails to parse superscripts like m^3 properly. Needs strict Ontology grammar for math formulas.
-- **Missing UI Elements**: DAG (Directed Acyclic Graph) view is currently missing from the frontend for `post=00505695-7571-1fd1-83c5-895ed333cdbc`.
+- **Missing UI Elements**: (Resolved) The reconstructed-lineage DAG view exists in the frontend (`frontend/src/LineageDag.tsx`, first added in #14) and is wired into every post's Event Lineage section (`EventLineageSection` in `frontend/src/App.tsx`), rendering the git-branch-style graph whenever a post's scoped lineage has at least one node. If `post=00505695-7571-1fd1-83c5-895ed333cdbc` still shows no graph, that is a data gap (no reconstructed lineage edges for that post) rather than a missing UI element -- re-open as a data-reconstruction issue if reproduced.
 
 ## 2. LLM Extraction & Knowledge Graph Gaps
 - **Multiple Project Extraction**: (Resolved) LLM prompt updated to request key_events as objects with project_name, separating events correctly.
