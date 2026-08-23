@@ -121,6 +121,20 @@ def test_migrate_sh_replays_tenant_identity_metadata_migration_on_existing_volum
     assert "tenant_settings_copyright_year_range_check" in migration
 
 
+def test_migrate_sh_replays_leftover_observed_expected_on_existing_volumes() -> None:
+    """Existing leftover pair rows must receive nullable observed Y and expected E."""
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(encoding="utf-8")
+    migration = (root / "migrations" / "0177_report_leftover_observed_expected.sql").read_text(
+        encoding="utf-8"
+    )
+
+    assert "0177_*" in script
+    assert "add column if not exists observed_response" in migration
+    assert "add column if not exists expected_response" in migration
+    assert "leftover_pair_observed_expected_reconcile_chk" in migration
+
+
 def test_migrate_sh_replays_catalog_unresolved_reason_migration_on_existing_volumes() -> None:
     """Existing Compose volumes must receive the new unresolved-reason column."""
     root = Path(__file__).resolve().parents[1]

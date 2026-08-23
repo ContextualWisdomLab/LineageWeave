@@ -12,7 +12,7 @@ ADR 0048 already persists leftover-map distance and leftover residual
 `R = Y − E[Y|θ, item]` on `report_leftover_pair`. ADR 0049 already
 renders closest and farthest pairs above the member list and opens the
 named post. Residual disclosure without naming `Y` and `E` leaves a
-buyer unable to tell whether a leftover cell is a high observed
+reader unable to tell whether a leftover cell is a high observed
 response or a low expected category after IRT main effects.
 
 Jeon et al. (2021, eq. 3) leftover interaction is `−γ‖ξ_p − ζ_i‖`.
@@ -25,7 +25,7 @@ This increment does not persist leftover-map coordinates, does not
 change leftover-map axis count, does not name complete-case coverage,
 and does not land Post quality on the leftover criterion.
 
-The unprotected-stack ADR for the same buyer fact was 0163. This
+The unprotected-stack ADR for the same leftover-pair fact was 0163. This
 protected-main reconstruction uses **0177** so it does not collide
 with any current open-head ADR.
 
@@ -45,8 +45,8 @@ are never edited after the fact. It adds them as nullable so older
 leftover rows keep distance and residual without fabricating `Y` or
 `E`. The pair button shows
 `Y {observed} · E {expected}` next to leftover-map distance `d` when
-both values are finite. The next action is: read observed `Y` and
-expected `E` after IRT main effects, then open this post. Omit the
+both values are finite. The next action remains ADR 0049:
+`Open {post}, then read Post quality criterion {criterion}.` Omit the
 `Y` / `E` badge when either value is missing or non-finite. Do not
 invent a leftover score. Do not invent a theta.
 
