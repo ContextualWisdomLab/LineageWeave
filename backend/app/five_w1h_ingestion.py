@@ -9,7 +9,6 @@ import asyncpg
 
 from lineageweave.five_w1h import assemble_five_w1h_slots, slots_payload
 
-from .entity_relationship_ingestion import fetch_post_counterparties
 from .post_chat_ingestion import find_linked_post_ids
 from .post_summary_ingestion import fetch_persisted_summary
 
@@ -42,11 +41,9 @@ async def load_five_w1h_slots(
         )
         linked_titles = [row["post_title"] for row in rows if can_see_post(row)]
 
-    counterparties = await fetch_post_counterparties(conn, post_id)
     slots = assemble_five_w1h_slots(
         roles=summary.get("roles_and_responsibilities", []),
         key_events=summary.get("key_events", []),
-        counterparties=[row["counterparty_entity_name"] for row in counterparties],
         lineage_node_labels=linked_titles,
         evidence_claims=[dict(row) for row in evidence_claims],
     )

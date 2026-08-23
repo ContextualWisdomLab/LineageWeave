@@ -50,7 +50,6 @@ def assemble_five_w1h_slots(
     *,
     roles: list[dict[str, Any]],
     key_events: list[str],
-    counterparties: list[str] | None = None,
     lineage_node_labels: list[str] | None = None,
     evidence_claims: list[dict[str, Any]] | None = None,
 ) -> dict[str, list[dict[str, Any]]]:

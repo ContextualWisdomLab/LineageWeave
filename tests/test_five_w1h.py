@@ -11,7 +11,6 @@ def test_five_w1h_keeps_persisted_evidence_and_leaves_unsupported_slots_empty() 
             }
         ],
         key_events=["검사 일정 확정"],
-        counterparties=["Northwind Labs"],
         evidence_claims=[
             {
                 "slot_code": "where",
