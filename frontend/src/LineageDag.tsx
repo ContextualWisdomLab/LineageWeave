@@ -6,7 +6,7 @@ function truncateLabel(label: string): string {
   return label.length > 34 ? `${label.slice(0, 33)}…` : label;
 }
 
-/** Render the authorized lineage projection and let the buyer open a post. */
+/** Render the authorized lineage projection and let the reader open a post. */
 export function LineageDag({
   graph,
   onSelectPost,

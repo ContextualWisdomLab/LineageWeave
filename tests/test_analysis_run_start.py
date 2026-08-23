@@ -15,6 +15,7 @@ from backend.app.analysis_run_start import (
     tepp_run_request,
     tepp_submit_outcome,
     topic_lineage_run_request,
+    topic_lineage_submit_outcome,
 )
 from backend.app.lineage_ingestion import records_from_source_posts
 from lineageweave.fixtures import sample_records
@@ -187,6 +188,54 @@ def test_topic_lineage_submit_outcome_does_not_persist_an_empty_envelope() -> No
     status, failure = tepp_submit_outcome(_Accepting(), _topic_lineage_request())
     assert status == "analysis_status_failed"
     assert failure == "tepp_result_not_persisted"
+
+
+def test_topic_lineage_submit_outcome_rejects_a_contentless_completed_envelope() -> None:
+    """A 'completed' envelope missing the topic-identity/CHRONOS contract is Failed.
+
+    A syntactically valid envelope whose ``result`` lacks TRSL-TM topic
+    identity and CHRONOS/TDT status (e.g. it accidentally serves the
+    calibrated-measurement shape) must not be treated as a topic-lineage
+    success, per ADR 0132 Decision item 3.
+    """
+
+    class _EmptyResult(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(
+                transport=lambda _payload: {
+                    "status": "completed",
+                    "analysis_run_id": "r-1",
+                    "result": {},
+                }
+            )
+
+    status, failure, envelope = topic_lineage_submit_outcome(_EmptyResult(), _topic_lineage_request())
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_topic_contract_unavailable"
+    assert envelope is None
+
+
+def test_topic_lineage_submit_outcome_accepts_the_versioned_topic_envelope() -> None:
+    """A completed envelope carrying the versioned topic-identity/CHRONOS contract succeeds."""
+
+    class _Completed(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(
+                transport=lambda _payload: {
+                    "status": "completed",
+                    "analysis_run_id": "r-1",
+                    "result": {
+                        "envelope_version": 1,
+                        "topic_identity": [{"topic_id": "t-1"}],
+                        "chronos_status": "evidence",
+                    },
+                }
+            )
+
+    status, failure, envelope = topic_lineage_submit_outcome(_Completed(), _topic_lineage_request())
+    assert status == "analysis_status_succeeded"
+    assert failure == ""
+    assert envelope is not None
 
 
 def test_configured_tepp_client_stays_unavailable_without_http() -> None:

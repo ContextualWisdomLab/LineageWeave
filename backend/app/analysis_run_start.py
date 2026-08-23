@@ -199,6 +199,49 @@ def tepp_submit_outcome(
     return status_code, failure_code
 
 
+def _topic_lineage_envelope_is_valid(envelope: dict[str, Any]) -> bool:
+    """Require TEPP's versioned topic-identity/CHRONOS-status contract (ADR 0132).
+
+    ``_tepp_submission`` only checks that ``result`` is *a* dict -- a
+    ``completed`` envelope carrying the calibrated-measurement shape (or any
+    other unrelated payload) would pass it too, since both requests share the
+    same wire contract and differ only in ``model_contract_version`` /
+    ``output_profile``. This additionally requires TRSL-TM topic identity and
+    CHRONOS/TDT status, keyed by envelope version.
+    """
+    result = envelope.get("result")
+    if not isinstance(result, dict):
+        return False
+    if not isinstance(result.get("envelope_version"), int):
+        return False
+    topic_identity = result.get("topic_identity")
+    if not isinstance(topic_identity, (list, dict)) or not topic_identity:
+        return False
+    chronos_status = result.get("chronos_status")
+    if not isinstance(chronos_status, (list, dict, str)) or not chronos_status:
+        return False
+    return True
+
+
+def topic_lineage_submit_outcome(
+    client: TeppClient,
+    request: AnalysisRunRequest,
+) -> tuple[str, str, dict[str, Any] | None]:
+    """Submit through ``tepp_client`` and require the topic-lineage contract.
+
+    Mirrors :func:`tepp_submit_outcome`, but a syntactically ``completed``
+    envelope that omits the versioned topic-identity/CHRONOS-status contract
+    is also Failed (``tepp_topic_contract_unavailable``, ADR 0132 Decision
+    item 3), not silently persisted as a topic-lineage result.
+    """
+    status_code, failure_code, envelope = _tepp_submission(client, request)
+    if status_code == _SUCCEEDED and not (
+        envelope is not None and _topic_lineage_envelope_is_valid(envelope)
+    ):
+        return _FAILED, "tepp_topic_contract_unavailable", None
+    return status_code, failure_code, envelope
+
+
 async def _persist_tepp_result(
     conn: asyncpg.Connection,
     *,
@@ -885,7 +928,7 @@ async def _deliver_topic_lineage_measurement(
         knowledge_cutoff=locked["knowledge_cutoff"],
         corporate_entity_id=str(locked["corporate_entity_id"]),
     )
-    status_code, failure_code, envelope = _tepp_submission(tepp_client, request)
+    status_code, failure_code, envelope = topic_lineage_submit_outcome(tepp_client, request)
     if status_code == _SUCCEEDED and envelope is not None:
         if not await _persist_topic_lineage_result(
             conn,
