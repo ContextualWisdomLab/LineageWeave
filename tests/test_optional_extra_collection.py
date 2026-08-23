@@ -18,6 +18,7 @@ def test_missing_optional_extra_modules_returns_absent_names() -> None:
     """Names whose find_spec is None are reported; present names are not."""
 
     def fake_find_spec(name: str) -> object | None:
+        """Model one unavailable optional module and one installed module."""
         if name == "asyncpg":
             return None
         return object()
@@ -98,6 +99,20 @@ def test_collection_path_skips_known_transitive_optional_importers(
     assert (
         collection_path_requires_missing_extras(period_report, ("asyncpg",)) is False
     )
+    post_evaluation = tmp_path / "test_post_evaluation.py"
+    post_evaluation.write_text(
+        "from lineageweave.post_evaluation import LLMJudgeResult\n",
+        encoding="utf-8",
+    )
+    assert (
+        collection_path_requires_missing_extras(post_evaluation, ("numpy",)) is False
+    )
+    backend_import = tmp_path / "test_report_ingestion.py"
+    backend_import.write_text(
+        "from backend.app.report_ingestion import ingest_report\n",
+        encoding="utf-8",
+    )
+    assert collection_path_requires_missing_extras(backend_import, ("asyncpg",)) is True
     assert collection_path_requires_missing_extras(post_import, ("asyncpg",)) is True
     seed = tmp_path / "test_seed.py"
     seed.write_text("from scripts.seed_demo_data import seed\n", encoding="utf-8")
@@ -118,9 +133,35 @@ def test_non_python_paths_are_not_ignored(tmp_path: Path) -> None:
     assert collection_path_requires_missing_extras(directory, ("asyncpg",)) is False
 
 
+def test_unreadable_or_invalid_python_does_not_suppress_collection(
+    tmp_path: Path,
+) -> None:
+    """Collection errors stay visible instead of being hidden as missing extras."""
+    invalid = tmp_path / "test_invalid.py"
+    invalid.write_text("from asyncpg import\n", encoding="utf-8")
+    assert collection_path_requires_missing_extras(invalid, ("asyncpg",)) is False
+
+    unreadable = tmp_path / "test_unreadable.py"
+    with patch.object(Path, "read_text", side_effect=OSError("unreadable")):
+        assert (
+            collection_path_requires_missing_extras(unreadable, ("asyncpg",))
+            is False
+        )
+
+
 def test_root_hook_defers_kept_paths_to_other_pytest_ignore_rules(
     tmp_path: Path,
 ) -> None:
-    """A kept path returns None so pytest may apply its remaining hooks."""
-    with patch.object(root_conftest, "missing_optional_extra_modules", return_value=()):
-        assert root_conftest.pytest_ignore_collect(tmp_path / "test_ok.py", object()) is None
+    """The first-result hook ignores optional paths and defers kept paths."""
+    optional_test = tmp_path / "test_optional.py"
+    optional_test.write_text("import asyncpg\n", encoding="utf-8")
+    ordinary_test = tmp_path / "test_ordinary.py"
+    ordinary_test.write_text("import pytest\n", encoding="utf-8")
+
+    with patch.object(
+        root_conftest,
+        "missing_optional_extra_modules",
+        return_value=("asyncpg",),
+    ):
+        assert root_conftest.pytest_ignore_collect(optional_test, object()) is True
+        assert root_conftest.pytest_ignore_collect(ordinary_test, object()) is None
