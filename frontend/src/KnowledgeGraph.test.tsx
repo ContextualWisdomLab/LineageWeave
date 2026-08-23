@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { KnowledgeGraph } from "./api";
 import { KnowledgeGraphView } from "./KnowledgeGraph";
+import { relationCategory } from "./relationCategory";
 
 const directedTemporalGraph: KnowledgeGraph = {
   post_id: "synthetic-post",
@@ -52,6 +53,7 @@ describe("KnowledgeGraphView", () => {
     const table = screen.getByRole("table", { name: "Knowledge Graph — Evidence trail" });
     expect(within(table).getByRole("columnheader", { name: "Source" })).toBeInTheDocument();
     expect(within(table).getByRole("columnheader", { name: "Relation" })).toBeInTheDocument();
+    expect(within(table).getByRole("columnheader", { name: "Category" })).toBeInTheDocument();
     expect(within(table).getByRole("columnheader", { name: "Target" })).toBeInTheDocument();
     expect(within(table).getByRole("columnheader", { name: "Evidence" })).toBeInTheDocument();
     expect(within(table).getByRole("columnheader", { name: "Confidence" })).toBeInTheDocument();
@@ -60,11 +62,67 @@ describe("KnowledgeGraphView", () => {
     expect(cells.map((cell) => cell.textContent)).toEqual([
       "Synthetic base release",
       "Before",
+      "Time order",
       "Synthetic multi-stage release",
       "The base release came first.",
       "98%",
     ]);
     expect(document.querySelector(".knowledge-graph-edge-label")).toHaveTextContent("Before");
+    expect(document.querySelector(".knowledge-graph-edge.temporal")).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Legend" })).toBeInTheDocument();
+  });
+
+  it("classifies edge_type_code values into the relation categories the legend explains", () => {
+    expect(relationCategory("time_before")).toBe("temporal");
+    expect(relationCategory("time_after")).toBe("temporal");
+    expect(relationCategory("skos_broader")).toBe("hierarchical");
+    expect(relationCategory("org_suborganization_of")).toBe("hierarchical");
+    expect(relationCategory("edge_affiliation")).toBe("hierarchical");
+    expect(relationCategory("lw_has_cause")).toBe("causal");
+    expect(relationCategory("lw_has_next_step")).toBe("causal");
+    expect(relationCategory("edge_co_mention")).toBe("other");
+    expect(relationCategory("related_to")).toBe("other");
+  });
+
+  it("orders nodes by temporal/hierarchical precedence instead of raw array position", () => {
+    // Declared out of chronological order (C, A, D, B) to prove layout
+    // ordering follows the time_before chain A -> B -> C -> D, not the
+    // order the nodes happen to appear in the API payload.
+    const chain: KnowledgeGraph = {
+      post_id: "synthetic-post",
+      nodes: [
+        { id: "c", node_type_code: "semantic_temporal_entity", node_id: "c", label: "Stage C", is_focus: false },
+        { id: "a", node_type_code: "semantic_temporal_entity", node_id: "a", label: "Stage A", is_focus: false },
+        { id: "d", node_type_code: "semantic_temporal_entity", node_id: "d", label: "Stage D", is_focus: false },
+        { id: "b", node_type_code: "semantic_temporal_entity", node_id: "b", label: "Stage B", is_focus: false },
+      ],
+      edges: [
+        { source: "a", target: "b", edge_type_code: "time_before", confidence: 0.9, evidence_post_ids: [] },
+        { source: "b", target: "c", edge_type_code: "time_before", confidence: 0.9, evidence_post_ids: [] },
+        { source: "c", target: "d", edge_type_code: "time_before", confidence: 0.9, evidence_post_ids: [] },
+      ],
+    };
+    render(<KnowledgeGraphView graph={chain} />);
+
+    const yOf = (label: string) => {
+      const group = [...document.querySelectorAll(".knowledge-graph-node")].find(
+        (candidate) => candidate.querySelector("title")?.textContent === label,
+      );
+      const transform = group?.getAttribute("transform") ?? "";
+      const match = transform.match(/translate\([^,]+,\s*([\d.]+)\)/);
+      return Number(match?.[1]);
+    };
+
+    const yA = yOf("Stage A");
+    const yB = yOf("Stage B");
+    const yC = yOf("Stage C");
+    const yD = yOf("Stage D");
+    // Two per row (see layoutKnowledgeGraph): A and B share the top row,
+    // C and D share the next row down -- so the chain renders top-to-bottom
+    // in chronological order even though the payload listed C, A, D, B.
+    expect(yA).toBe(yB);
+    expect(yC).toBe(yD);
+    expect(yA).toBeLessThan(yC);
   });
 
   it("keeps long node and relation titles on the graph without ellipsis", () => {
@@ -208,6 +266,7 @@ describe("KnowledgeGraphView", () => {
     expect(cells.map((cell) => cell.textContent)).toEqual([
       "missing-source",
       "related_to",
+      "Other relation",
       "missing-target",
       "—",
       "50%",
