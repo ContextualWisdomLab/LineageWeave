@@ -4973,3 +4973,14 @@ def test_post_search_matches_source_record_key_and_one_character_typo(
     fuzzy = client.get("/api/posts", params={"search": typo}, headers=headers)
     assert fuzzy.status_code == 200, fuzzy.text
     assert any(post["post_id"] == seeded_db["own_private_post_id"] for post in fuzzy.json()["posts"])
+
+
+def test_healthz_is_a_public_liveness_probe_not_tenant_settings(client) -> None:
+    """/healthz must stay the plain liveness probe, never the tenant-settings route it once
+    collided with when a stray decorator stacked onto read_tenant_settings."""
+    health = client.get("/healthz")
+    assert health.status_code == 200
+    assert health.json() == {"status": "ok"}
+
+    unauthenticated_settings = client.get("/api/settings")
+    assert unauthenticated_settings.status_code in (401, 403)

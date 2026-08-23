@@ -8,6 +8,21 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- `GET /healthz`: a stray decorator had stacked this route onto
+  `read_tenant_settings`, so the liveness probe silently required auth and
+  hit Postgres instead of returning `{"status": "ok"}`, and the real
+  `healthz()` handler had no route at all. Restored the decorator to the
+  correct handler.
+- `frontend/src/App.tsx`: the pre-login screen was rendering a duplicate
+  `AdminPanel` with a guaranteed-empty access token (a rebase artifact);
+  removed it. The already-correct authenticated-view render is unaffected.
+  Also wired the login button through `returnUrlFromLocation()` /
+  `rememberOidcReturnUrl()` instead of building the return URL inline,
+  matching the open-redirect-safe helper the login-return-flow fix
+  introduced.
+- Closed the repository-wide docstring-coverage gap: added the 35 missing
+  public docstrings the AST audit found across `lineageweave/` and
+  `backend/app/`.
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.

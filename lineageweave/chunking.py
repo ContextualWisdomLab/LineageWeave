@@ -473,6 +473,7 @@ def _split_dom_units(raw_text: str) -> list[tuple[str, int]]:
     current: list[str] = []
 
     def flush() -> None:
+        """Join the buffered lines into one DOM unit and clear the buffer."""
         if current:
             raw_unit = "\n".join(current)
             if raw_unit.strip():
@@ -513,6 +514,7 @@ def _split_plain_text_units(text: str) -> list[tuple[str, int, str]]:
     current: list[str] = []
 
     def flush() -> None:
+        """Normalize the buffered lines into one plain-text unit and clear the buffer."""
         if current:
             raw_unit = "\n".join(current)
             normalized = normalize_semantic_text(raw_unit)
