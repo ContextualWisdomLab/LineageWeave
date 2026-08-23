@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-23 17:32 KST. This repository records synthetic fixtures and
+> Audit snapshot: 2026-08-23 18:03 KST. This repository records synthetic fixtures and
 > aggregate, non-identifying runtime evidence only. Open PRs and local checks
 > are not protected-default-branch release evidence.
 
@@ -16,8 +16,8 @@ The current acceptance queue was re-fetched immediately before this update:
 | LineageWeave | #387 | `c34681fdc692a25e688fe4a5eb06ad3fe50f2281` | open, blocked, changes requested, auto-merge armed | terminal rerun after central scope repair and current-head approval |
 | LineageWeave | #405 | `0b1b1fcfed875f8ba6795537567a8b28a2497044` | open, blocked, changes requested | terminal protected checks and independent current-head approval |
 | LineageWeave | #421 | `2fc08835485d5bfadfd105ad0a95e17f23cf66cc` | open, blocked, review required, auto-merge armed | terminal protected checks and independent current-head approval |
-| LineageWeave | #426 | `11a60b370d7b5783733febb593e8f91678cc403d` | open, blocked, review required, auto-merge armed | independent current-head approval; current checks are terminal-success |
-| LineageWeave | #468 | `34d73da224b88e23cb0e1e7d3994ddd2d9c963b0` | open, blocked | terminal current-head protected checks and independent review |
+| LineageWeave | #426 | `215a370c3d2492161756093d061e3d2065b601b4` | open, blocked, review required | terminal current-head protected checks and independent review |
+| LineageWeave | #468 | `741d1683b760124e291ca0d72a303543804dcb87` | open, blocked, review required | terminal current-head protected checks and independent review |
 | ContextualWisdomLab/.github | #1248 | `3f78370f3ad01409c7b2fcfb63dfb66862098fa6` | merged as `9ad0ad50409561292b424d6f35a95d670a277e77` | protected-main scope repair is available to the rerun |
 
 PR #464 merged into its stacked base as
@@ -65,11 +65,11 @@ corpus acceptance or protected release.
 | Accessibility and responsive UX | Unit coverage exists for major buyer surfaces | Keyboard, screen-reader, mobile, and authenticated Playwright acceptance on the exact release head |
 | External integrations | SearXNG, Zotero, calendar, and downstream consumer contracts are bounded | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
 | Release quality | Local focused/full suites have passed on individual PR heads | Repository-wide coverage, docstrings, Storybook, security, browser, and release evidence on one exact head |
-| Public ontology | PR #373 contains the deterministic Pages publication path | Protected merge, GitHub Actions Pages source, successful main deployment, and stable term-fragment dereference evidence |
+| Public ontology | PR #426 contains the deterministic Pages publication path after the duplicate PR #373 was incorporated and closed | Protected merge, GitHub Actions Pages source, successful main deployment, and stable term-fragment dereference evidence |
 
 ## 4. Public ontology publication boundary
 
-- PR #373 publishes fragment-addressable HTML, byte-identical Turtle,
+- PR #426 publishes fragment-addressable HTML, byte-identical Turtle,
   isomorphic JSON-LD and N-Triples, the PROV-O support profile, and a
   source-digest manifest from the authoritative ontology.
 - Pull requests validate only. Only protected `main` may publish, and the
