@@ -75,7 +75,9 @@ At exact audited heads `87f74c63` (#490), `de7f78c5` (#355), and `2e2ddd19`
 (#258), the formerly colliding work has a distinct allocation: PR #490 owns
 ADR `0143`, the non-default Customer Master stack owns `0144`, PR #355 owns
 `0145`, and PR #258 owns `0146`. ADRs `0150`–`0156` are also occupied by open
-PRs. No protected-main or live open-PR file uses `0157`, so this decision uses
-ADR 0157. ADR 0158 was likewise unused and is allocated to the publication
-decision in this stack. Recheck immediately before integration; neither number
-is a global allocator reservation.
+PRs. No protected-main or live open-PR file uses `0157`, so the namespace
+decision uses ADR 0157. PR #485 now owns ADR `0158` at exact head
+`216c960eaccd8afa3d018b6cdc134938bcbacb8b`; no protected-main or live open-PR
+file uses `0159`, so the publication decision in this stack uses ADR 0159.
+Recheck immediately before integration; neither number is a global allocator
+reservation.
