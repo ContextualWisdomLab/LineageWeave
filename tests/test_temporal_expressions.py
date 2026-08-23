@@ -49,6 +49,13 @@ def test_same_time_last_year_gives_a_fuzz_window_around_the_anniversary() -> Non
     assert end == date(2025, 8, 27)
 
 
+def test_same_time_last_year_accepts_jinanhae_synonym() -> None:
+    assert resolve_korean_relative_time("지난해 이맘때 상황", today=_TODAY) == (
+        date(2025, 8, 17),
+        date(2025, 8, 27),
+    )
+
+
 def test_same_time_two_years_ago_shifts_the_anniversary_further_back() -> None:
     start, end = resolve_korean_relative_time("재작년 이맘때는 어땠나요", today=_TODAY)
     assert start == date(2024, 8, 17)
@@ -83,6 +90,37 @@ def test_bare_generic_word_before_year_does_not_false_match() -> None:
     assert (start, end) == (date(2025, 1, 1), date(2025, 12, 31))
 
 
+@pytest.mark.parametrize(
+    "question",
+    (
+        "2026년 전",
+        "999999999999개월 전",
+        "999999999999주 전",
+        "999999999999일 전",
+    ),
+)
+def test_out_of_range_offsets_return_an_explicit_empty_range(question: str) -> None:
+    start, end = resolve_korean_relative_time(question, today=_TODAY)
+    assert start > end
+
+
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    (
+        ("3일 전과 어제", (date(2026, 8, 19), date(2026, 8, 19))),
+        ("다음 주와 오늘", (date(2026, 8, 24), date(2026, 8, 30))),
+        ("언젠가 또는 어제", None),
+        ("어제 또는 언젠가", (date(2026, 8, 21), date(2026, 8, 21))),
+    ),
+)
+def test_first_expression_in_text_wins(
+    question: str, expected: tuple[date, date] | None
+) -> None:
+    assert resolve_korean_relative_time(question, today=_TODAY) == expected
+
+
 def test_temporal_stopwords_cover_every_fixed_literal_used_in_matching() -> None:
     for literal in ("오늘", "어제", "그제", "재작년", "작년", "올해", "내년", "언젠가"):
         assert literal in TEMPORAL_STOPWORDS
+    for spaced_expression_token in ("지난", "이번", "다음"):
+        assert spaced_expression_token in TEMPORAL_STOPWORDS

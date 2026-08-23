@@ -20,7 +20,11 @@ from __future__ import annotations
 import re
 from datetime import date, timedelta
 
-__all__ = ["resolve_korean_relative_time"]
+__all__ = ["TEMPORAL_STOPWORDS", "resolve_korean_relative_time"]
+
+_DateRange = tuple[date, date]
+_MatchedRange = tuple[int, _DateRange]
+_EMPTY_DATE_RANGE = (date.max, date.min)
 
 
 def _days_in_month(year: int, month: int) -> int:
@@ -72,7 +76,7 @@ _SAME_TIME_WINDOW_DAYS = 5
 # the bare "작년" pattern, since "작년" is a substring of "재작년".
 _FIXED_PATTERNS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"재작년\s*이맘때\S*"), "same_time_two_years_ago"),
-    (re.compile(r"작년\s*이맘때\S*"), "same_time_last_year"),
+    (re.compile(r"(?:작년|지난해)\s*이맘때\S*"), "same_time_last_year"),
     (re.compile(r"재작년"), "two_years_ago"),
     (re.compile(r"작년|지난해"), "last_year"),
     (re.compile(r"내년"), "next_year"),
@@ -123,6 +127,9 @@ TEMPORAL_STOPWORDS: frozenset[str] = frozenset(
         "지난주",
         "이번주",
         "다음주",
+        "지난",
+        "이번",
+        "다음",
         "금주",
         "지난달",
         "이번달",
@@ -132,55 +139,81 @@ TEMPORAL_STOPWORDS: frozenset[str] = frozenset(
 )
 
 
-def _resolve_fixed(question: str, today: date) -> tuple[date, date] | None:
-    for pattern, label in _FIXED_PATTERNS:
-        if not pattern.search(question):
-            continue
-        if label == "same_time_two_years_ago":
+def _fixed_range(label: str, today: date) -> _DateRange:
+    match label:
+        case "same_time_two_years_ago":
             return _around(_shift_months(today, -24), _SAME_TIME_WINDOW_DAYS)
-        if label == "same_time_last_year":
+        case "same_time_last_year":
             return _around(_shift_months(today, -12), _SAME_TIME_WINDOW_DAYS)
-        if label == "two_years_ago":
+        case "two_years_ago":
             return _year_range(today.year - 2)
-        if label == "last_year":
+        case "last_year":
             return _year_range(today.year - 1)
-        if label == "next_year":
+        case "next_year":
             return _year_range(today.year + 1)
-        if label == "this_year":
+        case "this_year":
             return _year_range(today.year)
-        if label == "three_days_ago":
+        case "three_days_ago":
             return _day_range(today - timedelta(days=3))
-        if label == "two_days_ago":
+        case "two_days_ago":
             return _day_range(today - timedelta(days=2))
-        if label == "yesterday":
+        case "yesterday":
             return _day_range(today - timedelta(days=1))
-        if label == "today":
+        case "today":
             return _day_range(today)
-        if label == "next_week":
+        case "next_week":
             return _week_range(today + timedelta(days=7))
-        if label == "last_week":
+        case "last_week":
             return _week_range(today - timedelta(days=7))
-        if label == "this_week":
+        case "this_week":
             return _week_range(today)
-        if label == "next_month":
+        case "next_month":
             return _month_range(_shift_months(today, 1))
-        if label == "last_month":
+        case "last_month":
             return _month_range(_shift_months(today, -1))
-        if label == "this_month":
+        case "this_month":
             return _month_range(today)
-    return None
+        case _:
+            raise AssertionError(f"unknown fixed temporal label: {label}")
 
 
-def _resolve_relative_count(question: str, today: date) -> tuple[date, date] | None:
-    if match := _N_YEARS_AGO.search(question):
-        return _year_range(today.year - int(match.group(1)))
-    if match := _N_MONTHS_AGO.search(question):
-        return _month_range(_shift_months(today, -int(match.group(1))))
-    if match := _N_WEEKS_AGO.search(question):
-        return _week_range(today - timedelta(days=7 * int(match.group(1))))
-    if match := _N_DAYS_AGO.search(question):
-        return _day_range(today - timedelta(days=int(match.group(1))))
-    return None
+def _resolve_fixed(question: str, today: date) -> _MatchedRange | None:
+    matches = (
+        (match.start(), pattern_index, label)
+        for pattern_index, (pattern, label) in enumerate(_FIXED_PATTERNS)
+        if (match := pattern.search(question)) is not None
+    )
+    first = min(matches, default=None)
+    if first is None:
+        return None
+    start, _, label = first
+    return start, _fixed_range(label, today)
+
+
+def _resolve_relative_count(question: str, today: date) -> _MatchedRange | None:
+    patterns = (_N_YEARS_AGO, _N_MONTHS_AGO, _N_WEEKS_AGO, _N_DAYS_AGO)
+    matches = (
+        (match.start(), pattern_index, match)
+        for pattern_index, pattern in enumerate(patterns)
+        if (match := pattern.search(question)) is not None
+    )
+    first = min(matches, default=None, key=lambda item: item[:2])
+    if first is None:
+        return None
+    start, pattern_index, match = first
+    offset = int(match.group(1))
+    try:
+        if pattern_index == 0:
+            resolved = _year_range(today.year - offset)
+        elif pattern_index == 1:
+            resolved = _month_range(_shift_months(today, -offset))
+        elif pattern_index == 2:
+            resolved = _week_range(today - timedelta(days=7 * offset))
+        else:
+            resolved = _day_range(today - timedelta(days=offset))
+    except (OverflowError, ValueError):
+        resolved = _EMPTY_DATE_RANGE
+    return start, resolved
 
 
 def resolve_korean_relative_time(
@@ -195,10 +228,14 @@ def resolve_korean_relative_time(
     """
     if not question:
         return None
-    if _UNBOUNDED_PATTERN.search(question):
-        return None
     reference = today or date.today()
-    resolved = _resolve_fixed(question, reference)
-    if resolved is not None:
-        return resolved
-    return _resolve_relative_count(question, reference)
+    candidates: list[tuple[int, int, _DateRange | None]] = []
+    if fixed := _resolve_fixed(question, reference):
+        candidates.append((fixed[0], 0, fixed[1]))
+    if relative := _resolve_relative_count(question, reference):
+        candidates.append((relative[0], 1, relative[1]))
+    if unbounded := _UNBOUNDED_PATTERN.search(question):
+        candidates.append((unbounded.start(), 2, None))
+    if not candidates:
+        return None
+    return min(candidates, key=lambda item: item[:2])[2]
