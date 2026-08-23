@@ -32,10 +32,16 @@ Recent protected-default-branch evidence:
 | ---: | --- | --- |
 | #347 | merged as `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` | Korean UI standards on the current protected head |
 | ContextualWisdomLab/.github #1248 | merged as `9ad0ad50409561292b424d6f35a95d670a277e77` | central Strix scope repair is available to subsequent reruns |
+| ContextualWisdomLab/.github #1258 | open; auto-merge armed | pnpm 9 coverage-evidence: omit `--trust-lockfile` below major 10; do not invent a JS coverage instrumenter |
+| ContextualWisdomLab/.github #1259 | open; auto-merge armed | thin LineageWeave hourly review-repair caller at minute 4; supersedes #1086 stack driver |
 
-The organization scheduler is the single review/repair control plane. Its
-hourly heartbeat satisfies the hourly loop requirement without a duplicate
-repository-local GitHub Actions scheduler.
+The organization scheduler is the single review/repair control plane. The
+Grok durable hourly loop (`01a02ed70e77`) and the central thin GitHub
+Actions caller ContextualWisdomLab/.github#1259 (minute 4,
+`pr-review-fix-scheduler.yml`) both target this repository. Do not add a
+LineageWeave-local duplicate workflow. OpenCode coverage-evidence currently
+fails pnpm 9.15.9 heads on `--trust-lockfile` and on a synthesized
+`--coverage` flag; ContextualWisdomLab/.github#1258 is the exact-head repair.
 
 Figma design-system boundary (ADR 0002): File ID `1Su3lDRmiZdcUs47t1QwIX`.
 The file is a safe, empty design-system boundary; popup/Event Lineage frames
@@ -212,7 +218,7 @@ of leverage; open connector PRs there when the defect is upstream:
 6. **ThreadWeave** — tree assembly.
 7. **Naruon** — calendar and email/project lineage projection (#336, #338, #355).
 8. **disksage / wardnet** — storage and network policy as needed.
-9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema). If stacked PRs miss central review, fix the org workflow, not a local bypass.
+9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and the LineageWeave hourly caller (#1259). If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile`) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
 
 ## 8. Evidence boundaries
 
@@ -233,23 +239,28 @@ of leverage; open connector PRs there when the defect is upstream:
 
 ## 9. Next acceptance loop
 
-1. Land this head (login `tsc` + non-identifying baseline) or #426 so the
+1. Land ContextualWisdomLab/.github#1258 so OpenCode coverage-evidence can
+   complete LineageWeave JavaScript tests on pnpm 9.15.9.
+2. Land this head (login `tsc` + non-identifying baseline) or #426 so the
    shared frontend gate is green on protected `main`.
-2. Request independent exact-head review; squash-merge only after that review
+3. Request independent exact-head review; squash-merge only after that review
    and current checks. Enable auto-merge rather than waiting as a blocker.
-3. Re-fetch every open head, latest checks, unresolved threads, and independent
-   reviews before any merge claim. Close superseded docs-only gap PRs after
-   this file is on `main`.
-4. Merge smallest shared-gate repairs next (#429, #428, #393, #436, #439)
+4. After ContextualWisdomLab/.github#1259 is on protected `.github` main, the
+   minute-4 caller owns the GitHub Actions heartbeat. Close superseded
+   docs-only baseline PRs (#368, #440–#450, #455, #463, #479) once this file
+   is on `main`.
+5. Re-fetch every open head, latest checks, unresolved threads, and independent
+   reviews before any merge claim.
+6. Merge smallest shared-gate repairs next (#429, #428, #393, #436, #439)
    when independently approved.
-5. Advance user-visible gaps in leverage order: Event Lineage evidence (#387 /
+7. Advance user-visible gaps in leverage order: Event Lineage evidence (#387 /
    #274), Naruon calendar (#355 / #336), SKOS aliases (#480 / #482), ontology
    explorer (#349 / #341), Ask Agent (#415–#422 / #358–#363).
-6. Keep psychometric tests as true-parameter recovery (RMSE), never fixture
+8. Keep psychometric tests as true-parameter recovery (RMSE), never fixture
    tautologies.
-7. Run frontend lint/test/build/Storybook, backend tests, and authenticated
+9. Run frontend lint/test/build/Storybook, backend tests, and authenticated
    browser/accessibility checks on the exact candidate release head.
-8. Fix only evidence-backed failures and repeat the protected merge gate.
+10. Fix only evidence-backed failures and repeat the protected merge gate.
 
 ## 10. Spec pointers (derive, do not fork)
 
