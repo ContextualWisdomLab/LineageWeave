@@ -113,6 +113,11 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     / "migrations"
     / "0102_project_bound_summary_event.sql"
 )
+_LEFTOVER_INNER_PRODUCT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0179_report_leftover_inner_product.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -226,6 +231,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
+            cur.execute(_LEFTOVER_INNER_PRODUCT_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -4518,6 +4524,11 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert leftover_kinds <= {"closest", "farthest"}
     assert all(pair["post_title"] for pair in high_report.get("leftover_pairs", []))
     assert all(pair["leftover_distance"] >= 0 for pair in high_report.get("leftover_pairs", []))
+    for pair in high_report.get("leftover_pairs", []):
+        inner = pair.get("leftover_inner_product")
+        if inner is None:
+            continue
+        assert isinstance(inner, (int, float))
 
     week3 = client.get(
         "/api/reports/process_unit/2026-W03",

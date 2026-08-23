@@ -35,6 +35,13 @@ describe("i18n", () => {
     "Search",
     "Page",
     "Answer",
+    "Leftover pairs",
+    "Closest leftover",
+    "Farthest leftover",
+    "Open this post to read the criterion it sat closest to after main effects.",
+    "Open this post to read the criterion it sat farthest from after main effects.",
+    "Leftover-map inner product ξ·ζ {value} reconstructs leftover residual after IRT main effects. Open this post to read {criterion}.",
+    "Open leftover {kind} pair: {title} · {criterion}",
     "Showing the first {shown} of {total} posts known at this cutoff.",
   ] as const;
 
@@ -73,6 +80,33 @@ describe("i18n", () => {
   ] as const)("formats dynamic buyer guidance in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("{post} is current in Event Lineage. Read Keyman and evaluation next.", { post: "DEMO" })).toBe(expected);
+  });
+
+  it.each([
+    [
+      "ko",
+      "잔여 지도 내적 ξ·ζ +0.40이(가) IRT 주효과 이후 잔여를 재구성합니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
+    ],
+    [
+      "zh",
+      "残差图内积 ξ·ζ +0.40 重构 IRT 主效应后的残余。打开这篇帖子阅读 sales-lead。",
+    ],
+    [
+      "ja",
+      "残差マップ内積 ξ·ζ +0.40 がIRT主効果後の残差を再構成します。この投稿を開いて sales-lead を読んでください。",
+    ],
+    [
+      "vi",
+      "Tích trong bản đồ phần dư ξ·ζ +0.40 tái tạo phần dư sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead.",
+    ],
+  ] as const)("formats leftover-map inner product next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Leftover-map inner product ξ·ζ {value} reconstructs leftover residual after IRT main effects. Open this post to read {criterion}.",
+        { value: "+0.40", criterion: "sales-lead" },
+      ),
+    ).toBe(expected);
   });
 });
 

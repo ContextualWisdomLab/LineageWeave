@@ -1,4 +1,6 @@
-"""Leftover post–criterion pairs after the main-effect IRT (ADR 0017).
+"""Leftover post–criterion pairs after the main-effect IRT.
+
+Covers ADR 0048 as amended by ADR 0179.
 
 Uses a constructed residual matrix so the closest and farthest pair
 are known without calling ``fit_polytomous``. Loads
@@ -67,6 +69,8 @@ def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
     }
     assert farthest.leftover_residual == pytest.approx(-2.0)
     assert farthest.leftover_distance == pytest.approx(2.0 * np.sqrt(2.0), rel=1e-6)
+    assert closest.leftover_inner_product == pytest.approx(closest.leftover_residual, abs=1e-6)
+    assert farthest.leftover_inner_product == pytest.approx(farthest.leftover_residual, abs=1e-6)
 
 
 def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
@@ -82,6 +86,8 @@ def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
     assert pairs[0].criterion_code == "item_one"
     assert pairs[1].post_id == "beta-post"
     assert pairs[1].criterion_code == "item_two"
+    assert pairs[0].leftover_inner_product == pytest.approx(0.0)
+    assert pairs[1].leftover_inner_product == pytest.approx(0.0)
 
 
 def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
@@ -108,6 +114,8 @@ def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
         ("aligned-post", "item_far"),
         ("opposed-post", "item_near"),
     }
+    for pair in pairs:
+        assert pair.leftover_inner_product == pytest.approx(pair.leftover_residual, abs=1e-6)
 
 
 def test_leftover_is_empty_without_observed_cells() -> None:
@@ -116,3 +124,23 @@ def test_leftover_is_empty_without_observed_cells() -> None:
     matrix = np.array([[np.nan]], dtype=np.float64)
     expected = np.array([[0.0]], dtype=np.float64)
     assert leftover_pairs_from_residual(post_ids, item_codes, matrix, expected) == ()
+
+
+def test_leftover_fallback_omits_inner_product_without_complete_case_map() -> None:
+    """No complete-case rectangle: persist distance from |R − center|, omit ξ·ζ."""
+    post_ids = ["sparse-a", "sparse-b"]
+    item_codes = ("item_near", "item_far")
+    matrix = np.array(
+        [
+            [2.0, np.nan],
+            [np.nan, -2.0],
+        ],
+        dtype=np.float64,
+    )
+    expected = np.zeros_like(matrix)
+    pairs = leftover_pairs_from_residual(post_ids, item_codes, matrix, expected)
+    assert [pair.pair_kind for pair in pairs] == [PAIR_KIND_CLOSEST, PAIR_KIND_FARTHEST]
+    assert {pair.post_id for pair in pairs} == {"sparse-a", "sparse-b"}
+    for pair in pairs:
+        assert pair.leftover_inner_product is None
+        assert pair.leftover_distance >= 0.0

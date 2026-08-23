@@ -100,9 +100,11 @@ than one large PR:
    `information_polytomous` (Lord, 1980 max-info). Persist the ranking
    (`report_item_information`) and show the rank-1 item on the Period
    reports panel. Do not reimplement an information function here.
-7. **Leftover-pair slice** (shipped in 0.71.2; ADR 0017 / 0018): after
+7. **Leftover-pair slice** (shipped in 0.71.2; ADR 0048 / 0049 / 0179): after
    IRT main effects, persist closest and farthest post–criterion pairs
-   from the residual leftover map. Do not fork LSIRM; do not invent a
+   from the residual leftover map, and name leftover-map inner product
+   `ξ·ζ` when Gabriel coordinates exist so reconstructed leftover is
+   not read as leftover-map distance. Do not fork LSIRM; do not invent a
    leftover-pair API inside `fast-mlsirm` in this slice.
 
 **TEPP boundary.** [ARCHITECTURE.md](../../ARCHITECTURE.md) already

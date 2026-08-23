@@ -759,6 +759,7 @@ export interface LeftoverPair {
   criterion_code: string;
   leftover_distance: number;
   leftover_residual: number;
+  leftover_inner_product?: number | null;
 }
 
 export interface PeriodGroupReport {

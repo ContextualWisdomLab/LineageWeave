@@ -2,6 +2,7 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-17
+**Amended by:** [ADR 0179](0179-leftover-map-inner-product.md) (leftover-map inner product)
 
 ## Context
 
@@ -17,10 +18,14 @@ second navigation surface.
 
 On each period-report group, render leftover pairs **above** the
 member list. Each pair is a button: closest or farthest label, post
-title, criterion short label, leftover-map distance, and the next
-action (“Open this post to read the criterion it sat closest to /
-farthest from after main effects.”). Clicking the button opens that
-post with the same handler as a member row.
+title, criterion short label, leftover-map distance, leftover-map
+inner product `ξ·ζ` when the value is finite, and the next action.
+Inner-product next action: leftover-map inner product `ξ·ζ`
+reconstructs leftover residual after IRT main effects; open this
+post to read the named criterion. A missing inner product keeps the
+existing closest/farthest next action. Clicking the button opens that
+post with the same handler as a member row. Inner-product naming is
+[ADR 0179](0179-leftover-map-inner-product.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post.
