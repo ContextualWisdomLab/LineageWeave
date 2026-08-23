@@ -1,6 +1,6 @@
 # ADR 0038: Separate external calendar events from internal commitments
 
-- Status: Superseded in part by ADR 0123
+- Status: Superseded in part by ADR 0143
 - Date: 2026-08-18
 
 ## Context
@@ -33,7 +33,7 @@ credential store, or writeback engine.
 
 ## Superseding decision
 
-ADR 0123 replaces the custom `/events` transport and CalDAV naming with a
+ADR 0143 replaces the custom `/events` transport and CalDAV naming with a
 versioned, read-only Naruon calendar projection contract. Naruon is the authority
 for customer-owned provider access, source registry, synchronization, provider
 revisions, writeback, retries, and reconciliation. LineageWeave consumes only
