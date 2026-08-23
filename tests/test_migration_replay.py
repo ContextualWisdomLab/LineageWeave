@@ -33,3 +33,48 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
     ).read_text(encoding="utf-8")
 
     assert "0012_*" in script
+
+
+def test_migrate_sh_replays_context_scoped_name_cache_migration() -> None:
+    """Existing volumes must receive the context-scoped resolution key."""
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "migrate.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "0051_*" in script
+
+
+def test_migrate_sh_replays_global_ask_context_migration() -> None:
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "migrate.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "0052_*" in script
+
+
+def test_migrate_sh_replays_project_history_lookup_indexes() -> None:
+    """Existing volumes receive the bounded project-history lookup indexes."""
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "docker/postgres-init/migrate.sh").read_text(encoding="utf-8")
+    forward = (root / "migrations/0053_project_history_lookup.sql").read_text(encoding="utf-8")
+    rollback = (root / "migrations/rollback/0053_project_history_lookup.sql").read_text(
+        encoding="utf-8"
+    )
+
+    assert "0053_*" in script
+    for index_name in (
+        "source_post_project_history_recent_idx",
+        "source_post_project_code_history_idx",
+        "source_post_project_name_history_idx",
+        "post_project_mention_key_history_idx",
+        "post_project_mention_name_history_idx",
+        "post_lineage_edge_child_history_idx",
+    ):
+        assert f"create index if not exists {index_name}" in forward
+        assert f"drop index if exists {index_name}" in rollback

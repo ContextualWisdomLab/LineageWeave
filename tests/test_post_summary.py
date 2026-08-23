@@ -14,7 +14,10 @@ import os
 
 import pytest
 
-from backend.app.post_summary_ingestion import require_summary_source_body, seeded_fixture_summary
+from backend.app.post_summary_ingestion import (
+    require_summary_source_body,
+    seeded_fixture_summary,
+)
 from lineageweave.fixtures import (
     ambiguous_commitment_post,
     ambiguous_keyman_post,
@@ -27,8 +30,8 @@ from lineageweave.post_summary import (
     RoleResponsibility,
     _SUMMARY_REQUEST_PROMPT_TEMPLATE,
     _parse_optional_project_key,
-    _parse_plain_summary_response,
     _parse_plain_summary_details,
+    _parse_plain_summary_response,
     parse_summary_response,
 )
 
@@ -241,6 +244,17 @@ def test_missing_actor_type_defaults_to_person() -> None:
     assert summary.roles_and_responsibilities[0].affiliated_organization_name is None
 
 
+def test_explicit_unknown_actor_type_is_dropped() -> None:
+    summary = parse_summary_response(
+        '{"korean_summary": "요약", "roles_and_responsibilities": [{'
+        '"actor_name": "Synthetic Team", "responsibility": "검토", '
+        '"actor_type": "department"}]}'
+    )
+
+    assert summary is not None
+    assert summary.roles_and_responsibilities == ()
+
+
 def test_missing_korean_summary_returns_none() -> None:
     content = '{"key_events": [], "roles_and_responsibilities": []}'
     assert parse_summary_response(content) is None
@@ -335,6 +349,43 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
     assert "PU/business-unit value" in details_prompt
     assert summary.roles_and_responsibilities[0].actor_name == "Jordan Hale"
     assert summary.project_mentions[0].canonical_name == "hvdc-pilot"
+
+
+def test_summary_details_parse_failure_does_not_expose_provider_response(monkeypatch) -> None:
+    """Malformed provider output gets a stable parser error, never raw text."""
+    responses = iter(
+        (
+            {
+                "choices": [
+                    {"message": {"content": "본문 근거 요약\nKEY EVENTS: 후속 확인"}}
+                ]
+            },
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "content": "provider-secret-and-gateway-prompt"
+                        }
+                    }
+                ]
+            },
+        )
+    )
+
+    monkeypatch.setattr(
+        "lineageweave.post_summary.post_json",
+        lambda *args, **kwargs: next(responses),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="summary semantic response did not match the required format",
+    ) as exc_info:
+        ContextualOrchestratorPostSummaryClient("https://orchestrator.test", "token").summarize(
+            "Synthetic title", "Synthetic body"
+        )
+
+    assert "provider-secret-and-gateway-prompt" not in str(exc_info.value)
 
 
 def test_title_match_can_supply_explicit_project_evidence_but_not_a_guess() -> None:

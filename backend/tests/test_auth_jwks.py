@@ -143,7 +143,7 @@ def test_decode_requires_configured_resource_audience(monkeypatch: pytest.Monkey
 
     def fake_decode(token, **kwargs):
         captured.update(kwargs)
-        return {"sub": "subject-1"}
+        return {"sub": "subject-1", "exp": 1_800_000_000}
 
     monkeypatch.setattr(auth.jwt, "decode", fake_decode)
     settings = SimpleNamespace(
@@ -158,7 +158,7 @@ def test_decode_requires_configured_resource_audience(monkeypatch: pytest.Monkey
     assert captured["issuer"] == "https://id.example"
     assert captured["audience"] == "https://lineage.example/api"
     assert captured["algorithms"] == ["RS256"]
-    assert "options" not in captured
+    assert captured["options"] == {"require": ["exp"]}
 
 
 def test_decode_rejects_missing_subject(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -173,3 +173,50 @@ def test_decode_rejects_missing_subject(monkeypatch: pytest.MonkeyPatch) -> None
     with pytest.raises(HTTPException) as error:
         auth._decode_access_token("token", settings)
     assert error.value.status_code == 401
+
+
+def test_oidc_provider_failure_does_not_cross_the_auth_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Identity-provider transport details stay out of the HTTP response."""
+    def fail(*_args: object, **_kwargs: object) -> dict:
+        raise auth.HttpClientError("synthetic-provider-response")
+
+    monkeypatch.setattr(auth, "get_json", fail)
+    settings = SimpleNamespace(
+        oidc_issuer="https://id.example",
+        oidc_discovery_uri="https://id.example/.well-known/openid-configuration",
+        oidc_jwks_uri_override="",
+    )
+
+    with pytest.raises(HTTPException) as error:
+        auth._jwks(settings)
+
+    assert error.value.status_code == 503
+    assert error.value.detail == "could not fetch OIDC JWKS from the configured identity provider"
+    assert "synthetic-provider-response" not in str(error.value.detail)
+
+
+def test_invalid_token_detail_does_not_cross_the_auth_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """JWT library diagnostics stay server-side through exception chaining."""
+    monkeypatch.setattr(auth, "_signing_key", lambda settings, token: "signing-key")
+    monkeypatch.setattr(
+        auth.jwt,
+        "decode",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            auth.jwt.InvalidTokenError("synthetic-token-diagnostic")
+        ),
+    )
+    settings = SimpleNamespace(
+        oidc_issuer="https://id.example",
+        oidc_audience="lineageweave-api",
+        oidc_clock_skew_seconds=5,
+    )
+
+    with pytest.raises(HTTPException) as error:
+        auth._decode_access_token("token", settings)
+
+    assert error.value.status_code == 401
+    assert error.value.detail == "invalid access token"

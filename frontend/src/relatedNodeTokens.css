@@ -1,0 +1,32 @@
+:root {
+  --related-node-chip-font: inherit;
+  --related-node-chip-color: inherit;
+  --related-node-chip-padding: 0;
+  --related-node-chip-background: none;
+  --related-node-chip-border: none;
+  --related-node-chip-text-align: left;
+  --related-node-chip-cursor: pointer;
+  --related-node-hint-font-size: 0.9rem;
+  --related-node-hint-margin-block-end: 0.5rem;
+  --related-node-hint-color: inherit;
+}
+
+.related-node-chip {
+  background: var(--related-node-chip-background);
+  border: var(--related-node-chip-border);
+  padding: var(--related-node-chip-padding);
+  color: var(--related-node-chip-color);
+  cursor: var(--related-node-chip-cursor);
+  font: var(--related-node-chip-font);
+  text-align: var(--related-node-chip-text-align);
+}
+
+.related-node-chip:hover {
+  text-decoration: underline;
+}
+
+.related-affiliation-hint {
+  margin: 0 0 var(--related-node-hint-margin-block-end);
+  font-size: var(--related-node-hint-font-size);
+  color: var(--related-node-hint-color);
+}

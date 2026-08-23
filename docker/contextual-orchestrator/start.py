@@ -14,9 +14,11 @@ from pathlib import Path
 
 
 def _pop_first_env(*names: str) -> str:
-    """Read the first configured alias without leaving credentials in the environment."""
+    """Read the first alias, removing quotes preserved by Docker env files."""
     for name in names:
         value = os.environ.pop(name, "").strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
         if value:
             return value
     return ""
@@ -27,7 +29,7 @@ def main() -> None:
     provider_key = _pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY", "NVIDIA_NIM_API_KEY")
     if not provider_key:
         raise SystemExit("LLM_GATEWAY_API_KEY or LLM_API_KEY is required to start the real LLM service")
-    auth_token = os.environ.get("CONTEXTUAL_ORCHESTRATOR_TOKEN", "").strip()
+    auth_token = _pop_first_env("CONTEXTUAL_ORCHESTRATOR_TOKEN")
     if not auth_token:
         raise SystemExit("CONTEXTUAL_ORCHESTRATOR_TOKEN is required to start the authenticated LLM service")
 
@@ -36,14 +38,14 @@ def main() -> None:
         raise SystemExit("LLM_GATEWAY_API_URL or LLM_GATEWAY_URL is required to start the gateway")
     if not provider_url.rstrip("/").endswith("/v1"):
         provider_url = provider_url.rstrip("/") + "/v1"
-    raw_limit = os.environ.pop("LLM_GATEWAY_MAX_OUTPUT_TOKENS", "4096").strip()
+    raw_limit = _pop_first_env("LLM_GATEWAY_MAX_OUTPUT_TOKENS") or "4096"
     try:
         max_output_tokens = int(raw_limit)
     except ValueError as exc:
         raise SystemExit("LLM_GATEWAY_MAX_OUTPUT_TOKENS must be an integer") from exc
     if not 64 <= max_output_tokens <= 4096:
         raise SystemExit("LLM_GATEWAY_MAX_OUTPUT_TOKENS must be between 64 and 4096")
-    raw_body_limit = os.environ.pop("CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES", str(8 * 1024 * 1024)).strip()
+    raw_body_limit = _pop_first_env("CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES") or str(8 * 1024 * 1024)
     try:
         max_body_bytes = int(raw_body_limit)
     except ValueError as exc:
@@ -56,7 +58,7 @@ def main() -> None:
         agent["base_url"] = provider_url
         agent["credential_key"] = "LLM_GATEWAY_API_KEY"
         agent.setdefault("provider_protocol", "auto")
-    embedding_model = os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
+    embedding_model = _pop_first_env("LLM_GATEWAY_EMBEDDING_MODEL")
     if embedding_model:
         embedding_agents = [
             agent

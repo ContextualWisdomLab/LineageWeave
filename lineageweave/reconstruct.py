@@ -16,7 +16,11 @@ from collections import defaultdict
 import rankweave as rw
 import threadweave as tw
 
-from .adjudication_client import AdjudicationClient, NullAdjudicationClient
+from .adjudication_client import (
+    AdjudicationClient,
+    AdjudicationClientError,
+    NullAdjudicationClient,
+)
 from .channels import secondary_key_match_score, temporal_score, text_similarity_score
 from .models import Edge, Record, Tree
 
@@ -83,7 +87,12 @@ def _best_parent(
             "text": text_similarity_score(candidate, record),
         }
         if "llm" in weights:
-            scores["llm"] = llm.judge(candidate.label, record.label)
+            try:
+                scores["llm"] = llm.judge(candidate.label, record.label)
+            except AdjudicationClientError:
+                # A malformed provider response invalidates only this optional
+                # pair; deterministic channels still produce the edge.
+                scores["llm"] = 0.0
         for channel, score in scores.items():
             channel_results[channel].append((candidate.record_id, score))
             per_candidate_scores[candidate.record_id][channel] = score
@@ -109,7 +118,22 @@ def _reconstruct_group(
     edges: list[Edge] = []
     for index, record in enumerate(ordered):
         candidates = ordered[max(0, index - window) : index]
-        parent_choice = _best_parent(record, candidates, llm, weights, min_score)
+        try:
+            parent_choice = _best_parent(record, candidates, llm, weights, min_score)
+        except AdjudicationClientError:
+            # A malformed optional provider response makes that channel
+            # unavailable for this reconstruction; deterministic channels must
+            # continue with their renormalized weights. Restart the whole
+            # group so edges created before the failure do not retain a stale
+            # llm score beside deterministic-only edges.
+            fallback_llm = NullAdjudicationClient()
+            return _reconstruct_group(
+                records,
+                fallback_llm,
+                active_weights(fallback_llm, weights),
+                window,
+                min_score,
+            )
         references: list[str] = []
         if parent_choice is not None:
             parent, score, channel_scores = parent_choice

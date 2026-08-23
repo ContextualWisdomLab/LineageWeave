@@ -122,12 +122,142 @@ def test_org_token_in_result_host_is_corroboration() -> None:
     )
 
 
+def test_generic_token_in_result_is_not_enough_for_a_compound_name() -> None:
+    """A result mentioning only common qualifiers is not identity evidence."""
+    assert (
+        corroborating_evidence_url(
+            "Zzqxvthorp Fictitious Nonexistent Org",
+            {
+                "url": "https://example.test/search-result",
+                "title": "Fictitious projects",
+                "content": "A list of fictitious and nonexistent examples.",
+            },
+        )
+        is None
+    )
+
+
+def test_short_name_token_inside_another_word_is_not_corroboration() -> None:
+    """A search snippet must contain the organization token as a word."""
+    assert (
+        corroborating_evidence_url(
+            "Alpha Corp",
+            {
+                "url": "https://unrelated.example/news",
+                "title": "Alphabetical index",
+                "content": "An alphabetical index of sample terms.",
+            },
+        )
+        is None
+    )
+
+
+def test_partial_multi_token_name_is_not_corroboration() -> None:
+    """One generic token must not validate an invented multi-token name."""
+    assert (
+        corroborating_evidence_url(
+            "Fictitious Nonexistent Org",
+            {
+                "url": "https://microsoft.example/news",
+                "title": "Fictitious names, domains, and addresses",
+                "content": "This page discusses fictitious names.",
+            },
+        )
+        is None
+    )
+
+
+def test_all_distinctive_multi_token_name_parts_are_corroboration() -> None:
+    """All distinctive name tokens may be distributed across host and content."""
+    assert (
+        corroborating_evidence_url(
+            "Aurora Grid Power",
+            {
+                "url": "https://aurora-grid.example/news",
+                "title": "Aurora Grid Power",
+                "content": "Aurora Grid Power announced a delivery window.",
+            },
+        )
+        == "https://aurora-grid.example/news"
+    )
+
+
+def test_title_only_full_name_is_not_corroboration() -> None:
+    """A title echo alone is not an organization footprint."""
+    assert (
+        corroborating_evidence_url(
+            "Aurora Grid Power",
+            {
+                "url": "https://news.example/item",
+                "title": "Aurora Grid Power",
+                "content": "",
+            },
+        )
+        is None
+    )
+
+
+def test_compound_host_token_is_not_two_name_tokens() -> None:
+    """A compound host word must not match separate organization tokens."""
+    assert (
+        corroborating_evidence_url(
+            "Green House",
+            {"url": "https://greenhouse.example/news", "title": "News", "content": ""},
+        )
+        is None
+    )
+
+
+def test_spaced_hangul_name_matches_contiguous_page_token() -> None:
+    """A page may concatenate the parts of a spaced Korean name."""
+    assert (
+        corroborating_evidence_url(
+            "한빛 그리드",
+            {
+                "url": "https://news.example/item",
+                "title": "News",
+                "content": "한빛그리드가 공급 일정을 발표했다.",
+            },
+        )
+        == "https://news.example/item"
+    )
+
+
+def test_userinfo_tokens_are_not_hostname_evidence() -> None:
+    """URL credentials cannot corroborate an unrelated actual hostname."""
+    assert (
+        corroborating_evidence_url(
+            "Aurora Grid Power",
+            {
+                "url": "https://aurora-grid-power.example@unrelated.example/news",
+                "title": "News",
+                "content": "",
+            },
+        )
+        is None
+    )
+
 def test_legal_suffix_alone_is_not_corroboration() -> None:
     """'Corp' is in almost every corporate host; it is not evidence."""
     assert (
         corroborating_evidence_url(
             "Acme Corp",
             {"url": "https://randomcorp.example/news", "title": "News", "content": ""},
+        )
+        is None
+    )
+
+
+def test_generic_nonexistence_words_are_not_corroboration() -> None:
+    """Search hits for generic fixture wording do not verify an org name."""
+    assert (
+        corroborating_evidence_url(
+            "Zzqxvthorp Fictitious Nonexistent Org",
+            {
+                "url": "https://www.example.com/about-fictitious-organizations",
+                "title": "Fictitious organizations",
+                "content": "A generic example about nonexistent organizations.",
+            },
         )
         is None
     )

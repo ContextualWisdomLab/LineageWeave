@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
-  askAgent,
   BackendError,
   createAnalysisRun,
   startAnalysisRun,
@@ -36,6 +35,8 @@ import {
   fetchPeriodComparison,
   fetchPeriodReportIndex,
   fetchPeriodReports,
+  fetchProjectHistory,
+  fetchProjectHistoryIndex,
   fetchPosts,
   fetchRankings,
   fetchRelatedEntity,
@@ -48,14 +49,12 @@ import {
   updateTicketStatus,
   verifyPostRelations,
   type ActivityEvent,
-  type AskAgentResponse,
   type AffiliateNode,
   type AnalysisRun,
   type CalendarResponse,
   type ChatAnswer,
   type ChatExchange,
   type CorporateEntityRef,
-  type CustomerMasterEntity,
   type CustomerMasterResponse,
   type Counterparty,
   type EvaluationResponse,
@@ -75,6 +74,7 @@ import {
   type PostLineage,
   type PostSummary,
   type PostSortOrder,
+  type ProjectHistoryLink,
   type RankingList,
   type PersonRoleHistoryEntry,
   type RelatedNode,
@@ -91,7 +91,23 @@ import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
+import { AskProjectHistoryLinks } from "./components/AskProjectHistoryLinks";
+import { ProjectHistoryTimeline } from "./components/ProjectHistoryTimeline";
+import {
+  normalizeProjectIdentity,
+  projectHistoryText,
+  type ProjectHistoryIndex,
+  type ProjectHistoryProjection,
+} from "./projectHistory";
+import { CustomerMasterTree, CustomerRelatedPostCard } from "./components/CustomerMasterTree";
+import {
+  AskAgentWorkspace as AskAgentPanel,
+  GLOBAL_ASK_SESSION_STORAGE_KEY,
+} from "./components/AskAgentWorkspace";
+export { GLOBAL_ASK_SESSION_STORAGE_KEY } from "./components/AskAgentWorkspace";
 import { subgraphForPost } from "./lineageLayout";
+import { RelatedNodeChip } from "./RelatedNodeChip";
+import { relatedAffiliationNextAction } from "./relatedNodeCaption";
 import {
   isSupportedLocale,
   LOCALE_LABELS,
@@ -101,8 +117,13 @@ import {
   tf,
   useLocale,
 } from "./i18n";
-import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
+import { isoWeekFromCreatedAt, latestIsoWeek } from "./isoWeek";
+import {
+  analysisRunTargetClock,
+  type AnalysisRunNavigationContext,
+} from "./analysisRunNavigation";
 import "./App.css";
+
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
   if (err instanceof BackendError && err.status === 503) {
@@ -279,6 +300,9 @@ function ChatPanel({
           answer_text: result.answer_text,
           cited_post_ids: result.cited_post_ids,
           cited_posts: result.cited_posts,
+          knowledge_cutoff: result.knowledge_cutoff,
+          project_histories: result.project_histories,
+          project_histories_truncated: result.project_histories_truncated,
         };
         return [...prev.filter((row) => row.question_text !== next.question_text), next];
       });
@@ -320,6 +344,12 @@ function ChatPanel({
             currentPostId={
               exchanges[0].cited_posts?.[0]?.post_id ?? exchanges[0].cited_post_ids[0]
             }
+          />
+          <AskProjectHistoryLinks
+            accessToken={accessToken}
+            links={(exchanges[0].project_histories ?? []) as ProjectHistoryLink[]}
+            truncated={exchanges[0].project_histories_truncated ?? false}
+            onOpenPost={setEvidencePostId}
           />
         </div>
       ) : null}
@@ -401,6 +431,12 @@ function ChatPanel({
             citedPostIds={exchange.cited_post_ids}
             onOpenEvidence={setEvidencePostId}
           />
+          <AskProjectHistoryLinks
+            accessToken={accessToken}
+            links={(exchange.project_histories ?? []) as ProjectHistoryLink[]}
+            truncated={exchange.project_histories_truncated ?? false}
+            onOpenPost={setEvidencePostId}
+          />
         </div>
       ))}
       {answer && !exchanges.some((row) => row.answer_text === answer.answer_text) && (
@@ -410,6 +446,12 @@ function ChatPanel({
             citedPosts={answer.cited_posts}
             citedPostIds={answer.cited_post_ids}
             onOpenEvidence={setEvidencePostId}
+          />
+          <AskProjectHistoryLinks
+            accessToken={accessToken}
+            links={(answer.project_histories ?? []) as ProjectHistoryLink[]}
+            truncated={answer.project_histories_truncated ?? false}
+            onOpenPost={setEvidencePostId}
           />
         </div>
       )}
@@ -777,16 +819,6 @@ function projectProvenanceLabel(provenance: string): string {
   return t(PROJECT_PROVENANCE_LABELS[provenance] ?? "Recorded evidence");
 }
 
-const CHAT_EVIDENCE_KIND_LABELS: Record<string, string> = {
-  source_field: "Source field hint",
-  semantic_project: "Semantic project",
-  semantic_role: "Semantic role",
-  semantic_keyman: "Semantic Keyman",
-};
-
-function chatEvidenceKindLabel(kind: string): string {
-  return t(CHAT_EVIDENCE_KIND_LABELS[kind] ?? "Evidence");
-}
 
 const VERIFICATION_BADGE: Record<string, string> = {
   verify_pending: "Not yet checked",
@@ -846,6 +878,7 @@ function KeymanPanel({
   focusTeam,
   landFirstKeyman,
   landFirstRelated,
+  landOnAsk,
   afterList,
 }: {
   postId: string;
@@ -860,6 +893,7 @@ function KeymanPanel({
   focusTeam?: { teamId: string; teamName: string } | null;
   landFirstKeyman?: boolean;
   landFirstRelated?: boolean;
+  landOnAsk?: boolean;
   afterList?: ReactNode;
 }) {
   const [related, setRelated] = useState<RelatedNode[] | null>(null);
@@ -967,13 +1001,15 @@ function KeymanPanel({
   }, [accessToken, landFirstRelated, related]);
 
   useEffect(() => {
-    if (!landFirstRelated || !landedRelatedName || landedRelated === null) {
+    if (!landFirstRelated || !landOnAsk || !landedRelatedName || landedRelated === null) {
       return;
     }
     const heading = document.getElementById("post-ask");
-    heading?.focus();
+    if (landOnAsk) {
+      heading?.focus();
+    }
     heading?.scrollIntoView?.({ block: "nearest" });
-  }, [landFirstRelated, landedRelatedName, landedRelated]);
+  }, [landFirstRelated, landedRelatedName, landedRelated, landOnAsk]);
 
   useEffect(() => {
     if (!focusPerson) return;
@@ -1062,6 +1098,11 @@ function KeymanPanel({
           </ol>
         </div>
       ) : null}
+      {related !== null && related.some((node) => node.affiliation_ambiguous) ? (
+        <p className="related-affiliation-hint">
+          {relatedAffiliationNextAction(Boolean(keymen && keymen.length > 0))}
+        </p>
+      ) : null}
       {related === null ? (
         <p>{t("Loading related nodes...")}</p>
       ) : related.length === 0 ? (
@@ -1103,42 +1144,38 @@ function KeymanPanel({
               case NODE_PERSON:
                 return (
                   <li key={key}>
-                    <button
-                      className="keyman-select"
-                      aria-label={tf("Related nodes for {name}", { name: caption })}
-                      aria-current={
-                        landFirstRelated && related[0]?.node_id === node.node_id
-                          ? "true"
-                          : undefined
+                    <RelatedNodeChip
+                      node={node}
+                      action="walk_person"
+                      current={landFirstRelated && related[0]?.node_id === node.node_id}
+                      onSelect={(selected) =>
+                        handleSelect(selected.node_id, selected.label ?? selected.node_id)
                       }
-                      onClick={() => handleSelect(node.node_id, node.label ?? node.node_id)}
-                    >
-                      {caption}
-                    </button>
+                    />
                   </li>
                 );
               case NODE_CORPORATE_ENTITY:
                 return (
                   <li key={key}>
-                    <button
-                      className="keyman-select"
-                      aria-label={tf("Related nodes for {name}", { name: node.label ?? node.node_id })}
-                      onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
-                    >
-                      {caption}
-                    </button>
+                    <RelatedNodeChip
+                      node={node}
+                      action="walk_entity"
+                      onSelect={(selected) =>
+                        handleSelectEntity(selected.node_id, selected.label ?? selected.node_id)
+                      }
+                    />
                   </li>
                 );
               case NODE_TEAM:
                 return (
                   <li key={key}>
-                    <button
-                      className="keyman-select"
-                      aria-label={tf("Related nodes for {name}", { name: node.label ?? node.node_id })}
-                      onClick={() => handleSelectTeam(node.node_id, node.label ?? node.node_id)}
-                    >
-                      {caption}
-                    </button>
+                    <RelatedNodeChip
+                      node={node}
+                      action="walk_team"
+                      onSelect={(selected) =>
+                        handleSelectTeam(selected.node_id, selected.label ?? selected.node_id)
+                      }
+                    />
                   </li>
                 );
               default: {
@@ -1157,7 +1194,7 @@ function KeymanPanel({
     <>
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>{t("Keymen")}</h3>
+        <h3 id="post-keyman" tabIndex={-1}>{t("Keymen")}</h3>
         {canExtract && !orchestratorOff && (
           <details className="operator-action-tools">
             <summary>{t("Evidence operations")}</summary>
@@ -1671,6 +1708,9 @@ function PostDetailPopup({
   liveBodyWarning,
   knowledgeCutoff,
   focusEventLineage,
+  onOpenProjectHistory,
+  focusKeyman,
+  fromReportMember,
   onClose,
   onSelectPost,
   onSearch,
@@ -1682,6 +1722,9 @@ function PostDetailPopup({
   liveBodyWarning?: string | null;
   knowledgeCutoff?: string | null;
   focusEventLineage?: boolean;
+  onOpenProjectHistory?: (projectKey: string, postId: string) => void;
+  focusKeyman?: boolean;
+  fromReportMember?: boolean;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
@@ -1709,31 +1752,58 @@ function PostDetailPopup({
   const [focusTeam, setFocusTeam] = useState<{ teamId: string; teamName: string } | null>(null);
   const contentReloadRef = useRef<() => void>(() => undefined);
 
+  const detailRequestGeneration = useRef(0);
+
   function reloadKeymen() {
+    const generation = detailRequestGeneration.current;
     fetchPostKeymen(accessToken, postId)
       .then((r) => {
+        if (detailRequestGeneration.current !== generation) return;
         setKeymen(r.keymen);
         setSourceAuthorContext(r.source_author_context ?? null);
       })
       .catch(() => {
+        if (detailRequestGeneration.current !== generation) return;
         setKeymen([]);
         setSourceAuthorContext(null);
       });
     fetchPostAffiliateTree(accessToken, postId)
-      .then((r) => setAffiliateTrees(r.trees))
-      .catch(() => setAffiliateTrees([]));
-    fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+      .then((r) => {
+        if (detailRequestGeneration.current === generation) setAffiliateTrees(r.trees);
+      })
+      .catch(() => {
+        if (detailRequestGeneration.current === generation) setAffiliateTrees([]);
+      });
+    fetchPostVocEvidence(accessToken, postId)
+      .then((value) => {
+        if (detailRequestGeneration.current === generation) setVocEvidence(value);
+      })
+      .catch(() => {
+        if (detailRequestGeneration.current === generation) setVocEvidence(null);
+      });
     reloadCounterparties();
   }
 
   function reloadCounterparties() {
+    const generation = detailRequestGeneration.current;
     fetchPostCounterparties(accessToken, postId)
-      .then((r) => setCounterparties(r.counterparties))
-      .catch(() => setCounterparties([]));
+      .then((r) => {
+        if (detailRequestGeneration.current === generation) {
+          setCounterparties(r.counterparties);
+        }
+      })
+      .catch(() => {
+        if (detailRequestGeneration.current === generation) setCounterparties([]);
+      });
   }
 
   useEffect(() => {
+    const generation = detailRequestGeneration.current + 1;
+    detailRequestGeneration.current = generation;
+    const isCurrent = () => detailRequestGeneration.current === generation;
+
     setPost(null);
+    setImageContent([]);
     setStructureUnits([]);
     setBookmarked(null);
     setBookmarkSaving(false);
@@ -1755,11 +1825,17 @@ function PostDetailPopup({
     let disposed = false;
     let contentPollTimer: number | undefined;
     const asOf = liveBodyWarning && knowledgeCutoff ? knowledgeCutoff : undefined;
-    fetchPost(accessToken, postId, asOf).then(setPost).catch((err) => setError(String(err)));
+    fetchPost(accessToken, postId, asOf)
+      .then((value) => {
+        if (isCurrent()) setPost(value);
+      })
+      .catch((err) => {
+        if (isCurrent()) setError(String(err));
+      });
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)
         .then((content) => {
-          if (disposed) return;
+          if (disposed || !isCurrent()) return;
           setImageContent(content.images);
           setStructureUnits(content.units);
           if (content.status === "processing" && contentPollTimer === undefined) {
@@ -1770,43 +1846,77 @@ function PostDetailPopup({
           }
         })
         .catch(() => {
-          if (disposed) return;
+          if (disposed || !isCurrent()) return;
           setImageContent([]);
           setStructureUnits([]);
         });
     contentReloadRef.current = reloadContent;
-    reloadContent();
+    void reloadContent();
     fetchPostBookmark(accessToken, postId)
-      .then((r) => setBookmarked(r.bookmarked))
+      .then((r) => {
+        if (isCurrent()) setBookmarked(r.bookmarked);
+      })
       .catch(() => {
-        setBookmarked(null);
+        if (isCurrent()) setBookmarked(null);
       });
     fetchPostEvaluation(accessToken, postId)
-      .then((r) => setEvaluation(r.responses))
-      .catch(() => setEvaluation([]));
+      .then((r) => {
+        if (isCurrent()) setEvaluation(r.responses);
+      })
+      .catch(() => {
+        if (isCurrent()) setEvaluation([]);
+      });
     fetchPostFiveW1H(accessToken, postId)
-      .then(setFiveW1H)
-      .catch(() => setFiveW1H(null));
+      .then((value) => {
+        if (isCurrent()) setFiveW1H(value);
+      })
+      .catch(() => {
+        if (isCurrent()) setFiveW1H(null);
+      });
     fetchPostKeymen(accessToken, postId)
       .then((r) => {
+        if (!isCurrent()) return;
         setKeymen(r.keymen);
         setSourceAuthorContext(r.source_author_context ?? null);
       })
       .catch(() => {
+        if (!isCurrent()) return;
         setKeymen([]);
         setSourceAuthorContext(null);
       });
     fetchPostCounterparties(accessToken, postId)
-      .then((r) => setCounterparties(r.counterparties))
-      .catch(() => setCounterparties([]));
-    fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
+      .then((r) => {
+        if (isCurrent()) setCounterparties(r.counterparties);
+      })
+      .catch(() => {
+        if (isCurrent()) setCounterparties([]);
+      });
+    fetchPostLineage(accessToken, postId)
+      .then((value) => {
+        if (isCurrent()) setLineage(value);
+      })
+      .catch(() => {
+        if (isCurrent()) setLineage(null);
+      });
     fetchPostAffiliateTree(accessToken, postId)
-      .then((r) => setAffiliateTrees(r.trees))
-      .catch(() => setAffiliateTrees([]));
-    fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+      .then((r) => {
+        if (isCurrent()) setAffiliateTrees(r.trees);
+      })
+      .catch(() => {
+        if (isCurrent()) setAffiliateTrees([]);
+      });
+    fetchPostVocEvidence(accessToken, postId)
+      .then((value) => {
+        if (isCurrent()) setVocEvidence(value);
+      })
+      .catch(() => {
+        if (isCurrent()) setVocEvidence(null);
+      });
+
     return () => {
       disposed = true;
       if (contentPollTimer !== undefined) window.clearTimeout(contentPollTimer);
+      if (isCurrent()) detailRequestGeneration.current = generation + 1;
       if (contentReloadRef.current === reloadContent) {
         contentReloadRef.current = () => undefined;
       }
@@ -1880,6 +1990,15 @@ function PostDetailPopup({
     heading?.focus();
     heading?.scrollIntoView?.({ block: "nearest" });
   }, [focusEventLineage, post]);
+
+  useEffect(() => {
+    if (!focusKeyman || !post || keymen === null) {
+      return;
+    }
+    const heading = document.getElementById("post-keyman");
+    heading?.focus();
+    heading?.scrollIntoView?.({ block: "nearest" });
+  }, [focusKeyman, post, keymen, postId]);
 
   return (
     <div className="popup-backdrop" onClick={onClose}>
@@ -2091,6 +2210,17 @@ function PostDetailPopup({
                         <strong>{project.project_name}</strong>
                         <span>{t("Search related posts")}</span>
                       </button>{" "}
+                      {onOpenProjectHistory ? (
+                        <button
+                          type="button"
+                          className="related-post-card"
+                          aria-label={tf("Open project history for: {name}", { name: project.project_name })}
+                          onClick={() => onOpenProjectHistory(project.project_key, postId)}
+                        >
+                          <strong>{project.project_name}</strong>
+                          <span>{t("Open project history")}</span>
+                        </button>
+                      ) : null}{" "}
                       {project.confidence === null
                         ? `(${t("Hint only")})`
                         : `(${Math.round(project.confidence * 100)}%)`}
@@ -2319,7 +2449,8 @@ function PostDetailPopup({
                 focusEntity={focusEntity}
                 focusTeam={focusTeam}
                 landFirstKeyman
-                landFirstRelated
+                landFirstRelated={Boolean(fromReportMember)}
+                landOnAsk={fromReportMember}
                 afterList={
                   <>
                     <EvaluationPanel
@@ -2537,7 +2668,14 @@ function analysisRunDigestPrefix(digest: string): string {
 type SelectPostOptions = {
   liveAfterCutoff?: boolean;
   knowledgeCutoff?: string;
+  analysisRunContext?: AnalysisRunNavigationContext;
   fromReportMember?: boolean;
+  fromWeeklyVoc?: boolean;
+  fromCalendar?: boolean;
+  fromCustomerMaster?: boolean;
+  fromAskAgent?: boolean;
+  fromProjectHistory?: boolean;
+  fromPopState?: boolean;
 };
 
 /**
@@ -2698,10 +2836,13 @@ function analysisRunReportPeriod(run: AnalysisRun): string | null {
  * title is marked rewritten after this run.
  */
 function analysisRunPostOpenOptions(run: AnalysisRun, postId: string): SelectPostOptions {
-  const post = run.visible_posts?.find((item) => item.post_id === postId);
-  return {
-    liveAfterCutoff: Boolean(post?.live_after_cutoff),
+  const analysisRunContext: AnalysisRunNavigationContext = {
     knowledgeCutoff: run.knowledge_cutoff,
+    visiblePosts: run.visible_posts ?? [],
+  };
+  return {
+    ...analysisRunTargetClock(analysisRunContext, postId),
+    analysisRunContext,
   };
 }
 
@@ -3118,9 +3259,13 @@ function RankingsPanel({
 function CalendarPanel({
   accessToken,
   onSelectPost,
+  namedNextAction = false,
+  focusEventLineageOnSelect = false,
 }: {
   accessToken: string;
-  onSelectPost: (postId: string) => void;
+  onSelectPost: (postId: string, options?: SelectPostOptions) => void;
+  namedNextAction?: boolean;
+  focusEventLineageOnSelect?: boolean;
 }) {
   const [calendar, setCalendar] = useState<CalendarResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -3140,8 +3285,13 @@ function CalendarPanel({
   const caldavNextAction = calendar.calendar_sources?.caldav_next_action;
 
   return (
-    <section className="popup-section lineage-home">
-      <h2>{t("Calendar")}</h2>
+    <section className="popup-section lineage-home" aria-labelledby="calendar-title">
+      <h2 id="calendar-title">{t("Calendar")}</h2>
+      {namedNextAction && commitments.length > 0 ? (
+        <p className="board-next-action" role="status" aria-label={t("Next action")}>
+          {t("Authorized commitments are current. Open a commitment to read Event Lineage.")}
+        </p>
+      ) : null}
       <section className="popup-section">
         <h3>{t("CalDAV events")}</h3>
         {events.length === 0 ? (
@@ -3176,7 +3326,12 @@ function CalendarPanel({
                 <button
                   className="post-list-item"
                   aria-label={`${t("Open commitment for:")} ${entry.post_title}`}
-                  onClick={() => onSelectPost(entry.post_id)}
+                  onClick={() =>
+                    onSelectPost(
+                      entry.post_id,
+                      focusEventLineageOnSelect ? { fromCalendar: true } : undefined,
+                    )
+                  }
                 >
                   <span className="ticket-title">
                     {entry.commitment_summary ?? entry.ticket_title}
@@ -3573,12 +3728,22 @@ function PostList({
   accessToken,
   showLabPanels = false,
   postIdToOpen = null,
+  postOpenFromCalendar = false,
+  postOpenFromCustomerMaster = false,
+  postOpenFromAskAgent = false,
+  postOpenFromProjectHistory = false,
   onPostOpened,
+  onOpenProjectHistory,
 }: {
   accessToken: string;
   showLabPanels?: boolean;
   postIdToOpen?: string | null;
+  postOpenFromCalendar?: boolean;
+  postOpenFromCustomerMaster?: boolean;
+  postOpenFromAskAgent?: boolean;
+  postOpenFromProjectHistory?: boolean;
   onPostOpened?: () => void;
+  onOpenProjectHistory?: (projectKey: string, postId: string) => void;
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [graph, setGraph] = useState<LineageGraph | null>(null);
@@ -3587,6 +3752,8 @@ function PostList({
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [openedAfterCutoff, setOpenedAfterCutoff] = useState(false);
   const [openedCutoffIso, setOpenedCutoffIso] = useState<string | null>(null);
+  const [openedAnalysisRunContext, setOpenedAnalysisRunContext] =
+    useState<AnalysisRunNavigationContext | null>(null);
   const [canRebuild, setCanRebuild] = useState(false);
   const [rebuilding, setRebuilding] = useState(false);
   const [rebuildError, setRebuildError] = useState<string | null>(null);
@@ -3596,6 +3763,11 @@ function PostList({
   const [openedGroupingLabel, setOpenedGroupingLabel] = useState<string | null>(null);
   const [landOnComparison, setLandOnComparison] = useState(false);
   const [openedFromReportMember, setOpenedFromReportMember] = useState(false);
+  const [openedFromWeeklyVoc, setOpenedFromWeeklyVoc] = useState(false);
+  const [openedFromCalendar, setOpenedFromCalendar] = useState(false);
+  const [openedFromCustomerMaster, setOpenedFromCustomerMaster] = useState(false);
+  const [openedFromAskAgent, setOpenedFromAskAgent] = useState(false);
+  const [openedFromProjectHistory, setOpenedFromProjectHistory] = useState(false);
   const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
   const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
   const [totalPosts, setTotalPosts] = useState(0);
@@ -3605,6 +3777,8 @@ function PostList({
   const [searchQuery, setSearchQuery] = useState("");
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [vocTypeFilterOptions, setVocTypeFilterOptions] = useState<PostFilterOption[]>([]);
+  const [weekFilter, setWeekFilter] = useState("all");
+  const [isoWeekFilterOptions, setIsoWeekFilterOptions] = useState<string[]>([]);
   const [visibilityFilter, setVisibilityFilter] = useState("all");
   const [visibilityFilterOptions, setVisibilityFilterOptions] = useState<PostFilterOption[]>([]);
   const [sortOrder, setSortOrder] = useState<BoardSortOrder>("newest");
@@ -3647,20 +3821,76 @@ function PostList({
     setFocusedGraph(null);
     setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
+    setOpenedAnalysisRunContext(options?.analysisRunContext ?? null);
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
+    setOpenedFromWeeklyVoc(Boolean(options?.fromWeeklyVoc));
+    setOpenedFromCalendar(Boolean(options?.fromCalendar));
+    setOpenedFromCustomerMaster(Boolean(options?.fromCustomerMaster));
+    setOpenedFromAskAgent(Boolean(options?.fromAskAgent));
+    setOpenedFromProjectHistory(Boolean(options?.fromProjectHistory));
+    if (!options?.fromPopState) {
+      const url = new URL(window.location.href);
+      if (url.searchParams.get("post") !== postId) {
+        url.searchParams.set("post", postId);
+        window.history.pushState(
+          { fromWeeklyVoc: Boolean(options?.fromWeeklyVoc) },
+          "",
+          `${url.pathname}${url.search}${url.hash}`,
+        );
+      }
+    }
   }
 
   useEffect(() => {
     if (!postIdToOpen) return;
-    selectPost(postIdToOpen);
+    selectPost(postIdToOpen, {
+      fromCalendar: postOpenFromCalendar,
+      fromCustomerMaster: postOpenFromCustomerMaster,
+      fromAskAgent: postOpenFromAskAgent,
+      fromProjectHistory: postOpenFromProjectHistory,
+    });
     onPostOpened?.();
-  }, [onPostOpened, postIdToOpen]);
+  }, [
+    onPostOpened,
+    postIdToOpen,
+    postOpenFromCalendar,
+    postOpenFromCustomerMaster,
+    postOpenFromAskAgent,
+    postOpenFromProjectHistory,
+  ]);
+
+  useEffect(() => {
+    function handlePopState(event: PopStateEvent) {
+      const postId = new URLSearchParams(window.location.search).get("post");
+      if (postId) {
+        selectPost(postId, { fromPopState: true, fromWeeklyVoc: Boolean(event.state?.fromWeeklyVoc) });
+      } else {
+        setSelectedPostId(null);
+        setOpenedAfterCutoff(false);
+        setOpenedCutoffIso(null);
+        setOpenedFromReportMember(false);
+        setOpenedFromWeeklyVoc(false);
+        setOpenedFromCalendar(false);
+        setOpenedFromCustomerMaster(false);
+        setOpenedFromAskAgent(false);
+        setOpenedFromProjectHistory(false);
+      }
+    }
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
   function closeSelectedPost() {
     setSelectedPostId(null);
     setOpenedAfterCutoff(false);
     setOpenedCutoffIso(null);
+    setOpenedAnalysisRunContext(null);
     setOpenedFromReportMember(false);
+    setOpenedFromWeeklyVoc(false);
+    setOpenedFromCalendar(false);
+    setOpenedFromCustomerMaster(false);
+    setOpenedFromAskAgent(false);
+    setOpenedFromProjectHistory(false);
     const url = new URL(window.location.href);
     if (url.searchParams.has("post")) {
       url.searchParams.delete("post");
@@ -3690,12 +3920,14 @@ function PostList({
         typeFilter.length > 0 ? typeFilter : undefined,
         visibilityFilter === "all" ? undefined : visibilityFilter,
         sort,
+        weekFilter === "all" ? undefined : weekFilter,
       );
       if (requestId !== postsRequest.current) return;
       setPosts(response.posts);
       setTotalPosts(response.total_count);
       setVocTypeFilterOptions(response.voc_type_options ?? []);
       setVisibilityFilterOptions(response.visibility_options ?? []);
+      setIsoWeekFilterOptions(response.iso_week_options ?? []);
       setCurrentPage(page);
     } catch (err) {
       if (requestId !== postsRequest.current) return;
@@ -3703,7 +3935,7 @@ function PostList({
     } finally {
       if (requestId === postsRequest.current) setLoadingPage(false);
     }
-  }, [accessToken, searchQuery, sortOrder, typeFilter, visibilityFilter]);
+  }, [accessToken, searchQuery, sortOrder, typeFilter, visibilityFilter, weekFilter]);
 
   useEffect(() => {
     void loadPostPage(1);
@@ -3776,7 +4008,9 @@ function PostList({
     .filter((post) => {
       const matchesType = typeFilter.length === 0 || typeFilter.includes(post.voc_type_code);
       const matchesVisibility = visibilityFilter === "all" || post.visibility_code === visibilityFilter;
-      return matchesType && matchesVisibility;
+      const matchesWeek =
+        weekFilter === "all" || isoWeekFromCreatedAt(post.created_at) === weekFilter;
+      return matchesType && matchesVisibility && matchesWeek;
     })
     .sort((left, right) => {
       if (sortOrder === "title") {
@@ -3785,7 +4019,46 @@ function PostList({
       const direction = sortOrder === "newest" ? -1 : 1;
       return direction * left.created_at.localeCompare(right.created_at);
     });
-  const hasBoardFilters = Boolean(searchInput.trim()) || Boolean(searchQuery) || typeFilter.length > 0 || visibilityFilter !== "all";
+  const weeklyVocActive =
+    typeFilter.length === 1 && typeFilter[0] === "voc" && weekFilter !== "all";
+  const weekOptions = isoWeekFilterOptions.length
+    ? isoWeekFilterOptions
+    : Array.from(
+        new Set(
+          loadedPosts
+            .map((post) => isoWeekFromCreatedAt(post.created_at))
+            .filter((week): week is string => Boolean(week)),
+        ),
+      ).sort((left, right) => right.localeCompare(left));
+  const applyWeeklyVoc = async () => {
+    try {
+      const latestVocPage = await fetchPosts(
+        accessToken,
+        1,
+        0,
+        undefined,
+        ["voc"],
+        undefined,
+        "newest",
+      );
+      const vocWeek = latestIsoWeek(
+        latestVocPage.posts.map((post) => isoWeekFromCreatedAt(post.created_at)),
+      );
+      setTypeFilter(["voc"]);
+      setWeekFilter(vocWeek ?? "all");
+      setSortOrder("newest");
+      setCurrentPage(1);
+      setError(null);
+    } catch (err) {
+      setError(String(err));
+    }
+  };
+  const hasBoardFilters =
+    Boolean(searchInput.trim()) ||
+    Boolean(searchQuery) ||
+    typeFilter.length > 0 ||
+    visibilityFilter !== "all" ||
+    weekFilter !== "all";
   const totalPages = Math.max(1, Math.ceil(totalPosts / POST_PAGE_SIZE));
   const pageItems: Array<number | "ellipsis"> =
     totalPages <= 7
@@ -3835,6 +4108,7 @@ function PostList({
               setSearchInput("");
               setSearchQuery("");
               setTypeFilter([]);
+              setWeekFilter("all");
               setVisibilityFilter("all");
               setSortOrder("newest");
             }}
@@ -3870,6 +4144,29 @@ function PostList({
                 </label>
               ))}
             </fieldset>
+            <button
+              type="button"
+              className="board-weekly-voc"
+              aria-pressed={weeklyVocActive}
+              onClick={applyWeeklyVoc}
+            >
+              {t("Weekly VOC")}
+            </button>
+            <label>
+              {t("Filter by ISO week")}
+              <select
+                value={weekFilter}
+                onChange={(event) => setWeekFilter(event.target.value)}
+                aria-label={t("Filter by ISO week")}
+              >
+                <option value="all">{t("All weeks")}</option>
+                {weekOptions.map((week) => (
+                  <option key={week} value={week}>
+                    {week}
+                  </option>
+                ))}
+              </select>
+            </label>
             <label>
               {t("Filter by visibility")}
               <select
@@ -3903,6 +4200,14 @@ function PostList({
               </button>
             )}
           </form>
+          {weeklyVocActive ? (
+            <p className="board-next-action" role="status" aria-label={t("Next action")}>
+              {tf(
+                "Voice of Customer posts for {week} are current. Open a post to read Event Lineage.",
+                { week: weekFilter },
+              )}
+            </p>
+          ) : null}
           {posts.length === 0 ? (
             <p className="board-empty" role="status">
               {hasBoardFilters
@@ -3921,7 +4226,12 @@ function PostList({
                     <button
                       className="post-list-item"
                       aria-label={`${t("View post:")} ${post.post_title}`}
-                      onClick={() => selectPost(post.post_id)}
+                      onClick={() =>
+                        selectPost(
+                          post.post_id,
+                          weeklyVocActive ? { fromWeeklyVoc: true } : undefined,
+                        )
+                      }
                     >
                       <span className="post-card-main">
                         <span className="post-title">{post.post_title}</span>
@@ -4064,155 +4374,42 @@ function PostList({
             openedAfterCutoff ? analysisRunOpenedBodyWarning(openedCutoffIso) : null
           }
           knowledgeCutoff={openedAfterCutoff ? openedCutoffIso : null}
-          focusEventLineage={openedFromReportMember}
+          focusEventLineage={
+            openedFromReportMember ||
+            openedFromWeeklyVoc ||
+            openedFromCalendar ||
+            openedFromCustomerMaster ||
+            openedFromAskAgent ||
+            openedFromProjectHistory
+          }
+          focusKeyman={
+            openedFromWeeklyVoc ||
+            openedFromCalendar ||
+            openedFromCustomerMaster ||
+            openedFromAskAgent
+          }
+          fromReportMember={openedFromReportMember}
           onClose={closeSelectedPost}
-          onSelectPost={selectPost}
+          onSelectPost={(postId) => {
+            const cutoffOptions = openedAnalysisRunContext
+              ? analysisRunTargetClock(openedAnalysisRunContext, postId)
+              : {};
+            selectPost(postId, {
+              ...cutoffOptions,
+              analysisRunContext: openedAnalysisRunContext ?? undefined,
+              fromReportMember: openedFromReportMember,
+              fromWeeklyVoc: openedFromWeeklyVoc,
+              fromCalendar: openedFromCalendar,
+              fromCustomerMaster: openedFromCustomerMaster,
+              fromAskAgent: openedFromAskAgent,
+              fromProjectHistory: openedFromProjectHistory,
+            });
+          }}
           onSearch={searchBoard}
+          onOpenProjectHistory={onOpenProjectHistory}
         />
       )}
     </section>
-  );
-}
-
-interface CustomerEntityTreeNode {
-  entity: CustomerMasterEntity;
-  children: CustomerEntityTreeNode[];
-}
-
-// Live bug (2026-08-19): Customer Master's own entity list rendered every
-// corporate_entity as an independent top-level row, even though the API
-// already carries parent_entity_id and the codebase already knows how to
-// build a real forest from it (lineageweave/affiliate_tree.py, used for
-// the post-detail popup's Affiliate tree) -- a group holding company and
-// its subsidiaries showed up as an unrelated flat list with no visual
-// hierarchy at all. A parent not present in this account's own visible
-// entity list (a real possibility -- ABAC can authorize a child entity
-// without its parent) is not dropped; that entity becomes a root here
-// instead of disappearing.
-function buildCustomerEntityTree(entities: CustomerMasterEntity[]): CustomerEntityTreeNode[] {
-  const byId = new Map(entities.map((entity) => [entity.corporate_entity_id, entity]));
-  const childrenByParent = new Map<string, CustomerMasterEntity[]>();
-  const roots: CustomerMasterEntity[] = [];
-  for (const entity of entities) {
-    if (entity.parent_entity_id && byId.has(entity.parent_entity_id)) {
-      const siblings = childrenByParent.get(entity.parent_entity_id) ?? [];
-      siblings.push(entity);
-      childrenByParent.set(entity.parent_entity_id, siblings);
-    } else {
-      roots.push(entity);
-    }
-  }
-  const toNode = (entity: CustomerMasterEntity): CustomerEntityTreeNode => ({
-    entity,
-    children: (childrenByParent.get(entity.corporate_entity_id) ?? []).map(toNode),
-  });
-  return roots.map(toNode);
-}
-
-function CustomerEntityTreeRow({
-  node,
-  depth,
-  expandedEntityId,
-  relatedByEntity,
-  relatedLoading,
-  onToggle,
-  onOpenPost,
-}: {
-  node: CustomerEntityTreeNode;
-  depth: number;
-  expandedEntityId: string | null;
-  relatedByEntity: Record<string, RelatedNode[]>;
-  relatedLoading: string | null;
-  onToggle: (entityId: string) => void;
-  onOpenPost: (postId: string) => void;
-}) {
-  const { entity, children } = node;
-  const relatedPosts = (relatedByEntity[entity.corporate_entity_id] ?? []).filter(
-    (related) => related.node_type_code === NODE_POST,
-  );
-  return (
-    <li style={{ marginInlineStart: depth * 20 }}>
-      <button
-        type="button"
-        className="customer-entity-button"
-        aria-expanded={expandedEntityId === entity.corporate_entity_id}
-        onClick={() => onToggle(entity.corporate_entity_id)}
-      >
-        <strong>{entity.entity_name}</strong>
-        <span>{entity.corporate_entity_code} · {entity.entity_level_label}</span>
-      </button>
-      {expandedEntityId === entity.corporate_entity_id ? (
-        <div className="customer-related-posts">
-          {relatedLoading === entity.corporate_entity_id ? <p>{t("Loading related posts...")}</p> : null}
-          {relatedLoading !== entity.corporate_entity_id && relatedPosts.length === 0 ? (
-            <p className="popup-placeholder">{t("No linked posts yet.")}</p>
-          ) : null}
-          {relatedPosts.length > 0 ? (
-            <ul aria-label={`${t("Related posts")}: ${entity.entity_name}`}>
-              {relatedPosts.map((related) => (
-                <li key={related.node_id}>
-                  <CustomerRelatedPostCard
-                    postId={related.node_id}
-                    postTitle={related.label ?? related.node_id}
-                    postBodyExcerpt={related.post_body_excerpt}
-                    postBodyTruncated={related.post_body_truncated}
-                    onOpenPost={onOpenPost}
-                  />
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      ) : null}
-      {children.length > 0 ? (
-        <ul className="customer-master-list customer-master-tree-children" aria-label={tf("Affiliates of {name}", { name: entity.entity_name })}>
-          {children.map((child) => (
-            <CustomerEntityTreeRow
-              key={child.entity.corporate_entity_id}
-              node={child}
-              depth={depth + 1}
-              expandedEntityId={expandedEntityId}
-              relatedByEntity={relatedByEntity}
-              relatedLoading={relatedLoading}
-              onToggle={onToggle}
-              onOpenPost={onOpenPost}
-            />
-          ))}
-        </ul>
-      ) : null}
-    </li>
-  );
-}
-
-function CustomerRelatedPostCard({
-  postId,
-  postTitle,
-  postBodyExcerpt,
-  postBodyTruncated,
-  onOpenPost,
-}: {
-  postId: string;
-  postTitle: string;
-  postBodyExcerpt?: string | null;
-  postBodyTruncated?: boolean;
-  onOpenPost: (postId: string) => void;
-}) {
-  return (
-    <button
-      type="button"
-      className="related-post-card"
-      aria-label={tf("Open related post: {label}", { label: postTitle })}
-      onClick={() => onOpenPost(postId)}
-    >
-      <span className="related-post-content">
-        <strong>{postTitle}</strong>
-        <span className="post-body-excerpt" aria-label={t("Post body preview")}>
-          {postBodyExcerpt || t("No post body.")}
-          {postBodyTruncated ? " ..." : ""}
-        </span>
-      </span>
-      <span>{t("Open record")}</span>
-    </button>
   );
 }
 
@@ -4225,9 +4422,6 @@ function CustomerMasterPanel({
 }) {
   const [master, setMaster] = useState<CustomerMasterResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
-  const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
-  const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
   const [resolvingHint, setResolvingHint] = useState<string | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
   // Fetched independently, same pattern as PostList's own canRebuild --
@@ -4274,49 +4468,32 @@ function CustomerMasterPanel({
     }
   }
 
-  async function toggleEntity(entityId: string) {
-    if (expandedEntityId === entityId) {
-      setExpandedEntityId(null);
-      return;
-    }
-    setExpandedEntityId(entityId);
-    if (relatedByEntity[entityId]) return;
-    setRelatedLoading(entityId);
-    try {
-      const response = await fetchRelatedEntity(accessToken, entityId);
-      setRelatedByEntity((previous) => ({ ...previous, [entityId]: response.related }));
-    } catch {
-      setRelatedByEntity((previous) => ({ ...previous, [entityId]: [] }));
-    } finally {
-      setRelatedLoading(null);
-    }
-  }
+  const loadRelated = useCallback(
+    async (entityId: string) => (await fetchRelatedEntity(accessToken, entityId)).related,
+    [accessToken],
+  );
 
   return (
     <section className="buyer-destination" aria-labelledby="customer-master-heading">
       <p className="section-eyebrow">{t("Authorized customer scope")}</p>
       <h2 id="customer-master-heading">{t("Customer master")}</h2>
       <p className="buyer-destination-intro">{t("Customer entities available to this account.")}</p>
+      {master && master.corporate_entities.length > 0 ? (
+        <p className="board-next-action" role="status" aria-label={t("Next action")}>
+          {t("Authorized customer entities are current. Open a related post to read Event Lineage.")}
+        </p>
+      ) : null}
       {error ? <p className="error">{error}</p> : null}
       {master === null && !error ? <p>{t("Loading customer master...")}</p> : null}
       {master?.corporate_entities.length === 0 ? (
         <p className="popup-placeholder">{t("No customer entities are connected to this account.")}</p>
       ) : null}
       {master && master.corporate_entities.length > 0 ? (
-        <ul className="customer-master-list customer-master-tree" aria-label={t("Customer entities available to this account.")}>
-          {buildCustomerEntityTree(master.corporate_entities).map((node) => (
-            <CustomerEntityTreeRow
-              key={node.entity.corporate_entity_id}
-              node={node}
-              depth={0}
-              expandedEntityId={expandedEntityId}
-              relatedByEntity={relatedByEntity}
-              relatedLoading={relatedLoading}
-              onToggle={toggleEntity}
-              onOpenPost={onOpenPost}
-            />
-          ))}
-        </ul>
+        <CustomerMasterTree
+          entities={master.corporate_entities}
+          loadRelated={loadRelated}
+          onOpenPost={onOpenPost}
+        />
       ) : null}
       {master && (master.relationship_network ?? []).length > 0 ? (
         <section className="customer-keymen" aria-labelledby="relationship-network-heading">
@@ -4466,84 +4643,123 @@ function CustomerMasterPanel({
   );
 }
 
-function AskAgentPanel({
+
+
+function ProjectHistoryPanel({
   accessToken,
+  initialProjectKey,
+  initialFocusPostId,
   onOpenPost,
 }: {
   accessToken: string;
+  initialProjectKey?: string | null;
+  initialFocusPostId?: string | null;
   onOpenPost: (postId: string) => void;
 }) {
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [asking, setAsking] = useState(false);
+  const [index, setIndex] = useState<ProjectHistoryIndex | null>(null);
+  const [selectedProjectKey, setSelectedProjectKey] = useState("");
+  const [projection, setProjection] = useState<ProjectHistoryProjection | null>(null);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [error, setError] = useState(false);
+  const locale = useLocale();
+  const historyRequest = useRef(0);
 
-  async function handleAsk() {
-    const normalized = question.trim();
-    if (!normalized) return;
-    setAsking(true);
-    setError(null);
-    try {
-      setAnswer(await askAgent(accessToken, normalized));
-    } catch (err) {
-      setAnswer(null);
-      setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
-    } finally {
-      setAsking(false);
+  useEffect(() => {
+    let active = true;
+    fetchProjectHistoryIndex(accessToken)
+      .then((result) => {
+        if (!active) return;
+        const initialProject = initialProjectKey
+          ? result.projects.find(
+              (project) =>
+                project.normalized_project_key === normalizeProjectIdentity(initialProjectKey),
+            )
+          : undefined;
+        setIndex(result);
+        setSelectedProjectKey(
+          (current) => initialProject?.project_key ?? (current || result.projects[0]?.project_key || ""),
+        );
+        setError(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setIndex({
+          contract_version: 1,
+          time_basis_code: "source_post_created_at_fallback",
+          knowledge_cutoff: "",
+          project_count: 0,
+          truncated: false,
+          projects: [],
+        });
+        setError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [accessToken, initialProjectKey]);
+
+  useEffect(() => {
+    if (!selectedProjectKey || !index?.knowledge_cutoff) {
+      setProjection(null);
+      setLoadingHistory(false);
+      return;
     }
-  }
+    const request = ++historyRequest.current;
+    setProjection(null);
+    setLoadingHistory(true);
+    setError(false);
+    const focusPostId =
+      initialProjectKey &&
+      normalizeProjectIdentity(initialProjectKey) === normalizeProjectIdentity(selectedProjectKey)
+        ? initialFocusPostId ?? undefined
+        : undefined;
+    fetchProjectHistory(accessToken, selectedProjectKey, index.knowledge_cutoff, focusPostId)
+      .then((result) => {
+        if (request !== historyRequest.current) return;
+        setProjection(result);
+        setLoadingHistory(false);
+      })
+      .catch(() => {
+        if (request !== historyRequest.current) return;
+        setError(true);
+        setLoadingHistory(false);
+      });
+  }, [accessToken, index?.knowledge_cutoff, initialFocusPostId, initialProjectKey, selectedProjectKey]);
 
   return (
-    <section className="buyer-destination" aria-labelledby="ask-agent-heading">
-      <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
-      <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
-      <p className="buyer-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
-      {error ? <p className="error">{error}</p> : null}
-      <label className="ask-agent-source">
-        <span>{t("Ask a question")}</span>
-        <textarea
-          aria-label={t("Ask a question")}
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          rows={4}
-        />
-      </label>
-      <button className="keyman-select" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
-        {asking ? t("Asking...") : t("Ask")}
-      </button>
-      {answer && (
-        <section className="popup-section" aria-label={t("Answer")}>
-          <h3>{t("Answer")}</h3>
-          {answer.answer_text ? <p>{answer.answer_text}</p> : null}
-          {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
-          {answer.cited_posts && answer.cited_posts.length > 0 && (
-            <>
-              <h4>{t("Cited posts")}</h4>
-              <ul className="related-post-list">
-                {answer.cited_posts.map((post) => (
-                  <li key={post.post_id}>
-                    <button className="post-list-item" onClick={() => onOpenPost(post.post_id)}>
-                      <strong>{post.post_title}</strong>
-                    </button>
-                    {answer.cited_post_evidence?.find((item) => item.post_id === post.post_id)?.facts.length ? (
-                      <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
-                        {answer.cited_post_evidence
-                          .find((item) => item.post_id === post.post_id)
-                          ?.facts.map((fact, index) => (
-                            <li key={`${fact.kind}:${fact.text}:${index}`}>
-                              <span>{chatEvidenceKindLabel(fact.kind)}</span>
-                              <span>{fact.text}</span>
-                            </li>
-                          ))}
-                      </ul>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </section>
-      )}
+    <section className="buyer-destination" aria-labelledby="project-history-heading">
+      <h2 id="project-history-heading">{projectHistoryText(locale, "destinationHeading")}</h2>
+      <p className="buyer-destination-intro">{projectHistoryText(locale, "destinationIntro")}</p>
+      {error ? <p className="error" role="alert">{projectHistoryText(locale, "historyUnavailable")}</p> : null}
+      {index === null ? <p role="status">{projectHistoryText(locale, "loadingProjects")}</p> : null}
+      {index?.projects.length === 0 && !error ? (
+        <p className="popup-placeholder">{projectHistoryText(locale, "noProjects")}</p>
+      ) : null}
+      {index?.truncated ? (
+        <p className="project-history-warning" role="status">
+          {projectHistoryText(locale, "projectListTruncated")}
+        </p>
+      ) : null}
+      {index && index.projects.length > 0 ? (
+        <label>
+          {projectHistoryText(locale, "selectProject")}
+          <select
+            aria-label={projectHistoryText(locale, "selectProject")}
+            value={selectedProjectKey}
+            onChange={(event) => setSelectedProjectKey(event.target.value)}
+          >
+            {index.projects.map((project) => (
+              <option key={project.project_key} value={project.project_key}>
+                {project.project_name} ({project.event_count})
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      {loadingHistory && !error ? (
+        <p role="status">{projectHistoryText(locale, "loadingHistory")}</p>
+      ) : null}
+      {projection ? <ProjectHistoryTimeline projection={projection} onOpenPost={onOpenPost} /> : null}
     </section>
   );
 }
@@ -4553,10 +4769,16 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   const [brandName, setBrandName] = useState("LineageWeave");
   const auth = useAuth();
   const [destination, setDestination] = useState<BuyerDestination>("board");
+  const [projectHistoryKey, setProjectHistoryKey] = useState<string | null>(null);
+  const [projectHistoryFocusPostId, setProjectHistoryFocusPostId] = useState<string | null>(null);
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("post");
   });
+  const [postOpenFromCalendar, setPostOpenFromCalendar] = useState(false);
+  const [postOpenFromCustomerMaster, setPostOpenFromCustomerMaster] = useState(false);
+  const [postOpenFromAskAgent, setPostOpenFromAskAgent] = useState(false);
+  const [postOpenFromProjectHistory, setPostOpenFromProjectHistory] = useState(false);
   // Test-only compatibility for legacy analysis-panel coverage; this prop
   // never forces the panels open outside Vitest. In a real build the
   // advanced-review section (ADR 0037) is gated on PostList's own
@@ -4620,7 +4842,6 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               <small>Enterprise SSO Authentication</small>
             </div>
           </div>
-          {destination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
       </main>
         <footer className="app-footer" role="contentinfo">
           <div className="app-footer-title">
@@ -4646,51 +4867,115 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         </div>
         <div className="app-header-top-menu">
           <span className="app-user-profile">{auth.user?.profile.preferred_username}</span>
-          <button className="btn-secondary" onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
+          <button
+            className="btn-secondary"
+            onClick={() => {
+              window.sessionStorage.removeItem(GLOBAL_ASK_SESSION_STORAGE_KEY);
+              void auth.signoutRedirect();
+            }}
+          >
+            {t("Log out")}
+          </button>
         </div>
       </header>
       <BuyerNav
         destination={destination}
-        onChange={setDestination}
+        onChange={(nextDestination) => {
+          if (nextDestination === "project-history") {
+            setProjectHistoryKey(null);
+            setProjectHistoryFocusPostId(null);
+          }
+          setDestination(nextDestination);
+        }}
         tools={<LanguageSwitcher accessToken={accessToken} />}
       />
       <main>
-        {destination === "board" ? (
-          <PostList
-            accessToken={accessToken}
-            showLabPanels={testOnlyLabPanels}
-            postIdToOpen={postToOpen}
-            onPostOpened={() => setPostToOpen(null)}
-          />
-        ) : null}
-        {destination === "customers" ? (
-          <CustomerMasterPanel
-            accessToken={accessToken}
-            onOpenPost={(postId) => {
-              setPostToOpen(postId);
-              setDestination("board");
-            }}
-          />
-        ) : null}
-        {destination === "calendar" ? (
-          <CalendarPanel
-            accessToken={accessToken}
-            onSelectPost={(postId) => {
-              setPostToOpen(postId);
-              setDestination("board");
-            }}
-          />
-        ) : null}
-        {destination === "ask" ? (
-          <AskAgentPanel
-            accessToken={accessToken}
-            onOpenPost={(postId) => {
-              setPostToOpen(postId);
-              setDestination("board");
-            }}
-          />
-        ) : null}
-        {destination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
+      {destination === "board" ? (
+        <PostList
+          accessToken={accessToken}
+          showLabPanels={testOnlyLabPanels}
+          postIdToOpen={postToOpen}
+          postOpenFromCalendar={postOpenFromCalendar}
+          postOpenFromCustomerMaster={postOpenFromCustomerMaster}
+          postOpenFromAskAgent={postOpenFromAskAgent}
+          postOpenFromProjectHistory={postOpenFromProjectHistory}
+          onPostOpened={() => {
+            setPostToOpen(null);
+            setPostOpenFromCalendar(false);
+            setPostOpenFromCustomerMaster(false);
+            setPostOpenFromAskAgent(false);
+            setPostOpenFromProjectHistory(false);
+          }}
+          onOpenProjectHistory={(projectKey, postId) => {
+            setProjectHistoryKey(projectKey);
+            setProjectHistoryFocusPostId(postId);
+            setDestination("project-history");
+          }}
+        />
+      ) : null}
+      {destination === "customers" ? (
+        <CustomerMasterPanel
+          accessToken={accessToken}
+          onOpenPost={(postId) => {
+            setPostToOpen(postId);
+            setPostOpenFromCalendar(false);
+            setPostOpenFromCustomerMaster(true);
+            setPostOpenFromAskAgent(false);
+            setPostOpenFromProjectHistory(false);
+            setDestination("board");
+          }}
+        />
+      ) : null}
+      {destination === "calendar" ? (
+        <CalendarPanel
+          accessToken={accessToken}
+          namedNextAction
+          focusEventLineageOnSelect
+          onSelectPost={(postId) => {
+            setPostToOpen(postId);
+            setPostOpenFromCalendar(true);
+            setPostOpenFromCustomerMaster(false);
+            setPostOpenFromAskAgent(false);
+            setPostOpenFromProjectHistory(false);
+            setDestination("board");
+          }}
+        />
+      ) : null}
+      {destination === "ask" ? (
+        <AskAgentPanel
+          accessToken={accessToken}
+          onOpenPost={(postId) => {
+            setPostToOpen(postId);
+            setPostOpenFromCalendar(false);
+            setPostOpenFromCustomerMaster(false);
+            setPostOpenFromAskAgent(true);
+            setPostOpenFromProjectHistory(false);
+            setDestination("board");
+          }}
+        />
+      ) : null}
+      {destination === "project-history" ? (
+        <ProjectHistoryPanel
+          accessToken={accessToken}
+          initialProjectKey={projectHistoryKey}
+          initialFocusPostId={projectHistoryFocusPostId}
+          onOpenPost={(postId) => {
+            setPostToOpen(postId);
+            setPostOpenFromCalendar(false);
+            setPostOpenFromCustomerMaster(false);
+            setPostOpenFromAskAgent(false);
+            setPostOpenFromProjectHistory(true);
+            setDestination("board");
+          }}
+        />
+      ) : null}
+      {destination === "admin" ? (
+        <AdminPanel
+          currentBrandName={brandName}
+          onBrandNameChange={setBrandName}
+          accessToken={accessToken}
+        />
+      ) : null}
       </main>
       <footer className="app-footer" role="contentinfo">
         <div className="app-footer-title">

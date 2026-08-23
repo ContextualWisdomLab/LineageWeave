@@ -23,7 +23,7 @@ import asyncio
 import json
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Literal
 from uuid import UUID
 
@@ -70,10 +70,16 @@ from lineageweave.organization_name_resolution import (
     NullOrganizationNameResolutionClient,
 )
 from lineageweave.post_chat import (
+    ChatSourceDocument,
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
+    ask_grounding_status,
+    ask_next_action,
+    cited_post_citations,
     cited_post_evidence,
     cited_post_summaries,
+    historical_body_limitations,
+    render_global_ask_context,
 )
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_evaluation import (
@@ -114,6 +120,7 @@ from backend.app.activity_stream import (
     create_valkey_client,
     get_valkey,
     publish_activity_event,
+    publish_operation_event,
     read_activity_events,
     ticket_created_summary,
     ticket_status_changed_summary,
@@ -167,11 +174,16 @@ from backend.app.knowledge_graph import (
 )
 from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
 from backend.app.post_chat_ingestion import (
+    PostChatHistoryLimitError,
+    ensure_global_ask_session,
     fetch_persisted_chat,
     fetch_persisted_chats,
     find_linked_post_ids,
     gather_chat_sources,
     gather_global_chat_sources,
+    load_global_ask_context,
+    persist_global_ask_summary,
+    persist_global_ask_turn,
     persist_post_chat,
 )
 from backend.app.post_summary_ingestion import (
@@ -179,11 +191,31 @@ from backend.app.post_summary_ingestion import (
     persist_post_summary,
     require_summary_source_body,
 )
+from backend.app.ask_project_history import (
+    AskEvidenceBatchLimitError,
+    ask_knowledge_cutoff,
+    global_ask_session_citations_authorized,
+    read_authorized_ask_evidence,
+    read_authorized_ask_evidence_batch,
+)
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.project_history import (
+    PROJECT_HISTORY_DEFAULT_LIMIT,
+    PROJECT_HISTORY_MAXIMUM_LIMIT,
+    PROJECT_INDEX_DEFAULT_LIMIT,
+    PROJECT_INDEX_MAXIMUM_LIMIT,
+    ProjectHistoryNotFound,
+    fetch_project_history_index,
+    fetch_project_history_projection,
+)
+from backend.app.tepp_project_history import (
+    tenant_workspace_reference,
+    validate_project_history_with_tepp,
+)
+from lineageweave.project_history import normalize_project_key
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
     has_real_source_context,
-    is_demo_scope,
 )
 from lineageweave.http_client import HttpClientError
 
@@ -251,6 +283,22 @@ def _require_post_admin(account: CurrentAccount) -> None:
     """Raise 403 when the account has no ``post_admin`` permission at all."""
     if not account.has_permission(_POST_ADMIN):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "account lacks the post_admin permission")
+
+
+def _require_ticket_post_access(account: CurrentAccount, post: asyncpg.Record) -> None:
+    """Require ticket mutation access to the owning post, not visibility alone.
+
+    ``post_admin`` is necessary but intentionally not sufficient: a public post
+    can be read by every account, while ticket state is still a write to the
+    authoring account's corporate work area.
+    """
+    is_author = str(post["author_account_id"]) == account.user_account_id
+    is_affiliated = str(post["corporate_entity_id"]) in account.corporate_entity_ids
+    if not (is_author or is_affiliated):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "account is not authorized to modify tickets on this post",
+        )
 
 
 def _keyman_extraction_client():
@@ -508,11 +556,11 @@ async def _load_project_evidence(
         )
     rows = await conn.fetch(
         """
-        select project_key, project_name, evidence_text, confidence,
+        select project_key, project_name, evidence_text, mention_confidence,
                ontology_iri, extraction_method
           from post_project_mention
          where post_id = $1
-         order by confidence desc, project_name, project_key
+         order by mention_confidence desc, project_name, project_key
         """,
         post_id,
     )
@@ -521,7 +569,7 @@ async def _load_project_evidence(
             "project_key": row["project_key"],
             "project_name": row["project_name"],
             "evidence": row["evidence_text"],
-            "confidence": float(row["confidence"]),
+            "confidence": float(row["mention_confidence"]),
             "ontology_iri": row["ontology_iri"],
             "ontology_label": "Project",
             "extraction_method": row["extraction_method"],
@@ -541,7 +589,7 @@ async def _lookup_post_labels(conn: asyncpg.Connection, rows: list[asyncpg.Recor
 
 async def _post_filter_options(
     conn: asyncpg.Connection, corporate_entity_ids: frozenset[str]
-) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+) -> tuple[list[dict[str, str]], list[dict[str, str]], list[str]]:
     """Return every authorized filter value, not only values on the current page."""
     visibility_sql = f"""
         select distinct post.visibility_code as code,
@@ -569,6 +617,15 @@ async def _post_filter_options(
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
     """
+    week_sql = f"""
+        select distinct to_char(post.created_at at time zone 'UTC', 'IYYY-"W"IW') as iso_week
+          from source_post post
+         where (post.visibility_code = 'public'
+            or post.corporate_entity_id::text = any($1::text[]))
+           and post.created_at is not null
+           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+         order by iso_week desc
+    """
     # Safe SQL: both query strings are closed lookup statements; entity ids remain asyncpg parameters.
     visibility_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         visibility_sql, list(corporate_entity_ids)
@@ -577,13 +634,16 @@ async def _post_filter_options(
     type_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         type_sql, list(corporate_entity_ids)
     )
+    # Safe SQL: the ISO-week query is closed; entity ids remain an asyncpg parameter.
+    week_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        week_sql, list(corporate_entity_ids)
+    )
     return (
         [{"code": row["code"], "label": row["label"]} for row in type_rows],
         [{"code": row["code"], "label": row["label"]} for row in visibility_rows],
+        [row["iso_week"] for row in week_rows],
     )
 
-
-@app.get("/healthz")
 
 @app.get("/api/settings", response_model=dict)
 async def read_tenant_settings(
@@ -591,7 +651,9 @@ async def read_tenant_settings(
     pool: asyncpg.Pool = Depends(get_pool),
 ):
     async with pool.acquire() as conn:
-        row = await conn.fetchrow("SELECT brand_name FROM tenant_settings WHERE id = 1")
+        row = await conn.fetchrow(
+            "SELECT brand_name FROM tenant_settings WHERE tenant_settings_id = 1"
+        )
     if not row:
         return {"brandName": "LineageWeave"}
     return {"brandName": row["brand_name"]}
@@ -607,13 +669,14 @@ async def update_tenant_settings(
     brand_name = payload.get("brandName", "LineageWeave")
     async with pool.acquire() as conn:
         await conn.execute(
-            "INSERT INTO tenant_settings (id, brand_name) VALUES (1, $1) "
-            "ON CONFLICT (id) DO UPDATE SET brand_name = $1",
+            "INSERT INTO tenant_settings (tenant_settings_id, brand_name) VALUES (1, $1) "
+            "ON CONFLICT (tenant_settings_id) DO UPDATE SET brand_name = $1",
             brand_name
         )
     return {"brandName": brand_name}
 
 
+@app.get("/healthz")
 async def healthz() -> dict[str, str]:
     """Liveness probe: the process is up. Does not touch Postgres."""
     return {"status": "ok"}
@@ -630,30 +693,59 @@ async def read_me(
     ``POST /api/analysis-runs`` should cover.
     """
     entities: list[dict[str, str]] = []
+    account_affiliations: list[dict[str, Any]] = []
     if account.corporate_entity_ids:
         async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """
-                select corporate_entity_id, entity_name
-                  from corporate_entity
-                 where corporate_entity_id = any($1::uuid[])
-                 order by entity_name
+                select affiliation.corporate_entity_id,
+                       entity.corporate_entity_code,
+                       entity.entity_name,
+                       affiliation.process_unit_id,
+                       process.process_unit_code,
+                       process.process_unit_name
+                  from account_affiliation affiliation
+                  join corporate_entity entity
+                    on entity.corporate_entity_id = affiliation.corporate_entity_id
+                  left join process_unit process
+                    on process.process_unit_id = affiliation.process_unit_id
+                   and process.corporate_entity_id = affiliation.corporate_entity_id
+                 where affiliation.user_account_id = $1
+                   and affiliation.corporate_entity_id = any($2::uuid[])
+                 order by entity.entity_name, process.process_unit_code nulls first
                 """,
+                account.user_account_id,
                 list(account.corporate_entity_ids),
             )
-        entities = [
-            {
-                "corporate_entity_id": str(row["corporate_entity_id"]),
-                "entity_name": row["entity_name"],
-            }
-            for row in rows
-        ]
+        seen_entities: set[str] = set()
+        for row in rows:
+            entity_id = str(row["corporate_entity_id"])
+            if entity_id not in seen_entities:
+                entities.append(
+                    {
+                        "corporate_entity_id": entity_id,
+                        "corporate_entity_code": row["corporate_entity_code"],
+                        "entity_name": row["entity_name"],
+                    }
+                )
+                seen_entities.add(entity_id)
+            account_affiliations.append(
+                {
+                    "corporate_entity_id": entity_id,
+                    "corporate_entity_code": row["corporate_entity_code"],
+                    "entity_name": row["entity_name"],
+                    "process_unit_id": str(row["process_unit_id"]) if row["process_unit_id"] else None,
+                    "process_unit_code": row["process_unit_code"],
+                    "process_unit_name": row["process_unit_name"],
+                }
+            )
     return {
         "user_account_id": account.user_account_id,
         "display_name": account.display_name,
         "preferred_locale": account.preferred_locale,
         "permission_codes": sorted(account.permission_codes),
         "corporate_entities": entities,
+        "account_affiliations": account_affiliations,
     }
 
 
@@ -670,6 +762,7 @@ async def update_me_preferences(
     preference: LocalePreferenceRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, str]:
     """Persist member preferences without putting them in browser-only state."""
     async with pool.acquire() as conn:
@@ -678,6 +771,12 @@ async def update_me_preferences(
             preference.preferred_locale,
             account.user_account_id,
         )
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "preferences_updated",
+        "Locale preference updated",
+    )
     return {"preferred_locale": preference.preferred_locale}
 
 
@@ -1045,6 +1144,7 @@ async def resolve_customer_master_hint(
     request: CustomerHintResolveRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Resolve one observed customer-hint code to a real corporate_entity.
 
@@ -1074,11 +1174,22 @@ async def resolve_customer_master_hint(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Hint resolution is unavailable: the orchestrator or search provider did not respond",
             ) from exc
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Hint resolution is unavailable: the orchestrator or search provider did not respond",
+            ) from exc
     if resolution is None:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "this hint could not be resolved to a corroborated organization name",
         )
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "customer_hint_resolved",
+        "Customer hint resolved",
+    )
     return resolution
 
 
@@ -1104,6 +1215,7 @@ async def read_lineage_graph(
 async def rebuild_lineage_graph(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Run reconstruct over every source_post and persist post_lineage_edge.
 
@@ -1113,6 +1225,12 @@ async def rebuild_lineage_graph(
     async with pool.acquire() as conn:
         async with conn.transaction():
             edges = await rebuild_lineage(conn)
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "lineage_rebuilt",
+        "Lineage rebuilt",
+    )
     return {"edge_count": len(edges)}
 
 
@@ -1123,6 +1241,7 @@ async def list_posts(
     search: str | None = Query(None, max_length=200),
     voc_type: list[str] | None = Query(None, max_length=80),
     visibility: str | None = Query(None, max_length=80),
+    iso_week: str | None = Query(None, max_length=8, pattern=r"^\d{4}-W\d{2}$"),
     sort: Literal["newest", "oldest", "title"] = Query("newest"),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
@@ -1131,7 +1250,7 @@ async def list_posts(
     _require_post_read(account)
     search_term = search.strip() if search and search.strip() else None
     async with pool.acquire() as conn:
-        voc_type_options, visibility_options = await _post_filter_options(
+        voc_type_options, visibility_options, iso_week_options = await _post_filter_options(
             conn, account.corporate_entity_ids
         )
         body_search_ids: list[str] = []
@@ -1177,7 +1296,7 @@ async def list_posts(
                        case
                            when $1::text is null then 0
                            when lower(coalesce(post.post_title, '')) like '%' || lower($1) || '%' then 0
-                           when post.post_id = any($5::uuid[]) then 1
+                           when post.post_id = any($6::uuid[]) then 1
                            else 2
                        end as search_priority,
                        count(*) over() as total_count
@@ -1241,7 +1360,7 @@ async def list_posts(
                             ) >= 0.45
                         )
                     )
-                    or post.post_id = any($5::uuid[])
+                    or post.post_id = any($6::uuid[])
                     or exists (
                         select 1 from post_project_mention project
                          where project.post_id = post.post_id
@@ -1254,7 +1373,7 @@ async def list_posts(
                         select 1 from post_summary_role role
                          where role.post_id = post.post_id
                            and (role.actor_name ilike '%' || $1 || '%'
-                                or role.responsibility ilike '%' || $1 || '%'
+                                or role.responsibility_text ilike '%' || $1 || '%'
                                 or coalesce(role.affiliated_organization_name, '') ilike '%' || $1 || '%'
                                 or (char_length($1) >= 3 and word_similarity(lower($1), lower(role.actor_name)) >= 0.45))
                     )
@@ -1308,18 +1427,22 @@ async def list_posts(
                )
                and ($3::text[] is null or post.voc_type_code = any($3::text[]))
                and ($4::text is null or post.visibility_code = $4)
+               and (
+                    $5::text is null
+                    or to_char(post.created_at at time zone 'UTC', 'IYYY-"W"IW') = $5
+               )
                  order by
                     search_priority asc,
                     case
-                        when $1::text is not null and post.post_id = any($5::uuid[])
-                        then array_position($5::uuid[], post.post_id)
+                        when $1::text is not null and post.post_id = any($6::uuid[])
+                        then array_position($6::uuid[], post.post_id)
                     end asc,
-                    case when $8::text = 'title' then lower(coalesce(post.post_title, '')) end asc,
-                    case when $8::text = 'oldest' then post.created_at end asc,
-                    case when $8::text in ('newest', 'title') then post.created_at end desc,
+                    case when $9::text = 'title' then lower(coalesce(post.post_title, '')) end asc,
+                    case when $9::text = 'oldest' then post.created_at end asc,
+                    case when $9::text in ('newest', 'title') then post.created_at end desc,
                     post.post_id desc
-                   offset $6
-                   limit $7
+                   offset $7
+                   limit $8
             )
             select page.*,
                    case
@@ -1344,21 +1467,21 @@ async def list_posts(
                                  'project_key', project.project_key,
                                  'project_name', project.project_name,
                                  'evidence', project.evidence_text,
-                                 'confidence', project.confidence,
+                                 'confidence', project.mention_confidence,
                                  'ontology_iri', project.ontology_iri,
                                  'ontology_label', 'Project',
                                  'extraction_method', project.extraction_method,
                                  'resolution_status', 'semantic_candidate',
                                  'provenance', 'post_project_mention.evidence_text'
                              )
-                             order by project.confidence desc, project.project_name, project.project_key
+                             order by project.mention_confidence desc, project.project_name, project.project_key
                          ) as project_evidence
                     from (
-                        select project_key, project_name, evidence_text, confidence,
+                        select project_key, project_name, evidence_text, mention_confidence,
                                ontology_iri, extraction_method
                           from post_project_mention
                          where post_id = page.post_id
-                         order by confidence desc, project_name, project_key
+                         order by mention_confidence desc, project_name, project_key
                          limit 5
                     ) project
               ) projects on true
@@ -1366,17 +1489,18 @@ async def list_posts(
                 case when $1::text is not null then page.search_priority end asc,
                 case
                     when $1::text is not null and page.search_priority = 1
-                    then array_position($5::uuid[], page.post_id)
+                    then array_position($6::uuid[], page.post_id)
                 end asc,
-                case when $8::text = 'title' then lower(coalesce(page.post_title, '')) end asc,
-                case when $8::text = 'oldest' then page.created_at end asc,
-                case when $8::text in ('newest', 'title') then page.created_at end desc,
+                case when $9::text = 'title' then lower(coalesce(page.post_title, '')) end asc,
+                case when $9::text = 'oldest' then page.created_at end asc,
+                case when $9::text in ('newest', 'title') then page.created_at end desc,
                 page.post_id desc
             """,
             search_term,
             list(account.corporate_entity_ids),
             [code.strip() for code in voc_type if code.strip()] if voc_type else None,
             visibility.strip() if visibility and visibility.strip() else None,
+            iso_week,
             body_search_ids,
             offset,
             limit,
@@ -1392,6 +1516,7 @@ async def list_posts(
         "offset": offset,
         "voc_type_options": voc_type_options,
         "visibility_options": visibility_options,
+        "iso_week_options": iso_week_options,
     }
 
 
@@ -1463,7 +1588,7 @@ async def read_post_content(
     pool: asyncpg.Pool = Depends(get_pool),
     valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
-    """Return persisted content evidence; never derive or invent buyer copy."""
+    """Return persisted content evidence; never derive or invent reader-facing copy."""
     await _load_visible_post(post_id, account, pool)
     queue_event: tuple[str, str] | None = None
     async with pool.acquire() as conn:
@@ -1471,7 +1596,7 @@ async def read_post_content(
             """
             select unit.unit_index, unit.unit_kind_code, unit.unit_label, unit.unit_text,
                    coalesce(structure.indent_level, 0) as indent_level,
-                   structure.decision_source_code, structure.confidence,
+                   structure.decision_source_code, structure.structure_confidence,
                    structure.evidence_text
               from post_content_unit unit
               left join post_content_unit_structure structure
@@ -1516,7 +1641,7 @@ async def read_post_content(
         rows = await conn.fetch(
             """
             select image.post_content_image_id, unit.unit_index, image.mime_type, image.description_status_code,
-                   image.extracted_text, image.caption,
+                   image.extracted_text, image.image_caption,
                    coalesce(
                        array_agg(tag.tag_text order by tag.tag_text)
                            filter (where tag.tag_text is not null),
@@ -1529,7 +1654,7 @@ async def read_post_content(
                 on tag.post_content_image_id = image.post_content_image_id
              where unit.post_id = $1
              group by image.post_content_image_id, unit.unit_index, image.mime_type, image.description_status_code,
-                      image.extracted_text, image.caption
+                      image.extracted_text, image.image_caption
              order by unit.unit_index
             """,
             post_id,
@@ -1538,7 +1663,7 @@ async def read_post_content(
             """
             select image.post_content_image_id, region.region_index,
                    region.x_ratio, region.y_ratio, region.width_ratio, region.height_ratio,
-                   region.description_status_code, region.extracted_text, region.caption,
+                   region.description_status_code, region.extracted_text, region.image_caption,
                    coalesce(
                        array_agg(tag.tag_text order by tag.tag_text)
                            filter (where tag.tag_text is not null),
@@ -1552,7 +1677,7 @@ async def read_post_content(
              where image.post_content_image_id = any($1::uuid[])
              group by image.post_content_image_id, region.region_index,
                       region.x_ratio, region.y_ratio, region.width_ratio, region.height_ratio,
-                      region.description_status_code, region.extracted_text, region.caption
+                      region.description_status_code, region.extracted_text, region.image_caption
              order by image.post_content_image_id, region.region_index
             """,
             [row["post_content_image_id"] for row in rows],
@@ -1574,7 +1699,7 @@ async def read_post_content(
                 "height_ratio": row["height_ratio"],
                 "status_code": row["description_status_code"],
                 "extracted_text": row["extracted_text"],
-                "caption": row["caption"],
+                "caption": row["image_caption"],
                 "tags": list(row["tags"] or []),
             }
         )
@@ -1588,7 +1713,7 @@ async def read_post_content(
                 "unit_text": row["unit_text"],
                 "indent_level": row["indent_level"],
                 "indent_source_code": row["decision_source_code"] or "unresolved",
-                "indent_confidence": float(row["confidence"] or 0),
+                "indent_confidence": float(row["structure_confidence"] or 0),
                 "indent_evidence": row["evidence_text"] or "",
             }
             for row in unit_rows
@@ -1599,7 +1724,7 @@ async def read_post_content(
                 "mime_type": row["mime_type"],
                 "status_code": row["description_status_code"],
                 "extracted_text": row["extracted_text"],
-                "caption": row["caption"],
+                "caption": row["image_caption"],
                 "tags": list(row["tags"] or []),
                 "regions": regions_by_image.get(str(row["post_content_image_id"]), []),
             }
@@ -1941,7 +2066,9 @@ async def read_post_counterparties(
     """
     post = await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
-        counterparties = await fetch_post_counterparties(conn, post_id)
+        counterparties = await fetch_post_counterparties(
+            conn, post_id, account.corporate_entity_ids
+        )
     return {
         "post_id": str(post["post_id"]),
         "counterparties": counterparties,
@@ -2018,6 +2145,11 @@ async def verify_post_entity_relationships(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Relation verification is unavailable: the search provider did not respond",
             ) from exc
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Relation verification is unavailable: the search provider did not respond",
+            ) from exc
     await publish_activity_event(
         valkey,
         post_id,
@@ -2071,22 +2203,33 @@ async def extract_post_keymen(
             # tags dilute the model's attention and a base64 payload sent as
             # literal text either blows the token budget or is silently
             # ignored (see lineageweave/post_content_normalization.py).
-            post_body = (
-                await asyncio.to_thread(normalize_post_body, raw_body, _vision_client())
-            ).text
             context_hints = await _load_post_semantic_hints(conn, post_id)
-            mentions = await ingest_post_keymen(
-                conn,
-                keyman_client,
-                post_id,
-                post["post_title"],
-                post_body,
-                resolution_client=_organization_name_resolution_client(),
-                verification_client=_relation_verification_client(),
-                hierarchy_inference_client=_corporate_hierarchy_inference_client(),
-                context_hints=context_hints,
-                persist_graph=False,
-            )
+            try:
+                post_body = (
+                    await asyncio.to_thread(normalize_post_body, raw_body, _vision_client())
+                ).text
+                mentions = await ingest_post_keymen(
+                    conn,
+                    keyman_client,
+                    post_id,
+                    post["post_title"],
+                    post_body,
+                    resolution_client=_organization_name_resolution_client(),
+                    verification_client=_relation_verification_client(),
+                    hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+                    context_hints=context_hints,
+                    persist_graph=False,
+                )
+            except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
+            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
             # Live bug (2026-08-19): an organization affiliated ONLY with an
             # our_side person (our own factory, our own affiliate) got fed
             # into the counterparty-relationship classifier the same as any
@@ -2102,9 +2245,20 @@ async def extract_post_keymen(
                     for name in mention.affiliated_organization_names
                 }
             )
-            relationships = await ingest_post_entity_relationships(
-                conn, relationship_client, post_id, post["post_title"], post_body, organization_names
-            )
+            try:
+                relationships = await ingest_post_entity_relationships(
+                    conn, relationship_client, post_id, post["post_title"], post_body, organization_names
+                )
+            except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
+            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
             async with conn.transaction():
                 await persist_edges_for_post(conn, post_id)
     await publish_activity_event(
@@ -2232,17 +2386,28 @@ async def evaluate_post(
             )
         async with pool.acquire() as conn:
             body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-        normalized_body = (
-            await asyncio.to_thread(
-                normalize_post_body,
-                "" if body_row is None else body_row["post_body"],
-                _vision_client(),
-            )
-        ).text
-        async with pool.acquire() as conn:
-            rows = await ingest_post_evaluation(
-                conn, client, post_id, post["post_title"], normalized_body
-            )
+        try:
+            normalized_body = (
+                await asyncio.to_thread(
+                    normalize_post_body,
+                    "" if body_row is None else body_row["post_body"],
+                    _vision_client(),
+                )
+            ).text
+            async with pool.acquire() as conn:
+                rows = await ingest_post_evaluation(
+                    conn, client, post_id, post["post_title"], normalized_body
+                )
+        except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Post evaluation is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Post evaluation is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
     await publish_activity_event(
         valkey,
         post_id,
@@ -2381,6 +2546,7 @@ async def rebuild_period_report_endpoint(
     period_code: str,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Refit or FIPC-score every group in the period. post_admin only."""
     _require_post_admin(account)
@@ -2393,6 +2559,12 @@ async def rebuild_period_report_endpoint(
     async with pool.acquire() as conn:
         async with conn.transaction():
             reports = await rebuild_period_reports(conn, grouping_kind, period_code)
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "period_report_rebuilt",
+        "Period report rebuilt",
+    )
     return {
         "grouping_kind": grouping_kind,
         "period_code": period_code,
@@ -2441,11 +2613,11 @@ async def read_post_summary(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
                 )
-            normalized = await asyncio.to_thread(normalize_post_body, raw_body)
-            normalized_body = normalized.text
             context_hints = await _load_post_semantic_hints(conn, post_id)
             summarize_with_hints = getattr(client, "summarize_with_hints", None)
             try:
+                normalized = await asyncio.to_thread(normalize_post_body, raw_body)
+                normalized_body = normalized.text
                 if callable(summarize_with_hints):
                     summary = await asyncio.to_thread(
                         summarize_with_hints, post["post_title"], normalized_body, context_hints
@@ -2459,14 +2631,29 @@ async def read_post_summary(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
                 ) from exc
-            payload = await persist_post_summary(
-                conn,
-                post_id,
-                summary,
-                post_body=normalized_body,
-                hierarchy_inference_client=_corporate_hierarchy_inference_client(),
-                verification_client=_relation_verification_client(),
-            )
+            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                if stale is not None:
+                    return stale
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
+                ) from exc
+            try:
+                payload = await persist_post_summary(
+                    conn,
+                    post_id,
+                    summary,
+                    post_body=normalized_body,
+                    hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+                    verification_client=_relation_verification_client(),
+                )
+            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                if stale is not None:
+                    return stale
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Post summary is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
         content_complete = await post_content_is_complete(
             conn,
             post_id,
@@ -2507,6 +2694,7 @@ async def read_post_five_w1h(
             conn,
             post_id,
             lambda row: _can_see_post(account, row),
+            account.corporate_entity_ids,
         )
 
 
@@ -2517,9 +2705,32 @@ class ChatRequest(BaseModel):
 
 
 class GlobalAskRequest(BaseModel):
-    """JSON body for the buyer's source-grounded Global Ask Agent."""
+    """JSON body for the reader's source-grounded Global Ask Agent."""
 
     question: str
+    session_id: str | None = None
+    knowledge_cutoff: str | None = None
+
+
+def global_ask_timeline(sources: list[ChatSourceDocument]) -> list[dict[str, str | None]]:
+    """Return every authorized Ask source in event order, not citation order."""
+    ordered = sorted(
+        sources,
+        key=lambda source: (
+            source.occurred_at is None,
+            source.occurred_at or "",
+            source.post_id,
+        ),
+    )
+    return [
+        {
+            "post_id": source.post_id,
+            "post_title": source.post_title,
+            "occurred_at": source.occurred_at,
+            "timeline_kind": source.timeline_kind,
+        }
+        for source in ordered
+    ]
 
 
 @app.get("/api/posts/{post_id}/chat")
@@ -2535,9 +2746,36 @@ async def read_post_chat(
     an empty list, not a fabricated transcript.
     """
     await _load_visible_post(post_id, account, pool)
+    authorized_exchanges: list[dict[str, Any]] = []
     async with pool.acquire() as conn:
-        exchanges = await fetch_persisted_chats(conn, post_id)
-    return {"post_id": post_id, "exchanges": exchanges}
+        try:
+            exchanges = await fetch_persisted_chats(conn, post_id)
+            evidence_by_exchange = await read_authorized_ask_evidence_batch(
+                conn,
+                exchanges=[
+                    (
+                        exchange["cited_post_ids"],
+                        exchange.get("_knowledge_cutoff"),
+                    )
+                    for exchange in exchanges
+                ],
+                corporate_entity_ids=account.corporate_entity_ids,
+            )
+        except (AskEvidenceBatchLimitError, PostChatHistoryLimitError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask history is too large to read safely; ask an administrator "
+                "to reduce retained history and retry",
+            ) from exc
+        for exchange, evidence in zip(exchanges, evidence_by_exchange, strict=True):
+            if not evidence.all_citations_visible:
+                continue
+            public_exchange = {
+                key: value for key, value in exchange.items() if not key.startswith("_")
+            }
+            public_exchange.update(evidence.response_fields())
+            authorized_exchanges.append(public_exchange)
+    return {"post_id": post_id, "exchanges": authorized_exchanges}
 
 
 @app.post("/api/posts/{post_id}/chat")
@@ -2563,18 +2801,28 @@ async def chat_about_post(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
     post = await _load_visible_post(post_id, account, pool)
     post_metadata = build_post_llm_metadata(post_id, post)
+    knowledge_cutoff = ask_knowledge_cutoff()
     async with pool.acquire() as conn:
         stored = await fetch_persisted_chat(conn, post_id, question)
         if stored is not None:
-            source_ids = [post_id]
-            source_ids.extend(cid for cid in stored["cited_post_ids"] if cid != post_id)
-            return {
-                "post_id": post_id,
-                "answer_text": stored["answer_text"],
-                "cited_post_ids": stored["cited_post_ids"],
-                "cited_posts": stored["cited_posts"],
-                "source_post_ids": source_ids,
-            }
+            stored_cutoff = ask_knowledge_cutoff(stored.get("_knowledge_cutoff"))
+            stored_evidence = await read_authorized_ask_evidence(
+                conn,
+                cited_post_ids=stored["cited_post_ids"],
+                corporate_entity_ids=account.corporate_entity_ids,
+                knowledge_cutoff=stored_cutoff,
+            )
+            if stored_evidence.all_citations_visible:
+                source_ids = list(
+                    dict.fromkeys([post_id, *stored["cited_post_ids"]])
+                )
+                return {
+                    "post_id": post_id,
+                    "answer_text": stored["answer_text"],
+                    "cited_post_ids": stored["cited_post_ids"],
+                    "source_post_ids": source_ids,
+                    **stored_evidence.response_fields(),
+                }
         with use_llm_metadata(post_metadata):
             client = _post_chat_client()
             if not client.available:
@@ -2583,19 +2831,46 @@ async def chat_about_post(
                     "Post chat is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
                 )
             sources = await gather_chat_sources(
-                conn, post_id, lambda row: _can_see_post(account, row), vision_client=_vision_client()
+                conn,
+                post_id,
+                lambda row: _can_see_post(account, row),
+                vision_client=_vision_client(),
+                knowledge_cutoff=knowledge_cutoff,
             )
     try:
         with use_llm_metadata(post_metadata):
             answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, ValueError) as exc:
+    except (HttpClientError, KeyError, OSError, RuntimeError, ValueError) as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
+        ) from exc
+    except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
     async with pool.acquire() as conn:
-        await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)
+        await persist_post_chat(
+            conn,
+            post_id,
+            question,
+            answer.answer_text,
+            cited_ids,
+            knowledge_cutoff=knowledge_cutoff,
+        )
+        answer_evidence = await read_authorized_ask_evidence(
+            conn,
+            cited_post_ids=cited_ids,
+            corporate_entity_ids=account.corporate_entity_ids,
+            knowledge_cutoff=knowledge_cutoff,
+        )
+    if not answer_evidence.all_citations_visible:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Post chat evidence changed before the answer could be returned",
+        )
     await publish_activity_event(
         valkey,
         post_id,
@@ -2607,8 +2882,8 @@ async def chat_about_post(
         "post_id": post_id,
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
-        "cited_posts": cited_post_summaries(sources, cited_ids),
         "source_post_ids": [source.post_id for source in sources],
+        **answer_evidence.response_fields(),
     }
 
 
@@ -2617,12 +2892,27 @@ async def ask_agent(
     request: GlobalAskRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
-    """Answer a buyer question from authorized post and graph evidence."""
+    """Answer a reader question from authorized post and graph evidence."""
     question = request.question.strip()
     if not question:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
     _require_post_read(account)
+    if request.session_id is not None:
+        try:
+            UUID(request.session_id)
+        except ValueError:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Global Ask session not found") from None
+    try:
+        knowledge_cutoff = ask_knowledge_cutoff(
+            request.knowledge_cutoff.strip() if request.knowledge_cutoff else None
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "knowledge_cutoff must be an ISO-8601 timestamp",
+        ) from exc
     client = _post_chat_client()
     if not client.available:
         raise HTTPException(
@@ -2630,35 +2920,166 @@ async def ask_agent(
             "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
         )
     async with pool.acquire() as conn:
+        session_id = await ensure_global_ask_session(
+            conn, account.user_account_id, request.session_id
+        )
+        if session_id is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Global Ask session not found")
+        if not await global_ask_session_citations_authorized(
+            conn,
+            session_id=session_id,
+            corporate_entity_ids=account.corporate_entity_ids,
+            knowledge_cutoff=knowledge_cutoff,
+        ):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Global Ask session evidence is no longer authorized; start a new session",
+            )
+        conversation = await load_global_ask_context(conn, session_id)
         sources = await gather_global_chat_sources(
             conn,
             lambda row: _can_see_post(account, row),
             account.corporate_entity_ids,
             question=question,
+            knowledge_cutoff=knowledge_cutoff,
         )
-    if not sources:
-        return {
-            "answer_text": "",
-            "cited_post_ids": [],
-            "cited_posts": [],
-            "source_post_ids": [],
-            "cited_post_evidence": [],
-            "next_action": "No authorized source posts are available for this question.",
-        }
+    if conversation.compress_turns:
+        compressor = getattr(client, "compress_context", None)
+        if not callable(compressor):
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask Agent conversation context compression is unavailable",
+            )
+        try:
+            compressed = await asyncio.to_thread(
+                compressor,
+                conversation.summary,
+                list(conversation.compress_turns),
+            )
+            async with pool.acquire() as conn:
+                await persist_global_ask_summary(
+                    conn,
+                    conversation.session_id,
+                    compressed,
+                    conversation.compress_turns[-1][0],
+                )
+                conversation = await load_global_ask_context(conn, conversation.session_id)
+        except (HttpClientError, KeyError, OSError, ValueError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask Agent conversation context compression is unavailable",
+            ) from exc
+        except Exception as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask Agent conversation context compression is unavailable",
+            ) from exc
+    conversation_context = render_global_ask_context(
+        conversation.summary,
+        conversation.recent_turns,
+    )
     try:
-        answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, ValueError) as exc:
+        grounding_status = ask_grounding_status(sources, knowledge_cutoff)
+        limitations = historical_body_limitations(sources)
+        cutoff_text = knowledge_cutoff.isoformat() if knowledge_cutoff is not None else None
+        llm_sources = [source for source in sources if not source.historical_body_unavailable]
+    except Exception as exc:  # noqa: BLE001 - malformed evidence must fail closed.
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            f"Ask Agent is unavailable: {exc}",
+            "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
+        ) from exc
+    if not llm_sources:
+        async with pool.acquire() as conn:
+            await persist_global_ask_turn(conn, conversation.session_id, question, "", ())
+        await publish_operation_event(
+            valkey,
+            account.user_account_id,
+            "global_ask_completed",
+            "Global Ask completed with no authorized source posts",
+        )
+        return {
+            "session_id": conversation.session_id,
+            "answer_text": "",
+            "cited_post_ids": [],
+            "source_post_ids": [source.post_id for source in sources],
+            "cited_post_evidence": [],
+            "project_histories": [],
+            "project_histories_truncated": False,
+            "cited_posts": [],
+            "knowledge_cutoff": cutoff_text,
+            "timeline": global_ask_timeline(sources),
+            "grounding_status": grounding_status,
+            "limitations": limitations,
+            "next_action": ask_next_action(
+                grounding_status,
+                has_sources=bool(sources),
+                has_retained_bodies=bool(llm_sources),
+            ),
+        }
+    try:
+        answer = await asyncio.to_thread(
+            client.answer,
+            question,
+            llm_sources,
+            conversation_context=conversation_context,
+        )
+    except (HttpClientError, KeyError, OSError, RuntimeError, ValueError) as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
+        ) from exc
+    except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
+    async with pool.acquire() as conn:
+        await persist_global_ask_turn(
+            conn,
+            conversation.session_id,
+            question,
+            answer.answer_text,
+            cited_ids,
+        )
+        answer_evidence = await read_authorized_ask_evidence(
+            conn,
+            cited_post_ids=cited_ids,
+            corporate_entity_ids=account.corporate_entity_ids,
+            knowledge_cutoff=knowledge_cutoff,
+        )
+    if not answer_evidence.all_citations_visible:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Global Ask evidence changed before the answer could be returned",
+        )
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "global_ask_completed",
+        f"Global Ask completed with {len(cited_ids)} cited source post(s)",
+    )
     return {
+        "session_id": conversation.session_id,
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
-        "cited_posts": cited_post_summaries(sources, cited_ids),
-        "cited_post_evidence": cited_post_evidence(sources, cited_ids),
+        "cited_posts": cited_post_citations(llm_sources, cited_ids),
+        "cited_post_evidence": cited_post_evidence(llm_sources, cited_ids),
+        # The timeline is the complete authorized retrieval boundary. A
+        # source without a retained cutoff body is still a real timeline
+        # event and must remain navigable, even though it is excluded from
+        # the LLM evidence bundle.
         "source_post_ids": [source.post_id for source in sources],
+        "timeline": global_ask_timeline(sources),
+        "knowledge_cutoff": cutoff_text,
+        "grounding_status": grounding_status,
+        "limitations": limitations,
+        "next_action": ask_next_action(
+            grounding_status,
+            has_sources=True,
+            has_retained_bodies=bool(llm_sources),
+        ),
+        **answer_evidence.response_fields(),
     }
 
 
@@ -2675,7 +3096,7 @@ async def read_post_bookmark(
     await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "select 1 from bookmark where user_account_id = $1 and post_id = $2",
+            "select 1 from post_bookmark where user_account_id = $1 and post_id = $2",
             account.user_account_id,
             post_id,
         )
@@ -2688,13 +3109,14 @@ async def write_post_bookmark(
     request: PostBookmarkRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
         if request.bookmarked:
             await conn.execute(
                 """
-                insert into bookmark (user_account_id, post_id)
+                insert into post_bookmark (user_account_id, post_id)
                 values ($1, $2)
                 on conflict (user_account_id, post_id) do nothing
                 """,
@@ -2703,10 +3125,17 @@ async def write_post_bookmark(
             )
         else:
             await conn.execute(
-                "delete from bookmark where user_account_id = $1 and post_id = $2",
+                "delete from post_bookmark where user_account_id = $1 and post_id = $2",
                 account.user_account_id,
                 post_id,
             )
+    await publish_activity_event(
+        valkey,
+        post_id,
+        "bookmark_changed",
+        account.user_account_id,
+        "Post bookmark added" if request.bookmarked else "Post bookmark removed",
+    )
     return {"post_id": post_id, "bookmarked": request.bookmarked}
 
 
@@ -2749,7 +3178,8 @@ async def create_post_ticket(
     a ticket is a write action, same discipline as extract-keymen.
     """
     _require_post_admin(account)
-    await _load_visible_post(post_id, account, pool)
+    post = await _load_visible_post(post_id, account, pool)
+    _require_ticket_post_access(account, post)
     async with pool.acquire() as conn:
         try:
             ticket = await create_ticket(
@@ -2810,7 +3240,8 @@ async def patch_ticket(
         post_id = await fetch_ticket_post_id(conn, issue_ticket_id)
         if post_id is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "ticket not found")
-    await _load_visible_post(post_id, account, pool)
+    post = await _load_visible_post(post_id, account, pool)
+    _require_ticket_post_access(account, post)
     async with pool.acquire() as conn:
         try:
             ticket = await update_ticket(
@@ -2871,6 +3302,7 @@ async def derive_post_commitment(
     """
     _require_post_admin(account)
     post = await _load_visible_post(post_id, account, pool)
+    _require_ticket_post_access(account, post)
     post_metadata = build_post_llm_metadata(post_id, post)
     with use_llm_metadata(post_metadata):
         client = _commitment_extraction_client()
@@ -2881,14 +3313,25 @@ async def derive_post_commitment(
             )
         async with pool.acquire() as conn:
             body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-        normalized_body = (
-            await asyncio.to_thread(normalize_post_body, body_row["post_body"], _vision_client())
-        ).text
-        # TimeML/TempEval document creation time, not wall-clock now: "by next
-        # Friday" in a January post must resolve to that January, not to the
-        # Friday after the operator clicked Derive.
-        reference_date = post["created_at"].date().isoformat()
-        commitment = client.extract(post["post_title"], normalized_body, reference_date)
+        try:
+            normalized_body = (
+                await asyncio.to_thread(normalize_post_body, body_row["post_body"], _vision_client())
+            ).text
+            # TimeML/TempEval document creation time, not wall-clock now: "by next
+            # Friday" in a January post must resolve to that January, not to the
+            # Friday after the operator clicked Derive.
+            reference_date = post["created_at"].date().isoformat()
+            commitment = client.extract(post["post_title"], normalized_body, reference_date)
+        except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Commitment derivation is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Commitment derivation is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
     if not commitment.has_commitment:
         return {"post_id": str(post["post_id"]), "has_commitment": False, "ticket": None}
     async with pool.acquire() as conn:
@@ -2955,6 +3398,7 @@ async def create_analysis_run(
     request: CreateAnalysisRunRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Record a Pending lineage run on an authorized cutoff capture.
 
@@ -2979,6 +3423,12 @@ async def create_analysis_run(
                 )
             except AnalysisRunCreateError as exc:
                 raise HTTPException(exc.status_code, exc.detail) from exc
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "analysis_run_created",
+        "Analysis run created",
+    )
     return created
 
 
@@ -3023,6 +3473,12 @@ async def start_analysis_run(
             analysis_run_id=analysis_run_id,
             work_kind_code=str(queued.get("run_kind_code") or ""),
             request_sha256=request_digest,
+        )
+        await publish_operation_event(
+            valkey,
+            account.user_account_id,
+            "analysis_run_start_requested",
+            "Analysis run start requested",
         )
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -3116,6 +3572,83 @@ async def read_calendar(
             "caldav_next_action": caldav_next_action,
         },
     }
+
+
+@app.get("/api/project-history/projects")
+async def read_project_history_projects(
+    limit: int = Query(PROJECT_INDEX_DEFAULT_LIMIT, ge=1, le=PROJECT_INDEX_MAXIMUM_LIMIT),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return exact project identities available to the signed-in buyer."""
+
+    _require_post_read(account)
+    knowledge_cutoff = datetime.now(timezone.utc)
+    async with pool.acquire() as conn:
+        return await fetch_project_history_index(
+            conn,
+            knowledge_cutoff=knowledge_cutoff,
+            corporate_entity_ids=list(account.corporate_entity_ids),
+            limit=limit,
+        )
+
+
+@app.get("/api/project-history")
+async def read_project_history(
+    project_key: str = Query(..., min_length=1),
+    focus_post_id: str | None = Query(None),
+    knowledge_cutoff: str | None = Query(None),
+    limit: int = Query(PROJECT_HISTORY_DEFAULT_LIMIT, ge=1, le=PROJECT_HISTORY_MAXIMUM_LIMIT),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return one exact, authorized project history for the Buyer timeline."""
+
+    _require_post_read(account)
+    try:
+        normalize_project_key(project_key)
+    except ValueError as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "project_key must contain a non-empty exact identity",
+        ) from exc
+    if focus_post_id is not None:
+        try:
+            UUID(focus_post_id)
+        except ValueError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "focus_post_id must be a UUID",
+            ) from exc
+    if knowledge_cutoff is None:
+        cutoff = datetime.now(timezone.utc)
+    else:
+        try:
+            cutoff = parse_as_of_clock(knowledge_cutoff)
+        except ValueError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "knowledge_cutoff must be an ISO-8601 timestamp",
+            ) from exc
+    async with pool.acquire() as conn:
+        try:
+            projection = await fetch_project_history_projection(
+                conn,
+                project_key=project_key,
+                focus_post_id=focus_post_id,
+                knowledge_cutoff=cutoff,
+                corporate_entity_ids=list(account.corporate_entity_ids),
+                limit=limit,
+            )
+        except ProjectHistoryNotFound as exc:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "project history not found") from exc
+    projection["tepp_validation"] = await asyncio.to_thread(
+        validate_project_history_with_tepp,
+        projection=projection,
+        tenant_workspace_id=tenant_workspace_reference(account.corporate_entity_ids),
+        transport_url=load_settings().tepp_transport_url,
+    )
+    return projection
 
 
 @app.get("/api/rankings")

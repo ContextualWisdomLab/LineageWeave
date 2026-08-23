@@ -43,7 +43,7 @@ import unicodedata
 from dataclasses import dataclass, field
 from typing import Protocol
 
-from .http_client import post_json
+from .http_client import chat_completion_content, post_json
 
 # common_lookup_value category "prov_agent_type" -- PROV-O's prov:Person /
 # prov:Organization for the micro/macro cases, plus a meso-level third
@@ -716,12 +716,16 @@ def parse_summary_response(content: str) -> PostSummary | None:
             name = entry.get("actor_name")
             responsibility = entry.get("responsibility")
             actor_type_raw = entry.get("actor_type")
-            if actor_type_raw == "organization":
+            if actor_type_raw is None:
+                actor_type_code = ACTOR_TYPE_PERSON
+            elif actor_type_raw == "person":
+                actor_type_code = ACTOR_TYPE_PERSON
+            elif actor_type_raw == "organization":
                 actor_type_code = ACTOR_TYPE_ORGANIZATION
             elif actor_type_raw == "team":
                 actor_type_code = ACTOR_TYPE_TEAM
             else:
-                actor_type_code = ACTOR_TYPE_PERSON
+                continue
             affiliation_raw = entry.get("affiliated_organization_name")
             affiliated_organization_name = (
                 affiliation_raw.strip()
@@ -949,10 +953,10 @@ class ContextualOrchestratorPostSummaryClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = body["choices"][0]["message"]["content"]
+        content = chat_completion_content(body)
         parsed = _parse_plain_summary_response(content)
         if parsed is None:
-            raise ValueError(f"summary response did not match the required format: {content!r}")
+            raise ValueError("summary response did not match the required format")
         korean_summary, key_events, key_event_details = parsed
         details_body = post_json(
             f"{self._base_url}/v1/chat/completions",
@@ -975,15 +979,12 @@ class ContextualOrchestratorPostSummaryClient:
             timeout=self._timeout,
         )
         details = _parse_plain_summary_details(
-            details_body["choices"][0]["message"]["content"],
+            chat_completion_content(details_body),
             post_title=post_title,
             context_hints=context_hints,
         )
         if details is None:
-            raise ValueError(
-                "summary semantic response did not match the required format: "
-                f"{details_body['choices'][0]['message']['content']!r}"
-            )
+            raise ValueError("summary semantic response did not match the required format")
         roles, projects, actions, five_w1h_evidence = details
         return PostSummary(
             korean_summary=korean_summary,

@@ -30,12 +30,29 @@ describe("i18n", () => {
     "Close",
     "Post body",
     "Summary",
+    "multiple organizations",
+    "Multiple organizations are recorded. Read every organization in the Keyman list above, then continue the walk.",
+    "Multiple organizations are recorded. Extract Keymen to list every organization, then continue the walk.",
     "Calendar",
     "Board",
     "Search",
     "Page",
     "Answer",
     "Showing the first {shown} of {total} posts known at this cutoff.",
+    "Weekly VOC",
+    "Filter by ISO week",
+    "All weeks",
+    "Authorized commitments are current. Open a commitment to read Event Lineage.",
+    "Authorized customer entities are current. Open a related post to read Event Lineage.",
+    "Authorized cited posts are current. Open a cited post to read Event Lineage.",
+    "Knowledge cutoff (optional)",
+    "This answer is fully grounded at the requested cutoff. Open a cited post to compare the retained body.",
+    "This answer is only partly grounded at the requested cutoff. Open a cited post to see which historical bodies were retained.",
+    "Historical body unavailable for this cited post. The live body was not used.",
+    "Historical evidence limitations",
+    "This live source changed after the cutoff.",
+    "Event Lineage timeline",
+    "Open timeline post:",
   ] as const;
 
   it("supports the five product locales", () => {
@@ -73,6 +90,20 @@ describe("i18n", () => {
   ] as const)("formats dynamic buyer guidance in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("{post} is current in Event Lineage. Read Keyman and evaluation next.", { post: "DEMO" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "2026-W01 Voice of Customer 글이 현재 표시되어 있습니다. 이벤트 계보를 읽으려면 글을 여세요."],
+    ["zh", "2026-W01 的 Voice of Customer 文章为当前内容。打开一篇文章阅读事件谱系。"],
+    ["ja", "2026-W01のVoice of Customer投稿が現在表示されています。イベント系譜を読むには投稿を開いてください。"],
+    ["vi", "Các bài Voice of Customer của 2026-W01 đang hiện tại. Hãy mở một bài để đọc Dòng sự kiện."],
+  ] as const)("formats weekly VOC next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf("Voice of Customer posts for {week} are current. Open a post to read Event Lineage.", {
+        week: "2026-W01",
+      }),
+    ).toBe(expected);
   });
 });
 

@@ -104,13 +104,165 @@ def test_chunk_by_dom_keeps_nested_table_cell_blocks_in_their_row() -> None:
     assert [(chunk.label, chunk.text) for chunk in chunks] == [("tr", "No. | Company")]
 
 
+def test_chunk_by_dom_preserves_nested_list_order_and_depth() -> None:
+    chunks = chunk_by_dom(
+        "<ol><li>Outer<ul><li>Inner</li></ul>After inner</li>"
+        "<li>Sibling</li></ol>"
+    )
+
+    assert [chunk.text for chunk in chunks] == ["Outer", "Inner", "After inner", "Sibling"]
+    assert [chunk.indent_width for chunk in chunks] == [4, 8, 4, 4]
+
+
+
 def test_chunk_by_dom_labels_markerless_footnotes() -> None:
-    chunks = chunk_by_dom("<p>Body text</p><p>*Tier 2: follow-up note</p>")
+    chunks = chunk_by_dom(
+        "<p>Body text<sup>[1]</sup></p>"
+        "<p>[1] Source note</p><p>*Tier 2: follow-up note</p>"
+    )
     assert [(chunk.label, chunk.text) for chunk in chunks] == [
-        ("p", "Body text"),
+        ("p", "Body text[1]"),
+        ("footnote", "[1] Source note"),
         ("footnote", "*Tier 2: follow-up note"),
     ]
 
+
+def test_chunk_by_dom_labels_numeric_superscript_footnotes() -> None:
+    """A leading numeric superscript assigns the footnote label."""
+    chunks = chunk_by_dom("<p><sup>1</sup> Source note attached to the record.</p>")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("footnote", "1 Source note attached to the record."),
+    ]
+
+
+def test_chunk_by_dom_labels_numeric_superscript_after_body_text() -> None:
+    """A numeric superscript anywhere in a paragraph marks its evidence role."""
+    chunks = chunk_by_dom("<p>Body claim<sup>1</sup> source note.</p>")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("footnote", "Body claim1 source note."),
+    ]
+
+
+def test_chunk_by_dom_does_not_treat_non_numeric_superscript_as_footnote() -> None:
+    """A formula superscript remains ordinary prose."""
+    chunks = chunk_by_dom("<p>Formula x<sup>n</sup> remains prose.</p>")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Formula xn remains prose."),
+    ]
+
+
+def test_chunk_by_dom_preserves_explicit_metric_superscripts_as_unicode() -> None:
+    """A unit exponent remains searchable mathematical evidence."""
+    chunks = chunk_by_dom("<p>Volume: 5m<sup>3</sup>.</p>")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Volume: 5m³."),
+    ]
+
+
+def test_chunk_by_dom_preserves_explicit_metric_subscripts_as_unicode() -> None:
+    """A unit subscript is retained without changing ordinary footnotes."""
+    chunks = chunk_by_dom("<p>Index m<sub>3</sub> is measured.</p>")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Index m₃ is measured."),
+    ]
+
+
+def test_chunk_by_source_body_normalizes_plain_metric_scripts() -> None:
+    """Plain-text metric scripts retain searchable exponent/index semantics."""
+    chunks = chunk_by_source_body("Volume: 5m^3; index m_3; braced m^{2}.")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("", "Volume: 5m³; index m₃; braced m²."),
+    ]
+
+
+def test_chunk_by_source_body_normalizes_metric_scripts_in_markdown_table_cells() -> None:
+    """Markdown table cells retain the same searchable metric semantics as prose."""
+    chunks = chunk_by_source_body(
+        "| Metric | Index |\n| --- | --- |\n| 5m^3 | m_3 |"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "Metric | Index"),
+        ("tr", "5m³ | m₃"),
+    ]
+
+
+def test_chunk_by_dom_accepts_exporter_oi_list_container() -> None:
+    """The exporter-specific oi tag behaves as an ordered-list container."""
+    chunks = chunk_by_dom("<oi><li>First item</li><li>Second item</li></oi>")
+
+    assert [chunk.text for chunk in chunks] == ["First item", "Second item"]
+    assert [chunk.indent_width for chunk in chunks] == [4, 4]
+
+
+def test_chunk_by_dom_keeps_markdown_table_rows_as_searchable_units() -> None:
+    """Markdown rows become independently searchable row units."""
+    chunks = chunk_by_dom(
+        "| Project | Status |\n| :--- | ---: |\n| Alpha | Ready |"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("markdown_tr", "Project | Status"),
+        ("markdown_tr", "Alpha | Ready"),
+    ]
+
+
+def test_chunk_by_dom_preserves_escaped_markdown_pipes_and_rejects_short_delimiters() -> None:
+    escaped = chunk_by_dom(
+        "| Field | Notes |\n| --- | --- |\n| Owner | Ready \\| review |"
+    )
+    assert [(chunk.label, chunk.text) for chunk in escaped] == [
+        ("markdown_tr", "Field | Notes"),
+        ("markdown_tr", "Owner | Ready | review"),
+    ]
+
+    short_delimiter = chunk_by_dom(
+        "| Field | Value |\n| -- | -- |\n| Owner | Buyer |"
+    )
+    assert all(chunk.label != "markdown_tr" for chunk in short_delimiter)
+
+
+def test_chunk_by_dom_keeps_prose_around_markdown_table_rows() -> None:
+    """Prose surrounding a Markdown table stays in document order."""
+    chunks = chunk_by_dom(
+        "Intro.\n\n| Project | Status |\n| --- | --- |\n| Alpha | Ready |\n\nNext action."
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("", "Intro."),
+        ("markdown_tr", "Project | Status"),
+        ("markdown_tr", "Alpha | Ready"),
+        ("", "Next action."),
+    ]
+
+
+def test_chunk_by_dom_accepts_markdown_tables_without_outer_pipes() -> None:
+    """Outer pipes are optional while columns remain row-scoped evidence."""
+    chunks = chunk_by_dom("Project | Status\n--- | ---\nAlpha | Ready")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("markdown_tr", "Project | Status"),
+        ("markdown_tr", "Alpha | Ready"),
+    ]
+
+
+def test_chunk_by_dom_keeps_non_table_text_after_a_markdown_table() -> None:
+    """A malformed next row ends the table and remains ordinary prose."""
+    chunks = chunk_by_dom(
+        "Project | Status\n--- | ---\nAlpha | Ready\nNext action without cells"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("markdown_tr", "Project | Status"),
+        ("markdown_tr", "Alpha | Ready"),
+        ("", "Next action without cells"),
+    ]
 
 def test_chunk_by_dom_labels_html_and_word_footnote_markup() -> None:
     html = (
@@ -318,6 +470,41 @@ def test_chunk_by_dom_interleaves_images_with_text_in_document_order() -> None:
     assert chunks[1].label == "image/png"
     assert chunks[1].image_data is not None
     assert chunks[2].text == "After the picture."
+
+
+def test_chunk_by_dom_interleaves_image_inside_a_block_with_text() -> None:
+    tiny_png_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+    html = f'<p>Before the picture.<img src="data:image/png;base64,{tiny_png_b64}">After the picture.</p>'
+
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.unit_type for chunk in chunks] == ["dom", "image", "dom"]
+    assert [chunk.text for chunk in chunks if chunk.unit_type == "dom"] == [
+        "Before the picture.",
+        "After the picture.",
+    ]
+
+
+def test_chunk_by_dom_keeps_an_inline_table_image_from_splitting_the_row() -> None:
+    tiny_png_b64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII="
+    html = (
+        "<table><tr><td>Before "
+        f'<img src="data:image/png;base64,{tiny_png_b64}">'
+        "After</td><td>Second cell</td></tr></table>"
+    )
+
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.text for chunk in chunks if chunk.unit_type == "dom"] == [
+        "Before After | Second cell",
+    ]
+    assert [chunk.unit_type for chunk in chunks].count("image") == 1
+
+
+def test_chunk_by_dom_does_not_split_text_for_an_undecodable_inline_image() -> None:
+    chunks = chunk_by_dom('<p>Before<img src="https://example.test/image.png">After</p>')
+
+    assert [(chunk.unit_type, chunk.text) for chunk in chunks] == [("dom", "BeforeAfter")]
 
 
 def test_chunk_by_dom_labels_text_chunks_with_their_tag_name() -> None:

@@ -1,4 +1,4 @@
--- ADR 0069: persist the member's Buyer locale on the member account.
+-- ADR 0069: persist the member's workspace locale on the member account.
 alter table user_account
     add column if not exists preferred_locale text;
 

@@ -1,6 +1,8 @@
 {
   "realm": "lineageweave-demo",
   "enabled": true,
+  "displayName": "LineageWeave",
+  "loginTheme": "lineageweave",
   "sslRequired": "none",
   "registrationAllowed": false,
   "accessTokenLifespan": 900,
@@ -57,6 +59,17 @@
             "id.token.claim": "true",
             "access.token.claim": "true",
             "userinfo.token.claim": "true"
+          }
+        },
+        {
+          "name": "lineageweave-mcp-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "config": {
+            "included.custom.audience": "__MCP_RESOURCE_URL__",
+            "id.token.claim": "false",
+            "access.token.claim": "true",
+            "lightweight.claim": "false"
           }
         }
       ]
