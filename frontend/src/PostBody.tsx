@@ -1,4 +1,10 @@
-import { splitPostBody, splitScriptRuns, normalizeScriptText, type PostBodySegment } from "./postBodyDisplay";
+import {
+  decodeHtmlEntities,
+  splitPostBody,
+  splitScriptRuns,
+  normalizeScriptText,
+  type PostBodySegment,
+} from "./postBodyDisplay";
 import { t } from "./i18n";
 import type { PostContentUnit, PostImageContent } from "./api";
 import { Fragment, type ReactNode } from "react";
@@ -140,8 +146,12 @@ function isStructuredTableRow(unit: PostContentUnit): boolean {
  * its source display is still one text segment, so ordinal matching shifts
  * indentation for every later unresolved unit.
  */
+function displayUnitText(value: string): string {
+  return decodeHtmlEntities(normalizeScriptText(value));
+}
+
 function normalizedUnitText(value: string): string {
-  return normalizeScriptText(value.replace(/\s+/g, " ").trim());
+  return displayUnitText(value).replace(/\s+/g, " ").trim();
 }
 
 /**
@@ -232,7 +242,9 @@ function renderStructuredUnits(
             {rows.map((row, rowIndex) => (
               <tr key={`post-body-table-row-${row.unit_index}-${rowIndex}`}>
                 {row.unit_text.split(/\s*\|\s*/).map((cell, cellIndex) => (
-                  <td key={`post-body-table-cell-${row.unit_index}-${cellIndex}`}>{renderStyledText(cell)}</td>
+                  <td key={`post-body-table-cell-${row.unit_index}-${cellIndex}`}>
+                    {renderStyledText(displayUnitText(cell))}
+                  </td>
                 ))}
               </tr>
             ))}
@@ -251,7 +263,7 @@ function renderStructuredUnits(
       renderSegment(
         {
           kind: "text",
-          text: unit.unit_text,
+          text: displayUnitText(unit.unit_text),
           ...(unit.unit_label === "footnote" || sourceText?.role === "footnote"
             ? { role: "footnote" as const }
             : {}),

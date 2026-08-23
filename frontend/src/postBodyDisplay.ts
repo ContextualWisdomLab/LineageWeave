@@ -39,8 +39,10 @@ export function decodeHtmlEntities(text: string): string {
   const decoder = document.createElement("textarea");
   let decoded = text;
   for (let pass = 0; pass < 3; pass += 1) {
-    decoder.innerHTML = decoded;
-    const next = decoder.value;
+    const next = decoded.replace(/&(?:#[0-9]+|#x[0-9a-f]+|[a-z][a-z0-9]+);/gi, (entity) => {
+      decoder.innerHTML = entity;
+      return decoder.value;
+    });
     if (next === decoded) break;
     decoded = next;
   }
@@ -156,8 +158,15 @@ const SUB_UNI_TO_ASCII = buildUnicodeToAsciiTable(SUB_ASCII_TO_UNI);
 const CARET_EXPONENT =
   /(?<=[A-Za-z0-9µμ°ΩÅåÅ)])\^(?:\{([+-]?\d{1,3}|[nNiI])\}|([+-]?\d{1,3}|[nNiI]))/g;
 const ENCODED_CARET = /&(?:amp;)*(?:#0*94|#x0*5e);/gi;
-const ENCODED_SCRIPT_TAG =
-  /&(?:amp;)*(?:lt|#0*60|#x0*3c);\s*\/?\s*(?:sup|sub)(?=\s|\/|&(?:amp;)*(?:gt|#0*62|#x0*3e);).*?&(?:amp;)*(?:gt|#0*62|#x0*3e);/gis;
+const ENCODED_LT = String.raw`&(?:amp;)*(?:lt|#0*60|#x0*3c);`;
+const ENCODED_GT = String.raw`&(?:amp;)*(?:gt|#0*62|#x0*3e);`;
+const ENCODED_SCRIPT_TOKEN =
+  `${ENCODED_LT}\\s*/?\\s*(?:sup|sub)(?=\\s|/|${ENCODED_GT})`;
+const ENCODED_SCRIPT_PAIR = new RegExp(
+  `${ENCODED_LT}(sup|sub)${ENCODED_GT}` +
+    `((?:(?!${ENCODED_SCRIPT_TOKEN}).)*?)${ENCODED_LT}/\\1${ENCODED_GT}`,
+  "gis",
+);
 
 function applyUnicodeScript(text: string, kind: "super" | "sub"): string {
   const table = kind === "super" ? SUPER_ASCII_TO_UNI : SUB_ASCII_TO_UNI;
@@ -185,7 +194,11 @@ function replaceHtmlScripts(text: string): string {
 
 function decodeScriptEntities(text: string): string {
   return text
-    .replace(ENCODED_SCRIPT_TAG, (tag) => decodeHtmlEntities(tag))
+    .replace(
+      ENCODED_SCRIPT_PAIR,
+      (_pair, kind: string, inner: string) =>
+        `<${kind.toLowerCase()}>${inner}</${kind.toLowerCase()}>`,
+    )
     .replace(ENCODED_CARET, (caret) => decodeHtmlEntities(caret));
 }
 
