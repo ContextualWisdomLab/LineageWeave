@@ -166,6 +166,22 @@ describe("splitPostBody", () => {
     ).toEqual([{ kind: "text", text: "Reserve 12 m³ and x² units." }]);
   });
 
+  it("keeps invalid encoded script pairs literal", () => {
+    expect(
+      splitPostBody(
+        "<p>Keep x&lt;sup&gt;2 unmatched; x&lt;sup/&gt;2 self-closing; " +
+          "x&lt;sup class=&quot;unit&quot;&gt;2&lt;/sup&gt; attributed; and " +
+          "x&lt;sup&gt;2&lt;/sub&gt; mismatched.</p>",
+      ),
+    ).toEqual([
+      {
+        kind: "text",
+        text:
+          'Keep x<sup>2 unmatched; x<sup/>2 self-closing; x<sup class="unit">2</sup> attributed; and x<sup>2</sub> mismatched.',
+      },
+    ]);
+  });
+
   it("keeps encoded non-script inline markup literal", () => {
     expect(splitPostBody("<p>Keep &lt;b&gt;bold&lt;/b&gt; literal.</p>")).toEqual([
       { kind: "text", text: "Keep <b>bold</b> literal." },

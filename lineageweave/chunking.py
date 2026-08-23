@@ -194,6 +194,18 @@ _INNER_TAG = re.compile(r"<[^>]+>")
 _CARET_EXPONENT = re.compile(
     r"(?<=[A-Za-z0-9µμ°ΩÅåÅ)])\^(?:\{([+\-]?\d{1,3}|[nNiI])\}|([+\-]?\d{1,3}|[nNiI]))"
 )
+_ENCODED_CARET = re.compile(r"&(?:amp;)*(?:#0*94|#x0*5e);", re.IGNORECASE)
+_ENCODED_LT = r"&(?:amp;)*(?:lt|#0*60|#x0*3c);"
+_ENCODED_GT = r"&(?:amp;)*(?:gt|#0*62|#x0*3e);"
+_ENCODED_SCRIPT_TOKEN = (
+    rf"{_ENCODED_LT}\s*/?\s*(?:sup|sub)(?=\s|/|{_ENCODED_GT})"
+)
+_ENCODED_SCRIPT_PAIR = re.compile(
+    rf"{_ENCODED_LT}(?P<kind>sup|sub){_ENCODED_GT}"
+    rf"(?P<inner>(?:(?!{_ENCODED_SCRIPT_TOKEN}).)*?)"
+    rf"{_ENCODED_LT}/(?P=kind){_ENCODED_GT}",
+    re.IGNORECASE | re.DOTALL,
+)
 
 
 def apply_unicode_script(text: str, kind: str) -> str:
@@ -213,13 +225,30 @@ def apply_unicode_script(text: str, kind: str) -> str:
     return f"{leading}{prefix}{compact}{trailing}"
 
 
-def _replace_html_script(match: re.Match[str], kind: str) -> str:
-    inner = match.group(1)
+def _decode_html_entities(text: str) -> str:
     for _ in range(3):
-        decoded = unescape(inner)
-        if decoded == inner:
+        decoded = unescape(text)
+        if decoded == text:
             break
-        inner = decoded
+        text = decoded
+    return text
+
+
+def _decode_script_entities(text: str) -> str:
+    decoded_pairs = _ENCODED_SCRIPT_PAIR.sub(
+        lambda match: (
+            f"<{match.group('kind').lower()}>{match.group('inner')}"
+            f"</{match.group('kind').lower()}>"
+        ),
+        text,
+    )
+    return _ENCODED_CARET.sub(
+        lambda match: _decode_html_entities(match.group(0)), decoded_pairs
+    )
+
+
+def _replace_html_script(match: re.Match[str], kind: str) -> str:
+    inner = _decode_html_entities(match.group(1))
     return apply_unicode_script(_INNER_TAG.sub("", inner), kind)
 
 
@@ -227,7 +256,7 @@ def normalize_script_text(text: str) -> str:
     """Turn HTML/caret quantity scripts into Unicode without treating comparisons as tags."""
     replaced = _CARET_EXPONENT.sub(
         lambda match: apply_unicode_script(match.group(1) or match.group(2), "sup"),
-        text,
+        _decode_script_entities(text),
     )
     replaced = _HTML_SUP.sub(lambda match: _replace_html_script(match, "sup"), replaced)
     replaced = _HTML_SUB.sub(lambda match: _replace_html_script(match, "sub"), replaced)
