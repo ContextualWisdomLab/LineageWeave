@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator, Awaitable, Callable
-from contextlib import asynccontextmanager
+from contextlib import AsyncExitStack, asynccontextmanager
 from dataclasses import asdict, dataclass
 from typing import Annotated, Any, Literal
 from urllib.parse import urlsplit
@@ -235,13 +235,15 @@ def build_mcp_server(
     @asynccontextmanager
     async def lifespan(_: MCPServer) -> AsyncIterator[McpAppContext]:
         """Open and close the MCP process-wide database and client context."""
-        pool = await pool_factory(resolved_settings.database_url)
-        rate_limiter = rate_limiter_factory(
-            resolved_settings.valkey_url,
-            resolved_settings.mcp_rate_limit_requests,
-            resolved_settings.mcp_rate_limit_window_seconds,
-        )
-        try:
+        async with AsyncExitStack() as resources:
+            pool = await pool_factory(resolved_settings.database_url)
+            resources.push_async_callback(pool.close)
+            rate_limiter = rate_limiter_factory(
+                resolved_settings.valkey_url,
+                resolved_settings.mcp_rate_limit_requests,
+                resolved_settings.mcp_rate_limit_window_seconds,
+            )
+            resources.push_async_callback(rate_limiter.close)
             yield McpAppContext(
                 pool=pool,
                 chat_client=_chat_client(resolved_settings),
@@ -252,9 +254,6 @@ def build_mcp_server(
                 external_verifier=resolved_external_verifier,
                 rate_limiter=rate_limiter,
             )
-        finally:
-            await rate_limiter.close()
-            await pool.close()
 
     mcp = MCPServer(
         "lineageweave",

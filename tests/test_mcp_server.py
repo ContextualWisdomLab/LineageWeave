@@ -235,6 +235,31 @@ async def test_global_ask_tool_is_read_only_structured_and_closes_lifespan() -> 
 
 
 @pytest.mark.asyncio
+async def test_mcp_lifespan_closes_pool_when_rate_limiter_creation_fails() -> None:
+    """A partial MCP startup cannot leak its opened database pool."""
+    cfg = settings()
+    pool = FakePool()
+
+    async def pool_factory(_database_url: str):
+        return pool
+
+    def fail_rate_limiter(_url: str, _requests: int, _window: int):
+        raise RuntimeError("synthetic limiter startup failure")
+
+    server = mcp_server.build_mcp_server(
+        cfg,
+        pool_factory=pool_factory,
+        rate_limiter_factory=fail_rate_limiter,
+    )
+
+    with pytest.raises(RuntimeError, match="synthetic limiter startup failure"):
+        async with Client(server):
+            pass
+
+    assert pool.closed is True
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "access_token",
     [None, AccessToken(token="token", client_id="codex", scopes=[], subject="")],
