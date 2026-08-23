@@ -28,6 +28,7 @@ therefore cannot extend the lock or the atomic replacement window.
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
 import asyncpg
@@ -91,6 +92,11 @@ def require_summary_source_body(body: str | None) -> str:
     return body
 
 
+def summary_input_sha256(summary_input: str) -> str:
+    """Bind a summary row to its exact normalized source/evidence text."""
+    return hashlib.sha256(summary_input.encode("utf-8")).hexdigest()
+
+
 async def require_summary_target(conn: asyncpg.Connection, post_id: str) -> None:
     """Keep W out of both persisted and on-demand summary generation."""
     state_code = await conn.fetchval(
@@ -105,6 +111,7 @@ async def fetch_persisted_summary(
     conn: asyncpg.Connection,
     post_id: str,
     *,
+    summary_input: str | None = None,
     allow_stale: bool = False,
 ) -> dict[str, Any] | None:
     """Return the stored summary payload, or None when none is usable.
@@ -114,16 +121,24 @@ async def fetch_persisted_summary(
     by ``entity_name``. Person chips read ``cataloged_person_id``. A stale
     row is returned only when ``allow_stale`` is explicit so a caller can
     preserve reader continuity without presenting old semantics as current.
+    A current row additionally requires an exact normalized-input binding.
     """
     header = await conn.fetchrow(
-        "select korean_summary, summary_contract_version "
+        "select korean_summary, summary_contract_version, summary_input_sha256 "
         "from post_summary_result where post_id = $1",
         post_id,
     )
     if header is None:
         return None
     summary_contract_version = header["summary_contract_version"]
-    if summary_contract_version != POST_SUMMARY_CONTRACT_VERSION and not allow_stale:
+    input_matches = bool(
+        summary_input is not None
+        and header.get("summary_input_sha256") == summary_input_sha256(summary_input)
+    )
+    summary_is_current = (
+        summary_contract_version == POST_SUMMARY_CONTRACT_VERSION and input_matches
+    )
+    if not summary_is_current and not allow_stale:
         return None
     events = await conn.fetch(
         """
@@ -280,9 +295,7 @@ async def fetch_persisted_summary(
         "post_id": post_id,
         "korean_summary": header["korean_summary"],
         "summary_status": (
-            "current"
-            if summary_contract_version == POST_SUMMARY_CONTRACT_VERSION
-            else "stale"
+            "current" if summary_is_current else "stale"
         ),
         "summary_contract_version": summary_contract_version,
         "key_events": [row["event_text"] for row in events],
@@ -400,16 +413,16 @@ async def persist_post_summary(
     post_id: str,
     summary: PostSummary,
     *,
-    post_body: str | None = None,
+    post_body: str,
     resolution_client: OrganizationNameResolutionClient | None = None,
     hierarchy_inference_client: CorporateHierarchyInferenceClient | None = None,
     verification_client: RelationVerificationClient | None = None,
 ) -> dict[str, Any]:
     """Replace the stored summary for ``post_id`` and return the public payload.
 
-    ``post_body`` is the context an organization-actor hierarchy proposal
-    is inferred from (ADR 0010); it falls back to the summary's own Korean
-    text when not given.  The pluggable clients default to unavailable Null
+    ``post_body`` is the exact normalized summary input and the context an
+    organization-actor hierarchy proposal is inferred from (ADR 0010). The
+    pluggable clients default to unavailable Null
     clients, so an organization actor then only resolves against an existing
     ``corporate_entity``.
 
@@ -421,8 +434,8 @@ async def persist_post_summary(
     roll back together.
     """
     await require_summary_target(conn, post_id)
-    if post_body is not None:
-        require_summary_source_body(post_body)
+    normalized_summary_input = require_summary_source_body(post_body)
+    summary_input_digest = summary_input_sha256(normalized_summary_input)
 
     hierarchy_inference_client = (
         hierarchy_inference_client or NullCorporateHierarchyInferenceClient()
@@ -430,7 +443,7 @@ async def persist_post_summary(
     resolution_client = resolution_client or NullOrganizationNameResolutionClient()
     verification_client = verification_client or NullRelationVerificationClient()
 
-    context_text = post_body if post_body is not None else summary.korean_summary
+    context_text = normalized_summary_input
     candidates = (
         await _load_corporate_entity_candidates(conn)
         if summary.roles_and_responsibilities
@@ -494,11 +507,16 @@ async def persist_post_summary(
             resolved_organization_ids,
             resolved_affiliation_names,
             resolved_affiliation_ids,
+            summary_input_digest,
             resolved_organization_reasons,
             resolved_affiliation_reasons,
         )
 
-    payload = await fetch_persisted_summary(conn, post_id)
+    payload = await fetch_persisted_summary(
+        conn,
+        post_id,
+        summary_input=normalized_summary_input,
+    )
     if payload is None:
         raise RuntimeError("persist_post_summary wrote no row")
     return payload
@@ -535,6 +553,7 @@ async def _replace_summary_projection(
     resolved_organization_ids: dict[int, str],
     resolved_affiliation_names: dict[int, str],
     resolved_affiliation_ids: dict[int, str],
+    summary_input_digest: str,
     resolved_organization_reasons: dict[int, str] | None = None,
     resolved_affiliation_reasons: dict[int, str] | None = None,
 ) -> None:
@@ -561,10 +580,12 @@ async def _replace_summary_projection(
     await conn.execute("delete from post_project_mention where post_id = $1", post_id)
     await conn.execute(
         "insert into post_summary_result "
-        "(post_id, korean_summary, summary_contract_version) values ($1, $2, $3)",
+        "(post_id, korean_summary, summary_contract_version, summary_input_sha256) "
+        "values ($1, $2, $3, $4)",
         post_id,
         summary.korean_summary,
         POST_SUMMARY_CONTRACT_VERSION,
+        summary_input_digest,
     )
     for project in summary.project_mentions:
         project_key = normalize_project_key(project.canonical_name)

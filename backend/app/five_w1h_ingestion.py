@@ -20,7 +20,7 @@ async def load_five_w1h_slots(
     can_see_post: Callable[[asyncpg.Record], bool],
 ) -> dict[str, Any]:
     """Build 5W1H from stored projections and visible lineage only."""
-    summary = await fetch_persisted_summary(conn, post_id) or {}
+    summary = await fetch_persisted_summary(conn, post_id, allow_stale=True) or {}
     evidence_claims = await conn.fetch(
         """
         select slot_code, value_text, evidence_text

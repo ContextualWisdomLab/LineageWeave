@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import psycopg2
 
 from lineageweave.http_client import get_json_list, post_form
+from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_summary import ACTOR_TYPE_PERSON, POST_SUMMARY_CONTRACT_VERSION
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 
@@ -130,6 +131,7 @@ def seed(
             cur.execute((migrations / "0023_analysis_run_outbox.sql").read_text())
             cur.execute((migrations / "0024_source_post_revision.sql").read_text())
             cur.execute((migrations / "0025_role_person_catalog_identity.sql").read_text())
+            cur.execute((migrations / "0139_post_summary_input_binding.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -524,12 +526,25 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
 
 def _write_post_summary(cur, post_id, summary) -> None:
     """Replace the stored summary for ``post_id`` (idempotent re-seed)."""
+    from backend.app.post_summary_ingestion import summary_input_sha256
+
+    cur.execute("select post_body from source_post where post_id = %s", (post_id,))
+    source_row = cur.fetchone()
+    if source_row is None:
+        raise ValueError("synthetic summary target is unavailable")
+    normalized_input = normalize_post_body(source_row[0]).text
     cur.execute("delete from post_summary_person_mention where post_id = %s", (post_id,))
     cur.execute("delete from post_summary_result where post_id = %s", (post_id,))
     cur.execute(
         "insert into post_summary_result "
-        "(post_id, korean_summary, summary_contract_version) values (%s, %s, %s)",
-        (post_id, summary.korean_summary, POST_SUMMARY_CONTRACT_VERSION),
+        "(post_id, korean_summary, summary_contract_version, summary_input_sha256) "
+        "values (%s, %s, %s, %s)",
+        (
+            post_id,
+            summary.korean_summary,
+            POST_SUMMARY_CONTRACT_VERSION,
+            summary_input_sha256(normalized_input),
+        ),
     )
     for ordinal, event_text in enumerate(summary.key_events):
         cur.execute(

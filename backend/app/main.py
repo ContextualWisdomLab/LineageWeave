@@ -3115,13 +3115,7 @@ async def read_post_summary(
             )
         except ValueError as exc:
             raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
-        stored = await fetch_persisted_summary(conn, post_id)
-        stale = await fetch_persisted_summary(conn, post_id, allow_stale=True)
         image_body = post_body_has_images(raw_body)
-        if stored is not None and not image_body:
-            return stored
-        if stale is not None and not image_body:
-            return stale
         if image_body:
             content_complete = await post_content_is_complete(
                 conn,
@@ -3141,7 +3135,11 @@ async def read_post_summary(
                 )
             if job.should_publish:
                 queue_event = (job.post_id, job.source_body_sha256)
-            summary_waiting_for_images = not await post_content_summary_is_ready(conn, post_id)
+            summary_waiting_for_images = not await post_content_summary_is_ready(
+                conn,
+                post_id,
+                job.source_body_sha256,
+            )
             if summary_waiting_for_images and queue_event is not None:
                 await publish_post_content_event(
                     valkey,
@@ -3154,6 +3152,17 @@ async def read_post_summary(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     post_content_summary_status_message(job.status_code),
                 )
+            normalized_body = await fetch_post_summary_source(conn, post_id)
+            if not normalized_body:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Post summary is unavailable: persisted post content is not available",
+                )
+            stored = await fetch_persisted_summary(
+                conn,
+                post_id,
+                summary_input=normalized_body,
+            )
             if stored is not None:
                 if queue_event is not None:
                     await publish_post_content_event(
@@ -3162,6 +3171,25 @@ async def read_post_summary(
                         source_body_digest=queue_event[1],
                     )
                 return stored
+        else:
+            normalized_body = (
+                await asyncio.to_thread(normalize_post_body, raw_body)
+            ).text
+            stored = await fetch_persisted_summary(
+                conn,
+                post_id,
+                summary_input=normalized_body,
+            )
+            if stored is not None:
+                return stored
+            stale = await fetch_persisted_summary(
+                conn,
+                post_id,
+                summary_input=normalized_body,
+                allow_stale=True,
+            )
+            if stale is not None:
+                return stale
         with use_llm_metadata(post_metadata):
             client = _post_summary_client()
             if not client.available:
@@ -3172,14 +3200,6 @@ async def read_post_summary(
             context_hints = await _load_post_semantic_hints(conn, post_id)
             summarize_with_hints = getattr(client, "summarize_with_hints", None)
             try:
-                if image_body:
-                    normalized_body = await fetch_post_summary_source(conn, post_id)
-                    if not normalized_body:
-                        raise ValueError("persisted post content is not available")
-                else:
-                    normalized_body = (
-                        await asyncio.to_thread(normalize_post_body, raw_body)
-                    ).text
                 if callable(summarize_with_hints):
                     summary = await asyncio.to_thread(
                         summarize_with_hints, post["post_title"], normalized_body, context_hints

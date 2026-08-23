@@ -23,8 +23,10 @@ though the source post remains authorized and available.
    `summary_status: "stale"` and its stored contract version. This continuity
    applies immediately to text-only posts. An image-bearing stale summary is
    withheld until its persisted parent and region descriptions are complete,
-   then regenerated because the current schema does not bind the stale row to
-   the current body and image-evidence snapshot.
+   then regenerated unless its persisted normalized summary-input SHA-256
+   matches the exact current ordered image-evidence text. Legacy rows with no
+   input binding are never current. For text-only posts, a normalized-input
+   mismatch downgrades a current-contract row to explicit stale continuity.
 3. The buyer popup labels the stale state and offers a retry action. Stale
    content is never labelled current and is never used to create new catalog
    identities or semantic rows.

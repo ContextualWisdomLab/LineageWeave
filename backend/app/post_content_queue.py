@@ -149,12 +149,20 @@ async def post_content_is_complete(
 async def post_content_summary_is_ready(
     conn: asyncpg.Connection,
     post_id: str,
+    source_body_digest: str,
 ) -> bool:
-    """Require every embedded image and visual region to have VISION evidence."""
+    """Require current-body success and complete persisted VISION evidence."""
     return bool(
         await conn.fetchval(
             """
             select exists(
+                       select 1
+                         from post_content_ingestion_job job
+                        where job.post_id = $1
+                          and job.source_body_sha256 = $2
+                          and job.status_code = $3
+                   )
+               and exists(
                        select 1
                          from post_content_unit unit
                         where unit.post_id = $1
@@ -179,6 +187,8 @@ async def post_content_summary_is_ready(
                )
             """,
             post_id,
+            source_body_digest,
+            SUCCEEDED,
         )
     )
 
@@ -187,21 +197,43 @@ async def fetch_post_summary_source(
     conn: asyncpg.Connection,
     post_id: str,
 ) -> str | None:
-    """Return persisted semantic units, including completed image evidence."""
+    """Return ordered semantic units plus persisted region VISION evidence."""
     rows = await conn.fetch(
         """
-        select unit_text
-          from post_content_unit
-         where post_id = $1
-         order by unit_index
+        select unit.unit_index, unit.unit_text,
+               region.region_index, region.extracted_text, region.image_caption
+          from post_content_unit unit
+          left join post_content_image image
+            on image.post_content_unit_id = unit.post_content_unit_id
+          left join post_content_image_region region
+            on region.post_content_image_id = image.post_content_image_id
+         where unit.post_id = $1
+         order by unit.unit_index, region.region_index
         """,
         post_id,
     )
-    source = "\n\n".join(
-        str(row["unit_text"]).strip()
-        for row in rows
-        if isinstance(row["unit_text"], str) and row["unit_text"].strip()
-    )
+    source_parts: list[str] = []
+    previous_unit_index: int | None = None
+    for row in rows:
+        unit_index = int(row["unit_index"])
+        if unit_index != previous_unit_index:
+            unit_text = row["unit_text"]
+            if isinstance(unit_text, str) and unit_text.strip():
+                source_parts.append(unit_text.strip())
+            previous_unit_index = unit_index
+        region_index = row["region_index"]
+        if region_index is None:
+            continue
+        region_evidence = [
+            value.strip()
+            for value in (row["image_caption"], row["extracted_text"])
+            if isinstance(value, str) and value.strip()
+        ]
+        if region_evidence:
+            source_parts.append(
+                f"[image region {int(region_index)}]\n" + "\n".join(region_evidence)
+            )
+    source = "\n\n".join(source_parts)
     return source or None
 
 

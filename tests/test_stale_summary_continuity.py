@@ -1,6 +1,7 @@
 """Regression tests for reader-visible stale summary continuity."""
 
 import asyncio
+import hashlib
 from types import SimpleNamespace
 from typing import Self
 
@@ -9,6 +10,7 @@ import pytest
 from backend.app import main
 from backend.app.post_content_queue import FAILED, QUEUED, SUCCEEDED
 from backend.app.post_summary_ingestion import fetch_persisted_summary
+from lineageweave.post_summary import POST_SUMMARY_CONTRACT_VERSION
 
 
 class _StaleSummaryConnection:
@@ -22,6 +24,21 @@ class _StaleSummaryConnection:
 
     async def fetch(self, query: str, post_id: str) -> list[dict[str, object]]:
         return []
+
+
+class _BoundSummaryConnection(_StaleSummaryConnection):
+    """One current-contract row with a configurable normalized-input binding."""
+
+    def __init__(self, summary_input_sha256: str | None) -> None:
+        self.summary_input_sha256 = summary_input_sha256
+
+    async def fetchrow(self, query: str, post_id: str) -> dict[str, object]:
+        assert "summary_input_sha256" in query
+        return {
+            "korean_summary": "Persisted synthetic evidence.",
+            "summary_contract_version": POST_SUMMARY_CONTRACT_VERSION,
+            "summary_input_sha256": self.summary_input_sha256,
+        }
 
 
 def test_stale_summary_is_hidden_by_default() -> None:
@@ -39,6 +56,65 @@ def test_stale_summary_can_be_returned_with_explicit_status() -> None:
     assert result["summary_status"] == "stale"
     assert result["summary_contract_version"] == 18
     assert result["korean_summary"] == "Previously persisted evidence."
+
+
+def test_current_summary_requires_exact_normalized_input_binding() -> None:
+    normalized_input = "Synthetic normalized evidence."
+    digest = hashlib.sha256(normalized_input.encode("utf-8")).hexdigest()
+    connection = _BoundSummaryConnection(digest)
+
+    current = asyncio.run(
+        fetch_persisted_summary(
+            connection,
+            "post-id",
+            summary_input=normalized_input,
+        )
+    )
+    mismatch = asyncio.run(
+        fetch_persisted_summary(
+            connection,
+            "post-id",
+            summary_input="Revised synthetic evidence.",
+        )
+    )
+    revised_stale = asyncio.run(
+        fetch_persisted_summary(
+            connection,
+            "post-id",
+            summary_input="Revised synthetic evidence.",
+            allow_stale=True,
+        )
+    )
+
+    assert current is not None
+    assert current["summary_status"] == "current"
+    assert mismatch is None
+    assert revised_stale is not None
+    assert revised_stale["summary_status"] == "stale"
+
+
+def test_legacy_unbound_summary_is_only_explicit_stale_continuity() -> None:
+    connection = _BoundSummaryConnection(None)
+
+    current = asyncio.run(
+        fetch_persisted_summary(
+            connection,
+            "post-id",
+            summary_input="Synthetic normalized evidence.",
+        )
+    )
+    stale = asyncio.run(
+        fetch_persisted_summary(
+            connection,
+            "post-id",
+            summary_input="Synthetic normalized evidence.",
+            allow_stale=True,
+        )
+    )
+
+    assert current is None
+    assert stale is not None
+    assert stale["summary_status"] == "stale"
 
 
 def test_reader_returns_stale_summary_without_waiting_for_orchestrator(
@@ -69,8 +145,10 @@ def test_reader_returns_stale_summary_without_waiting_for_orchestrator(
         _conn: object,
         _post_id: str,
         *,
+        summary_input: str | None = None,
         allow_stale: bool = False,
     ) -> dict[str, object] | None:
+        assert summary_input == "Synthetic release chronology."
         if not allow_stale:
             return None
         return {
@@ -138,6 +216,7 @@ def _configure_image_summary_read(
     job_status: str,
     current_summary: dict[str, object] | None,
     stale_summary: dict[str, object] | None = None,
+    stored_summary_input: str | None = "Synthetic persisted image evidence.",
 ) -> list[str]:
     """Install a synthetic image-read boundary and return readiness calls."""
     readiness_calls: list[str] = []
@@ -149,9 +228,16 @@ def _configure_image_summary_read(
         _conn: object,
         _post_id: str,
         *,
+        summary_input: str | None = None,
         allow_stale: bool = False,
     ) -> dict[str, object] | None:
-        return stale_summary if allow_stale else current_summary
+        if not ready:
+            raise AssertionError("summary rows must not be read before current image readiness")
+        if allow_stale:
+            return stale_summary
+        if summary_input != stored_summary_input:
+            return None
+        return current_summary
 
     async def content_complete(*_args: object, **_kwargs: object) -> bool:
         return ready
@@ -164,9 +250,17 @@ def _configure_image_summary_read(
             source_body_sha256="a" * 64,
         )
 
-    async def summary_ready(_conn: object, post_id: str) -> bool:
+    async def summary_ready(
+        _conn: object,
+        post_id: str,
+        source_body_digest: str,
+    ) -> bool:
+        assert source_body_digest == "a" * 64
         readiness_calls.append(post_id)
         return ready
+
+    async def summary_source(_conn: object, _post_id: str) -> str:
+        return "Synthetic persisted image evidence."
 
     monkeypatch.setattr(main, "_load_visible_post", load_visible_post)
     monkeypatch.setattr(main, "build_post_llm_metadata", lambda *_args: {})
@@ -175,6 +269,7 @@ def _configure_image_summary_read(
     monkeypatch.setattr(main, "post_content_is_complete", content_complete)
     monkeypatch.setattr(main, "ensure_post_content_job", ensure_job)
     monkeypatch.setattr(main, "post_content_summary_is_ready", summary_ready)
+    monkeypatch.setattr(main, "fetch_post_summary_source", summary_source)
     monkeypatch.setattr(
         main,
         "load_settings",
@@ -278,6 +373,37 @@ def test_ready_image_evidence_does_not_return_unbound_stale_summary(
         job_status=SUCCEEDED,
         current_summary=None,
         stale_summary=stale,
+    )
+    monkeypatch.setattr(
+        main,
+        "_post_summary_client",
+        lambda: SimpleNamespace(available=False),
+    )
+
+    with pytest.raises(main.HTTPException, match="ORCHESTRATOR_BASE_URL"):
+        asyncio.run(
+            main.read_post_summary(
+                "synthetic-post",
+                account=object(),
+                pool=_ImageSummaryPool(),
+                valkey=None,
+            )
+        )
+
+    assert calls == ["synthetic-post"]
+
+
+def test_same_body_changed_image_evidence_regenerates_summary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Changed persisted VISION text invalidates a same-body summary binding."""
+    current = {"summary_status": "current", "korean_summary": "Old synthetic summary."}
+    calls = _configure_image_summary_read(
+        monkeypatch,
+        ready=True,
+        job_status=SUCCEEDED,
+        current_summary=current,
+        stored_summary_input="Earlier persisted image evidence.",
     )
     monkeypatch.setattr(
         main,

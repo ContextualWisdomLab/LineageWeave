@@ -77,11 +77,14 @@ operation in ADR 0115 remain unchanged.
 
 The narrower `post_content_summary_is_ready` predicate checks only the
 persisted VISION evidence required by an image-bearing summary; embeddings and
-non-image structure decisions remain outside that predicate. The summary read
-path may enqueue or observe the durable job, but MUST NOT call VISION directly
+non-image structure decisions remain outside that predicate. Readiness also
+requires the durable job row to match the current raw-body SHA-256 and have
+status `post_content_ingestion_succeeded`; described units from an earlier
+body cannot make a newly queued, running, or failed revision ready. The
+summary read path may enqueue or observe the durable job. It MUST NOT call VISION directly
 or summarize an unavailable image placeholder. Queued and running jobs remain
-processing. A terminal failed job remains unavailable until ADR 0115's
-explicit operator retry.
+processing. A terminal failed job remains unavailable until ADR 0115's explicit
+operator retry.
 
 When contextual-orchestrator is configured, the same predicate also requires
 every persisted unit to have a non-`unresolved` structure decision. Without an

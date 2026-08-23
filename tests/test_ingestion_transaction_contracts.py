@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import uuid
 from pathlib import Path
 from types import SimpleNamespace
@@ -183,6 +184,7 @@ class _SummaryConnection:
     def __init__(self, events: list[Any]) -> None:
         self._events = events
         self.in_transaction = False
+        self.summary_input_sha256: str | None = None
 
     def transaction(self) -> _RecordedTransaction:
         self._events.append("transaction:open")
@@ -191,17 +193,24 @@ class _SummaryConnection:
     async def execute(self, query: str, *args: Any) -> str:
         assert self.in_transaction
         compact = " ".join(query.split())
-        self._events.append(("execute", compact))
+        self._events.append(("execute", compact, args))
+        if compact.startswith("insert into post_summary_result"):
+            assert "summary_input_sha256" in compact
+            self.summary_input_sha256 = args[-1]
         return "OK"
 
     async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
         compact = " ".join(query.split())
         self._events.append(("fetchrow", compact))
-        if compact.startswith("select korean_summary, summary_contract_version from post_summary_result"):
+        if compact.startswith(
+            "select korean_summary, summary_contract_version, summary_input_sha256 "
+            "from post_summary_result"
+        ):
             assert not self.in_transaction
             return {
                 "korean_summary": "합성 요약",
                 "summary_contract_version": POST_SUMMARY_CONTRACT_VERSION,
+                "summary_input_sha256": self.summary_input_sha256,
             }
         if compact.startswith("select resolved_organization_name, verification_status_code"):
             assert not self.in_transaction
@@ -299,6 +308,7 @@ def test_post_summary_replacement_mentions_and_edges_share_one_transaction(monke
             connection,
             str(uuid.uuid4()),
             summary,
+            post_body="Synthetic normalized summary input.",
         )
     )
 
@@ -327,6 +337,9 @@ def test_post_summary_replacement_mentions_and_edges_share_one_transaction(monke
     assert enter_index < events.index("team_upsert") < exit_index
     assert enter_index < events.index("edge_persist") < exit_index
     assert payload["korean_summary"] == "합성 요약"
+    assert connection.summary_input_sha256 == hashlib.sha256(
+        b"Synthetic normalized summary input."
+    ).hexdigest()
 
 
 def test_organization_enrichment_finishes_before_summary_transaction(monkeypatch) -> None:
@@ -376,6 +389,7 @@ def test_organization_enrichment_finishes_before_summary_transaction(monkeypatch
             connection,
             str(uuid.uuid4()),
             summary,
+            post_body="Synthetic organization evidence.",
         )
     )
 
@@ -521,6 +535,8 @@ def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
     """A persisted person role keeps catalog_node_id for the chip button."""
 
     person_id = str(uuid.uuid4())
+    summary_input = "Synthetic person projection evidence."
+    summary_digest = hashlib.sha256(summary_input.encode("utf-8")).hexdigest()
     events: list[Any] = []
 
     class _PersonFetchConnection:
@@ -529,10 +545,14 @@ def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
         async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
             compact = " ".join(query.split())
             events.append(("fetchrow", compact))
-            if compact.startswith("select korean_summary, summary_contract_version from post_summary_result"):
+            if compact.startswith(
+                "select korean_summary, summary_contract_version, summary_input_sha256 "
+                "from post_summary_result"
+            ):
                 return {
                     "korean_summary": "합성 요약",
                     "summary_contract_version": POST_SUMMARY_CONTRACT_VERSION,
+                    "summary_input_sha256": summary_digest,
                 }
             raise AssertionError(f"unexpected fetchrow query: {compact}")
 
@@ -572,7 +592,11 @@ def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
             raise AssertionError(f"unexpected fetch query: {compact}")
 
     payload = asyncio.run(
-        summary_ingestion.fetch_persisted_summary(_PersonFetchConnection(), str(uuid.uuid4()))
+        summary_ingestion.fetch_persisted_summary(
+            _PersonFetchConnection(),
+            str(uuid.uuid4()),
+            summary_input=summary_input,
+        )
     )
     assert payload is not None
     role = payload["roles_and_responsibilities"][0]
@@ -648,6 +672,7 @@ def test_persist_stores_earliest_person_catalog_id(monkeypatch) -> None:
                     ),
                 ),
             ),
+            post_body="Synthetic person evidence.",
         )
     )
     role_insert = next(
@@ -698,6 +723,7 @@ def test_persist_leaves_uncataloged_person_unbound(monkeypatch) -> None:
                     ),
                 ),
             ),
+            post_body="Synthetic uncataloged person evidence.",
         )
     )
     mention_inserts = [

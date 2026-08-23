@@ -17,6 +17,7 @@ from backend.app.post_content_queue import (
     QUEUED,
     RUNNING,
     SUCCEEDED,
+    fetch_post_summary_source,
     record_post_content_backfill_success,
     requeue_failed_post_content_job,
     post_content_api_status,
@@ -68,20 +69,33 @@ def test_adrs_keep_post_open_separate_from_image_summary_readiness() -> None:
     stale_contract = (
         _ROOT / "docs/adr/0114-stale-summary-buyer-continuity.md"
     ).read_text()
+    semantic_contract = " ".join(semantic_contract.split())
+    ingestion_contract = " ".join(ingestion_contract.split())
+    stale_contract = " ".join(stale_contract.split())
 
     assert "Source-post open and source rendering" in semantic_contract
     assert "withholds both current and stale persisted summaries" in semantic_contract
     assert "never blocks source-post open or source" in ingestion_contract
     assert "MUST NOT call VISION directly" in ingestion_contract
     assert "image-bearing stale summary is" in stale_contract
-    assert "does not bind the stale row" in stale_contract
+    assert "normalized summary-input SHA-256" in semantic_contract
+    assert "durable job row to match the current raw-body SHA-256" in ingestion_contract
+    assert "Legacy rows with no input binding are never current" in stale_contract
 
 
 def test_summary_waits_for_image_evidence_and_detects_images_without_body_logging() -> None:
     class FakeConnection:
-        async def fetchval(self, query: str, *_args: object) -> int:
+        async def fetchval(self, query: str, *args: object) -> int:
+            assert "post_content_ingestion_job" in query
+            assert "job.source_body_sha256 = $2" in query
+            assert "job.status_code = $3" in query
             assert "post_content_image" in query
             assert "description_status_code <> 'described'" in query
+            assert args == (
+                "00000000-0000-0000-0000-000000000001",
+                "ab" * 32,
+                SUCCEEDED,
+            )
             return 0
 
     assert post_body_has_images(
@@ -91,10 +105,70 @@ def test_summary_waits_for_image_evidence_and_detects_images_without_body_loggin
     assert (
         asyncio.run(
             post_content_summary_is_ready(
-                FakeConnection(), "00000000-0000-0000-0000-000000000001"
+                FakeConnection(),
+                "00000000-0000-0000-0000-000000000001",
+                "ab" * 32,
             )
         )
         is False
+    )
+
+
+def test_summary_input_binding_migration_is_wired_for_every_database_path() -> None:
+    migration = (_ROOT / "migrations/0139_post_summary_input_binding.sql").read_text()
+    rollback = (
+        _ROOT / "migrations/rollback/0139_post_summary_input_binding.sql"
+    ).read_text()
+    initial = (_ROOT / "migrations/0001_initial_schema.sql").read_text()
+    standalone = (_ROOT / "migrations/0008_post_summary_result.sql").read_text()
+    replay = (_ROOT / "docker/postgres-init/migrate.sh").read_text()
+    seed = (_ROOT / "scripts/seed_demo_data.py").read_text()
+
+    assert "add column if not exists summary_input_sha256" in migration
+    assert "post_summary_result_summary_input_sha256_check" in migration
+    assert "drop column if exists summary_input_sha256" in rollback
+    assert "summary_input_sha256 text" in initial
+    assert "summary_input_sha256 text" in standalone
+    assert "0139_*" in replay
+    assert "0139_post_summary_input_binding.sql" in seed
+
+
+def test_summary_source_orders_parent_and_region_vision_evidence() -> None:
+    class FakeConnection:
+        async def fetch(self, query: str, post_id: str) -> list[dict[str, object]]:
+            assert "post_content_image_region" in query
+            assert "order by unit.unit_index, region.region_index" in query
+            return [
+                {
+                    "unit_index": 0,
+                    "unit_text": "Synthetic paragraph.",
+                    "region_index": None,
+                    "extracted_text": None,
+                    "image_caption": None,
+                },
+                {
+                    "unit_index": 1,
+                    "unit_text": "[image: Synthetic parent caption.]",
+                    "region_index": 0,
+                    "extracted_text": "Synthetic table header",
+                    "image_caption": "Synthetic upper region.",
+                },
+                {
+                    "unit_index": 1,
+                    "unit_text": "[image: Synthetic parent caption.]",
+                    "region_index": 1,
+                    "extracted_text": "Synthetic table row",
+                    "image_caption": "Synthetic lower region.",
+                },
+            ]
+
+    source = asyncio.run(fetch_post_summary_source(FakeConnection(), "synthetic-post"))
+
+    assert source == (
+        "Synthetic paragraph.\n\n"
+        "[image: Synthetic parent caption.]\n\n"
+        "[image region 0]\nSynthetic upper region.\nSynthetic table header\n\n"
+        "[image region 1]\nSynthetic lower region.\nSynthetic table row"
     )
 
 

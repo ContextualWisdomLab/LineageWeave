@@ -101,6 +101,11 @@ _PLANNED_FACILITY_RELATIONSHIP_PREDICATE_MIGRATION = (
     / "migrations"
     / "0138_planned_facility_relation_predicate.sql"
 )
+_SUMMARY_INPUT_BINDING_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0139_post_summary_input_binding.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -159,6 +164,9 @@ def schema_db():
                 )
                 cur.execute(planned_predicate_migration)
                 cur.execute(planned_predicate_migration)
+                summary_input_migration = _SUMMARY_INPUT_BINDING_MIGRATION.read_text()
+                cur.execute(summary_input_migration)
+                cur.execute(summary_input_migration)
             conn.commit()
             yield conn
         finally:
@@ -215,6 +223,21 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_summary_semantic_relationship",
     }
     assert expected <= tables
+
+
+def test_summary_result_accepts_only_normalized_sha256_binding(schema_db) -> None:
+    with schema_db.cursor() as cur:
+        cur.execute(
+            "select is_nullable from information_schema.columns "
+            "where table_name = 'post_summary_result' "
+            "and column_name = 'summary_input_sha256'"
+        )
+        assert cur.fetchone() == ("YES",)
+        cur.execute(
+            "select pg_get_constraintdef(oid) from pg_constraint "
+            "where conname = 'post_summary_result_summary_input_sha256_check'"
+        )
+        assert "[0-9a-f]{64}" in cur.fetchone()[0]
 
 
 def test_planned_facility_relationship_predicate_persists(schema_db) -> None:
