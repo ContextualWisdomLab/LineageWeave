@@ -46,6 +46,7 @@ class Settings:
     valkey_url: str
     searxng_base_url: str
     tepp_transport_url: str
+    tepp_temporal_context_url: str
     tepp_api_key: str
     caldav_base_url: str
     rankweave_disabled: bool
@@ -133,6 +134,7 @@ def load_settings() -> Settings:
         valkey_url=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
         searxng_base_url=os.environ.get("SEARXNG_BASE_URL", ""),
         tepp_transport_url=os.environ.get("TEPP_TRANSPORT_URL", ""),
+        tepp_temporal_context_url=os.environ.get("TEPP_TEMPORAL_CONTEXT_URL", ""),
         tepp_api_key=os.environ.get("TEPP_API_KEY", ""),
         caldav_base_url=os.environ.get("CALDAV_BASE_URL", "").strip(),
         rankweave_disabled=os.environ.get("RANKWEAVE_DISABLED", "")

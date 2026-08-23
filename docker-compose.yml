@@ -166,6 +166,7 @@ services:
       LLM_GATEWAY_EMBEDDING_MODEL: ${LLM_GATEWAY_EMBEDDING_MODEL:-text-embedding-3-large}
       SEARXNG_BASE_URL: http://searxng:8080
       TEPP_TRANSPORT_URL: ${TEPP_TRANSPORT_URL:-}
+      TEPP_TEMPORAL_CONTEXT_URL: ${TEPP_TEMPORAL_CONTEXT_URL:-http://127.0.0.1:18081/v1/temporal-context}
       TEPP_API_KEY: ${TEPP_API_KEY:-}
       CALDAV_BASE_URL: ${CALDAV_BASE_URL:-}
       RANKWEAVE_DISABLED: ${RANKWEAVE_DISABLED:-}
@@ -184,6 +185,13 @@ services:
         condition: service_healthy
       searxng:
         condition: service_healthy
+
+  tepp:
+    build:
+      context: ${TEPP_SOURCE_DIR:-../TEPP}
+    network_mode: service:backend
+    depends_on:
+      - backend
 
   frontend:
     build:

@@ -13,6 +13,7 @@ import hashlib
 import json
 from datetime import datetime, timezone
 from typing import Any
+from urllib.parse import urlparse
 from uuid import UUID
 
 import asyncpg
@@ -88,7 +89,11 @@ def start_kind_rejection(run_kind_code: str) -> AnalysisRunStartError | None:
     )
 
 
-def configured_tepp_client(transport_url: str = "", api_key: str = "") -> TeppClient:
+def configured_tepp_client(
+    transport_url: str = "",
+    api_key: str = "",
+    temporal_context_url: str = "",
+) -> TeppClient:
     """Build a TEPP client from an optional HTTP transport URL.
 
     An empty URL keeps the default unavailable transport. A set URL
@@ -96,17 +101,51 @@ def configured_tepp_client(transport_url: str = "", api_key: str = "") -> TeppCl
     stay unavailable -- this is not a local psychometric substitute.
     """
     url = transport_url.strip()
-    if not url:
+    temporal_url = temporal_context_url.strip()
+    if not url and not temporal_url:
         return TeppClient()
+
+    def unavailable_transport(_payload: dict[str, Any]) -> dict[str, Any]:
+        raise TeppNotAvailable("TEPP analysis-run transport unavailable")
 
     def transport(payload: dict[str, Any]) -> dict[str, Any]:
         try:
-            headers = {"authorization": f"Bearer {api_key}"} if api_key.strip() else {}
-            return post_json(url, payload, headers=headers, timeout=30.0)
+            headers = {
+                "tepp-consumer": "lineageweave",
+                "tepp-contract-version": "1",
+                "idempotency-key": str(payload["idempotency_key"]),
+            }
+            return post_json(
+                url,
+                payload,
+                headers=headers,
+                timeout=30.0,
+                include_context_metadata=False,
+            )
         except (HttpClientError, OSError, ValueError, TypeError) as exc:
             raise TeppNotAvailable("TEPP transport unavailable") from exc
 
-    return TeppClient(transport=transport)
+    def temporal_transport(payload: dict[str, Any]) -> dict[str, Any]:
+        if not temporal_url:
+            raise TeppNotAvailable("TEPP temporal-context transport unavailable")
+        try:
+            headers = {"tepp-consumer": "lineageweave", "tepp-contract-version": "1"}
+            if urlparse(temporal_url).hostname == "host.docker.internal":
+                headers["host"] = "127.0.0.1"
+            return post_json(
+                temporal_url,
+                payload,
+                headers=headers,
+                timeout=10.0,
+                include_context_metadata=False,
+            )
+        except (HttpClientError, OSError, ValueError, TypeError) as exc:
+            raise TeppNotAvailable("TEPP temporal-context transport unavailable") from exc
+
+    return TeppClient(
+        transport=transport if url else unavailable_transport,
+        temporal_transport=temporal_transport,
+    )
 
 
 def tepp_run_request(
