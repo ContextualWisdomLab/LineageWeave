@@ -166,6 +166,30 @@ describe("splitPostBody", () => {
     ).toEqual([{ kind: "text", text: "Reserve 12 m³ and x² units." }]);
   });
 
+  it("keeps encoded non-script inline markup literal", () => {
+    expect(splitPostBody("<p>Keep &lt;b&gt;bold&lt;/b&gt; literal.</p>")).toEqual([
+      { kind: "text", text: "Keep <b>bold</b> literal." },
+    ]);
+  });
+
+  it("keeps encoded non-script block markup literal", () => {
+    expect(
+      splitPostBody(
+        "<p>Keep &lt;table&gt;&lt;tr&gt;&lt;td&gt;grid&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt; literal.</p>",
+      ),
+    ).toEqual([
+      { kind: "text", text: "Keep <table><tr><td>grid</td></tr></table> literal." },
+    ]);
+  });
+
+  it("normalizes nested-encoded script tags and their inner entity", () => {
+    expect(
+      splitPostBody(
+        "<p>Volume is m&amp;lt;sup&amp;gt;&amp;nbsp;3&amp;lt;/sup&amp;gt;.</p>",
+      ),
+    ).toEqual([{ kind: "text", text: "Volume is m ³." }]);
+  });
+
   it("matches sup/sub content split across a newline", () => {
     // Pretty-printed source HTML puts tag content on its own line
     // (regression: the regex lacked the dotAll flag, so `.` could not cross

@@ -155,6 +155,9 @@ const SUPER_UNI_TO_ASCII = buildUnicodeToAsciiTable(SUPER_ASCII_TO_UNI);
 const SUB_UNI_TO_ASCII = buildUnicodeToAsciiTable(SUB_ASCII_TO_UNI);
 const CARET_EXPONENT =
   /(?<=[A-Za-z0-9µμ°ΩÅåÅ)])\^(?:\{([+-]?\d{1,3}|[nNiI])\}|([+-]?\d{1,3}|[nNiI]))/g;
+const ENCODED_CARET = /&(?:amp;)*(?:#0*94|#x0*5e);/gi;
+const ENCODED_SCRIPT_TAG =
+  /&(?:amp;)*(?:lt|#0*60|#x0*3c);\s*\/?\s*(?:sup|sub)\b.*?&(?:amp;)*(?:gt|#0*62|#x0*3e);/gis;
 
 function applyUnicodeScript(text: string, kind: "super" | "sub"): string {
   const table = kind === "super" ? SUPER_ASCII_TO_UNI : SUB_ASCII_TO_UNI;
@@ -173,15 +176,21 @@ function applyUnicodeScript(text: string, kind: "super" | "sub"): string {
 function replaceHtmlScripts(text: string): string {
   return text
     .replace(/<sup\b[^>]*>(.*?)<\/sup>/gis, (_match, inner: string) =>
-      applyUnicodeScript(String(inner).replace(/<[^>]+>/g, ""), "super"),
+      applyUnicodeScript(decodeHtmlEntities(String(inner).replace(/<[^>]+>/g, "")), "super"),
     )
     .replace(/<sub\b[^>]*>(.*?)<\/sub>/gis, (_match, inner: string) =>
-      applyUnicodeScript(String(inner).replace(/<[^>]+>/g, ""), "sub"),
+      applyUnicodeScript(decodeHtmlEntities(String(inner).replace(/<[^>]+>/g, "")), "sub"),
     );
 }
 
+function decodeScriptEntities(text: string): string {
+  return text
+    .replace(ENCODED_SCRIPT_TAG, (tag) => decodeHtmlEntities(tag))
+    .replace(ENCODED_CARET, (caret) => decodeHtmlEntities(caret));
+}
+
 export function normalizeScriptText(text: string): string {
-  const withCarets = decodeHtmlEntities(text).replace(
+  const withCarets = decodeScriptEntities(text).replace(
     CARET_EXPONENT,
     (_match, braced: string, bare: string) => applyUnicodeScript(braced || bare, "super"),
   );
@@ -251,7 +260,7 @@ function stripHtmlTags(text: string): string {
   const withoutTags = withBoundaries.replace(HTML_TAG, (tag) =>
     /^<\/?w:/i.test(tag) ? "" : " ",
   );
-  return withoutTags
+  return decodeHtmlEntities(withoutTags)
     .split("\n")
     .map((line) => {
       if (!line.trim()) return "";
