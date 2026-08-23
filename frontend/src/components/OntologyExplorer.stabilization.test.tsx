@@ -297,6 +297,10 @@ describe("OntologyExplorer stabilization contracts", () => {
     await userEvent.click(screen.getByRole("button", { name: "Focus this node next" }));
     expect(await screen.findByText("Focused person")).toBeInTheDocument();
     expect(String(fetchMock.mock.calls[0][0])).toContain(`focus_node_id=${PERSON_ID}`);
+
+    await userEvent.click(screen.getByRole("button", { name: "Reset focus" }));
+    await waitFor(() => expect(screen.getAllByText("Demo post")).toHaveLength(2));
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("accumulates the next page without losing the selected evidence", async () => {

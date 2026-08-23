@@ -148,6 +148,7 @@ export function OntologyExplorer({
     setFocusId(focusNodeId);
     setCursor(undefined);
     setPageRetry(0);
+    setLiveFocus(false);
     setSelectedNodeKey(null);
     setSelectedEdgeId(null);
     setQuery("");
