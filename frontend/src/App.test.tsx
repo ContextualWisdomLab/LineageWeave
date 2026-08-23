@@ -78,6 +78,14 @@ describe("App, authenticated", () => {
         post_id: string;
         post_title: string;
         fused_rank: number;
+        channel_evidence?: {
+          signal_code: string;
+          signal_label: string;
+          channel_rank: number;
+          weight: number;
+          contribution: number;
+          rank: number;
+        }[];
       }[];
     };
     chatUnavailable?: boolean;
@@ -2592,11 +2600,47 @@ describe("App, authenticated", () => {
             post_id: "post-1",
             post_title: "Public post",
             fused_rank: 1,
+            channel_evidence: [
+              {
+                signal_code: "lexical",
+                signal_label: "Title overlap",
+                channel_rank: 2,
+                weight: 0.75,
+                contribution: 0.75 / 62,
+                rank: 1,
+              },
+              {
+                signal_code: "temporal",
+                signal_label: "Newest first",
+                channel_rank: 2,
+                weight: 0.25,
+                contribution: 0.25 / 62,
+                rank: 2,
+              },
+            ],
           },
           {
             post_id: "post-2",
             post_title: "Pricing renegotiation: revised quote sent",
             fused_rank: 2,
+            channel_evidence: [
+              {
+                signal_code: "lexical",
+                signal_label: "Title overlap",
+                channel_rank: 1,
+                weight: 0.75,
+                contribution: 0.75 / 61,
+                rank: 1,
+              },
+              {
+                signal_code: "temporal",
+                signal_label: "Newest first",
+                channel_rank: 1,
+                weight: 0.25,
+                contribution: 0.25 / 61,
+                rank: 2,
+              },
+            ],
           },
         ],
       },
@@ -2609,6 +2653,17 @@ describe("App, authenticated", () => {
     expect(rankingButton).toHaveTextContent("Public post");
     expect(rankingButton).toHaveTextContent("Rankings · rankweave");
     expect(rankingButton).toHaveTextContent("rank 1");
+    expect(
+      screen.getByText(
+        "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("list", { name: "Ranking evidence for Public post" }),
+    ).toHaveTextContent("Title overlap rank 2, contribution 0.012097");
+    expect(
+      screen.getByRole("list", { name: "Ranking evidence for Public post" }),
+    ).toHaveTextContent("Newest first rank 2, contribution 0.004032");
     expect(screen.queryByRole("button", { name: /open ranking: private parent/i })).not.toBeInTheDocument();
 
     await userEvent.click(rankingButton);
