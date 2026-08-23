@@ -3361,6 +3361,9 @@ describe("App, authenticated", () => {
       "Open this post so the leftover criterion is current in Post quality.",
     );
     expect(closestPair).toHaveTextContent("d 0.12");
+    expect(closestPair).toHaveAccessibleName(
+      "Open leftover closest pair: Public post · sales-lead · Open this post so the leftover criterion is current in Post quality. · d 0.12",
+    );
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
       "Open this post so the leftover criterion is current in Post quality.",

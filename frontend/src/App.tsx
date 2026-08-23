@@ -3459,7 +3459,7 @@ function ReportsPanel({
                     >
                       <button
                         className="post-list-item"
-                        aria-label={`Open leftover ${pair.pair_kind} pair: ${pair.post_title} · ${criterion}`}
+                        aria-label={`Open leftover ${pair.pair_kind} pair: ${pair.post_title} · ${criterion} · ${nextAction} · d ${pair.leftover_distance.toFixed(2)}`}
                         onClick={() =>
                           onSelectPost(pair.post_id, {
                             fromLeftoverPair: {
