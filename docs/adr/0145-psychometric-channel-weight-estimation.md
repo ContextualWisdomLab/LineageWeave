@@ -32,7 +32,7 @@ exactly that information (McNeish & Wolf, 2020). Pairs are nested inside
 reconstruction groups (process unit / corporate entity / thread), so a
 single-level fit would commit the ecological/atomistic inference error
 the standing mandate calls out (Robinson, 1950); `fast-mlsirm`'s MLS2PLM
-is a *multilevel* 2PL whose `factor_id` models exactly this nesting, and
+is a *multilevel* 2PL whose `cluster_id` models exactly this nesting, and
 its `MLSIRMParams.alpha` field is the per-item log-discrimination
 (natural-scale discrimination `exp(alpha)` is positive by construction,
 so normalizing to sum 1 always yields valid convex weights).
@@ -49,7 +49,8 @@ unconfigured, never a fabricated result); the same pattern applies here.
    weights by fitting `fast-mlsirm`'s MLS2PLM over observed channel
    scores: items = channels, respondents = candidate pairs sampled the
    same way `reconstruct` forms them (same grouping, same candidate
-   window), `factor_id` = the pair's reconstruction group (multilevel
+   window), `factor_id` assigns every channel item to the one relatedness
+   trait, and `cluster_id` = the pair's reconstruction group (multilevel
    nesting per Robinson, 1950). Estimated weights are the normalized
    natural-scale discriminations, `exp(alpha_j) / Σ exp(alpha_k)`
    (Birnbaum, 1968).
