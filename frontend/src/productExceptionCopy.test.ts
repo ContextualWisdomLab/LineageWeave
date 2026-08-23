@@ -17,6 +17,9 @@ describe("productExceptionCopy", () => {
     expect(copy.description).not.toMatch(/TypeError|choices|Traceback/i);
     expect(copy.title).toMatch(/Ask Agent could not be completed/);
     expect(copy.description.toLowerCase()).toMatch(/retry/);
+
+    const nullCopy = productExceptionCopy(null, "Ask Agent");
+    expect(nullCopy.title).toMatch(/Ask Agent could not be completed/);
   });
 
   it("does not interpolate HTTP 5xx provider payloads", () => {
@@ -26,6 +29,15 @@ describe("productExceptionCopy", () => {
     );
     expect(copy.title).not.toMatch(/OPENROUTER_API_KEY|Internal Server Error|502/i);
     expect(copy.description.toLowerCase()).toMatch(/retry/);
+
+    const untrustedShape = productExceptionCopy(
+      { status: 502, message: "provider payload" },
+      "Ask",
+    );
+    expect(untrustedShape.title).toBe("Ask could not be completed.");
+
+    const missingMessage = productExceptionCopy({ status: 502 }, "Ask");
+    expect(missingMessage.title).toBe("Ask could not be completed.");
   });
 
   it("keeps client-actionable validation text when it is not a raw exception", () => {
@@ -35,5 +47,11 @@ describe("productExceptionCopy", () => {
     );
     expect(copy.title).toBe("Copyright year must be an integer.");
     expect(copy.description.toLowerCase()).toMatch(/correct|retry/);
+
+    const rawValidation = productExceptionCopy(
+      new BackendError("/api/tenant", 422, "TypeError: invalid tenant payload"),
+      "Tenant settings",
+    );
+    expect(rawValidation.title).toBe("Tenant settings could not be completed.");
   });
 });

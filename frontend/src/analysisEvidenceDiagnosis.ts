@@ -44,7 +44,7 @@ export function analysisEvidenceDiagnosis(
       };
     default: {
       const unexpected: never = kind;
-      return unexpected;
+      throw new Error(`Unsupported analysis evidence diagnosis: ${String(unexpected)}`);
     }
   }
 }
