@@ -117,14 +117,8 @@ def test_post_evaluation_judge_defaults_to_auto(monkeypatch) -> None:
                     "message": {
                         "content": json.dumps(
                             {
-                                "score": 1.0,
-                                "accepted": True,
-                                "rationale": "Evidence supports each criterion.",
-                                "criterion_categories": {
-                                    "general_sentiment_negative": 4,
-                                    "general_sentiment_positive": 4,
-                                    "sales_lead_specificity": 4,
-                                },
+                                "meets_threshold": True,
+                                "rationale": "Evidence meets this boundary.",
                             }
                         )
                     }
