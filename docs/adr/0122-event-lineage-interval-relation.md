@@ -8,29 +8,29 @@
 Event Lineage already refuses a parent that occurred after its child
 (`reconstruct.py` looks only backward). Buyers still see only a fused
 score on the edge. They cannot tell whether the child happened after
-the parent, during the parent's open ticket window, or on the same
-day. Allen (1983) partitions every pair of closed intervals into
-thirteen relations. CHRONOS (Anagnostopoulos et al., 2013) uses that
+the parent or on the same day. Allen (1983) partitions every pair of
+closed intervals into thirteen relations. CHRONOS (Anagnostopoulos et
+al., 2013) uses that
 algebra as temporal-consistency evidence, not as a causal claim.
 
-A post's dated window is observed: the UTC calendar day of
-`source_post.created_at` as the start, and the earliest *open*
-`issue_ticket.due_date` as the end
-when that due date is on or after the created day. A missing or
-earlier due date is a point interval. The product does not invent a
-duration, swap bounds, or promote the relation to a reconstructed
-parent.
+A post's observed dated window is the UTC calendar day of
+`source_post.created_at`, represented as a point interval. An
+`issue_ticket.due_date` is mutable and may be entered manually; without an
+immutable source reference and derivation state it is not observed Event
+Lineage evidence. Ticket-aware interval ends are therefore deferred until a
+provenance-bearing interval-evidence contract exists. The product does not
+invent a duration or promote the relation to a reconstructed parent.
 
 ## Decision
 
 Persist `interval_relation_code` on `post_lineage_edge` (3NF,
 two-or-more-word `snake_case`) as a `common_lookup_value` code in
 the `interval_relation` category. Compute it in
-`lineageweave/interval_relation.py` from the two posts' UTC-dated
-windows after reconstruct has chosen the parent. Rebuild and seed
-write the code in the same transaction as the edge. Ticket-aware
-windows run after fixture tickets exist so `make seed` is not a
-point-only map.
+`lineageweave/interval_relation.py` from the two posts' UTC creation-day
+points after reconstruct has chosen the parent. Rebuild and seed write the
+code in the same transaction as the edge. The thirteen-relation algebra stays
+available for future evidence-bearing intervals, but current post projection
+uses only observed creation-day points.
 
 `GET /api/lineage` and `GET /api/posts/{id}/lineage` return the
 lookup label next to the fused score. The DAG shows that label as
@@ -43,10 +43,10 @@ causation. A hidden endpoint still drops the edge.
 
 ## Consequences
 
-After `make seed`, the A-100 pricing follow-up **contains** the
-revised quote (point 2026-01-10 inside the 2026-01-06..2026-01-12
-ticket window) and **overlaps** the delivery question. Click the
-Contains row to open the revised quote. Migration
+After `make seed`, the A-100 pricing follow-up is **before** the revised quote
+and delivery question. Ticket creation, editing, closing, or deletion does not
+rewrite that observed chronology. Click a directed relation row to open the
+other post. Migration
 `0105_post_lineage_interval_relation.sql` upgrades volumes that
 already applied `0001`. Point-only backfill uses created days so
 existing edges are never left null.

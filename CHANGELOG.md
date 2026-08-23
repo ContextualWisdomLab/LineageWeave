@@ -17,10 +17,10 @@ All notable changes to this project are documented here. Format follows
 ### Added
 
 - Event Lineage edges now name the Allen (1983) interval between the two
-  posts' dated windows (created day through the earliest open ticket due
-  date). After `make seed`, the A-100 pricing follow-up **Contains** the
-  revised quote and **Overlaps** the delivery question. Click Contains to
-  open the revised quote. Indirect Keyman links stay unlabeled.
+  posts' observed UTC creation-day points. Mutable ticket due dates do not
+  rewrite Event Lineage evidence. After `make seed`, the A-100 pricing
+  follow-up is **Before** the revised quote and delivery question. Directed
+  relation rows open the other post; indirect Keyman links stay unlabeled.
 
 ## [2.12.6] - 2026-08-20
 

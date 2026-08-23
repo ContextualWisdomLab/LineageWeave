@@ -1,4 +1,4 @@
-"""Allen interval relations are exhaustive and ticket windows stay honest."""
+"""Allen interval relations are exhaustive and post points stay observed."""
 
 from __future__ import annotations
 
@@ -59,11 +59,12 @@ def test_point_intervals_on_different_days_are_before_not_meets() -> None:
     )
 
 
-def test_missing_due_date_is_a_point_interval() -> None:
-    assert interval_from_post(datetime(2026, 1, 6, 15, 0, 0), None) == (
+def test_post_creation_day_is_a_point_interval() -> None:
+    assert interval_from_post(datetime(2026, 1, 6, 15, 0, 0)) == (
         _d(1, 6),
         _d(1, 6),
     )
+    assert interval_from_post(_d(1, 6)) == (_d(1, 6), _d(1, 6))
 
 
 def test_created_day_is_normalized_to_utc() -> None:
@@ -71,11 +72,7 @@ def test_created_day_is_normalized_to_utc() -> None:
         2026, 1, 2, 0, 30, tzinfo=timezone(timedelta(hours=9))
     )
 
-    assert interval_from_post(local_midnight, None) == (_d(1, 1), _d(1, 1))
-
-
-def test_earlier_due_date_is_not_inverted() -> None:
-    assert interval_from_post(_d(1, 10), _d(1, 6)) == (_d(1, 10), _d(1, 10))
+    assert interval_from_post(local_midnight) == (_d(1, 1), _d(1, 1))
 
 
 def test_inverted_bounds_fail_closed() -> None:
@@ -83,38 +80,27 @@ def test_inverted_bounds_fail_closed() -> None:
         allen_interval_relation((_d(1, 5), _d(1, 1)), (_d(1, 6), _d(1, 7)))
 
 
-def test_a100_ticket_windows_contain_and_overlap_the_designed_fork() -> None:
-    """Seed tickets make rec-002 contain rec-003 and overlap rec-004.
-
-    Pricing follow-up is 2026-01-06 with due 2026-01-12. Revised quote
-    is a point on 2026-01-10. Delivery question is 2026-01-07 through
-    2026-01-16. Reconstruct still owns the parent choice; this only
-    names the Allen relation on those edges.
-    """
+def test_a100_lineage_uses_observed_creation_day_points() -> None:
+    """Mutable ticket dates do not alter the designed fork's chronology."""
     records = {record.record_id: record for record in sample_records()}
-    dues = {
-        "rec-002": date(2026, 1, 12),
-        "rec-004": date(2026, 1, 16),
-        "rec-102": date(2026, 1, 14),
-    }
     edges = lineage_edge_specs(sample_records())
     relations = {
         (edge.parent_id, edge.child_id): allen_interval_relation(
-            interval_from_post(records[edge.parent_id].occurred_at, dues.get(edge.parent_id)),
-            interval_from_post(records[edge.child_id].occurred_at, dues.get(edge.child_id)),
+            interval_from_post(records[edge.parent_id].occurred_at),
+            interval_from_post(records[edge.child_id].occurred_at),
         )
         for edge in edges
     }
     assert relations[("rec-001", "rec-002")] == INTERVAL_BEFORE
-    assert relations[("rec-002", "rec-003")] == INTERVAL_CONTAINS
-    assert relations[("rec-002", "rec-004")] == INTERVAL_OVERLAPS
+    assert relations[("rec-002", "rec-003")] == INTERVAL_BEFORE
+    assert relations[("rec-002", "rec-004")] == INTERVAL_BEFORE
     assert (
         interval_relation_from_current(relations[("rec-002", "rec-003")], False)
-        == INTERVAL_DURING
+        == INTERVAL_AFTER
     )
     assert (
         interval_relation_from_current(relations[("rec-002", "rec-004")], False)
-        == INTERVAL_OVERLAPPED_BY
+        == INTERVAL_AFTER
     )
 
 

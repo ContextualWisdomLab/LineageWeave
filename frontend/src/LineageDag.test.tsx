@@ -51,10 +51,15 @@ const a100Graph: LineageGraph = {
 
 describe("LineageDag", () => {
   it("shows Contains and Overlaps as visible text, not hover-only", () => {
-    render(<LineageDag graph={a100Graph} onSelectPost={() => undefined} currentPostId="rec-002" />);
+    const { container } = render(
+      <LineageDag graph={a100Graph} onSelectPost={() => undefined} currentPostId="rec-002" />,
+    );
     expect(screen.getAllByText("Contains").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Overlaps").length).toBeGreaterThan(0);
     expect(screen.getByRole("list", { name: "Interval relations" })).toBeInTheDocument();
+    expect(container.querySelector("path title")).toHaveTextContent(
+      "Pricing renegotiation: revised quote sent follows Pricing renegotiation follow-up",
+    );
   });
 
   it("opens the revised quote from the Contains keyboard row", async () => {
@@ -62,9 +67,20 @@ describe("LineageDag", () => {
     render(<LineageDag graph={a100Graph} onSelectPost={onSelectPost} currentPostId="rec-002" />);
     await userEvent.click(
       screen.getByRole("button", {
-        name: "Contains: open Pricing renegotiation: revised quote sent",
+        name: "Pricing renegotiation follow-up relates to Pricing renegotiation: revised quote sent as Contains; open Pricing renegotiation: revised quote sent",
       }),
     );
     expect(onSelectPost).toHaveBeenCalledWith("rec-003");
+  });
+
+  it("keeps the stored parent-to-child direction when the child is current", async () => {
+    const onSelectPost = vi.fn();
+    render(<LineageDag graph={a100Graph} onSelectPost={onSelectPost} currentPostId="rec-003" />);
+    await userEvent.click(
+      screen.getByRole("button", {
+        name: "Pricing renegotiation follow-up relates to Pricing renegotiation: revised quote sent as Contains; open Pricing renegotiation follow-up",
+      }),
+    );
+    expect(onSelectPost).toHaveBeenCalledWith("rec-002");
   });
 });

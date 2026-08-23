@@ -3732,13 +3732,14 @@ def test_rebuild_lineage_recovers_the_a100_fork(client, demo_analyst_token, seed
     assert "Delivery schedule question raised" in direct_titles
 
 
-def test_rebuild_lineage_names_a100_ticket_windows(client, demo_analyst_token, seeded_db) -> None:
-    """Ticket-aware windows make rec-002 contain rec-003 and overlap rec-004.
-
-    Point-only created_at days would label every A-100 fork edge Before.
-    The same tickets `make seed` writes turn those into Contains/Overlaps.
-    """
-    from scripts.seed_demo_data import _seed_fixture_tickets, insert_fixture_source_posts
+def test_rebuild_lineage_ignores_mutable_ticket_dates(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Manual ticket dates do not replace observed post chronology."""
+    from scripts.seed_demo_data import (
+        _seed_fixture_tickets,
+        insert_fixture_source_posts,
+    )
 
     admin_conn = psycopg2.connect(seeded_db["dsn"])
     admin_conn.autocommit = True
@@ -3794,10 +3795,10 @@ def test_rebuild_lineage_names_a100_ticket_windows(client, demo_analyst_token, s
         for edge in body["edges"]
         if edge["source"] == fork["id"] and edge["target"] == delivery["id"]
     )
-    assert quote_edge["interval_relation_code"] == "interval_contains"
-    assert quote_edge["interval_relation_label"] == "Contains"
-    assert delivery_edge["interval_relation_code"] == "interval_overlaps"
-    assert delivery_edge["interval_relation_label"] == "Overlaps"
+    assert quote_edge["interval_relation_code"] == "interval_before"
+    assert quote_edge["interval_relation_label"] == "Before"
+    assert delivery_edge["interval_relation_code"] == "interval_before"
+    assert delivery_edge["interval_relation_label"] == "Before"
 
     per_post = client.get(
         f"/api/posts/{fork['id']}/lineage",
@@ -3805,8 +3806,8 @@ def test_rebuild_lineage_names_a100_ticket_windows(client, demo_analyst_token, s
     )
     assert per_post.status_code == 200
     by_title = {post["post_title"]: post for post in per_post.json()["direct"]}
-    assert by_title["Pricing renegotiation: revised quote sent"]["interval_relation_code"] == "interval_contains"
-    assert by_title["Delivery schedule question raised"]["interval_relation_code"] == "interval_overlaps"
+    assert by_title["Pricing renegotiation: revised quote sent"]["interval_relation_code"] == "interval_before"
+    assert by_title["Delivery schedule question raised"]["interval_relation_code"] == "interval_before"
 
     from_quote = client.get(
         f"/api/posts/{quote['id']}/lineage",
@@ -3814,8 +3815,8 @@ def test_rebuild_lineage_names_a100_ticket_windows(client, demo_analyst_token, s
     )
     assert from_quote.status_code == 200
     quote_direct = {post["post_id"]: post for post in from_quote.json()["direct"]}
-    assert quote_direct[fork["id"]]["interval_relation_code"] == "interval_during"
-    assert quote_direct[fork["id"]]["interval_relation_label"] == "During"
+    assert quote_direct[fork["id"]]["interval_relation_code"] == "interval_after"
+    assert quote_direct[fork["id"]]["interval_relation_label"] == "After"
     assert quote_direct[fork["id"]]["interval_is_parent"] is False
 
 

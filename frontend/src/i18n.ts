@@ -305,7 +305,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "{from} follows {to} ({score})": "{from}이(가) {to}을(를) 따름 ({score})",
     "{from} follows {to} ({score}) — {relation}": "{from}이(가) {to}을(를) 따름 ({score}) — {relation}",
     "Interval relations": "시간 구간 관계",
-    "{relation}: open {label}": "{relation}: {label} 열기",
+    "{from} relates to {to} as {relation}; open {label}":
+      "{from}의 {to}에 대한 관계: {relation}; {label} 열기",
     Before: "이전",
     After: "이후",
     Meets: "바로 이음",
@@ -660,7 +661,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "{from} follows {to} ({score})": "{from} 接续 {to}（{score}）",
     "{from} follows {to} ({score}) — {relation}": "{from} 接续 {to}（{score}）— {relation}",
     "Interval relations": "时间区间关系",
-    "{relation}: open {label}": "{relation}：打开 {label}",
+    "{from} relates to {to} as {relation}; open {label}":
+      "{from} 与 {to} 的关系：{relation}；打开 {label}",
     Before: "早于",
     After: "晚于",
     Meets: "相接",
@@ -1015,7 +1017,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "{from} follows {to} ({score})": "{from}は{to}に続く（{score}）",
     "{from} follows {to} ({score}) — {relation}": "{from}は{to}に続く（{score}）— {relation}",
     "Interval relations": "時間区間の関係",
-    "{relation}: open {label}": "{relation}: {label}を開く",
+    "{from} relates to {to} as {relation}; open {label}":
+      "{from}から{to}への関係: {relation}; {label}を開く",
     Before: "前",
     After: "後",
     Meets: "直後",
@@ -1370,7 +1373,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "{from} follows {to} ({score})": "{from} tiếp nối {to} ({score})",
     "{from} follows {to} ({score}) — {relation}": "{from} tiếp nối {to} ({score}) — {relation}",
     "Interval relations": "Quan hệ khoảng thời gian",
-    "{relation}: open {label}": "{relation}: mở {label}",
+    "{from} relates to {to} as {relation}; open {label}":
+      "Quan hệ từ {from} đến {to}: {relation}; mở {label}",
     Before: "Trước",
     After: "Sau",
     Meets: "Kề ngay",

@@ -68,26 +68,26 @@ def records_from_source_posts(rows: list[Mapping[str, Any]]) -> list[Record]:
 def interval_relation_code_for_edge(
     parent_row: Mapping[str, Any], child_row: Mapping[str, Any]
 ) -> str:
-    """Allen relation of the parent window toward the child window."""
+    """Allen relation of the parent creation-day point toward the child."""
     return allen_interval_relation(
-        interval_from_post(parent_row["created_at"], parent_row.get("due_date")),
-        interval_from_post(child_row["created_at"], child_row.get("due_date")),
+        interval_from_post(parent_row["created_at"]),
+        interval_from_post(child_row["created_at"]),
     )
 
 
 async def persist_lineage_edges(
     conn: asyncpg.Connection,
     edges: list[Edge],
-    bounds_by_post_id: Mapping[str, Mapping[str, Any]] | None = None,
+    points_by_post_id: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> None:
     """Replace ``post_lineage_edge`` with ``edges`` (reconstruct is source of truth)."""
     await conn.execute("delete from post_lineage_edge")
-    bounds = bounds_by_post_id or {}
+    points = points_by_post_id or {}
     for edge in edges:
-        parent_bounds = bounds.get(edge.parent_id)
-        child_bounds = bounds.get(edge.child_id)
-        if parent_bounds is not None and child_bounds is not None:
-            relation_code = interval_relation_code_for_edge(parent_bounds, child_bounds)
+        parent_point = points.get(edge.parent_id)
+        child_point = points.get(edge.child_id)
+        if parent_point is not None and child_point is not None:
+            relation_code = interval_relation_code_for_edge(parent_point, child_point)
         else:
             relation_code = "interval_before"
         await conn.execute(
@@ -101,19 +101,6 @@ async def persist_lineage_edges(
         )
 
 
-async def _post_interval_bounds(conn: asyncpg.Connection) -> dict[str, dict[str, Any]]:
-    """Created day plus earliest open ticket due date, keyed by post id."""
-    rows = await conn.fetch(
-        "select source_post.post_id, source_post.created_at, "
-        "(select min(issue_ticket.due_date) from issue_ticket "
-        "  where issue_ticket.post_id = source_post.post_id "
-        "    and issue_ticket.ticket_status_code <> 'closed' "
-        "    and issue_ticket.due_date is not null) as due_date "
-        f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
-    )
-    return {str(row["post_id"]): row for row in rows}
-
-
 async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
     """Reconstruct lineage for every ``source_post`` and persist the edges."""
     rows = await conn.fetch(
@@ -122,7 +109,7 @@ async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
         f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
     )
     edges = lineage_edge_specs(records_from_source_posts(rows))
-    await persist_lineage_edges(conn, edges, await _post_interval_bounds(conn))
+    await persist_lineage_edges(conn, edges, {str(row["post_id"]): row for row in rows})
     return edges
 
 
@@ -261,4 +248,3 @@ async def interval_relations_for_post(
             "interval_is_parent": current_is_parent,
         }
     return relations
-

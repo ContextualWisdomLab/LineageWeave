@@ -47,8 +47,8 @@ DEMO_LINEAGE_IDEMPOTENCY_KEY = "demo-lineage-seed-2026-w02"
 DEMO_TEPP_IDEMPOTENCY_KEY = "demo-tepp-seed-2026-w02"
 DEMO_REPORT_IDEMPOTENCY_KEY = "demo-report-seed-2026-w02"
 
-# (post_title, ticket_title, due_date) -- Event Lineage fixtures a report
-# member click opens. Activity seed uses the same titles so Valkey matches.
+# (post_title, ticket_title, due_date) -- report/calendar fixture tickets.
+# Activity seed uses the same titles so Valkey matches.
 FIXTURE_TICKET_SPECS = (
     (
         "Pricing renegotiation follow-up",
@@ -969,37 +969,26 @@ def _seed_fixture_tickets(cur) -> None:
 
 
 def _seed_lineage_interval_relations(cur) -> None:
-    """Name Allen relations after fixture tickets exist (ADR 0122).
-
-    Reconstruct already wrote parent→child edges. Point-only created_at
-    windows would label every A-100 fork edge Before. Ticket due dates
-    turn the pricing follow-up into Contains/Overlaps so seed is not a
-    point-only map. Idempotent: every persisted edge is rewritten.
-    """
-    from lineageweave.interval_relation import allen_interval_relation, interval_from_post
+    """Name Allen relations from observed post creation-day points (ADR 0122)."""
+    from lineageweave.interval_relation import (
+        allen_interval_relation,
+        interval_from_post,
+    )
 
     cur.execute(
         """
         select edge.parent_post_id, edge.child_post_id,
-               parent_post.created_at, child_post.created_at,
-               (select min(issue_ticket.due_date) from issue_ticket
-                 where issue_ticket.post_id = parent_post.post_id
-                   and issue_ticket.ticket_status_code <> 'closed'
-                   and issue_ticket.due_date is not null) as parent_due,
-               (select min(issue_ticket.due_date) from issue_ticket
-                 where issue_ticket.post_id = child_post.post_id
-                   and issue_ticket.ticket_status_code <> 'closed'
-                   and issue_ticket.due_date is not null) as child_due
+               parent_post.created_at, child_post.created_at
           from post_lineage_edge as edge
           join source_post as parent_post on parent_post.post_id = edge.parent_post_id
           join source_post as child_post on child_post.post_id = edge.child_post_id
         """
     )
     rows = list(cur.fetchall())
-    for parent_id, child_id, parent_created, child_created, parent_due, child_due in rows:
+    for parent_id, child_id, parent_created, child_created in rows:
         code = allen_interval_relation(
-            interval_from_post(parent_created, parent_due),
-            interval_from_post(child_created, child_due),
+            interval_from_post(parent_created),
+            interval_from_post(child_created),
         )
         cur.execute(
             "update post_lineage_edge set interval_relation_code = %s "

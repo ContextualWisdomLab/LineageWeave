@@ -2000,7 +2000,11 @@ describe("App, authenticated", () => {
     expect(within(relatedPosts as HTMLElement).getByText("Direct relation")).toBeInTheDocument();
     expect(within(relatedPosts as HTMLElement).getByText("Contains")).toBeInTheDocument();
     expect(relatedPosts).toHaveTextContent("Linked post");
-    expect(screen.getByRole("button", { name: "Contains: open Pricing renegotiation: revised quote sent" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", {
+        name: "Pricing renegotiation follow-up relates to Pricing renegotiation: revised quote sent as Contains; open Pricing renegotiation: revised quote sent",
+      }),
+    ).toBeInTheDocument();
     // The Event Lineage DAG belongs to the opened post, not the list surface.
     expect(screen.getAllByLabelText("A-100 lineage")).toHaveLength(1);
     expect(screen.getAllByLabelText("Open post: Pricing renegotiation follow-up")).toHaveLength(1);

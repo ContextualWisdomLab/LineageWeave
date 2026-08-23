@@ -1,12 +1,10 @@
 """Allen (1983) closed interval relations for Event Lineage edges.
 
 Reconstruct already refuses a parent that occurred after its child.
-This module names the Allen relation between the two posts' dated
-windows so a buyer can see *how* they relate in time, not only that
-a fused score attached them. A post without an open dated ticket is
-a degenerate point interval on its ``created_at`` day. A due date
-earlier than that day is ignored -- it is never inverted into a
-fabricated window.
+This module names the Allen relation between two dated windows so a buyer can
+see *how* they relate in time, not only that a fused score attached them. A
+post is a degenerate point interval on its observed ``created_at`` day. Mutable
+ticket dates are not Event Lineage evidence.
 
 Does not invent a theta, a fused score, or a lineage parent.
 """
@@ -89,21 +87,10 @@ def calendar_day(value: datetime | date) -> date:
     return value
 
 
-def interval_from_post(
-    created_at: datetime | date, due_date: date | None
-) -> ClosedInterval:
-    """Closed day window: created day through an open ticket due date.
-
-    Missing or earlier due dates collapse to a point interval. The
-    product never invents a later end or swaps the bounds.
-    """
+def interval_from_post(created_at: datetime | date) -> ClosedInterval:
+    """Return the post's observed UTC creation day as a point interval."""
     start = calendar_day(created_at)
-    if due_date is None:
-        return start, start
-    end = calendar_day(due_date)
-    if end < start:
-        return start, start
-    return start, end
+    return start, start
 
 
 def allen_interval_relation(parent: ClosedInterval, child: ClosedInterval) -> str:
@@ -142,7 +129,10 @@ def allen_interval_relation(parent: ClosedInterval, child: ClosedInterval) -> st
         return INTERVAL_FINISHES
     if parent_end == child_end and parent_start < child_start:
         return INTERVAL_FINISHED_BY
-    raise ValueError(f"unclassified intervals parent={parent} child={child}")
+    # The thirteen branches above exhaust every pair of valid closed intervals.
+    raise ValueError(  # pragma: no cover - defensive invariant
+        f"unclassified intervals parent={parent} child={child}"
+    )
 
 
 def interval_relation_from_current(code: str, current_is_parent: bool) -> str:

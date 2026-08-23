@@ -68,14 +68,14 @@ export function LineageDag({
                       <title>
                         {relation
                           ? tf("{from} follows {to} ({score}) — {relation}", {
-                              from: from.label,
-                              to: to.label,
+                              from: to.label,
+                              to: from.label,
                               score: edge.fused_score.toFixed(2),
                               relation: t(relation),
                             })
                           : tf("{from} follows {to} ({score})", {
-                              from: from.label,
-                              to: to.label,
+                              from: to.label,
+                              to: from.label,
                               score: edge.fused_score.toFixed(2),
                             })}
                       </title>
@@ -142,7 +142,9 @@ export function LineageDag({
                         type="button"
                         className="lineage-interval-button"
                         onClick={() => onSelectPost(openNode.id)}
-                        aria-label={tf("{relation}: open {label}", {
+                        aria-label={tf("{from} relates to {to} as {relation}; open {label}", {
+                          from: from.label,
+                          to: to.label,
                           relation: t(relation),
                           label: openNode.label,
                         })}
