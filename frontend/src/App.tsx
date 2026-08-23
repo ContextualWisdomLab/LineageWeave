@@ -2456,7 +2456,7 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
       }
     case "analysis_status_running":
       if (run.run_kind_code === "analysis_run_tepp" && run.tepp_accepted_receipt) {
-        return "TEPP accepted this measurement. Refresh to see when the completed result arrives. This receipt is not a calibrated score.";
+        return "TEPP accepted this measurement. Check its status to retrieve the completed result. This receipt is not a calibrated score.";
       }
       return "Refresh this run. Start already queued the work on the durable outbox.";
     case "analysis_status_succeeded":
@@ -2639,9 +2639,10 @@ function analysisRunCanStart(run: AnalysisRun): boolean {
 }
 
 function analysisRunStartLabel(run: AnalysisRun): string {
-  return run.run_kind_code === "analysis_run_tepp"
-    ? "Start TEPP measurement"
-    : "Start reconstruction";
+  if (run.run_kind_code !== "analysis_run_tepp") return "Start reconstruction";
+  return run.status_code === "analysis_status_running"
+    ? "Check TEPP measurement status"
+    : "Start TEPP measurement";
 }
 
 /** Failed TEPP is terminal. Create cannot invent a Pending TEPP row. */
@@ -2924,7 +2925,9 @@ function AnalysisRunsPanel({
             >
               {starting
                 ? selected.run_kind_code === "analysis_run_tepp"
-                  ? "Submitting the TEPP request..."
+                  ? selected.status_code === "analysis_status_running"
+                    ? "Checking TEPP measurement status..."
+                    : "Submitting the TEPP request..."
                   : "Reconstructing the cutoff bag..."
                 : analysisRunStartLabel(selected)}
             </button>

@@ -3234,7 +3234,7 @@ describe("App, authenticated", () => {
       name: "Open analysis run: TEPP measurement · Running · Demo Corp",
     });
     expect(listButton).toHaveTextContent(
-      "TEPP accepted this measurement. Refresh to see when the completed result arrives. This receipt is not a calibrated score.",
+      "TEPP accepted this measurement. Check its status to retrieve the completed result. This receipt is not a calibrated score.",
     );
     expect(listButton).not.toHaveTextContent("theta");
     expect(listButton).not.toHaveTextContent("calibrated result");
@@ -3245,9 +3245,12 @@ describe("App, authenticated", () => {
     ).toBeInTheDocument();
     expect(
       screen.getAllByText(
-        "TEPP accepted this measurement. Refresh to see when the completed result arrives. This receipt is not a calibrated score.",
+        "TEPP accepted this measurement. Check its status to retrieve the completed result. This receipt is not a calibrated score.",
       ).length,
     ).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("button", { name: "Check TEPP measurement status" }),
+    ).toBeInTheDocument();
     const history = screen.getByRole("list", { name: "Analysis run status history" });
     expect(history).toHaveTextContent("Running 2026-01-12 12:36");
     expect(history).not.toHaveTextContent("Succeeded");
