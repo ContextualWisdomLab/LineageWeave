@@ -3434,6 +3434,20 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Constructive stance: 2").closest("li")).not.toHaveAttribute("aria-current");
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: /open leftover farthest pair: specification revision requested/i,
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+    expect(await screen.findByRole("heading", { name: "Post quality (IRT)" })).toHaveFocus();
+    expect(await screen.findByRole("status", { name: "Leftover criterion next action" })).toHaveTextContent(
+      "negative is the leftover criterion this post sat farthest from after main effects. Read that Post quality score next.",
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
     await userEvent.click(await screen.findByRole("button", { name: /open report post: public post/i }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(screen.queryByRole("status", { name: "Leftover criterion next action" })).not.toBeInTheDocument();
