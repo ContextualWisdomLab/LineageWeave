@@ -266,6 +266,12 @@ def test_calibrated_report_attaches_leftover_pairs() -> None:
         assert pair.criterion_code in items
         assert pair.leftover_distance >= 0.0
         assert np.isfinite(pair.leftover_residual)
+        if pair.leftover_map_explained_share is not None:
+            assert np.isfinite(pair.leftover_map_explained_share)
+            assert pair.leftover_map_explained_share >= 0.0
+        assert not hasattr(pair, "leftover_map_unexplained_share")
+        assert not hasattr(pair, "leftover_map_unexplained")
+        assert not hasattr(pair, "leftover_map_reconstruction")
 
 
 

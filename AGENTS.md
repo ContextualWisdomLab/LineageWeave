@@ -186,12 +186,14 @@ in the same spirit) -- never against real data, per the hard rule above.
 against a live local stack (`make up`) and self-skip without one -- see
 [README.md](README.md#local-product-stack-docker-compose).
 
-Period leftover pairs (ADR 0017 / 0018) are computed in
+Period leftover pairs (ADR 0048 / 0049 / 0184) are computed in
 `lineageweave/leftover_pairs.py` from the residual after a real
 GRM/GPCM score, never invented. Missing cells stay out of the
 Gabriel factorization. Closest and farthest post–criterion pairs
-persist to `report_leftover_pair` and sit above the member list so
-a click opens that post.
+persist to `report_leftover_pair` and sit above the member list with
+explained leftover share `e = R̂_c² / R̃²` of centered leftover next
+to leftover-map distance `d` so a click opens that post. Two-axis
+reconstruction `R̂_c` is not persisted.
 
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a

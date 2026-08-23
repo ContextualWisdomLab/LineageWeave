@@ -19,8 +19,13 @@ On each period-report group, render leftover pairs **above** the
 member list. Each pair is a button: closest or farthest label, post
 title, criterion short label, leftover-map distance, and the next
 action (“Open this post to read the criterion it sat closest to /
-farthest from after main effects.”). Clicking the button opens that
-post with the same handler as a member row.
+farthest from after main effects.”). Explained leftover share next
+action: two leftover-map axes explain `e` of centered leftover after
+IRT main effects; open this post to read the named criterion. A
+missing share keeps the existing closest/farthest next action.
+Clicking the button opens that post with the same handler as a member
+row. Explained leftover share naming is
+[ADR 0184](0184-leftover-map-explained-share.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post.
