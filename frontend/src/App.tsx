@@ -2016,6 +2016,9 @@ const SEMANTIC_RELATION_LABELS: Record<string, string> = {
   org_suborganization_of: "Sub-organization of",
   lw_responsible_for: "Responsible for",
   lw_supports: "Supports",
+  lw_technology_provided_by: "Technology provided by",
+  lw_technology_adopted_by: "Technology adopted by",
+  lw_technology_applied_to: "Technology applied to",
 };
 
 function semanticRelationLabel(relation: PostSemanticRelationship): string {

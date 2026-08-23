@@ -107,6 +107,11 @@ _PLANNED_FACILITY_RELATIONSHIP_PREDICATE_MIGRATION = (
     / "migrations"
     / "0138_planned_facility_relation_predicate.sql"
 )
+_TECHNOLOGY_BENEFIT_RELATION_PREDICATES_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0177_technology_benefit_relation_predicates.sql"
+)
 _SUMMARY_INPUT_BINDING_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
@@ -175,6 +180,11 @@ def schema_db():
                 )
                 cur.execute(planned_predicate_migration)
                 cur.execute(planned_predicate_migration)
+                technology_benefit_migration = (
+                    _TECHNOLOGY_BENEFIT_RELATION_PREDICATES_MIGRATION.read_text()
+                )
+                cur.execute(technology_benefit_migration)
+                cur.execute(technology_benefit_migration)
                 summary_input_migration = _SUMMARY_INPUT_BINDING_MIGRATION.read_text()
                 cur.execute(summary_input_migration)
                 cur.execute(summary_input_migration)
@@ -420,6 +430,74 @@ def test_planned_facility_relationship_predicate_persists(schema_db) -> None:
             """
         )
         assert cur.fetchone() == ("lw_plans_to_operate",)
+
+
+def test_technology_benefit_relationship_predicates_persist(schema_db) -> None:
+    """Migration 0177 must admit the ADR 0146 technology-transfer rows."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            insert into common_lookup_value (
+                lookup_category, lookup_code, lookup_label
+            ) values
+                ('corporate_entity_level', 'company', 'Company'),
+                ('voc_type', 'voc', 'Voice of Customer'),
+                ('post_visibility', 'public', 'Public')
+            """
+        )
+        cur.execute(
+            """
+            with synthetic_entity as (
+                insert into corporate_entity (
+                    corporate_entity_code, entity_name, entity_level_code
+                ) values ('SYNTHETIC-TECH-ORG', 'Synthetic Adopter Org', 'company')
+                returning corporate_entity_id
+            ), synthetic_account as (
+                insert into user_account (
+                    external_subject_id, display_name, email_address
+                ) values (
+                    'synthetic-tech-account', 'Synthetic Author',
+                    'synthetic.author@example.test'
+                ) returning user_account_id
+            ), synthetic_post as (
+                insert into source_post (
+                    author_account_id, corporate_entity_id, post_title, post_body,
+                    voc_type_code, visibility_code
+                )
+                select user_account_id, corporate_entity_id,
+                       'Synthetic technology adoption',
+                       'Synthetic Adopter Org adopted the diagnostics model from Synthetic Provider Org',
+                       'voc', 'public'
+                  from synthetic_account cross join synthetic_entity
+                returning post_id
+            ), synthetic_summary as (
+                insert into post_summary_result (post_id, korean_summary)
+                select post_id, '합성 기술 도입 요약입니다.' from synthetic_post
+                returning post_id
+            )
+            insert into post_summary_semantic_relationship (
+                post_id, relation_ordinal, subject_name, subject_type,
+                predicate_code, object_name, object_type, evidence_text,
+                relation_confidence
+            )
+            select post_id, ordinal, 'Diagnostics Model', 'technology',
+                   predicate_code, object_name, object_type,
+                   'Synthetic Adopter Org adopted the diagnostics model from Synthetic Provider Org',
+                   0.9
+              from synthetic_summary
+             cross join (values
+                (0, 'lw_technology_provided_by', 'Synthetic Provider Org', 'organization'),
+                (1, 'lw_technology_adopted_by', 'Synthetic Adopter Org', 'organization'),
+                (2, 'lw_technology_applied_to', 'Highland HVDC', 'project')
+             ) as rows(ordinal, predicate_code, object_name, object_type)
+            returning predicate_code
+            """
+        )
+        assert {row[0] for row in cur.fetchall()} == {
+            "lw_technology_provided_by",
+            "lw_technology_adopted_by",
+            "lw_technology_applied_to",
+        }
 
 
 def test_major_event_action_project_reference_is_normalized(schema_db) -> None:

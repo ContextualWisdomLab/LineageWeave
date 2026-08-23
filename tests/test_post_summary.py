@@ -34,6 +34,7 @@ from lineageweave.post_summary import (
     ProjectMention,
     RoleResponsibility,
     SemanticRelationship,
+    _RELATIONS_REQUEST_PROMPT_TEMPLATE,
     _SUMMARY_REQUEST_PROMPT_TEMPLATE,
     _admit_planned_facility_relationships,
     _formalize_korean_summary,
@@ -750,6 +751,53 @@ def test_planned_facility_admission_normalizes_unicode_equivalent_actor_names() 
         ),
         relationship.evidence_text,
     ) == (relationship,)
+
+
+@pytest.mark.parametrize(
+    "predicate_code,object_type",
+    (
+        ("lw_technology_provided_by", "organization"),
+        ("lw_technology_adopted_by", "corporate_entity"),
+        ("lw_technology_applied_to", "project"),
+    ),
+)
+def test_technology_relation_accepts_technology_subject(predicate_code: str, object_type: str) -> None:
+    relationship = SemanticRelationship(
+        subject_name="Predictive Maintenance Model",
+        subject_type="technology",
+        predicate_code=predicate_code,
+        object_name="Northwind Services",
+        object_type=object_type,
+        evidence_text="adopted the predictive maintenance model from Northwind Services",
+        confidence=0.9,
+    )
+
+    assert relationship.subject_type == "technology"
+    assert relationship.predicate_code == predicate_code
+
+
+@pytest.mark.parametrize(
+    "predicate_code",
+    ("lw_technology_provided_by", "lw_technology_adopted_by", "lw_technology_applied_to"),
+)
+def test_technology_relation_rejects_non_technology_subject(predicate_code: str) -> None:
+    with pytest.raises(ValueError, match="technology subject"):
+        SemanticRelationship(
+            subject_name="Northwind Services",
+            subject_type="organization",
+            predicate_code=predicate_code,
+            object_name="Predictive Maintenance Model",
+            object_type="technology",
+            evidence_text="adopted the predictive maintenance model from Northwind Services",
+            confidence=0.9,
+        )
+
+
+def test_relations_prompt_documents_technology_benefit_predicates() -> None:
+    assert "lw_technology_provided_by" in _RELATIONS_REQUEST_PROMPT_TEMPLATE
+    assert "lw_technology_adopted_by" in _RELATIONS_REQUEST_PROMPT_TEMPLATE
+    assert "lw_technology_applied_to" in _RELATIONS_REQUEST_PROMPT_TEMPLATE
+    assert "Predictive Maintenance Model" in _RELATIONS_REQUEST_PROMPT_TEMPLATE
 
 
 def test_summary_details_parse_failure_does_not_expose_provider_response(monkeypatch) -> None:
