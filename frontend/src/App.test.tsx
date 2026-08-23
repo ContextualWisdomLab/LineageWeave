@@ -2100,7 +2100,7 @@ describe("App, authenticated", () => {
     );
   });
 
-  it("stops loading and gives the buyer a next action when cited evidence is unavailable", async () => {
+  it("stops loading and gives the reader a next action when cited evidence is unavailable", async () => {
     stubBackend({ evidenceUnavailable: true });
     render(<App showLabPanels />);
 
@@ -2549,7 +2549,7 @@ describe("App, authenticated", () => {
     expect(screen.getByText("due 2026-01-09")).toBeInTheDocument();
   });
 
-  it("tells the buyer how to populate an empty calendar", async () => {
+  it("tells the reader how to populate an empty calendar", async () => {
     stubBackend({ calendarCommitments: [] });
     render(<App showLabPanels />);
 
@@ -3501,11 +3501,11 @@ describe("App, authenticated", () => {
     );
   });
 
-  it("keeps advanced review tools out of the buyer board", async () => {
+  it("keeps advanced review tools out of the reader board", async () => {
     stubBackend();
     render(<App />);
 
-    expect(await screen.findByRole("navigation", { name: "Buyer navigation" })).toBeInTheDocument();
+    expect(await screen.findByRole("navigation", { name: "Workspace navigation" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Board" })).toHaveAttribute("aria-current", "page");
     expect(screen.queryByText("Advanced review tools")).not.toBeInTheDocument();
   });

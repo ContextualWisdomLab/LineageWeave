@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { CitationChip } from "./CitationChip";
 
 describe("CitationChip", () => {
-  it("opens the cited post when the buyer clicks the chip", async () => {
+  it("opens the cited post when the reader clicks the chip", async () => {
     const onOpenEvidence = vi.fn();
     render(
       <CitationChip

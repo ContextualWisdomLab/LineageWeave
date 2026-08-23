@@ -5,7 +5,7 @@ with open("frontend/src/App.tsx", "r") as f:
 #   const [brandName, setBrandName] = useState("LineageWeave");
 #   useEffect(() => { ... }, [accessToken]);
 #   const auth = useAuth();
-#   const [destination, setDestination] = useState<BuyerDestination>("board");
+#   const [destination, setDestination] = useState<WorkspaceDestination>("board");
 #   ...
 #   const testOnlyLabPanels = import.meta.env.MODE === "test" && showLabPanels;
 #   const accessToken = auth.user?.access_token;

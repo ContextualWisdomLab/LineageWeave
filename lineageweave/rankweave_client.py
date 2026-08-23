@@ -4,7 +4,7 @@
 library, not an HTTP service. Reconstruction already calls
 ``weighted_convex_fuse`` inside ``reconstruct.py``; this module is the
 only LineageWeave port that may call ``weighted_reciprocal_rank_fuse``
-for the buyer-facing Rankings surface. It never invents a fused score,
+for the reader-facing Rankings surface. It never invents a fused score,
 a theta, or a hidden post.
 
 The default transport raises :class:`RankWeaveNotAvailable` so a
@@ -278,7 +278,7 @@ class RankWeaveClient:
         can_see_post: Callable[[Mapping[str, Any]], bool],
         query: str = DEFAULT_RANKING_QUERY,
     ) -> dict[str, Any]:
-        """Buyer-visible ranking status. Never invents a fused score."""
+        """Reader-visible ranking status. Never invents a fused score."""
         channels = ranking_channels_from_rows(posts, can_see_post, query=query)
         titles_by_id = {
             post_id: str(row.get("post_title") or "").strip()

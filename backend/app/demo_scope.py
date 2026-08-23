@@ -4,7 +4,7 @@
 something to show. Once an account can see at least one post carrying real
 source-import evidence, the synthetic Demo Corp tree is no longer needed to
 fill an empty screen and must stop appearing next to real evidence -- a
-buyer must never mistake a fabricated contact (e.g. Ada West, Priya Nair)
+reader must never mistake a fabricated contact (e.g. Ada West, Priya Nair)
 for a real one.
 """
 

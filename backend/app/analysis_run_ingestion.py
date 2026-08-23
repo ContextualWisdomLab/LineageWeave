@@ -249,7 +249,7 @@ async def fetch_outbox_deliveries(
     """Labeled claim/delivery events for one already-visible run.
 
     Missing outbox tables mean migration 0023 is not applied. Stream
-    entry ids stay off the payload -- they are not buyer evidence.
+    entry ids stay off the payload -- they are not reader evidence.
     """
     try:
         rows = await conn.fetch(
@@ -285,7 +285,7 @@ async def _serialize_runs(
     conn: asyncpg.Connection,
     rows: list[asyncpg.Record],
 ) -> list[dict[str, Any]]:
-    """Project registry rows into the authorized buyer-facing payload."""
+    """Project registry rows into the authorized reader-facing payload."""
     if not rows:
         return []
     count_rows = await _counts_by_run(conn, [str(row["analysis_run_id"]) for row in rows])
@@ -346,7 +346,7 @@ async def fetch_visible_analysis_runs(
     """Runs the account requested or whose scope they may already walk.
 
     Once real source-import evidence is visible, the synthetic `make seed`
-    Demo Corp runs stop appearing here -- a buyer must not mistake that
+    Demo Corp runs stop appearing here -- a reader must not mistake that
     fabricated narrative for real evidence (ADR 0001 / ADR 0042).
     """
     # Safe SQL: this immutable module query contains only closed schema SQL; request values remain bound below.
