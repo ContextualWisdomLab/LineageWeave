@@ -139,6 +139,7 @@ SEMANTIC_RELATION_PREDICATES = frozenset(
         "lw_has_result",
         "lw_has_condition",
         "lw_inferred_from",
+        "lw_plans_to_operate",
         "lw_responsible_for",
         "lw_supports",
     }
@@ -218,7 +219,7 @@ EVENT_CLUE_TYPES = frozenset(
 )
 # Stored rows without this contract version are legacy summaries and must be
 # regenerated from the current source body before the popup treats them as evidence.
-POST_SUMMARY_CONTRACT_VERSION = 19
+POST_SUMMARY_CONTRACT_VERSION = 20
 
 _GENERIC_TEAM_ACTOR_NAMES = frozenset(
     {"사업부", "부서", "팀", "business unit", "department", "division"}
@@ -936,6 +937,11 @@ particular:
 - use lw_supports for an explicit organization-to-named-project support
   statement such as "provided installation support for [project]" or
   "supported [project]"; generic work wording is not enough;
+- use lw_plans_to_operate only for an explicitly planned facility whose actor
+  is an organization or team in ROLES and whose facility has a matching PROJECTS row;
+  the same supporting phrase must name both the actor and facility, and the
+  facility object type must be industrial_asset or place. Never use this planned
+  predicate for a facility the source says is already operating;
 - emit separate organization-to-project rows when the source explicitly
   assigns different organizations different project responsibilities;
 - do not turn attendance, an affiliation field, or a project mention alone
@@ -1322,6 +1328,56 @@ def _parse_plain_semantic_relationships(content: str) -> tuple[SemanticRelations
         except (TypeError, ValueError):
             continue
     return tuple(relationships)
+
+
+def _normalize_evidence_name(value: str) -> str:
+    """Normalize a source name for evidence-presence checks without translating it."""
+    return " ".join(unicodedata.normalize("NFKC", value).casefold().split())
+
+
+def _admit_planned_facility_relationships(
+    relationships: tuple[SemanticRelationship, ...],
+    roles: tuple[RoleResponsibility, ...],
+    projects: tuple[ProjectMention, ...],
+    source_text: str,
+) -> tuple[SemanticRelationship, ...]:
+    """Keep planned-operation claims only when ADR 0142 evidence is complete."""
+    role_actors = {
+        (_normalize_evidence_name(role.actor_name), role.actor_type_code)
+        for role in roles
+        if role.actor_type_code in {ACTOR_TYPE_ORGANIZATION, ACTOR_TYPE_TEAM}
+    }
+    project_keys = {
+        normalize_project_key(name)
+        for project in projects
+        for name in (project.project_name, project.canonical_name)
+    }
+    normalized_source = _normalize_evidence_name(source_text)
+    admitted: list[SemanticRelationship] = []
+    for relationship in relationships:
+        if relationship.predicate_code != "lw_plans_to_operate":
+            admitted.append(relationship)
+            continue
+        evidence = _normalize_evidence_name(relationship.evidence_text)
+        if (
+            relationship.subject_type not in {"organization", "team"}
+            or relationship.object_type not in {"industrial_asset", "place"}
+            or (
+                _normalize_evidence_name(relationship.subject_name),
+                {
+                    "organization": ACTOR_TYPE_ORGANIZATION,
+                    "team": ACTOR_TYPE_TEAM,
+                }.get(relationship.subject_type),
+            )
+            not in role_actors
+            or normalize_project_key(relationship.object_name) not in project_keys
+            or _normalize_evidence_name(relationship.subject_name) not in evidence
+            or _normalize_evidence_name(relationship.object_name) not in evidence
+            or evidence not in normalized_source
+        ):
+            continue
+        admitted.append(relationship)
+    return tuple(admitted)
 
 
 def _parse_plain_summary_details(
@@ -2002,7 +2058,12 @@ class ContextualOrchestratorPostSummaryClient:
         relations_content = chat_completion_content(relations_body)
         if re.search(r"(?im)^\s*RELATIONS\s*:", relations_content) is None:
             raise ValueError("summary relation response did not match the required format")
-        semantic_relationships = _parse_plain_semantic_relationships(relations_content)
+        semantic_relationships = _admit_planned_facility_relationships(
+            _parse_plain_semantic_relationships(relations_content),
+            roles,
+            projects,
+            f"{post_title}\n{post_body}",
+        )
         return PostSummary(
             korean_summary=korean_summary,
             key_events=key_events,
