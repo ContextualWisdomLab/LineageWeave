@@ -58,6 +58,22 @@ def test_collection_path_skips_files_that_import_a_missing_extra(
     assert collection_path_requires_missing_extras(path, ("asyncpg",)) is False
 
 
+def test_collection_path_does_not_match_comments_or_import_prefixes(
+    tmp_path: Path,
+) -> None:
+    """Only parsed imports may suppress collection in the reduced sandbox."""
+    path = tmp_path / "test_unrelated.py"
+    path.write_text(
+        '"""Example text: import asyncpg."""\n'
+        "import rediscache\n"
+        "from backends import client\n",
+        encoding="utf-8",
+    )
+    assert collection_path_requires_missing_extras(
+        path, ("asyncpg", "redis")
+    ) is False
+
+
 def test_collection_path_skips_known_transitive_optional_importers(
     tmp_path: Path,
 ) -> None:

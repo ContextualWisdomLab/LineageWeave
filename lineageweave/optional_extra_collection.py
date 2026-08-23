@@ -10,6 +10,7 @@ absent, without skipping anything when they are present.
 
 from __future__ import annotations
 
+import ast
 import importlib.util
 from collections.abc import Iterable
 from pathlib import Path
@@ -35,6 +36,21 @@ _OPTIONAL_EXTRA_IMPORTERS: dict[str, tuple[str, ...]] = {
     "redis": ("scripts.seed_demo_data",),
 }
 _HELPER_TEST_NAME = "test_optional_extra_collection.py"
+
+
+def _imported_module_names(source: str) -> frozenset[str]:
+    """Return exact top-level module paths from syntactically valid imports."""
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, ValueError):
+        return frozenset()
+    imported: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            imported.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            imported.add(node.module)
+    return frozenset(imported)
 
 
 def missing_optional_extra_modules(
@@ -67,16 +83,18 @@ def collection_path_requires_missing_extras(
         text = collection_path.read_text(encoding="utf-8")
     except OSError:
         return False
+    imported_modules = _imported_module_names(text)
     for name in missing:
         for imported_name in (name, *_OPTIONAL_EXTRA_IMPORTERS.get(name, ())):
-            if (
-                f"import {imported_name}" in text
-                or f"from {imported_name} " in text
-                or f"from {imported_name}." in text
+            if any(
+                module_name == imported_name
+                or module_name.startswith(f"{imported_name}.")
+                for module_name in imported_modules
             ):
                 return True
-        if name in _BACKEND_EXTRAS and (
-            "from backend" in text or "import backend" in text
+        if name in _BACKEND_EXTRAS and any(
+            module_name == "backend" or module_name.startswith("backend.")
+            for module_name in imported_modules
         ):
             return True
     return False
