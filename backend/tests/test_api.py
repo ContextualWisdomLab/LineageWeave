@@ -121,7 +121,7 @@ _TENANT_SETTINGS_MIGRATION = (
 _CHANNEL_EVIDENCE_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
-    / "0105_post_lineage_edge_signal.sql"
+    / "0174_post_lineage_edge_signal.sql"
 )
 
 

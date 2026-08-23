@@ -1,6 +1,6 @@
 -- ADR 0124: persist Event Lineage channel evidence beside each fused edge.
 -- lookup_code is globally unique, so signal codes are prefixed.
--- CREATE IF NOT EXISTS / ON CONFLICT so migrate.sh replay is idempotent.
+-- Migration 0174 uses CREATE IF NOT EXISTS / ON CONFLICT for idempotent replay.
 
 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
     ('lineage_signal', 'lineage_signal_temporal', 'Temporal proximity', 0),

@@ -152,11 +152,11 @@ def test_migrate_sh_replays_channel_evidence_and_tenant_settings() -> None:
     migrate = (_ROOT / "docker/postgres-init/migrate.sh").read_text()
     assert "0103_*" in migrate
     assert "0104_*" not in migrate
-    assert "0105_*" in migrate
+    assert "0174_*" in migrate
 
 
 def test_channel_evidence_migration_has_no_jsonb() -> None:
-    migration = (_ROOT / "migrations" / "0105_post_lineage_edge_signal.sql").read_text()
+    migration = (_ROOT / "migrations" / "0174_post_lineage_edge_signal.sql").read_text()
     assert "jsonb" not in migration.casefold()
     assert "post_lineage_edge_signal" in migration
     assert "event_lineage_rebuild" in migration
