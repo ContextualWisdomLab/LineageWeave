@@ -41,6 +41,7 @@ describe("App, unauthenticated", () => {
         state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
       }),
     );
+    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toMatch(/^\//);
   });
 });
 
