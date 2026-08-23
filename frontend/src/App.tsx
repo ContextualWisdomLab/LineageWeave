@@ -748,17 +748,20 @@ function lineageIsolationMessage(
 
 function EventLineageSection({
   lineage,
+  lineageUnavailable = false,
   graph,
   postId,
   onSelectPost,
   currentNextAction,
 }: {
   lineage: PostLineage | null;
+  lineageUnavailable?: boolean;
   graph: LineageGraph | null;
   postId: string;
   onSelectPost: (postId: string) => void;
   currentNextAction?: string | null;
 }) {
+  if (lineageUnavailable) return null;
   if (!lineage) return <p>{t("Loading lineage...")}</p>;
   if (!graph) return <p>{t("Loading lineage...")}</p>;
   const scoped = subgraphForPost(graph, postId);
@@ -792,11 +795,21 @@ function summaryFetchError(err: unknown): string {
 
 function RelatedPostsSection({
   lineage,
+  error,
   onSelectPost,
 }: {
   lineage: PostLineage | null;
+  error?: string | null;
   onSelectPost: (postId: string) => void;
 }) {
+  if (error) {
+    return (
+      <section className="popup-section related-posts-section" aria-labelledby="related-posts-heading">
+        <h3 id="related-posts-heading">{t("Related posts")}</h3>
+        <ExceptionAlert title={error} />
+      </section>
+    );
+  }
   if (!lineage) {
     return (
       <section className="popup-section related-posts-section" aria-labelledby="related-posts-heading">
@@ -2179,6 +2192,7 @@ function PostDetailPopup({
   const [sourceAuthorContext, setSourceAuthorContext] = useState<SourceAuthorContext | null>(null);
   const [counterparties, setCounterparties] = useState<Counterparty[] | null>(null);
   const [lineage, setLineage] = useState<PostLineage | null>(null);
+  const [lineageError, setLineageError] = useState<string | null>(null);
   const [knowledgeGraph, setKnowledgeGraph] = useState<KnowledgeGraph | null>(null);
   const [affiliateTrees, setAffiliateTrees] = useState<AffiliateNode[] | null>(null);
   const [vocEvidence, setVocEvidence] = useState<VocEvidence | null>(null);
@@ -2282,6 +2296,7 @@ function PostDetailPopup({
     setSourceAuthorContext(null);
     setCounterparties(null);
     setLineage(null);
+    setLineageError(null);
     setKnowledgeGraph(null);
     setAffiliateTrees(null);
     setVocEvidence(null);
@@ -2319,7 +2334,15 @@ function PostDetailPopup({
       fetchPostCounterparties(accessToken, postId)
         .then((r) => setCounterparties(r.counterparties))
         .catch(() => setCounterparties([]));
-      fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
+      fetchPostLineage(accessToken, postId)
+        .then((value) => {
+          setLineage(value);
+          setLineageError(null);
+        })
+        .catch((err) => {
+          setLineage(null);
+          setLineageError(productExceptionCopy(err, t("Related posts")).title);
+        });
       fetchPostKnowledgeGraph(accessToken, postId)
         .then(setKnowledgeGraph)
         .catch(() => setKnowledgeGraph(null));
@@ -3200,7 +3223,7 @@ function PostDetailPopup({
               }}
             />
 
-            <RelatedPostsSection lineage={lineage} onSelectPost={onSelectPost} />
+            <RelatedPostsSection lineage={lineage} error={lineageError} onSelectPost={onSelectPost} />
 
             <section className="popup-section">
                 <h3 id="post-event-lineage" tabIndex={-1}>
@@ -3208,6 +3231,7 @@ function PostDetailPopup({
               </h3>
               <EventLineageSection
                 lineage={lineage}
+                lineageUnavailable={Boolean(lineageError)}
                 graph={graph}
                 postId={postId}
                 onSelectPost={onSelectPost}
