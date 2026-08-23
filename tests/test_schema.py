@@ -178,20 +178,29 @@ def test_leftover_pair_references_member_and_item_rows(schema_db) -> None:
     assert "report_period_score" in targets
 
 
-def test_leftover_pair_names_observed_and_expected_columns(schema_db) -> None:
-    """Fresh leftover rows name observed Y and expected E so residual reconciles."""
+def test_leftover_pair_names_nullable_observed_and_expected_columns(schema_db) -> None:
+    """Every install path preserves legacy pairs while naming new Y and E."""
     with schema_db.cursor() as cur:
         cur.execute(
             """
-            select column_name
+            select column_name, is_nullable
             from information_schema.columns
             where table_name = 'report_leftover_pair'
             """
         )
-        columns = {row[0] for row in cur.fetchall()}
-    assert "observed_response" in columns
-    assert "expected_response" in columns
-    assert "leftover_residual" in columns
+        columns = dict(cur.fetchall())
+        cur.execute(
+            """
+            select count(*)
+            from pg_constraint
+            where conname = 'leftover_pair_observed_expected_reconcile_chk'
+            """
+        )
+        reconcile_constraint_count = cur.fetchone()[0]
+    assert columns["observed_response"] == "YES"
+    assert columns["expected_response"] == "YES"
+    assert columns["leftover_residual"] == "NO"
+    assert reconcile_constraint_count == 1
 
 
 

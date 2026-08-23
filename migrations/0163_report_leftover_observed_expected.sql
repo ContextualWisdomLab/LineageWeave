@@ -1,7 +1,8 @@
 -- ADR 0163: persist observed Y and expected E[Y|θ, item] on leftover
 -- post–criterion pairs. Residual stays R = Y − E. Upgrade columns are
 -- nullable so older leftover rows keep distance and residual without
--- fabricating Y or E. Fresh 0001 / 0012 tables require both columns.
+-- fabricating Y or E. This migration is the single source of both columns
+-- on fresh and existing installations.
 
 alter table report_leftover_pair
     add column if not exists observed_response numeric;

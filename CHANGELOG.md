@@ -22,6 +22,17 @@ All notable changes to this project are documented here. Format follows
   stays `R = Y − E`. Missing or non-finite `Y` / `E` omit the badge
   rather than inventing a leftover score.
 
+## [2.12.13] - 2026-08-24
+
+### Fixed
+
+- Closest and farthest leftover post–criterion distances are now
+  Euclidean on the two-axis Jeon / Gabriel interaction map (ADR 0119).
+  Hidden SVD axes after the second no longer change `leftover_distance`.
+  Rank-0 and rank-1 maps still pad unused axes with zero, so seed
+  leftover pairs above the member list still open that post. Never
+  invent a leftover score or a theta.
+
 ## [2.12.6] - 2026-08-20
 
 ### Added
