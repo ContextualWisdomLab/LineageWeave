@@ -1,4 +1,8 @@
--- Rollback for 0135: drop the persisted channel-weight table. Rebuilds
--- fall back to the documented in-code constants (ADR 0145 fallback).
+-- Rollback for 0135: remove the unavailable channel-weight persistence
+-- contract and the raw grouping provenance columns introduced with it.
 
 drop table if exists lineage_channel_weight;
+
+alter table source_post
+    drop column if exists source_secondary_grouping_key,
+    drop column if exists source_thread_group_key;

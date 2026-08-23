@@ -64,8 +64,12 @@ def test_backfill_clears_placeholders_and_routes_project_codes_to_secondary() ->
     # to thread_group_key -- a hard project partition would wall off
     # related posts that lack a project code, exactly the links the
     # reconstruction library exists to find.
-    assert "set thread_group_key = ''" in update
+    assert "thread_group_key = ''" in update
     assert "secondary_grouping_key = coalesce(nullif(btrim(source_project_code), ''), '')" in update
+    assert "source_thread_group_key = coalesce(" in update
+    assert "source_thread_group_key, thread_group_key" in update
+    assert "source_secondary_grouping_key = coalesce(" in update
+    assert "source_secondary_grouping_key, secondary_grouping_key" in update
 
 
 def test_backfill_fails_closed_when_a_thread_group_scoped_run_would_be_orphaned() -> None:

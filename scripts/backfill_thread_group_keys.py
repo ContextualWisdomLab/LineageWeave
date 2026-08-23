@@ -104,7 +104,13 @@ async def backfill_thread_group_keys(conn: asyncpg.Connection, *, dry_run: bool)
         rows = await conn.fetch(
             """
             update source_post
-               set thread_group_key = '',
+               set source_thread_group_key = coalesce(
+                       source_thread_group_key, thread_group_key
+                   ),
+                   source_secondary_grouping_key = coalesce(
+                       source_secondary_grouping_key, secondary_grouping_key
+                   ),
+                   thread_group_key = '',
                    secondary_grouping_key = coalesce(nullif(btrim(source_project_code), ''), '')
              where source_record_key is not null
                and btrim(thread_group_key) = btrim(source_record_key)
