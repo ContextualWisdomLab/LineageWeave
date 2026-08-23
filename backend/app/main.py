@@ -3132,11 +3132,12 @@ async def read_rankings(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """RankWeave fusion of ABAC-visible posts (ADR 0024).
+    """RankWeave fusion of ABAC-visible posts (ADR 0024 / ADR 0167).
 
     Hidden posts are omitted from every channel. Never invents a fused
-    score or a theta. Fail-closed when RankWeave is disabled or the
-    library is missing.
+    score or a theta. Channel evidence is computed from owned rank
+    lists. Fail-closed when RankWeave is disabled or the library is
+    missing.
     """
     _require_post_read(account)
     async with pool.acquire() as conn:

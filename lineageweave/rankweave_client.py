@@ -12,6 +12,10 @@ disabled or missing library is fail-closed, the same discipline as
 :class:`lineageweave.threadweave_client.ThreadWeaveNotAvailable`.
 Wiring the in-process library is additive
 (``LibraryRankWeaveTransport``), not a redesign.
+
+Rankings channel evidence is computed from LineageWeave-owned rank
+lists (ADR 0167). The transport is trusted only for fused item order.
+A missing channel is omitted, never fabricated.
 """
 
 from __future__ import annotations
@@ -27,6 +31,10 @@ DEFAULT_CHANNEL_WEIGHTS = {"temporal": 0.25, "lexical": 0.75}
 # Seeded A-100 titles mention pricing, quote, and delivery. This is a
 # synthetic demo query, not a customer string.
 DEFAULT_RANKING_QUERY = "pricing quote delivery"
+RANKING_SIGNAL_LABELS = {
+    "temporal": "Newest first",
+    "lexical": "Title overlap",
+}
 
 
 class RankWeaveNotAvailable(RuntimeError):
@@ -115,6 +123,70 @@ def ranking_channels_from_rows(
     }
 
 
+def ranking_channel_evidence(
+    post_id: str,
+    channels: Mapping[str, Sequence[str]],
+    weights: Mapping[str, float],
+    eta: int = DEFAULT_RANK_CONSTANT_ETA,
+) -> tuple["RankingChannelEvidence", ...]:
+    """Explain one fused hit from owned channel ranks.
+
+    Contribution is Cormack et al. (2009) weighted RRF:
+    ``weight / (η + rank)`` with 1-based rank. A channel the post is
+    missing from, or a non-positive weight, is omitted. RankWeave extra
+    fields are ignored so a missing signal cannot be invented.
+    """
+    collected: list[tuple[str, int, float, float]] = []
+    for signal_code, ordered_ids in channels.items():
+        weight = float(weights.get(signal_code) or 0.0)
+        if weight <= 0:
+            continue
+        try:
+            channel_rank = [str(item_id) for item_id in ordered_ids].index(post_id) + 1
+        except ValueError:
+            continue
+        contribution = weight / (eta + channel_rank)
+        collected.append((signal_code, channel_rank, weight, contribution))
+    collected.sort(key=lambda item: (-item[3], item[0]))
+    return tuple(
+        RankingChannelEvidence(
+            signal_code=signal_code,
+            signal_label=RANKING_SIGNAL_LABELS.get(signal_code, signal_code),
+            channel_rank=channel_rank,
+            weight=weight,
+            contribution=contribution,
+            rank=index,
+        )
+        for index, (signal_code, channel_rank, weight, contribution) in enumerate(
+            collected, start=1
+        )
+    )
+
+
+@dataclass(frozen=True)
+class RankingChannelEvidence:
+    """One owned-channel contribution to a fused ranking hit."""
+
+    signal_code: str
+    signal_label: str
+    channel_rank: int
+    weight: float
+    contribution: float
+    rank: int
+
+    def to_json(self) -> dict[str, Any]:
+        """Return the reader-safe owned-channel evidence payload."""
+
+        return {
+            "signal_code": self.signal_code,
+            "signal_label": self.signal_label,
+            "channel_rank": self.channel_rank,
+            "weight": self.weight,
+            "contribution": self.contribution,
+            "rank": self.rank,
+        }
+
+
 @dataclass(frozen=True)
 class RankedPost:
     """One visible fused hit. Rank is 1-based position, never a theta."""
@@ -122,6 +194,7 @@ class RankedPost:
     post_id: str
     post_title: str
     fused_rank: int
+    channel_evidence: tuple[RankingChannelEvidence, ...] = ()
 
     def to_json(self) -> dict[str, Any]:
         """Serialize this ranked hit to its API-facing JSON shape."""
@@ -129,6 +202,7 @@ class RankedPost:
             "post_id": self.post_id,
             "post_title": self.post_title,
             "fused_rank": self.fused_rank,
+            "channel_evidence": [item.to_json() for item in self.channel_evidence],
         }
 
 
@@ -157,14 +231,23 @@ def _item_id_from_hit(hit: object) -> str:
 def project_ranking_list(
     raw: object,
     titles_by_id: Mapping[str, str],
+    channels: Mapping[str, Sequence[str]] | None = None,
+    weights: Mapping[str, float] | None = None,
 ) -> RankingList:
-    """Accept transport output. Unknown shapes fail closed. Hidden ids drop."""
+    """Accept transport output. Unknown shapes fail closed. Hidden ids drop.
+
+    Channel evidence is attached from ``channels`` LineageWeave already
+    owns. Transport extra fields are ignored so RankWeave cannot invent
+    a missing signal.
+    """
     if not isinstance(raw, list):
         raise RankWeaveNotAvailable(
             "rankweave_not_available: ranking envelope is not a hit list"
         )
     items: list[RankedPost] = []
     seen: set[str] = set()
+    owned_channels = channels or {}
+    owned_weights = weights or DEFAULT_CHANNEL_WEIGHTS
     for hit in raw:
         post_id = _item_id_from_hit(hit)
         title = str(titles_by_id.get(post_id) or "").strip()
@@ -176,6 +259,9 @@ def project_ranking_list(
                 post_id=post_id,
                 post_title=title,
                 fused_rank=len(items) + 1,
+                channel_evidence=ranking_channel_evidence(
+                    post_id, owned_channels, owned_weights
+                ),
             )
         )
     return RankingList(items=tuple(items))
@@ -265,15 +351,18 @@ class RankWeaveClient:
         weights: dict[str, float] | None = None,
     ) -> RankingList:
         """Fuse the given per-channel id lists into one weighted RankingList."""
+        active_weights = weights or DEFAULT_CHANNEL_WEIGHTS
         try:
-            raw = self._transport(channels, weights or DEFAULT_CHANNEL_WEIGHTS)
+            raw = self._transport(channels, active_weights)
         except RankWeaveNotAvailable:
             raise
         except Exception as exc:
             raise RankWeaveNotAvailable(
                 f"rankweave_not_available: ranking transport failed ({exc})"
             ) from exc
-        return project_ranking_list(raw, titles_by_id)
+        return project_ranking_list(
+            raw, titles_by_id, channels=channels, weights=active_weights
+        )
 
     def as_api_payload(
         self,
