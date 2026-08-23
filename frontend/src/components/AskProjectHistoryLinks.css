@@ -1,0 +1,36 @@
+.ask-project-history-links {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color, #d7dce5);
+}
+
+.ask-project-history-links > h4,
+.ask-project-history-link p {
+  margin: 0;
+}
+
+.ask-project-history-link {
+  display: grid;
+  gap: 0.625rem;
+  padding: 0.75rem;
+  border: 1px solid var(--border-color, #d7dce5);
+  border-radius: 0.75rem;
+  background: var(--surface-color, #fff);
+}
+
+.ask-project-history-link > div:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ask-project-history-link > button {
+  justify-self: start;
+}
+
+.ask-project-history-link [hidden] {
+  display: none;
+}

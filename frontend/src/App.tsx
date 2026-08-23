@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
 import { useAuth } from "react-oidc-context";
 import {
   askPostChat,
-  askAgent,
   BackendError,
   createAnalysisRun,
   startAnalysisRun,
@@ -36,6 +35,8 @@ import {
   fetchPeriodComparison,
   fetchPeriodReportIndex,
   fetchPeriodReports,
+  fetchProjectHistory,
+  fetchProjectHistoryIndex,
   fetchPosts,
   fetchRankings,
   fetchRelatedEntity,
@@ -48,7 +49,6 @@ import {
   updateTicketStatus,
   verifyPostRelations,
   type ActivityEvent,
-  type AskAgentResponse,
   type AffiliateNode,
   type AnalysisRun,
   type CalendarResponse,
@@ -74,6 +74,7 @@ import {
   type PostLineage,
   type PostSummary,
   type PostSortOrder,
+  type ProjectHistoryLink,
   type RankingList,
   type PersonRoleHistoryEntry,
   type RelatedNode,
@@ -90,7 +91,20 @@ import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
+import { AskProjectHistoryLinks } from "./components/AskProjectHistoryLinks";
+import { ProjectHistoryTimeline } from "./components/ProjectHistoryTimeline";
+import {
+  normalizeProjectIdentity,
+  projectHistoryText,
+  type ProjectHistoryIndex,
+  type ProjectHistoryProjection,
+} from "./projectHistory";
 import { CustomerMasterTree, CustomerRelatedPostCard } from "./components/CustomerMasterTree";
+import {
+  AskAgentWorkspace as AskAgentPanel,
+  GLOBAL_ASK_SESSION_STORAGE_KEY,
+} from "./components/AskAgentWorkspace";
+export { GLOBAL_ASK_SESSION_STORAGE_KEY } from "./components/AskAgentWorkspace";
 import { subgraphForPost } from "./lineageLayout";
 import {
   isSupportedLocale,
@@ -108,7 +122,6 @@ import {
 } from "./analysisRunNavigation";
 import "./App.css";
 
-const GLOBAL_ASK_SESSION_STORAGE_KEY = "lineageweave.globalAskSessionId";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
   if (err instanceof BackendError && err.status === 503) {
@@ -285,6 +298,9 @@ function ChatPanel({
           answer_text: result.answer_text,
           cited_post_ids: result.cited_post_ids,
           cited_posts: result.cited_posts,
+          knowledge_cutoff: result.knowledge_cutoff,
+          project_histories: result.project_histories,
+          project_histories_truncated: result.project_histories_truncated,
         };
         return [...prev.filter((row) => row.question_text !== next.question_text), next];
       });
@@ -326,6 +342,12 @@ function ChatPanel({
             currentPostId={
               exchanges[0].cited_posts?.[0]?.post_id ?? exchanges[0].cited_post_ids[0]
             }
+          />
+          <AskProjectHistoryLinks
+            accessToken={accessToken}
+            links={(exchanges[0].project_histories ?? []) as ProjectHistoryLink[]}
+            truncated={exchanges[0].project_histories_truncated ?? false}
+            onOpenPost={setEvidencePostId}
           />
         </div>
       ) : null}
@@ -407,6 +429,12 @@ function ChatPanel({
             citedPostIds={exchange.cited_post_ids}
             onOpenEvidence={setEvidencePostId}
           />
+          <AskProjectHistoryLinks
+            accessToken={accessToken}
+            links={(exchange.project_histories ?? []) as ProjectHistoryLink[]}
+            truncated={exchange.project_histories_truncated ?? false}
+            onOpenPost={setEvidencePostId}
+          />
         </div>
       ))}
       {answer && !exchanges.some((row) => row.answer_text === answer.answer_text) && (
@@ -416,6 +444,12 @@ function ChatPanel({
             citedPosts={answer.cited_posts}
             citedPostIds={answer.cited_post_ids}
             onOpenEvidence={setEvidencePostId}
+          />
+          <AskProjectHistoryLinks
+            accessToken={accessToken}
+            links={(answer.project_histories ?? []) as ProjectHistoryLink[]}
+            truncated={answer.project_histories_truncated ?? false}
+            onOpenPost={setEvidencePostId}
           />
         </div>
       )}
@@ -783,16 +817,6 @@ function projectProvenanceLabel(provenance: string): string {
   return t(PROJECT_PROVENANCE_LABELS[provenance] ?? "Recorded evidence");
 }
 
-const CHAT_EVIDENCE_KIND_LABELS: Record<string, string> = {
-  source_field: "Source field hint",
-  semantic_project: "Semantic project",
-  semantic_role: "Semantic role",
-  semantic_keyman: "Semantic Keyman",
-};
-
-function chatEvidenceKindLabel(kind: string): string {
-  return t(CHAT_EVIDENCE_KIND_LABELS[kind] ?? "Evidence");
-}
 
 const VERIFICATION_BADGE: Record<string, string> = {
   verify_pending: "Not yet checked",
@@ -979,7 +1003,9 @@ function KeymanPanel({
       return;
     }
     const heading = document.getElementById("post-ask");
-    heading?.focus();
+    if (landOnAsk) {
+      heading?.focus();
+    }
     heading?.scrollIntoView?.({ block: "nearest" });
   }, [landFirstRelated, landedRelatedName, landedRelated, landOnAsk]);
 
@@ -1165,7 +1191,7 @@ function KeymanPanel({
     <>
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>{t("Keymen")}</h3>
+        <h3 id="post-keyman" tabIndex={-1}>{t("Keymen")}</h3>
         {canExtract && !orchestratorOff && (
           <details className="operator-action-tools">
             <summary>{t("Evidence operations")}</summary>
@@ -1679,7 +1705,9 @@ function PostDetailPopup({
   liveBodyWarning,
   knowledgeCutoff,
   focusEventLineage,
-  focusAskOnLand,
+  onOpenProjectHistory,
+  focusKeyman,
+  fromReportMember,
   onClose,
   onSelectPost,
   onSearch,
@@ -1691,7 +1719,9 @@ function PostDetailPopup({
   liveBodyWarning?: string | null;
   knowledgeCutoff?: string | null;
   focusEventLineage?: boolean;
-  focusAskOnLand?: boolean;
+  onOpenProjectHistory?: (projectKey: string, postId: string) => void;
+  focusKeyman?: boolean;
+  fromReportMember?: boolean;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
@@ -1958,6 +1988,15 @@ function PostDetailPopup({
     heading?.scrollIntoView?.({ block: "nearest" });
   }, [focusEventLineage, post]);
 
+  useEffect(() => {
+    if (!focusKeyman || !post || keymen === null) {
+      return;
+    }
+    const heading = document.getElementById("post-keyman");
+    heading?.focus();
+    heading?.scrollIntoView?.({ block: "nearest" });
+  }, [focusKeyman, post, keymen, postId]);
+
   return (
     <div className="popup-backdrop" onClick={onClose}>
       <div className="popup-panel" onClick={(event) => event.stopPropagation()}>
@@ -2168,6 +2207,17 @@ function PostDetailPopup({
                         <strong>{project.project_name}</strong>
                         <span>{t("Search related posts")}</span>
                       </button>{" "}
+                      {onOpenProjectHistory ? (
+                        <button
+                          type="button"
+                          className="related-post-card"
+                          aria-label={tf("Open project history for: {name}", { name: project.project_name })}
+                          onClick={() => onOpenProjectHistory(project.project_key, postId)}
+                        >
+                          <strong>{project.project_name}</strong>
+                          <span>{t("Open project history")}</span>
+                        </button>
+                      ) : null}{" "}
                       {project.confidence === null
                         ? `(${t("Hint only")})`
                         : `(${Math.round(project.confidence * 100)}%)`}
@@ -2396,8 +2446,8 @@ function PostDetailPopup({
                 focusEntity={focusEntity}
                 focusTeam={focusTeam}
                 landFirstKeyman
-                landFirstRelated
-                landOnAsk={focusAskOnLand}
+                landFirstRelated={Boolean(fromReportMember)}
+                landOnAsk={fromReportMember}
                 afterList={
                   <>
                     <EvaluationPanel
@@ -2621,6 +2671,7 @@ type SelectPostOptions = {
   fromCalendar?: boolean;
   fromCustomerMaster?: boolean;
   fromAskAgent?: boolean;
+  fromProjectHistory?: boolean;
 };
 
 /**
@@ -3676,7 +3727,9 @@ function PostList({
   postOpenFromCalendar = false,
   postOpenFromCustomerMaster = false,
   postOpenFromAskAgent = false,
+  postOpenFromProjectHistory = false,
   onPostOpened,
+  onOpenProjectHistory,
 }: {
   accessToken: string;
   showLabPanels?: boolean;
@@ -3684,7 +3737,9 @@ function PostList({
   postOpenFromCalendar?: boolean;
   postOpenFromCustomerMaster?: boolean;
   postOpenFromAskAgent?: boolean;
+  postOpenFromProjectHistory?: boolean;
   onPostOpened?: () => void;
+  onOpenProjectHistory?: (projectKey: string, postId: string) => void;
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [graph, setGraph] = useState<LineageGraph | null>(null);
@@ -3708,6 +3763,7 @@ function PostList({
   const [openedFromCalendar, setOpenedFromCalendar] = useState(false);
   const [openedFromCustomerMaster, setOpenedFromCustomerMaster] = useState(false);
   const [openedFromAskAgent, setOpenedFromAskAgent] = useState(false);
+  const [openedFromProjectHistory, setOpenedFromProjectHistory] = useState(false);
   const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
   const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
   const [totalPosts, setTotalPosts] = useState(0);
@@ -3767,6 +3823,7 @@ function PostList({
     setOpenedFromCalendar(Boolean(options?.fromCalendar));
     setOpenedFromCustomerMaster(Boolean(options?.fromCustomerMaster));
     setOpenedFromAskAgent(Boolean(options?.fromAskAgent));
+    setOpenedFromProjectHistory(Boolean(options?.fromProjectHistory));
   }
 
   useEffect(() => {
@@ -3775,6 +3832,7 @@ function PostList({
       fromCalendar: postOpenFromCalendar,
       fromCustomerMaster: postOpenFromCustomerMaster,
       fromAskAgent: postOpenFromAskAgent,
+      fromProjectHistory: postOpenFromProjectHistory,
     });
     onPostOpened?.();
   }, [
@@ -3783,6 +3841,7 @@ function PostList({
     postOpenFromCalendar,
     postOpenFromCustomerMaster,
     postOpenFromAskAgent,
+    postOpenFromProjectHistory,
   ]);
 
   function closeSelectedPost() {
@@ -3795,6 +3854,7 @@ function PostList({
     setOpenedFromCalendar(false);
     setOpenedFromCustomerMaster(false);
     setOpenedFromAskAgent(false);
+    setOpenedFromProjectHistory(false);
     const url = new URL(window.location.href);
     if (url.searchParams.has("post")) {
       url.searchParams.delete("post");
@@ -4283,9 +4343,16 @@ function PostList({
             openedFromWeeklyVoc ||
             openedFromCalendar ||
             openedFromCustomerMaster ||
+            openedFromAskAgent ||
+            openedFromProjectHistory
+          }
+          focusKeyman={
+            openedFromWeeklyVoc ||
+            openedFromCalendar ||
+            openedFromCustomerMaster ||
             openedFromAskAgent
           }
-          focusAskOnLand={openedFromReportMember}
+          fromReportMember={openedFromReportMember}
           onClose={closeSelectedPost}
           onSelectPost={(postId) => {
             const cutoffOptions = openedAnalysisRunContext
@@ -4299,9 +4366,11 @@ function PostList({
               fromCalendar: openedFromCalendar,
               fromCustomerMaster: openedFromCustomerMaster,
               fromAskAgent: openedFromAskAgent,
+              fromProjectHistory: openedFromProjectHistory,
             });
           }}
           onSearch={searchBoard}
+          onOpenProjectHistory={onOpenProjectHistory}
         />
       )}
     </section>
@@ -4538,128 +4607,123 @@ function CustomerMasterPanel({
   );
 }
 
-function AskAgentPanel({
+
+
+function ProjectHistoryPanel({
   accessToken,
+  initialProjectKey,
+  initialFocusPostId,
   onOpenPost,
 }: {
   accessToken: string;
+  initialProjectKey?: string | null;
+  initialFocusPostId?: string | null;
   onOpenPost: (postId: string) => void;
 }) {
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [asking, setAsking] = useState(false);
-  const [sessionId, setSessionId] = useState<string | undefined>(() =>
-    window.sessionStorage.getItem(GLOBAL_ASK_SESSION_STORAGE_KEY) ?? undefined,
-  );
+  const [index, setIndex] = useState<ProjectHistoryIndex | null>(null);
+  const [selectedProjectKey, setSelectedProjectKey] = useState("");
+  const [projection, setProjection] = useState<ProjectHistoryProjection | null>(null);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+  const [error, setError] = useState(false);
+  const locale = useLocale();
+  const historyRequest = useRef(0);
 
-  async function handleAsk() {
-    const normalized = question.trim();
-    if (!normalized) return;
-    setAsking(true);
-    setError(null);
-    setAnswer(null);
-    try {
-      let nextAnswer: AskAgentResponse;
-      try {
-        nextAnswer = await askAgent(accessToken, normalized, sessionId);
-      } catch (err) {
-        if (!(err instanceof BackendError) || err.status !== 404 || !sessionId) {
-          throw err;
-        }
-        setSessionId(undefined);
-        window.sessionStorage.removeItem(GLOBAL_ASK_SESSION_STORAGE_KEY);
-        nextAnswer = await askAgent(accessToken, normalized);
-      }
-      setAnswer(nextAnswer);
-      setSessionId(nextAnswer.session_id);
-      window.sessionStorage.setItem(GLOBAL_ASK_SESSION_STORAGE_KEY, nextAnswer.session_id);
-    } catch (err) {
-      setAnswer(null);
-      setError(orchestratorUnavailableMessage(err, t("Ask Agent")));
-    } finally {
-      setAsking(false);
+  useEffect(() => {
+    let active = true;
+    fetchProjectHistoryIndex(accessToken)
+      .then((result) => {
+        if (!active) return;
+        const initialProject = initialProjectKey
+          ? result.projects.find(
+              (project) =>
+                project.normalized_project_key === normalizeProjectIdentity(initialProjectKey),
+            )
+          : undefined;
+        setIndex(result);
+        setSelectedProjectKey(
+          (current) => initialProject?.project_key ?? (current || result.projects[0]?.project_key || ""),
+        );
+        setError(false);
+      })
+      .catch(() => {
+        if (!active) return;
+        setIndex({
+          contract_version: 1,
+          time_basis_code: "source_post_created_at_fallback",
+          knowledge_cutoff: "",
+          project_count: 0,
+          truncated: false,
+          projects: [],
+        });
+        setError(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [accessToken, initialProjectKey]);
+
+  useEffect(() => {
+    if (!selectedProjectKey || !index?.knowledge_cutoff) {
+      setProjection(null);
+      setLoadingHistory(false);
+      return;
     }
-  }
+    const request = ++historyRequest.current;
+    setProjection(null);
+    setLoadingHistory(true);
+    setError(false);
+    const focusPostId =
+      initialProjectKey &&
+      normalizeProjectIdentity(initialProjectKey) === normalizeProjectIdentity(selectedProjectKey)
+        ? initialFocusPostId ?? undefined
+        : undefined;
+    fetchProjectHistory(accessToken, selectedProjectKey, index.knowledge_cutoff, focusPostId)
+      .then((result) => {
+        if (request !== historyRequest.current) return;
+        setProjection(result);
+        setLoadingHistory(false);
+      })
+      .catch(() => {
+        if (request !== historyRequest.current) return;
+        setError(true);
+        setLoadingHistory(false);
+      });
+  }, [accessToken, index?.knowledge_cutoff, initialFocusPostId, initialProjectKey, selectedProjectKey]);
 
   return (
-    <section className="buyer-destination" aria-labelledby="ask-agent-heading">
-      <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
-      <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
-      <p className="buyer-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
-      {error ? <p className="error">{error}</p> : null}
-      <label className="ask-agent-source">
-        <span>{t("Ask a question")}</span>
-        <textarea
-          aria-label={t("Ask a question")}
-          value={question}
-          onChange={(event) => setQuestion(event.target.value)}
-          rows={4}
-        />
-      </label>
-      <button className="keyman-select" onClick={() => void handleAsk()} disabled={asking || !question.trim()}>
-        {asking ? t("Asking...") : t("Ask")}
-      </button>
-      {answer && (
-        <section className="popup-section" aria-label={t("Answer")}>
-          <h3>{t("Answer")}</h3>
-          {answer.answer_text ? <p>{answer.answer_text}</p> : null}
-          {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
-          {answer.timeline && answer.timeline.length > 0 ? (
-            <>
-              <h4>{t("Event Lineage timeline")}</h4>
-              <ol className="related-post-list" aria-label={t("Event Lineage timeline")}>
-                {answer.timeline.map((event) => (
-                  <li key={event.post_id}>
-                    <button
-                      type="button"
-                      className="post-list-item"
-                      aria-label={`${t("Open timeline post:")} ${event.post_title}`}
-                      onClick={() => onOpenPost(event.post_id)}
-                    >
-                      <strong>{event.post_title}</strong>
-                      {event.occurred_at ? <time dateTime={event.occurred_at}>{event.occurred_at}</time> : null}
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            </>
-          ) : null}
-          {answer.cited_posts && answer.cited_posts.length > 0 && (
-            <>
-              <p className="board-next-action" role="status" aria-label={t("Next action")}>
-                {t("Authorized cited posts are current. Open a cited post to read Event Lineage.")}
-              </p>
-              <h4>{t("Cited posts")}</h4>
-              <ul className="related-post-list">
-                {answer.cited_posts.map((post) => (
-                  <li key={post.post_id}>
-                    <button
-                      className="post-list-item"
-                      aria-label={`${t("Open cited post:")} ${post.post_title}`}
-                      onClick={() => onOpenPost(post.post_id)}
-                    >
-                      <strong>{post.post_title}</strong>
-                    </button>
-                    {answer.cited_post_evidence?.find((item) => item.post_id === post.post_id)?.facts.length ? (
-                      <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
-                        {answer.cited_post_evidence
-                          .find((item) => item.post_id === post.post_id)
-                          ?.facts.map((fact, index) => (
-                            <li key={`${fact.kind}:${fact.text}:${index}`}>
-                              <span>{chatEvidenceKindLabel(fact.kind)}</span>
-                              <span>{fact.text}</span>
-                            </li>
-                          ))}
-                      </ul>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            </>
-          )}
-        </section>
-      )}
+    <section className="buyer-destination" aria-labelledby="project-history-heading">
+      <h2 id="project-history-heading">{projectHistoryText(locale, "destinationHeading")}</h2>
+      <p className="buyer-destination-intro">{projectHistoryText(locale, "destinationIntro")}</p>
+      {error ? <p className="error" role="alert">{projectHistoryText(locale, "historyUnavailable")}</p> : null}
+      {index === null ? <p role="status">{projectHistoryText(locale, "loadingProjects")}</p> : null}
+      {index?.projects.length === 0 && !error ? (
+        <p className="popup-placeholder">{projectHistoryText(locale, "noProjects")}</p>
+      ) : null}
+      {index?.truncated ? (
+        <p className="project-history-warning" role="status">
+          {projectHistoryText(locale, "projectListTruncated")}
+        </p>
+      ) : null}
+      {index && index.projects.length > 0 ? (
+        <label>
+          {projectHistoryText(locale, "selectProject")}
+          <select
+            aria-label={projectHistoryText(locale, "selectProject")}
+            value={selectedProjectKey}
+            onChange={(event) => setSelectedProjectKey(event.target.value)}
+          >
+            {index.projects.map((project) => (
+              <option key={project.project_key} value={project.project_key}>
+                {project.project_name} ({project.event_count})
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
+      {loadingHistory && !error ? (
+        <p role="status">{projectHistoryText(locale, "loadingHistory")}</p>
+      ) : null}
+      {projection ? <ProjectHistoryTimeline projection={projection} onOpenPost={onOpenPost} /> : null}
     </section>
   );
 }
@@ -4669,6 +4733,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   const [brandName, setBrandName] = useState("LineageWeave");
   const auth = useAuth();
   const [destination, setDestination] = useState<BuyerDestination>("board");
+  const [projectHistoryKey, setProjectHistoryKey] = useState<string | null>(null);
+  const [projectHistoryFocusPostId, setProjectHistoryFocusPostId] = useState<string | null>(null);
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("post");
@@ -4676,6 +4742,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   const [postOpenFromCalendar, setPostOpenFromCalendar] = useState(false);
   const [postOpenFromCustomerMaster, setPostOpenFromCustomerMaster] = useState(false);
   const [postOpenFromAskAgent, setPostOpenFromAskAgent] = useState(false);
+  const [postOpenFromProjectHistory, setPostOpenFromProjectHistory] = useState(false);
   // Test-only compatibility for legacy analysis-panel coverage; this prop
   // never forces the panels open outside Vitest. In a real build the
   // advanced-review section (ADR 0037) is gated on PostList's own
@@ -4777,7 +4844,13 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
       </header>
       <BuyerNav
         destination={destination}
-        onChange={setDestination}
+        onChange={(nextDestination) => {
+          if (nextDestination === "project-history") {
+            setProjectHistoryKey(null);
+            setProjectHistoryFocusPostId(null);
+          }
+          setDestination(nextDestination);
+        }}
         tools={<LanguageSwitcher accessToken={accessToken} />}
       />
       <main>
@@ -4789,11 +4862,18 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           postOpenFromCalendar={postOpenFromCalendar}
           postOpenFromCustomerMaster={postOpenFromCustomerMaster}
           postOpenFromAskAgent={postOpenFromAskAgent}
+          postOpenFromProjectHistory={postOpenFromProjectHistory}
           onPostOpened={() => {
             setPostToOpen(null);
             setPostOpenFromCalendar(false);
             setPostOpenFromCustomerMaster(false);
             setPostOpenFromAskAgent(false);
+            setPostOpenFromProjectHistory(false);
+          }}
+          onOpenProjectHistory={(projectKey, postId) => {
+            setProjectHistoryKey(projectKey);
+            setProjectHistoryFocusPostId(postId);
+            setDestination("project-history");
           }}
         />
       ) : null}
@@ -4805,6 +4885,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             setPostOpenFromCalendar(false);
             setPostOpenFromCustomerMaster(true);
             setPostOpenFromAskAgent(false);
+            setPostOpenFromProjectHistory(false);
             setDestination("board");
           }}
         />
@@ -4819,6 +4900,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             setPostOpenFromCalendar(true);
             setPostOpenFromCustomerMaster(false);
             setPostOpenFromAskAgent(false);
+            setPostOpenFromProjectHistory(false);
             setDestination("board");
           }}
         />
@@ -4831,6 +4913,22 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             setPostOpenFromCalendar(false);
             setPostOpenFromCustomerMaster(false);
             setPostOpenFromAskAgent(true);
+            setPostOpenFromProjectHistory(false);
+            setDestination("board");
+          }}
+        />
+      ) : null}
+      {destination === "project-history" ? (
+        <ProjectHistoryPanel
+          accessToken={accessToken}
+          initialProjectKey={projectHistoryKey}
+          initialFocusPostId={projectHistoryFocusPostId}
+          onOpenPost={(postId) => {
+            setPostToOpen(postId);
+            setPostOpenFromCalendar(false);
+            setPostOpenFromCustomerMaster(false);
+            setPostOpenFromAskAgent(false);
+            setPostOpenFromProjectHistory(true);
             setDestination("board");
           }}
         />

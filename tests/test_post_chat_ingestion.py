@@ -8,6 +8,7 @@ import pytest
 
 from backend.app.post_chat_ingestion import (
     LinkedPostIds,
+    PostChatHistoryLimitError,
     fetch_persisted_chat,
     fetch_persisted_chats,
     gather_chat_sources,
@@ -35,8 +36,32 @@ class _Connection:
         return self.header
 
     async def fetch(self, query: str, *_args: object):
-        if "question_norm from post_chat_result" in query:
-            return [{"question_norm": "question"}]
+        if "bounded_exchange as materialized" in query:
+            if self.header is None:
+                return []
+            if not self.citations:
+                return [
+                    {
+                        "exchange_ordinal": 1,
+                        **self.header,
+                        "knowledge_cutoff": self.header.get("knowledge_cutoff"),
+                        "citation_ordinal": None,
+                        "history_citation_ordinal": None,
+                        "cited_post_id": None,
+                        "post_title": None,
+                    }
+                ]
+            return [
+                {
+                    "exchange_ordinal": 1,
+                    **self.header,
+                    "knowledge_cutoff": self.header.get("knowledge_cutoff"),
+                    "citation_ordinal": index,
+                    "history_citation_ordinal": index,
+                    **citation,
+                }
+                for index, citation in enumerate(self.citations, start=1)
+            ]
         return self.citations
 
 
@@ -67,6 +92,9 @@ class _SourceConnection:
     async def fetch(self, _query: str, *_args: object):
         return []
 
+    async def fetchval(self, _query: str, *_args: object):
+        return "<p>Body</p>"
+
 
 def test_gather_chat_sources_keeps_the_event_loop_responsive_during_body_normalization(
     monkeypatch: pytest.MonkeyPatch,
@@ -74,7 +102,9 @@ def test_gather_chat_sources_keeps_the_event_loop_responsive_during_body_normali
     order: list[str] = []
     release = Event()
 
-    def blocking_normalize(_body: str, *, vision_client: object) -> SimpleNamespace:
+    def blocking_normalize(
+        _body: str, *, vision_client: object, **_kwargs: object
+    ) -> SimpleNamespace:
         del vision_client
         order.append("normalization_started")
         assert release.wait(timeout=1.0)
@@ -161,6 +191,11 @@ def test_gather_chat_sources_bounds_and_orders_linked_context(
             }
 
         async def fetch(self, query: str, *args: object):
+            if "select post_id, post_body" in query:
+                return [
+                    {"post_id": post_id, "post_body": "Body"}
+                    for post_id in args[0]
+                ]
             if "from source_post where post_id = any" not in query:
                 return []
             self.candidate_query = query
@@ -195,14 +230,17 @@ def test_gather_chat_sources_bounds_and_orders_linked_context(
                 for post_id in self.candidate_ids
             ]
 
+        async def fetchval(self, _query: str, *_args: object):
+            return "Root body"
+
     conn = SourceBudgetConnection()
     sources = asyncio.run(gather_chat_sources(conn, root_id, lambda _row: True))
 
     expected_candidates = [*sorted(direct_ids), *sorted(indirect_ids)][:32]
     assert conn.candidate_ids == expected_candidates
     assert "array_position" in conn.candidate_query
-    assert [source.post_id for source in sources] == [root_id, *expected_candidates[:7]]
-    assert len(sources) == 8
+    assert [source.post_id for source in sources] == [root_id, *expected_candidates[:5]]
+    assert len(sources) == 6
 
 
 def test_normalize_question_rejects_empty_and_collapses_whitespace() -> None:
@@ -233,6 +271,13 @@ def test_fetch_chat_handles_empty_and_missing_rows() -> None:
     assert asyncio.run(fetch_persisted_chat(missing, "post-1", " ")) is None
     assert asyncio.run(fetch_persisted_chat(missing, "post-1", "question")) is None
     assert asyncio.run(fetch_persisted_chats(missing, "post-1")) == []
+    no_citations = _Connection(
+        header={"question_text": "Question", "answer_text": "Answer"},
+        citations=[],
+    )
+    assert asyncio.run(fetch_persisted_chats(no_citations, "post-1"))[0][
+        "cited_post_ids"
+    ] == []
 
 
 def test_fetch_chat_list_serializes_existing_exchange() -> None:
@@ -243,6 +288,39 @@ def test_fetch_chat_list_serializes_existing_exchange() -> None:
     exchanges = asyncio.run(fetch_persisted_chats(conn, "post-1"))
     assert len(exchanges) == 1
     assert exchanges[0]["cited_posts"][0]["post_title"] == "Evidence A"
+
+
+@pytest.mark.parametrize(
+    ("row", "message"),
+    [
+        ({"exchange_ordinal": 65}, "exchange count"),
+        (
+            {"exchange_ordinal": 1, "history_citation_ordinal": 257},
+            "history citation count",
+        ),
+    ],
+)
+def test_fetch_chat_list_fails_closed_at_history_sentinels(
+    row: dict[str, int],
+    message: str,
+) -> None:
+    class SentinelConnection:
+        async def fetch(self, _query: str, *_args: object):
+            return [
+                {
+                    "question_text": "Question",
+                    "answer_text": "Answer",
+                    "knowledge_cutoff": None,
+                    "citation_ordinal": None,
+                    "history_citation_ordinal": None,
+                    "cited_post_id": None,
+                    "post_title": None,
+                    **row,
+                }
+            ]
+
+    with pytest.raises(PostChatHistoryLimitError, match=message):
+        asyncio.run(fetch_persisted_chats(SentinelConnection(), "post-1"))
 
 
 def test_parse_chat_response_strips_fence_and_drops_invalid_citations() -> None:
@@ -265,7 +343,11 @@ def test_contextual_chat_client_uses_auto_mode_and_evidence_prompt(monkeypatch: 
         captured.update({"url": url, "payload": payload, "headers": headers, "timeout": timeout})
         return {
             "choices": [
-                {"message": {"content": "supported\nCITED SOURCES: 1, 9"}},
+                {
+                    "message": {
+                        "content": '{"answer_text":"supported","cited_source_numbers":[1,9]}'
+                    }
+                },
             ]
         }
 
@@ -282,7 +364,8 @@ def test_contextual_chat_client_uses_auto_mode_and_evidence_prompt(monkeypatch: 
     payload = captured["payload"]
     assert payload["mode"] == "auto"
     assert payload["reasoning_effort"] == "low"
-    assert "fact" in payload["messages"][0]["content"]
+    assert "fact" in payload["messages"][1]["content"]
+    assert payload["response_format"]["type"] == "json_schema"
 
 
 def test_contextual_chat_client_rejects_malformed_provider_response(monkeypatch: pytest.MonkeyPatch) -> None:

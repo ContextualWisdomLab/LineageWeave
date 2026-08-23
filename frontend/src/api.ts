@@ -270,6 +270,11 @@ export interface PostLineage {
 export interface CitedPostRef {
   post_id: string;
   post_title: string;
+  source_revision_id?: string | null;
+  evidence_available_at?: string | null;
+  knowledge_cutoff?: string | null;
+  live_after_cutoff?: boolean;
+  historical_body_unavailable?: boolean;
 }
 
 export interface CitedPostEvidenceFact {
@@ -282,12 +287,24 @@ export interface CitedPostEvidence {
   facts: CitedPostEvidenceFact[];
 }
 
+export interface ProjectHistoryLink {
+  project_key: string;
+  project_name: string;
+  focus_post_id: string;
+  source_post_ids: string[];
+  knowledge_cutoff: string;
+  truth_status_code: "observed" | "inferred";
+}
+
 export interface ChatAnswer {
   post_id: string;
   answer_text: string;
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
   source_post_ids: string[];
+  knowledge_cutoff?: string | null;
+  project_histories?: ProjectHistoryLink[];
+  project_histories_truncated?: boolean;
 }
 
 export interface ChatExchange {
@@ -295,6 +312,9 @@ export interface ChatExchange {
   answer_text: string;
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
+  knowledge_cutoff?: string | null;
+  project_histories?: ProjectHistoryLink[];
+  project_histories_truncated?: boolean;
 }
 
 export interface ChatHistory {
@@ -310,7 +330,17 @@ export interface AskAgentResponse {
   cited_post_evidence?: CitedPostEvidence[];
   source_post_ids: string[];
   timeline?: AskTimelineEntry[];
+  project_histories?: ProjectHistoryLink[];
+  project_histories_truncated?: boolean;
   next_action?: string;
+  knowledge_cutoff?: string | null;
+  grounding_status?: "live_only" | "fully_cutoff_grounded" | "partially_cutoff_grounded";
+  limitations?: AskLimitation[];
+}
+
+export interface AskLimitation {
+  post_id: string;
+  limitation_code: string;
 }
 
 export interface AskTimelineEntry {
@@ -427,6 +457,24 @@ export interface LineageGraph {
 export function fetchLineageGraph(accessToken: string, postId?: string): Promise<LineageGraph> {
   const query = postId ? `?post_id=${encodeURIComponent(postId)}` : "";
   return backendFetch<LineageGraph>(`/api/lineage${query}`, accessToken);
+}
+
+export function fetchProjectHistoryIndex(
+  accessToken: string,
+): Promise<import("./projectHistory").ProjectHistoryIndex> {
+  return backendFetch("/api/project-history/projects", accessToken);
+}
+
+export function fetchProjectHistory(
+  accessToken: string,
+  projectKey: string,
+  knowledgeCutoff?: string,
+  focusPostId?: string,
+): Promise<import("./projectHistory").ProjectHistoryProjection> {
+  const query = new URLSearchParams({ project_key: projectKey });
+  if (knowledgeCutoff) query.set("knowledge_cutoff", knowledgeCutoff);
+  if (focusPostId) query.set("focus_post_id", focusPostId);
+  return backendFetch(`/api/project-history?${query.toString()}`, accessToken);
 }
 
 export interface CorporateEntityRef {
@@ -889,10 +937,15 @@ export function askAgent(
   accessToken: string,
   question: string,
   sessionId?: string,
+  knowledgeCutoff?: string,
 ): Promise<AskAgentResponse> {
   return backendFetch("/api/ask", accessToken, {
     method: "POST",
-    body: JSON.stringify({ question, ...(sessionId ? { session_id: sessionId } : {}) }),
+    body: JSON.stringify({
+      question,
+      ...(sessionId ? { session_id: sessionId } : {}),
+      ...(knowledgeCutoff ? { knowledge_cutoff: knowledgeCutoff } : {}),
+    }),
   });
 }
 

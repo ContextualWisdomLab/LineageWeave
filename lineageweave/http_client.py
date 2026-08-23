@@ -38,6 +38,7 @@ def _request(
     body: bytes | None,
     headers: dict[str, str],
     timeout: float,
+    maximum_response_bytes: int | None = None,
 ) -> tuple[int, bytes]:
     """Implement the _request operation for this channel."""
     parsed = urlparse(url)
@@ -68,8 +69,17 @@ def _request(
             )
         connection.request(method, path, body=body, headers=headers)
         response = connection.getresponse()
-        length_header = response.getheader("Content-Length")
-        raw = response.read(int(length_header)) if length_header is not None else response.read()
+        if maximum_response_bytes is not None:
+            if maximum_response_bytes < 1:
+                raise ValueError("maximum_response_bytes must be positive")
+            raw = response.read(maximum_response_bytes + 1)
+            if len(raw) > maximum_response_bytes:
+                raise HttpClientError(
+                    f"response exceeds {maximum_response_bytes} bytes"
+                )
+        else:
+            length_header = response.getheader("Content-Length")
+            raw = response.read(int(length_header)) if length_header is not None else response.read()
         return response.status, raw
     finally:
         connection.close()
@@ -105,15 +115,22 @@ def post_json(
     *,
     headers: dict[str, str],
     timeout: float,
+    include_llm_metadata: bool = True,
+    maximum_response_bytes: int | None = None,
 ) -> dict:
     """POST ``payload`` as JSON to ``url`` and return the decoded object.
+
+    ``include_llm_metadata`` preserves contextual-orchestrator enrichment by
+    default. Closed non-LLM wire contracts must set it to ``False`` so an active
+    LLM context cannot add an unpublished ``metadata`` member.
+    ``maximum_response_bytes`` bounds reads for strict remote contracts.
 
     Raises:
         ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
         HttpClientError: the server responded with HTTP >= 400 or non-JSON.
     """
     request_payload = payload
-    request_metadata = current_llm_metadata()
+    request_metadata = current_llm_metadata() if include_llm_metadata else None
     if request_metadata:
         request_payload = dict(payload)
         existing_metadata = request_payload.get("metadata")
@@ -123,13 +140,14 @@ def post_json(
             request_payload["metadata"] = {**existing_metadata, **request_metadata}
         else:
             raise ValueError("metadata must be an object")
-    status, raw = _request(
-        "POST",
-        url,
-        body=json.dumps(request_payload).encode("utf-8"),
-        headers={"content-type": "application/json", **headers},
-        timeout=timeout,
-    )
+    request_options = {
+        "body": json.dumps(request_payload).encode("utf-8"),
+        "headers": {"content-type": "application/json", **headers},
+        "timeout": timeout,
+    }
+    if maximum_response_bytes is not None:
+        request_options["maximum_response_bytes"] = maximum_response_bytes
+    status, raw = _request("POST", url, **request_options)
     hostname = urlparse(url).hostname or url
     if status >= 400:
         raise HttpClientError(f"HTTP {status} from {hostname}")

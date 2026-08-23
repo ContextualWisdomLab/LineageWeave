@@ -1,20 +1,71 @@
 # Product & Technical Gap Baseline
 
-## 1. Known Parsing & Frontend Display Gaps
-- **Footnote Parsing**: `post=00505695-3e61-1fd1-83c5-263f88a9e77a` fails to recognize footnotes (li/oi level errors).
-- **Table Parsing**: `post=00505695-3e61-1fd1-80c6-86bb61c8ddc5` completely fails at parsing tables.
-- **Indentation**: Incorrect indentation rendering in `post=00505695-7571-1fd1-83c3-d521b187ad5b` and `post=00505695-3e61-1fd1-83c0-497b3c1c455e`.
-- **Image/Table OCR**: `post=00505695-7571-1fd1-83dd-3d22a61a5734` fails text recognition for tables inside images, markdown parsing fails, and image OCR description is too shallow for Ontology & Semantics.
-- **Math/Superscripts**: `post=00505695-9612-1fe1-83a7-e30153323f25` fails to parse superscripts like m^3 properly. Needs strict Ontology grammar for math formulas.
-- **Missing UI Elements**: DAG (Directed Acyclic Graph) view is currently missing from the frontend for `post=00505695-7571-1fd1-83c5-895ed333cdbc`.
+**Active Ask Agent design head:** PR #353, stacked directly on #264 exact head `39f21261052a9d2ae82c4b851a54831eaf909805`; this is proposed work until merged.
 
-## 2. LLM Extraction & Knowledge Graph Gaps
-- **Multiple Project Extraction**: (Resolved) LLM prompt updated to request key_events as objects with project_name, separating events correctly.
-- **5W1H Missing**: (Resolved) LLM prompt updated to explicitly request 5W1H evidence items in the JSON output array.
-- **R&R and Keyman Missing**: (Resolved) LLM prompt updated to explicitly instruct using actual stated names rather than collective titles.
-- **Entity Resolution / Searxng**: Abbreviations like "한전" and "한국전력" are not mapped properly using Searxng and KG corroboration.
-- **Meso-level Team Mapping**: (Resolved) Checked extraction logic; `team` mapping logic is present and correct, but LLM needed better explicit instruction which is covered by R&R resolution.
-- **Base64 Image Omni-modal**: Current text-only embedding fails on images. Omni-modal LLM processing is required for images to capture layout, font size, colors, and spatial meaning.
+## 1. Known Parsing & Frontend Display Gaps
+- **Footnote and table parsing**: rich-text exports still require synthetic regression cases for footnote ownership, table-row grouping, and nested list semantics.
+- **Indentation**: mixed source whitespace, CSS, and OOXML indentation must remain distinguishable so visual alignment cannot manufacture hierarchy.
+- **Image/table OCR**: partial visual regions, table text, markdown-like source, and image captions require persisted, position-aware evidence or an explicit unavailable state.
+- **Math/superscripts**: superscript and formula-like source needs a semantic-unit grammar that preserves the original text and exposes normalized search text.
+- **Buyer navigation**: Board, Project History, Global Ask, Customer Master, Calendar, and Admin routes must preserve source focus and the next actionable step across transitions.
+
+Exact private runtime identifiers are intentionally omitted; the authorized
+runtime and synthetic fixtures retain the reproducibility detail.
+
+## Historical exact-head checkpoint (2026-08-20 19:14 Asia/Seoul)
+
+The following is the current GitHub observation used for this branch. It
+supersedes the historical 17:08 snapshot and does not claim protected-main
+behavior. GitHub reports 24 open PRs from #190 through #309; none of the
+`#258`-and-later stack has an independent `APPROVED` review at this checkpoint.
+
+| PR group | Exact observed heads | Merge observation |
+|---|---|---|
+| #258-#266 | `#258 f8d2fa98`, `#260 dfd95d9c`, `#261 bd1b4d2f`, `#262 80445b8a`, `#263 d670acd5`, `#264 d5dbdf71`, `#266 26a6d9c6` | `BLOCKED`, review required |
+| #270-#276 | `#270 c58aef89`, `#275 35035783`, `#276 55679fa2` | `BLOCKED`, review required or draft |
+| #282-#287 | `#282 6eeaf89d`, `#285 cbb959ce`, `#286 65a461de`, `#287 554efb9b` | `UNSTABLE`/`UNKNOWN`/`BLOCKED`; not merge-ready |
+| #298-#303 | `#298 49c9976f`, `#301 59ccdf91`, `#302 40b0a8ea`, `#303 fe0a4f26` | `UNKNOWN`/`CLEAN`/`UNSTABLE`; independent review pending |
+| #306-#309 | `#306 e0dbc386`, `#307 313d38a4`, `#308 42e6230c`, `#309 e6fd907e` | `UNSTABLE`; independent review pending |
+
+PR #285 received concurrent remote commits through `cbb959ce` while its local
+Buyer wiring was under review. Those commits were incorporated with a normal
+merge; no force push is permitted. The current change adds the missing API/GNB
+connection, exact-input validation, source-name whitespace fallback, a shared
+timeline entry point, Storybook-compatible truth rendering, and live
+PostgreSQL/API regressions. The final exact head and Checks must be recorded
+after the ordinary push.
+
+## Historical exact-head refresh (2026-08-20 19:50 Asia/Seoul)
+
+This refresh supersedes the 19:14 checkpoint for the PRs it names. It records
+GitHub observations, not protected-main behavior. The repository has 25 open
+PRs; no approval or queued Check is treated as merge evidence.
+
+| PR | Exact observed head | Current observation |
+|---|---|---|
+| #258 | `f8d2fa98` | `BLOCKED`, review required |
+| #260-#266 | `dfd95d9c`, `bd1b4d2f`, `80445b8a`, `d670acd5`, `d5dbdf71`, `26a6d9c6` | stacked, review required; #264 is `DIRTY` |
+| #282 | `6eeaf89d` | `CLEAN`, no formal approval |
+| #285 | `30dae74a` | `UNSTABLE`, exact-head Checks queued, no formal approval |
+| #287 | `26fa7346` | `UNKNOWN`, review required, exact-head Checks queued |
+| #298-#303 | `49c9976f`, `59ccdf91`, `40b0a8ea`, `b7e6e82d` | mixed `DIRTY`/`CLEAN`/`UNSTABLE`, review pending |
+| #306-#311 | `e0dbc386`, `a4d1de59`, `42e6230c`, `e6fd907e`, `d8b7f561` | `CLEAN`/`UNSTABLE`, review pending |
+
+The #285 exact head includes the independent review repairs for case-preserving
+project identity, route-specific bounds, and sibling-project match isolation;
+the local tree recorded `741 passed, 16 skipped`. The #287 exact head removes
+the Semgrep dynamic-SQL findings and aligns public claim adjudication with the
+contextual-orchestrator `mode=auto` strict structured contract; its local tree
+recorded `791 passed, 16 skipped`. Both remain open until current-head Checks
+and protected approval are observed.
+
+The organization-owned `.github` repository already provides the hourly
+commercial-readiness coordinator at cron `7 * * * *` and the review/merge
+scheduler's hourly fallback. This repository does not add a competing local
+timer; the central OpenCode/scheduler credential boundary remains authoritative
+and `COPILOT_GITHUB_TOKEN` is not used.
+
+## PRD
 
 ## 3. General Architecture Gaps
 - **DB Architecture**: Ensure PostgreSQL is strictly used (no file DBs), 3rd normal form is maintained, and Hot Partitions are handled. DB locks must be managed (or use read/write replicas).
@@ -77,6 +128,7 @@ claims that an unmerged PR or historical runtime observation is live behavior.
 | FR-11 | Post summaries expose evidence-bearing events and R&R. Requester/processor actions are nullable and may only name actors already bound to the same post summary. | ADR 0052, ADR 0102 | Commit `15e1a378` is on PR #258 and the schema exists locally; the current database has zero populated action rows, so buyer-data acceptance remains unproven |
 | FR-12 | A hierarchy-enrichment timeout leaves the source-grounded summary readable and the actor unbound; it never creates a guessed catalog identity. | ADR 0101, ADR 0010, ADR 0026 | Commit `1c260f20` contains the boundary, ADR, and focused test; independent review, protected-main merge, and fresh runtime evidence remain pending |
 | FR-13 | Customer Master projects authorized corporate entities as a Group → Company → Plant tree. Real organization containment uses W3C ORG while Group/Company/Plant remain separate SKOS level concepts. Missing-parent, self-parent, and cyclic edges remain visible as unresolved roots; the UI owns nested `group` elements from their parent `treeitem`, supports Arrow/Home/End and Enter/Space operation, and opens source-backed evidence outside the tree. | ADR 0124, ADR 0004, ADR 0010 | Ontology/SHACL interoperability tests, `customerMasterTree.ts`, `CustomerMasterTree.tsx`, component tests, Storybook, and code commit `21074cf80cbfab3001bf18b6e1a618f75f4bed24` |
+| FR-14 | Global Ask presents a dedicated evidence workspace: semantic form submission, IME-safe keyboard behavior, explicit empty/loading/error/answer states, separated timeline and cited evidence, answer focus, responsive phone/tablet/PC layout, and the existing authorized cited-post → Event Lineage handoff. | ADR 0137, ADR 0002, ADR 0032, ADR 0090 | `AskAgentWorkspace.tsx`, focused component/token tests, Storybook state inventory, and existing App navigation regressions on #353 |
 
 ## TRD
 
@@ -153,6 +205,7 @@ sequenceDiagram
 | NFR-05 | Synthetic fixtures only; runtime validation returns aggregate, non-identifying evidence | repository scan and evidence-document review |
 | NFR-06 | ADR-first architectural change and paper-grounded model policy | ADR link check and review; unsupported policies remain unavailable |
 | NFR-07 | Buyer hierarchy controls meet WCAG 2.2 keyboard operation and the WAI-ARIA tree ownership contract without inventing ontology facts | Ontology tests, focused hierarchy tests, full frontend test/lint/build, Storybook build, and final-head hosted verification |
+| NFR-08 | Ask Agent uses shared UI-standard button/focus/color/radius tokens, clear focus differentiation, a primary content action, and 1024px/768px responsive transitions without horizontal scrolling | Focused component and CSS-contract tests, complete frontend build, Storybook state build, and UI/UX Standard Guide v3.0 review |
 
 ## Current aggregate data and runtime evidence
 
@@ -183,6 +236,7 @@ evidence for one authorized post, not a corpus-wide acceptance claim.
 
 | Closed gap | Root cause | Closure evidence | Remaining boundary |
 |---|---|---|---|
+| Ask Agent had no dedicated UI component or executable state inventory; its chatbox reused a Keyman link-style action and mixed answer, timeline, citations, and evidence facts in one generic section. | The Global Ask feature accumulated inside `App.tsx` while the stack focused on authorization and cross-surface navigation, leaving presentation without its own ownership boundary. | #353 extracts a token-based evidence workspace, uses a semantic and IME-safe form, focuses completed answers, separates source-backed result regions, and adds five Storybook scenes plus focused regressions. | Streaming and persisted conversation history remain separate future product work; final-head hosted Checks and independent approval are still required. |
 | Customer entities could disappear from the buyer surface when `parent_entity_id` formed a self-parent or cycle; the first tree refactor also placed child `group` content beside rather than inside its parent `treeitem`. | The old projection assembled only root-reachable nodes, overloaded evidence state with hierarchy semantics, and did not satisfy the APG ownership rule. | Code commit `21074cf80cbfab3001bf18b6e1a618f75f4bed24` promotes malformed edges to visible unresolved roots, keeps ORG containment separate from SKOS classification, makes every parent `treeitem` own its child `group`, separates evidence into an external region, and adds navigation, failure, stale-response, ontology, and Storybook regressions. | The API still exposes one parent context; authoritative acyclicity, level-transition rules, legal/operating/sales/billing contexts, and effective-dated history remain future normalized-model work. |
 
 ## Active PR audit
@@ -194,6 +248,7 @@ PR head, valid unresolved threads, qualifying independent review, and terminal h
 
 | PR | Proposed increment | Base → head | Snapshot state |
 |---|---|---|---|
+| #353 | Ask Agent evidence workspace and semantic chatbox | `#264` → `v2.18.0` | Exact-head verification and independent review required |
 | #301 | Global Ask knowledge cutoff | `#264 stack` → `v2.23.0` | Ready / UNSTABLE |
 | #298 | bounded async lineage LLM rebuild | `#276` → `v2.22.0` | Ready / UNSTABLE |
 | #287 | exact Event Lineage channel evidence | `#276` → feature | Ready / UNSTABLE |
@@ -260,10 +315,47 @@ projection: update the affected FR/NFR row and Gap closure evidence when an ADR
 or PR changes product behavior. Never turn a PR title, green unit test, or old
 runtime note into a shipped/live claim.
 
+## Recovered TEPP project-history integration (2026-08-21)
+
+- The canonical Buyer project timeline remains owned by the stacked Project history PR.
+- The previously implemented TEPP work had become stranded in a closed parent and an
+  orphaned duplicate stack. This recovery consumes the canonical timeline instead of
+  introducing another project query, classifier, or timeline component.
+- The dependency is the exact `ContextualWisdomLab/TEPP#159` project-history contract.
+  Until that contract is merged and a TEPP endpoint is deployed, the UI reports an
+  actionable fail-closed state and keeps the authorized LineageWeave timeline readable.
+- TEPP receives opaque actor references and bounded source-field evidence only. Browser,
+  review, provider, and `TEPP_API_KEY` credentials are not forwarded.
+- `temporal_association_only` is the maximum accepted authority. Buyer copy must say
+  that a preceding event is related in time, not that it caused the VOC.
+- The next stacked slice attaches this same canonical timeline and TEPP metadata to
+  Global Ask and post-scoped Ask without re-retrieving hidden evidence.
+
+## Ask-to-project-history integration (2026-08-21)
+
+- Protected-stack checkpoint: PR #342 is based on PR #339 head
+  `43262dc76622928fdf90b922653949b4ac7c6631`; the PR description and hosted Checks
+  record its exact current head. Both remain review/check gated and are not represented
+  as merged production behavior.
+- Post-scoped Ask and Global Ask return structured project-history links only for exact
+  project identities on their currently authorized cited posts.
+- Opening a link lazily calls the canonical Project history endpoint with the answer
+  knowledge cutoff and cited focus post; no second timeline, classifier, or TEPP query is
+  implemented in either Ask surface.
+- Source publication eligibility and cutoff are applied before Ask retrieval. Persisted
+  answers are withheld when any citation loses visibility, and a Global Ask session with
+  stale citations must start a new session before prior answer prose is reused. The
+  browser session identifier uses one shared `sessionStorage` key across bootstrap,
+  persist, 404 retry, 409 restart, and logout.
+- The response bounds citation and project counts, discloses truncated project links, and
+  keeps answers readable when a timeline or TEPP validation is unavailable.
+- Remaining causal-analysis work is explicitly outside this slice: temporal association
+  and evidence navigation do not identify why a VOC occurred.
+
 ## Current stacked PR product-surface gaps
 
 - **Customer Master relationship composition — PR #262**: Resolved on the
-  current feature branch. ADR 0125 and Figma frames `313:2` / `314:2` define a
+  current feature branch. ADR 0129 and Figma frames `313:2` / `314:2` define a
   customer-centered three-pane workspace that keeps the selected customer
   stable while the user inspects relationships and source posts.
 - **Responsive Customer Master flow — PR #262**: Resolved on the current
@@ -281,5 +373,24 @@ runtime note into a shipped/live claim.
 - **Customer relationship exact-value export**: Open. An auditable CSV/JSON
   export of the selected customer, visible relations, truth status, effective
   interval, and evidence references remains a later product slice.
+
+## Batched persisted post-Ask reauthorization (2026-08-22)
+
+- The issue #358 implementation remains stacked and is not protected-main
+  behavior. ADR 0131 bounds one post history at 64 exchanges and 256 citation
+  occurrences; excess history fails closed without returning a partial answer.
+- After the existing parent-post visibility lookup, the supported history phase
+  uses one ordered history query and one authorization/project-evidence query.
+  Tenant ABAC, publication eligibility, and each exchange's persisted knowledge
+  cutoff are evaluated in the latter query before partitioning.
+- Observed local PostgreSQL 18.4 evidence used 64 synthetic exchanges with one
+  citation each on a single loopback connection, five measured repetitions after
+  warmup. The previous-equivalent path made 193 queries with an 11.544 ms median;
+  the batched path made 2 queries with a 1.190 ms median, a 9.70x reduction for
+  this bounded fixture. This is query-path evidence, not a production latency SLO.
+- The real-PostgreSQL regression also executes mixed per-exchange cutoffs and a
+  private tenant mismatch. Its observed outcomes are cutoff miss, cutoff hit, and
+  tenant miss respectively; hidden evidence does not disclose answer prose, title,
+  identifier, count, or project link from the affected exchange.
 
 *This document is continuously updated by the hourly automated agent loop.*
