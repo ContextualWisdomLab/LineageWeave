@@ -132,7 +132,7 @@ def _is_footnote_reference(attrs: list[tuple[str, str | None]]) -> bool:
 
 # Unicode Super/Subscript blocks (The Unicode Consortium, 2024, §22.4) plus the
 # Latin-1 superscript digits. Quantity display uses these so embeddings keep
-# "m³" distinct from "m3" without retaining HTML in the semantic text (ADR 0119).
+# "m³" distinct from "m3" without retaining HTML in the semantic text (ADR 0165).
 _SUPERSCRIPT = {
     "0": "\u2070",
     "1": "\u00b9",

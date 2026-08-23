@@ -386,7 +386,7 @@ hard truncation that silently drops earlier decisions. This is recorded
 here as the citation this feature would build on, not as a claim that
 conversation-level compression is implemented today.
 
-## Quantity scripts in source units (ADR 0119)
+## Quantity scripts in source units (ADR 0165)
 
 Board exports write cubic metres as HTML `<sup>` or as `m^3`. Flattening
 those tags concatenates `m3`, which is a different quantity, and leaving
