@@ -15,7 +15,6 @@ _SLOT_LOOKUP_CODES = {
     "who": ("prov_person", "prov_organization", "prov_team", "prov_software_agent"),
     "what": ("node_post",),
     "when": (),
-    "where": ("prov_organization",),
     "why": (),
     "how": (),
 }
