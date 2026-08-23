@@ -10,7 +10,7 @@ validation evidence changes, not as an untracked architecture decision.
 ADR 0103 keeps compact graph navigation truthful for multiple-membership
 people: the UI uses an authorized unique affiliation only when one identity
 remains and otherwise says `multiple organizations`. The full N:N evidence
-stays on the Keyman surface, and the panel gives the buyer the next action.
+stays on the Keyman surface, and the panel gives the reader the next action.
 The implementation and APA 7th sources are recorded in
 [`docs/adr/0106-related-node-business-captions.md`](adr/0106-related-node-business-captions.md)
 and [`docs/doctoring/RELATED_NODE_AFFILIATION_REFERENCES.md`](doctoring/RELATED_NODE_AFFILIATION_REFERENCES.md).
