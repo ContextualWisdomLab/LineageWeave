@@ -1810,6 +1810,7 @@ describe("App, authenticated", () => {
               },
             ],
             source_post_ids: ["post-1", "post-2"],
+            next_action: "Open the cited source posts to verify this answer.",
           }),
         );
       }
@@ -1966,6 +1967,7 @@ describe("App, authenticated", () => {
     expect(await screen.findByRole("list", { name: "Evidence facts" })).toBeInTheDocument();
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
+    expect(screen.getByText("Open the cited source posts to verify this answer.")).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
   });
 

@@ -1739,7 +1739,6 @@ async def read_post_content(
     """Return persisted content evidence; never derive or invent reader-facing copy."""
     await _load_visible_post(post_id, account, pool)
     queue_event: tuple[str, str] | None = None
-    summary_waiting_for_images = False
     async with pool.acquire() as conn:
         unit_rows = await conn.fetch(
             """
@@ -2831,7 +2830,6 @@ async def read_post_summary(
                     post_id=queue_event[0],
                     source_body_digest=queue_event[1],
                 )
-                queue_event = None
             if summary_waiting_for_images:
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -3153,6 +3151,9 @@ async def ask_agent(
             "cited_posts": cited_post_summaries(sources, cited_ids),
             "cited_post_evidence": cited_post_evidence(sources, cited_ids),
             "source_post_ids": [source.post_id for source in sources],
+            "next_action": "Open the cited source posts to verify this answer."
+            if cited_ids
+            else "Ask a narrower question that can be verified against an authorized source post.",
         }
     async with pool.acquire() as conn:
         try:
