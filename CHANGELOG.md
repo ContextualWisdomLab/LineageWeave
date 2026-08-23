@@ -6,6 +6,16 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- ADR 0157 and its exact-head inventory choose the existing lowercase public
+  ontology namespace as canonical and define the compatibility, publication,
+  and migration evidence required by issue #372 without rewriting identifiers.
+- The ontology Pages artifact now publishes the deprecated repository-case
+  compatibility vocabulary after validating every mapping's term kind.
+- The PROV-O support profile now mints its product class mappings only in the
+  canonical lowercase namespace while importing the legacy compatibility map.
+
 ### Fixed
 
 - `GET /healthz`: a stray decorator had stacked this route onto
@@ -13,19 +23,59 @@ All notable changes to this project are documented here. Format follows
   hit Postgres instead of returning `{"status": "ok"}`, and the real
   `healthz()` handler had no route at all. Restored the decorator to the
   correct handler.
-- `frontend/src/App.tsx`: the pre-login screen was rendering a duplicate
-  `AdminPanel` with a guaranteed-empty access token (a rebase artifact);
-  removed it. The already-correct authenticated-view render is unaffected.
-  Also wired the login button through `returnUrlFromLocation()` /
-  `rememberOidcReturnUrl()` instead of building the return URL inline,
-  matching the open-redirect-safe helper the login-return-flow fix
-  introduced.
 - Closed the repository-wide docstring-coverage gap: added the 35 missing
   public docstrings the AST audit found across `lineageweave/` and
   `backend/app/`.
+- The product-gap baseline now records private-runtime findings only as
+  aggregate synthetic-fixture contracts and identifies the existing
+  post-scoped lineage DAG without retaining post or organization identifiers.
+- The public ontology now states its OWL 2 Full/RDF-Based semantics for the
+  ADR 0036 RDF-reified project evidence, and the PROV-O support profile uses
+  its canonical lowercase deployed IRI.
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
+
+## [2.12.16] - 2026-08-24
+
+### Added
+
+- Period leftover pair rows now name signed residual `R` beside observed
+  `Y`, expected `E`, leftover-map rank, and distance `d`, then open that
+  post from the reusable `LeftoverPairList` Storybook component
+  (Jeon et al., 2021, eq. 3; ADR 0162).
+
+## [2.12.15] - 2026-08-24
+
+### Added
+
+- Period leftover pair rows now name leftover-map rank after IRT main
+  effects next to leftover-map distance `d`, then open that post
+  (Jeon et al., 2021, eq. 3; ADR 0164). Rank 0 names no leftover
+  structure rather than inventing a leftover score. When observed `Y`
+  and expected `E` are also present, one localized next action names all
+  three measurements instead of hiding either amendment.
+
+## [2.12.14] - 2026-08-24
+
+### Added
+
+- Period leftover pair rows now name observed `Y` and expected
+  `E[Y|θ, item]` after IRT main effects next to leftover-map distance
+  `d`, then open that post (Jeon et al., 2021, eq. 3; ADR 0163). Residual
+  stays `R = Y − E`. Missing or non-finite `Y` / `E` omit the badge
+  rather than inventing a leftover score.
+
+## [2.12.13] - 2026-08-24
+
+### Fixed
+
+- Closest and farthest leftover post–criterion distances are now
+  Euclidean on the two-axis Jeon / Gabriel interaction map (ADR 0119).
+  Hidden SVD axes after the second no longer change `leftover_distance`.
+  Rank-0 and rank-1 maps still pad unused axes with zero, so seed
+  leftover pairs above the member list still open that post. Never
+  invent a leftover score or a theta.
 
 ## [2.12.6] - 2026-08-20
 

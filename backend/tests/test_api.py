@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 import uuid
+from contextlib import closing
 from pathlib import Path
 
 import jwt
@@ -115,6 +116,21 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
 )
 _TENANT_SETTINGS_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0103_tenant_settings.sql"
+)
+_CHANNEL_WEIGHT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0135_lineage_channel_weight.sql"
+)
+_LEFTOVER_OBSERVED_EXPECTED_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0163_report_leftover_observed_expected.sql"
+)
+_LEFTOVER_MAP_RANK_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0164_report_leftover_map_rank.sql"
 )
 
 
@@ -230,6 +246,9 @@ def seeded_db(demo_analyst_token):
             cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
             cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
+            cur.execute(_CHANNEL_WEIGHT_MIGRATION.read_text())
+            cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
+            cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -1142,6 +1161,117 @@ def test_me_reflects_the_authenticated_account(client, demo_analyst_token) -> No
     )
 
 
+def test_update_me_preferences_persists_a_supported_locale(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A supported Buyer locale round-trips without leaking into later tests."""
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    me_before = client.get("/api/me", headers=headers).json()
+    original = me_before["preferred_locale"]
+    updated = "en" if original == "ko" else "ko"
+    try:
+        response = client.patch(
+            "/api/me/preferences",
+            json={"preferred_locale": updated},
+            headers=headers,
+        )
+        assert response.status_code == 200
+        assert response.json() == {"preferred_locale": updated}
+
+        me_response = client.get("/api/me", headers=headers)
+        assert me_response.json()["preferred_locale"] == updated
+    finally:
+        with closing(psycopg2.connect(seeded_db["dsn"])) as conn:
+            with conn, conn.cursor() as cur:
+                cur.execute(
+                    "update user_account set preferred_locale = %s where user_account_id = %s",
+                    (original, me_before["user_account_id"]),
+                )
+
+
+def test_update_me_preferences_rejects_an_unsupported_locale(client, demo_analyst_token) -> None:
+    """An unsupported locale is rejected and cannot change the saved preference."""
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    original = client.get("/api/me", headers=headers).json()["preferred_locale"]
+    response = client.patch(
+        "/api/me/preferences",
+        json={"preferred_locale": "fr"},
+        headers=headers,
+    )
+    assert response.status_code == 422
+    assert client.get("/api/me", headers=headers).json()["preferred_locale"] == original
+
+
+def test_update_me_preferences_requires_authentication(client) -> None:
+    """Anonymous callers cannot write an account-scoped locale preference."""
+    response = client.patch("/api/me/preferences", json={"preferred_locale": "ko"})
+    assert response.status_code in (401, 403)
+
+
+def test_rankings_fail_closed_payload_is_exact(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """A missing RankWeave transport is unavailable, never ambiguous success."""
+    from lineageweave.rankweave_client import RankWeaveClient
+
+    monkeypatch.setattr("backend.app.main._rankweave_client", RankWeaveClient)
+    response = client.get("/api/rankings", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert response.status_code == 200
+    assert response.json() == {
+        "port": "rankweave",
+        "status": "unavailable",
+        "status_reason": "rankweave_not_available",
+        "rankings": [],
+    }
+
+
+def test_rankings_accept_only_abac_visible_posts(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """A deterministic RankWeave adapter ranks visible synthetic posts only."""
+    from lineageweave.rankweave_client import RankWeaveClient
+
+    captured_channels: dict[str, list[str]] = {}
+
+    def fuse_visible(
+        channels: dict[str, list[str]], _weights: dict[str, float]
+    ) -> list[dict[str, str]]:
+        captured_channels.update(channels)
+        return [{"item_id": post_id} for post_id in channels["temporal"]]
+
+    monkeypatch.setattr(
+        "backend.app.main._rankweave_client",
+        lambda: RankWeaveClient(transport=fuse_visible),
+    )
+    response = client.get(
+        "/api/rankings",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["port"] == "rankweave"
+    assert body["status"] == "accepted"
+    assert body["status_reason"] is None
+    assert [row["fused_rank"] for row in body["rankings"]] == list(
+        range(1, len(body["rankings"]) + 1)
+    )
+    visible_by_id = {row["post_id"]: row for row in body["rankings"]}
+    assert visible_by_id[seeded_db["own_private_post_id"]]["post_title"] == (
+        "Own-corp private post"
+    )
+    assert visible_by_id[seeded_db["public_post_id"]]["post_title"] == "Public post"
+    assert seeded_db["other_private_post_id"] not in visible_by_id
+    assert seeded_db["other_private_post_id"] not in captured_channels["temporal"]
+    assert "theta" not in str(body).lower()
+
+
+def test_rankings_requires_authentication(client) -> None:
+    """Anonymous callers cannot enumerate the buyer's visible ranking corpus."""
+    response = client.get("/api/rankings")
+    assert response.status_code in (401, 403)
+
+
 def test_customer_master_returns_authorized_catalog_contract(client, demo_analyst_token, seeded_db) -> None:
     admin_conn = psycopg2.connect(seeded_db["dsn"])
     try:
@@ -2016,7 +2146,11 @@ def test_missing_token_is_unauthorized(client) -> None:
 
 
 def test_forged_token_is_rejected(client) -> None:
-    forged = jwt.encode({"sub": "not-a-real-subject", "iss": f"{_KEYCLOAK_BASE_URL}/realms/{_REALM}"}, key="wrong-key", algorithm="HS256")
+    forged = jwt.encode(
+        {"sub": "not-a-real-subject", "iss": f"{_KEYCLOAK_BASE_URL}/realms/{_REALM}"},
+        key="synthetic-wrong-signing-key-32bytes",
+        algorithm="HS256",
+    )
     response = client.get("/api/posts", headers={"Authorization": f"Bearer {forged}"})
     assert response.status_code == 401
 
@@ -4186,6 +4320,37 @@ def test_derive_commitment_unavailable_without_orchestrator(
     assert response.status_code == 503
 
 
+def test_ask_rejects_an_empty_question(client, demo_analyst_token, seeded_db) -> None:
+    """Whitespace is not a buyer question and is rejected before orchestration."""
+    response = client.post(
+        "/api/ask",
+        json={"question": "   "},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 422
+
+
+def test_ask_is_unavailable_without_orchestrator_credentials(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Null chat client must 503, not invent an answer."""
+    from lineageweave.post_chat import NullPostChatClient
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: NullPostChatClient())
+    response = client.post(
+        "/api/ask",
+        json={"question": "What happened with the public post?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 503
+
+
+def test_ask_requires_authentication(client) -> None:
+    """Anonymous callers cannot ask across the buyer's authorized post corpus."""
+    response = client.post("/api/ask", json={"question": "Any question"})
+    assert response.status_code in (401, 403)
+
+
 def test_derive_commitment_uses_post_created_at_and_does_not_duplicate(
     client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
@@ -4567,6 +4732,13 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert leftover_kinds <= {"closest", "farthest"}
     assert all(pair["post_title"] for pair in high_report.get("leftover_pairs", []))
     assert all(pair["leftover_distance"] >= 0 for pair in high_report.get("leftover_pairs", []))
+    for pair in high_report.get("leftover_pairs", []):
+        assert pair["leftover_map_rank"] >= 0
+        observed = pair.get("observed_response")
+        expected = pair.get("expected_response")
+        if observed is None or expected is None:
+            continue
+        assert abs(pair["leftover_residual"] - (observed - expected)) < 1e-6
 
     week3 = client.get(
         "/api/reports/process_unit/2026-W03",
