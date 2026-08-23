@@ -2430,7 +2430,24 @@ async def compare_period_groupings(
         ]
         if not members:
             continue
-        visible.append({**row, "members": [], "post_count": len(members)})
+        leftover_pairs = [
+            pair
+            for pair in row.get("leftover_pairs", [])
+            if _can_see_post(account, pair)
+            and not _is_synthetic_demo_member(pair, demo_entity_ids)
+        ]
+        leftover_pairs = [
+            {key: value for key, value in pair.items() if key != "has_real_source_context"}
+            for pair in leftover_pairs
+        ]
+        visible.append(
+            {
+                **row,
+                "members": [],
+                "leftover_pairs": leftover_pairs,
+                "post_count": len(members),
+            }
+        )
     return {"period_code": period_code, "groupings": visible}
 
 
