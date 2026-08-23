@@ -8,6 +8,7 @@ import asyncio
 import os
 import sys
 from pathlib import Path
+from uuid import UUID
 
 import asyncpg
 import redis.asyncio as redis
@@ -16,12 +17,13 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from backend.app.post_content_queue import (  # noqa: E402
+from backend.app.config import load_settings
+from backend.app.post_content_queue import (
     ensure_post_content_job,
     post_content_is_complete,
     publish_post_content_event,
+    requeue_failed_post_content_job,
 )
-from backend.app.config import load_settings  # noqa: E402
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -43,7 +45,103 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--limit", type=int, default=100)
     parser.add_argument("--all", action="store_true", help="scan the complete real corpus")
+    parser.add_argument(
+        "--retry-post-id",
+        action="append",
+        default=[],
+        metavar="POST_ID",
+        help="explicitly retry one terminal failed post; repeat for multiple posts",
+    )
+    parser.add_argument(
+        "--retry-only",
+        action="store_true",
+        help="retry explicit post ids without scanning or queueing any other post",
+    )
     return parser
+
+
+def _normalize_retry_post_ids(raw_ids: list[str]) -> tuple[UUID, ...]:
+    """Validate and de-duplicate operator-selected post ids."""
+    normalized: list[UUID] = []
+    seen: set[UUID] = set()
+    for raw_id in raw_ids:
+        try:
+            post_id = UUID(raw_id)
+        except ValueError as exc:
+            raise ValueError(f"invalid --retry-post-id: {raw_id}") from exc
+        if post_id not in seen:
+            seen.add(post_id)
+            normalized.append(post_id)
+    return tuple(normalized)
+
+
+async def _retry_explicit_post_content_jobs(
+    connection: asyncpg.Connection,
+    client: redis.Redis,
+    raw_post_ids: list[str],
+) -> dict[str, int]:
+    """Requeue only explicitly selected real posts and publish their wake-ups."""
+    post_ids = _normalize_retry_post_ids(raw_post_ids)
+    if not post_ids:
+        return {"retried_posts": 0, "retry_published_events": 0}
+
+    rows = await connection.fetch(
+        """
+        select post_id, post_body
+          from source_post post
+         where post_id = any($1::uuid[])
+           and nullif(btrim(source_draft_code), '') is null
+           and nullif(btrim(source_deleted_flag), '') is null
+           and coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'
+           and (
+               nullif(btrim(post.source_system_code), '') is not null
+               or nullif(btrim(post.source_record_key), '') is not null
+               or nullif(btrim(source_author_code), '') is not null
+               or nullif(btrim(source_author_name), '') is not null
+               or nullif(btrim(source_company_code), '') is not null
+               or nullif(btrim(source_company_name), '') is not null
+               or nullif(btrim(source_process_unit_code), '') is not null
+               or nullif(btrim(source_process_unit_name), '') is not null
+               or nullif(btrim(post.source_stage_code), '') is not null
+               or nullif(btrim(post.source_detail_state_code), '') is not null
+               or nullif(btrim(source_sales_pool_code), '') is not null
+               or nullif(btrim(source_sales_pool_name), '') is not null
+               or nullif(btrim(source_customer_code), '') is not null
+               or nullif(btrim(source_customer_name), '') is not null
+               or nullif(btrim(source_project_code), '') is not null
+               or nullif(btrim(source_project_name), '') is not null
+               or nullif(btrim(source_order_pool_code), '') is not null
+               or nullif(btrim(source_sales_order_code), '') is not null
+               or nullif(btrim(source_sales_order_item_number::text), '') is not null
+               or nullif(btrim(source_inspection_point_code), '') is not null
+           )
+         order by post_id
+        """,
+        list(post_ids),
+    )
+    found_ids = {UUID(str(row["post_id"])) for row in rows}
+    missing_ids = set(post_ids) - found_ids
+    if missing_ids:
+        raise ValueError("one or more retry post ids are missing or ineligible")
+
+    published_events = 0
+    for row in rows:
+        post_id = str(row["post_id"])
+        async with connection.transaction():
+            request = await requeue_failed_post_content_job(
+                connection,
+                post_id,
+                str(row["post_body"] or ""),
+            )
+        entry_id = await publish_post_content_event(
+            client,
+            post_id=post_id,
+            source_body_digest=request.source_body_sha256,
+        )
+        if entry_id is None:
+            raise RuntimeError("Valkey did not publish explicit post-content retry")
+        published_events += 1
+    return {"retried_posts": len(rows), "retry_published_events": published_events}
 
 
 async def queue_post_content_backfill(
@@ -52,6 +150,8 @@ async def queue_post_content_backfill(
     embedding_model: str,
     *,
     limit: int | None,
+    retry_post_ids: list[str] | None = None,
+    retry_only: bool = False,
 ) -> dict[str, int]:
     model = embedding_model.strip()
     if not model:
@@ -63,27 +163,54 @@ async def queue_post_content_backfill(
 
     connection = await asyncpg.connect(target_dsn)
     client = redis.from_url(valkey_url, decode_responses=True)
-    result = {"scanned_posts": 0, "already_complete": 0, "queued_posts": 0, "published_events": 0}
+    result = {
+        "scanned_posts": 0,
+        "already_complete": 0,
+        "queued_posts": 0,
+        "published_events": 0,
+        "retried_posts": 0,
+        "retry_published_events": 0,
+    }
     try:
+        result.update(
+            await _retry_explicit_post_content_jobs(
+                connection,
+                client,
+                retry_post_ids or [],
+            )
+        )
+        if retry_only:
+            if not retry_post_ids:
+                raise ValueError("--retry-only requires at least one --retry-post-id")
+            return result
         rows = await connection.fetch(
             """
             select post_id, post_body
               from source_post post
              where nullif(btrim(source_draft_code), '') is null
                and nullif(btrim(source_deleted_flag), '') is null
+               and coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'
                and (
-                   nullif(btrim(source_author_code), '') is not null
+                   nullif(btrim(post.source_system_code), '') is not null
+                   or nullif(btrim(post.source_record_key), '') is not null
+                   or nullif(btrim(source_author_code), '') is not null
                    or nullif(btrim(source_author_name), '') is not null
                    or nullif(btrim(source_company_code), '') is not null
                    or nullif(btrim(source_company_name), '') is not null
                    or nullif(btrim(source_process_unit_code), '') is not null
                    or nullif(btrim(source_process_unit_name), '') is not null
+                   or nullif(btrim(post.source_stage_code), '') is not null
+                   or nullif(btrim(post.source_detail_state_code), '') is not null
                    or nullif(btrim(source_sales_pool_code), '') is not null
                    or nullif(btrim(source_sales_pool_name), '') is not null
                    or nullif(btrim(source_customer_code), '') is not null
                    or nullif(btrim(source_customer_name), '') is not null
                    or nullif(btrim(source_project_code), '') is not null
                    or nullif(btrim(source_project_name), '') is not null
+                   or nullif(btrim(source_order_pool_code), '') is not null
+                   or nullif(btrim(source_sales_order_code), '') is not null
+                   or nullif(btrim(source_sales_order_item_number::text), '') is not null
+                   or nullif(btrim(source_inspection_point_code), '') is not null
                )
                and (
                    not exists (
@@ -112,7 +239,25 @@ async def queue_post_content_backfill(
                           and embedding.embedding_model_code = $1
                         where unit.post_id = post.post_id
                           and region.description_status_code = 'described'
-                           and embedding.post_content_image_region_embedding_id is null
+                          and embedding.post_content_image_region_embedding_id is null
+                   )
+                   or exists (
+                       select 1
+                         from post_content_unit unit
+                         left join post_content_image image
+                           on image.post_content_unit_id = unit.post_content_unit_id
+                        where unit.post_id = post.post_id
+                          and unit.unit_kind_code = 'image'
+                          and (
+                              image.post_content_image_id is null
+                              or image.description_status_code <> 'described'
+                              or exists (
+                                  select 1
+                                    from post_content_image_region region
+                                   where region.post_content_image_id = image.post_content_image_id
+                                     and region.description_status_code <> 'described'
+                              )
+                          )
                    )
                    or ($2::boolean and exists (
                        select 1
@@ -177,6 +322,8 @@ def main() -> None:
             args.valkey_url,
             args.embedding_model,
             limit=None if args.all else args.limit,
+            retry_post_ids=args.retry_post_id,
+            retry_only=args.retry_only,
         )
     )
     print(result)

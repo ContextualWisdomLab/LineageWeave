@@ -25,23 +25,27 @@ beforeEach(() => {
     signinRedirect,
     signoutRedirect,
   };
+  // Post navigation now pushes real history entries (browser back should
+  // close the popup); reset between tests so one test's opened post doesn't
+  // leak into the next test's initial render via a stale `?post=` query.
+  window.history.replaceState({}, "", "/");
 });
 
 afterEach(() => {
   vi.unstubAllGlobals();
-  try {
-    window.sessionStorage.removeItem(OIDC_RETURN_URL_STORAGE_KEY);
-  } catch {
-    // jsdom storage may be unavailable in some test hosts.
-  }
-  try {
-    window.localStorage.removeItem(OIDC_RETURN_URL_STORAGE_KEY);
-  } catch {
-    // jsdom storage may be unavailable in some test hosts.
-  }
+  window.sessionStorage.clear();
+  window.localStorage.clear();
 });
 
 describe("App, unauthenticated", () => {
+  it("shows the authentication loading state", () => {
+    mockAuth = { ...mockAuth, isLoading: true };
+
+    render(<App />);
+
+    expect(screen.getByText("Loading authentication state...")).toBeInTheDocument();
+  });
+
   it("shows a login button that starts the real OIDC redirect", async () => {
     render(<App showLabPanels />);
     expect(screen.queryByRole("heading", { name: /admin settings/i })).toBeNull();
@@ -55,6 +59,57 @@ describe("App, unauthenticated", () => {
     );
     expect(window.sessionStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toMatch(/^\//);
     expect(window.localStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toMatch(/^\//);
+  });
+
+  it("remembers a same-origin post deep link before the OIDC redirect", async () => {
+    window.history.replaceState({}, "", "/?post=synthetic-post-ada");
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: /log in/i }));
+    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toBe(
+      "/?post=synthetic-post-ada",
+    );
+    expect(window.localStorage.getItem("lineageweave.oidc.returnUrl")).toBe(
+      "/?post=synthetic-post-ada",
+    );
+    expect(signinRedirect).toHaveBeenCalledWith({
+      state: { returnUrl: "/?post=synthetic-post-ada" },
+    });
+  });
+
+  it("does not mount tenant admin settings before authentication", () => {
+    render(<App />);
+    expect(screen.queryByRole("heading", { name: /admin settings/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/tenant brand name/i)).not.toBeInTheDocument();
+  });
+
+  it("does not render raw OIDC error text and names a log-in next action", async () => {
+    mockAuth = {
+      ...mockAuth,
+      error: { message: "invalid_grant: AADSTS70000 TypeError at oidc-client" },
+    };
+    render(<App showLabPanels />);
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Sign-in could not be completed.");
+    expect(alert).toHaveTextContent("Log in again to open the workspace.");
+    expect(screen.queryByText(/invalid_grant|AADSTS70000|TypeError|oidc-client/i)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Log in" }));
+    expect(signinRedirect).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers a new login when authentication returns no access token", async () => {
+    mockAuth = {
+      ...mockAuth,
+      isAuthenticated: true,
+      user: { profile: { preferred_username: "demo.analyst" } },
+    };
+
+    render(<App />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Authenticated, but no access token was returned.");
+    await userEvent.click(screen.getByRole("button", { name: "Log in" }));
+    expect(signinRedirect).toHaveBeenCalledWith(
+      expect.objectContaining({ state: expect.objectContaining({ returnUrl: "/" }) }),
+    );
   });
 });
 
@@ -77,6 +132,11 @@ describe("App, authenticated", () => {
   function stubBackend(options?: {
     admin?: boolean;
     calendarCommitments?: unknown[];
+    calendarEvents?: unknown[];
+    calendarUnavailable?: boolean;
+    caldavAvailable?: boolean;
+    reportsUnavailable?: boolean;
+    reportRebuildUnavailable?: boolean;
     rankings?: {
       status?: "accepted" | "unavailable";
       status_reason?: string | null;
@@ -86,11 +146,31 @@ describe("App, authenticated", () => {
         fused_rank: number;
       }[];
     };
+    rankingsUnavailable?: boolean;
+    relatedUnavailable?: "all" | "entity" | "person" | "team";
     chatUnavailable?: boolean;
+    chatNoCitations?: boolean;
     evidenceUnavailable?: boolean;
+    legacyChatCitations?: boolean;
+    postChatConversationUnavailable?: boolean;
+    postChatHistoryUnavailable?: boolean;
+    preferenceUnavailable?: boolean;
     searchUnavailable?: boolean;
+    askUnavailable?: boolean;
+    askConversationFailsAfterFirst?: boolean;
+    askConversationId?: boolean;
+    askHistory?: boolean;
+    askHistoryMoreUnavailable?: boolean;
+    askHistoryPages?: boolean;
+    askHistoryUnavailable?: boolean;
+    askOlderTurnsUnavailable?: boolean;
+    postAskHistory?: boolean;
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
+    analysisRunCreateStatus?: 409 | 500;
+    analysisRunOpenStatus?: 404 | 500;
+    analysisRunsUnavailable?: boolean;
+    analysisRunStartUnavailable?: boolean;
     runningLineageRun?: boolean;
     failedReportRun?: boolean;
     succeededReportRun?: boolean;
@@ -98,14 +178,50 @@ describe("App, authenticated", () => {
     pendingTeppRun?: boolean;
     acceptedTeppRun?: boolean;
     pluralAffiliations?: boolean;
+    manyAffiliations?: boolean;
+    noAffiliations?: boolean;
+    postUnavailable?: boolean;
+    contentUnavailable?: boolean;
+    derivedUnavailable?: boolean;
+    bookmarkLoadUnavailable?: boolean;
+    postsUnavailable?: boolean;
+    rebuildUnavailable?: boolean;
+    focusedLineageUnavailable?: boolean;
     deferMe?: boolean;
+    deferPosts?: boolean;
+    directLineage?: boolean;
+    deriveNoCommitment?: boolean;
+    emptyLineage?: boolean;
     meFailed?: boolean;
     postBody?: string;
+    boardTotalCount?: number;
+    manyBoardPosts?: boolean;
+    vocTypeOptions?: { code: string; label: string }[];
+    visibilityOptions?: { code: string; label: string }[];
+    sourceDetailStateCode?: string;
+    sourceDetailStateOptions?: { code: string; label: string }[];
     manyCustomerHints?: number;
     customerEntityHierarchy?: boolean;
+    emptyCustomerMaster?: boolean;
+    customerMasterUnavailable?: boolean;
+    customerResolveUnavailable?: boolean;
+    customerScopeFacets?: boolean;
+    customerRelatedPost?: boolean;
+    rrOrgWithMembers?: boolean;
+    groupedKeyEvents?: boolean;
+    semanticRelationships?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
-  }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
+    contentProcessing?: boolean;
+    summaryPending?: boolean;
+    summaryUnavailable?: boolean;
+    activityUnavailable?: boolean;
+    ticketCreateUnavailable?: boolean;
+    ticketListUnavailable?: boolean;
+    ticketUpdateUnavailable?: boolean;
+    lineageIsolationReason?: "no_relation_found" | "no_comparison_group";
+    bookmarkUnavailable?: boolean;
+  }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePosts: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -130,32 +246,74 @@ describe("App, authenticated", () => {
     let createdPendingTepp: Record<string, unknown> | null = null;
     let resolvedHintCode: string | null = null;
     let contentRequests = 0;
-    const teppStatus = options?.acceptedTeppRun
-      ? "analysis_status_running"
-      : options?.succeededTeppRun
-        ? "analysis_status_succeeded"
-        : options?.pendingTeppRun
-          ? "analysis_status_pending"
-          : "analysis_status_failed";
-    const teppLabel = options?.acceptedTeppRun
-      ? "Running"
-      : options?.succeededTeppRun
-        ? "Succeeded"
-        : options?.pendingTeppRun
-          ? "Pending"
-          : "Failed";
-    const teppAcceptedReceipt = options?.acceptedTeppRun
-      ? {
-          remote_run_id: "tepp-run-accepted-1",
-          accepted_status_code: "accepted" as const,
-          received_at: "2026-01-12T12:36:30Z",
-        }
-      : undefined;
+    let askConversationRequests = 0;
+    let bookmarked = false;
+    const authorizedAffiliations = options?.noAffiliations
+      ? []
+      : options?.manyAffiliations
+      ? [
+          {
+            corporate_entity_id: "corp-demo",
+            corporate_entity_code: "DEMO-CORP",
+            entity_name: "Demo Corp",
+            process_unit_id: "pu-demo",
+            process_unit_code: "DEMO-PU",
+            process_unit_name: "Demo PU",
+          },
+          {
+            corporate_entity_id: "corp-north",
+            corporate_entity_code: "NORTH-CORP",
+            entity_name: "North Corp",
+            process_unit_id: "pu-north",
+            process_unit_code: "NORTH-PU",
+            process_unit_name: "North PU",
+          },
+          {
+            corporate_entity_id: "corp-south",
+            corporate_entity_code: "SOUTH-CORP",
+            entity_name: "South Corp",
+            process_unit_id: "pu-south",
+            process_unit_code: "SOUTH-PU",
+            process_unit_name: "South PU",
+          },
+          {
+            corporate_entity_id: "corp-west",
+            corporate_entity_code: "WEST-CORP",
+            entity_name: "West Corp",
+            process_unit_id: "pu-west",
+            process_unit_code: "WEST-PU",
+            process_unit_name: "West PU",
+          },
+          {
+            corporate_entity_id: "corp-hq",
+            corporate_entity_code: "HQ-CORP",
+            entity_name: "HQ Corp",
+            process_unit_id: null,
+            process_unit_code: null,
+            process_unit_name: null,
+          },
+        ]
+      : [
+          {
+            corporate_entity_id: "corp-demo",
+            corporate_entity_code: "DEMO-CORP",
+            entity_name: "Demo Corp",
+            process_unit_id: "pu-demo",
+            process_unit_code: "DEMO-PU",
+            process_unit_name: "Demo PU",
+          },
+        ];
 
     let releaseMe = () => {};
+    let releasePosts = () => {};
     const meReady = options?.deferMe
       ? new Promise<void>((resolve) => {
           releaseMe = resolve;
+        })
+      : Promise.resolve();
+    const postsReady = options?.deferPosts
+      ? new Promise<void>((resolve) => {
+          releasePosts = resolve;
         })
       : Promise.resolve();
 
@@ -167,6 +325,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ brandName: "LineageWeave" }));
       }
       if (url.endsWith("/api/me/preferences") && method === "PATCH") {
+        if (options?.preferenceUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         const body = JSON.parse(String(init?.body));
         return Promise.resolve(jsonResponse({ preferred_locale: body.preferred_locale }));
       }
@@ -188,16 +349,41 @@ describe("App, authenticated", () => {
                   { corporate_entity_id: "corp-north", entity_name: "Northridge Grid" },
                 ]
               : [{ corporate_entity_id: "corp-demo", entity_name: "Demo Corp" }],
+            account_affiliations: authorizedAffiliations,
           });
         });
       }
+      if (url.endsWith("/api/posts/post-1/bookmark")) {
+        if (method === "GET" && options?.bookmarkLoadUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
+        if (method === "POST") {
+          if (options?.bookmarkUnavailable) {
+            return Promise.resolve(
+              new Response(JSON.stringify({ detail: "bookmark unavailable" }), {
+                status: 503,
+                headers: { "Content-Type": "application/json" },
+              }),
+            );
+          }
+          bookmarked = Boolean(JSON.parse(String(init?.body)).bookmarked);
+        }
+        return Promise.resolve(jsonResponse({ post_id: "post-1", bookmarked }));
+      }
       if (url.endsWith("/api/lineage/rebuild") && method === "POST") {
+        if (options?.rebuildUnavailable) return Promise.resolve(new Response(null, { status: 503 }));
         return Promise.resolve(jsonResponse({ edge_count: 4 }));
       }
       if (url.endsWith("/api/posts/post-1/tickets") && method === "GET") {
+        if (options?.ticketListUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(jsonResponse({ tickets }));
       }
       if (url.endsWith("/api/posts/post-1/tickets") && method === "POST") {
+        if (options?.ticketCreateUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         const body = JSON.parse(String(init?.body));
         const ticket = {
           issue_ticket_id: `ticket-${nextTicketId++}`,
@@ -221,6 +407,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(new Response(JSON.stringify(ticket), { status: 201 }));
       }
       if (url.match(/\/api\/tickets\/ticket-\d+$/) && method === "PATCH") {
+        if (options?.ticketUpdateUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         const ticketId = url.split("/").pop();
         const body = JSON.parse(String(init?.body));
         const ticket = tickets.find((t) => t.issue_ticket_id === ticketId);
@@ -236,6 +425,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse(ticket));
       }
       if (url.endsWith("/api/posts/post-1/activity") && method === "GET") {
+        if (options?.activityUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(jsonResponse({ events }));
       }
       if (url.endsWith("/api/posts/post-1/derive-commitment") && method === "POST") {
@@ -248,6 +440,9 @@ describe("App, authenticated", () => {
               { status: 503, headers: { "Content-Type": "application/json" } },
             ),
           );
+        }
+        if (options?.deriveNoCommitment) {
+          return Promise.resolve(jsonResponse({ post_id: "post-1", has_commitment: false, ticket: null }));
         }
         const ticket = {
           issue_ticket_id: `ticket-${nextTicketId++}`,
@@ -434,6 +629,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-lineage")) {
+        if (options?.analysisRunOpenStatus) {
+          return Promise.resolve(new Response(null, { status: options.analysisRunOpenStatus }));
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-lineage",
@@ -533,6 +731,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-lineage-pending/start") && method === "POST") {
+        if (options?.analysisRunStartUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-lineage-pending",
@@ -645,6 +846,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs") && method === "POST") {
+        if (options?.analysisRunCreateStatus) {
+          return Promise.resolve(new Response(null, { status: options.analysisRunCreateStatus }));
+        }
         const payload = init?.body ? JSON.parse(String(init.body)) : {};
         if (payload.run_kind_code === "analysis_run_tepp" || payload.run_kind_code === "analysis_run_report") {
           return Promise.resolve(
@@ -686,6 +890,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(new Response(JSON.stringify(created), { status: 201 }));
       }
       if (url.endsWith("/api/analysis-runs")) {
+        if (options?.analysisRunsUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_runs: [
@@ -769,8 +976,13 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/calendar")) {
+        if (options?.calendarUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
+            events: options?.calendarEvents ?? [],
+            calendar_sources: { caldav_available: options?.caldavAvailable ?? false },
             commitments:
               options?.calendarCommitments ?? [
                 {
@@ -804,6 +1016,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/rankings")) {
+        if (options?.rankingsUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         const rankings = options?.rankings ?? {
           status: "unavailable" as const,
           status_reason: "rankweave_not_available",
@@ -817,6 +1032,12 @@ describe("App, authenticated", () => {
             rankings: rankings.rankings ?? [],
           }),
         );
+      }
+      if (options?.reportsUnavailable && url.includes("/api/reports/") && method === "GET") {
+        return Promise.resolve(new Response(null, { status: 503 }));
+      }
+      if (options?.reportRebuildUnavailable && url.includes("/api/reports/") && method === "POST") {
+        return Promise.resolve(new Response(null, { status: 503 }));
       }
       if (url.includes("/api/reports/compare/") && method === "GET") {
         return Promise.resolve(
@@ -1008,6 +1229,21 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ group_count: 1 }));
       }
       if (url.includes("/api/lineage") && method === "GET") {
+        if (options?.focusedLineageUnavailable && url.includes("post_id=")) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
+        if ((options?.lineageIsolationReason || options?.emptyLineage) && url.includes("post_id=")) {
+          return Promise.resolve(
+            jsonResponse({
+              nodes: [],
+              edges: [],
+              truncated: false,
+              ...(options.lineageIsolationReason
+                ? { isolation_reason: options.lineageIsolationReason }
+                : {}),
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             nodes: [
@@ -1070,7 +1306,8 @@ describe("App, authenticated", () => {
       }
       const postsUrl = new URL(url, "https://backend.test");
       if (postsUrl.pathname === "/api/posts") {
-        return Promise.resolve(
+        if (options?.postsUnavailable) return Promise.resolve(new Response(null, { status: 503 }));
+        return postsReady.then(() =>
           jsonResponse(
             postsUrl.searchParams.get("search")
               ? []
@@ -1081,25 +1318,55 @@ describe("App, authenticated", () => {
                       post_title: "Public post",
                       voc_type_code: "voc",
                       voc_type_label: "Voice of Customer",
+                      source_detail_state_code: options?.sourceDetailStateCode,
                       visibility_code: "public",
                       visibility_label: "Public",
+                      source_lineage_hints: {
+                        combination_code: "1000",
+                        commercial_context_code: "customer_only_candidate",
+                        inference_status_code: "inferred_from_field_presence",
+                        present_fields: ["customer"],
+                        missing_fields: ["order_pool", "sales_order", "sales_order_item"],
+                        lifecycle_vector: "Z-A-I-ALIVE",
+                        deleted_marker_present: false,
+                      },
                       created_at: "2026-01-01T00:00:00Z",
                     },
+                    ...(options?.manyBoardPosts
+                      ? [
+                          {
+                            post_id: "post-2",
+                            post_title: "Earlier partner post",
+                            voc_type_code: "vop",
+                            voc_type_label: "Voice of Partner",
+                            source_detail_state_code: "A",
+                            visibility_code: "private",
+                            visibility_label: "Private",
+                            created_at: "2025-12-31T00:00:00Z",
+                          },
+                        ]
+                      : []),
                   ],
-                  total_count: 1,
+                  total_count: options?.boardTotalCount ?? (options?.manyBoardPosts ? 2 : 1),
                   limit: 50,
                   offset: 0,
                   voc_type_options: [
-                    { code: "voc", label: "Voice of Customer" },
-                    { code: "vop", label: "Voice of Partner" },
+                    ...(options?.vocTypeOptions ?? [
+                      { code: "voc", label: "Voice of Customer" },
+                      { code: "vop", label: "Voice of Partner" },
+                    ]),
                   ],
-                  visibility_options: [{ code: "public", label: "Public" }],
+                  source_detail_state_options: options?.sourceDetailStateOptions ?? [],
+                  visibility_options: options?.visibilityOptions ?? [{ code: "public", label: "Public" }],
                 },
           ),
         );
       }
       const postOneUrl = new URL(url, "https://backend.test");
       if (postOneUrl.pathname === "/api/posts/post-1") {
+        if (options?.postUnavailable) {
+          return Promise.resolve(new Response(JSON.stringify({ detail: "synthetic backend detail" }), { status: 503 }));
+        }
         const asOf = postOneUrl.searchParams.get("as_of");
         return Promise.resolve(
           jsonResponse({
@@ -1108,8 +1375,18 @@ describe("App, authenticated", () => {
             post_body: options?.postBody ?? "The full body text.",
             voc_type_code: "voc",
             voc_type_label: "Voice of Customer",
+            source_detail_state_code: options?.sourceDetailStateCode,
             visibility_code: "public",
             visibility_label: "Public",
+            source_lineage_hints: {
+              combination_code: "1000",
+              commercial_context_code: "customer_only_candidate",
+              inference_status_code: "inferred_from_field_presence",
+              present_fields: ["customer"],
+              missing_fields: ["order_pool", "sales_order", "sales_order_item"],
+              lifecycle_vector: "Z-A-I-ALIVE",
+              deleted_marker_present: false,
+            },
             project_evidence: [
               {
                 project_key: "source-project",
@@ -1138,10 +1415,13 @@ describe("App, authenticated", () => {
         );
       }
       if (postOneUrl.pathname === "/api/posts/post-1/content") {
+        if (options?.contentUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         contentRequests += 1;
         return Promise.resolve(
           jsonResponse({
-            status: "ready",
+            status: options?.contentProcessing && contentRequests === 1 ? "processing" : "ready",
             images: [],
             units:
               options?.contentAfterSummary && contentRequests > 1
@@ -1177,6 +1457,7 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/evaluation")) {
+        if (options?.derivedUnavailable) return Promise.resolve(new Response(null, { status: 503 }));
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
@@ -1199,6 +1480,15 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/summary")) {
+        if (options?.summaryPending) return new Promise<Response>(() => undefined);
+        if (options?.summaryUnavailable) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "summary unavailable" }), {
+              status: 503,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
@@ -1207,12 +1497,55 @@ describe("App, authenticated", () => {
               ? { summary_status: "stale", summary_contract_version: 4 }
               : {}),
             key_events: ["첫 번째 이벤트"],
-            roles_and_responsibilities: [
+            ...(options?.groupedKeyEvents
+              ? {
+                  key_event_details: [
+                    {
+                      event_text: "1st milestone discussed",
+                      project_name: "Case Facility Plan",
+                      evidence_text: null,
+                    },
+                    {
+                      event_text: "2nd milestone discussed",
+                      project_name: "Case Facility Plan",
+                      evidence_text: null,
+                    },
+                    {
+                      event_text: "Unrelated standalone event",
+                      project_name: null,
+                      evidence_text: null,
+                    },
+                  ],
+                }
+              : {}),
+            roles_and_responsibilities: options?.rrOrgWithMembers
+              ? [
+                  {
+                    actor_name: "Case Institute",
+                    responsibility: "연구 수행 기관",
+                    actor_type_code: "prov_organization",
+                    affiliated_organization_name: null,
+                  },
+                  {
+                    actor_name: "Case Researcher One",
+                    responsibility: "상담 고객 연구원",
+                    actor_type_code: "prov_person",
+                    affiliated_organization_name: "Case Institute",
+                  },
+                  {
+                    actor_name: "Case Researcher Two",
+                    responsibility: "상담 고객 연구원",
+                    actor_type_code: "prov_person",
+                    affiliated_organization_name: "Case Institute",
+                  },
+                ]
+              : [
               {
                 actor_name: "Ada West",
                 responsibility: "우리 측 후속",
                 actor_type_code: "prov_person",
                 affiliated_organization_name: "Demo Corp",
+                affiliated_organization_catalog_id: "corp-1",
               },
               {
                 actor_name: "Priya Nair",
@@ -1223,10 +1556,18 @@ describe("App, authenticated", () => {
                 catalog_node_type_code: "node_person",
               },
               {
+                actor_name: "Northridge Grid Devices",
+                responsibility: "부품 납품",
+                actor_type_code: "prov_organization",
+                affiliated_organization_name: "Northridge Grid",
+                affiliation_catalog_unresolved_reason_code: "reason_no_live_client",
+              },
+              {
                 actor_name: "당사",
                 responsibility: "출하 일정 확정",
                 actor_type_code: "prov_organization",
                 affiliated_organization_name: null,
+                catalog_unresolved_reason_code: "reason_not_corroborated",
               },
               {
                 actor_name: "설계팀",
@@ -1247,10 +1588,50 @@ describe("App, authenticated", () => {
                 extraction_method: "contextual_orchestrator_semantic",
               },
             ],
+            ...(options?.semanticRelationships
+              ? {
+                  semantic_relationships: [
+                    {
+                      relation_ordinal: 0,
+                      subject_name: "Design team",
+                      subject_type: "prov:Agent",
+                      predicate_code: "lw_responsible_for",
+                      object_name: "Synthetic launch",
+                      object_type: "lw:Project",
+                      evidence_text: "The design team owns the synthetic launch.",
+                      confidence: 0.91,
+                      extraction_method: "contextual_orchestrator_semantic",
+                    },
+                    {
+                      relation_ordinal: 1,
+                      subject_name: "Prototype Alpha",
+                      subject_type: "prov:Entity",
+                      predicate_code: "lw_precedes",
+                      ontology_label: "Precedes",
+                      object_name: "Prototype Beta",
+                      object_type: "prov:Entity",
+                      evidence_text: "Alpha was completed before Beta.",
+                      confidence: 0.84,
+                      extraction_method: null,
+                    },
+                    {
+                      relation_ordinal: 2,
+                      subject_name: "Synthetic note",
+                      subject_type: "prov:Entity",
+                      predicate_code: "synthetic_relation",
+                      object_name: "Synthetic record",
+                      object_type: "prov:Entity",
+                      evidence_text: "The source states this synthetic relation.",
+                      confidence: 0.75,
+                    },
+                  ],
+                }
+              : {}),
           }),
         );
       }
       if (url.endsWith("/api/posts/post-1/keymen")) {
+        if (options?.derivedUnavailable) return Promise.resolve(new Response(null, { status: 503 }));
         return Promise.resolve(
           jsonResponse({
             keymen: [
@@ -1294,6 +1675,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ post_id: "post-1", rubric_version: "2026-08-13", responses: [] }));
       }
       if (url.endsWith("/api/keymen/person-priya/related")) {
+        if (options?.relatedUnavailable === "all" || options?.relatedUnavailable === "person") {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             person_id: "person-priya",
@@ -1316,6 +1700,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/keymen/person-ada/related")) {
+        if (options?.relatedUnavailable === "all" || options?.relatedUnavailable === "person") {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             person_id: "person-ada",
@@ -1377,6 +1764,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/teams/team-1/related")) {
+        if (options?.relatedUnavailable === "all" || options?.relatedUnavailable === "team") {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             team_id: "team-1",
@@ -1395,6 +1785,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/corporate-entities/corp-1/related")) {
+        if (options?.relatedUnavailable === "all" || options?.relatedUnavailable === "entity") {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             corporate_entity_id: "corp-1",
@@ -1414,7 +1807,28 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/corporate-entities/corp-demo/related") && options?.customerRelatedPost) {
+        return Promise.resolve(
+          jsonResponse({
+            corporate_entity_id: "corp-demo",
+            entity_name: "Demo Corp",
+            related: [
+              {
+                node_id: "post-2",
+                node_type_code: "node_post",
+                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                ontology_label: "Post",
+                label: "Linked post",
+                post_body_excerpt: "Linked body preview",
+                post_body_truncated: true,
+                relevance: 0.6,
+              },
+            ],
+          }),
+        );
+      }
       if (url.endsWith("/api/posts/post-1/affiliate-tree")) {
+        if (options?.derivedUnavailable) return Promise.resolve(new Response(null, { status: 503 }));
         return Promise.resolve(
           jsonResponse({
             trees: [
@@ -1464,6 +1878,7 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/voc-evidence")) {
+        if (options?.derivedUnavailable) return Promise.resolve(new Response(null, { status: 503 }));
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
@@ -1488,6 +1903,7 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/counterparties")) {
+        if (options?.derivedUnavailable) return Promise.resolve(new Response(null, { status: 503 }));
         return Promise.resolve(
           jsonResponse({
             counterparties: [
@@ -1523,11 +1939,16 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ verified: [] }));
       }
       if (url.endsWith("/api/posts/post-1/lineage")) {
+        if (options?.derivedUnavailable) return Promise.resolve(new Response(null, { status: 503 }));
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
-            direct: [],
-            indirect: [{ post_id: "post-2", post_title: "Linked post" }],
+            direct: options?.directLineage
+              ? [{ post_id: "post-2", post_title: "Linked post" }]
+              : [],
+            indirect: options?.lineageIsolationReason || options?.emptyLineage || options?.directLineage
+              ? []
+              : [{ post_id: "post-2", post_title: "Linked post" }],
           }),
         );
       }
@@ -1540,7 +1961,9 @@ describe("App, authenticated", () => {
                 question_text: "What happened between these events?",
                 answer_text: "The seeded follow-up after the site visit.",
                 cited_post_ids: ["post-2"],
-                cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
+                ...(options?.legacyChatCitations
+                  ? {}
+                  : { cited_posts: [{ post_id: "post-2", post_title: "Linked post" }] }),
               },
               {
                 question_text: "Who is involved?",
@@ -1570,20 +1993,185 @@ describe("App, authenticated", () => {
             ),
           );
         }
+        let conversationId = "conversation-post-new";
+        try {
+          const body: unknown = JSON.parse(String(init?.body));
+          if (
+            body &&
+            typeof body === "object" &&
+            "conversation_id" in body &&
+            typeof body.conversation_id === "string" &&
+            body.conversation_id
+          ) {
+            conversationId = body.conversation_id;
+          }
+        } catch {
+          conversationId = "conversation-post-new";
+        }
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
+            conversation_id: conversationId,
             answer_text: "Here is what happened, drawing on the linked post.",
-            cited_post_ids: ["post-2"],
-            cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
+            cited_post_ids: options?.chatNoCitations ? [] : ["post-2"],
+            ...(options?.legacyChatCitations || options?.chatNoCitations
+              ? {}
+              : { cited_posts: [{ post_id: "post-2", post_title: "Linked post" }] }),
             source_post_ids: ["post-1", "post-2"],
           }),
         );
       }
-      if (url.endsWith("/api/ask") && method === "POST") {
+      if (url.endsWith("/api/posts/post-1/chat/conversations") && method === "GET") {
+        if (options?.postChatHistoryUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
+        if (options?.postAskHistory) {
+          return Promise.resolve(
+            jsonResponse({
+              conversations: [
+                {
+                  conversation_id: "conversation-post-1",
+                  title: "Saved post question",
+                  updated_at: "2026-08-21T00:00:00Z",
+                  turn_count: 1,
+                },
+              ],
+            }),
+          );
+        }
+        return Promise.resolve(jsonResponse({ conversations: [] }));
+      }
+      if (url.endsWith("/api/posts/post-1/chat/conversations/conversation-post-1") && method === "GET") {
+        if (options?.postChatConversationUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
+            conversation_id: "conversation-post-1",
+            title: "Saved post question",
+            exchanges: [
+              {
+                turn_id: "turn-1",
+                question_text: "Which site visit was saved?",
+                answer_text: "The saved post answer stays grounded in the linked source.",
+                cited_post_ids: ["post-2"],
+                cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
+                source_post_ids: ["post-1", "post-2"],
+              },
+            ],
+          }),
+        );
+      }
+      if (url.includes("/chat/conversations") && method === "GET") {
+        return Promise.resolve(jsonResponse({ conversations: [] }));
+      }
+      if (url.endsWith("/api/ask/conversations") && method === "GET") {
+        if (options?.askHistoryUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
+        if (options?.askHistory) {
+          return Promise.resolve(
+            jsonResponse({
+              conversations: [
+                {
+                  conversation_id: "conversation-1",
+                  title: "Saved project question",
+                  updated_at: "2026-08-21T00:00:00Z",
+                  turn_count: 1,
+                },
+              ],
+              ...(options?.askHistoryPages
+                ? {
+                    next_cursor: {
+                      updated_at: "2026-08-21T00:00:00Z",
+                      conversation_id: "conversation-1",
+                    },
+                  }
+                : {}),
+            }),
+          );
+        }
+        return Promise.resolve(jsonResponse({ conversations: [] }));
+      }
+      if (options?.askHistoryPages && url.includes("/api/ask/conversations?") && method === "GET") {
+        if (options?.askHistoryMoreUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
+        return Promise.resolve(
+          jsonResponse({
+            conversations: [
+              {
+                conversation_id: "conversation-2",
+                title: "Older saved question",
+                updated_at: "2026-08-20T00:00:00Z",
+                turn_count: 2,
+              },
+            ],
+            next_cursor: null,
+          }),
+        );
+      }
+      if (options?.askHistoryPages && url.includes("/api/ask/conversations/conversation-1?") && method === "GET") {
+        if (options?.askOlderTurnsUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
+        return Promise.resolve(
+          jsonResponse({
+            conversation_id: "conversation-1",
+            title: "Saved project question",
+            older_cursor: null,
+            exchanges: [
+              {
+                turn_id: "turn-0",
+                question_text: "Older saved turn",
+                answer_text: "The older saved answer is still grounded in evidence.",
+                cited_post_ids: [],
+                cited_posts: [],
+                cited_post_evidence: [],
+                source_post_ids: [],
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/ask/conversations/conversation-1") && method === "GET") {
+        askConversationRequests += 1;
+        if (options?.askConversationFailsAfterFirst && askConversationRequests > 1) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
+        return Promise.resolve(
+          jsonResponse({
+            conversation_id: "conversation-1",
+            title: "Saved project question",
+            ...(options?.askHistoryPages ? { older_cursor: "2" } : {}),
+            exchanges: [
+              {
+                turn_id: "turn-1",
+                question_text: "Which project was saved?",
+                answer_text: "The saved answer is grounded in the linked source.",
+                cited_post_ids: ["post-2"],
+                cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
+                cited_post_evidence: [],
+                source_post_ids: ["post-1", "post-2"],
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/ask") && method === "POST") {
+        if (options?.askUnavailable) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({ detail: "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY" }),
+              { status: 503, headers: { "Content-Type": "application/json" } },
+            ),
+          );
+        }
+        return Promise.resolve(
+          jsonResponse({
+            ...(options?.askConversationId ? { conversation_id: "conversation-live" } : {}),
             answer_text: "The cited project is supported by the stored semantic evidence.",
+            ...(options?.askConversationId ? { next_action: "Read the cited source next." } : {}),
             cited_post_ids: ["post-2"],
             cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
             cited_post_evidence: [
@@ -1592,6 +2180,7 @@ describe("App, authenticated", () => {
                 facts: [
                   { kind: "semantic_project", text: "project: Semantic project | evidence: Body evidence" },
                   { kind: "semantic_keyman", text: "Keyman mention: Ada West | context: account lead" },
+                  { kind: "semantic_event", text: "event: Quote revised | evidence: Customer request" },
                 ],
               },
             ],
@@ -1599,38 +2188,104 @@ describe("App, authenticated", () => {
           }),
         );
       }
-      if (url.endsWith("/api/customer-master") && method === "GET") {
+      const customerMasterUrl = new URL(url, "https://backend.test");
+      if (customerMasterUrl.pathname === "/api/customer-master" && method === "GET") {
+        if (options?.customerMasterUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
+        const requestedCustomerHint = customerMasterUrl.searchParams.get("hint_code");
         return Promise.resolve(
           jsonResponse({
-            corporate_entities: options?.customerEntityHierarchy
+            corporate_entities: options?.emptyCustomerMaster
+              ? []
+              : options?.customerScopeFacets
               ? [
                   {
-                    corporate_entity_id: "corp-group",
-                    corporate_entity_code: "DEMO-GROUP-01",
-                    entity_name: "Demo Group",
-                    entity_level_code: "group",
-                    entity_level_label: "Group",
-                    parent_entity_id: null,
-                  },
-                  {
-                    corporate_entity_id: "corp-demo",
-                    corporate_entity_code: "DEMO-CORP-01",
-                    entity_name: "Demo Corp",
+                    corporate_entity_id: "corp-own",
+                    corporate_entity_code: "OWN-CORP-01",
+                    entity_name: "Own Scope Corp",
                     entity_level_code: "company",
                     entity_level_label: "Company",
-                    parent_entity_id: "corp-group",
+                    parent_entity_id: null,
+                    scope_facets: ["authorized_own"],
+                  },
+                  {
+                    corporate_entity_id: "corp-granted",
+                    corporate_entity_code: "GRANTED-CORP-01",
+                    entity_name: "Granted Scope Corp",
+                    entity_level_code: "company",
+                    entity_level_label: "Company",
+                    parent_entity_id: null,
+                    scope_facets: ["authorized_granted"],
+                  },
+                  {
+                    corporate_entity_id: "corp-observed",
+                    corporate_entity_code: "OBSERVED-CORP-01",
+                    entity_name: "Observed Scope Corp",
+                    entity_level_code: "company",
+                    entity_level_label: "Company",
+                    parent_entity_id: null,
+                    scope_facets: ["observed_organization"],
+                  },
+                  {
+                    corporate_entity_id: "corp-observed-hierarchy",
+                    corporate_entity_code: "OBSERVED-HIERARCHY-01",
+                    entity_name: "Observed Hierarchy Corp",
+                    entity_level_code: "company",
+                    entity_level_label: "Company",
+                    parent_entity_id: null,
+                    scope_facets: ["observed_hierarchy"],
+                  },
+                  {
+                    corporate_entity_id: "corp-unclassified",
+                    corporate_entity_code: "UNCLASSIFIED-CORP-01",
+                    entity_name: "Unclassified Scope Corp",
+                    entity_level_code: "company",
+                    entity_level_label: "Company",
+                    parent_entity_id: null,
+                    scope_facets: ["scope_unclassified"],
                   },
                 ]
-              : [
-                  {
-                    corporate_entity_id: "corp-demo",
-                    corporate_entity_code: "DEMO-CORP-01",
-                    entity_name: "Demo Corp",
-                    entity_level_code: "company",
-                    entity_level_label: "Company",
-                    parent_entity_id: null,
-                  },
-                ],
+              : options?.customerEntityHierarchy
+                ? [
+                    {
+                      corporate_entity_id: "corp-group",
+                      corporate_entity_code: "DEMO-GROUP-01",
+                      entity_name: "Demo Group",
+                      entity_level_code: "group",
+                      entity_level_label: "Group",
+                      parent_entity_id: null,
+                      scope_facets: ["authorized_own"],
+                    },
+                    {
+                      corporate_entity_id: "corp-demo",
+                      corporate_entity_code: "DEMO-CORP-01",
+                      entity_name: "Demo Corp",
+                      entity_level_code: "company",
+                      entity_level_label: "Company",
+                      parent_entity_id: "corp-group",
+                      scope_facets: ["authorized_own"],
+                    },
+                  ]
+                : [
+                    {
+                      corporate_entity_id: "corp-demo",
+                      corporate_entity_code: "DEMO-CORP-01",
+                      entity_name: "Demo Corp",
+                      entity_level_code: "company",
+                      entity_level_label: "Company",
+                      parent_entity_id: null,
+                      scope_facets: ["authorized_own"],
+                      name_history: [
+                        {
+                          entity_name: "Demo Industries",
+                          name_role_code: "entity_name_former",
+                          observed_from: "2024-01-01T00:00:00Z",
+                          observed_to: "2026-01-01T00:00:00Z",
+                        },
+                      ],
+                    },
+                  ],
             keymen: [
               {
                 person_id: "person-1",
@@ -1643,14 +2298,18 @@ describe("App, authenticated", () => {
             ],
             source_customer_hints: options?.manyCustomerHints
               ? Array.from({ length: options.manyCustomerHints }, (_, index) => ({
+                  source_system_code: "synthetic-crm",
                   customer_code: `CUST-${index}`,
                   customer_name: resolvedHintCode === `CUST-${index}` ? "Southfield Utilities" : null,
                   post_count: options.manyCustomerHints! - index,
                   related_posts: [],
-                  resolution_status: resolvedHintCode === `CUST-${index}` ? "resolved" : "hint_only",
+                  resolution_status: resolvedHintCode === `CUST-${index}` ? "customer_identity_promoted" : "hint_only",
+                  corporate_entity_id: resolvedHintCode === `CUST-${index}` ? "corp-southfield" : null,
+                  resolved_entity_name: resolvedHintCode === `CUST-${index}` ? "Southfield Utilities" : null,
+                  customer_identity_judgment_id: resolvedHintCode === `CUST-${index}` ? "judgment-southfield" : null,
                   hint_trust: "normal",
                   provenance: "source_post.source_customer_code",
-                }))
+                })).filter((hint) => !requestedCustomerHint || hint.customer_code === requestedCustomerHint)
               : [],
             source_author_hints: [],
             relationship_network: [
@@ -1678,6 +2337,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/customer-master/resolve-hint") && method === "POST") {
+        if (options?.customerResolveUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         const body = JSON.parse(String(init?.body));
         resolvedHintCode = body.hint_code;
         return Promise.resolve(
@@ -1686,13 +2348,24 @@ describe("App, authenticated", () => {
             entity_name: "Southfield Utilities",
             linked_post_count: 3,
             verification_evidence_url: "https://example.org/southfield",
+            customer_identity_judgment_id: "judgment-southfield",
+            resolution_status: "customer_identity_promoted",
+            cached: false,
           }),
         );
+      }
+      if (url.includes("/source-research") && method === "GET") {
+        const postId = new URL(url, "https://backend.test").pathname.split("/")[3] ?? "post-1";
+        return Promise.resolve(jsonResponse({ post_id: postId, research: [] }));
+      }
+      if (url.includes("/source-research") && method === "POST") {
+        const postId = new URL(url, "https://backend.test").pathname.split("/")[3] ?? "post-1";
+        return Promise.resolve(jsonResponse({ post_id: postId, researched_count: 0 }));
       }
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
-    return Object.assign(fetchMock, { releaseMe });
+    return Object.assign(fetchMock, { releaseMe, releasePosts });
   }
 
   it("renders safe Ask Agent evidence under each cited post", async () => {
@@ -1703,10 +2376,405 @@ describe("App, authenticated", () => {
     await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
     await userEvent.click(screen.getByRole("button", { name: "Ask" }));
 
+    expect(screen.getByRole("log", { name: "Conversation" })).toBeInTheDocument();
+    expect(screen.getByText("Which project?", { exact: true })).toBeInTheDocument();
     expect(await screen.findByRole("list", { name: "Evidence facts" })).toBeInTheDocument();
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
+    expect(screen.getByText("Semantic event", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Linked post.*Open source/ }));
+    expect(await screen.findByRole("dialog", { name: "Linked post" })).toBeInTheDocument();
+  });
+
+  it("adds a live Ask conversation and its next action to history", async () => {
+    stubBackend({ askConversationId: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByText("Read the cited source next.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Which project\?/ })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("renders the conversation empty state and submits an Ask Agent question with Enter", async () => {
+    const fetchMock = stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+
+    expect(screen.getByRole("log", { name: "Conversation" })).toHaveAttribute("aria-busy", "false");
+    expect(screen.getByText("Start with a question about the evidence")).toBeInTheDocument();
+    expect(screen.getByText("Evidence workspace")).toBeInTheDocument();
+    expect(screen.getByText("Authorized evidence")).toBeInTheDocument();
+    expect(screen.getByText("Switch between saved questions and source links.")).toBeInTheDocument();
+    const input = screen.getByRole("textbox", { name: "Ask a question" });
+    const send = screen.getByRole("button", { name: "Ask" });
+    expect(send).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Who is involved?" }));
+    expect(input).toHaveValue("Who is involved?");
+    fireEvent.change(input, { target: { value: "작성 중" } });
+    fireEvent.keyDown(input, { key: "Enter", isComposing: true });
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, init]) => String(url).endsWith("/api/ask") && init?.method === "POST",
+      ),
+    ).toBe(false);
+    fireEvent.change(input, { target: { value: "" } });
+    await userEvent.type(input, "Which project?{Enter}");
+
+    expect(await screen.findByText("Which project?", { selector: ".ask-agent-user-message p:last-child" })).toBeInTheDocument();
+    expect(input).toHaveValue("");
+  });
+
+  it("opens Ask from a post and can clear the starting evidence", async () => {
+    const fetchMock = stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Ask about this lineage" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Starting evidence: Public post");
+
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "What preceded it?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await waitFor(() => {
+      const askCall = fetchMock.mock.calls.find(
+        ([input, init]) => String(input).endsWith("/api/ask") && init?.method === "POST",
+      );
+      expect(JSON.parse(String(askCall?.[1]?.body))).toMatchObject({ anchor_post_id: "post-1" });
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "Use all authorized evidence" }));
+    expect(screen.queryByText(/Starting evidence:/)).not.toBeInTheDocument();
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "What else is related?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await waitFor(() => {
+      const askCalls = fetchMock.mock.calls.filter(
+        ([input, init]) => String(input).endsWith("/api/ask") && init?.method === "POST",
+      );
+      expect(askCalls).toHaveLength(2);
+      expect(JSON.parse(String(askCalls[1][1]?.body))).not.toHaveProperty("anchor_post_id");
+    });
+  });
+
+  it("fails closed when the selected source post is unavailable", async () => {
+    stubBackend({ postUnavailable: true });
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const dialog = await screen.findByRole("dialog", { name: "Post details" });
+    expect(await within(dialog).findByRole("alert")).toBeInTheDocument();
+    expect(dialog).not.toHaveTextContent("synthetic backend detail");
+    expect(within(dialog).queryByText("The full body text.")).not.toBeInTheDocument();
+  });
+
+  it("keeps the source readable when optional post evidence is unavailable", async () => {
+    stubBackend({ contentUnavailable: true, derivedUnavailable: true, bookmarkLoadUnavailable: true });
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const dialog = await screen.findByRole("dialog", { name: "Public post" });
+    expect(await within(dialog).findByText("The full body text.")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Bookmark" })).toBeDisabled();
+    expect(
+      within(dialog).getByText("Related posts is temporarily unavailable. Saved evidence is still available."),
+    ).toBeInTheDocument();
+    expect(within(dialog).queryByText("Loading related posts...")).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("Loading lineage...")).not.toBeInTheDocument();
+  });
+
+  it("shares, prints, and toggles a post bookmark from the popup actions", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const browserNavigator = Object.create(navigator);
+    Object.defineProperty(browserNavigator, "clipboard", { value: { writeText } });
+    vi.stubGlobal("navigator", browserNavigator);
+    const print = vi.fn();
+    vi.stubGlobal("print", print);
+    const fetchMock = stubBackend();
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const dialog = await screen.findByRole("dialog", { name: "Public post" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Share" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledOnce());
+    expect(new URL(String(writeText.mock.calls[0][0])).searchParams.get("post")).toBe("post-1");
+    expect(within(dialog).getByText("Permanent link copied.", { selector: ".post-action-status" })).toBeVisible();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Print" }));
+    expect(print).toHaveBeenCalledOnce();
+
+    const bookmark = within(dialog).getByRole("button", { name: "Bookmark" });
+    await waitFor(() => expect(bookmark).toBeEnabled());
+    fireEvent.click(bookmark);
+    await waitFor(() => expect(within(dialog).getByRole("button", { name: "Bookmarked" })).toBeEnabled());
+    fireEvent.click(within(dialog).getByRole("button", { name: "Bookmarked" }));
+    await waitFor(() => expect(within(dialog).getByRole("button", { name: "Bookmark" })).toBeEnabled());
+    const bookmarkBodies = fetchMock.mock.calls
+      .filter(([input, init]) => String(input).endsWith("/api/posts/post-1/bookmark") && init?.method === "POST")
+      .map(([, init]) => JSON.parse(String(init?.body)).bookmarked);
+    expect(bookmarkBodies).toEqual([true, false]);
+  });
+
+  it("uses the native share sheet when it is available", async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    const browserNavigator = Object.create(navigator);
+    Object.defineProperty(browserNavigator, "share", { value: share });
+    vi.stubGlobal("navigator", browserNavigator);
+    stubBackend();
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const dialog = await screen.findByRole("dialog", { name: "Public post" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Share" }));
+
+    await waitFor(() =>
+      expect(share).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Public post", url: expect.stringContaining("post=post-1") }),
+      ),
+    );
+    expect(dialog.querySelector(".post-action-status")).not.toBeInTheDocument();
+  });
+
+  it("keeps share cancellation quiet and reports share or bookmark failures", async () => {
+    const share = vi
+      .fn()
+      .mockRejectedValueOnce(new DOMException("cancelled", "AbortError"))
+      .mockRejectedValueOnce(new Error("share failed"));
+    const browserNavigator = Object.create(navigator);
+    Object.defineProperty(browserNavigator, "share", { value: share });
+    Object.defineProperty(browserNavigator, "clipboard", { value: undefined });
+    vi.stubGlobal("navigator", browserNavigator);
+    stubBackend({ bookmarkUnavailable: true });
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const dialog = await screen.findByRole("dialog", { name: "Public post" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Share" }));
+    await waitFor(() => expect(share).toHaveBeenCalledOnce());
+    expect(dialog.querySelector(".post-action-status")).not.toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Share" }));
+    expect(await within(dialog).findByText("Share unavailable.", { selector: ".post-action-status" })).toBeVisible();
+
+    const bookmark = within(dialog).getByRole("button", { name: "Bookmark" });
+    await waitFor(() => expect(bookmark).toBeEnabled());
+    fireEvent.click(bookmark);
+    await waitFor(() =>
+      expect(within(dialog).getByText("Bookmark unavailable.", { selector: ".post-action-status" })).toBeVisible(),
+    );
+    expect(bookmark).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("explains when neither native share nor clipboard is available", async () => {
+    const browserNavigator = Object.create(navigator);
+    Object.defineProperty(browserNavigator, "share", { value: undefined });
+    Object.defineProperty(browserNavigator, "clipboard", { value: undefined });
+    vi.stubGlobal("navigator", browserNavigator);
+    stubBackend();
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const dialog = await screen.findByRole("dialog", { name: "Public post" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Share" }));
+
+    expect(await within(dialog).findByText("Share unavailable.", { selector: ".post-action-status" })).toBeVisible();
+  });
+
+  it("clears a post anchor before continuing a saved conversation", async () => {
+    const fetchMock = stubBackend({ askHistory: true });
+    window.history.replaceState({}, "", "/?workspace=ask&post=post-1");
+    render(<App />);
+
+    expect(await screen.findByText("Starting evidence: post-1")).toBeInTheDocument();
+    expect(screen.getByText("Start with a question about the evidence")).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: /Saved project question/ }));
+    expect(screen.queryByText(/Starting evidence:/)).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Continue saved context");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await waitFor(() => {
+      const askCall = fetchMock.mock.calls.find(
+        ([input, init]) => String(input).endsWith("/api/ask") && init?.method === "POST",
+      );
+      expect(JSON.parse(String(askCall?.[1]?.body))).not.toHaveProperty("anchor_post_id");
+    });
+  }, 10_000);
+
+  it("restores saved Ask Agent history and can start a new conversation", async () => {
+    stubBackend({ askHistory: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+
+    expect(await screen.findByText("Which project was saved?", { exact: true })).toBeInTheDocument();
+    const savedConversation = screen.getByRole("button", { name: /Saved project question/ });
+    expect(savedConversation).toHaveAttribute("aria-current", "page");
+    expect(savedConversation).not.toHaveAttribute("aria-pressed");
+
+    await userEvent.click(screen.getByRole("button", { name: "New conversation" }));
+    expect(screen.getByText("Start with a question about the evidence")).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Ask a question" })).toHaveFocus();
+    await userEvent.click(savedConversation);
+    expect(await screen.findByText("Which project was saved?", { exact: true })).toBeInTheDocument();
+  });
+
+  it("restores saved per-post Ask history and can start a new conversation", async () => {
+    stubBackend({ postAskHistory: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() =>
+      expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument(),
+    );
+    const savedConversation = await screen.findByRole("button", { name: /Saved post question/ });
+    expect(savedConversation).not.toHaveAttribute("aria-current");
+    expect(savedConversation).not.toHaveAttribute("aria-pressed");
+
+    const popup = document.querySelector(".popup-panel") as HTMLElement;
+    const askInput = within(popup).getByPlaceholderText(/what happened/i);
+    await userEvent.type(askInput, "What preceded the site visit?");
+    await userEvent.click(within(popup).getByRole("button", { name: /^ask$/i }));
+    expect(
+      await screen.findByText("Here is what happened, drawing on the linked post."),
+    ).toBeInTheDocument();
+    const liveThread = screen.getByRole("button", { name: /What preceded the site visit/ });
+    expect(liveThread).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByText("The seeded follow-up after the site visit.")).not.toBeInTheDocument();
+
+    await userEvent.click(within(popup).getByRole("button", { name: "New conversation" }));
+    expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument();
+    expect(screen.queryByText("Here is what happened, drawing on the linked post.")).not.toBeInTheDocument();
+    expect(
+      [...popup.querySelectorAll(".chat-question")].map((node) => node.textContent),
+    ).not.toContain("What preceded the site visit?");
+    expect(liveThread).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: /What preceded the site visit/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Saved post question/ })).toBeInTheDocument();
+
+    await userEvent.click(savedConversation);
+    expect(
+      await screen.findByText("The saved post answer stays grounded in the linked source."),
+    ).toBeInTheDocument();
+    expect(savedConversation).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByText("The seeded follow-up after the site visit.")).not.toBeInTheDocument();
+
+    await userEvent.click(within(popup).getByRole("button", { name: "New conversation" }));
+    expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument();
+    expect(savedConversation).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: /Saved post question/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /What preceded the site visit/ })).toBeInTheDocument();
+  });
+
+  it("keeps the Ask Agent conversation visible when the orchestrator is unavailable", async () => {
+    stubBackend({ askUnavailable: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const input = screen.getByRole("textbox", { name: "Ask a question" });
+    await userEvent.type(input, "Which project?{Enter}");
+
+    expect(
+      await screen.findByText("Ask Agent is temporarily unavailable. Saved evidence is still available."),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Which project?", { exact: true })).toBeInTheDocument();
+    expect(screen.getByRole("log", { name: "Conversation" })).toHaveAttribute("aria-busy", "false");
+  });
+
+  it("retries an unavailable Ask conversation registry", async () => {
+    const fetchMock = stubBackend({ askHistoryUnavailable: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+
+    expect(await screen.findAllByText("Conversation history could not be loaded.")).toHaveLength(2);
+    const attempts = fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/ask/conversations")).length;
+    await userEvent.click(screen.getAllByRole("button", { name: "Retry" })[0]);
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/ask/conversations")))
+        .toHaveLength(attempts + 1),
+    );
+  });
+
+  it("keeps saved Ask history when selecting its conversation fails", async () => {
+    stubBackend({ askConversationFailsAfterFirst: true, askHistory: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+
+    const saved = await screen.findByRole("button", { name: /Saved project question/ });
+    await userEvent.click(screen.getByRole("button", { name: "New conversation" }));
+    await userEvent.click(saved);
+
+    expect(await screen.findByText("Conversation history could not be loaded.")).toBeInTheDocument();
+    expect(saved).toBeInTheDocument();
+  });
+
+  it("loads older conversations and turns from their scroll boundaries", async () => {
+    const fetchMock = stubBackend({ askHistory: true, askHistoryPages: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    expect(await screen.findByText("Which project was saved?", { exact: true })).toBeInTheDocument();
+
+    const historyList = document.querySelector(".ask-agent-history-list") as HTMLUListElement;
+    Object.defineProperties(historyList, {
+      scrollHeight: { configurable: true, value: 1000 },
+      clientHeight: { configurable: true, value: 300 },
+      scrollTop: { configurable: true, value: 760 },
+    });
+    fireEvent.scroll(historyList);
+    expect(await screen.findByText("Older saved question", { exact: true })).toBeInTheDocument();
+
+    const thread = document.querySelector(".ask-agent-thread") as HTMLDivElement;
+    Object.defineProperties(thread, {
+      scrollTop: { configurable: true, value: 0, writable: true },
+      scrollHeight: { configurable: true, value: 1000, writable: true },
+      clientHeight: { configurable: true, value: 500 },
+    });
+    fireEvent.scroll(thread);
+    expect(await screen.findByText("Older saved turn", { exact: true })).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes("before_turn=2"))).toBe(true);
+    expect(fetchMock.mock.calls.some(([input]) => String(input).includes("before_updated_at"))).toBe(true);
+  });
+
+  it("retries failed older Ask conversation pages", async () => {
+    const fetchMock = stubBackend({ askHistory: true, askHistoryMoreUnavailable: true, askHistoryPages: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    await screen.findByText("Which project was saved?", { exact: true });
+
+    const historyList = document.querySelector(".ask-agent-history-list") as HTMLUListElement;
+    Object.defineProperties(historyList, {
+      scrollHeight: { configurable: true, value: 1000 },
+      clientHeight: { configurable: true, value: 300 },
+      scrollTop: { configurable: true, value: 760 },
+    });
+    fireEvent.scroll(historyList);
+    const retry = await screen.findByRole("button", { name: "Retry loading history" });
+    const attempts = fetchMock.mock.calls.filter(([url]) => String(url).includes("before_updated_at")).length;
+    await userEvent.click(retry);
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => String(url).includes("before_updated_at")))
+        .toHaveLength(attempts + 1),
+    );
+  });
+
+  it("retries failed older Ask turns", async () => {
+    const fetchMock = stubBackend({ askHistory: true, askHistoryPages: true, askOlderTurnsUnavailable: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    await screen.findByText("Which project was saved?", { exact: true });
+
+    const thread = document.querySelector(".ask-agent-thread") as HTMLDivElement;
+    Object.defineProperties(thread, {
+      scrollTop: { configurable: true, value: 0, writable: true },
+      scrollHeight: { configurable: true, value: 1000, writable: true },
+      clientHeight: { configurable: true, value: 500 },
+    });
+    fireEvent.scroll(thread);
+    const retry = await screen.findByRole("button", { name: "Retry loading older questions" });
+    const attempts = fetchMock.mock.calls.filter(([url]) => String(url).includes("before_turn=2")).length;
+    await userEvent.click(retry);
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => String(url).includes("before_turn=2")))
+        .toHaveLength(attempts + 1),
+    );
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
@@ -1726,6 +2794,41 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Our side")).toBeInTheDocument();
     expect(screen.queryByText("company", { exact: true })).not.toBeInTheDocument();
     expect(screen.queryByText("our_side", { exact: true })).not.toBeInTheDocument();
+  });
+
+  it("shows governed former names when a customer entity is expanded", async () => {
+    const fetchMock = stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    await userEvent.click((await screen.findByText("Demo Corp")).closest("button")!);
+
+    expect(screen.getByText("Former name: Demo Industries")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/corporate-entities/corp-demo/related")),
+      ).toHaveLength(1),
+    );
+    await userEvent.click(screen.getByText("Demo Corp").closest("button")!);
+    expect(screen.queryByText("Former name: Demo Industries")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByText("Demo Corp").closest("button")!);
+    expect(screen.getByText("Former name: Demo Industries")).toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/corporate-entities/corp-demo/related")),
+    ).toHaveLength(1);
+  });
+
+  it("opens a linked post from an expanded customer entity", async () => {
+    stubBackend({ customerRelatedPost: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    await userEvent.click((await screen.findByText("Demo Corp")).closest("button")!);
+
+    const relatedPost = await screen.findByRole("button", { name: "Open related post: Linked post" });
+    expect(relatedPost).toHaveTextContent("Linked body preview ...");
+    await userEvent.click(relatedPost);
+    expect(await screen.findByRole("dialog", { name: "Linked post" })).toBeInTheDocument();
   });
 
   it("nests a corporate entity under its parent instead of a flat list", async () => {
@@ -1748,6 +2851,93 @@ describe("App, authenticated", () => {
     // The subsidiary's <li> is nested inside the parent's <li>, not a
     // sibling at the same top level.
     expect(parentRow?.contains(subsidiaryRow)).toBe(true);
+  });
+
+  it("filters the customer master tree by scope facet", async () => {
+    // ADR 0125: 자사 속성은 필터로 접근해야 한다 -- an entity's own-company,
+    // granted-customer, observed, or unclassified facet must be a real
+    // filter, not just a label. All four buckets are on by default.
+    stubBackend({ customerScopeFacets: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    expect(await screen.findByText("Own Scope Corp")).toBeInTheDocument();
+    expect(screen.getByText("Granted Scope Corp")).toBeInTheDocument();
+    expect(screen.getByText("Observed Scope Corp")).toBeInTheDocument();
+    expect(screen.getByText("Observed Hierarchy Corp")).toBeInTheDocument();
+    expect(screen.getByText("Unclassified Scope Corp")).toBeInTheDocument();
+    expect(screen.getByText("Observed hierarchy")).toBeInTheDocument();
+    expect(screen.getByText("Scope not classified")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("checkbox", { name: "Own company" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Granted customer" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Observed in posts" }));
+
+    expect(screen.queryByText("Own Scope Corp")).not.toBeInTheDocument();
+    expect(screen.queryByText("Granted Scope Corp")).not.toBeInTheDocument();
+    expect(screen.queryByText("Observed Scope Corp")).not.toBeInTheDocument();
+    expect(screen.queryByText("Observed Hierarchy Corp")).not.toBeInTheDocument();
+    expect(screen.getByText("Unclassified Scope Corp")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("checkbox", { name: "Unclassified" }));
+    expect(screen.getByText("No entities match the current scope filter.")).toBeInTheDocument();
+  });
+
+  it("nests R&R rows under their affiliated organization instead of repeating the affiliation as flat text", async () => {
+    // UI/UX feedback: two researchers at the same institute should read
+    // as a tree (institute -> its researchers), not three unrelated
+    // bullets that each separately say "· 소속: Case Institute".
+    stubBackend({ rrOrgWithMembers: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const instituteRow = await screen.findByText("Case Institute", { selector: "li *" });
+    const instituteItem = instituteRow.closest("li") as HTMLLIElement;
+    const researcherOne = screen.getByText("Case Researcher One").closest("li") as HTMLLIElement;
+    const researcherTwo = screen.getByText("Case Researcher Two").closest("li") as HTMLLIElement;
+    expect(instituteItem.contains(researcherOne)).toBe(true);
+    expect(instituteItem.contains(researcherTwo)).toBe(true);
+    // Nesting itself conveys the affiliation -- repeating "· 소속: Case
+    // Institute" text on every nested row would be redundant.
+    expect(researcherOne.textContent).not.toContain("소속");
+    expect(researcherTwo.textContent).not.toContain("소속");
+  });
+
+  it("nests key events sharing a project name instead of repeating the project name as a flat prefix", async () => {
+    // UI/UX feedback: four key events that all began with the same
+    // "{project}: " prefix read as flat, disconnected bullets even
+    // though they clearly belong to one shared plan.
+    stubBackend({ groupedKeyEvents: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const projectHeading = await screen.findByText("Case Facility Plan", { selector: "li > strong" });
+    const projectItem = projectHeading.closest("li") as HTMLLIElement;
+    const firstMilestone = screen.getByText("1st milestone discussed").closest("li") as HTMLLIElement;
+    const secondMilestone = screen.getByText("2nd milestone discussed").closest("li") as HTMLLIElement;
+    expect(projectItem.contains(firstMilestone)).toBe(true);
+    expect(projectItem.contains(secondMilestone)).toBe(true);
+    // An event with no shared project stays a flat, ungrouped bullet.
+    const standalone = screen.getByText("Unrelated standalone event", { exact: false }).closest("li") as HTMLLIElement;
+    expect(projectItem.contains(standalone)).toBe(false);
+  });
+
+  it("renders explicit semantic relationships with direction, evidence, and provenance", async () => {
+    stubBackend({ semanticRelationships: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const relationships = await screen.findByRole("heading", { name: "Explicit semantic relationships" });
+    const list = relationships.nextElementSibling as HTMLUListElement;
+    expect(within(list).getByText("Responsible for")).toBeInTheDocument();
+    expect(within(list).getByText("Precedes")).toBeInTheDocument();
+    expect(within(list).getByText("synthetic_relation")).toBeInTheDocument();
+    expect(within(list).getByText(/Alpha was completed before Beta\. · Confidence: 84%/)).toBeInTheDocument();
+
+    const temporalRelation = within(list).getByText("Prototype Alpha").closest("li")!;
+    await userEvent.click(within(temporalRelation).getByText("Evidence provenance"));
+    expect(within(temporalRelation).getByText("Extraction source: Recorded extraction")).toBeInTheDocument();
   });
 
   it("shows every observed relationship role for a counterparty, flagging multi-role names", async () => {
@@ -1786,6 +2976,37 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "Resolve" }));
 
     expect(await screen.findByText("Southfield Utilities")).toBeInTheDocument();
+    expect(screen.getByText("Managed customer")).toBeInTheDocument();
+  });
+
+  it("restores customer hint resolution after a failed corroboration", async () => {
+    stubBackend({ admin: true, customerResolveUnavailable: true, manyCustomerHints: 1 });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+
+    await userEvent.click(await screen.findByRole("button", { name: "Resolve" }));
+
+    expect(
+      await screen.findByText("This hint could not be resolved to a corroborated organization name."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Resolve" })).toBeEnabled();
+  });
+
+  it("shows a customer-master load failure", async () => {
+    stubBackend({ customerMasterUnavailable: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+    expect(await screen.findByText("Customer master could not be loaded.")).toBeInTheDocument();
+  });
+
+  it("shows when no customer entities are connected", async () => {
+    stubBackend({ emptyCustomerMaster: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+
+    expect(
+      await screen.findByText("No customer entities are connected to this account."),
+    ).toBeInTheDocument();
   });
 
   it("hides the resolve action from an account without post_admin", async () => {
@@ -1817,6 +3038,31 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("CUST-44")).not.toBeInTheDocument();
   });
 
+  it("finds an observed customer code outside the ranked first page", async () => {
+    const fetchMock = stubBackend({ manyCustomerHints: 45 });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    await userEvent.type(screen.getByRole("searchbox", { name: "Find source customer code" }), "CUST-44");
+    await userEvent.click(screen.getByRole("button", { name: "Find" }));
+
+    expect(await screen.findByText("CUST-44")).toBeInTheDocument();
+    expect(screen.queryByText("CUST-0")).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("hint_code=CUST-44"))).toBe(true);
+  });
+
+  it("shows a no-match state for an observed customer code", async () => {
+    stubBackend({ manyCustomerHints: 2 });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+
+    await userEvent.type(screen.getByRole("searchbox", { name: "Find source customer code" }), "CUST-99");
+    await userEvent.click(screen.getByRole("button", { name: "Find" }));
+
+    expect(await screen.findByText("No source customer evidence matches CUST-99.")).toBeInTheDocument();
+  });
+
   it("searches the board from a semantic project mention", async () => {
     stubBackend();
     render(<App />);
@@ -1841,12 +3087,12 @@ describe("App, authenticated", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "View post: Public post" }));
     expect(await screen.findByLabelText("A-100 lineage")).toBeInTheDocument();
-    expect(screen.getByLabelText("Open post: Pricing renegotiation follow-up")).toHaveClass(
-      "lineage-dag-branch",
-    );
-    expect(screen.getByLabelText("Open post: Unrelated: annual account review")).toHaveClass(
-      "lineage-dag-root",
-    );
+    expect(
+      screen.getByLabelText("Open post: Pricing renegotiation follow-up (Branch point)"),
+    ).toHaveClass("lineage-dag-branch");
+    expect(
+      screen.getByLabelText("Open post: Unrelated: annual account review (Root record)"),
+    ).toHaveClass("lineage-dag-root");
   });
 
   it("renders the board landmark and functional post controls", async () => {
@@ -1858,7 +3104,7 @@ describe("App, authenticated", () => {
     expect(within(board).getByLabelText("Search semantic evidence")).toHaveAttribute("type", "search");
     expect(within(board).getByRole("list", { name: "Board posts" })).toBeInTheDocument();
     expect(within(board).getByText(/Posts shown:/)).toBeInTheDocument();
-    expect(within(board).getByLabelText("Voice of Partner")).toBeInTheDocument();
+    expect(within(board).getByRole("checkbox", { name: /VOP.*Voice of Partner/ })).toBeInTheDocument();
 
     await userEvent.selectOptions(within(board).getByLabelText("Sort posts"), "title");
     await waitFor(() =>
@@ -1870,6 +3116,193 @@ describe("App, authenticated", () => {
     expect(within(board).getByRole("status")).toHaveTextContent("No posts match the current filters.");
     await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
     expect(within(board).getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+  });
+
+  it("derives missing board facets and applies every client-side sort and filter", async () => {
+    stubBackend({
+      manyBoardPosts: true,
+      sourceDetailStateCode: "D",
+      sourceDetailStateOptions: [],
+      visibilityOptions: [],
+      vocTypeOptions: [],
+    });
+    render(<App showLabPanels />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    const titles = () =>
+      within(board).getAllByRole("button", { name: /View post:/ }).map((button) => button.getAttribute("aria-label"));
+
+    await userEvent.selectOptions(within(board).getByLabelText("Sort posts"), "title");
+    expect(titles()).toEqual(["View post: Earlier partner post", "View post: Public post"]);
+    await userEvent.selectOptions(within(board).getByLabelText("Sort posts"), "oldest");
+    expect(titles()[0]).toContain("Earlier partner post");
+    await userEvent.selectOptions(within(board).getByLabelText("Sort posts"), "newest");
+    expect(titles()[0]).toContain("Public post");
+
+    const voc = within(board).getByRole("checkbox", { name: "VOC — Voice of Customer" });
+    await userEvent.click(voc);
+    expect(within(board).queryByRole("button", { name: "View post: Earlier partner post" })).not.toBeInTheDocument();
+    await userEvent.click(voc);
+
+    const approved = within(board).getByRole("checkbox", { name: "A — Approved" });
+    await userEvent.click(approved);
+    expect(within(board).queryByRole("button", { name: "View post: Public post" })).not.toBeInTheDocument();
+    await userEvent.click(approved);
+
+    await userEvent.selectOptions(within(board).getByLabelText("Filter by visibility"), "private");
+    expect(within(board).queryByRole("button", { name: "View post: Public post" })).not.toBeInTheDocument();
+  });
+
+  it("navigates compact board pagination without losing the current-page state", async () => {
+    const fetchMock = stubBackend({ boardTotalCount: 400 });
+    render(<App showLabPanels />);
+
+    const pages = await screen.findByRole("navigation", { name: "Board pages" });
+    expect(within(pages).getByRole("button", { name: "Page 1" })).toHaveAttribute("aria-current", "page");
+    expect(within(pages).getByRole("button", { name: "Previous page" })).toBeDisabled();
+    expect(within(pages).getByText("...")).toBeInTheDocument();
+
+    await userEvent.click(within(pages).getByRole("button", { name: "Page 8" }));
+    await waitFor(() =>
+      expect(within(pages).getByRole("button", { name: "Page 8" })).toHaveAttribute("aria-current", "page"),
+    );
+    expect(within(pages).getByRole("button", { name: "Next page" })).toBeDisabled();
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("offset=350"))).toBe(true);
+
+    await userEvent.click(within(pages).getByRole("button", { name: "Previous page" }));
+    await waitFor(() =>
+      expect(within(pages).getByRole("button", { name: "Page 7" })).toHaveAttribute("aria-current", "page"),
+    );
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("offset=300"))).toBe(true);
+
+    await userEvent.click(within(pages).getByRole("button", { name: "Page 1" }));
+    await waitFor(() =>
+      expect(within(pages).getByRole("button", { name: "Page 1" })).toHaveAttribute("aria-current", "page"),
+    );
+    await userEvent.click(within(pages).getByRole("button", { name: "Next page" }));
+    await waitFor(() =>
+      expect(within(pages).getByRole("button", { name: "Page 2" })).toHaveAttribute("aria-current", "page"),
+    );
+  });
+
+  it("uses canonical VOC acronyms with explanatory accessible names", async () => {
+    stubBackend({
+      vocTypeOptions: [
+        { code: "voc", label: "legacy customer label" },
+        { code: "vocc", label: "legacy customer-customer label" },
+        { code: "voco", label: "legacy competitor label" },
+        { code: "vom", label: "legacy market label" },
+        { code: "vop", label: "legacy partner label" },
+      ],
+    });
+    render(<App showLabPanels />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    for (const code of ["VOC", "VOCC", "VOCO", "VOM", "VOP"]) {
+      expect(within(board).getByText(code, { selector: ".board-voc-type-code" })).toBeInTheDocument();
+    }
+    expect(within(board).getByRole("checkbox", { name: "VOC — Voice of Customer" })).toBeInTheDocument();
+    expect(
+      within(board).getByRole("checkbox", { name: "VOCC — Voice of Customer's Customer" }),
+    ).toBeInTheDocument();
+
+    setLocale("ko");
+    await waitFor(() =>
+      expect(
+        within(board).getByRole("checkbox", { name: "VOC — 고객의 소리 (Voice of Customer)" }),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("explains and filters source detail state codes", async () => {
+    const fetchMock = stubBackend({
+      sourceDetailStateCode: "D",
+      sourceDetailStateOptions: [
+        { code: "W", label: "W" },
+        { code: "D", label: "D" },
+        { code: "A", label: "A" },
+      ],
+    });
+    render(<App showLabPanels />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(
+      within(board).getByRole("group", { name: "Filter by source detail state" }),
+    ).toBeInTheDocument();
+    expect(
+      within(board).getByRole("checkbox", { name: "W — Writing in progress" }),
+    ).toBeInTheDocument();
+    expect(
+      within(board).getByRole("checkbox", { name: "D — Pending approval" }),
+    ).toBeInTheDocument();
+    expect(
+      within(board).getByRole("checkbox", { name: "A — Approved" }),
+    ).toBeInTheDocument();
+    expect(within(board).getByText("D", { selector: ".board-source-detail-state-code" })).toBeInTheDocument();
+    expect(within(board).getByText("Pending approval", { selector: ".board-source-detail-state-description" })).toBeInTheDocument();
+
+    await userEvent.click(within(board).getByRole("checkbox", { name: "D — Pending approval" }));
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes("source_detail_state=D"))).toBe(true),
+    );
+
+    setLocale("ko");
+    await waitFor(() =>
+      expect(
+        within(board).getByRole("checkbox", { name: "D — 결재 중 (Pending approval)" }),
+      ).toBeInTheDocument(),
+    );
+  });
+
+  it("does not request derived analysis for a writing-state post", async () => {
+    const fetchMock = stubBackend({ sourceDetailStateCode: " w " });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    expect(await screen.findByText("Summary is not created for writing posts.")).toBeInTheDocument();
+
+    const requestedPaths = fetchMock.mock.calls.map(([url]) =>
+      new URL(String(url), "https://backend.test").pathname,
+    );
+    expect(requestedPaths).not.toContain("/api/posts/post-1/summary");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/evaluation");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/five-w1h");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/keymen");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/counterparties");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/lineage");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/knowledge-graph");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/affiliate-tree");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/voc-evidence");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/content");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/source-research");
+  });
+
+  it("does not show an empty source detail state filter", async () => {
+    const fetchMock = stubBackend({ sourceDetailStateOptions: [] });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(
+      within(board).queryByRole("group", { name: "Filter by source detail state" }),
+    ).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalled();
+  });
+
+  it("does not request derived panels for writing posts", async () => {
+    const fetchMock = stubBackend({
+      sourceDetailStateCode: " w ",
+      sourceDetailStateOptions: [{ code: "W", label: "W" }],
+    });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await screen.findByText("The full body text.");
+
+    const urls = fetchMock.mock.calls.map(([url]) => String(url));
+    expect(
+      urls.some((url) =>
+        /\/api\/posts\/[^/]+\/(five-w1h|keymen|counterparties|lineage|knowledge-graph|affiliate-tree|voc-evidence|evaluation)(?:\?|$)/.test(url),
+      ),
+    ).toBe(false);
   });
 
   it("opens a post from a DAG node click", async () => {
@@ -1911,6 +3344,9 @@ describe("App, authenticated", () => {
     );
     expect(listButton).toHaveTextContent("Voice of Customer");
     expect(listButton).toHaveTextContent("Public");
+    expect(listButton).toHaveTextContent("Combination code");
+    expect(listButton).toHaveTextContent("1000");
+    expect(within(listButton).getByLabelText("Field combination: 1000, Customer only candidate")).toBeInTheDocument();
 
     await userEvent.click(listButton);
 
@@ -1955,6 +3391,21 @@ describe("App, authenticated", () => {
         }),
       );
     });
+
+    fireEvent.change(language, { target: { value: "unsupported" } });
+    expect(document.documentElement.lang).toBe("ja");
+  });
+
+  it("keeps the selected language when preference persistence is unavailable", async () => {
+    stubBackend({ preferenceUnavailable: true });
+    render(<App showLabPanels />);
+
+    const language = await screen.findByRole("combobox", {
+      name: /language|언어|言語|语言|ngôn ngữ/i,
+    });
+    await userEvent.selectOptions(language, "ja");
+
+    await waitFor(() => expect(document.documentElement.lang).toBe("ja"));
   });
 
   it("rebuilds lineage when the account has post_admin", async () => {
@@ -1968,6 +3419,18 @@ describe("App, authenticated", () => {
         expect.objectContaining({ method: "POST" }),
       ),
     );
+  });
+
+  it("reports a lineage rebuild failure and restores the action", async () => {
+    stubBackend({ admin: true, rebuildUnavailable: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByText("Advanced review tools"));
+    const rebuild = await screen.findByRole("button", { name: /rebuild lineage/i });
+
+    await userEvent.click(rebuild);
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(rebuild).toBeEnabled();
   });
 
   it("shows the advanced-review section to post_admin without the test-only prop", async () => {
@@ -2003,9 +3466,35 @@ describe("App, authenticated", () => {
     expect(screen.getByText("첫 번째 이벤트")).toBeInTheDocument();
     expect(screen.getByText(/우리 측 후속/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "R&R Keyman: Ada West" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "R&R affiliation: Demo Corp" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "R&R person: Priya Nair" })).toBeInTheDocument();
     expect(screen.getByText("당사").closest("li")).toHaveTextContent("Organization");
     expect(screen.queryByRole("button", { name: "R&R Keyman: 당사" })).not.toBeInTheDocument();
+    // R&R groups by affiliated organization, then orders each group
+    // organization-first, then team, then person (ADR 0004's PROV-O
+    // broader/narrower direction) -- not raw extraction order. "Northridge
+    // Grid Devices" is itself an organization row, but it is affiliated
+    // with "Northridge Grid" and must cluster with Priya Nair under that
+    // parent, not stand as its own separate group.
+    const rrList = screen.getByText("당사").closest("ul");
+    const rrOrder = within(rrList as HTMLElement)
+      .getAllByRole("listitem")
+      .map((item) => item.textContent);
+    const demoCorpGroup = rrOrder.slice(
+      rrOrder.findIndex((text) => text?.includes("설계팀")),
+      rrOrder.findIndex((text) => text?.includes("Ada West")) + 1,
+    );
+    expect(demoCorpGroup[0]).toContain("설계팀");
+    expect(demoCorpGroup[1]).toContain("Ada West");
+    const northridgeGroupStart = rrOrder.findIndex((text) => text?.includes("Northridge Grid Devices"));
+    expect(rrOrder[northridgeGroupStart]).toContain("Northridge Grid Devices");
+    expect(rrOrder[northridgeGroupStart + 1]).toContain("Priya Nair");
+    // ADR 0141: an unresolved affiliation shows the specific reason instead
+    // of the generic "Not linked to catalog" label when the reason is known.
+    expect(screen.getByText("(No live enrichment service configured)")).toBeInTheDocument();
+    // ADR 0141: an unresolved primary actor (organization/person) also gets
+    // a specific reason note, where it previously showed nothing at all.
+    expect(screen.getByText("(Checked, not independently corroborated)")).toBeInTheDocument();
     const relatedPosts = screen.getByRole("heading", { name: "Related posts", level: 3 }).closest(
       ".related-posts-section",
     );
@@ -2014,7 +3503,9 @@ describe("App, authenticated", () => {
     expect(relatedPosts).toHaveTextContent("Linked post");
     // The Event Lineage DAG belongs to the opened post, not the list surface.
     expect(screen.getAllByLabelText("A-100 lineage")).toHaveLength(1);
-    expect(screen.getAllByLabelText("Open post: Pricing renegotiation follow-up")).toHaveLength(1);
+    expect(
+      screen.getAllByLabelText("Open post: Pricing renegotiation follow-up (Branch point)"),
+    ).toHaveLength(1);
     expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
     expect(document.getElementById("post-ask")).not.toHaveFocus();
     expect(
@@ -2031,18 +3522,112 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("Related to Priya Nair")).not.toBeInTheDocument();
     const popup = document.querySelector(".popup-panel");
     expect(popup).not.toBeNull();
+    expect(screen.getByRole("dialog", { name: "Public post" })).toBe(popup);
+    expect(popup).toHaveAttribute("aria-modal", "true");
+    expect(popup).toHaveAttribute("aria-labelledby", "post-detail-title");
     const evaluation = within(popup as HTMLElement).getByRole("heading", {
       name: "Post quality (IRT)",
     });
     const eventLineage = within(popup as HTMLElement).getByRole("heading", { name: "Event Lineage" });
     const affiliate = within(popup as HTMLElement).getByRole("heading", { name: "Affiliate tree" });
     const keyman = within(popup as HTMLElement).getByRole("heading", { name: "Keymen" });
+    expect(within(popup as HTMLElement).getByText("Lineage evidence")).toBeInTheDocument();
+    expect(within(popup as HTMLElement).getByText("Inference boundary")).toBeInTheDocument();
+    expect(within(popup as HTMLElement).getByRole("table", { name: /Evidence trail/ })).toBeInTheDocument();
     expect(evaluation.compareDocumentPosition(eventLineage) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
       0,
     );
     expect(affiliate.compareDocumentPosition(keyman) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
     const ask = within(popup as HTMLElement).getByRole("heading", { name: "Ask about this lineage" });
     expect(keyman.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  });
+
+  it.each([
+    [
+      "no_relation_found" as const,
+      "Compared against other posts in its group; none were found related.",
+    ],
+    [
+      "no_comparison_group" as const,
+      "No other posts share this record's group yet, so nothing was available to compare it against.",
+    ],
+  ])(
+    "shows the specific isolation reason %s instead of the generic empty-lineage message",
+    async (isolationReason, expectedMessage) => {
+      stubBackend({ lineageIsolationReason: isolationReason });
+      render(<App showLabPanels />);
+
+      await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+      const popup = await screen.findByRole("dialog", { name: "Public post" });
+      await waitFor(() => expect(within(popup).getByText(expectedMessage)).toBeInTheDocument());
+      expect(within(popup).queryByText("No linked posts yet.")).not.toBeInTheDocument();
+    },
+  );
+
+  it("keeps the generic empty-lineage copy for historical graph responses", async () => {
+    stubBackend({ emptyLineage: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const popup = await screen.findByRole("dialog", { name: "Public post" });
+    expect(await within(popup).findByText("No linked posts yet.")).toBeInTheDocument();
+    expect(
+      within(popup).getByText("No linked posts have been established for this record."),
+    ).toBeInTheDocument();
+  });
+
+  it("labels a direct related post", async () => {
+    stubBackend({ directLineage: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const relatedPosts = screen.getByRole("heading", { name: "Related posts", level: 3 }).closest(
+      ".related-posts-section",
+    );
+    expect(relatedPosts).not.toBeNull();
+    expect(within(relatedPosts as HTMLElement).getByText("Direct relation")).toBeInTheDocument();
+  });
+
+  it("keeps the post popup keyboard-contained and restores the opener after Escape", async () => {
+    const user = userEvent.setup();
+    stubBackend();
+    render(<App showLabPanels />);
+
+    const opener = await screen.findByRole("button", { name: "View post: Public post" });
+    await user.click(opener);
+    const dialog = await screen.findByRole("dialog", { name: "Public post" });
+    await waitFor(() => expect(dialog).toHaveFocus());
+
+    await user.keyboard("{Tab}");
+    expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
+    const evidenceSummary = screen.getByText("Evidence provenance");
+    for (let step = 0; step < 40 && document.activeElement !== evidenceSummary; step += 1) {
+      await user.keyboard("{Tab}");
+    }
+    expect(evidenceSummary).toHaveFocus();
+    const ariaHiddenTabStop = document.createElement("button");
+    ariaHiddenTabStop.setAttribute("aria-hidden", "true");
+    dialog.insertBefore(ariaHiddenTabStop, screen.getByRole("button", { name: "Close" }).nextSibling);
+    await user.keyboard("{Tab}");
+    expect(ariaHiddenTabStop).not.toHaveFocus();
+    const ariaHiddenGroup = document.createElement("div");
+    ariaHiddenGroup.setAttribute("aria-hidden", "true");
+    const nestedAriaHiddenTabStop = document.createElement("button");
+    ariaHiddenGroup.append(nestedAriaHiddenTabStop);
+    dialog.insertBefore(ariaHiddenGroup, screen.getByRole("button", { name: "Close" }).nextSibling);
+    await user.keyboard("{Tab}");
+    expect(nestedAriaHiddenTabStop).not.toHaveFocus();
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+    await user.keyboard("{Shift>}{Tab}{/Shift}");
+    expect(dialog).toContainElement(document.activeElement as HTMLElement);
+    expect((document.activeElement as HTMLElement).closest("details:not([open])")).toBeNull();
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(opener).toHaveFocus();
   });
 
   it("labels a stale summary and retries the semantic refresh on request", async () => {
@@ -2067,8 +3652,31 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: "Retry summary refresh" })).toBeInTheDocument();
   });
 
+  it("shows processing instead of an empty summary while the request is pending", async () => {
+    stubBackend({ summaryPending: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const processing = await screen.findByText("Summary is being prepared.");
+    expect(processing.closest('[role="status"]')).toBeInTheDocument();
+    expect(screen.queryByText("No summary is available for this record yet.")).not.toBeInTheDocument();
+  }, 15_000);
+
+  it("separates an unavailable summary from a missing saved summary", async () => {
+    stubBackend({ summaryUnavailable: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const summaryHeading = await screen.findByText("Summary could not be generated.");
+    expect(summaryHeading.closest('[role="alert"]')).toBeInTheDocument();
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Retry summary refresh" })).toBeInTheDocument();
+    expect(screen.queryByText("No saved summary exists for this record.")).not.toBeInTheDocument();
+  });
+
   it("refreshes newly processed source content after summary generation", async () => {
-    stubBackend({ contentAfterSummary: true });
+    stubBackend({ contentAfterSummary: true, contentProcessing: true });
     render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
@@ -2110,6 +3718,18 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: /ask seeded question: what is the next commitment/i })).toBeInTheDocument();
   });
 
+  it("keeps linked records readable when the focused graph is unavailable", async () => {
+    stubBackend({ focusedLineageUnavailable: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    expect(
+      await screen.findByText("The linked records are listed above. The graph is not available for this view."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open related post: Linked post" })).toBeInTheDocument();
+  });
+
   it("asks a chat question and slides in the evidence panel for a cited source on click", async () => {
     stubBackend();
     render(<App showLabPanels />);
@@ -2133,10 +3753,12 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
+    await userEvent.click(screen.getByRole("button", { name: "Close evidence panel" }));
+    expect(screen.queryByText("The evidence panel should show exactly this text.")).not.toBeInTheDocument();
   });
 
-  it("stops loading and gives the buyer a next action when cited evidence is unavailable", async () => {
-    stubBackend({ evidenceUnavailable: true });
+  it("stops loading and gives the reader a next action when cited evidence is unavailable", async () => {
+    const fetchMock = stubBackend({ evidenceUnavailable: true });
     render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
@@ -2145,14 +3767,88 @@ describe("App, authenticated", () => {
     const evidenceChips = await screen.findAllByRole("button", { name: "Open evidence: Linked post" });
     await userEvent.click(evidenceChips[evidenceChips.length - 1]);
 
-    expect(
-      await screen.findByText("Source evidence is unavailable. Continue with the saved answer."),
-    ).toBeInTheDocument();
+    const alertTitle = await screen.findByText(
+      "Source evidence is unavailable. Continue with the saved answer.",
+    );
+    const alert = alertTitle.closest('[role="alert"]');
+    expect(alert).toHaveTextContent("Source evidence is unavailable. Continue with the saved answer.");
+    expect(alert).toHaveTextContent("Retry opening this source, or keep reading the saved answer.");
+    expect(screen.getByRole("button", { name: "Retry evidence" })).toBeInTheDocument();
     expect(screen.queryByText("Loading source post...")).not.toBeInTheDocument();
+    const attempts = fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/api/posts/post-2")).length;
+    await userEvent.click(screen.getByRole("button", { name: "Retry evidence" }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/api/posts/post-2")),
+      ).toHaveLength(attempts + 1),
+    );
+  }, 15_000);
+
+  it("shows post chat history failures without hiding saved evidence", async () => {
+    stubBackend({ postChatHistoryUnavailable: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    expect(await screen.findByText("Conversation history could not be loaded.")).toBeInTheDocument();
+    expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument();
+  });
+
+  it("keeps seeded post chat visible when a saved conversation cannot be loaded", async () => {
+    stubBackend({ postAskHistory: true, postChatConversationUnavailable: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: /Saved post question/ }));
+
+    expect(await screen.findByText("Conversation history could not be loaded.")).toBeInTheDocument();
+    expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument();
+  });
+
+  it("renders legacy citation identifiers and ignores an empty Enter ask", async () => {
+    const fetchMock = stubBackend({ legacyChatCitations: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const input = await screen.findByPlaceholderText(/what happened/i);
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(
+      fetchMock.mock.calls.filter(
+        ([url, init]) => String(url).endsWith("/api/posts/post-1/chat") && init?.method === "POST",
+      ),
+    ).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Open evidence: post-2" })).toBeInTheDocument();
+  });
+
+  it("submits a saved question from the seeded suggestion chips", async () => {
+    const fetchMock = stubBackend();
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Ask seeded question: Who is involved?" }));
+
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(
+        ([url, init]) => String(url).endsWith("/api/posts/post-1/chat") && init?.method === "POST",
+      );
+      expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({ question: "Who is involved?" });
+    });
+  });
+
+  it("renders a grounded chat answer without inventing source chips", async () => {
+    stubBackend({ chatNoCitations: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.type(screen.getByPlaceholderText(/what happened/i), "Summarize this record");
+    await userEvent.click(screen.getByRole("button", { name: /^ask$/i }));
+
+    const answer = await screen.findByText("Here is what happened, drawing on the linked post.");
+    expect(answer.closest(".chat-answer")?.querySelector(".chat-citations")).toBeNull();
   });
 
   it("shows a clear empty state when chat is 503 without an orchestrator", async () => {
-    stubBackend({ chatUnavailable: true });
+    const fetchMock = stubBackend({ chatUnavailable: true });
     render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
@@ -2175,6 +3871,15 @@ describe("App, authenticated", () => {
     expect(
       screen.getByText("The next commitment is Send Northridge Grid the revised quote, due 2026-01-12."),
     ).toBeInTheDocument();
+    const postAttempts = fetchMock.mock.calls.filter(
+      ([url, init]) => String(url).endsWith("/api/posts/post-1/chat") && init?.method === "POST",
+    ).length;
+    await userEvent.click(screen.getAllByRole("button", { name: /ask seeded question/i })[0]);
+    expect(
+      fetchMock.mock.calls.filter(
+        ([url, init]) => String(url).endsWith("/api/posts/post-1/chat") && init?.method === "POST",
+      ),
+    ).toHaveLength(postAttempts);
   });
 
   it("shows a clear empty state when evaluate is 503 without an orchestrator", async () => {
@@ -2182,11 +3887,19 @@ describe("App, authenticated", () => {
     render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    expect(await screen.findByText("Constructive stance: 2")).toBeInTheDocument();
+    expect(screen.getByText("Sales-lead specificity: 3")).toBeInTheDocument();
     await userEvent.click(await screen.findByRole("button", { name: /evaluate post/i }));
 
     await waitFor(() =>
       expect(screen.getByText("Evaluation is temporarily unavailable. Saved evidence is still available.")).toBeInTheDocument(),
     );
+    expect(screen.getByText(/This analysis channel is unavailable/)).toBeInTheDocument();
+    expect(screen.getByText(/A missing signal is not a negative fact/)).toBeInTheDocument();
+    expect(screen.getByText("Constructive stance: 2")).toBeInTheDocument();
+    expect(screen.getByText("Sales-lead specificity: 3")).toBeInTheDocument();
+    expect(document.getElementById("post-quality-criterion-general_sentiment_positive")).not.toBeNull();
+    expect(document.getElementById("post-quality-criterion-sales_lead_specificity")).not.toBeNull();
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /evaluate post/i })).not.toBeInTheDocument();
   });
@@ -2356,6 +4069,26 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Related to Demo Corp").closest(".related-keymen")).toHaveTextContent(
       "Ada West (Our side)",
     );
+  });
+
+  it.each([
+    ["person" as const, "Ada West", null],
+    ["entity" as const, "Demo Corp", "Related nodes for Demo Corp"],
+    ["team" as const, "설계팀", "Related nodes for 설계팀"],
+  ])("fails closed when a %s related-node lookup is unavailable", async (kind, name, nestedAction) => {
+    stubBackend({ relatedUnavailable: kind });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    if (nestedAction) {
+      await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
+      await userEvent.click(await screen.findByRole("button", { name: nestedAction }));
+    } else {
+      await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
+    }
+
+    const panel = await screen.findByText(`Related to ${name}`);
+    expect(panel.closest(".related-keymen")).toHaveTextContent("No related nodes in the visible graph.");
   });
 
   it("shows the VOC excerpt under its counterparty, not a detached list", async () => {
@@ -2528,6 +4261,46 @@ describe("App, authenticated", () => {
     expect(screen.getByText("due 2026-03-15")).toBeInTheDocument();
   });
 
+  it("fails closed when tickets cannot be loaded and ignores an empty Enter", async () => {
+    const fetchMock = stubBackend({ ticketListUnavailable: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    expect(await screen.findByText("No tickets yet.")).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByPlaceholderText(/new ticket title/i), { key: "Enter" });
+    expect(
+      fetchMock.mock.calls.filter(
+        ([url, init]) => String(url).endsWith("/api/posts/post-1/tickets") && init?.method === "POST",
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("restores ticket creation after a request failure", async () => {
+    stubBackend({ ticketCreateUnavailable: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    await userEvent.type(screen.getByPlaceholderText(/new ticket title/i), "Synthetic ticket");
+    await userEvent.click(screen.getByRole("button", { name: /create ticket/i }));
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /create ticket/i })).toBeEnabled();
+  });
+
+  it("keeps a ticket's saved status when an update fails", async () => {
+    stubBackend({ ticketUpdateUnavailable: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.type(screen.getByPlaceholderText(/new ticket title/i), "Synthetic ticket");
+    await userEvent.click(screen.getByRole("button", { name: /create ticket/i }));
+
+    const status = await screen.findByLabelText(/status for synthetic ticket/i);
+    await userEvent.selectOptions(status, "closed");
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(status).toHaveValue("open");
+  });
+
   it("shows real ticket mutations on the activity feed after a refresh", async () => {
     stubBackend();
     render(<App showLabPanels />);
@@ -2560,6 +4333,21 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("ticket_status_changed")).not.toBeInTheDocument();
   });
 
+  it("retries an unavailable activity feed", async () => {
+    const fetchMock = stubBackend({ activityUnavailable: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const heading = await screen.findByRole("heading", { name: "Activity" });
+    const section = heading.closest("section")!;
+    const attempts = fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/posts/post-1/activity")).length;
+    await userEvent.click(within(section).getAllByRole("button", { name: "Refresh" })[0]);
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/posts/post-1/activity")))
+        .toHaveLength(attempts + 1),
+    );
+  });
+
   it("hides derive commitment for accounts without post_admin", async () => {
     stubBackend();
     render(<App showLabPanels />);
@@ -2584,7 +4372,17 @@ describe("App, authenticated", () => {
     expect(screen.getByText("due 2026-01-09")).toBeInTheDocument();
   });
 
-  it("tells the buyer how to populate an empty calendar", async () => {
+  it("explains when no commitment can be derived", async () => {
+    stubBackend({ admin: true, deriveNoCommitment: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    await userEvent.click(await screen.findByRole("button", { name: /derive commitment/i }));
+
+    expect(await screen.findByText("No customer commitment found in this post.")).toBeInTheDocument();
+  });
+
+  it("tells the reader how to populate an empty calendar", async () => {
     stubBackend({ calendarCommitments: [] });
     render(<App showLabPanels />);
 
@@ -2595,12 +4393,78 @@ describe("App, authenticated", () => {
     );
   });
 
+  it("renders CalDAV availability and events", async () => {
+    stubBackend({
+      calendarCommitments: [],
+      calendarEvents: [
+        {
+          event_id: "event-synthetic",
+          summary: "Synthetic design review",
+          starts_at: "2026-01-15T09:00:00Z",
+        },
+      ],
+      caldavAvailable: true,
+    });
+    render(<App showLabPanels />);
+
+    expect(await screen.findByText("Synthetic design review")).toBeInTheDocument();
+    expect(screen.getByText("2026-01-15T09:00:00Z")).toBeInTheDocument();
+  });
+
+  it("opens a commitment from the Calendar workspace", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Calendar" }));
+    await userEvent.click(await screen.findByRole("button", { name: /open commitment for: public post/i }));
+
+    expect(await screen.findByRole("dialog", { name: "Public post" })).toBeInTheDocument();
+    expect(new URL(window.location.href).searchParams.has("workspace")).toBe(false);
+  });
+
+  it("retries calendar loading failures", async () => {
+    const fetchMock = stubBackend({ calendarUnavailable: true });
+    render(<App showLabPanels />);
+
+    const calendarAlert = (await screen.findAllByRole("alert"))[0];
+    const retry = within(calendarAlert).getByRole("button", { name: "Retry" });
+    const attempts = fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/calendar")).length;
+    await userEvent.click(retry);
+
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/calendar")))
+        .toHaveLength(attempts + 1),
+    );
+  });
+
   it("names RankWeave unavailability on home rankings instead of inventing a fused score", async () => {
     stubBackend();
     render(<App />);
 
     expect(await screen.findByText("Rankings · RankWeave not available")).toBeInTheDocument();
     expect(screen.queryByText("Pricing renegotiation: revised quote sent")).not.toBeInTheDocument();
+  });
+
+  it("names an accepted empty RankWeave result", async () => {
+    stubBackend({ rankings: { status: "accepted", rankings: [] } });
+    render(<App />);
+
+    expect(await screen.findByText("No fused rankings from RankWeave.")).toBeInTheDocument();
+  });
+
+  it("retries ranking loading failures", async () => {
+    const fetchMock = stubBackend({ rankingsUnavailable: true });
+    render(<App />);
+
+    const rankings = await screen.findByRole("region", { name: "Rankings" });
+    const retry = within(rankings).getByRole("button", { name: "Retry" });
+    const attempts = fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/rankings")).length;
+    await userEvent.click(retry);
+
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/rankings")))
+        .toHaveLength(attempts + 1),
+    );
   });
 
   it("opens an accepted ranking hit without inventing a fused score", async () => {
@@ -2828,12 +4692,13 @@ describe("App, authenticated", () => {
       name: "Open analysis run: Lineage reconstruction · Running · Demo Corp",
     });
     expect(lineageButton).toHaveTextContent(
-      "Refresh this run. Start already queued the work on the durable outbox.",
+      "Refresh this run. Reconstruction is already queued on the durable outbox.",
     );
     await userEvent.click(lineageButton);
-    expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Refresh this run" })).toBeInTheDocument();
     expect(
-      screen.getAllByText("Refresh this run. Start already queued the work on the durable outbox."),
+      screen.getAllByText("Refresh this run. Reconstruction is already queued on the durable outbox."),
     ).not.toHaveLength(0);
   });
 
@@ -2988,7 +4853,9 @@ describe("App, authenticated", () => {
       ).toHaveLength(1);
       const popup = document.querySelector(".popup-panel");
       expect(popup).not.toBeNull();
-      const currentNode = within(popup as HTMLElement).getByLabelText("Open post: Public post");
+      const currentNode = within(popup as HTMLElement).getByLabelText(
+        "Open post: Public post (Current record, Root record)",
+      );
       expect(currentNode).toHaveAttribute("aria-current", "true");
       const lineageNext = screen.getByRole("status", { name: "Event Lineage next action" });
       expect(lineageNext).toHaveTextContent(
@@ -3138,8 +5005,8 @@ describe("App, authenticated", () => {
     await userEvent.click(reportButton);
     expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Open period report 2026-W02" }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: "Open period report 2026-W02" }),
+    ).toBeInTheDocument();
     expect(
       await screen.findByText(
         "No posts were available at this cutoff for the period report. Open a later run, or ask an administrator to capture a newer snapshot.",
@@ -3293,6 +5160,80 @@ describe("App, authenticated", () => {
     );
   });
 
+  it("retries the analysis-run registry after a load failure", async () => {
+    const fetchMock = stubBackend({ analysisRunsUnavailable: true });
+    render(<App showLabPanels />);
+
+    const retry = await screen.findByRole("button", { name: "Retry" });
+    const attempts = fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/analysis-runs")).length;
+    await userEvent.click(retry);
+
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/analysis-runs")))
+        .toHaveLength(attempts + 1),
+    );
+  });
+
+  it("explains an analysis-run idempotency conflict", async () => {
+    stubBackend({ analysisRunCreateStatus: 409 });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
+    );
+
+    expect(
+      await screen.findByText(
+        "This request key already names a different reconstruction. Request again to start a new run.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a generic analysis-run request failure", async () => {
+    stubBackend({ analysisRunCreateStatus: 500 });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
+    );
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Request a lineage reconstruction" })).toBeEnabled();
+  });
+
+  it.each([
+    [404 as const, "This analysis run is not visible."],
+    [500 as const, null],
+  ])("handles an analysis-run detail failure %s", async (status, expected) => {
+    stubBackend({ analysisRunOpenStatus: status });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+      }),
+    );
+
+    if (expected) {
+      expect(await screen.findByText(expected)).toBeInTheDocument();
+    } else {
+      expect(await screen.findByRole("alert")).toBeInTheDocument();
+    }
+  });
+
+  it("restores the start action after reconstruction fails", async () => {
+    stubBackend({ analysisRunStartUnavailable: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
+    );
+    await userEvent.click(await screen.findByRole("button", { name: "Start reconstruction" }));
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeEnabled();
+  });
+
   it("lets a multi-affiliation operator choose which corp to reconstruct", async () => {
     const fetchMock = stubBackend({ pluralAffiliations: true });
     render(<App showLabPanels />);
@@ -3426,13 +5367,15 @@ describe("App, authenticated", () => {
     });
     expect(closestPair).toHaveTextContent("Closest leftover: Public post · sales-lead");
     expect(closestPair).toHaveTextContent(
-      "Open this post to read the criterion it sat closest to after main effects.",
+      "Open Public post, then read Post quality criterion sales-lead.",
     );
+    expect(closestPair).not.toHaveTextContent(/sat closest to after main effects/);
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
-      "Open this post to read the criterion it sat farthest from after main effects.",
+      "Open Specification revision requested, then read Post quality criterion negative.",
     );
+    expect(farthestPair).not.toHaveTextContent(/sat farthest from after main effects/);
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
     expect(closestPair.compareDocumentPosition(memberButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -3492,6 +5435,15 @@ describe("App, authenticated", () => {
       await screen.findByRole("button", { name: /open leftover closest pair: public post/i }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    const criterion = await waitFor(() => {
+      const landed = document.getElementById("post-quality-criterion-sales_lead_specificity");
+      expect(landed).not.toBeNull();
+      return landed as HTMLElement;
+    });
+    expect(criterion).toHaveAttribute("aria-current", "true");
+    expect(criterion).toHaveTextContent(/Sales-lead specificity: 3/);
+    await waitFor(() => expect(criterion).toHaveFocus());
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
   });
 
   it("opens Event Lineage, Keyman, and evaluation from a report member click", async () => {
@@ -3570,12 +5522,273 @@ describe("App, authenticated", () => {
     );
   });
 
-  it("keeps advanced review tools out of the buyer board", async () => {
+  it("shows an explicit period-report load failure", async () => {
+    stubBackend({ reportsUnavailable: true });
+    render(<App showLabPanels />);
+
+    const heading = await screen.findByRole("heading", { name: "Period reports" });
+    expect(await within(heading.closest("section")!).findByRole("alert")).toBeInTheDocument();
+  });
+
+  it("reports a period-report rebuild failure and restores the action", async () => {
+    stubBackend({ admin: true, reportRebuildUnavailable: true });
+    render(<App showLabPanels />);
+    const rebuild = await screen.findByRole("button", { name: "Rebuild report" });
+
+    await userEvent.click(rebuild);
+
+    const heading = screen.getByRole("heading", { name: "Period reports" });
+    expect(await within(heading.closest("section")!).findByRole("alert")).toBeInTheDocument();
+    expect(rebuild).toBeEnabled();
+  });
+
+  it("keeps advanced review tools out of the workspace board", async () => {
     stubBackend();
     render(<App />);
 
-    expect(await screen.findByRole("navigation", { name: "Buyer navigation" })).toBeInTheDocument();
+    expect(await screen.findByRole("navigation", { name: "Workspace navigation" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Board" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByLabelText("Authorized scope")).toHaveTextContent("DEMO-CORP / DEMO-PU");
     expect(screen.queryByText("Advanced review tools")).not.toBeInTheDocument();
+    const mobileMenu = screen.getByRole("button", { name: "Open navigation" });
+    expect(mobileMenu).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(mobileMenu);
+    expect(screen.getByRole("dialog", { name: "Workspace navigation" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close Workspace navigation" })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+    expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "Workspace navigation" })).not.toBeInTheDocument();
+    expect(mobileMenu).toHaveFocus();
+    await userEvent.click(mobileMenu);
+    expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(1);
+    expect(document.getElementById("mobile-workspace-navigation")).toBeInTheDocument();
+    const drawerClose = document.querySelector<HTMLButtonElement>(".mobile-drawer-close");
+    expect(drawerClose).not.toBeNull();
+    await userEvent.click(drawerClose as HTMLButtonElement);
+    expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute("aria-expanded", "false");
+    const appHeader = document.querySelector<HTMLElement>("header.app-header");
+    expect(appHeader).not.toBeNull();
+    expect(within(appHeader as HTMLElement).getByLabelText("Language")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Workspace navigation" })).not.toHaveTextContent("Language");
+    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    const mobileNavigation = document.getElementById("mobile-workspace-navigation");
+    expect(mobileNavigation).not.toBeNull();
+    await userEvent.click(within(mobileNavigation as HTMLElement).getByRole("button", { name: "Customer master" }));
+    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
+    expect(screen.getByRole("button", { name: "Close Workspace navigation" })).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "Workspace navigation" })).not.toBeInTheDocument();
+    await userEvent.click(
+      within(appHeader as HTMLElement).getByRole("button", { name: "Search" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("searchbox", { name: "Search semantic evidence" })).toHaveFocus(),
+    );
+  });
+
+  it("logs out through the OIDC client", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Log out" }));
+
+    expect(signoutRedirect).toHaveBeenCalledOnce();
+  });
+
+  it("opens Board operations from the Admin workspace", async () => {
+    stubBackend({ admin: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Admin" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Open post operations" }));
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    const advanced = await within(board).findByText("Advanced review tools");
+    expect(advanced.closest("details")).toHaveAttribute("open");
+    expect(new URL(window.location.href).searchParams.has("workspace")).toBe(false);
+  });
+
+  it("discloses every authorized corporation and business unit code", async () => {
+    stubBackend({ manyAffiliations: true });
+    render(<App />);
+
+    const scope = await screen.findByLabelText("Authorized scope");
+    const summary = scope.querySelector("summary");
+    expect(summary).not.toBeNull();
+    expect(summary).toHaveTextContent("DEMO-CORP / DEMO-PU");
+    expect(summary).toHaveTextContent("+2");
+    expect(scope).not.toHaveAttribute("open");
+
+    await userEvent.click(summary as HTMLElement);
+
+    expect(scope).toHaveAttribute("open", "");
+    expect(within(scope).getByText("NORTH-CORP / NORTH-PU")).toBeVisible();
+    expect(within(scope).getByText("HQ-CORP")).toBeVisible();
+  });
+
+  it("does not derive GNB scope from an unrelated entity list", async () => {
+    stubBackend({ noAffiliations: true, pluralAffiliations: true });
+    render(<App />);
+
+    await screen.findByRole("region", { name: "Board" });
+    expect(screen.queryByLabelText("Authorized scope")).not.toBeInTheDocument();
+  });
+
+  it("opens the site map utility and closes it after navigation or Escape", async () => {
+    stubBackend();
+    render(<App />);
+
+    const siteMapButton = await screen.findByRole("button", { name: "Site map" });
+    expect(siteMapButton).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(siteMapButton);
+    expect(screen.getByRole("region", { name: "Site map" })).toBeInTheDocument();
+    expect(siteMapButton).toHaveAttribute("aria-expanded", "true");
+
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("region", { name: "Site map" })).not.toBeInTheDocument();
+
+    await userEvent.click(siteMapButton);
+    const siteMap = screen.getByRole("region", { name: "Site map" });
+    await userEvent.click(within(siteMap).getByRole("button", { name: "Customer master" }));
+    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Site map" })).not.toBeInTheDocument();
+  });
+
+  it("lets a keyboard user skip the header and GNB to reach main content", async () => {
+    stubBackend();
+    render(<App />);
+
+    await screen.findByRole("navigation", { name: "Workspace navigation" });
+    const skipLink = screen.getByRole("link", { name: "Skip to main content" });
+    expect(skipLink).toHaveAttribute("href", "#main-content");
+    const main = document.getElementById("main-content");
+    expect(main).not.toBeNull();
+    await userEvent.click(skipLink);
+    expect(main).toHaveFocus();
+  });
+
+  it("keeps the current workspace while global search is open", async () => {
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+    const searchButton = screen.getByRole("button", { name: "Search" });
+    await userEvent.click(searchButton);
+
+    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
+    expect(screen.getByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+    expect(searchButton).toHaveAttribute("aria-expanded", "true");
+    expect(searchInput).toHaveFocus();
+
+    await userEvent.keyboard("{Escape}");
+    expect(screen.getByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+    expect(searchButton).toHaveFocus();
+    expect(screen.queryByRole("searchbox", { name: "Search semantic evidence" })).not.toBeInTheDocument();
+  });
+
+  it("restores the workspace from the URL and responds to browser navigation", async () => {
+    stubBackend();
+    window.history.replaceState({}, "", "/?workspace=calendar");
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: "Calendar" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Calendar" })).toHaveAttribute("aria-current", "page");
+
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    expect(new URL(window.location.href).searchParams.get("workspace")).toBe("ask");
+
+    window.history.replaceState({}, "", "/?workspace=ask&post=post-1");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    expect(await screen.findByText("Starting evidence: post-1")).toBeInTheDocument();
+
+    window.history.replaceState({}, "", "/?workspace=ask");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    await waitFor(() =>
+      expect(screen.queryByText(/Starting evidence:/)).not.toBeInTheDocument(),
+    );
+
+    window.history.replaceState({}, "", "/?workspace=calendar");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    expect(await screen.findByRole("heading", { name: "Calendar" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Calendar" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("does not expose the admin workspace from an unauthorized deep link", async () => {
+    stubBackend();
+    window.history.replaceState({}, "", "/?workspace=admin");
+    render(<App />);
+
+    expect(await screen.findByRole("region", { name: "Board" })).toBeInTheDocument();
+    await waitFor(() => expect(new URL(window.location.href).searchParams.has("workspace")).toBe(false));
+    expect(screen.queryByText("Admin endpoint catalog")).not.toBeInTheDocument();
+  });
+
+  it("submits global search only after an explicit query", async () => {
+    const fetchMock = stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+    await screen.findByRole("heading", { name: "Customer master" });
+    await userEvent.click(screen.getByRole("button", { name: "Search" }));
+    const globalSearchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
+
+    await userEvent.type(globalSearchInput, "not found{Enter}");
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    expect(within(board).getByLabelText("Search semantic evidence")).toHaveValue("not found");
+    expect(await screen.findByText("No posts match the current filters.")).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("search=not+found"))).toBe(true);
+  });
+
+  it("retries a failed Board load without leaving the workspace", async () => {
+    const fetchMock = stubBackend({ postsUnavailable: true });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    const alert = await within(board).findByRole("alert");
+    const attempts = fetchMock.mock.calls.filter(([url]) => new URL(String(url)).pathname === "/api/posts").length;
+    await userEvent.click(within(alert).getByRole("button", { name: "Retry" }));
+
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => new URL(String(url)).pathname === "/api/posts"))
+        .toHaveLength(attempts + 1),
+    );
+    expect(screen.getByRole("region", { name: "Board" })).toBeInTheDocument();
+  });
+
+  it("does not navigate when the global search is opened before posts load", async () => {
+    const fetchMock = stubBackend({ deferPosts: true });
+    render(<App />);
+
+    await userEvent.click(screen.getByRole("button", { name: "Search" }));
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
+
+    fetchMock.releasePosts();
+    await userEvent.click(screen.getByRole("button", { name: "Board" }));
+    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
+    expect(searchInput).not.toHaveFocus();
+  });
+
+  it("closes a post popup when browser history moves back", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    expect(await screen.findByRole("heading", { name: "Public post" })).toBeInTheDocument();
+    expect(new URL(window.location.href).searchParams.get("post")).toBe("post-1");
+
+    window.history.replaceState({}, "", "/");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+
+    await waitFor(() => expect(screen.queryByRole("heading", { name: "Public post" })).not.toBeInTheDocument());
   });
 });

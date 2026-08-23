@@ -34,7 +34,7 @@ reimplementing them:
   tree assembly (`reconstruct.py`'s `_walk`/`thread_messages` calls).
 - [RankWeave](https://github.com/ContextualWisdomLab/RankWeave) for
   multi-channel score fusion (`weighted_convex_fuse` in
-  `reconstruct.py`) and the buyer-facing Rankings port
+  `reconstruct.py`) and the reader-facing Rankings port
   (`rankweave_client.py`) -- never invent a fused score or a theta.
 - [TEPP](https://github.com/ContextualWisdomLab/TEPP)'s published wire
   contract for calibrated measurement (`tepp_client.py`) -- never
@@ -127,7 +127,7 @@ contextual-orchestrator owns model discovery and selection.
   retaining the original asset and provenance. Recognize image DOM/visual
   regions before OCR, descriptions, Keyman extraction, or embeddings. Store
   region-level evidence; never show an internal LLM instruction such as
-  `This post is an image` to a buyer.
+  `This post is an image` to a reader.
 
 ## Source parsing and semantic units
 
@@ -146,10 +146,10 @@ contextual-orchestrator owns model discovery and selection.
 - Remove presentation-only visual line alignment inside a paragraph (for
   example continuation lines manually aligned after `-`, `*`, `1.`, or `.`)
   from derived semantic text, while retaining the source body and meaningful
-  list/heading nesting. A buyer-facing post view must render semantic
+  list/heading nesting. A reader-facing post view must render semantic
   paragraphs, not the authoring application's spacing workaround.
 - Image descriptions, OCR text, and region evidence are analysis artifacts,
-  not buyer-facing prompt instructions. Buyer UI shows the source content and
+  not reader-facing prompt instructions. The workspace UI shows the source content and
   useful captions/evidence only, with provenance where appropriate.
 
 ## Pluggable channels: never fake a missing signal
@@ -207,6 +207,11 @@ A run-bearing analysis-run registry empties only after an unrevoked
 `analysis_run_retention_grant` and `GRANT analysis_run_retention_admin`
 (ADR 0020 / v0.87.0). The documented phrase is not a secret. Do not
 expose purge on a public HTTP route.
+
+Unauthenticated **Log in** must call `returnUrlFromLocation()` then
+`rememberOidcReturnUrl` before `signinRedirect` (ADR 0109) so a
+shared `/?post=` link still opens that post. Do not mount tenant admin
+settings on the signed-out login shell.
 
 `POST /api/analysis-runs` records Pending lineage only (ADR 0017 /
 v2.7.1). TEPP and period-report kinds 422 before any snapshot write.

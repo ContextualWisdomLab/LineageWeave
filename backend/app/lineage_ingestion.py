@@ -10,6 +10,7 @@ not derived from process unit or voc type.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Mapping
 
@@ -72,7 +73,58 @@ async def persist_lineage_edges(conn: asyncpg.Connection, edges: list[Edge]) -> 
         )
 
 
-async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
+@dataclass(frozen=True)
+class LineageRebuildResult:
+    """One rebuild's persisted edges plus its corpus-wide coverage summary."""
+
+    edges: list[Edge]
+    coverage: dict[str, int]
+
+
+def lineage_coverage_summary(
+    rows: list[Mapping[str, Any]], edges: list[Edge]
+) -> dict[str, int]:
+    """Corpus-wide breakdown of what a rebuild actually found (ADR 0143).
+
+    ``visible_lineage_graph`` reports this distinction per post, scoped to
+    one ABAC-visible reader; this is the same distinction aggregated across
+    every eligible post, for the operator who just ran the rebuild --
+    counting a post as ``no_relation_found`` (its `reconstruct_group_key`
+    group has other members, but it ended up with no edge) versus
+    ``no_comparison_group`` (it was the only member of its group, so no
+    relation could have been found either way) rather than presenting a
+    reader-facing branching DAG's sparseness as undifferentiated silence.
+    """
+    group_sizes: dict[str, int] = {}
+    for row in rows:
+        group = reconstruct_group_key(row)
+        group_sizes[group] = group_sizes.get(group, 0) + 1
+
+    posts_with_edges: set[str] = set()
+    for edge in edges:
+        posts_with_edges.add(edge.parent_id)
+        posts_with_edges.add(edge.child_id)
+
+    posts_no_relation_found = 0
+    posts_no_comparison_group = 0
+    for row in rows:
+        post_id = str(row["post_id"])
+        if post_id in posts_with_edges:
+            continue
+        if group_sizes[reconstruct_group_key(row)] > 1:
+            posts_no_relation_found += 1
+        else:
+            posts_no_comparison_group += 1
+
+    return {
+        "total_posts": len(rows),
+        "posts_with_edges": len(posts_with_edges),
+        "posts_no_relation_found": posts_no_relation_found,
+        "posts_no_comparison_group": posts_no_comparison_group,
+    }
+
+
+async def rebuild_lineage(conn: asyncpg.Connection) -> LineageRebuildResult:
     """Reconstruct lineage for every ``source_post`` and persist the edges."""
     rows = await conn.fetch(
         "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
@@ -81,7 +133,7 @@ async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
     )
     edges = lineage_edge_specs(records_from_source_posts(rows))
     await persist_lineage_edges(conn, edges)
-    return edges
+    return LineageRebuildResult(edges=edges, coverage=lineage_coverage_summary(rows, edges))
 
 
 async def visible_lineage_graph(
@@ -95,10 +147,17 @@ async def visible_lineage_graph(
     The persisted graph can contain tens of thousands of posts. The UI opens
     individual posts for complete lineage, while this landing projection keeps
     only the newest ``limit`` visible nodes and edges between them.
+
+    A focused, empty-graph result also carries ``isolation_reason`` (ADR
+    0143): ``"no_relation_found"`` when the post had other visible posts in
+    its ``reconstruct_group_key`` group and reconstruct still produced no
+    edge, or ``"no_comparison_group"`` when it was the only visible member
+    of its group. ``None`` otherwise (non-empty graph, or the landing view).
     """
     posts = await conn.fetch(
         "select post_id, post_title, voc_type_code, visibility_code, "
-        "corporate_entity_id, process_unit_id, thread_group_key, created_at "
+        "corporate_entity_id, author_account_id, source_detail_state_code, "
+        "process_unit_id, thread_group_key, created_at "
         f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
     )
     visible_all = [row for row in posts if can_see_post(row)]
@@ -106,6 +165,7 @@ async def visible_lineage_graph(
         "select parent_post_id, child_post_id, fused_score from post_lineage_edge"
     )
 
+    isolation_reason: str | None = None
     if focus_post_id is None:
         visible = sorted(
             visible_all,
@@ -116,10 +176,17 @@ async def visible_lineage_graph(
     else:
         focus_id = str(focus_post_id)
         focus_visible = any(str(row["post_id"]) == focus_id for row in visible_all)
+        visible_all_ids = {str(row["post_id"]) for row in visible_all}
         neighbors: dict[str, set[str]] = {}
         for edge in edge_rows:
             parent_id = str(edge["parent_post_id"])
             child_id = str(edge["child_post_id"])
+            # Both ends must be ABAC-visible: an edge to a hidden sibling
+            # must not make an otherwise-isolated post look connected, nor
+            # leak the mere existence of a hidden relationship through the
+            # isolation_reason it would then be denied.
+            if parent_id not in visible_all_ids or child_id not in visible_all_ids:
+                continue
             neighbors.setdefault(parent_id, set()).add(child_id)
             neighbors.setdefault(child_id, set()).add(parent_id)
 
@@ -136,6 +203,28 @@ async def visible_lineage_graph(
         # still reports its empty direct/indirect lists.
         if len(component_ids) <= 1:
             visible = []
+            # ADR 0143: distinguish "reconstruct compared this post against
+            # real candidates and found no relation" from "there was
+            # nothing to compare it against" -- only answerable, and only
+            # meaningful, when the focused post is itself ABAC-visible. A
+            # post outside `visible_all` (not visible, or nonexistent)
+            # reveals nothing here, same as the empty graph it already got.
+            if focus_visible:
+                focus_group = reconstruct_group_key(
+                    next(
+                        row
+                        for row in visible_all
+                        if str(row["post_id"]) == focus_id
+                    )
+                )
+                group_size = sum(
+                    1
+                    for row in visible_all
+                    if reconstruct_group_key(row) == focus_group
+                )
+                isolation_reason = (
+                    "no_relation_found" if group_size > 1 else "no_comparison_group"
+                )
         else:
             visible = [
                 row for row in visible_all if str(row["post_id"]) in component_ids
@@ -173,4 +262,9 @@ async def visible_lineage_graph(
         }
         for row in visible_edges
     ]
-    return {"nodes": nodes, "edges": edges, "truncated": truncated}
+    return {
+        "nodes": nodes,
+        "edges": edges,
+        "truncated": truncated,
+        "isolation_reason": isolation_reason,
+    }

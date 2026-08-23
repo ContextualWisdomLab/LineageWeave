@@ -27,6 +27,14 @@ missing or the envelope is not a persistable measurement.
 
 ## Decision
 
+TEPP's distinct `TemporalContextRequest` v1 contract may also order the
+already-authorized, cutoff-eligible evidence supplied to Global Ask.  That
+request contains opaque post/event/actor references and timestamps, never post
+bodies or identity labels.  Its `before` relations are temporal associations
+only (`association_not_causal`), not a calibrated measurement or causal claim.
+If the temporal-context transport is absent, malformed, or incomplete, Ask
+keeps the other authorized KG/ontology/semantic channels and drops TEPP.
+
 `POST /api/analysis-runs/{id}/start` accepts Pending TEPP as well as
 Pending lineage. Period-report stays 422. TEPP start, in the same
 authorized transaction:

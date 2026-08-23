@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Backfill evidence-backed summaries for posts without a project field.
 
-This is an operator command, not a buyer HTTP route. It uses the existing
+This is an operator command, not a reader-facing HTTP route. It uses the existing
 post-summary contract through contextual-orchestrator, keeps one metadata
 session per post, and never prints source bodies or model responses.
 """
@@ -22,14 +22,23 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
+from backend.app.post_content_queue import (
+    record_post_content_backfill_success,
+    source_body_sha256,
+)
 from backend.app.post_summary_ingestion import persist_post_summary
-from lineageweave.corporate_hierarchy_inference import NullCorporateHierarchyInferenceClient
+from lineageweave.corporate_hierarchy_inference import (
+    NullCorporateHierarchyInferenceClient,
+)
 from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_content_persistence import persist_post_content
-from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
+from lineageweave.post_structure import (
+    ContextualOrchestratorPostStructureClient,
+    NullPostStructureClient,
+)
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient
 from lineageweave.semantic_hints import format_semantic_hints
@@ -87,6 +96,13 @@ def _semantic_hints(row: asyncpg.Record) -> str:
         source_process_unit_catalog_name=row["source_process_unit_catalog_name"],
         source_sales_pool_code=row["source_sales_pool_code"],
         source_sales_pool_name=row["source_sales_pool_name"],
+        source_order_pool_code=row["source_order_pool_code"],
+        source_sales_order_code=row["source_sales_order_code"],
+        source_sales_order_item_number=row["source_sales_order_item_number"],
+        source_inspection_point_code=row["source_inspection_point_code"],
+        source_stage_code=row["source_stage_code"],
+        source_detail_state_code=row["source_detail_state_code"],
+        source_deleted_flag=row["source_deleted_flag"],
         source_customer_code=row["source_customer_code"],
         source_customer_name=row["source_customer_name"],
         source_customer_catalog_name=row["source_customer_catalog_name"],
@@ -108,6 +124,7 @@ async def _load_posts(
                    post.post_title,
                    post.post_body,
                    post.author_account_id,
+                   post.source_detail_state_code,
                    author.display_name as author_name,
                    post.source_author_code,
                    post.source_author_name,
@@ -119,6 +136,12 @@ async def _load_posts(
                    source_process_unit.process_unit_name as source_process_unit_catalog_name,
                    post.source_sales_pool_code,
                    post.source_sales_pool_name,
+                   post.source_order_pool_code,
+                   post.source_sales_order_code,
+                   post.source_sales_order_item_number,
+                   post.source_inspection_point_code,
+                   post.source_stage_code,
+                   post.source_deleted_flag,
                    post.source_customer_code,
                    post.source_customer_name,
                    source_customer.entity_name as source_customer_catalog_name,
@@ -149,16 +172,25 @@ async def _load_posts(
                 on source_customer.corporate_entity_code = nullif(btrim(post.source_customer_code), '')
              where nullif(btrim(post.source_draft_code), '') is null
                and nullif(btrim(post.source_deleted_flag), '') is null
+               and coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'
                and not (
                    (
-                       nullif(btrim(post.source_author_code), '') is null
+                       nullif(btrim(post.source_system_code), '') is null
+                       and nullif(btrim(post.source_record_key), '') is null
+                       and nullif(btrim(post.source_author_code), '') is null
                        and nullif(btrim(post.source_author_name), '') is null
                        and nullif(btrim(post.source_company_code), '') is null
                        and nullif(btrim(post.source_company_name), '') is null
                        and nullif(btrim(post.source_process_unit_code), '') is null
                        and nullif(btrim(post.source_process_unit_name), '') is null
+                       and nullif(btrim(post.source_stage_code), '') is null
+                       and nullif(btrim(post.source_detail_state_code), '') is null
                        and nullif(btrim(post.source_sales_pool_code), '') is null
                        and nullif(btrim(post.source_sales_pool_name), '') is null
+                       and nullif(btrim(post.source_order_pool_code), '') is null
+                       and nullif(btrim(post.source_sales_order_code), '') is null
+                       and nullif(btrim(post.source_sales_order_item_number::text), '') is null
+                       and nullif(btrim(post.source_inspection_point_code), '') is null
                        and nullif(btrim(post.source_customer_code), '') is null
                        and nullif(btrim(post.source_customer_name), '') is null
                        and nullif(btrim(post.source_project_code), '') is null
@@ -168,14 +200,22 @@ async def _load_posts(
                        select 1
                          from source_post real_post
                         where (
-                            nullif(btrim(real_post.source_author_code), '') is not null
+                            nullif(btrim(real_post.source_system_code), '') is not null
+                            or nullif(btrim(real_post.source_record_key), '') is not null
+                            or nullif(btrim(real_post.source_author_code), '') is not null
                             or nullif(btrim(real_post.source_author_name), '') is not null
                             or nullif(btrim(real_post.source_company_code), '') is not null
                             or nullif(btrim(real_post.source_company_name), '') is not null
                             or nullif(btrim(real_post.source_process_unit_code), '') is not null
                             or nullif(btrim(real_post.source_process_unit_name), '') is not null
+                            or nullif(btrim(real_post.source_stage_code), '') is not null
+                            or nullif(btrim(real_post.source_detail_state_code), '') is not null
                             or nullif(btrim(real_post.source_sales_pool_code), '') is not null
                             or nullif(btrim(real_post.source_sales_pool_name), '') is not null
+                            or nullif(btrim(real_post.source_order_pool_code), '') is not null
+                            or nullif(btrim(real_post.source_sales_order_code), '') is not null
+                            or nullif(btrim(real_post.source_sales_order_item_number::text), '') is not null
+                            or nullif(btrim(real_post.source_inspection_point_code), '') is not null
                             or nullif(btrim(real_post.source_customer_code), '') is not null
                             or nullif(btrim(real_post.source_customer_name), '') is not null
                             or nullif(btrim(real_post.source_project_code), '') is not null
@@ -221,7 +261,9 @@ async def backfill_post_summaries(
     vision_client = orchestrator_vision_client(base_url, api_key)
     if not vision_client.available:
         raise RuntimeError("VISION is unavailable; configure contextual-orchestrator before backfill")
-    summary_client = ContextualOrchestratorPostSummaryClient(base_url, api_key, timeout=180.0)
+    # Local orchestrator runs may perform two structured extraction passes;
+    # keep the operator backfill timeout aligned with the API route.
+    summary_client = ContextualOrchestratorPostSummaryClient(base_url, api_key, timeout=300.0)
     embedding_model = os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip()
     embedding_client = orchestrator_embedding_client(base_url, api_key, embedding_model)
     structure_client = (
@@ -246,6 +288,20 @@ async def backfill_post_summaries(
                     normalized = normalize_post_body(row["post_body"], vision_client=vision_client)
                     if not normalized.text.strip():
                         raise ValueError("normalized post body is empty")
+                    backfill_post_id = str(row["post_id"])
+                    backfill_body = str(row["post_body"] or "")
+
+                    async def finalize_backfill(
+                        inner_conn: asyncpg.Connection,
+                        current_post_id: str = backfill_post_id,
+                        current_body: str = backfill_body,
+                    ) -> None:
+                        await record_post_content_backfill_success(
+                            inner_conn,
+                            current_post_id,
+                            current_body,
+                        )
+
                     await persist_post_content(
                         conn,
                         str(row["post_id"]),
@@ -256,6 +312,7 @@ async def backfill_post_summaries(
                         normalized_result=normalized,
                         structure_client=structure_client,
                         post_title=row["post_title"],
+                        transaction_fence=finalize_backfill,
                     )
                     summary = await asyncio.to_thread(
                         summary_client.summarize_with_hints,
@@ -268,6 +325,8 @@ async def backfill_post_summaries(
                         str(row["post_id"]),
                         summary,
                         post_body=normalized.text,
+                        expected_source_body_sha256=source_body_sha256(row["post_body"]),
+                        require_image_evidence=bool(normalized.image_results),
                         hierarchy_inference_client=NullCorporateHierarchyInferenceClient(),
                         verification_client=NullRelationVerificationClient(),
                     )
