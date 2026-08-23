@@ -1848,12 +1848,17 @@ def parse_summary_response(content: str) -> PostSummary | None:
         for entry in raw_relationships:
             if not isinstance(entry, dict):
                 continue
+            predicate_code = str(entry.get("predicate_code", "")).strip()
+            # The legacy JSON contract has no source text to re-check against
+            # ADR 0142, so it cannot safely admit a planned-facility claim.
+            if predicate_code == "lw_plans_to_operate":
+                continue
             try:
                 semantic_relationships.append(
                     SemanticRelationship(
                         subject_name=str(entry.get("subject_name", "")).strip(),
                         subject_type=str(entry.get("subject_type", "")).strip().casefold(),
-                        predicate_code=str(entry.get("predicate_code", "")).strip(),
+                        predicate_code=predicate_code,
                         object_name=str(entry.get("object_name", "")).strip(),
                         object_type=str(entry.get("object_type", "")).strip().casefold(),
                         evidence_text=str(entry.get("evidence_text", "")).strip(),

@@ -96,6 +96,11 @@ _SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION = (
     / "migrations"
     / "0114_semantic_relationship_standard_predicates.sql"
 )
+_PLANNED_FACILITY_RELATIONSHIP_PREDICATE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0138_planned_facility_relation_predicate.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -149,6 +154,11 @@ def schema_db():
                 cur.execute(_EVENT_CLUE_MIGRATION.read_text())
                 cur.execute(_BROAD_FACT_TYPES_MIGRATION.read_text())
                 cur.execute(_SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION.read_text())
+                planned_predicate_migration = (
+                    _PLANNED_FACILITY_RELATIONSHIP_PREDICATE_MIGRATION.read_text()
+                )
+                cur.execute(planned_predicate_migration)
+                cur.execute(planned_predicate_migration)
             conn.commit()
             yield conn
         finally:
@@ -205,6 +215,66 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_summary_semantic_relationship",
     }
     assert expected <= tables
+
+
+def test_planned_facility_relationship_predicate_persists(schema_db) -> None:
+    """Migration 0138 must admit the source-backed ADR 0142 relationship."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            insert into common_lookup_value (
+                lookup_category, lookup_code, lookup_label
+            ) values
+                ('corporate_entity_level', 'company', 'Company'),
+                ('voc_type', 'voc', 'Voice of Customer'),
+                ('post_visibility', 'public', 'Public')
+            """
+        )
+        cur.execute(
+            """
+            with synthetic_entity as (
+                insert into corporate_entity (
+                    corporate_entity_code, entity_name, entity_level_code
+                ) values ('SYNTHETIC-PLAN-ORG', 'Synthetic Planning Org', 'company')
+                returning corporate_entity_id
+            ), synthetic_account as (
+                insert into user_account (
+                    external_subject_id, display_name, email_address
+                ) values (
+                    'synthetic-plan-account', 'Synthetic Planner',
+                    'synthetic.planner@example.test'
+                ) returning user_account_id
+            ), synthetic_post as (
+                insert into source_post (
+                    author_account_id, corporate_entity_id, post_title, post_body,
+                    voc_type_code, visibility_code
+                )
+                select user_account_id, corporate_entity_id,
+                       'Synthetic facility plan',
+                       'Synthetic Planning Org plans to operate Aurora Charging Hub',
+                       'voc', 'public'
+                  from synthetic_account cross join synthetic_entity
+                returning post_id
+            ), synthetic_summary as (
+                insert into post_summary_result (post_id, korean_summary)
+                select post_id, '합성 계획 요약입니다.' from synthetic_post
+                returning post_id
+            )
+            insert into post_summary_semantic_relationship (
+                post_id, relation_ordinal, subject_name, subject_type,
+                predicate_code, object_name, object_type, evidence_text,
+                relation_confidence
+            )
+            select post_id, 0, 'Synthetic Planning Org', 'organization',
+                   'lw_plans_to_operate', 'Aurora Charging Hub',
+                   'industrial_asset',
+                   'Synthetic Planning Org plans to operate Aurora Charging Hub',
+                   0.93
+              from synthetic_summary
+            returning predicate_code
+            """
+        )
+        assert cur.fetchone() == ("lw_plans_to_operate",)
 
 
 def test_major_event_action_project_reference_is_normalized(schema_db) -> None:

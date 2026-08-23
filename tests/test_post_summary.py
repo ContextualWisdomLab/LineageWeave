@@ -155,6 +155,20 @@ def test_parses_allow_list_semantic_relationships_with_evidence() -> None:
     )
 
 
+def test_legacy_json_parser_drops_planned_facility_relation_without_source_context() -> None:
+    summary = parse_summary_response(
+        '{"korean_summary":"요약", "semantic_relationships":['
+        '{"subject_name":"Synthetic Utility", "subject_type":"organization", '
+        '"predicate_code":"lw_plans_to_operate", '
+        '"object_name":"Aurora Charging Hub", "object_type":"industrial_asset", '
+        '"evidence_text":"Synthetic Utility plans to operate Aurora Charging Hub", '
+        '"confidence":0.93}]}'
+    )
+
+    assert summary is not None
+    assert summary.semantic_relationships == ()
+
+
 def test_parses_standard_profile_relation_for_industrial_why_path() -> None:
     summary = parse_summary_response(
         '{"korean_summary":"요약", "key_events":[], "semantic_relationships":['
