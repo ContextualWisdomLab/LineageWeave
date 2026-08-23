@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit date: 2026-08-23. This repository records synthetic fixtures and
+> Audit snapshot: 2026-08-23 17:32 KST. This repository records synthetic fixtures and
 > aggregate, non-identifying runtime evidence only. Open PRs and local checks
 > are not protected-default-branch release evidence.
 
@@ -12,22 +12,23 @@ The current acceptance queue was re-fetched immediately before this update:
 
 | Repository | PR | Exact head | State | Remaining gate |
 | --- | ---: | --- | --- | --- |
-| LineageWeave | #392 | `a73d98850f985d0996bfbc4f2b1f17787710f206` | open, blocked, auto-merge armed | independent review and required protected checks |
-| LineageWeave | #387 | `55a13f3473789a9481061ca2cd1f9ea042fc5902` | open, blocked, changes requested, auto-merge armed | current-head approval and Strix rerun after the central scope fix |
-| LineageWeave | #405 | `0ac80616cb723a7810acae7c945fb12721a6cf7c` | open, blocked, changes requested, auto-merge armed | independent current-head approval |
-| LineageWeave | #421 | `33ec5cd521bcf861db64b9f0c1faac3b3bf4deff` | open, blocked, auto-merge armed | terminal Strix result and independent review |
+| LineageWeave | #392 | `b76ae7b9aa7bf16f70d712dffb2514dc9467dde1` | open, blocked, review required, auto-merge armed | independent current-head approval; current checks are terminal |
+| LineageWeave | #387 | `c34681fdc692a25e688fe4a5eb06ad3fe50f2281` | open, blocked, changes requested, auto-merge armed | terminal rerun after central scope repair and current-head approval |
+| LineageWeave | #405 | `0b1b1fcfed875f8ba6795537567a8b28a2497044` | open, blocked, changes requested | terminal protected checks and independent current-head approval |
+| LineageWeave | #421 | `2fc08835485d5bfadfd105ad0a95e17f23cf66cc` | open, blocked, review required, auto-merge armed | terminal protected checks and independent current-head approval |
 | LineageWeave | #426 | `11a60b370d7b5783733febb593e8f91678cc403d` | open, blocked, review required, auto-merge armed | independent current-head approval; current checks are terminal-success |
-| LineageWeave | #468 | `48c7ec09d282e96b411e1060ea4ef1a769893ef9` | open, blocked, auto-merge armed | current-head protected checks and independent review |
-| ContextualWisdomLab/.github | #1248 | `3f78370f3ad01409c7b2fcfb63dfb66862098fa6` | open, blocked | protected checks and independent review for the Strix scope repair |
+| LineageWeave | #468 | `34d73da224b88e23cb0e1e7d3994ddd2d9c963b0` | open, blocked | terminal current-head protected checks and independent review |
+| ContextualWisdomLab/.github | #1248 | `3f78370f3ad01409c7b2fcfb63dfb66862098fa6` | merged as `9ad0ad50409561292b424d6f35a95d670a277e77` | protected-main scope repair is available to the rerun |
 
 PR #464 merged into its stacked base as
 `df413d4e58c1d05545e7970ac8cb95f197821419`. That stack-local merge does not
 prove release on the default branch.
 
-Central PR #1248 fixes the root cause of PR #387's partial-scope false positive
+Central PR #1248 fixed the root cause of PR #387's partial-scope false positive
 by including trusted-base `backend/app/auth.py` context in backend Python Strix
-scopes. Local evidence is `test_strix_quick_gate: PASS`, shell syntax success,
-and `git diff --check`; the protected merge is not yet claimed.
+scopes. The protected merge SHA is
+`9ad0ad50409561292b424d6f35a95d670a277e77`; PR #387 still requires a
+terminal same-head rerun before that repair can be credited to its acceptance.
 
 The organization scheduler is the single review/repair control plane. Its
 `*/15 * * * *` queue sweep and `0 * * * *` heartbeat satisfy the hourly loop
@@ -80,8 +81,8 @@ corpus acceptance or protected release.
 
 ## 5. Next acceptance loop
 
-1. Complete protected review and merge of central PR #1248, then rerun Strix
-   on PR #387 at the same exact head and verify the false finding is absent.
+1. Complete the in-flight Strix rerun on PR #387 at the same exact head and
+   verify the merged central scope repair removed the false finding.
 2. Re-fetch current heads, latest checks, unresolved threads, and independent
    reviews for PRs #392, #405, #421, #426, and #468 before any merge claim.
 3. Run frontend lint/test/build/Storybook, backend tests, and authenticated
