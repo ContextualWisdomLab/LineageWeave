@@ -1,11 +1,16 @@
 """TEPP accepted receipts are transport evidence, never a measurement."""
 
+import asyncio
 from datetime import datetime, timezone
 from pathlib import Path
 
+import asyncpg
 import pytest
 
+from backend.app.analysis_run_ingestion import fetch_tepp_accepted_receipts
 from backend.app.analysis_run_start import (
+    _persist_tepp_accepted_receipt,
+    _persist_tepp_result,
     classify_tepp_submission,
     tepp_receipt_digest,
     tepp_request_digest,
@@ -15,6 +20,40 @@ from backend.app.analysis_run_start import (
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 
 _ROOT = Path(__file__).resolve().parents[1]
+
+
+class _Transaction:
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc, traceback):
+        return False
+
+
+class _ReceiptConnection:
+    def __init__(self, *, rows=None, error=None) -> None:
+        self.rows = [] if rows is None else rows
+        self.error = error
+        self.transactions = 0
+        self.executions: list[tuple[object, ...]] = []
+
+    def transaction(self):
+        self.transactions += 1
+        return _Transaction()
+
+    async def fetch(self, query, analysis_run_ids):
+        if self.error is not None:
+            raise self.error
+        return self.rows
+
+    async def fetchrow(self, query, analysis_run_id):
+        if self.error is not None:
+            raise self.error
+
+    async def execute(self, *args):
+        self.executions.append(args)
+        if self.error is not None:
+            raise self.error
 
 
 def _request() -> AnalysisRunRequest:
@@ -90,6 +129,45 @@ def test_completed_result_is_the_only_measurement_persist() -> None:
     assert outcome.status_code == "analysis_status_succeeded"
     assert outcome.persist_kind == "result"
     assert outcome.failure_code == ""
+
+
+def test_completed_remote_run_id_alias_persists_the_result() -> None:
+    connection = _ReceiptConnection()
+    persisted = asyncio.run(
+        _persist_tepp_result(
+            connection,
+            analysis_run_id="local-run",
+            envelope={
+                "status": "completed",
+                "remote_run_id": "remote-run",
+                "result": {"schema_version": "tepp-result-v1"},
+            },
+        )
+    )
+    assert persisted is True
+    assert connection.executions[0][2] == "remote-run"
+
+
+def test_receipt_insert_error_is_rolled_back_by_a_savepoint() -> None:
+    connection = _ReceiptConnection(error=asyncpg.UniqueViolationError("duplicate"))
+    persisted = asyncio.run(
+        _persist_tepp_accepted_receipt(
+            connection,
+            analysis_run_id="local-run",
+            envelope={"status": "accepted", "run_id": "remote-run"},
+            request=_request(),
+            knowledge_cutoff=datetime(2026, 1, 12, tzinfo=timezone.utc),
+        )
+    )
+    assert persisted is False
+    assert connection.transactions == 1
+
+
+def test_missing_receipt_table_isolated_from_the_callers_transaction() -> None:
+    connection = _ReceiptConnection(error=asyncpg.UndefinedTableError("missing"))
+    receipts = asyncio.run(fetch_tepp_accepted_receipts(connection, ["local-run"]))
+    assert receipts == {}
+    assert connection.transactions == 1
 
 
 def test_completed_without_result_is_not_a_measurement() -> None:

@@ -289,6 +289,9 @@ async def _serialize_runs(
     if not rows:
         return []
     count_rows = await _counts_by_run(conn, [str(row["analysis_run_id"]) for row in rows])
+    receipts = await fetch_tepp_accepted_receipts(
+        conn, [str(row["analysis_run_id"]) for row in rows]
+    )
     labels = await labels_for_codes(
         conn,
         [row["run_kind_code"] for row in rows]
@@ -334,6 +337,8 @@ async def _serialize_runs(
         grouping_key = scope_grouping_key(row)
         if grouping_key:
             item["scope_grouping_key"] = grouping_key
+        if run_id in receipts:
+            item["tepp_accepted_receipt"] = receipts[run_id]
         payload.append(item)
     return payload
 
@@ -403,9 +408,6 @@ async def fetch_visible_analysis_run(
     if digest is not None:
         detail["reconstruction_result_sha256"] = digest
     detail["reconstructed_edges"] = edges
-    receipt = await fetch_tepp_accepted_receipt(conn, analysis_run_id)
-    if receipt is not None:
-        detail["tepp_accepted_receipt"] = receipt
     return detail
 
 
@@ -439,23 +441,37 @@ async def fetch_tepp_accepted_receipt(
     Missing table (migration 0106 not applied) is not a 500. The
     receipt is not a measurement and never includes a theta.
     """
+    return (await fetch_tepp_accepted_receipts(conn, [analysis_run_id])).get(
+        analysis_run_id
+    )
+
+
+async def fetch_tepp_accepted_receipts(
+    conn: asyncpg.Connection,
+    analysis_run_ids: list[str],
+) -> dict[str, dict[str, Any]]:
+    """Transport receipts for visible runs, isolated from optional-schema errors."""
+    if not analysis_run_ids:
+        return {}
     try:
-        row = await conn.fetchrow(
-            """
-            select remote_run_id, accepted_status_code, received_at
-            from analysis_run_tepp_accepted_receipt
-            where analysis_run_id = $1
-            """,
-            analysis_run_id,
-        )
+        async with conn.transaction():
+            rows = await conn.fetch(
+                """
+                select analysis_run_id, remote_run_id, accepted_status_code, received_at
+                from analysis_run_tepp_accepted_receipt
+                where analysis_run_id = any($1::uuid[])
+                """,
+                analysis_run_ids,
+            )
     except asyncpg.UndefinedTableError:
-        return None
-    if row is None:
-        return None
+        return {}
     return {
-        "remote_run_id": str(row["remote_run_id"]),
-        "accepted_status_code": str(row["accepted_status_code"]),
-        "received_at": _iso(row["received_at"]),
+        str(row["analysis_run_id"]): {
+            "remote_run_id": str(row["remote_run_id"]),
+            "accepted_status_code": str(row["accepted_status_code"]),
+            "received_at": _iso(row["received_at"]),
+        }
+        for row in rows
     }
 
 

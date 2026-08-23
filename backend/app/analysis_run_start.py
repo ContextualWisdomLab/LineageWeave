@@ -259,8 +259,8 @@ async def _persist_tepp_result(
     envelope: dict[str, Any],
 ) -> bool:
     """Persist only a validated, remote-completed TEPP envelope."""
-    remote_run_id = envelope.get("analysis_run_id") or envelope.get("run_id")
-    if not isinstance(remote_run_id, str) or not remote_run_id.strip():
+    remote_run_id = tepp_remote_run_id(envelope)
+    if not remote_run_id:
         return False
     result_json = json.dumps(envelope, separators=(",", ":"), sort_keys=True)
     result_sha256 = hashlib.sha256(result_json.encode("utf-8")).hexdigest()
@@ -309,36 +309,37 @@ async def _persist_tepp_accepted_receipt(
         knowledge_cutoff=cutoff_iso,
     )
     try:
-        existing = await conn.fetchrow(
-            """
-            select remote_run_id, receipt_sha256
-            from analysis_run_tepp_accepted_receipt
-            where analysis_run_id = $1
-            """,
-            analysis_run_id,
-        )
-        if existing is not None:
-            return (
-                str(existing["remote_run_id"]) == remote_run_id
-                and str(existing["receipt_sha256"]) == receipt_sha256
+        async with conn.transaction():
+            existing = await conn.fetchrow(
+                """
+                select remote_run_id, receipt_sha256
+                from analysis_run_tepp_accepted_receipt
+                where analysis_run_id = $1
+                """,
+                analysis_run_id,
             )
-        await conn.execute(
-            """
-            insert into analysis_run_tepp_accepted_receipt
-                (analysis_run_id, remote_run_id, request_sha256, receipt_sha256,
-                 accepted_status_code, model_contract_version, snapshot_id,
-                 knowledge_cutoff)
-            values ($1, $2, $3, $4, $5, $6, $7, $8)
-            """,
-            analysis_run_id,
-            remote_run_id,
-            request_sha256,
-            receipt_sha256,
-            accepted_status_code,
-            request.model_contract_version,
-            request.snapshot_id,
-            cutoff,
-        )
+            if existing is not None:
+                return (
+                    str(existing["remote_run_id"]) == remote_run_id
+                    and str(existing["receipt_sha256"]) == receipt_sha256
+                )
+            await conn.execute(
+                """
+                insert into analysis_run_tepp_accepted_receipt
+                    (analysis_run_id, remote_run_id, request_sha256, receipt_sha256,
+                     accepted_status_code, model_contract_version, snapshot_id,
+                     knowledge_cutoff)
+                values ($1, $2, $3, $4, $5, $6, $7, $8)
+                """,
+                analysis_run_id,
+                remote_run_id,
+                request_sha256,
+                receipt_sha256,
+                accepted_status_code,
+                request.model_contract_version,
+                request.snapshot_id,
+                cutoff,
+            )
     except asyncpg.UndefinedTableError:
         return False
     except (asyncpg.PostgresError, TypeError, ValueError):
