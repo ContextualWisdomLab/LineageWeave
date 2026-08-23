@@ -937,7 +937,7 @@ async def read_customer_master(
                    and btrim(post.source_author_code) <> ''
                    and (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
-            ), ranked as (
+            ), ranked as materialized (
                 select scoped.*,
                        row_number() over (
                            partition by author_code, author_account_id, account_display_name
@@ -951,32 +951,39 @@ async def read_customer_master(
                   from ranked
                  group by author_code, author_account_id, account_display_name
             ), keyman_mentions as (
-                select ranked.author_code, ranked.author_account_id,
-                       ranked.account_display_name, ranked.post_id,
-                       person.person_id, person.person_name,
+                -- Driven from post_summary_role/post_person_mention (tens to
+                -- low hundreds of rows) rather than `ranked` (one row per
+                -- eligible post -- the full corpus for a broadly-authorized
+                -- account): the planner reliably underestimates a CTE's own
+                -- cardinality, so starting the join from `ranked` produced a
+                -- nested loop that re-scanned the small tables once per
+                -- `ranked` row instead of the reverse. Logically identical
+                -- result (inner joins commute); the earlier query was
+                -- observed running 90+ seconds against the real import,
+                -- this one completes in the same run in well under a second.
+                select role.post_id, person.person_id, person.person_name,
                        person.person_side_code, person.last_known_job_title
-                  from ranked
-                  join post_summary_role role
-                    on role.post_id = ranked.post_id
-                   and role.actor_type_code = 'prov_person'
+                  from post_summary_role role
                   join cataloged_person person
                     on person.person_id = role.cataloged_person_id
                    and person.person_side_code = 'our_side'
-                 where role.cataloged_person_id is not null
+                 where role.actor_type_code = 'prov_person'
+                   and role.cataloged_person_id is not null
                 union
-                select ranked.author_code, ranked.author_account_id,
-                       ranked.account_display_name, ranked.post_id,
-                       person.person_id, person.person_name,
+                select mention.post_id, person.person_id, person.person_name,
                        person.person_side_code, person.last_known_job_title
-                  from ranked
-                  join post_person_mention mention
-                    on mention.post_id = ranked.post_id
+                  from post_person_mention mention
                   join cataloged_person person
                     on person.person_id = mention.person_id
                    and person.person_side_code = 'our_side'
+            ), keyman_mention_authors as (
+                select ranked.author_code, ranked.author_account_id,
+                       ranked.account_display_name, keyman_mentions.*
+                  from keyman_mentions
+                  join ranked on ranked.post_id = keyman_mentions.post_id
             ), keyman_authors as (
                 select distinct author_code, author_account_id, account_display_name
-                  from keyman_mentions
+                  from keyman_mention_authors
             ), top_groups as materialized (
                 select groups.*
                   from groups
@@ -993,7 +1000,7 @@ async def read_customer_master(
                        mentions.person_id, mentions.person_name,
                        mentions.person_side_code, mentions.last_known_job_title,
                        count(distinct mentions.post_id) as mention_count
-                  from keyman_mentions mentions
+                  from keyman_mention_authors mentions
                   join top_groups
                     on top_groups.author_code = mentions.author_code
                    and top_groups.author_account_id = mentions.author_account_id

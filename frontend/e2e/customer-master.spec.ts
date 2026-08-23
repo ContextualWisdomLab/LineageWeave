@@ -45,6 +45,10 @@ test("opens a customer's related post in place, never navigating away from Custo
   page,
   request,
 }) => {
+  // The fixture's own UI login already spends a chunk of the default 30s
+  // budget; this test does a second, independent token fetch (for API
+  // discovery) plus multiple entity/related lookups on top of that.
+  test.setTimeout(60000);
   const backendBaseURL = process.env.LINEAGEWEAVE_BACKEND_URL ?? "http://localhost:18420";
   const tokenResponse = await request.post(
     `${process.env.LINEAGEWEAVE_KEYCLOAK_URL ?? "http://localhost:18080"}/realms/lineageweave-demo/protocol/openid-connect/token`,
