@@ -16,9 +16,8 @@ Gabriel (1971) supplies those coordinates from a residual biplot.
 kept SVD axis. A rank-3 residual therefore reported a leftover
 distance that a buyer cannot read on the 2D interaction map, and
 that would disagree with stored two-axis coordinates if those later
-persist. Rank-1 seed fixtures still
-passed because unused axes were absent, not because the estimator
-was two-dimensional.
+persist. Rank-1 seed fixtures still passed because unused axes were
+absent, not because the estimator was two-dimensional.
 
 ## Decision
 
