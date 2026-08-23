@@ -23,19 +23,8 @@ OPTIONAL_EXTRA_MODULES: tuple[str, ...] = (
     "numpy",
 )
 
-_BACKEND_EXTRAS: frozenset[str] = frozenset(OPTIONAL_EXTRA_MODULES)
-_OPTIONAL_EXTRA_IMPORTERS: dict[str, tuple[str, ...]] = {
-    "asyncpg": (
-        "scripts.import_postgresql_posts",
-        "scripts.seed_demo_data",
-    ),
-    "fast_mlsirm": (
-        "lineageweave.period_report",
-        "lineageweave.post_evaluation",
-    ),
-    "numpy": ("lineageweave.period_report",),
-}
 _HELPER_TEST_NAME = "test_optional_extra_collection.py"
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 
 
 def _imported_module_names(source: str) -> frozenset[str]:
@@ -45,11 +34,44 @@ def _imported_module_names(source: str) -> frozenset[str]:
     except (SyntaxError, ValueError):
         return frozenset()
     imported: set[str] = set()
-    for node in ast.walk(tree):
+    for node in tree.body:
         if isinstance(node, ast.Import):
             imported.update(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom) and node.module:
             imported.add(node.module)
+    return frozenset(imported)
+
+
+def _local_module_source(module_name: str) -> Path | None:
+    """Resolve one absolute local module name without importing its code."""
+    relative = Path(*module_name.split("."))
+    module_path = _REPOSITORY_ROOT / relative.with_suffix(".py")
+    if module_path.is_file():
+        return module_path
+    package_path = _REPOSITORY_ROOT / relative / "__init__.py"
+    return package_path if package_path.is_file() else None
+
+
+def _transitive_imported_module_names(collection_path: Path) -> frozenset[str]:
+    """Return direct and local-transitive imports for one collection path."""
+    imported: set[str] = set()
+    pending = [collection_path]
+    visited: set[Path] = set()
+    while pending:
+        source_path = pending.pop()
+        if source_path in visited:
+            continue
+        visited.add(source_path)
+        try:
+            source = source_path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            continue
+        direct = _imported_module_names(source)
+        imported.update(direct)
+        for module_name in direct:
+            local_source = _local_module_source(module_name)
+            if local_source is not None and local_source not in visited:
+                pending.append(local_source)
     return frozenset(imported)
 
 
@@ -74,26 +96,10 @@ def collection_path_requires_missing_extras(
         return False
     if collection_path.name == _HELPER_TEST_NAME:
         return False
-    posix = collection_path.as_posix()
-    if any(name in _BACKEND_EXTRAS for name in missing) and (
-        posix == "backend" or posix.startswith("backend/") or "/backend/" in posix
-    ):
-        return True
-    try:
-        text = collection_path.read_text(encoding="utf-8")
-    except (OSError, UnicodeError):
-        return False
-    imported_modules = _imported_module_names(text)
+    imported_modules = _transitive_imported_module_names(collection_path)
     for name in missing:
-        for imported_name in (name, *_OPTIONAL_EXTRA_IMPORTERS.get(name, ())):
-            if any(
-                module_name == imported_name
-                or module_name.startswith(f"{imported_name}.")
-                for module_name in imported_modules
-            ):
-                return True
-        if name in _BACKEND_EXTRAS and any(
-            module_name == "backend" or module_name.startswith("backend.")
+        if any(
+            module_name == name or module_name.startswith(f"{name}.")
             for module_name in imported_modules
         ):
             return True

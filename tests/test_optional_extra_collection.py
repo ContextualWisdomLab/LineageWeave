@@ -38,16 +38,20 @@ def test_collection_path_does_not_skip_when_no_extras_are_missing(
     assert collection_path_requires_missing_extras(path, ()) is False
 
 
-def test_collection_path_skips_backend_tree_when_asyncpg_is_missing(
+def test_collection_path_skips_only_backend_tests_with_transitive_missing_imports(
     tmp_path: Path,
 ) -> None:
-    """Backend tests import the FastAPI app, which imports asyncpg at module level."""
-    backend_test = tmp_path / "backend" / "tests" / "test_api.py"
-    backend_test.parent.mkdir(parents=True)
-    backend_test.write_text("import pytest\n", encoding="utf-8")
-    assert collection_path_requires_missing_extras(backend_test, ("asyncpg",)) is True
-    assert collection_path_requires_missing_extras(backend_test, ("fast_mlsirm",)) is True
-    assert collection_path_requires_missing_extras(backend_test, ("numpy",)) is True
+    """Partial environments keep backend tests whose import graph is available."""
+    backend_dir = tmp_path / "backend" / "tests"
+    backend_dir.mkdir(parents=True)
+    api_test = backend_dir / "test_api.py"
+    api_test.write_text("from backend.app.main import app\n", encoding="utf-8")
+    config_test = backend_dir / "test_config.py"
+    config_test.write_text("from backend.app.config import Settings\n", encoding="utf-8")
+
+    for missing in ("asyncpg", "redis", "fast_mlsirm", "numpy"):
+        assert collection_path_requires_missing_extras(api_test, (missing,)) is True
+        assert collection_path_requires_missing_extras(config_test, (missing,)) is False
 
 
 def test_collection_path_skips_files_that_import_a_missing_extra(
