@@ -4199,6 +4199,7 @@ function ReportsPanel({
                       leftoverDistance={pair.leftover_distance}
                       observedResponse={pair.observed_response}
                       expectedResponse={pair.expected_response}
+                      leftoverMapRank={pair.leftover_map_rank}
                       onOpen={onSelectPost}
                     />
                   </li>

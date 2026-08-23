@@ -80,6 +80,7 @@ def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
     assert farthest.leftover_distance == pytest.approx(2.0 * np.sqrt(2.0), rel=1e-6)
     for pair in pairs:
         _assert_residual_reconciles(pair)
+        assert pair.leftover_map_rank == 1
 
 
 def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
@@ -95,6 +96,7 @@ def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
     assert pairs[0].criterion_code == "item_one"
     assert pairs[0].observed_response == pytest.approx(1.0)
     assert pairs[0].expected_response == pytest.approx(1.0)
+    assert pairs[0].leftover_map_rank == 0
     assert pairs[1].post_id == "beta-post"
     assert pairs[1].criterion_code == "item_two"
     for pair in pairs:

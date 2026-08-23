@@ -32,6 +32,7 @@ class LeftoverPair:
     leftover_residual: float
     observed_response: float
     expected_response: float
+    leftover_map_rank: int
 
 
 def leftover_pairs_from_residual(
@@ -74,7 +75,9 @@ def leftover_pairs_from_residual(
         center = float(np.mean(residual[np.ix_(person_index, item_index)]))
     else:
         center = float(np.mean([residual[person, item] for person, item in observed]))
-    person_pos, item_pos = _complete_case_positions(residual, center, keep_person, keep_item)
+    person_pos, item_pos, leftover_map_rank = _complete_case_positions(
+        residual, center, keep_person, keep_item
+    )
     candidates: list[tuple[float, str, str, float, float, float]] = []
     if person_pos is not None and item_pos is not None:
         person_index = np.flatnonzero(keep_person)
@@ -110,7 +113,10 @@ def leftover_pairs_from_residual(
             )
     closest = min(candidates, key=lambda row: (row[0], row[1], row[2]))
     farthest = max(candidates, key=lambda row: (row[0], row[1], row[2]))
-    return (_pair_from_candidate(PAIR_KIND_CLOSEST, closest), _pair_from_candidate(PAIR_KIND_FARTHEST, farthest))
+    return (
+        _pair_from_candidate(PAIR_KIND_CLOSEST, closest, leftover_map_rank),
+        _pair_from_candidate(PAIR_KIND_FARTHEST, farthest, leftover_map_rank),
+    )
 
 
 def _candidate_row(
@@ -139,8 +145,14 @@ def _candidate_row(
     )
 
 
-def _pair_from_candidate(pair_kind: str, row: tuple[float, str, str, float, float, float]) -> LeftoverPair:
+def _pair_from_candidate(
+    pair_kind: str,
+    row: tuple[float, str, str, float, float, float],
+    leftover_map_rank: int,
+) -> LeftoverPair:
     """Build a leftover pair from a candidate row."""
+    if leftover_map_rank < 0:
+        raise ValueError("leftover map rank must be a non-negative integer")
     return LeftoverPair(
         pair_kind=pair_kind,
         post_id=row[1],
@@ -149,6 +161,7 @@ def _pair_from_candidate(pair_kind: str, row: tuple[float, str, str, float, floa
         leftover_residual=row[3],
         observed_response=row[4],
         expected_response=row[5],
+        leftover_map_rank=leftover_map_rank,
     )
 
 
