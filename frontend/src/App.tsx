@@ -101,7 +101,6 @@ import {
   tf,
   useLocale,
 } from "./i18n";
-import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import {
   formatLeftoverMapUnexplainedShare,
   LEFTOVER_MAP_UNEXPLAINED_SHARE_ACTION,
