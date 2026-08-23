@@ -284,6 +284,25 @@ def test_chunk_by_source_body_splits_plain_lists_and_markdown_tables() -> None:
     ]
 
 
+def test_chunk_by_source_body_normalizes_entity_encoded_quantity_scripts() -> None:
+    chunks = chunk_by_source_body(
+        "Reserve 12 m&#94;3, x&lt;sup&gt;2&lt;/sup&gt;, and H&lt;sub&gt;2&lt;/sub&gt;O."
+    )
+
+    assert [chunk.text for chunk in chunks] == ["Reserve 12 m³, x², and H₂O."]
+
+
+def test_chunk_by_source_body_keeps_encoded_non_script_markup_inert() -> None:
+    body = (
+        "Keep &lt;b&gt;bold&lt;/b&gt;, &lt;sup-note&gt;2&lt;/sup-note&gt;, "
+        "and &lt;script&gt;alert(1)&lt;/script&gt; literal."
+    )
+
+    chunks = chunk_by_source_body(body)
+
+    assert [(chunk.unit_type, chunk.text) for chunk in chunks] == [("plain_text", body)]
+
+
 def test_chunk_by_source_body_preserves_empty_markdown_table_cells() -> None:
     chunks = chunk_by_source_body(
         "| Key | Value | State |\n"
