@@ -82,9 +82,9 @@ def test_valkey_child_span_shares_parent_trace_id(monkeypatch) -> None:
             return super().xadd(key, fields, maxlen=maxlen, approximate=approximate)
 
     with traced("lineageweave.test.parent"):
-        parent_trace_id = format(
-            trace.get_current_span().get_span_context().trace_id, "032x"
-        )
+        parent_context = trace.get_current_span().get_span_context()
+        parent_trace_id = format(parent_context.trace_id, "032x")
+        parent_span_id = format(parent_context.span_id, "016x")
         publish_activity_event_sync(
             _Client(),
             "post-1",
@@ -96,3 +96,4 @@ def test_valkey_child_span_shares_parent_trace_id(monkeypatch) -> None:
     assert parent_trace_id != "0" * 32
     assert captured["trace_id"] == parent_trace_id
     assert captured["span_id"] != "0" * 16
+    assert captured["span_id"] != parent_span_id
