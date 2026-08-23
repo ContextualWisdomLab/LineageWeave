@@ -33,3 +33,23 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
     ).read_text(encoding="utf-8")
 
     assert "0012_*" in script
+
+
+def test_migrate_sh_replays_leftover_observed_expected_migration() -> None:
+    """Existing volumes must gain leftover Y and E columns on compose up."""
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "migrate.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "0108_*" in script
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0108_report_leftover_observed_expected.sql"
+    ).read_text(encoding="utf-8")
+    assert "leftover_observed_score" in sql
+    assert "leftover_expected_score" in sql
+    assert "leftover_pair_residual_identity" in sql

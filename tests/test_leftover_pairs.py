@@ -1,4 +1,4 @@
-"""Leftover post–criterion pairs after the main-effect IRT (ADR 0017).
+"""Leftover post–criterion pairs after the main-effect IRT (ADR 0048 / 0168).
 
 Uses a constructed residual matrix so the closest and farthest pair
 are known without calling ``fit_polytomous``. Loads
@@ -116,3 +116,32 @@ def test_leftover_is_empty_without_observed_cells() -> None:
     matrix = np.array([[np.nan]], dtype=np.float64)
     expected = np.array([[0.0]], dtype=np.float64)
     assert leftover_pairs_from_residual(post_ids, item_codes, matrix, expected) == ()
+
+
+def test_leftover_pair_names_observed_minus_expected() -> None:
+    """Leftover residual is Y − E, not a second invented leftover score."""
+    post_ids = ["post-high", "post-low"]
+    item_codes = ("item_one", "item_two")
+    matrix = np.array(
+        [
+            [4.0, 1.0],
+            [1.0, 4.0],
+        ],
+        dtype=np.float64,
+    )
+    expected = np.array(
+        [
+            [3.0, 2.0],
+            [2.0, 3.0],
+        ],
+        dtype=np.float64,
+    )
+    pairs = leftover_pairs_from_residual(post_ids, item_codes, matrix, expected)
+    assert [pair.pair_kind for pair in pairs] == [PAIR_KIND_CLOSEST, PAIR_KIND_FARTHEST]
+    for pair in pairs:
+        assert pair.leftover_residual == pytest.approx(
+            pair.leftover_observed_score - pair.leftover_expected_score
+        )
+        assert pair.leftover_observed_score in {1.0, 4.0}
+        assert pair.leftover_expected_score in {2.0, 3.0}
+        assert pair.leftover_observed_score != pair.leftover_residual

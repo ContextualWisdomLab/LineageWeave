@@ -3396,8 +3396,8 @@ function ReportsPanel({
                     pair.pair_kind === "farthest" ? "Farthest leftover" : "Closest leftover";
                   const nextAction =
                     pair.pair_kind === "farthest"
-                      ? "Open this post to read the criterion it sat farthest from after main effects."
-                      : "Open this post to read the criterion it sat closest to after main effects.";
+                      ? "Open this post to read the farthest leftover criterion. Check leftover residual equals observed minus expected."
+                      : "Open this post to read the closest leftover criterion. Check leftover residual equals observed minus expected.";
                   const criterion = criterionShortLabel(pair.criterion_code);
                   return (
                     <li
@@ -3413,6 +3413,15 @@ function ReportsPanel({
                           {kindLabel}: {pair.post_title} · {criterion}
                         </span>
                         <span className="post-badge">{nextAction}</span>
+                        <span className="post-badge">
+                          observed {pair.leftover_observed_score.toFixed(2)}
+                        </span>
+                        <span className="post-badge">
+                          expected {pair.leftover_expected_score.toFixed(2)}
+                        </span>
+                        <span className="post-badge">
+                          leftover {pair.leftover_residual.toFixed(2)}
+                        </span>
                         <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
                       </button>
                     </li>

@@ -266,6 +266,11 @@ def test_calibrated_report_attaches_leftover_pairs() -> None:
         assert pair.criterion_code in items
         assert pair.leftover_distance >= 0.0
         assert np.isfinite(pair.leftover_residual)
+        assert np.isfinite(pair.leftover_observed_score)
+        assert np.isfinite(pair.leftover_expected_score)
+        assert pair.leftover_residual == pytest.approx(
+            pair.leftover_observed_score - pair.leftover_expected_score
+        )
 
 
 

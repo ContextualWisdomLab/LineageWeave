@@ -759,6 +759,8 @@ export interface LeftoverPair {
   criterion_code: string;
   leftover_distance: number;
   leftover_residual: number;
+  leftover_observed_score: number;
+  leftover_expected_score: number;
 }
 
 export interface PeriodGroupReport {

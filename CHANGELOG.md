@@ -12,6 +12,18 @@ All notable changes to this project are documented here. Format follows
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 
+## [2.12.20] - 2026-08-24
+
+### Added
+
+- Leftover closest/farthest pairs now persist observed score `Y` and
+  expected score `E[Y|θ, item]` beside leftover residual `R = Y − E`
+  (ADR 0168). After `make seed`, leftover pair badges name observed,
+  expected, and leftover residual above the member list; click still
+  opens that post. Check leftover residual equals observed minus
+  expected. Missing cells stay out of the factorization. Do not invent
+  a leftover score or a second theta.
+
 ## [2.12.6] - 2026-08-20
 
 ### Added

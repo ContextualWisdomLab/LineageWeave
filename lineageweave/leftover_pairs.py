@@ -1,9 +1,12 @@
-"""Jeon leftover post–criterion pairs after a main-effect IRT (ADR 0017).
+"""Jeon leftover post–criterion pairs after a main-effect IRT (ADR 0048 / 0168).
 
 Does not import ``fast_mlsirm`` or ``period_report``. A Gabriel biplot
 of the residual ``R = Y − E[Y|θ, item]`` supplies person and item
 positions. Missing response cells are excluded from the factorization;
-they are never treated as zero residuals.
+they are never treated as zero residuals. Closest and farthest pairs
+keep the observed score ``Y`` and expected score ``E`` so a buyer can
+check the leftover residual identity. This module does not invent a
+leftover score or a second theta.
 """
 
 from __future__ import annotations
@@ -26,6 +29,8 @@ class LeftoverPair:
     criterion_code: str
     leftover_distance: float
     leftover_residual: float
+    leftover_observed_score: float
+    leftover_expected_score: float
 
 
 def leftover_pairs_from_residual(
@@ -68,7 +73,7 @@ def leftover_pairs_from_residual(
     else:
         center = float(np.mean([residual[person, item] for person, item in observed]))
     person_pos, item_pos = _complete_case_positions(residual, center, keep_person, keep_item)
-    candidates: list[tuple[float, str, str, float]] = []
+    candidates: list[tuple[float, str, str, float, float, float]] = []
     if person_pos is not None and item_pos is not None:
         person_index = np.flatnonzero(keep_person)
         item_index = np.flatnonzero(keep_item)
@@ -82,42 +87,47 @@ def leftover_pairs_from_residual(
             )
             if not np.isfinite(distance):
                 continue
-            candidates.append(
-                (
-                    max(distance, 0.0),
-                    post_ids[person],
-                    item_codes[item],
-                    float(residual[person, item]),
-                )
-            )
+            candidates.append(_candidate(distance, post_ids, item_codes, matrix, expected, residual, person, item))
     if not candidates:
         for person, item in observed:
             distance = abs(float(residual[person, item]) - center)
-            candidates.append(
-                (
-                    max(distance, 0.0),
-                    post_ids[person],
-                    item_codes[item],
-                    float(residual[person, item]),
-                )
-            )
+            candidates.append(_candidate(distance, post_ids, item_codes, matrix, expected, residual, person, item))
     closest = min(candidates, key=lambda row: (row[0], row[1], row[2]))
     farthest = max(candidates, key=lambda row: (row[0], row[1], row[2]))
+    return (_pair(PAIR_KIND_CLOSEST, closest), _pair(PAIR_KIND_FARTHEST, farthest))
+
+
+def _candidate(
+    distance: float,
+    post_ids: list[str],
+    item_codes: tuple[str, ...],
+    matrix: np.ndarray,
+    expected: np.ndarray,
+    residual: np.ndarray,
+    person: int,
+    item: int,
+) -> tuple[float, str, str, float, float, float]:
+    """One observed leftover cell: distance, ids, R, Y, and E."""
     return (
-        LeftoverPair(
-            pair_kind=PAIR_KIND_CLOSEST,
-            post_id=closest[1],
-            criterion_code=closest[2],
-            leftover_distance=closest[0],
-            leftover_residual=closest[3],
-        ),
-        LeftoverPair(
-            pair_kind=PAIR_KIND_FARTHEST,
-            post_id=farthest[1],
-            criterion_code=farthest[2],
-            leftover_distance=farthest[0],
-            leftover_residual=farthest[3],
-        ),
+        max(distance, 0.0),
+        post_ids[person],
+        item_codes[item],
+        float(residual[person, item]),
+        float(matrix[person, item]),
+        float(expected[person, item]),
+    )
+
+
+def _pair(kind: str, row: tuple[float, str, str, float, float, float]) -> LeftoverPair:
+    """Map a leftover candidate tuple onto the persisted pair contract."""
+    return LeftoverPair(
+        pair_kind=kind,
+        post_id=row[1],
+        criterion_code=row[2],
+        leftover_distance=row[0],
+        leftover_residual=row[3],
+        leftover_observed_score=row[4],
+        leftover_expected_score=row[5],
     )
 
 
