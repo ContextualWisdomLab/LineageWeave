@@ -62,13 +62,14 @@ function renderImageEvidence(
 ) {
   const sourceImageSrc =
     sourceImage && SAFE_EMBEDDED_IMAGE_SOURCE.test(sourceImage.src) ? sourceImage.src : undefined;
+  const imageCaption = imageContent?.caption?.trim() || "";
   return (
     <figure key={`post-body-image-${index}`} className="post-embedded-image">
       {sourceImageSrc ? (
-        <img src={sourceImageSrc} alt={imageContent?.caption || t("Embedded image")} />
+        <img src={sourceImageSrc} alt={imageCaption || t("Embedded image")} />
       ) : null}
-      {imageContent?.caption || !sourceImageSrc ? (
-        <figcaption>{imageContent?.caption || t("Embedded image")}</figcaption>
+      {imageCaption || !sourceImageSrc ? (
+        <figcaption>{imageCaption || t("Embedded image")}</figcaption>
       ) : null}
       {imageContent?.tags.length ? (
         <p className="post-image-tags">

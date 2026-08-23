@@ -61,3 +61,19 @@ export const ImageRegionLocations: Story = {
     ],
   },
 };
+
+export const WhitespaceCaptionFallsBack: Story = {
+  args: {
+    body: `<img src="${diagramSrc}" alt="" />`,
+    imageContent: [
+      {
+        unit_index: 0,
+        mime_type: "image/png",
+        status_code: "described",
+        extracted_text: null,
+        caption: "   ",
+        tags: [],
+      },
+    ],
+  },
+};

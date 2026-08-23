@@ -25,18 +25,28 @@ unrelated stacks.
 - Translate the label through the five-locale UI catalog.
 - Omit the location row when any coordinate is non-finite. Do not invent a
   box, a pixel overlay, or an internal LLM instruction.
+- Treat an all-whitespace persisted image caption as absent at the rendering
+  boundary. Keep the existing localized `Embedded image` short text
+  alternative rather than exposing a whitespace-only accessible name, and do
+  not add an empty visual `figcaption` merely because whitespace was stored.
 - Keep image tags, OCR tables, and the source raster on their existing
   contracts. This is a presentation boundary, not a new VISION call.
 
 ## Consequences
 
 After opening a post whose image analysis produced regions, a buyer can read
-where each caption or OCR excerpt sits. Internal prompts such as `This post
-is an image` remain hidden. Complete overlay rendering and authorized-corpus
-quality remain later slices.
+where each caption or OCR excerpt sits. Informative source images remain
+programmatically identifiable even if the persisted caption is blank, while
+pure whitespace is no longer surfaced as buyer-visible or assistive-text
+evidence. Internal prompts such as `This post is an image` remain hidden.
+Complete overlay rendering and authorized-corpus quality remain later slices.
 
 ## References
 
 Cai, D., Yu, S., Wen, J.-R., & Ma, W.-Y. (2003). *VIPS: A vision-based page
 segmentation algorithm* (Microsoft Research Technical Report MSR-TR-2003-79).
 Microsoft Research. https://www.microsoft.com/en-us/research/publication/vips-a-vision-based-page-segmentation-algorithm/
+
+World Wide Web Consortium. (2024). *Web Content Accessibility Guidelines
+(WCAG) 2.2* (W3C Recommendation, December 12, 2024).
+https://www.w3.org/TR/WCAG22/
