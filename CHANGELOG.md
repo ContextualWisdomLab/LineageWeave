@@ -8,6 +8,9 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- The product-gap baseline now records private-runtime findings only as
+  aggregate synthetic-fixture contracts and identifies the existing
+  post-scoped lineage DAG without retaining post or organization identifiers.
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.

@@ -1,18 +1,18 @@
 # Product & Technical Gap Baseline
 
 ## 1. Known Parsing & Frontend Display Gaps
-- **Footnote Parsing**: `post=00505695-3e61-1fd1-83c5-263f88a9e77a` fails to recognize footnotes (li/oi level errors).
-- **Table Parsing**: `post=00505695-3e61-1fd1-80c6-86bb61c8ddc5` completely fails at parsing tables.
-- **Indentation**: Incorrect indentation rendering in `post=00505695-7571-1fd1-83c3-d521b187ad5b` and `post=00505695-3e61-1fd1-83c0-497b3c1c455e`.
-- **Image/Table OCR**: `post=00505695-7571-1fd1-83dd-3d22a61a5734` fails text recognition for tables inside images, markdown parsing fails, and image OCR description is too shallow for Ontology & Semantics.
-- **Math/Superscripts**: `post=00505695-9612-1fe1-83a7-e30153323f25` fails to parse superscripts like m^3 properly. Needs strict Ontology grammar for math formulas.
-- **Missing UI Elements**: DAG (Directed Acyclic Graph) view is currently missing from the frontend for `post=00505695-7571-1fd1-83c5-895ed333cdbc`.
+- **Footnote Parsing**: Keep this gap open until a synthetic nested-footnote fixture preserves list levels end to end.
+- **Table Parsing**: Keep this gap open until a synthetic table fixture survives source parsing and buyer rendering.
+- **Indentation**: Keep this gap open until synthetic continuation-line fixtures preserve semantic nesting without presentation-only alignment.
+- **Image/Table OCR**: Keep this gap open until synthetic image-table fixtures prove region recognition, OCR, and ontology evidence through contextual-orchestrator.
+- **Math/Superscripts**: Keep this gap open until synthetic formula fixtures preserve superscripts such as m^3 under the governed ontology grammar.
+- **Missing UI Elements**: (Resolved) `EventLineageSection` renders `LineageDag` whenever the authorized post-scoped graph contains nodes. If an authorized runtime post still shows no graph, record only an aggregate, non-identifying reproduction and reopen this as a reconstruction-data gap.
 
 ## 2. LLM Extraction & Knowledge Graph Gaps
 - **Multiple Project Extraction**: (Resolved) LLM prompt updated to request key_events as objects with project_name, separating events correctly.
 - **5W1H Missing**: (Resolved) LLM prompt updated to explicitly request 5W1H evidence items in the JSON output array.
 - **R&R and Keyman Missing**: (Resolved) LLM prompt updated to explicitly instruct using actual stated names rather than collective titles.
-- **Entity Resolution / Searxng**: Abbreviations like "한전" and "한국전력" are not mapped properly using Searxng and KG corroboration. 
+- **Entity Resolution / Searxng**: Keep this gap open until synthetic organization-alias fixtures prove abbreviation mapping with Searxng and knowledge-graph corroboration.
 - **Meso-level Team Mapping**: (Resolved) Checked extraction logic; `team` mapping logic is present and correct, but LLM needed better explicit instruction which is covered by R&R resolution.
 - **Base64 Image Omni-modal**: Current text-only embedding fails on images. Omni-modal LLM processing is required for images to capture layout, font size, colors, and spatial meaning.
 

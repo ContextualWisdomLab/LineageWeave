@@ -8,6 +8,7 @@ from pathlib import Path
 
 _ROOT = Path(__file__).resolve().parents[1]
 _ADR_DIRECTORY = _ROOT / "docs" / "adr"
+_PRODUCT_GAP_BASELINE = _ROOT / "docs" / "product-technical-gap-baseline.md"
 _ROLE_CATALOG_COLUMNS = (
     "cataloged_team_id",
     "cataloged_corporate_entity_id",
@@ -44,6 +45,13 @@ def test_adr_numbers_are_unique_and_documents_are_not_placeholders() -> None:
     counts = Counter(number for number, _ in numbered_paths)
     duplicates = sorted(number for number, count in counts.items() if count > 1)
     assert duplicates == [], f"duplicate ADR numbers: {duplicates}"
+
+
+def test_product_gap_baseline_contains_no_private_post_identifiers() -> None:
+    """Buyer-gap evidence stays aggregate and cannot identify private runtime posts."""
+    baseline = _PRODUCT_GAP_BASELINE.read_text(encoding="utf-8")
+
+    assert "post=" not in baseline
 
 
 def test_fetch_persisted_summary_reads_stored_catalog_ids() -> None:
