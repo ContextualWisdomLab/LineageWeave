@@ -108,6 +108,8 @@ describe("App, authenticated", () => {
     calendarEvents?: unknown[];
     calendarUnavailable?: boolean;
     caldavAvailable?: boolean;
+    reportsUnavailable?: boolean;
+    reportRebuildUnavailable?: boolean;
     rankings?: {
       status?: "accepted" | "unavailable";
       status_reason?: string | null;
@@ -1000,6 +1002,12 @@ describe("App, authenticated", () => {
             rankings: rankings.rankings ?? [],
           }),
         );
+      }
+      if (options?.reportsUnavailable && url.includes("/api/reports/") && method === "GET") {
+        return Promise.resolve(new Response(null, { status: 503 }));
+      }
+      if (options?.reportRebuildUnavailable && url.includes("/api/reports/") && method === "POST") {
+        return Promise.resolve(new Response(null, { status: 503 }));
       }
       if (url.includes("/api/reports/compare/") && method === "GET") {
         return Promise.resolve(
@@ -5359,6 +5367,26 @@ describe("App, authenticated", () => {
     );
   });
 
+  it("shows an explicit period-report load failure", async () => {
+    stubBackend({ reportsUnavailable: true });
+    render(<App showLabPanels />);
+
+    const heading = await screen.findByRole("heading", { name: "Period reports" });
+    expect(await within(heading.closest("section")!).findByRole("alert")).toBeInTheDocument();
+  });
+
+  it("reports a period-report rebuild failure and restores the action", async () => {
+    stubBackend({ admin: true, reportRebuildUnavailable: true });
+    render(<App showLabPanels />);
+    const rebuild = await screen.findByRole("button", { name: "Rebuild report" });
+
+    await userEvent.click(rebuild);
+
+    const heading = screen.getByRole("heading", { name: "Period reports" });
+    expect(await within(heading.closest("section")!).findByRole("alert")).toBeInTheDocument();
+    expect(rebuild).toBeEnabled();
+  });
+
   it("keeps advanced review tools out of the workspace board", async () => {
     stubBackend();
     render(<App />);
@@ -5418,6 +5446,19 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Log out" }));
 
     expect(signoutRedirect).toHaveBeenCalledOnce();
+  });
+
+  it("opens Board operations from the Admin workspace", async () => {
+    stubBackend({ admin: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Admin" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Open post operations" }));
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    const advanced = await within(board).findByText("Advanced review tools");
+    expect(advanced.closest("details")).toHaveAttribute("open");
+    expect(new URL(window.location.href).searchParams.has("workspace")).toBe(false);
   });
 
   it("discloses every authorized corporation and business unit code", async () => {
