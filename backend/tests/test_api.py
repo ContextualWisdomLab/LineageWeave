@@ -3669,6 +3669,40 @@ def test_rebuild_lineage_requires_post_admin(client, demo_analyst_token) -> None
     assert response.status_code == 403
 
 
+def test_rebuild_lineage_reports_503_on_orchestrator_failure(
+    monkeypatch, client, demo_analyst_token, seeded_db
+) -> None:
+    """A transient orchestrator failure mid-rebuild must degrade to a clean
+    503, not discard the whole corpus reconstruction as a raw 500 (same
+    discipline as this file's other orchestrator call sites).
+    """
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+                "values ('permission', 'post_admin', 'Administer posts') on conflict (lookup_code) do nothing"
+            )
+            cur.execute("select access_role_id from account_role_assignment limit 1")
+            role_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into role_permission (access_role_id, permission_code) values (%s, 'post_admin') "
+                "on conflict do nothing",
+                (role_id,),
+            )
+    finally:
+        admin_conn.close()
+
+    async def _raise(pool, *, llm):
+        raise HttpClientError("orchestrator hiccup")
+
+    monkeypatch.setattr("backend.app.main.rebuild_lineage_from_pool", _raise)
+
+    response = client.post("/api/lineage/rebuild", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert response.status_code == 503
+
+
 def test_rebuild_lineage_recovers_the_a100_fork(client, demo_analyst_token, seeded_db) -> None:
     """Rebuild on the same A-100+B-200 rows seed writes (grouping keys +
     occurred_at), not a hand-picked A-100-only insert that hides mapping bugs.

@@ -10,9 +10,9 @@
 (`temporal`, `secondary_key`, `text`, optional `llm`) and RankWeave
 fuses them with a weighted convex combination. Production persistence
 collapsed each edge to `(parent_post_id, child_post_id, fused_score)`,
-so `/api/lineage` and the Buyer DAG exposed only the fused score.
+so `/api/lineage` and the Event Lineage DAG exposed only the fused score.
 
-A buyer could see that two posts were linked but could not answer which
+A reader could see that two posts were linked but could not answer which
 independent signals supported the edge, whether the optional LLM channel
 participated, which signal dominated, or how to audit a later
 reconstruction after model or weight changes. ADR 0064 already treats
@@ -56,14 +56,14 @@ authoritative; PROV-O/RDF export is a projection.
    controlled signal order. The rebuild profile is returned in the same
    controlled order using `common_lookup_value.display_order`. ABAC never
    reveals evidence for an invisible endpoint.
-6. The Buyer DAG provides an accessible edge-detail disclosure (not
+6. The Event Lineage DAG provides an accessible edge-detail disclosure (not
    hover-only), labels the relation as inferred rather than causal, and
    states when no LLM channel participated only when at least one
    recorded channel exists. Print/export uses the same values.
 
 ## Consequences
 
-- Buyers can inspect why a connection was selected and distinguish
+- Readers can inspect why a connection was selected and distinguish
   inference from source evidence.
 - A later rebuild rewrites live Event Lineage as a whole; historic
   meaning is not silently mutated in place.

@@ -1112,7 +1112,18 @@ async def rebuild_lineage_graph(
     post_admin only: this is a corpus-wide write. Reads stay ABAC-gated.
     """
     _require_post_admin(account)
-    edges = await rebuild_lineage_from_pool(pool, llm=_adjudication_client())
+    try:
+        edges = await rebuild_lineage_from_pool(pool, llm=_adjudication_client())
+    except (HttpClientError, OSError) as exc:
+        # This can issue up to MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS sequential
+        # adjudication calls across the whole corpus (lineage_ingestion.py);
+        # a transient orchestrator hiccup on any one of them must not
+        # discard the rest of the reconstruction as a raw 500 -- same
+        # discipline as this file's other orchestrator call sites.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Lineage rebuild is unavailable: the orchestrator did not respond",
+        ) from exc
     return {"edge_count": len(edges)}
 
 
