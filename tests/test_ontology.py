@@ -206,8 +206,25 @@ def test_semantic_project_terms_preserve_post_evidence_and_confidence() -> None:
     graph = load_ontology()
     assert (LW.Project, RDF.type, OWL.Class) in graph
     assert (LW.ProjectMention, RDF.type, OWL.Class) in graph
+    restrictions = set(graph.objects(LW.ProjectMention, RDFS.subClassOf))
+    assert any(
+        (node, OWL.onProperty, RDF.subject) in graph
+        and (node, OWL.allValuesFrom, LW.Post) in graph
+        for node in restrictions
+    )
+    assert any(
+        (node, OWL.onProperty, RDF.predicate) in graph
+        and (node, OWL.hasValue, LW.mentionsProject) in graph
+        for node in restrictions
+    )
+    assert any(
+        (node, OWL.onProperty, RDF.object) in graph
+        and (node, OWL.allValuesFrom, LW.Project) in graph
+        for node in restrictions
+    )
     assert (LW.mentionsProject, RDFS.domain, LW.Post) in graph
     assert (LW.mentionsProject, RDFS.range, LW.Project) in graph
     assert (LW.projectEvidence, RDFS.domain, LW.ProjectMention) in graph
     assert (LW.projectEvidence, RDFS.range, XSD.string) in graph
     assert (LW.semanticConfidence, RDFS.range, XSD.decimal) in graph
+    assert (LW.semanticConfidence, RDFS.domain, LW.ProjectMention) in graph
