@@ -64,7 +64,6 @@ import {
   type CorporateEntityRef,
   type CustomerMasterEntity,
   type CustomerMasterResponse,
-  type CustomerMasterScopeFacet,
   type Counterparty,
   type EvaluationResponse,
   type IssueTicket,
@@ -97,6 +96,11 @@ import {
 import { CitationChip } from "./components/CitationChip";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { GlobalSearch } from "./components/GlobalSearch";
+import {
+  CustomerEntityTreeRow,
+  CustomerRelatedPostCard,
+  type CustomerEntityTreeNode,
+} from "./components/CustomerEntityTree";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { RoleEvidence } from "./components/RoleEvidence";
@@ -5064,11 +5068,6 @@ function PostList({
   );
 }
 
-interface CustomerEntityTreeNode {
-  entity: CustomerMasterEntity;
-  children: CustomerEntityTreeNode[];
-}
-
 // Live bug (2026-08-19): Customer Master's own entity list rendered every
 // corporate_entity as an independent top-level row, even though the API
 // already carries parent_entity_id and the codebase already knows how to
@@ -5097,133 +5096,6 @@ function buildCustomerEntityTree(entities: CustomerMasterEntity[]): CustomerEnti
     children: (childrenByParent.get(entity.corporate_entity_id) ?? []).map(toNode),
   });
   return roots.map(toNode);
-}
-
-function customerScopeFacetLabel(facet: CustomerMasterScopeFacet): string {
-  switch (facet) {
-    case "authorized_own":
-      return t("Own company");
-    case "authorized_granted":
-      return t("Granted company");
-    case "scope_unclassified":
-      return t("Scope not classified");
-    case "observed_organization":
-      return t("Observed organization");
-    case "observed_hierarchy":
-      return t("Observed hierarchy");
-  }
-}
-
-function CustomerEntityTreeRow({
-  node,
-  depth,
-  expandedEntityId,
-  relatedByEntity,
-  relatedLoading,
-  onToggle,
-  onOpenPost,
-}: {
-  node: CustomerEntityTreeNode;
-  depth: number;
-  expandedEntityId: string | null;
-  relatedByEntity: Record<string, RelatedNode[]>;
-  relatedLoading: string | null;
-  onToggle: (entityId: string) => void;
-  onOpenPost: (postId: string) => void;
-}) {
-  const { entity, children } = node;
-  const relatedPosts = (relatedByEntity[entity.corporate_entity_id] ?? []).filter(
-    (related) => related.node_type_code === NODE_POST,
-  );
-  return (
-    <li style={{ marginInlineStart: depth * 20 }}>
-      <button
-        type="button"
-        className="customer-entity-button"
-        aria-expanded={expandedEntityId === entity.corporate_entity_id}
-        onClick={() => onToggle(entity.corporate_entity_id)}
-      >
-        <strong>{entity.entity_name}</strong>
-        <span className="customer-entity-meta">
-          <span>{entity.corporate_entity_code} · {entity.entity_level_label}</span>
-          {(entity.scope_facets ?? []).map((facet) => (
-            <span className="customer-scope-chip" key={facet}>{customerScopeFacetLabel(facet)}</span>
-          ))}
-        </span>
-      </button>
-      {expandedEntityId === entity.corporate_entity_id ? (
-        <div className="customer-related-posts">
-          {relatedLoading === entity.corporate_entity_id ? <p>{t("Loading related posts...")}</p> : null}
-          {relatedLoading !== entity.corporate_entity_id && relatedPosts.length === 0 ? (
-            <p className="popup-placeholder">{t("No linked posts yet.")}</p>
-          ) : null}
-          {relatedPosts.length > 0 ? (
-            <ul aria-label={`${t("Related posts")}: ${entity.entity_name}`}>
-              {relatedPosts.map((related) => (
-                <li key={related.node_id}>
-                  <CustomerRelatedPostCard
-                    postId={related.node_id}
-                    postTitle={related.label ?? related.node_id}
-                    postBodyExcerpt={related.post_body_excerpt}
-                    postBodyTruncated={related.post_body_truncated}
-                    onOpenPost={onOpenPost}
-                  />
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      ) : null}
-      {children.length > 0 ? (
-        <ul className="customer-master-list customer-master-tree-children" aria-label={tf("Affiliates of {name}", { name: entity.entity_name })}>
-          {children.map((child) => (
-            <CustomerEntityTreeRow
-              key={child.entity.corporate_entity_id}
-              node={child}
-              depth={depth + 1}
-              expandedEntityId={expandedEntityId}
-              relatedByEntity={relatedByEntity}
-              relatedLoading={relatedLoading}
-              onToggle={onToggle}
-              onOpenPost={onOpenPost}
-            />
-          ))}
-        </ul>
-      ) : null}
-    </li>
-  );
-}
-
-function CustomerRelatedPostCard({
-  postId,
-  postTitle,
-  postBodyExcerpt,
-  postBodyTruncated,
-  onOpenPost,
-}: {
-  postId: string;
-  postTitle: string;
-  postBodyExcerpt?: string | null;
-  postBodyTruncated?: boolean;
-  onOpenPost: (postId: string) => void;
-}) {
-  return (
-    <button
-      type="button"
-      className="related-post-card"
-      aria-label={tf("Open related post: {label}", { label: postTitle })}
-      onClick={() => onOpenPost(postId)}
-    >
-      <span className="related-post-content">
-        <strong>{postTitle}</strong>
-        <span className="post-body-excerpt" aria-label={t("Post body preview")}>
-          {postBodyExcerpt || t("No post body.")}
-          {postBodyTruncated ? " ..." : ""}
-        </span>
-      </span>
-      <span>{t("Open record")}</span>
-    </button>
-  );
 }
 
 const CUSTOMER_MASTER_SCOPE_FILTERS = ["own", "granted", "observed", "unclassified"] as const;
@@ -5460,6 +5332,10 @@ function CustomerMasterPanel({
                 <span>{hint.post_count} {t("posts")}</span>
                 {canResolveHints && hint.customer_code ? (
                   <button
+                    type="button"
+                    aria-label={tf("Resolve source identifier: {label}", {
+                      label: hint.customer_name ?? hint.customer_code,
+                    })}
                     onClick={() => void handleResolveHint(hint.customer_code as string)}
                     disabled={resolvingHint === hint.customer_code}
                   >

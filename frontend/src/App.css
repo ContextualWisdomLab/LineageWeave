@@ -1153,6 +1153,7 @@ a:focus-visible {
 
 .customer-entity-button {
   width: 100%;
+  min-height: var(--size-control-min);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1232,6 +1233,7 @@ a:focus-visible {
 
 .related-post-card {
   width: 100%;
+  min-height: var(--size-control-min);
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;

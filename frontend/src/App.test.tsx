@@ -2212,7 +2212,7 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
 
     expect(await screen.findByText("CUST-0")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Resolve" }));
+    await userEvent.click(screen.getByRole("button", { name: "Resolve source identifier: CUST-0" }));
 
     expect(await screen.findByText("Southfield Utilities")).toBeInTheDocument();
   });
