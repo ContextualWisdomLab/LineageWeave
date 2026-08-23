@@ -49,7 +49,6 @@ function layoutGroup(nodes: LineageGraphNode[], edges: LineageGraphEdge[]): {
   let nextRow = 0;
 
   const walk = (id: string, depth: number) => {
-    if (positions.has(id) || visiting.has(id)) return;
     visiting.add(id);
     const kids = (children.get(id) ?? []).filter(
       (childId) => byId.has(childId) && !positions.has(childId) && !visiting.has(childId),
