@@ -35,6 +35,14 @@ afterEach(() => {
 });
 
 describe("App, unauthenticated", () => {
+  it("shows the authentication loading state", () => {
+    mockAuth = { ...mockAuth, isLoading: true };
+
+    render(<App />);
+
+    expect(screen.getByText("Loading authentication state...")).toBeInTheDocument();
+  });
+
   it("shows a login button that starts the real OIDC redirect", async () => {
     render(<App showLabPanels />);
     const button = screen.getByRole("button", { name: /log in/i });
@@ -59,6 +67,22 @@ describe("App, unauthenticated", () => {
     expect(screen.queryByText(/invalid_grant|AADSTS70000|TypeError|oidc-client/i)).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Log in" }));
     expect(signinRedirect).toHaveBeenCalledTimes(1);
+  });
+
+  it("offers a new login when authentication returns no access token", async () => {
+    mockAuth = {
+      ...mockAuth,
+      isAuthenticated: true,
+      user: { profile: { preferred_username: "demo.analyst" } },
+    };
+
+    render(<App />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Authenticated, but no access token was returned.");
+    await userEvent.click(screen.getByRole("button", { name: "Log in" }));
+    expect(signinRedirect).toHaveBeenCalledWith(
+      expect.objectContaining({ state: expect.objectContaining({ returnUrl: "/" }) }),
+    );
   });
 });
 
@@ -96,6 +120,7 @@ describe("App, authenticated", () => {
     rankingsUnavailable?: boolean;
     relatedUnavailable?: "all" | "entity" | "person" | "team";
     chatUnavailable?: boolean;
+    chatNoCitations?: boolean;
     evidenceUnavailable?: boolean;
     legacyChatCitations?: boolean;
     postChatConversationUnavailable?: boolean;
@@ -125,6 +150,13 @@ describe("App, authenticated", () => {
     pluralAffiliations?: boolean;
     manyAffiliations?: boolean;
     noAffiliations?: boolean;
+    postUnavailable?: boolean;
+    contentUnavailable?: boolean;
+    derivedUnavailable?: boolean;
+    bookmarkLoadUnavailable?: boolean;
+    postsUnavailable?: boolean;
+    rebuildUnavailable?: boolean;
+    focusedLineageUnavailable?: boolean;
     deferMe?: boolean;
     deferPosts?: boolean;
     directLineage?: boolean;
@@ -147,6 +179,7 @@ describe("App, authenticated", () => {
     semanticRelationships?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
+    contentProcessing?: boolean;
     summaryPending?: boolean;
     summaryUnavailable?: boolean;
     activityUnavailable?: boolean;
@@ -288,6 +321,9 @@ describe("App, authenticated", () => {
         });
       }
       if (url.endsWith("/api/posts/post-1/bookmark")) {
+        if (method === "GET" && options?.bookmarkLoadUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         if (method === "POST") {
           if (options?.bookmarkUnavailable) {
             return Promise.resolve(
@@ -302,6 +338,7 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ post_id: "post-1", bookmarked }));
       }
       if (url.endsWith("/api/lineage/rebuild") && method === "POST") {
+        if (options?.rebuildUnavailable) return Promise.resolve(new Response(null, { status: 503 }));
         return Promise.resolve(jsonResponse({ edge_count: 4 }));
       }
       if (url.endsWith("/api/posts/post-1/tickets") && method === "GET") {
@@ -1154,6 +1191,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ group_count: 1 }));
       }
       if (url.includes("/api/lineage") && method === "GET") {
+        if (options?.focusedLineageUnavailable && url.includes("post_id=")) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         if ((options?.lineageIsolationReason || options?.emptyLineage) && url.includes("post_id=")) {
           return Promise.resolve(
             jsonResponse({
@@ -1228,6 +1268,7 @@ describe("App, authenticated", () => {
       }
       const postsUrl = new URL(url, "https://backend.test");
       if (postsUrl.pathname === "/api/posts") {
+        if (options?.postsUnavailable) return Promise.resolve(new Response(null, { status: 503 }));
         return postsReady.then(() =>
           jsonResponse(
             postsUrl.searchParams.get("search")
@@ -1271,6 +1312,9 @@ describe("App, authenticated", () => {
       }
       const postOneUrl = new URL(url, "https://backend.test");
       if (postOneUrl.pathname === "/api/posts/post-1") {
+        if (options?.postUnavailable) {
+          return Promise.resolve(new Response(JSON.stringify({ detail: "synthetic backend detail" }), { status: 503 }));
+        }
         const asOf = postOneUrl.searchParams.get("as_of");
         return Promise.resolve(
           jsonResponse({
@@ -1319,10 +1363,13 @@ describe("App, authenticated", () => {
         );
       }
       if (postOneUrl.pathname === "/api/posts/post-1/content") {
+        if (options?.contentUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         contentRequests += 1;
         return Promise.resolve(
           jsonResponse({
-            status: "ready",
+            status: options?.contentProcessing && contentRequests === 1 ? "processing" : "ready",
             images: [],
             units:
               options?.contentAfterSummary && contentRequests > 1
@@ -1358,6 +1405,7 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/evaluation")) {
+        if (options?.derivedUnavailable) return Promise.resolve(new Response(null, { status: 503 }));
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
@@ -1531,6 +1579,7 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/keymen")) {
+        if (options?.derivedUnavailable) return Promise.resolve(new Response(null, { status: 503 }));
         return Promise.resolve(
           jsonResponse({
             keymen: [
@@ -1727,6 +1776,7 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/affiliate-tree")) {
+        if (options?.derivedUnavailable) return Promise.resolve(new Response(null, { status: 503 }));
         return Promise.resolve(
           jsonResponse({
             trees: [
@@ -1776,6 +1826,7 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/voc-evidence")) {
+        if (options?.derivedUnavailable) return Promise.resolve(new Response(null, { status: 503 }));
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
@@ -1800,6 +1851,7 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/counterparties")) {
+        if (options?.derivedUnavailable) return Promise.resolve(new Response(null, { status: 503 }));
         return Promise.resolve(
           jsonResponse({
             counterparties: [
@@ -1835,6 +1887,7 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ verified: [] }));
       }
       if (url.endsWith("/api/posts/post-1/lineage")) {
+        if (options?.derivedUnavailable) return Promise.resolve(new Response(null, { status: 503 }));
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
@@ -1908,8 +1961,8 @@ describe("App, authenticated", () => {
             post_id: "post-1",
             conversation_id: conversationId,
             answer_text: "Here is what happened, drawing on the linked post.",
-            cited_post_ids: ["post-2"],
-            ...(options?.legacyChatCitations
+            cited_post_ids: options?.chatNoCitations ? [] : ["post-2"],
+            ...(options?.legacyChatCitations || options?.chatNoCitations
               ? {}
               : { cited_posts: [{ post_id: "post-2", post_title: "Linked post" }] }),
             source_post_ids: ["post-1", "post-2"],
@@ -2353,6 +2406,32 @@ describe("App, authenticated", () => {
     });
   });
 
+  it("fails closed when the selected source post is unavailable", async () => {
+    stubBackend({ postUnavailable: true });
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const dialog = await screen.findByRole("dialog", { name: "Post details" });
+    expect(await within(dialog).findByRole("alert")).toBeInTheDocument();
+    expect(dialog).not.toHaveTextContent("synthetic backend detail");
+    expect(within(dialog).queryByText("The full body text.")).not.toBeInTheDocument();
+  });
+
+  it("keeps the source readable when optional post evidence is unavailable", async () => {
+    stubBackend({ contentUnavailable: true, derivedUnavailable: true, bookmarkLoadUnavailable: true });
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const dialog = await screen.findByRole("dialog", { name: "Public post" });
+    expect(await within(dialog).findByText("The full body text.")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Bookmark" })).toBeDisabled();
+    expect(
+      within(dialog).getByText("Related posts is temporarily unavailable. Saved evidence is still available."),
+    ).toBeInTheDocument();
+    expect(within(dialog).queryByText("Loading related posts...")).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("Loading lineage...")).not.toBeInTheDocument();
+  });
+
   it("shares, prints, and toggles a post bookmark from the popup actions", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     const browserNavigator = Object.create(navigator);
@@ -2383,6 +2462,26 @@ describe("App, authenticated", () => {
       .filter(([input, init]) => String(input).endsWith("/api/posts/post-1/bookmark") && init?.method === "POST")
       .map(([, init]) => JSON.parse(String(init?.body)).bookmarked);
     expect(bookmarkBodies).toEqual([true, false]);
+  });
+
+  it("uses the native share sheet when it is available", async () => {
+    const share = vi.fn().mockResolvedValue(undefined);
+    const browserNavigator = Object.create(navigator);
+    Object.defineProperty(browserNavigator, "share", { value: share });
+    vi.stubGlobal("navigator", browserNavigator);
+    stubBackend();
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const dialog = await screen.findByRole("dialog", { name: "Public post" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Share" }));
+
+    await waitFor(() =>
+      expect(share).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Public post", url: expect.stringContaining("post=post-1") }),
+      ),
+    );
+    expect(dialog.querySelector(".post-action-status")).not.toBeInTheDocument();
   });
 
   it("keeps share cancellation quiet and reports share or bookmark failures", async () => {
@@ -3203,6 +3302,18 @@ describe("App, authenticated", () => {
     );
   });
 
+  it("reports a lineage rebuild failure and restores the action", async () => {
+    stubBackend({ admin: true, rebuildUnavailable: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByText("Advanced review tools"));
+    const rebuild = await screen.findByRole("button", { name: /rebuild lineage/i });
+
+    await userEvent.click(rebuild);
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(rebuild).toBeEnabled();
+  });
+
   it("shows the advanced-review section to post_admin without the test-only prop", async () => {
     stubBackend({ admin: true });
     render(<App />);
@@ -3446,7 +3557,7 @@ describe("App, authenticated", () => {
   });
 
   it("refreshes newly processed source content after summary generation", async () => {
-    stubBackend({ contentAfterSummary: true });
+    stubBackend({ contentAfterSummary: true, contentProcessing: true });
     render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
@@ -3486,6 +3597,18 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: /ask seeded question: what happened between these events/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /ask seeded question: who is involved/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /ask seeded question: what is the next commitment/i })).toBeInTheDocument();
+  });
+
+  it("keeps linked records readable when the focused graph is unavailable", async () => {
+    stubBackend({ focusedLineageUnavailable: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    expect(
+      await screen.findByText("The linked records are listed above. The graph is not available for this view."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open related post: Linked post" })).toBeInTheDocument();
   });
 
   it("asks a chat question and slides in the evidence panel for a cited source on click", async () => {
@@ -3576,6 +3699,33 @@ describe("App, authenticated", () => {
       ),
     ).toHaveLength(0);
     expect(screen.getByRole("button", { name: "Open evidence: post-2" })).toBeInTheDocument();
+  });
+
+  it("submits a saved question from the seeded suggestion chips", async () => {
+    const fetchMock = stubBackend();
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Ask seeded question: Who is involved?" }));
+
+    await waitFor(() => {
+      const call = fetchMock.mock.calls.find(
+        ([url, init]) => String(url).endsWith("/api/posts/post-1/chat") && init?.method === "POST",
+      );
+      expect(JSON.parse(String(call?.[1]?.body))).toMatchObject({ question: "Who is involved?" });
+    });
+  });
+
+  it("renders a grounded chat answer without inventing source chips", async () => {
+    stubBackend({ chatNoCitations: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.type(screen.getByPlaceholderText(/what happened/i), "Summarize this record");
+    await userEvent.click(screen.getByRole("button", { name: /^ask$/i }));
+
+    const answer = await screen.findByText("Here is what happened, drawing on the linked post.");
+    expect(answer.closest(".chat-answer")?.querySelector(".chat-citations")).toBeNull();
   });
 
   it("shows a clear empty state when chat is 503 without an orchestrator", async () => {
@@ -4132,6 +4282,17 @@ describe("App, authenticated", () => {
 
     expect(await screen.findByText("Synthetic design review")).toBeInTheDocument();
     expect(screen.getByText("2026-01-15T09:00:00Z")).toBeInTheDocument();
+  });
+
+  it("opens a commitment from the Calendar workspace", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Calendar" }));
+    await userEvent.click(await screen.findByRole("button", { name: /open commitment for: public post/i }));
+
+    expect(await screen.findByRole("dialog", { name: "Public post" })).toBeInTheDocument();
+    expect(new URL(window.location.href).searchParams.has("workspace")).toBe(false);
   });
 
   it("retries calendar loading failures", async () => {
@@ -5250,6 +5411,15 @@ describe("App, authenticated", () => {
     );
   });
 
+  it("logs out through the OIDC client", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Log out" }));
+
+    expect(signoutRedirect).toHaveBeenCalledOnce();
+  });
+
   it("discloses every authorized corporation and business unit code", async () => {
     stubBackend({ manyAffiliations: true });
     render(<App />);
@@ -5380,6 +5550,22 @@ describe("App, authenticated", () => {
     expect(within(board).getByLabelText("Search semantic evidence")).toHaveValue("not found");
     expect(await screen.findByText("No posts match the current filters.")).toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes("search=not+found"))).toBe(true);
+  });
+
+  it("retries a failed Board load without leaving the workspace", async () => {
+    const fetchMock = stubBackend({ postsUnavailable: true });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    const alert = await within(board).findByRole("alert");
+    const attempts = fetchMock.mock.calls.filter(([url]) => new URL(String(url)).pathname === "/api/posts").length;
+    await userEvent.click(within(alert).getByRole("button", { name: "Retry" }));
+
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => new URL(String(url)).pathname === "/api/posts"))
+        .toHaveLength(attempts + 1),
+    );
+    expect(screen.getByRole("region", { name: "Board" })).toBeInTheDocument();
   });
 
   it("does not navigate when the global search is opened before posts load", async () => {
