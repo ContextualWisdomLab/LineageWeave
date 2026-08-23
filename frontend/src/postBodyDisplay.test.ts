@@ -160,6 +160,12 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("normalizes entity-encoded quantity syntax without leaking raw markup", () => {
+    expect(
+      splitPostBody("<p>Reserve 12 m&#94;3 and x&lt;sup&gt;2&lt;/sup&gt; units.</p>"),
+    ).toEqual([{ kind: "text", text: "Reserve 12 m³ and x² units." }]);
+  });
+
   it("matches sup/sub content split across a newline", () => {
     // Pretty-printed source HTML puts tag content on its own line
     // (regression: the regex lacked the dotAll flag, so `.` could not cross

@@ -173,15 +173,15 @@ function applyUnicodeScript(text: string, kind: "super" | "sub"): string {
 function replaceHtmlScripts(text: string): string {
   return text
     .replace(/<sup\b[^>]*>(.*?)<\/sup>/gis, (_match, inner: string) =>
-      applyUnicodeScript(decodeHtmlEntities(String(inner).replace(/<[^>]+>/g, "")), "super"),
+      applyUnicodeScript(String(inner).replace(/<[^>]+>/g, ""), "super"),
     )
     .replace(/<sub\b[^>]*>(.*?)<\/sub>/gis, (_match, inner: string) =>
-      applyUnicodeScript(decodeHtmlEntities(String(inner).replace(/<[^>]+>/g, "")), "sub"),
+      applyUnicodeScript(String(inner).replace(/<[^>]+>/g, ""), "sub"),
     );
 }
 
 export function normalizeScriptText(text: string): string {
-  const withCarets = text.replace(
+  const withCarets = decodeHtmlEntities(text).replace(
     CARET_EXPONENT,
     (_match, braced: string, bare: string) => applyUnicodeScript(braced || bare, "super"),
   );
@@ -251,8 +251,7 @@ function stripHtmlTags(text: string): string {
   const withoutTags = withBoundaries.replace(HTML_TAG, (tag) =>
     /^<\/?w:/i.test(tag) ? "" : " ",
   );
-  const decoded = decodeHtmlEntities(withoutTags);
-  return decoded
+  return withoutTags
     .split("\n")
     .map((line) => {
       if (!line.trim()) return "";

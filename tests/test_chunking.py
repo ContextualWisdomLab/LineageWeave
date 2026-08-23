@@ -144,6 +144,18 @@ def test_chunk_by_dom_scopes_cell_positions_to_nested_table_rows() -> None:
     ]
 
 
+def test_chunk_by_dom_implicitly_closes_sibling_rows_at_the_same_table_depth() -> None:
+    chunks = chunk_by_dom(
+        "<table><tr><td>First left</td><td>First right</td>"
+        "<tr><td>Second left</td><td>Second right</td></tr></table>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "First left | First right"),
+        ("tr", "Second left | Second right"),
+    ]
+
+
 def test_chunk_by_dom_does_not_infer_a_footnote_from_a_bare_marker() -> None:
     chunks = chunk_by_dom("<p>Body text</p><p>*Synthetic list item</p>")
     assert [(chunk.label, chunk.text) for chunk in chunks] == [
@@ -283,6 +295,25 @@ def test_chunk_by_source_body_preserves_empty_markdown_table_cells() -> None:
         ("tr", "Key | Value | State"),
         ("tr", "A |  | Open"),
     ]
+
+
+def test_chunk_by_source_body_keeps_contextual_all_empty_markdown_rows() -> None:
+    chunks = chunk_by_source_body(
+        "| Key | Value | State |\n"
+        "| --- | --- | --- |\n"
+        "| | | |"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "Key | Value | State"),
+        ("tr", "|  |"),
+    ]
+
+
+def test_chunk_by_source_body_does_not_promote_a_standalone_empty_pipe_line() -> None:
+    chunks = chunk_by_source_body("| | |")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [("", "| | |")]
 
 
 def test_chunk_by_dom_joins_visual_continuation_lines_but_keeps_list_items() -> None:
@@ -481,6 +512,14 @@ def test_chunk_by_dom_keeps_html_quantity_scripts_as_unicode() -> None:
     chunks = chunk_by_dom("<p>Tank volume is 12 m<sup>3</sup> of H<sub>2</sub>O.</p>")
 
     assert [chunk.text for chunk in chunks] == ["Tank volume is 12 m³ of H₂O."]
+
+
+def test_chunk_by_dom_normalizes_entity_encoded_quantity_scripts() -> None:
+    chunks = chunk_by_dom(
+        "<p>Reserve 12 m&#94;3 and x&lt;sup&gt;2&lt;/sup&gt; units.</p>"
+    )
+
+    assert [chunk.text for chunk in chunks] == ["Reserve 12 m³ and x² units."]
 
 
 def test_chunk_by_dom_unclosed_sup_does_not_cross_table_cells() -> None:

@@ -97,6 +97,7 @@ _DOM_BLOCK_TAGS = frozenset(
 # readable and attributable as one unit.
 _TABLE_ROW_TAGS = frozenset({"tr", "w:tr"})
 _TABLE_CELL_TAGS = frozenset({"td", "th", "w:tc"})
+_TABLE_TAGS = frozenset({"table", "w:tbl"})
 
 _LIST_ITEM_START = re.compile(
     r"^(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)"
@@ -448,6 +449,8 @@ class _BlockTextExtractor(HTMLParser):
         self._unscoped_buffer: list[str] = []
         self._script_stack: list[str] = []
         self._table_cell_counts: list[int] = []
+        self._table_depth = 0
+        self._table_row_depths: list[int] = []
         # Each entry is ("text", str, tag_name, style) or
         # ("image", (mime_type, bytes), "", None) -- a single sequence in
         # true document order, so an image's index among its siblings
@@ -456,6 +459,8 @@ class _BlockTextExtractor(HTMLParser):
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Collect relevant text state when an HTML start tag is encountered."""
+        if tag in _TABLE_TAGS:
+            self._table_depth += 1
         if tag in _INLINE_SCRIPT_TAGS:
             self._script_stack.append(tag)
             return
@@ -490,6 +495,14 @@ class _BlockTextExtractor(HTMLParser):
                     self._stack[-1][1].append(" | ")
                 self._table_cell_counts[-1] += 1
             return
+        if (
+            tag in _TABLE_ROW_TAGS
+            and self._table_row_depths
+            and self._table_row_depths[-1] == self._table_depth
+        ):
+            declared_width = sum(entry[3] for entry in self._stack)
+            tag_name, buffer, style, _, is_footnote = self._stack.pop()
+            self._finish_block(tag_name, buffer, style, declared_width, is_footnote)
         # A rich-text editor commonly wraps a table cell in a nested <p> or
         # <div>. Keep that content in the open row; otherwise the nested block
         # closes first and destroys the row/column boundary.
@@ -513,15 +526,24 @@ class _BlockTextExtractor(HTMLParser):
             )
             if tag in _TABLE_ROW_TAGS:
                 self._table_cell_counts.append(0)
+                self._table_row_depths.append(self._table_depth)
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Handle self-closing block tags without losing XML indentation state."""
         self.handle_starttag(tag, attrs)
-        if tag in _DOM_BLOCK_TAGS or tag in _INLINE_SCRIPT_TAGS:
+        if tag in _DOM_BLOCK_TAGS or tag in _INLINE_SCRIPT_TAGS or tag in _TABLE_TAGS:
             self.handle_endtag(tag)
 
     def handle_endtag(self, tag: str) -> None:
         """Close the relevant text state when an HTML end tag is encountered."""
+        if (
+            tag in _TABLE_TAGS
+            and self._table_row_depths
+            and self._table_row_depths[-1] == self._table_depth
+        ):
+            declared_width = sum(entry[3] for entry in self._stack)
+            tag_name, buffer, style, _, is_footnote = self._stack.pop()
+            self._finish_block(tag_name, buffer, style, declared_width, is_footnote)
         if tag in _INLINE_SCRIPT_TAGS:
             if tag in self._script_stack:
                 while self._script_stack:
@@ -536,6 +558,8 @@ class _BlockTextExtractor(HTMLParser):
             declared_width = sum(entry[3] for entry in self._stack)
             tag_name, buffer, style, _, is_footnote = self._stack.pop()
             self._finish_block(tag_name, buffer, style, declared_width, is_footnote)
+        if tag in _TABLE_TAGS:
+            self._table_depth = max(0, self._table_depth - 1)
 
     def _finish_block(
         self,
@@ -556,6 +580,7 @@ class _BlockTextExtractor(HTMLParser):
         raw_text = "".join(buffer)
         if tag_name in _TABLE_ROW_TAGS:
             self._table_cell_counts.pop()
+            self._table_row_depths.pop()
         for raw_unit, source_indent in _split_dom_units(raw_text):
             text = normalize_semantic_text(raw_unit)
             if text:
@@ -648,6 +673,12 @@ def _is_markdown_table_row(line: str) -> bool:
     return len(cells) >= 2 and any(cell.strip() for cell in cells)
 
 
+def _is_empty_markdown_table_row(line: str, column_count: int) -> bool:
+    """Recognize an all-empty row only inside an established table."""
+    cells = _markdown_table_cells(line)
+    return len(cells) == column_count and not any(cell.strip() for cell in cells)
+
+
 def _render_markdown_table_row(line: str) -> str:
     """Keep Markdown table columns as searchable row evidence."""
     return " | ".join(cell.strip() for cell in _markdown_table_cells(line))
@@ -676,8 +707,20 @@ def _split_plain_text_units(text: str) -> list[tuple[str, int, str]]:
             continue
         if _is_markdown_table_row(line):
             rows: list[str] = []
-            while index < len(lines) and _is_markdown_table_row(lines[index]):
-                rows.append(lines[index])
+            column_count = len(_markdown_table_cells(line))
+            while index < len(lines):
+                candidate = lines[index]
+                established = (
+                    len(rows) >= 2
+                    and bool(_MARKDOWN_TABLE_SEPARATOR.match(rows[1]))
+                    and len(_markdown_table_cells(rows[1])) == column_count
+                )
+                if not _is_markdown_table_row(candidate) and not (
+                    established
+                    and _is_empty_markdown_table_row(candidate, column_count)
+                ):
+                    break
+                rows.append(candidate)
                 index += 1
             data_rows = [row for row in rows if not _MARKDOWN_TABLE_SEPARATOR.match(row)]
             if len(data_rows) >= 2:
