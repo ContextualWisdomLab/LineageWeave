@@ -5,6 +5,7 @@ reader-facing control you can click before changing product CSS.
 
 | Story | Reader next action | Token / module |
 |---|---|---|
+| `Ask/AskAgentWorkspace` | Review empty, loading, answered, unavailable, and phone states; open cited evidence after an answer. | UI-standard primary-button/focus tokens, responsive layout, `AskAgentWorkspace` |
 | `Evidence/CitationChip` | Click a cited title to open that source post. | `--color-chip-border`, `--radius-chip`, `CitationChip` |
 | `AnalysisRun/CutoffKnownBody` | Read the cutoff-known sentence, then compare it with the live body below. | `--color-accent-border`, `--space-panel-block`, `--radius-panel`, `CutoffKnownBody` |
 | `Analysis/LineageEntityPicker` | Choose which corp to reconstruct, then click Request a lineage reconstruction. | `--space-control-gap`, `--size-control-min`, `--radius-control`, `LineageEntityPicker` |

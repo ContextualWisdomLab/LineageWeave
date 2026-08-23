@@ -34,7 +34,7 @@ reimplementing them:
   tree assembly (`reconstruct.py`'s `_walk`/`thread_messages` calls).
 - [RankWeave](https://github.com/ContextualWisdomLab/RankWeave) for
   multi-channel score fusion (`weighted_convex_fuse` in
-  `reconstruct.py`) and the reader-facing Rankings port
+  `reconstruct.py`) and the buyer-facing Rankings port
   (`rankweave_client.py`) -- never invent a fused score or a theta.
 - [TEPP](https://github.com/ContextualWisdomLab/TEPP)'s published wire
   contract for calibrated measurement (`tepp_client.py`) -- never
@@ -127,7 +127,7 @@ contextual-orchestrator owns model discovery and selection.
   retaining the original asset and provenance. Recognize image DOM/visual
   regions before OCR, descriptions, Keyman extraction, or embeddings. Store
   region-level evidence; never show an internal LLM instruction such as
-  `This post is an image` to a reader.
+  `This post is an image` to a buyer.
 
 ## Source parsing and semantic units
 
@@ -146,10 +146,10 @@ contextual-orchestrator owns model discovery and selection.
 - Remove presentation-only visual line alignment inside a paragraph (for
   example continuation lines manually aligned after `-`, `*`, `1.`, or `.`)
   from derived semantic text, while retaining the source body and meaningful
-  list/heading nesting. A reader-facing post view must render semantic
+  list/heading nesting. A buyer-facing post view must render semantic
   paragraphs, not the authoring application's spacing workaround.
 - Image descriptions, OCR text, and region evidence are analysis artifacts,
-  not reader-facing prompt instructions. The workspace UI shows the source content and
+  not buyer-facing prompt instructions. Buyer UI shows the source content and
   useful captions/evidence only, with provenance where appropriate.
 
 ## Pluggable channels: never fake a missing signal
@@ -173,12 +173,21 @@ never a fabricated theta or a local psychometric substitute.
 Buyer Board **Weekly VOC** is an ISO-8601 week list filter (ADR 0092).
 Opening that filtered post focuses Event Lineage (ADR 0093). Do not
 invent a week, a theta, or a cutoff body.
-Opening a Calendar commitment uses the same focus path (ADR 0134). Do not
+Opening a Calendar commitment uses the same focus path (ADR 0094). Do not
 invent a week, a theta, a cutoff body, or a CalDAV event.
 Opening a Customer master related post uses the same focus path (ADR 0095).
 Do not invent a week, a theta, a cutoff body, a CalDAV event, or a customer.
-Opening an Ask Agent cited post uses the same focus path (ADR 0096). Do not
-invent a cited post.
+ Opening an Ask Agent cited post uses the same focus path (ADR 0096).
+ Do not invent a cited post.
+ A linked Event Lineage node opened from that focused popup keeps the
+ originating flags (ADR 0097). That open then focuses Keyman as the named
+next read (ADR 0100). Do not invent a week, a theta, a cutoff body,
+ a CalDAV event, a customer, or a cited post.
+
+Ask Agent accepts an optional knowledge cutoff (ADR 0135). A dated
+question uses retained revisions and never substitutes a live body. A
+live query is never labeled as-of. Do not invent a cutoff body or a
+TEPP theta.
 
 
 ## Tests

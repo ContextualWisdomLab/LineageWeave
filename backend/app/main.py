@@ -23,7 +23,7 @@ import asyncio
 import json
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Literal
 from uuid import UUID
 
@@ -70,10 +70,16 @@ from lineageweave.organization_name_resolution import (
     NullOrganizationNameResolutionClient,
 )
 from lineageweave.post_chat import (
+    ChatSourceDocument,
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
+    ask_grounding_status,
+    ask_next_action,
+    cited_post_citations,
     cited_post_evidence,
     cited_post_summaries,
+    historical_body_limitations,
+    render_global_ask_context,
 )
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_evaluation import (
@@ -114,6 +120,7 @@ from backend.app.activity_stream import (
     create_valkey_client,
     get_valkey,
     publish_activity_event,
+    publish_operation_event,
     read_activity_events,
     ticket_created_summary,
     ticket_status_changed_summary,
@@ -167,11 +174,16 @@ from backend.app.knowledge_graph import (
 )
 from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
 from backend.app.post_chat_ingestion import (
+    PostChatHistoryLimitError,
+    ensure_global_ask_session,
     fetch_persisted_chat,
     fetch_persisted_chats,
     find_linked_post_ids,
     gather_chat_sources,
     gather_global_chat_sources,
+    load_global_ask_context,
+    persist_global_ask_summary,
+    persist_global_ask_turn,
     persist_post_chat,
 )
 from backend.app.post_summary_ingestion import (
@@ -179,7 +191,28 @@ from backend.app.post_summary_ingestion import (
     persist_post_summary,
     require_summary_source_body,
 )
+from backend.app.ask_project_history import (
+    AskEvidenceBatchLimitError,
+    ask_knowledge_cutoff,
+    global_ask_session_citations_authorized,
+    read_authorized_ask_evidence,
+    read_authorized_ask_evidence_batch,
+)
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.project_history import (
+    PROJECT_HISTORY_DEFAULT_LIMIT,
+    PROJECT_HISTORY_MAXIMUM_LIMIT,
+    PROJECT_INDEX_DEFAULT_LIMIT,
+    PROJECT_INDEX_MAXIMUM_LIMIT,
+    ProjectHistoryNotFound,
+    fetch_project_history_index,
+    fetch_project_history_projection,
+)
+from backend.app.tepp_project_history import (
+    tenant_workspace_reference,
+    validate_project_history_with_tepp,
+)
+from lineageweave.project_history import normalize_project_key
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
     has_real_source_context,
@@ -250,6 +283,22 @@ def _require_post_admin(account: CurrentAccount) -> None:
     """Raise 403 when the account has no ``post_admin`` permission at all."""
     if not account.has_permission(_POST_ADMIN):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "account lacks the post_admin permission")
+
+
+def _require_ticket_post_access(account: CurrentAccount, post: asyncpg.Record) -> None:
+    """Require ticket mutation access to the owning post, not visibility alone.
+
+    ``post_admin`` is necessary but intentionally not sufficient: a public post
+    can be read by every account, while ticket state is still a write to the
+    authoring account's corporate work area.
+    """
+    is_author = str(post["author_account_id"]) == account.user_account_id
+    is_affiliated = str(post["corporate_entity_id"]) in account.corporate_entity_ids
+    if not (is_author or is_affiliated):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "account is not authorized to modify tickets on this post",
+        )
 
 
 def _keyman_extraction_client():
@@ -713,6 +762,7 @@ async def update_me_preferences(
     preference: LocalePreferenceRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, str]:
     """Persist member preferences without putting them in browser-only state."""
     async with pool.acquire() as conn:
@@ -721,6 +771,12 @@ async def update_me_preferences(
             preference.preferred_locale,
             account.user_account_id,
         )
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "preferences_updated",
+        "Locale preference updated",
+    )
     return {"preferred_locale": preference.preferred_locale}
 
 
@@ -1088,6 +1144,7 @@ async def resolve_customer_master_hint(
     request: CustomerHintResolveRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Resolve one observed customer-hint code to a real corporate_entity.
 
@@ -1127,6 +1184,12 @@ async def resolve_customer_master_hint(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             "this hint could not be resolved to a corroborated organization name",
         )
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "customer_hint_resolved",
+        "Customer hint resolved",
+    )
     return resolution
 
 
@@ -1152,6 +1215,7 @@ async def read_lineage_graph(
 async def rebuild_lineage_graph(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Run reconstruct over every source_post and persist post_lineage_edge.
 
@@ -1161,6 +1225,12 @@ async def rebuild_lineage_graph(
     async with pool.acquire() as conn:
         async with conn.transaction():
             edges = await rebuild_lineage(conn)
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "lineage_rebuilt",
+        "Lineage rebuilt",
+    )
     return {"edge_count": len(edges)}
 
 
@@ -1996,7 +2066,9 @@ async def read_post_counterparties(
     """
     post = await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
-        counterparties = await fetch_post_counterparties(conn, post_id)
+        counterparties = await fetch_post_counterparties(
+            conn, post_id, account.corporate_entity_ids
+        )
     return {
         "post_id": str(post["post_id"]),
         "counterparties": counterparties,
@@ -2474,6 +2546,7 @@ async def rebuild_period_report_endpoint(
     period_code: str,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Refit or FIPC-score every group in the period. post_admin only."""
     _require_post_admin(account)
@@ -2486,6 +2559,12 @@ async def rebuild_period_report_endpoint(
     async with pool.acquire() as conn:
         async with conn.transaction():
             reports = await rebuild_period_reports(conn, grouping_kind, period_code)
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "period_report_rebuilt",
+        "Period report rebuilt",
+    )
     return {
         "grouping_kind": grouping_kind,
         "period_code": period_code,
@@ -2615,6 +2694,7 @@ async def read_post_five_w1h(
             conn,
             post_id,
             lambda row: _can_see_post(account, row),
+            account.corporate_entity_ids,
         )
 
 
@@ -2628,6 +2708,29 @@ class GlobalAskRequest(BaseModel):
     """JSON body for the reader's source-grounded Global Ask Agent."""
 
     question: str
+    session_id: str | None = None
+    knowledge_cutoff: str | None = None
+
+
+def global_ask_timeline(sources: list[ChatSourceDocument]) -> list[dict[str, str | None]]:
+    """Return every authorized Ask source in event order, not citation order."""
+    ordered = sorted(
+        sources,
+        key=lambda source: (
+            source.occurred_at is None,
+            source.occurred_at or "",
+            source.post_id,
+        ),
+    )
+    return [
+        {
+            "post_id": source.post_id,
+            "post_title": source.post_title,
+            "occurred_at": source.occurred_at,
+            "timeline_kind": source.timeline_kind,
+        }
+        for source in ordered
+    ]
 
 
 @app.get("/api/posts/{post_id}/chat")
@@ -2643,9 +2746,36 @@ async def read_post_chat(
     an empty list, not a fabricated transcript.
     """
     await _load_visible_post(post_id, account, pool)
+    authorized_exchanges: list[dict[str, Any]] = []
     async with pool.acquire() as conn:
-        exchanges = await fetch_persisted_chats(conn, post_id)
-    return {"post_id": post_id, "exchanges": exchanges}
+        try:
+            exchanges = await fetch_persisted_chats(conn, post_id)
+            evidence_by_exchange = await read_authorized_ask_evidence_batch(
+                conn,
+                exchanges=[
+                    (
+                        exchange["cited_post_ids"],
+                        exchange.get("_knowledge_cutoff"),
+                    )
+                    for exchange in exchanges
+                ],
+                corporate_entity_ids=account.corporate_entity_ids,
+            )
+        except (AskEvidenceBatchLimitError, PostChatHistoryLimitError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask history is too large to read safely; ask an administrator "
+                "to reduce retained history and retry",
+            ) from exc
+        for exchange, evidence in zip(exchanges, evidence_by_exchange, strict=True):
+            if not evidence.all_citations_visible:
+                continue
+            public_exchange = {
+                key: value for key, value in exchange.items() if not key.startswith("_")
+            }
+            public_exchange.update(evidence.response_fields())
+            authorized_exchanges.append(public_exchange)
+    return {"post_id": post_id, "exchanges": authorized_exchanges}
 
 
 @app.post("/api/posts/{post_id}/chat")
@@ -2671,18 +2801,28 @@ async def chat_about_post(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
     post = await _load_visible_post(post_id, account, pool)
     post_metadata = build_post_llm_metadata(post_id, post)
+    knowledge_cutoff = ask_knowledge_cutoff()
     async with pool.acquire() as conn:
         stored = await fetch_persisted_chat(conn, post_id, question)
         if stored is not None:
-            source_ids = [post_id]
-            source_ids.extend(cid for cid in stored["cited_post_ids"] if cid != post_id)
-            return {
-                "post_id": post_id,
-                "answer_text": stored["answer_text"],
-                "cited_post_ids": stored["cited_post_ids"],
-                "cited_posts": stored["cited_posts"],
-                "source_post_ids": source_ids,
-            }
+            stored_cutoff = ask_knowledge_cutoff(stored.get("_knowledge_cutoff"))
+            stored_evidence = await read_authorized_ask_evidence(
+                conn,
+                cited_post_ids=stored["cited_post_ids"],
+                corporate_entity_ids=account.corporate_entity_ids,
+                knowledge_cutoff=stored_cutoff,
+            )
+            if stored_evidence.all_citations_visible:
+                source_ids = list(
+                    dict.fromkeys([post_id, *stored["cited_post_ids"]])
+                )
+                return {
+                    "post_id": post_id,
+                    "answer_text": stored["answer_text"],
+                    "cited_post_ids": stored["cited_post_ids"],
+                    "source_post_ids": source_ids,
+                    **stored_evidence.response_fields(),
+                }
         with use_llm_metadata(post_metadata):
             client = _post_chat_client()
             if not client.available:
@@ -2691,7 +2831,11 @@ async def chat_about_post(
                     "Post chat is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
                 )
             sources = await gather_chat_sources(
-                conn, post_id, lambda row: _can_see_post(account, row), vision_client=_vision_client()
+                conn,
+                post_id,
+                lambda row: _can_see_post(account, row),
+                vision_client=_vision_client(),
+                knowledge_cutoff=knowledge_cutoff,
             )
     try:
         with use_llm_metadata(post_metadata):
@@ -2708,7 +2852,25 @@ async def chat_about_post(
         ) from exc
     cited_ids = list(answer.cited_post_ids)
     async with pool.acquire() as conn:
-        await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)
+        await persist_post_chat(
+            conn,
+            post_id,
+            question,
+            answer.answer_text,
+            cited_ids,
+            knowledge_cutoff=knowledge_cutoff,
+        )
+        answer_evidence = await read_authorized_ask_evidence(
+            conn,
+            cited_post_ids=cited_ids,
+            corporate_entity_ids=account.corporate_entity_ids,
+            knowledge_cutoff=knowledge_cutoff,
+        )
+    if not answer_evidence.all_citations_visible:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Post chat evidence changed before the answer could be returned",
+        )
     await publish_activity_event(
         valkey,
         post_id,
@@ -2720,8 +2882,8 @@ async def chat_about_post(
         "post_id": post_id,
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
-        "cited_posts": cited_post_summaries(sources, cited_ids),
         "source_post_ids": [source.post_id for source in sources],
+        **answer_evidence.response_fields(),
     }
 
 
@@ -2730,12 +2892,27 @@ async def ask_agent(
     request: GlobalAskRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Answer a reader question from authorized post and graph evidence."""
     question = request.question.strip()
     if not question:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
     _require_post_read(account)
+    if request.session_id is not None:
+        try:
+            UUID(request.session_id)
+        except ValueError:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Global Ask session not found") from None
+    try:
+        knowledge_cutoff = ask_knowledge_cutoff(
+            request.knowledge_cutoff.strip() if request.knowledge_cutoff else None
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "knowledge_cutoff must be an ISO-8601 timestamp",
+        ) from exc
     client = _post_chat_client()
     if not client.available:
         raise HTTPException(
@@ -2743,23 +2920,109 @@ async def ask_agent(
             "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
         )
     async with pool.acquire() as conn:
+        session_id = await ensure_global_ask_session(
+            conn, account.user_account_id, request.session_id
+        )
+        if session_id is None:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "Global Ask session not found")
+        if not await global_ask_session_citations_authorized(
+            conn,
+            session_id=session_id,
+            corporate_entity_ids=account.corporate_entity_ids,
+            knowledge_cutoff=knowledge_cutoff,
+        ):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                "Global Ask session evidence is no longer authorized; start a new session",
+            )
+        conversation = await load_global_ask_context(conn, session_id)
         sources = await gather_global_chat_sources(
             conn,
             lambda row: _can_see_post(account, row),
             account.corporate_entity_ids,
             question=question,
+            knowledge_cutoff=knowledge_cutoff,
         )
-    if not sources:
+    if conversation.compress_turns:
+        compressor = getattr(client, "compress_context", None)
+        if not callable(compressor):
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask Agent conversation context compression is unavailable",
+            )
+        try:
+            compressed = await asyncio.to_thread(
+                compressor,
+                conversation.summary,
+                list(conversation.compress_turns),
+            )
+            async with pool.acquire() as conn:
+                await persist_global_ask_summary(
+                    conn,
+                    conversation.session_id,
+                    compressed,
+                    conversation.compress_turns[-1][0],
+                )
+                conversation = await load_global_ask_context(conn, conversation.session_id)
+        except (HttpClientError, KeyError, OSError, ValueError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask Agent conversation context compression is unavailable",
+            ) from exc
+        except Exception as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask Agent conversation context compression is unavailable",
+            ) from exc
+    conversation_context = render_global_ask_context(
+        conversation.summary,
+        conversation.recent_turns,
+    )
+    try:
+        grounding_status = ask_grounding_status(sources, knowledge_cutoff)
+        limitations = historical_body_limitations(sources)
+        cutoff_text = knowledge_cutoff.isoformat() if knowledge_cutoff is not None else None
+        llm_sources = [source for source in sources if not source.historical_body_unavailable]
+    except Exception as exc:  # noqa: BLE001 - malformed evidence must fail closed.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
+        ) from exc
+    if not llm_sources:
+        async with pool.acquire() as conn:
+            await persist_global_ask_turn(conn, conversation.session_id, question, "", ())
+        await publish_operation_event(
+            valkey,
+            account.user_account_id,
+            "global_ask_completed",
+            "Global Ask completed with no authorized source posts",
+        )
         return {
+            "session_id": conversation.session_id,
             "answer_text": "",
             "cited_post_ids": [],
-            "cited_posts": [],
-            "source_post_ids": [],
+            "source_post_ids": [source.post_id for source in sources],
             "cited_post_evidence": [],
-            "next_action": "No authorized source posts are available for this question.",
+            "project_histories": [],
+            "project_histories_truncated": False,
+            "cited_posts": [],
+            "knowledge_cutoff": cutoff_text,
+            "timeline": global_ask_timeline(sources),
+            "grounding_status": grounding_status,
+            "limitations": limitations,
+            "next_action": ask_next_action(
+                grounding_status,
+                has_sources=bool(sources),
+                has_retained_bodies=bool(llm_sources),
+            ),
         }
     try:
-        answer = await asyncio.to_thread(client.answer, question, sources)
+        answer = await asyncio.to_thread(
+            client.answer,
+            question,
+            llm_sources,
+            conversation_context=conversation_context,
+        )
     except (HttpClientError, KeyError, OSError, RuntimeError, ValueError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -2771,12 +3034,52 @@ async def ask_agent(
             "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
+    async with pool.acquire() as conn:
+        await persist_global_ask_turn(
+            conn,
+            conversation.session_id,
+            question,
+            answer.answer_text,
+            cited_ids,
+        )
+        answer_evidence = await read_authorized_ask_evidence(
+            conn,
+            cited_post_ids=cited_ids,
+            corporate_entity_ids=account.corporate_entity_ids,
+            knowledge_cutoff=knowledge_cutoff,
+        )
+    if not answer_evidence.all_citations_visible:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Global Ask evidence changed before the answer could be returned",
+        )
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "global_ask_completed",
+        f"Global Ask completed with {len(cited_ids)} cited source post(s)",
+    )
     return {
+        "session_id": conversation.session_id,
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
-        "cited_posts": cited_post_summaries(sources, cited_ids),
-        "cited_post_evidence": cited_post_evidence(sources, cited_ids),
+        "cited_posts": cited_post_citations(llm_sources, cited_ids),
+        "cited_post_evidence": cited_post_evidence(llm_sources, cited_ids),
+        # The timeline is the complete authorized retrieval boundary. A
+        # source without a retained cutoff body is still a real timeline
+        # event and must remain navigable, even though it is excluded from
+        # the LLM evidence bundle.
         "source_post_ids": [source.post_id for source in sources],
+        "timeline": global_ask_timeline(sources),
+        "knowledge_cutoff": cutoff_text,
+        "grounding_status": grounding_status,
+        "limitations": limitations,
+        "next_action": ask_next_action(
+            grounding_status,
+            has_sources=True,
+            has_retained_bodies=bool(llm_sources),
+        ),
+        **answer_evidence.response_fields(),
     }
 
 
@@ -2806,6 +3109,7 @@ async def write_post_bookmark(
     request: PostBookmarkRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
@@ -2825,6 +3129,13 @@ async def write_post_bookmark(
                 account.user_account_id,
                 post_id,
             )
+    await publish_activity_event(
+        valkey,
+        post_id,
+        "bookmark_changed",
+        account.user_account_id,
+        "Post bookmark added" if request.bookmarked else "Post bookmark removed",
+    )
     return {"post_id": post_id, "bookmarked": request.bookmarked}
 
 
@@ -2867,7 +3178,8 @@ async def create_post_ticket(
     a ticket is a write action, same discipline as extract-keymen.
     """
     _require_post_admin(account)
-    await _load_visible_post(post_id, account, pool)
+    post = await _load_visible_post(post_id, account, pool)
+    _require_ticket_post_access(account, post)
     async with pool.acquire() as conn:
         try:
             ticket = await create_ticket(
@@ -2928,7 +3240,8 @@ async def patch_ticket(
         post_id = await fetch_ticket_post_id(conn, issue_ticket_id)
         if post_id is None:
             raise HTTPException(status.HTTP_404_NOT_FOUND, "ticket not found")
-    await _load_visible_post(post_id, account, pool)
+    post = await _load_visible_post(post_id, account, pool)
+    _require_ticket_post_access(account, post)
     async with pool.acquire() as conn:
         try:
             ticket = await update_ticket(
@@ -2989,6 +3302,7 @@ async def derive_post_commitment(
     """
     _require_post_admin(account)
     post = await _load_visible_post(post_id, account, pool)
+    _require_ticket_post_access(account, post)
     post_metadata = build_post_llm_metadata(post_id, post)
     with use_llm_metadata(post_metadata):
         client = _commitment_extraction_client()
@@ -3084,6 +3398,7 @@ async def create_analysis_run(
     request: CreateAnalysisRunRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
     """Record a Pending lineage run on an authorized cutoff capture.
 
@@ -3108,6 +3423,12 @@ async def create_analysis_run(
                 )
             except AnalysisRunCreateError as exc:
                 raise HTTPException(exc.status_code, exc.detail) from exc
+    await publish_operation_event(
+        valkey,
+        account.user_account_id,
+        "analysis_run_created",
+        "Analysis run created",
+    )
     return created
 
 
@@ -3152,6 +3473,12 @@ async def start_analysis_run(
             analysis_run_id=analysis_run_id,
             work_kind_code=str(queued.get("run_kind_code") or ""),
             request_sha256=request_digest,
+        )
+        await publish_operation_event(
+            valkey,
+            account.user_account_id,
+            "analysis_run_start_requested",
+            "Analysis run start requested",
         )
     async with pool.acquire() as conn:
         async with conn.transaction():
@@ -3245,6 +3572,83 @@ async def read_calendar(
             "caldav_next_action": caldav_next_action,
         },
     }
+
+
+@app.get("/api/project-history/projects")
+async def read_project_history_projects(
+    limit: int = Query(PROJECT_INDEX_DEFAULT_LIMIT, ge=1, le=PROJECT_INDEX_MAXIMUM_LIMIT),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return exact project identities available to the signed-in buyer."""
+
+    _require_post_read(account)
+    knowledge_cutoff = datetime.now(timezone.utc)
+    async with pool.acquire() as conn:
+        return await fetch_project_history_index(
+            conn,
+            knowledge_cutoff=knowledge_cutoff,
+            corporate_entity_ids=list(account.corporate_entity_ids),
+            limit=limit,
+        )
+
+
+@app.get("/api/project-history")
+async def read_project_history(
+    project_key: str = Query(..., min_length=1),
+    focus_post_id: str | None = Query(None),
+    knowledge_cutoff: str | None = Query(None),
+    limit: int = Query(PROJECT_HISTORY_DEFAULT_LIMIT, ge=1, le=PROJECT_HISTORY_MAXIMUM_LIMIT),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return one exact, authorized project history for the Buyer timeline."""
+
+    _require_post_read(account)
+    try:
+        normalized_project_key = normalize_project_key(project_key)
+    except ValueError as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "project_key must contain a non-empty exact identity",
+        ) from exc
+    if focus_post_id is not None:
+        try:
+            UUID(focus_post_id)
+        except ValueError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "focus_post_id must be a UUID",
+            ) from exc
+    if knowledge_cutoff is None:
+        cutoff = datetime.now(timezone.utc)
+    else:
+        try:
+            cutoff = parse_as_of_clock(knowledge_cutoff)
+        except ValueError as exc:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                "knowledge_cutoff must be an ISO-8601 timestamp",
+            ) from exc
+    async with pool.acquire() as conn:
+        try:
+            projection = await fetch_project_history_projection(
+                conn,
+                project_key=project_key,
+                focus_post_id=focus_post_id,
+                knowledge_cutoff=cutoff,
+                corporate_entity_ids=list(account.corporate_entity_ids),
+                limit=limit,
+            )
+        except ProjectHistoryNotFound as exc:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "project history not found") from exc
+    projection["tepp_validation"] = await asyncio.to_thread(
+        validate_project_history_with_tepp,
+        projection=projection,
+        tenant_workspace_id=tenant_workspace_reference(account.corporate_entity_ids),
+        transport_url=load_settings().tepp_transport_url,
+    )
+    return projection
 
 
 @app.get("/api/rankings")

@@ -29,9 +29,10 @@ import binascii
 import json
 import math
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from io import BytesIO
-from typing import Protocol
+from typing import Any, Protocol
 from urllib.parse import urlparse
 
 from PIL import Image
@@ -157,7 +158,14 @@ class ImageContentClient(Protocol):
 
     available: bool
 
-    def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
+    def describe(
+        self,
+        image_bytes: bytes,
+        mime_type: str,
+        *,
+        session_id: str | None = None,
+        metadata: Mapping[str, str] | None = None,
+    ) -> ImageDescription:
         """Return OCR text, caption, and tags for one image.
 
         Implementations must raise if they cannot produce a description.
@@ -172,7 +180,14 @@ class NullImageContentClient:
 
     available = False
 
-    def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:  # pragma: no cover
+    def describe(
+        self,
+        image_bytes: bytes,
+        mime_type: str,
+        *,
+        session_id: str | None = None,
+        metadata: Mapping[str, str] | None = None,
+    ) -> ImageDescription:  # pragma: no cover
         """Describe the supplied image through the configured vision channel."""
         raise RuntimeError("NullImageContentClient has no image channel; check .available first")
 
@@ -313,16 +328,28 @@ class OpenAiCompatibleVisionClient:
             )
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key
-        self._model = model.strip() if model else ""
+        # Kept for source compatibility only. Model discovery belongs to the
+        # contextual-orchestrator capability boundary.
+        _ = model
         self._timeout = timeout
 
-    def describe(self, image_bytes: bytes, mime_type: str) -> ImageDescription:
+    def describe(
+        self,
+        image_bytes: bytes,
+        mime_type: str,
+        *,
+        session_id: str | None = None,
+        metadata: Mapping[str, str] | None = None,
+    ) -> ImageDescription:
         """Describe the supplied image through the configured vision channel."""
         from .vision_image import normalize_vision_image
 
         image_bytes, mime_type = normalize_vision_image(image_bytes, mime_type)
         data_uri = f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
-        payload = {
+        request_metadata = dict(metadata or {})
+        if session_id:
+            request_metadata.setdefault("session_id", session_id)
+        payload: dict[str, Any] = {
             "messages": [
                 {"role": "system", "content": _VISION_SYSTEM_ROLE},
                 {
@@ -335,10 +362,9 @@ class OpenAiCompatibleVisionClient:
             ],
             "mode": "auto",
             "reasoning_effort": "auto",
-            "max_tokens": 1024,
+            "max_tokens": 1200,
+            **({"metadata": request_metadata} if request_metadata else {}),
         }
-        if self._model:
-            payload["model"] = self._model
         body = post_json(
             f"{self._base_url}/chat/completions",
             payload,
@@ -348,13 +374,23 @@ class OpenAiCompatibleVisionClient:
         content = chat_completion_content(body)
         return _parse_description(content)
 
-    def locate_regions(self, image_bytes: bytes, mime_type: str) -> tuple[ImageRegion, ...]:
+    def locate_regions(
+        self,
+        image_bytes: bytes,
+        mime_type: str,
+        *,
+        session_id: str | None = None,
+        metadata: Mapping[str, str] | None = None,
+    ) -> tuple[ImageRegion, ...]:
         """Locate meaningful visual panels through the same orchestrator VISION model."""
         from .vision_image import normalize_vision_image
 
         image_bytes, mime_type = normalize_vision_image(image_bytes, mime_type)
         data_uri = f"data:{mime_type};base64,{base64.b64encode(image_bytes).decode('ascii')}"
-        payload = {
+        request_metadata = dict(metadata or {})
+        if session_id:
+            request_metadata.setdefault("session_id", session_id)
+        payload: dict[str, Any] = {
             "messages": [
                 {"role": "system", "content": _VISION_SYSTEM_ROLE},
                 {
@@ -369,9 +405,8 @@ class OpenAiCompatibleVisionClient:
             "reasoning_effort": "auto",
             "max_tokens": 2048,
             "response_format": {"type": "json_object"},
+            **({"metadata": request_metadata} if request_metadata else {}),
         }
-        if self._model:
-            payload["model"] = self._model
         body = post_json(
             f"{self._base_url}/chat/completions",
             payload,
@@ -418,8 +453,9 @@ def orchestrator_vision_client(base_url: str, api_key: str, model: str | None = 
     :class:`OpenAiCompatibleVisionClient` POSTs ``{base_url}/chat/completions``,
     so this appends ``/v1`` unless already present. An ``http://`` orchestrator
     (local docker) is allowed because the other channels already talk to the
-    same URL. A construct-time error degrades to the unavailable null rather
-    than crashing the request that asked for a description.
+    same URL. ``model`` is retained for source compatibility but is never
+    sent: contextual-orchestrator owns capability discovery. A construct-time
+    error degrades to the unavailable null rather than crashing the request.
     """
     if not (base_url and api_key):
         return NullImageContentClient()

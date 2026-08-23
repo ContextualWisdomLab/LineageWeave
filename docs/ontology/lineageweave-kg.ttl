@@ -36,8 +36,9 @@
 <https://contextualwisdomlab.github.io/lineageweave/ontology> a owl:Ontology ;
     owl:versionIRI <https://contextualwisdomlab.github.io/lineageweave/ontology/1.0.0> ;
     owl:versionInfo "1.0.0" ;
-    owl:imports <http://www.w3.org/ns/org> ,
-        <http://www.w3.org/ns/prov-o> ,
+    owl:imports
+        <http://www.w3.org/ns/org>,
+        <http://www.w3.org/ns/prov-o>,
         <http://www.w3.org/2004/02/skos/core> ;
     rdfs:label "LineageWeave Knowledge Graph Ontology" ;
     rdfs:comment "Formal OWL 2 / RDFS / SKOS vocabulary for LineageWeave's knowledge graph, operational controlled vocabularies, and post-summary actor types." .
@@ -86,6 +87,24 @@
     rdfs:label "Team" ;
     rdfs:comment "A cataloged_team row: a named company sub-unit (ADR 0009) with a stable team_id, distinct from :RoleActorTeam (ADR 0007's per-row actor_type_code classification) the same way :Person is distinct from :RoleActorPerson." ;
     :lookupCode "node_team" .
+
+#################################################################
+# W3C ORG -- real organization containment and unit membership
+#################################################################
+
+:subOrganizationOf a owl:ObjectProperty ;
+    rdfs:subPropertyOf org:subOrganizationOf ;
+    rdfs:domain :CorporateEntity ;
+    rdfs:range :CorporateEntity ;
+    rdfs:label "sub-organization of" ;
+    rdfs:comment "The semantic projection of corporate_entity.parent_entity_id. This is real organizational containment, not SKOS concept hierarchy." .
+
+:hasSubOrganization a owl:ObjectProperty ;
+    rdfs:subPropertyOf org:hasSubOrganization ;
+    owl:inverseOf :subOrganizationOf ;
+    rdfs:domain :CorporateEntity ;
+    rdfs:range :CorporateEntity ;
+    rdfs:label "has sub-organization" .
 
 #################################################################
 # Object properties -- edge_type (knowledge_graph_edge.edge_type_code)
@@ -320,6 +339,17 @@
 #################################################################
 # SKOS -- corporate_entity_level (Group -> Company -> Plant)
 #################################################################
+
+:CorporateEntityLevel a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Corporate entity level" ;
+    rdfs:comment "A classification concept such as Group, Company, or Plant. It is not the real organization instance." .
+
+:hasEntityLevel a owl:ObjectProperty ;
+    rdfs:domain :CorporateEntity ;
+    rdfs:range :CorporateEntityLevel ;
+    rdfs:label "has corporate entity level" ;
+    rdfs:comment "Projects corporate_entity.entity_level_code to the corresponding controlled SKOS concept." .
 
 :corporateEntityLevelScheme a skos:ConceptScheme ;
     rdfs:label "Corporate entity level scheme" ;
