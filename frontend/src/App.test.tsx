@@ -81,6 +81,9 @@ describe("App, authenticated", () => {
   function stubBackend(options?: {
     admin?: boolean;
     calendarCommitments?: unknown[];
+    calendarEvents?: unknown[];
+    calendarUnavailable?: boolean;
+    caldavAvailable?: boolean;
     rankings?: {
       status?: "accepted" | "unavailable";
       status_reason?: string | null;
@@ -90,8 +93,13 @@ describe("App, authenticated", () => {
         fused_rank: number;
       }[];
     };
+    rankingsUnavailable?: boolean;
     chatUnavailable?: boolean;
     evidenceUnavailable?: boolean;
+    legacyChatCitations?: boolean;
+    postChatConversationUnavailable?: boolean;
+    postChatHistoryUnavailable?: boolean;
+    preferenceUnavailable?: boolean;
     searchUnavailable?: boolean;
     askUnavailable?: boolean;
     askHistory?: boolean;
@@ -99,6 +107,10 @@ describe("App, authenticated", () => {
     postAskHistory?: boolean;
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
+    analysisRunCreateStatus?: 409 | 500;
+    analysisRunOpenStatus?: 404 | 500;
+    analysisRunsUnavailable?: boolean;
+    analysisRunStartUnavailable?: boolean;
     runningLineageRun?: boolean;
     failedReportRun?: boolean;
     succeededReportRun?: boolean;
@@ -109,6 +121,8 @@ describe("App, authenticated", () => {
     noAffiliations?: boolean;
     deferMe?: boolean;
     deferPosts?: boolean;
+    directLineage?: boolean;
+    emptyLineage?: boolean;
     meFailed?: boolean;
     postBody?: string;
     vocTypeOptions?: { code: string; label: string }[];
@@ -230,6 +244,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ brandName: "LineageWeave" }));
       }
       if (url.endsWith("/api/me/preferences") && method === "PATCH") {
+        if (options?.preferenceUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         const body = JSON.parse(String(init?.body));
         return Promise.resolve(jsonResponse({ preferred_locale: body.preferred_locale }));
       }
@@ -506,6 +523,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-lineage")) {
+        if (options?.analysisRunOpenStatus) {
+          return Promise.resolve(new Response(null, { status: options.analysisRunOpenStatus }));
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-lineage",
@@ -605,6 +625,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-lineage-pending/start") && method === "POST") {
+        if (options?.analysisRunStartUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-lineage-pending",
@@ -717,6 +740,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs") && method === "POST") {
+        if (options?.analysisRunCreateStatus) {
+          return Promise.resolve(new Response(null, { status: options.analysisRunCreateStatus }));
+        }
         const payload = init?.body ? JSON.parse(String(init.body)) : {};
         if (payload.run_kind_code === "analysis_run_tepp" || payload.run_kind_code === "analysis_run_report") {
           return Promise.resolve(
@@ -758,6 +784,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(new Response(JSON.stringify(created), { status: 201 }));
       }
       if (url.endsWith("/api/analysis-runs")) {
+        if (options?.analysisRunsUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             analysis_runs: [
@@ -848,8 +877,13 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/calendar")) {
+        if (options?.calendarUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
+            events: options?.calendarEvents ?? [],
+            calendar_sources: { caldav_available: options?.caldavAvailable ?? false },
             commitments:
               options?.calendarCommitments ?? [
                 {
@@ -883,6 +917,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/rankings")) {
+        if (options?.rankingsUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         const rankings = options?.rankings ?? {
           status: "unavailable" as const,
           status_reason: "rankweave_not_available",
@@ -1087,13 +1124,15 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ group_count: 1 }));
       }
       if (url.includes("/api/lineage") && method === "GET") {
-        if (options?.lineageIsolationReason && url.includes("post_id=")) {
+        if ((options?.lineageIsolationReason || options?.emptyLineage) && url.includes("post_id=")) {
           return Promise.resolve(
             jsonResponse({
               nodes: [],
               edges: [],
               truncated: false,
-              isolation_reason: options.lineageIsolationReason,
+              ...(options.lineageIsolationReason
+                ? { isolation_reason: options.lineageIsolationReason }
+                : {}),
             }),
           );
         }
@@ -1757,8 +1796,10 @@ describe("App, authenticated", () => {
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
-            direct: [],
-            indirect: options?.lineageIsolationReason
+            direct: options?.directLineage
+              ? [{ post_id: "post-2", post_title: "Linked post" }]
+              : [],
+            indirect: options?.lineageIsolationReason || options?.emptyLineage || options?.directLineage
               ? []
               : [{ post_id: "post-2", post_title: "Linked post" }],
           }),
@@ -1773,7 +1814,9 @@ describe("App, authenticated", () => {
                 question_text: "What happened between these events?",
                 answer_text: "The seeded follow-up after the site visit.",
                 cited_post_ids: ["post-2"],
-                cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
+                ...(options?.legacyChatCitations
+                  ? {}
+                  : { cited_posts: [{ post_id: "post-2", post_title: "Linked post" }] }),
               },
               {
                 question_text: "Who is involved?",
@@ -1824,12 +1867,17 @@ describe("App, authenticated", () => {
             conversation_id: conversationId,
             answer_text: "Here is what happened, drawing on the linked post.",
             cited_post_ids: ["post-2"],
-            cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
+            ...(options?.legacyChatCitations
+              ? {}
+              : { cited_posts: [{ post_id: "post-2", post_title: "Linked post" }] }),
             source_post_ids: ["post-1", "post-2"],
           }),
         );
       }
       if (url.endsWith("/api/posts/post-1/chat/conversations") && method === "GET") {
+        if (options?.postChatHistoryUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         if (options?.postAskHistory) {
           return Promise.resolve(
             jsonResponse({
@@ -1847,6 +1895,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ conversations: [] }));
       }
       if (url.endsWith("/api/posts/post-1/chat/conversations/conversation-post-1") && method === "GET") {
+        if (options?.postChatConversationUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             conversation_id: "conversation-post-1",
@@ -2906,6 +2957,21 @@ describe("App, authenticated", () => {
         }),
       );
     });
+
+    fireEvent.change(language, { target: { value: "unsupported" } });
+    expect(document.documentElement.lang).toBe("ja");
+  });
+
+  it("keeps the selected language when preference persistence is unavailable", async () => {
+    stubBackend({ preferenceUnavailable: true });
+    render(<App showLabPanels />);
+
+    const language = await screen.findByRole("combobox", {
+      name: /language|언어|言語|语言|ngôn ngữ/i,
+    });
+    await userEvent.selectOptions(language, "ja");
+
+    await waitFor(() => expect(document.documentElement.lang).toBe("ja"));
   });
 
   it("rebuilds lineage when the account has post_admin", async () => {
@@ -3052,6 +3118,32 @@ describe("App, authenticated", () => {
       expect(within(popup).queryByText("No linked posts yet.")).not.toBeInTheDocument();
     },
   );
+
+  it("keeps the generic empty-lineage copy for historical graph responses", async () => {
+    stubBackend({ emptyLineage: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const popup = await screen.findByRole("dialog", { name: "Public post" });
+    expect(await within(popup).findByText("No linked posts yet.")).toBeInTheDocument();
+    expect(
+      within(popup).getByText("No linked posts have been established for this record."),
+    ).toBeInTheDocument();
+  });
+
+  it("labels a direct related post", async () => {
+    stubBackend({ directLineage: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const relatedPosts = screen.getByRole("heading", { name: "Related posts", level: 3 }).closest(
+      ".related-posts-section",
+    );
+    expect(relatedPosts).not.toBeNull();
+    expect(within(relatedPosts as HTMLElement).getByText("Direct relation")).toBeInTheDocument();
+  });
 
   it("keeps the post popup keyboard-contained and restores the opener after Escape", async () => {
     const user = userEvent.setup();
@@ -3203,10 +3295,12 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
+    await userEvent.click(screen.getByRole("button", { name: "Close evidence panel" }));
+    expect(screen.queryByText("The evidence panel should show exactly this text.")).not.toBeInTheDocument();
   });
 
   it("stops loading and gives the reader a next action when cited evidence is unavailable", async () => {
-    stubBackend({ evidenceUnavailable: true });
+    const fetchMock = stubBackend({ evidenceUnavailable: true });
     render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
@@ -3223,10 +3317,53 @@ describe("App, authenticated", () => {
     expect(alert).toHaveTextContent("Retry opening this source, or keep reading the saved answer.");
     expect(screen.getByRole("button", { name: "Retry evidence" })).toBeInTheDocument();
     expect(screen.queryByText("Loading source post...")).not.toBeInTheDocument();
+    const attempts = fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/api/posts/post-2")).length;
+    await userEvent.click(screen.getByRole("button", { name: "Retry evidence" }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/api/posts/post-2")),
+      ).toHaveLength(attempts + 1),
+    );
   }, 15_000);
 
+  it("shows post chat history failures without hiding saved evidence", async () => {
+    stubBackend({ postChatHistoryUnavailable: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    expect(await screen.findByText("Conversation history could not be loaded.")).toBeInTheDocument();
+    expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument();
+  });
+
+  it("keeps seeded post chat visible when a saved conversation cannot be loaded", async () => {
+    stubBackend({ postAskHistory: true, postChatConversationUnavailable: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: /Saved post question/ }));
+
+    expect(await screen.findByText("Conversation history could not be loaded.")).toBeInTheDocument();
+    expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument();
+  });
+
+  it("renders legacy citation identifiers and ignores an empty Enter ask", async () => {
+    const fetchMock = stubBackend({ legacyChatCitations: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const input = await screen.findByPlaceholderText(/what happened/i);
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(
+      fetchMock.mock.calls.filter(
+        ([url, init]) => String(url).endsWith("/api/posts/post-1/chat") && init?.method === "POST",
+      ),
+    ).toHaveLength(0);
+    expect(screen.getByRole("button", { name: "Open evidence: post-2" })).toBeInTheDocument();
+  });
+
   it("shows a clear empty state when chat is 503 without an orchestrator", async () => {
-    stubBackend({ chatUnavailable: true });
+    const fetchMock = stubBackend({ chatUnavailable: true });
     render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
@@ -3249,6 +3386,15 @@ describe("App, authenticated", () => {
     expect(
       screen.getByText("The next commitment is Send Northridge Grid the revised quote, due 2026-01-12."),
     ).toBeInTheDocument();
+    const postAttempts = fetchMock.mock.calls.filter(
+      ([url, init]) => String(url).endsWith("/api/posts/post-1/chat") && init?.method === "POST",
+    ).length;
+    await userEvent.click(screen.getAllByRole("button", { name: /ask seeded question/i })[0]);
+    expect(
+      fetchMock.mock.calls.filter(
+        ([url, init]) => String(url).endsWith("/api/posts/post-1/chat") && init?.method === "POST",
+      ),
+    ).toHaveLength(postAttempts);
   });
 
   it("shows a clear empty state when evaluate is 503 without an orchestrator", async () => {
@@ -3669,12 +3815,67 @@ describe("App, authenticated", () => {
     );
   });
 
+  it("renders CalDAV availability and events", async () => {
+    stubBackend({
+      calendarCommitments: [],
+      calendarEvents: [
+        {
+          event_id: "event-synthetic",
+          summary: "Synthetic design review",
+          starts_at: "2026-01-15T09:00:00Z",
+        },
+      ],
+      caldavAvailable: true,
+    });
+    render(<App showLabPanels />);
+
+    expect(await screen.findByText("Synthetic design review")).toBeInTheDocument();
+    expect(screen.getByText("2026-01-15T09:00:00Z")).toBeInTheDocument();
+  });
+
+  it("retries calendar loading failures", async () => {
+    const fetchMock = stubBackend({ calendarUnavailable: true });
+    render(<App showLabPanels />);
+
+    const calendarAlert = (await screen.findAllByRole("alert"))[0];
+    const retry = within(calendarAlert).getByRole("button", { name: "Retry" });
+    const attempts = fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/calendar")).length;
+    await userEvent.click(retry);
+
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/calendar")))
+        .toHaveLength(attempts + 1),
+    );
+  });
+
   it("names RankWeave unavailability on home rankings instead of inventing a fused score", async () => {
     stubBackend();
     render(<App />);
 
     expect(await screen.findByText("Rankings · RankWeave not available")).toBeInTheDocument();
     expect(screen.queryByText("Pricing renegotiation: revised quote sent")).not.toBeInTheDocument();
+  });
+
+  it("names an accepted empty RankWeave result", async () => {
+    stubBackend({ rankings: { status: "accepted", rankings: [] } });
+    render(<App />);
+
+    expect(await screen.findByText("No fused rankings from RankWeave.")).toBeInTheDocument();
+  });
+
+  it("retries ranking loading failures", async () => {
+    const fetchMock = stubBackend({ rankingsUnavailable: true });
+    render(<App />);
+
+    const rankings = await screen.findByRole("region", { name: "Rankings" });
+    const retry = within(rankings).getByRole("button", { name: "Retry" });
+    const attempts = fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/rankings")).length;
+    await userEvent.click(retry);
+
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/rankings")))
+        .toHaveLength(attempts + 1),
+    );
   });
 
   it("opens an accepted ranking hit without inventing a fused score", async () => {
@@ -4334,6 +4535,80 @@ describe("App, authenticated", () => {
     expect(body.idempotency_key).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
     );
+  });
+
+  it("retries the analysis-run registry after a load failure", async () => {
+    const fetchMock = stubBackend({ analysisRunsUnavailable: true });
+    render(<App showLabPanels />);
+
+    const retry = await screen.findByRole("button", { name: "Retry" });
+    const attempts = fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/analysis-runs")).length;
+    await userEvent.click(retry);
+
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/analysis-runs")))
+        .toHaveLength(attempts + 1),
+    );
+  });
+
+  it("explains an analysis-run idempotency conflict", async () => {
+    stubBackend({ analysisRunCreateStatus: 409 });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
+    );
+
+    expect(
+      await screen.findByText(
+        "This request key already names a different reconstruction. Request again to start a new run.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("shows a generic analysis-run request failure", async () => {
+    stubBackend({ analysisRunCreateStatus: 500 });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
+    );
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Request a lineage reconstruction" })).toBeEnabled();
+  });
+
+  it.each([
+    [404 as const, "This analysis run is not visible."],
+    [500 as const, null],
+  ])("handles an analysis-run detail failure %s", async (status, expected) => {
+    stubBackend({ analysisRunOpenStatus: status });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: "Open analysis run: Lineage reconstruction · Succeeded · Demo Corp",
+      }),
+    );
+
+    if (expected) {
+      expect(await screen.findByText(expected)).toBeInTheDocument();
+    } else {
+      expect(await screen.findByRole("alert")).toBeInTheDocument();
+    }
+  });
+
+  it("restores the start action after reconstruction fails", async () => {
+    stubBackend({ analysisRunStartUnavailable: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Request a lineage reconstruction" }),
+    );
+    await userEvent.click(await screen.findByRole("button", { name: "Start reconstruction" }));
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeEnabled();
   });
 
   it("lets a multi-affiliation operator choose which corp to reconstruct", async () => {
