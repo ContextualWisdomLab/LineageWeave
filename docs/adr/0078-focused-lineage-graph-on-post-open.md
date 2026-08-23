@@ -24,6 +24,13 @@ global graph only as the initial loading fallback. The graph is an
 interaction-time projection; it does not alter stored lineage edges or
 analysis-run snapshots.
 
+The layout boundary independently keeps only edges whose source and target
+nodes are both present in the same visible reconstruct group. A dangling edge
+or an edge crossing visible groups is omitted from both the SVG and its edge
+count. This preserves the backend's eligibility/ABAC decision when a partial
+or stale client payload reaches the renderer; an invisible relationship must
+not survive as buyer-facing aggregate evidence.
+
 ## Consequences
 
 - Opening a related post shows all visible nodes in its connected lineage
@@ -33,6 +40,8 @@ analysis-run snapshots.
   lineage" state rather than an unrelated DAG.
 - A focused component can be larger than the landing limit, so the endpoint
   remains authenticated and ABAC-filtered.
+- Captions count the same authorized, renderable edges that the buyer can see;
+  a relationship to an omitted node cannot leak through a count.
 
 ## Alternatives rejected
 
