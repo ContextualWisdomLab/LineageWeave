@@ -38,7 +38,9 @@ After loading `corporate_entity` candidates, expand them with every
 The expansion is a virtual candidate with the **same**
 `corporate_entity_id`. Score the raw catalog first. Alias labels enrich
 candidates only after a raw miss; they never override a raw unique result
-or tie (ADR 0026). Uncorroborated or pending pairs are not loaded.
+or tie (ADR 0026). An alias label binds only on exact normalized equality;
+short near-matches do not inherit the raw catalog's fuzzy threshold.
+Uncorroborated or pending pairs are not loaded.
 Identical or empty labels are ignored.
 
 Under the creation lock, reload both the catalog and corroborated aliases.

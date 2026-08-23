@@ -208,6 +208,22 @@ def test_uncorroborated_alias_does_not_bind() -> None:
     assert result is None
 
 
+def test_short_near_match_does_not_fuzzy_bind_a_corroborated_alias() -> None:
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            object(),
+            "AGB",
+            _SYNTHETIC_CONTEXT,
+            _RejectInferenceClient(),
+            _RejectVerificationClient(),
+            [CorporateEntityCandidate(str(uuid.uuid4()), "Aurora Grid Power")],
+            aliases=[_AGP_ALIAS],
+        )
+    )
+
+    assert result is None
+
+
 def test_raw_catalog_tie_precedes_unique_alias_match() -> None:
     candidates = [
         CorporateEntityCandidate("tied-north", "Tied Energy North"),

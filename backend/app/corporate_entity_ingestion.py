@@ -155,6 +155,7 @@ async def get_or_create_corporate_entity(
     existing = score_corporate_entity(
         normalized_name,
         expand_candidates_with_skos_aliases(candidates, resolved_aliases),
+        min_similarity=1.0,
     )
     if existing.kind == RESOLUTION_UNIQUE and existing.catalog_id is not None:
         return existing.catalog_id
