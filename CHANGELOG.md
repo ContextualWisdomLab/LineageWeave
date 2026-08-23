@@ -6,6 +6,12 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- Period leftover pair rows now name leftover residual `R` after IRT
+  main effects next to leftover-map distance `d`, then open that post
+  (Jeon et al., 2021, eq. 3; ADR 0162).
+
 ### Fixed
 
 - `make smoke` and `make seed` now run through the locked project `uv`

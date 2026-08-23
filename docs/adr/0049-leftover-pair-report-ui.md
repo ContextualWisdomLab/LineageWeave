@@ -17,10 +17,11 @@ second navigation surface.
 
 On each period-report group, render leftover pairs **above** the
 member list. Each pair is a button: closest or farthest label, post
-title, criterion short label, leftover-map distance, and the next
-action (“Open this post to read the criterion it sat closest to /
-farthest from after main effects.”). Clicking the button opens that
-post with the same handler as a member row.
+title, criterion short label, leftover residual `R`, leftover-map
+distance, and the next action (“Leftover residual R after IRT main
+effects. Open this post to read {criterion}.”). Clicking the button
+opens that post with the same handler as a member row. Residual
+disclosure is [ADR 0162](0162-leftover-residual-disclosure.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post.
