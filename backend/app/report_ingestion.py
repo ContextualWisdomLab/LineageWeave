@@ -664,7 +664,9 @@ async def fetch_period_reports(
                         "theta_sd": float(row["theta_sd"]),
                         "visibility_code": row["visibility_code"],
                         "corporate_entity_id": str(row["corporate_entity_id"]),
-                        "process_unit_id": str(row["process_unit_id"]),
+                        "process_unit_id": (
+                            None if row["process_unit_id"] is None else str(row["process_unit_id"])
+                        ),
                         "has_real_source_context": bool(row["has_real_source_context"]),
                         "ticket_due_date": (
                             None
@@ -701,7 +703,9 @@ async def fetch_period_reports(
                         "leftover_residual": float(row["leftover_residual"]),
                         "visibility_code": row["visibility_code"],
                         "corporate_entity_id": str(row["corporate_entity_id"]),
-                        "process_unit_id": str(row["process_unit_id"]),
+                        "process_unit_id": (
+                            None if row["process_unit_id"] is None else str(row["process_unit_id"])
+                        ),
                         "has_real_source_context": bool(row["has_real_source_context"]),
                     }
                     for row in leftover_by_group.get(header["grouping_key"], [])
@@ -883,7 +887,11 @@ async def fetch_period_comparison(
                     {
                         "visibility_code": member["visibility_code"],
                         "corporate_entity_id": str(member["corporate_entity_id"]),
-                        "process_unit_id": str(member["process_unit_id"]),
+                        "process_unit_id": (
+                            None
+                            if member["process_unit_id"] is None
+                            else str(member["process_unit_id"])
+                        ),
                         "has_real_source_context": bool(member["has_real_source_context"]),
                     }
                     for member in members_by_key.get((row["grouping_kind"], row["grouping_key"]), [])
