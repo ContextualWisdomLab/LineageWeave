@@ -886,6 +886,24 @@ or an explicit unavailable result.
   empty) can reuse it without duplicating ~170 lines of SQL. Regression
   test confirmed RED (reported 0 instead of the real count) before
   GREEN.
+- **Admin Panel i18n gap — partially closed (2026-08-25):** a key-set
+  diff of `i18n.ts`'s four non-English locale blocks found 117 keys
+  that exist only in `ko` (added for Korean, never mirrored to
+  zh/ja/vi) -- `t()` silently falls back to the raw English key when a
+  translation is missing, and no test catches it since the existing
+  i18n test only checks curated key lists a component's keys must be
+  manually added to. Closed the 20 keys AdminPanel.tsx actually uses
+  (control center, endpoint catalog, tenant settings, board/calendar/
+  entity navigation) with zh/ja/vi translations matching this file's
+  established terminology, plus a new curated `adminPanelLabels` parity
+  test (frontend/src/i18n.test.ts) so a regression here is caught the
+  same way the existing workspace/Event Lineage label tests catch
+  theirs. The remaining 97 keys (used by not-yet-audited components)
+  are still ko-only and not claimed fixed -- a repo-wide exhaustive
+  parity test would need those translated first or it would fail CI on
+  introduction; tracked here as the next slice, not attempted this
+  checkpoint given the translation-quality risk of doing 97 keys x 3
+  locales without a dedicated review pass.
 - **Cross-repository email/project lineage — provider boundary implemented,
   consumer open:** PR #343 merged at
   `125a8069a1554874d8067a15047e19d780ea6b7b`, but the contract remains

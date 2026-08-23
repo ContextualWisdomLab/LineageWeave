@@ -123,6 +123,28 @@ describe("i18n", () => {
     "Edges explain reconstructed continuation only. They are not causal or authoritative facts.",
     "Evidence (fused_score)",
   ] as const;
+  const adminPanelLabels = [
+    "Account scope",
+    "Admin control center",
+    "Admin endpoint catalog",
+    "Admin navigation",
+    "Administrator mode",
+    "Authorized entities",
+    "Board & posts",
+    "Calendar & commitments",
+    "Endpoint catalog",
+    "Entities and relationship network",
+    "Find the right operational surface without losing the source and permission context.",
+    "Not available",
+    "Open post operations",
+    "post_admin enabled",
+    "Routes are shown with the permission gate enforced by the backend.",
+    "Search authorized posts",
+    "Tenant settings",
+    "These values come from the authenticated account and are not editable here.",
+    "This name is used in the authenticated workspace shell.",
+    "Workspace shortcuts",
+  ] as const;
 
   it("supports the five product locales", () => {
     expect(SUPPORTED_LOCALES).toEqual(["en", "ko", "zh", "ja", "vi"]);
@@ -170,6 +192,16 @@ describe("i18n", () => {
     (locale) => {
       setLocale(locale);
       for (const key of eventLineageLabels) {
+        expect(t(key), `${locale}:${key}`).not.toBe(key);
+      }
+    },
+  );
+
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "translates Admin Panel labels in %s",
+    (locale) => {
+      setLocale(locale);
+      for (const key of adminPanelLabels) {
         expect(t(key), `${locale}:${key}`).not.toBe(key);
       }
     },

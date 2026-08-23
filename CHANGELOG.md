@@ -49,6 +49,18 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Admin Panel labels (control center, endpoint catalog, tenant settings,
+  authorized-entity/board/calendar navigation, and related copy -- 20
+  strings) were only translated into Korean; zh/ja/vi silently fell back
+  to the raw English key since no test enforced locale parity for these
+  strings (the existing i18n test only checks curated key lists, and
+  this component's keys were never added to one). Added zh/ja/vi
+  translations matching this file's established terminology (Tenant,
+  Workspace, Board, Admin) and a new curated `adminPanelLabels` parity
+  test following the same pattern as the existing workspace/Event
+  Lineage label tests. 97 other pre-existing ko-only keys remain
+  untranslated repo-wide and are tracked separately, not claimed fixed
+  here.
 - `GET /api/posts`'s `total_count` no longer silently reports `0` when the
   requested page is past the last page of results. `total_count` came
   from `count(*) over()`, a window function that only rides along on rows
