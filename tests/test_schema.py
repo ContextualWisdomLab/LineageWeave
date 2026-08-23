@@ -43,6 +43,11 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     / "migrations"
     / "0102_project_bound_summary_event.sql"
 )
+_LEFTOVER_MAP_UNEXPLAINED_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0182_report_leftover_map_unexplained.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -79,6 +84,7 @@ def schema_db():
                 cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -171,6 +177,22 @@ def test_leftover_pair_references_member_and_item_rows(schema_db) -> None:
     assert "report_item_information" in targets
     assert "report_period_score" in targets
 
+
+def test_leftover_pair_names_nullable_unexplained_column(schema_db) -> None:
+    """Every install path preserves legacy pairs while naming unexplained leftover."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select column_name, is_nullable
+            from information_schema.columns
+            where table_name = 'report_leftover_pair'
+            """
+        )
+        columns = dict(cur.fetchall())
+    assert columns["leftover_map_unexplained"] == "YES"
+    assert columns["leftover_residual"] == "NO"
+    assert columns["leftover_distance"] == "NO"
+    assert "leftover_map_reconstruction" not in columns
 
 
 def test_corporate_hierarchy_recursive_query_returns_correct_shape(schema_db) -> None:
