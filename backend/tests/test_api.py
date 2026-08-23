@@ -4518,6 +4518,12 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert leftover_kinds <= {"closest", "farthest"}
     assert all(pair["post_title"] for pair in high_report.get("leftover_pairs", []))
     assert all(pair["leftover_distance"] >= 0 for pair in high_report.get("leftover_pairs", []))
+    for pair in high_report.get("leftover_pairs", []):
+        observed = pair.get("observed_response")
+        expected = pair.get("expected_response")
+        if observed is None or expected is None:
+            continue
+        assert abs(pair["leftover_residual"] - (observed - expected)) < 1e-6
 
     week3 = client.get(
         "/api/reports/process_unit/2026-W03",

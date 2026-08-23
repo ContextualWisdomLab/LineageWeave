@@ -172,6 +172,23 @@ def test_leftover_pair_references_member_and_item_rows(schema_db) -> None:
     assert "report_period_score" in targets
 
 
+def test_leftover_pair_names_observed_and_expected_columns(schema_db) -> None:
+    """Fresh leftover rows name observed Y and expected E so residual reconciles."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select column_name
+            from information_schema.columns
+            where table_name = 'report_leftover_pair'
+            """
+        )
+        columns = {row[0] for row in cur.fetchall()}
+    assert "observed_response" in columns
+    assert "expected_response" in columns
+    assert "leftover_residual" in columns
+
+
+
 
 def test_corporate_hierarchy_recursive_query_returns_correct_shape(schema_db) -> None:
     """The real product requirement: 'Acme Group -> Acme Electronics Korea
