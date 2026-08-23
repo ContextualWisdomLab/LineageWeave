@@ -3,7 +3,6 @@
 - Status: Accepted
 - Date: 2026-08-20
 - Depends on: [0069](0069-member-locale-preference.md), [0028](0028-keyverse-oidc-provider.md)
-- Amended by: [0119](0119-oidc-login-remembers-return-path.md)
 
 ## Context
 
@@ -22,6 +21,11 @@ when the member's OIDC session is otherwise valid.
 - Persist the same validated same-origin path in both `sessionStorage` and
   `localStorage` before redirecting to OIDC. `localStorage` is only a bounded
   recovery fallback, not an authentication or authorization store.
+- The signed-out **Log in** control computes that path with
+  `returnUrlFromLocation()`, persists it with `rememberOidcReturnUrl`, and
+  passes the same value in `signinRedirect` state.
+- Tenant admin settings mount only after authentication provides an access
+  token; the signed-out login shell never renders `AdminPanel`.
 - On callback, remove the key from both stores and use session storage before
   local storage. Reject external and protocol-relative URLs.
 - Keep member language preference account-scoped in

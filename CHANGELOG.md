@@ -16,7 +16,7 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
-- Log in remembers a validated same-origin return path (ADR 0119) before
+- Log in remembers a validated same-origin return path (ADR 0109) before
   the OIDC redirect, so a shared `/?post=` link still opens that post
   after callback. Tenant admin settings stay off the signed-out login
   shell. The production frontend build type-checks again.

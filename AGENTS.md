@@ -209,7 +209,7 @@ A run-bearing analysis-run registry empties only after an unrevoked
 expose purge on a public HTTP route.
 
 Unauthenticated **Log in** must call `returnUrlFromLocation()` then
-`rememberOidcReturnUrl` before `signinRedirect` (ADR 0109 / 0119) so a
+`rememberOidcReturnUrl` before `signinRedirect` (ADR 0109) so a
 shared `/?post=` link still opens that post. Do not mount tenant admin
 settings on the signed-out login shell.
 
