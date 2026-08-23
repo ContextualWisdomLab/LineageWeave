@@ -45,13 +45,17 @@ The receipt table stores transport evidence only: remote run id,
 request digest, receipt digest, accepted status code, model contract
 version, snapshot id, knowledge cutoff, and received time. It does
 not store a result JSON, a theta, or a calibrated score. A changed
-receipt digest for the same local run fails closed. Duplicate
-identical receipts are idempotent.
+remote run id or request digest for the same local run fails closed.
+Accepted, queued, and running transport-state progression for the
+same remote run and request remains idempotent; the first receipt stays
+the durable acceptance evidence.
 
-`GET /api/analysis-runs/{id}` may attach `tepp_accepted_receipt`
+`GET /api/analysis-runs` and `GET /api/analysis-runs/{id}` may attach
+`tepp_accepted_receipt`
 `{remote_run_id, accepted_status_code, received_at}` so the operator
 can see that TEPP accepted the work. Missing migration 0106 is an
-empty attachment, not a 500. Global Ask must not promote this
+empty attachment, not a 500; list rows load receipts in one bounded
+query rather than one query per run. Global Ask must not promote this
 receipt into an answer claim.
 
 Completed-result polling, bounded backoff, and request-binding

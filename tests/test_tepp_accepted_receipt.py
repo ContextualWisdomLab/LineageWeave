@@ -258,9 +258,15 @@ def test_migration_0106_is_transport_evidence_not_a_result_table() -> None:
 
 def test_migrate_sh_replays_accepted_receipt_migration() -> None:
     script = (_ROOT / "docker" / "postgres-init" / "migrate.sh").read_text(encoding="utf-8")
+    tenant_settings = (_ROOT / "migrations" / "0103_tenant_settings.sql").read_text(
+        encoding="utf-8"
+    )
+    assert "0103_*" in script
     assert "0106_*" in script
     assert "0104_*" not in script
     assert "0105_*" not in script
+    assert "CREATE TABLE IF NOT EXISTS tenant_settings" in tenant_settings
+    assert "ON CONFLICT (id) DO NOTHING" in tenant_settings
 
 
 def test_adr_0162_keeps_measurement_authority_with_tepp() -> None:
@@ -270,3 +276,4 @@ def test_adr_0162_keeps_measurement_authority_with_tepp() -> None:
     assert "TEPP#156" in adr
     assert "analysis_run_tepp_accepted_receipt" in adr
     assert "stay Running" in adr or "leave the local run" in adr
+    assert "GET /api/analysis-runs` and `GET /api/analysis-runs/{id}`" in adr
