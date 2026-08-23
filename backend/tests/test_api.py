@@ -136,7 +136,7 @@ _IDENTIFIER_MIGRATION = (
 _TENANT_IDENTITY_METADATA_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
-    / "0132_tenant_identity_metadata.sql"
+    / "0176_tenant_identity_metadata.sql"
 )
 _AFFILIATION_SCOPE_FACET_MIGRATION = (
     Path(__file__).resolve().parents[2]
