@@ -186,6 +186,48 @@ def test_receipt_transport_progression_keeps_the_same_run_running() -> None:
     assert connection.executions == []
 
 
+def test_receipt_replay_fails_closed_when_remote_run_id_changes() -> None:
+    request = _request()
+    connection = _ReceiptConnection(
+        row={
+            "remote_run_id": "different-remote-run",
+            "request_sha256": tepp_request_digest(request),
+        }
+    )
+    persisted = asyncio.run(
+        _persist_tepp_accepted_receipt(
+            connection,
+            analysis_run_id="local-run",
+            envelope={"status": "running", "run_id": "remote-run"},
+            request=request,
+            knowledge_cutoff=datetime.fromisoformat(request.knowledge_cutoff),
+        )
+    )
+    assert persisted is False
+    assert connection.executions == []
+
+
+def test_receipt_replay_fails_closed_when_request_digest_changes() -> None:
+    request = _request()
+    connection = _ReceiptConnection(
+        row={
+            "remote_run_id": "remote-run",
+            "request_sha256": "cd" * 32,
+        }
+    )
+    persisted = asyncio.run(
+        _persist_tepp_accepted_receipt(
+            connection,
+            analysis_run_id="local-run",
+            envelope={"status": "running", "run_id": "remote-run"},
+            request=request,
+            knowledge_cutoff=datetime.fromisoformat(request.knowledge_cutoff),
+        )
+    )
+    assert persisted is False
+    assert connection.executions == []
+
+
 def test_missing_receipt_table_isolated_from_the_callers_transaction() -> None:
     connection = _ReceiptConnection(error=asyncpg.UndefinedTableError("missing"))
     receipts = asyncio.run(fetch_tepp_accepted_receipts(connection, ["local-run"]))
