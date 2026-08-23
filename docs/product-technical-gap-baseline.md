@@ -64,9 +64,10 @@ protected `main` release or independent approval.
 
 Current active-PR evidence remains outside protected `main`:
 
-- PR #258 at `2e2ddd1998734d6e29dad0ba916053dd8cf27983` carries ADR 0146's
-  distributed MCP principal rate-limit decision. Its aggregate checks failed;
-  it had no unresolved thread or exact-head approval.
+- PR #258 at `f4ebfc684cdd6017255712cc4be37528cbb7d21a` carries ADR 0146's
+  distributed MCP principal rate-limit decision. Its current hosted checks
+  were running while a failed Devin status remained; it had no unresolved
+  thread or exact-head approval.
 - PR #426 at `60efee9b9a97fa433f1d8a83f396c7f8d55df39e` is the current
   prerequisite carrier for ontology publication and the merged ADR 0157 stack.
   It had two unresolved review threads, no exact-head approval, and a pending
