@@ -1,4 +1,4 @@
-# ADR 0119: Publish a bounded LineageWeave provider contract
+# ADR 0134: Publish a bounded LineageWeave provider contract
 
 - Status: Superseded by ADR 0133 on this PR; never shipped
 - Date: 2026-08-21

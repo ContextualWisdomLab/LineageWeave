@@ -443,7 +443,7 @@ class _BlockTextExtractor(HTMLParser):
         if tag in _LIST_CONTAINER_TAGS:
             # Emit a parent list item before entering its nested list. Closing
             # tags otherwise make the child appear before the parent in the
-            # finished list, which destroys the source order buyers use to
+            # finished list, which destroys the source order readers use to
             # read a hierarchy.
             if self._stack and self._stack[-1][0] == "li" and self._stack[-1][1]:
                 tag_name, buffer, style, indent_width, is_footnote = self._stack[-1]

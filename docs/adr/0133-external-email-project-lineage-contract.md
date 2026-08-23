@@ -18,7 +18,7 @@ LineageWeave publishes contract version `1.0.0` through:
 
 The initial implementation is a store-agnostic Python package boundary. It performs no database, mailbox, provider, or network operation. A later service or Naruon plugin adapter must preserve the same JSON Schema and truth boundaries.
 
-This decision supersedes ADR 0119 before either proposal shipped. Its parallel
+This decision supersedes ADR 0134 before either proposal shipped. Its parallel
 `lineageweave.lineage_contract` module is removed, leaving this contract and
 analysis adapter as the sole reusable lineage contract authority.
 

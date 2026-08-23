@@ -2195,7 +2195,7 @@ def test_other_corp_private_voc_evidence_is_forbidden(client, demo_analyst_token
 
 
 def test_related_keymen_use_rwr_and_hide_invisible_posts(client, demo_analyst_token, seeded_db) -> None:
-    """Expose buyer-facing labels while excluding invisible related posts."""
+    """Expose reader-facing labels while excluding invisible related posts."""
     response = client.get(
         f"/api/keymen/{seeded_db['our_person_id']}/related",
         headers={"Authorization": f"Bearer {demo_analyst_token}"},

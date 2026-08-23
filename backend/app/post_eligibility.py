@@ -2,7 +2,7 @@
 
 Keep this module importable as a first-class backend dependency: the knowledge
 graph and every post-scoped read use the same predicate so a graph projection
-cannot bypass the buyer visibility boundary.
+cannot bypass the reader visibility boundary.
 """
 
 SOURCE_CONTEXT_COLUMNS = (
