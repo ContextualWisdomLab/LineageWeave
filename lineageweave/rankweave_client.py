@@ -175,6 +175,8 @@ class RankingChannelEvidence:
     rank: int
 
     def to_json(self) -> dict[str, Any]:
+        """Return the reader-safe owned-channel evidence payload."""
+
         return {
             "signal_code": self.signal_code,
             "signal_label": self.signal_label,
