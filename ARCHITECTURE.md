@@ -588,7 +588,7 @@ on those same fixed parameters (Kim, 2006 FIPC). After scoring,
 `information_polytomous` ranks the shared-bank items by Fisher
 information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
-residual SVD leftover pairs (Jeon et al., 2021; ADR 0048 / 0171) persist to
+residual SVD leftover pairs (Jeon et al., 2021; ADR 0048 / 0172) persist to
 `report_leftover_pair` with leftover-map rank. Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;

@@ -2,7 +2,7 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-17
-**Amended by:** [ADR 0171](0171-leftover-map-rank.md) (full map rank)
+**Amended by:** [ADR 0172](0172-leftover-map-rank.md) (full map rank)
 
 ## Context
 
@@ -25,7 +25,7 @@ after IRT main effects; open this post. Rank ≥ 1 next action: read
 leftover map rank after IRT main effects, then open this post.
 Missing rank omits the badge and keeps the closest/farthest action.
 Clicking the button opens that post with the same handler as a member
-row. Rank naming is [ADR 0171](0171-leftover-map-rank.md).
+row. Rank naming is [ADR 0172](0172-leftover-map-rank.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post.

@@ -1,4 +1,4 @@
-# ADR 0171 — Name leftover-map rank on leftover pairs
+# ADR 0172 — Name leftover-map rank on leftover pairs
 
 **Decision status:** Accepted
 **Date:** 2026-08-24
@@ -21,10 +21,10 @@ observed `Y` / expected `E`, does not change leftover-map axis count, and
 does not land Post quality on the leftover criterion.
 
 The unprotected-stack ADR for the same buyer fact was 0164. This
-protected-main reconstruction uses **0171** so it does not collide with
+protected-main reconstruction uses **0172** so it does not collide with
 two-axis leftover-map distance (0166), leftover coverage (0168),
-leftover-map axis share (0169), or leftover observed Y / expected E
-(0170).
+leftover-map axis share (0148), leftover observed Y / expected E
+(0177), or analysis-run status same clock (0171).
 
 ## Decision
 
@@ -32,7 +32,7 @@ Each leftover pair names `leftover_map_rank`: the number of Gabriel
 singular values above the leftover singular floor on the complete-case
 residual rectangle. Closest and farthest pairs on one period report share
 that rank. A fallback pair that is not placed on a leftover map stores
-rank `0`. Migration `0171` is the single source of the column on every
+rank `0`. Migration `0172` is the single source of the column on every
 install path; shipped migrations (`0001` / `0012`) are never rewritten.
 It adds a nullable column so older leftover rows keep distance and residual
 without fabricating a rank.

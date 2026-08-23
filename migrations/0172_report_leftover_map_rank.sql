@@ -1,4 +1,4 @@
--- ADR 0171: persist leftover-map rank on leftover post–criterion pairs.
+-- ADR 0172: persist leftover-map rank on leftover post–criterion pairs.
 -- Rank is the number of Gabriel singular values above the leftover
 -- singular floor. Upgrade columns are nullable so older leftover rows
 -- keep distance and residual without fabricating a rank. This sequential
