@@ -40,9 +40,10 @@ the same check.
    to `occurred_at` so the check holds. Do not rewrite occurrence:
    monotonicity and "cannot predate the request" stay on the
    caller-supplied instant.
-3. Migration 0173 replaces the trigger on databases that already
-   applied 0018. The 0018 function body matches so a fresh install
-   is the same contract.
+3. Migration 0173 is the single source of the trigger replacement; shipped
+   migration 0018 remains immutable. The Compose migration service applies
+   0173 after the initial schema on fresh installs and replays it on existing
+   volumes.
 
 Do not invent a leftover score. Do not invent a theta.
 

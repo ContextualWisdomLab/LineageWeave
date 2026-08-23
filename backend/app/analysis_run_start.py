@@ -763,7 +763,6 @@ async def _deliver_tepp_measurement(
     tepp_client: TeppClient,
 ) -> None:
     """Submit the frozen snapshot through ``tepp_client``. Never persist a theta."""
-    now = datetime.now(timezone.utc)
     request = tepp_run_request(
         idempotency_key=str(locked["idempotency_key"]),
         snapshot_sha256=str(locked["snapshot_sha256"]),
@@ -779,9 +778,6 @@ async def _deliver_tepp_measurement(
         ):
             status_code = _FAILED
             failure_code = "tepp_result_not_persisted"
-    finished = datetime.now(timezone.utc)
-    if finished < now:
-        finished = now
     await _append_status(
         conn,
         analysis_run_id,
