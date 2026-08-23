@@ -118,6 +118,13 @@
   --z-evidence-panel: 250;
   --z-skip-link: 400;
 
+  /* Exception surface (ADR 0134) — not color-only; light/dark pair */
+  --color-exception-background: #fbf3f0;
+  --color-exception-border: #876d4b;
+  --color-exception-accent: #ff595a;
+  --color-exception-text: #3f2a28;
+  --color-exception-heading: #08060d;
+
   /* Required Field Indicator */
   --color-required: #b91c1c;
 
@@ -196,5 +203,11 @@
     --color-drawer-bg: #16171d;
     --color-drawer-border: #2e303a;
     --color-drawer-overlay: rgba(0, 0, 0, 0.65);
+
+    --color-exception-background: rgba(255, 89, 90, 0.12);
+    --color-exception-border: #ad7c59;
+    --color-exception-accent: #ff595a;
+    --color-exception-text: #f5c6c6;
+    --color-exception-heading: #f3f4f6;
   }
 }

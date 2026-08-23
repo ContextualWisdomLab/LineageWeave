@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { t } from "../i18n";
 import { updateTenantConfig, type CurrentUser, type TenantConfig } from "../api";
+import { productExceptionCopy } from "../productExceptionCopy";
+import { ExceptionAlert } from "./SummaryStatus";
 import type { WorkspaceDestination } from "./WorkspaceNav";
 import "./AdminPanel.css";
 
@@ -198,7 +200,7 @@ export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessTo
   const touchedConfigFields = useRef(new Set<keyof TenantConfig>());
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ title: string; description: string } | null>(null);
 
   useEffect(() => {
     setDraftConfig((draft) => ({
@@ -249,8 +251,8 @@ export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessTo
         onTenantConfigChange(config);
         setSaved(true);
         setTimeout(() => setSaved(false), 3000);
-      } catch (err: any) {
-        setError(err.message || "Failed to update settings");
+      } catch (err) {
+        setError(productExceptionCopy(err, t("Tenant settings")));
       } finally {
         setSaving(false);
       }
@@ -376,7 +378,13 @@ export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessTo
                   {saving ? t("Saving...") : t("Save settings")}
                 </button>
                 {saved && <span className="admin-success" role="status">{t("Settings saved!")}</span>}
-                {error && <span className="admin-error" role="alert">{t(error)}</span>}
+                {error && (
+                  <ExceptionAlert
+                    title={error.title}
+                    description={error.description}
+                    variant="inline"
+                  />
+                )}
               </div>
             </form>
           </section>

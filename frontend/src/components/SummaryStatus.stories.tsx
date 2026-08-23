@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { SummaryStatus } from "./SummaryStatus";
+import { ExceptionAlert, SummaryStatus } from "./SummaryStatus";
 import "../App.css";
 
 const meta = {
@@ -38,4 +38,47 @@ export const Empty: Story = {
     retryLabel: "Retry summary",
     onRetry: () => undefined,
   },
+};
+
+export const RetryableTransportFailure: Story = {
+  render: () => (
+    <ExceptionAlert
+      title="This board could not be loaded."
+      description="Retry loading posts, or choose another destination."
+      retryLabel="Retry"
+      onRetry={() => undefined}
+    />
+  ),
+};
+
+export const FormFieldError: Story = {
+  render: () => (
+    <ExceptionAlert
+      title="Copyright year must be an integer."
+      description="Correct the highlighted fields, then retry."
+      variant="inline"
+    />
+  ),
+};
+
+export const AuthFailure: Story = {
+  render: () => (
+    <ExceptionAlert
+      title="Sign-in could not be completed."
+      description="Log in again to open the workspace."
+      retryLabel="Log in"
+      onRetry={() => undefined}
+    />
+  ),
+};
+
+export const ContinueWithSavedEvidence: Story = {
+  render: () => (
+    <ExceptionAlert
+      title="Source evidence is unavailable. Continue with the saved answer."
+      description="Retry opening this source, or keep reading the saved answer."
+      retryLabel="Retry evidence"
+      onRetry={() => undefined}
+    />
+  ),
 };

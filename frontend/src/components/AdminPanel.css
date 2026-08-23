@@ -298,7 +298,17 @@
 }
 
 .admin-error {
-  color: var(--color-status-alert);
+  color: var(--color-exception-heading);
+  background: var(--color-exception-background);
+  border: 1px solid var(--color-exception-border);
+  border-left: 4px solid var(--color-exception-accent);
+  border-radius: var(--radius-panel);
+  padding: 0.45rem 0.65rem;
+}
+
+.admin-form-actions .summary-status-inline {
+  flex: 1;
+  min-width: 0;
 }
 
 .admin-scope-list {
