@@ -5,13 +5,53 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timezone
 
+import asyncpg
+
 from backend.app.lineage_ingestion import (
+    load_estimated_channel_weights,
     reconstruct_group_key,
     records_from_source_posts,
     visible_lineage_graph,
 )
 from lineageweave.fixtures import sample_records
 from lineageweave.lineage_persistence import lineage_edge_specs
+
+
+def test_missing_weight_table_rolls_back_before_fallback() -> None:
+    class _MissingTableConnection:
+        aborted = False
+
+        class Savepoint:
+            def __init__(self, connection: _MissingTableConnection) -> None:
+                self.connection = connection
+
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, exc_type, exc, traceback) -> bool:
+                self.connection.aborted = False
+                return False
+
+        def transaction(self):
+            return self.Savepoint(self)
+
+        async def fetch(self, query: str):
+            if "lineage_channel_weight" in query:
+                self.aborted = True
+                raise asyncpg.UndefinedTableError("synthetic missing table")
+            if self.aborted:
+                raise asyncpg.InFailedSQLTransactionError("transaction is aborted")
+            return []
+
+    connection = _MissingTableConnection()
+    weights = asyncio.run(
+        load_estimated_channel_weights(
+            connection, {"temporal", "secondary_key", "text"}
+        )
+    )
+    asyncio.run(connection.fetch("select 1"))
+
+    assert weights is None
 
 
 def test_records_use_persisted_thread_keys_not_process_unit_or_voc_type() -> None:

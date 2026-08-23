@@ -65,7 +65,7 @@ def estimate_channel_weights(
             carry the same channel set -- a pair missing a channel is a
             caller bug, not missing data to impute.
         group_ids: the reconstruction-group index of each pair (same
-            length/order), used as MLS2PLM's multilevel ``factor_id``.
+            length/order), used as MLS2PLM's multilevel ``cluster_id``.
 
     Returns:
         The estimate, or ``None`` whenever a grounded estimate cannot be
