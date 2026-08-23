@@ -15,7 +15,11 @@ from lineageweave.entity_relationship_classification import (
 from lineageweave.keyman_extraction import (
     ContextualOrchestratorKeymanExtractionClient,
 )
-from lineageweave.post_evaluation import ContextualOrchestratorPostEvaluationClient
+from lineageweave.post_evaluation import (
+    ContextualOrchestratorPostEvaluationClient,
+    CriterionResponse,
+    irt_responses_from_result,
+)
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient
 
 
@@ -133,7 +137,12 @@ def test_post_evaluation_judge_defaults_to_auto(monkeypatch) -> None:
         "https://orchestrator.test", "token"
     )
 
-    client.evaluate("Title", "Body")
+    result = client.evaluate("Title", "Body")
 
     assert observed["payload"]["mode"] == "auto"
     assert observed["payload"]["reasoning_effort"] == "auto"
+    assert result.category_method == "binary_threshold"
+    assert irt_responses_from_result(result) == tuple(
+        CriterionResponse(criterion_code=criterion_id, response_category=4)
+        for criterion_id in sorted(result.criterion_scores)
+    )
