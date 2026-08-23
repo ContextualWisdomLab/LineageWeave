@@ -28,6 +28,15 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+      valkey:
+        image: valkey/valkey:8-alpine@sha256:a038175878d66b9d274fbf8be73c0305e93798b83917647f167e18cef3c71eec
+        ports:
+          - 16379:6379
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     env:
       LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN: postgresql://postgres:postgres@localhost:5432/postgres
     steps:
@@ -35,6 +44,25 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # actions/checkout@v7
         with:
           persist-credentials: false
+
+      - name: Start synthetic Keycloak realm
+        run: |
+          docker build --tag lineageweave-keycloak-test docker/keycloak
+          docker run --detach --name lineageweave-keycloak-test \
+            --publish 18080:8080 \
+            --env KEYCLOAK_ADMIN=admin \
+            --env KEYCLOAK_ADMIN_PASSWORD=admin_dev_only \
+            lineageweave-keycloak-test start-dev --import-realm
+          for _ in {1..60}; do
+            if curl --fail --silent \
+              http://localhost:18080/realms/lineageweave-demo/.well-known/openid-configuration \
+              >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          docker logs lineageweave-keycloak-test
+          exit 1
 
       - name: Set up Python
         uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # actions/setup-python@v6

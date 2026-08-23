@@ -45,11 +45,17 @@ placed in a stream message.
    unresolved structure decisions when structure adjudication is configured.
    Incomplete provider output is retried with an explicit failure code rather
    than being reported as succeeded. The frontend polls that status while
-   continuing to show the source post.
+   continuing to show the source post. Persisted units, images, and regions are
+   exposed only when the job is `succeeded` for the exact current raw-body
+   SHA-256. Otherwise those derived arrays are withheld and the independently
+   loaded current raw source body remains the rendering fallback.
 
 ## Consequences
 
-- Slow VISION and region embedding work no longer blocks summary or post-open.
+- Slow VISION and region embedding work never blocks source-post open or source
+  rendering. Region embeddings do not block summary. For an image-bearing
+  post, persisted parent-image and region descriptions are source evidence and
+  therefore block only the current summary projection until they are complete.
 - A provider failure is recorded and can be retried without deleting the raw
   source body or fabricating buyer content.
 - Valkey is load-bearing as a wake-up queue, but PostgreSQL remains the durable
@@ -64,6 +70,25 @@ the API enqueue path. A successful job that has units but lacks the configured
 unit or described-region embeddings is still eligible for Valkey requeue and
 MUST NOT be silently skipped by checking only for unit presence.
 
+The same predicate MUST reject an image unit when its persisted parent image
+is missing or its VISION status is not `described`, and MUST reject it when
+any persisted visual region is not `described`. The operator selector uses
+the same image/region condition, so an unavailable image cannot become a
+permanent false-ready result merely because its text-unit embeddings exist.
+The existing bounded automatic retry limit and the explicit terminal retry
+operation in ADR 0115 remain unchanged.
+
+The narrower `post_content_summary_is_ready` predicate checks only the
+persisted VISION evidence required by an image-bearing summary; embeddings and
+non-image structure decisions remain outside that predicate. Readiness also
+requires the durable job row to match the current raw-body SHA-256 and have
+status `post_content_ingestion_succeeded`; described units from an earlier
+body cannot make a newly queued, running, or failed revision ready. The
+summary read path may enqueue or observe the durable job. It MUST NOT call VISION directly
+or summarize an unavailable image placeholder. Queued and running jobs remain
+processing. A terminal failed job remains unavailable until ADR 0115's explicit
+operator retry.
+
 When contextual-orchestrator is configured, the same predicate also requires
 every persisted unit to have a non-`unresolved` structure decision. Without an
 available structure channel, `unresolved` remains an explicit unavailable
@@ -76,6 +101,9 @@ existing `(post_id, source_body_sha256)` wake-up to Valkey, and `_claim_job`
 reclaims it under the same lease predicate. This keeps a process restart or
 lost consumer from leaving a job permanently running while retaining
 at-least-once persistence semantics.
+Duplicate wake-ups for a fresh `running` lease are ignored before applying the
+attempt-limit rule. A final permitted attempt becomes terminal only when that
+lease is stale; a duplicate wake-up cannot fail work that is still active.
 
 On worker startup, the stream cursor begins at the current Valkey stream tail,
 not at `0-0`. Historical wake-ups are not authoritative work state; the
@@ -83,12 +111,30 @@ normalized PostgreSQL ledger is scanned and queued/stale rows are republished
 after the cursor is established. This prevents a restart from replaying an
 unbounded historical stream before processing current work.
 
-Lease recovery also fences completion by `attempt_count`. A worker whose
-15-minute lease was reclaimed may finish after the replacement worker has
-started; its success, retry, or terminal failure transition is accepted only
-when the PostgreSQL row is still `running` for that exact attempt. A stale
-worker therefore cannot overwrite the newer attempt or append a false status
-event.
+Lease recovery fences persistence and completion with the claimed source-body
+SHA-256 plus `attempt_count` as a monotonic claim identity. `attempt_count` is
+incremented on every claim and is never reset by a changed digest or explicit
+retry, so an A-to-B-to-A body sequence cannot recreate an old claim identity.
+The bounded automatic-retry count is derived from the existing status-event
+ledger after the latest non-failure queued boundary. Before replacing artifacts
+or completing/failing work, the worker locks the job and source row and
+requires the job to remain `running` for that exact attempt and digest and the
+source body to still hash to that digest. A stale worker therefore cannot
+overwrite newer artifacts, complete a requeued attempt, or append a false
+status event.
+
+A missing ledger row is always inserted as `queued`, even if pre-ledger
+artifacts happen to satisfy the structural completeness predicate. Those
+artifacts have no binding to the current raw-body digest; only a fenced worker
+or the explicit ADR 0115 backfill finalization may register success.
+
+The synchronous operator backfill performs provider work before its short
+database transaction. Inside that transaction it locks and rechecks the
+current source body and non-active ledger row, records the bound ledger
+success, and replaces all derived artifacts atomically. It cannot overwrite an
+active worker's artifacts or commit success for a body that changed during
+provider work. The synchronous source-import adapter uses the same finalization
+fence so every production artifact writer participates in that serialization.
 
 ## Corpus backfill (2026-08-20)
 

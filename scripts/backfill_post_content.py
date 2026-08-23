@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Reprocess selected stored posts through the existing content pipeline.
 
-This is an operator command, not a buyer HTTP route. It is intentionally
+This is an operator command, not a reader-facing HTTP route. It is intentionally
 post-id scoped so a VISION failure cannot trigger an unbounded spend or rewrite
 the whole corpus. Raw post bodies and model responses are never printed.
 """
@@ -23,12 +23,21 @@ if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from backend.app.post_content_queue import record_post_content_backfill_success
-from lineageweave.embedding_client import NullEmbeddingClient, orchestrator_embedding_client
-from lineageweave.image_content import NullImageContentClient, orchestrator_vision_client
+from lineageweave.embedding_client import (
+    NullEmbeddingClient,
+    orchestrator_embedding_client,
+)
+from lineageweave.image_content import (
+    NullImageContentClient,
+    orchestrator_vision_client,
+)
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_content_persistence import persist_post_content
-from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
+from lineageweave.post_structure import (
+    ContextualOrchestratorPostStructureClient,
+    NullPostStructureClient,
+)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -101,16 +110,25 @@ async def backfill_post_content(
               from source_post post
              where nullif(btrim(post.source_draft_code), '') is null
                and nullif(btrim(post.source_deleted_flag), '') is null
+               and coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'
                and not (
                    (
-                       nullif(btrim(post.source_author_code), '') is null
+                       nullif(btrim(post.source_system_code), '') is null
+                       and nullif(btrim(post.source_record_key), '') is null
+                       and nullif(btrim(post.source_author_code), '') is null
                        and nullif(btrim(post.source_author_name), '') is null
                        and nullif(btrim(post.source_company_code), '') is null
                        and nullif(btrim(post.source_company_name), '') is null
                        and nullif(btrim(post.source_process_unit_code), '') is null
                        and nullif(btrim(post.source_process_unit_name), '') is null
+                       and nullif(btrim(post.source_stage_code), '') is null
+                       and nullif(btrim(post.source_detail_state_code), '') is null
                        and nullif(btrim(post.source_sales_pool_code), '') is null
                        and nullif(btrim(post.source_sales_pool_name), '') is null
+                       and nullif(btrim(post.source_order_pool_code), '') is null
+                       and nullif(btrim(post.source_sales_order_code), '') is null
+                       and nullif(btrim(post.source_sales_order_item_number::text), '') is null
+                       and nullif(btrim(post.source_inspection_point_code), '') is null
                        and nullif(btrim(post.source_customer_code), '') is null
                        and nullif(btrim(post.source_customer_name), '') is null
                        and nullif(btrim(post.source_project_code), '') is null
@@ -120,14 +138,22 @@ async def backfill_post_content(
                        select 1
                          from source_post real_post
                         where (
-                            nullif(btrim(real_post.source_author_code), '') is not null
+                            nullif(btrim(real_post.source_system_code), '') is not null
+                            or nullif(btrim(real_post.source_record_key), '') is not null
+                            or nullif(btrim(real_post.source_author_code), '') is not null
                             or nullif(btrim(real_post.source_author_name), '') is not null
                             or nullif(btrim(real_post.source_company_code), '') is not null
                             or nullif(btrim(real_post.source_company_name), '') is not null
                             or nullif(btrim(real_post.source_process_unit_code), '') is not null
                             or nullif(btrim(real_post.source_process_unit_name), '') is not null
+                            or nullif(btrim(real_post.source_stage_code), '') is not null
+                            or nullif(btrim(real_post.source_detail_state_code), '') is not null
                             or nullif(btrim(real_post.source_sales_pool_code), '') is not null
                             or nullif(btrim(real_post.source_sales_pool_name), '') is not null
+                            or nullif(btrim(real_post.source_order_pool_code), '') is not null
+                            or nullif(btrim(real_post.source_sales_order_code), '') is not null
+                            or nullif(btrim(real_post.source_sales_order_item_number::text), '') is not null
+                            or nullif(btrim(real_post.source_inspection_point_code), '') is not null
                             or nullif(btrim(real_post.source_customer_code), '') is not null
                             or nullif(btrim(real_post.source_customer_name), '') is not null
                             or nullif(btrim(real_post.source_project_code), '') is not null
@@ -217,6 +243,20 @@ async def backfill_post_content(
                 if described_images == 0 and not normalized.text.strip():
                     result["skipped_posts"] += 1
                     continue
+                backfill_post_id = str(row["post_id"])
+                backfill_body = str(row["post_body"] or "")
+
+                async def finalize_backfill(
+                    inner_conn: asyncpg.Connection,
+                    current_post_id: str = backfill_post_id,
+                    current_body: str = backfill_body,
+                ) -> None:
+                    await record_post_content_backfill_success(
+                        inner_conn,
+                        current_post_id,
+                        current_body,
+                    )
+
                 await persist_post_content(
                     conn,
                     str(row["post_id"]),
@@ -227,13 +267,8 @@ async def backfill_post_content(
                     normalized_result=normalized,
                     structure_client=structure_client,
                     post_title=row["post_title"],
+                    transaction_fence=finalize_backfill,
                 )
-                async with conn.transaction():
-                    await record_post_content_backfill_success(
-                        conn,
-                        str(row["post_id"]),
-                        str(row["post_body"] or ""),
-                    )
             result["processed_posts"] += 1
             if described_images:
                 result["described_posts"] += 1

@@ -3,6 +3,8 @@
 The query and column mapping are runtime inputs, so this public adapter contains
 no source-organization or source-table identifiers. It preserves raw HTML in
 ``source_post``, persists normalized content artifacts, and rebuilds lineage.
+The body may come from an explicitly mapped source column or a hash-verified
+RFC 2557 MHTML artifact beneath an operator-supplied root.
 """
 
 from __future__ import annotations
@@ -13,6 +15,7 @@ import json
 import os
 import sys
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,14 +29,36 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
+from backend.app.analysis_run_start import configured_tepp_client
+from backend.app.customer_hint_ingestion import reconcile_customer_hints
 from backend.app.lineage_ingestion import rebuild_lineage
-from lineageweave.synthetic_seed_cleanup import cleanup_synthetic_seed
+from backend.app.post_content_queue import record_post_content_backfill_success
+from lineageweave.corporate_hierarchy_inference import (
+    ContextualOrchestratorHierarchyInferenceClient,
+    NullCorporateHierarchyInferenceClient,
+)
+from lineageweave.customer_hint_resolution import (
+    ContextualOrchestratorCustomerHintResolutionClient,
+    NullCustomerHintResolutionClient,
+)
+from lineageweave.customer_identity_judgment import (
+    ContextualOrchestratorCustomerIdentityJudgeClient,
+    NullCustomerIdentityJudgeClient,
+)
 from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.post_content_persistence import persist_post_content
-from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
-
+from lineageweave.post_structure import (
+    ContextualOrchestratorPostStructureClient,
+    NullPostStructureClient,
+)
+from lineageweave.relation_verification import (
+    NullRelationVerificationClient,
+    SearxngRelationVerificationClient,
+)
+from lineageweave.source_artifacts import SourceArtifactError, read_mhtml_html
+from lineageweave.synthetic_seed_cleanup import cleanup_synthetic_seed
 
 SOURCE_NAMESPACE = uuid.UUID("b6e4b1d6-5fd0-4ca1-92b0-8f7a4e2df83e")
 
@@ -65,7 +90,9 @@ class ColumnMapping:
     record_key: str
     post_id: str | None
     title: str
-    body: str
+    body: str | None
+    body_artifact_path: str | None
+    body_artifact_sha256: str | None
     created_at: str
     updated_at: str | None
     voc_type: str | None
@@ -84,6 +111,10 @@ class ColumnMapping:
     # PU field such as voc_pucode without an authoritative source definition.
     sales_pool: str | None
     sales_pool_name: str | None
+    order_pool: str | None
+    sales_order: str | None
+    sales_order_item: str | None
+    inspection_point: str | None
     customer_code: str | None
     customer_name: str | None
     project_code: str | None
@@ -104,7 +135,17 @@ def _parser() -> argparse.ArgumentParser:
         help="optional source UUID column for post_id; otherwise derive it from record key",
     )
     parser.add_argument("--title-column", required=True)
-    parser.add_argument("--body-column", required=True)
+    parser.add_argument(
+        "--body-column",
+        help="source body column; mutually exclusive with the MHTML artifact mapping",
+    )
+    parser.add_argument("--body-artifact-path-column")
+    parser.add_argument("--body-artifact-sha256-column")
+    parser.add_argument(
+        "--artifact-root",
+        type=Path,
+        help="operator-local root containing the explicitly mapped MHTML artifacts",
+    )
     parser.add_argument("--created-at-column", required=True)
     parser.add_argument("--updated-at-column")
     parser.add_argument("--voc-type-column")
@@ -141,6 +182,10 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--source-sales-pool-column")
     parser.add_argument("--source-sales-pool-name-column")
+    parser.add_argument("--source-order-pool-column")
+    parser.add_argument("--source-sales-order-column")
+    parser.add_argument("--source-sales-order-item-column")
+    parser.add_argument("--source-inspection-point-column")
     parser.add_argument("--source-customer-code-column")
     parser.add_argument("--source-customer-name-column")
     parser.add_argument("--source-project-code-column")
@@ -220,16 +265,62 @@ def _source_code_matches(
     return normalized in {item.strip().casefold() for item in excluded_values}
 
 
+def _source_item_number(row: Any, column: str | None) -> int | None:
+    """Normalize a caller-mapped numeric item field, preserving source zero."""
+    value = _value(row, column)
+    if value is None or (isinstance(value, str) and not value.strip()):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"source sales-order item is not numeric: {value!r}") from exc
+
+
 def _validate_source_mapping(
     sales_pool_column: str | None,
     process_unit_column: str | None,
+    body_column: str | None = None,
+    body_artifact_path_column: str | None = None,
+    body_artifact_sha256_column: str | None = None,
+    artifact_root: Path | None = None,
 ) -> None:
-    """Reject the common PU-to-sales-pool mapping error at the import boundary."""
+    """Reject unsafe or ambiguous source mappings at the import boundary."""
     if sales_pool_column and process_unit_column and sales_pool_column == process_unit_column:
         raise ValueError(
             "source sales pool and PU/business-unit columns must be distinct; "
             "PU is source_process_unit_code, not source_sales_pool_code"
         )
+    has_body_column = bool(body_column)
+    has_artifact_mapping = bool(body_artifact_path_column or body_artifact_sha256_column)
+    if has_body_column == has_artifact_mapping:
+        raise ValueError("map exactly one source body column or MHTML artifact body mapping")
+    if has_artifact_mapping and (
+        not body_artifact_path_column or not body_artifact_sha256_column or artifact_root is None
+    ):
+        raise ValueError(
+            "MHTML artifact body mapping requires path column, SHA-256 column, and artifact root"
+        )
+
+
+def _source_body_resolver(
+    mapping: ColumnMapping,
+    artifact_root: Path | None,
+) -> Callable[[Any, int], str]:
+    """Build the one explicit body resolver used by preflight and import."""
+    if mapping.body is not None:
+        return lambda row, _row_number: str(_value(row, mapping.body) or "")
+    if artifact_root is None or mapping.body_artifact_path is None or mapping.body_artifact_sha256 is None:
+        raise ValueError("source body mapping is incomplete")
+
+    def resolve(row: Any, row_number: int) -> str:
+        source_path = str(_value(row, mapping.body_artifact_path) or "")
+        expected_sha256 = str(_value(row, mapping.body_artifact_sha256) or "")
+        try:
+            return read_mhtml_html(artifact_root, source_path, expected_sha256)
+        except (KeyError, SourceArtifactError) as exc:
+            raise ValueError(f"source body artifact failed at source row {row_number}") from exc
+
+    return resolve
 
 
 def _validate_publication_state(
@@ -251,6 +342,7 @@ def _validate_source_rows(
     mapping: ColumnMapping,
     excluded_draft_values: list[str],
     excluded_deleted_values: list[str],
+    body_resolver: Callable[[Any, int], str] | None = None,
 ) -> None:
     """Reject incomplete source evidence before the target is mutated."""
     _validate_publication_state(rows, mapping, excluded_draft_values)
@@ -280,7 +372,11 @@ def _validate_source_rows(
                     f"duplicate source post id at source rows {previous_row} and {row_number}"
                 )
             seen_post_ids[post_id] = row_number
-        body = str(_value(row, mapping.body) or "")
+        body = (
+            body_resolver(row, row_number)
+            if body_resolver is not None
+            else str(_value(row, mapping.body) or "")
+        )
         if not body.strip():
             raise ValueError(f"source post body cannot be empty at source row {row_number}")
         voc_type_column = getattr(mapping, "voc_type", None)
@@ -330,7 +426,9 @@ async def _ensure_scope(conn: asyncpg.Connection, args: argparse.Namespace) -> t
             args.process_unit_name or args.process_unit_code,
         )
     await conn.execute(
-        "insert into account_affiliation (user_account_id, corporate_entity_id, process_unit_id) values ($1, $2, $3) on conflict do nothing",
+        "insert into account_affiliation "
+        "(user_account_id, corporate_entity_id, process_unit_id, affiliation_scope_code) "
+        "values ($1, $2, $3, 'scope_own_entity') on conflict do nothing",
         account_id,
         corporate_id,
         process_unit_id,
@@ -349,6 +447,8 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
         post_id=args.post_id_column,
         title=args.title_column,
         body=args.body_column,
+        body_artifact_path=args.body_artifact_path_column,
+        body_artifact_sha256=args.body_artifact_sha256_column,
         created_at=args.created_at_column,
         updated_at=args.updated_at_column,
         voc_type=args.voc_type_column,
@@ -365,6 +465,10 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
         source_business_unit_name=args.source_business_unit_name_column,
         sales_pool=args.source_sales_pool_column,
         sales_pool_name=args.source_sales_pool_name_column,
+        order_pool=args.source_order_pool_column,
+        sales_order=args.source_sales_order_column,
+        sales_order_item=args.source_sales_order_item_column,
+        inspection_point=args.source_inspection_point_column,
         customer_code=args.source_customer_code_column,
         customer_name=args.source_customer_name_column,
         project_code=args.source_project_code_column,
@@ -372,7 +476,15 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
         thread_group=args.thread_group_column,
         secondary_group=args.secondary_group_column,
     )
-    _validate_source_mapping(mapping.sales_pool, mapping.source_business_unit)
+    _validate_source_mapping(
+        mapping.sales_pool,
+        mapping.source_business_unit,
+        mapping.body,
+        mapping.body_artifact_path,
+        mapping.body_artifact_sha256,
+        args.artifact_root,
+    )
+    body_resolver = _source_body_resolver(mapping, args.artifact_root)
     query = args.query_file.read_text(encoding="utf-8")
     source = await asyncpg.connect(args.source_dsn)
     target = await asyncpg.connect(args.target_dsn)
@@ -380,11 +492,19 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
     skipped = 0
     try:
         rows = await source.fetch(query)
+        resolved_bodies: dict[int, str] = {}
+
+        def resolve_body(row: Any, row_number: int) -> str:
+            body = body_resolver(row, row_number)
+            resolved_bodies[row_number] = body
+            return body
+
         _validate_source_rows(
             rows,
             mapping,
             args.exclude_draft_value,
             args.exclude_deleted_value,
+            body_resolver=resolve_body,
         )
         account_id, corporate_id, process_unit_id = await _ensure_scope(target, args)
         vision_client = orchestrator_vision_client(
@@ -403,7 +523,8 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             if orchestrator_base_url and orchestrator_api_key
             else NullPostStructureClient()
         )
-        for row in rows:
+        customer_keys: set[tuple[str | None, str]] = set()
+        for row_number, row in enumerate(rows, start=1):
             if _source_code_matches(row, mapping.draft, args.exclude_draft_value) or _source_code_matches(
                 row, mapping.deleted, args.exclude_deleted_value
             ):
@@ -414,7 +535,10 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             updated_at = _timestamp(_value(row, mapping.updated_at, created_at))
             post_id = _source_post_id(row, mapping, args.source_system_code, record_key)
             title = str(_value(row, mapping.title, "") or "")
-            body = str(_value(row, mapping.body, "") or "")
+            body = resolved_bodies[row_number]
+            source_customer_code = str(_value(row, mapping.customer_code) or "").strip() or None
+            if source_customer_code is not None:
+                customer_keys.add((args.source_system_code, source_customer_code))
             voc_type_code = _normalize_voc_type(
                 _value(row, mapping.voc_type, "voc"),
                 mapped=mapping.voc_type is not None,
@@ -429,11 +553,13 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                      source_author_code, source_author_name, source_company_code, source_company_name,
                      source_process_unit_code, source_process_unit_name,
                      source_sales_pool_code, source_sales_pool_name,
+                     source_order_pool_code, source_sales_order_code,
+                     source_sales_order_item_number, source_inspection_point_code,
                      source_customer_code, source_customer_name,
                      source_project_code, source_project_name,
                      source_system_code, source_record_key,
                      thread_group_key, secondary_grouping_key, created_at, updated_at)
-                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34)
                 on conflict (post_id) do update set
                     author_account_id = excluded.author_account_id,
                     corporate_entity_id = excluded.corporate_entity_id,
@@ -454,6 +580,10 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                     source_process_unit_name = excluded.source_process_unit_name,
                     source_sales_pool_code = excluded.source_sales_pool_code,
                     source_sales_pool_name = excluded.source_sales_pool_name,
+                    source_order_pool_code = excluded.source_order_pool_code,
+                    source_sales_order_code = excluded.source_sales_order_code,
+                    source_sales_order_item_number = excluded.source_sales_order_item_number,
+                    source_inspection_point_code = excluded.source_inspection_point_code,
                     source_customer_code = excluded.source_customer_code,
                     source_customer_name = excluded.source_customer_name,
                     source_project_code = excluded.source_project_code,
@@ -485,7 +615,11 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 str(_value(row, mapping.source_business_unit_name) or "").strip() or None,
                 str(_value(row, mapping.sales_pool) or "").strip() or None,
                 str(_value(row, mapping.sales_pool_name) or "").strip() or None,
-                str(_value(row, mapping.customer_code) or "").strip() or None,
+                str(_value(row, mapping.order_pool) or "").strip() or None,
+                str(_value(row, mapping.sales_order) or "").strip() or None,
+                _source_item_number(row, mapping.sales_order_item),
+                str(_value(row, mapping.inspection_point) or "").strip() or None,
+                source_customer_code,
                 str(_value(row, mapping.customer_name) or "").strip() or None,
                 str(_value(row, mapping.project_code) or "").strip() or None,
                 str(_value(row, mapping.project_name) or "").strip() or None,
@@ -520,9 +654,27 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                     "source_customer_code": _value(row, mapping.customer_code),
                     "source_project_code": _value(row, mapping.project_code),
                     "source_sales_pool_code": _value(row, mapping.sales_pool),
+                    "source_order_pool_code": _value(row, mapping.order_pool),
+                    "source_sales_order_code": _value(row, mapping.sales_order),
+                    "source_sales_order_item_number": _value(row, mapping.sales_order_item),
+                    "source_inspection_point_code": _value(row, mapping.inspection_point),
                 },
             )
             with use_llm_metadata(metadata):
+                imported_post_id = str(post_id)
+                imported_body = body
+
+                async def finalize_import(
+                    inner_conn: asyncpg.Connection,
+                    current_post_id: str = imported_post_id,
+                    current_body: str = imported_body,
+                ) -> None:
+                    await record_post_content_backfill_success(
+                        inner_conn,
+                        current_post_id,
+                        current_body,
+                    )
+
                 await persist_post_content(
                     target,
                     str(post_id),
@@ -532,15 +684,59 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                     embedding_model_code=args.embedding_model or None,
                     structure_client=structure_client,
                     post_title=title,
+                    transaction_fence=finalize_import,
                 )
             imported += 1
         cleanup = await cleanup_synthetic_seed(target, apply=True)
-        edges = await rebuild_lineage(target)
+        rebuild_result = await rebuild_lineage(target)
+        resolution_client = (
+            ContextualOrchestratorCustomerHintResolutionClient(
+                orchestrator_base_url, orchestrator_api_key, timeout=200.0
+            )
+            if orchestrator_base_url and orchestrator_api_key
+            else NullCustomerHintResolutionClient()
+        )
+        identity_judge_client = (
+            ContextualOrchestratorCustomerIdentityJudgeClient(
+                orchestrator_base_url, orchestrator_api_key, timeout=200.0
+            )
+            if orchestrator_base_url and orchestrator_api_key
+            else NullCustomerIdentityJudgeClient()
+        )
+        hierarchy_client = (
+            ContextualOrchestratorHierarchyInferenceClient(
+                orchestrator_base_url, orchestrator_api_key
+            )
+            if orchestrator_base_url and orchestrator_api_key
+            else NullCorporateHierarchyInferenceClient()
+        )
+        searxng_base_url = os.environ.get("SEARXNG_BASE_URL", "")
+        verification_client = (
+            SearxngRelationVerificationClient(searxng_base_url)
+            if searxng_base_url
+            else NullRelationVerificationClient()
+        )
+        customer_identity = await reconcile_customer_hints(
+            target,
+            resolution_client,
+            verification_client,
+            tuple(customer_keys),
+            authorized_corporate_entity_ids=(str(corporate_id),),
+            identity_judge_client=identity_judge_client,
+            hierarchy_inference_client=hierarchy_client,
+            tepp_client=configured_tepp_client(
+                os.environ.get("TEPP_TRANSPORT_URL", ""),
+                os.environ.get("TEPP_API_KEY", ""),
+                os.environ.get("TEPP_TEMPORAL_CONTEXT_URL", ""),
+            ),
+        )
         return {
             "source_rows": len(rows),
             "imported_rows": imported,
             "skipped_rows": skipped,
-            "lineage_edges": len(edges),
+            "lineage_edges": len(rebuild_result.edges),
+            "lineage_coverage": rebuild_result.coverage,
+            "customer_identity": customer_identity,
             **cleanup,
         }
     finally:

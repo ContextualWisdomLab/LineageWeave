@@ -2,7 +2,7 @@
 
 Keyman extraction and post-summary R&R are independent evidence channels. A
 replacement in either channel must remove only that channel's stale person
-mentions, then reconcile the buyer-facing Knowledge Graph from the currently
+mentions, then reconcile the reader-facing Knowledge Graph from the currently
 supported union. Orphan graph-registry rows must never become visible.
 """
 
@@ -10,15 +10,16 @@ from __future__ import annotations
 
 import asyncio
 import os
+import uuid
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
-import uuid
 
 import asyncpg
 import psycopg2
-from psycopg2 import sql
 import pytest
+from psycopg2 import sql
 
+from backend.app import post_summary_ingestion as summary_ingestion
 from backend.app.keyman_ingestion import ingest_post_keymen
 from backend.app.knowledge_graph import (
     hydrate_related_nodes,
@@ -27,7 +28,6 @@ from backend.app.knowledge_graph import (
     related_for_start,
     visible_mention_post_ids,
 )
-from backend.app import post_summary_ingestion as summary_ingestion
 from backend.app.post_summary_ingestion import (
     fetch_persisted_summary,
     persist_post_summary,
@@ -77,6 +77,16 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     / "migrations"
     / "0102_project_bound_summary_event.sql"
 )
+_IDENTIFIER_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0104_two_word_database_identifiers.sql"
+)
+_SOURCE_COMMERCIAL_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0130_source_commercial_context.sql"
+)
 _SEMANTIC_SEARCH_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0032_semantic_search_trigram.sql"
 )
@@ -97,6 +107,51 @@ _SOURCE_NAMED_HINTS_MIGRATION = (
 )
 _SOURCE_ORG_NAMED_HINTS_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0039_source_org_named_hints.sql"
+)
+_QUANTITATIVE_OBSERVATION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0108_post_summary_quantitative_observation.sql"
+)
+_SOURCE_FACT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0109_post_summary_source_fact.sql"
+)
+_SOFTWARE_AGENT_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0110_role_responsibility_software_agent.sql"
+)
+_SEMANTIC_RELATIONSHIP_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0111_post_summary_semantic_relationship.sql"
+)
+_EVENT_CLUE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0112_event_clue_semantic_projection.sql"
+)
+_BROAD_FACT_TYPES_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0113_broad_source_fact_types.sql"
+)
+_SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0114_semantic_relationship_standard_predicates.sql"
+)
+_CATALOG_UNRESOLVED_REASON_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0134_catalog_unresolved_reason.sql"
+)
+_CUSTOMER_IDENTITY_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0137_cross_post_customer_identity.sql"
 )
 
 
@@ -156,15 +211,28 @@ def projection_database() -> str:
                 cursor.execute(_SEMANTIC_SEARCH_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SOURCE_STATE_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SOURCE_CONTEXT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(
+                    _SOURCE_COMMERCIAL_CONTEXT_MIGRATION.read_text(encoding="utf-8")
+                )
                 cursor.execute(_NORMALIZED_BODY_SEARCH_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SOURCE_RECORD_IDENTITY_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SOURCE_NAMED_HINTS_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SOURCE_ORG_NAMED_HINTS_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_POST_SUMMARY_CONTRACT_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_SUMMARY_FIVE_W1H_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_QUANTITATIVE_OBSERVATION_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SOURCE_FACT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SOFTWARE_AGENT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SEMANTIC_RELATIONSHIP_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_EVENT_CLUE_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_BROAD_FACT_TYPES_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_IDENTIFIER_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_CATALOG_UNRESOLVED_REASON_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_CUSTOMER_IDENTITY_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(
                     """
                     insert into common_lookup_value
@@ -301,15 +369,27 @@ async def _exercise_projection_contract(
                     ),
                 ),
             ),
+            post_body="Synthetic body",
+            expected_source_body_sha256=summary_ingestion.source_body_sha256(
+                "Synthetic body"
+            ),
         )
-        summary_payload = await fetch_persisted_summary(connection, post_id)
+        summary_payload = await fetch_persisted_summary(
+            connection,
+            post_id,
+            summary_input="Synthetic body",
+        )
         assert summary_payload is not None
         assert [
             action["project_name"]
             for action in summary_payload["major_event_actions"]
         ] == ["Synthetic Project", None]
         assert summary_payload["key_event_details"] == [
-            {"event_text": "합성 프로젝트 검토", "project_name": "Synthetic Project"}
+            {
+                "event_text": "합성 프로젝트 검토",
+                "project_name": "Synthetic Project",
+                "evidence_text": None,
+            }
         ]
 
         keyman_rows = await connection.fetch(
@@ -330,6 +410,10 @@ async def _exercise_projection_contract(
             connection,
             post_id,
             PostSummary(korean_summary="역할이 제거된 합성 요약"),
+            post_body="Synthetic body",
+            expected_source_body_sha256=summary_ingestion.source_body_sha256(
+                "Synthetic body"
+            ),
         )
         assert await visible_mention_post_ids(
             connection, summary_person_id, lambda row: True
@@ -448,7 +532,7 @@ def test_cross_post_identity_upgrade_keeps_keyman_mention_context(
             cursor.execute(
                 """
                 insert into post_summary_role
-                    (post_id, actor_name, responsibility, actor_type_code)
+                    (post_id, actor_name, responsibility_text, actor_type_code)
                 values (%s, 'Summary Person', '검토', 'prov_person')
                 """,
                 (post_id,),
@@ -588,11 +672,27 @@ async def _exercise_homonym_organization_role_binding(
             )
         )
 
-        async def resolve_mentioned_organization(*_args, **_kwargs) -> str:
-            return mentioned_id
+        prepared = object()
 
-        original = summary_ingestion.get_or_create_corporate_entity
-        summary_ingestion.get_or_create_corporate_entity = resolve_mentioned_organization
+        async def prepare_mentioned_organization(*_args, **_kwargs):
+            return prepared
+
+        async def apply_mentioned_organization(
+            _conn,
+            proposal,
+            _candidates,
+        ) -> tuple[str, None]:
+            assert proposal is prepared
+            return mentioned_id, None
+
+        original_prepare = summary_ingestion.prepare_corporate_entity_resolution
+        original_apply = summary_ingestion.apply_prepared_corporate_entity_resolution
+        summary_ingestion.prepare_corporate_entity_resolution = (
+            prepare_mentioned_organization
+        )
+        summary_ingestion.apply_prepared_corporate_entity_resolution = (
+            apply_mentioned_organization
+        )
         try:
             payload = await persist_post_summary(
                 connection,
@@ -607,15 +707,24 @@ async def _exercise_homonym_organization_role_binding(
                         ),
                     ),
                 ),
+                post_body="Synthetic body",
+                expected_source_body_sha256=summary_ingestion.source_body_sha256(
+                    "Synthetic body"
+                ),
             )
         finally:
-            summary_ingestion.get_or_create_corporate_entity = original
+            summary_ingestion.prepare_corporate_entity_resolution = original_prepare
+            summary_ingestion.apply_prepared_corporate_entity_resolution = original_apply
 
         roles = payload["roles_and_responsibilities"]
         assert len(roles) == 1
         assert roles[0]["catalog_node_id"] == mentioned_id
         assert roles[0]["catalog_node_type_code"] == NODE_CORPORATE_ENTITY
-        fetched = await fetch_persisted_summary(connection, post_id)
+        fetched = await fetch_persisted_summary(
+            connection,
+            post_id,
+            summary_input="Synthetic body",
+        )
         assert fetched is not None
         assert fetched["roles_and_responsibilities"][0]["catalog_node_id"] == mentioned_id
         assert fetched["roles_and_responsibilities"][0]["catalog_node_id"] != other_id
@@ -685,8 +794,16 @@ async def _exercise_same_name_person_catalog_order(
                     ),
                 ),
             ),
+            post_body="Synthetic body",
+            expected_source_body_sha256=summary_ingestion.source_body_sha256(
+                "Synthetic body"
+            ),
         )
-        payload = await fetch_persisted_summary(connection, post_id)
+        payload = await fetch_persisted_summary(
+            connection,
+            post_id,
+            summary_input="Synthetic body",
+        )
         assert payload is not None
         roles = payload["roles_and_responsibilities"]
         assert len(roles) == 1
@@ -714,3 +831,96 @@ def test_same_name_person_roles_bind_the_earliest_catalog_row(
 
     database_dsn, post_id, _summary_person_id = projection_database.split("|")
     asyncio.run(_exercise_same_name_person_catalog_order(database_dsn, post_id))
+
+
+async def _exercise_two_project_event_streams_stay_separate(
+    database_dsn: str,
+    post_id: str,
+) -> None:
+    """case-multi-project-01: two named projects on one post must keep
+    their own key events -- an event's project_key only survives onto the
+    persisted row when it matches an actually-declared project_mentions
+    entry (`_replace_summary_projection`'s allow-list join), so a stray or
+    misattributed key never borrows another project's identity."""
+
+    connection = await asyncpg.connect(database_dsn)
+    try:
+        payload = await persist_post_summary(
+            connection,
+            post_id,
+            PostSummary(
+                korean_summary="두 프로젝트가 독립적으로 진행되었다.",
+                key_events=(
+                    "Alpha 프로젝트 착수",
+                    "Beta 프로젝트 착수",
+                    "Alpha 프로젝트 1차 검토 완료",
+                    "관련 없는 일반 공지",
+                ),
+                key_event_details=(
+                    KeyEvent(event_text="Alpha 프로젝트 착수", project_key="Project Alpha"),
+                    KeyEvent(event_text="Beta 프로젝트 착수", project_key="Project Beta"),
+                    KeyEvent(
+                        event_text="Alpha 프로젝트 1차 검토 완료",
+                        project_key="Project Alpha",
+                    ),
+                    KeyEvent(event_text="관련 없는 일반 공지"),
+                ),
+                project_mentions=(
+                    ProjectMention(
+                        project_name="Project Alpha",
+                        canonical_name="Project Alpha",
+                        evidence="Alpha 프로젝트 관련 근거",
+                        confidence=0.9,
+                    ),
+                    ProjectMention(
+                        project_name="Project Beta",
+                        canonical_name="Project Beta",
+                        evidence="Beta 프로젝트 관련 근거",
+                        confidence=0.9,
+                    ),
+                ),
+            ),
+            post_body="Synthetic body",
+            expected_source_body_sha256=summary_ingestion.source_body_sha256(
+                "Synthetic body"
+            ),
+        )
+
+        events_by_text = {
+            event["event_text"]: event["project_name"] for event in payload["key_event_details"]
+        }
+        assert events_by_text["Alpha 프로젝트 착수"] == "Project Alpha"
+        assert events_by_text["Beta 프로젝트 착수"] == "Project Beta"
+        assert events_by_text["Alpha 프로젝트 1차 검토 완료"] == "Project Alpha"
+        # An event naming no project stays unattached -- never guessed onto
+        # either declared project just because two exist on this post.
+        assert events_by_text["관련 없는 일반 공지"] is None
+
+        fetched = await fetch_persisted_summary(
+            connection,
+            post_id,
+            summary_input="Synthetic body",
+        )
+        assert fetched is not None
+        fetched_events_by_text = {
+            event["event_text"]: event["project_name"] for event in fetched["key_event_details"]
+        }
+        assert fetched_events_by_text == events_by_text
+
+        project_keys = {
+            project["project_name"] for project in fetched["project_mentions"]
+        }
+        assert project_keys == {"Project Alpha", "Project Beta"}
+    finally:
+        await connection.close()
+
+
+def test_two_projects_on_one_post_keep_separate_key_event_streams(
+    projection_database: str,
+) -> None:
+    """case-multi-project-01 (docs/product-technical-gap-baseline.md §4):
+    two projects mentioned in one post must produce separate event
+    streams, never conflated onto a single project."""
+
+    database_dsn, post_id, _summary_person_id = projection_database.split("|")
+    asyncio.run(_exercise_two_project_event_streams_stay_separate(database_dsn, post_id))

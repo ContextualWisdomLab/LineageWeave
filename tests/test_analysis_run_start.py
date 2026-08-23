@@ -111,7 +111,7 @@ def test_period_report_start_is_unprocessable_and_tepp_is_allowed() -> None:
 
 def _tepp_request() -> AnalysisRunRequest:
     return tepp_run_request(
-        idempotency_key="buyer-tepp-2026-w07",
+        idempotency_key="run-tepp-2026-w07",
         snapshot_sha256="ab" * 32,
         knowledge_cutoff=datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc),
         corporate_entity_id="11111111-1111-1111-1111-111111111111",
@@ -123,7 +123,7 @@ def test_tepp_run_request_is_the_published_wire_shape() -> None:
     request = _tepp_request()
     payload = request.to_json()
     assert payload["contract_version"] == 1
-    assert payload["idempotency_key"] == "buyer-tepp-2026-w07"
+    assert payload["idempotency_key"] == "run-tepp-2026-w07"
     assert payload["snapshot_id"] == "ab" * 32
     assert payload["knowledge_cutoff"] == "2026-01-12T12:00:00Z"
     assert payload["model_contract_version"] == "tepp-analysis-run-v1"
