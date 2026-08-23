@@ -2080,10 +2080,10 @@ def test_persisted_summary_is_returned_without_an_llm(client, demo_analyst_token
     assert role["ontology_label"] == "Role actor (person)"
 
 
-def test_stale_summary_is_returned_labeled_when_orchestrator_is_unavailable(
+def test_stale_image_summary_is_returned_labeled_when_orchestrator_is_unavailable(
     client, demo_analyst_token, seeded_db
 ) -> None:
-    """A legacy saved summary preserves reader continuity with an explicit label."""
+    """A legacy image-post summary preserves continuity with an explicit label."""
     os.environ.pop("ORCHESTRATOR_BASE_URL", None)
     os.environ.pop("ORCHESTRATOR_API_KEY", None)
     admin_conn = psycopg2.connect(seeded_db["dsn"])
@@ -2097,6 +2097,13 @@ def test_stale_summary_is_returned_labeled_when_orchestrator_is_unavailable(
                     seeded_db["public_post_id"],
                     "보관된 이전 계약 요약입니다.",
                     POST_SUMMARY_CONTRACT_VERSION - 1,
+                ),
+            )
+            cur.execute(
+                "update source_post set post_body = %s where post_id = %s",
+                (
+                    '<img src="data:image/png;base64,iVBORw0KGgo=" alt="Synthetic chart">',
+                    seeded_db["public_post_id"],
                 ),
             )
     finally:

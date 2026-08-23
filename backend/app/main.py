@@ -2803,6 +2803,8 @@ async def read_post_summary(
         if stored is not None:
             return stored
         stale = await fetch_persisted_summary(conn, post_id, allow_stale=True)
+        if stale is not None:
+            return stale
         image_body = post_body_has_images(raw_body)
         if image_body:
             content_complete = await post_content_is_complete(
@@ -2838,8 +2840,6 @@ async def read_post_summary(
         with use_llm_metadata(post_metadata):
             client = _post_summary_client()
             if not client.available:
-                if stale is not None and not image_body:
-                    return stale
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
@@ -2862,15 +2862,11 @@ async def read_post_summary(
                 else:
                     summary = await asyncio.to_thread(client.summarize, post["post_title"], normalized_body)
             except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
-                if stale is not None and not image_body:
-                    return stale
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
                 ) from exc
             except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
-                if stale is not None and not image_body:
-                    return stale
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
@@ -2886,8 +2882,6 @@ async def read_post_summary(
                     verification_client=_relation_verification_client(),
                 )
             except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
-                if stale is not None and not image_body:
-                    return stale
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
