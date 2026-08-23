@@ -116,7 +116,7 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
 _TEPP_ACCEPTED_RECEIPT_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
-    / "0106_analysis_run_tepp_accepted_receipt.sql"
+    / "0171_analysis_run_tepp_accepted_receipt.sql"
 )
 
 

@@ -439,7 +439,7 @@ async def fetch_tepp_accepted_receipt(
 ) -> dict[str, Any] | None:
     """Transport receipt for one already-visible run, or None.
 
-    Missing table (migration 0106 not applied) is not a 500. The
+    Missing table (migration 0171 not applied) is not a 500. The
     receipt is not a measurement and never includes a theta.
     """
     return (await fetch_tepp_accepted_receipts(conn, [analysis_run_id])).get(

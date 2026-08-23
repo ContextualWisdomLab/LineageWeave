@@ -60,7 +60,7 @@ the durable acceptance evidence.
 `GET /api/analysis-runs` and `GET /api/analysis-runs/{id}` may attach
 `tepp_accepted_receipt`
 `{remote_run_id, accepted_status_code, received_at}` so the operator
-can see that TEPP accepted the work. Missing migration 0106 is an
+can see that TEPP accepted the work. Missing migration 0171 is an
 empty attachment, not a 500; list rows load receipts in one bounded
 query rather than one query per run. Global Ask must not promote this
 receipt into an answer claim.

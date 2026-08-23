@@ -1,4 +1,4 @@
--- Fail-closed rollback for migration 0106.
+-- Fail-closed rollback for migration 0171.
 --
 -- Accepted TEPP receipts are transport evidence. Export or explicitly
 -- delete them under an approved retention procedure before dropping.

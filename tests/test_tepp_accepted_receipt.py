@@ -380,12 +380,12 @@ def test_unavailable_transport_still_raises_on_direct_submit() -> None:
         TeppClient().submit_analysis_run(_request())
 
 
-def test_migration_0106_is_transport_evidence_not_a_result_table() -> None:
-    sql = (_ROOT / "migrations" / "0106_analysis_run_tepp_accepted_receipt.sql").read_text(
+def test_migration_0171_is_transport_evidence_not_a_result_table() -> None:
+    sql = (_ROOT / "migrations" / "0171_analysis_run_tepp_accepted_receipt.sql").read_text(
         encoding="utf-8"
     )
     rollback = (
-        _ROOT / "migrations" / "rollback" / "0106_analysis_run_tepp_accepted_receipt.sql"
+        _ROOT / "migrations" / "rollback" / "0171_analysis_run_tepp_accepted_receipt.sql"
     ).read_text(encoding="utf-8")
     assert "analysis_run_tepp_accepted_receipt" in sql
     assert "create table if not exists analysis_run_tepp_accepted_receipt" in sql
@@ -412,7 +412,7 @@ def test_migrate_sh_replays_accepted_receipt_migration() -> None:
         encoding="utf-8"
     )
     assert "0103_*" in script
-    assert "0106_*" in script
+    assert "0171_*" in script
     assert "0104_*" not in script
     assert "0105_*" not in script
     assert "CREATE TABLE IF NOT EXISTS tenant_settings" in tenant_settings
