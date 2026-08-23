@@ -4,15 +4,19 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
+import hashlib
+import json
 
 import pytest
 
 from backend.app.project_history import (
     ProjectHistoryNotFound,
     ProjectHistoryConnection,
+    _fetch_topic_lineage_projection,
     fetch_project_history_index,
     fetch_project_history_projection,
 )
+from lineageweave.topic_lineage_artifact import topic_lineage_artifact_sha256
 from lineageweave.project_history import (
     build_project_history_projection,
     classify_project_event,
@@ -73,6 +77,113 @@ class _ProjectionConnection:
         if "post_id = $4::uuid" in query:
             return self.focus
         return []
+
+
+def test_topic_lineage_repository_filters_to_authorized_post_ids() -> None:
+    """Persisted TEPP evidence is digest-bound before visible projection."""
+
+    artifact = {
+        "schema_version": "tepp.trsl_topic_lineage.v1",
+        "run_id": "tepp-run-1",
+        "snapshot_id": "ab" * 32,
+        "knowledge_cutoff": "2026-01-12T12:00:00Z",
+        "selected_seed": 7,
+        "iterations": 4,
+        "objective": 1.25,
+        "topic_count": 2,
+        "evidence_count": 2,
+        "connected_post_count": 2,
+        "lineage_count": 1,
+        "sequence_edges": [
+            {
+                "predecessor_document_id": "00000000-0000-0000-0000-000000000001",
+                "successor_document_id": "00000000-0000-0000-0000-000000000002",
+                "topic_index": 0,
+                "association_strength": 0.8,
+            }
+        ],
+        "inference_status": "fitted_topic_association_not_causation",
+    }
+    envelope = {
+        "status": "completed",
+        "run_id": "tepp-run-1",
+        "result_schema_version": artifact["schema_version"],
+        "result_sha256": topic_lineage_artifact_sha256(artifact),
+        "result": artifact,
+    }
+    stored = json.dumps(envelope, separators=(",", ":"), sort_keys=True)
+    invalid_contract = {**envelope, "result_schema_version": "unknown"}
+    invalid_contract_stored = json.dumps(
+        invalid_contract, separators=(",", ":"), sort_keys=True
+    )
+
+    class Connection:
+        async def fetch(self, query: str, *args: object):
+            assert "analysis_run_topic_lineage_result" in query
+            return [
+                {
+                    "result_json": "{not-json",
+                    "result_sha256": "0" * 64,
+                    "remote_run_id": "tepp-run-1",
+                    "snapshot_sha256": "ab" * 32,
+                    "knowledge_cutoff": datetime(2026, 1, 12, 12, tzinfo=timezone.utc),
+                },
+                {
+                    "result_json": stored,
+                    "result_sha256": "0" * 64,
+                    "remote_run_id": "tepp-run-1",
+                    "snapshot_sha256": "ab" * 32,
+                    "knowledge_cutoff": datetime(2026, 1, 12, 12, tzinfo=timezone.utc),
+                },
+                {
+                    "result_json": invalid_contract_stored,
+                    "result_sha256": hashlib.sha256(invalid_contract_stored.encode()).hexdigest(),
+                    "remote_run_id": "tepp-run-1",
+                    "snapshot_sha256": "ab" * 32,
+                    "knowledge_cutoff": datetime(2026, 1, 12, 12, tzinfo=timezone.utc),
+                },
+                {
+                    "result_json": stored,
+                    "result_sha256": hashlib.sha256(stored.encode()).hexdigest(),
+                    "remote_run_id": "tepp-run-1",
+                    "snapshot_sha256": "ab" * 32,
+                    "knowledge_cutoff": datetime(2026, 1, 12, 12, tzinfo=timezone.utc),
+                }
+            ]
+
+    projection = asyncio.run(
+        _fetch_topic_lineage_projection(
+            Connection(),
+            visible_ids=[
+                "00000000-0000-0000-0000-000000000001",
+                "00000000-0000-0000-0000-000000000002",
+            ],
+            corporate_entity_ids=["11111111-1111-1111-1111-111111111111"],
+            knowledge_cutoff=datetime(2026, 8, 20, tzinfo=timezone.utc),
+        )
+    )
+
+    assert projection["connected_post_count"] == 2
+    assert projection["lineage_count"] == 1
+
+
+def test_project_history_keeps_an_already_visible_focus_without_a_second_lookup() -> None:
+    """A visible focus stays in the authorized page without a focus query."""
+
+    event = _event_row()
+    connection = _ProjectionConnection([event])
+    result = asyncio.run(
+        fetch_project_history_projection(
+            connection,
+            project_key="P-100",
+            focus_post_id=str(event["post_id"]),
+            knowledge_cutoff=datetime(2026, 8, 20, tzinfo=timezone.utc),
+            corporate_entity_ids=[],
+        )
+    )
+
+    assert result["focus_event_id"] == event["post_id"]
+    assert all("post_id = $4::uuid" not in query for query, _ in connection.calls)
 
 
 def test_project_identity_is_exact_but_unicode_compatible() -> None:
@@ -206,8 +317,11 @@ def test_project_history_counts_connected_posts_and_distinct_lineages() -> None:
     )
 
     assert projection["event_count"] == 6
-    assert projection["connected_post_count"] == 5
-    assert projection["lineage_count"] == 2
+    assert projection["connected_post_count"] is None
+    assert projection["lineage_count"] is None
+    assert projection["evidence_connected_post_count"] == 5
+    assert projection["evidence_lineage_count"] == 2
+    assert projection["topic_lineage"]["status"] == "unavailable"
 
 
 def test_matching_observed_project_code_keeps_its_distinct_display_name() -> None:
@@ -454,7 +568,7 @@ def test_project_history_projection_keeps_focus_and_authorization_bounds() -> No
     assert result["truncated"] is True
     assert result["focus_event_id"] == "00000000-0000-0000-0000-000000000099"
     assert result["knowledge_cutoff"] == "2026-08-20T00:00:00Z"
-    assert len(connection.calls) == 5
+    assert len(connection.calls) == 6
     assert connection.calls[0][1][-1] == 3
 
 

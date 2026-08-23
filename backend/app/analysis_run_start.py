@@ -33,6 +33,12 @@ from lineageweave.http_client import post_json
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
+from lineageweave.topic_lineage_artifact import (
+    TOPIC_LINEAGE_MODEL_CONTRACT_VERSION,
+    TOPIC_LINEAGE_OUTPUT_PROFILE,
+    TopicLineageUnavailable,
+    parse_topic_lineage_envelope,
+)
 
 _LINEAGE_KIND = "analysis_run_lineage"
 _TEPP_KIND = "analysis_run_tepp"
@@ -44,8 +50,6 @@ _SUCCEEDED = "analysis_status_succeeded"
 _FAILED = "analysis_status_failed"
 _TEPP_MODEL_CONTRACT = "tepp-analysis-run-v1"
 _TEPP_OUTPUT_PROFILE = "calibrated_event_measurement"
-_TOPIC_LINEAGE_MODEL_CONTRACT = "tepp-topic-lineage-v1"
-_TOPIC_LINEAGE_OUTPUT_PROFILE = "topic_identity_lineage"
 
 
 class AnalysisRunStartError(AnalysisRunCreateError):
@@ -74,7 +78,7 @@ def start_kind_rejection(run_kind_code: str) -> AnalysisRunStartError | None:
 
     Lineage reconstructs the frozen bag. TEPP and topic-lineage submit
     through ``tepp_client`` and never invent a theta or a topic (ADR 0022 /
-    ADR 0132). Period-report stays on its own rebuild path.
+    ADR 0147). Period-report stays on its own rebuild path.
     """
     if run_kind_code in {_LINEAGE_KIND, _TEPP_KIND, _TOPIC_LINEAGE_KIND}:
         return None
@@ -140,24 +144,24 @@ def topic_lineage_run_request(
     knowledge_cutoff: datetime,
     corporate_entity_id: str,
 ) -> AnalysisRunRequest:
-    """Build TEPP's published request for a topic-lineage run (ADR 0132).
+    """Build TEPP's published request for a topic-lineage run (ADR 0147).
 
     Same wire shape as :func:`tepp_run_request` -- TEPP's
     ``AnalysisRunRequest`` already carries no post body or fabricated
     label -- only the model contract and output profile differ, selecting
-    TRSL-TM topic identity plus CHRONOS/TDT event-intelligence status
-    instead of calibrated psychometric measurement.
+    the bounded TRSL topic-lineage artifact instead of calibrated
+    psychometric measurement.
     """
     cutoff = knowledge_cutoff
     if cutoff.tzinfo is None:
-        cutoff = cutoff.replace(tzinfo=timezone.utc)
+        cutoff = cutoff.replace(tzinfo=UTC)
     return AnalysisRunRequest(
         idempotency_key=idempotency_key,
         tenant_workspace_id=str(corporate_entity_id),
         snapshot_id=snapshot_sha256,
-        knowledge_cutoff=cutoff.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        model_contract_version=_TOPIC_LINEAGE_MODEL_CONTRACT,
-        output_profile=_TOPIC_LINEAGE_OUTPUT_PROFILE,
+        knowledge_cutoff=cutoff.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        model_contract_version=TOPIC_LINEAGE_MODEL_CONTRACT_VERSION,
+        output_profile=TOPIC_LINEAGE_OUTPUT_PROFILE,
     )
 
 
@@ -193,6 +197,37 @@ def tepp_submit_outcome(
 ) -> tuple[str, str]:
     """Compatibility projection of the TEPP submission outcome."""
     status_code, failure_code, _ = _tepp_submission(client, request)
+    return status_code, failure_code
+
+
+def _topic_lineage_submission(
+    client: TeppClient,
+    request: AnalysisRunRequest,
+) -> tuple[str, str, dict[str, Any] | None]:
+    """Require TEPP's exact digest-bound topic-lineage artifact."""
+
+    try:
+        response = client.submit_analysis_run(request)
+    except TeppNotAvailable:
+        return _FAILED, "tepp_not_available", None
+    try:
+        parse_topic_lineage_envelope(
+            response,
+            expected_snapshot_id=request.snapshot_id,
+            expected_knowledge_cutoff=request.knowledge_cutoff,
+        )
+    except TopicLineageUnavailable:
+        return _FAILED, "tepp_topic_contract_unavailable", None
+    return _SUCCEEDED, "", response
+
+
+def topic_lineage_submit_outcome(
+    client: TeppClient,
+    request: AnalysisRunRequest,
+) -> tuple[str, str]:
+    """Return the strict topic-lineage submission outcome."""
+
+    status_code, failure_code, _ = _topic_lineage_submission(client, request)
     return status_code, failure_code
 
 
@@ -233,15 +268,13 @@ async def _persist_topic_lineage_result(
     analysis_run_id: str,
     envelope: dict[str, Any],
 ) -> bool:
-    """Persist only a validated, remote-completed topic-lineage envelope.
+    """Persist only TEPP's validated artifact envelope (ADR 0147)."""
 
-    Stores TEPP's TRSL-TM topic identity / CHRONOS status envelope
-    verbatim (ADR 0132); LineageWeave does not decompose or reinterpret
-    its evidence/inference/prediction fields here.
-    """
-    remote_run_id = envelope.get("analysis_run_id") or envelope.get("run_id")
-    if not isinstance(remote_run_id, str) or not remote_run_id.strip():
+    try:
+        artifact = parse_topic_lineage_envelope(envelope)
+    except TopicLineageUnavailable:
         return False
+    remote_run_id = artifact["run_id"]
     result_json = json.dumps(envelope, separators=(",", ":"), sort_keys=True)
     result_sha256 = hashlib.sha256(result_json.encode("utf-8")).hexdigest()
     try:
@@ -868,17 +901,17 @@ async def _deliver_topic_lineage_measurement(
     """Submit the frozen snapshot through ``tepp_client`` for topic-lineage.
 
     Mirrors :func:`_deliver_tepp_measurement` (ADR 0022) with the
-    topic-lineage model contract (ADR 0132). Never persists a locally
-    computed topic identity or CHRONOS/TDT event prediction.
+    topic-lineage model contract (ADR 0147). Never persists a locally
+    computed topic identity or substitutes evidence-DAG counts.
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     request = topic_lineage_run_request(
         idempotency_key=str(locked["idempotency_key"]),
         snapshot_sha256=str(locked["snapshot_sha256"]),
         knowledge_cutoff=locked["knowledge_cutoff"],
         corporate_entity_id=str(locked["corporate_entity_id"]),
     )
-    status_code, failure_code, envelope = _tepp_submission(tepp_client, request)
+    status_code, failure_code, envelope = _topic_lineage_submission(tepp_client, request)
     if status_code == _SUCCEEDED and envelope is not None:
         if not await _persist_topic_lineage_result(
             conn,
@@ -887,7 +920,7 @@ async def _deliver_topic_lineage_measurement(
         ):
             status_code = _FAILED
             failure_code = "tepp_result_not_persisted"
-    finished = datetime.now(timezone.utc)
+    finished = datetime.now(UTC)
     if finished < now:
         finished = now
     await _append_status(

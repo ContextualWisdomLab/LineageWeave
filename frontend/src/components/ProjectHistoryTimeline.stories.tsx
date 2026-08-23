@@ -62,6 +62,15 @@ const projection: ProjectHistoryProjection = {
   event_count: 5,
   connected_post_count: 5,
   lineage_count: 1,
+  topic_lineage: {
+    status: "validated",
+    schema_version: "tepp.trsl_topic_lineage.v1",
+    inference_status: "fitted_topic_association_not_causation",
+    artifact_count: 1,
+    connected_post_count: 5,
+    lineage_count: 1,
+    sequence_edges: [],
+  },
   distinct_actor_count: 3,
   distinct_observed_actor_count: 2,
   truncated: false,
@@ -147,6 +156,25 @@ export const ResponsibilityEvidenceGap: Story = {
           ? { ...row, responsibility_evidence: [], observed_responsibilities: [] }
           : row,
       ),
+    },
+  },
+};
+
+export const TopicLineageUnavailable: Story = {
+  args: {
+    projection: {
+      ...projection,
+      connected_post_count: null,
+      lineage_count: null,
+      topic_lineage: {
+        status: "unavailable",
+        schema_version: null,
+        inference_status: null,
+        artifact_count: 0,
+        connected_post_count: null,
+        lineage_count: null,
+        sequence_edges: [],
+      },
     },
   },
 };

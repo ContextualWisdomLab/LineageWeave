@@ -616,7 +616,7 @@ def _require_lineage_create_kind(run_kind_code: str) -> None:
     """Reject TEPP, topic-lineage, and report writes so this path cannot fake those products.
 
     TEPP and topic-lineage stay ``tepp_client`` wire paths (ADR 0022 /
-    ADR 0132). Period reports stay on the Reports panel rebuild. A Pending
+    ADR 0147). Period reports stay on the Reports panel rebuild. A Pending
     TEPP or topic-lineage row that never called the transport is a
     fabricated measurement request.
     """

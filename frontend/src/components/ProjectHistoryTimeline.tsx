@@ -52,6 +52,10 @@ export function ProjectHistoryTimeline({
   const selectedResponsibilities =
     selectedEvent?.responsibility_evidence ?? selectedEvent?.observed_responsibilities ?? [];
   const actorCount = projection.distinct_actor_count ?? projection.distinct_observed_actor_count;
+  const topicCountsAvailable =
+    projection.topic_lineage?.status === "validated" &&
+    projection.connected_post_count !== null &&
+    projection.lineage_count !== null;
   const selectedIndex = selectedEvent
     ? projection.events.findIndex((event) => event.event_id === selectedEvent.event_id)
     : -1;
@@ -101,12 +105,16 @@ export function ProjectHistoryTimeline({
           <h3 id={headingId}>{projectHistoryText(locale, "heading")}</h3>
         </div>
         <p className="project-history-counts">
-          {projectHistoryText(locale, "summaryCounts", {
-            events: projection.event_count,
-            connected: projection.connected_post_count,
-            lineages: projection.lineage_count,
-            actors: actorCount,
-          })}
+          {projectHistoryText(
+            locale,
+            topicCountsAvailable ? "summaryCounts" : "summaryCountsUnavailable",
+            {
+              events: projection.event_count,
+              connected: projection.connected_post_count ?? 0,
+              lineages: projection.lineage_count ?? 0,
+              actors: actorCount,
+            },
+          )}
         </p>
       </header>
 

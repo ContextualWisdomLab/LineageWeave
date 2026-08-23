@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any, Protocol
@@ -14,6 +16,11 @@ from lineageweave.project_history import (
     _as_utc,
     build_project_history_projection,
     normalize_project_key,
+)
+from lineageweave.topic_lineage_artifact import (
+    TopicLineageUnavailable,
+    parse_topic_lineage_envelope,
+    project_topic_lineage_projection,
 )
 
 PROJECT_HISTORY_DEFAULT_LIMIT = 64
@@ -131,7 +138,7 @@ select mention.post_id,
        'semantic_project_key'::text,
        {_MENTION_KEY} as identity_key,
        {_MENTION_KEY} as matched_value,
-       mention.confidence,
+       mention.mention_confidence,
        mention.ontology_iri,
        'post_project_mention.project_key'::text
   from post_project_mention mention
@@ -143,7 +150,7 @@ select mention.post_id,
        'semantic_project_name'::text,
        coalesce({_MENTION_KEY}, {_MENTION_NAME}) as identity_key,
        {_MENTION_NAME} as matched_value,
-       mention.confidence,
+       mention.mention_confidence,
        mention.ontology_iri,
        'post_project_mention.project_name'::text
   from post_project_mention mention
@@ -178,7 +185,7 @@ select post.post_id,
 union all
 select role.post_id,
        role.actor_name,
-       role.responsibility,
+       role.responsibility_text as responsibility,
        role.actor_type_code,
        role.affiliated_organization_name,
        role.cataloged_person_id,
@@ -196,6 +203,26 @@ select edge.parent_post_id, edge.child_post_id, edge.fused_score
  where edge.parent_post_id = any($1::uuid[])
    and edge.child_post_id = any($1::uuid[])
  order by edge.child_post_id, edge.parent_post_id
+"""
+_TOPIC_LINEAGE_SQL = """
+select distinct on (scope.corporate_entity_id)
+       result.result_json,
+       result.result_sha256,
+       result.remote_run_id,
+       snapshot.snapshot_sha256,
+       run.knowledge_cutoff
+  from analysis_run_topic_lineage_result result
+  join analysis_run run on run.analysis_run_id = result.analysis_run_id
+  join analysis_run_scope scope on scope.analysis_run_id = run.analysis_run_id
+  join analysis_source_snapshot snapshot
+    on snapshot.analysis_source_snapshot_id = run.analysis_source_snapshot_id
+  join analysis_run_current_status status
+    on status.analysis_run_id = run.analysis_run_id
+ where run.run_kind_code = 'analysis_run_topic_lineage'
+   and status.status_code = 'analysis_status_succeeded'
+   and scope.corporate_entity_id::text = any($1::text[])
+   and run.knowledge_cutoff <= $2
+ order by scope.corporate_entity_id, run.requested_at desc, run.analysis_run_id desc
 """
 _INDEX_SQL = f"""
 with query_timeout as materialized (
@@ -408,6 +435,12 @@ async def fetch_project_history_projection(
         visible_ids=visible_ids,
         normalized_key=normalized_key,
     )
+    topic_lineage = await _fetch_topic_lineage_projection(
+        conn,
+        visible_ids=visible_ids,
+        corporate_entity_ids=corporate_entity_ids,
+        knowledge_cutoff=knowledge_cutoff,
+    )
     projection = build_project_history_projection(
         project_key=project_key,
         focus_event_id=canonical_focus_id,
@@ -415,6 +448,7 @@ async def fetch_project_history_projection(
         match_rows=match_rows,
         role_rows=role_rows,
         edge_rows=edge_rows,
+        topic_lineage=topic_lineage,
         truncated=truncated,
     )
     projection["knowledge_cutoff"] = _as_utc(knowledge_cutoff)
@@ -434,3 +468,40 @@ async def _fetch_project_children(
     roles = list(await conn.fetch(_ROLE_SQL, list(visible_ids)))
     edges = list(await conn.fetch(_EDGE_SQL, list(visible_ids)))
     return matches, roles, edges
+
+
+async def _fetch_topic_lineage_projection(
+    conn: ProjectHistoryConnection,
+    *,
+    visible_ids: Sequence[str],
+    corporate_entity_ids: Sequence[str],
+    knowledge_cutoff: datetime,
+) -> dict[str, Any]:
+    """Project only intact TEPP artifacts onto already-authorized posts."""
+
+    rows = await conn.fetch(
+        _TOPIC_LINEAGE_SQL,
+        list(corporate_entity_ids),
+        knowledge_cutoff,
+    )
+    artifacts: list[Mapping[str, Any]] = []
+    for row in rows:
+        envelope = row["result_json"]
+        try:
+            decoded = json.loads(envelope) if isinstance(envelope, str) else envelope
+            stored = json.dumps(decoded, separators=(",", ":"), sort_keys=True)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            continue
+        if hashlib.sha256(stored.encode("utf-8")).hexdigest() != row["result_sha256"]:
+            continue
+        try:
+            artifact = parse_topic_lineage_envelope(
+                envelope,
+                expected_snapshot_id=str(row["snapshot_sha256"]),
+                expected_knowledge_cutoff=_as_utc(row["knowledge_cutoff"]),
+                expected_remote_run_id=str(row["remote_run_id"]),
+            )
+        except TopicLineageUnavailable:
+            continue
+        artifacts.append(artifact)
+    return project_topic_lineage_projection(artifacts, visible_ids)

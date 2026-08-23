@@ -14,8 +14,17 @@ const projection = {
   knowledge_cutoff: "2026-08-20T12:00:00Z",
   evidence_boundary_code: "authorized_visible_source_posts",
   event_count: 1,
-  connected_post_count: 0,
-  lineage_count: 0,
+  connected_post_count: null,
+  lineage_count: null,
+  topic_lineage: {
+    status: "unavailable",
+    schema_version: null,
+    inference_status: null,
+    artifact_count: 0,
+    connected_post_count: null,
+    lineage_count: null,
+    sequence_edges: [],
+  },
   distinct_actor_count: 0,
   distinct_observed_actor_count: 0,
   truncated: false,
@@ -64,6 +73,7 @@ describe("ProjectHistoryTimeline TEPP integration", () => {
 
     expect(screen.getByRole("heading", { name: /TEPP temporal validation/i })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /Project event timeline/i })).toBeInTheDocument();
+    expect(screen.getByText(/TEPP topic-lineage counts unavailable/i)).toBeInTheDocument();
     expect(screen.getAllByRole("tab")).toHaveLength(1);
   });
 });

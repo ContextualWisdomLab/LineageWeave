@@ -1,8 +1,8 @@
--- Adds the topic-lineage analysis-run kind (ADR 0132).
+-- Adds the topic-lineage analysis-run kind (ADR 0147).
 --
 -- Requesting/starting this kind submits through the same tepp_client
 -- boundary as analysis_run_tepp (ADR 0022) -- it never computes a topic
--- identity or CHRONOS/TDT event-intelligence status locally. This
+-- identity or predecessor/successor association locally. This
 -- migration only registers the kind vocabulary and widens the existing
 -- kind check constraints; it stores no post body and no fabricated
 -- measurement.

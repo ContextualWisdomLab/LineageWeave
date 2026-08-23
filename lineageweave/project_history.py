@@ -315,6 +315,7 @@ def build_project_history_projection(
     match_rows: Sequence[Mapping[str, Any]],
     role_rows: Sequence[Mapping[str, Any]],
     edge_rows: Sequence[Mapping[str, Any]],
+    topic_lineage: Mapping[str, Any] | None = None,
     truncated: bool = False,
     maximum_depth: int = PROJECT_HISTORY_MAX_DEPTH,
     maximum_paths_per_event: int = PROJECT_HISTORY_MAX_PATHS_PER_EVENT,
@@ -454,7 +455,21 @@ def build_project_history_projection(
         maximum_depth=maximum_depth,
         maximum_paths_per_event=maximum_paths_per_event,
     )
-    connected_post_count, lineage_count = _lineage_counts(ordered_ids, edge_rows)
+    evidence_connected_post_count, evidence_lineage_count = _lineage_counts(
+        ordered_ids, edge_rows
+    )
+    topic_lineage = dict(
+        topic_lineage
+        or {
+            "status": "unavailable",
+            "schema_version": None,
+            "inference_status": None,
+            "artifact_count": 0,
+            "connected_post_count": None,
+            "lineage_count": None,
+            "sequence_edges": [],
+        }
+    )
 
     events: list[dict[str, Any]] = []
     previous_actor_keys: Sequence[str] | None = None
@@ -514,8 +529,11 @@ def build_project_history_projection(
         "focus_event_id": effective_focus,
         "time_basis_code": PROJECT_HISTORY_TIME_BASIS,
         "event_count": len(events),
-        "connected_post_count": connected_post_count,
-        "lineage_count": lineage_count,
+        "connected_post_count": topic_lineage["connected_post_count"],
+        "lineage_count": topic_lineage["lineage_count"],
+        "topic_lineage": topic_lineage,
+        "evidence_connected_post_count": evidence_connected_post_count,
+        "evidence_lineage_count": evidence_lineage_count,
         "distinct_actor_count": len(distinct_actor_keys),
         "distinct_observed_actor_count": len(distinct_observed_actor_keys),
         "truncated": bool(truncated),

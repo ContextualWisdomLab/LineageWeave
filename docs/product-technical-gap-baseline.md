@@ -334,20 +334,21 @@ runtime note into a shipped/live claim.
 
 ## Project-history lineage counts (2026-08-23)
 
-- The shared timeline now distinguishes displayed authorized project posts from
-  posts incident to a persisted forward `post_lineage_edge`, and reports the
-  number of weakly connected evidence-lineage components in that bounded set.
-- Isolated project posts remain visible but do not inflate the lineage count.
-  These counts describe LineageWeave's evidence-fusion DAG; they are not TEPP
-  topic identities and do not close the TRSL-TM topic-lineage dependency.
+- The shared timeline reports connectable posts and topic lineages only from
+  digest-, snapshot-, cutoff-, and schema-validated TEPP
+  `tepp.trsl_topic_lineage.v1` predecessor/successor edges whose endpoints are
+  already in the authorized project post set.
+- Missing, invalid, stale, or out-of-project artifacts render topic counts as
+  unavailable. `post_lineage_edge` still supplies prior-history navigation but
+  cannot substitute weak-component counts for TEPP topic identity.
 - The same projection supplies the dedicated Project history destination, each
   post's project-evidence action, post-scoped Ask, and Global Ask, so those
   surfaces cannot drift into competing count definitions.
-- Stacked delivery evidence is PR #487 on PR #258. Local evidence is the full
-  993-test backend suite, focused Project History UI tests, the complete App test
-  file, lint, production build, Storybook build, and rendered-story inspection.
-  Protected merge, authenticated runtime, and the TEPP topic-identity result
-  contract remain open and must not be represented as protected-main behavior.
+- Active-branch evidence includes exact 100% statement/branch coverage for the
+  strict artifact consumer and PostgreSQL projection, the real Project History
+  API integration path, complete frontend tests/lint/build, and Storybook build.
+  Protected merge and authenticated rendered-runtime inspection remain open and
+  must not be represented as protected-main behavior.
 
 ## Ask-to-project-history integration (2026-08-21)
 

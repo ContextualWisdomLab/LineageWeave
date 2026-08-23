@@ -33,6 +33,10 @@ import psycopg2
 from lineageweave.http_client import get_json_list, post_form
 from lineageweave.post_summary import ACTOR_TYPE_PERSON, POST_SUMMARY_CONTRACT_VERSION
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
+from lineageweave.topic_lineage_artifact import (
+    TOPIC_LINEAGE_MODEL_CONTRACT_VERSION,
+    TOPIC_LINEAGE_OUTPUT_PROFILE,
+)
 
 REALM = "lineageweave-demo"
 DEFAULT_POSTGRES_DSN = "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"
@@ -1679,25 +1683,23 @@ def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> No
 def topic_lineage_seed_request() -> AnalysisRunRequest:
     """Build the Demo Corp topic-lineage request against the shared snapshot digest.
 
-    Same wire shape as :func:`tepp_seed_request` (ADR 0132) -- only the
-    model contract and output profile select TRSL-TM topic identity plus
-    CHRONOS/TDT event-intelligence status instead of calibrated
-    psychometric measurement.
+    Same wire shape as :func:`tepp_seed_request` (ADR 0147); only the model
+    contract and output profile select the bounded topic-lineage artifact.
     """
     return AnalysisRunRequest(
         idempotency_key=DEMO_TOPIC_LINEAGE_IDEMPOTENCY_KEY,
         tenant_workspace_id="demo-workspace",
         snapshot_id=demo_source_snapshot_sha256(),
         knowledge_cutoff="2026-01-12T12:00:00Z",
-        model_contract_version="tepp-topic-lineage-v1",
-        output_profile="topic_identity_lineage",
+        model_contract_version=TOPIC_LINEAGE_MODEL_CONTRACT_VERSION,
+        output_profile=TOPIC_LINEAGE_OUTPUT_PROFILE,
     )
 
 
 def topic_lineage_seed_outcome(client: TeppClient | None = None) -> tuple[str, str | None]:
     """Ask TEPP through the published client. A missing transport is Failed.
 
-    Never invents a topic identity or CHRONOS/TDT event prediction.
+    Never invents a topic identity or predecessor/successor association.
     ``tepp_not_available`` means the channel was dropped, not an abstained
     measurement. A live envelope is also not yet a persistable result in
     this seed, so the run is not stamped Succeeded.
@@ -1713,7 +1715,7 @@ def topic_lineage_seed_outcome(client: TeppClient | None = None) -> tuple[str, s
 def _seed_demo_topic_lineage_run(cur, requested_by_account_id, corporate_entity_id) -> None:
     """Insert one Demo-Corp topic-lineage run so the kind is visible without a live TEPP.
 
-    Mirrors :func:`_seed_demo_tepp_run` (ADR 0132). Default transport is
+    Mirrors :func:`_seed_demo_tepp_run` (ADR 0147). Default transport is
     unavailable, so the run ends Failed / ``tepp_not_available`` -- never
     a fabricated topic model.
     """
