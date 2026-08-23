@@ -16,6 +16,7 @@ from .organization_name_resolution_ingestion import fetch_corroborated_organizat
 
 async def fetch_affiliate_forest(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
     """Ancestor forest of every organization this post's Keymen touch."""
+    aliases = await fetch_corroborated_organization_aliases(conn)
     entity_rows = await conn.fetch(
         """
         select corporate_entity_id, parent_entity_id, entity_name, entity_level_code
@@ -32,7 +33,7 @@ async def fetch_affiliate_forest(conn: asyncpg.Connection, post_id: str) -> list
         for row in entity_rows
     )
     leaves: list[AffiliationLeaf] = []
-    for person in await fetch_post_keymen(conn, post_id):
+    for person in await fetch_post_keymen(conn, post_id, organization_aliases=aliases):
         for affiliation in person["affiliations"]:
             leaves.append(
                 AffiliationLeaf(
@@ -47,7 +48,7 @@ async def fetch_affiliate_forest(conn: asyncpg.Connection, post_id: str) -> list
     await _attach_lookup_labels(conn, forest)
     attach_organization_aliases(
         forest,
-        await fetch_corroborated_organization_aliases(conn),
+        aliases,
     )
     return forest
 

@@ -15,7 +15,11 @@ import asyncpg
 
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.ontology import ontology_annotations
-from lineageweave.organization_alias import attach_organization_alias, attach_organization_aliases
+from lineageweave.organization_alias import (
+    OrganizationNameAlias,
+    attach_organization_alias,
+    attach_organization_aliases,
+)
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
     EDGE_CO_MENTION,
@@ -70,7 +74,12 @@ async def labels_for_codes(conn: asyncpg.Connection, codes: list[str]) -> dict[s
     return {row["lookup_code"]: row["lookup_label"] for row in rows}
 
 
-async def fetch_post_keymen(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
+async def fetch_post_keymen(
+    conn: asyncpg.Connection,
+    post_id: str,
+    *,
+    organization_aliases: tuple[OrganizationNameAlias, ...] | None = None,
+) -> list[dict[str, Any]]:
     """Load mentioned people and their affiliations for one post."""
     person_rows = await conn.fetch(
         """
@@ -109,7 +118,9 @@ async def fetch_post_keymen(conn: asyncpg.Connection, post_id: str) -> list[dict
         )
 
     side_labels = await labels_for_codes(conn, [row["person_side_code"] for row in person_rows])
-    aliases = await fetch_corroborated_organization_aliases(conn)
+    aliases = organization_aliases
+    if aliases is None:
+        aliases = await fetch_corroborated_organization_aliases(conn)
     people = [
         {
             "person_id": str(row["person_id"]),
