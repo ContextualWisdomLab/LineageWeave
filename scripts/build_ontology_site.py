@@ -392,7 +392,14 @@ def _write_manifest(
     """Write deterministic provenance metadata for the published ontology."""
     payload = {
         "documentation_url": DOCUMENTATION_URL,
-        "generated_artifacts": ["index.html", "ontology.jsonld", "ontology.nt"],
+        "generated_artifacts": [
+            "index.html",
+            "manifest.json",
+            "ontology.jsonld",
+            "ontology.nt",
+            "ontology.ttl",
+            "prov-o-support-profile.ttl",
+        ],
         "ontology_triple_count": len(graph),
         "ontology_unique_term_count": term_count,
         "source_path": SOURCE_RELATIVE_PATH.as_posix(),

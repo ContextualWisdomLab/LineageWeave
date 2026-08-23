@@ -44,7 +44,8 @@ and consumer migration plan.
    artifact. JSON-LD and N-Triples are generated from a canonicalized RDF graph
    and are tested for semantic isomorphism with the source.
 5. Do not add a build timestamp. The same source tree must produce the same
-   artifact bytes. The manifest records the source SHA-256 instead.
+   artifact bytes. The manifest records the source SHA-256 and the complete
+   published ontology-directory inventory instead.
 6. Run publication through `scripts/publish_ontology_site.py`, a fail-closed
    boundary that rejects duplicate HTML fragments, non-HTTP(S) linked IRIs,
    symlink outputs, source-overlapping outputs, and replacement of directories

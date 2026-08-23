@@ -165,6 +165,14 @@ def test_metadata_manifest_has_source_digest_and_no_build_clock(tmp_path: Path) 
     assert manifest["source_sha256"] == hashlib.sha256(source.read_bytes()).hexdigest()
     assert "built_at" not in manifest
     assert manifest["documentation_url"] == "https://contextualwisdomlab.github.io/LineageWeave/ontology"
+    assert manifest["generated_artifacts"] == [
+        "index.html",
+        "manifest.json",
+        "ontology.jsonld",
+        "ontology.nt",
+        "ontology.ttl",
+        "prov-o-support-profile.ttl",
+    ]
 
 
 def test_helpers_cover_slash_fragments_json_lists_and_missing_ontology() -> None:
