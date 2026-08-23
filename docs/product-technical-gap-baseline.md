@@ -19,9 +19,9 @@
 
 - **ThreadWeave**: Integrated in the production reconstruction path; no local tree-assembly substitute is planned.
 - **RankWeave**: Integrated through the in-process ranking port and fails closed when the package is unavailable or disabled.
-- **fast-mlsirm**: PR #468 pins the refreshed internal package. GRM, GPCM, CAT, and FIPC recovery evidence is split across PRs #451-#454; item-parameter calibration claims remain open where those tests measure theta recovery only.
+- **fast-mlsirm**: PR #468 consumes upstream PR #1279's public Rust-backed category-probability API instead of reproducing GRM/GPCM parameter conventions locally. GRM, GPCM, CAT, and FIPC recovery evidence is split across PRs #451-#454; item-parameter calibration claims remain open where those tests measure theta recovery only.
 - **Keyverse**: PR #468 binds `org`, `workspace`, and roles to one provisioned organization/process-unit affiliation under ADR 0156. The strict contract intentionally denies incomplete affiliations.
-- **contextual-orchestrator**: PR #468 routes generative, VISION, structured-output, and embedding work through the provider-neutral boundary. Upstream model discovery and paper-grounded selection remain contextual-orchestrator responsibilities, not LineageWeave heuristics.
+- **contextual-orchestrator**: PR #468 consumes upstream PR #789's capability-selected embedding contract, persists the returned model identity, and removes local provider-model selection. Generative, VISION, structured-output, and embedding traffic stays behind the provider-neutral boundary.
 - **TEPP**: PR #468 sends the published analysis-run body with LineageWeave consumer, contract-version, and idempotency headers and removes the rejected credential-header option. Provider PR TEPP #155 must merge and be deployed before requests can be accepted; completed-result contract/persistence remains dependent on TEPP #157. No local theta substitute is allowed.
 - **Other organization repositories**: `disksage` and `wardnet` do not satisfy a demonstrated LineageWeave product boundary, so no dependency is added.
 
