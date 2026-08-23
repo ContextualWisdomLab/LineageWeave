@@ -47,10 +47,5 @@ export function leftoverPairAriaLabel(pair: LeftoverPairOpen): string {
 }
 
 export function leftoverPairNextAction(pair: LeftoverPairOpen): string {
-  const criterion = leftoverCriterionLabel(pair.criterion_code);
-  const kind = pair.pair_kind === "farthest" ? "farthest from" : "closest to";
-  return (
-    `Open ${pair.post_title}, then read Post quality criterion ${criterion}. ` +
-    `This pair sat ${kind} after main effects.`
-  );
+  return `Open ${pair.post_title}, then read Post quality criterion ${leftoverCriterionLabel(pair.criterion_code)}.`;
 }

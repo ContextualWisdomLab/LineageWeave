@@ -3860,11 +3860,19 @@ describe("App, authenticated", () => {
     render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    expect(await screen.findByText("Constructive stance: 2")).toBeInTheDocument();
+    expect(screen.getByText("Sales-lead specificity: 3")).toBeInTheDocument();
     await userEvent.click(await screen.findByRole("button", { name: /evaluate post/i }));
 
     await waitFor(() =>
       expect(screen.getByText("Evaluation is temporarily unavailable. Saved evidence is still available.")).toBeInTheDocument(),
     );
+    expect(screen.getByText(/This analysis channel is unavailable/)).toBeInTheDocument();
+    expect(screen.getByText(/A missing signal is not a negative fact/)).toBeInTheDocument();
+    expect(screen.getByText("Constructive stance: 2")).toBeInTheDocument();
+    expect(screen.getByText("Sales-lead specificity: 3")).toBeInTheDocument();
+    expect(document.getElementById("post-quality-criterion-general_sentiment_positive")).not.toBeNull();
+    expect(document.getElementById("post-quality-criterion-sales_lead_specificity")).not.toBeNull();
     expect(screen.queryByText(/HTTP 503/)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /evaluate post/i })).not.toBeInTheDocument();
   });
@@ -5298,13 +5306,15 @@ describe("App, authenticated", () => {
     });
     expect(closestPair).toHaveTextContent("Closest leftover: Public post · sales-lead");
     expect(closestPair).toHaveTextContent(
-      "Open Public post, then read Post quality criterion sales-lead. This pair sat closest to after main effects.",
+      "Open Public post, then read Post quality criterion sales-lead.",
     );
+    expect(closestPair).not.toHaveTextContent(/sat closest to after main effects/);
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
-      "Open Specification revision requested, then read Post quality criterion negative. This pair sat farthest from after main effects.",
+      "Open Specification revision requested, then read Post quality criterion negative.",
     );
+    expect(farthestPair).not.toHaveTextContent(/sat farthest from after main effects/);
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
     expect(closestPair.compareDocumentPosition(memberButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

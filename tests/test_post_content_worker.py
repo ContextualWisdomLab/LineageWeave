@@ -432,9 +432,9 @@ def test_supervised_worker_restarts_after_unexpected_error(monkeypatch) -> None:
             post_content_worker.run_post_content_worker_supervised(
                 SimpleNamespace(),
                 SimpleNamespace(),
-                vision_factory=lambda: SimpleNamespace(),
-                embedding_factory=lambda: SimpleNamespace(),
-                structure_factory=lambda: SimpleNamespace(),
+                vision_factory=SimpleNamespace,
+                embedding_factory=SimpleNamespace,
+                structure_factory=SimpleNamespace,
             )
         )
 

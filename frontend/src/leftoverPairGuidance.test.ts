@@ -25,10 +25,10 @@ const farthest = {
 describe("leftoverPairGuidance", () => {
   it("names the post and the criterion in leftover next-action copy", () => {
     const closestCopy = leftoverPairNextAction(closest);
-    expect(closestCopy).toMatch(/Public post/);
-    expect(closestCopy).toMatch(/Post quality criterion sales-lead/);
-    expect(closestCopy).toMatch(/closest to/);
-    expect(closestCopy).not.toMatch(/farthest/);
+    expect(closestCopy).toBe(
+      "Open Public post, then read Post quality criterion sales-lead.",
+    );
+    expect(closestCopy).not.toMatch(/sat closest to after|sat farthest from after/);
     expect(leftoverPairTitle(closest)).toBe("Closest leftover: Public post · sales-lead");
     expect(leftoverPairAriaLabel(closest)).toMatch(/public post/i);
     expect(leftoverPairAriaLabel(closest)).toMatch(/sales-lead/);
@@ -42,9 +42,10 @@ describe("leftoverPairGuidance", () => {
       "post-quality-criterion-sales_lead_specificity",
     );
     const farthestCopy = leftoverPairNextAction(farthest);
-    expect(farthestCopy).toMatch(/Specification revision requested/);
-    expect(farthestCopy).toMatch(/Post quality criterion negative/);
-    expect(farthestCopy).toMatch(/farthest from/);
+    expect(farthestCopy).toBe(
+      "Open Specification revision requested, then read Post quality criterion negative.",
+    );
+    expect(farthestCopy).not.toMatch(/sat farthest from after|sat closest to after/);
     expect(leftoverPairOpenOptions(farthest).focusCriterionCode).toBe(
       "general_sentiment_negative",
     );

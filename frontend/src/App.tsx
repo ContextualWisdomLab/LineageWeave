@@ -1610,8 +1610,11 @@ function EvaluationPanel({
     setError(null);
   }, [postId]);
 
-  const dropped = orchestratorOff || channelDropped;
-  const droppedDiagnosis = dropped ? analysisEvidenceDiagnosis("dropped_channel") : null;
+  const channelUnavailable = orchestratorOff || channelDropped;
+  const hasSavedScores = responses !== null && responses.length > 0;
+  const droppedDiagnosis = channelUnavailable
+    ? analysisEvidenceDiagnosis("dropped_channel")
+    : null;
 
   useEffect(() => {
     if (!focusCriterionCode || responses === null) {
@@ -1646,7 +1649,7 @@ function EvaluationPanel({
         <h3 id="post-quality-evaluation" tabIndex={-1}>
           {t("Post quality (IRT)")}
         </h3>
-        {canExtract && !dropped && (
+        {canExtract && !channelUnavailable && (
           <details className="operator-action-tools">
             <summary>{t("Evidence operations")}</summary>
             <button onClick={handleEvaluate} disabled={evaluating}>
@@ -1663,9 +1666,7 @@ function EvaluationPanel({
       ) : null}
       {responses === null ? (
         <p>{t("Loading evaluation...")}</p>
-      ) : dropped ? null : responses.length === 0 ? (
-        <p className="popup-placeholder">{t("Not yet evaluated.")}</p>
-      ) : (
+      ) : hasSavedScores ? (
         <ul>
           {responses.map((row) => {
             const negative =
@@ -1690,6 +1691,8 @@ function EvaluationPanel({
             );
           })}
         </ul>
+      ) : channelUnavailable ? null : (
+        <p className="popup-placeholder">{t("Not yet evaluated.")}</p>
       )}
     </section>
   );
