@@ -20,7 +20,11 @@ though the source post remains authorized and available.
 2. The post-summary endpoint first attempts a current summary. If the
    orchestrator is unavailable or the refresh returns an incomplete provider
    response, it returns the last persisted summary with
-   `summary_status: "stale"` and its stored contract version.
+   `summary_status: "stale"` and its stored contract version. This continuity
+   applies immediately to text-only posts. An image-bearing stale summary is
+   withheld until its persisted parent and region descriptions are complete,
+   then regenerated because the current schema does not bind the stale row to
+   the current body and image-evidence snapshot.
 3. The buyer popup labels the stale state and offers a retry action. Stale
    content is never labelled current and is never used to create new catalog
    identities or semantic rows.
@@ -31,7 +35,9 @@ though the source post remains authorized and available.
 ## Consequences
 
 - Buyers can read source-grounded prior context while the semantic gateway is
-  unavailable instead of seeing a fail-closed summary panel.
+  unavailable instead of seeing a fail-closed summary panel. Image-bearing
+  posts remain fail-closed at the VISION evidence boundary without delaying
+  source-post open or source rendering.
 - The UI makes the refresh boundary visible, so an old contract cannot be
   mistaken for current ontology evidence.
 - A durable background refresh remains useful for large-scale regeneration;

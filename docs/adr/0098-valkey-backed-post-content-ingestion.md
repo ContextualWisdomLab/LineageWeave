@@ -49,7 +49,10 @@ placed in a stream message.
 
 ## Consequences
 
-- Slow VISION and region embedding work no longer blocks summary or post-open.
+- Slow VISION and region embedding work never blocks source-post open or source
+  rendering. Region embeddings do not block summary. For an image-bearing
+  post, persisted parent-image and region descriptions are source evidence and
+  therefore block only the current summary projection until they are complete.
 - A provider failure is recorded and can be retried without deleting the raw
   source body or fabricating buyer content.
 - Valkey is load-bearing as a wake-up queue, but PostgreSQL remains the durable
@@ -71,6 +74,14 @@ the same image/region condition, so an unavailable image cannot become a
 permanent false-ready result merely because its text-unit embeddings exist.
 The existing bounded automatic retry limit and the explicit terminal retry
 operation in ADR 0115 remain unchanged.
+
+The narrower `post_content_summary_is_ready` predicate checks only the
+persisted VISION evidence required by an image-bearing summary; embeddings and
+non-image structure decisions remain outside that predicate. The summary read
+path may enqueue or observe the durable job, but MUST NOT call VISION directly
+or summarize an unavailable image placeholder. Queued and running jobs remain
+processing. A terminal failed job remains unavailable until ADR 0115's
+explicit operator retry.
 
 When contextual-orchestrator is configured, the same predicate also requires
 every persisted unit to have a non-`unresolved` structure decision. Without an

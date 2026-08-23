@@ -58,6 +58,25 @@ def test_summary_status_distinguishes_terminal_image_failure_from_processing() -
     assert "still being processed" in post_content_summary_status_message(RUNNING)
 
 
+def test_adrs_keep_post_open_separate_from_image_summary_readiness() -> None:
+    semantic_contract = (
+        _ROOT / "docs/adr/0052-plain-orchestrator-semantic-evidence.md"
+    ).read_text()
+    ingestion_contract = (
+        _ROOT / "docs/adr/0098-valkey-backed-post-content-ingestion.md"
+    ).read_text()
+    stale_contract = (
+        _ROOT / "docs/adr/0114-stale-summary-buyer-continuity.md"
+    ).read_text()
+
+    assert "Source-post open and source rendering" in semantic_contract
+    assert "withholds both current and stale persisted summaries" in semantic_contract
+    assert "never blocks source-post open or source" in ingestion_contract
+    assert "MUST NOT call VISION directly" in ingestion_contract
+    assert "image-bearing stale summary is" in stale_contract
+    assert "does not bind the stale row" in stale_contract
+
+
 def test_summary_waits_for_image_evidence_and_detects_images_without_body_logging() -> None:
     class FakeConnection:
         async def fetchval(self, query: str, *_args: object) -> int:

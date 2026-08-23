@@ -120,6 +120,7 @@ from backend.app.post_content_queue import (
     post_content_api_status,
     post_content_is_complete,
     post_content_summary_is_ready,
+    post_content_summary_status_message,
     post_body_has_images,
     publish_post_content_event,
 )
@@ -3115,10 +3116,10 @@ async def read_post_summary(
         except ValueError as exc:
             raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
         stored = await fetch_persisted_summary(conn, post_id)
-        if stored is not None:
-            return stored
         stale = await fetch_persisted_summary(conn, post_id, allow_stale=True)
         image_body = post_body_has_images(raw_body)
+        if stored is not None and not image_body:
+            return stored
         if stale is not None and not image_body:
             return stale
         if image_body:
@@ -3151,8 +3152,16 @@ async def read_post_summary(
             if summary_waiting_for_images:
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Post summary is unavailable: image evidence is still being processed",
+                    post_content_summary_status_message(job.status_code),
                 )
+            if stored is not None:
+                if queue_event is not None:
+                    await publish_post_content_event(
+                        valkey,
+                        post_id=queue_event[0],
+                        source_body_digest=queue_event[1],
+                    )
+                return stored
         with use_llm_metadata(post_metadata):
             client = _post_summary_client()
             if not client.available:
