@@ -16,5 +16,6 @@ decision from them.
 | [`ONTOLOGY_NAMESPACE_INVENTORY.md`](../doctoring/ONTOLOGY_NAMESPACE_INVENTORY.md) | [0157](0157-public-ontology-namespace-identity.md) |
 | [`image-content-schema.md`](../image-content-schema.md) | [0066](0066-position-preserving-image-content.md) |
 
-Runtime evidence under `docs/doctoring/` is not converted into an ADR: it
-records observed results for already-decided behavior.
+Files under `docs/doctoring/` remain non-normative supporting evidence even
+when this map links them to an ADR. Runtime-evidence files record observed
+results for already-decided behavior.
