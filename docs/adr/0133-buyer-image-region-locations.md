@@ -23,8 +23,10 @@ unrelated stacks.
 - Render each persisted region's axis-aligned box as a percent range next to
   its caption or OCR excerpt: `Region location: left%, top% – right%, bottom%`.
 - Translate the label through the five-locale UI catalog.
-- Omit the location row when any coordinate is non-finite. Do not invent a
-  box, a pixel overlay, or an internal LLM instruction.
+- Omit the location row when any coordinate is non-finite, negative, or greater
+  than one, or when `x_ratio + width_ratio` or `y_ratio + height_ratio` exceeds
+  the normalized image boundary. Do not invent a box, a pixel overlay, or an
+  internal LLM instruction.
 - Treat an all-whitespace persisted image caption as absent at the rendering
   boundary. Keep the existing localized `Embedded image` short text
   alternative rather than exposing a whitespace-only accessible name, and do

@@ -12,8 +12,8 @@ describe("OIDC return URL handling", () => {
   });
 
   it("keeps a post deep link and rejects external destinations", () => {
-    expect(returnUrlFromLocation({ pathname: "/", search: "?post=abc", hash: "" })).toBe(
-      "/?post=abc",
+    expect(returnUrlFromLocation({ pathname: "/", search: "?post=abc", hash: "#evidence" })).toBe(
+      "/?post=abc#evidence",
     );
     expect(returnUrlFromLocation({ pathname: "//evil.example", search: "", hash: "" })).toBe("/");
   });
