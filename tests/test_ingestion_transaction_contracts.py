@@ -15,6 +15,7 @@ from backend.app import corporate_entity_ingestion as corporate_ingestion
 from backend.app import keyman_ingestion
 from backend.app import post_summary_ingestion as summary_ingestion
 from lineageweave.corporate_hierarchy_inference import HierarchyProposal
+from lineageweave.corporate_hierarchy_resolution import score_corporate_entity
 from lineageweave.keyman_extraction import OUR_SIDE, PersonMention
 from lineageweave.knowledge_graph import NODE_PERSON
 from lineageweave.post_summary import (
@@ -178,6 +179,51 @@ def test_locked_candidate_recheck_reuses_concurrently_created_entity() -> None:
     assert [candidate.entity_name for candidate in candidates] == ["Synthetic Energy"]
     assert "entity_insert" not in events
     assert events[-1] == "transaction:exit"
+
+
+def test_prepared_sibling_alias_reuses_first_applied_catalog_entity() -> None:
+    """Sibling plans re-score the evolving snapshot before creating a row."""
+    events: list[Any] = []
+    inserted_id = uuid.uuid4()
+    connection = _CorporateConnection(events, inserted_id=inserted_id)
+    candidates: list[Any] = []
+
+    async def prepare_then_apply() -> tuple[
+        tuple[str | None, str | None],
+        tuple[str | None, str | None],
+    ]:
+        first = await corporate_ingestion.prepare_corporate_entity_resolution(
+            "Alpha",
+            "Synthetic sibling-alias context",
+            _InferenceClient(events),
+            _VerificationClient(events),
+            candidates,
+        )
+        second = await corporate_ingestion.prepare_corporate_entity_resolution(
+            "Alphx",
+            "Synthetic sibling-alias context",
+            _InferenceClient(events),
+            _VerificationClient(events),
+            candidates,
+        )
+        first_result = await corporate_ingestion.apply_prepared_corporate_entity_resolution(
+            connection,
+            first,
+            candidates,
+        )
+        second_result = await corporate_ingestion.apply_prepared_corporate_entity_resolution(
+            connection,
+            second,
+            candidates,
+        )
+        return first_result, second_result
+
+    first_result, second_result = asyncio.run(prepare_then_apply())
+
+    assert first_result == second_result == (str(inserted_id), None)
+    assert [event for event in events if event == "entity_insert"] == ["entity_insert"]
+    assert [candidate.entity_name for candidate in candidates] == ["Alpha"]
+    assert score_corporate_entity("Alphx", candidates).top_score == pytest.approx(0.8)
 
 
 def test_prepared_parent_chain_applies_parent_before_child_without_provider_locks() -> None:

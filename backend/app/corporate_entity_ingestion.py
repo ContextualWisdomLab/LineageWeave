@@ -257,6 +257,12 @@ async def apply_prepared_corporate_entity_resolution(
     if prepared.catalog_id is not None or prepared.proposal is None:
         return prepared.catalog_id, prepared.unresolved_reason
 
+    evolving = score_corporate_entity(prepared.normalized_name, candidates)
+    if evolving.kind == RESOLUTION_UNIQUE and evolving.catalog_id is not None:
+        return evolving.catalog_id, None
+    if evolving.kind == RESOLUTION_TIE:
+        return None, "reason_tied_candidates"
+
     parent_entity_id: str | None = None
     if prepared.parent is not None:
         parent_entity_id, _parent_reason = (
