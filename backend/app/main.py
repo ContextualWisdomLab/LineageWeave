@@ -211,6 +211,7 @@ async def lifespan(app: FastAPI):
                 settings.tepp_api_key,
             ),
             adjudication_client=_adjudication_client(),
+            embedding_client=_embedding_client(),
         )
     )
     app.state.post_content_worker = asyncio.create_task(
@@ -1122,7 +1123,9 @@ async def rebuild_lineage_graph(
     try:
         async with pool.acquire() as conn:
             edges = await rebuild_lineage(
-                conn, adjudication_client=_adjudication_client()
+                conn,
+                adjudication_client=_adjudication_client(),
+                embedding_client=_embedding_client(),
             )
     except LineageSourceChangedError as exc:
         raise HTTPException(
@@ -3060,6 +3063,7 @@ async def start_analysis_run(
                         settings.tepp_api_key,
                     ),
                     adjudication_client=_adjudication_client(),
+                    embedding_client=_embedding_client(),
                     valkey_stream_entry_id=stream_id,
                 )
             except AnalysisRunStartError as exc:

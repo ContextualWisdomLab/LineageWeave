@@ -12,11 +12,17 @@ from __future__ import annotations
 from collections.abc import Sequence
 
 from .adjudication_client import AdjudicationClient
+from .embedding_client import EmbeddingClient
 from .models import Edge, Record
 from .reconstruct import reconstruct
 
 
-def lineage_edge_specs(records: Sequence[Record], *, llm: AdjudicationClient | None = None) -> list[Edge]:
+def lineage_edge_specs(
+    records: Sequence[Record],
+    *,
+    llm: AdjudicationClient | None = None,
+    embedding: EmbeddingClient | None = None,
+) -> list[Edge]:
     """Run reconstruct and return every resulting parent→child edge.
 
     Callers persist these as ``post_lineage_edge`` rows. Record ids must
@@ -29,6 +35,12 @@ def lineage_edge_specs(records: Sequence[Record], *, llm: AdjudicationClient | N
     (the llm channel is then dropped and the rest renormalized, not
     faked) -- callers that want the highest-weighted reasoning channel
     actually contributing to real reconstructions must pass a real one.
+
+    ``embedding`` defaults to ``None``, which ``reconstruct()`` treats as
+    the unavailable :class:`~lineageweave.embedding_client.NullEmbeddingClient`
+    (the ``text`` channel then falls back to its difflib stand-in) --
+    callers that want real semantic text matching instead of character
+    overlap must pass a real one.
     """
-    trees = reconstruct(list(records), llm=llm)
+    trees = reconstruct(list(records), llm=llm, embedding=embedding)
     return [edge for tree in trees for edge in tree.edges]

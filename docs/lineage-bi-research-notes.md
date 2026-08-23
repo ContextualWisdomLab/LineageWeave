@@ -159,7 +159,7 @@ nobody can tell which paragraph it illustrated.
 |---|---|---|
 | `temporal` | Prefers a candidate parent closer in time | Standard recency prior in event/story linking (Allan, 2002) |
 | `secondary_key` | Rewards a shared finer-grained key (e.g. project code) | Coarse blocking key, the standard first step in record-linkage pipelines (Fellegi & Sunter, 1969; Christen, 2012) |
-| `text` | String-similarity between record labels | A dependency-free stand-in for an embedding-cosine channel (`lineageweave.embedding_client`); same role, cheaper, swappable without touching the fusion code |
+| `text` | Cosine similarity between record-label embeddings (`lineageweave.embedding_client`) when a provider is configured; falls back to `difflib.SequenceMatcher` character overlap otherwise | Embedding-based semantic similarity is the standard replacement for lexical overlap in modern record linkage/entity resolution (Reimers & Gurevych, 2019). The difflib fallback (ADR 0064's original stand-in) has no notion of meaning: two records about different topics that happen to share common words or structure -- e.g. two status-update titles differing only in subject -- can score a high character-overlap ratio despite being unrelated, which is exactly the failure mode ADR 0190 root-caused against a live corpus |
 | `llm` | An LLM's judged confidence that one record follows from another | Optional, highest-weighted when available -- see "LLM adjudication" below |
 
 Channel scores are fused with a **weighted convex combination**
@@ -232,6 +232,8 @@ Li, M., Lv, T., Chen, J., Cui, L., Lu, Y., Florencio, D., Zhang, C., Li, Z., & W
 Radford, A., Kim, J. W., Hallacy, C., Ramesh, A., Goh, G., Agarwal, S., Sastry, G., Askell, A., Mishkin, P., Clark, J., Krueger, G., & Sutskever, I. (2021). Learning transferable visual models from natural language supervision. *Proceedings of the 38th International Conference on Machine Learning*, *139*, 8748-8763.
 
 Raudenbush, S. W., & Bryk, A. S. (2002). *Hierarchical linear models: Applications and data analysis methods* (2nd ed.). Sage Publications.
+
+Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using Siamese BERT-networks. In *Proceedings of the 2019 Conference on Empirical Methods in Natural Language Processing and the 9th International Joint Conference on Natural Language Processing (EMNLP-IJCNLP)* (pp. 3982-3992). Association for Computational Linguistics. https://doi.org/10.18653/v1/D19-1410
 
 Resnick, P. (2008). *Internet Message Format* (RFC 5322). IETF. https://doi.org/10.17487/RFC5322
 

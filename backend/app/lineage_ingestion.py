@@ -19,6 +19,7 @@ import asyncpg
 
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.adjudication_client import AdjudicationClient
+from lineageweave.embedding_client import EmbeddingClient
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge, Record
 
@@ -92,6 +93,7 @@ async def rebuild_lineage(
     conn: asyncpg.Connection,
     *,
     adjudication_client: AdjudicationClient | None = None,
+    embedding_client: EmbeddingClient | None = None,
 ) -> list[Edge]:
     """Reconstruct lineage for every ``source_post`` and persist the edges.
 
@@ -104,6 +106,11 @@ async def rebuild_lineage(
     without the highest-weighted reconstruction channel
     (``DEFAULT_CHANNEL_WEIGHTS``, the only channel that reasons about
     content instead of approximating it, ADR 0064).
+
+    ``embedding_client`` defaults to ``None`` the same way -- without it the
+    ``text`` channel falls back to difflib character overlap, which cannot
+    tell two topically unrelated posts apart from two paraphrases of the
+    same one (ADR 0190).
 
     Reconstruction runs in a worker thread because the published adjudication
     adapter is synchronous. A session advisory lock serializes rebuilds without
@@ -119,7 +126,7 @@ async def rebuild_lineage(
             rows = await conn.fetch(_SOURCE_RECORDS_SQL)
             records = records_from_source_posts(rows)
             edges = await asyncio.to_thread(
-                lineage_edge_specs, records, llm=adjudication_client
+                lineage_edge_specs, records, llm=adjudication_client, embedding=embedding_client
             )
             async with conn.transaction():
                 await conn.execute("lock table source_post in share mode")
