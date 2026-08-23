@@ -28,6 +28,8 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  window.sessionStorage.clear();
+  window.localStorage.clear();
 });
 
 describe("App, unauthenticated", () => {
