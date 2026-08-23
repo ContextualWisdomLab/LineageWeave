@@ -999,6 +999,24 @@ or an explicit unavailable result.
   `App.tsx:3182`). Full frontend suite (369 tests), lint, and build
   pass after the merge. Any keys outside these two domains remain
   open.
+- **Component/story/test triplet gap — closed for AdminPanel, FiveW1H,
+  icons (2026-08-24):** a sweep of `frontend/src/components/` for the
+  repo's component+story+test convention found three components
+  shipped without a `.stories.tsx`: `AdminPanel.tsx`, `FiveW1H.tsx`,
+  and `icons.tsx`. Added stories covering AdminPanel's overview,
+  account-scope (with and without affiliations, with a still-loading
+  `currentUser`), and tenant-settings sections, and FiveW1H's loading,
+  populated-evidence, and all-dimensions-empty states, each with
+  play-function assertions matching the repo's existing story
+  pattern; AdminPanel's settings-save button is deliberately left
+  unclicked in its story since it performs a real `updateTenantConfig`
+  network call this story does not mock. `icons.tsx` is three
+  prop-less SVG glyphs with no logic to assert on, so it gets one
+  gallery story rather than a dedicated unit test.
+  `SourceResearchPanel.tsx`'s missing story and
+  `LeftoverPairButton.tsx`'s missing test are left open -- both files
+  were mid-edit by concurrent sessions on this branch at the time of
+  this checkpoint.
 - **Leftover pair next-action jargon — closed (2026-08-24, PR #490
   `154a13ef`):** ADR 0049 already names `Open {post}, then read Post quality
   criterion {criterion}.` Origin leftover copy still appended `This pair sat
