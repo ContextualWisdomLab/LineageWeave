@@ -660,7 +660,7 @@ def _split_plain_text_units(text: str) -> list[tuple[str, int, str]]:
                 flush()
                 units.extend(
                     (
-                        _render_markdown_table_row(row),
+                        normalize_semantic_text(_render_markdown_table_row(row)),
                         _source_indent_width(row),
                         "tr",
                     )

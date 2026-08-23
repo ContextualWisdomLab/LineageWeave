@@ -220,7 +220,7 @@ def test_chunk_by_source_body_splits_plain_lists_and_markdown_tables() -> None:
 
 | Field | Value |
 | --- | --- |
-| Owner | Buyer |
+| Volume | 12 m^3 |
 """
 
     chunks = chunk_by_source_body(body)
@@ -229,7 +229,7 @@ def test_chunk_by_source_body_splits_plain_lists_and_markdown_tables() -> None:
         ("", "1. Background continuation stays with the first item."),
         ("", "2. Decision"),
         ("tr", "Field | Value"),
-        ("tr", "Owner | Buyer"),
+        ("tr", "Volume | 12 m³"),
     ]
 
 
