@@ -48,6 +48,9 @@ describe("i18n", () => {
     "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.",
     "Showing the first {shown} of {total} posts known at this cutoff.",
+    "Rankings",
+    "Title overlap",
+    "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
   ] as const;
 
   it("supports the five product locales", () => {

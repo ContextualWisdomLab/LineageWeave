@@ -3058,6 +3058,10 @@ function AnalysisRunsPanel({
   );
 }
 
+function formatRankingContribution(value: number): string {
+  return value.toFixed(6);
+}
+
 function RankingsPanel({
   accessToken,
   onSelectPost,
@@ -3076,9 +3080,9 @@ function RankingsPanel({
   }, [accessToken]);
 
   return (
-    <section className="popup-section lineage-home" aria-label="Rankings">
+    <section className="popup-section lineage-home" aria-label={t("Rankings")}>
       <div className="lineage-home-header">
-        <h2>Rankings</h2>
+        <h2>{t("Rankings")}</h2>
         {ranking && (
           <span className="post-badge">
             {ranking.status === "accepted"
@@ -3088,30 +3092,53 @@ function RankingsPanel({
         )}
       </div>
       {error && <p className="error">{error}</p>}
-      {ranking === null && !error && <p>Loading rankings...</p>}
+      {ranking === null && !error && <p>{t("Loading rankings...")}</p>}
       {ranking && ranking.status === "unavailable" && (
-        <p className="popup-placeholder">Rankings · RankWeave not available</p>
+        <p className="popup-placeholder">{t("Rankings · RankWeave not available")}</p>
       )}
       {ranking && ranking.status === "accepted" && ranking.rankings.length === 0 && (
-        <p className="popup-placeholder">No fused rankings from RankWeave.</p>
+        <p className="popup-placeholder">{t("No fused rankings from RankWeave.")}</p>
       )}
       {ranking && ranking.rankings.length > 0 && (
-        <ul className="ticket-list" aria-label="Fused rankings">
-          {ranking.rankings.map((hit) => (
-            <li key={hit.post_id} className="ticket-list-item">
-              <button
-                className="post-list-item"
-                aria-label={`Open ranking: ${hit.post_title}`}
-                onClick={() => onSelectPost(hit.post_id)}
-              >
-                <span className="ticket-title">{hit.post_title}</span>
-                <span className="post-badge">Rankings · rankweave</span>
-                <span className="post-badge">rank {hit.fused_rank}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-        )}
+        <>
+          <p className="ranking-channel-evidence-copy">
+            {t(
+              "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+            )}
+          </p>
+          <ul className="ticket-list" aria-label={t("Fused rankings")}>
+            {ranking.rankings.map((hit) => (
+              <li key={hit.post_id} className="ticket-list-item ranking-hit">
+                <button
+                  className="post-list-item"
+                  aria-label={tf("Open ranking: {title}", { title: hit.post_title })}
+                  onClick={() => onSelectPost(hit.post_id)}
+                >
+                  <span className="ticket-title">{hit.post_title}</span>
+                  <span className="post-badge">{t("Rankings · rankweave")}</span>
+                  <span className="post-badge">{tf("rank {rank}", { rank: String(hit.fused_rank) })}</span>
+                </button>
+                {(hit.channel_evidence ?? []).length > 0 ? (
+                  <ul
+                    className="ranking-channel-evidence"
+                    aria-label={tf("Ranking evidence for {title}", { title: hit.post_title })}
+                  >
+                    {(hit.channel_evidence ?? []).map((item) => (
+                      <li key={item.signal_code}>
+                        {tf("{label} rank {rank}, contribution {contribution}", {
+                          label: t(item.signal_label),
+                          rank: String(item.channel_rank),
+                          contribution: formatRankingContribution(item.contribution),
+                        })}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </section>
   );
 }
