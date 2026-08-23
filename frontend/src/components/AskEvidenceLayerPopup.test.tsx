@@ -19,6 +19,7 @@ describe("AskEvidenceLayerPopup", () => {
             unit_index: 1,
             caption: "Screenshot of the checkout error",
             extracted_text: "Error code 500 on checkout",
+            tags: ["screenshot", "error"],
           },
         ]}
         onClose={vi.fn()}
@@ -49,7 +50,7 @@ describe("AskEvidenceLayerPopup", () => {
       <AskEvidenceLayerPopup
         {...baseProps}
         facts={[]}
-        images={[{ unit_index: 0, caption: "", extracted_text: null }]}
+        images={[{ unit_index: 0, caption: "", extracted_text: null, tags: [] }]}
         onClose={vi.fn()}
         onOpenPost={vi.fn()}
       />,

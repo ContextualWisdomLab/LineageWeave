@@ -4546,6 +4546,7 @@ function AskAgentPanel({
                         >
                           {t("Image evidence")}: {image.caption?.trim() ? image.caption : t("Untitled image")}
                           {image.extracted_text ? ` — ${image.extracted_text}` : ""}
+                          {image.tags.length ? ` — ${t("Image tags")}: ${image.tags.join(", ")}` : ""}
                         </p>
                       ))}
                   </li>

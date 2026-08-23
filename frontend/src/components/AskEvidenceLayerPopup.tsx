@@ -21,6 +21,7 @@ export type AskEvidenceLayerImage = {
   unit_index: number;
   caption: string | null;
   extracted_text: string | null;
+  tags: string[];
 };
 
 export type AskEvidenceLayerPopupProps = {
@@ -149,6 +150,7 @@ export function AskEvidenceLayerPopup({
                 <li key={image.unit_index}>
                   <span>{image.caption?.trim() ? image.caption : t("Untitled image")}</span>
                   {image.extracted_text ? <span>{image.extracted_text}</span> : null}
+                  {image.tags.length ? <span>{t("Image tags")}: {image.tags.join(", ")}</span> : null}
                 </li>
               ))}
             </ul>

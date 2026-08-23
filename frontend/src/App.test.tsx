@@ -1698,6 +1698,7 @@ describe("App, authenticated", () => {
 
     expect(await screen.findByText(/Image evidence: Screenshot of the checkout error/)).toBeInTheDocument();
     expect(screen.getByText(/Error code 500 on checkout/)).toBeInTheDocument();
+    expect(screen.getByText(/Image tags: screenshot, error/)).toBeInTheDocument();
   });
 
   it("shows no image evidence line when the answer cites no image", async () => {
