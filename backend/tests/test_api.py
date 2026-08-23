@@ -12,6 +12,7 @@ HTTP to Keycloak goes through ``lineageweave.http_client``.
 
 from __future__ import annotations
 
+import logging
 import os
 import uuid
 from contextlib import closing
@@ -4075,6 +4076,42 @@ def test_global_ask_provider_error_does_not_leak_raw_error(
 
     assert response.status_code == 503
     assert "raw-global-provider-secret" not in response.text
+
+
+def test_global_ask_unexpected_defect_reaches_server_logs(
+    client, demo_analyst_token, seeded_db, monkeypatch, caplog
+) -> None:
+    """An unexpected programming defect (not a classified provider error)
+    must still leave a traceback in server-side logs, even though the
+    customer-facing response stays the same stable 503 (issue #361)."""
+    from lineageweave.post_chat import ChatSourceDocument
+
+    async def _one_source(*_args, **_kwargs) -> list[ChatSourceDocument]:
+        return [ChatSourceDocument(post_id=seeded_db["public_post_id"], post_title="post", post_body="body")]
+
+    class _BrokenAskClient:
+        available = True
+
+        def answer(self, question: str, sources) -> object:
+            raise AttributeError("simulated unexpected defect")
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _BrokenAskClient())
+    monkeypatch.setattr("backend.app.main.gather_global_chat_sources", _one_source)
+
+    with caplog.at_level(logging.ERROR, logger="backend.app.main"):
+        response = client.post(
+            "/api/ask",
+            json={"question": "What triggers the unexpected defect path?"},
+            headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        )
+
+    assert response.status_code == 503
+    assert "simulated unexpected defect" not in response.text
+
+    matching = [record for record in caplog.records if "ask_agent" in record.message]
+    assert matching, "unexpected defect must be logged server-side"
+    assert matching[0].levelno == logging.ERROR
+    assert matching[0].exc_info is not None
 
 
 def test_global_ask_rolls_back_when_cited_evidence_is_revoked_mid_flight(
