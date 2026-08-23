@@ -476,6 +476,51 @@ def test_abac_never_reveals_channel_evidence_for_an_invisible_endpoint() -> None
     assert "lineage_signal_text" not in serialized
 
 
+def test_focused_graph_cannot_bridge_through_an_invisible_post() -> None:
+    class FakeConnection:
+        posts = tuple(
+            {
+                "post_id": post_id,
+                "post_title": post_id,
+                "voc_type_code": "voc",
+                "visibility_code": visibility,
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-a",
+                "created_at": datetime(2026, 1, day, tzinfo=timezone.utc),
+            }
+            for day, post_id, visibility in (
+                (1, "post-a", "public"),
+                (2, "post-hidden", "restricted"),
+                (3, "post-b", "public"),
+            )
+        )
+        edges = (
+            {"parent_post_id": "post-a", "child_post_id": "post-hidden", "fused_score": 0.8},
+            {"parent_post_id": "post-hidden", "child_post_id": "post-b", "fused_score": 0.8},
+        )
+
+        async def fetch(self, query: str, *_args):
+            if "post_lineage_edge_signal" in query:
+                return []
+            if "event_lineage_rebuild_channel" in query:
+                return []
+            if "event_lineage_rebuild" in query:
+                return []
+            return self.edges if "post_lineage_edge" in query else self.posts
+
+    graph = asyncio.run(
+        visible_lineage_graph(
+            FakeConnection(),
+            lambda row: row["visibility_code"] == "public",
+            focus_post_id="post-a",
+        )
+    )
+
+    assert graph["nodes"] == []
+    assert graph["edges"] == []
+
+
 def test_persist_lineage_edges_replaces_signals_atomically_without_llm() -> None:
     from lineageweave.lineage_persistence import lineage_rebuild_spec
     from lineageweave.models import Edge

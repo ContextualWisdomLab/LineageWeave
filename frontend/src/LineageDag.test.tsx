@@ -76,6 +76,7 @@ describe("LineageDag channel evidence", () => {
     const edgeButton = screen.getByRole("button", {
       name: "Open connection evidence: Kickoff recap to Pricing follow-up",
     });
+    expect(screen.getByRole("group", { name: "A-100 lineage" })).toBeInTheDocument();
     expect(disclosure).not.toHaveAttribute("open");
     await userEvent.click(edgeButton);
     expect(disclosure).toHaveAttribute("open");

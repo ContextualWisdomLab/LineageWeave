@@ -1,4 +1,4 @@
--- ADR 0124: persist Event Lineage channel evidence beside each fused edge.
+-- ADR 0172: persist Event Lineage channel evidence beside each fused edge.
 -- lookup_code is globally unique, so signal codes are prefixed.
 -- Migration 0174 uses CREATE IF NOT EXISTS / ON CONFLICT for idempotent replay.
 
@@ -52,6 +52,39 @@ create table if not exists post_lineage_edge_signal (
 
 comment on table post_lineage_edge_signal is
     'Per-channel score, active weight, and contribution for one reconstructed lineage edge.';
+
+do $migration$
+begin
+    if not exists (
+        select 1 from pg_constraint
+        where conname = 'event_lineage_rebuild_channel_signal_code_check'
+          and conrelid = 'event_lineage_rebuild_channel'::regclass
+    ) then
+        alter table event_lineage_rebuild_channel
+            add constraint event_lineage_rebuild_channel_signal_code_check
+            check (signal_code in (
+                'lineage_signal_temporal',
+                'lineage_signal_secondary_key',
+                'lineage_signal_text',
+                'lineage_signal_llm'
+            ));
+    end if;
+    if not exists (
+        select 1 from pg_constraint
+        where conname = 'post_lineage_edge_signal_code_check'
+          and conrelid = 'post_lineage_edge_signal'::regclass
+    ) then
+        alter table post_lineage_edge_signal
+            add constraint post_lineage_edge_signal_code_check
+            check (signal_code in (
+                'lineage_signal_temporal',
+                'lineage_signal_secondary_key',
+                'lineage_signal_text',
+                'lineage_signal_llm'
+            ));
+    end if;
+end;
+$migration$;
 
 create index if not exists post_lineage_edge_signal_child_idx
     on post_lineage_edge_signal (child_post_id, parent_post_id);

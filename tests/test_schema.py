@@ -229,6 +229,58 @@ def test_lineage_channel_evidence_is_cascaded_and_lookup_controlled(schema_db) -
         assert cur.fetchall() == []
 
 
+def test_lineage_signal_tables_reject_other_lookup_categories(schema_db) -> None:
+    with schema_db.cursor() as cur:
+        cur.execute(
+            "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+            "values ('test_category', 'not_lineage_signal', 'Not lineage')"
+        )
+        cur.execute(
+            "insert into event_lineage_rebuild "
+            "(rebuild_lock, reconstruction_version, generated_at, min_fused_score, candidate_window) "
+            "values (true, 'test', now(), 0.3, 50)"
+        )
+        statements = (
+            "insert into event_lineage_rebuild_channel "
+            "(rebuild_lock, signal_code, signal_weight) "
+            "values (true, 'not_lineage_signal', 0.5)",
+            "insert into post_lineage_edge_signal "
+            "(parent_post_id, child_post_id, signal_code, signal_score, signal_weight, signal_contribution) "
+            "values ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa', "
+            "'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb', 'not_lineage_signal', 0.5, 0.5, 0.25)",
+        )
+        for index, statement in enumerate(statements):
+            savepoint = f"wrong_signal_{index}"
+            cur.execute(f"savepoint {savepoint}")
+            with pytest.raises(psycopg2.errors.CheckViolation):
+                cur.execute(statement)
+            cur.execute(f"rollback to savepoint {savepoint}")
+    schema_db.rollback()
+
+
+def test_lineage_channel_evidence_migration_upgrades_existing_tables(schema_db) -> None:
+    with schema_db.cursor() as cur:
+        cur.execute(
+            "alter table event_lineage_rebuild_channel "
+            "drop constraint event_lineage_rebuild_channel_signal_code_check"
+        )
+        cur.execute(
+            "alter table post_lineage_edge_signal "
+            "drop constraint post_lineage_edge_signal_code_check"
+        )
+        cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
+        cur.execute(
+            "select conname from pg_constraint where conname in ("
+            "'event_lineage_rebuild_channel_signal_code_check', "
+            "'post_lineage_edge_signal_code_check') order by conname"
+        )
+        assert [row[0] for row in cur.fetchall()] == [
+            "event_lineage_rebuild_channel_signal_code_check",
+            "post_lineage_edge_signal_code_check",
+        ]
+    schema_db.commit()
+
+
 def test_corporate_hierarchy_recursive_query_returns_correct_shape(schema_db) -> None:
     """The real product requirement: 'Acme Group -> Acme Electronics Korea
     -> Acme Electronics Gwangju Plant' must be walkable with one query,

@@ -1,4 +1,4 @@
-# ADR 0124: Persist and explain Event Lineage channel evidence
+# ADR 0172: Persist and explain Event Lineage channel evidence
 
 **Status:** Accepted
 **Date:** 2026-08-21

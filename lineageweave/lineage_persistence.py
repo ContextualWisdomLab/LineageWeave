@@ -6,7 +6,7 @@ writer so they cannot drift from what the Event Lineage panel reads.
 
 Each parent→child edge is still one ``post_lineage_edge`` row. The
 winning edge's active channel scores are persisted beside it as
-``post_lineage_edge_signal`` rows (ADR 0124). A missing LLM channel is
+``post_lineage_edge_signal`` rows (ADR 0172). A missing LLM channel is
 dropped, never fabricated. Contribution is ``weight * score`` and must
 reconcile with ``fused_score`` within the base tolerance plus the bounded
 persistence quantization budget.

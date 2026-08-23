@@ -56,7 +56,7 @@ export function LineageDag({
               viewBox={`0 0 ${group.width} ${group.height}`}
               width="100%"
               height={Math.max(120, group.height)}
-              role="img"
+              role="group"
               aria-label={tf("{group} lineage", { group: group.heading })}
             >
               {group.edges.map((edge) => {

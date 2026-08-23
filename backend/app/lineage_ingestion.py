@@ -154,7 +154,7 @@ async def rebuild_lineage(
     """Reconstruct lineage for every ``source_post`` and persist the edges.
 
     A configured contextual-orchestrator client is passed through only when
-    the exact candidate-pair work fits the ADR 0124 budget. Larger snapshots
+    the exact candidate-pair work fits the ADR 0172 budget. Larger snapshots
     drop the optional channel before any provider call and preserve one
     fail-closed three-channel profile across the rebuild.
     """
@@ -173,7 +173,7 @@ async def rebuild_lineage_from_pool(
     """Reconstruct without holding a pooled connection during provider work.
 
     The source snapshot is read and released first. Only the replacement
-    writes run in a transaction, preserving ADR 0124 atomicity without an
+    writes run in a transaction, preserving ADR 0172 atomicity without an
     idle-in-transaction connection during CPU or orchestrator calls.
     """
     async with pool.acquire() as conn:
@@ -203,6 +203,7 @@ async def visible_lineage_graph(
         f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
     )
     visible_all = [row for row in posts if can_see_post(row)]
+    visible_all_ids = {str(row["post_id"]) for row in visible_all}
     edge_rows = await conn.fetch(
         "select parent_post_id, child_post_id, fused_score from post_lineage_edge"
     )
@@ -233,6 +234,8 @@ async def visible_lineage_graph(
         for edge in edge_rows:
             parent_id = str(edge["parent_post_id"])
             child_id = str(edge["child_post_id"])
+            if parent_id not in visible_all_ids or child_id not in visible_all_ids:
+                continue
             neighbors.setdefault(parent_id, set()).add(child_id)
             neighbors.setdefault(child_id, set()).add(parent_id)
 
