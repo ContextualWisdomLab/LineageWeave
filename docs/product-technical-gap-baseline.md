@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-24 00:33 KST. This repository records synthetic
+> Audit snapshot: 2026-08-24 01:00 KST. This repository records synthetic
 > fixtures and aggregate, non-identifying runtime evidence only. Open PRs and
 > local checks are not protected-default-branch release evidence.
 > Identifying post identifiers, organization names, and production record keys
@@ -35,26 +35,27 @@ Recent protected-default-branch and org-control-plane evidence:
 | ---: | --- | --- |
 | #347 | merged as `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` | Korean UI standards on the current protected head |
 | ContextualWisdomLab/.github #1248 | merged | central Strix scope repair is available to subsequent reruns |
-| ContextualWisdomLab/.github #1258 | open; blocked; no auto-merge | pnpm `--trust-lockfile` only on major >= 11; Jest keeps native `--coverage`; no invented Vitest instrumenter |
-| ContextualWisdomLab/.github #1259 | open; blocked; no auto-merge | thin LineageWeave hourly review-repair caller at minute 4; supersedes #1086 stack driver |
-| LineageWeave #426 | `7ff31046cc2c8e2476d16b64df3bc00d55bf3eff` | open, mergeable but blocked, review required, auto-merge armed; 19 threads resolved, zero approvals, exact-head hosted checks queued |
-| LineageWeave #429 | `3763e1335cd3ac38b5e02b964ab49af34c8d73a0` | open, mergeable but blocked, review required, auto-merge armed; 3 threads resolved, zero approvals, latest reported checks pass |
-| LineageWeave #494 | `7eb5b2a89a6f32785bbbaf89126cb1ba931a03a8` | open, mergeable but blocked, review required, no auto-merge; 5 threads resolved, zero approvals, Strix failed on provider infrastructure |
-| LineageWeave #497 | `11a94713b988842be35aa1ec212f02b6ef0066a6` | open, mergeable but blocked, review required, no auto-merge; 2 threads resolved, zero approvals, frontend build failed on the unfixed `main` login tree and coverage remained queued |
-| LineageWeave #498 | `35823d889c5360ebf2152ed5679d7c22d6832545` | open, mergeable but blocked, review required, no auto-merge; 4 threads resolved, zero approvals, Strix running and coverage queued with no reported failure |
+| ContextualWisdomLab/.github #1258 | `9b5dba9f558d20dbb651b409ea9fa54a865e3405`; auto-merge armed; blocked on independent review | `--trust-lockfile` only on pnpm 11.3+; Jest keeps native `--coverage`; no invented Vitest instrumenter |
+| ContextualWisdomLab/.github #1259 | `6041f2aa9e23af5850cd83fa838a3eb6c45d84b9`; auto-merge armed; blocked on independent review | thin LineageWeave hourly review-repair caller at minute 4; supersedes #1086 stack driver |
+| LineageWeave #426 | `3e214a5` (this stack) | open, mergeable but blocked, review required, auto-merge armed; login `tsc`, ontology Pages, and this non-identifying baseline |
+| LineageWeave #429 | `3763e1335cd3ac38b5e02b964ab49af34c8d73a0` | open, mergeable but blocked, review required, auto-merge armed |
+| LineageWeave #494 | `7eb5b2a89a6f32785bbbaf89126cb1ba931a03a8` | login-only overlap; auto-merge armed; do not fold this baseline back into #494 |
+| LineageWeave #497 | merged into #426 | ADR 0001 baseline squash on this stack |
+| LineageWeave #498 | `35823d889c5360ebf2152ed5679d7c22d6832545` | `/healthz` + docstring coverage; overlaps #429; blocked on independent review |
 
-This documentation head is intentionally stacked on the exact #426 head above.
-#426 owns the login `tsc` repair and ontology publication tree; #497 contributes
-only the non-identifying baseline and its changelog fragment relative to that
-base. #426 must merge first. If either exact head changes, re-fetch and recheck
-the unique diff, checks, threads, and approvals before making a lifecycle claim.
+This documentation head is stacked on LineageWeave#426. #426 owns the login
+`tsc` repair, ontology Pages, and this non-identifying baseline. #494 is the
+login-only overlap and must not receive this file again. If either exact head
+changes, re-fetch and recheck the unique diff, checks, threads, and approvals
+before making a lifecycle claim.
 
 The Grok durable hourly loop and the central thin GitHub Actions caller
 ContextualWisdomLab/.github#1259 (minute 4, `pr-review-fix-scheduler.yml`)
 both target this repository. Do not add a LineageWeave-local duplicate
 workflow. OpenCode coverage-evidence currently fails pnpm 9.15.9 heads on
-`--trust-lockfile` (a pnpm 11.3 flag) and on a synthesized `--coverage`
-flag; ContextualWisdomLab/.github#1258 is the exact-head repair.
+`--trust-lockfile` (a pnpm 11.3 flag) and on a synthesized Vitest `--coverage`
+flag; ContextualWisdomLab/.github#1258 (`9b5dba9`) is the exact-head repair
+and has auto-merge armed pending independent OpenCode / Strix / Noema.
 
 Figma design-system boundary (ADR 0002): File ID `1Su3lDRmiZdcUs47t1QwIX`.
 The file is a safe, empty design-system boundary; popup/Event Lineage frames
