@@ -32,10 +32,11 @@ test("renders a cited lineage thread as a git-branch-style graph", async ({ page
   await page.getByRole("button", { name: "Ask", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Cited posts" })).toBeVisible({ timeout: 15000 });
   const lineage = page.getByLabel("Reconstructed lineage");
-  if ((await lineage.count()) > 0) {
-    await expect(lineage).toBeVisible();
-    await expect(page.getByRole("img", { name: /lineage$/ }).first()).toBeVisible();
-  }
+  // Fail loudly (not silently skip) if the answer stops citing a
+  // multi-post lineage -- the whole point of this test.
+  await expect(lineage).not.toHaveCount(0);
+  await expect(lineage).toBeVisible();
+  await expect(page.getByRole("img", { name: /lineage$/ }).first()).toBeVisible();
 });
 
 test("cites persisted image evidence when a cited post has an embedded image", async ({ page }) => {
@@ -43,9 +44,10 @@ test("cites persisted image evidence when a cited post has an embedded image", a
   await page.getByRole("button", { name: "Ask", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Cited posts" })).toBeVisible({ timeout: 15000 });
   const imageEvidence = page.getByText(/^Image evidence:/);
-  if ((await imageEvidence.count()) > 0) {
-    await expect(imageEvidence.first()).toBeVisible();
-  }
+  // Fail loudly (not silently skip) if the answer stops citing image
+  // evidence -- the whole point of this test.
+  await expect(imageEvidence).not.toHaveCount(0);
+  await expect(imageEvidence.first()).toBeVisible();
 });
 
 test("opens cited-post evidence in a Layer Popup without leaving the answer", async ({ page }) => {
