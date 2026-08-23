@@ -9,16 +9,11 @@ agreed with an independent signal only 2.6% of the time). `group_key`
 is therefore only the candidate-pool bound; the channels decide the
 actual links.
 
-The `zcrht811_export_rows` import inverted that design by stuffing
-per-row-unique identifiers into BOTH grouping columns -- confirmed live:
-
-- `thread_group_key` = the row's own source record GUID on
-  43,811/43,839 rows, so `_group_by` saw ~43k singleton groups and the
-  channels never scored a single real candidate pair;
-- `secondary_grouping_key` = the row's own per-document number
-  (43,707 distinct / 43,814 imported), so the secondary-key channel --
-  whose own docstring names "e.g. project code" as its intended signal
-  -- could never fire either.
+An authorized-source validation found that an import had inverted that design
+by putting per-row identity values into both grouping columns. That produced
+singleton candidate pools, while the secondary-key channel could not fire.
+Only this aggregate failure mode is retained here; private source identifiers
+and records remain outside repository artifacts.
 
 Event Lineage, the product's headline feature, was silently
 non-functional for virtually the whole corpus. This backfill restores
