@@ -19,6 +19,11 @@ All notable changes to this project are documented here. Format follows
 - ADR 0142 proposes reusing the existing semantic-relationship channel with
   one new `lw_plans_to_operate` predicate for planned-facility evidence,
   scoped to the decision only -- no inference code ships with it.
+- Event Lineage now reports why a post has no DAG (ADR 0143):
+  "no_relation_found" when reconstruct compared it against real
+  candidates and found no relation, or "no_comparison_group" when it was
+  the only visible post in its group. The reader sees the specific reason
+  instead of one flat "No linked posts yet."
 
 ### Changed
 

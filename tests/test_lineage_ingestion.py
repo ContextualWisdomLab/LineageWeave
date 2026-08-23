@@ -149,4 +149,74 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
     assert {node["id"] for node in focused["nodes"]} == {"post-a", "post-b"}
     assert len(focused["edges"]) == 1
     assert focused["truncated"] is False
-    assert isolated == {"nodes": [], "edges": [], "truncated": False}
+    assert focused["isolation_reason"] is None
+    assert landing["isolation_reason"] is None
+    # ADR 0143: post-c is the sole visible member of "thread-c" -- nothing
+    # existed to compare it against, distinct from a checked-and-unrelated post.
+    assert isolated == {
+        "nodes": [],
+        "edges": [],
+        "truncated": False,
+        "isolation_reason": "no_comparison_group",
+    }
+
+
+def test_isolation_reason_distinguishes_no_relation_from_no_comparison_group() -> None:
+    """ADR 0143: a post with real groupmates but zero edges is a different
+    fact than a post with no groupmates at all."""
+
+    class FakeConnection:
+        posts = [
+            {
+                "post_id": "post-x",
+                "post_title": "X",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-shared",
+                "created_at": datetime(2026, 1, 1),
+            },
+            {
+                "post_id": "post-y",
+                "post_title": "Y",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-shared",
+                "created_at": datetime(2026, 1, 2),
+            },
+            {
+                "post_id": "post-lonely",
+                "post_title": "Lonely",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-only-mine",
+                "created_at": datetime(2026, 1, 3),
+            },
+        ]
+        edges: list[dict] = []  # reconstruct found no relation between x and y either
+
+        async def fetch(self, query: str):
+            return self.edges if "post_lineage_edge" in query else self.posts
+
+    connection = FakeConnection()
+
+    shared_group_result = asyncio.run(
+        visible_lineage_graph(connection, lambda row: True, focus_post_id="post-x")
+    )
+    lonely_result = asyncio.run(
+        visible_lineage_graph(connection, lambda row: True, focus_post_id="post-lonely")
+    )
+    invisible_result = asyncio.run(
+        visible_lineage_graph(connection, lambda row: False, focus_post_id="post-x")
+    )
+
+    assert shared_group_result["isolation_reason"] == "no_relation_found"
+    assert lonely_result["isolation_reason"] == "no_comparison_group"
+    # A post outside the account's own visible set reveals no reason -- same
+    # fail-closed discipline as its already-empty node/edge lists.
+    assert invisible_result["isolation_reason"] is None
