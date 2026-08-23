@@ -7,6 +7,7 @@ on:
       - "docs/ontology/**"
       - "scripts/build_ontology_site.py"
       - "scripts/publish_ontology_site.py"
+      - "scripts/ontology_site_contract.py"
       - "tests/test_ontology.py"
       - "tests/test_ontology_site.py"
       - "tests/test_publish_ontology_site.py"
@@ -19,6 +20,7 @@ on:
       - "docs/ontology/**"
       - "scripts/build_ontology_site.py"
       - "scripts/publish_ontology_site.py"
+      - "scripts/ontology_site_contract.py"
       - "tests/test_ontology.py"
       - "tests/test_ontology_site.py"
       - "tests/test_publish_ontology_site.py"
@@ -74,6 +76,7 @@ jobs:
         run: >-
           uv run --frozen python -m compileall -q
           scripts/build_ontology_site.py scripts/publish_ontology_site.py
+          scripts/ontology_site_contract.py
           tests/test_ontology_site.py tests/test_publish_ontology_site.py
 
   publish:
