@@ -50,6 +50,7 @@ _ADDITIONAL_LOOKUP_MIGRATION_PATHS = (
     Path(__file__).resolve().parents[1] / "migrations" / "0109_post_summary_source_fact.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0110_role_responsibility_software_agent.sql",
     Path(__file__).resolve().parents[1] / "migrations" / "0113_broad_source_fact_types.sql",
+    Path(__file__).resolve().parents[1] / "migrations" / "0137_cross_post_customer_identity.sql",
 )
 
 # The categories this ontology covers (ADR 0004's scope). seed_demo_data.py
@@ -282,6 +283,8 @@ def test_actor_mentions_follow_stored_edge_direction() -> None:
     assert (LW.mentionsTeam, RDFS.range, LW.Post) in graph
     assert (LW.mentionsOrganization, RDFS.domain, LW.CorporateEntity) in graph
     assert (LW.mentionsOrganization, RDFS.range, LW.Post) in graph
+    assert (LW.observedCustomerIdentityIn, RDFS.domain, LW.CorporateEntity) in graph
+    assert (LW.observedCustomerIdentityIn, RDFS.range, LW.Post) in graph
 
 
 def test_semantic_project_terms_preserve_post_evidence_and_confidence() -> None:
@@ -313,6 +316,19 @@ def test_standard_backbone_and_semantic_verbs_are_drawable() -> None:
     }
     assert semantic_predicate_annotations("lw_has_cause")["ontology_iri"] == str(LW.hasCause)
     assert all(semantic_predicate_annotations(code) for code in SEMANTIC_RELATION_PREDICATES)
+
+
+def test_temporal_profile_subclasses_owl_time_and_uses_canonical_before_direction() -> None:
+    """Temporal order is earlier time to later time, not a private successor verb."""
+    from rdflib.namespace import Namespace
+
+    time = Namespace("http://www.w3.org/2006/time#")
+    graph = load_ontology()
+    assert (LW.TemporalEntity, RDFS.subClassOf, time.TemporalEntity) in graph
+    assert semantic_predicate_annotations("time_before") == {
+        "ontology_iri": str(time.before),
+        "ontology_label": "Before",
+    }
 
 
 def test_property_chains_capture_only_explicit_contextual_inference() -> None:

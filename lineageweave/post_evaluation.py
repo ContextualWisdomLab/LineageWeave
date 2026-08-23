@@ -76,7 +76,7 @@ class NullPostEvaluationClient:
         raise RuntimeError("NullPostEvaluationClient has no judge channel; check .available first")
 
 
-class _OrchestratorCompleteAdapter:
+class OrchestratorCompleteAdapter:
     """Maps contextual-orchestrator's chat completions onto fast-mlsirm's
     ``complete(messages, mode=...)`` contract.
     """
@@ -113,7 +113,7 @@ class ContextualOrchestratorPostEvaluationClient:
 
     def __init__(self, base_url: str, api_key: str, *, timeout: float = 180.0) -> None:
         self._judge = ContextualOrchestratorJudge(
-            _OrchestratorCompleteAdapter(base_url, api_key, timeout=timeout),
+            OrchestratorCompleteAdapter(base_url, api_key, timeout=timeout),
             mode="auto",
         )
 

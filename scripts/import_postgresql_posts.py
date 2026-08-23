@@ -29,7 +29,21 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
+from backend.app.analysis_run_start import configured_tepp_client
+from backend.app.customer_hint_ingestion import reconcile_customer_hints
 from backend.app.lineage_ingestion import rebuild_lineage
+from lineageweave.corporate_hierarchy_inference import (
+    ContextualOrchestratorHierarchyInferenceClient,
+    NullCorporateHierarchyInferenceClient,
+)
+from lineageweave.customer_hint_resolution import (
+    ContextualOrchestratorCustomerHintResolutionClient,
+    NullCustomerHintResolutionClient,
+)
+from lineageweave.customer_identity_judgment import (
+    ContextualOrchestratorCustomerIdentityJudgeClient,
+    NullCustomerIdentityJudgeClient,
+)
 from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
@@ -37,6 +51,10 @@ from lineageweave.post_content_persistence import persist_post_content
 from lineageweave.post_structure import (
     ContextualOrchestratorPostStructureClient,
     NullPostStructureClient,
+)
+from lineageweave.relation_verification import (
+    NullRelationVerificationClient,
+    SearxngRelationVerificationClient,
 )
 from lineageweave.source_artifacts import SourceArtifactError, read_mhtml_html
 from lineageweave.synthetic_seed_cleanup import cleanup_synthetic_seed
@@ -504,6 +522,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             if orchestrator_base_url and orchestrator_api_key
             else NullPostStructureClient()
         )
+        customer_keys: set[tuple[str | None, str]] = set()
         for row_number, row in enumerate(rows, start=1):
             if _source_code_matches(row, mapping.draft, args.exclude_draft_value) or _source_code_matches(
                 row, mapping.deleted, args.exclude_deleted_value
@@ -516,6 +535,9 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             post_id = _source_post_id(row, mapping, args.source_system_code, record_key)
             title = str(_value(row, mapping.title, "") or "")
             body = resolved_bodies[row_number]
+            source_customer_code = str(_value(row, mapping.customer_code) or "").strip() or None
+            if source_customer_code is not None:
+                customer_keys.add((args.source_system_code, source_customer_code))
             voc_type_code = _normalize_voc_type(
                 _value(row, mapping.voc_type, "voc"),
                 mapped=mapping.voc_type is not None,
@@ -596,7 +618,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 str(_value(row, mapping.sales_order) or "").strip() or None,
                 _source_item_number(row, mapping.sales_order_item),
                 str(_value(row, mapping.inspection_point) or "").strip() or None,
-                str(_value(row, mapping.customer_code) or "").strip() or None,
+                source_customer_code,
                 str(_value(row, mapping.customer_name) or "").strip() or None,
                 str(_value(row, mapping.project_code) or "").strip() or None,
                 str(_value(row, mapping.project_name) or "").strip() or None,
@@ -651,12 +673,54 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             imported += 1
         cleanup = await cleanup_synthetic_seed(target, apply=True)
         rebuild_result = await rebuild_lineage(target)
+        resolution_client = (
+            ContextualOrchestratorCustomerHintResolutionClient(
+                orchestrator_base_url, orchestrator_api_key, timeout=200.0
+            )
+            if orchestrator_base_url and orchestrator_api_key
+            else NullCustomerHintResolutionClient()
+        )
+        identity_judge_client = (
+            ContextualOrchestratorCustomerIdentityJudgeClient(
+                orchestrator_base_url, orchestrator_api_key, timeout=200.0
+            )
+            if orchestrator_base_url and orchestrator_api_key
+            else NullCustomerIdentityJudgeClient()
+        )
+        hierarchy_client = (
+            ContextualOrchestratorHierarchyInferenceClient(
+                orchestrator_base_url, orchestrator_api_key
+            )
+            if orchestrator_base_url and orchestrator_api_key
+            else NullCorporateHierarchyInferenceClient()
+        )
+        searxng_base_url = os.environ.get("SEARXNG_BASE_URL", "")
+        verification_client = (
+            SearxngRelationVerificationClient(searxng_base_url)
+            if searxng_base_url
+            else NullRelationVerificationClient()
+        )
+        customer_identity = await reconcile_customer_hints(
+            target,
+            resolution_client,
+            verification_client,
+            tuple(customer_keys),
+            authorized_corporate_entity_ids=(str(corporate_id),),
+            identity_judge_client=identity_judge_client,
+            hierarchy_inference_client=hierarchy_client,
+            tepp_client=configured_tepp_client(
+                os.environ.get("TEPP_TRANSPORT_URL", ""),
+                os.environ.get("TEPP_API_KEY", ""),
+                os.environ.get("TEPP_TEMPORAL_CONTEXT_URL", ""),
+            ),
+        )
         return {
             "source_rows": len(rows),
             "imported_rows": imported,
             "skipped_rows": skipped,
             "lineage_edges": len(rebuild_result.edges),
             "lineage_coverage": rebuild_result.coverage,
+            "customer_identity": customer_identity,
             **cleanup,
         }
     finally:

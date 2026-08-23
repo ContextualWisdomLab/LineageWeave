@@ -156,6 +156,13 @@
     rdfs:comment "A resolved organization is named by a post (post_organization_mention)." ;
     :lookupCode "edge_mention_organization" .
 
+:observedCustomerIdentityIn a owl:ObjectProperty ;
+    rdfs:domain :CorporateEntity ;
+    rdfs:range :Post ;
+    rdfs:label "customer identity observed in post" ;
+    rdfs:comment "A governed Customer Master identity is supported by a source post through a persisted cross-post judgment (post_customer_identity_mention)." ;
+    :lookupCode "edge_customer_identity_observation" .
+
 #################################################################
 # Object properties -- entity_relationship_type
 # (post_counterparty_entity.relationship_type_code)
@@ -885,6 +892,7 @@
     rdfs:label "Activity"@en .
 
 :TemporalEntity a owl:Class ;
+    rdfs:subClassOf time:TemporalEntity ;
     rdfs:label "Temporal entity"@en ;
     rdfs:seeAlso time:TemporalEntity .
 

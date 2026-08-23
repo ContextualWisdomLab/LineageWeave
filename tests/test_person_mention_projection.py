@@ -148,6 +148,11 @@ _CATALOG_UNRESOLVED_REASON_MIGRATION = (
     / "migrations"
     / "0134_catalog_unresolved_reason.sql"
 )
+_CUSTOMER_IDENTITY_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0137_cross_post_customer_identity.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -227,6 +232,7 @@ def projection_database() -> str:
                 cursor.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_IDENTIFIER_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_CATALOG_UNRESOLVED_REASON_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_CUSTOMER_IDENTITY_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(
                     """
                     insert into common_lookup_value
