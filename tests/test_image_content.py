@@ -245,6 +245,46 @@ def test_orchestrator_vision_client_is_null_when_unconfigured() -> None:
     assert client.available is False
 
 
+def test_vision_request_uses_gateway_model_selection_and_post_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        captured.update(url=url, payload=payload, headers=headers, timeout=timeout)
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": "TEXT: NONE\nCAPTION: A synthetic diagram.\nTAGS: diagram"
+                    }
+                }
+            ]
+        }
+
+    monkeypatch.setattr("lineageweave.image_content.post_json", fake_post_json)
+    client = OpenAiCompatibleVisionClient(
+        "https://gateway.example/v1", "service-token", "caller-model"
+    )
+    description = client.describe(
+        base64.b64decode(_TINY_PNG_B64),
+        "image/png",
+        session_id="lineageweave:post:post-1",
+        metadata={"pu_code": "PU-1"},
+    )
+
+    assert description.caption == "A synthetic diagram."
+    assert "model" not in captured["payload"]
+    assert captured["payload"]["mode"] == "auto"
+    assert captured["payload"]["reasoning_effort"] == "auto"
+    assert captured["payload"]["max_tokens"] == 1200
+    assert captured["payload"]["metadata"] == {
+        "session_id": "lineageweave:post:post-1",
+        "pu_code": "PU-1",
+    }
+    assert captured["payload"]["messages"][0]["role"] == "system"
+
+
 def test_image_content_client_protocol_stub_raises() -> None:
     """The Protocol method is a real stub, not a no-op ellipsis, so a
     mistaken call cannot be mistaken for a successful empty description.

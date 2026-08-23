@@ -6,7 +6,7 @@
 ## Context
 
 Board Weekly VOC, Calendar, and Customer master opens already focus Event
-Lineage (ADR 0093 / ADR 0134 / ADR 0095). Ask Agent is the remaining buyer
+Lineage (ADR 0093 / ADR 0094 / ADR 0095). Ask Agent is the remaining buyer
 GNB destination that opens an authorized cited post. That open was a
 home-list open: the popup body appeared and Event Lineage did not take
 focus.

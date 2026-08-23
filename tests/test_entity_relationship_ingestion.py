@@ -3,7 +3,11 @@ from __future__ import annotations
 import asyncio
 from contextlib import asynccontextmanager
 
-from backend.app.entity_relationship_ingestion import ingest_post_entity_relationships
+from backend.app.entity_relationship_ingestion import (
+    ingest_post_entity_relationships,
+    merge_relationship_network_rows,
+)
+from lineageweave.corporate_hierarchy_resolution import CorporateEntityCandidate
 from lineageweave.entity_relationship_classification import OrganizationRelationship
 
 
@@ -55,3 +59,41 @@ def test_relationship_ingestion_clears_rows_when_no_counterparty_remains() -> No
     assert conn.executed == [
         ("delete from post_counterparty_entity where post_id = $1", ("post-2",))
     ]
+
+
+def test_relationship_network_merges_unique_catalog_aliases() -> None:
+    rows = [
+        {
+            "counterparty_entity_name": "Synthetic Group",
+            "total_post_count": 1,
+            "relationships": [{
+                "relationship_type_code": "rel_voc",
+                "relationship_label": "Customer",
+                "post_count": 1,
+            }],
+        },
+        {
+            "counterparty_entity_name": "Synthetic Group.",
+            "total_post_count": 2,
+            "relationships": [{
+                "relationship_type_code": "rel_voco",
+                "relationship_label": "Competitor",
+                "post_count": 2,
+            }],
+        },
+    ]
+    result = merge_relationship_network_rows(
+        rows,
+        [CorporateEntityCandidate("entity-1", "Synthetic Group")],
+    )
+
+    assert result == [{
+        "counterparty_entity_name": "Synthetic Group",
+        "corporate_entity_id": "entity-1",
+        "total_post_count": 3,
+        "relationships": [
+            {"relationship_type_code": "rel_voco", "relationship_label": "Competitor", "post_count": 2},
+            {"relationship_type_code": "rel_voc", "relationship_label": "Customer", "post_count": 1},
+        ],
+        "multi_role": True,
+    }]
