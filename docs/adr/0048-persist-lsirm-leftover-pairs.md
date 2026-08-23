@@ -2,6 +2,7 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-17
+**Amended by:** [ADR 0178](0178-leftover-residual-disclosure.md) (residual disclosure)
 
 ## Context
 

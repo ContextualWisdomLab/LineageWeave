@@ -2,6 +2,7 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-17
+**Amended by:** [ADR 0178](0178-leftover-residual-disclosure.md) (residual disclosure)
 
 ## Context
 
@@ -17,10 +18,13 @@ second navigation surface.
 
 On each period-report group, render leftover pairs **above** the
 member list. Each pair is a button: closest or farthest label, post
-title, criterion short label, leftover-map distance, and the next
-action (“Open this post to read the criterion it sat closest to /
-farthest from after main effects.”). Clicking the button opens that
-post with the same handler as a member row.
+title, criterion short label, leftover-map distance, signed leftover
+residual `R` when the value is named, and the next action. Residual
+next action: leftover residual `R` after IRT main effects; open this
+post to read the named criterion. A non-finite residual is an em dash,
+never a fabricated leftover score. Clicking the button opens that post
+with the same handler as a member row. Residual naming is
+[ADR 0178](0178-leftover-residual-disclosure.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post.

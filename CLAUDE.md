@@ -54,7 +54,9 @@ chip name contains `Corporate entity: Demo Corp` and the persisted
 mean θ. The period-report panel says Demo Corp is the opened grouping
 and to read its mean θ and member posts, then open a post. Those
 members land immediately under that next action, ahead of Other Corp
-and the week strip. Opening Public post names the next action: read
+and the week strip. After `make seed`, leftover closest/farthest pairs
+sit above the member list with signed leftover residual `R` next to
+leftover-map distance `d`. Opening Public post names the next action: read
 Event Lineage, Keyman, and evaluation on that post. The popup Event
 Lineage DAG marks that post current. After that current node, the
 popup names Keyman and evaluation as the next read. After landed
