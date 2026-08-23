@@ -121,6 +121,19 @@ def test_migrate_sh_replays_tenant_identity_metadata_migration_on_existing_volum
     assert "tenant_settings_copyright_year_range_check" in migration
 
 
+def test_migrate_sh_replays_analysis_run_status_same_clock_on_existing_volumes() -> None:
+    """Existing volumes must replace the analysis-run status trigger from one clock."""
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(encoding="utf-8")
+    migration = (root / "migrations" / "0173_analysis_run_status_same_clock.sql").read_text(
+        encoding="utf-8"
+    )
+
+    assert "0173_*" in script
+    assert "create or replace function enforce_analysis_run_status_transition" in migration
+    assert "write_clock" in migration
+
+
 def test_migrate_sh_replays_catalog_unresolved_reason_migration_on_existing_volumes() -> None:
     """Existing Compose volumes must receive the new unresolved-reason column."""
     root = Path(__file__).resolve().parents[1]
