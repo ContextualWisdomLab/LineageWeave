@@ -72,6 +72,31 @@ async def persist_lineage_edges(conn: asyncpg.Connection, edges: list[Edge]) -> 
         )
 
 
+async def load_estimated_channel_weights(
+    conn: asyncpg.Connection, active_channels: set[str]
+) -> dict[str, float] | None:
+    """Persisted psychometric weights, only on an exact channel-set match.
+
+    ADR 0145: a partial overlap would mix estimated and hand-picked
+    weights into a vector that is neither grounded nor the documented
+    fallback -- so anything other than an exact match falls back
+    entirely (return ``None``). A database that has not applied
+    migration 0135 yet (rollout ordering, rollback) is the same "no
+    estimate persisted" state, not an error -- rebuilds keep working on
+    the fallback constants.
+    """
+    try:
+        rows = await conn.fetch(
+            "select channel_code, weight_value from lineage_channel_weight"
+        )
+    except asyncpg.UndefinedTableError:
+        return None
+    persisted = {row["channel_code"]: float(row["weight_value"]) for row in rows}
+    if not persisted or set(persisted) != active_channels:
+        return None
+    return persisted
+
+
 async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
     """Reconstruct lineage for every ``source_post`` and persist the edges."""
     rows = await conn.fetch(
@@ -79,7 +104,13 @@ async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
         "process_unit_id, thread_group_key, secondary_grouping_key "
         f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
     )
-    edges = lineage_edge_specs(records_from_source_posts(rows))
+    # No adjudication client is wired on this path, so the active channel
+    # set is the three deterministic channels (reconstruct drops llm when
+    # unavailable rather than faking it).
+    weights = await load_estimated_channel_weights(
+        conn, {"temporal", "secondary_key", "text"}
+    )
+    edges = lineage_edge_specs(records_from_source_posts(rows), weights=weights)
     await persist_lineage_edges(conn, edges)
     return edges
 
