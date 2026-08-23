@@ -160,6 +160,56 @@ def test_project_history_rejects_nonfinite_lineage_scores(invalid_score: float) 
         )
 
 
+def test_project_history_counts_connected_posts_and_distinct_lineages() -> None:
+    """Only forward edges form connected-post and lineage-component counts."""
+
+    events = []
+    for ordinal in range(1, 7):
+        event = _event_row(f"00000000-0000-0000-0000-{ordinal:012d}")
+        event["created_at"] = datetime(2022, 3, 10 + ordinal, 9, tzinfo=timezone.utc)
+        events.append(event)
+    edges = [
+        {
+            "parent_post_id": events[0]["post_id"],
+            "child_post_id": events[1]["post_id"],
+            "fused_score": 0.9,
+        },
+        {
+            "parent_post_id": events[1]["post_id"],
+            "child_post_id": events[2]["post_id"],
+            "fused_score": 0.8,
+        },
+        {
+            "parent_post_id": events[3]["post_id"],
+            "child_post_id": events[4]["post_id"],
+            "fused_score": 0.7,
+        },
+        {
+            "parent_post_id": events[1]["post_id"],
+            "child_post_id": events[2]["post_id"],
+            "fused_score": 0.8,
+        },
+        {
+            "parent_post_id": events[5]["post_id"],
+            "child_post_id": events[0]["post_id"],
+            "fused_score": 0.6,
+        },
+    ]
+
+    projection = build_project_history_projection(
+        project_key="P-100",
+        focus_event_id=None,
+        event_rows=events,
+        match_rows=[],
+        role_rows=[],
+        edge_rows=edges,
+    )
+
+    assert projection["event_count"] == 6
+    assert projection["connected_post_count"] == 5
+    assert projection["lineage_count"] == 2
+
+
 def test_matching_observed_project_code_keeps_its_distinct_display_name() -> None:
     """A matching code may carry a human display name that is not itself the key."""
 

@@ -14,6 +14,8 @@ const projection = {
   knowledge_cutoff: "2026-08-20T12:00:00Z",
   evidence_boundary_code: "authorized_visible_source_posts",
   event_count: 1,
+  connected_post_count: 0,
+  lineage_count: 0,
   distinct_actor_count: 0,
   distinct_observed_actor_count: 0,
   truncated: false,

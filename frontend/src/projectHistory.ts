@@ -109,6 +109,8 @@ export interface ProjectHistoryProjection {
   knowledge_cutoff?: string;
   evidence_boundary_code?: "authorized_visible_source_posts" | string;
   event_count: number;
+  connected_post_count: number;
+  lineage_count: number;
   distinct_actor_count?: number;
   distinct_observed_actor_count: number;
   truncated: boolean;
@@ -253,7 +255,7 @@ const EN: Record<ProjectHistoryMessageKey, string> = {
   openProject: "Open project: {name}",
   evidenceBoundary: "Only source posts that pass the current permission, visibility, publication, and cutoff gates are included.",
   heading: "Project event timeline",
-  summaryCounts: "{events} events · {actors} actors in evidence",
+  summaryCounts: "{events} shown project posts · {connected} connected · lineage count {lineages} · {actors} actors in evidence",
   sourcePostTime: "Dates use source-post creation time because a separate event clock is not recorded.",
   documentTime: "Dates use the document time recorded by the source.",
   truncated: "This bounded timeline is truncated. The selected event remains included.",
@@ -304,7 +306,7 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     openProject: "프로젝트 열기: {name}",
     evidenceBoundary: "현재 권한·공개 범위·게시 상태·기준 시각을 통과한 원천 게시물만 포함합니다.",
     heading: "프로젝트 이벤트 타임라인",
-    summaryCounts: "이벤트 {events}건 · 근거에 등장한 담당자 {actors}명",
+    summaryCounts: "표시 중 프로젝트 글 {events}개 · 연결된 글 {connected}개 · Lineage {lineages}개 · 근거 담당자 {actors}명",
     sourcePostTime: "별도 사건 시각이 없어 날짜는 원천 게시물 생성 시각을 사용합니다.",
     documentTime: "날짜는 기록된 문서 시각을 사용합니다.",
     truncated: "이 제한된 타임라인은 일부만 표시합니다. 선택한 이벤트는 계속 포함됩니다.",
@@ -352,7 +354,7 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     openProject: "打开项目：{name}",
     evidenceBoundary: "仅包含通过当前权限、可见性、发布状态和截止时间检查的源帖子。",
     heading: "项目事件时间线",
-    summaryCounts: "{events} 个事件 · 依据中出现 {actors} 名责任人",
+    summaryCounts: "当前显示 {events} 条项目记录 · {connected} 条已连接 · {lineages} 条 Lineage · 依据中出现 {actors} 名责任人",
     sourcePostTime: "未记录独立事件时钟，因此日期采用源帖子创建时间。",
     documentTime: "日期采用记录的文档时间。",
     truncated: "此有界时间线已截断，但所选事件仍保留。",
@@ -400,7 +402,7 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     openProject: "プロジェクトを開く: {name}",
     evidenceBoundary: "現在の権限・可視性・公開状態・基準時刻を通過した原資料だけを含みます。",
     heading: "プロジェクトイベントのタイムライン",
-    summaryCounts: "イベント {events}件 · 根拠内の担当者 {actors}名",
+    summaryCounts: "表示中のプロジェクト投稿 {events}件 · 接続済み {connected}件 · Lineage {lineages}件 · 根拠内の担当者 {actors}名",
     sourcePostTime: "独立したイベント時刻がないため、原資料の作成時刻を使用します。",
     documentTime: "日付は記録された文書時刻を使用します。",
     truncated: "この上限付きタイムラインは省略されていますが、選択イベントは保持されます。",
@@ -448,7 +450,7 @@ const MESSAGES: Record<Locale, Record<ProjectHistoryMessageKey, string>> = {
     openProject: "Mở dự án: {name}",
     evidenceBoundary: "Chỉ bao gồm bài nguồn vượt qua quyền, khả năng hiển thị, trạng thái xuất bản và mốc thời gian hiện tại.",
     heading: "Dòng thời gian sự kiện dự án",
-    summaryCounts: "{events} sự kiện · {actors} người xuất hiện trong bằng chứng",
+    summaryCounts: "Đang hiển thị {events} bài dự án · {connected} bài đã kết nối · {lineages} lineage · {actors} người trong bằng chứng",
     sourcePostTime: "Không có đồng hồ sự kiện riêng, nên dùng thời gian tạo bài nguồn.",
     documentTime: "Ngày sử dụng thời gian tài liệu được ghi nhận.",
     truncated: "Dòng thời gian có giới hạn này đã bị rút gọn nhưng vẫn giữ sự kiện đang chọn.",
