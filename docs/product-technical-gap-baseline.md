@@ -23,8 +23,10 @@ Protected `main` currently has two defects that poison downstream work:
    ontology Pages stack. #494 overlaps this contract and must preserve only
    demonstrably unique value rather than becoming a second dependency.
 2. This file on `main` listed identifying post identifiers, which ADR 0001
-   forbids. This head restores the non-identifying contract and binds gaps to
-   the current PR/issue inventory. It does not duplicate #426's login patch.
+   forbids. This head removes them from the current tree and binds gaps to the
+   current PR/issue inventory. The identifiers remain reachable in protected
+   Git history pending an approved incident/history-remediation process. It
+   does not duplicate #426's login patch.
 
 Recent protected-default-branch and org-control-plane evidence:
 
@@ -73,7 +75,7 @@ Substantially present on protected `main`:
 These statements describe source capability, not authenticated production
 corpus acceptance or protected release.
 
-## 3. Snapshot open PR inventory (bind gaps to exact heads)
+## 3. Snapshot open PR inventory
 
 Heads below were open at the snapshot time and are queue evidence, not
 protected-main release evidence. Recheck
@@ -83,18 +85,18 @@ evidence across heads.
 
 ### 3.1 Merge-blocking and shared-gate repairs
 
-| PR | Intent | Gap it closes when merged |
-| ---: | --- | --- |
-| #426 | Login `tsc`, ontology Pages, and the stacked namespace map formerly reviewed as #492 | Shared frontend typecheck and public ontology publication on protected `main` |
-| #494 | Overlapping login repair | Audit for unique value after #426; do not create a second shared dependency |
-| this head | Non-identifying gap baseline (ADR 0001) | Stops identifying post identifiers from remaining on `main` |
-| #429 | `/healthz` routes to the liveness probe | Operability: liveness vs settings mix-up |
-| #428 | `migrate.sh` whitelist catch-up | Deploy: migrations silently skipped |
-| #393 | Detach provider parse error context | Honest orchestrator failure, not a poisoned parse |
-| #383 | Reader-safe OTel server diagnostics | Issue #361: generic 503 must still preserve diagnostics |
-| #474 | Rename operator-facing terminology + login return | Workspace copy; do not use “Buyer” for internal objects |
-| #436 | AdminPanel coverage | Frontend coverage 100% bar for admin settings |
-| #439 | LineageDag tests and stories | Storybook inventory for DAG edge cases |
+| PR | Observed head | Intent | Gap it closes when merged |
+| ---: | --- | --- | --- |
+| #426 | `d4e9548661bdd71a0c2cd683796959299eec498e` | Login `tsc`, ontology Pages, and the stacked namespace map formerly reviewed as #492 (`38f3734f58477bad04f82758fc685e798e9d4b7b`) | Shared frontend typecheck and public ontology publication on protected `main` |
+| #494 | `7eb5b2a89a6f32785bbbaf89126cb1ba931a03a8` | Overlapping login repair | Audit for unique value after #426; do not create a second shared dependency |
+| #497 | `4de605b1ee512aac78c6ce04da24af77b7b8b3a2` | Non-identifying gap baseline (ADR 0001) | Removes identifying post identifiers from the current tree; protected history still requires incident remediation |
+| #429 | Not captured | `/healthz` routes to the liveness probe | Operability: liveness vs settings mix-up |
+| #428 | Not captured | `migrate.sh` whitelist catch-up | Deploy: migrations silently skipped |
+| #393 | Not captured | Detach provider parse error context | Honest orchestrator failure, not a poisoned parse |
+| #383 | Not captured | Reader-safe OTel server diagnostics | Issue #361: generic 503 must still preserve diagnostics |
+| #474 | Not captured | Rename operator-facing terminology + login return | Workspace copy; do not use “Buyer” for internal objects |
+| #436 | Not captured | AdminPanel coverage | Frontend coverage 100% bar for admin settings |
+| #439 | Not captured | LineageDag tests and stories | Storybook inventory for DAG edge cases |
 
 ### 3.2 User-visible product surfaces
 
@@ -175,7 +177,7 @@ value.
 | --- | --- | --- |
 | Protected release | 55 PRs open; no independent current-head approval; frontend `tsc` broken on `main` until #426 merges | Terminal exact-head checks, no unresolved threads, independent OpenCode/Strix/Noema approval, protected squash-merge SHA |
 | Shared frontend gate | Unauthenticated `AdminPanel` + unused OIDC helpers failed `tsc -b` on `main` | #426 on protected `main`; revalidate #494 for unique value, then subsequent PRs rebase and stay green without duplicating the login patch |
-| Identifying baseline regression | `main` gap file listed real post identifiers | This non-identifying rewrite on protected `main` (ADR 0001) |
+| Identifying baseline regression | `main` gap file listed real post identifiers; this head cleans the current tree but protected history remains exposed | Land this non-identifying rewrite, then complete an approved incident/history-remediation process (ADR 0001) |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419) | Orchestrator-backed rendered workflow, original/derived asset provenance, and honest unsupported states |
 | Semantic source rendering | Paragraph, table, list, formula, and indentation work exists across stacks (#394, #427, #448–#450) | Authenticated browser evidence that semantic units render without authoring-layout artifacts |
