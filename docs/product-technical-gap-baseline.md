@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-24 01:52 KST. This repository records synthetic
+> Audit snapshot: 2026-08-24 02:47 KST. This repository records synthetic
 > fixtures and aggregate, non-identifying runtime evidence only. Open PRs and
 > local checks are not protected-default-branch release evidence.
 
@@ -8,9 +8,9 @@
 
 The protected default branch was
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` when this baseline was refreshed.
-The live queue contained 55 open PRs and no independently approved head. Eighteen
-current heads had an aggregate failed check state, eleven had pending checks,
-and three current heads retained an unresolved review thread.
+The live queue contained 54 open PRs and no independently approved head.
+Twenty-one current heads had an aggregate failed check state, seven had pending
+checks, and no current head retained an unresolved review thread.
 Those results must be re-fetched against the current head before remediation or
 a merge claim.
 
@@ -78,20 +78,22 @@ ontology URL, repository-case ontology URL, and repository-case
 `namespace-compatibility.ttl` URL each returned HTTP 404. Source and active-PR
 publication contracts therefore do not prove an available public endpoint.
 Cross-repository organization-site PR #188 at
-`3ac59eb7eb7122c101df77945abbe644922dbe34` provides the owned lowercase
-route from LineageWeave artifact commit `c8a4be8f`; its 19 local tests passed
-before the current provenance/semantics repair, whose focused suite passed 20
-tests with zero Semgrep findings; its static acceptance returned HTTP 200. The PR remains open with hosted
-Strix in progress, coverage evidence queued, no unresolved thread, and no
-exact-head approval, so that result is not protected deployment evidence and
-the live HTTP 404 remains authoritative.
+`4037d5fe6176f8cb78aa41696bc3dc50ff8a7f32` provides the owned lowercase
+route regenerated from LineageWeave source head `9b47ce42`. Four route tests,
+RDF isomorphism, exact manifest inventory/hash/source commit, and upstream byte
+equality passed. The PR remains open with hosted Strix and OpenCode checks
+pending, no unresolved thread, and no exact-head approval, so that result is
+not protected deployment evidence and the live HTTP 404 remains authoritative.
 
 The central Strix dependency is now superseding ContextualWisdomLab/.github
-PR #1263 at `1fd718f3177d3e8ffe908aed38b50dc94e926f8d`. Its current source keeps the
-provider-fallback and exact advisory-line boundary covered by eight shell cases
-and 33 focused pytest cases. Three review threads arrived after that head and
-hosted checks remain pending; it has no approval. Therefore the older #1213
-stack and local green evidence do not authorize transfer of a Strix result.
+PR #1263 at `9ca02e84e1625a674aad4bdcb392d09b641c88aa`. The reviewed source
+normalizes the direct-OpenAI fallback at the Strix/LiteLLM boundary and includes
+the NVIDIA fallback doctoring path in changed-path validation. Twenty-six
+focused pytest cases, the full C-locale shell harness, actionlint, and shell
+syntax passed before the latest concurrent test-only head advance. All reviewed
+threads were resolved, but hosted exact-head checks remain pending and it has
+no approval. Therefore older failed runs that executed trusted `main`, and
+local green evidence, do not authorize transfer of a Strix result.
 
 Current active-PR evidence remains outside protected `main`:
 
@@ -99,24 +101,28 @@ Current active-PR evidence remains outside protected `main`:
   distributed MCP principal rate-limit decision. Its current hosted checks
   were running while a failed Devin status remained; it had no unresolved
   thread or exact-head approval.
-- PR #426 at `c0a77731d46dba5f951cf69df6578f35aa93a2d6` is the current
+- PR #426 at `f6f295057eea649caf00fa119345c43cb57c2415` is the current
   prerequisite carrier for ontology publication and the merged ADR 0157 and
-  compatibility-publication stacks. It had one unresolved review thread and no
-  exact-head approval; hosted checks were pending. Results from its prior heads
-  are stale, and Pages activation alone does not deploy this unmerged source.
+  compatibility-publication stacks. ADR 0036 now explicitly names the OWL 2
+  Full/RDF-Based semantics required by the retained `rdf:Statement` contract,
+  and the PROV support-profile IRI is canonical lowercase. Seventy-seven
+  focused ontology tests, deterministic publication, and profile byte-equality
+  passed on source head `9b47ce42`; later stack merge `f6f29505` adds the
+  reviewed two-axis leftover map. It had no unresolved review thread or
+  exact-head approval; hosted checks were pending. Results from prior heads are
+  stale, and Pages activation alone does not deploy this unmerged source.
 - PR #355 at `6fc22a9471bfb4d94b18f884e012cd823b296382` carries ADR 0145's
   Naruon calendar projection boundary. Its aggregate checks failed, with no
   unresolved thread or exact-head approval.
 - PR #417 at `c5c0929c68abf876de6c924d5a93b554d6bcadfb` preserves stale image
   summaries across provider refresh failures. Two focused unit tests and two
   API tests passed; it had no unresolved thread or exact-head approval.
-- PR #494 at `b195b42dd327f6a6659cca315b34886ab11d38ed` keeps optional-extra test
-  collection fail-closed without misclassifying non-skip hook results, uses the
-  existing NumPy-only period-report mapping, tolerates non-UTF-8 optional source
-  during collection, and restores the shared OIDC login gate after a concurrent
-  regression. Its exact head passed ten collection tests, 83 frontend tests,
-  lint, TypeScript compilation, and production build. It had no unresolved
-  thread or exact-head approval; hosted checks restarted.
+- Stacked PR #494 at `5d9728a16051e7db453ca513cd5baa75be7450cc`
+  merged normally as `1ff0cd13b84d5c5f817706ef23dcbd5c3d67a510`
+  into non-default #426. It keeps optional-extra collection fail-closed,
+  tolerates non-UTF-8 optional source, and restores the shared OIDC login gate.
+  Ten focused tests and repository collection of 430 tests passed on the merge
+  SHA. This is stack evidence, not protected-main evidence.
 - PR #493 at `499c8b1bc4cdffff5bb985658bcb3821d312cedb` includes product-fix
   head `612c4cc1`, where the focused backend suite passed 13 tests, the App
   suite passed 81 tests, and lint plus diff-check were clean. The later head
@@ -164,12 +170,12 @@ Current active-PR evidence remains outside protected `main`:
   synthetic catalog rows. Five focused static tests and a twice-applied local
   PostgreSQL replay passed; hosted evidence remained pending and it had no
   exact-head approval.
-- PR #507 at `6751623df553c1e26976cef26b12b0ec4d0e15cf`
+- PR #507 at `b8d9ce429f223d43a8639d0e2b2b0777e9105d2b`
   reuses that migration replay fix and the existing safe OIDC return helpers.
-  Its review follow-up reused existing imports and a named helper; 36 focused
-  backend tests passed. It had no unresolved thread, failure, or exact-head
-  approval; hosted checks restarted.
-- PR #490 at `494ccf53da6e4a12d54e171bbb6dfeea9b336ffc` is the current carrier
+  Its review follow-ups reused existing imports and a named helper; the latest
+  focused suite passed 13 tests. It had no unresolved thread, failure, or
+  exact-head approval; hosted checks restarted.
+- PR #490 at `c92206727c7de9d8511713cc1a2b5d98c63c96b9` is the current carrier
   of the consolidated product stack and includes ADR 0143. ADR 0144 was absent
   from both this exact tree and protected `main`, so it is not attributed to
   this head. The validated post-merge #505 migration correction was transplanted
@@ -181,17 +187,36 @@ Current active-PR evidence remains outside protected `main`:
   into non-default #490 after its duplicate migration slice conflicted.
   Ninety-six focused tests and twelve PostgreSQL schema tests passed; that stack
   merge is not protected-main evidence.
-- Stacked PR #511 at `3c61e8fd5de116231cdaf5b681e03878f825f5aa`
+- Stacked PR #512 at `0e8f27151b25a7b4f221832b8bdb285e2855e1ab`
+  merged normally as `2ff02bb50280978c3720639d16c10494b4e0eeb7`
+  into non-default #490 after terminal green tests and zero unresolved threads.
+  It requires project evidence before admitting a planned-facility relation;
+  this is stack evidence, not protected-main evidence.
+- Stacked PR #508 at `75565bf96d12c4e8f49dcb4ce61b9a0f24e2c929`
+  merged normally as `f6f295057eea649caf00fa119345c43cb57c2415`
+  into non-default #426. It reuses the shared OIDC gate and measures leftover
+  distance on the first two retained Gabriel axes; 140 frontend tests, lint,
+  typecheck, and build passed. This is not protected-main evidence.
+- Stacked PR #511 at `d5fe5797dd4e160c902b5aaddd8c674da845936e`
   aligns the Python reconciliation boundary with the database's strict
-  `1e-6` constraint and reuses the shared login-return path. Twenty-one focused
-  Python tests, 146 frontend tests, lint, and production build passed; hosted
-  checks restarted with no unresolved thread or exact-head approval.
+  `1e-6` constraint and persists observed/expected leftover operands without
+  fabricating historical values. Fourteen focused PostgreSQL, migration, and
+  leftover tests passed; hosted checks restarted with no unresolved thread or
+  exact-head approval.
+- Stacked PR #513 at `a992e374fd25ff04728986ded9a85905fe2bca18`
+  keeps migration 0164 as the sole sequential source for leftover-map rank and
+  composes it with #508's two-axis distance. Nineteen focused backend tests,
+  80 frontend tests, lint, and build passed; hosted checks remained pending.
+- Stacked PR #514 at `b90d976270036adce8464434836d7e1541ba5223`
+  merged normally as `d02ab8fda2a6d561991e0f88f71e18d5dafe4a49`
+  into non-default #490 after documentation hygiene passed. Its effective diff
+  removed one trailing ADR blank line; it is not protected-main evidence.
 
 ## 3. Open product and technical gaps
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 55 PRs remained open, none had an independent current-head approval, eighteen current heads had an aggregate failed check state, eleven had pending checks, and three retained an unresolved review thread | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
+| Protected release | 54 PRs remained open, none had an independent current-head approval, twenty-one current heads had an aggregate failed check state, seven had pending checks, and none retained an unresolved review thread | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Image understanding | Region, OCR, and description work exists across active heads | Orchestrator-backed rendered workflow, original/derived asset provenance, and honest unsupported states |
 | Semantic source rendering | Paragraph, table, list, and formula parsing exists across active stacks | Authenticated browser evidence that semantic units render without authoring-layout artifacts |
