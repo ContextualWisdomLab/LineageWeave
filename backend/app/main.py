@@ -802,9 +802,21 @@ def _customer_master_scope_facets(
         for code in row["scope_codes"]
         if code in _AFFILIATION_SCOPE_CODE_TO_FACET
     ]
-    if str(row["corporate_entity_id"]) in observed_hierarchy_ids:
+    # ADR 0144: a row reached only through account_observed_entity's
+    # write-time-authorized parent-chain walk (never itself directly
+    # mentioned, so _observed_hierarchy_ids' live-mention walk would not
+    # otherwise find it) is still a verified hierarchy fact -- an ancestor
+    # (depth > 0) reads as observed_hierarchy; the write-time-authorized
+    # entity itself (depth 0) reads as observed_organization, matching
+    # what the live post_organization_mention path would have tagged it
+    # had the mention been direct instead of resolved another way.
+    is_observed_hierarchy = (
+        str(row["corporate_entity_id"]) in observed_hierarchy_ids
+        or bool(row["is_account_observed_ancestor"])
+    )
+    if is_observed_hierarchy:
         facets.append("observed_hierarchy")
-    if row["is_observed_organization"]:
+    if row["is_observed_organization"] or row["is_account_observed_leaf"]:
         facets.append("observed_organization")
     return facets
 
@@ -1061,7 +1073,7 @@ async def read_customer_master(
         # Safe SQL: the eligibility predicate is an immutable schema fragment; ids are bound.
         entity_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"""
-            with own_affiliation as (
+            with recursive own_affiliation as (
                 select corporate_entity_id,
                        array_agg(distinct affiliation_scope_code)
                            filter (where affiliation_scope_code is not null) as scope_codes
@@ -1080,16 +1092,48 @@ async def read_customer_master(
                  order by count(distinct org_mention.post_id) desc,
                           org_mention.corporate_entity_id
                  limit 100
+            ), account_observed_leaf as (
+                -- ADR 0144: entities this account's own account_observed_entity
+                -- rows (written at ingestion time) authorize -- re-verified
+                -- live against account_affiliation so a revoked affiliation
+                -- stops surfacing the entity with no reconciliation lag.
+                select distinct observed_entity.corporate_entity_id
+                  from account_observed_entity observed_entity
+                  join account_affiliation affiliation
+                    on affiliation.user_account_id = observed_entity.account_id
+                   and affiliation.corporate_entity_id = observed_entity.granting_corporate_entity_id
+                 where observed_entity.account_id = $2
+            ), account_observed as (
+                -- ADR 0010 already resolves parent_entity_id at creation time
+                -- (bounded 4-level); walk it here rather than writing one
+                -- account_observed_entity row per ancestor.
+                select corporate_entity_id, 0 as ancestor_depth
+                  from account_observed_leaf
+                 union
+                select entity.parent_entity_id, walk.ancestor_depth + 1
+                  from account_observed walk
+                  join corporate_entity entity on entity.corporate_entity_id = walk.corporate_entity_id
+                 where entity.parent_entity_id is not null
+                   and walk.ancestor_depth < 4
             )
             select entity.corporate_entity_id, entity.corporate_entity_code, entity.entity_name,
                    entity.entity_level_code, entity.parent_entity_id,
                    coalesce(own_affiliation.scope_codes, array[]::text[]) as scope_codes,
-                   (observed.corporate_entity_id is not null) as is_observed_organization
+                   (observed.corporate_entity_id is not null) as is_observed_organization,
+                   (observed_ancestry.min_depth = 0) as is_account_observed_leaf,
+                   (observed_ancestry.min_depth > 0) as is_account_observed_ancestor
               from corporate_entity entity
               left join own_affiliation on own_affiliation.corporate_entity_id = entity.corporate_entity_id
               left join observed on observed.corporate_entity_id = entity.corporate_entity_id
+              left join (
+                  select corporate_entity_id, min(ancestor_depth) as min_depth
+                    from account_observed
+                   group by corporate_entity_id
+              ) observed_ancestry
+                on observed_ancestry.corporate_entity_id = entity.corporate_entity_id
              where (own_affiliation.corporate_entity_id is not null
-                    or observed.corporate_entity_id is not null)
+                    or observed.corporate_entity_id is not null
+                    or observed_ancestry.corporate_entity_id is not null)
                and not (entity.corporate_entity_id = any($3::uuid[]))
              order by entity.entity_name
             """,

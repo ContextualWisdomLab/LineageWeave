@@ -38,7 +38,11 @@ from lineageweave.organization_name_resolution import resolve_and_verify_organiz
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.relation_verification import STATUS_CORROBORATED, RelationVerificationClient
 
-from .corporate_entity_ingestion import get_or_create_corporate_entity
+from .corporate_entity_ingestion import (
+    get_or_create_corporate_entity,
+    prune_observed_entity_for_posts,
+    record_observed_entity,
+)
 from .keyman_ingestion import _load_corporate_entity_candidates
 
 _EXCERPT_LENGTH = 1500
@@ -206,6 +210,30 @@ async def resolve_customer_hint(
         entity_id,
         hint_code,
     )
+    if linked:
+        # This reassignment can narrow OR widen a post's authorized-account
+        # set (its corporate_entity_id, and therefore who reads it as
+        # "own corp", just changed) -- reconcile every account_observed_entity
+        # row sourced from these posts (ADR 0144). Re-derive rather than
+        # patch in place: prune what the OLD corp granted, then re-run the
+        # write-time hook for the same (entity, post) pairs so it
+        # re-evaluates against the NEW corp already committed above.
+        reassigned_post_ids = [str(row["post_id"]) for row in linked]
+        previously_observed = await conn.fetch(
+            """
+            select distinct corporate_entity_id, source_post_id
+              from account_observed_entity
+             where source_post_id = any($1::uuid[])
+            """,
+            reassigned_post_ids,
+        )
+        await prune_observed_entity_for_posts(conn, reassigned_post_ids)
+        for row in previously_observed:
+            await record_observed_entity(
+                conn, str(row["corporate_entity_id"]), str(row["source_post_id"])
+            )
+        for post_id in reassigned_post_ids:
+            await record_observed_entity(conn, entity_id, post_id)
     # get_or_create_corporate_entity may have bound this hint to an
     # existing entity via fuzzy similarity matching, whose stored name can
     # differ from the freshly LLM-resolved name (e.g. punctuation/casing);

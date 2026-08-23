@@ -35,6 +35,8 @@ from lineageweave.relation_verification import (
     RelationVerificationClient,
 )
 
+from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+
 _AUTO_CODE_PREFIX = "AUTO-"
 _MAX_HIERARCHY_DEPTH = 4
 _CREATION_LOCK_KEY = "lineageweave:corporate_entity_creation"
@@ -227,3 +229,83 @@ async def get_or_create_corporate_entity(
         )
         _remember_candidate(candidates, new_id, normalized_name)
         return new_id
+
+
+async def record_observed_entity(
+    conn: asyncpg.Connection,
+    corporate_entity_id: str,
+    source_post_id: str,
+) -> None:
+    """Upsert one ``account_observed_entity`` row per account this post's own
+    ABAC predicate already authorizes to read it (ADR 0144).
+
+    Mirrors ``read_customer_master``'s own eligibility predicate exactly --
+    public-or-own-corp, gated by ``SOURCE_POST_ELIGIBILITY_SQL`` -- so the
+    two call sites cannot silently drift. An account's own-corp affiliation
+    is preferred as ``granting_corporate_entity_id``; an account that can
+    only read this post because it is public (no affiliation to the post's
+    own entity) still records one of its other live affiliations instead,
+    since public visibility does not require any specific affiliation.
+    """
+    # Safe SQL: the eligibility predicate is an immutable schema fragment; ids are bound.
+    await conn.execute(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
+        insert into account_observed_entity (
+            account_id, corporate_entity_id, granting_corporate_entity_id, source_post_id
+        )
+        select distinct on (affiliation.user_account_id)
+               affiliation.user_account_id, $1::uuid, affiliation.corporate_entity_id, $2::uuid
+          from source_post post
+          join account_affiliation affiliation on true
+         where post.post_id = $2
+           and (post.visibility_code = 'public'
+                or affiliation.corporate_entity_id = post.corporate_entity_id)
+           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+         order by affiliation.user_account_id,
+                  (affiliation.corporate_entity_id = post.corporate_entity_id) desc
+        on conflict (account_id, corporate_entity_id) do update
+           set granting_corporate_entity_id = excluded.granting_corporate_entity_id,
+               source_post_id = excluded.source_post_id,
+               last_observed_at = now(),
+               observation_count = account_observed_entity.observation_count + 1
+        """,
+        corporate_entity_id,
+        source_post_id,
+    )
+
+
+async def prune_observed_entity_for_posts(
+    conn: asyncpg.Connection,
+    source_post_ids: list[str],
+) -> None:
+    """Delete stale ``account_observed_entity`` rows after a post's own
+    ``corporate_entity_id``/eligibility narrows (ADR 0144 reconciliation).
+
+    Called inline, in the same transaction as the mutation that can narrow
+    a post's authorized-account set (currently: the corporate_entity_id
+    reassignment in ``customer_hint_ingestion.py``). A row survives only
+    if some *other* still-eligible post also observed that
+    (account, corporate_entity) pair through the same account -- deleting
+    and re-deriving is simpler and no less correct than trying to patch
+    ``granting_corporate_entity_id``/``source_post_id`` in place, since a
+    later ``get_or_create_corporate_entity`` call naturally re-inserts any
+    row that is genuinely still observed.
+    """
+    if not source_post_ids:
+        return
+    await conn.execute(
+        """
+        delete from account_observed_entity observed
+         where observed.source_post_id = any($1::uuid[])
+           and not exists (
+               select 1
+                 from source_post post
+                 join account_affiliation affiliation
+                   on affiliation.user_account_id = observed.account_id
+                where post.post_id = observed.source_post_id
+                  and (post.visibility_code = 'public'
+                       or affiliation.corporate_entity_id = post.corporate_entity_id)
+           )
+        """,
+        source_post_ids,
+    )

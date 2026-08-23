@@ -60,6 +60,13 @@ class _Connection:
             return self._canonical_name
         return None
 
+    async def execute(self, query: str, *args: object) -> str:
+        # ADR 0144's write-time hook/prune: no observed-entity behavior is
+        # under test here, just that resolve_customer_hint's own reassignment
+        # wiring tolerates the calls without erroring.
+        self.executed.append((query, args))
+        return "OK"
+
 
 def _resolution(status: str):
     return SimpleNamespace(
