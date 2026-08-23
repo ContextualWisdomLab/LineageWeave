@@ -2120,6 +2120,44 @@ def test_stale_image_summary_is_returned_labeled_when_orchestrator_is_unavailabl
     assert body["korean_summary"] == "보관된 이전 계약 요약입니다."
 
 
+def test_stale_text_summary_refreshes_when_orchestrator_is_available(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """A stale summary is continuity evidence, not a permanent cache entry."""
+    from lineageweave.post_summary import PostSummary
+
+    class _FakeSummaryClient:
+        available = True
+
+        def summarize(self, post_title: str, post_body: str) -> PostSummary:
+            return PostSummary(korean_summary="새 계약으로 갱신된 요약입니다.")
+
+    monkeypatch.setattr("backend.app.main._post_summary_client", lambda: _FakeSummaryClient())
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into post_summary_result "
+                "(post_id, korean_summary, summary_contract_version) values (%s, %s, %s)",
+                (
+                    seeded_db["public_post_id"],
+                    "보관된 이전 계약 요약입니다.",
+                    POST_SUMMARY_CONTRACT_VERSION - 1,
+                ),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    assert response.json()["korean_summary"] == "새 계약으로 갱신된 요약입니다."
+    assert response.json()["summary_status"] == "current"
+
+
 def test_seed_demo_summary_surfaces_on_get_summary(client, demo_analyst_token, seeded_db) -> None:
     """The same helper `make seed` calls must produce a row GET summary
     returns -- even with the orchestrator unset.
