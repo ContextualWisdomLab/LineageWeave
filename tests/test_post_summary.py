@@ -526,7 +526,11 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
                 "Jordan Hale | 입찰 일정 안내 | Westfield Power\n"
                 "PROJECTS:\n"
                 "HVDC pilot | pilot bid workshop | 0.9\n"
-                "Unsupported project | NONE | 1"
+                "Unsupported project | NONE | 1\n"
+                "RELATIONS:\n"
+                "Synthetic base release | temporal_entity | time_before | "
+                "Synthetic multi-stage release | temporal_entity | "
+                "base release came first | 0.98"
             )
         else:
             content = "본문 근거 요약\n\nKEY EVENTS: 후속 확인"
@@ -556,8 +560,22 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
     assert "sales-pool/order-pool value" in details_prompt
     assert "source_sales_pool_name are sales-pool/order-pool hints only" in details_prompt
     assert "PU/business-unit value" in details_prompt
+    assert "time_before" in details_prompt
+    assert "earlier temporal entity" in details_prompt
+    assert "do not label a product name as temporal_entity" in details_prompt.casefold()
     assert summary.roles_and_responsibilities[0].actor_name == "Jordan Hale"
     assert summary.project_mentions[0].canonical_name == "hvdc-pilot"
+    assert summary.semantic_relationships == (
+        SemanticRelationship(
+            subject_name="Synthetic base release",
+            subject_type="temporal_entity",
+            predicate_code="time_before",
+            object_name="Synthetic multi-stage release",
+            object_type="temporal_entity",
+            evidence_text="base release came first",
+            confidence=0.98,
+        ),
+    )
 
 
 def test_summary_details_parse_failure_does_not_expose_provider_response(monkeypatch) -> None:
@@ -642,6 +660,12 @@ def test_summary_uses_formal_nida_endings_and_drops_technical_acronym_actor() ->
     )
     assert details is not None
     assert details[0] == ()
+
+
+def test_summary_formalizes_ida_endings_without_duplicate_copula() -> None:
+    assert _formalize_korean_summary("프로젝트는 진행 중이다. 일정은 다음 달 예정이다.") == (
+        "프로젝트는 진행 중입니다. 일정은 다음 달 예정입니다."
+    )
 
 
 _ORCHESTRATOR_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL")

@@ -43,6 +43,14 @@ current evidence. The Buyer UI renders the localized ontology label and
 localized extraction/provenance labels; it never renders the ontology IRI or
 contextual-orchestrator/storage identifiers as user-facing text.
 
+A reader GET does not synchronously refresh an existing text summary from an
+older contract. It returns that row immediately with `summary_status=stale`,
+while `scripts/backfill_post_summaries.py --post-id ...` remains the explicit,
+durable operator path for regeneration. This preserves readable evidence and
+its uncertainty without making a popup wait for the two sequential
+orchestrator calls. Image-bearing posts retain the post-content readiness
+boundary before any summary is returned.
+
 Ask Agent citations expose the persisted source and semantic facts associated
 with each cited post through a Buyer-safe projection. Prompt metadata such as
 ontology IRIs, provider names, extraction identifiers, and storage provenance
@@ -54,7 +62,7 @@ for reading the complete body and related evidence.
 - Semantic roles and projects are no longer silently dropped when the summary
   call succeeds.
 - The channel incurs a second orchestrator request and therefore a bounded
-  latency/cost increase.
+  latency/cost increase on explicit regeneration, not on a stale reader GET.
 - Plain line parsing is intentionally narrow; unsupported provider output is
   rejected rather than promoted into ontology facts.
 

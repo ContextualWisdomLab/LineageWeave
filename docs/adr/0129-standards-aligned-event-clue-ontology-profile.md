@@ -39,6 +39,13 @@ Publish a standards-aligned ontology profile in
   rows in `knowledge_graph_edge`.
 - OWL-Time supplies instant/interval and before/after/during relations. A
   normalized date is retained with precision and normalization evidence.
+  LineageWeave's `TemporalEntity` is a subclass of `time:TemporalEntity`.
+  Explicit chronology is stored canonically as earlier temporal entity
+  `time:before` later temporal entity; `time:after` is not duplicated as an
+  inverse row. A product, organization, or document is not relabeled as a
+  temporal entity. Its evidenced release, introduction, milestone, instant,
+  or interval is the temporal endpoint, and `time:before` alone does not imply
+  specialization, revision, causation, or product succession.
 - SOSA/SSN supplies the observation/result distinction. A
   `QuantitativeObservation` or `EventObservation` in this product is an
   extracted source assertion, not an asserted physical sensor act; it is

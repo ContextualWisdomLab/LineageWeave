@@ -218,7 +218,7 @@ EVENT_CLUE_TYPES = frozenset(
 )
 # Stored rows without this contract version are legacy summaries and must be
 # regenerated from the current source body before the popup treats them as evidence.
-POST_SUMMARY_CONTRACT_VERSION = 13
+POST_SUMMARY_CONTRACT_VERSION = 16
 
 _GENERIC_TEAM_ACTOR_NAMES = frozenset(
     {"사업부", "부서", "팀", "business unit", "department", "division"}
@@ -928,10 +928,21 @@ the shortest exact supporting phrase. In particular:
   assigns different organizations different project responsibilities;
 - do not turn attendance, an affiliation field, or a project mention alone
   into a relation.
+For an explicit chronology, use OWL-Time instead of inventing a predecessor,
+successor, or "precedes" verb. Normalize either "A came before B" or "B came
+after A" to one time_before row whose direction is earlier temporal entity to
+later temporal entity; do not also emit the redundant time_after inverse. A
+temporal_entity is the stated release, introduction, milestone, instant, or
+interval, not the underlying product or organization. Do not label a product name as temporal_entity. When the source explicitly describes two named items
+being introduced or released in order, represent their introduction/release
+milestones and preserve the shortest phrase that states the order. Use
+lw_has_time to connect a separately extracted event to its temporal entity
+only when the source supports both endpoints.
 Fictional format examples only:
 Northwind Services | organization | org_member_of | Northwind Group | organization | joined Northwind Group | 0.98
 Northwind Services | organization | lw_supports | Highland HVDC | project | provided installation support for Highland HVDC | 0.9
 Prime Contractor | organization | lw_responsible_for | Highland HVDC | project | Prime Contractor was the main contractor | 0.95
+Synthetic base release | temporal_entity | time_before | Synthetic multi-stage release | temporal_entity | base release came first | 0.98
 A full predicate registry is supplied by the application contract; if no
 predicate fits, omit the relation rather than inventing a verb.
 Post title: {title}
@@ -973,6 +984,7 @@ def _formalize_korean_summary(summary: str) -> str:
         sentence = re.sub(r"있다$", "있습니다", sentence)
         sentence = re.sub(r"된다$", "됩니다", sentence)
         sentence = re.sub(r"한다$", "합니다", sentence)
+        sentence = re.sub(r"이다$", "입니다", sentence)
         sentence = re.sub(r"임$", "입니다", sentence)
         if not sentence.endswith("니다"):
             sentence = f"{sentence}입니다"
