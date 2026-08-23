@@ -28,10 +28,10 @@ def test_publisher_supports_direct_script_import_context(monkeypatch) -> None:
     monkeypatch.syspath_prepend(str(SCRIPT.parent))
     original_import = builtins.__import__
 
-    def block_package_import(name, globals=None, locals=None, fromlist=(), level=0):
+    def block_package_import(name, globals_=None, locals_=None, fromlist=(), level=0):
         if name == "scripts.ontology_site_contract":
             raise ModuleNotFoundError(name=name)
-        return original_import(name, globals, locals, fromlist, level)
+        return original_import(name, globals_, locals_, fromlist, level)
 
     monkeypatch.setattr(builtins, "__import__", block_package_import)
     spec = importlib.util.spec_from_file_location("publish_ontology_site_direct", SCRIPT)
@@ -83,6 +83,29 @@ def test_publication_replaces_only_marked_output_and_writes_marker(tmp_path: Pat
     assert (output / publisher.OUTPUT_MARKER).is_file()
     assert not (output / "stale.txt").exists()
     assert (output / "ontology" / "index.html").is_file()
+
+
+def test_publication_removes_partial_output_when_build_fails(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    publisher = _load_publisher()
+    repository = _repository_fixture(tmp_path)
+    output = tmp_path / "site"
+    renderer = publisher._load_renderer(repository)
+
+    def fail_build(_root: Path, output_dir: Path) -> None:
+        output_dir.mkdir()
+        (output_dir / "partial.txt").write_text("partial", encoding="utf-8")
+        raise RuntimeError("build failed")
+
+    monkeypatch.setattr(renderer, "build_site", fail_build)
+    monkeypatch.setattr(publisher, "_load_renderer", lambda _root: renderer)
+
+    with pytest.raises(RuntimeError, match="build failed"):
+        publisher.publish_site(repository, output)
+
+    assert not output.exists()
 
 
 def test_publication_rejects_symlink_and_source_overlapping_outputs(tmp_path: Path) -> None:

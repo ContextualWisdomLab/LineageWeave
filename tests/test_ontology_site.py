@@ -31,10 +31,10 @@ def test_builder_supports_direct_script_import_context(monkeypatch) -> None:
     monkeypatch.syspath_prepend(str(SCRIPT.parent))
     original_import = builtins.__import__
 
-    def block_package_import(name, globals=None, locals=None, fromlist=(), level=0):
+    def block_package_import(name, globals_=None, locals_=None, fromlist=(), level=0):
         if name == "scripts.ontology_site_contract":
             raise ModuleNotFoundError(name=name)
-        return original_import(name, globals, locals, fromlist, level)
+        return original_import(name, globals_, locals_, fromlist, level)
 
     monkeypatch.setattr(builtins, "__import__", block_package_import)
     spec = importlib.util.spec_from_file_location("build_ontology_site_direct", SCRIPT)

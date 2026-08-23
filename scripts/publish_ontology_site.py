@@ -112,7 +112,11 @@ def publish_site(repository_root: Path, output_dir: Path) -> None:
 
     if output.exists():
         shutil.rmtree(output)
-    renderer.build_site(root, output)
+    try:
+        renderer.build_site(root, output)
+    except BaseException:
+        shutil.rmtree(output, ignore_errors=True)
+        raise
     (output / OUTPUT_MARKER).write_text("", encoding="utf-8")
 
 
