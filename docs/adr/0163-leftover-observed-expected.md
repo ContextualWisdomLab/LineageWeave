@@ -35,9 +35,11 @@ Each leftover pair names:
    GRM/GPCM main effects;
 3. `leftover_residual`, which must equal `Y − E` within `1e-6`.
 
-Fresh `0001` / `0012` tables require both columns. Migration `0163`
-adds nullable columns so older leftover rows keep distance and
-residual without fabricating `Y` or `E`. The pair button shows
+Migration `0163` is the single source of both columns on every
+install path, fresh or existing -- shipped migrations (`0001`/`0012`)
+are never edited after the fact. It adds them as nullable so older
+leftover rows keep distance and residual without fabricating `Y` or
+`E`. The pair button shows
 `Y {observed} · E {expected}` next to leftover-map distance `d` when
 both values are finite. The next action is: read observed `Y` and
 expected `E` after IRT main effects, then open this post. Omit the

@@ -43,6 +43,11 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     / "migrations"
     / "0102_project_bound_summary_event.sql"
 )
+_LEFTOVER_OBSERVED_EXPECTED_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0163_report_leftover_observed_expected.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -79,6 +84,7 @@ def schema_db():
                 cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
