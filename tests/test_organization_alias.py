@@ -24,6 +24,11 @@ def test_alt_label_returns_the_pref_label() -> None:
 def test_uncorroborated_or_unknown_name_stays_unlabeled() -> None:
     assert companion_organization_alias("Northridge Grid", (_DC, _AGP)) is None
     assert companion_organization_alias("Demo Corp", ()) is None
+    assert companion_organization_alias("  ", (_DC,)) is None
+
+
+def test_legal_suffix_difference_does_not_bind_an_alias() -> None:
+    assert companion_organization_alias("Demo Inc", (_DC,)) is None
 
 
 def test_identical_labels_are_ignored() -> None:
@@ -34,6 +39,10 @@ def test_identical_labels_are_ignored() -> None:
 def test_two_distinct_companions_stay_unbound() -> None:
     other = OrganizationNameAlias(alt_label="DMC", pref_label="Demo Corp")
     assert companion_organization_alias("Demo Corp", (_DC, other)) is None
+
+
+def test_duplicate_pair_keeps_one_companion() -> None:
+    assert companion_organization_alias("Demo Corp", (_DC, _DC)) == "DC"
 
 
 def test_caption_puts_the_alias_in_parentheses() -> None:
@@ -56,3 +65,9 @@ def test_forest_attach_is_recursive_and_omits_missing_keys() -> None:
     assert "organization_alias" not in forest[0]
     assert forest[0]["children"][0]["organization_alias"] == "DC"
     assert "organization_alias" not in forest[0]["children"][1]
+
+
+def test_forest_attach_ignores_non_records_and_non_string_names() -> None:
+    records = ["not-a-record", {"entity_name": None}, {"entity_name": "Demo Corp"}]
+    attach_organization_aliases(records, (_DC,))  # type: ignore[arg-type]
+    assert records[2]["organization_alias"] == "DC"  # type: ignore[index]

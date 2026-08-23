@@ -20,8 +20,6 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from lineageweave.corporate_hierarchy_resolution import normalize_organization_name
-
 
 @dataclass(frozen=True)
 class OrganizationNameAlias:
@@ -36,6 +34,11 @@ class OrganizationNameAlias:
     pref_label: str
 
 
+def _normalize_alias_label(name: str) -> str:
+    """Normalize presentation labels without erasing legal-entity identity."""
+    return " ".join(name.strip().lower().translate(str.maketrans("", "", ".,")).split())
+
+
 def companion_organization_alias(
     display_name: str,
     aliases: Sequence[OrganizationNameAlias],
@@ -46,15 +49,15 @@ def companion_organization_alias(
     pair (identical labels), or matches two distinct companions is a
     miss. Callers must not invent a parenthetical in those cases.
     """
-    normalized = normalize_organization_name(display_name)
+    normalized = _normalize_alias_label(display_name)
     if not normalized:
         return None
 
     companions: list[str] = []
     seen: set[str] = set()
     for alias in aliases:
-        alt = normalize_organization_name(alias.alt_label)
-        pref = normalize_organization_name(alias.pref_label)
+        alt = _normalize_alias_label(alias.alt_label)
+        pref = _normalize_alias_label(alias.pref_label)
         if not alt or not pref or alt == pref:
             continue
         companion: str | None = None
@@ -64,8 +67,8 @@ def companion_organization_alias(
             companion = alias.pref_label.strip()
         if companion is None:
             continue
-        key = normalize_organization_name(companion)
-        if not key or key in seen:
+        key = _normalize_alias_label(companion)
+        if key in seen:
             continue
         seen.add(key)
         companions.append(companion)
