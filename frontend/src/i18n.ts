@@ -725,6 +725,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Unclassified": "未分类",
     "No entities match the current scope filter.": "没有实体匹配当前的范围筛选。",
     "Observed customer evidence": "观测到的客户证据",
+    "Responsible for": "负责",
+    "Find source customer code": "查找原始客户代码",
+    "Paste an observed customer code": "粘贴观测到的客户代码",
+    Find: "查找",
+    "Searches all authorized source hints, not only the ranked first page.":
+      "搜索所有已授权的原始线索，而不仅仅是排名靠前的第一页。",
+    "No source customer evidence matches {code}.": "没有与 {code} 匹配的原始客户证据。",
     "Relationship network": "关系网络",
     "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":
       "同一交易对手可能随时间拥有多个角色 -- 在一篇文章中是客户,在另一篇文章中可能是竞争对手、供应商或合作伙伴。会列出观测到的每一个角色,而不仅是最频繁的那个。",
@@ -1173,6 +1180,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Unclassified": "未分類",
     "No entities match the current scope filter.": "現在の範囲フィルターに一致するエンティティはありません。",
     "Observed customer evidence": "観測された顧客証拠",
+    "Responsible for": "責任を負う",
+    "Find source customer code": "元の顧客コードを検索",
+    "Paste an observed customer code": "観測された顧客コードを貼り付け",
+    Find: "検索",
+    "Searches all authorized source hints, not only the ranked first page.":
+      "ランク付けされた最初のページだけでなく、権限のあるすべての原文ヒントを検索します。",
+    "No source customer evidence matches {code}.": "{code} に一致する元の顧客証拠がありません。",
     "Relationship network": "関係ネットワーク",
     "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":
       "取引先は時間の経過とともに複数の役割を持つことがあります -- ある投稿では顧客でも、別の投稿では競合他社、サプライヤー、またはパートナーである場合があります。最も頻繁な役割だけでなく、観測されたすべての役割を表示します。",
@@ -1594,6 +1608,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Unclassified": "Chưa phân loại",
     "No entities match the current scope filter.": "Không có thực thể nào khớp với bộ lọc phạm vi hiện tại.",
     "Observed customer evidence": "Bằng chứng khách hàng được quan sát",
+    "Responsible for": "Chịu trách nhiệm cho",
+    "Find source customer code": "Tìm mã khách hàng nguồn",
+    "Paste an observed customer code": "Dán mã khách hàng đã quan sát",
+    Find: "Tìm",
+    "Searches all authorized source hints, not only the ranked first page.":
+      "Tìm kiếm trong tất cả các gợi ý nguồn được ủy quyền, không chỉ trang đầu tiên được xếp hạng.",
+    "No source customer evidence matches {code}.": "Không có bằng chứng khách hàng nguồn nào khớp với {code}.",
     "Relationship network": "Mạng lưới quan hệ",
     "A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.":
       "Một đối tác có thể giữ nhiều vai trò theo thời gian -- là khách hàng trong bài viết này nhưng có thể là đối thủ cạnh tranh, nhà cung cấp, hoặc đối tác trong bài viết khác. Mọi vai trò được quan sát đều được liệt kê, không chỉ vai trò phổ biến nhất.",

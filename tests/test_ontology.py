@@ -330,6 +330,21 @@ def test_property_chains_capture_only_explicit_contextual_inference() -> None:
         assert list(graph.items(chain)) == expected
 
 
+def test_organization_project_relations_share_agent_entity_domain_range() -> None:
+    """ADR 0131: `lw_supports` and `lw_responsible_for` are both
+    organization(prov:Agent)-to-project(prov:Entity) relations. Neither
+    should ever resolve its range to :SemanticAssertion -- that would let
+    a reasoner infer a named project is an evidence/assertion node."""
+    from rdflib.namespace import Namespace
+
+    prov = Namespace("http://www.w3.org/ns/prov#")
+    graph = load_ontology()
+    assert (LW.supports, RDFS.domain, prov.Agent) in graph
+    assert (LW.supports, RDFS.range, prov.Entity) in graph
+    assert (LW.responsibleFor, RDFS.domain, prov.Agent) in graph
+    assert (LW.responsibleFor, RDFS.range, prov.Entity) in graph
+
+
 def test_shacl_shapes_norm_relation_evidence_and_confidence() -> None:
     from rdflib.namespace import Namespace
 

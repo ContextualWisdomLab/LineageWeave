@@ -712,9 +712,10 @@
     rdfs:comment "An explicit relation extracted from source text with a controlled predicate, endpoints, evidence, and confidence."@en .
 
 :responsibleFor a owl:ObjectProperty ;
-    rdfs:domain :RoleActorAgent ;
-    rdfs:range :SemanticAssertion ;
-    rdfs:label "responsible for"@en .
+    rdfs:domain prov:Agent ;
+    rdfs:range prov:Entity ;
+    rdfs:label "responsible for"@en ;
+    rdfs:comment "LineageWeave profile relation for an explicit source statement that an organization is responsible for a named project, such as a contracting or ownership role. It is not inferred from co-occurrence or role evidence."@en .
 
 :supports a owl:ObjectProperty ;
     rdfs:domain prov:Agent ;

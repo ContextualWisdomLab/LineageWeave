@@ -55,6 +55,12 @@ describe("i18n", () => {
     "Persist the brand, system, and copyright metadata used by the workspace shell.",
     "Review the source body or related posts for this dimension.",
     "Review source evidence for this dimension.",
+    "Responsible for",
+    "Find source customer code",
+    "Paste an observed customer code",
+    "Find",
+    "Searches all authorized source hints, not only the ranked first page.",
+    "No source customer evidence matches {code}.",
   ] as const;
   const eventLineageLabels = [
     "Authorized scope",
