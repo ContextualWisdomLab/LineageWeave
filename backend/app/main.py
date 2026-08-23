@@ -1385,8 +1385,8 @@ async def rebuild_lineage_graph(
     _require_post_admin(account)
     async with pool.acquire() as conn:
         async with conn.transaction():
-            edges = await rebuild_lineage(conn)
-    return {"edge_count": len(edges)}
+            result = await rebuild_lineage(conn)
+    return {"edge_count": len(result.edges), "coverage": result.coverage}
 
 
 @app.get("/api/posts")

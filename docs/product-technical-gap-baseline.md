@@ -445,8 +445,8 @@ or an explicit unavailable result.
   behavior, lock boundaries, Valkey event delivery, multithreaded server
   behavior, retention grants, and read/write contention on the local Compose
   stack.
-- **Lineage coverage — per-post reason fixed in this worktree (ADR 0143);
-  corpus-wide aggregate remains open:** the persisted graph has 1,308
+- **Lineage coverage — per-post reason (ADR 0143) and corpus-wide aggregate
+  both fixed in this worktree:** the persisted graph has 1,308
   post-lineage edges across 1,929 participating posts, while the bounded
   current view exposed one edge and some focused posts had no component.
   `GET /api/lineage?post_id=...` now reports `isolation_reason` --
@@ -462,9 +462,16 @@ or an explicit unavailable result.
   is the signal this feature actually uses. Independent of, and does not
   duplicate, the separate open PR fixing `rebuild_lineage()`'s
   adjudication-client wiring (a different bug: the highest-weighted
-  comparison channel not running during corpus-wide rebuild). A
-  corpus-wide coverage aggregate (e.g. for an operator rebuild/health view)
-  remains open follow-up work, not part of this fix.
+  comparison channel not running during corpus-wide rebuild).
+  `POST /api/lineage/rebuild` now also returns a `coverage` breakdown
+  (`total_posts`, `posts_with_edges`, `posts_no_relation_found`,
+  `posts_no_comparison_group`) computed by the same group-size logic,
+  aggregated corpus-wide instead of per-post -- an operator running a
+  rebuild gets an honest coverage summary instead of a bare edge count.
+  No frontend display was added for this (the rebuild button today shows
+  no result at all, not even the existing `edge_count`); building an
+  operator-facing rebuild-health panel is separate UI/UX work, not part
+  of this backend-aggregate fix.
 - **Cross-repository email/project lineage — provider boundary implemented,
   consumer open:** PR #343 merged at
   `125a8069a1554874d8067a15047e19d780ea6b7b`, but the contract remains
