@@ -30,11 +30,16 @@ cross-checked against the full PR history to rule out duplicates) found 14
 new, previously-untracked gaps. None of these overlap the sections above.
 
 ### 4a. Accessibility (frontend)
-- **Post detail popup has no dialog semantics**: `PostDetailPopup` in
-  `frontend/src/App.tsx` renders a backdrop/panel with no `role="dialog"`,
-  `aria-modal`, `aria-labelledby`, Escape-to-close, or focus trap/restore.
-  Highest-severity item in this batch; needs careful focus-management work,
-  not yet fixed.
+- **Post detail popup has no dialog semantics on `main`** (true when this
+  audit ran): `PostDetailPopup` in `frontend/src/App.tsx` rendered a
+  backdrop/panel with no `role="dialog"`, `aria-modal`, `aria-labelledby`,
+  Escape-to-close, or focus trap/restore. **Already fixed, not yet on
+  `main`**: `docs/customer-master-scope-adr` (verified at commit
+  `7d6cab694d7d6998a2b5ecf8fb1ed2c704052411`) already has a complete
+  implementation -- `popupPanelRef`, `role="dialog"`/`aria-modal`, Tab-cycle
+  wraparound that filters hidden/`aria-hidden`/closed-`<details>` elements,
+  Escape-to-close, and focus-restore-on-unmount via effect cleanup. No new
+  PR needed here; this resolves once that branch reaches `main`.
 - **Async error feedback isn't announced**: 17 of 19 `className="error"`
   sites in `App.tsx` render as plain `<p>` with no `role="alert"`/`aria-live`
   (Ask, Keymen extraction, lineage rebuild, Customer Master, Ask Agent, and
