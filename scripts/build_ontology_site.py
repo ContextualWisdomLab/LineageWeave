@@ -151,7 +151,7 @@ def _render_relation_rows(
 def _render_term(graph: Graph, subject: URIRef, ontology_subjects: set[URIRef]) -> str:
     """Render one fragment-addressable ontology term section."""
     raw_fragment = _fragment(subject)
-    fragment = public_fragment(raw_fragment)
+    fragment_href = public_fragment(raw_fragment)
     label = (
         _preferred_literal(graph, subject, RDFS.label)
         or _preferred_literal(graph, subject, SKOS.prefLabel)
@@ -175,8 +175,8 @@ def _render_term(graph: Graph, subject: URIRef, ontology_subjects: set[URIRef]) 
         f'<p class="term-comment">{html.escape(comment)}</p>' if comment else ""
     )
     return (
-        f'<article class="term-card" id="{html.escape(fragment, quote=True)}">'
-        f'<h3><a class="fragment-link" href="#{html.escape(fragment, quote=True)}" '
+        f'<article class="term-card" id="{html.escape(raw_fragment, quote=True)}">'
+        f'<h3><a class="fragment-link" href="#{html.escape(fragment_href, quote=True)}" '
         f'aria-label="Link to {html.escape(label, quote=True)}">#</a> '
         f"{html.escape(label)}</h3>"
         f'<p class="iri"><code>{html.escape(str(subject))}</code></p>'

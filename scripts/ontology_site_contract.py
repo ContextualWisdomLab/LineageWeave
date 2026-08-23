@@ -4,5 +4,5 @@ from urllib.parse import quote
 
 
 def public_fragment(fragment: str) -> str:
-    """Encode one local fragment identically for HTML IDs and hrefs."""
+    """Encode one local identifier for use in a URL fragment reference."""
     return quote(fragment, safe="-._~")

@@ -8,6 +8,7 @@ import importlib.util
 import json
 import shutil
 from pathlib import Path
+from urllib.parse import unquote
 
 from rdflib import Graph
 from rdflib.compare import isomorphic
@@ -119,16 +120,19 @@ def test_render_term_uses_skos_preferred_label_without_rdfs_label() -> None:
     assert 'aria-label="Link to Human label"' in rendered
 
 
-def test_render_term_uses_one_encoded_fragment_for_id_and_href() -> None:
+def test_render_term_href_decodes_to_its_html_id() -> None:
     builder = _load_builder()
     graph = Graph()
-    term = builder.URIRef("https://example.test/ontology#Safety/한국어 term")
+    raw_fragment = "Safety/한국어-term"
+    term = builder.URIRef(f"https://example.test/ontology#{raw_fragment}")
     graph.add((term, builder.RDF.type, builder.OWL.Class))
 
     rendered = builder._render_term(graph, term, {term})
+    fragment_href = builder.public_fragment(raw_fragment)
 
-    assert 'id="Safety%2F%ED%95%9C%EA%B5%AD%EC%96%B4%20term"' in rendered
-    assert 'href="#Safety%2F%ED%95%9C%EA%B5%AD%EC%96%B4%20term"' in rendered
+    assert f'id="{raw_fragment}"' in rendered
+    assert f'href="#{fragment_href}"' in rendered
+    assert unquote(fragment_href) == raw_fragment
 
 
 def test_serializations_round_trip_to_the_source_graph(tmp_path: Path) -> None:
