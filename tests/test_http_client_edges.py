@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from lineageweave import http_client
+from lineageweave.llm_context import use_llm_metadata
 
 
 class _ResponseStub:
@@ -59,8 +60,11 @@ def test_json_helpers_reject_non_json_and_wrong_shapes(
 @pytest.mark.parametrize(
     "body",
     [
+        None,
         {"error": "provider secret response"},
         {"choices": []},
+        {"choices": ["not-an-object"]},
+        {"choices": [{"message": "not-an-object"}]},
         {"choices": [{"message": {"content": ""}}]},
     ],
 )
@@ -70,6 +74,178 @@ def test_chat_completion_content_rejects_malformed_provider_envelopes(body: obje
         http_client.chat_completion_content(body)
 
     assert "provider secret" not in str(captured.value)
+
+
+def test_chat_completion_content_returns_admitted_text() -> None:
+    """A well-formed provider envelope exposes only its text content."""
+    assert (
+        http_client.chat_completion_content(
+            {"choices": [{"message": {"content": "synthetic result"}}]}
+        )
+        == "synthetic result"
+    )
+
+
+def test_response_media_type_treats_a_missing_header_as_unavailable() -> None:
+    """An omitted response type is distinct from an admitted media type."""
+
+    class HeaderlessResponse:
+        """Return no value for the requested response header."""
+
+        @staticmethod
+        def getheader(name: str) -> None:
+            assert name == "Content-Type"
+
+    assert (
+        http_client._response_media_type(HeaderlessResponse())  # type: ignore[arg-type]
+        == ""
+    )
+
+
+def test_https_request_rejects_a_connection_without_a_socket(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A connector that yields no TLS socket fails closed before a request."""
+    closed = False
+
+    class SocketlessConnection:
+        """Model an unsuccessful synthetic connection without provider data."""
+
+        sock = None
+
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        def connect(self) -> None:
+            pass
+
+        def close(self) -> None:
+            nonlocal closed
+            closed = True
+
+    monkeypatch.setattr(http_client.http.client, "HTTPConnection", SocketlessConnection)
+
+    with pytest.raises(http_client.HttpClientError, match="no socket after connect"):
+        http_client._request(
+            "GET",
+            "https://gateway.example/health",
+            body=None,
+            headers={},
+            timeout=1,
+        )
+
+    assert closed is True
+
+
+def test_post_json_rejects_non_object_metadata_before_transport(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Post provenance cannot be merged into a malformed metadata value."""
+    requested = False
+
+    def unexpected_request(*_args: object, **_kwargs: object) -> tuple[int, bytes]:
+        nonlocal requested
+        requested = True
+        return 200, b"{}"
+
+    monkeypatch.setattr(http_client, "_request", unexpected_request)
+    with (
+        use_llm_metadata({"lineageweave_post_id": "synthetic-post"}),
+        pytest.raises(ValueError, match="metadata must be an object"),
+    ):
+        http_client.post_json(
+            "https://gateway.example/v1/chat/completions",
+            {"metadata": "not-an-object"},
+            headers={},
+            timeout=1,
+        )
+
+    assert requested is False
+
+
+def test_post_json_adds_context_metadata_when_payload_omits_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Post provenance is carried when the request has no metadata object."""
+    captured_body = b""
+
+    def capture_request(*_args: object, **kwargs: object) -> tuple[int, bytes]:
+        nonlocal captured_body
+        captured_body = kwargs["body"]  # type: ignore[assignment]
+        return 200, b"{}"
+
+    monkeypatch.setattr(http_client, "_request", capture_request)
+    with use_llm_metadata({"lineageweave_post_id": "synthetic-post"}):
+        assert (
+            http_client.post_json(
+                "https://gateway.example/v1/chat/completions",
+                {"messages": []},
+                headers={},
+                timeout=1,
+            )
+            == {}
+        )
+
+    assert b'"lineageweave_post_id": "synthetic-post"' in captured_body
+
+
+def test_request_preserves_the_url_query_in_the_http_target(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Cursor parameters remain part of the bounded projection request."""
+    requested_path = ""
+
+    class SyntheticResponse:
+        """Serve one bounded JSON object without a network dependency."""
+
+        status = 200
+
+        @staticmethod
+        def getheader(name: str) -> str | None:
+            assert name == "Content-Length"
+            return "2"
+
+        @staticmethod
+        def read(amount: int | None = None) -> bytes:
+            assert amount == 2
+            return b"{}"
+
+    class SyntheticConnection:
+        """Capture the exact request target for a synthetic HTTP request."""
+
+        def __init__(self, *_args: object, **_kwargs: object) -> None:
+            pass
+
+        def request(
+            self,
+            _method: str,
+            path: str,
+            *,
+            body: bytes | None,
+            headers: dict[str, str],
+        ) -> None:
+            del body, headers
+            nonlocal requested_path
+            requested_path = path
+
+        @staticmethod
+        def getresponse() -> SyntheticResponse:
+            return SyntheticResponse()
+
+        @staticmethod
+        def close() -> None:
+            pass
+
+    monkeypatch.setattr(http_client.http.client, "HTTPConnection", SyntheticConnection)
+
+    assert http_client._request(
+        "GET",
+        "http://gateway.example/events?cursor=synthetic-token",
+        body=None,
+        headers={},
+        timeout=1,
+    ) == (200, b"{}")
+    assert requested_path == "/events?cursor=synthetic-token"
 
 
 @pytest.mark.parametrize(
@@ -109,7 +285,7 @@ def test_json_helpers_accept_optional_headers(
 
     def request(*args, **kwargs):
         calls.append((args, kwargs))
-        return 200, b"{}"
+        return 200, b"[]" if str(args[1]).endswith("/items") else b"{}"
 
     monkeypatch.setattr(http_client, "_request", request)
     assert http_client.get_json("https://gateway.example", timeout=1) == {}
@@ -118,7 +294,11 @@ def test_json_helpers_accept_optional_headers(
         {},
         timeout=1,
     ) == {}
-    assert len(calls) == 2
+    assert http_client.get_json_list(
+        "https://gateway.example/items",
+        timeout=1,
+    ) == []
+    assert len(calls) == 3
 
 
 def test_response_reader_supports_bounded_and_unbounded_chunked_bodies() -> None:
