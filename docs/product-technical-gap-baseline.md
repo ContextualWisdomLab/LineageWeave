@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-24 01:00 KST. This repository records synthetic
+> Audit snapshot: 2026-08-24 01:08 KST. This repository records synthetic
 > fixtures and aggregate, non-identifying runtime evidence only. Open PRs and
 > local checks are not protected-default-branch release evidence.
 > Identifying post identifiers, organization names, and production record keys
@@ -10,8 +10,8 @@
 
 The protected default branch was
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` when this baseline was refreshed.
-The live queue contained 56 open PRs and 19 open issues. The audited dependency
-set (#426, #429, #494, #497, and #498) had zero approving reviews. Branch
+The live queue contained 58 open PRs and 19 open issues. The audited dependency
+set (#426, #496, #499, and #505) had zero approving reviews. Branch
 protection / rulesets require two independent approvals, resolved review
 threads, and last-push approval; the authenticated GitHub identity that authors
 these PRs cannot self-approve.
@@ -37,17 +37,22 @@ Recent protected-default-branch and org-control-plane evidence:
 | ContextualWisdomLab/.github #1248 | merged | central Strix scope repair is available to subsequent reruns |
 | ContextualWisdomLab/.github #1258 | `9b5dba9f558d20dbb651b409ea9fa54a865e3405`; auto-merge armed; blocked on independent review | `--trust-lockfile` only on pnpm 11.3+; Jest keeps native `--coverage`; no invented Vitest instrumenter |
 | ContextualWisdomLab/.github #1259 | `6041f2aa9e23af5850cd83fa838a3eb6c45d84b9`; auto-merge armed; blocked on independent review | thin LineageWeave hourly review-repair caller at minute 4; supersedes #1086 stack driver |
-| LineageWeave #426 | `3e214a5` (this stack) | open, mergeable but blocked, review required, auto-merge armed; login `tsc`, ontology Pages, and this non-identifying baseline |
+| LineageWeave #426 | `a2daa92438a0ea337c9567b0c7abe3607ce3cb94` (this stack) | open, mergeable but blocked, review required, auto-merge armed; 19 threads resolved, zero approvals; ontology publication coverage is 99% rather than the required 100%, while Strix and coverage remain pending |
 | LineageWeave #429 | `3763e1335cd3ac38b5e02b964ab49af34c8d73a0` | open, mergeable but blocked, review required, auto-merge armed |
 | LineageWeave #494 | `7eb5b2a89a6f32785bbbaf89126cb1ba931a03a8` | login-only overlap; auto-merge armed; do not fold this baseline back into #494 |
-| LineageWeave #497 | merged into #426 | ADR 0001 baseline squash on this stack |
+| LineageWeave #497 | `07554b238a822e4423f8e6b4c000e5882fe49163`; merged as `250f20e8a6f830479ce904448cd29ab1a106aeef` into #426 only | ADR 0001 baseline is present on this hidden stack, not on protected `main` |
 | LineageWeave #498 | `35823d889c5360ebf2152ed5679d7c22d6832545` | `/healthz` + docstring coverage; overlaps #429; blocked on independent review |
+| LineageWeave #496 | `195ddf597c8eceaeaa00c9c86dc8103a4c7a8b89` | accepted TEPP receipts remain Running during an unavailable recheck; open and blocked, 20 checks passing with Strix/coverage pending, 21 threads with 1 unresolved code-quality thread, zero approvals |
+| LineageWeave #499 | `a985f820af7a6552bcf32860b35b513e213a498c`; merged as `8f43d7fd17ae7ae9c197fe89ddb4beee82a2886a` into `docs/customer-master-scope-adr` only | channel-weight estimation is hidden-stack evidence, not protected-`main` evidence; local descendant `715ca0c6b7da87d0f3ed336ec40a2838f9e9eb8b` is not delivered to a remote branch or PR |
+| LineageWeave #505 | `fd05703d576b6cf5bc7934f6a82fc1eeea2bdccd` on #490 head `d806bb960c12ad36f6c346831f6496299a34a3f8` | planned-facility intent evidence is an open stacked PR; mergeable but unstable, 0 threads and approvals, 1 check passing and 3 pending |
 
-This documentation head is stacked on LineageWeave#426. #426 owns the login
+This documentation is now owned by the open LineageWeave#426 stack because
+#497 merged into that branch rather than protected `main`. #426 owns the login
 `tsc` repair, ontology Pages, and this non-identifying baseline. #494 is the
-login-only overlap and must not receive this file again. If either exact head
-changes, re-fetch and recheck the unique diff, checks, threads, and approvals
-before making a lifecycle claim.
+login-only overlap and must not receive this file again. #505 depends on #490;
+#499 and its undelivered local remediation are not dependencies that #426 or
+protected `main` may claim. If any exact head changes, re-fetch and recheck the
+diff, checks, threads, and approvals before making a lifecycle claim.
 
 The Grok durable hourly loop and the central thin GitHub Actions caller
 ContextualWisdomLab/.github#1259 (minute 4, `pr-review-fix-scheduler.yml`)
@@ -98,9 +103,9 @@ evidence across heads.
 
 | PR | Observed head | Intent | Gap it closes when merged |
 | ---: | --- | --- | --- |
-| #426 | `7ff31046cc2c8e2476d16b64df3bc00d55bf3eff` | Login `tsc`, ontology Pages, and namespace compatibility | Shared frontend typecheck and public ontology publication on protected `main` |
+| #426 | `a2daa92438a0ea337c9567b0c7abe3607ce3cb94` | Login `tsc`, ontology Pages, namespace compatibility, and canonical baseline ownership | Shared frontend typecheck and public ontology publication on protected `main`; current ontology coverage gate still fails at 99% |
 | #494 | `7eb5b2a89a6f32785bbbaf89126cb1ba931a03a8` | Overlapping login repair | Audit for unique value after #426; do not create a second shared dependency |
-| #497 | `11a94713b988842be35aa1ec212f02b6ef0066a6` | Non-identifying gap baseline (ADR 0001), observed before this refresh commit | Removes identifying post identifiers from the current tree; protected history still requires incident remediation |
+| #497 | `07554b238a822e4423f8e6b4c000e5882fe49163` | Non-identifying gap baseline (ADR 0001), merged only into #426 as `250f20e8a6f830479ce904448cd29ab1a106aeef` | Removes identifying post identifiers from the #426 tree; protected history still requires incident remediation and protected `main` has not received it |
 | #498 | `35823d889c5360ebf2152ed5679d7c22d6832545` | `/healthz`, public docstring gate, and overlapping login repair | Preserve only value unique from #426 and #429 after their protected merge order is resolved |
 | #429 | `3763e1335cd3ac38b5e02b964ab49af34c8d73a0` | `/healthz` routes to the liveness probe | Operability: liveness vs settings mix-up |
 | #428 | Not captured | `migrate.sh` whitelist catch-up | Deploy: migrations silently skipped |
@@ -126,6 +131,7 @@ evidence across heads.
 | #481 | Persist leftover LSIRM interaction-map coordinates | fast-mlsirm leftover pairs |
 | #485 | Land leftover pair clicks on the named Post quality criterion | Same leftover surface |
 | #490 | Wire remaining ADR 0133–0137 surfaces | Consolidated product stack |
+| #505 | Planned-facility relationship intent, stacked on exact #490 head `d806bb960c12ad36f6c346831f6496299a34a3f8` | Source-grounded relationship evidence; no protected-release claim |
 | #434 | Wire adjudication client into corpus-wide rebuild | Issue #289 |
 
 ### 3.3 Ask Agent stack (issues #358–#363, #269–#272)
@@ -148,6 +154,8 @@ evidence across heads.
 | #454 | FIPC parameter-recovery |
 | #468 | Bind fast-mlsirm, Keyverse, orchestrator, and TEPP |
 | #417 | TEPP topic-lineage consumption boundary (TRSL-TM + CHRONOS/TDT) |
+| #496 | Durable accepted TEPP receipts and recheck continuity; exact head `195ddf597c8eceaeaa00c9c86dc8103a4c7a8b89` |
+| #499 | Psychometric channel-weight estimation merged only into a hidden docs stack; local fail-closed remediation `715ca0c6b7da87d0f3ed336ec40a2838f9e9eb8b` remains undelivered |
 
 ### 3.5 Gap-baseline documentation queue (superseded by this file)
 
@@ -189,7 +197,7 @@ limited to value independently verified as unique from #426.
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 56 PRs open; the audited dependency set has no independent current-head approval; frontend `tsc` is broken on `main` until #426 merges | Terminal exact-head checks, no unresolved threads, independent OpenCode/Strix/Noema approval, protected squash-merge SHA |
+| Protected release | 58 PRs open; the audited #426/#496/#499/#505 dependency set has no independent current-head approval; #426 also has one failing and two pending required checks | Terminal exact-head checks, no unresolved threads, independent OpenCode/Strix/Noema approval, protected squash-merge SHA |
 | Shared frontend gate | Unauthenticated `AdminPanel` + unused OIDC helpers failed `tsc -b` on `main` | #426 on protected `main`; revalidate #494 for unique value, then subsequent PRs rebase and stay green without duplicating the login patch |
 | Identifying baseline regression | `main` gap file listed real post identifiers; this head cleans the current tree but protected history remains exposed | Land this non-identifying rewrite, then complete an approved incident/history-remediation process (ADR 0001) |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
@@ -198,7 +206,8 @@ limited to value independently verified as unique from #426.
 | Calendar / Naruon | Pseudo-CalDAV remains on `main`; #355 carries the projection contract | Naruon-owned projection, issue #336/#338 acceptance, no invented events |
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
 | Event Lineage evidence | Channel evidence and Allen relations live on #387 / #484 | Persist channel scores, explain them in the popup, never invent a fused score |
-| Scientific measurement | TEPP and fast-mlsirm adapters present or under review | Persisted accepted envelopes, calibration/recovery RMSE, no invented theta |
+| Scientific measurement | #496 preserves an already accepted TEPP receipt across an unavailable recheck but remains open with one unresolved review thread and pending gates; #499 is merged only into a hidden docs stack, and its fail-closed local descendant `715ca0c6b7da87d0f3ed336ec40a2838f9e9eb8b` is not delivered | Protected delivery of persisted accepted envelopes and fail-closed weighting; calibration/recovery RMSE; no invented theta |
+| Planned-facility intent | #505 is stacked on open #490 rather than protected `main`; its exact head has one passing and three pending checks, no threads, and no approvals | Land and revalidate #490 first, then rebase #505 and verify source-grounded relationship evidence on the exact candidate head |
 | Accessibility and responsive UX | Unit coverage exists for major surfaces; Storybook inventory incomplete | Keyboard, screen-reader, mobile, and authenticated Playwright acceptance on the exact release head |
 | Design tokens and repeated objects | Token extraction started (`CHANGELOG.d` badge-color tokens); Figma file is empty of product frames | Tokens in CSS + Storybook stories for board, popup, DAG, Ask, calendar, forms, charts |
 | External integrations | Search, Zotero, calendar, Keyverse, orchestrator, RankWeave, ThreadWeave, TEPP, disksage, wardnet | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
@@ -273,28 +282,32 @@ of leverage; open connector PRs there when the defect is upstream:
 
 ## 10. Next acceptance loop
 
-1. Land ContextualWisdomLab/.github#1258 so OpenCode coverage-evidence can
-   complete LineageWeave JavaScript tests on pnpm 9.15.9.
-2. Land the exact #426 base so the shared frontend typecheck and ontology Pages
-   stack are on protected `main`; then audit #494 and retain only unique value.
-3. Rebase this docs-only descendant onto protected `main`, revalidate its unique
-   diff and exact-head gates, and land it so ADR 0001 holds on `main`.
-4. Request independent exact-head review; squash-merge only after that review
-   and current checks. Enable auto-merge rather than waiting as a blocker.
-5. After ContextualWisdomLab/.github#1259 is on protected `.github` main, the
+1. Repair #426's ontology-publication coverage from 99% to the required 100%,
+   then let its queued coverage and in-progress Strix checks settle on the
+   resulting exact head.
+2. Obtain two independent exact-head approvals for #426 and land that stack on
+   protected `main`; auto-merge being armed does not itself satisfy the gate.
+3. Resolve #496's current code-quality review thread and pending gates while
+   preserving the durable accepted-receipt behavior across unavailable rechecks.
+4. Keep #505 behind #490: validate and land #490 first, then rebase and
+   revalidate #505 before making any protected-release claim.
+5. Treat #499's hidden-stack merge and local descendant
+   `715ca0c6b7da87d0f3ed336ec40a2838f9e9eb8b` as unavailable until the intended
+   fix has a current remote PR and an independently reviewed protected path.
+6. After ContextualWisdomLab/.github#1259 is on protected `.github` main, the
    minute-4 caller owns the GitHub Actions heartbeat. Close superseded baseline
-   PRs (#368, #440–#450, #455, #463, #479) once #426 and this file are on
+   PRs (#368, #440–#450, #455, #463, #479) once #426 is on
    `main`; #368 and #479 also carry already-covered login changes.
-6. Merge smallest shared-gate repairs next (#429, #428, #393, #436, #439)
+7. Merge smallest shared-gate repairs next (#429, #428, #393, #436, #439)
    when independently approved.
-7. Advance user-visible gaps in leverage order: Event Lineage evidence (#387 /
+8. Advance user-visible gaps in leverage order: Event Lineage evidence (#387 /
    #274), Naruon calendar (#355 / #336), SKOS aliases (#480 / #482), ontology
    explorer (#349 / #341), Ask Agent (#415–#422 / #358–#363).
-8. Keep psychometric tests as true-parameter recovery (RMSE), never fixture
+9. Keep psychometric tests as true-parameter recovery (RMSE), never fixture
    tautologies.
-9. Run frontend lint/test/build/Storybook, backend tests, and authenticated
+10. Run frontend lint/test/build/Storybook, backend tests, and authenticated
    browser/accessibility checks on the exact candidate release head.
-10. Fix only evidence-backed failures and repeat the protected merge gate.
+11. Fix only evidence-backed failures and repeat the protected merge gate.
 
 ## 11. Spec pointers (derive, do not fork)
 
