@@ -12,6 +12,15 @@ All notable changes to this project are documented here. Format follows
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 
+## [2.12.25] - 2026-08-24
+
+### Added
+
+- Period leftover pair rows now name two-axis leftover-map reconstruction
+  `R̂ = ξ_{1:2} · ζ_{1:2}` next to leftover-map distance `d`, then open
+  that post (Gabriel, 1971; Jeon et al., 2021, eq. 3; ADR 0181). A missing
+  reconstruction omits the badge rather than inventing a leftover score.
+
 ## [2.12.6] - 2026-08-20
 
 ### Added

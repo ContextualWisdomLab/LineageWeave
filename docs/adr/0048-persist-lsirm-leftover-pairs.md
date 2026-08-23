@@ -30,7 +30,11 @@ and one `farthest` observed cell per period report in
 `report_leftover_pair` (3NF, two-or-more-word `snake_case`).
 
 The biplot lives in `lineageweave/leftover_pairs.py` so leftover
-tests do not import `period_report` or `fast_mlsirm`.
+tests do not import `period_report` or `fast_mlsirm`. Each leftover
+row also names two-axis leftover-map reconstruction
+`R̂ = ξ_{1:2} · ζ_{1:2}` when Gabriel coordinates exist so the
+reconstructed leftover cell is not read as leftover residual `R` or
+leftover-map distance `d` (ADR 0181).
 
 Cascade the rows with `report_period_score`. A leftover post must
 also be a `report_member_score` row, and the leftover criterion

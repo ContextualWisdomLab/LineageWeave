@@ -35,6 +35,13 @@ describe("i18n", () => {
     "Search",
     "Page",
     "Answer",
+    "Leftover pairs",
+    "Closest leftover",
+    "Farthest leftover",
+    "Open this post to read the criterion it sat closest to after main effects.",
+    "Open this post to read the criterion it sat farthest from after main effects.",
+    "Leftover map reconstructs R̂ {value} after IRT main effects. Open this post to read {criterion}.",
+    "Open leftover {kind} pair: {title} · {criterion}",
     "Showing the first {shown} of {total} posts known at this cutoff.",
   ] as const;
 
@@ -73,6 +80,33 @@ describe("i18n", () => {
   ] as const)("formats dynamic buyer guidance in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("{post} is current in Event Lineage. Read Keyman and evaluation next.", { post: "DEMO" })).toBe(expected);
+  });
+
+  it.each([
+    [
+      "ko",
+      "잔여 지도가 IRT 주효과 이후 R̂ +0.40을(를) 재구성합니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
+    ],
+    [
+      "zh",
+      "残差图在 IRT 主效应后重构 R̂ +0.40。打开这篇帖子阅读 sales-lead。",
+    ],
+    [
+      "ja",
+      "残差マップはIRT主効果後の R̂ +0.40 を再構成します。この投稿を開いて sales-lead を読んでください。",
+    ],
+    [
+      "vi",
+      "Bản đồ phần dư tái tạo R̂ +0.40 sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead.",
+    ],
+  ] as const)("formats leftover-map reconstruction next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Leftover map reconstructs R̂ {value} after IRT main effects. Open this post to read {criterion}.",
+        { value: "+0.40", criterion: "sales-lead" },
+      ),
+    ).toBe(expected);
   });
 });
 
