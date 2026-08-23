@@ -47,6 +47,19 @@ def test_migrate_sh_replays_tenant_settings_migration_on_existing_volumes() -> N
     assert "0103_*" in script
 
 
+def test_superseded_body_search_indexes_are_skipped_on_replay() -> None:
+    """0035 must not rebuild indexes that 0036 immediately removes."""
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0035_body_search_prefix.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "to_regclass('public.source_post_search_prefix_trgm_idx') is null" in migration
+    assert "to_regclass('public.source_post_search_fts_idx') is null" in migration
+    assert migration.count("\\if :build_legacy_") == 2
+
+
 def test_tenant_settings_migration_is_idempotent_for_replay() -> None:
     """The replayed migration must not fail after its table already exists."""
     migration = (

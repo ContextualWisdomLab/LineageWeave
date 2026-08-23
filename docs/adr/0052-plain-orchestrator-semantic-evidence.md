@@ -14,17 +14,29 @@ healthy while silently discarding roles and project mentions.
 
 ## Decision
 
-`ContextualOrchestratorPostSummaryClient` makes two sequential calls to
-contextual-orchestrator, both with `mode=route` and no raw LLM or provider call:
+`ContextualOrchestratorPostSummaryClient` makes three sequential calls to
+contextual-orchestrator, all with `mode=auto` and no raw LLM or provider call:
 
 1. The first call returns a Korean evidence-grounded summary followed by a
    `KEY EVENTS:` line.
-2. The second call returns `ROLES:` and `PROJECTS:` sections. Each role row is
+2. The second call returns the plain evidence sections. Loss-sensitive
+   `FACTS:` appears before the potentially high-cardinality `CLUES:` and
+   `MEASUREMENTS:` sections. This ordering is normative: a bounded provider
+   response must not lose source-grounded facts merely because earlier lists
+   consumed the response budget. Each role row is
    `actor | responsibility | actor type | affiliation`; a compact three-field
    role row defaults to the existing `prov_person` contract. Each project row
    is `name | canonical name | evidence | confidence`; a compact three-field
    row is `name | evidence | confidence` and derives only the deterministic
    comparison key with `normalize_project_key`.
+3. The third call is a focused `RELATIONS:` extraction. It receives the same
+   source and weak context hints, but no competing role, clue, measurement, or
+   fact output. A missing `RELATIONS:` marker is an unavailable channel rather
+   than a successful empty result; `RELATIONS: NONE` is the explicit supported
+   negative outcome. It emits every explicit source relation rather than
+   choosing one representative edge. A named base-to-later-variant chronology
+   cannot be replaced by another product merely because that product appears
+   in a nearby enumeration.
 
 Structured source fields remain weak, provenance-labelled hints. Values such
 as `기타`, `미등록고객`, `unknown`, and `other` cannot confirm a customer or
@@ -61,14 +73,16 @@ for reading the complete body and related evidence.
 
 - Semantic roles and projects are no longer silently dropped when the summary
   call succeeds.
-- The channel incurs a second orchestrator request and therefore a bounded
+- Source-grounded facts are emitted before larger clue and measurement lists,
+  and explicit ontology relations have a dedicated bounded response.
+- The channel incurs two additional orchestrator requests and therefore a bounded
   latency/cost increase on explicit regeneration, not on a stale reader GET.
 - Plain line parsing is intentionally narrow; unsupported provider output is
   rejected rather than promoted into ontology facts.
 
 ## Verification
 
-- Unit tests cover both plain calls, compact rows, title-backed evidence, and
-  rejection of unsupported project evidence.
+- Unit tests cover all three plain calls, the loss-sensitive section order, compact
+  rows, title-backed evidence, and rejection of unsupported project evidence.
 - Runtime verification uses only the repository's synthetic fixture and the
   contextual-orchestrator service.

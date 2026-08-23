@@ -218,7 +218,7 @@ EVENT_CLUE_TYPES = frozenset(
 )
 # Stored rows without this contract version are legacy summaries and must be
 # regenerated from the current source body before the popup treats them as evidence.
-POST_SUMMARY_CONTRACT_VERSION = 16
+POST_SUMMARY_CONTRACT_VERSION = 19
 
 _GENERIC_TEAM_ACTOR_NAMES = frozenset(
     {"사업부", "부서", "팀", "business unit", "department", "division"}
@@ -807,7 +807,7 @@ Post body: {body}
 
 _DETAILS_REQUEST_PROMPT_TEMPLATE = """\
 Use only the post evidence below. Do not output analysis or markdown.
-Write exactly these eight section markers, each on its own line:
+Write exactly these seven section markers, each on its own line:
 
 ROLES:
 <one row per named actor, in this exact column order:>
@@ -851,6 +851,9 @@ Acme Renewables | 기술 세미나에서 제품 설명 | organization | NONE
 PROJECTS:
 project name | canonical name | shortest supporting evidence | confidence from 0 to 1
 
+FACTS:
+fact type code | label | value text | normalized value or NONE | assertion code or NONE | normalized ISO date or NONE | date precision or NONE | normalization evidence or NONE | shortest supporting phrase
+
 ACTIONS:
 major event or action | project canonical key or NONE | requester actor name or NONE | processor actor name or NONE | shortest supporting evidence
 
@@ -862,12 +865,6 @@ event index | clue type code | clue text | target or NONE | normalized value or 
 
 MEASUREMENTS:
 measurement type code | label | normalized numeric value | unit code | quantity numeric or NONE | quantity unit code or NONE | qualifier or NONE | raw value phrase | shortest supporting phrase
-
-FACTS:
-fact type code | label | value text | normalized value or NONE | assertion code or NONE | normalized ISO date or NONE | date precision or NONE | normalization evidence or NONE | shortest supporting phrase
-
-RELATIONS:
-subject name | subject type | predicate code | object name | object type | shortest supporting phrase | confidence from 0 to 1
 
 Use NONE on the line after a marker when the evidence supports no item. Keep
 each row short. For ACTIONS, the project canonical key must exactly match a
@@ -911,11 +908,26 @@ used as a sales-pool/order-pool value. source_sales_pool_code and
 source_sales_pool_name are sales-pool/order-pool hints only and must never be
 used as a PU/business-unit value. Source project fields remain project hints,
 not catalog bindings, unless the post evidence supports them.
-For RELATIONS, extract only an explicit relation stated by the post. Use the
+Post title: {title}
+Post body: {body}
+Context hints: {context_hints}
+"""
+
+_RELATIONS_REQUEST_PROMPT_TEMPLATE = """\
+Use only the post evidence below. Do not output analysis or markdown.
+Write exactly one section marker followed by one short row per explicit
+relation, or NONE when the source supports no relation:
+
+RELATIONS:
+subject name | subject type | predicate code | object name | object type | shortest supporting phrase | confidence from 0 to 1
+
+Extract only an explicit relation stated by the post. Use the
 standard/profile predicate code that best matches the source. Do not infer a
 relation from proximity, a catalog hint, a role alone, or the fact that two
 names occur in the same meeting. Keep unresolved names as text and preserve
-the shortest exact supporting phrase. In particular:
+the shortest exact supporting phrase. Emit every explicit relation; do not
+choose only one representative edge when the source states multiple pairs. In
+particular:
 - use org_member_of for an explicit organization membership or group-joining
   statement;
 - use lw_responsible_for for an explicit organization-to-named-project
@@ -938,6 +950,11 @@ being introduced or released in order, represent their introduction/release
 milestones and preserve the shortest phrase that states the order. Use
 lw_has_time to connect a separately extracted event to its temporal entity
 only when the source supports both endpoints.
+When the source explicitly says a named base product was introduced first and
+a named multi-stage or extended variant came later, retain that exact
+base-milestone to variant-milestone pair. A different product family in a
+nearby list is not a substitute for the named base endpoint. If the source
+also states another earlier-to-later pair, emit a separate row for it.
 Fictional format examples only:
 Northwind Services | organization | org_member_of | Northwind Group | organization | joined Northwind Group | 0.98
 Northwind Services | organization | lw_supports | Highland HVDC | project | provided installation support for Highland HVDC | 0.9
@@ -1888,7 +1905,7 @@ def _parse_summary_details(
 
 
 class ContextualOrchestratorPostSummaryClient:
-    """Derive summary and semantic evidence through two ``mode="auto"`` calls."""
+    """Derive summary and semantic evidence through three ``mode="auto"`` calls."""
 
     available = True
 
@@ -1962,7 +1979,30 @@ class ContextualOrchestratorPostSummaryClient:
         roles, projects, actions, five_w1h_evidence, event_clues = details
         quantitative_observations = _parse_plain_quantitative_observations(details_content)
         source_grounded_facts = _parse_plain_source_facts(details_content)
-        semantic_relationships = _parse_plain_semantic_relationships(details_content)
+        relations_body = post_json(
+            f"{self._base_url}/v1/chat/completions",
+            {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": _RELATIONS_REQUEST_PROMPT_TEMPLATE.format(
+                            title=post_title,
+                            body=post_body,
+                            context_hints=context_hints.strip() or "none available",
+                        ),
+                    }
+                ],
+                "mode": "auto",
+                "reasoning_effort": self._reasoning_effort,
+                "max_tokens": _SUMMARY_MAX_TOKENS,
+            },
+            headers={"authorization": f"Bearer {self._api_key}"},
+            timeout=self._timeout,
+        )
+        relations_content = chat_completion_content(relations_body)
+        if re.search(r"(?im)^\s*RELATIONS\s*:", relations_content) is None:
+            raise ValueError("summary relation response did not match the required format")
+        semantic_relationships = _parse_plain_semantic_relationships(relations_content)
         return PostSummary(
             korean_summary=korean_summary,
             key_events=key_events,

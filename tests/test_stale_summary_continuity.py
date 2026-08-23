@@ -9,12 +9,12 @@ from backend.app.post_summary_ingestion import fetch_persisted_summary
 
 
 class _StaleSummaryConnection:
-    """Minimal asyncpg-shaped fake containing one v15 summary header."""
+    """Minimal asyncpg-shaped fake containing one previous-contract summary."""
 
     async def fetchrow(self, query: str, post_id: str) -> dict[str, object]:
         return {
             "korean_summary": "Previously persisted evidence.",
-            "summary_contract_version": 15,
+            "summary_contract_version": 18,
         }
 
     async def fetch(self, query: str, post_id: str) -> list[dict[str, object]]:
@@ -34,7 +34,7 @@ def test_stale_summary_can_be_returned_with_explicit_status() -> None:
     )
     assert result is not None
     assert result["summary_status"] == "stale"
-    assert result["summary_contract_version"] == 15
+    assert result["summary_contract_version"] == 18
     assert result["korean_summary"] == "Previously persisted evidence."
 
 
@@ -72,7 +72,7 @@ def test_reader_returns_stale_summary_without_waiting_for_orchestrator(
             return None
         return {
             "summary_status": "stale",
-            "summary_contract_version": 15,
+            "summary_contract_version": 18,
             "korean_summary": "Previously persisted evidence.",
         }
 
@@ -95,4 +95,4 @@ def test_reader_returns_stale_summary_without_waiting_for_orchestrator(
     )
 
     assert result["summary_status"] == "stale"
-    assert result["summary_contract_version"] == 15
+    assert result["summary_contract_version"] == 18

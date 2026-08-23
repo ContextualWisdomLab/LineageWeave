@@ -93,29 +93,37 @@ and independent review are not yet claimed.
 
 The current temporal-relation correction makes explicit chronology an
 OWL-Time `time:before` edge from the earlier release/introduction milestone to
-the later milestone, advances the post-summary contract to v16 so persisted
-v15 and older rows are regenerated without reusing an observed contract number,
-projects the direction and evidence through the existing
-Knowledge Graph API, and exposes source, relation, target, evidence, and
-confidence without requiring SVG hover. Synthetic focused checks, frontend
-lint/build, and Storybook build passed. After the local PostgreSQL server
-recovered, the latest current-source full Python suite passed `815` tests with
-`126` skips and no warning. The 422-status deprecation correction also passed
-its `31` focused tests with deprecations promoted to errors. Pinned Corepack
-Vitest passed all `230` tests with the documented 20-second per-test budget.
-The authorized local aggregate and API checks found the target case on a
-persisted v14 summary with one `time:before` relation among three graph edges.
-Without exposing source content, the API aggregate confirmed distinct earlier
-and later temporal endpoints, OWL-Time IRI/label, evidence, confidence, and the
-requested source-to-target direction. The current v16 backend is running, but
-its authenticated regeneration request returned no bytes before the 200-second
-client timeout, so no v16 persistence is claimed. The frontend Docker context
-now excludes local generated artifacts; a concurrent long-running BuildKit job
-still prevented current-image replacement. The verified local `dist` was
-copied into the running nginx container for QA only, and served-asset checks
-confirmed the directed-graph name, visible direction instruction, evidence
-table contract, and table CSS. This recoverable preview mutation is not image
-or release evidence. Visual browser comparison remains open and is not claimed.
+the later milestone. Post-summary contract v19 separates the focused
+`RELATIONS:` extraction from the larger evidence response, requires every
+explicit pair, and rejects replacing a named base-to-variant pair with another
+nearby product enumeration. A persisted older summary now returns immediately
+as explicitly stale instead of blocking the reader on sequential orchestrator
+calls; durable regeneration remains the operator backfill path.
+
+Authorized, non-identifying runtime verification processed exactly one target
+with no failure and persisted v19 as current. The authenticated API returned
+one requested earlier-to-later edge, distinct temporal-entity endpoints, the
+OWL-Time IRI/label, evidence, and confidence. The summary and focused Knowledge
+Graph calls completed in approximately 0.23 and 0.19 seconds. The graph exposes
+source, relation, target, evidence, and confidence without requiring SVG hover;
+the served production asset contains the directed-graph name, visible direction
+instruction, and evidence-table contract. Browser-rendered visual comparison
+remains open and is not claimed.
+
+Two Compose bottlenecks found during this verification are fixed at their
+shared boundaries. `backend/Dockerfile` now caches the locked Rust/Python
+dependency environment before copying application source: the clean dependency
+layer compiled in 4 minutes 47 seconds, an unchanged rebuild completed in 2.2
+seconds, and a later Python-source rebuild completed in 27 seconds without
+recompiling `fast-mlsirm`. ADR 0144 and migration 0035 now skip legacy body
+search indexes when migration 0036's normalized successors exist; a complete
+existing-volume replay completed in 7 seconds with zero active or legacy index
+builds. Focused backend/migration checks passed `102` tests with one optional
+orchestrator integration skip, and frontend Knowledge Graph/i18n checks passed
+`30`. The final full Python suite passed `970` tests with `16` skips, the
+full frontend suite passed `267` tests, and frontend lint/build plus
+`git diff --check` passed. Repository-wide 100% coverage and visual browser
+acceptance remain separate open gates.
 
 The historical evidence below remains valid only at the exact heads and dates
 stated in each entry. It must not be used as proof that the current continuation
@@ -526,7 +534,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | External email/project lineage package boundary | PR #343 merged at `125a8069a1554874d8067a15047e19d780ea6b7b` with strict v1.0.0 bounded request/result types, available-time cutoff handling, observed/inferred/proposed truth states, pair-budget enforcement, and no source/provider access | source + focused unit; immutable release open |
 | Naruon calendar projection boundary | PR #337 is closed as superseded; PR #355 carries the strict read projection contract without making LineageWeave a CalDAV provider | source + focused unit; Naruon endpoint, runtime wiring, and provider conformance remain open |
 | Hourly PR review/repair/merge loop | Central protected `main` owns generic `*/30 * * * *` and `*/15 * * * *` sweeps; the LineageWeave-specific minute-4 hourly repair caller remains open in `ContextualWisdomLab/.github#1086` at `aeb096a52c5f`, so no duplicate repo-local scheduler is required | source + exact-head local gate; protected merge and first scheduled run open |
-| 100% coverage/docstrings/edge-case/release gates | the two source-research modules have an exact focused 100% branch result and the full Python suite is green, but repository-wide coverage/docstring reports, hosted checks, independent review, and release evidence remain incomplete | open |
+| 100% coverage/docstrings/edge-case/release gates | the two source-research modules have an exact focused 100% branch result; the current full Python suite is green at `970` passed / `16` skipped and the full frontend suite is green at `267` passed, but repository-wide coverage/docstring reports, hosted checks, independent review, and release evidence remain incomplete | open |
 
 ## 4. Supplied parsing and semantic cases
 
@@ -557,9 +565,10 @@ The following user-reported cases remain tracked without storing real post IDs:
 - `case-temporal-product-sequence-01`: explicit first/next product chronology
   now extracts the corresponding release/introduction milestones as one
   earlier-to-later OWL-Time relation and renders its direction and evidence in
-  the Knowledge Graph. Authorized re-extraction and browser confirmation remain
-  open; chronology alone does not assert revision, specialization, causation,
-  or a private product-succession predicate.
+  the Knowledge Graph. Authorized re-extraction now passes at summary contract
+  v19 with one requested pair; browser confirmation remains open. Chronology
+  alone does not assert revision, specialization, causation, or a private
+  product-succession predicate.
 
 These are not “resolved” merely because a prompt or heuristic was changed.
 Each requires synthetic unit coverage plus an authorized runtime reproduction
@@ -586,14 +595,14 @@ or an explicit unavailable result.
   Ask UI regression pass; exact-source authenticated browser evidence remains
   required.
 - **Frontend delivery and scene QA — partial:** production build succeeds but
-  the single JavaScript chunk is 555.34 kB minified (152.92 kB gzip) and exceeds
+  the single JavaScript chunk is 576.10 kB minified (158.98 kB gzip) and exceeds
   Vite's 500 kB warning threshold. Storybook now covers unanchored, anchored,
   saved-history, unavailable, and phone Ask states, and its static build passes.
   Add route- or workspace-level native code splitting only after measuring the
   authenticated navigation path; current-source browser capture remains open.
 - **Repository-wide gate stability — partial:** the latest current-source full
-  Python run passes `815` tests with `126` skips, and pinned Corepack Vitest
-  passes all `230` tests. CI now provisions pinned Valkey and a synthetic
+  Python run passes `970` tests with `16` skips, and pinned Corepack Vitest
+  passes all `267` tests. CI now provisions pinned Valkey and a synthetic
   imported Keycloak realm, removing the infrastructure
   reason that made all `115` live-stack API tests self-skip; `actionlint` passes,
   but the hosted run is not yet evidence. Skipped live-stack cases and hosted

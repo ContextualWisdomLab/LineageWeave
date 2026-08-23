@@ -76,11 +76,25 @@ def test_summary_prompt_requires_naming_actual_people_not_generic_titles() -> No
 
 
 def test_details_prompt_separates_events_from_projects_and_support_from_responsibility() -> None:
-    from lineageweave.post_summary import _DETAILS_REQUEST_PROMPT_TEMPLATE
+    from lineageweave.post_summary import (
+        _DETAILS_REQUEST_PROMPT_TEMPLATE,
+        _RELATIONS_REQUEST_PROMPT_TEMPLATE,
+    )
 
     assert "meeting title into a project" in _DETAILS_REQUEST_PROMPT_TEMPLATE
-    assert "lw_responsible_for" in _DETAILS_REQUEST_PROMPT_TEMPLATE
-    assert "lw_supports" in _DETAILS_REQUEST_PROMPT_TEMPLATE
+    assert "lw_responsible_for" in _RELATIONS_REQUEST_PROMPT_TEMPLATE
+    assert "lw_supports" in _RELATIONS_REQUEST_PROMPT_TEMPLATE
+
+
+def test_details_prompt_prioritizes_loss_sensitive_semantics_before_large_lists() -> None:
+    from lineageweave.post_summary import _DETAILS_REQUEST_PROMPT_TEMPLATE
+
+    facts = _DETAILS_REQUEST_PROMPT_TEMPLATE.index("\nFACTS:\n")
+    clues = _DETAILS_REQUEST_PROMPT_TEMPLATE.index("\nCLUES:\n")
+    measurements = _DETAILS_REQUEST_PROMPT_TEMPLATE.index("\nMEASUREMENTS:\n")
+
+    assert facts < clues
+    assert facts < measurements
 
 
 def test_summary_requires_imported_source_body() -> None:
@@ -526,7 +540,10 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
                 "Jordan Hale | 입찰 일정 안내 | Westfield Power\n"
                 "PROJECTS:\n"
                 "HVDC pilot | pilot bid workshop | 0.9\n"
-                "Unsupported project | NONE | 1\n"
+                "Unsupported project | NONE | 1"
+            )
+        elif "Write exactly one section marker" in prompt:
+            content = (
                 "RELATIONS:\n"
                 "Synthetic base release | temporal_entity | time_before | "
                 "Synthetic multi-stage release | temporal_entity | "
@@ -551,7 +568,7 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
 
     assert summary.korean_summary == "본문 근거 요약입니다."
     assert summary.key_events == ("후속 확인",)
-    assert len(observed) == 2
+    assert len(observed) == 3
     assert all(payload["mode"] == "auto" for payload in observed)
     assert "KEY EVENTS" in observed[0]["messages"][0]["content"]
     details_prompt = observed[1]["messages"][0]["content"]
@@ -560,9 +577,13 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
     assert "sales-pool/order-pool value" in details_prompt
     assert "source_sales_pool_name are sales-pool/order-pool hints only" in details_prompt
     assert "PU/business-unit value" in details_prompt
-    assert "time_before" in details_prompt
-    assert "earlier temporal entity" in details_prompt
-    assert "do not label a product name as temporal_entity" in details_prompt.casefold()
+    relations_prompt = observed[2]["messages"][0]["content"]
+    assert "time_before" in relations_prompt
+    assert "earlier temporal entity" in relations_prompt
+    assert "do not label a product name as temporal_entity" in relations_prompt.casefold()
+    assert "different product family in a nearby list is not a substitute" in " ".join(
+        relations_prompt.split()
+    )
     assert summary.roles_and_responsibilities[0].actor_name == "Jordan Hale"
     assert summary.project_mentions[0].canonical_name == "hvdc-pilot"
     assert summary.semantic_relationships == (
@@ -611,6 +632,46 @@ def test_summary_details_parse_failure_does_not_expose_provider_response(monkeyp
         ContextualOrchestratorPostSummaryClient("https://orchestrator.test", "token").summarize(
             "Synthetic title", "Synthetic body"
         )
+
+    assert "provider-secret-and-gateway-prompt" not in str(exc_info.value)
+
+
+def test_summary_relation_parse_failure_does_not_expose_provider_response(
+    monkeypatch,
+) -> None:
+    """A malformed dedicated relation response fails closed without disclosure."""
+    responses = iter(
+        (
+            {
+                "choices": [
+                    {"message": {"content": "본문 근거 요약\nKEY EVENTS: 후속 확인"}}
+                ]
+            },
+            {
+                "choices": [
+                    {"message": {"content": "ROLES:\nNONE\nPROJECTS:\nNONE"}}
+                ]
+            },
+            {
+                "choices": [
+                    {"message": {"content": "provider-secret-and-gateway-prompt"}}
+                ]
+            },
+        )
+    )
+
+    monkeypatch.setattr(
+        "lineageweave.post_summary.post_json",
+        lambda *args, **kwargs: next(responses),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="summary relation response did not match the required format",
+    ) as exc_info:
+        ContextualOrchestratorPostSummaryClient(
+            "https://orchestrator.test", "token"
+        ).summarize("Synthetic title", "Synthetic body")
 
     assert "provider-secret-and-gateway-prompt" not in str(exc_info.value)
 

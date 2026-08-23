@@ -19,10 +19,15 @@ begin
     end if;
 end $$;
 
-create index concurrently if not exists source_post_body_prefix_trgm_idx
-    on source_post using gin (
-        lower(left(coalesce(post_body, ''), 16384)) gin_trgm_ops
-    );
+select to_regclass('public.source_post_search_prefix_trgm_idx') is null
+    as build_legacy_prefix_index
+\gset
+\if :build_legacy_prefix_index
+    create index concurrently if not exists source_post_body_prefix_trgm_idx
+        on source_post using gin (
+            lower(left(coalesce(post_body, ''), 16384)) gin_trgm_ops
+        );
+\endif
 
 do $$
 begin
@@ -37,7 +42,12 @@ begin
     end if;
 end $$;
 
-create index concurrently if not exists source_post_body_fts_idx
-    on source_post using gin (
-        to_tsvector('simple', left(coalesce(post_body, ''), 16384))
-    );
+select to_regclass('public.source_post_search_fts_idx') is null
+    as build_legacy_fts_index
+\gset
+\if :build_legacy_fts_index
+    create index concurrently if not exists source_post_body_fts_idx
+        on source_post using gin (
+            to_tsvector('simple', left(coalesce(post_body, ''), 16384))
+        );
+\endif
