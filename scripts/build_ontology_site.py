@@ -119,18 +119,11 @@ def _write_serializations(graph: Graph, ontology_dir: Path) -> None:
     )
 
 
-def _term_href(value: URIRef, ontology_subjects: set[URIRef]) -> str:
-    """Return a local fragment for local terms and an absolute IRI otherwise."""
-    if value in ontology_subjects:
-        return f"#{public_fragment(_fragment(value))}"
-    return str(value)
-
-
 def _render_link(value: URIRef, ontology_subjects: set[URIRef]) -> str:
     """Render a local term link or a non-navigating external RDF identifier."""
     if value not in ontology_subjects:
         return f"<code>{html.escape(str(value))}</code>"
-    href = html.escape(_term_href(value, ontology_subjects), quote=True)
+    href = html.escape(f"#{public_fragment(_fragment(value))}", quote=True)
     return f'<a href="{href}">{html.escape(_fragment(value))}</a>'
 
 
