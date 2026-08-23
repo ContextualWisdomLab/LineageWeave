@@ -138,6 +138,16 @@ _IDENTIFIER_MIGRATION = (
     / "migrations"
     / "0104_two_word_database_identifiers.sql"
 )
+_TOPIC_LINEAGE_KIND_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0131_analysis_run_topic_lineage_kind.sql"
+)
+_TOPIC_LINEAGE_RESULT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0132_analysis_run_topic_lineage_result.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -262,6 +272,8 @@ def seeded_db(demo_analyst_token):
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
             cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
             cur.execute(_IDENTIFIER_MIGRATION.read_text())
+            cur.execute(_TOPIC_LINEAGE_KIND_MIGRATION.read_text())
+            cur.execute(_TOPIC_LINEAGE_RESULT_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "

@@ -14,11 +14,14 @@ from backend.app.analysis_run_start import (
     start_write_conflict_error,
     tepp_run_request,
     tepp_submit_outcome,
+    topic_lineage_run_request,
+    topic_lineage_submit_outcome,
 )
 from backend.app.lineage_ingestion import records_from_source_posts
 from lineageweave.fixtures import sample_records
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
+from lineageweave.topic_lineage_artifact import topic_lineage_artifact_sha256
 
 
 def test_reconstruction_digest_is_stable_and_ignores_edge_order() -> None:
@@ -94,7 +97,7 @@ def test_reconstructed_edge_hides_unaffiliated_private_titles() -> None:
 
 
 def test_period_report_start_is_unprocessable_and_tepp_is_allowed() -> None:
-    """Period-report stays 422. TEPP start is allowed so tepp_client can run."""
+    """Period-report stays 422. TEPP/topic-lineage start is allowed so tepp_client can run."""
     report = start_kind_rejection("analysis_run_report")
     assert report is not None
     assert report.status_code == 422
@@ -102,6 +105,7 @@ def test_period_report_start_is_unprocessable_and_tepp_is_allowed() -> None:
     assert "period report" in report.detail
     assert start_kind_rejection("analysis_run_lineage") is None
     assert start_kind_rejection("analysis_run_tepp") is None
+    assert start_kind_rejection("analysis_run_topic_lineage") is None
 
 
 def _tepp_request() -> AnalysisRunRequest:
@@ -143,6 +147,88 @@ def test_tepp_submit_outcome_does_not_persist_an_empty_envelope() -> None:
     status, failure = tepp_submit_outcome(_Accepting(), _tepp_request())
     assert status == "analysis_status_failed"
     assert failure == "tepp_result_not_persisted"
+
+
+def _topic_lineage_request() -> AnalysisRunRequest:
+    return topic_lineage_run_request(
+        idempotency_key="run-topic-lineage-2026-w07",
+        snapshot_sha256="ab" * 32,
+        knowledge_cutoff=datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc),
+        corporate_entity_id="11111111-1111-1111-1111-111111111111",
+    )
+
+
+def test_topic_lineage_run_request_is_the_published_wire_shape() -> None:
+    """Start builds TEPP's seven-field request for topic lineage (ADR 0147)."""
+    request = _topic_lineage_request()
+    payload = request.to_json()
+    assert payload["contract_version"] == 1
+    assert payload["idempotency_key"] == "run-topic-lineage-2026-w07"
+    assert payload["snapshot_id"] == "ab" * 32
+    assert payload["knowledge_cutoff"] == "2026-01-12T12:00:00Z"
+    assert payload["model_contract_version"] == "trsl_tm_cpu_f64_v1"
+    assert payload["output_profile"] == "trsl_topic_lineage_v1"
+    assert "theta" not in str(payload).casefold()
+    assert "chronos" not in str(payload).casefold()
+
+
+def test_topic_lineage_submit_outcome_drops_a_missing_transport() -> None:
+    """A missing TEPP transport is Failed, never a fabricated topic model."""
+    status, failure = topic_lineage_submit_outcome(TeppClient(), _topic_lineage_request())
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_not_available"
+
+
+def test_topic_lineage_submit_outcome_does_not_persist_an_empty_envelope() -> None:
+    """An accepted envelope is not yet a persistable topic-lineage result."""
+
+    class _Accepting(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(transport=lambda _payload: {"status": "accepted"})
+
+    status, failure = topic_lineage_submit_outcome(_Accepting(), _topic_lineage_request())
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_topic_contract_unavailable"
+
+
+def test_topic_lineage_submit_outcome_accepts_only_the_bound_tepp_artifact() -> None:
+    """The exact completed artifact can cross the analysis-run boundary."""
+
+    artifact = {
+        "schema_version": "tepp.trsl_topic_lineage.v1",
+        "run_id": "tepp-run-1",
+        "snapshot_id": "ab" * 32,
+        "knowledge_cutoff": "2026-01-12T12:00:00Z",
+        "selected_seed": 7,
+        "iterations": 4,
+        "objective": 1.25,
+        "topic_count": 2,
+        "evidence_count": 2,
+        "connected_post_count": 2,
+        "lineage_count": 1,
+        "sequence_edges": [
+            {
+                "predecessor_document_id": "00000000-0000-0000-0000-000000000001",
+                "successor_document_id": "00000000-0000-0000-0000-000000000002",
+                "topic_index": 0,
+                "association_strength": 0.8,
+            }
+        ],
+        "inference_status": "fitted_topic_association_not_causation",
+    }
+    envelope = {
+        "status": "completed",
+        "run_id": artifact["run_id"],
+        "result_schema_version": artifact["schema_version"],
+        "result_sha256": topic_lineage_artifact_sha256(artifact),
+        "result": artifact,
+    }
+    client = TeppClient(transport=lambda _payload: envelope)
+
+    assert topic_lineage_submit_outcome(client, _topic_lineage_request()) == (
+        "analysis_status_succeeded",
+        "",
+    )
 
 
 def test_configured_tepp_client_stays_unavailable_without_http() -> None:

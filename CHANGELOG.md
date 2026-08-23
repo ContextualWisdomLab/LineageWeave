@@ -6,6 +6,18 @@ All notable changes to this project are documented here. Format follows
 
 ## [2.23.1] - 2026-08-22
 
+### Added
+
+- Registered the `analysis_run_topic_lineage` analysis-run kind (migrations
+  0131/0132, ADR 0147) and the exact LineageWeave consumer for TEPP's bounded
+  `tepp.trsl_topic_lineage.v1` artifact (TEPP ADR 0012). It submits through
+  `tepp_client`, verifies completion, digest, snapshot, cutoff, counts, and
+  predecessor/successor edges, and fails closed until that artifact is valid.
+  Project History derives its displayed topic counts only from authorized
+  artifact edges; the evidence DAG remains navigation evidence, not a fallback.
+  `make seed` now also writes a Demo Corp topic-lineage run alongside the
+  existing lineage/TEPP/period-report rows.
+
 ### Changed
 
 - Related-node chips now show authorized business context: a unique

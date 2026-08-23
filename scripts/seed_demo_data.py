@@ -33,6 +33,10 @@ import psycopg2
 from lineageweave.http_client import get_json_list, post_form
 from lineageweave.post_summary import ACTOR_TYPE_PERSON, POST_SUMMARY_CONTRACT_VERSION
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
+from lineageweave.topic_lineage_artifact import (
+    TOPIC_LINEAGE_MODEL_CONTRACT_VERSION,
+    TOPIC_LINEAGE_OUTPUT_PROFILE,
+)
 
 REALM = "lineageweave-demo"
 DEFAULT_POSTGRES_DSN = "postgresql://lineageweave:lineageweave_dev_only@localhost:15432/lineageweave"
@@ -45,6 +49,7 @@ DEMO_SOURCE_SNAPSHOT_MATERIAL = b"lineageweave-synthetic-demo-snapshot-v1"
 DEMO_SOURCE_CONTRACT_VERSION = "demo-source-contract-v1"
 DEMO_LINEAGE_IDEMPOTENCY_KEY = "demo-lineage-seed-2026-w02"
 DEMO_TEPP_IDEMPOTENCY_KEY = "demo-tepp-seed-2026-w02"
+DEMO_TOPIC_LINEAGE_IDEMPOTENCY_KEY = "demo-topic-lineage-seed-2026-w02"
 DEMO_REPORT_IDEMPOTENCY_KEY = "demo-report-seed-2026-w02"
 
 # (post_title, ticket_title, due_date) -- Event Lineage fixtures a report
@@ -435,6 +440,11 @@ def seed(
                 corporate_entity_id,
             )
             _seed_demo_tepp_run(
+                cur,
+                account_ids["demo.analyst"],
+                corporate_entity_id,
+            )
+            _seed_demo_topic_lineage_run(
                 cur,
                 account_ids["demo.analyst"],
                 corporate_entity_id,
@@ -1670,6 +1680,113 @@ def _seed_demo_tepp_run(cur, requested_by_account_id, corporate_entity_id) -> No
     _seed_demo_run_outbox(cur, run_id)
 
 
+def topic_lineage_seed_request() -> AnalysisRunRequest:
+    """Build the Demo Corp topic-lineage request against the shared snapshot digest.
+
+    Same wire shape as :func:`tepp_seed_request` (ADR 0147); only the model
+    contract and output profile select the bounded topic-lineage artifact.
+    """
+    return AnalysisRunRequest(
+        idempotency_key=DEMO_TOPIC_LINEAGE_IDEMPOTENCY_KEY,
+        tenant_workspace_id="demo-workspace",
+        snapshot_id=demo_source_snapshot_sha256(),
+        knowledge_cutoff="2026-01-12T12:00:00Z",
+        model_contract_version=TOPIC_LINEAGE_MODEL_CONTRACT_VERSION,
+        output_profile=TOPIC_LINEAGE_OUTPUT_PROFILE,
+    )
+
+
+def topic_lineage_seed_outcome(client: TeppClient | None = None) -> tuple[str, str | None]:
+    """Ask TEPP through the published client. A missing transport is Failed.
+
+    Never invents a topic identity or predecessor/successor association.
+    ``tepp_not_available`` means the channel was dropped, not an abstained
+    measurement. A live envelope is also not yet a persistable result in
+    this seed, so the run is not stamped Succeeded.
+    """
+    request = topic_lineage_seed_request()
+    try:
+        (client or TeppClient()).submit_analysis_run(request)
+    except TeppNotAvailable:
+        return "analysis_status_failed", "tepp_not_available"
+    return "analysis_status_failed", "tepp_result_not_persisted"
+
+
+def _seed_demo_topic_lineage_run(cur, requested_by_account_id, corporate_entity_id) -> None:
+    """Insert one Demo-Corp topic-lineage run so the kind is visible without a live TEPP.
+
+    Mirrors :func:`_seed_demo_tepp_run` (ADR 0147). Default transport is
+    unavailable, so the run ends Failed / ``tepp_not_available`` -- never
+    a fabricated topic model.
+    """
+    snapshot_id = _ensure_demo_source_snapshot(cur)
+    _ensure_demo_source_counts(cur, snapshot_id)
+    _ensure_demo_source_snapshot_members(cur, snapshot_id, corporate_entity_id)
+    cur.execute(
+        """
+        select analysis_run_id from analysis_run
+        where requested_by_account_id = %s
+          and idempotency_key = %s
+        """,
+        (requested_by_account_id, DEMO_TOPIC_LINEAGE_IDEMPOTENCY_KEY),
+    )
+    run_row = cur.fetchone()
+    if run_row is None:
+        cur.execute(
+            """
+            insert into analysis_run
+                (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                 requested_by_account_id, knowledge_cutoff,
+                 configuration_schema_version, configuration_sha256,
+                 code_revision_sha, requested_at)
+            values (%s, 'analysis_run_topic_lineage', %s,
+                    %s, '2026-01-12T12:00:00Z', 'topic-lineage-run-v1', %s, %s,
+                    '2026-01-12T12:34:00Z')
+            returning analysis_run_id
+            """,
+            (
+                snapshot_id,
+                DEMO_TOPIC_LINEAGE_IDEMPOTENCY_KEY,
+                requested_by_account_id,
+                "d" * 64,
+                "e" * 40,
+            ),
+        )
+        run_id = cur.fetchone()[0]
+    else:
+        run_id = run_row[0]
+    cur.execute(
+        """
+        insert into analysis_run_scope
+            (analysis_run_id, scope_kind_code, corporate_entity_id)
+        values (%s, 'analysis_scope_corporate_entity', %s)
+        on conflict (analysis_run_id) do nothing
+        """,
+        (run_id, corporate_entity_id),
+    )
+    final_status, failure_code = topic_lineage_seed_outcome()
+    events = [
+        (1, "analysis_status_pending", "2026-01-12T12:35:00Z", None),
+        (2, "analysis_status_running", "2026-01-12T12:36:00Z", None),
+        (3, final_status, "2026-01-12T12:37:00Z", failure_code),
+    ]
+    cur.execute(
+        "select 1 from analysis_run_status_event where analysis_run_id = %s limit 1",
+        (run_id,),
+    )
+    if cur.fetchone() is None:
+        for ordinal, status, occurred, fail in events:
+            cur.execute(
+                """
+                insert into analysis_run_status_event
+                    (analysis_run_id, status_ordinal, status_code, occurred_at, failure_code)
+                values (%s, %s, %s, %s, %s)
+                """,
+                (run_id, ordinal, status, occurred, fail),
+            )
+    _seed_demo_run_outbox(cur, run_id)
+
+
 def _seed_demo_report_run(cur, requested_by_account_id, corporate_entity_id) -> None:
     """Record the already-built Demo Corp period report on the shared snapshot.
 
@@ -1780,7 +1897,7 @@ def _seed_demo_run_outbox(cur, analysis_run_id) -> None:
         snapshot_sha256=snapshot_sha256,
         knowledge_cutoff=knowledge_cutoff,
     )
-    if work_kind_code == "analysis_run_tepp":
+    if work_kind_code in ("analysis_run_tepp", "analysis_run_topic_lineage"):
         claimed = datetime(2026, 1, 12, 12, 36, tzinfo=timezone.utc)
         delivered = datetime(2026, 1, 12, 12, 37, tzinfo=timezone.utc)
     else:
