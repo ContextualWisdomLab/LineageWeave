@@ -1356,6 +1356,7 @@ def _admit_planned_facility_relationships(
     project_keys = {
         normalize_project_key(name)
         for project in projects
+        if project.confidence >= PROJECT_MENTION_CONFIDENCE_THRESHOLD
         for name in (project.project_name, project.canonical_name)
     }
     normalized_source = _normalize_evidence_name(source_text)
