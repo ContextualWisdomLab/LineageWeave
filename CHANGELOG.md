@@ -11,7 +11,7 @@ All notable changes to this project are documented here. Format follows
 - Corroborated SKOS `altLabel` / `prefLabel` pairs now expand corporate
   catalog candidates so a synthetic short form (`AGP`) and full form
   (`Aurora Grid Power`) bind one `corporate_entity` row instead of
-  creating a second `AUTO-` identity (ADR 0120). Tied scores still stay
+  creating a second `AUTO-` identity (ADR 0158). Tied scores still stay
   unbound.
 
 ### Fixed
