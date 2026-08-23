@@ -759,6 +759,7 @@ export interface LeftoverPair {
   criterion_code: string;
   leftover_distance: number;
   leftover_residual: number;
+  leftover_map_rank?: number | null;
 }
 
 export interface PeriodGroupReport {

@@ -172,6 +172,22 @@ def test_leftover_pair_references_member_and_item_rows(schema_db) -> None:
     assert "report_period_score" in targets
 
 
+def test_leftover_pair_names_leftover_map_rank_column(schema_db) -> None:
+    """Fresh leftover rows name leftover-map rank so rank-0 is not leftover structure."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select column_name
+            from information_schema.columns
+            where table_name = 'report_leftover_pair'
+            """
+        )
+        columns = {row[0] for row in cur.fetchall()}
+    assert "leftover_map_rank" in columns
+    assert "leftover_distance" in columns
+    assert "leftover_residual" in columns
+
+
 
 def test_corporate_hierarchy_recursive_query_returns_correct_shape(schema_db) -> None:
     """The real product requirement: 'Acme Group -> Acme Electronics Korea

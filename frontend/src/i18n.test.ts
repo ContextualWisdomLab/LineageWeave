@@ -35,6 +35,13 @@ describe("i18n", () => {
     "Search",
     "Page",
     "Answer",
+    "Leftover pairs",
+    "Closest leftover",
+    "Farthest leftover",
+    "Open this post to read the criterion it sat closest to after main effects.",
+    "Open this post to read the criterion it sat farthest from after main effects.",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.",
+    "Leftover map rank {rank} after IRT main effects. Open this post.",
     "Showing the first {shown} of {total} posts known at this cutoff.",
   ] as const;
 
@@ -73,6 +80,18 @@ describe("i18n", () => {
   ] as const)("formats dynamic buyer guidance in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("{post} is current in Event Lineage. Read Keyman and evaluation next.", { post: "DEMO" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "IRT 주효과 이후 잔여 맵 랭크 1. 이 글을 여세요."],
+    ["zh", "IRT 主效应后的残余图秩 1。打开这篇帖子。"],
+    ["ja", "IRT主効果後の残差マップランク 1。この投稿を開いてください。"],
+    ["vi", "Hạng bản đồ phần dư 1 sau hiệu ứng chính IRT. Mở bài viết này."],
+  ] as const)("formats leftover-map rank next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf("Leftover map rank {rank} after IRT main effects. Open this post.", { rank: "1" }),
+    ).toBe(expected);
   });
 });
 

@@ -102,6 +102,7 @@ import {
   useLocale,
 } from "./i18n";
 import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
+import { formatLeftoverMapRank, LEFTOVER_RANK_STRUCTURE_ACTION, LEFTOVER_RANK_ZERO_ACTION } from "./leftoverMapRank";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -3390,15 +3391,22 @@ function ReportsPanel({
               </span>
             )}
             {report.leftover_pairs && report.leftover_pairs.length > 0 && (
-              <ul className="ticket-list" aria-label="Leftover pairs">
+              <ul className="ticket-list" aria-label={t("Leftover pairs")}>
                 {report.leftover_pairs.map((pair) => {
                   const kindLabel =
-                    pair.pair_kind === "farthest" ? "Farthest leftover" : "Closest leftover";
-                  const nextAction =
-                    pair.pair_kind === "farthest"
-                      ? "Open this post to read the criterion it sat farthest from after main effects."
-                      : "Open this post to read the criterion it sat closest to after main effects.";
+                    pair.pair_kind === "farthest" ? t("Farthest leftover") : t("Closest leftover");
                   const criterion = criterionShortLabel(pair.criterion_code);
+                  const rankBadge = formatLeftoverMapRank(pair.leftover_map_rank);
+                  const nextAction =
+                    rankBadge === null
+                      ? pair.pair_kind === "farthest"
+                        ? t("Open this post to read the criterion it sat farthest from after main effects.")
+                        : t("Open this post to read the criterion it sat closest to after main effects.")
+                      : pair.leftover_map_rank === 0
+                        ? t(LEFTOVER_RANK_ZERO_ACTION)
+                        : tf(LEFTOVER_RANK_STRUCTURE_ACTION, {
+                            rank: String(pair.leftover_map_rank),
+                          });
                   return (
                     <li
                       key={`${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
@@ -3413,6 +3421,7 @@ function ReportsPanel({
                           {kindLabel}: {pair.post_title} · {criterion}
                         </span>
                         <span className="post-badge">{nextAction}</span>
+                        {rankBadge ? <span className="post-badge">{rankBadge}</span> : null}
                         <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
                       </button>
                     </li>
