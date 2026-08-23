@@ -785,7 +785,11 @@ async def list_period_report_summaries(
                 {
                     "visibility_code": member["visibility_code"],
                     "corporate_entity_id": str(member["corporate_entity_id"]),
-                    "process_unit_id": str(member["process_unit_id"]),
+                    "process_unit_id": (
+                        None
+                        if member["process_unit_id"] is None
+                        else str(member["process_unit_id"])
+                    ),
                     "has_real_source_context": bool(member["has_real_source_context"]),
                 }
                 for member in members_by_key.get((row["grouping_key"], row["period_code"]), [])

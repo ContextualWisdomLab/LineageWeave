@@ -2385,11 +2385,31 @@ async def read_period_reports(
             and not _is_synthetic_demo_member(pair, demo_entity_ids)
         ]
         members = [
-            {key: value for key, value in member.items() if key != "has_real_source_context"}
+            {
+                key: value
+                for key, value in member.items()
+                if key
+                not in {
+                    "has_real_source_context",
+                    "visibility_code",
+                    "corporate_entity_id",
+                    "process_unit_id",
+                }
+            }
             for member in members
         ]
         leftover_pairs = [
-            {key: value for key, value in pair.items() if key != "has_real_source_context"}
+            {
+                key: value
+                for key, value in pair.items()
+                if key
+                not in {
+                    "has_real_source_context",
+                    "visibility_code",
+                    "corporate_entity_id",
+                    "process_unit_id",
+                }
+            }
             for pair in leftover_pairs
         ]
         visible.append(
