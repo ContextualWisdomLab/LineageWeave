@@ -48,6 +48,8 @@ def test_tenant_settings_migration_is_safe_to_replay() -> None:
     assert "0103_*" in script
     assert "create table if not exists tenant_settings" in migration
     assert "on conflict (id) do nothing" in migration
+
+
 def test_channel_weight_migration_preserves_raw_source_grouping() -> None:
     migration = (
         Path(__file__).resolve().parents[1]
