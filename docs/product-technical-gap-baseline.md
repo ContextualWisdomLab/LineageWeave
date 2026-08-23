@@ -51,11 +51,27 @@ is branch commit `5ec42616e6b4ab6ed0b7757c299523110acb62ca`, but no open PR carr
 branch to `main`; both remain stack evidence, not protected-main release
 evidence.
 
+Subsequent stack evidence, verified at 2026-08-23 22:44 KST, also remains
+outside protected `main`: PR #491 at
+`1a5139f233f2dc484f970b25c4e1b51462dbedf8` merged normally as
+`60efee9b9a97fa433f1d8a83f396c7f8d55df39e` into the non-default
+`worktree-fix-frontend-build-break` branch. Its four-file documentation diff
+records ADR 0157's public ontology namespace identity without a production
+namespace rewrite. The exact stacked head passed the hosted full and frontend
+suites, but the target-repository central review workflows did not run for
+that non-default target. This is stack integration evidence, not evidence of a
+protected `main` release or independent approval.
+
 Current active-PR evidence remains outside protected `main`:
 
 - PR #258 at `2e2ddd1998734d6e29dad0ba916053dd8cf27983` carries ADR 0146's
   distributed MCP principal rate-limit decision. Its aggregate checks failed;
   it had no unresolved thread or exact-head approval.
+- PR #426 at `60efee9b9a97fa433f1d8a83f396c7f8d55df39e` is the current
+  prerequisite carrier for ontology publication and the merged ADR 0157 stack.
+  It had two unresolved review threads, no exact-head approval, and a pending
+  Strix rerun. The provider-unavailable Strix result on its prior
+  `4828b3a5e4eb180bb3cb9c5a06d1327e1003065a` head is stale evidence.
 - PR #355 at `de7f78c5afe1a9e7f50303da9b5ee81a6f767633` carries ADR 0145's
   Naruon calendar projection boundary. Its checks were pending, with no
   unresolved thread or exact-head approval.
@@ -64,9 +80,6 @@ Current active-PR evidence remains outside protected `main`:
   from both this exact tree and protected `main`, so it is not attributed to
   this head. Its aggregate checks failed, with no unresolved thread or
   exact-head approval.
-- PR #491 at `c820ba8de9bf39aa89a30477efc5d6b1d3fbb48a` proposes ADR 0157's
-  public ontology namespace identity without a production namespace rewrite.
-  Its checks were pending, with no unresolved thread or exact-head approval.
 
 ## 3. Open product and technical gaps
 
