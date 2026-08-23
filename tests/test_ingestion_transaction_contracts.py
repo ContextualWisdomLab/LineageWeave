@@ -226,6 +226,101 @@ def test_prepared_sibling_alias_reuses_first_applied_catalog_entity() -> None:
     assert score_corporate_entity("Alphx", candidates).top_score == pytest.approx(0.8)
 
 
+def test_prepared_child_excludes_resolved_parent_from_alias_reuse() -> None:
+    """A fuzzy parent name cannot collapse a corroborated child hierarchy."""
+    events: list[Any] = []
+    parent_id = uuid.uuid4()
+    child_id = uuid.uuid4()
+    inserted_rows: list[dict[str, Any]] = []
+
+    class HierarchyInference:
+        available = True
+
+        def infer(self, organization_name: str, _context_text: str) -> HierarchyProposal:
+            if organization_name == "Synthetiqx":
+                return HierarchyProposal(level_code="plant", parent_name="Synthetic")
+            return HierarchyProposal(level_code="company", parent_name=None)
+
+    class HierarchyVerification:
+        available = True
+
+        def verify(self, _subject: str, _relation: str) -> SimpleNamespace:
+            return SimpleNamespace(status_code=STATUS_CORROBORATED)
+
+    class HierarchyConnection:
+        def transaction(self) -> _RecordedTransaction:
+            return _RecordedTransaction(events)
+
+        async def execute(self, query: str, *_args: Any) -> str:
+            assert "pg_advisory_xact_lock" in query
+            return "SELECT 1"
+
+        async def fetch(self, _query: str, *_args: Any) -> list[dict[str, Any]]:
+            return list(inserted_rows)
+
+        async def fetchrow(self, query: str, *args: Any) -> dict[str, uuid.UUID]:
+            assert "insert into corporate_entity" in query
+            organization_name = args[2]
+            entity_id = parent_id if organization_name == "Synthetic" else child_id
+            inserted_rows.append(
+                {
+                    "corporate_entity_id": entity_id,
+                    "entity_name": organization_name,
+                    "parent_entity_id": args[0],
+                }
+            )
+            return {"corporate_entity_id": entity_id}
+
+    async def prepare_parent_and_child() -> tuple[
+        tuple[str | None, str | None],
+        tuple[str | None, str | None],
+        list[Any],
+    ]:
+        candidates: list[Any] = []
+        inference = HierarchyInference()
+        verification = HierarchyVerification()
+        parent = await corporate_ingestion.prepare_corporate_entity_resolution(
+            "Synthetic",
+            "Synthetic parent-child context",
+            inference,
+            verification,
+            candidates,
+        )
+        child = await corporate_ingestion.prepare_corporate_entity_resolution(
+            "Synthetiqx",
+            "Synthetic parent-child context",
+            inference,
+            verification,
+            candidates,
+        )
+        connection = HierarchyConnection()
+        parent_result = (
+            await corporate_ingestion.apply_prepared_corporate_entity_resolution(
+                connection,
+                parent,
+                candidates,
+            )
+        )
+        child_result = (
+            await corporate_ingestion.apply_prepared_corporate_entity_resolution(
+                connection,
+                child,
+                candidates,
+            )
+        )
+        return parent_result, child_result, candidates
+
+    parent_result, child_result, candidates = asyncio.run(prepare_parent_and_child())
+
+    assert score_corporate_entity("Synthetiqx", candidates[:1]).top_score == pytest.approx(
+        0.8421052631578947
+    )
+    assert parent_result == (str(parent_id), None)
+    assert child_result == (str(child_id), None)
+    assert [row["entity_name"] for row in inserted_rows] == ["Synthetic", "Synthetiqx"]
+    assert inserted_rows[1]["parent_entity_id"] == str(parent_id)
+
+
 def test_prepared_parent_chain_applies_parent_before_child_without_provider_locks() -> None:
     """The composite caller preserves provider-first, parent-first semantics."""
     events: list[Any] = []

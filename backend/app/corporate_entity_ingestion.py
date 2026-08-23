@@ -252,16 +252,17 @@ async def apply_prepared_corporate_entity_resolution(
     conn: asyncpg.Connection,
     prepared: PreparedCorporateEntityResolution,
     candidates: list[CorporateEntityCandidate],
+    *,
+    _resolved_parent_ids: set[str] | None = None,
 ) -> tuple[str | None, str | None]:
     """Apply a provider-complete plan using database work only."""
+    resolved_parent_ids = (
+        _resolved_parent_ids if _resolved_parent_ids is not None else set()
+    )
     if prepared.catalog_id is not None or prepared.proposal is None:
+        if prepared.catalog_id is not None:
+            resolved_parent_ids.add(prepared.catalog_id)
         return prepared.catalog_id, prepared.unresolved_reason
-
-    evolving = score_corporate_entity(prepared.normalized_name, candidates)
-    if evolving.kind == RESOLUTION_UNIQUE and evolving.catalog_id is not None:
-        return evolving.catalog_id, None
-    if evolving.kind == RESOLUTION_TIE:
-        return None, "reason_tied_candidates"
 
     parent_entity_id: str | None = None
     if prepared.parent is not None:
@@ -270,10 +271,26 @@ async def apply_prepared_corporate_entity_resolution(
                 conn,
                 prepared.parent,
                 candidates,
+                _resolved_parent_ids=resolved_parent_ids,
             )
         )
         if parent_entity_id is None:
             return None, "reason_not_corroborated"
+        resolved_parent_ids.add(parent_entity_id)
+
+    evolving = score_corporate_entity(
+        prepared.normalized_name,
+        [
+            candidate
+            for candidate in candidates
+            if candidate.corporate_entity_id not in resolved_parent_ids
+        ],
+    )
+    if evolving.kind == RESOLUTION_UNIQUE and evolving.catalog_id is not None:
+        resolved_parent_ids.add(evolving.catalog_id)
+        return evolving.catalog_id, None
+    if evolving.kind == RESOLUTION_TIE:
+        return None, "reason_tied_candidates"
 
     async with conn.transaction():
         await conn.execute(
@@ -291,6 +308,7 @@ async def apply_prepared_corporate_entity_resolution(
         )
         if fresh.kind == RESOLUTION_UNIQUE and fresh.catalog_id is not None:
             _remember_candidate(candidates, fresh.catalog_id, prepared.normalized_name)
+            resolved_parent_ids.add(fresh.catalog_id)
             return fresh.catalog_id, None
         if fresh.kind == RESOLUTION_TIE:
             return None, "reason_tied_candidates"
@@ -301,6 +319,7 @@ async def apply_prepared_corporate_entity_resolution(
             parent_entity_id,
         )
         _remember_candidate(candidates, new_id, prepared.normalized_name)
+        resolved_parent_ids.add(new_id)
         return new_id, None
 
 
