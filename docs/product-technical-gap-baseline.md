@@ -126,8 +126,11 @@ coverage across `8,021` statements and `2,484` branches, with `813` missed
 statements and `390` partial branches. The temporal Python delta itself has
 `7/7` changed executable statements and `2/2` changed branches covered.
 The full frontend suite passed `267` tests, and frontend lint/build plus
-`git diff --check` passed. Repository-wide 100% coverage, frontend coverage
-measurement, and visual browser acceptance remain separate open gates.
+`git diff --check` passed. The new official Vitest V8 production-source
+measurement reports `86.20%` statements, `76.21%` branches, `83.39%`
+functions, and `88.63%` lines; tests, Storybook scenes, and test setup are the
+only excluded non-production files. Repository-wide 100% coverage and visual
+browser acceptance remain separate open gates.
 
 The historical evidence below remains valid only at the exact heads and dates
 stated in each entry. It must not be used as proof that the current continuation
@@ -538,7 +541,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | External email/project lineage package boundary | PR #343 merged at `125a8069a1554874d8067a15047e19d780ea6b7b` with strict v1.0.0 bounded request/result types, available-time cutoff handling, observed/inferred/proposed truth states, pair-budget enforcement, and no source/provider access | source + focused unit; immutable release open |
 | Naruon calendar projection boundary | PR #337 is closed as superseded; PR #355 carries the strict read projection contract without making LineageWeave a CalDAV provider | source + focused unit; Naruon endpoint, runtime wiring, and provider conformance remain open |
 | Hourly PR review/repair/merge loop | Central protected `main` owns generic `*/30 * * * *` and `*/15 * * * *` sweeps; the LineageWeave-specific minute-4 hourly repair caller remains open in `ContextualWisdomLab/.github#1086` at `aeb096a52c5f`, so no duplicate repo-local scheduler is required | source + exact-head local gate; protected merge and first scheduled run open |
-| 100% coverage/docstrings/edge-case/release gates | the two source-research modules and PROV-O have exact focused 100% branch results; the exact-head coverage-instrumented full Python suite is green at `971` passed / `16` skipped but measures only `87%` across production Python source, while the full frontend suite is green at `267` passed without a repository-wide frontend coverage report | open: 813 Python statements, 390 partial branches, frontend coverage, hosted checks, independent review, and release evidence |
+| 100% coverage/docstrings/edge-case/release gates | the two source-research modules and PROV-O have exact focused 100% branch results; the exact-head coverage-instrumented full Python suite is green at `971` passed / `16` skipped but measures only `87%` across production Python source; official Vitest V8 measurement keeps all production TypeScript/TSX in scope and reports `86.20%` statements / `76.21%` branches / `83.39%` functions / `88.63%` lines with `267` tests green | open: 813 Python statements, 390 partial Python branches, 397 frontend statements, 633 frontend branches, 144 frontend functions, 299 frontend lines, hosted checks, independent review, and release evidence |
 
 ## 4. Supplied parsing and semantic cases
 
@@ -607,7 +610,9 @@ or an explicit unavailable result.
 - **Repository-wide gate stability — partial:** the latest current-source full
   coverage-instrumented Python run passes `971` tests with `16` skips and
   measures `87%` branch-aware production-source coverage; pinned Corepack Vitest
-  passes all `267` tests. CI now provisions pinned Valkey and a synthetic
+  passes all `267` tests, and the reproducible `test:coverage` command reports
+  `86.20%` statements / `76.21%` branches / `83.39%` functions /
+  `88.63%` lines. CI now provisions pinned Valkey and a synthetic
   imported Keycloak realm, removing the infrastructure
   reason that made all `115` live-stack API tests self-skip; `actionlint` passes,
   but the hosted run is not yet evidence. Skipped live-stack cases and hosted
