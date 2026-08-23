@@ -326,15 +326,21 @@ async def _append_status(
     analysis_run_id: str,
     status_ordinal: int,
     status_code: str,
-    occurred_at: datetime,
     failure_code: str | None = None,
 ) -> None:
-    """Append one legal lifecycle event. Failed rows carry a machine code."""
+    """Append one legal lifecycle event. Failed rows carry a machine code.
+
+    Occurrence and recording share one PostgreSQL ``clock_timestamp()``
+    so ``analysis_run_status_time_check`` cannot see a Python clock that
+    is ahead of the trigger write clock (ADR 0171).
+    """
     await conn.execute(
         """
         insert into analysis_run_status_event
-            (analysis_run_id, status_ordinal, status_code, occurred_at, failure_code)
-        values ($1, $2, $3, clock_timestamp(), $4)
+            (analysis_run_id, status_ordinal, status_code,
+             occurred_at, recorded_at, failure_code)
+        select $1, $2, $3, write_clock, write_clock, $4
+        from (select clock_timestamp() as write_clock) same_clock
         """,
         analysis_run_id,
         status_ordinal,
@@ -570,7 +576,6 @@ async def enqueue_pending_analysis_run(
             analysis_run_id,
             await _next_status_ordinal(conn, analysis_run_id),
             _RUNNING,
-            now,
         )
         await conn.execute(
             """
@@ -789,7 +794,6 @@ async def _deliver_lineage_reconstruction(
         analysis_run_id,
         await _next_status_ordinal(conn, analysis_run_id),
         _SUCCEEDED,
-        finished,
     )
 
 
@@ -801,7 +805,6 @@ async def _deliver_tepp_measurement(
     tepp_client: TeppClient,
 ) -> None:
     """Submit the frozen snapshot through ``tepp_client``. Never persist a theta."""
-    now = datetime.now(timezone.utc)
     request = tepp_run_request(
         idempotency_key=str(locked["idempotency_key"]),
         snapshot_sha256=str(locked["snapshot_sha256"]),
@@ -817,14 +820,10 @@ async def _deliver_tepp_measurement(
         ):
             status_code = _FAILED
             failure_code = "tepp_result_not_persisted"
-    finished = datetime.now(timezone.utc)
-    if finished < now:
-        finished = now
     await _append_status(
         conn,
         analysis_run_id,
         await _next_status_ordinal(conn, analysis_run_id),
         status_code,
-        finished,
         failure_code,
     )
