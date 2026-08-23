@@ -609,6 +609,35 @@ or an explicit unavailable result.
 
 ## 5. Product and technical gaps
 
+- **Technology-benefit relation (which partner technology, who adopted it,
+  where it is applied) — locally implemented, acceptance open (2026-08-24):**
+  source research (ADR 0133/0145) can resolve a partner organization a post
+  names only indirectly (e.g. an address match), but until now the specific
+  technology or capability that partner provided, which organization
+  received it, and where the adopter intends to apply it had no structured
+  representation -- a reviewer opening a post that named a technology
+  partner had no answer to those three questions beyond whatever free-text
+  evidence happened to be attached to an unrelated relation row. ADR 0146
+  adds a `technology` semantic-relation node type and three predicates
+  (`lw_technology_provided_by`, `lw_technology_adopted_by`,
+  `lw_technology_applied_to`) that decompose one technology-transfer fact
+  into up to three source-grounded rows sharing the same technology subject,
+  reusing the existing `post_summary_semantic_relationship` channel (no new
+  table, same pattern ADR 0142 used for the planned-facility predicate).
+  `SemanticRelationship.__post_init__` rejects a technology predicate whose
+  subject is not typed `technology`. Migration 0177 extends the write
+  constraint and is registered for existing-volume replay
+  (`docker/postgres-init/migrate.sh`); the ontology TTL declares the class,
+  the three object properties, and their `SemanticPredicateMapping`
+  entries so `semantic_predicate_annotations` resolves them; the extraction
+  prompt documents when to emit each predicate with a fictional example.
+  `POST_SUMMARY_CONTRACT_VERSION` bumped 20 -> 21. Verified: targeted
+  `pytest` (post_summary, ontology, schema, migration-replay -- 154 passed,
+  1 pre-existing skip, including a real-Postgres insert/constraint round
+  trip), frontend `tsc -b` and `oxlint` clean. Not yet verified: the LLM
+  extractor actually emitting these predicates against a real post (no
+  provider call made in this pass) and an authenticated browser capture of
+  the popup surfacing the three facts distinctly.
 - **Global Ask anchored temporal retrieval — locally implemented, acceptance
   open (2026-08-23):** a post detail now has a direct Ask action and carries a
   visible, removable starting-evidence anchor into the global Ask request.

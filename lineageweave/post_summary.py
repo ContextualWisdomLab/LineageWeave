@@ -75,6 +75,7 @@ SEMANTIC_RELATION_NODE_TYPES = frozenset(
         "place",
         "industrial_asset",
         "industrial_process",
+        "technology",
         "document",
         "observation",
         "activity",
@@ -142,7 +143,13 @@ SEMANTIC_RELATION_PREDICATES = frozenset(
         "lw_plans_to_operate",
         "lw_responsible_for",
         "lw_supports",
+        "lw_technology_provided_by",
+        "lw_technology_adopted_by",
+        "lw_technology_applied_to",
     }
+)
+_TECHNOLOGY_PREDICATES = frozenset(
+    {"lw_technology_provided_by", "lw_technology_adopted_by", "lw_technology_applied_to"}
 )
 PROJECT_MENTION_CONFIDENCE_THRESHOLD = 0.7
 FIVE_W1H_EVIDENCE_SLOTS = frozenset({"when", "where", "why", "how"})
@@ -219,7 +226,7 @@ EVENT_CLUE_TYPES = frozenset(
 )
 # Stored rows without this contract version are legacy summaries and must be
 # regenerated from the current source body before the popup treats them as evidence.
-POST_SUMMARY_CONTRACT_VERSION = 20
+POST_SUMMARY_CONTRACT_VERSION = 21
 
 _GENERIC_TEAM_ACTOR_NAMES = frozenset(
     {"사업부", "부서", "팀", "business unit", "department", "division"}
@@ -501,6 +508,8 @@ class SemanticRelationship:
             raise ValueError("unsupported semantic relationship predicate")
         if not math.isfinite(self.confidence) or not 0 <= self.confidence <= 1:
             raise ValueError("semantic relationship confidence must be between 0 and 1")
+        if self.predicate_code in _TECHNOLOGY_PREDICATES and self.subject_type != "technology":
+            raise ValueError("technology relation predicates require a technology subject")
 
 
 def normalize_project_key(project_name: str) -> str:
@@ -948,6 +957,20 @@ particular:
   already operating;
 - emit separate organization-to-project rows when the source explicitly
   assigns different organizations different project responsibilities;
+- use lw_technology_provided_by when the source explicitly names a
+  technology, method, or model and the organization that provided or
+  originated it, such as "AcmeTech's predictive maintenance model" or
+  "adopted the diagnostics technology from AcmeTech". The subject is the
+  named technology (subject type technology), not the recipient
+  organization;
+- use lw_technology_adopted_by, as a separate row sharing the same
+  technology subject name, when the source also explicitly names which
+  organization received or is using that technology;
+- use lw_technology_applied_to, as a separate row again sharing the same
+  technology subject name, only when the source explicitly names the
+  project, facility, process, or place the technology is meant to be
+  applied to, such as "plans to apply it to the Highland line". Do not
+  infer an application target from proximity alone;
 - do not turn attendance, an affiliation field, or a project mention alone
   into a relation.
 For an explicit chronology, use OWL-Time instead of inventing a predecessor,
@@ -969,6 +992,9 @@ Fictional format examples only:
 Northwind Services | organization | org_member_of | Northwind Group | organization | joined Northwind Group | 0.98
 Northwind Services | organization | lw_supports | Highland HVDC | project | provided installation support for Highland HVDC | 0.9
 Prime Contractor | organization | lw_responsible_for | Highland HVDC | project | Prime Contractor was the main contractor | 0.95
+Predictive Maintenance Model | technology | lw_technology_provided_by | Northwind Services | organization | adopted the predictive maintenance model from Northwind Services | 0.9
+Predictive Maintenance Model | technology | lw_technology_adopted_by | Prime Contractor | organization | adopted the predictive maintenance model from Northwind Services | 0.9
+Predictive Maintenance Model | technology | lw_technology_applied_to | Highland HVDC | project | plans to apply it to Highland HVDC | 0.85
 Synthetic base release | temporal_entity | time_before | Synthetic multi-stage release | temporal_entity | base release came first | 0.98
 A full predicate registry is supplied by the application contract; if no
 predicate fits, omit the relation rather than inventing a verb.

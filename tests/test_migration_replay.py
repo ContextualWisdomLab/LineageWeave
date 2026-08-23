@@ -201,6 +201,33 @@ def test_migrate_sh_replays_planned_facility_predicate_on_existing_volumes() -> 
     assert "'lw_plans_to_operate'" not in rollback
 
 
+def test_migrate_sh_replays_technology_benefit_predicates_on_existing_volumes() -> None:
+    """Existing relationship tables must accept the ADR 0146 technology predicates."""
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(
+        encoding="utf-8"
+    )
+    migration = (
+        root / "migrations" / "0177_technology_benefit_relation_predicates.sql"
+    ).read_text(encoding="utf-8")
+    rollback = (
+        root
+        / "migrations"
+        / "rollback"
+        / "0177_technology_benefit_relation_predicates.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "0177_*" in script
+    assert "'technology'" in migration
+    assert "'lw_technology_provided_by'" in migration
+    assert "'lw_technology_adopted_by'" in migration
+    assert "'lw_technology_applied_to'" in migration
+    assert "'lw_technology_provided_by'" not in rollback
+    assert "'lw_technology_adopted_by'" not in rollback
+    assert "'lw_technology_applied_to'" not in rollback
+    assert "'technology'" not in rollback
+
+
 def test_tenant_identity_migration_repairs_legacy_values_before_constraints() -> None:
     """Legacy blank settings cannot make an existing-volume replay fail closed."""
     migration = (

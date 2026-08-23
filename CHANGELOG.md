@@ -21,6 +21,16 @@ All notable changes to this project are documented here. Format follows
   same source span names a matching R&R actor and project-backed facility; it
   never represents an already-operating facility. Migration 0138 keeps the
   database write constraint aligned with the closed predicate vocabulary.
+- A post naming a technology partner can now record which specific
+  technology or capability the partner provided, which organization
+  adopted it, and where the adopter intends to apply it, as three
+  source-grounded semantic-relationship rows sharing one technology
+  subject (`lw_technology_provided_by`, `lw_technology_adopted_by`,
+  `lw_technology_applied_to`; ADR 0146). Previously, resolving the
+  partner organization itself was the only structured fact captured;
+  the specific technology and intended application stayed unstructured
+  prose. Migration 0177 admits the new `technology` node type and the
+  three predicates to the write constraint.
 - Event Lineage now reports why a post has no DAG (ADR 0143):
   "no_relation_found" when reconstruct compared it against real
   candidates and found no relation, or "no_comparison_group" when it was
