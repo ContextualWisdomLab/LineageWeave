@@ -118,8 +118,9 @@ services:
       CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES: ${CONTEXTUAL_ORCHESTRATOR_MAX_BODY_BYTES:-8388608}
       CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS: ${CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS:-host.docker.internal}
       OTEL_SERVICE_NAME: ${OTEL_ORCHESTRATOR_SERVICE_NAME:-contextual-orchestrator}
-      # Empty by default: export is opt-in and never falls back to localhost.
-      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      # Do not set OTEL_EXPORTER_OTLP_ENDPOINT here. An empty
+      # ${OTEL_EXPORTER_OTLP_ENDPOINT:-} interpolation would wipe a value from
+      # env_file (${HOME}/.env). Export stays opt-in from that file or the host.
     command: ["python", "/app/start.py"]
     ports:
       - "${ORCHESTRATOR_PORT:-18000}:8000"

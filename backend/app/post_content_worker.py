@@ -277,7 +277,7 @@ async def process_post_content_job(
         outcome = (
             "provider_unavailable"
             if isinstance(
-                exc, (HttpClientError, KeyError, OSError, ValueError)
+                exc, (HttpClientError, TimeoutError, KeyError, OSError, ValueError)
             )
             else "internal_error"
         )

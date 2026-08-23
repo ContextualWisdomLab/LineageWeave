@@ -16,10 +16,12 @@ control contract in [ADR 0009](https://github.com/ContextualWisdomLab/governance
 
 1. LineageWeave uses the OpenTelemetry Python API and SDK and exports OTLP only
    when OTEL_EXPORTER_OTLP_ENDPOINT is explicitly configured. The exporter
-   treats that value as a base URL and sends traces to its normalized
-   /v1/traces signal endpoint. The service resource name is lineageweave
-   unless the operator overrides it with the standard OTEL_SERVICE_NAME
-   variable.
+   treats that value as a base URL and sends traces, metrics, and correlated
+   logs to the normalized /v1/traces, /v1/metrics, and /v1/logs signal
+   endpoints. The service resource name is lineageweave unless the operator
+   overrides it with the standard OTEL_SERVICE_NAME variable. A blank or unset
+   endpoint leaves the SDK unconfigured so a later operator value can still
+   enable export.
 2. Every contextual-orchestrator POST carries the existing
    `lineageweave_post_session_id` as `X-LineageWeave-Session-Id`. The
    orchestrator binds it to the request context and adds it to provider spans,
@@ -38,13 +40,14 @@ control contract in [ADR 0009](https://github.com/ContextualWisdomLab/governance
    contain only operation code and outcome, so high-cardinality session IDs and
    exception classes remain in bounded structured logs and traces instead of
    metric labels.
-5. Failure logs contain operation, error type, status, and the bounded session
-   correlation only. Unexpected failures may include a bounded stack trace,
-   but never the exception value, prompt, response, source body, credential,
-   actor, or tenant identifier. They do not become a second evidence database.
-   GRC may consume aggregate control evidence and OTLP-derived SLO signals
-   through its existing contracts; LineageWeave does not copy GRC tables or
-   credentials.
+5. Failure logs contain operation, error type, the bounded session
+   correlation, and the active W3C TraceId and SpanId so another agent can
+   join the structured log to the Error span. Unexpected failures may include
+   a bounded stack trace, but never the exception value, prompt, response,
+   source body, credential, actor, or tenant identifier. They do not become a
+   second evidence database. GRC may consume aggregate control evidence and
+   OTLP-derived SLO signals through its existing contracts; LineageWeave does
+   not copy GRC tables or credentials.
 6. No ad hoc session table is introduced. The existing normalized post-scoped
    session metadata remains the source of correlation.
 

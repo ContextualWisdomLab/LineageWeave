@@ -8,6 +8,8 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import pytest
 
 from lineageweave.http_client import HttpClientError, get_json, get_json_list, post_form, post_json
+from lineageweave.observability import traced
+from tests.test_observability import attach_inmemory_tracer
 
 
 class _JsonHandler(BaseHTTPRequestHandler):
@@ -18,6 +20,7 @@ class _JsonHandler(BaseHTTPRequestHandler):
             "path": self.path,
             "method": "GET",
             "authorization": self.headers.get("authorization"),
+            "traceparent": self.headers.get("traceparent"),
         }
         if "/users" in self.path:
             payload: object = [{"id": "sub-1", "username": "demo.analyst"}]
@@ -38,6 +41,7 @@ class _JsonHandler(BaseHTTPRequestHandler):
             "authorization": self.headers.get("authorization"),
             "content_type": self.headers.get("content-type"),
             "payload": raw.decode("utf-8"),
+            "traceparent": self.headers.get("traceparent"),
         }
         echo = raw.decode("utf-8")
         try:
@@ -115,6 +119,60 @@ def test_get_json_fetches_json_from_http_endpoint() -> None:
 
     assert body == {"ok": True, "path": "/.well-known/openid-configuration"}
     assert _JsonHandler.received["authorization"] == "Bearer test-token"
+
+
+def _traceparent_trace_id(header: str | None) -> str:
+    assert header is not None
+    parts = header.split("-")
+    assert len(parts) == 4
+    assert parts[0] == "00"
+    assert len(parts[1]) == 32
+    assert len(parts[2]) == 16
+    return parts[1]
+
+
+def test_post_json_and_get_json_inject_parent_traceparent(monkeypatch) -> None:
+    """Shipped HTTP client injects the parent TraceId as W3C traceparent."""
+    attach_inmemory_tracer(monkeypatch)
+    captured: dict[str, str | None] = {}
+    server, base = _serve(_JsonHandler)
+    try:
+        with traced("lineageweave.test.parent"):
+            from opentelemetry import trace
+
+            parent_trace_id = format(
+                trace.get_current_span().get_span_context().trace_id, "032x"
+            )
+            _JsonHandler.received = {}
+            post_json(
+                f"{base}/v1/chat/completions",
+                {},
+                headers={},
+                timeout=2.0,
+                service_peer_name="contextual-orchestrator",
+            )
+            captured["post"] = _JsonHandler.received.get("traceparent")
+            _JsonHandler.received = {}
+            get_json(
+                f"{base}/v1/models",
+                timeout=2.0,
+                service_peer_name="tepp",
+            )
+            captured["get"] = _JsonHandler.received.get("traceparent")
+            _JsonHandler.received = {}
+            get_json_list(
+                f"{base}/admin/users",
+                timeout=2.0,
+                service_peer_name="tepp",
+            )
+            captured["list"] = _JsonHandler.received.get("traceparent")
+    finally:
+        server.shutdown()
+
+    assert parent_trace_id != "0" * 32
+    assert _traceparent_trace_id(captured["post"]) == parent_trace_id
+    assert _traceparent_trace_id(captured["get"]) == parent_trace_id
+    assert _traceparent_trace_id(captured["list"]) == parent_trace_id
 
 
 def test_post_form_posts_urlencoded_fields() -> None:

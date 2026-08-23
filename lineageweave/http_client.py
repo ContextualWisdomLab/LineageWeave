@@ -15,6 +15,7 @@ from __future__ import annotations
 import http.client
 import json
 import ssl
+from collections.abc import Callable
 from urllib.parse import urlencode, urlparse
 
 import certifi
@@ -187,11 +188,53 @@ def post_form(
     return _decode_json_object(raw, hostname)
 
 
+def _traced_get_json(
+    url: str,
+    *,
+    headers: dict[str, str] | None,
+    timeout: float,
+    decoder: Callable[[bytes, str], dict | list],
+    span_name: str,
+    service_peer_name: str,
+):
+    """GET ``url`` under one HTTP span and inject the active W3C context."""
+    hostname = urlparse(url).hostname or url
+    request_headers = dict(headers or {})
+    session_id = current_session_id()
+    if session_id:
+        request_headers["x-lineageweave-session-id"] = session_id
+    with traced(
+        span_name,
+        {
+            "http.request.method": "GET",
+            "lineageweave.operation_code": "http_get_json",
+            "service.peer.name": service_peer_name,
+        },
+    ) as span:
+        inject_trace_context(request_headers)
+        status, raw = _request(
+            "GET", url, body=None, headers=request_headers, timeout=timeout
+        )
+        if span is not None:
+            span.set_attribute("http.response.status_code", status)
+        if status >= 400:
+            if span is not None:
+                span.set_attribute("error.type", str(status))
+            raise HttpClientError(f"HTTP {status} from {hostname}")
+        try:
+            return decoder(raw, hostname)
+        except HttpClientError:
+            if span is not None:
+                span.set_attribute("error.type", "HttpClientError")
+            raise
+
+
 def get_json(
     url: str,
     *,
     headers: dict[str, str] | None = None,
     timeout: float,
+    service_peer_name: str = "contextual-orchestrator",
 ) -> dict:
     """GET ``url`` and return the decoded JSON object.
 
@@ -199,11 +242,14 @@ def get_json(
         ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
         HttpClientError: the server responded with HTTP >= 400 or non-JSON.
     """
-    status, raw = _request("GET", url, body=None, headers=headers or {}, timeout=timeout)
-    hostname = urlparse(url).hostname or url
-    if status >= 400:
-        raise HttpClientError(f"HTTP {status} from {hostname}")
-    return _decode_json_object(raw, hostname)
+    return _traced_get_json(
+        url,
+        headers=headers,
+        timeout=timeout,
+        decoder=_decode_json_object,
+        span_name="lineageweave.http.get_json",
+        service_peer_name=service_peer_name,
+    )
 
 
 def get_json_list(
@@ -211,6 +257,7 @@ def get_json_list(
     *,
     headers: dict[str, str] | None = None,
     timeout: float,
+    service_peer_name: str = "contextual-orchestrator",
 ) -> list:
     """GET ``url`` and return the decoded JSON array.
 
@@ -221,8 +268,11 @@ def get_json_list(
         ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
         HttpClientError: the server responded with HTTP >= 400 or non-array JSON.
     """
-    status, raw = _request("GET", url, body=None, headers=headers or {}, timeout=timeout)
-    hostname = urlparse(url).hostname or url
-    if status >= 400:
-        raise HttpClientError(f"HTTP {status} from {hostname}")
-    return _decode_json_list(raw, hostname)
+    return _traced_get_json(
+        url,
+        headers=headers,
+        timeout=timeout,
+        decoder=_decode_json_list,
+        span_name="lineageweave.http.get_json_list",
+        service_peer_name=service_peer_name,
+    )

@@ -11,7 +11,7 @@ import logging
 import os
 import traceback
 from collections.abc import Iterator, Mapping
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from typing import Any
 
 try:
@@ -31,6 +31,8 @@ _TRACER_NAME = "lineageweave"
 _FAILURE_COUNTER: Any = None
 _TRACE_PROVIDER: Any = None
 _METER_PROVIDER: Any = None
+_LOG_PROVIDER: Any = None
+_LOG_HANDLER: Any = None
 _SERVER_FAILURE_OUTCOMES = {"provider_unavailable", "internal_error"}
 _ALLOWED_ATTRIBUTE_KEYS = frozenset(
     {
@@ -47,7 +49,14 @@ _ALLOWED_ATTRIBUTE_KEYS = frozenset(
     }
 )
 _ALLOWED_OPERATION_CODES = frozenset(
-    {"global_ask", "http_post_json", "post_chat", "post_content_ingestion", "unknown"}
+    {
+        "global_ask",
+        "http_get_json",
+        "http_post_json",
+        "post_chat",
+        "post_content_ingestion",
+        "unknown",
+    }
 )
 
 
@@ -78,6 +87,26 @@ def _otlp_signal_endpoint(endpoint: str, signal: str) -> str:
 def _otlp_metric_endpoint(endpoint: str) -> str:
     """Turn an OTLP base endpoint into the explicit HTTP metrics endpoint."""
     return _otlp_signal_endpoint(endpoint, "metrics")
+
+
+def _otlp_log_endpoint(endpoint: str) -> str:
+    """Turn an OTLP base endpoint into the explicit HTTP logs endpoint."""
+    return _otlp_signal_endpoint(endpoint, "logs")
+
+
+def _current_trace_ids() -> tuple[str, str]:
+    """Return the active span's TraceId and SpanId as lowercase hex, or blanks."""
+    getter = getattr(trace, "get_current_span", None) if trace is not None else None
+    if getter is None:
+        return "", ""
+    span = getter()
+    context_getter = getattr(span, "get_span_context", None)
+    if span is None or context_getter is None:
+        return "", ""
+    context = context_getter()
+    if context is None or not getattr(context, "is_valid", False):
+        return "", ""
+    return format(context.trace_id, "032x"), format(context.span_id, "016x")
 
 
 def current_session_id() -> str | None:
@@ -120,8 +149,8 @@ def _safe_attributes(
 
 
 def configure_telemetry(service_name: str = "lineageweave") -> None:
-    """Configure OTLP traces and bounded failure metrics when enabled."""
-    global _CONFIGURED, _TRACE_PROVIDER, _METER_PROVIDER
+    """Configure OTLP traces, metrics, and correlated logs when enabled."""
+    global _CONFIGURED, _TRACE_PROVIDER, _METER_PROVIDER, _LOG_PROVIDER, _LOG_HANDLER
     if _CONFIGURED or os.getenv("OTEL_SDK_DISABLED", "").lower() == "true":
         return
     endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip()
@@ -151,35 +180,63 @@ def configure_telemetry(service_name: str = "lineageweave") -> None:
     trace.set_tracer_provider(provider)
     _TRACE_PROVIDER = provider
     _CONFIGURED = True
-    if metrics is None:
+    if metrics is not None:
+        try:
+            from opentelemetry.exporter.otlp.proto.http.metric_exporter import (
+                OTLPMetricExporter,
+            )
+            from opentelemetry.sdk.metrics import MeterProvider
+            from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
+        except ImportError:  # pragma: no cover - guarded by the runtime extra
+            _LOGGER.warning("OpenTelemetry metric SDK/exporter is unavailable")
+        else:
+            meter_provider = MeterProvider(
+                resource=resource,
+                metric_readers=[
+                    PeriodicExportingMetricReader(
+                        OTLPMetricExporter(endpoint=_otlp_metric_endpoint(endpoint))
+                    )
+                ],
+            )
+            metrics.set_meter_provider(meter_provider)
+            _METER_PROVIDER = meter_provider
+    try:
+        from opentelemetry._logs import set_logger_provider
+        from opentelemetry.exporter.otlp.proto.http._log_exporter import (
+            OTLPLogExporter,
+        )
+        from opentelemetry.sdk._logs import LoggerProvider, LoggingHandler
+        from opentelemetry.sdk._logs.export import BatchLogRecordProcessor
+    except ImportError:  # pragma: no cover - guarded by the runtime extra
+        _LOGGER.warning("OpenTelemetry log SDK/exporter is unavailable")
         return
     try:
-        from opentelemetry.exporter.otlp.proto.http.metric_exporter import (
-            OTLPMetricExporter,
-        )
-        from opentelemetry.sdk.metrics import MeterProvider
-        from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
-    except ImportError:  # pragma: no cover - guarded by the runtime extra
-        _LOGGER.warning("OpenTelemetry metric SDK/exporter is unavailable")
-        return
-    meter_provider = MeterProvider(
-        resource=resource,
-        metric_readers=[
-            PeriodicExportingMetricReader(
-                OTLPMetricExporter(endpoint=_otlp_metric_endpoint(endpoint))
+        log_provider = LoggerProvider(resource=resource)
+        log_provider.add_log_record_processor(
+            BatchLogRecordProcessor(
+                OTLPLogExporter(endpoint=_otlp_log_endpoint(endpoint))
             )
-        ],
-    )
-    metrics.set_meter_provider(meter_provider)
-    _METER_PROVIDER = meter_provider
+        )
+        set_logger_provider(log_provider)
+        handler = LoggingHandler(level=logging.WARNING, logger_provider=log_provider)
+        _LOGGER.addHandler(handler)
+        _LOG_PROVIDER = log_provider
+        _LOG_HANDLER = handler
+    except Exception:  # noqa: BLE001 - export must stay fail-open
+        _LOGGER.warning("OpenTelemetry log exporter is unavailable")
 
 
 def shutdown_telemetry() -> None:
     """Flush configured OTLP providers without masking application shutdown."""
-    global _CONFIGURED, _TRACE_PROVIDER, _METER_PROVIDER, _FAILURE_COUNTER
+    global _CONFIGURED, _TRACE_PROVIDER, _METER_PROVIDER, _LOG_PROVIDER
+    global _LOG_HANDLER, _FAILURE_COUNTER
+    if _LOG_HANDLER is not None:
+        _LOGGER.removeHandler(_LOG_HANDLER)
+        _LOG_HANDLER = None
     for provider_name, provider in (
         ("trace", _TRACE_PROVIDER),
         ("metric", _METER_PROVIDER),
+        ("log", _LOG_PROVIDER),
     ):
         if provider is None:
             continue
@@ -192,6 +249,7 @@ def shutdown_telemetry() -> None:
             )
     _TRACE_PROVIDER = None
     _METER_PROVIDER = None
+    _LOG_PROVIDER = None
     _FAILURE_COUNTER = None
     _CONFIGURED = False
 
@@ -274,30 +332,38 @@ def record_server_failure(
     stack_trace = (
         _stack_trace_without_exception(exc) if outcome == "internal_error" else ""
     )
-    if trace is not None:
-        current = trace.get_current_span()
-        if current is not None and current.is_recording():
-            _annotate_failure_span(
-                current, bounded_operation, outcome, error_type, stack_trace
-            )
-        else:
-            tracer = trace.get_tracer(_TRACER_NAME)
-            with tracer.start_as_current_span("lineageweave.server.failure") as span:
-                _annotate_failure_span(
-                    span, bounded_operation, outcome, error_type, stack_trace
-                )
+    current = trace.get_current_span() if trace is not None else None
+    span_context: Any = nullcontext()
+    if current is not None and current.is_recording():
+        _annotate_failure_span(
+            current, bounded_operation, outcome, error_type, stack_trace
+        )
+    elif trace is not None:
+        span_context = trace.get_tracer(_TRACER_NAME).start_as_current_span(
+            "lineageweave.server.failure",
+            record_exception=False,
+            set_status_on_exception=False,
+        )
 
-    _LOGGER.log(
-        logging.ERROR if outcome == "internal_error" else logging.WARNING,
-        "lineageweave.server_failure",
-        extra={
-            "operation_code": bounded_operation,
-            "failure_outcome": outcome,
-            "error_type": error_type,
-            "session_id": session_id,
-            "stack_trace": stack_trace,
-        },
-    )
+    with span_context as span:
+        if span is not None:
+            _annotate_failure_span(
+                span, bounded_operation, outcome, error_type, stack_trace
+            )
+        trace_id, span_id = _current_trace_ids()
+        _LOGGER.log(
+            logging.ERROR if outcome == "internal_error" else logging.WARNING,
+            "lineageweave.server_failure",
+            extra={
+                "operation_code": bounded_operation,
+                "failure_outcome": outcome,
+                "error_type": error_type,
+                "session_id": session_id,
+                "stack_trace": stack_trace,
+                "trace_id": trace_id,
+                "span_id": span_id,
+            },
+        )
 
 
 @contextmanager
@@ -325,10 +391,14 @@ def traced(
                     {"exception.type": type(exc).__name__[:128]},
                 )
                 span.set_status(Status(StatusCode.ERROR))
+            trace_id, span_id = _current_trace_ids()
             _LOGGER.warning(
-                "telemetry.operation_failed operation=%s error_type=%s session_id=%s",
+                "telemetry.operation_failed operation=%s error_type=%s "
+                "session_id=%s trace_id=%s span_id=%s",
                 name,
                 type(exc).__name__,
                 safe.get("lineageweave.session_id", ""),
+                trace_id,
+                span_id,
             )
             raise

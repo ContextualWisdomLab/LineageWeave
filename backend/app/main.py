@@ -2595,47 +2595,47 @@ async def chat_about_post(
                 "source_post_ids": source_ids,
             }
     with use_llm_metadata(post_metadata):
-        client = _post_chat_client()
-        if not client.available:
-            record_server_failure(
-                "post_chat",
-                RuntimeError("orchestrator unavailable"),
-                outcome="provider_unavailable",
-            )
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Post chat is temporarily unavailable. "
-                "Saved evidence is still available.",
-            )
-    try:
-        async with pool.acquire() as conn:
-            with use_llm_metadata(post_metadata):
-                sources = await gather_chat_sources(
-                    conn,
-                    post_id,
-                    lambda row: _can_see_post(account, row),
-                    vision_client=_vision_client(),
-                )
-        with use_llm_metadata(post_metadata):
-            with traced(
-                "lineageweave.api.post_chat",
-                {"lineageweave.operation_code": "post_chat"},
-            ):
+        with traced(
+            "lineageweave.api.post_chat",
+            {"lineageweave.operation_code": "post_chat"},
+        ):
+            try:
+                client = _post_chat_client()
+                if not client.available:
+                    record_server_failure(
+                        "post_chat",
+                        RuntimeError("orchestrator unavailable"),
+                        outcome="provider_unavailable",
+                    )
+                    raise HTTPException(
+                        status.HTTP_503_SERVICE_UNAVAILABLE,
+                        "Post chat is temporarily unavailable. "
+                        "Saved evidence is still available.",
+                    )
+                async with pool.acquire() as conn:
+                    sources = await gather_chat_sources(
+                        conn,
+                        post_id,
+                        lambda row: _can_see_post(account, row),
+                        vision_client=_vision_client(),
+                    )
                 answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, ValueError) as exc:
-        record_server_failure("post_chat", exc, outcome="provider_unavailable")
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Post chat is temporarily unavailable. "
-            "Saved evidence is still available.",
-        ) from exc
-    except Exception as exc:
-        record_server_failure("post_chat", exc, outcome="internal_error")
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Post chat is temporarily unavailable. "
-            "Saved evidence is still available.",
-        ) from exc
+            except HTTPException:
+                raise
+            except (HttpClientError, TimeoutError, KeyError, OSError, ValueError) as exc:
+                record_server_failure("post_chat", exc, outcome="provider_unavailable")
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Post chat is temporarily unavailable. "
+                    "Saved evidence is still available.",
+                ) from exc
+            except Exception as exc:
+                record_server_failure("post_chat", exc, outcome="internal_error")
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Post chat is temporarily unavailable. "
+                    "Saved evidence is still available.",
+                ) from exc
     cited_ids = list(answer.cited_post_ids)
     async with pool.acquire() as conn:
         await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)
@@ -2666,54 +2666,56 @@ async def ask_agent(
     if not question:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
     _require_post_read(account)
-    client = _post_chat_client()
-    if not client.available:
-        record_server_failure(
-            "global_ask",
-            RuntimeError("orchestrator unavailable"),
-            outcome="provider_unavailable",
-        )
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is temporarily unavailable. "
-            "Saved evidence is still available.",
-        )
-    async with pool.acquire() as conn:
-        sources = await gather_global_chat_sources(
-            conn,
-            lambda row: _can_see_post(account, row),
-            account.corporate_entity_ids,
-            question=question,
-        )
-    if not sources:
-        return {
-            "answer_text": "",
-            "cited_post_ids": [],
-            "cited_posts": [],
-            "source_post_ids": [],
-            "cited_post_evidence": [],
-            "next_action": "No authorized source posts are available for this question.",
-        }
-    try:
-        with traced(
-            "lineageweave.api.global_ask",
-            {"lineageweave.operation_code": "global_ask"},
-        ):
+    with traced(
+        "lineageweave.api.global_ask",
+        {"lineageweave.operation_code": "global_ask"},
+    ):
+        try:
+            client = _post_chat_client()
+            if not client.available:
+                record_server_failure(
+                    "global_ask",
+                    RuntimeError("orchestrator unavailable"),
+                    outcome="provider_unavailable",
+                )
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Ask Agent is temporarily unavailable. "
+                    "Saved evidence is still available.",
+                )
+            async with pool.acquire() as conn:
+                sources = await gather_global_chat_sources(
+                    conn,
+                    lambda row: _can_see_post(account, row),
+                    account.corporate_entity_ids,
+                    question=question,
+                )
+            if not sources:
+                return {
+                    "answer_text": "",
+                    "cited_post_ids": [],
+                    "cited_posts": [],
+                    "source_post_ids": [],
+                    "cited_post_evidence": [],
+                    "next_action": "No authorized source posts are available for this question.",
+                }
             answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, ValueError) as exc:
-        record_server_failure("global_ask", exc, outcome="provider_unavailable")
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is temporarily unavailable. "
-            "Saved evidence is still available.",
-        ) from exc
-    except Exception as exc:
-        record_server_failure("global_ask", exc, outcome="internal_error")
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is temporarily unavailable. "
-            "Saved evidence is still available.",
-        ) from exc
+        except HTTPException:
+            raise
+        except (HttpClientError, TimeoutError, KeyError, OSError, ValueError) as exc:
+            record_server_failure("global_ask", exc, outcome="provider_unavailable")
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask Agent is temporarily unavailable. "
+                "Saved evidence is still available.",
+            ) from exc
+        except Exception as exc:
+            record_server_failure("global_ask", exc, outcome="internal_error")
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask Agent is temporarily unavailable. "
+                "Saved evidence is still available.",
+            ) from exc
     cited_ids = list(answer.cited_post_ids)
     return {
         "answer_text": answer.answer_text,
