@@ -33,6 +33,7 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
     ).read_text(encoding="utf-8")
 
     assert "0012_*" in script
+    assert "0175_*" in script
 
 
 def test_tenant_settings_replay_is_idempotent() -> None:
