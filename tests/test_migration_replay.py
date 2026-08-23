@@ -37,8 +37,9 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
         / "migrate.sh"
     ).read_text(encoding="utf-8")
 
-    # 0001-0011 are baked into the image; 0012 and up must replay.
+    # 0001-0011 are the non-idempotent bootstrap; 0012 and up must replay.
     assert '"$migration_number" -lt 12' in script
+    assert '[ -f "$migration" ] || continue' in script
     # Base-10 forced so a leading-zero migration number (e.g. 0103) isn't
     # misread as octal.
     assert "10#${migration_name%%_*}" in script

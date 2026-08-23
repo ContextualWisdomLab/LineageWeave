@@ -22,11 +22,13 @@ done
 # can't go stale the same way. $((10#...)) forces base-10 arithmetic so a
 # leading-zero number like "0103" isn't misread as octal.
 for migration in /opt/lineageweave/migrations/*.sql; do
+    [ -f "$migration" ] || continue
     migration_name=${migration##*/}
     migration_number=$((10#${migration_name%%_*}))
-    # 0001-0011 are baked into the postgres image's
-    # docker-entrypoint-initdb.d (docker/postgres-init/Dockerfile) at
-    # container creation and must not be re-applied here.
+    # 0001-0011 are the non-idempotent baseline applied only by
+    # docker-entrypoint-initdb.d when the data directory is created.
+    # Later idempotent migrations may also be baked into a new image, but
+    # replay here is required for existing volumes.
     if [ "$migration_number" -lt 12 ]; then
         continue
     fi
