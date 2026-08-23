@@ -471,7 +471,6 @@ declare
     previous_status_code text;
     previous_occurred_at timestamptz;
     run_requested_at timestamptz;
-    write_clock timestamptz;
 begin
     -- The immutable parent row is a per-run serialization lock. It prevents
     -- concurrent writers from both accepting the same next ordinal.
@@ -493,15 +492,7 @@ begin
     if new.occurred_at < run_requested_at then
         raise exception 'analysis_run_status_before_request';
     end if;
-    -- One database clock for the durable write. If the supplied occurrence
-    -- is already ahead of that clock (Python datetime.now skew), raise
-    -- recorded_at to occurred_at so analysis_run_status_time_check holds
-    -- without rewriting occurrence or breaking monotonicity.
-    write_clock := clock_timestamp();
-    new.recorded_at := write_clock;
-    if new.recorded_at < new.occurred_at then
-        new.recorded_at := new.occurred_at;
-    end if;
+    new.recorded_at := clock_timestamp();
 
     select status_ordinal, status_code, occurred_at
       into previous_ordinal, previous_status_code, previous_occurred_at
@@ -550,8 +541,7 @@ $$;
 
 comment on function enforce_analysis_run_status_transition() is
     'Serializes status appends and requires immutable scope, request-time '
-    'ordering, database-recorded time that cannot precede occurrence, '
-    'legal transitions, and terminal finality.';
+    'ordering, database-recorded time, legal transitions, and terminal finality.';
 
 drop trigger if exists analysis_run_status_transition_guard
     on analysis_run_status_event;
