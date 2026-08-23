@@ -1,4 +1,4 @@
-# ADR 0144: Distributed MCP principal rate limit
+# ADR 0146: Distributed MCP principal rate limit
 
 ## Status
 
