@@ -23,14 +23,19 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
 ENV PATH="/app/.venv/bin:/root/.cargo/bin:${PATH}"
 
 COPY pyproject.toml uv.lock README.md ./
+
+# Compile the locked Rust/Python dependencies before application source is
+# copied. A Python-only edit then reuses this expensive layer instead of
+# rebuilding fast-mlsirm's PyO3 core.
+RUN uv sync --frozen --no-dev --extra backend --no-editable --no-install-project
+
 COPY lineageweave ./lineageweave
 COPY backend ./backend
 # lineageweave/ontology.py resolves this path relative to itself
 # (parents[1] = /app) -- ADR 0004.
 COPY docs/ontology ./docs/ontology
 
-# Install exactly the committed universal lock. --no-editable prevents a
-# runtime dependency on source-tree editability while retaining package data.
+# Install exactly the committed project into the cached dependency environment.
 RUN uv sync --frozen --no-dev --extra backend --no-editable \
     && chown -R appuser:appuser /app
 

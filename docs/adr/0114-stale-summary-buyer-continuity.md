@@ -20,18 +20,40 @@ though the source post remains authorized and available.
 2. The post-summary endpoint first attempts a current summary. If the
    orchestrator is unavailable or the refresh returns an incomplete provider
    response, it returns the last persisted summary with
-   `summary_status: "stale"` and its stored contract version.
+   `summary_status: "stale"` and its stored contract version. This continuity
+   applies immediately to text-only posts. An image-bearing stale summary is
+   withheld until its persisted parent and region descriptions are complete,
+   then regenerated unless its persisted normalized summary-input SHA-256
+   matches the exact current ordered image-evidence text. Legacy rows with no
+   input binding are never current. For text-only posts, a normalized-input
+   mismatch downgrades a current-contract row to explicit stale continuity.
 3. The buyer popup labels the stale state and offers a retry action. Stale
    content is never labelled current and is never used to create new catalog
    identities or semantic rows.
 4. A successful contextual-orchestrator refresh remains the only path that
    atomically replaces the stale projection. Failed refreshes never delete the
    prior summary or source body.
+5. After provider work and before replacing any summary-owned semantic or
+   shared catalog projection, persistence locks and rechecks the current
+   source-body SHA-256. For image-bearing input it also requires the exact
+   current succeeded content job and re-reads the ordered persisted image
+   evidence; that evidence must match the normalized summary input byte for
+   byte. Organization name and hierarchy provider calls first produce frozen,
+   no-write proposals before that transaction begins. After the recheck,
+   applying those proposals to shared name/catalog tables, replacing the
+   summary-owned projection, and fetching the current payload complete in the
+   same transaction while the source/evidence lock remains held. Provider
+   calls never run while source, job, or catalog advisory locks are held. A
+   source or evidence change during provider work therefore rejects every
+   proposed catalog mutation, leaves the prior summary projection intact, and
+   cannot return the superseded result as current.
 
 ## Consequences
 
 - Buyers can read source-grounded prior context while the semantic gateway is
-  unavailable instead of seeing a fail-closed summary panel.
+  unavailable instead of seeing a fail-closed summary panel. Image-bearing
+  posts remain fail-closed at the VISION evidence boundary without delaying
+  source-post open or source rendering.
 - The UI makes the refresh boundary visible, so an old contract cannot be
   mistaken for current ontology evidence.
 - A durable background refresh remains useful for large-scale regeneration;

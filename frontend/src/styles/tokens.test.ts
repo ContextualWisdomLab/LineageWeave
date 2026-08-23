@@ -10,6 +10,14 @@ const appCss = readFileSync(join(here, "..", "App.css"), "utf-8");
 
 const [lightBlock, darkBlock] = tokensCss.split("@media (prefers-color-scheme: dark)");
 
+const EXCEPTION_SURFACE_TOKENS = [
+  "--color-exception-background",
+  "--color-exception-border",
+  "--color-exception-accent",
+  "--color-exception-text",
+  "--color-exception-heading",
+];
+
 const BADGE_AND_ACCENT_TOKENS = [
   "--color-border-subtle",
   "--color-accent-info",
@@ -69,5 +77,27 @@ describe("design tokens", () => {
     for (const token of BADGE_AND_ACCENT_TOKENS) {
       expect(appCss, `App.css never references var(${token})`).toContain(`var(${token})`);
     }
+  });
+
+  it("gives native interactive controls a shared visible focus token", () => {
+    expect(appCss).toContain("button:focus-visible");
+    expect(appCss).toContain("outline: 2px solid var(--color-focus-border);");
+    expect(appCss).toContain("outline-offset: 2px;");
+  });
+
+  it("defines exception-surface tokens in both the light and dark blocks", () => {
+    for (const token of EXCEPTION_SURFACE_TOKENS) {
+      expect(lightBlock, `${token} missing from the light :root block`).toContain(`${token}:`);
+      expect(darkBlock, `${token} missing from the dark prefers-color-scheme block`).toContain(
+        `${token}:`,
+      );
+    }
+  });
+
+  it("styles the exception surface with token var() references, not a new danger hex", () => {
+    for (const token of EXCEPTION_SURFACE_TOKENS) {
+      expect(appCss, `App.css never references var(${token})`).toContain(`var(${token})`);
+    }
+    expect(appCss).not.toMatch(/color-danger|#b42318/i);
   });
 });

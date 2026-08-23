@@ -16,13 +16,13 @@ information at the group's mean θ (Lord, 1980 max-info CAT rule) via
 ``fast_mlsirm.information_polytomous`` -- Samejima (1969) GRM /
 Muraki (1993) GPCM, computed in Rust. A missing bank is not invented.
 
-Leftover post–criterion pairs (ADR 0048 / 0179) come from the residual
-interaction after those IRT main effects: ``R = Y − E[Y|θ, item]``.
-A Gabriel biplot of ``R`` supplies person and item leftover-map
-positions. Closest / farthest pairs are the min / max Euclidean
-distances on that map (Jeon et al., 2021, eq. 3). Each map pair names
-leftover inner product ``ξ·ζ`` so reconstructed leftover is not read
-as leftover-map distance. ``fast-mlsirm`` has no leftover-pair API;
+Leftover post–criterion pairs (ADR 0017 / 0048 / 0177) come from the
+residual interaction after those IRT main effects:
+``R = Y − E[Y|θ, item]``. A Gabriel biplot of ``R`` supplies person
+and item leftover-map positions. Closest / farthest pairs are the
+min / max Euclidean distances on that map (Jeon et al., 2021, eq. 3).
+Each pair names observed ``Y`` and expected ``E`` so residual
+reconciles to ``Y − E``. ``fast-mlsirm`` has no leftover-pair API;
 this module does not invent a second IRT fit and does not fork LSIRM.
 
 This module is pure compute. Persistence lives in
