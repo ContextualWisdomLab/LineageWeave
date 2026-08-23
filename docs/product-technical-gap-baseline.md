@@ -331,6 +331,21 @@ runtime note into a shipped/live claim.
 - The next stacked slice attaches this same canonical timeline and TEPP metadata to
   Global Ask and post-scoped Ask without re-retrieving hidden evidence.
 
+## Project-history lineage counts (2026-08-23)
+
+- The shared timeline now distinguishes all authorized project posts from posts
+  incident to a persisted forward `post_lineage_edge`, and reports the number of
+  weakly connected evidence-lineage components.
+- Isolated project posts remain visible but do not inflate the lineage count.
+  These counts describe LineageWeave's evidence-fusion DAG; they are not TEPP
+  topic identities and do not close the TRSL-TM topic-lineage dependency.
+- The same projection supplies the dedicated Project history destination, each
+  post's project-evidence action, post-scoped Ask, and Global Ask, so those
+  surfaces cannot drift into competing count definitions.
+- Current evidence is source and focused tests on the new stacked slice. Protected
+  merge, authenticated runtime, and the TEPP topic-identity result contract remain
+  open and must not be represented as protected-main behavior.
+
 ## Ask-to-project-history integration (2026-08-21)
 
 - Protected-stack checkpoint: PR #342 is based on PR #339 head

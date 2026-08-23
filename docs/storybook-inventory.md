@@ -9,6 +9,7 @@ reader-facing control you can click before changing product CSS.
 | `Evidence/CitationChip` | Click a cited title to open that source post. | `--color-chip-border`, `--radius-chip`, `CitationChip` |
 | `AnalysisRun/CutoffKnownBody` | Read the cutoff-known sentence, then compare it with the live body below. | `--color-accent-border`, `--space-panel-block`, `--radius-panel`, `CutoffKnownBody` |
 | `Analysis/LineageEntityPicker` | Choose which corp to reconstruct, then click Request a lineage reconstruction. | `--space-control-gap`, `--size-control-min`, `--radius-control`, `LineageEntityPicker` |
+| `Evidence/ProjectHistoryTimeline` | Compare all project posts with connected-post and evidence-lineage counts, then open the selected source. | shared spacing, status, focus, and timeline tokens; `ProjectHistoryTimeline` |
 | `Chrome/PopupCloseButton` | Close the evidence panel or post popup. | `--space-close-inset`, `--font-size-close`, `PopupCloseButton` |
 | `Evidence/LineageDag` | Inspect a branching Event Lineage, then open a record or read its evidence trail. | `--color-primary`, `--color-accent-orange`, `LineageDag` |
 

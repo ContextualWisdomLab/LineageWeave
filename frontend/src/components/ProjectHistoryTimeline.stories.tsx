@@ -60,6 +60,8 @@ const projection: ProjectHistoryProjection = {
   knowledge_cutoff: "2026-08-20T00:00:00Z",
   evidence_boundary_code: "authorized_visible_source_posts",
   event_count: 5,
+  connected_post_count: 5,
+  lineage_count: 1,
   distinct_actor_count: 3,
   distinct_observed_actor_count: 2,
   truncated: false,

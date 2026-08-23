@@ -1914,6 +1914,8 @@ describe("App, authenticated", () => {
             focus_event_id: "post-1",
             time_basis_code: "source_post_created_at_fallback",
             event_count: 1,
+            connected_post_count: 0,
+            lineage_count: 0,
             distinct_actor_count: 0,
             distinct_observed_actor_count: 0,
             evidence_boundary_code: "authorized_visible_source_posts",

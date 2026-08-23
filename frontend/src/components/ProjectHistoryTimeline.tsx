@@ -103,6 +103,8 @@ export function ProjectHistoryTimeline({
         <p className="project-history-counts">
           {projectHistoryText(locale, "summaryCounts", {
             events: projection.event_count,
+            connected: projection.connected_post_count,
+            lineages: projection.lineage_count,
             actors: actorCount,
           })}
         </p>

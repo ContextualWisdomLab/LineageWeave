@@ -278,6 +278,35 @@ def _prior_paths(
     return result
 
 
+def _lineage_counts(
+    ordered_event_ids: Sequence[str], edge_rows: Sequence[Mapping[str, Any]]
+) -> tuple[int, int]:
+    """Count posts and components connected by distinct forward edges."""
+
+    event_index = {event_id: index for index, event_id in enumerate(ordered_event_ids)}
+    edges = {
+        (str(row["parent_post_id"]), str(row["child_post_id"]))
+        for row in edge_rows
+        if str(row["parent_post_id"]) in event_index
+        and str(row["child_post_id"]) in event_index
+        and event_index[str(row["parent_post_id"])] < event_index[str(row["child_post_id"])]
+    }
+    adjacency: dict[str, set[str]] = {}
+    for parent, child in edges:
+        adjacency.setdefault(parent, set()).add(child)
+        adjacency.setdefault(child, set()).add(parent)
+    remaining = set(adjacency)
+    lineage_count = 0
+    while remaining:
+        lineage_count += 1
+        stack = [remaining.pop()]
+        while stack:
+            neighbors = remaining.intersection(adjacency[stack.pop()])
+            remaining.difference_update(neighbors)
+            stack.extend(neighbors)
+    return len(adjacency), lineage_count
+
+
 def build_project_history_projection(
     *,
     project_key: str,
@@ -425,6 +454,7 @@ def build_project_history_projection(
         maximum_depth=maximum_depth,
         maximum_paths_per_event=maximum_paths_per_event,
     )
+    connected_post_count, lineage_count = _lineage_counts(ordered_ids, edge_rows)
 
     events: list[dict[str, Any]] = []
     previous_actor_keys: Sequence[str] | None = None
@@ -484,6 +514,8 @@ def build_project_history_projection(
         "focus_event_id": effective_focus,
         "time_basis_code": PROJECT_HISTORY_TIME_BASIS,
         "event_count": len(events),
+        "connected_post_count": connected_post_count,
+        "lineage_count": lineage_count,
         "distinct_actor_count": len(distinct_actor_keys),
         "distinct_observed_actor_count": len(distinct_observed_actor_keys),
         "truncated": bool(truncated),
