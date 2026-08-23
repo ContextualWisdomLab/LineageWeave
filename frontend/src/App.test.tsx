@@ -1,13 +1,14 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import App from "./App";
+import App, { GLOBAL_ASK_SESSION_STORAGE_KEY } from "./App";
 import { setLocale } from "./i18n";
 import { isoWeekFromCreatedAt } from "./isoWeek";
 
 const signinRedirect = vi.fn();
 const signoutRedirect = vi.fn();
 let mockAuth: Record<string, unknown>;
+let projectHistoryRequestUrl: string | null = null;
 
 vi.mock("react-oidc-context", () => ({
   useAuth: () => mockAuth,
@@ -15,11 +16,9 @@ vi.mock("react-oidc-context", () => ({
 
 beforeEach(() => {
   setLocale("en");
-  window.history.replaceState({}, "", "/");
-  window.sessionStorage.clear();
-  window.localStorage.clear();
   signinRedirect.mockReset();
   signoutRedirect.mockReset();
+  projectHistoryRequestUrl = null;
   mockAuth = {
     isLoading: false,
     isAuthenticated: false,
@@ -28,33 +27,23 @@ beforeEach(() => {
     signinRedirect,
     signoutRedirect,
   };
-  // Post navigation now pushes real history entries (browser back should
-  // close the popup); reset between tests so one test's opened post doesn't
-  // leak into the next test's initial render via a stale `?post=` query.
-  window.history.replaceState({}, "", "/");
 });
 
 afterEach(() => {
-  window.history.replaceState({}, "", "/");
-  window.sessionStorage.clear();
-  window.localStorage.clear();
   vi.unstubAllGlobals();
+  window.history.replaceState({}, "", "/");
 });
 
 describe("App, unauthenticated", () => {
   it("shows a login button that starts the real OIDC redirect", async () => {
-    window.history.replaceState({}, "", "/?post=buyer-evidence#summary");
     render(<App showLabPanels />);
     const button = screen.getByRole("button", { name: /log in/i });
     await userEvent.click(button);
     expect(signinRedirect).toHaveBeenCalledTimes(1);
     expect(signinRedirect).toHaveBeenCalledWith(
       expect.objectContaining({
-        state: expect.objectContaining({ returnUrl: "/?post=buyer-evidence#summary" }),
+        state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
       }),
-    );
-    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toBe(
-      "/?post=buyer-evidence#summary",
     );
   });
 });
@@ -99,11 +88,18 @@ describe("App, authenticated", () => {
     pendingTeppRun?: boolean;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
-    deferPosts?: boolean;
+    deferPostOneSummary?: boolean;
+    deferSecondAsk?: boolean;
+    deferProjectHistory?: boolean;
+    projectHistoryProjectKey?: string;
+    partialCutoff?: boolean;
+    invalidAskSessionOnce?: boolean;
+    staleAskCitationsOnce?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
     customerEntityHierarchy?: boolean;
+    deferCustomerRelated?: boolean;
     boardPosts?: {
       post_id: string;
       post_title: string;
@@ -134,7 +130,14 @@ describe("App, authenticated", () => {
     }[];
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
-  }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePosts: () => void } {
+  }): ReturnType<typeof vi.fn> & {
+    releaseMe: () => void;
+    releaseSecondAsk: () => void;
+    releaseGroupRelated: () => void;
+    releaseDemoRelated: () => void;
+    releasePostOneSummary: () => void;
+    releaseProjectHistory: () => void;
+  } {
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -161,15 +164,40 @@ describe("App, authenticated", () => {
     let contentRequests = 0;
 
     let releaseMe = () => {};
-    let releasePosts = () => {};
     const meReady = options?.deferMe
       ? new Promise<void>((resolve) => {
           releaseMe = resolve;
         })
       : Promise.resolve();
-    const postsReady = options?.deferPosts
+    let releaseSecondAsk = () => {};
+    const secondAskReady = options?.deferSecondAsk
       ? new Promise<void>((resolve) => {
-          releasePosts = resolve;
+          releaseSecondAsk = resolve;
+        })
+      : Promise.resolve();
+    let askRequestCount = 0;
+    let releaseGroupRelated = () => {};
+    let releaseDemoRelated = () => {};
+    const groupRelatedReady = options?.deferCustomerRelated
+      ? new Promise<void>((resolve) => {
+          releaseGroupRelated = resolve;
+        })
+      : Promise.resolve();
+    const demoRelatedReady = options?.deferCustomerRelated
+      ? new Promise<void>((resolve) => {
+          releaseDemoRelated = resolve;
+        })
+      : Promise.resolve();
+    let releasePostOneSummary = () => {};
+    const postOneSummaryReady = options?.deferPostOneSummary
+      ? new Promise<void>((resolve) => {
+          releasePostOneSummary = resolve;
+        })
+      : Promise.resolve();
+    let releaseProjectHistory = () => {};
+    const projectHistoryReady = options?.deferProjectHistory
+      ? new Promise<void>((resolve) => {
+          releaseProjectHistory = resolve;
         })
       : Promise.resolve();
 
@@ -202,16 +230,6 @@ describe("App, authenticated", () => {
                   { corporate_entity_id: "corp-north", entity_name: "Northridge Grid" },
                 ]
               : [{ corporate_entity_id: "corp-demo", entity_name: "Demo Corp" }],
-            account_affiliations: [
-              {
-                corporate_entity_id: "corp-demo",
-                corporate_entity_code: "DEMO-CORP",
-                entity_name: "Demo Corp",
-                process_unit_id: "pu-demo",
-                process_unit_code: "DEMO-PU",
-                process_unit_name: "Demo PU",
-              },
-            ],
           });
         });
       }
@@ -261,6 +279,9 @@ describe("App, authenticated", () => {
       }
       if (url.endsWith("/api/posts/post-1/activity") && method === "GET") {
         return Promise.resolve(jsonResponse({ events }));
+      }
+      if (url.endsWith("/api/posts/post-2/activity") && method === "GET") {
+        return Promise.resolve(jsonResponse({ events: [] }));
       }
       if (url.endsWith("/api/posts/post-1/derive-commitment") && method === "POST") {
         if (options?.chatUnavailable) {
@@ -1121,7 +1142,7 @@ describe("App, authenticated", () => {
           postsUrl.searchParams.get("iso_week") && options?.weekFilteredPosts
             ? options.weekFilteredPosts
             : boardPosts;
-        return postsReady.then(() =>
+        return Promise.resolve(
           jsonResponse(
             postsUrl.searchParams.get("search")
               ? []
@@ -1154,7 +1175,7 @@ describe("App, authenticated", () => {
             visibility_label: "Public",
             project_evidence: [
               {
-                project_key: "source-project",
+                project_key: options?.projectHistoryProjectKey ?? "semantic-project",
                 project_name: "Semantic project",
                 evidence: "project was described in the body",
                 confidence: 0.9,
@@ -1241,7 +1262,7 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/posts/post-1/summary")) {
-        return Promise.resolve(
+        return postOneSummaryReady.then(() =>
           jsonResponse({
             post_id: "post-1",
             korean_summary: "이것은 요약입니다.",
@@ -1289,6 +1310,17 @@ describe("App, authenticated", () => {
                 extraction_method: "contextual_orchestrator_semantic",
               },
             ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/posts/post-2/summary")) {
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-2",
+            korean_summary: "연결된 글입니다.",
+            key_events: [],
+            roles_and_responsibilities: [],
+            project_mentions: [],
           }),
         );
       }
@@ -1461,6 +1493,35 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/corporate-entities/corp-group/related")) {
+        return groupRelatedReady.then(() =>
+          jsonResponse({
+            corporate_entity_id: "corp-group",
+            entity_name: "Demo Group",
+            related: [],
+          }),
+        );
+      }
+      if (url.endsWith("/api/corporate-entities/corp-demo/related")) {
+        return demoRelatedReady.then(() =>
+          jsonResponse({
+            corporate_entity_id: "corp-demo",
+            entity_name: "Demo Corp",
+            related: [
+              {
+                node_id: "post-1",
+                node_type_code: "node_post",
+                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                ontology_label: "Post",
+                label: "Public post",
+                relevance: 0.8,
+                post_body_excerpt: "The full body text.",
+                post_body_truncated: false,
+              },
+            ],
+          }),
+        );
+      }
       if (url.endsWith("/api/posts/post-1/affiliate-tree")) {
         return Promise.resolve(
           jsonResponse({
@@ -1578,6 +1639,15 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/posts/post-2/lineage")) {
+        return Promise.resolve(
+          jsonResponse({
+            post_id: "post-2",
+            direct: [{ post_id: "post-1", post_title: "Public post" }],
+            indirect: [],
+          }),
+        );
+      }
       if (url.endsWith("/api/posts/post-1/chat") && method === "GET") {
         return Promise.resolve(
           jsonResponse({
@@ -1628,22 +1698,100 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/ask") && method === "POST") {
-        return Promise.resolve(
+        askRequestCount += 1;
+        const askBody = JSON.parse(String(init?.body ?? "{}")) as {
+          question?: string;
+          knowledge_cutoff?: string;
+          session_id?: string;
+        };
+        if (options?.invalidAskSessionOnce && askRequestCount === 1 && askBody.session_id) {
+          return Promise.resolve(
+            new Response(JSON.stringify({ detail: "Global Ask session not found" }), {
+              status: 404,
+              headers: { "Content-Type": "application/json" },
+            }),
+          );
+        }
+        if (options?.staleAskCitationsOnce && askRequestCount === 1 && askBody.session_id) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                detail: "Global Ask session evidence is no longer authorized; start a new session",
+              }),
+              { status: 409, headers: { "Content-Type": "application/json" } },
+            ),
+          );
+        }
+        const ready =
+          options?.deferSecondAsk && askRequestCount === 2
+            ? secondAskReady
+            : Promise.resolve();
+        const cutoffGrounded = Boolean(askBody.knowledge_cutoff);
+        const partialCutoff = cutoffGrounded && Boolean(options?.partialCutoff);
+        return ready.then(() =>
+          Promise.resolve(
           jsonResponse({
-            answer_text: "The cited project is supported by the stored semantic evidence.",
+            session_id: "session-1",
+            answer_text: cutoffGrounded
+              ? "By the cutoff Phoenix was still the January kickoff."
+              : "The cited project is supported by the stored semantic evidence.",
             cited_post_ids: ["post-2"],
-            cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
-            cited_post_evidence: [
+            cited_posts: [
               {
                 post_id: "post-2",
-                facts: [
-                  { kind: "semantic_project", text: "project: Semantic project | evidence: Body evidence" },
-                  { kind: "semantic_keyman", text: "Keyman mention: Ada West | context: account lead" },
-                ],
+                post_title: "Linked post",
+                ...(cutoffGrounded
+                  ? {
+                      source_revision_id: "rev-january",
+                      knowledge_cutoff: askBody.knowledge_cutoff,
+                      live_after_cutoff: true,
+                      historical_body_unavailable: false,
+                    }
+                  : {}),
               },
             ],
+            cited_post_evidence: cutoffGrounded
+              ? []
+              : [
+                  {
+                    post_id: "post-2",
+                    facts: [
+                      { kind: "semantic_project", text: "project: Semantic project | evidence: Body evidence" },
+                      { kind: "semantic_keyman", text: "Keyman mention: Ada West | context: account lead" },
+                    ],
+                  },
+                ],
             source_post_ids: ["post-1", "post-2"],
+            grounding_status: partialCutoff
+              ? "partially_cutoff_grounded"
+              : cutoffGrounded
+                ? "fully_cutoff_grounded"
+                : "live_only",
+            knowledge_cutoff: askBody.knowledge_cutoff ?? null,
+            next_action: partialCutoff
+              ? "This answer is only partly grounded at the requested cutoff. Open a cited post to see which historical bodies were retained."
+              : cutoffGrounded
+                ? "This answer is fully grounded at the requested cutoff. Open a cited post to compare the retained body."
+                : undefined,
+            limitations: partialCutoff
+              ? [{ post_id: "post-1", limitation_code: "historical_body_unavailable" }]
+              : [],
+            timeline: [
+              {
+                post_id: "post-1",
+                post_title: "Public post",
+                occurred_at: "2026-01-01T00:00:00Z",
+                timeline_kind: "lineage_anchor",
+              },
+              {
+                post_id: "post-2",
+                post_title: "Linked post",
+                occurred_at: "2026-01-02T00:00:00Z",
+                timeline_kind: "lineage_neighbor",
+              },
+            ],
           }),
+          ),
         );
       }
       if (url.endsWith("/api/customer-master") && method === "GET") {
@@ -1736,10 +1884,91 @@ describe("App, authenticated", () => {
           }),
         );
       }
+      if (url.endsWith("/api/project-history/projects") && method === "GET") {
+        return Promise.resolve(
+          jsonResponse({
+            contract_version: 1,
+            time_basis_code: "source_post_created_at_fallback",
+            knowledge_cutoff: "2026-01-12T12:00:00Z",
+            project_count: 1,
+            truncated: false,
+            projects: [{
+              normalized_project_key: "semantic-project",
+              project_key: "semantic-project",
+              project_name: "Semantic project",
+              truth_status_code: "inferred",
+              event_count: 1,
+              latest_event_at: "2026-01-01T00:00:00Z",
+            }],
+          }),
+        );
+      }
+      if (url.includes("/api/project-history?") && method === "GET") {
+        projectHistoryRequestUrl = url;
+        return projectHistoryReady.then(() =>
+          jsonResponse({
+            contract_version: 1,
+            project_key: "Semantic project",
+            normalized_project_key: "semantic-project",
+            project_name: "Semantic project",
+            focus_event_id: "post-1",
+            time_basis_code: "source_post_created_at_fallback",
+            event_count: 1,
+            distinct_actor_count: 0,
+            distinct_observed_actor_count: 0,
+            evidence_boundary_code: "authorized_visible_source_posts",
+            truncated: false,
+            events: [
+              {
+                event_id: "post-1",
+                source_post_id: "post-1",
+                event_title: "Public post",
+                event_type_code: "source_recorded",
+                event_type_basis_code: "display_classification",
+                occurred_at: "2026-01-01T00:00:00Z",
+                time_basis_code: "source_post_created_at_fallback",
+                voc_type_code: "voc",
+                source_stage_code: null,
+                source_detail_state_code: null,
+                project_matches: [],
+                responsibility_evidence: [],
+                observed_responsibilities: [],
+                responsibility_transition_truth_status_code: null,
+                responsibility_transition_code: null,
+                related_prior_paths: [],
+              },
+            ],
+          }),
+        );
+      }
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
-    return Object.assign(fetchMock, { releaseMe, releasePosts });
+    return Object.assign(fetchMock, {
+      releaseMe,
+      releaseSecondAsk,
+      releaseGroupRelated,
+      releaseDemoRelated,
+      releasePostOneSummary,
+      releaseProjectHistory,
+    });
+  }
+
+  async function expectGnbKeymanFocus(postTitle: string) {
+    await waitFor(() => expect(document.getElementById("post-keyman")).toHaveFocus());
+    const lineageNext = screen.getByRole("status", { name: "Event Lineage next action" });
+    expect(lineageNext).toHaveTextContent(
+      `${postTitle} is current in Event Lineage. Read Keyman and evaluation next.`,
+    );
+    const keyman = screen.getByRole("heading", { name: "Keymen" });
+    expect(lineageNext.compareDocumentPosition(keyman) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
+  }
+
+  async function expectHomeListSkipsGnbKeymanFocus() {
+    await waitFor(() => expect(screen.getByRole("heading", { name: "Keymen" })).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(document.getElementById("post-keyman")).not.toHaveFocus();
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
   }
 
   it("renders safe Ask Agent evidence under each cited post", async () => {
@@ -1750,26 +1979,130 @@ describe("App, authenticated", () => {
     await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
     await userEvent.click(screen.getByRole("button", { name: "Ask" }));
 
-    expect(screen.getByRole("log", { name: "Conversation" })).toBeInTheDocument();
-    expect(screen.getByText("Which project?", { exact: true })).toBeInTheDocument();
     expect(await screen.findByRole("list", { name: "Evidence facts" })).toBeInTheDocument();
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "Event Lineage timeline" })).toBeInTheDocument();
+    expect(screen.getByText("2026-01-01T00:00:00Z")).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
   });
 
-  it("renders the conversation empty state and submits an Ask Agent question with Enter", async () => {
+  it("names a cutoff-grounded Ask answer and does not call it live-only", async () => {
     stubBackend();
     render(<App />);
     await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    await userEvent.type(within(ask).getByRole("textbox", { name: "Ask a question" }), "What did we know about Phoenix?");
+    fireEvent.change(within(ask).getByLabelText("Knowledge cutoff (optional)"), {
+      target: { value: "2026-01-15T12:00" },
+    });
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
 
-    expect(screen.getByRole("log", { name: "Conversation" })).toHaveAttribute("aria-busy", "false");
-    expect(screen.getByText("Start with a question about the evidence")).toBeInTheDocument();
-    const input = screen.getByRole("textbox", { name: "Ask a question" });
-    await userEvent.type(input, "Which project?{Enter}");
+    expect(
+      await within(ask).findByText("By the cutoff Phoenix was still the January kickoff."),
+    ).toBeInTheDocument();
+    expect(
+      within(ask).getByText(
+        "This answer is fully grounded at the requested cutoff. Open a cited post to compare the retained body.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(ask).getByText("This live source changed after the cutoff.")).toBeInTheDocument();
+    expect(
+      within(ask).queryByText("Authorized cited posts are current. Open a cited post to read Event Lineage."),
+    ).not.toBeInTheDocument();
+  });
 
-    expect(await screen.findByText("Which project?", { selector: ".ask-agent-user-message p:last-child" })).toBeInTheDocument();
-    expect(input).toHaveValue("");
+  it("shows unavailable historical bodies for a partially grounded Ask answer", async () => {
+    stubBackend({ partialCutoff: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    await userEvent.type(within(ask).getByRole("textbox", { name: "Ask a question" }), "What changed?");
+    fireEvent.change(within(ask).getByLabelText("Knowledge cutoff (optional)"), {
+      target: { value: "2026-01-15T12:00" },
+    });
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+
+    expect(await within(ask).findByRole("heading", { name: "Historical evidence limitations" })).toBeInTheDocument();
+    expect(within(ask).getByRole("region", { name: "Historical evidence limitations" })).toHaveTextContent(
+      "Public post: Historical body unavailable",
+    );
+  });
+
+  it("hides previous Ask evidence while a new answer is pending", async () => {
+    const fetchMock = stubBackend({ deferSecondAsk: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    const question = within(ask).getByRole("textbox", { name: "Ask a question" });
+    await userEvent.type(question, "Which project?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+    expect(
+      await within(ask).findByText(
+        "The cited project is supported by the stored semantic evidence.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(ask).getByLabelText("Next action")).toBeInTheDocument();
+
+    await userEvent.clear(question);
+    await userEvent.type(question, "Which person?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+
+    expect(within(ask).getByRole("button", { name: "Asking..." })).toBeDisabled();
+    expect(
+      within(ask).queryByText(
+        "The cited project is supported by the stored semantic evidence.",
+      ),
+    ).not.toBeInTheDocument();
+    expect(within(ask).queryByLabelText("Next action")).not.toBeInTheDocument();
+
+    fetchMock.releaseSecondAsk();
+    expect(
+      await within(ask).findByText(
+        "The cited project is supported by the stored semantic evidence.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("replaces an invalid saved Ask session without requiring storage cleanup", async () => {
+    window.sessionStorage.setItem(GLOBAL_ASK_SESSION_STORAGE_KEY, "stale-session");
+    const fetchMock = stubBackend({ invalidAskSessionOnce: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    await userEvent.type(within(ask).getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+
+    expect(
+      await within(ask).findByText("The cited project is supported by the stored semantic evidence."),
+    ).toBeInTheDocument();
+    const askBodies = fetchMock.mock.calls
+      .filter(([url]) => String(url).endsWith("/api/ask"))
+      .map(([, init]) => JSON.parse(String((init as RequestInit).body)) as { session_id?: string });
+    expect(askBodies.map((body) => body.session_id)).toEqual(["stale-session", undefined]);
+    expect(window.sessionStorage.getItem(GLOBAL_ASK_SESSION_STORAGE_KEY)).toBe("session-1");
+  });
+
+  it("restarts a Global Ask session whose citations lost visibility using the shared storage key", async () => {
+    window.sessionStorage.setItem(GLOBAL_ASK_SESSION_STORAGE_KEY, "stale-session");
+    const fetchMock = stubBackend({ staleAskCitationsOnce: true });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    await userEvent.type(within(ask).getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+
+    expect(
+      await within(ask).findByText("The cited project is supported by the stored semantic evidence."),
+    ).toBeInTheDocument();
+    const askBodies = fetchMock.mock.calls
+      .filter(([url]) => String(url).endsWith("/api/ask"))
+      .map(([, init]) => JSON.parse(String((init as RequestInit).body)) as { session_id?: string });
+    expect(askBodies.map((body) => body.session_id)).toEqual(["stale-session", undefined]);
+    expect(window.sessionStorage.getItem(GLOBAL_ASK_SESSION_STORAGE_KEY)).toBe("session-1");
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
@@ -1892,6 +2225,46 @@ describe("App, authenticated", () => {
     const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
     expect(searchInput).toHaveValue("Semantic project");
     expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+  });
+
+  it("opens the shared project history from a semantic project evidence card", async () => {
+    stubBackend();
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Open project history for: Semantic project" }),
+    );
+
+    expect(await screen.findByRole("heading", { name: "Project event timeline" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Select project" })).toHaveValue("semantic-project");
+    expect(screen.getByRole("button", { name: "Open source record: Public post" })).toBeInTheDocument();
+    expect(projectHistoryRequestUrl).toContain("focus_post_id=post-1");
+  });
+
+  it("keeps the focus post when the project key differs only by identity normalization", async () => {
+    stubBackend({ projectHistoryProjectKey: "ＳＥＭＡＮＴＩＣ－ＰＲＯＪＥＣＴ" });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Open project history for: Semantic project" }),
+    );
+
+    expect(await screen.findByRole("heading", { name: "Project event timeline" })).toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Select project" })).toHaveValue("semantic-project");
+    expect(projectHistoryRequestUrl).toContain("focus_post_id=post-1");
+  });
+
+  it("shows a next-action loading state while project history is requested", async () => {
+    const fetchMock = stubBackend({ deferProjectHistory: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Open project history for: Semantic project" }),
+    );
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Loading project history...");
+    fetchMock.releaseProjectHistory();
+    expect(await screen.findByRole("heading", { name: "Project event timeline" })).toBeInTheDocument();
   });
 
   it("clicking Weekly VOC keeps the 2026-W01 Voice of Customer post and names Event Lineage as the next action", async () => {
@@ -2024,10 +2397,7 @@ describe("App, authenticated", () => {
     await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).toHaveFocus();
-    expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(
-      "Public post is current in Event Lineage. Read Keyman and evaluation next.",
-    );
+    await expectGnbKeymanFocus("Public post");
 
     window.history.replaceState({}, "", "/");
     window.dispatchEvent(new PopStateEvent("popstate"));
@@ -2035,12 +2405,186 @@ describe("App, authenticated", () => {
     await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
     await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
-    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
-    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+    await expectHomeListSkipsGnbKeymanFocus();
 
     window.history.replaceState({ fromWeeklyVoc: true }, "", "/?post=post-1");
     window.dispatchEvent(new PopStateEvent("popstate", { state: { fromWeeklyVoc: true } }));
-    await waitFor(() => expect(document.getElementById("post-event-lineage")).toHaveFocus());
+    await expectGnbKeymanFocus("Public post");
+  });
+
+  it("never runs the report-member Ask auto-land chain for a Calendar open (ADR 0100)", async () => {
+    const scrolledIds: string[] = [];
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = function () {
+      scrolledIds.push(this.id);
+    };
+    try {
+      stubBackend();
+      render(<App />);
+
+      await userEvent.click(await screen.findByRole("button", { name: "Calendar" }));
+      const calendar = await screen.findByRole("region", { name: "Calendar" });
+      await userEvent.click(
+        within(calendar).getByRole("button", { name: "Open commitment for: Public post" }),
+      );
+
+      await expectGnbKeymanFocus("Public post");
+      expect(screen.queryByRole("status", { name: "Ask next action" })).not.toBeInTheDocument();
+      expect(scrolledIds).not.toContain("post-ask");
+    } finally {
+      HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    }
+  });
+
+  it("opening a Calendar commitment focuses Event Lineage; a home list open does not", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Calendar" }));
+    const calendar = await screen.findByRole("region", { name: "Calendar" });
+    expect(within(calendar).getByLabelText("Next action")).toHaveTextContent(
+      "Authorized commitments are current. Open a commitment to read Event Lineage.",
+    );
+    await userEvent.click(
+      within(calendar).getByRole("button", { name: "Open commitment for: Public post" }),
+    );
+
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    await expectGnbKeymanFocus("Public post");
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    const board = screen.getByRole("region", { name: "Board" });
+    await userEvent.click(within(board).getByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    await expectHomeListSkipsGnbKeymanFocus();
+  });
+
+  it("opening a Customer master related post focuses Event Lineage; a home list open does not", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+    const customers = await screen.findByRole("region", { name: "Customer master" });
+    expect(within(customers).getByLabelText("Next action")).toHaveTextContent(
+      "Authorized customer entities are current. Open a related post to read Event Lineage.",
+    );
+    await userEvent.click(within(customers).getByRole("treeitem", { name: /Demo Corp/ }));
+    await userEvent.click(
+      await within(customers).findByRole("button", { name: "Open related post: Public post" }),
+    );
+
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    await expectGnbKeymanFocus("Public post");
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    const boardAfterCustomer = screen.getByRole("region", { name: "Board" });
+    await userEvent.click(
+      within(boardAfterCustomer).getByRole("button", { name: "View post: Public post" }),
+    );
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    await expectHomeListSkipsGnbKeymanFocus();
+  });
+
+  it("keeps the current Customer master loading state when an older request finishes", async () => {
+    const fetchMock = stubBackend({
+      customerEntityHierarchy: true,
+      deferCustomerRelated: true,
+    });
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+    const customers = await screen.findByRole("region", { name: "Customer master" });
+    await userEvent.click(within(customers).getByRole("treeitem", { name: /Demo Group/ }));
+    await userEvent.click(within(customers).getByRole("treeitem", { name: /Demo Corp/ }));
+
+    fetchMock.releaseGroupRelated();
+    await waitFor(() => expect(within(customers).getByText("Loading related posts...")).toBeInTheDocument());
+    expect(within(customers).queryByText("No linked posts yet.")).not.toBeInTheDocument();
+
+    fetchMock.releaseDemoRelated();
+    expect(
+      await within(customers).findByRole("button", { name: "Open related post: Public post" }),
+    ).toBeInTheDocument();
+  });
+
+  it("opening an Ask Agent cited post focuses Event Lineage; a home list open does not", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    await userEvent.type(within(ask).getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+    expect(await within(ask).findByLabelText("Next action")).toHaveTextContent(
+      "Authorized cited posts are current. Open a cited post to read Event Lineage.",
+    );
+    await userEvent.click(within(ask).getByRole("button", { name: "Open cited post: Linked post" }));
+
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+    await expectGnbKeymanFocus("Linked post");
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    const boardAfterAsk = screen.getByRole("region", { name: "Board" });
+    await userEvent.click(within(boardAfterAsk).getByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    await expectHomeListSkipsGnbKeymanFocus();
+  });
+
+  it("ignores a stale summary after Event Lineage navigation changes the selected post", async () => {
+    const fetchMock = stubBackend({ deferPostOneSummary: true });
+    render(<App />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    await userEvent.click(
+      within(board).getByRole("button", { name: "View post: Public post" }),
+    );
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+
+    const linkedPosts = screen.getAllByLabelText("Open post: Linked post");
+    await userEvent.click(linkedPosts[linkedPosts.length - 1]);
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+    expect(await screen.findByText("연결된 글입니다.")).toBeInTheDocument();
+
+    fetchMock.releasePostOneSummary();
+
+    await waitFor(() => {
+      expect(screen.getByText("연결된 글입니다.")).toBeInTheDocument();
+      expect(screen.queryByText("이것은 요약입니다.")).not.toBeInTheDocument();
+    });
+  });
+
+  it("opening a linked Event Lineage node from Ask Agent keeps GNB focus; a home-list DAG walk does not", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    const ask = await screen.findByRole("region", { name: "Ask Agent" });
+    await userEvent.type(within(ask).getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(within(ask).getByRole("button", { name: "Ask" }));
+    await userEvent.click(within(ask).getByRole("button", { name: "Open cited post: Linked post" }));
+
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+    await expectGnbKeymanFocus("Linked post");
+
+    await userEvent.click(screen.getByLabelText(/^Open post: Public post(?: \(|$)/));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    await expectGnbKeymanFocus("Public post");
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    const boardAfterAsk = screen.getByRole("region", { name: "Board" });
+    await userEvent.click(within(boardAfterAsk).getByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    await userEvent.click(screen.getByLabelText("Open post: Linked post"));
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+    await expectHomeListSkipsGnbKeymanFocus();
   });
 
   it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {
@@ -2053,12 +2597,12 @@ describe("App, authenticated", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "View post: Public post" }));
     expect(await screen.findByLabelText("A-100 lineage")).toBeInTheDocument();
-    expect(
-      screen.getByLabelText("Open post: Pricing renegotiation follow-up (Branch point)"),
-    ).toHaveClass("lineage-dag-branch");
-    expect(
-      screen.getByLabelText("Open post: Unrelated: annual account review (Root record)"),
-    ).toHaveClass("lineage-dag-root");
+    expect(screen.getByLabelText(/^Open post: Pricing renegotiation follow-up(?: \(|$)/)).toHaveClass(
+      "lineage-dag-branch",
+    );
+    expect(screen.getByLabelText(/^Open post: Unrelated: annual account review(?: \(|$)/)).toHaveClass(
+      "lineage-dag-root",
+    );
   });
 
   it("renders the board landmark and functional post controls", async () => {
@@ -2226,9 +2770,7 @@ describe("App, authenticated", () => {
     expect(relatedPosts).toHaveTextContent("Linked post");
     // The Event Lineage DAG belongs to the opened post, not the list surface.
     expect(screen.getAllByLabelText("A-100 lineage")).toHaveLength(1);
-    expect(
-      screen.getAllByLabelText("Open post: Pricing renegotiation follow-up (Branch point)"),
-    ).toHaveLength(1);
+    expect(screen.getAllByLabelText(/^Open post: Pricing renegotiation follow-up(?: \(|$)/)).toHaveLength(1);
     expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
     expect(document.getElementById("post-ask")).not.toHaveFocus();
     expect(
@@ -2251,9 +2793,6 @@ describe("App, authenticated", () => {
     const eventLineage = within(popup as HTMLElement).getByRole("heading", { name: "Event Lineage" });
     const affiliate = within(popup as HTMLElement).getByRole("heading", { name: "Affiliate tree" });
     const keyman = within(popup as HTMLElement).getByRole("heading", { name: "Keymen" });
-    expect(within(popup as HTMLElement).getByText("Lineage evidence")).toBeInTheDocument();
-    expect(within(popup as HTMLElement).getByText("Inference boundary")).toBeInTheDocument();
-    expect(within(popup as HTMLElement).getByRole("table", { name: /Evidence trail/ })).toBeInTheDocument();
     expect(evaluation.compareDocumentPosition(eventLineage) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(
       0,
     );
@@ -2282,6 +2821,17 @@ describe("App, authenticated", () => {
       ).toBeGreaterThan(summaryCallsBeforeRetry),
     );
     expect(screen.getByRole("button", { name: "Retry summary refresh" })).toBeInTheDocument();
+  });
+
+  it("requests one summary per post open and keeps retry as the only second request", async () => {
+    const fetchMock = stubBackend();
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() => expect(screen.getByText("이것은 요약입니다.")).toBeInTheDocument());
+    expect(
+      fetchMock.mock.calls.filter(([input]) => String(input).endsWith("/api/posts/post-1/summary")),
+    ).toHaveLength(1);
   });
 
   it("refreshes newly processed source content after summary generation", async () => {
@@ -2352,7 +2902,7 @@ describe("App, authenticated", () => {
     );
   });
 
-  it("stops loading and gives the reader a next action when cited evidence is unavailable", async () => {
+  it("stops loading and gives the buyer a next action when cited evidence is unavailable", async () => {
     stubBackend({ evidenceUnavailable: true });
     render(<App showLabPanels />);
 
@@ -2803,7 +3353,7 @@ describe("App, authenticated", () => {
     expect(screen.getByText("due 2026-01-09")).toBeInTheDocument();
   });
 
-  it("tells the reader how to populate an empty calendar", async () => {
+  it("tells the buyer how to populate an empty calendar", async () => {
     stubBackend({ calendarCommitments: [] });
     render(<App showLabPanels />);
 
@@ -2877,6 +3427,8 @@ describe("App, authenticated", () => {
     await userEvent.click(calendarButton);
 
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
   });
 
   it("shows the seeded analysis run on the home page", async () => {
@@ -3208,7 +3760,7 @@ describe("App, authenticated", () => {
       const popup = document.querySelector(".popup-panel");
       expect(popup).not.toBeNull();
       const currentNode = within(popup as HTMLElement).getByLabelText(
-        "Open post: Public post (Current record, Root record)",
+        /^Open post: Public post(?: \(|$)/,
       );
       expect(currentNode).toHaveAttribute("aria-current", "true");
       const lineageNext = screen.getByRole("status", { name: "Event Lineage next action" });
@@ -3757,155 +4309,12 @@ describe("App, authenticated", () => {
     );
   });
 
-  it("keeps advanced review tools out of the workspace board", async () => {
+  it("keeps advanced review tools out of the buyer board", async () => {
     stubBackend();
     render(<App />);
 
-    expect(await screen.findByRole("navigation", { name: "Workspace navigation" })).toBeInTheDocument();
+    expect(await screen.findByRole("navigation", { name: "Buyer navigation" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Board" })).toHaveAttribute("aria-current", "page");
-    expect(screen.getByLabelText("Authorized scope")).toHaveTextContent("DEMO-CORP / DEMO-PU");
     expect(screen.queryByText("Advanced review tools")).not.toBeInTheDocument();
-    const mobileMenu = screen.getByRole("button", { name: "Open navigation" });
-    expect(mobileMenu).toHaveAttribute("aria-expanded", "false");
-    await userEvent.click(mobileMenu);
-    expect(screen.getByRole("button", { name: "Close Workspace navigation" })).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
-    expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(1);
-    expect(document.getElementById("mobile-workspace-navigation")).toBeInTheDocument();
-    const drawerClose = document.querySelector<HTMLButtonElement>(".mobile-drawer-close");
-    expect(drawerClose).not.toBeNull();
-    await userEvent.click(drawerClose as HTMLButtonElement);
-    expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute("aria-expanded", "false");
-    const appHeader = document.querySelector<HTMLElement>("header.app-header");
-    expect(appHeader).not.toBeNull();
-    expect(within(appHeader as HTMLElement).getByLabelText("Language")).toBeInTheDocument();
-    expect(screen.getByRole("navigation", { name: "Workspace navigation" })).not.toHaveTextContent("Language");
-    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
-    const mobileNavigation = document.getElementById("mobile-workspace-navigation");
-    expect(mobileNavigation).not.toBeNull();
-    await userEvent.click(within(mobileNavigation as HTMLElement).getByRole("button", { name: "Customer master" }));
-    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open navigation" })).toHaveAttribute(
-      "aria-expanded",
-      "false",
-    );
-    await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
-    expect(screen.getByRole("button", { name: "Close Workspace navigation" })).toBeInTheDocument();
-    await userEvent.click(
-      within(appHeader as HTMLElement).getByRole("button", { name: "Search" }),
-    );
-    expect(document.getElementById("mobile-workspace-navigation")).not.toBeInTheDocument();
-    await waitFor(() =>
-      expect(screen.getByRole("searchbox", { name: "Search semantic evidence" })).toHaveFocus(),
-    );
-  });
-
-  it("opens the site map utility and closes it after navigation or Escape", async () => {
-    stubBackend();
-    render(<App />);
-
-    const siteMapButton = await screen.findByRole("button", { name: "Site map" });
-    expect(siteMapButton).toHaveAttribute("aria-expanded", "false");
-    await userEvent.click(siteMapButton);
-    expect(screen.getByRole("region", { name: "Site map" })).toBeInTheDocument();
-    expect(siteMapButton).toHaveAttribute("aria-expanded", "true");
-
-    await userEvent.keyboard("{Escape}");
-    expect(screen.queryByRole("region", { name: "Site map" })).not.toBeInTheDocument();
-
-    await userEvent.click(siteMapButton);
-    const siteMap = screen.getByRole("region", { name: "Site map" });
-    await userEvent.click(within(siteMap).getByRole("button", { name: "Customer master" }));
-    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
-    expect(screen.queryByRole("region", { name: "Site map" })).not.toBeInTheDocument();
-  });
-
-  it("lets a keyboard user skip the header and GNB to reach main content", async () => {
-    stubBackend();
-    render(<App />);
-
-    await screen.findByRole("navigation", { name: "Workspace navigation" });
-    const skipLink = screen.getByRole("link", { name: "Skip to main content" });
-    expect(skipLink).toHaveAttribute("href", "#main-content");
-    const main = document.getElementById("main-content");
-    expect(main).not.toBeNull();
-    await userEvent.click(skipLink);
-    expect(main).toHaveFocus();
-  });
-
-  it("does not steal focus after the global search request has been handled", async () => {
-    const fetchMock = stubBackend();
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
-    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Search" }));
-
-    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
-    await waitFor(() => expect(searchInput).toHaveFocus());
-
-    const sort = screen.getByLabelText("Sort posts");
-    await userEvent.selectOptions(sort, "title");
-    await waitFor(() => {
-      expect(fetchMock.mock.calls.some(([url]) => String(url).includes("sort=title"))).toBe(true);
-      expect(sort).toHaveFocus();
-    });
-
-    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
-    const boardButton = screen.getByRole("button", { name: "Board" });
-    await userEvent.click(boardButton);
-    const remountedSearchInput = await screen.findByRole("searchbox", {
-      name: "Search semantic evidence",
-    });
-    await waitFor(() => expect(boardButton).toHaveFocus());
-    expect(remountedSearchInput).not.toHaveFocus();
-  });
-
-  it("focuses the board search input again on a later global Search action", async () => {
-    stubBackend();
-    render(<App />);
-
-    const header = document.querySelector("header.app-header");
-    expect(header).not.toBeNull();
-    const globalSearch = within(header as HTMLElement).getByRole("button", { name: "Search" });
-    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
-
-    await userEvent.click(globalSearch);
-    await waitFor(() => expect(searchInput).toHaveFocus());
-    searchInput.blur();
-    expect(searchInput).not.toHaveFocus();
-
-    await userEvent.click(globalSearch);
-    await waitFor(() => expect(searchInput).toHaveFocus());
-  });
-
-  it("clears a pending global search focus request when leaving the board", async () => {
-    const fetchMock = stubBackend({ deferPosts: true });
-    render(<App />);
-
-    await userEvent.click(screen.getByRole("button", { name: "Search" }));
-    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
-    expect(await screen.findByRole("heading", { name: "Customer master" })).toBeInTheDocument();
-
-    fetchMock.releasePosts();
-    await userEvent.click(screen.getByRole("button", { name: "Board" }));
-    const searchInput = await screen.findByRole("searchbox", { name: "Search semantic evidence" });
-    expect(searchInput).not.toHaveFocus();
-  });
-
-  it("closes a post popup when browser history moves back", async () => {
-    stubBackend();
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    expect(await screen.findByRole("heading", { name: "Public post" })).toBeInTheDocument();
-    expect(new URL(window.location.href).searchParams.get("post")).toBe("post-1");
-
-    window.history.replaceState({}, "", "/");
-    window.dispatchEvent(new PopStateEvent("popstate"));
-
-    await waitFor(() => expect(screen.queryByRole("heading", { name: "Public post" })).not.toBeInTheDocument());
   });
 });

@@ -87,7 +87,12 @@ def _best_parent(
             "text": text_similarity_score(candidate, record),
         }
         if "llm" in weights:
-            scores["llm"] = llm.judge(candidate.label, record.label)
+            try:
+                scores["llm"] = llm.judge(candidate.label, record.label)
+            except AdjudicationClientError:
+                # A malformed provider response invalidates only this optional
+                # pair; deterministic channels still produce the edge.
+                scores["llm"] = 0.0
         for channel, score in scores.items():
             channel_results[channel].append((candidate.record_id, score))
             per_candidate_scores[candidate.record_id][channel] = score

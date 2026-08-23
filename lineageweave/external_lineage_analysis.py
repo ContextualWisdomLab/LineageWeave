@@ -409,8 +409,10 @@ def analyze_external_lineage(
     validated = _validated_request(request)
     _validate_explicit_parent_relations(validated.records)
     included, excluded = _included_records(validated)
-    _enforce_pair_budget(included, validated)
+    pair_evaluations = _enforce_pair_budget(included, validated)
     selected_llm, llm_status = _selected_llm(validated, llm)
+    if llm_status == "completed" and pair_evaluations == 0:
+        llm_status = "not_invoked"
 
     inferred = _inferred_edges(
         included,

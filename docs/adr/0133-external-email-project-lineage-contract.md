@@ -41,7 +41,7 @@ Evidence becoming available after the cutoff is excluded even when it describes 
 - Naruon can eventually consume a released artifact without exposing credentials or application tables.
 - RFC reply/thread evidence stays distinguishable from semantic lineage.
 - Caller-observed children are never disclosed to an optional model merely to calculate an inferred edge that would be discarded.
-- The optional LLM channel is explicit as `not_requested`, `unavailable`, or `completed`; missing output is never zero.
+- The optional LLM channel is explicit as `not_requested`, `unavailable`, `not_invoked`, or `completed`; missing output is never zero. `not_invoked` means the channel was allowed and available but no candidate pair required a model call.
 - Canonical serialization and SHA-256 digesting are deterministic for a given request or result. Repeatability of model-backed scores additionally requires a pinned LineageWeave release, adjudicator implementation, provider/model revision, and model-side determinism policy.
 - Explicit parent cycles and analysis work above the caller-approved pair budget fail closed before inference.
 - Project evidence can inform Naruon without mutating authoritative project/task/provider state.

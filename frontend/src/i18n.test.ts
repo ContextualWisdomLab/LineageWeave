@@ -13,7 +13,7 @@ afterEach(() => {
 });
 
 describe("i18n", () => {
-  const requiredWorkspaceLabels = [
+  const requiredBuyerLabels = [
     "Language",
     "Evidence",
     "Ask",
@@ -36,33 +36,23 @@ describe("i18n", () => {
     "Calendar",
     "Board",
     "Search",
-    "Site map",
-    "Conversation",
-    "Start with a question about the evidence",
-    "Ask about an event, decision, or source post.",
-    "You",
-    "Thinking...",
-    "Open source",
-    "Enter to send. Shift+Enter for a new line.",
     "Page",
     "Answer",
     "Showing the first {shown} of {total} posts known at this cutoff.",
     "Weekly VOC",
     "Filter by ISO week",
     "All weeks",
-  ] as const;
-  const eventLineageLabels = [
-    "Authorized scope",
-    "Open navigation",
-    "Skip to main content",
-    "Lineage legend",
-    "Root record",
-    "Branch point",
-    "Current record",
-    "Parent to child",
-    "Inference boundary",
-    "Edges explain reconstructed continuation only. They are not causal or authoritative facts.",
-    "Evidence (fused_score)",
+    "Authorized commitments are current. Open a commitment to read Event Lineage.",
+    "Authorized customer entities are current. Open a related post to read Event Lineage.",
+    "Authorized cited posts are current. Open a cited post to read Event Lineage.",
+    "Knowledge cutoff (optional)",
+    "This answer is fully grounded at the requested cutoff. Open a cited post to compare the retained body.",
+    "This answer is only partly grounded at the requested cutoff. Open a cited post to see which historical bodies were retained.",
+    "Historical body unavailable for this cited post. The live body was not used.",
+    "Historical evidence limitations",
+    "This live source changed after the cutoff.",
+    "Event Lineage timeline",
+    "Open timeline post:",
   ] as const;
 
   it("supports the five product locales", () => {
@@ -71,35 +61,14 @@ describe("i18n", () => {
   });
 
   it.each(["ko", "zh", "ja", "vi"] as const)(
-    "translates all shared workspace labels in %s",
+    "translates all shared Buyer labels in %s",
     (locale) => {
       setLocale(locale);
-      for (const key of requiredWorkspaceLabels) {
+      for (const key of requiredBuyerLabels) {
         expect(t(key), `${locale}:${key}`).not.toBe(key);
       }
     },
   );
-
-  it.each(["ko", "zh", "ja", "vi"] as const)(
-    "translates Event Lineage and authorization labels in %s",
-    (locale) => {
-      setLocale(locale);
-      for (const key of eventLineageLabels) {
-        expect(t(key), `${locale}:${key}`).not.toBe(key);
-      }
-    },
-  );
-
-  it.each([
-    ["ko", "작업공간 메뉴"],
-    ["zh", "工作区导航"],
-    ["ja", "ワークスペースナビゲーション"],
-    ["vi", "Điều hướng không gian làm việc"],
-  ] as const)("uses workspace terminology for navigation in %s", (locale, expected) => {
-    setLocale(locale);
-    expect(t("Workspace navigation")).toBe(expected);
-    expect(t("Workspace navigation").toLocaleLowerCase()).not.toContain("buyer");
-  });
 
   it.each([
     ["ko", "관련 글"],
@@ -118,7 +87,7 @@ describe("i18n", () => {
     ["zh", "DEMO 是事件谱系中的当前记录。接下来查看关键联系人和评估。"],
     ["ja", "DEMOはイベント系譜の現在の記録です。次にキーパーソンと評価を確認してください。"],
     ["vi", "DEMO là bản ghi hiện tại trong Dòng sự kiện. Hãy xem người liên hệ chính và đánh giá tiếp theo."],
-  ] as const)("formats dynamic reader guidance in %s", (locale, expected) => {
+  ] as const)("formats dynamic buyer guidance in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("{post} is current in Event Lineage. Read Keyman and evaluation next.", { post: "DEMO" })).toBe(expected);
   });

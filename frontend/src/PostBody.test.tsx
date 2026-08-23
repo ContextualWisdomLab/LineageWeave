@@ -326,6 +326,31 @@ describe("PostBody", () => {
     expect(screen.getByRole("columnheader", { name: "Owner" })).toBeInTheDocument();
   });
 
+  it("keeps an embedded source image when prose also contains a Markdown table", () => {
+    render(
+      <PostBody
+        body={
+          '<p>Before the table</p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />' +
+          "\n\n| Project | Status |\n| --- | --- |\n| Alpha | Ready |"
+        }
+        imageContent={[
+          {
+            unit_index: 1,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "",
+            caption: "Source image beside the table",
+            tags: [],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByAltText("Source image beside the table")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Project" })).toBeInTheDocument();
+    expect(screen.getByText("Ready")).toBeInTheDocument();
+  });
+
   it("marks persisted footnotes as footnote evidence", () => {
     render(
       <PostBody

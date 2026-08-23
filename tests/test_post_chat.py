@@ -37,6 +37,7 @@ from lineageweave.post_chat import (
     cited_post_summaries,
     normalize_chat_question,
     parse_chat_response,
+    render_global_ask_context,
 )
 
 
@@ -200,15 +201,17 @@ def test_chat_render_includes_persisted_graph_facts_with_source_evidence() -> No
             'node_corporate_entity "Demo Corp" [evidence_post_id=post-graph]',
         ),
         evidence_facts=("source project code=PROJECT-HINT [hint_only]",),
+        occurred_at="2026-01-01T00:00:00+00:00",
     )
 
     rendered = _render_sources_block([source])
 
-    assert "Persisted Knowledge Graph facts" in rendered
+    assert '"graph_facts"' in rendered
     assert "Demo Corp" in rendered
     assert "evidence_post_id=post-graph" in rendered
-    assert "Persisted source/semantic evidence" in rendered
+    assert '"evidence_facts"' in rendered
     assert "PROJECT-HINT" in rendered
+    assert '"occurred_at":"2026-01-01T00:00:00+00:00"' in rendered
 
 
 def test_graph_facts_are_hydrated_from_visible_evidence_posts(monkeypatch) -> None:
@@ -339,7 +342,7 @@ def test_contextual_orchestrator_chat_requests_plain_citations(monkeypatch) -> N
             "choices": [
                 {
                     "message": {
-                        "content": "근거 답변\nCITED SOURCES: 1"
+                        "content": '{"answer_text":"근거 답변","cited_source_numbers":[1]}'
                     }
                 }
             ]
@@ -353,4 +356,38 @@ def test_contextual_orchestrator_chat_requests_plain_citations(monkeypatch) -> N
     assert answer.answer_text == "근거 답변"
     assert observed["payload"]["reasoning_effort"] == "auto"
     assert observed["payload"]["mode"] == "auto"
-    assert "CITED SOURCES" in observed["payload"]["messages"][0]["content"]
+    assert observed["payload"]["response_format"]["type"] == "json_schema"
+    assert "untrusted" in observed["payload"]["messages"][0]["content"]
+
+
+def test_global_ask_context_is_explicitly_non_evidentiary() -> None:
+    rendered = render_global_ask_context(
+        "Earlier synthetic decision",
+        ((3, "Synthetic question", "Synthetic answer"),),
+    )
+
+    assert "Compressed prior context" in rendered
+    assert "Turn 3 question: Synthetic question" in rendered
+    assert "Turn 3 answer: Synthetic answer" in rendered
+
+
+def test_contextual_orchestrator_compresses_global_ask_turns(monkeypatch) -> None:
+    observed = {}
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        observed["url"] = url
+        observed["payload"] = payload
+        return {"choices": [{"message": {"content": "Synthetic compressed context"}}]}
+
+    monkeypatch.setattr("lineageweave.post_chat.post_json", fake_post_json)
+    summary = ContextualOrchestratorPostChatClient(
+        "https://orchestrator.test", "token"
+    ).compress_context(
+        "Earlier synthetic context",
+        [(1, "Synthetic question", "Synthetic answer")],
+    )
+
+    assert summary == "Synthetic compressed context"
+    assert observed["url"].endswith("/v1/chat/completions")
+    assert observed["payload"]["mode"] == "auto"
+    assert "Synthetic question" in observed["payload"]["messages"][0]["content"]

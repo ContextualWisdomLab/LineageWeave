@@ -49,6 +49,12 @@ _ORG_TOKEN_STOPWORDS = frozenset(
         "foundation",
         "the",
         "and",
+        "fictitious",
+        "nonexistent",
+        "synthetic",
+        "sample",
+        "example",
+        "unknown",
     }
 )
 _HANGUL_TOKEN = re.compile(r"[가-힣]+")

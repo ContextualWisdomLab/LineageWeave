@@ -45,7 +45,7 @@ flowchart LR
 
     subgraph External services, all optional
         EMB[Embedding provider<br/>swap in for the text channel]
-        ORC[contextual-orchestrator<br/>mode=verify, llm channel]
+        ORC[contextual-orchestrator<br/>mode=auto, llm and vision channels]
         TEPP[TEPP<br/>AnalysisRunRequest v1,<br/>calibrated measurement]
     end
 
@@ -64,7 +64,7 @@ flowchart LR
 | `chunking.py` | Splits a document into meaning-identifiable units (paragraph, sentence, DOM, conversation-turn) plus embedded-image extraction, in document order |
 | `embedding_client.py` | Pluggable text-embedding channel (`Null` default, `OpenAiCompatible` real impl) + `chunked_max_similarity` |
 | `adjudication_client.py` | Pluggable LLM-judgment channel (`Null` default, `ContextualOrchestrator` real impl) |
-| `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl). The product popup (`frontend/src/PostBody.tsx`) renders each `data:image` payload in document order so the reader sees the picture, not the base64 string; GET does not call the vision client. |
+| `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl). The product popup (`frontend/src/PostBody.tsx`) renders each `data:image` payload in document order so the buyer sees the picture, not the base64 string; GET does not call the vision client. |
 | `tepp_client.py` | TEPP's published `AnalysisRunRequest` wire contract, pluggable transport |
 | `rankweave_client.py` | Fail-closed RankWeave ranking port (`weighted_reciprocal_rank_fuse` in-process; never invent a fused score or a theta) |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
@@ -84,19 +84,15 @@ flowchart LR
 | `period_report.py` | Fit GRM/GPCM on persisted IRT rows, FIPC-select, EAP-score a period (ADR 0003 slice 3; Bock & Mislevy, 1982) |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |
 | `server.py` | Legacy stdlib HTTP server for the library-level synthetic fixture demo; production uses FastAPI/PostgreSQL |
+| `backend/app/mcp_server.py` | OAuth-protected Streamable HTTP MCP resource server exposing read-only, evidence-grounded Global Ask |
 | `web/index.html` | Legacy self-contained SVG DAG viewer; production UI is the React/Vite frontend |
 
-> **Known local-test-environment limitation:** `adjudication_client.py`'s
-> `mode="verify"` call depends on contextual-orchestrator's
-> `TaskOrchestrator.route_and_verify`, which as of this writing is still
-> an open, unmerged upstream PR
-> (`ContextualWisdomLab/contextual-orchestrator#149`). Until it merges,
-> the four adjudication/chat tests that exercise `mode="verify"` against
-> a real orchestrator fail with `invalid_mode` (the deployed `main` only
-> accepts `auto`/`route`/`conduct`) -- confirmed by reproducing the same
-> `400` directly against the orchestrator's own `/v1/chat/completions`,
-> not caused by anything in this repo. `mode="route"` (every other
-> pluggable client) is unaffected.
+> **Contextual-orchestrator contract:** Post Ask and MCP Global Ask use
+> `mode="auto"` and `reasoning_effort="auto"`; the gateway owns model
+> discovery, provider protocol, and multi-agent reasoning. Requests carry a
+> stable post-scoped session id and non-secret evidence metadata. Structured
+> responses use `json_schema`. LineageWeave never calls a provider directly
+> or falls back to the rejected legacy `verify` mode.
 
 ## Design decisions worth naming
 
@@ -262,6 +258,11 @@ raw HTTP status. After that 503 the free-text Ask box is hidden and
 only seeded question chips remain -- never a fabricated answer. Evaluate, Extract
 Keymen, Derive commitment, and Verify use the same 503 empty-state
 pattern and then hide the action button so it cannot 503 again.
+Persisted Ask-history reads are bounded to 64 exchanges and 256 citation
+occurrences (ADR 0131). One query loads the ordered history and one query
+reauthorizes every citation against tenant ABAC, publication eligibility, and
+its exchange-specific knowledge cutoff. An over-budget history is withheld
+rather than partially returned.
 `find_linked_post_ids` first expands to every post
 sharing a mentioned person before calling
 `backend/app/knowledge_graph.py::load_visible_subgraph` -- that function
@@ -283,8 +284,16 @@ HTML. `src/api.ts` calls the FastAPI backend directly with the token
 Keycloak issued; `src/App.tsx` renders a git-branch SVG of
 `GET /api/lineage` (click a node to open that post; `post_admin` can
 rebuild), the post list with a named Weekly VOC ISO-8601 week filter
-(ADR 0092; opening that filtered post focuses Event Lineage, ADR 0093),
-and a full detail popup: Korean
+(ADR 0092; opening that filtered post focuses Event Lineage, ADR 0093).
+Calendar commitments use the same Event Lineage focus path (ADR 0094).
+Customer master related posts use the same Event Lineage focus path
+(ADR 0095). Ask Agent cited posts use the same Event Lineage focus path
+(ADR 0096). A linked Event Lineage node opened from a focused popup keeps
+those flags (ADR 0097). Ask Agent accepts an optional knowledge cutoff
+and uses retained `source_post_revision` bodies for that clock (ADR 0135);
+a live query is never labeled as-of. The full detail popup includes Korean
+and focuses Keyman as the named next read (ADR 0100). The full detail
+popup includes Korean
 summary/key-events/R&R, VOC evidence excerpts, an Event Lineage panel
 (direct vs. indirect links; a link opens that post), the Keyman
 affiliate tree (resolved ancestors plus unresolved org roots), Keyman +
@@ -330,7 +339,7 @@ Keymen are affiliated with (`lineageweave/affiliate_tree.py`, loaded by
 set of those leaves, not the whole company directory -- a sibling the
 post never mentions is omitted. People on the tree are buttons that
 reuse `GET /api/keymen/{person_id}/related` so the popup Keyman walk
-starts from the affiliation the reader clicked. A resolved organization
+starts from the affiliation the buyer clicked. A resolved organization
 is the same walk via `GET /api/corporate-entities/{id}/related`. An affiliation that did not resolve to
 a `corporate_entity` row stays as its own root (`resolved=false`); that
 is the same never-guess-a-parent rule
@@ -378,7 +387,9 @@ close the one product-brief item with a schema table (`issue_ticket`)
 but no implementation through Phase 4. Deliberately plain CRUD, not a
 pluggable-LLM channel like `keyman_ingestion.py` -- ticket status is a
 closed enum in `common_lookup_value`, and opening or updating a ticket
-is a direct user action, not something extracted from text.
+is a direct user action, not something extracted from text. Ticket writes
+also require `post_admin` plus authorship or corporate affiliation with the
+owning post; public visibility is read access only (ADR 0122).
 `frontend/src/App.tsx`'s `IssueTicketPanel` is the popup's real
 list/create/status-update UI for it. Status options show
 `common_lookup_value` labels (`Open` / `In progress` / `Closed`)
@@ -478,7 +489,7 @@ truly have no dated open tickets.
 
 ## Phase 6-M2: authorized analysis-run evidence (read projection)
 
-Issue #79's first reader-visible Milestone 2 slice is a source-redacting
+Issue #79's first buyer-visible Milestone 2 slice is a source-redacting
 read of the #89 registry. `GET /api/analysis-runs` and
 `GET /api/analysis-runs/{id}` require `post_read` and apply the scope
 in SQL: the requester always sees their own run; a corporate-entity or
@@ -486,7 +497,7 @@ process-unit scope is visible only to affiliated accounts; a
 thread-group scope is visible only when the account can already see a
 post in that group; `all_visible` is requester-only. Hidden runs 404. Detail also lists ABAC-visible post titles in the
 run's scope whose `created_at` is at or before `knowledge_cutoff`
-(ADR 0016) so a reader can open a post the run was allowed to know
+(ADR 0016) so a buyer can open a post the run was allowed to know
 without seeing later live rows or hidden bodies. Detail also returns
 revision and configuration digest prefixes.
 `POST /api/analysis-runs` records a Pending lineage run on a new
@@ -936,7 +947,7 @@ code. Wired into both `keyman_ingestion.py`'s affiliation loop and
 ## Standards-complete W3C PROV-O provenance layer
 
 ADR 0011 separates standards-complete provenance from the compact
-reader-facing navigation graph. `lineageweave/prov_o.py` validates
+buyer-facing navigation graph. `lineageweave/prov_o.py` validates
 and materializes all 50 normative PROV-O properties, including
 literal-valued times/values and qualified Influence resources.
 `migrations/0017_prov_o_standard_relations.sql` stores definitions,

@@ -24,7 +24,7 @@ const BLOCK_TAG =
   /<\/?(?:article|blockquote|div|endnote|footnote|h[1-6]|li|oi|ol|p|section|table|tbody|td|tfoot|th|thead|tr|ul|w:endnote|w:footnote|w:p|w:tbl|w:tr|w:tc)\b[^>]*>/gi;
 const WORD_INDENT_TAG = /<w:ind\b[^>]*\/?\s*>/gi;
 const LIST_ITEM_START = /^\s*(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)/;
-const FOOTNOTE_START = /^\s*[*†‡]+(?=\S)/;
+const FOOTNOTE_START = /^\s*(?:[*†‡]+(?=\S)|\[\d{1,3}\]\s+\S)/;
 const INDENT_MARKER = "\u0001lw-indent:";
 const INDENT_MARKER_END = "\u0002";
 const INDENT_MARKER_PATTERN = /lw-indent:(\d+)/g;
@@ -127,7 +127,10 @@ function stripHtmlTags(text: string): string {
       const closing = /^<\//.test(tag);
       const listContainer = /^<\s*\/?\s*(?:ul|ol|oi)\b/i.test(tag);
       if (closing) {
-        if (listContainer) listDepth = Math.max(0, listDepth - 1);
+        if (listContainer) {
+          listDepth = Math.max(0, listDepth - 1);
+          return `\n\n${indentMarker(listDepth * 4)}`;
+        }
         return "\n\n";
       }
       if (listContainer) {
@@ -290,9 +293,6 @@ function isMarkdownSeparatorRow(cells: string[] | null): boolean {
  * The return value preserves prose and skips only the delimiter row.
  */
 export function splitMarkdownTableBody(body: string): MarkdownBodyBlock[] | null {
-  // This renderer has no image node. Let splitPostBody preserve an embedded
-  // image's position instead of turning its source tag into visible prose.
-  if (new RegExp(DATA_URI_IMG.source, DATA_URI_IMG.flags).test(body)) return null;
   const lines = body.replace(/\r\n?/g, "\n").split("\n");
   const blocks: MarkdownBodyBlock[] = [];
   let prose: string[] = [];

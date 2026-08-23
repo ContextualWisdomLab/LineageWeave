@@ -100,6 +100,21 @@ _SUMMARY_FIVE_W1H_MIGRATION = (
 _POST_CONTENT_QUEUE_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0050_post_content_ingestion_queue.sql"
 )
+_ORGANIZATION_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0051_context_scoped_organization_name_resolution.sql"
+)
+_GLOBAL_ASK_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0052_global_ask_context.sql"
+)
+_POST_CHAT_CUTOFF_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0054_post_chat_knowledge_cutoff.sql"
+)
 _MAJOR_EVENT_ACTION_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0100_major_event_action.sql"
 )
@@ -162,6 +177,12 @@ pytestmark = pytest.mark.skipif(
     not (_postgres_available() and _keycloak_available() and _valkey_available()),
     reason="requires a reachable local PostgreSQL, Keycloak, and Valkey -- run `make up` first",
 )
+
+
+@pytest.fixture(autouse=True)
+def disable_home_gateway_fallback_for_api_tests(monkeypatch) -> None:
+    """Keep API tests from sending requests through a developer's home config."""
+    monkeypatch.setattr("backend.app.config._home_dotenv_values", lambda names: {})
 
 
 def _fetch_demo_analyst_token() -> str:
@@ -233,6 +254,9 @@ def seeded_db(demo_analyst_token):
             cur.execute(_IMAGE_REGION_EMBEDDING_MIGRATION.read_text())
             cur.execute(_SUMMARY_FIVE_W1H_MIGRATION.read_text())
             cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
+            cur.execute(_ORGANIZATION_CONTEXT_MIGRATION.read_text())
+            cur.execute(_GLOBAL_ASK_CONTEXT_MIGRATION.read_text())
+            cur.execute(_POST_CHAT_CUTOFF_MIGRATION.read_text())
             cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
@@ -1582,6 +1606,64 @@ def test_post_detail_exposes_explicit_and_semantic_project_evidence(
     )
     assert listed_post["project_evidence"][0]["project_name"] == "Semantic project"
     assert listed_post["project_evidence"][0]["provenance"] == "post_project_mention.evidence_text"
+
+    index = client.get(
+        "/api/project-history/projects",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert index.status_code == 200, index.text
+    semantic_project = next(
+        project for project in index.json()["projects"] if project["project_key"] == "semantic-project"
+    )
+    assert semantic_project["project_name"] == "Semantic project"
+
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute(
+                "update source_post set source_project_code = %s, source_project_name = %s where post_id = %s",
+                ("   ", "Source name fallback", seeded_db["public_post_id"]),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+    fallback_index = client.get(
+        "/api/project-history/projects",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert fallback_index.status_code == 200, fallback_index.text
+    assert any(
+        project["normalized_project_key"] == "source name fallback"
+        and project["project_name"] == "Source name fallback"
+        for project in fallback_index.json()["projects"]
+    )
+
+    history = client.get(
+        "/api/project-history",
+        params={
+            "project_key": semantic_project["project_key"],
+            "focus_post_id": seeded_db["public_post_id"],
+            "knowledge_cutoff": index.json()["knowledge_cutoff"],
+        },
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert history.status_code == 200, history.text
+    assert history.json()["project_key"] == "semantic-project"
+    assert history.json()["events"][0]["source_post_id"] == seeded_db["public_post_id"]
+
+    invalid_key = client.get(
+        "/api/project-history",
+        params={"project_key": "   "},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert invalid_key.status_code == 422
+
+    invalid_focus = client.get(
+        "/api/project-history",
+        params={"project_key": "semantic-project", "focus_post_id": "not-a-uuid"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert invalid_focus.status_code == 422
 
 
 def test_post_detail_as_of_returns_the_cutoff_known_body(
@@ -3728,6 +3810,35 @@ def test_counterparties_resolve_cataloged_org_ids(client, demo_analyst_token, se
     assert by_name["Northridge Grid"]["corporate_entity_id"] is None
 
 
+def test_counterparties_do_not_expose_unauthorized_catalog_entity(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A public post must not resolve a name to a private catalog row."""
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into post_counterparty_entity "
+                "(post_id, counterparty_entity_name, relationship_type_code) "
+                "values (%s, 'Other Corp', 'rel_voc')",
+                (seeded_db["public_post_id"],),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/posts/{seeded_db['public_post_id']}/counterparties",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    row = next(
+        item for item in response.json()["counterparties"]
+        if item["counterparty_entity_name"] == "Other Corp"
+    )
+    assert row["corporate_entity_id"] is None
+
+
 def test_counterparties_endpoint_is_empty_before_extraction(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(
         f"/api/posts/{seeded_db['own_private_post_id']}/counterparties",
@@ -4180,6 +4291,50 @@ def test_patch_ticket_on_other_corp_private_post_is_forbidden(client, demo_analy
     assert response.status_code == 403
 
 
+def test_patch_ticket_on_public_post_owned_by_other_account_is_forbidden(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """Public read access must not become cross-account ticket write access."""
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                """
+                insert into source_post
+                    (author_account_id, corporate_entity_id, post_title, post_body,
+                     voc_type_code, visibility_code)
+                    values (
+                        (select user_account_id from user_account
+                         where external_subject_id like 'other-%%' limit 1),
+                    %s, 'Public post from another account', 'body', 'voc', 'public'
+                )
+                returning post_id
+                """,
+                (seeded_db["other_corp_id"],),
+            )
+            post_id = str(cur.fetchone()[0])
+            cur.execute(
+                """
+                insert into issue_ticket (post_id, ticket_status_code, ticket_title)
+                values (%s, 'open', 'Ticket owned by another account')
+                returning issue_ticket_id
+                """,
+                (post_id,),
+            )
+            ticket_id = str(cur.fetchone()[0])
+    finally:
+        admin_conn.close()
+
+    _grant_post_admin(seeded_db["dsn"])
+    response = client.patch(
+        f"/api/tickets/{ticket_id}",
+        json={"ticket_status_code": "closed"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
 def test_post_activity_is_empty_before_any_mutation(client, demo_analyst_token, seeded_db) -> None:
     response = client.get(
         f"/api/posts/{seeded_db['own_private_post_id']}/activity",
@@ -4187,6 +4342,48 @@ def test_post_activity_is_empty_before_any_mutation(client, demo_analyst_token, 
     )
     assert response.status_code == 200
     assert response.json()["events"] == []
+
+
+def test_derive_commitment_cannot_write_a_public_post_owned_by_other_account(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Public read visibility must not authorize derived-ticket writes."""
+    _grant_post_admin(seeded_db["dsn"])
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                """
+                insert into source_post
+                    (author_account_id, corporate_entity_id, post_title, post_body,
+                     voc_type_code, visibility_code)
+                values (
+                    (select user_account_id from user_account
+                     where external_subject_id like 'other-%%' limit 1),
+                    %s, 'Public commitment from another account',
+                    'A commitment is present.', 'voc', 'public'
+                )
+                returning post_id
+                """,
+                (seeded_db["other_corp_id"],),
+            )
+            post_id = str(cur.fetchone()[0])
+    finally:
+        admin_conn.close()
+
+    class _UnexpectedClient:
+        available = True
+
+        def extract(self, *_args):
+            raise AssertionError("authorization must run before commitment extraction")
+
+    monkeypatch.setattr("backend.app.main._commitment_extraction_client", lambda: _UnexpectedClient())
+    response = client.post(
+        f"/api/posts/{post_id}/derive-commitment",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
 
 
 def test_ticket_mutations_publish_real_events_to_the_activity_feed(
