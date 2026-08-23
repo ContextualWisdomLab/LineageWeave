@@ -54,7 +54,7 @@ Rebuild and seed write leftover-map coordinates in the same
 transaction as leftover pairs. `GET /api/reports/{grouping}/{period}`
 returns `leftover_map_persons` (with post title) and
 `leftover_map_items`. Migration
-`0104_report_leftover_interaction_map.sql` upgrades volumes that
+`0172_report_leftover_interaction_map.sql` upgrades volumes that
 already applied `0001` / `0012`. `migrate.sh` also replays `0103`
 (`tenant_settings`) so existing volumes pick up that table.
 

@@ -1,7 +1,7 @@
 -- ADR 0121: persist leftover interaction-map coordinates after IRT main
 -- effects. CREATE IF NOT EXISTS so a volume that already ran 0001 still
 -- upgrades. Composite FKs are added below so an existing table from an
--- earlier 0104 still gains member/item integrity.
+-- an earlier migration still gains member/item integrity.
 
 create table if not exists report_leftover_map_person (
     grouping_kind text not null,

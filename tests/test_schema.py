@@ -46,7 +46,7 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
 _LEFTOVER_INTERACTION_MAP_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
-    / "0104_report_leftover_interaction_map.sql"
+    / "0172_report_leftover_interaction_map.sql"
 )
 
 

@@ -35,3 +35,4 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
     assert "0012_*" in script
     assert "0103_*" in script
     assert "0104_*" in script
+    assert "0172_*" in script
