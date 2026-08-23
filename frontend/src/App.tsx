@@ -1288,18 +1288,36 @@ function KeymanPanel({
   );
 }
 
+function leftoverCriterionNextAction(
+  criterion: string,
+  pairKind: "closest" | "farthest",
+): string {
+  if (pairKind === "farthest") {
+    return tf(
+      "{criterion} is the leftover criterion this post sat farthest from after main effects. Read that Post quality score next.",
+      { criterion },
+    );
+  }
+  return tf(
+    "{criterion} is the leftover criterion this post sat closest to after main effects. Read that Post quality score next.",
+    { criterion },
+  );
+}
+
 function EvaluationPanel({
   postId,
   accessToken,
   responses,
   canExtract,
   onEvaluated,
+  leftoverFocus,
 }: {
   postId: string;
   accessToken: string;
   responses: EvaluationResponse[] | null;
   canExtract: boolean;
   onEvaluated: (rows: EvaluationResponse[]) => void;
+  leftoverFocus?: { pairKind: "closest" | "farthest"; criterionCode: string } | null;
 }) {
   const [evaluating, setEvaluating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1329,7 +1347,9 @@ function EvaluationPanel({
   return (
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>{t("Post quality (IRT)")}</h3>
+        <h3 id="post-quality" tabIndex={-1}>
+          {t("Post quality (IRT)")}
+        </h3>
         {canExtract && !orchestratorOff && (
           <details className="operator-action-tools">
             <summary>{t("Evidence operations")}</summary>
@@ -1339,6 +1359,14 @@ function EvaluationPanel({
           </details>
         )}
       </div>
+      {leftoverFocus ? (
+        <p className="post-meta" role="status" aria-label={t("Leftover criterion next action")}>
+          {leftoverCriterionNextAction(
+            criterionShortLabel(leftoverFocus.criterionCode),
+            leftoverFocus.pairKind,
+          )}
+        </p>
+      ) : null}
       {error && <p className="error">{error}</p>}
       {responses === null ? (
         <p>{t("Loading evaluation...")}</p>
@@ -1347,7 +1375,13 @@ function EvaluationPanel({
       ) : (
         <ul>
           {responses.map((row) => (
-            <li key={row.criterion_code}>
+            <li
+              key={row.criterion_code}
+              className="evaluation-criterion"
+              aria-current={
+                leftoverFocus?.criterionCode === row.criterion_code ? "true" : undefined
+              }
+            >
               {row.criterion_label ?? row.criterion_code}: {row.response_category}
             </li>
           ))}
@@ -1671,6 +1705,7 @@ function PostDetailPopup({
   liveBodyWarning,
   knowledgeCutoff,
   focusEventLineage,
+  leftoverFocus,
   onClose,
   onSelectPost,
   onSearch,
@@ -1682,6 +1717,7 @@ function PostDetailPopup({
   liveBodyWarning?: string | null;
   knowledgeCutoff?: string | null;
   focusEventLineage?: boolean;
+  leftoverFocus?: { pairKind: "closest" | "farthest"; criterionCode: string } | null;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
@@ -1880,6 +1916,15 @@ function PostDetailPopup({
     heading?.focus();
     heading?.scrollIntoView?.({ block: "nearest" });
   }, [focusEventLineage, post]);
+
+  useEffect(() => {
+    if (!leftoverFocus || !post) {
+      return;
+    }
+    const heading = document.getElementById("post-quality");
+    heading?.focus();
+    heading?.scrollIntoView?.({ block: "nearest" });
+  }, [leftoverFocus, post]);
 
   return (
     <div className="popup-backdrop" onClick={onClose}>
@@ -2276,6 +2321,7 @@ function PostDetailPopup({
                 responses={evaluation}
                 canExtract={canExtract}
                 onEvaluated={(rows) => setEvaluation(rows)}
+                leftoverFocus={leftoverFocus}
               />
             )}
 
@@ -2328,6 +2374,7 @@ function PostDetailPopup({
                       responses={evaluation}
                       canExtract={canExtract}
                       onEvaluated={(rows) => setEvaluation(rows)}
+                      leftoverFocus={leftoverFocus}
                     />
                     {keymen?.[0] ? (
                       <p className="post-meta" role="status" aria-label={t("Keyman next action")}>
@@ -2534,10 +2581,16 @@ function analysisRunDigestPrefix(digest: string): string {
   return digest.slice(0, ANALYSIS_RUN_DIGEST_PREFIX_LENGTH);
 }
 
+type LeftoverPairFocus = {
+  pairKind: "closest" | "farthest";
+  criterionCode: string;
+};
+
 type SelectPostOptions = {
   liveAfterCutoff?: boolean;
   knowledgeCutoff?: string;
   fromReportMember?: boolean;
+  fromLeftoverPair?: LeftoverPairFocus;
 };
 
 /**
@@ -3394,11 +3447,11 @@ function ReportsPanel({
                 {report.leftover_pairs.map((pair) => {
                   const kindLabel =
                     pair.pair_kind === "farthest" ? "Farthest leftover" : "Closest leftover";
-                  const nextAction =
-                    pair.pair_kind === "farthest"
-                      ? "Open this post to read the criterion it sat farthest from after main effects."
-                      : "Open this post to read the criterion it sat closest to after main effects.";
+                  const nextAction = t(
+                    "Open this post so the leftover criterion is current in Post quality.",
+                  );
                   const criterion = criterionShortLabel(pair.criterion_code);
+                  const leftoverKind = pair.pair_kind === "farthest" ? "farthest" : "closest";
                   return (
                     <li
                       key={`${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
@@ -3407,7 +3460,14 @@ function ReportsPanel({
                       <button
                         className="post-list-item"
                         aria-label={`Open leftover ${pair.pair_kind} pair: ${pair.post_title} · ${criterion}`}
-                        onClick={() => onSelectPost(pair.post_id)}
+                        onClick={() =>
+                          onSelectPost(pair.post_id, {
+                            fromLeftoverPair: {
+                              pairKind: leftoverKind,
+                              criterionCode: pair.criterion_code,
+                            },
+                          })
+                        }
                       >
                         <span className="ticket-title">
                           {kindLabel}: {pair.post_title} · {criterion}
@@ -3596,6 +3656,7 @@ function PostList({
   const [openedGroupingLabel, setOpenedGroupingLabel] = useState<string | null>(null);
   const [landOnComparison, setLandOnComparison] = useState(false);
   const [openedFromReportMember, setOpenedFromReportMember] = useState(false);
+  const [openedLeftoverPair, setOpenedLeftoverPair] = useState<LeftoverPairFocus | null>(null);
   const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
   const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
   const [totalPosts, setTotalPosts] = useState(0);
@@ -3648,6 +3709,7 @@ function PostList({
     setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
+    setOpenedLeftoverPair(options?.fromLeftoverPair ?? null);
   }
 
   useEffect(() => {
@@ -3661,6 +3723,7 @@ function PostList({
     setOpenedAfterCutoff(false);
     setOpenedCutoffIso(null);
     setOpenedFromReportMember(false);
+    setOpenedLeftoverPair(null);
     const url = new URL(window.location.href);
     if (url.searchParams.has("post")) {
       url.searchParams.delete("post");
@@ -4065,6 +4128,7 @@ function PostList({
           }
           knowledgeCutoff={openedAfterCutoff ? openedCutoffIso : null}
           focusEventLineage={openedFromReportMember}
+          leftoverFocus={openedLeftoverPair}
           onClose={closeSelectedPost}
           onSelectPost={selectPost}
           onSearch={searchBoard}

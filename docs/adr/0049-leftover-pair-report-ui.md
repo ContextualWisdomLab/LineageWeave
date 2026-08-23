@@ -18,12 +18,13 @@ second navigation surface.
 On each period-report group, render leftover pairs **above** the
 member list. Each pair is a button: closest or farthest label, post
 title, criterion short label, leftover-map distance, and the next
-action (“Open this post to read the criterion it sat closest to /
-farthest from after main effects.”). Clicking the button opens that
-post with the same handler as a member row.
+action (“Open this post so the leftover criterion is current in Post
+quality.”). Clicking the button opens that post with leftover focus
+so Post quality marks the named criterion current (ADR 0125).
 
 After `make seed`, closest and farthest leftover pairs sit above the
-member list. Click a pair to open that post.
+member list. Click a pair to open that post with the leftover
+criterion current in Post quality.
 
 Missing leftover rows render nothing — never a placeholder pair.
 A hidden post never appears as a leftover pair.

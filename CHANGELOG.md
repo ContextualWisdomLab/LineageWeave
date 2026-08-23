@@ -12,6 +12,17 @@ All notable changes to this project are documented here. Format follows
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 
+## [2.12.8] - 2026-08-23
+
+### Changed
+
+- Clicking a leftover closest or farthest pair now opens that post with
+  the leftover criterion current in Post quality (IRT). The Post quality
+  heading is focused, the named criterion row is `aria-current`, and the
+  next action names the leftover score to read (Jeon leftover map,
+  ADR 0125). Home-list and report-member opens do not carry leftover
+  focus.
+
 ## [2.12.6] - 2026-08-20
 
 ### Added
