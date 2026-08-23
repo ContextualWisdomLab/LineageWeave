@@ -3403,12 +3403,14 @@ function ReportsPanel({
             {report.leftover_pairs && report.leftover_pairs.length > 0 && (
               <ul className="ticket-list" aria-label="Leftover pairs">
                 {report.leftover_pairs.map((pair) => {
-                  const kindLabel =
-                    pair.pair_kind === "farthest" ? "Farthest leftover" : "Closest leftover";
-                  const nextAction =
+                  const kindLabel = t(
+                    pair.pair_kind === "farthest" ? "Farthest leftover" : "Closest leftover",
+                  );
+                  const nextAction = t(
                     pair.pair_kind === "farthest"
                       ? "Open this post to read the criterion it sat farthest from after main effects."
-                      : "Open this post to read the criterion it sat closest to after main effects.";
+                      : "Open this post to read the criterion it sat closest to after main effects.",
+                  );
                   const criterion = criterionShortLabel(pair.criterion_code);
                   return (
                     <li

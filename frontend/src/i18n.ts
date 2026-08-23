@@ -317,6 +317,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Leftover interaction map after main effects": "주효과 이후 잔여 상호작용 맵",
     "Closest leftover": "가장 가까운 잔여",
     "Farthest leftover": "가장 먼 잔여",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "이 글을 열어 주효과 이후 가장 멀리 위치한 평가 항목을 확인하세요.",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "이 글을 열어 주효과 이후 가장 가깝게 위치한 평가 항목을 확인하세요.",
     "Open leftover map post: {label}": "잔여 맵 글 열기: {label}",
     "Open leftover map criterion: {label}": "잔여 맵 평가 항목 열기: {label}",
     "Open this leftover map criterion to read the leftover pair post: {label}":
@@ -665,6 +669,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Leftover interaction map after main effects": "主效应后的残差交互图",
     "Closest leftover": "最近残差",
     "Farthest leftover": "最远残差",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "打开此帖子，查看主效应后距离最远的评估项。",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "打开此帖子，查看主效应后距离最近的评估项。",
     "Open leftover map post: {label}": "打开残差图帖子：{label}",
     "Open leftover map criterion: {label}": "打开残差图评估项：{label}",
     "Open this leftover map criterion to read the leftover pair post: {label}":
@@ -1013,6 +1021,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Leftover interaction map after main effects": "主効果後の残差インタラクションマップ",
     "Closest leftover": "最も近い残差",
     "Farthest leftover": "最も遠い残差",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "この投稿を開いて、主効果後に最も遠かった評価項目を確認してください。",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "この投稿を開いて、主効果後に最も近かった評価項目を確認してください。",
     "Open leftover map post: {label}": "残差マップの投稿を開く: {label}",
     "Open leftover map criterion: {label}": "残差マップの評価項目を開く: {label}",
     "Open this leftover map criterion to read the leftover pair post: {label}":
@@ -1361,6 +1373,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Leftover interaction map after main effects": "Bản đồ tương tác phần dư sau hiệu ứng chính",
     "Closest leftover": "Phần dư gần nhất",
     "Farthest leftover": "Phần dư xa nhất",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "Mở bài viết này để xem tiêu chí xa nhất sau hiệu ứng chính.",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "Mở bài viết này để xem tiêu chí gần nhất sau hiệu ứng chính.",
     "Open leftover map post: {label}": "Mở bài viết bản đồ phần dư: {label}",
     "Open leftover map criterion: {label}": "Mở tiêu chí bản đồ phần dư: {label}",
     "Open this leftover map criterion to read the leftover pair post: {label}":
