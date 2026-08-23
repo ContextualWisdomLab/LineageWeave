@@ -73,6 +73,23 @@ services:
       timeout: 5s
       retries: 10
 
+  caldav-demo:
+    # Local-only source for the independent CalDAV consumer port
+    # (lineageweave.caldav_client, ADR 0038). Serves a static
+    # `GET /events` fixture so this compose stack demonstrates a
+    # connected Calendar workspace without a real external account or
+    # the still-open Naruon CalDAV provider (see the "Calendar
+    # interoperability" entry in docs/product-technical-gap-baseline.md).
+    # Override CALDAV_BASE_URL to point at a real source instead.
+    build: ./docker/caldav-demo
+    ports:
+      - "${CALDAV_DEMO_PORT:-18899}:8080"
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/events', timeout=2)"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   keycloak:
     # Built (not bind-mounted) so the realm-export.json seed ships inside
     # the image itself -- portable across hosts/CI runners that don't share
@@ -168,7 +185,10 @@ services:
       TEPP_TRANSPORT_URL: ${TEPP_TRANSPORT_URL:-}
       TEPP_TEMPORAL_CONTEXT_URL: ${TEPP_TEMPORAL_CONTEXT_URL:-http://127.0.0.1:18081/v1/temporal-context}
       TEPP_API_KEY: ${TEPP_API_KEY:-}
-      CALDAV_BASE_URL: ${CALDAV_BASE_URL:-}
+      # Defaults to this stack's own caldav-demo service (below) so a
+      # fresh `docker compose up` shows a connected Calendar workspace
+      # immediately. Set CALDAV_BASE_URL to a real source to replace it.
+      CALDAV_BASE_URL: ${CALDAV_BASE_URL:-http://caldav-demo:8080}
       RANKWEAVE_DISABLED: ${RANKWEAVE_DISABLED:-}
     ports:
       - "${BACKEND_PORT:-18420}:8000"
@@ -178,6 +198,8 @@ services:
       database_migration:
         condition: service_completed_successfully
       orchestrator:
+        condition: service_healthy
+      caldav-demo:
         condition: service_healthy
       keycloak:
         condition: service_started

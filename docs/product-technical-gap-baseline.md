@@ -1072,6 +1072,21 @@ or an explicit unavailable result.
   consumer contract. Naruon must still publish the provider-side read endpoint,
   service audience, provider conformance fixtures, sync/revision semantics, and
   failure/reconciliation behavior before fail-closed runtime wiring is enabled.
+  ADR 0145 adds a `caldav-demo` compose service so local/demo stacks show a
+  connected Calendar workspace against the same `GET {base}/events` contract
+  in the meantime; it is not the Naruon provider and does not change this
+  entry's remaining scope.
+- **Calendar "Upcoming commitments" does not separate overdue items:**
+  `fetch_upcoming_commitments` (backend/app/issue_ticket_ingestion.py) returns
+  every open ticket with a `due_date`, soonest first, with no cutoff at the
+  current date -- correct for not silently dropping missed commitments, but
+  the frontend section heading and empty-state copy still read as
+  "upcoming" only. A buyer opening Calendar today sees January commitments
+  under that heading with no "overdue" signal. Needs a frontend badge/split
+  (overdue vs. upcoming) plus a `CalendarPanel` test that mocks the current
+  date; deferred here to avoid rewriting `App.test.tsx`'s existing
+  fixed-date assertions (frontend/src/App.test.tsx:4500-4516) under report
+  time pressure.
 - **Literature/Zotero — open:** record APA 7 references and verify Local Zotero
   API availability before claiming synchronization. The repository must retain
   only metadata/citations appropriate for public artifacts.

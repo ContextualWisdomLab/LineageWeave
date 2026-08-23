@@ -1,0 +1,19 @@
+{
+  "events": [
+    {
+      "event_id": "caldav-demo-0001",
+      "summary": "Riverbend quarterly delivery review",
+      "starts_at": "2026-08-25T09:00:00+00:00"
+    },
+    {
+      "event_id": "caldav-demo-0002",
+      "summary": "Northridge Grid contract renewal call",
+      "starts_at": "2026-08-27T14:30:00+00:00"
+    },
+    {
+      "event_id": "caldav-demo-0003",
+      "summary": "Westfield Power site inspection",
+      "starts_at": "2026-09-02T11:00:00+00:00"
+    }
+  ]
+}
