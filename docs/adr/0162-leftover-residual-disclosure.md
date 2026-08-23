@@ -28,9 +28,10 @@ Each leftover pair button shows:
 
 1. closest or farthest label, post title, and criterion short label;
 2. leftover residual `R` with an explicit sign, two decimal places;
-3. leftover-map distance `d`;
-4. the next action: read residual `R` after IRT main effects, then
-   open this post to read the named criterion.
+3. observed `Y`, expected `E`, full leftover-map rank, and two-axis
+   distance `d` when those later ADR 0163/0164 fields are available;
+4. one next action that retains every available measurement before
+   opening the post to read the named criterion.
 
 Missing leftover rows still render nothing. A non-finite residual
 renders an em dash rather than a fabricated leftover score. Click
@@ -41,7 +42,7 @@ still uses the same post-open handler as ADR 0049.
 `GET /api/reports/{grouping}/{period}` already returns
 `leftover_residual`. The frontend now names that value. After
 `make seed`, closest and farthest leftover pairs sit above the member
-list with `R` and `d`; click opens that post.
+list with `R`, `Y`, `E`, rank, and `d`; click opens that post.
 
 ## Related
 

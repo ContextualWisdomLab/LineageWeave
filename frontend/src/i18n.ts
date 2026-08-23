@@ -363,6 +363,20 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "IRT 주효과 이후 잔여 R {residual}. {criterion} 기준을 읽으려면 이 글을 여세요.",
     "Open leftover {kind} pair: {title} · {criterion}":
       "잔여 {kind} 쌍 열기: {title} · {criterion}",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "주효과 이후 가장 가깝게 앉은 기준을 읽으려면 이 글을 여세요.",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "주효과 이후 가장 멀리 앉은 기준을 읽으려면 이 글을 여세요.",
+    "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
+      "IRT 주효과 이후 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "IRT 주효과 이후 잔여 맵에 잔여 구조가 없습니다. 이 글을 여세요.",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "IRT 주효과 이후 잔여 맵 랭크 {rank}. 이 글을 여세요.",
+    "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.":
+      "IRT 주효과 이후 잔여 맵 랭크 {rank}, 관측 Y {observed}, 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
+    "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.":
+      "IRT 주효과 이후 잔여 맵 랭크 0은 잔여 구조가 없음을 뜻합니다. 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
   },
   zh: {
     "Unknown": "未知",
@@ -708,6 +722,20 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "IRT 主效应后的残余 R {residual}。打开这篇帖子阅读 {criterion}。",
     "Open leftover {kind} pair: {title} · {criterion}":
       "打开残余 {kind} 配对：{title} · {criterion}",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "打开这篇帖子，阅读主效应后距离最近的准则。",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "打开这篇帖子，阅读主效应后距离最远的准则。",
+    "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
+      "阅读 IRT 主效应后的观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "IRT 主效应后残余图没有残余结构。打开这篇帖子。",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "IRT 主效应后的残余图秩 {rank}。打开这篇帖子。",
+    "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.":
+      "阅读 IRT 主效应后的残余图秩 {rank}、观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
+    "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.":
+      "残余图秩 0 表示 IRT 主效应后没有残余结构。阅读观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
   },
   ja: {
     "Unknown": "不明",
@@ -1053,6 +1081,20 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "IRT主効果後の残差 R {residual}。この投稿を開いて {criterion} を読んでください。",
     "Open leftover {kind} pair: {title} · {criterion}":
       "残差 {kind} ペアを開く: {title} · {criterion}",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "主効果後に最も近くなった基準を読むには、この投稿を開いてください。",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "主効果後に最も遠くなった基準を読むには、この投稿を開いてください。",
+    "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
+      "IRT主効果後の観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "IRT主効果後の残差マップに残差構造はありません。この投稿を開いてください。",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "IRT主効果後の残差マップランク {rank}。この投稿を開いてください。",
+    "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.":
+      "IRT主効果後の残差マップランク {rank}、観測 Y {observed}、期待 E {expected} を読んでから、この投稿を開いてください。",
+    "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.":
+      "残差マップランク 0 は IRT 主効果後に残差構造がないことを示します。観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
   },
   vi: {
     "Unknown": "Không rõ",
@@ -1398,6 +1440,20 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Phần dư R {residual} sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
     "Open leftover {kind} pair: {title} · {criterion}":
       "Mở cặp phần dư {kind}: {title} · {criterion}",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "Mở bài viết này để đọc tiêu chí nằm gần nhất sau hiệu ứng chính.",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "Mở bài viết này để đọc tiêu chí nằm xa nhất sau hiệu ứng chính.",
+    "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
+      "Đọc Y quan sát {observed} và E kỳ vọng {expected} sau hiệu ứng chính IRT, rồi mở bài viết này.",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "Bản đồ phần dư không có cấu trúc phần dư sau hiệu ứng chính IRT. Mở bài viết này.",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "Hạng bản đồ phần dư {rank} sau hiệu ứng chính IRT. Mở bài viết này.",
+    "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.":
+      "Đọc hạng bản đồ phần dư {rank}, Y quan sát {observed} và E kỳ vọng {expected} sau hiệu ứng chính IRT, rồi mở bài viết này.",
+    "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.":
+      "Hạng bản đồ phần dư 0 nghĩa là không có cấu trúc phần dư sau hiệu ứng chính IRT. Đọc Y quan sát {observed} và E kỳ vọng {expected}, rồi mở bài viết này.",
   },
 };
 
