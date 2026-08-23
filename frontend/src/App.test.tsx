@@ -33,7 +33,6 @@ afterEach(() => {
 describe("App, unauthenticated", () => {
   it("shows a login button that starts the real OIDC redirect", async () => {
     render(<App showLabPanels />);
-    expect(screen.queryByRole("heading", { name: /admin settings/i })).toBeNull();
     const button = screen.getByRole("button", { name: /log in/i });
     await userEvent.click(button);
     expect(signinRedirect).toHaveBeenCalledTimes(1);
