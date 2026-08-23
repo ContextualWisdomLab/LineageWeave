@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   LOCALE_LABELS,
   SUPPORTED_LOCALES,
@@ -9,6 +9,8 @@ import {
 } from "./i18n";
 
 afterEach(() => {
+  vi.unstubAllGlobals();
+  window.localStorage.clear();
   setLocale("en");
 });
 
@@ -125,6 +127,32 @@ describe("i18n", () => {
   it("supports the five product locales", () => {
     expect(SUPPORTED_LOCALES).toEqual(["en", "ko", "zh", "ja", "vi"]);
     expect(Object.keys(LOCALE_LABELS)).toHaveLength(5);
+  });
+
+  it("detects stored, browser, restricted, and unsupported locale environments", async () => {
+    window.localStorage.setItem("lineageweave.locale", "ko");
+    vi.resetModules();
+    expect((await import("./i18n")).getLocale()).toBe("ko");
+
+    window.localStorage.clear();
+    const getItem = vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new DOMException("blocked", "SecurityError");
+    });
+    vi.stubGlobal("navigator", { language: "ja-JP" });
+    vi.resetModules();
+    expect((await import("./i18n")).getLocale()).toBe("ja");
+    getItem.mockRestore();
+
+    vi.stubGlobal("navigator", undefined);
+    vi.stubGlobal("document", undefined);
+    vi.resetModules();
+    expect((await import("./i18n")).getLocale()).toBe("en");
+
+    vi.unstubAllGlobals();
+    vi.stubGlobal("navigator", { language: "xx-YY" });
+    vi.resetModules();
+    expect((await import("./i18n")).getLocale()).toBe("en");
+    vi.unstubAllGlobals();
   });
 
   it.each(["ko", "zh", "ja", "vi"] as const)(

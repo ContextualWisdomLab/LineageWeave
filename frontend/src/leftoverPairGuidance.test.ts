@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  leftoverCriterionLabel,
   leftoverPairAriaLabel,
   leftoverPairNextAction,
   leftoverPairOpenOptions,
@@ -47,5 +48,9 @@ describe("leftoverPairGuidance", () => {
     expect(leftoverPairOpenOptions(farthest).focusCriterionCode).toBe(
       "general_sentiment_negative",
     );
+    expect(leftoverPairTitle(farthest)).toBe(
+      "Farthest leftover: Specification revision requested · negative",
+    );
+    expect(leftoverCriterionLabel("synthetic_criterion")).toBe("synthetic_criterion");
   });
 });

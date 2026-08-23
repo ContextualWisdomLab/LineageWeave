@@ -70,15 +70,16 @@ function lengthToIndentUnits(value: string): number {
   if (!match) return 0;
   const amount = Number(match[1]);
   if (!Number.isFinite(amount) || amount <= 0) return 0;
+  const unit = (match[2] ?? "px").toLowerCase() as "px" | "pt" | "em" | "rem" | "in" | "cm" | "mm" | "%";
   const pixels = amount *
     ({ px: 1, pt: 96 / 72, em: 16, rem: 16, in: 96, cm: 96 / 2.54, mm: 96 / 25.4, "%": 16 / 100 }[
-      (match[2] ?? "px").toLowerCase() as "px" | "pt" | "em" | "rem" | "in" | "cm" | "mm" | "%"
-    ] ?? 1);
+      unit
+    ]);
   return Math.max(0, Math.round(pixels / 8));
 }
 
 function declaredIndentWidth(tag: string): number {
-  const name = tag.match(/^<\/?\s*([a-z0-9:]+)/i)?.[1]?.toLowerCase() ?? "";
+  const name = tag.match(/^<\/?\s*([a-z0-9:]+)/i)![1].toLowerCase();
   let width = name === "blockquote" || name === "ul" || name === "ol" ? 4 : 0;
   const style = tag.match(/\bstyle\s*=\s*(["'])(.*?)\1/i)?.[2] ?? "";
   for (const match of style.matchAll(
@@ -120,7 +121,7 @@ function stripHtmlTags(text: string): string {
     .split("\n")
     .map((line) => {
       if (!line.trim()) return "";
-      const leading = line.match(/^[^\S\n]*/)?.[0] ?? "";
+      const leading = line.match(/^[^\S\n]*/)![0];
       return `${leading}${line
         .slice(leading.length)
         .replace(/[^\S\n]+/g, " ")}`;

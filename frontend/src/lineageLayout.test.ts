@@ -129,7 +129,31 @@ describe("layoutLineageDag", () => {
 
   it("labels UUID reconstruct fallbacks as Ungrouped without merging named threads", () => {
     expect(groupHeading("A-100")).toBe("A-100");
+    expect(groupHeading("")).toBe("Ungrouped");
     expect(groupHeading("cccccccc-cccc-cccc-cccc-cccccccccccc")).toBe("Ungrouped");
+  });
+
+  it("sorts ungrouped nodes last regardless of source order", () => {
+    const named = { ...a100Graph.nodes[0], id: "named", group: "A-100" };
+    const ungrouped = { ...a100Graph.nodes[0], id: "ungrouped", group: "" };
+    expect(layoutLineageDag({ nodes: [named, ungrouped], edges: [] }).map((group) => group.heading)).toEqual([
+      "A-100",
+      "Ungrouped",
+    ]);
+    expect(layoutLineageDag({ nodes: [ungrouped, named], edges: [] }).map((group) => group.heading)).toEqual([
+      "A-100",
+      "Ungrouped",
+    ]);
+  });
+
+  it("keeps a dangling edge in an ungrouped fallback bucket", () => {
+    const groups = layoutLineageDag({
+      nodes: [{ ...a100Graph.nodes[0], id: "named", group: "A-100" }],
+      edges: [{ source: "missing", target: "named", fused_score: 0.5 }],
+    });
+
+    expect(groups.map((group) => group.heading)).toEqual(["A-100", "Ungrouped"]);
+    expect(groups[1].edges).toHaveLength(1);
   });
 
   it("lays out a malformed cyclic component attached to a root without recursing forever", () => {

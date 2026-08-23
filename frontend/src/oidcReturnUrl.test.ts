@@ -66,4 +66,13 @@ describe("OIDC return URL handling", () => {
     expect(restoreOidcReturnUrl(undefined)).toBe("/?post=from-local-storage");
     expect(window.localStorage.getItem("lineageweave.oidc.returnUrl")).toBeNull();
   });
+
+  it("falls back to the current post deep link or pathname", () => {
+    window.history.replaceState({}, "", "/?post=fallback#evidence");
+    expect(restoreOidcReturnUrl(undefined)).toBe("/?post=fallback#evidence");
+
+    window.history.replaceState({}, "", "/workspace");
+    expect(restoreOidcReturnUrl(undefined)).toBe("/workspace");
+    window.history.replaceState({}, "", "/");
+  });
 });

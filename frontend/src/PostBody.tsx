@@ -15,7 +15,6 @@ function parsePipeDelimitedTable(text: string): string[][] | null {
     .filter((row) => !row.every((cell) => /^:?-{3,}:?$/.test(cell)))
     .filter((row) => row.length > 1 && row.some(Boolean));
   if (rows.length < 2 || rows.some((row) => row.length !== rows[0].length)) return null;
-  if (rows[0].length < 2) return null;
   return rows;
 }
 
@@ -147,7 +146,6 @@ function sourceTableRowGroupSizes(body: string): number[] {
     .map((table) =>
       Array.from(table.children).reduce((count, child) => {
         const tagName = child.tagName.toLowerCase();
-        if (tagName === "tr") return count + 1;
         if (tagName !== "thead" && tagName !== "tbody" && tagName !== "tfoot") return count;
         return count + Array.from(child.children).filter(
           (row) => row.tagName.toLowerCase() === "tr",

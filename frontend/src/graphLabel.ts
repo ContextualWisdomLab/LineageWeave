@@ -47,7 +47,7 @@ export function wrapLabel(value: string, maxChars: number): string[] {
       current = word;
     }
   }
-  if (current) lines.push(current);
+  lines.push(current);
   return lines;
 }
 
