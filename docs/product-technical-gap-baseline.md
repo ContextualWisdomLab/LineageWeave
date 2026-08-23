@@ -1,26 +1,109 @@
 # Product & Technical Gap Baseline
 
-## 1. Known Parsing & Frontend Display Gaps
-- **Footnote Parsing**: `post=00505695-3e61-1fd1-83c5-263f88a9e77a` fails to recognize footnotes (li/oi level errors).
-- **Table Parsing**: `post=00505695-3e61-1fd1-80c6-86bb61c8ddc5` completely fails at parsing tables.
-- **Indentation**: Incorrect indentation rendering in `post=00505695-7571-1fd1-83c3-d521b187ad5b` and `post=00505695-3e61-1fd1-83c0-497b3c1c455e`.
-- **Image/Table OCR**: `post=00505695-7571-1fd1-83dd-3d22a61a5734` fails text recognition for tables inside images, markdown parsing fails, and image OCR description is too shallow for Ontology & Semantics.
-- **Math/Superscripts**: `post=00505695-9612-1fe1-83a7-e30153323f25` fails to parse superscripts like m^3 properly. Needs strict Ontology grammar for math formulas.
-- **Missing UI Elements**: DAG (Directed Acyclic Graph) view is currently missing from the frontend for `post=00505695-7571-1fd1-83c5-895ed333cdbc`.
+> Audit snapshot: 2026-08-23 18:03 KST. This repository records synthetic fixtures and
+> aggregate, non-identifying runtime evidence only. Open PRs and local checks
+> are not protected-default-branch release evidence.
 
-## 2. LLM Extraction & Knowledge Graph Gaps
-- **Multiple Project Extraction**: (Resolved) LLM prompt updated to request key_events as objects with project_name, separating events correctly.
-- **5W1H Missing**: (Resolved) LLM prompt updated to explicitly request 5W1H evidence items in the JSON output array.
-- **R&R and Keyman Missing**: (Resolved) LLM prompt updated to explicitly instruct using actual stated names rather than collective titles.
-- **Entity Resolution / Searxng**: Abbreviations like "한전" and "한국전력" are not mapped properly using Searxng and KG corroboration. 
-- **Meso-level Team Mapping**: (Resolved) Checked extraction logic; `team` mapping logic is present and correct, but LLM needed better explicit instruction which is covered by R&R resolution.
-- **Base64 Image Omni-modal**: Current text-only embedding fails on images. Omni-modal LLM processing is required for images to capture layout, font size, colors, and spatial meaning.
+## 1. Exact-head and governance evidence
 
-## 3. General Architecture Gaps
-- **DB Architecture**: Ensure PostgreSQL is strictly used (no file DBs), 3rd normal form is maintained, and Hot Partitions are handled. DB locks must be managed (or use read/write replicas).
-- **Zotero Integration**: Papers and standards referenced by TEPP must be synced via Local Zotero API (http://localhost:23119/api/) and cited using APA 7th edition in docstrings.
-- **Testing**: We need actual testing of Psychometrics (Fast-MLSIRM parameter calibration, RMSE of estimates, Fixed-Item Parameter Calibration, CAT) against synthetic/demo data.
-- **Security & Compliance**: PII masking cannot break the system. Need SOC 2 and CSAP compliance alternatives to blind PII masking. 
-- **LLM Orchestration**: Ensure ALL LLM calls route through `contextual-orchestrator` utilizing API keys (BYTEZ, NVIDIA, OPENROUTER, OPENAI) with auto model discovery and optimal reasoning effort allocation (Fugu/Conductor/TRINITY research).
+The protected default branch was
+`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` when this baseline was refreshed.
+The current acceptance queue was re-fetched immediately before this update:
 
-*This document is continuously updated by the hourly automated agent loop.*
+| Repository | PR | Exact head | State | Remaining gate |
+| --- | ---: | --- | --- | --- |
+| LineageWeave | #392 | `b76ae7b9aa7bf16f70d712dffb2514dc9467dde1` | open, blocked, review required, auto-merge armed | independent current-head approval; current checks are terminal |
+| LineageWeave | #387 | `c34681fdc692a25e688fe4a5eb06ad3fe50f2281` | open, blocked, changes requested, auto-merge armed | terminal rerun after central scope repair and current-head approval |
+| LineageWeave | #405 | `0b1b1fcfed875f8ba6795537567a8b28a2497044` | open, blocked, changes requested | terminal protected checks and independent current-head approval |
+| LineageWeave | #421 | `2fc08835485d5bfadfd105ad0a95e17f23cf66cc` | open, blocked, review required, auto-merge armed | terminal protected checks and independent current-head approval |
+| LineageWeave | #426 | `215a370c3d2492161756093d061e3d2065b601b4` | open, blocked, review required | terminal current-head protected checks and independent review |
+| LineageWeave | #468 | `741d1683b760124e291ca0d72a303543804dcb87` | open, blocked, review required | terminal current-head protected checks and independent review |
+| ContextualWisdomLab/.github | #1248 | `3f78370f3ad01409c7b2fcfb63dfb66862098fa6` | merged as `9ad0ad50409561292b424d6f35a95d670a277e77` | protected-main scope repair is available to the rerun |
+
+PR #464 merged into its stacked base as
+`df413d4e58c1d05545e7970ac8cb95f197821419`. That stack-local merge does not
+prove release on the default branch.
+
+Central PR #1248 fixed the root cause of PR #387's partial-scope false positive
+by including trusted-base `backend/app/auth.py` context in backend Python Strix
+scopes. The protected merge SHA is
+`9ad0ad50409561292b424d6f35a95d670a277e77`; PR #387 still requires a
+terminal same-head rerun before that repair can be credited to its acceptance.
+
+The organization scheduler is the single review/repair control plane. Its
+`*/15 * * * *` queue sweep and `0 * * * *` heartbeat satisfy the hourly loop
+requirement without a duplicate repository-local scheduler.
+
+## 2. Buyer-visible capability baseline
+
+Substantially present in source or active PRs:
+
+- PostgreSQL-backed import, normalized provenance, cutoff-aware analysis runs,
+  source revisions, lineage reconstruction, and explicit unavailable states.
+- Authenticated workspace navigation, post detail, Korean summaries, 5W1H,
+  R&R/Keyman, evidence citations, chat, customer hierarchy, and lineage DAG.
+- Semantic paragraph/list/table/image-region units that preserve the source
+  representation and provenance instead of flattening it into one body string.
+- Contextual-orchestrator boundaries for adjudication, extraction, summaries,
+  chat, embeddings, and VISION; null channels remain unavailable and are
+  dropped from score fusion.
+- W3C PROV-O projection through normalized provenance tables, with the
+  knowledge graph retained as an explicit navigation projection.
+
+These statements describe source capability, not authenticated production
+corpus acceptance or protected release.
+
+## 3. Open product and technical gaps
+
+| Gap | Current evidence | Acceptance requirement |
+| --- | --- | --- |
+| Protected release | The listed work remains on open or stacked PR heads | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
+| Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
+| Image understanding | Region/OCR/description work exists in PR #405 | Orchestrator-backed rendered workflow, original/derived asset provenance, and honest unsupported states |
+| Semantic source rendering | Paragraph/table/list parsing exists across active stacks | Authenticated browser evidence that semantic units render without authoring-layout artifacts |
+| Scientific measurement | TEPP and fast-mlsirm adapters are present or under review | Persisted accepted envelopes, calibration/recovery evidence, and no invented theta |
+| Accessibility and responsive UX | Unit coverage exists for major buyer surfaces | Keyboard, screen-reader, mobile, and authenticated Playwright acceptance on the exact release head |
+| External integrations | SearXNG, Zotero, calendar, and downstream consumer contracts are bounded | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
+| Release quality | Local focused/full suites have passed on individual PR heads | Repository-wide coverage, docstrings, Storybook, security, browser, and release evidence on one exact head |
+| Public ontology | PR #426 contains the deterministic Pages publication path after the duplicate PR #373 was incorporated and closed | Protected merge, GitHub Actions Pages source, successful main deployment, and stable term-fragment dereference evidence |
+
+## 4. Public ontology publication boundary
+
+- PR #426 publishes fragment-addressable HTML, byte-identical Turtle,
+  isomorphic JSON-LD and N-Triples, the PROV-O support profile, and a
+  source-digest manifest from the authoritative ontology.
+- Pull requests validate only. Only protected `main` may publish, and the
+  generated-directory marker, linked-IRI, duplicate-fragment, symlink, and
+  source-overlap checks fail closed.
+- The lowercase knowledge-graph namespace and repository-case support-profile
+  namespace remain distinct until issue #372 delivers a versioned migration
+  and compatibility decision; this publication PR rewrites neither identity.
+- Until the protected deployment and exact URL checks succeed, the public
+  ontology endpoint remains unavailable and must not be represented as live.
+
+## 5. Evidence boundaries
+
+- Never add a real record, title, name, identifier, screenshot, log, benchmark
+  artifact, or documentation example to this repository.
+- Attendance or co-occurrence is not responsibility, project, customer, or
+  affiliation evidence. Preserve uncertainty and provenance.
+- Missing transport, model capability, accepted envelope, or persistence is
+  unavailable/failed evidence, never a placeholder result.
+- Local green tests, bot statuses, auto-merge, and warning-only checks do not
+  prove a protected merge.
+- Re-fetch base/head SHAs, checks, review threads, approvals, rulesets, and the
+  merge SHA immediately before any lifecycle claim.
+
+## 6. Next acceptance loop
+
+1. Complete the in-flight Strix rerun on PR #387 at the same exact head and
+   verify the merged central scope repair removed the false finding.
+2. Re-fetch current heads, latest checks, unresolved threads, and independent
+   reviews for PRs #392, #405, #421, #426, and #468 before any merge claim.
+3. Run frontend lint/test/build/Storybook, backend tests, and authenticated
+   browser/accessibility checks on the exact candidate release head.
+4. Reproduce buyer cases with synthetic fixtures or authorized aggregate
+   runtime evidence, preserving `unavailable` explicitly.
+5. Fix only evidence-backed failures and repeat the protected merge gate. Do
+   not self-approve, force merge/push, bypass protection, or transfer stale
+   review/check evidence across heads.
