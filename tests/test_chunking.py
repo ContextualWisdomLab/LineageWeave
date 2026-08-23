@@ -292,6 +292,19 @@ def test_chunk_by_source_body_normalizes_entity_encoded_quantity_scripts() -> No
     assert [chunk.text for chunk in chunks] == ["Reserve 12 m³, x², and H₂O."]
 
 
+def test_chunk_by_source_body_keeps_invalid_encoded_script_pairs_literal() -> None:
+    bodies = (
+        "Keep x&lt;sup&gt;2 unmatched.",
+        "Keep x&lt;sup/&gt;2 self-closing.",
+        "Keep x&lt;sup class=&quot;unit&quot;&gt;2&lt;/sup&gt; attributed.",
+        "Keep x&lt;sup&gt;2&lt;/sub&gt; mismatched.",
+    )
+
+    assert [chunk_by_source_body(body)[0].text for body in bodies] == list(bodies)
+    combined = " ".join(bodies)
+    assert chunk_by_source_body(combined)[0].text == combined
+
+
 def test_chunk_by_source_body_keeps_encoded_non_script_markup_inert() -> None:
     body = (
         "Keep &lt;b&gt;bold&lt;/b&gt;, &lt;sup-note&gt;2&lt;/sup-note&gt;, "

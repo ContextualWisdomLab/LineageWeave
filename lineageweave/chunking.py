@@ -195,10 +195,15 @@ _CARET_EXPONENT = re.compile(
     r"(?<=[A-Za-z0-9µμ°ΩÅåÅ)])\^(?:\{([+\-]?\d{1,3}|[nNiI])\}|([+\-]?\d{1,3}|[nNiI]))"
 )
 _ENCODED_CARET = re.compile(r"&(?:amp;)*(?:#0*94|#x0*5e);", re.IGNORECASE)
-_ENCODED_SCRIPT_TAG = re.compile(
-    r"&(?:amp;)*(?:lt|#0*60|#x0*3c);\s*/?\s*(?:sup|sub)"
-    r"(?=\s|/|&(?:amp;)*(?:gt|#0*62|#x0*3e);).*?"
-    r"&(?:amp;)*(?:gt|#0*62|#x0*3e);",
+_ENCODED_LT = r"&(?:amp;)*(?:lt|#0*60|#x0*3c);"
+_ENCODED_GT = r"&(?:amp;)*(?:gt|#0*62|#x0*3e);"
+_ENCODED_SCRIPT_TOKEN = (
+    rf"{_ENCODED_LT}\s*/?\s*(?:sup|sub)(?=\s|/|{_ENCODED_GT})"
+)
+_ENCODED_SCRIPT_PAIR = re.compile(
+    rf"{_ENCODED_LT}(?P<kind>sup|sub){_ENCODED_GT}"
+    rf"(?P<inner>(?:(?!{_ENCODED_SCRIPT_TOKEN}).)*?)"
+    rf"{_ENCODED_LT}/(?P=kind){_ENCODED_GT}",
     re.IGNORECASE | re.DOTALL,
 )
 
@@ -230,11 +235,15 @@ def _decode_html_entities(text: str) -> str:
 
 
 def _decode_script_entities(text: str) -> str:
-    decoded_tags = _ENCODED_SCRIPT_TAG.sub(
-        lambda match: _decode_html_entities(match.group(0)), text
+    decoded_pairs = _ENCODED_SCRIPT_PAIR.sub(
+        lambda match: (
+            f"<{match.group('kind').lower()}>{match.group('inner')}"
+            f"</{match.group('kind').lower()}>"
+        ),
+        text,
     )
     return _ENCODED_CARET.sub(
-        lambda match: _decode_html_entities(match.group(0)), decoded_tags
+        lambda match: _decode_html_entities(match.group(0)), decoded_pairs
     )
 
 
