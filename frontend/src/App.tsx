@@ -5261,7 +5261,7 @@ function customerMasterScopeBuckets(entity: CustomerMasterEntity): CustomerMaste
   const buckets: CustomerMasterScopeFilter[] = [];
   if (facets.includes("authorized_own")) buckets.push("own");
   if (facets.includes("authorized_granted")) buckets.push("granted");
-  if (facets.includes("observed_organization")) buckets.push("observed");
+  if (facets.includes("observed_organization") || facets.includes("observed_hierarchy")) buckets.push("observed");
   if (buckets.length === 0) buckets.push("unclassified");
   return buckets;
 }

@@ -102,8 +102,13 @@ describe("App, authenticated", () => {
     preferenceUnavailable?: boolean;
     searchUnavailable?: boolean;
     askUnavailable?: boolean;
+    askConversationFailsAfterFirst?: boolean;
+    askConversationId?: boolean;
     askHistory?: boolean;
+    askHistoryMoreUnavailable?: boolean;
     askHistoryPages?: boolean;
+    askHistoryUnavailable?: boolean;
+    askOlderTurnsUnavailable?: boolean;
     postAskHistory?: boolean;
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
@@ -130,6 +135,9 @@ describe("App, authenticated", () => {
     sourceDetailStateOptions?: { code: string; label: string }[];
     manyCustomerHints?: number;
     customerEntityHierarchy?: boolean;
+    emptyCustomerMaster?: boolean;
+    customerMasterUnavailable?: boolean;
+    customerResolveUnavailable?: boolean;
     customerScopeFacets?: boolean;
     customerRelatedPost?: boolean;
     rrOrgWithMembers?: boolean;
@@ -166,6 +174,7 @@ describe("App, authenticated", () => {
     let createdPendingTepp: Record<string, unknown> | null = null;
     let resolvedHintCode: string | null = null;
     let contentRequests = 0;
+    let askConversationRequests = 0;
     let bookmarked = false;
     const authorizedAffiliations = options?.noAffiliations
       ? []
@@ -1919,6 +1928,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ conversations: [] }));
       }
       if (url.endsWith("/api/ask/conversations") && method === "GET") {
+        if (options?.askHistoryUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         if (options?.askHistory) {
           return Promise.resolve(
             jsonResponse({
@@ -1944,6 +1956,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ conversations: [] }));
       }
       if (options?.askHistoryPages && url.includes("/api/ask/conversations?") && method === "GET") {
+        if (options?.askHistoryMoreUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             conversations: [
@@ -1959,6 +1974,9 @@ describe("App, authenticated", () => {
         );
       }
       if (options?.askHistoryPages && url.includes("/api/ask/conversations/conversation-1?") && method === "GET") {
+        if (options?.askOlderTurnsUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             conversation_id: "conversation-1",
@@ -1979,6 +1997,10 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/ask/conversations/conversation-1") && method === "GET") {
+        askConversationRequests += 1;
+        if (options?.askConversationFailsAfterFirst && askConversationRequests > 1) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             conversation_id: "conversation-1",
@@ -2009,7 +2031,9 @@ describe("App, authenticated", () => {
         }
         return Promise.resolve(
           jsonResponse({
+            ...(options?.askConversationId ? { conversation_id: "conversation-live" } : {}),
             answer_text: "The cited project is supported by the stored semantic evidence.",
+            ...(options?.askConversationId ? { next_action: "Read the cited source next." } : {}),
             cited_post_ids: ["post-2"],
             cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
             cited_post_evidence: [
@@ -2028,10 +2052,15 @@ describe("App, authenticated", () => {
       }
       const customerMasterUrl = new URL(url, "https://backend.test");
       if (customerMasterUrl.pathname === "/api/customer-master" && method === "GET") {
+        if (options?.customerMasterUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         const requestedCustomerHint = customerMasterUrl.searchParams.get("hint_code");
         return Promise.resolve(
           jsonResponse({
-            corporate_entities: options?.customerScopeFacets
+            corporate_entities: options?.emptyCustomerMaster
+              ? []
+              : options?.customerScopeFacets
               ? [
                   {
                     corporate_entity_id: "corp-own",
@@ -2061,13 +2090,22 @@ describe("App, authenticated", () => {
                     scope_facets: ["observed_organization"],
                   },
                   {
+                    corporate_entity_id: "corp-observed-hierarchy",
+                    corporate_entity_code: "OBSERVED-HIERARCHY-01",
+                    entity_name: "Observed Hierarchy Corp",
+                    entity_level_code: "company",
+                    entity_level_label: "Company",
+                    parent_entity_id: null,
+                    scope_facets: ["observed_hierarchy"],
+                  },
+                  {
                     corporate_entity_id: "corp-unclassified",
                     corporate_entity_code: "UNCLASSIFIED-CORP-01",
                     entity_name: "Unclassified Scope Corp",
                     entity_level_code: "company",
                     entity_level_label: "Company",
                     parent_entity_id: null,
-                    scope_facets: [],
+                    scope_facets: ["scope_unclassified"],
                   },
                 ]
               : options?.customerEntityHierarchy
@@ -2161,6 +2199,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/customer-master/resolve-hint") && method === "POST") {
+        if (options?.customerResolveUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         const body = JSON.parse(String(init?.body));
         resolvedHintCode = body.hint_code;
         return Promise.resolve(
@@ -2204,6 +2245,20 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Semantic event", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Linked post.*Open source/ }));
+    expect(await screen.findByRole("dialog", { name: "Linked post" })).toBeInTheDocument();
+  });
+
+  it("adds a live Ask conversation and its next action to history", async () => {
+    stubBackend({ askConversationId: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByText("Read the cited source next.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Which project\?/ })).toHaveAttribute("aria-current", "page");
   });
 
   it("renders the conversation empty state and submits an Ask Agent question with Enter", async () => {
@@ -2440,6 +2495,33 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("log", { name: "Conversation" })).toHaveAttribute("aria-busy", "false");
   });
 
+  it("retries an unavailable Ask conversation registry", async () => {
+    const fetchMock = stubBackend({ askHistoryUnavailable: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+
+    expect(await screen.findAllByText("Conversation history could not be loaded.")).toHaveLength(2);
+    const attempts = fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/ask/conversations")).length;
+    await userEvent.click(screen.getAllByRole("button", { name: "Retry" })[0]);
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/ask/conversations")))
+        .toHaveLength(attempts + 1),
+    );
+  });
+
+  it("keeps saved Ask history when selecting its conversation fails", async () => {
+    stubBackend({ askConversationFailsAfterFirst: true, askHistory: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+
+    const saved = await screen.findByRole("button", { name: /Saved project question/ });
+    await userEvent.click(screen.getByRole("button", { name: "New conversation" }));
+    await userEvent.click(saved);
+
+    expect(await screen.findByText("Conversation history could not be loaded.")).toBeInTheDocument();
+    expect(saved).toBeInTheDocument();
+  });
+
   it("loads older conversations and turns from their scroll boundaries", async () => {
     const fetchMock = stubBackend({ askHistory: true, askHistoryPages: true });
     render(<App />);
@@ -2467,6 +2549,50 @@ describe("App, authenticated", () => {
     expect(fetchMock.mock.calls.some(([input]) => String(input).includes("before_updated_at"))).toBe(true);
   });
 
+  it("retries failed older Ask conversation pages", async () => {
+    const fetchMock = stubBackend({ askHistory: true, askHistoryMoreUnavailable: true, askHistoryPages: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    await screen.findByText("Which project was saved?", { exact: true });
+
+    const historyList = document.querySelector(".ask-agent-history-list") as HTMLUListElement;
+    Object.defineProperties(historyList, {
+      scrollHeight: { configurable: true, value: 1000 },
+      clientHeight: { configurable: true, value: 300 },
+      scrollTop: { configurable: true, value: 760 },
+    });
+    fireEvent.scroll(historyList);
+    const retry = await screen.findByRole("button", { name: "Retry loading history" });
+    const attempts = fetchMock.mock.calls.filter(([url]) => String(url).includes("before_updated_at")).length;
+    await userEvent.click(retry);
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => String(url).includes("before_updated_at")))
+        .toHaveLength(attempts + 1),
+    );
+  });
+
+  it("retries failed older Ask turns", async () => {
+    const fetchMock = stubBackend({ askHistory: true, askHistoryPages: true, askOlderTurnsUnavailable: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
+    await screen.findByText("Which project was saved?", { exact: true });
+
+    const thread = document.querySelector(".ask-agent-thread") as HTMLDivElement;
+    Object.defineProperties(thread, {
+      scrollTop: { configurable: true, value: 0, writable: true },
+      scrollHeight: { configurable: true, value: 1000, writable: true },
+      clientHeight: { configurable: true, value: 500 },
+    });
+    fireEvent.scroll(thread);
+    const retry = await screen.findByRole("button", { name: "Retry loading older questions" });
+    const attempts = fetchMock.mock.calls.filter(([url]) => String(url).includes("before_turn=2")).length;
+    await userEvent.click(retry);
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => String(url).includes("before_turn=2")))
+        .toHaveLength(attempts + 1),
+    );
+  });
+
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
     // Live UI finding (2026-08-19): read_customer_master() skipped the
     // common_lookup_value join both endpoints elsewhere already use,
@@ -2487,13 +2613,25 @@ describe("App, authenticated", () => {
   });
 
   it("shows governed former names when a customer entity is expanded", async () => {
-    stubBackend();
+    const fetchMock = stubBackend();
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
     await userEvent.click((await screen.findByText("Demo Corp")).closest("button")!);
 
     expect(screen.getByText("Former name: Demo Industries")).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/corporate-entities/corp-demo/related")),
+      ).toHaveLength(1),
+    );
+    await userEvent.click(screen.getByText("Demo Corp").closest("button")!);
+    expect(screen.queryByText("Former name: Demo Industries")).not.toBeInTheDocument();
+    await userEvent.click(screen.getByText("Demo Corp").closest("button")!);
+    expect(screen.getByText("Former name: Demo Industries")).toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/corporate-entities/corp-demo/related")),
+    ).toHaveLength(1);
   });
 
   it("opens a linked post from an expanded customer entity", async () => {
@@ -2543,7 +2681,10 @@ describe("App, authenticated", () => {
     expect(await screen.findByText("Own Scope Corp")).toBeInTheDocument();
     expect(screen.getByText("Granted Scope Corp")).toBeInTheDocument();
     expect(screen.getByText("Observed Scope Corp")).toBeInTheDocument();
+    expect(screen.getByText("Observed Hierarchy Corp")).toBeInTheDocument();
     expect(screen.getByText("Unclassified Scope Corp")).toBeInTheDocument();
+    expect(screen.getByText("Observed hierarchy")).toBeInTheDocument();
+    expect(screen.getByText("Scope not classified")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("checkbox", { name: "Own company" }));
     await userEvent.click(screen.getByRole("checkbox", { name: "Granted customer" }));
@@ -2552,6 +2693,7 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("Own Scope Corp")).not.toBeInTheDocument();
     expect(screen.queryByText("Granted Scope Corp")).not.toBeInTheDocument();
     expect(screen.queryByText("Observed Scope Corp")).not.toBeInTheDocument();
+    expect(screen.queryByText("Observed Hierarchy Corp")).not.toBeInTheDocument();
     expect(screen.getByText("Unclassified Scope Corp")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("checkbox", { name: "Unclassified" }));
@@ -2653,6 +2795,36 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Managed customer")).toBeInTheDocument();
   });
 
+  it("restores customer hint resolution after a failed corroboration", async () => {
+    stubBackend({ admin: true, customerResolveUnavailable: true, manyCustomerHints: 1 });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+
+    await userEvent.click(await screen.findByRole("button", { name: "Resolve" }));
+
+    expect(
+      await screen.findByText("This hint could not be resolved to a corroborated organization name."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Resolve" })).toBeEnabled();
+  });
+
+  it("shows a customer-master load failure", async () => {
+    stubBackend({ customerMasterUnavailable: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+    expect(await screen.findByText("Customer master could not be loaded.")).toBeInTheDocument();
+  });
+
+  it("shows when no customer entities are connected", async () => {
+    stubBackend({ emptyCustomerMaster: true });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+
+    expect(
+      await screen.findByText("No customer entities are connected to this account."),
+    ).toBeInTheDocument();
+  });
+
   it("hides the resolve action from an account without post_admin", async () => {
     stubBackend({ manyCustomerHints: 1 });
     render(<App />);
@@ -2694,6 +2866,17 @@ describe("App, authenticated", () => {
     expect(await screen.findByText("CUST-44")).toBeInTheDocument();
     expect(screen.queryByText("CUST-0")).not.toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes("hint_code=CUST-44"))).toBe(true);
+  });
+
+  it("shows a no-match state for an observed customer code", async () => {
+    stubBackend({ manyCustomerHints: 2 });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+
+    await userEvent.type(screen.getByRole("searchbox", { name: "Find source customer code" }), "CUST-99");
+    await userEvent.click(screen.getByRole("button", { name: "Find" }));
+
+    expect(await screen.findByText("No source customer evidence matches CUST-99.")).toBeInTheDocument();
   });
 
   it("searches the board from a semantic project mention", async () => {
