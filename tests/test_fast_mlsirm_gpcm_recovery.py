@@ -1,4 +1,4 @@
-"""Real parameter-recovery test for the GPCM model period_report.py's
+"""Real theta-recovery test for the GPCM model period_report.py's
 production code can also fit: simulate polytomous responses from known
 true item parameters and person abilities using the generalized partial
 credit model (Muraki, 1993), fit them with fast_mlsirm.fit_polytomous(...,
@@ -56,7 +56,7 @@ def test_gpcm_recovers_true_theta_within_expected_rmse() -> None:
             probs = _gpcm_category_probs(true_theta[person], true_discrimination[item], true_steps[item])
             responses[person, item] = rng.choice(N_CAT, p=probs)
 
-    fit = fit_polytomous(responses, n_cat=N_CAT, model="gpcm")
+    fit = fit_polytomous(responses, n_cat=N_CAT, model="gpcm", max_iter=80)
     assert fit.converged
 
     scored = score_polytomous(responses, fit)
