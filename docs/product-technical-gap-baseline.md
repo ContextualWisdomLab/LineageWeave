@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-23 23:14 KST. This repository records synthetic
+> Audit snapshot: 2026-08-23 23:27 KST. This repository records synthetic
 > fixtures and aggregate, non-identifying runtime evidence only. Open PRs and
 > local checks are not protected-default-branch release evidence.
 
@@ -8,8 +8,8 @@
 
 The protected default branch was
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` when this baseline was refreshed.
-The live queue contained 51 open PRs and no independently approved head. Eight
-current heads had an aggregate failed check state, eight had pending checks, and
+The live queue contained 54 open PRs and no independently approved head. Four
+current heads had an aggregate failed check state, 16 had pending checks, and
 three retained unresolved review threads. Those results must be re-fetched
 against the current head before remediation or a merge claim.
 
@@ -86,15 +86,19 @@ Current active-PR evidence remains outside protected `main`:
   distributed MCP principal rate-limit decision. Its current hosted checks
   were running while a failed Devin status remained; it had no unresolved
   thread or exact-head approval.
-- PR #426 at `42dbcac3f8abf6cc28b01e1276d1f1ef06e31c80` is the current
+- PR #426 at `d4e9548661bdd71a0c2cd683796959299eec498e` is the current
   prerequisite carrier for ontology publication and the merged ADR 0157 and
   compatibility-publication stacks. Its advance after `c8a4be8f` only
   corrected ADR numbering and inventory text. It had no unresolved review
   thread or exact-head approval; hosted checks were pending. Results from its
   prior heads are stale.
 - PR #355 at `6fc22a9471bfb4d94b18f884e012cd823b296382` carries ADR 0145's
-  Naruon calendar projection boundary. Its checks were pending, with one
-  unresolved thread and no exact-head approval.
+  Naruon calendar projection boundary. Its checks were pending, with no
+  unresolved thread or exact-head approval.
+- PR #493 at `612c4cc1eb9ef6679a37434cd745f1684911c311` carries the current
+  product fixes. Its focused backend suite passed 13 tests, its App suite
+  passed 81 tests, and lint plus diff-check were clean. It had no unresolved
+  thread or exact-head approval, while hosted checks remained pending.
 - PR #490 at `87f74c6395b7090421965359222fa29f9dd9a84d` is the current carrier
   of the consolidated product stack and includes ADR 0143. ADR 0144 was absent
   from both this exact tree and protected `main`, so it is not attributed to
@@ -105,7 +109,7 @@ Current active-PR evidence remains outside protected `main`:
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 51 PRs remained open, none had an independent current-head approval, eight current heads had an aggregate failed check state, eight had pending checks, and three retained unresolved review threads | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
+| Protected release | 54 PRs remained open, none had an independent current-head approval, four current heads had an aggregate failed check state, 16 had pending checks, and three retained unresolved review threads | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Image understanding | Region, OCR, and description work exists across active heads | Orchestrator-backed rendered workflow, original/derived asset provenance, and honest unsupported states |
 | Semantic source rendering | Paragraph, table, list, and formula parsing exists across active stacks | Authenticated browser evidence that semantic units render without authoring-layout artifacts |
