@@ -17,6 +17,7 @@ import { loginAsDemoAnalyst } from "./support/auth.ts";
  */
 test.beforeEach(async ({ page }) => {
   await loginAsDemoAnalyst(page);
+  await page.locator(".language-switcher select").selectOption("en");
   await page.getByRole("button", { name: "Ask Agent" }).click();
 });
 
@@ -35,7 +36,7 @@ test("renders a cited lineage thread as a git-branch-style graph", async ({ page
   // Fail loudly (not silently skip) if the answer stops citing a
   // multi-post lineage -- the whole point of this test.
   await expect(lineage).not.toHaveCount(0);
-  await expect(lineage).toBeVisible();
+  await expect(lineage.first()).toBeVisible();
   await expect(page.getByRole("img", { name: /lineage$/ }).first()).toBeVisible();
 });
 
