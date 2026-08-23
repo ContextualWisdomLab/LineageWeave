@@ -102,6 +102,8 @@ import {
   useLocale,
 } from "./i18n";
 import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
+import { formatLeftoverObservedExpected } from "./leftoverObservedExpected";
+import { formatLeftoverMapRank, LEFTOVER_RANK_STRUCTURE_ACTION, LEFTOVER_RANK_ZERO_ACTION } from "./leftoverMapRank";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -3390,15 +3392,56 @@ function ReportsPanel({
               </span>
             )}
             {report.leftover_pairs && report.leftover_pairs.length > 0 && (
-              <ul className="ticket-list" aria-label="Leftover pairs">
+              <ul className="ticket-list" aria-label={t("Leftover pairs")}>
                 {report.leftover_pairs.map((pair) => {
                   const kindLabel =
-                    pair.pair_kind === "farthest" ? "Farthest leftover" : "Closest leftover";
-                  const nextAction =
-                    pair.pair_kind === "farthest"
-                      ? "Open this post to read the criterion it sat farthest from after main effects."
-                      : "Open this post to read the criterion it sat closest to after main effects.";
+                    pair.pair_kind === "farthest" ? t("Farthest leftover") : t("Closest leftover");
                   const criterion = criterionShortLabel(pair.criterion_code);
+                  const observedExpected = formatLeftoverObservedExpected(
+                    pair.observed_response,
+                    pair.expected_response,
+                  );
+                  const rankBadge = formatLeftoverMapRank(pair.leftover_map_rank);
+                  let nextAction: string;
+                  if (rankBadge !== null && observedExpected !== null) {
+                    nextAction =
+                      pair.leftover_map_rank === 0
+                        ? tf(
+                            "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.",
+                            {
+                              observed: Number(pair.observed_response).toFixed(2),
+                              expected: Number(pair.expected_response).toFixed(2),
+                            },
+                          )
+                        : tf(
+                            "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.",
+                            {
+                              rank: String(pair.leftover_map_rank),
+                              observed: Number(pair.observed_response).toFixed(2),
+                              expected: Number(pair.expected_response).toFixed(2),
+                            },
+                          );
+                  } else if (rankBadge !== null) {
+                    nextAction =
+                      pair.leftover_map_rank === 0
+                        ? t(LEFTOVER_RANK_ZERO_ACTION)
+                        : tf(LEFTOVER_RANK_STRUCTURE_ACTION, {
+                            rank: String(pair.leftover_map_rank),
+                          });
+                  } else if (observedExpected !== null) {
+                    nextAction = tf(
+                      "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
+                      {
+                        observed: Number(pair.observed_response).toFixed(2),
+                        expected: Number(pair.expected_response).toFixed(2),
+                      },
+                    );
+                  } else {
+                    nextAction =
+                      pair.pair_kind === "farthest"
+                        ? t("Open this post to read the criterion it sat farthest from after main effects.")
+                        : t("Open this post to read the criterion it sat closest to after main effects.");
+                  }
                   return (
                     <li
                       key={`${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
@@ -3413,6 +3456,10 @@ function ReportsPanel({
                           {kindLabel}: {pair.post_title} · {criterion}
                         </span>
                         <span className="post-badge">{nextAction}</span>
+                        {observedExpected ? (
+                          <span className="post-badge">{observedExpected}</span>
+                        ) : null}
+                        {rankBadge ? <span className="post-badge">{rankBadge}</span> : null}
                         <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
                       </button>
                     </li>
@@ -4610,7 +4657,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             </div>
             <div className="login-controls">
               <button className="btn-primary" onClick={() => {
-                const returnUrl = window.location.pathname + window.location.search;
+                const returnUrl = returnUrlFromLocation();
+                rememberOidcReturnUrl(returnUrl);
                 void auth.signinRedirect({ state: { returnUrl } });
               }}>
                 {t("Log in")}
@@ -4620,7 +4668,6 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               <small>Enterprise SSO Authentication</small>
             </div>
           </div>
-          {destination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
       </main>
         <footer className="app-footer" role="contentinfo">
           <div className="app-footer-title">
