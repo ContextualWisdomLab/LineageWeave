@@ -61,6 +61,20 @@ class CorporateEntityCandidate:
 
 
 @dataclass(frozen=True)
+class OrganizationNameAlias:
+    """One corroborated SKOS alt/pref pair for the same organization.
+
+    ``alt_label`` is the abbreviated/slang form stored as
+    ``organization_name_resolution.raw_organization_name``. ``pref_label``
+    is the canonical form stored as ``resolved_organization_name``. Only
+    search-corroborated rows belong here (ADR 0008 / ADR 0120).
+    """
+
+    alt_label: str
+    pref_label: str
+
+
+@dataclass(frozen=True)
 class CorporateEntityResolution:
     """Candidate-generation outcome for one mentioned organization name.
 
@@ -166,3 +180,58 @@ def resolve_corporate_entity(
         candidates,
         min_similarity,
     ).catalog_id
+
+
+def expand_candidates_with_skos_aliases(
+    candidates: Sequence[CorporateEntityCandidate],
+    aliases: Sequence[OrganizationNameAlias],
+) -> list[CorporateEntityCandidate]:
+    """Expose each corroborated SKOS pair as another label on the same row.
+
+    Catalog matching is still string similarity (Bhattacharya & Getoor,
+    2007 candidate generation). An initialism shares almost no substring
+    with its expansion, so a corroborated ``skos:altLabel`` /
+    ``skos:prefLabel`` pair (Miles & Bechhofer, 2009) is projected onto
+    the catalog id that already holds either label. Duplicate labels for
+    the same id stay one candidate. A later ``score_corporate_entity``
+    call still fail-closes on a tie.
+
+    Uncorroborated pairs must not be supplied. Empty or identical labels
+    are ignored so a no-op resolution cannot manufacture a match.
+    """
+    expanded = list(candidates)
+    seen = {
+        (candidate.corporate_entity_id, normalize_organization_name(candidate.entity_name))
+        for candidate in candidates
+        if normalize_organization_name(candidate.entity_name)
+    }
+    for candidate in candidates:
+        catalog_key = normalize_organization_name(candidate.entity_name)
+        if not catalog_key:
+            continue
+        for alias in aliases:
+            alt_key = normalize_organization_name(alias.alt_label)
+            pref_key = normalize_organization_name(alias.pref_label)
+            if not alt_key or not pref_key or alt_key == pref_key:
+                continue
+            extra_name: str | None = None
+            if catalog_key == pref_key:
+                extra_name = alias.alt_label
+            elif catalog_key == alt_key:
+                extra_name = alias.pref_label
+            if extra_name is None:
+                continue
+            extra_key = (
+                candidate.corporate_entity_id,
+                normalize_organization_name(extra_name),
+            )
+            if extra_key in seen:
+                continue
+            seen.add(extra_key)
+            expanded.append(
+                CorporateEntityCandidate(
+                    corporate_entity_id=candidate.corporate_entity_id,
+                    entity_name=extra_name,
+                )
+            )
+    return expanded

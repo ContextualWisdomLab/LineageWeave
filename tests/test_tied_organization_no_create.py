@@ -78,6 +78,8 @@ class _ReloadTieConnection:
         return "SELECT 1"
 
     async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
+        if "organization_name_resolution" in query:
+            return []
         assert "from corporate_entity" in query
         return [
             {
