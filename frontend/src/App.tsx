@@ -104,6 +104,7 @@ import {
   AskAgentWorkspace as AskAgentPanel,
   GLOBAL_ASK_SESSION_STORAGE_KEY,
 } from "./components/AskAgentWorkspace";
+export { GLOBAL_ASK_SESSION_STORAGE_KEY } from "./components/AskAgentWorkspace";
 import { subgraphForPost } from "./lineageLayout";
 import {
   isSupportedLocale,

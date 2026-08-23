@@ -357,7 +357,11 @@ export function AskAgentWorkspace({
           ? await request(accessToken, normalized, sessionId, normalizedKnowledgeCutoff)
           : await request(accessToken, normalized, sessionId);
       } catch (requestError) {
-        if (!(requestError instanceof BackendError) || requestError.status !== 404 || !sessionId) {
+        if (
+          !(requestError instanceof BackendError) ||
+          ![404, 409].includes(requestError.status) ||
+          !sessionId
+        ) {
           throw requestError;
         }
         setSessionId(undefined);

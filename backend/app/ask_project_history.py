@@ -22,23 +22,43 @@ from lineageweave.project_history import normalize_project_key
 ASK_CITATION_LIMIT = 64
 ASK_PROJECT_LIMIT = 8
 GLOBAL_ASK_SESSION_CITATION_LIMIT = 256
+POST_ASK_HISTORY_EXCHANGE_LIMIT = 64
 
 _ELIGIBILITY = SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")
-_CITATION_PROJECT_SQL = f"""
-with visible_citation as materialized (
-    select post.post_id::text as post_id,
+_BATCH_CITATION_PROJECT_SQL = f"""
+with citation_request as materialized (
+    select request.exchange_ordinal,
+           request.citation_ordinal,
+           request.cited_post_id,
+           request.knowledge_cutoff
+      from unnest(
+               $1::integer[],
+               $2::integer[],
+               $3::uuid[],
+               $4::timestamptz[]
+           ) as request(
+               exchange_ordinal,
+               citation_ordinal,
+               cited_post_id,
+               knowledge_cutoff
+           )
+), visible_citation as materialized (
+    select citation_request.exchange_ordinal,
+           citation_request.citation_ordinal,
+           post.post_id::text as post_id,
            post.post_title,
-           array_position($1::uuid[], post.post_id) as citation_ordinal,
            nullif(btrim(post.source_project_code), '') as source_project_code,
            nullif(btrim(post.source_project_name), '') as source_project_name
-      from source_post post
-     where post.post_id = any($1::uuid[])
-       and (post.visibility_code = 'public'
-            or post.corporate_entity_id::text = any($2::text[]))
-       and post.created_at <= $3
+      from citation_request
+      join source_post post
+        on post.post_id = citation_request.cited_post_id
+     where (post.visibility_code = 'public'
+            or post.corporate_entity_id::text = any($5::text[]))
+       and post.created_at <= citation_request.knowledge_cutoff
        and {_ELIGIBILITY}
 ), project_evidence as (
-    select visible_citation.post_id,
+    select visible_citation.exchange_ordinal,
+           visible_citation.post_id,
            coalesce(visible_citation.source_project_code,
                     visible_citation.source_project_name) as project_key,
            coalesce(visible_citation.source_project_name,
@@ -49,7 +69,8 @@ with visible_citation as materialized (
      where coalesce(visible_citation.source_project_code,
                     visible_citation.source_project_name) is not null
     union all
-    select visible_citation.post_id,
+    select visible_citation.exchange_ordinal,
+           visible_citation.post_id,
            coalesce(nullif(btrim(mention.project_key), ''),
                     nullif(btrim(mention.project_name), '')) as project_key,
            coalesce(nullif(btrim(mention.project_name), ''),
@@ -62,7 +83,8 @@ with visible_citation as materialized (
      where coalesce(nullif(btrim(mention.project_key), ''),
                     nullif(btrim(mention.project_name), '')) is not null
 )
-select visible_citation.post_id,
+select visible_citation.exchange_ordinal,
+       visible_citation.post_id,
        visible_citation.post_title,
        visible_citation.citation_ordinal,
        project_evidence.project_key,
@@ -71,8 +93,10 @@ select visible_citation.post_id,
        project_evidence.truth_order
   from visible_citation
   left join project_evidence
-    on project_evidence.post_id = visible_citation.post_id
- order by visible_citation.citation_ordinal,
+    on project_evidence.exchange_ordinal = visible_citation.exchange_ordinal
+   and project_evidence.post_id = visible_citation.post_id
+ order by visible_citation.exchange_ordinal,
+          visible_citation.citation_ordinal,
           project_evidence.truth_order nulls last,
           project_evidence.project_name nulls last,
           project_evidence.project_key nulls last
@@ -93,6 +117,10 @@ class AskEvidenceConnection(Protocol):
         """Execute a bounded read query."""
 
         raise NotImplementedError
+
+
+class AskEvidenceBatchLimitError(ValueError):
+    """The persisted Ask history exceeds a fail-closed batch safety bound."""
 
 
 @dataclass(frozen=True)
@@ -158,42 +186,22 @@ def _bounded_citations(
     except (AttributeError, TypeError, ValueError) as exc:
         raise ValueError("citation identities must be UUIDs") from exc
     if len(citations) > maximum_citations:
-        raise ValueError("citation count exceeds the supported bound")
+        raise AskEvidenceBatchLimitError("citation count exceeds the supported bound")
     return citations
 
 
-async def read_authorized_ask_evidence(
-    conn: AskEvidenceConnection,
+def _project_ask_evidence(
+    citations: tuple[str, ...],
+    cutoff: datetime,
+    rows: Sequence[Mapping[str, Any]],
     *,
-    cited_post_ids: Iterable[str],
-    corporate_entity_ids: Iterable[str],
-    knowledge_cutoff: datetime | str,
-    maximum_citations: int = ASK_CITATION_LIMIT,
-    maximum_projects: int = ASK_PROJECT_LIMIT,
+    maximum_projects: int,
 ) -> AskEvidenceProjection:
-    """Reauthorize citations and derive bounded exact-project history links.
+    """Build one ordered fail-closed projection from authorized query rows."""
 
-    A citation is visible only when its current source row passes tenant ABAC,
-    publication eligibility, and the answer cutoff. If any citation is absent,
-    project links are withheld and callers must not reuse the persisted answer.
-    """
-
-    cutoff = ask_knowledge_cutoff(knowledge_cutoff)
     cutoff_text = _cutoff_text(cutoff)
-    citations = _bounded_citations(
-        cited_post_ids,
-        maximum_citations=maximum_citations,
-    )
     if not citations:
         return AskEvidenceProjection(True, (), (), False, cutoff_text)
-    rows = list(
-        await conn.fetch(
-            _CITATION_PROJECT_SQL,
-            list(citations),
-            list(corporate_entity_ids),
-            cutoff,
-        )
-    )
     citation_order = {post_id: index for index, post_id in enumerate(citations, start=1)}
     visible_titles: dict[str, str] = {}
     for row in rows:
@@ -278,6 +286,98 @@ async def read_authorized_ask_evidence(
         truncated,
         cutoff_text,
     )
+
+
+async def read_authorized_ask_evidence_batch(
+    conn: AskEvidenceConnection,
+    *,
+    exchanges: Sequence[tuple[Iterable[str], object | None]],
+    corporate_entity_ids: Iterable[str],
+    maximum_exchanges: int = POST_ASK_HISTORY_EXCHANGE_LIMIT,
+    maximum_citations: int = GLOBAL_ASK_SESSION_CITATION_LIMIT,
+    maximum_exchange_citations: int = ASK_CITATION_LIMIT,
+    maximum_projects: int = ASK_PROJECT_LIMIT,
+) -> tuple[AskEvidenceProjection, ...]:
+    """Reauthorize a bounded Ask history with one cutoff-aware SQL query.
+
+    Every citation UUID and cutoff is validated before SQL. Repeated citation
+    identities remain separate request rows because different exchanges can
+    carry different persisted cutoffs.
+    """
+
+    if len(exchanges) > maximum_exchanges:
+        raise AskEvidenceBatchLimitError("exchange count exceeds the supported bound")
+    prepared: list[tuple[tuple[str, ...], datetime]] = []
+    citation_count = 0
+    for cited_post_ids, knowledge_cutoff in exchanges:
+        citations = _bounded_citations(
+            cited_post_ids,
+            maximum_citations=maximum_exchange_citations,
+        )
+        cutoff = ask_knowledge_cutoff(knowledge_cutoff)
+        prepared.append((citations, cutoff))
+        citation_count += len(citations)
+    if citation_count > maximum_citations:
+        raise AskEvidenceBatchLimitError("history citation count exceeds the supported bound")
+    if not prepared:
+        return ()
+
+    exchange_ordinals: list[int] = []
+    citation_ordinals: list[int] = []
+    citation_ids: list[str] = []
+    cutoffs: list[datetime] = []
+    for exchange_ordinal, (citations, cutoff) in enumerate(prepared, start=1):
+        for citation_ordinal, post_id in enumerate(citations, start=1):
+            exchange_ordinals.append(exchange_ordinal)
+            citation_ordinals.append(citation_ordinal)
+            citation_ids.append(post_id)
+            cutoffs.append(cutoff)
+
+    rows_by_exchange: dict[int, list[Mapping[str, Any]]] = {}
+    if citation_ids:
+        rows = await conn.fetch(
+            _BATCH_CITATION_PROJECT_SQL,
+            exchange_ordinals,
+            citation_ordinals,
+            citation_ids,
+            cutoffs,
+            list(corporate_entity_ids),
+        )
+        for row in rows:
+            rows_by_exchange.setdefault(int(row["exchange_ordinal"]), []).append(row)
+    return tuple(
+        _project_ask_evidence(
+            citations,
+            cutoff,
+            rows_by_exchange.get(exchange_ordinal, ()),
+            maximum_projects=maximum_projects,
+        )
+        for exchange_ordinal, (citations, cutoff) in enumerate(prepared, start=1)
+    )
+
+
+async def read_authorized_ask_evidence(
+    conn: AskEvidenceConnection,
+    *,
+    cited_post_ids: Iterable[str],
+    corporate_entity_ids: Iterable[str],
+    knowledge_cutoff: datetime | str,
+    maximum_citations: int = ASK_CITATION_LIMIT,
+    maximum_projects: int = ASK_PROJECT_LIMIT,
+) -> AskEvidenceProjection:
+    """Reauthorize one citation set through the shared bounded batch path."""
+
+    return (
+        await read_authorized_ask_evidence_batch(
+            conn,
+            exchanges=[(cited_post_ids, knowledge_cutoff)],
+            corporate_entity_ids=corporate_entity_ids,
+            maximum_exchanges=1,
+            maximum_citations=maximum_citations,
+            maximum_exchange_citations=maximum_citations,
+            maximum_projects=maximum_projects,
+        )
+    )[0]
 
 
 async def global_ask_session_citations_authorized(
