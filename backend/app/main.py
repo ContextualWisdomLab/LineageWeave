@@ -3606,7 +3606,7 @@ async def read_project_history(
 
     _require_post_read(account)
     try:
-        normalized_project_key = normalize_project_key(project_key)
+        normalize_project_key(project_key)
     except ValueError as exc:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,

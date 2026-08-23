@@ -137,6 +137,29 @@ def test_focused_assignment_gap_without_role_evidence_has_no_truth_status() -> N
     assert transition["responsibility_transition_truth_status_code"] is None
 
 
+@pytest.mark.parametrize("invalid_score", [float("nan"), float("inf"), float("-inf")])
+def test_project_history_rejects_nonfinite_lineage_scores(invalid_score: float) -> None:
+    """A non-finite edge score cannot enter the JSON evidence projection."""
+
+    second = _event_row("00000000-0000-0000-0000-000000000002")
+    second["created_at"] = datetime(2022, 3, 12, 9, tzinfo=timezone.utc)
+    with pytest.raises(ValueError, match="lineage score must be finite"):
+        build_project_history_projection(
+            project_key="P-100",
+            focus_event_id=None,
+            event_rows=[_event_row(), second],
+            match_rows=[],
+            role_rows=[],
+            edge_rows=[
+                {
+                    "parent_post_id": "00000000-0000-0000-0000-000000000001",
+                    "child_post_id": "00000000-0000-0000-0000-000000000002",
+                    "fused_score": invalid_score,
+                }
+            ],
+        )
+
+
 def test_matching_observed_project_code_keeps_its_distinct_display_name() -> None:
     """A matching code may carry a human display name that is not itself the key."""
 
