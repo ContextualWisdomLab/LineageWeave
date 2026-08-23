@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-23 23:51 KST. This repository records synthetic
+> Audit snapshot: 2026-08-24 00:01 KST. This repository records synthetic
 > fixtures and aggregate, non-identifying runtime evidence only. Open PRs and
 > local checks are not protected-default-branch release evidence.
 
@@ -8,9 +8,9 @@
 
 The protected default branch was
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` when this baseline was refreshed.
-The live queue contained 55 open PRs and no independently approved head. Seven
-current heads had an aggregate failed check state, 14 had pending checks, and
-three current heads retained unresolved review threads. Those results must be re-fetched
+The live queue contained 55 open PRs and no independently approved head. Ten
+current heads had an aggregate failed check state, 11 had pending checks, and
+two current heads retained unresolved review threads. Those results must be re-fetched
 against the current head before remediation or a merge claim.
 
 Recent protected-default-branch evidence:
@@ -97,20 +97,26 @@ Current active-PR evidence remains outside protected `main`:
   unresolved thread or exact-head approval.
 - PR #417 at `c5c0929c68abf876de6c924d5a93b554d6bcadfb` preserves stale image
   summaries across provider refresh failures. Two focused unit tests and two
-  API tests passed; it had no unresolved thread or exact-head approval.
+  API tests passed; three review threads were unresolved and it had no
+  exact-head approval.
 - PR #494 at `7eb5b2a89a6f32785bbbaf89126cb1ba931a03a8` is limited to `App` and
   `App.test`; TypeScript compilation and 83 tests passed. It remained open with
   no unresolved thread or exact-head approval and hosted checks pending.
-- PR #493 at `d9dd62fd8193708d9ce170989dafb53464c03412` includes product-fix
+- PR #493 at `499c8b1bc4cdffff5bb985658bcb3821d312cedb` includes product-fix
   head `612c4cc1`, where the focused backend suite passed 13 tests, the App
   suite passed 81 tests, and lint plus diff-check were clean. The later head
-  had one unresolved thread and no exact-head approval, while hosted checks
+  had no unresolved thread or exact-head approval, while hosted checks
   remained pending.
-- PR #496 at `38ade89eaf060b36db6c7676d4f9400d7c89b834` carries savepoint,
-  normalized TEPP analysis-run identifier, and batched list/detail receipt
-  fixes. Its focused suite passed 32 tests, then its receipt suite passed 14
-  tests after a narrow Semgrep annotation. It had three unresolved threads and
-  no exact-head approval, while hosted checks remained pending.
+- PR #496 at `93ae4897da46682363a62f4fc155696ac785b466` carries savepoint,
+  normalized TEPP analysis-run identifier, batched list/detail receipt, state
+  progression, and replay-contract fixes. Its included focused head passed 32
+  tests, then its receipt suite passed 14 tests after a narrow Semgrep
+  annotation. It had no unresolved thread or exact-head approval, while hosted
+  checks remained pending.
+- PR #498 at `5928693477c262273e2ce3996cb8cafbe7da1c9e` passed TypeScript
+  compilation and 83 tests. Its informational review thread was resolved; it
+  had no exact-head approval and hosted checks remained pending. This is source
+  and test evidence, not a live-runtime claim.
 - PR #490 at `b5d5f02a465ac01a20155fb31b613e064117f140` is the current carrier
   of the consolidated product stack and includes ADR 0143. ADR 0144 was absent
   from both this exact tree and protected `main`, so it is not attributed to
@@ -121,7 +127,7 @@ Current active-PR evidence remains outside protected `main`:
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 55 PRs remained open, none had an independent current-head approval, seven current heads had an aggregate failed check state, 14 had pending checks, and three current heads retained unresolved review threads | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
+| Protected release | 55 PRs remained open, none had an independent current-head approval, ten current heads had an aggregate failed check state, 11 had pending checks, and two current heads retained unresolved review threads | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Image understanding | Region, OCR, and description work exists across active heads | Orchestrator-backed rendered workflow, original/derived asset provenance, and honest unsupported states |
 | Semantic source rendering | Paragraph, table, list, and formula parsing exists across active stacks | Authenticated browser evidence that semantic units render without authoring-layout artifacts |
