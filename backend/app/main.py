@@ -414,10 +414,16 @@ def _rankweave_client():
 
 
 def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
-    """ABAC: public rows are visible; private rows require same-corp affiliation."""
+    """ABAC: public rows are visible; private rows require the bound local scope."""
     if post["visibility_code"] == "public":
         return True
-    return str(post["corporate_entity_id"]) in account.corporate_entity_ids
+    return (
+        str(post["corporate_entity_id"]) in account.corporate_entity_ids
+        and (
+            not account.process_unit_ids
+            or str(post.get("process_unit_id")) in account.process_unit_ids
+        )
+    )
 
 
 def _is_synthetic_demo_member(member: dict[str, Any], demo_entity_ids: set[str]) -> bool:
@@ -540,7 +546,9 @@ async def _lookup_post_labels(conn: asyncpg.Connection, rows: list[asyncpg.Recor
 
 
 async def _post_filter_options(
-    conn: asyncpg.Connection, corporate_entity_ids: frozenset[str]
+    conn: asyncpg.Connection,
+    corporate_entity_ids: frozenset[str],
+    process_unit_ids: frozenset[str],
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     """Return every authorized filter value, not only values on the current page."""
     visibility_sql = f"""
@@ -552,7 +560,9 @@ async def _post_filter_options(
             on lookup.lookup_category = 'post_visibility'
            and lookup.lookup_code = post.visibility_code
          where (post.visibility_code = 'public'
-            or post.corporate_entity_id::text = any($1::text[]))
+            or (post.corporate_entity_id::text = any($1::text[])
+                and (cardinality($2::text[]) = 0
+                     or post.process_unit_id::text = any($2::text[]))))
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
     """
@@ -565,17 +575,19 @@ async def _post_filter_options(
             on lookup.lookup_category = 'voc_type'
            and lookup.lookup_code = post.voc_type_code
          where (post.visibility_code = 'public'
-            or post.corporate_entity_id::text = any($1::text[]))
+            or (post.corporate_entity_id::text = any($1::text[])
+                and (cardinality($2::text[]) = 0
+                     or post.process_unit_id::text = any($2::text[]))))
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
     """
     # Safe SQL: both query strings are closed lookup statements; entity ids remain asyncpg parameters.
     visibility_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        visibility_sql, list(corporate_entity_ids)
+        visibility_sql, list(corporate_entity_ids), list(process_unit_ids)
     )
     # Safe SQL: both query strings are closed lookup statements; entity ids remain asyncpg parameters.
     type_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        type_sql, list(corporate_entity_ids)
+        type_sql, list(corporate_entity_ids), list(process_unit_ids)
     )
     return (
         [{"code": row["code"], "label": row["label"]} for row in type_rows],
@@ -711,7 +723,10 @@ async def read_customer_master(
                   from source_post
                  where (nullif(btrim(source_customer_code), '') is not null
                         or nullif(btrim(source_customer_name), '') is not null)
-                   and (visibility_code = 'public' or corporate_entity_id = any($1::uuid[]))
+                   and (visibility_code = 'public' or (
+                        corporate_entity_id = any($1::uuid[])
+                        and (cardinality($2::uuid[]) = 0
+                             or process_unit_id = any($2::uuid[]))))
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
             ), ranked as (
                 select scoped.*,
@@ -757,6 +772,7 @@ async def read_customer_master(
              order by top_groups.post_count desc, top_groups.customer_code, top_groups.customer_name
             """,
             list(account.corporate_entity_ids),
+            list(account.process_unit_ids),
         )
         # Safe SQL: the evidence query uses only closed schema fragments; authorized entity ids are bound.
         source_author_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
@@ -777,7 +793,10 @@ async def read_customer_master(
                   join user_account author on author.user_account_id = post.author_account_id
                  where post.source_author_code is not null
                    and btrim(post.source_author_code) <> ''
-                   and (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
+                   and (post.visibility_code = 'public' or (
+                        post.corporate_entity_id = any($1::uuid[])
+                        and (cardinality($2::uuid[]) = 0
+                             or post.process_unit_id = any($2::uuid[]))))
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
             ), ranked as (
                 select scoped.*,
@@ -894,6 +913,7 @@ async def read_customer_master(
              order by top_groups.post_count desc, top_groups.author_code
             """,
             list(account.corporate_entity_ids),
+            list(account.process_unit_ids),
         )
         entity_rows = await conn.fetch(
             """
@@ -1132,7 +1152,7 @@ async def list_posts(
     search_term = search.strip() if search and search.strip() else None
     async with pool.acquire() as conn:
         voc_type_options, visibility_options = await _post_filter_options(
-            conn, account.corporate_entity_ids
+            conn, account.corporate_entity_ids, account.process_unit_ids
         )
         body_search_ids: list[str] = []
         if search_term:
@@ -1173,7 +1193,7 @@ async def list_posts(
                        post.source_project_code, post.source_project_name,
                        post.source_system_code,
                        post.source_record_key,
-                       post.corporate_entity_id, post.created_at,
+                       post.corporate_entity_id, post.process_unit_id, post.created_at,
                        case
                            when $1::text is null then 0
                            when lower(coalesce(post.post_title, '')) like '%' || lower($1) || '%' then 0
@@ -1183,7 +1203,9 @@ async def list_posts(
                        count(*) over() as total_count
                   from source_post post
              where (post.visibility_code = 'public'
-                or post.corporate_entity_id::text = any($2::text[]))
+                or (post.corporate_entity_id::text = any($2::text[])
+                    and (cardinality($9::text[]) = 0
+                         or post.process_unit_id::text = any($9::text[]))))
                and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
                and (
                     $1::text is null
@@ -1381,6 +1403,7 @@ async def list_posts(
             offset,
             limit,
             sort,
+            list(account.process_unit_ids),
         )
         visible = [row for row in rows if _can_see_post(account, row)]
         labels = await _lookup_post_labels(conn, visible)

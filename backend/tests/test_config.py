@@ -60,6 +60,7 @@ def test_keyverse_issuer_overrides_local_keycloak_and_uses_oidc_discovery(monkey
         "https://keyverse.example/tenant/acme/.well-known/openid-configuration"
     )
     assert settings.oidc_jwks_uri_override == ""
+    assert settings.keyverse_claim_binding_required is True
 
 
 def test_local_keycloak_discovery_uses_backend_reachable_base_url(monkeypatch) -> None:
@@ -80,6 +81,7 @@ def test_local_keycloak_discovery_uses_backend_reachable_base_url(monkeypatch) -
     assert settings.oidc_jwks_uri_override == (
         "http://keycloak:8080/realms/lineageweave-demo/protocol/openid-connect/certs"
     )
+    assert settings.keyverse_claim_binding_required is False
 
 
 def test_rankweave_disabled_defaults_off(monkeypatch) -> None:
