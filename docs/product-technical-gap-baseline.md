@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-23 22:28 KST. This repository records synthetic
+> Audit snapshot: 2026-08-23 22:31 KST. This repository records synthetic
 > fixtures and aggregate, non-identifying runtime evidence only. Open PRs and
 > local checks are not protected-default-branch release evidence.
 
@@ -8,9 +8,9 @@
 
 The protected default branch was
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` when this baseline was refreshed.
-The live queue contained 52 open PRs and no independently approved head. Six
-current heads had an aggregate failed check state, eight had pending checks,
-and four retained unresolved review threads. Those results must be re-fetched
+The live queue contained 52 open PRs and no independently approved head. Eight
+current heads had an aggregate failed check state, six had pending checks, and
+three retained unresolved review threads. Those results must be re-fetched
 against the current head before remediation or a merge claim.
 
 Recent protected-default-branch evidence:
@@ -64,16 +64,15 @@ Current active-PR evidence remains outside protected `main`:
   from both this exact tree and protected `main`, so it is not attributed to
   this head. Its aggregate checks failed, with no unresolved thread or
   exact-head approval.
-- PR #491 at `29817c4171f9ce7990ffcb2e6abb1faf6a27f84c` proposes ADR 0157's
+- PR #491 at `c820ba8de9bf39aa89a30477efc5d6b1d3fbb48a` proposes ADR 0157's
   public ontology namespace identity without a production namespace rewrite.
-  Its checks were pending, it retained one unresolved thread, and it had no
-  exact-head approval.
+  Its checks were pending, with no unresolved thread or exact-head approval.
 
 ## 3. Open product and technical gaps
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 52 PRs remained open, none had an independent current-head approval, six current heads had an aggregate failed check state, eight had pending checks, and four retained unresolved review threads | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
+| Protected release | 52 PRs remained open, none had an independent current-head approval, eight current heads had an aggregate failed check state, six had pending checks, and three retained unresolved review threads | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Image understanding | Region, OCR, and description work exists across active heads | Orchestrator-backed rendered workflow, original/derived asset provenance, and honest unsupported states |
 | Semantic source rendering | Paragraph, table, list, and formula parsing exists across active stacks | Authenticated browser evidence that semantic units render without authoring-layout artifacts |
