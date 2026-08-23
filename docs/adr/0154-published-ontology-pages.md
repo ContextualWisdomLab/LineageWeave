@@ -1,6 +1,6 @@
 # ADR 0154 — Publish the ontology namespace as a deterministic GitHub Pages artifact
 
-**Decision status:** Accepted  
+**Decision status:** Accepted
 **Date:** 2026-08-21
 
 ## Context
