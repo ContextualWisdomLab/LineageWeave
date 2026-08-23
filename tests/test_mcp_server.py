@@ -79,10 +79,23 @@ class FakeExternalVerifier:
         )
 
 
+class FakeRateLimiter:
+    def __init__(self) -> None:
+        self.accounts: list[str] = []
+        self.closed = False
+
+    async def consume(self, account_id: str) -> None:
+        self.accounts.append(account_id)
+
+    async def close(self) -> None:
+        self.closed = True
+
+
 @pytest.mark.asyncio
 async def test_global_ask_tool_is_read_only_structured_and_closes_lifespan() -> None:
     cfg = settings()
     pool = FakePool()
+    limiter = FakeRateLimiter()
 
     async def pool_factory(database_url: str):
         assert database_url == cfg.database_url
@@ -135,6 +148,7 @@ async def test_global_ask_tool_is_read_only_structured_and_closes_lifespan() -> 
         answerer=answerer,
         access_token_provider=lambda: token,
         external_verifier=FakeExternalVerifier(),
+        rate_limiter_factory=lambda _: limiter,
     )
     async with Client(server) as client:
         listed = await client.list_tools()
@@ -188,6 +202,8 @@ async def test_global_ask_tool_is_read_only_structured_and_closes_lifespan() -> 
             "external_verification_rationale": "Independent evidence supports the material claim.",
         }
     assert pool.closed is True
+    assert limiter.accounts == ["account"]
+    assert limiter.closed is True
 
 
 @pytest.mark.asyncio

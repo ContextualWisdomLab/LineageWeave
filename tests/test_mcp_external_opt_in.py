@@ -12,6 +12,14 @@ from backend.app.config import Settings
 from backend.app.global_ask import GlobalAskAnswer
 
 
+class _AllowRateLimiter:
+    async def consume(self, account_id: str) -> None:
+        assert account_id == "account"
+
+    async def close(self) -> None:
+        return None
+
+
 def _settings() -> Settings:
     """Return a complete isolated MCP configuration."""
     return Settings(
@@ -112,6 +120,7 @@ async def test_global_ask_does_not_verify_external_evidence_without_explicit_opt
         answerer=answerer,
         access_token_provider=lambda: token,
         external_verifier=_MustNotRunVerifier(),
+        rate_limiter_factory=lambda _: _AllowRateLimiter(),
     )
 
     async with Client(server) as client:

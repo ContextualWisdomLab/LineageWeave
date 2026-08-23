@@ -12,6 +12,14 @@ from backend.app.config import Settings
 from backend.app.global_ask import GlobalAskAnswer
 
 
+class _AllowRateLimiter:
+    async def consume(self, account_id: str) -> None:
+        assert account_id == "account"
+
+    async def close(self) -> None:
+        return None
+
+
 class FakePool:
     """Minimal lifespan pool for the opt-in boundary regression."""
 
@@ -107,6 +115,7 @@ async def test_default_global_ask_never_calls_external_verifier() -> None:
         answerer=answerer,
         access_token_provider=lambda: token,
         external_verifier=ForbiddenExternalVerifier(),
+        rate_limiter_factory=lambda _: _AllowRateLimiter(),
     )
 
     async with Client(server) as client:

@@ -17,6 +17,7 @@ from mcp.server.transport_security import (
     TransportSecurityMiddleware,
     TransportSecuritySettings,
 )
+from mcp.shared.exceptions import MCPError
 from mcp.types import CallToolResult, ImageContent, TextContent, ToolAnnotations
 from pydantic import AnyHttpUrl, BaseModel, Field
 from starlette.requests import Request
@@ -34,6 +35,12 @@ from backend.app.global_ask_verification import (
     SearxngOrchestratorGlobalAskVerifier,
 )
 from backend.app.mcp_auth import KeycloakMcpTokenVerifier
+from backend.app.mcp_rate_limit import (
+    McpRateLimitExceeded,
+    McpRateLimiterUnavailable,
+    ValkeyMcpRateLimiter,
+    build_mcp_rate_limiter,
+)
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.post_chat import (
     ContextualOrchestratorPostChatClient,
@@ -78,6 +85,7 @@ class McpAppContext:
     chat_client: PostChatClient
     vision_client: Any
     external_verifier: GlobalAskExternalVerifier
+    rate_limiter: ValkeyMcpRateLimiter
 
 
 class PreAuthTransportSecurityApp:
@@ -116,6 +124,7 @@ PoolFactory = Callable[[str], Awaitable[Any]]
 AccountResolver = Callable[[Any, str], Awaitable[CurrentAccount]]
 Answerer = Callable[..., Awaitable[GlobalAskAnswer]]
 AccessTokenProvider = Callable[[], AccessToken | None]
+RateLimiterFactory = Callable[[str], ValkeyMcpRateLimiter]
 
 
 def _chat_client(settings: Settings) -> PostChatClient:
@@ -152,6 +161,7 @@ def build_mcp_server(
     answerer: Answerer = answer_global_question,
     access_token_provider: AccessTokenProvider = get_access_token,
     external_verifier: GlobalAskExternalVerifier | None = None,
+    rate_limiter_factory: RateLimiterFactory = build_mcp_rate_limiter,
 ) -> MCPServer[McpAppContext]:
     """Build a testable OAuth resource server with one read-only Global Ask tool."""
     resolved_settings = settings or load_settings()
@@ -161,6 +171,7 @@ def build_mcp_server(
     async def lifespan(_: MCPServer) -> AsyncIterator[McpAppContext]:
         """Open and close the MCP process-wide database and client context."""
         pool = await pool_factory(resolved_settings.database_url)
+        rate_limiter = rate_limiter_factory(resolved_settings.valkey_url)
         try:
             yield McpAppContext(
                 pool=pool,
@@ -170,8 +181,10 @@ def build_mcp_server(
                     resolved_settings.orchestrator_api_key,
                 ),
                 external_verifier=resolved_external_verifier,
+                rate_limiter=rate_limiter,
             )
         finally:
+            await rate_limiter.close()
             await pool.close()
 
     mcp = MCPServer(
@@ -224,6 +237,16 @@ def build_mcp_server(
             raise PermissionError("authenticated MCP principal is unavailable")
         dependencies = ctx.request_context.lifespan_context
         account = await account_resolver(dependencies.pool, token.subject)
+        try:
+            await dependencies.rate_limiter.consume(account.user_account_id)
+        except McpRateLimitExceeded as exc:
+            raise MCPError(
+                -32029,
+                "mcp_rate_limit_exceeded",
+                {"retry_after_seconds": exc.retry_after_seconds},
+            ) from exc
+        except McpRateLimiterUnavailable as exc:
+            raise MCPError(-32030, "mcp_rate_limiter_unavailable") from exc
         result = await answerer(
             dependencies.pool,
             account,
