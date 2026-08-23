@@ -12,6 +12,7 @@ import json
 
 
 async def _run(_args: argparse.Namespace) -> dict[str, object]:
+    """Fail closed before reading any corpus while no anchor is authorized."""
     raise RuntimeError(
         "lineage channel-weight estimation is unavailable until an independent anchor "
         "and accepted ADR authorize it; no corpus data was read and nothing was written"
@@ -19,6 +20,7 @@ async def _run(_args: argparse.Namespace) -> dict[str, object]:
 
 
 def main() -> None:
+    """Validate operator inputs and report only the policy-boundary result."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--post-limit",

@@ -1,18 +1,21 @@
+import asyncio
 import uuid
-from types import SimpleNamespace
+from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from scripts.import_postgresql_posts import (
     _lineage_grouping_values,
-    _parser,
     _normalize_voc_type,
-    _source_post_id,
+    _parser,
     _source_code_matches,
+    _source_post_id,
+    _validate_corporate_entity_scope,
     _validate_source_mapping,
     _validate_source_rows,
-    _validate_corporate_entity_scope,
+    import_rows,
 )
 
 
@@ -46,6 +49,133 @@ def test_real_source_grouping_remains_the_derived_grouping() -> None:
         record_key="record-1",
         default_group="pu-1",
     ) == ("thread-a", "secondary-a", "thread-a", "secondary-a")
+
+
+def test_import_rows_persists_raw_and_derived_grouping_values(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    """One synthetic import carries provenance and reconstruction fields together."""
+    query_file = tmp_path / "synthetic-query.sql"
+    query_file.write_text("select synthetic_source", encoding="utf-8")
+    row = {
+        "record_key": "record-1",
+        "title": "Synthetic lineage follow-up",
+        "body": "Synthetic customer-safe evidence body.",
+        "created_at": datetime(2026, 1, 2, tzinfo=UTC),
+        "draft_state": "published",
+        "thread": "record-1",
+        "secondary": "document-1",
+        "project": "project-1",
+    }
+
+    class FakeConnection:
+        def __init__(self, *, source: bool) -> None:
+            self.source = source
+            self.executions: list[tuple[str, tuple[object, ...]]] = []
+            self.closed = False
+
+        async def fetch(self, _query: str):
+            assert self.source
+            return [row]
+
+        async def execute(self, query: str, *args: object):
+            self.executions.append((query, args))
+
+        async def close(self) -> None:
+            self.closed = True
+
+    source = FakeConnection(source=True)
+    target = FakeConnection(source=False)
+    connections = iter((source, target))
+
+    async def fake_connect(_dsn: str):
+        return next(connections)
+
+    async def fake_scope(_conn, _args):
+        return "account-1", "corporate-1", "process-unit-1"
+
+    async def no_content(*_args, **_kwargs) -> None:
+        return None
+
+    async def no_cleanup(*_args, **_kwargs) -> dict[str, int]:
+        return {"synthetic_rows_removed": 0}
+
+    async def no_edges(_conn) -> list[object]:
+        return []
+
+    monkeypatch.setattr("scripts.import_postgresql_posts.asyncpg.connect", fake_connect)
+    monkeypatch.setattr("scripts.import_postgresql_posts._ensure_scope", fake_scope)
+    monkeypatch.setattr("scripts.import_postgresql_posts.persist_post_content", no_content)
+    monkeypatch.setattr("scripts.import_postgresql_posts.cleanup_synthetic_seed", no_cleanup)
+    monkeypatch.setattr("scripts.import_postgresql_posts.rebuild_lineage", no_edges)
+    monkeypatch.setattr(
+        "scripts.import_postgresql_posts.orchestrator_vision_client",
+        lambda *_args: object(),
+    )
+    monkeypatch.setattr(
+        "scripts.import_postgresql_posts.orchestrator_embedding_client",
+        lambda *_args: object(),
+    )
+
+    args = _parser().parse_args(
+        [
+            "--source-dsn",
+            "postgresql://synthetic-source",
+            "--target-dsn",
+            "postgresql://synthetic-target",
+            "--query-file",
+            str(query_file),
+            "--source-system-code",
+            "synthetic-source",
+            "--record-key-column",
+            "record_key",
+            "--title-column",
+            "title",
+            "--body-column",
+            "body",
+            "--created-at-column",
+            "created_at",
+            "--draft-column",
+            "draft_state",
+            "--exclude-draft-value",
+            "draft",
+            "--thread-group-column",
+            "thread",
+            "--secondary-group-column",
+            "secondary",
+            "--source-project-code-column",
+            "project",
+            "--author-subject-id",
+            "synthetic-subject",
+            "--corporate-entity-code",
+            "SYNTHETIC-CORP",
+            "--process-unit-code",
+            "synthetic-pu",
+        ]
+    )
+
+    result = asyncio.run(import_rows(args))
+
+    source_post_args = next(
+        call_args
+        for query, call_args in target.executions
+        if "insert into source_post\n" in query
+    )
+    assert source_post_args[26:30] == (
+        "record-1",
+        "document-1",
+        "",
+        "project-1",
+    )
+    assert result == {
+        "source_rows": 1,
+        "imported_rows": 1,
+        "skipped_rows": 0,
+        "lineage_edges": 0,
+        "synthetic_rows_removed": 0,
+    }
+    assert source.closed and target.closed
 
 
 @pytest.mark.parametrize(

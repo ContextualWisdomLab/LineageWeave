@@ -126,12 +126,14 @@ class _RollbackDryRun(Exception):
     """Raised inside the transaction to force a rollback for --dry-run."""
 
     def __init__(self, project_evidence: int, cleared: int) -> None:
+        """Retain the aggregate counts that the rolled-back operator run reports."""
         super().__init__("dry run -- rolled back")
         self.project_evidence = project_evidence
         self.cleared = cleared
 
 
 async def _run(args: argparse.Namespace) -> dict[str, object]:
+    """Execute one pooled backfill and convert dry-run rollback into counts."""
     settings = load_settings()
     pool = await asyncpg.create_pool(settings.database_url, min_size=1, max_size=1)
     try:
@@ -150,6 +152,7 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
 
 
 def main() -> None:
+    """Parse operator arguments and print aggregate, non-identifying evidence."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--dry-run",

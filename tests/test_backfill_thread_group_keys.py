@@ -9,8 +9,15 @@ fakes.
 from __future__ import annotations
 
 import asyncio
+import runpy
+import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
+from types import SimpleNamespace
 
+import asyncpg
+
+import backend.app.config as backend_config
 import scripts.backfill_thread_group_keys as backfill
 
 
@@ -156,3 +163,27 @@ def test_run_reports_write_counts_when_not_a_dry_run(monkeypatch) -> None:
         "project_secondary_evidence_posts": 1,
         "dry_run": False,
     }
+
+
+def test_script_entrypoint_reports_dry_run_counts(monkeypatch, capsys) -> None:
+    """The documented operator command executes the rollback-safe boundary."""
+    conn = _Connection([True, False])
+
+    async def fake_create_pool(*_args, **_kwargs):
+        return _FakePool(conn)
+
+    script = Path(backfill.__file__)
+    monkeypatch.setattr(asyncpg, "create_pool", fake_create_pool)
+    monkeypatch.setattr(
+        backend_config,
+        "load_settings",
+        lambda: SimpleNamespace(database_url="postgresql://synthetic"),
+    )
+    monkeypatch.setattr(sys, "argv", [str(script), "--dry-run"])
+
+    runpy.run_path(str(script), run_name="__main__")
+
+    assert capsys.readouterr().out == (
+        '{"cleared_placeholder_posts": 2, "dry_run": true, '
+        '"project_secondary_evidence_posts": 1}\n'
+    )

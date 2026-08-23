@@ -22,3 +22,14 @@ def test_unrelated_rec006_is_not_forced_onto_a_parent() -> None:
     edges = lineage_edge_specs(sample_records())
     children = {edge.child_id for edge in edges}
     assert "rec-006" not in children
+
+
+def test_persisted_weight_vector_reaches_reconstruction() -> None:
+    """An authorized deterministic vector is used without inventing an LLM score."""
+    edges = lineage_edge_specs(
+        sample_records(),
+        weights={"temporal": 0.25, "secondary_key": 0.25, "text": 0.5},
+    )
+    pairs = {(edge.parent_id, edge.child_id) for edge in edges}
+    assert ("rec-002", "rec-003") in pairs
+    assert all("llm" not in edge.channel_scores for edge in edges)

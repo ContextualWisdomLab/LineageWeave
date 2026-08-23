@@ -22,4 +22,3 @@ def estimate_channel_weights(
     """
     if len(pair_channel_scores) != len(group_ids):
         raise ValueError("pair_channel_scores and group_ids must align")
-    return None

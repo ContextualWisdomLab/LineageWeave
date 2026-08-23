@@ -57,6 +57,43 @@ def test_unapproved_weight_provenance_is_never_activated() -> None:
     ) is None
 
 
+def test_mixed_weight_provenance_is_never_activated(monkeypatch) -> None:
+    """A numerically complete vector cannot combine two estimation runs."""
+    monkeypatch.setattr(ingestion, "_SUPPORTED_ANCHOR_METHOD_CODES", {"test_anchor"})
+
+    class MixedProvenanceConnection:
+        async def fetchval(self, _query: str):
+            return True
+
+        async def fetch(self, _query: str):
+            base = {
+                "estimation_method_code": "test_method",
+                "estimator_version": "1.0.0",
+                "anchor_method_code": "test_anchor",
+                "source_snapshot_sha256": "a" * 64,
+                "sample_pair_count": 600,
+                "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
+            }
+            return [
+                {
+                    **base,
+                    "estimation_run_id": f"00000000-0000-0000-0000-00000000000{index}",
+                    "channel_code": channel,
+                    "weight_value": weight,
+                }
+                for index, (channel, weight) in enumerate(
+                    (("temporal", 0.2), ("secondary_key", 0.3), ("text", 0.5)),
+                    start=1,
+                )
+            ]
+
+    assert asyncio.run(
+        ingestion.load_estimated_channel_weights(
+            MixedProvenanceConnection(), {"temporal", "secondary_key", "text"}
+        )
+    ) is None
+
+
 def test_supported_vectors_still_require_numeric_and_provenance_integrity(
     monkeypatch,
 ) -> None:

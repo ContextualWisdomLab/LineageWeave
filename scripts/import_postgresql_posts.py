@@ -93,6 +93,7 @@ class ColumnMapping:
 
 
 def _parser() -> argparse.ArgumentParser:
+    """Build the explicit caller-mapped import command contract."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-dsn", required=True)
     parser.add_argument("--target-dsn", required=True)
