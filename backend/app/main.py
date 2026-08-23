@@ -2622,7 +2622,7 @@ async def ask_agent(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Answer a buyer question from authorized post and graph evidence."""
+    """Answer a reader question from authorized post and graph evidence."""
     question = request.question.strip()
     if not question:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
@@ -2660,7 +2660,10 @@ async def ask_agent(
     cited_ids = list(answer.cited_post_ids)
     async with pool.acquire() as conn:
         lineage_graph = await lineage_graphs_for_posts(
-            conn, lambda row: _can_see_post(account, row), cited_ids
+            conn,
+            lambda row: _can_see_post(account, row)
+            and str(row["corporate_entity_id"]) in account.corporate_entity_ids,
+            cited_ids,
         )
     return {
         "answer_text": answer.answer_text,

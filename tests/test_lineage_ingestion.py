@@ -150,7 +150,9 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
     assert {node["id"] for node in focused["nodes"]} == {"post-a", "post-b"}
     assert len(focused["edges"]) == 1
     assert focused["truncated"] is False
-    assert isolated == {"nodes": [], "edges": [], "truncated": False}
+    assert [node["id"] for node in isolated["nodes"]] == ["post-c"]
+    assert isolated["edges"] == []
+    assert isolated["truncated"] is False
 
 
 def test_lineage_graphs_for_posts_merges_distinct_threads_without_duplicates() -> None:
@@ -236,8 +238,13 @@ def test_lineage_graphs_for_posts_merges_distinct_threads_without_duplicates() -
         "post-b",
         "post-c",
         "post-d",
+        "post-isolated",
     }
-    assert {node["group"] for node in merged["nodes"]} == {"thread-a", "thread-c"}
+    assert {node["group"] for node in merged["nodes"]} == {
+        "thread-a",
+        "thread-c",
+        "thread-isolated",
+    }
     assert len(merged["edges"]) == 2
     assert merged["truncated"] is False
 

@@ -132,14 +132,7 @@ async def visible_lineage_graph(
             component_ids.add(current_id)
             frontier.extend(neighbors.get(current_id, set()) - component_ids)
 
-        # An isolated post has no DAG to render; the post-lineage endpoint
-        # still reports its empty direct/indirect lists.
-        if len(component_ids) <= 1:
-            visible = []
-        else:
-            visible = [
-                row for row in visible_all if str(row["post_id"]) in component_ids
-            ]
+        visible = [row for row in visible_all if str(row["post_id"]) in component_ids]
         truncated = False
 
     visible_ids = {str(row["post_id"]) for row in visible}
