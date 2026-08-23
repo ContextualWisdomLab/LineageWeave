@@ -42,7 +42,7 @@ Recent protected-default-branch and org-control-plane evidence:
 | LineageWeave #494 | `7eb5b2a89a6f32785bbbaf89126cb1ba931a03a8` | login-only overlap; auto-merge armed; do not fold this baseline back into #494 |
 | LineageWeave #497 | `07554b238a822e4423f8e6b4c000e5882fe49163`; merged as `250f20e8a6f830479ce904448cd29ab1a106aeef` into #426 only | ADR 0001 baseline is present on this hidden stack, not on protected `main` |
 | LineageWeave #498 | `35823d889c5360ebf2152ed5679d7c22d6832545` | `/healthz` + docstring coverage; overlaps #429; blocked on independent review |
-| LineageWeave #496 | `195ddf597c8eceaeaa00c9c86dc8103a4c7a8b89` | accepted TEPP receipts remain Running during an unavailable recheck; open and blocked, 20 checks passing with Strix/coverage pending, 21 threads with 1 unresolved code-quality thread, zero approvals |
+| LineageWeave #496 | `78287c08309f614ca1de04612c3e15c555bed1c6` | accepted TEPP receipts remain Running during an unavailable recheck; the mixed-import review fix has 21 focused tests passing; open and blocked with checks re-queued, all 21 threads resolved, and zero approvals |
 | LineageWeave #499 | `a985f820af7a6552bcf32860b35b513e213a498c`; merged as `8f43d7fd17ae7ae9c197fe89ddb4beee82a2886a` into `docs/customer-master-scope-adr` only | channel-weight estimation is hidden-stack evidence, not protected-`main` evidence; local descendant `715ca0c6b7da87d0f3ed336ec40a2838f9e9eb8b` is not delivered to a remote branch or PR |
 | LineageWeave #505 | `fd05703d576b6cf5bc7934f6a82fc1eeea2bdccd` on #490 head `d806bb960c12ad36f6c346831f6496299a34a3f8` | planned-facility intent evidence is an open stacked PR; mergeable but unstable, 0 threads and approvals, 1 check passing and 3 pending |
 
@@ -154,7 +154,7 @@ evidence across heads.
 | #454 | FIPC parameter-recovery |
 | #468 | Bind fast-mlsirm, Keyverse, orchestrator, and TEPP |
 | #417 | TEPP topic-lineage consumption boundary (TRSL-TM + CHRONOS/TDT) |
-| #496 | Durable accepted TEPP receipts and recheck continuity; exact head `195ddf597c8eceaeaa00c9c86dc8103a4c7a8b89` |
+| #496 | Durable accepted TEPP receipts and recheck continuity; exact head `78287c08309f614ca1de04612c3e15c555bed1c6` |
 | #499 | Psychometric channel-weight estimation merged only into a hidden docs stack; local fail-closed remediation `715ca0c6b7da87d0f3ed336ec40a2838f9e9eb8b` remains undelivered |
 
 ### 3.5 Gap-baseline documentation queue (superseded by this file)
@@ -206,7 +206,7 @@ limited to value independently verified as unique from #426.
 | Calendar / Naruon | Pseudo-CalDAV remains on `main`; #355 carries the projection contract | Naruon-owned projection, issue #336/#338 acceptance, no invented events |
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
 | Event Lineage evidence | Channel evidence and Allen relations live on #387 / #484 | Persist channel scores, explain them in the popup, never invent a fused score |
-| Scientific measurement | #496 preserves an already accepted TEPP receipt across an unavailable recheck but remains open with one unresolved review thread and pending gates; #499 is merged only into a hidden docs stack, and its fail-closed local descendant `715ca0c6b7da87d0f3ed336ec40a2838f9e9eb8b` is not delivered | Protected delivery of persisted accepted envelopes and fail-closed weighting; calibration/recovery RMSE; no invented theta |
+| Scientific measurement | #496 preserves an already accepted TEPP receipt across an unavailable recheck and has all 21 review threads resolved, but remains open with checks re-queued and zero approvals; #499 is merged only into a hidden docs stack, and its fail-closed local descendant `715ca0c6b7da87d0f3ed336ec40a2838f9e9eb8b` is not delivered | Protected delivery of persisted accepted envelopes and fail-closed weighting; calibration/recovery RMSE; no invented theta |
 | Planned-facility intent | #505 is stacked on open #490 rather than protected `main`; its exact head has one passing and three pending checks, no threads, and no approvals | Land and revalidate #490 first, then rebase #505 and verify source-grounded relationship evidence on the exact candidate head |
 | Accessibility and responsive UX | Unit coverage exists for major surfaces; Storybook inventory incomplete | Keyboard, screen-reader, mobile, and authenticated Playwright acceptance on the exact release head |
 | Design tokens and repeated objects | Token extraction started (`CHANGELOG.d` badge-color tokens); Figma file is empty of product frames | Tokens in CSS + Storybook stories for board, popup, DAG, Ask, calendar, forms, charts |
@@ -287,8 +287,9 @@ of leverage; open connector PRs there when the defect is upstream:
    resulting exact head.
 2. Obtain two independent exact-head approvals for #426 and land that stack on
    protected `main`; auto-merge being armed does not itself satisfy the gate.
-3. Resolve #496's current code-quality review thread and pending gates while
-   preserving the durable accepted-receipt behavior across unavailable rechecks.
+3. Let #496's re-queued checks settle and obtain independent exact-head review
+   while preserving the durable accepted-receipt behavior across unavailable
+   rechecks.
 4. Keep #505 behind #490: validate and land #490 first, then rebase and
    revalidate #505 before making any protected-release claim.
 5. Treat #499's hidden-stack merge and local descendant
