@@ -2,6 +2,7 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-17
+**Amended by:** [ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E)
 
 ## Context
 
@@ -17,10 +18,11 @@ second navigation surface.
 
 On each period-report group, render leftover pairs **above** the
 member list. Each pair is a button: closest or farthest label, post
-title, criterion short label, leftover-map distance, and the next
-action (“Open this post to read the criterion it sat closest to /
-farthest from after main effects.”). Clicking the button opens that
-post with the same handler as a member row.
+title, criterion short label, leftover-map distance, observed `Y` and
+expected `E` when both are finite, and the next action (“Read observed
+Y and expected E after IRT main effects, then open this post.”).
+Clicking the button opens that post with the same handler as a member
+row. Observed/expected naming is [ADR 0163](0163-leftover-observed-expected.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post.
