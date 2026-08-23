@@ -1,4 +1,4 @@
-# ADR 0160 — Name Allen interval relations on Event Lineage edges
+# ADR 0161 — Name Allen interval relations on Event Lineage edges
 
 **Decision status:** Accepted
 **Date:** 2026-08-23
@@ -52,9 +52,10 @@ already applied `0001`. Point-only backfill uses created days so
 existing edges are never left null.
 
 Renumbered from the originally proposed `0105` (migration) and `0122`
-(ADR) to the free numbers above after a collision was found with
+(ADR) after collisions were found with
 PR #387 (`migrations/0105_post_lineage_edge_signal.sql`) and PR #383
-(`docs/adr/0122-otel-session-observability.md`); see
+(`docs/adr/0122-otel-session-observability.md`). ADR `0160` was then
+claimed first by PR #480, so this decision moved to `0161`; see
 ContextualWisdomLab/.github#1249.
 
 ## References

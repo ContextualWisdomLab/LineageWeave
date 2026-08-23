@@ -969,7 +969,7 @@ def _seed_fixture_tickets(cur) -> None:
 
 
 def _seed_lineage_interval_relations(cur) -> None:
-    """Name Allen relations from observed post creation-day points (ADR 0160)."""
+    """Name Allen relations from observed post creation-day points (ADR 0161)."""
     from lineageweave.interval_relation import (
         allen_interval_relation,
         interval_from_post,

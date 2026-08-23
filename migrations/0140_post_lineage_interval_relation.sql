@@ -1,4 +1,4 @@
--- ADR 0160: persist Allen (1983) interval relation on Event Lineage edges.
+-- ADR 0161: persist Allen (1983) interval relation on Event Lineage edges.
 -- Lookups first so the FK can land on existing volumes that already ran 0001.
 
 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values

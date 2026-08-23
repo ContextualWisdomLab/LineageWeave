@@ -194,7 +194,7 @@ persist to `report_leftover_pair` and sit above the member list so
 a click opens that post.
 
 Event Lineage edges persist an Allen (1983) `interval_relation_code`
-(ADR 0160 / v2.15.0). Reconstruct still owns the parent choice; this
+(ADR 0161 / v2.15.0). Reconstruct still owns the parent choice; this
 only names the dated windows. Every post is a point interval on its UTC
 creation day; mutable ticket dates are not Event Lineage evidence. After
 `make seed`, rec-002 is **Before** rec-003 and rec-004. Click the Before
