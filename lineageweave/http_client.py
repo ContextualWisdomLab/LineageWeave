@@ -13,6 +13,7 @@ verification is explicit. The request never goes through ``urlopen``.
 from __future__ import annotations
 
 import http.client
+import ipaddress
 import json
 import ssl
 from urllib.parse import urlencode, urlparse
@@ -38,6 +39,8 @@ def _request(
     body: bytes | None,
     headers: dict[str, str],
     timeout: float,
+    require_public_peer: bool = False,
+    max_response_bytes: int | None = None,
 ) -> tuple[int, bytes]:
     """Implement the _request operation for this channel."""
     parsed = urlparse(url)
@@ -59,17 +62,33 @@ def _request(
     connection = http.client.HTTPConnection(parsed.hostname, port, timeout=timeout)
 
     try:
-        if parsed.scheme == "https":
+        if parsed.scheme == "https" or require_public_peer:
             connection.connect()
             if connection.sock is None:
                 raise HttpClientError(f"no socket after connect to {parsed.hostname}")
+            if (
+                require_public_peer
+                and not ipaddress.ip_address(connection.sock.getpeername()[0]).is_global
+            ):
+                raise ValueError("refusing a non-public network target")
+        if parsed.scheme == "https":
             connection.sock = _SSL_CONTEXT.wrap_socket(
                 connection.sock, server_hostname=parsed.hostname
             )
         connection.request(method, path, body=body, headers=headers)
         response = connection.getresponse()
         length_header = response.getheader("Content-Length")
-        raw = response.read(int(length_header)) if length_header is not None else response.read()
+        if (
+            max_response_bytes is not None
+            and length_header is not None
+            and int(length_header) > max_response_bytes
+        ):
+            raise HttpClientError("HTTP response exceeded the configured byte limit")
+        raw = response.read(
+            None if max_response_bytes is None else max_response_bytes + 1
+        )
+        if max_response_bytes is not None and len(raw) > max_response_bytes:
+            raise HttpClientError("HTTP response exceeded the configured byte limit")
         return response.status, raw
     finally:
         connection.close()
@@ -99,12 +118,38 @@ def _decode_json_list(raw: bytes, hostname: str) -> list:
     return decoded
 
 
+def chat_completion_content(body: object) -> str:
+    """Extract text from a provider chat-completion envelope safely.
+
+    Provider error bodies and malformed success bodies must never be echoed by
+    a consumer through ``KeyError`` or a repr of the response.  The caller
+    receives only a stable validation error and can translate it at its own
+    product boundary.
+    """
+    if not isinstance(body, dict):
+        raise TypeError("provider response was not an object")
+    choices = body.get("choices")
+    if not isinstance(choices, list) or not choices:
+        raise ValueError("provider response did not contain a choice")
+    first_choice = choices[0]
+    if not isinstance(first_choice, dict):
+        raise TypeError("provider response choice was not an object")
+    message = first_choice.get("message")
+    if not isinstance(message, dict):
+        raise TypeError("provider response message was not an object")
+    content = message.get("content")
+    if not isinstance(content, str) or not content.strip():
+        raise TypeError("provider response did not contain text content")
+    return content
+
+
 def post_json(
     url: str,
     payload: dict,
     *,
     headers: dict[str, str],
     timeout: float,
+    include_context_metadata: bool = True,
 ) -> dict:
     """POST ``payload`` as JSON to ``url`` and return the decoded object.
 
@@ -113,7 +158,7 @@ def post_json(
         HttpClientError: the server responded with HTTP >= 400 or non-JSON.
     """
     request_payload = payload
-    request_metadata = current_llm_metadata()
+    request_metadata = current_llm_metadata() if include_context_metadata else None
     if request_metadata:
         request_payload = dict(payload)
         existing_metadata = request_payload.get("metadata")
@@ -152,7 +197,10 @@ def post_form(
         "POST",
         url,
         body=urlencode(fields).encode("utf-8"),
-        headers={"content-type": "application/x-www-form-urlencoded", **(headers or {})},
+        headers={
+            "content-type": "application/x-www-form-urlencoded",
+            **(headers or {}),
+        },
         timeout=timeout,
     )
     hostname = urlparse(url).hostname or url
@@ -173,7 +221,9 @@ def get_json(
         ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
         HttpClientError: the server responded with HTTP >= 400 or non-JSON.
     """
-    status, raw = _request("GET", url, body=None, headers=headers or {}, timeout=timeout)
+    status, raw = _request(
+        "GET", url, body=None, headers=headers or {}, timeout=timeout
+    )
     hostname = urlparse(url).hostname or url
     if status >= 400:
         raise HttpClientError(f"HTTP {status} from {hostname}")
@@ -195,7 +245,9 @@ def get_json_list(
         ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
         HttpClientError: the server responded with HTTP >= 400 or non-array JSON.
     """
-    status, raw = _request("GET", url, body=None, headers=headers or {}, timeout=timeout)
+    status, raw = _request(
+        "GET", url, body=None, headers=headers or {}, timeout=timeout
+    )
     hostname = urlparse(url).hostname or url
     if status >= 400:
         raise HttpClientError(f"HTTP {status} from {hostname}")

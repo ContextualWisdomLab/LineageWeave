@@ -68,8 +68,11 @@ than one large PR:
 
 1. **Infra slice** (next PR, not this one): add the pinned git
    dependency, add a Rust toolchain to `backend/Dockerfile`'s build
-   stage, and prove the import actually works in the built image -- no
-   product behavior yet.
+   stage, and prove the import actually works in the built image. Install the
+   locked third-party dependency layer before copying application source so a
+   Python-only LineageWeave edit does not rebuild the pinned PyO3 core; the
+   final sync installs only the changed project into that cached environment.
+   No product behavior changes in this slice.
 2. **Evaluation slice**: a pluggable `PostEvaluationClient` (same
    `Null`/`ContextualOrchestrator` discipline as every other channel in
    this repo) that produces a structured judge result per post against
@@ -100,13 +103,11 @@ than one large PR:
    `information_polytomous` (Lord, 1980 max-info). Persist the ranking
    (`report_item_information`) and show the rank-1 item on the Period
    reports panel. Do not reimplement an information function here.
-7. **Leftover-pair slice** (shipped in 0.71.2; ADR 0048 / 0181): after
+7. **Leftover-pair slice** (shipped in 0.71.2; ADR 0017 / 0018 / 0048 / 0049 / 0177): after
    IRT main effects, persist closest and farthest post–criterion pairs
-   from the residual leftover map, and name leftover-map lengths
-   `‖ξ‖` and `‖ζ‖` when a complete-case leftover map exists so
-   leftover-map magnitude is not read as leftover-map distance. Do not
-   fork LSIRM; do not invent a leftover-pair API inside `fast-mlsirm`
-   in this slice.
+   from the residual leftover map, naming observed `Y` and expected
+   `E[Y|θ, item]` so residual reconciles to `Y − E`. Do not fork LSIRM;
+   do not invent a leftover-pair API inside `fast-mlsirm` in this slice.
 
 **TEPP boundary.** [ARCHITECTURE.md](../../ARCHITECTURE.md) already
 assigns calibrated temporal/event measurement to
@@ -147,6 +148,8 @@ where a synthetic ground truth is available for the test itself.
   step, increasing image build time -- justified because it is required
   for a dependency this org's own rules already mandate a Rust
   psychometrics layer for; not merely an optional convenience.
+- The first clean backend image build still compiles `fast-mlsirm`, while
+  later application-source rebuilds reuse that locked dependency layer.
 - No product-visible behavior change ships in the infra-first PR;
   buyer-perceptible payoff lands with slice 2 and slice 3.
 - If `fast-mlsirm` is missing something this integration needs (e.g. a

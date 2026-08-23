@@ -34,7 +34,7 @@ describe("PostBody", () => {
     expect(screen.getByText("Root item")).toHaveAttribute("data-indent-level", "0");
   });
 
-  it("uses a buyer-facing accessible label instead of a source character offset", () => {
+  it("uses a reader-facing accessible label instead of a source character offset", () => {
     render(
       <PostBody
         body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
@@ -102,7 +102,7 @@ describe("PostBody", () => {
   it("renders persisted table rows as a table instead of cell paragraphs", () => {
     render(
       <PostBody
-        body="<table><tr><td>No.</td><td>Company</td></tr><tr><td>1</td><td>Acme</td></tr></table>"
+        body="<table><caption>Accounts</caption><tr><td>No.</td><td>Company</td></tr><tr><td>1</td><td>Acme</td></tr></table>"
         structureUnits={[
           {
             unit_index: 0,
@@ -174,7 +174,7 @@ describe("PostBody", () => {
     expect(screen.getByText("Unavailable source unit")).toHaveAttribute("data-indent-level", "0");
   });
 
-  it("keeps adjacent source tables as separate buyer-facing tables", () => {
+  it("keeps adjacent source tables as separate reader-facing tables", () => {
     render(
       <PostBody
         body={
@@ -228,13 +228,23 @@ describe("PostBody", () => {
   it("renders persisted image evidence without exposing the internal LLM instruction", () => {
     render(
       <PostBody
-        body="<p>[internal image instruction]</p>"
+        body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
         structureUnits={[
           {
             unit_index: 0,
             unit_kind_code: "image",
             unit_label: "img",
             unit_text: "This post is an image. Ask questions to read its text.",
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "",
+          },
+          {
+            unit_index: 1,
+            unit_kind_code: "image",
+            unit_label: "img",
+            unit_text: "No source image is available.",
             indent_level: 0,
             indent_source_code: "unresolved",
             indent_confidence: 0,
@@ -261,6 +271,28 @@ describe("PostBody", () => {
                 caption: "Main panel",
                 tags: ["panel"],
               },
+              {
+                region_index: 1,
+                x_ratio: 0,
+                y_ratio: 0,
+                width_ratio: 0.5,
+                height_ratio: 0.5,
+                status_code: "described",
+                extracted_text: "Secondary region OCR",
+                caption: null,
+                tags: [],
+              },
+              {
+                region_index: 2,
+                x_ratio: 0.5,
+                y_ratio: 0.5,
+                width_ratio: 0.5,
+                height_ratio: 0.5,
+                status_code: "unavailable",
+                extracted_text: null,
+                caption: null,
+                tags: [],
+              },
             ],
           },
         ]}
@@ -270,10 +302,34 @@ describe("PostBody", () => {
     expect(screen.getByText("A process diagram")).toBeInTheDocument();
     expect(screen.getByText("diagram, process")).toBeInTheDocument();
     expect(screen.getByText("Main panel")).toBeInTheDocument();
+    expect(screen.getByText("Secondary region OCR")).toBeInTheDocument();
+    expect(screen.getByText("Unknown")).toBeInTheDocument();
     expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
   });
 
-  it("renders pipe-delimited image OCR as a buyer-facing table", () => {
+  it("groups persisted table rows when the source has no trustworthy table boundary", () => {
+    render(
+      <PostBody
+        body="<p>A | B</p><p>C | D</p>"
+        structureUnits={[
+          ["A", "B"],
+          ["C", "D"],
+        ].map(([left, right], unit_index) => ({
+          unit_index,
+          unit_kind_code: "table_row",
+          unit_text: `${left} | ${right}`,
+          indent_level: 0,
+          indent_source_code: "explicit" as const,
+          indent_confidence: 1,
+          indent_evidence: "table row",
+        }))}
+      />,
+    );
+
+    expect(screen.getAllByRole("row")).toHaveLength(2);
+  });
+
+  it("renders pipe-delimited image OCR as a reader-facing table", () => {
     render(
       <PostBody
         body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}

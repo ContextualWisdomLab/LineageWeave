@@ -18,9 +18,10 @@ async def load_visible_ranking_posts(
     conn: "asyncpg.Connection",
     can_see_post: Callable[[Mapping[str, Any]], bool],
 ) -> list[dict[str, Any]]:
-    """Read ``source_post`` rows the buyer may rank."""
+    """Read ``source_post`` rows the reader may rank."""
     posts = await conn.fetch(
         "select post_id, post_title, created_at, visibility_code, "
-        "corporate_entity_id from source_post"
+        "corporate_entity_id, author_account_id, source_detail_state_code "
+        "from source_post"
     )
     return [dict(row) for row in posts if can_see_post(row)]

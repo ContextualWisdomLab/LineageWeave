@@ -34,7 +34,7 @@ reimplementing them:
   tree assembly (`reconstruct.py`'s `_walk`/`thread_messages` calls).
 - [RankWeave](https://github.com/ContextualWisdomLab/RankWeave) for
   multi-channel score fusion (`weighted_convex_fuse` in
-  `reconstruct.py`) and the buyer-facing Rankings port
+  `reconstruct.py`) and the reader-facing Rankings port
   (`rankweave_client.py`) -- never invent a fused score or a theta.
 - [TEPP](https://github.com/ContextualWisdomLab/TEPP)'s published wire
   contract for calibrated measurement (`tepp_client.py`) -- never
@@ -127,7 +127,7 @@ contextual-orchestrator owns model discovery and selection.
   retaining the original asset and provenance. Recognize image DOM/visual
   regions before OCR, descriptions, Keyman extraction, or embeddings. Store
   region-level evidence; never show an internal LLM instruction such as
-  `This post is an image` to a buyer.
+  `This post is an image` to a reader.
 
 ## Source parsing and semantic units
 
@@ -146,10 +146,10 @@ contextual-orchestrator owns model discovery and selection.
 - Remove presentation-only visual line alignment inside a paragraph (for
   example continuation lines manually aligned after `-`, `*`, `1.`, or `.`)
   from derived semantic text, while retaining the source body and meaningful
-  list/heading nesting. A buyer-facing post view must render semantic
+  list/heading nesting. A reader-facing post view must render semantic
   paragraphs, not the authoring application's spacing workaround.
 - Image descriptions, OCR text, and region evidence are analysis artifacts,
-  not buyer-facing prompt instructions. Buyer UI shows the source content and
+  not reader-facing prompt instructions. The workspace UI shows the source content and
   useful captions/evidence only, with provenance where appropriate.
 
 ## Pluggable channels: never fake a missing signal
@@ -186,13 +186,13 @@ in the same spirit) -- never against real data, per the hard rule above.
 against a live local stack (`make up`) and self-skip without one -- see
 [README.md](README.md#local-product-stack-docker-compose).
 
-Period leftover pairs (ADR 0048 / 0049 / 0181) are computed in
-`lineageweave/leftover_pairs.py` from the residual after a real
-GRM/GPCM score, never invented. Missing cells stay out of the
+Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0177) are
+computed in `lineageweave/leftover_pairs.py` from the residual after a
+real GRM/GPCM score, never invented. Missing cells stay out of the
 Gabriel factorization. Closest and farthest post–criterion pairs
-persist to `report_leftover_pair` with leftover-map lengths `‖ξ‖`
-and `‖ζ‖` when a complete-case leftover map exists, and sit above
-the member list so a click opens that post.
+persist to `report_leftover_pair` with observed `Y` and expected
+`E[Y|θ, item]` so residual reconciles to `Y − E`, and sit above the
+member list so a click opens that post.
 
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a

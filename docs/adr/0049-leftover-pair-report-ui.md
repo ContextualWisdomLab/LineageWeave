@@ -2,6 +2,7 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-17
+**Amended by:** [ADR 0177](0177-leftover-observed-expected.md) (observed Y and expected E)
 
 ## Context
 
@@ -17,18 +18,17 @@ second navigation surface.
 
 On each period-report group, render leftover pairs **above** the
 member list. Each pair is a button: closest or farthest label, post
-title, criterion short label, leftover-map distance, leftover-map
-lengths `‖ξ‖` and `‖ζ‖` when present, and the next action.
-Length next action: leftover-map length names leftover-map magnitude
-independently of leftover-map distance; open this post to read the
-named criterion. When lengths are missing, keep “Open this post to
-read the criterion it sat closest to / farthest from after main
-effects.” Clicking the button opens that post with the same handler
-as a member row.
+title, criterion short label, leftover-map distance, and the next
+action naming both the post and the Post quality criterion
+(“Open {post}, then read Post quality criterion {criterion}.”).
+Clicking the button opens that post with `focusCriterionCode` and
+lands on `#post-quality-criterion-{code}` (`aria-current`). Leftover
+clicks do **not** use the member-row Event Lineage landing, so the
+named criterion stays visible.
 
 After `make seed`, closest and farthest leftover pairs sit above the
-member list with leftover-map length next to leftover-map distance
-`d`. Click a pair to open that post.
+member list. Click a pair to open that post and read the named
+criterion.
 
 Missing leftover rows render nothing — never a placeholder pair.
 A hidden post never appears as a leftover pair.
@@ -40,11 +40,14 @@ keeps the closest/farthest next action. See
 
 The authorized report payload carries `leftover_pairs` next to
 `members` and `selected_items`. Screen-reader names are
-`Open leftover closest pair: {title}` and
-`Open leftover farthest pair: {title}` so the control announces the
-next action, not only the distance.
+`Open leftover closest pair: {title} · {criterion}` and
+`Open leftover farthest pair: {title} · {criterion}` so the control
+announces the post **and** the criterion, not only the distance.
+
+Figma File ID: `1Su3lDRmiZdcUs47t1QwIX` (ADR 0118 / 0135).
 
 ## Related
 
-Depends on [ADR 0048](0048-persist-lsirm-leftover-pairs.md) and
-[ADR 0003](0003-fast-mlsirm-report-integration.md).
+Depends on [ADR 0048](0048-persist-lsirm-leftover-pairs.md),
+[ADR 0003](0003-fast-mlsirm-report-integration.md), and
+[ADR 0135](0135-analysis-result-kind-exact-next-actions.md).

@@ -14,7 +14,7 @@ from typing import Any, Protocol
 
 from fast_mlsirm import ContextualOrchestratorJudge, JudgeCriterion, LLMJudgeResult
 
-from .http_client import post_json
+from .http_client import chat_completion_content, post_json
 
 RUBRIC_VERSION = "2026-08-13"
 IRT_CATEGORY_COUNT = 5
@@ -76,7 +76,7 @@ class NullPostEvaluationClient:
         raise RuntimeError("NullPostEvaluationClient has no judge channel; check .available first")
 
 
-class _OrchestratorCompleteAdapter:
+class OrchestratorCompleteAdapter:
     """Maps contextual-orchestrator's chat completions onto fast-mlsirm's
     ``complete(messages, mode=...)`` contract.
     """
@@ -100,7 +100,7 @@ class _OrchestratorCompleteAdapter:
             timeout=self._timeout,
         )
         return {
-            "answer": body["choices"][0]["message"]["content"],
+            "answer": chat_completion_content(body),
             "mode": mode,
             "trace": [],
         }
@@ -113,7 +113,7 @@ class ContextualOrchestratorPostEvaluationClient:
 
     def __init__(self, base_url: str, api_key: str, *, timeout: float = 180.0) -> None:
         self._judge = ContextualOrchestratorJudge(
-            _OrchestratorCompleteAdapter(base_url, api_key, timeout=timeout),
+            OrchestratorCompleteAdapter(base_url, api_key, timeout=timeout),
             mode="auto",
         )
 

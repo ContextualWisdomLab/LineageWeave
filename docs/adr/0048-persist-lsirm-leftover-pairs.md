@@ -2,7 +2,7 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-17
-**Amended by:** [ADR 0181](0181-leftover-map-length.md) (leftover-map length)
+**Amended by:** [ADR 0177](0177-leftover-observed-expected.md) (observed Y and expected E)
 
 ## Context
 
@@ -31,7 +31,9 @@ and one `farthest` observed cell per period report in
 `report_leftover_pair` (3NF, two-or-more-word `snake_case`).
 
 The biplot lives in `lineageweave/leftover_pairs.py` so leftover
-tests do not import `period_report` or `fast_mlsirm`.
+tests do not import `period_report` or `fast_mlsirm`. Each leftover
+row also names observed `Y` and expected `E[Y|θ, item]` so residual
+reconciles to `Y − E` (ADR 0177).
 
 Cascade the rows with `report_period_score`. A leftover post must
 also be a `report_member_score` row, and the leftover criterion
@@ -41,7 +43,8 @@ the IRT matrix is unusable. A rank-0 residual still emits a
 stable pair so `make seed` is not empty; the stored distance is
 then zero, not a fabricated interaction.
 
-The UI contract is ADR 0049.
+The UI contract is ADR 0049. Leftover-map cosine on those pair rows
+is [ADR 0180](0180-leftover-map-cosine.md).
 
 ## Consequences
 
