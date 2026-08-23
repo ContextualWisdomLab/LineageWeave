@@ -15,23 +15,18 @@ done
 # ponytail: gate at the existing 0012 boundary; replace with a migration
 # ledger when a new non-idempotent migration family is introduced.
 #
-# This used to be an explicit case-pattern whitelist of every file number
-# from 0012 up. It silently fell behind as new migrations were added past
-# the last-updated number (0103_tenant_settings.sql shipped with no entry
-# here, so a fresh deployment never got it) -- a numeric boundary check
-# can't go stale the same way. $((10#...)) forces base-10 arithmetic so a
-# leading-zero number like "0103" isn't misread as octal.
+# This used to be an explicit allowlist of every file number from 0012 up.
+# It silently fell behind at 0103. Keep one fixed lower-bound pattern instead;
+# shell arithmetic would treat leading zeroes as octal, and base#value is not
+# portable under this script's POSIX /bin/sh contract (ADR 0166).
 for migration in /opt/lineageweave/migrations/*.sql; do
     [ -f "$migration" ] || continue
     migration_name=${migration##*/}
-    migration_number=$((10#${migration_name%%_*}))
-    # 0001-0011 are the non-idempotent baseline applied only by
-    # docker-entrypoint-initdb.d when the data directory is created.
-    # Later idempotent migrations may also be baked into a new image, but
-    # replay here is required for existing volumes.
-    if [ "$migration_number" -lt 12 ]; then
-        continue
-    fi
+    case "$migration_name" in
+        000[0-9]_*|001[01]_*) continue ;;
+        [0-9][0-9][0-9][0-9]_*) ;;
+        *) continue ;;
+    esac
     printf 'Applying %s\n' "$migration_name"
     psql -X -v ON_ERROR_STOP=1 \
         -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" \

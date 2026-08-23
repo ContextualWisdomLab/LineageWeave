@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 
 
@@ -25,10 +26,8 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
     /api/reports/{grouping}/{period} then 500s on undefined_table the
     first time a period actually has leftover pairs.
 
-    migrate.sh replaced the old explicit `0012_*|0013_*|...` case-pattern
-    whitelist (which silently fell behind as new migration files were
-    added, per the ADR this test guards) with a numeric boundary check.
-    Assert on that mechanism instead of the retired literal token.
+    ADR 0166 replaces the stale per-file allowlist with one portable filename
+    boundary. Assert on that mechanism instead of individual migration names.
     """
     script = (
         Path(__file__).resolve().parents[1]
@@ -37,12 +36,17 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
         / "migrate.sh"
     ).read_text(encoding="utf-8")
 
-    # 0001-0011 are the non-idempotent bootstrap; 0012 and up must replay.
-    assert '"$migration_number" -lt 12' in script
+    assert "000[0-9]_*|001[01]_*) continue" in script
+    assert "[0-9][0-9][0-9][0-9]_*)" in script
     assert '[ -f "$migration" ] || continue' in script
-    # Base-10 forced so a leading-zero migration number (e.g. 0103) isn't
-    # misread as octal.
-    assert "10#${migration_name%%_*}" in script
+    assert "10#" not in script
+    migration_script = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "migrate.sh"
+    )
+    subprocess.run(["sh", "-n", str(migration_script)], check=True)
 
 
 def test_tenant_settings_migration_is_safe_to_replay() -> None:

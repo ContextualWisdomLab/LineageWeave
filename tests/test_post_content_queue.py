@@ -424,6 +424,7 @@ def test_migration_contains_normalized_job_and_status_event_tables() -> None:
 
 def test_migration_replay_window_includes_post_content_queue() -> None:
     migrate = (_ROOT / "docker/postgres-init/migrate.sh").read_text()
-    # migrate.sh replays every migration numbered >= 12 via a numeric
-    # boundary check (not a per-file whitelist entry); 0050 clears it.
-    assert '"$migration_number" -lt 12' in migrate
+    # ADR 0166 replays every four-digit migration except bootstrap 0000-0011;
+    # 0050 therefore clears the fixed lower-bound filename gate.
+    assert "000[0-9]_*|001[01]_*) continue" in migrate
+    assert "[0-9][0-9][0-9][0-9]_*)" in migrate
