@@ -94,6 +94,65 @@ describe("PostBody", () => {
     expect(container.querySelector("sup-note")).toBeNull();
   });
 
+  it("renders raw and legacy persisted encoded scripts with the same semantics", () => {
+    const encoded =
+      "Volume x&lt;sup&gt;2&lt;/sup&gt;, coolant H&lt;sub&gt;2&lt;/sub&gt;O, and area m&amp;#94;3.";
+    const { container, rerender } = render(<PostBody body={`<p>${encoded}</p>`} />);
+
+    expect([...container.querySelectorAll("sup")].map((node) => node.textContent)).toEqual([
+      "2",
+      "3",
+    ]);
+    expect(container.querySelector("sub")?.textContent).toBe("2");
+
+    rerender(
+      <PostBody
+        body={`<p>${encoded}</p>`}
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "plain_text",
+            unit_text: encoded,
+            indent_level: 0,
+            indent_source_code: "explicit",
+            indent_confidence: 1,
+            indent_evidence: "Synthetic legacy persisted unit",
+          },
+        ]}
+      />,
+    );
+
+    expect([...container.querySelectorAll("sup")].map((node) => node.textContent)).toEqual([
+      "2",
+      "3",
+    ]);
+    expect(container.querySelector("sub")?.textContent).toBe("2");
+  });
+
+  it("normalizes legacy encoded scripts in persisted table cells", () => {
+    const { container } = render(
+      <PostBody
+        body="<table><tr><td>Measure</td><td>Volume</td></tr></table>"
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "table_row",
+            unit_label: "tr",
+            unit_text: "Measure | 12 m&lt;sup&gt;3&lt;/sup&gt;",
+            indent_level: 0,
+            indent_source_code: "explicit",
+            indent_confidence: 1,
+            indent_evidence: "Synthetic legacy persisted table row",
+          },
+        ]}
+      />,
+    );
+
+    const superscript = container.querySelector("td sup");
+    expect(superscript?.textContent).toBe("3");
+    expect(superscript?.closest("td")?.textContent).toBe("12 m3");
+  });
+
   it("renders authoritative LLM structure levels for semantic list units", () => {
     render(
       <PostBody
