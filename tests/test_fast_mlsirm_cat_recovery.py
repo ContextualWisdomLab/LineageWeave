@@ -28,9 +28,16 @@ CAT_SE_THRESHOLD = 0.4
 # the items. Margins are loose enough to tolerate a minor fast-mlsirm
 # version bump while still catching a real regression in either accuracy
 # or the adaptive-selection efficiency CAT exists to provide.
+#
+# MAX_MEAN_ITEMS_USED is deliberately close to the measured ~8.7 (not a
+# loose N_ITEMS * 0.5): the same fixture/seed with adaptive=False (random
+# item order) measures mean_items_used ~14.97, which still clears rmse/
+# correlation bounds -- so a bound of 12 is what actually catches a silent
+# fallback to non-adaptive selection (e.g. an `adaptive` flag dropped on
+# its way through the Rust binding).
 MAX_THETA_RMSE = 0.65
 MIN_THETA_CORRELATION = 0.7
-MAX_MEAN_ITEMS_USED = N_ITEMS * 0.5
+MAX_MEAN_ITEMS_USED = 12
 
 
 def _grm_category_probs(theta: float, discrimination: float, thresholds: np.ndarray) -> np.ndarray:
