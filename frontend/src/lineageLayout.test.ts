@@ -146,4 +146,18 @@ describe("layoutLineageDag", () => {
     expect(group.nodes).toHaveLength(3);
     expect(group.nodes.every((node) => Number.isFinite(node.x) && Number.isFinite(node.y))).toBe(true);
   });
+
+  it("places a fully cyclic orphan component in the fallback column", () => {
+    const cyclicGraph = {
+      nodes: a100Graph.nodes.slice(0, 2),
+      edges: [
+        { source: "rec-001", target: "rec-002", fused_score: 0.8 },
+        { source: "rec-002", target: "rec-001", fused_score: 0.7 },
+      ],
+    };
+
+    const [group] = layoutLineageDag(cyclicGraph);
+    expect(group.nodes.map((node) => node.x)).toEqual([28, 28]);
+    expect(new Set(group.nodes.map((node) => node.y)).size).toBe(2);
+  });
 });

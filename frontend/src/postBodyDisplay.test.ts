@@ -129,6 +129,15 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("treats an empty image payload as undecodable", () => {
+    expect(splitPostBody('<img src="data:image/png;base64,">')).toEqual([
+      {
+        kind: "text",
+        text: "Embedded image could not be decoded. Re-export the source post and open it again.",
+      },
+    ]);
+  });
+
   it("does not turn a remote http img into a loaded image", () => {
     const html = '<p>See</p><img src="https://example.test/invoice.png"><p>end</p>';
     const segments = splitPostBody(html);

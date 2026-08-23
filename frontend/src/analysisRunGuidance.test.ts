@@ -1,9 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { AnalysisRun } from "./api";
 import {
+  analysisRunCanRequestTeppRetry,
   analysisRunCanRefresh,
   analysisRunCanStart,
+  analysisRunCaption,
+  analysisRunCorpusHint,
+  analysisRunEmptyPostsHint,
   analysisRunNextAction,
+  analysisRunRefreshLabel,
+  analysisRunReportGrouping,
+  analysisRunReportGroupingKey,
   analysisRunReportPeriod,
   analysisRunStartLabel,
 } from "./analysisRunGuidance";
@@ -32,6 +39,79 @@ function run(
 }
 
 describe("analysisRunGuidance", () => {
+  it("summarizes each run kind without inventing a missing entity", () => {
+    const lineage = run({
+      run_kind_code: "analysis_run_lineage",
+      status_code: "analysis_status_pending",
+    });
+    expect(analysisRunCaption(lineage)).toBe("Lineage reconstruction · Status · Demo Corp");
+    expect(analysisRunCaption({ ...lineage, scope_entity_name: undefined })).toBe(
+      "Lineage reconstruction · Status · Corporate entity",
+    );
+    expect(analysisRunEmptyPostsHint(lineage)).toMatch(/reconstruction/i);
+    expect(analysisRunEmptyPostsHint({ ...lineage, run_kind_code: "analysis_run_tepp" })).toMatch(/TEPP/);
+    expect(analysisRunEmptyPostsHint({ ...lineage, run_kind_code: "analysis_run_report" })).toMatch(/period report/i);
+  });
+
+  it("describes the TEPP cutoff corpus for every lifecycle state", () => {
+    const tepp = run({ run_kind_code: "analysis_run_tepp", status_code: "analysis_status_pending" });
+    expect(analysisRunCorpusHint({ ...tepp, run_kind_code: "analysis_run_lineage" })).toBeNull();
+    expect(analysisRunCorpusHint({ ...tepp, status_code: "analysis_status_failed" })).toMatch(/connect/i);
+    expect(analysisRunCorpusHint({ ...tepp, status_code: "analysis_status_succeeded" })).toMatch(/measured/i);
+    expect(analysisRunCorpusHint(tepp)).toMatch(/will measure/i);
+    expect(analysisRunCorpusHint({ ...tepp, status_code: "analysis_status_running" })).toMatch(/will measure/i);
+    expect(analysisRunCorpusHint({ ...tepp, status_code: "analysis_status_cancelled" })).toMatch(/cancelled/i);
+    expect(analysisRunCorpusHint({ ...tepp, status_code: null })).toMatch(/attached/i);
+  });
+
+  it("maps report scope and period only when the persisted run can open a report", () => {
+    const report = run({ run_kind_code: "analysis_run_report", status_code: "analysis_status_succeeded" });
+    expect(analysisRunReportGrouping(report)).toBe("corporate_entity");
+    expect(analysisRunReportGrouping({ ...report, scope_kind_code: "analysis_scope_process_unit" })).toBe("process_unit");
+    expect(analysisRunReportGrouping({ ...report, scope_kind_code: "analysis_scope_thread_group" })).toBe("thread_group");
+    expect(analysisRunReportGrouping({ ...report, scope_kind_code: "unsupported" })).toBeNull();
+    expect(analysisRunReportGroupingKey({ ...report, scope_grouping_key: "group-1" })).toBe("group-1");
+    expect(analysisRunReportGroupingKey({ ...report, scope_grouping_key: "" })).toBeUndefined();
+    expect(analysisRunReportPeriod({ ...report, run_kind_code: "analysis_run_lineage" })).toBeNull();
+    expect(analysisRunReportPeriod({ ...report, status_code: "analysis_status_pending" })).toBeNull();
+    expect(analysisRunReportPeriod({ ...report, scope_key: "2026-02" })).toBeNull();
+    expect(analysisRunReportPeriod({ ...report, scope_key: undefined })).toBeNull();
+  });
+
+  it("keeps start, refresh, retry, and remaining lifecycle actions kind-specific", () => {
+    const pendingLineage = run({ run_kind_code: "analysis_run_lineage", status_code: "analysis_status_pending" });
+    const pendingReport = run({ run_kind_code: "analysis_run_report", status_code: "analysis_status_pending" });
+    const runningReport = run({ run_kind_code: "analysis_run_report", status_code: "analysis_status_running" });
+    expect(analysisRunNextAction(pendingLineage)).toMatch(/start reconstruction/i);
+    expect(analysisRunNextAction(pendingReport)).toMatch(/report has not been built/i);
+    expect(analysisRunNextAction(runningReport)).toMatch(/already queued/i);
+    expect(analysisRunNextAction({ ...pendingLineage, status_code: "analysis_status_cancelled" })).toBeNull();
+    expect(analysisRunNextAction({ ...pendingLineage, status_code: null })).toBeNull();
+    expect(analysisRunStartLabel(pendingLineage)).toBe("Start reconstruction");
+    expect(analysisRunRefreshLabel()).toBe("Refresh this run");
+    expect(analysisRunCanRequestTeppRetry({ ...pendingLineage, run_kind_code: "analysis_run_tepp", status_code: "analysis_status_failed" })).toBe(true);
+    expect(analysisRunCanRequestTeppRetry(pendingLineage)).toBe(false);
+  });
+
+  it("fails closed when the backend returns an unknown kind or status", () => {
+    const pending = run({ run_kind_code: "analysis_run_lineage", status_code: "analysis_status_pending" });
+    const unknownKind = { ...pending, run_kind_code: "unknown_kind" } as unknown as AnalysisRun;
+    const unknownStatus = { ...pending, status_code: "unknown_status" } as unknown as AnalysisRun;
+
+    expect(() => analysisRunNextAction(unknownKind)).toThrow("unexpected analysis run kind");
+    expect(() => analysisRunNextAction({ ...unknownKind, status_code: "analysis_status_failed" })).toThrow(
+      "unexpected analysis run kind",
+    );
+    expect(() => analysisRunNextAction({ ...unknownKind, status_code: "analysis_status_running" })).toThrow(
+      "unexpected analysis run kind",
+    );
+    expect(() => analysisRunNextAction(unknownStatus)).toThrow("unexpected analysis run status");
+    expect(() => analysisRunEmptyPostsHint(unknownKind)).toThrow("unexpected analysis run kind");
+    expect(() => analysisRunCorpusHint({ ...unknownStatus, run_kind_code: "analysis_run_tepp" })).toThrow(
+      "unexpected analysis run status",
+    );
+  });
+
   it("gives failed lineage a reconstruction next action and no start-over or TEPP copy", () => {
     const failed = run({
       run_kind_code: "analysis_run_lineage",

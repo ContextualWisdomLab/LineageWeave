@@ -24,7 +24,7 @@ export function analysisRunNextAction(run: AnalysisRun): string | null {
           return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
         default: {
           const unexpected: never = run.run_kind_code;
-          return unexpected;
+          throw new Error(`unexpected analysis run kind: ${unexpected}`);
         }
       }
     case "analysis_status_failed":
@@ -37,7 +37,7 @@ export function analysisRunNextAction(run: AnalysisRun): string | null {
           return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
         default: {
           const unexpected: never = run.run_kind_code;
-          return unexpected;
+          throw new Error(`unexpected analysis run kind: ${unexpected}`);
         }
       }
     case "analysis_status_running":
@@ -50,7 +50,7 @@ export function analysisRunNextAction(run: AnalysisRun): string | null {
           return "Refresh this run. The period report is already queued on the durable outbox.";
         default: {
           const unexpected: never = run.run_kind_code;
-          return unexpected;
+          throw new Error(`unexpected analysis run kind: ${unexpected}`);
         }
       }
     case "analysis_status_succeeded":
@@ -59,7 +59,7 @@ export function analysisRunNextAction(run: AnalysisRun): string | null {
       return null;
     default: {
       const unexpected: never = run.status_code;
-      return unexpected;
+      throw new Error(`unexpected analysis run status: ${unexpected}`);
     }
   }
 }
@@ -83,7 +83,7 @@ export function analysisRunEmptyPostsHint(run: AnalysisRun): string {
       );
     default: {
       const unexpected: never = run.run_kind_code;
-      return unexpected;
+      throw new Error(`unexpected analysis run kind: ${unexpected}`);
     }
   }
 }
@@ -110,7 +110,7 @@ export function analysisRunCorpusHint(run: AnalysisRun): string | null {
       return "These posts are the cutoff corpus attached to this TEPP run.";
     default: {
       const unexpected: never = run.status_code;
-      return unexpected;
+      throw new Error(`unexpected analysis run status: ${unexpected}`);
     }
   }
 }

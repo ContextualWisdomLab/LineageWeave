@@ -12,7 +12,7 @@ export type PostBodySegment =
   | { kind: "image"; src: string; mimeType: string; position: number };
 
 const DATA_URI_IMG =
-  /<img\b[^>]*\bsrc\s*=\s*["']data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)["'][^>]*>/gi;
+  /<img\b[^>]*\bsrc\s*=\s*["']data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]*)["'][^>]*>/gi;
 
 const HTML_TAG = /<\/?[a-zA-Z][^>]*>/g;
 const BREAK_TAG = /<br\b[^>]*>/gi;
