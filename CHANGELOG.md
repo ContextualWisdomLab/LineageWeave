@@ -24,6 +24,10 @@ All notable changes to this project are documented here. Format follows
   candidates and found no relation, or "no_comparison_group" when it was
   the only visible post in its group. The reader sees the specific reason
   instead of one flat "No linked posts yet."
+- `POST /api/lineage/rebuild` now returns a corpus-wide `coverage`
+  breakdown (`total_posts`, `posts_with_edges`, `posts_no_relation_found`,
+  `posts_no_comparison_group`) alongside `edge_count`, giving an operator
+  an honest coverage summary instead of a bare edge count.
 
 ### Changed
 

@@ -10,6 +10,7 @@ not derived from process unit or voc type.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Mapping
 
@@ -72,7 +73,58 @@ async def persist_lineage_edges(conn: asyncpg.Connection, edges: list[Edge]) -> 
         )
 
 
-async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
+@dataclass(frozen=True)
+class LineageRebuildResult:
+    """One rebuild's persisted edges plus its corpus-wide coverage summary."""
+
+    edges: list[Edge]
+    coverage: dict[str, int]
+
+
+def lineage_coverage_summary(
+    rows: list[Mapping[str, Any]], edges: list[Edge]
+) -> dict[str, int]:
+    """Corpus-wide breakdown of what a rebuild actually found (ADR 0143).
+
+    ``visible_lineage_graph`` reports this distinction per post, scoped to
+    one ABAC-visible reader; this is the same distinction aggregated across
+    every eligible post, for the operator who just ran the rebuild --
+    counting a post as ``no_relation_found`` (its `reconstruct_group_key`
+    group has other members, but it ended up with no edge) versus
+    ``no_comparison_group`` (it was the only member of its group, so no
+    relation could have been found either way) rather than presenting a
+    reader-facing branching DAG's sparseness as undifferentiated silence.
+    """
+    group_sizes: dict[str, int] = {}
+    for row in rows:
+        group = reconstruct_group_key(row)
+        group_sizes[group] = group_sizes.get(group, 0) + 1
+
+    posts_with_edges: set[str] = set()
+    for edge in edges:
+        posts_with_edges.add(edge.parent_id)
+        posts_with_edges.add(edge.child_id)
+
+    posts_no_relation_found = 0
+    posts_no_comparison_group = 0
+    for row in rows:
+        post_id = str(row["post_id"])
+        if post_id in posts_with_edges:
+            continue
+        if group_sizes[reconstruct_group_key(row)] > 1:
+            posts_no_relation_found += 1
+        else:
+            posts_no_comparison_group += 1
+
+    return {
+        "total_posts": len(rows),
+        "posts_with_edges": len(posts_with_edges),
+        "posts_no_relation_found": posts_no_relation_found,
+        "posts_no_comparison_group": posts_no_comparison_group,
+    }
+
+
+async def rebuild_lineage(conn: asyncpg.Connection) -> LineageRebuildResult:
     """Reconstruct lineage for every ``source_post`` and persist the edges."""
     rows = await conn.fetch(
         "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
@@ -81,7 +133,7 @@ async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
     )
     edges = lineage_edge_specs(records_from_source_posts(rows))
     await persist_lineage_edges(conn, edges)
-    return edges
+    return LineageRebuildResult(edges=edges, coverage=lineage_coverage_summary(rows, edges))
 
 
 async def visible_lineage_graph(

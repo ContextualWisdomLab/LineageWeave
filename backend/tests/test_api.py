@@ -4478,7 +4478,21 @@ def test_rebuild_lineage_recovers_the_a100_fork(client, demo_analyst_token, seed
 
     rebuild = client.post("/api/lineage/rebuild", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert rebuild.status_code == 200, rebuild.text
-    assert rebuild.json()["edge_count"] >= 2
+    rebuild_body = rebuild.json()
+    assert rebuild_body["edge_count"] >= 2
+    # ADR 0143 aggregate: "Unrelated: annual account review" (rec-006) shares
+    # group A-100 with five other fixture posts but gets no edge -- a real
+    # no_relation_found case, not silently absent from the coverage totals.
+    coverage = rebuild_body["coverage"]
+    assert coverage["total_posts"] >= rebuild_body["edge_count"]
+    assert coverage["posts_with_edges"] >= 1
+    assert coverage["posts_no_relation_found"] >= 1
+    assert (
+        coverage["total_posts"]
+        == coverage["posts_with_edges"]
+        + coverage["posts_no_relation_found"]
+        + coverage["posts_no_comparison_group"]
+    )
 
     graph = client.get("/api/lineage", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert graph.status_code == 200
