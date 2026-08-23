@@ -3,7 +3,7 @@
 > Repository artifacts contain synthetic fixtures and derived, non-identifying
 > evidence only. Real PostgreSQL rows, source payloads, images, names, and
 > identifiers remain in a protected external runtime and are never copied into
-> this repository, screenshots, tests, logs, or buyer evidence.
+> this repository, screenshots, tests, logs, or reader evidence.
 
 ## 1. Known Parsing & Frontend Display Gaps
 - **Footnote Parsing**: synthetic case `case-footnote-01` exercises numbered footnote recognition; PR #367 merged semantic-chunker coverage, and stacked PR #388 adds browser fallback recognition for HTML, Word, and OOXML footnotes. Authorized production/browser corpus evidence remains pending.
@@ -11,7 +11,7 @@
 - **Indentation**: synthetic cases `case-indent-01` and `case-indent-02` retain
   corpus coverage gaps; PR #391 adds the common nested HTML-list depth fix and
   regression coverage, while authorized production/browser evidence remains open.
-- **Image/Table OCR**: synthetic case `case-image-table-01` now has region-aware table OCR, markdown rendering, and buyer-visible normalized region locations through stacked PR #395; authorized production/browser evidence and complete image-region coverage remain open.
+- **Image/Table OCR**: synthetic case `case-image-table-01` now has region-aware table OCR, markdown rendering, and reader-visible normalized region locations through stacked PR #395; authorized production/browser evidence and complete image-region coverage remain open.
 - **Math/Superscripts**: synthetic case `case-math-01` covers bounded metric normalization such as m³; arbitrary formula semantics and authorized runtime verification remain open after PR #344.
 - **Missing UI Elements**: synthetic case `case-dag-01` tracks the Event Lineage DAG surface; current source includes the DAG, but corpus coverage and browser evidence remain open.
 
@@ -493,7 +493,7 @@ evidence:
   the independent current-head review, finish the required Checks, then let
   the protected merge queue promote #392 and #368 in dependency order.
 
-## 5. Local Buyer-Surface Verification
+## 5. Local Reader-Surface Verification
 
 Entries are grouped by validation batch rather than sorted chronologically;
 their UTC timestamps define the observation sequence.
@@ -587,7 +587,7 @@ against the authenticated React surface:
   request returned HTTP 503 before an evidence object existed. This is not
   evidence that the R&R component is absent: `App.tsx` still renders it when
   persisted roles are available.
-- The summary response explained the current buyer-visible gap: `Post summary
+- The summary response explained the current reader-visible gap: `Post summary
   is unavailable: image evidence is still being processed`. Aggregate
   PostgreSQL evidence was 43,839 source posts, 401 empty-body posts, 97
   persisted summaries, and zero summaries at current contract version 13.
@@ -612,7 +612,7 @@ the real Compose backend, Valkey, and orchestrator boundary:
   not end-to-end Korean summary readiness or corpus completion.
 - The remaining aggregate image state was 421 `failed` and 12,377
   `unavailable` images. Do not bulk retry until provider throughput, bounded
-  retry policy, and buyer-visible failure/retry UX are separately accepted.
+  retry policy, and reader-visible failure/retry UX are separately accepted.
 - PR #258's exact head `6621eb116a4e92eb33eeae989c70fbc602450c51` now
   restarts a whole lineage group when an optional LLM adjudication channel
   fails mid-group, preventing mixed LLM and deterministic edge scores. Local
@@ -689,7 +689,7 @@ Observed at `2026-08-21T18:28:15Z` on PR #388's exact head
 Observed at `2026-08-21T18:28:15Z` on PR #389's exact head
 `788bacd998634f09ca7debc1745fe279d788122f`:
 
-- The buyer-facing fallback renders a Markdown table in a normal source body,
+- The reader-facing fallback renders a Markdown table in a normal source body,
   including an empty cell, without converting ordinary pipe-delimited prose.
   Persisted text units use the same renderer, while separator-free OCR rows
   remain supported only in the image-evidence path. Candidate pipe rows are
@@ -777,7 +777,7 @@ Observed at `2026-08-21T19:33:40Z` from the GitHub API:
 
 - PR #392 is open at exact head `1412313d421445c1246a6970c5ab71a6304a483d`,
   targeting protected `main`; its required Checks are queued and no formal
-  independent approval is present. Stacked PR #395 added buyer-visible image
+  independent approval is present. Stacked PR #395 added reader-visible image
   region locations and merged normally into the feature branch with merge
   commit `8502f261931b4a06ba19a33da470a47c53ed02b3`; this is not a protected
   `main` merge.
@@ -846,7 +846,7 @@ Observed at `2026-08-21T19:36:33Z` from the current hosted Checks:
    use the protected external corpus only for aggregate, non-identifying
    runtime evidence.
 2. Resolve image DOM-region recognition, OCR, semantic table rendering, and
-   buyer-facing caption separation through contextual-orchestrator VISION.
+   reader-facing caption separation through contextual-orchestrator VISION.
 3. Verify 5W1H, multi-project event separation, Keyman affiliation, and
    customer-master ABAC against authorized real PostgreSQL data in the protected
    external runtime, returning only aggregate or derived non-identifying
