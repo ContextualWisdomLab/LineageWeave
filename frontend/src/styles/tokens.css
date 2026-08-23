@@ -78,6 +78,14 @@
   --badge-status-danger-bg: #f8d7da;
   --badge-status-danger-text: #721c24;
 
+  /* Evidence/Inference/Prediction Status Tokens (ADR 0132, TEPP ADR 0016) */
+  --badge-status-evidence-bg: #e3f2fd;
+  --badge-status-evidence-text: #0d47a1;
+  --badge-status-inference-bg: #ede7f6;
+  --badge-status-inference-text: #4527a0;
+  --badge-status-prediction-bg: #fff3e0;
+  --badge-status-prediction-text: #e65100;
+
   /* Spacing & Radius Tokens */
   --space-chip-inline: 0.6rem;
   --space-chip-block: 0.1rem;
@@ -191,6 +199,12 @@
     --badge-status-success-text: #86e29b;
     --badge-status-danger-bg: rgba(114, 28, 36, 0.3);
     --badge-status-danger-text: #f5a3ab;
+    --badge-status-evidence-bg: rgba(96, 165, 250, 0.2);
+    --badge-status-evidence-text: #93c5fd;
+    --badge-status-inference-bg: rgba(167, 139, 250, 0.2);
+    --badge-status-inference-text: #c4b5fd;
+    --badge-status-prediction-bg: rgba(251, 146, 60, 0.2);
+    --badge-status-prediction-text: #fdba74;
 
     --color-drawer-bg: #16171d;
     --color-drawer-border: #2e303a;
