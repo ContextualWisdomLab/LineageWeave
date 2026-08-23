@@ -533,9 +533,13 @@
   outline: none;
 }
 
-.lineage-dag-node:focus circle,
 .lineage-dag-node:hover circle {
   stroke-width: 2.5;
+}
+
+.lineage-dag-node:focus circle {
+  stroke: var(--color-focus-border);
+  stroke-width: 3.5;
 }
 
 .lineage-dag-node[aria-current="true"] circle {
