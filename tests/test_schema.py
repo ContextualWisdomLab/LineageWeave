@@ -122,6 +122,8 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "report_item_parameter",
         "report_item_information",
         "report_leftover_pair",
+        "report_leftover_map_person",
+        "report_leftover_map_item",
         "post_summary_result",
         "post_summary_event",
         "post_summary_role",
@@ -170,6 +172,28 @@ def test_leftover_pair_references_member_and_item_rows(schema_db) -> None:
     assert "report_member_score" in targets
     assert "report_item_information" in targets
     assert "report_period_score" in targets
+
+
+def test_leftover_map_references_member_and_item_rows(schema_db) -> None:
+    """A leftover-map point cannot name a post or item from another report."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select conrelid::regclass::text, confrelid::regclass::text
+            from pg_constraint
+            where conrelid in (
+                'report_leftover_map_person'::regclass,
+                'report_leftover_map_item'::regclass
+            ) and contype = 'f'
+            """
+        )
+        by_table: dict[str, set[str]] = {}
+        for table_name, target in cur.fetchall():
+            by_table.setdefault(table_name, set()).add(target)
+    assert "report_member_score" in by_table["report_leftover_map_person"]
+    assert "report_period_score" in by_table["report_leftover_map_person"]
+    assert "report_item_information" in by_table["report_leftover_map_item"]
+    assert "report_period_score" in by_table["report_leftover_map_item"]
 
 
 

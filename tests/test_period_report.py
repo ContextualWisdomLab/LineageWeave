@@ -10,6 +10,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from lineageweave.leftover_pairs import leftover_pairs_from_residual
 from lineageweave.period_report import (
     LINK_METHOD_FIPC,
     LINK_METHOD_FREE,
@@ -18,7 +19,6 @@ from lineageweave.period_report import (
     ItemBank,
     assemble_response_matrix,
     calibrate_period_report,
-    leftover_pairs_from_residual,
     link_or_calibrate_period_report,
     rank_items_by_information,
     score_groups_on_shared_metric,
@@ -266,6 +266,14 @@ def test_calibrated_report_attaches_leftover_pairs() -> None:
         assert pair.criterion_code in items
         assert pair.leftover_distance >= 0.0
         assert np.isfinite(pair.leftover_residual)
+    assert {person.post_id for person in report.leftover_map_persons} <= member_ids
+    assert {item.criterion_code for item in report.leftover_map_items} <= set(items)
+    for person in report.leftover_map_persons:
+        assert np.isfinite(person.axis_one)
+        assert np.isfinite(person.axis_two)
+    for item in report.leftover_map_items:
+        assert np.isfinite(item.axis_one)
+        assert np.isfinite(item.axis_two)
 
 
 

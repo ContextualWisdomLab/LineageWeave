@@ -12,6 +12,16 @@ All notable changes to this project are documented here. Format follows
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 
+## [2.12.7] - 2026-08-23
+
+### Added
+
+- Period reports now persist leftover interaction-map coordinates
+  (Jeon et al. 2021 ξ / ζ after IRT main effects) and render a 2D
+  biplot above the leftover pair list. Click a post node to open that
+  post. Rank-0 and rank-1 maps pad the unused axis with zero; missing
+  cells stay out of the factorization (ADR 0121).
+
 ## [2.12.6] - 2026-08-20
 
 ### Added
