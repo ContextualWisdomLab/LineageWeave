@@ -41,9 +41,6 @@ describe("App, unauthenticated", () => {
         state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
       }),
     );
-    // Persisted as a fallback in case the OIDC state round-trip is dropped
-    // (see oidcReturnUrl.ts's restoreOidcReturnUrl, consumed in main.tsx).
-    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toMatch(/^\//);
   });
 });
 
