@@ -156,6 +156,20 @@ def test_chunk_by_dom_implicitly_closes_sibling_rows_at_the_same_table_depth() -
     ]
 
 
+def test_chunk_by_dom_closes_sibling_rows_past_an_unclosed_cell_block() -> None:
+    """Malformed inline cell markup cannot displace its owning row."""
+
+    chunks = chunk_by_dom(
+        "<table><tr><td><div>First left</td><td>First right</td>"
+        "<tr><td>Second left</td><td>Second right</td></tr></table>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "First left | First right"),
+        ("tr", "Second left | Second right"),
+    ]
+
+
 def test_chunk_by_dom_does_not_infer_a_footnote_from_a_bare_marker() -> None:
     chunks = chunk_by_dom("<p>Body text</p><p>*Synthetic list item</p>")
     assert [(chunk.label, chunk.text) for chunk in chunks] == [
