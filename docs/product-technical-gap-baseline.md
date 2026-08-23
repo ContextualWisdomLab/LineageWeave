@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-23 22:05 KST. This repository records synthetic
+> Audit snapshot: 2026-08-23 22:28 KST. This repository records synthetic
 > fixtures and aggregate, non-identifying runtime evidence only. Open PRs and
 > local checks are not protected-default-branch release evidence.
 
@@ -9,8 +9,8 @@
 The protected default branch was
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` when this baseline was refreshed.
 The live queue contained 52 open PRs and no independently approved head. Six
-current heads had an aggregate failed check state, four had pending checks, and
-one retained an unresolved review thread. Those results must be re-fetched
+current heads had an aggregate failed check state, eight had pending checks,
+and four retained unresolved review threads. Those results must be re-fetched
 against the current head before remediation or a merge claim.
 
 Recent protected-default-branch evidence:
@@ -51,15 +51,29 @@ is branch commit `5ec42616e6b4ab6ed0b7757c299523110acb62ca`, but no open PR carr
 branch to `main`; both remain stack evidence, not protected-main release
 evidence.
 
-PR #258 is open at `d26c4c5f7db2faabfa7f110fc205db2c17fd0ca6`.
-Its exact head had no unresolved thread or independent approval, retained a
-failed Devin Review status, and had Strix still running at this snapshot.
+Current active-PR evidence remains outside protected `main`:
+
+- PR #258 at `2e2ddd1998734d6e29dad0ba916053dd8cf27983` carries ADR 0146's
+  distributed MCP principal rate-limit decision. Its aggregate checks failed;
+  it had no unresolved thread or exact-head approval.
+- PR #355 at `de7f78c5afe1a9e7f50303da9b5ee81a6f767633` carries ADR 0145's
+  Naruon calendar projection boundary. Its checks were pending, with no
+  unresolved thread or exact-head approval.
+- PR #490 at `87f74c6395b7090421965359222fa29f9dd9a84d` is the current carrier
+  of the consolidated product stack and includes ADR 0143. ADR 0144 was absent
+  from both this exact tree and protected `main`, so it is not attributed to
+  this head. Its aggregate checks failed, with no unresolved thread or
+  exact-head approval.
+- PR #491 at `29817c4171f9ce7990ffcb2e6abb1faf6a27f84c` proposes ADR 0157's
+  public ontology namespace identity without a production namespace rewrite.
+  Its checks were pending, it retained one unresolved thread, and it had no
+  exact-head approval.
 
 ## 3. Open product and technical gaps
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 52 PRs remained open, none had an independent current-head approval, six current heads had an aggregate failed check state, four had pending checks, and one retained an unresolved review thread | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
+| Protected release | 52 PRs remained open, none had an independent current-head approval, six current heads had an aggregate failed check state, eight had pending checks, and four retained unresolved review threads | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Image understanding | Region, OCR, and description work exists across active heads | Orchestrator-backed rendered workflow, original/derived asset provenance, and honest unsupported states |
 | Semantic source rendering | Paragraph, table, list, and formula parsing exists across active stacks | Authenticated browser evidence that semantic units render without authoring-layout artifacts |
