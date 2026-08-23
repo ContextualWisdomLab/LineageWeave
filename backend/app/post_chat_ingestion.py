@@ -856,7 +856,9 @@ async def gather_global_chat_sources(
         candidate_ids = candidate_ids[:candidate_budget]
     lineage_neighbor_id_set = frozenset(lineage_neighbor_ids)
 
-    rows = await conn.fetch(
+    # Safe SQL: the interpolated eligibility predicate contains only fixed,
+    # module-defined identifiers; every runtime value remains parameterized.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select post_id, post_title, post_body, visibility_code, corporate_entity_id,
                created_at, updated_at,
@@ -1022,7 +1024,8 @@ async def fetch_persisted_chat(
 async def fetch_persisted_chats(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
     """Return a bounded Ask history in one ordered database query."""
 
-    rows = await conn.fetch(
+    # Safe SQL: this statement is a literal and all runtime values are bound.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         """
         with bounded_exchange as materialized (
             select question_norm,
