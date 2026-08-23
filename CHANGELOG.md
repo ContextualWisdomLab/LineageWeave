@@ -36,6 +36,14 @@ All notable changes to this project are documented here. Format follows
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 
+## [2.12.18] - 2026-08-24
+
+### Fixed
+
+- Quantity superscripts and subscripts (`m³`, `H₂O`) now render as
+  text-level runs in the post popup and persist as Unicode in semantic
+  units. Comparison operators and leading footnote carets stay literal.
+
 ## [2.12.17] - 2026-08-24
 
 ### Added

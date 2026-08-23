@@ -350,6 +350,25 @@
   white-space: pre-wrap;
 }
 
+.post-body-text sup,
+.post-body-text sub,
+.post-body-table sup,
+.post-body-table sub {
+  font-size: 0.75em;
+  line-height: 0;
+  font-weight: 600;
+}
+
+.post-body-text sup,
+.post-body-table sup {
+  vertical-align: super;
+}
+
+.post-body-text sub,
+.post-body-table sub {
+  vertical-align: sub;
+}
+
 .post-embedded-image {
   margin: 0;
   padding: var(--post-image-padding);

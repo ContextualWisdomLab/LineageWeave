@@ -97,11 +97,11 @@ _DOM_BLOCK_TAGS = frozenset(
 # readable and attributable as one unit.
 _TABLE_ROW_TAGS = frozenset({"tr", "w:tr"})
 _TABLE_CELL_TAGS = frozenset({"td", "th", "w:tc"})
+_TABLE_TAGS = frozenset({"table", "w:tbl"})
 
 _LIST_ITEM_START = re.compile(
     r"^(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)"
 )
-_FOOTNOTE_START = re.compile(r"^[*†‡](?=\S)")
 
 
 def _is_footnote_block(tag: str, attrs: list[tuple[str, str | None]]) -> bool:
@@ -130,6 +130,139 @@ def _is_footnote_reference(attrs: list[tuple[str, str | None]]) -> bool:
     )
 
 
+# Unicode Super/Subscript blocks (The Unicode Consortium, 2024, §22.4) plus the
+# Latin-1 superscript digits. Quantity display uses these so embeddings keep
+# "m³" distinct from "m3" without retaining HTML in the semantic text (ADR 0165).
+_SUPERSCRIPT = {
+    "0": "\u2070",
+    "1": "\u00b9",
+    "2": "\u00b2",
+    "3": "\u00b3",
+    "4": "\u2074",
+    "5": "\u2075",
+    "6": "\u2076",
+    "7": "\u2077",
+    "8": "\u2078",
+    "9": "\u2079",
+    "+": "\u207a",
+    "-": "\u207b",
+    "=": "\u207c",
+    "(": "\u207d",
+    ")": "\u207e",
+    "n": "\u207f",
+    "N": "\u207f",
+    "i": "\u2071",
+    "I": "\u2071",
+}
+_SUBSCRIPT = {
+    "0": "\u2080",
+    "1": "\u2081",
+    "2": "\u2082",
+    "3": "\u2083",
+    "4": "\u2084",
+    "5": "\u2085",
+    "6": "\u2086",
+    "7": "\u2087",
+    "8": "\u2088",
+    "9": "\u2089",
+    "+": "\u208a",
+    "-": "\u208b",
+    "=": "\u208c",
+    "(": "\u208d",
+    ")": "\u208e",
+    "a": "\u2090",
+    "e": "\u2091",
+    "h": "\u2095",
+    "i": "\u1d62",
+    "k": "\u2096",
+    "l": "\u2097",
+    "m": "\u2098",
+    "n": "\u2099",
+    "o": "\u2092",
+    "p": "\u209a",
+    "s": "\u209b",
+    "t": "\u209c",
+    "x": "\u2093",
+}
+_SUPERSCRIPT_VALUES = frozenset(_SUPERSCRIPT.values())
+_SUBSCRIPT_VALUES = frozenset(_SUBSCRIPT.values())
+_INLINE_SCRIPT_TAGS = frozenset({"sup", "sub"})
+_HTML_SUP = re.compile(r"<sup\b[^>]*>(.*?)</sup>", re.IGNORECASE | re.DOTALL)
+_HTML_SUB = re.compile(r"<sub\b[^>]*>(.*?)</sub>", re.IGNORECASE | re.DOTALL)
+_INNER_TAG = re.compile(r"<[^>]+>")
+# Quantity caret after a unit/digit, not a leading footnote marker such as `^1`.
+_CARET_EXPONENT = re.compile(
+    r"(?<=[A-Za-z0-9µμ°ΩÅåÅ)])\^(?:\{([+\-]?\d{1,3}|[nNiI])\}|([+\-]?\d{1,3}|[nNiI]))"
+)
+_ENCODED_CARET = re.compile(r"&(?:amp;)*(?:#0*94|#x0*5e);", re.IGNORECASE)
+_ENCODED_LT = r"&(?:amp;)*(?:lt|#0*60|#x0*3c);"
+_ENCODED_GT = r"&(?:amp;)*(?:gt|#0*62|#x0*3e);"
+_ENCODED_SCRIPT_TOKEN = (
+    rf"{_ENCODED_LT}\s*/?\s*(?:sup|sub)(?=\s|/|{_ENCODED_GT})"
+)
+_ENCODED_SCRIPT_PAIR = re.compile(
+    rf"{_ENCODED_LT}(?P<kind>sup|sub){_ENCODED_GT}"
+    rf"(?P<inner>(?:(?!{_ENCODED_SCRIPT_TOKEN}).)*?)"
+    rf"{_ENCODED_LT}/(?P=kind){_ENCODED_GT}",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def apply_unicode_script(text: str, kind: str) -> str:
+    """Map a short exponent/index run to Unicode, or keep a caret/underscore."""
+    table = _SUPERSCRIPT if kind == "sup" else _SUBSCRIPT
+    values = _SUPERSCRIPT_VALUES if kind == "sup" else _SUBSCRIPT_VALUES
+    compact = text.strip()
+    if not compact:
+        return text
+    if all(ch in table or ch in values or ch.isspace() for ch in compact):
+        return "".join(table.get(ch, ch) for ch in text)
+    prefix = "^" if kind == "sup" else "_"
+    leading_len = len(text) - len(text.lstrip())
+    trailing_len = len(text) - len(text.rstrip())
+    leading = text[:leading_len]
+    trailing = text[len(text) - trailing_len :] if trailing_len else ""
+    return f"{leading}{prefix}{compact}{trailing}"
+
+
+def _decode_html_entities(text: str) -> str:
+    for _ in range(3):
+        decoded = unescape(text)
+        if decoded == text:
+            break
+        text = decoded
+    return text
+
+
+def _decode_script_entities(text: str) -> str:
+    decoded_pairs = _ENCODED_SCRIPT_PAIR.sub(
+        lambda match: (
+            f"<{match.group('kind').lower()}>{match.group('inner')}"
+            f"</{match.group('kind').lower()}>"
+        ),
+        text,
+    )
+    return _ENCODED_CARET.sub(
+        lambda match: _decode_html_entities(match.group(0)), decoded_pairs
+    )
+
+
+def _replace_html_script(match: re.Match[str], kind: str) -> str:
+    inner = _decode_html_entities(match.group(1))
+    return apply_unicode_script(_INNER_TAG.sub("", inner), kind)
+
+
+def normalize_script_text(text: str) -> str:
+    """Turn HTML/caret quantity scripts into Unicode without treating comparisons as tags."""
+    replaced = _CARET_EXPONENT.sub(
+        lambda match: apply_unicode_script(match.group(1) or match.group(2), "sup"),
+        _decode_script_entities(text),
+    )
+    replaced = _HTML_SUP.sub(lambda match: _replace_html_script(match, "sup"), replaced)
+    replaced = _HTML_SUB.sub(lambda match: _replace_html_script(match, "sub"), replaced)
+    return replaced
+
+
 def normalize_semantic_text(text: str) -> str:
     """Remove visual hanging-indent breaks without changing source content."""
     lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
@@ -144,7 +277,7 @@ def normalize_semantic_text(text: str) -> str:
             normalized[-1] = f"{normalized[-1]} {stripped}"
         else:
             normalized.append(stripped)
-    return "\n".join(normalized).strip()
+    return normalize_script_text("\n".join(normalized).strip())
 
 
 def _source_indent_width(text: str) -> int:
@@ -343,6 +476,10 @@ class _BlockTextExtractor(HTMLParser):
         super().__init__()
         self._stack: list[tuple[str, list[str], str | None, int, bool]] = []
         self._unscoped_buffer: list[str] = []
+        self._script_stack: list[str] = []
+        self._table_cell_counts: list[int] = []
+        self._table_depth = 0
+        self._table_row_depths: list[int] = []
         # Each entry is ("text", str, tag_name, style) or
         # ("image", (mime_type, bytes), "", None) -- a single sequence in
         # true document order, so an image's index among its siblings
@@ -351,6 +488,11 @@ class _BlockTextExtractor(HTMLParser):
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Collect relevant text state when an HTML start tag is encountered."""
+        if tag in _TABLE_TAGS:
+            self._table_depth += 1
+        if tag in _INLINE_SCRIPT_TAGS:
+            self._script_stack.append(tag)
+            return
         if tag == "img":
             src = next((value for name, value in attrs if name == "src" and value), None)
             if src:
@@ -376,16 +518,30 @@ class _BlockTextExtractor(HTMLParser):
             self._stack[-1] = (tag_name, buffer, style, indent_width, True)
             return
         if tag in _TABLE_CELL_TAGS:
-            if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS and self._stack[-1][1]:
-                self._stack[-1][1].append(" | ")
+            self._script_stack.clear()
+            if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS:
+                if self._table_cell_counts[-1]:
+                    self._stack[-1][1].append(" | ")
+                self._table_cell_counts[-1] += 1
             return
+        if (
+            tag in _TABLE_ROW_TAGS
+            and self._table_row_depths
+            and self._table_row_depths[-1] == self._table_depth
+        ):
+            declared_width = sum(entry[3] for entry in self._stack)
+            tag_name, buffer, style, _, is_footnote = self._stack.pop()
+            self._finish_block(tag_name, buffer, style, declared_width, is_footnote)
         # A rich-text editor commonly wraps a table cell in a nested <p> or
         # <div>. Keep that content in the open row; otherwise the nested block
         # closes first and destroys the row/column boundary.
-        if any(entry[0] in _TABLE_ROW_TAGS for entry in self._stack):
+        if (
+            tag not in _TABLE_ROW_TAGS
+            and any(entry[0] in _TABLE_ROW_TAGS for entry in self._stack)
+        ):
             return
         if tag in _DOM_BLOCK_TAGS:
-            if self._stack and self._stack[-1][1]:
+            if tag not in _TABLE_ROW_TAGS and self._stack and self._stack[-1][1]:
                 tag_name, buffer, style, _, is_footnote = self._stack[-1]
                 declared_width = sum(entry[3] for entry in self._stack)
                 self._finish_block(tag_name, buffer, style, declared_width, is_footnote)
@@ -397,19 +553,42 @@ class _BlockTextExtractor(HTMLParser):
             self._stack.append(
                 (tag, [], style, _declared_indent_width(tag, attrs), is_footnote)
             )
+            if tag in _TABLE_ROW_TAGS:
+                self._table_cell_counts.append(0)
+                self._table_row_depths.append(self._table_depth)
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Handle self-closing block tags without losing XML indentation state."""
         self.handle_starttag(tag, attrs)
-        if tag in _DOM_BLOCK_TAGS:
+        if tag in _DOM_BLOCK_TAGS or tag in _INLINE_SCRIPT_TAGS or tag in _TABLE_TAGS:
             self.handle_endtag(tag)
 
     def handle_endtag(self, tag: str) -> None:
         """Close the relevant text state when an HTML end tag is encountered."""
+        if (
+            tag in _TABLE_TAGS
+            and self._table_row_depths
+            and self._table_row_depths[-1] == self._table_depth
+        ):
+            declared_width = sum(entry[3] for entry in self._stack)
+            tag_name, buffer, style, _, is_footnote = self._stack.pop()
+            self._finish_block(tag_name, buffer, style, declared_width, is_footnote)
+        if tag in _INLINE_SCRIPT_TAGS:
+            if tag in self._script_stack:
+                while self._script_stack:
+                    closed = self._script_stack.pop()
+                    if closed == tag:
+                        break
+            return
+        if tag in _TABLE_CELL_TAGS:
+            self._script_stack.clear()
+            return
         if tag in _DOM_BLOCK_TAGS and self._stack and self._stack[-1][0] == tag:
             declared_width = sum(entry[3] for entry in self._stack)
             tag_name, buffer, style, _, is_footnote = self._stack.pop()
             self._finish_block(tag_name, buffer, style, declared_width, is_footnote)
+        if tag in _TABLE_TAGS:
+            self._table_depth = max(0, self._table_depth - 1)
 
     def _finish_block(
         self,
@@ -420,12 +599,22 @@ class _BlockTextExtractor(HTMLParser):
         is_footnote: bool = False,
     ) -> None:
         """Emit one block buffer, including a block closed only at EOF."""
+        # An unclosed <sup>/<sub> never reaches handle_endtag, so nothing else
+        # pops it off _script_stack. Every block boundary (a sibling block
+        # opening, this block's own endtag, or EOF) routes through here, so
+        # clearing here stops a dangling script tag from bleeding into later,
+        # unrelated blocks -- mirroring how a browser would not let inline
+        # formatting survive a block-level boundary.
+        self._script_stack.clear()
         raw_text = "".join(buffer)
+        if tag_name in _TABLE_ROW_TAGS:
+            self._table_cell_counts.pop()
+            self._table_row_depths.pop()
         for raw_unit, source_indent in _split_dom_units(raw_text):
             text = normalize_semantic_text(raw_unit)
             if text:
                 indent_width = declared_width + source_indent
-                label = "footnote" if is_footnote or _FOOTNOTE_START.match(text) else tag_name
+                label = "footnote" if is_footnote else tag_name
                 self._finished.append(
                     (
                         "text",
@@ -447,6 +636,8 @@ class _BlockTextExtractor(HTMLParser):
             text = decoded
         had_nbsp = "\xa0" in text
         text = text.replace("\xa0", " ")
+        if self._script_stack:
+            text = apply_unicode_script(text, self._script_stack[-1])
         if self._stack and (text.strip() or had_nbsp):
             self._stack[-1][1].append(text)
         elif text.strip() or had_nbsp:
@@ -496,15 +687,31 @@ _MARKDOWN_TABLE_SEPARATOR = re.compile(
 )
 
 
+def _markdown_table_cells(line: str) -> list[str]:
+    """Return cells while removing only optional outer pipe delimiters."""
+    cells = line.strip().split("|")
+    if cells and not cells[0]:
+        cells.pop(0)
+    if cells and not cells[-1]:
+        cells.pop()
+    return cells
+
+
 def _is_markdown_table_row(line: str) -> bool:
     """Recognize a pipe row only when it has at least two cells."""
-    cells = line.strip().strip("|").split("|")
-    return len(cells) >= 2 and all(cell.strip() for cell in cells)
+    cells = _markdown_table_cells(line)
+    return len(cells) >= 2 and any(cell.strip() for cell in cells)
+
+
+def _is_empty_markdown_table_row(line: str, column_count: int) -> bool:
+    """Recognize an all-empty row only inside an established table."""
+    cells = _markdown_table_cells(line)
+    return len(cells) == column_count and not any(cell.strip() for cell in cells)
 
 
 def _render_markdown_table_row(line: str) -> str:
     """Keep Markdown table columns as searchable row evidence."""
-    return " | ".join(cell.strip() for cell in line.strip().strip("|").split("|"))
+    return " | ".join(cell.strip() for cell in _markdown_table_cells(line))
 
 
 def _split_plain_text_units(text: str) -> list[tuple[str, int, str]]:
@@ -531,15 +738,27 @@ def _split_plain_text_units(text: str) -> list[tuple[str, int, str]]:
             continue
         if _is_markdown_table_row(line):
             rows: list[str] = []
-            while index < len(lines) and _is_markdown_table_row(lines[index]):
-                rows.append(lines[index])
+            column_count = len(_markdown_table_cells(line))
+            while index < len(lines):
+                candidate = lines[index]
+                established = (
+                    len(rows) >= 2
+                    and bool(_MARKDOWN_TABLE_SEPARATOR.match(rows[1]))
+                    and len(_markdown_table_cells(rows[1])) == column_count
+                )
+                if not _is_markdown_table_row(candidate) and not (
+                    established
+                    and _is_empty_markdown_table_row(candidate, column_count)
+                ):
+                    break
+                rows.append(candidate)
                 index += 1
             data_rows = [row for row in rows if not _MARKDOWN_TABLE_SEPARATOR.match(row)]
             if len(data_rows) >= 2:
                 flush()
                 units.extend(
                     (
-                        _render_markdown_table_row(row),
+                        normalize_semantic_text(_render_markdown_table_row(row)),
                         _source_indent_width(row),
                         "tr",
                     )
