@@ -242,10 +242,17 @@ evidence for one authorized post, not a corpus-wide acceptance claim.
 
 ## Active PR audit
 
-A focused 2026-08-21 refresh found PR #258 open and mergeable at customer-hierarchy
-code commit `21074cf80cbfab3001bf18b6e1a618f75f4bed24`. The organization queue has changed since the 18-row inventory below, so the
-table is retained only as historical stack topology. Current acceptance must be read from the final
-PR head, valid unresolved threads, qualifying independent review, and terminal hosted Checks.
+A focused 2026-08-24 refresh found LineageWeave PR #258 open and mergeable at
+exact head `52deb37294aa647e4be4b4b1c6448b52ba861e49` against main
+`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`, with zero unresolved review
+threads; its hosted Strix rerun and current independent approvals remain
+pending. TEPP PR #48 is open at exact head
+`6110d3660607ba46b312b4d76f048f1bcc4f3bc5`, also with zero unresolved
+threads; its new-head hosted Checks and independent approvals remain pending.
+The organization queue has changed since the 18-row inventory below, so the
+table is retained only as historical stack topology. Current acceptance must
+be read from the final PR head, valid unresolved threads, qualifying
+independent review, and terminal hosted Checks.
 
 | PR | Proposed increment | Base → head | Snapshot state |
 |---|---|---|---|
@@ -265,8 +272,7 @@ PR head, valid unresolved threads, qualifying independent review, and terminal h
 | #262 | Customer post to Event Lineage | `#261` → `v2.15.0` | Ready / BLOCKED / review required |
 | #261 | Calendar commitment to Event Lineage | `#260` → `v2.14.0` | Ready / BLOCKED / review required |
 | #260 | Weekly VOC to Event Lineage | `#258` → `v2.13.0` | Ready / DIRTY / review required |
-| #258 | buyer evidence board, standards-composed ontology, and cycle-safe Customer Master tree | `main` → `21074cf80cbfab3001bf18b6e1a618f75f4bed24` | Ready / mergeable / final-head Checks and independent approval pending |
-| #258 | buyer evidence board, standards-composed ontology, and cycle-safe Customer Master tree | `main` → `21074cf80cbfab3001bf18b6e1a618f75f4bed24` | Ready / mergeable / final-head Checks and independent approval pending |
+| #258 | buyer evidence board, standards-composed ontology, cycle-safe Customer Master tree, and shared TEPP topic-lineage Project History | `main` → `52deb37294aa647e4be4b4b1c6448b52ba861e49` | Mergeable / zero unresolved threads / hosted Strix and independent approvals pending |
 | #192 | plural affiliation next action | `main` → `v0.77.0` | Ready / DIRTY / review required |
 | #190 | duplicate-numbered entity-resolution ADR | `main` → docs | Ready / BLOCKED |
 
@@ -290,7 +296,7 @@ the exact-head disposition.
 | P0 | No protected-main integrated buyer journey for the active feature stack | Main is 2.12.5; 18 open PRs span dependent and parallel bases | Establish one reviewed integration order, update each exact head, pass required checks, merge without bypass, then run login-to-source browser acceptance on main |
 | P0 | Current runtime proof is incomplete | The current aggregate/OIDC/ABAC checks cover data presence and selected boundaries; 2026-08-18/19 notes cover other slices, but no evidence set proves the entire PR head or main journey | Complete the real-stack matrix on an exact revision: browser login/navigation, Ask, reports, Vision, TEPP availability, action population, and cleanup |
 | P0 | PR #190's duplicate ADR identity was corrected but is not protected-main truth | Active PR head `ac1b4e17` now uses ADR 0038 and aligns the entity-resolution claims with implementation; independent review and Checks remain pending | Re-audit exact head, obtain independent approval, pass required Checks, and merge normally; never merge a duplicate ADR identity |
-| P0 | PR #258 still requires final-head review and hosted CI | Customer hierarchy code is at `21074cf80cbfab3001bf18b6e1a618f75f4bed24`; branch-local verification does not transfer to the following documentation-only head | Re-read review threads, obtain qualifying independent approval, require all final-head hosted Checks to reach terminal success, and merge only through normal protection |
+| P0 | PR #258 still requires final-head review and hosted CI | Exact head `52deb37294aa647e4be4b4b1c6448b52ba861e49` has zero unresolved threads and complete local backend/frontend verification; the hosted Strix rerun and current independent approvals remain pending | Re-read review threads, obtain qualifying independent approval, require all final-head hosted Checks to reach terminal success, and merge only through normal protection |
 | P1 | Requirements were implicit across ADRs and architecture phases | No prior PRD/TRD/requirement traceability baseline existed | Keep FR/NFR IDs in this document linked from ADR index; require new product PRs to name affected IDs and runtime evidence |
 | P1 | Active PR topology obscures release truth | 8 blocked, 8 unstable, and 2 dirty; many bases are other open branches | Publish a dependency order, retire obsolete/duplicate branches, and avoid version claims until their base chain reaches main |
 | P1 | ADR 0102 schema exists but current data does not exercise it | Commit `15e1a378` is on PR #258 and the table exists, but 95 summaries yield zero requester/processor action rows | Regenerate an authorized bounded sample, report aggregate accepted/dropped/absent counts, verify source evidence and actor FKs, then exercise the buyer popup without exposing record content |
@@ -307,7 +313,7 @@ the exact-head disposition.
 | Protected main | `origin/main` manifests show 2.12.5 | Existing main contracts only | Fresh main runtime matrix |
 | Historical local runtime | Authenticated PostgreSQL report rebuilds and orchestrator/Vision observations dated 2026-08-18/19 | Those exact bounded observations | Current head/main equivalence and full browser journey |
 | Active PRs | GitHub head/base, review, merge, check, and review-thread states at snapshot | Proposed increments and gate state | Normal merge and post-merge runtime behavior |
-| Local PR checkout | PR #258 was observed at `bf599aca`; full suite passed and one authorized target summary refresh returned v5/HTTP 200 with persisted actions | Only the exact observations in the current-data table; no claim for protected-main behavior | Full suite/CI, browser journey, external channel results, review, merge, and corpus-level action evidence |
+| Local PR checkout | PR #258 exact head `52deb37294aa647e4be4b4b1c6448b52ba861e49` passed the full backend and frontend suites, exact component coverage, PostgreSQL integration, lint, production build, and Storybook build | Only those exact local observations; no claim for protected-main or authenticated rendered-runtime behavior | Hosted CI, independent approval, normal merge, browser journey, external channel results, and corpus-level action evidence |
 
 ## Maintenance rule
 
@@ -322,9 +328,11 @@ runtime note into a shipped/live claim.
 - The previously implemented TEPP work had become stranded in a closed parent and an
   orphaned duplicate stack. This recovery consumes the canonical timeline instead of
   introducing another project query, classifier, or timeline component.
-- The dependency is the exact `ContextualWisdomLab/TEPP#159` project-history contract.
-  Until that contract is merged and a TEPP endpoint is deployed, the UI reports an
-  actionable fail-closed state and keeps the authorized LineageWeave timeline readable.
+- The temporal projection dependency, `ContextualWisdomLab/TEPP#159`, merged on
+  2026-08-22. A deployed endpoint is still required at runtime; without one the
+  UI reports an actionable fail-closed state and keeps the authorized
+  LineageWeave timeline readable. Topic-lineage counts additionally depend on
+  the separate active TEPP PR #48 artifact contract described below.
 - TEPP receives opaque actor references and bounded source-field evidence only. Browser,
   review, provider, and `TEPP_API_KEY` credentials are not forwarded.
 - `temporal_association_only` is the maximum accepted authority. Buyer copy must say
@@ -334,6 +342,10 @@ runtime note into a shipped/live claim.
 
 ## Project-history lineage counts (2026-08-23)
 
+- Exact active heads as of 2026-08-24 are TEPP PR #48
+  `6110d3660607ba46b312b4d76f048f1bcc4f3bc5` and LineageWeave PR #258
+  `52deb37294aa647e4be4b4b1c6448b52ba861e49`; neither is protected-main
+  behavior until its hosted gates and independent approvals complete.
 - The shared timeline reports connectable posts and topic lineages only from
   digest-, snapshot-, cutoff-, and schema-validated TEPP
   `tepp.trsl_topic_lineage.v1` predecessor/successor edges whose endpoints are
