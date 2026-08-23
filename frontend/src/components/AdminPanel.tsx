@@ -175,25 +175,6 @@ function AdminWorkspaceScope({ currentUser }: { currentUser?: CurrentUser | null
   );
 }
 
-function AdminBoardHandoff({ title, description, tool, onOpenBoardTool }: { title: string; description: string; tool: AdminBoardTool; onOpenBoardTool: (tool: AdminBoardTool) => void }) {
-  return (
-    <section className="admin-content-section" aria-labelledby="admin-handoff-title">
-      <p className="admin-eyebrow">{t("Existing workspace surface")}</p>
-      <h2 id="admin-handoff-title">{t(title)}</h2>
-      <p className="admin-section-intro">{t(description)}</p>
-      <div className="admin-handoff">
-        <div>
-          <strong>{t("Board advanced review")}</strong>
-          <p>{t("The existing Board owns the selected post and its provenance, so this action opens there instead of duplicating the workflow.")}</p>
-        </div>
-        <button type="button" className="btn-primary" onClick={() => onOpenBoardTool(tool)}>
-          {t("Open in Board")}
-        </button>
-      </div>
-    </section>
-  );
-}
-
 export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessToken, currentUser, onNavigate, onOpenBoardTool }: AdminPanelProps) {
   const [activeSection, setActiveSection] = useState<AdminSection>("overview");
   const [draftConfig, setDraftConfig] = useState<TenantConfig>(currentTenantConfig);
@@ -273,16 +254,6 @@ export function AdminPanel({ currentTenantConfig, onTenantConfigChange, accessTo
 
   const renderContent = () => {
     switch (activeSection) {
-      case "post-operations":
-        return <AdminBoardHandoff title="Post evidence operations" description="These operations require a selected post so every write remains attached to source evidence and provenance." tool="advanced" onOpenBoardTool={onOpenBoardTool} />;
-      case "lineage":
-        return <AdminBoardHandoff title="Lineage rebuild" description="Rebuild is available from the Board advanced review surface and uses the authorized account scope." tool="lineage" onOpenBoardTool={onOpenBoardTool} />;
-      case "rankings":
-        return <AdminBoardHandoff title="Rankings" description="Rankings remain reader-facing evidence, while the admin LNB makes the existing review surface discoverable." tool="rankings" onOpenBoardTool={onOpenBoardTool} />;
-      case "analysis":
-        return <AdminBoardHandoff title="Analysis runs" description="Create, start, and inspect cutoff-aware analysis runs from the existing Board review surface." tool="analysis" onOpenBoardTool={onOpenBoardTool} />;
-      case "reports":
-        return <AdminBoardHandoff title="Period reports" description="Compare period reports and use the rebuild control when the authenticated account has post_admin." tool="reports" onOpenBoardTool={onOpenBoardTool} />;
       case "settings":
         return (
           <section className="admin-content-section" aria-labelledby="admin-settings-title">

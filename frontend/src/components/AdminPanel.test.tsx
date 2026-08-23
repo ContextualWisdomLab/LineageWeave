@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AdminPanel } from "./AdminPanel";
 
@@ -38,6 +38,53 @@ describe("AdminPanel", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Period reports/ }));
     expect(onOpenBoardTool).toHaveBeenCalledWith("reports");
+
+    fireEvent.click(screen.getByRole("button", { name: "Open post operations" }));
+    expect(onOpenBoardTool).toHaveBeenCalledWith("advanced");
+
+    const shortcuts = screen.getByLabelText("Workspace shortcuts");
+    fireEvent.click(within(shortcuts).getByRole("button", { name: /Board & posts/ }));
+    fireEvent.click(within(shortcuts).getByRole("button", { name: /Customer master/ }));
+    fireEvent.click(within(shortcuts).getByRole("button", { name: /Calendar & commitments/ }));
+    expect(onNavigate).toHaveBeenNthCalledWith(2, "board");
+    expect(onNavigate).toHaveBeenNthCalledWith(3, "customers");
+    expect(onNavigate).toHaveBeenNthCalledWith(4, "calendar");
+  });
+
+  it("shows the authenticated account and each authorized affiliation", () => {
+    render(
+      <AdminPanel
+        {...baseProps}
+        currentUser={{
+          user_account_id: "synthetic-user",
+          display_name: "Synthetic Admin",
+          permission_codes: ["post_read", "post_admin"],
+          account_affiliations: [
+            {
+              corporate_entity_id: "entity-1",
+              corporate_entity_code: "SYN-1",
+              entity_name: "Synthetic Entity",
+              process_unit_id: "unit-1",
+              process_unit_code: "PU-1",
+              process_unit_name: "Synthetic Unit",
+            },
+            {
+              corporate_entity_id: "entity-2",
+              corporate_entity_code: "SYN-2",
+              entity_name: "Second Synthetic Entity",
+              process_unit_id: null,
+              process_unit_code: null,
+              process_unit_name: null,
+            },
+          ],
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Account scope/ }));
+    expect(screen.getByText("Synthetic Admin")).toBeInTheDocument();
+    expect(screen.getByText("post_read, post_admin")).toBeInTheDocument();
+    expect(screen.getByText("SYN-1 / PU-1, SYN-2")).toBeInTheDocument();
   });
 
   it("keeps tenant settings in the admin surface", () => {
@@ -57,6 +104,7 @@ describe("AdminPanel", () => {
   });
 
   it("saves the complete identity metadata contract", async () => {
+    const timerSpy = vi.spyOn(globalThis, "setTimeout");
     const onTenantConfigChange = vi.fn();
     const responseConfig = {
       brandName: "Example Brand",
@@ -86,8 +134,40 @@ describe("AdminPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
 
     await waitFor(() => expect(onTenantConfigChange).toHaveBeenCalledWith(responseConfig));
+    expect(screen.getByRole("status")).toHaveTextContent("Settings saved!");
     const request = fetchMock.mock.calls.find(([url]) => String(url).endsWith("/api/settings"));
     expect(JSON.parse(String(request?.[1]?.body))).toEqual(responseConfig);
+    const dismiss = timerSpy.mock.calls.find(([, delay]) => delay === 3000)?.[0];
+    expect(typeof dismiss).toBe("function");
+    act(() => {
+      if (typeof dismiss === "function") dismiss();
+    });
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    timerSpy.mockRestore();
+  });
+
+  it("shows reader-safe guidance when tenant settings cannot be saved", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ detail: "upstream secret" }), {
+          status: 503,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+
+    render(<AdminPanel {...baseProps} />);
+    fireEvent.click(screen.getByRole("button", { name: /Tenant settings/ }));
+    fireEvent.change(screen.getByRole("textbox", { name: "Tenant brand name" }), {
+      target: { value: "Updated Synthetic Brand" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save settings" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Tenant settings is temporarily unavailable.");
+    expect(alert).toHaveTextContent("Retry, or continue with saved evidence.");
+    expect(alert).not.toHaveTextContent("upstream secret");
   });
 
   it("rejects a copyright year outside the approved range in the submit handler", () => {
@@ -129,6 +209,8 @@ describe("AdminPanel", () => {
   });
 
   it("keeps the save action disabled for whitespace-only edits", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
     render(<AdminPanel {...baseProps} />);
     fireEvent.click(screen.getByRole("button", { name: /Tenant settings/ }));
     fireEvent.change(screen.getByRole("textbox", { name: "Tenant brand name" }), {
@@ -138,7 +220,10 @@ describe("AdminPanel", () => {
       target: { value: "  LineageWeave Intelligence  " },
     });
 
-    expect(screen.getByRole("button", { name: "Save settings" })).toBeDisabled();
+    const saveButton = screen.getByRole("button", { name: "Save settings" });
+    expect(saveButton).toBeDisabled();
+    fireEvent.submit(saveButton.closest("form")!);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("refreshes the draft when the fetched tenant config arrives", () => {
