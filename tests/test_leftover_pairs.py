@@ -165,3 +165,18 @@ def test_leftover_residual_equals_observed_minus_expected() -> None:
     assert farthest_cell.leftover_residual == pytest.approx(-1.1)
     for pair in pairs:
         _assert_residual_reconciles(pair)
+
+
+def test_leftover_residual_rejects_database_tolerance_boundary() -> None:
+    """Python must reject the exact boundary excluded by the DB check."""
+    with pytest.raises(ValueError, match="observed Y minus expected E"):
+        leftover._candidate_row(
+            ["public-post"],
+            ("sales_lead_specificity",),
+            np.array([[0.0]]),
+            np.array([[0.0]]),
+            np.array([[1e-6]]),
+            0,
+            0,
+            0.0,
+        )

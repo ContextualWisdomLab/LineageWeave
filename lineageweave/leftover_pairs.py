@@ -124,7 +124,7 @@ def _candidate_row(
     leftover_residual = float(residual[person, item])
     observed_response = float(matrix[person, item])
     expected_response = float(expected[person, item])
-    if abs(leftover_residual - (observed_response - expected_response)) > _RESIDUAL_RECONCILE_TOLERANCE:
+    if abs(leftover_residual - (observed_response - expected_response)) >= _RESIDUAL_RECONCILE_TOLERANCE:
         raise ValueError("leftover residual must equal observed Y minus expected E")
     return (
         max(distance, 0.0),
