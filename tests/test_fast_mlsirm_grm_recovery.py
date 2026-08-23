@@ -1,4 +1,4 @@
-"""Real parameter-recovery test for the GRM model period_report.py actually
+"""Real theta-recovery test for the GRM model period_report.py actually
 fits: simulate polytomous responses from known true item parameters and
 person abilities, fit them with fast_mlsirm.fit_polytomous (the same
 function period_report.py calls, per its own module docstring), and assert
