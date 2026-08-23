@@ -1,4 +1,4 @@
-"""Buyer-safe API failures and bounded OpenTelemetry diagnostics."""
+"""Reader-safe API failures and bounded OpenTelemetry diagnostics."""
 
 from __future__ import annotations
 
@@ -62,7 +62,7 @@ def _call_ask(monkeypatch: pytest.MonkeyPatch, exc: BaseException) -> None:
     )
 
 
-def test_global_ask_provider_failure_is_buyer_safe_and_classified(
+def test_global_ask_provider_failure_is_reader_safe_and_classified(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Known provider/schema errors produce a provider-unavailable signal."""
@@ -96,7 +96,7 @@ def test_global_ask_provider_failure_is_buyer_safe_and_classified(
     ]
 
 
-def test_global_ask_internal_failure_is_buyer_safe_and_keeps_stack_without_value(
+def test_global_ask_internal_failure_is_reader_safe_and_keeps_stack_without_value(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Unexpected defects are traceable without exposing their exception value."""

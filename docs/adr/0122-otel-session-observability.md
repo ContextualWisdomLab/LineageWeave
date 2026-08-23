@@ -52,7 +52,7 @@ control contract in [ADR 0009](https://github.com/ContextualWisdomLab/governance
 
 Operators can follow a slow or failed post-content job from the LineageWeave
 HTTP client through contextual-orchestrator and Valkey without exposing source
-content. Global Ask and post chat return a buyer-safe generic 503 while GRC
+content. Global Ask and post chat return a reader-safe generic 503 while GRC
 can distinguish provider unavailability from an internal defect. An OTLP
 collector is a deployment concern, not a local default, so a developer stack
 remains usable without a telemetry backend. Raw session IDs remain
