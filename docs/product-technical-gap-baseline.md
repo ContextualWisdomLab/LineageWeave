@@ -120,10 +120,11 @@ search indexes when migration 0036's normalized successors exist; a complete
 existing-volume replay completed in 7 seconds with zero active or legacy index
 builds. Focused backend/migration checks passed `102` tests with one optional
 orchestrator integration skip, and frontend Knowledge Graph/i18n checks passed
-`30`. The exact-head coverage-instrumented full Python suite passed `987`
-tests with `17` skips; production Python source measured `87%` branch-aware
+`30`. The latest complete coverage-instrumented full Python suite, at
+`e4ce49d1`, passed `987` tests with `17` skips; production Python source measured `87%` branch-aware
 coverage across `8,071` statements and `2,506` branches, with `790` missed
-statements and `397` partial branches. The temporal Python delta itself has
+statements and `397` partial branches. The current composition then passed
+`90` focused Python tests with one optional integration skip. The temporal Python delta itself has
 `7/7` changed executable statements and `2/2` changed branches covered.
 The full frontend suite passed `267` tests, and frontend lint/build plus
 `git diff --check` passed. The new official Vitest V8 production-source
@@ -541,7 +542,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | External email/project lineage package boundary | PR #343 merged at `125a8069a1554874d8067a15047e19d780ea6b7b` with strict v1.0.0 bounded request/result types, available-time cutoff handling, observed/inferred/proposed truth states, pair-budget enforcement, and no source/provider access | source + focused unit; immutable release open |
 | Naruon calendar projection boundary | PR #337 is closed as superseded; PR #355 carries the strict read projection contract without making LineageWeave a CalDAV provider | source + focused unit; Naruon endpoint, runtime wiring, and provider conformance remain open |
 | Hourly PR review/repair/merge loop | Central protected `main` owns generic `*/30 * * * *` and `*/15 * * * *` sweeps; the LineageWeave-specific minute-4 hourly repair caller remains open in `ContextualWisdomLab/.github#1086` at `aeb096a52c5f`, so no duplicate repo-local scheduler is required | source + exact-head local gate; protected merge and first scheduled run open |
-| 100% coverage/docstrings/edge-case/release gates | the public Python docstring AST contract is exact-head green; the two source-research modules and PROV-O have exact focused 100% branch results; the exact-head coverage-instrumented full Python suite is green at `987` passed / `17` skipped but measures only `87%` across production Python source; official Vitest V8 measurement keeps all production TypeScript/TSX in scope and reports `86.20%` statements / `76.21%` branches / `83.39%` functions / `88.63%` lines with `267` tests green | open: 790 Python statements, 397 partial Python branches, 397 frontend statements, 633 frontend branches, 144 frontend functions, 299 frontend lines, hosted checks, independent review, and release evidence |
+| 100% coverage/docstrings/edge-case/release gates | the public Python docstring AST contract is current-head green; the two source-research modules and PROV-O have exact focused 100% branch results; the latest complete coverage-instrumented full Python suite at `e4ce49d1` is green at `987` passed / `17` skipped but measures only `87%` across production Python source, while the subsequent exact composition passes `90` focused tests / `1` optional integration skip; official Vitest V8 measurement keeps all production TypeScript/TSX in scope and reports `86.20%` statements / `76.21%` branches / `83.39%` functions / `88.63%` lines with `267` tests green | open: current-head hosted full suite, 790 measured Python statements, 397 measured partial Python branches, 397 frontend statements, 633 frontend branches, 144 frontend functions, 299 frontend lines, independent review, and release evidence |
 
 ## 4. Supplied parsing and semantic cases
 
@@ -622,16 +623,17 @@ or an explicit unavailable result.
   saved-history, unavailable, and phone Ask states, and its static build passes.
   Add route- or workspace-level native code splitting only after measuring the
   authenticated navigation path; current-source browser capture remains open.
-- **Repository-wide gate stability — partial:** the latest current-source full
-  coverage-instrumented Python run passes `987` tests with `17` skips and
+- **Repository-wide gate stability — partial:** the latest complete
+  coverage-instrumented Python run at `e4ce49d1` passes `987` tests with `17` skips and
   measures `87%` branch-aware production-source coverage; pinned Corepack Vitest
   passes all `267` tests, and the reproducible `test:coverage` command reports
   `86.20%` statements / `76.21%` branches / `83.39%` functions /
   `88.63%` lines. CI now provisions pinned Valkey and a synthetic
   imported Keycloak realm, removing the infrastructure
   reason that made all `115` live-stack API tests self-skip; `actionlint` passes,
-  but the hosted run is not yet evidence. Skipped live-stack cases and hosted
-  exact-head gates remain open.
+  but the hosted run is not yet evidence. The subsequent current composition
+  passes `90` focused tests with one optional integration skip; current-head
+  hosted full-suite evidence remains open.
 - **Coverage and docstring gates — docstrings closed, coverage enforcement
   open:** the exact-branch AST contract scans every non-private function,
   method, nested callback, and class under `lineageweave/` and `backend/app/`;
