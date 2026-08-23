@@ -18,6 +18,9 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- The public ontology now states its OWL 2 Full/RDF-Based semantics for the
+  ADR 0036 RDF-reified project evidence, and the PROV-O support profile uses
+  its canonical lowercase deployed IRI.
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.

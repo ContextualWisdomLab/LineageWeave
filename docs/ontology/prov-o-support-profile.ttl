@@ -5,7 +5,7 @@
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 
-<https://contextualwisdomlab.github.io/LineageWeave/prov-o-support>
+<https://contextualwisdomlab.github.io/lineageweave/ontology/prov-o-support-profile.ttl>
     a owl:Ontology ;
     dcterms:title "LineageWeave PROV-O support profile"@en ;
     dcterms:conformsTo <http://www.w3.org/TR/2013/REC-prov-o-20130430/> ;

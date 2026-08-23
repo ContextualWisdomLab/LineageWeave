@@ -10,7 +10,7 @@
 #################################################################
 # LineageWeave Knowledge Graph Ontology
 #
-# The formal OWL 2 / RDFS / SKOS vocabulary for the
+# The formal OWL 2 Full / RDFS / SKOS vocabulary for the
 # `knowledge_graph_edge` table's node/edge types, the
 # `entity_relationship_type` / `person_side` / `corporate_entity_level`
 # controlled vocabularies in migrations/0001_initial_schema.sql, and
@@ -33,7 +33,7 @@
 
 <https://contextualwisdomlab.github.io/lineageweave/ontology> a owl:Ontology ;
     rdfs:label "LineageWeave Knowledge Graph Ontology" ;
-    rdfs:comment "Formal OWL 2 / RDFS / SKOS vocabulary for LineageWeave's knowledge_graph_edge node and edge types, entity_relationship_type, person_side, corporate_entity_level, and post_summary_role.actor_type_code controlled vocabularies." .
+    rdfs:comment "Formal OWL 2 Full / RDFS / SKOS vocabulary for LineageWeave's knowledge_graph_edge node and edge types, entity_relationship_type, person_side, corporate_entity_level, and post_summary_role.actor_type_code controlled vocabularies. RDF reification for semantic project evidence is interpreted with OWL 2 RDF-Based Semantics rather than OWL 2 DL." .
 
 :lookupCode a owl:AnnotationProperty ;
     rdfs:label "lookup code" ;
