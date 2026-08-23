@@ -19,7 +19,8 @@ All notable changes to this project are documented here. Format follows
 - Planned-facility evidence now reuses the semantic-relationship channel with
   `lw_plans_to_operate` (ADR 0142). The relationship is retained only when the
   same source span names a matching R&R actor and project-backed facility; it
-  never represents an already-operating facility.
+  never represents an already-operating facility. Migration 0138 keeps the
+  database write constraint aligned with the closed predicate vocabulary.
 - Event Lineage now reports why a post has no DAG (ADR 0143):
   "no_relation_found" when reconstruct compared it against real
   candidates and found no relation, or "no_comparison_group" when it was

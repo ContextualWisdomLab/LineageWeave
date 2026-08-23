@@ -127,13 +127,12 @@ governs when the extractor may emit it.
   R&R actor, project backing, facility type, and literal evidence span before
   retaining a model-emitted `lw_plans_to_operate` row. Missing evidence drops
   only that relationship; other supported semantic relationships remain.
-- Because the predicate is additive to an existing closed vocabulary and
-  channel, no migration is needed beyond the ontology TTL update and the
-  Python frozenset — `post_summary_semantic_relationship`'s schema already
-  supports an arbitrary `predicate_code` string with a foreign-key-style
-  check against the ontology annotation lookup at read time
-  (`semantic_predicate_annotations`), not at write time, so no schema
-  migration accompanies this ADR.
+- Because the table enforces the closed predicate vocabulary at write time,
+  migration 0138 expands
+  `post_summary_semantic_relationship_predicate_code_check` with
+  `lw_plans_to_operate`. The Python frozenset, database constraint, and
+  ontology annotation lookup therefore reject vocabulary drift at their
+  respective parse, persistence, and reader boundaries.
 - A downside accepted here: `lw_plans_to_operate` is a LineageWeave-local
   (`lw_*`) predicate, not a borrowed PROV-O/SKOS/ODRL term, because none of
   the already-adopted standard vocabularies (PROV-O, SKOS, DCT, SOSA, ODRL)

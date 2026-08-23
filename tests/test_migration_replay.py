@@ -180,6 +180,21 @@ def test_migrate_sh_replays_cross_post_customer_identity_on_existing_volumes() -
     assert "UNIQUE NULLS NOT DISTINCT (source_system_code, source_customer_code)" in migration
 
 
+def test_migrate_sh_replays_planned_facility_predicate_on_existing_volumes() -> None:
+    """Existing Compose volumes must accept the ADR 0142 relationship code."""
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(
+        encoding="utf-8"
+    )
+    migration = (
+        root / "migrations" / "0138_planned_facility_relationship_predicate.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "0138_*" in script
+    assert "post_summary_semantic_relationship_predicate_code_check" in migration
+    assert "'lw_plans_to_operate'" in migration
+
+
 def test_tenant_identity_migration_repairs_legacy_values_before_constraints() -> None:
     """Legacy blank settings cannot make an existing-volume replay fail closed."""
     migration = (
