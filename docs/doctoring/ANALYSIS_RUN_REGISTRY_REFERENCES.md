@@ -29,7 +29,9 @@ general-purpose bitemporal database:
 - `knowledge_cutoff` answers what a specific analysis was allowed to know;
 - `requested_at` answers when that analysis was requested;
 - `occurred_at` and `recorded_at` distinguish lifecycle occurrence from durable
-  database recording.
+  database recording. Product inserts stamp both from one PostgreSQL
+  `clock_timestamp()`; the transition trigger raises `recorded_at` when a
+  caller occurrence is already ahead (ADR 0167).
 
 The database requires the aggregate leakage boundary:
 

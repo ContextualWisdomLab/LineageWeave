@@ -755,6 +755,50 @@ def test_status_requires_scope_and_cannot_predate_request(registry_db) -> None:
     assert recorded_at.year < 2099
 
 
+def test_status_same_clock_migration_is_idempotent_and_allowlisted() -> None:
+    """Compose must replay the same-clock trigger; 0018 matches 0104."""
+    migration = (_ROOT / "migrations" / "0104_analysis_run_status_same_clock.sql").read_text(
+        encoding="utf-8"
+    )
+    registry = _REGISTRY_MIGRATION.read_text(encoding="utf-8")
+    migrate = (_ROOT / "docker/postgres-init/migrate.sh").read_text(encoding="utf-8")
+    assert "create or replace function enforce_analysis_run_status_transition" in migration
+    assert "if new.recorded_at < new.occurred_at then" in migration
+    assert "new.recorded_at := new.occurred_at" in migration
+    assert "if new.recorded_at < new.occurred_at then" in registry
+    assert "0104_*" in migrate
+    assert "Do not invent a theta" in migration or "invent a theta" in migration
+
+
+def test_status_accepts_occurrence_ahead_of_the_write_clock(registry_db) -> None:
+    """A 50ms-ahead occurrence must persist; recorded_at cannot precede it."""
+    with registry_db.cursor() as cursor:
+        snapshot_id = _insert_snapshot(cursor)
+        account_id = _insert_account(cursor)
+        run_id = _insert_run(
+            cursor,
+            snapshot_id=snapshot_id,
+            account_id=account_id,
+            idempotency_key="ahead-clock",
+        )
+        cursor.execute(
+            "insert into analysis_run_scope "
+            "(analysis_run_id, scope_kind_code) "
+            "values (%s, 'analysis_scope_all_visible')",
+            (run_id,),
+        )
+        cursor.execute(
+            "insert into analysis_run_status_event "
+            "(analysis_run_id, status_ordinal, status_code, occurred_at) "
+            "values (%s, 1, 'analysis_status_pending', "
+            "clock_timestamp() + interval '50 milliseconds') "
+            "returning occurred_at, recorded_at",
+            (run_id,),
+        )
+        occurred_at, recorded_at = cursor.fetchone()
+    assert recorded_at >= occurred_at
+
+
 def test_machine_codes_and_canonical_idempotency_are_fail_closed(registry_db) -> None:
     """Audit identifiers are canonical and failure details stay machine-safe."""
 

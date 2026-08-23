@@ -1,12 +1,17 @@
 """Start-reconstruction contracts: digest, freeze, 422/409, designed tree."""
 
+import inspect
 from datetime import datetime, timezone
 
 import pytest
 
-from backend.app.analysis_run_ingestion import reconstructed_edge_is_visible
+from backend.app.analysis_run_ingestion import (
+    create_pending_analysis_run,
+    reconstructed_edge_is_visible,
+)
 from backend.app.analysis_run_start import (
     AnalysisRunStartError,
+    _append_status,
     configured_tepp_client,
     reconstruction_member_ids,
     reconstruction_result_digest,
@@ -171,3 +176,20 @@ def test_running_restart_conflicts_and_succeeded_replay_is_documented() -> None:
     )
     assert running.status_code == 409
     assert "Pending" in running.detail
+
+
+def test_append_status_stamps_occurred_and_recorded_from_one_clock() -> None:
+    """Start must not bind a Python clock that can sit ahead of PostgreSQL."""
+    source = inspect.getsource(_append_status)
+    assert "from (select clock_timestamp() as write_clock) same_clock" in source
+    assert "write_clock, write_clock" in source
+    assert "datetime.now" not in source
+    assert "occurred_at: datetime" not in source
+
+
+def test_pending_create_stamps_occurred_and_recorded_from_one_clock() -> None:
+    """Create Pending uses the same one-clock insert as Start."""
+    source = inspect.getsource(create_pending_analysis_run)
+    assert "from (select clock_timestamp() as write_clock) same_clock" in source
+    assert "analysis_status_pending" in source
+    assert "write_clock, write_clock" in source

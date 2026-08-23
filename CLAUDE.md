@@ -41,7 +41,8 @@ are 422. The Request button waits until affiliated corps load; choose
 a corp if the token walks more than one. `POST /api/analysis-runs/{id}/start`
 commits Running plus a durable outbox row, then reconstructs that
 frozen cutoff bag (ADR 0021 / ADR 0023) or submits TEPP through
-`tepp_client` (ADR 0022). A missing transport or unused accepted
+`tepp_client` (ADR 0022). Status events share one PostgreSQL
+`clock_timestamp()` for `occurred_at` and `recorded_at` (ADR 0167). A missing transport or unused accepted
 envelope is Failed. Failed TEPP is terminal — connect a TEPP
 transport from that Failed row. Create does not invent a Pending
 TEPP row. Do not invent a theta. Hover the Result prefix to read
