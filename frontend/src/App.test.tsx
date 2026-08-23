@@ -3451,6 +3451,16 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
   });
 
+  it("opens a leftover-map criterion post from the report panel", async () => {
+    stubBackend();
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Open leftover map criterion: sales-lead" }),
+    );
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
   it("opens Event Lineage, Keyman, and evaluation from a report member click", async () => {
     stubBackend();
     render(<App showLabPanels />);

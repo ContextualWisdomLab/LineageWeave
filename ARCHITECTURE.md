@@ -604,7 +604,8 @@ through opens those DAG posts. Report members include the earliest
 open ticket title, status lookup label, and due date when one exists. The home page renders
 the actual mean θ, the FIPC delta, the CAT-selected item, leftover
 closest/farthest pairs and the leftover interaction map above the
-member list, and the
+member list (click a leftover-map person or pair-member criterion
+node to open that post), and the
 PU / corp / thread comparison -- never a placeholder. TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer
