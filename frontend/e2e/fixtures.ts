@@ -14,13 +14,16 @@ export const test = base.extend({
   page: async ({ page }, runFixture) => {
     await page.goto("/");
     const loginButton = page.getByRole("button", { name: /login|log in/i });
-    if (await loginButton.isVisible({ timeout: 5000 }).catch(() => false)) {
+    if (await loginButton.isVisible({ timeout: 10000 }).catch(() => false)) {
       await loginButton.click();
-      await page.waitForURL(/realms\/lineageweave-demo/, { timeout: 15000 });
+      // Each step is a real network round trip (OIDC discovery, the
+      // redirect to Keycloak, the form POST, the callback) -- 30s each
+      // tolerates a loaded machine without masking a genuinely broken flow.
+      await page.waitForURL(/realms\/lineageweave-demo/, { timeout: 30000 });
       await page.fill("#username", DEMO_USERNAME);
       await page.fill("#password", DEMO_PASSWORD);
       await page.click("#kc-login");
-      await page.waitForURL((url) => !url.pathname.includes("/realms/"), { timeout: 15000 });
+      await page.waitForURL((url) => !url.pathname.includes("/realms/"), { timeout: 30000 });
     }
     // "networkidle" never resolves against this app -- some background
     // connection (HMR, polling) keeps the network non-idle forever, which

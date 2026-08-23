@@ -121,7 +121,19 @@ exact-head protected gate.
   into the panel, closes on Escape, contains Tab focus, and restores focus to
   the opener. Native interactive controls also share the token-based
   `:focus-visible` ring. The behavior is covered by the authenticated React
-  and CSS tests; fresh browser evidence remains open.
+  and CSS tests. `frontend/e2e/post-detail-modal.spec.ts` (real Chromium,
+  real Keycloak login, dialog role/aria-modal/Tab-cycle/Escape/focus-restore
+  all asserted against the live authenticated stack) passed cleanly on its
+  own run 2026-08-23. Honest caveat: this shared dev machine was under
+  sustained heavy concurrent load (uptime load averages 24-56 across many
+  simultaneous sessions) while gathering this evidence, which caused
+  network-step timeouts in *other* runs and in unrelated existing specs
+  (`customer-master.spec.ts`, `knowledge-graph.spec.ts`) -- never a failed
+  assertion inside this spec's own logic. A from-a-quiet-machine confirmation
+  is still open; do not read the one clean run as proof of zero flakiness
+  under contention. That browser run predates current head `161f4eb80c75`,
+  whose modal assertion requires the same opener element; an
+  exact-head browser rerun remains open.
 - **Approved CI/BI asset — open:** the header/footer currently render the
   tenant brand name as text. Do not invent or alter a corporate logo; add the
   approved asset only after the tenant CI/BI source and usage permission are
@@ -131,7 +143,10 @@ exact-head protected gate.
   focus request is cleared when navigation leaves the board. A desktop site-map
   utility now reuses `WorkspaceNav`, closes on Escape or destination selection,
   and is omitted on phones where the drawer owns navigation; approved CI/BI
-  assets and a no-JavaScript fallback remain open.
+  assets and a no-JavaScript fallback remain open. Current head `161f4eb80c75`
+  also requires the site-map E2E to select Calendar from the default board and
+  verify the URL, persistent navigation state, and destination heading; its
+  browser rerun remains open.
 - **Header top-menu language placement — fixed in this worktree:** UI/UX
   Standard Guide v3.0 §2.2.2 assigns 언어설정 (language setting) to the header
   top menu alongside user info, login/logout, search, and utility items.
@@ -247,7 +262,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Sticky header, footer, GNB, active state, phone drawer | `App.tsx`, `WorkspaceNav.tsx`, `App.test.tsx` | source + unit |
 | Approved CI/BI logo asset | Tenant text is present; approved asset and permission are absent | open |
 | User/logout/language/global search header actions | `App.tsx`, `i18n.ts`, handled/pending search-focus tests | source + unit |
-| Site map / utility menu | `SiteMapUtility`, accessible toggle/region, Escape and destination-close behavior, responsive CSS contract, locale coverage | source + unit; authenticated browser evidence open |
+| Site map / utility menu | `SiteMapUtility`, accessible toggle/region, Escape and destination-close behavior, responsive CSS contract, locale coverage | source + unit; `frontend/e2e/site-map-utility.spec.ts` (real Chromium/Keycloak) passed both cases cleanly on one run 2026-08-23, but not yet confirmed on a quiet machine -- this shared dev machine was under sustained heavy concurrent load (uptime load averages 24-56) during evidence-gathering, which caused unrelated network-step flakiness in other runs. Responsive CSS contract still open. |
 | Noto Sans, palette, table/form/button conventions, modal 50% mask and keyboard semantics | ADR 0118, token CSS, popup dialog implementation, frontend tests | source + unit |
 | Keyverse/OIDC login with real account | `auth.py`, OIDC discovery/JWKS boundary, local redirect check | source + local-integration; Keyverse open |
 | Authenticated corp/PU attributes | `/api/me` returns DB-backed codes; backend integration test covers `TEST-CORP`/`TEST-PU`, the GNB disclosure is covered by `App.test.tsx`, and desktop/390px Playwright QA verifies the rendered scope | source + unit + local-integration + browser-mocked |
