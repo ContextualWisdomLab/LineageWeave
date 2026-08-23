@@ -403,6 +403,9 @@ async def fetch_visible_analysis_run(
     if digest is not None:
         detail["reconstruction_result_sha256"] = digest
     detail["reconstructed_edges"] = edges
+    receipt = await fetch_tepp_accepted_receipt(conn, analysis_run_id)
+    if receipt is not None:
+        detail["tepp_accepted_receipt"] = receipt
     return detail
 
 
@@ -425,6 +428,35 @@ def reconstructed_edge_is_visible(
         or str(child_corporate_entity_id) in affiliated
     )
     return parent_visible and child_visible
+
+
+async def fetch_tepp_accepted_receipt(
+    conn: asyncpg.Connection,
+    analysis_run_id: str,
+) -> dict[str, Any] | None:
+    """Transport receipt for one already-visible run, or None.
+
+    Missing table (migration 0106 not applied) is not a 500. The
+    receipt is not a measurement and never includes a theta.
+    """
+    try:
+        row = await conn.fetchrow(
+            """
+            select remote_run_id, accepted_status_code, received_at
+            from analysis_run_tepp_accepted_receipt
+            where analysis_run_id = $1
+            """,
+            analysis_run_id,
+        )
+    except asyncpg.UndefinedTableError:
+        return None
+    if row is None:
+        return None
+    return {
+        "remote_run_id": str(row["remote_run_id"]),
+        "accepted_status_code": str(row["accepted_status_code"]),
+        "received_at": _iso(row["received_at"]),
+    }
 
 
 async def fetch_reconstructed_edges(

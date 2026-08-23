@@ -2455,6 +2455,9 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
         }
       }
     case "analysis_status_running":
+      if (run.run_kind_code === "analysis_run_tepp" && run.tepp_accepted_receipt) {
+        return "TEPP accepted this measurement. Refresh to see when the completed result arrives. This receipt is not a calibrated score.";
+      }
       return "Refresh this run. Start already queued the work on the durable outbox.";
     case "analysis_status_succeeded":
     case "analysis_status_cancelled":
@@ -4610,8 +4613,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             </div>
             <div className="login-controls">
               <button className="btn-primary" onClick={() => {
-                const returnUrl = window.location.pathname + window.location.search;
-                void auth.signinRedirect({ state: { returnUrl } });
+                rememberOidcReturnUrl(returnUrlFromLocation());
+                void auth.signinRedirect({ state: { returnUrl: returnUrlFromLocation() } });
               }}>
                 {t("Log in")}
               </button>
@@ -4620,7 +4623,6 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               <small>Enterprise SSO Authentication</small>
             </div>
           </div>
-          {destination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
       </main>
         <footer className="app-footer" role="contentinfo">
           <div className="app-footer-title">

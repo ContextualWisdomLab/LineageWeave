@@ -7,6 +7,7 @@ import pytest
 from backend.app.analysis_run_ingestion import reconstructed_edge_is_visible
 from backend.app.analysis_run_start import (
     AnalysisRunStartError,
+    classify_tepp_submission,
     configured_tepp_client,
     reconstruction_member_ids,
     reconstruction_result_digest,
@@ -134,7 +135,7 @@ def test_tepp_submit_outcome_drops_a_missing_transport() -> None:
 
 
 def test_tepp_submit_outcome_does_not_persist_an_empty_envelope() -> None:
-    """An accepted envelope is not a persistable measurement."""
+    """An accepted envelope without a remote run id is not persistable."""
 
     class _Accepting(TeppClient):
         def __init__(self) -> None:
@@ -143,6 +144,26 @@ def test_tepp_submit_outcome_does_not_persist_an_empty_envelope() -> None:
     status, failure = tepp_submit_outcome(_Accepting(), _tepp_request())
     assert status == "analysis_status_failed"
     assert failure == "tepp_result_not_persisted"
+
+
+def test_tepp_submit_outcome_keeps_accepted_receipt_running() -> None:
+    """A valid accepted envelope is transport evidence, not a measurement."""
+
+    class _Accepting(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(
+                transport=lambda _payload: {
+                    "status": "accepted",
+                    "run_id": "tepp-run-accepted-1",
+                }
+            )
+
+    status, failure = tepp_submit_outcome(_Accepting(), _tepp_request())
+    assert status == "analysis_status_running"
+    assert failure == ""
+    outcome = classify_tepp_submission(_Accepting(), _tepp_request())
+    assert outcome.persist_kind == "receipt"
+    assert outcome.persist_kind != "result"
 
 
 def test_configured_tepp_client_stays_unavailable_without_http() -> None:
