@@ -126,10 +126,10 @@ coverage across `8,071` statements and `2,506` branches, with `790` missed
 statements and `397` partial branches. The current composition then passed
 `90` focused Python tests with one optional integration skip. The temporal Python delta itself has
 `7/7` changed executable statements and `2/2` changed branches covered.
-The full frontend suite passed `269` tests, and frontend lint/build plus
+The full frontend suite passed `274` tests, and frontend lint/build plus
 `git diff --check` passed. The new official Vitest V8 production-source
-measurement reports `86.47%` statements, `76.36%` branches, `83.50%`
-functions, and `88.93%` lines; tests, Storybook scenes, and test setup are the
+measurement reports `86.72%` statements, `76.58%` branches, `83.85%`
+functions, and `89.12%` lines; tests, Storybook scenes, and test setup are the
 only excluded non-production files. Repository-wide 100% coverage and visual
 browser acceptance remain separate open gates.
 
@@ -532,7 +532,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Base64/file image regions and multimodal evidence | image-region schema and VISION client boundary; live aggregate has 12,823 images, 25 described images, 421 failed images, 12,377 unavailable images, and 19 persisted regions; the bounded real-data queue run published three Valkey wake-ups and the worker claimed one | source + local-integration partial; supplied image-table case re-backfill and complete corpus coverage open |
 | Abbreviation/multilingual alias/entity disambiguation | catalog hints, ADR 0026/0137 tie boundary, alternate/former name history, source-system-qualified resolver | source + focused unit; multilingual and live corroboration evidence open |
 | SearXNG/internal relation fact check | verification endpoint and unavailable handling; local SearXNG health and JSON query both returned HTTP 200, while some upstream engines reported rate-limit/CAPTCHA results | source + local-integration partial; corroboration policy and reliable external coverage open |
-| Source-reference research agent | ADR 0133, URL/patent lead discovery, bounded public-target crawl guard, contextual-orchestrator Judge boundary, normalized provenance persistence, cited supported-actor KG/PROV-O projection, explicit admin POST/read-only GET, and reader panel; the focused research/security/KG partition passed `36` tests at 100% branch coverage for both source-research modules, the broader research/migration/HTTP partition passed `69`, and the panel passed `3` focused tests | source + focused unit; live external and authenticated API/browser validation and canonical/final URL capture remain open; TEPP calibration remains unavailable until TEPP publishes a response-event wire contract |
+| Source-reference research agent | ADR 0133, URL/patent lead discovery, bounded public-target crawl guard, contextual-orchestrator Judge boundary, normalized provenance persistence, cited supported-actor KG/PROV-O projection, explicit admin POST/read-only GET, and reader panel; the focused research/security/KG partition passed `36` tests at 100% branch coverage for both source-research modules, the broader research/migration/HTTP partition passed `69`, and the panel passed `5` focused tests | source + focused unit; live external and authenticated API/browser validation and canonical/final URL capture remain open; TEPP calibration remains unavailable until TEPP publishes a response-event wire contract |
 | Valkey event queue and cloud-native Compose stack | queue modules, Compose services, health checks | source + local-integration; delivery stress open |
 | 3NF, hot partitions, locks, read/write contention | canonical identifier migration plus existing migrations | source; operational evidence open |
 | Rust/GPU/CPU psychometric computation | delegated to TEPP, not reimplemented here | boundary accepted; live TEPP evidence open |
@@ -542,7 +542,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | External email/project lineage package boundary | PR #343 merged at `125a8069a1554874d8067a15047e19d780ea6b7b` with strict v1.0.0 bounded request/result types, available-time cutoff handling, observed/inferred/proposed truth states, pair-budget enforcement, and no source/provider access | source + focused unit; immutable release open |
 | Naruon calendar projection boundary | PR #337 is closed as superseded; PR #355 carries the strict read projection contract without making LineageWeave a CalDAV provider | source + focused unit; Naruon endpoint, runtime wiring, and provider conformance remain open |
 | Hourly PR review/repair/merge loop | Central protected `main` owns generic `*/30 * * * *` and `*/15 * * * *` sweeps; the LineageWeave-specific minute-4 hourly repair caller remains open in `ContextualWisdomLab/.github#1086` at `aeb096a52c5f`, so no duplicate repo-local scheduler is required | source + exact-head local gate; protected merge and first scheduled run open |
-| 100% coverage/docstrings/edge-case/release gates | the public Python docstring AST contract is current-head green; the two source-research modules and PROV-O have exact focused 100% branch results; the latest complete coverage-instrumented full Python suite at `e4ce49d1` is green at `987` passed / `17` skipped but measures only `87%` across production Python source, while the subsequent exact composition passes `90` focused tests / `1` optional integration skip; official Vitest V8 measurement keeps all production TypeScript/TSX in scope and reports `86.47%` statements / `76.36%` branches / `83.50%` functions / `88.93%` lines with `269` tests green | open: current-head hosted full suite, 790 measured Python statements, 397 measured partial Python branches, 389 frontend statements, 629 frontend branches, 143 frontend functions, 291 frontend lines, independent review, and release evidence |
+| 100% coverage/docstrings/edge-case/release gates | the public Python docstring AST contract is current-head green; the two source-research modules and PROV-O have exact focused 100% branch results; the latest complete coverage-instrumented full Python suite at `e4ce49d1` is green at `987` passed / `17` skipped but measures only `87%` across production Python source, while the subsequent exact composition passes `90` focused tests / `1` optional integration skip; official Vitest V8 measurement keeps all production TypeScript/TSX in scope and reports `86.72%` statements / `76.58%` branches / `83.85%` functions / `89.12%` lines with `274` tests green | open: current-head hosted full suite, 790 measured Python statements, 397 measured partial Python branches, 382 frontend statements, 623 frontend branches, 140 frontend functions, 286 frontend lines, independent review, and release evidence |
 
 ## 4. Supplied parsing and semantic cases
 
@@ -626,9 +626,9 @@ or an explicit unavailable result.
 - **Repository-wide gate stability — partial:** the latest complete
   coverage-instrumented Python run at `e4ce49d1` passes `987` tests with `17` skips and
   measures `87%` branch-aware production-source coverage; pinned Corepack Vitest
-  passes all `269` tests, and the reproducible `test:coverage` command reports
-  `86.47%` statements / `76.36%` branches / `83.50%` functions /
-  `88.93%` lines. CI now provisions pinned Valkey and a synthetic
+  passes all `274` tests, and the reproducible `test:coverage` command reports
+  `86.72%` statements / `76.58%` branches / `83.85%` functions /
+  `89.12%` lines. CI now provisions pinned Valkey and a synthetic
   imported Keycloak realm, removing the infrastructure
   reason that made all `115` live-stack API tests self-skip; `actionlint` passes,
   but the hosted run is not yet evidence. The subsequent current composition

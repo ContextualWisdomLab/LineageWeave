@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import {
   analysisEvidenceDiagnosis,
   gluedRoleRelationshipNextAction,
@@ -73,7 +73,22 @@ describe("RoleEvidence", () => {
     expect(screen.getByText("(No matching catalog entry yet)")).toBeInTheDocument();
   });
 
+  it("names a generic team actor as a non-specific source unit", () => {
+    render(
+      <ul>
+        <RoleEvidence
+          {...BASE_PROPS}
+          actorName="department"
+          actorTypeCode="prov_team"
+          affiliationName={null}
+        />
+      </ul>,
+    );
+    expect(screen.getByText(/Specific business unit not stated in source/)).toBeInTheDocument();
+  });
+
   it("shows the resolved affiliation as a link, not an unresolved reason, once linked", () => {
+    const onSelectAffiliation = vi.fn();
     render(
       <ul>
         <RoleEvidence
@@ -81,11 +96,13 @@ describe("RoleEvidence", () => {
           affiliationName="Demo Corp"
           affiliationCatalogId="corp-1"
           affiliationUnresolvedReasonLabel={null}
-          onSelectAffiliation={() => undefined}
+          onSelectAffiliation={onSelectAffiliation}
         />
       </ul>,
     );
     expect(screen.getByRole("button", { name: "R&R affiliation: Demo Corp" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "R&R affiliation: Demo Corp" }));
+    expect(onSelectAffiliation).toHaveBeenCalledWith("corp-1", "Demo Corp");
     expect(screen.queryByText(/Not linked to catalog/)).not.toBeInTheDocument();
   });
 

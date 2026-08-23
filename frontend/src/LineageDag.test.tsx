@@ -69,6 +69,9 @@ describe("LineageDag", () => {
     await user.keyboard(" ");
     expect(onSelectPost).toHaveBeenLastCalledWith("child-post");
     expect(onSelectPost).toHaveBeenCalledTimes(3);
+
+    await user.keyboard("x");
+    expect(onSelectPost).toHaveBeenCalledTimes(3);
   });
 
   it("makes direction, meaning, scrolling, and exact edge evidence accessible without hover", () => {
@@ -118,6 +121,21 @@ describe("LineageDag", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
     expect(screen.queryByRole("note")).not.toBeInTheDocument();
+  });
+
+  it("drops edges whose endpoints are absent from the graph", () => {
+    render(
+      <LineageDag
+        graph={{
+          ...isolatedGraph,
+          edges: [{ source: "isolated-post", target: "missing-post", fused_score: 0.5 }],
+        }}
+        onSelectPost={vi.fn()}
+      />,
+    );
+
+    expect(document.querySelector(".lineage-dag-edge")).not.toBeInTheDocument();
+    expect(screen.getByRole("table")).not.toHaveTextContent("missing-post");
   });
 
   it("keeps long titles, Topic partitions, hierarchy, and predecessor/successor on the graph", () => {
