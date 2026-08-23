@@ -37,6 +37,7 @@ class Settings:
     oidc_discovery_uri: str
     oidc_jwks_uri_override: str
     oidc_clock_skew_seconds: int
+    keyverse_claim_binding_required: bool
     # Exact browser origins allowed by CORS. Comma-separated FRONTEND_ORIGINS;
     # never a wildcard -- the backend only serves the product UI.
     frontend_origins: list[str]
@@ -122,6 +123,7 @@ def load_settings() -> Settings:
             )
         ),
         oidc_clock_skew_seconds=oidc_clock_skew_seconds,
+        keyverse_claim_binding_required=bool(keyverse_issuer),
         frontend_origins=[
             origin.strip()
             for origin in os.environ.get("FRONTEND_ORIGINS", "http://localhost:5173").split(",")

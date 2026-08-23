@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import base64
 import json
 from types import SimpleNamespace
@@ -158,7 +159,7 @@ def test_decode_requires_configured_resource_audience(monkeypatch: pytest.Monkey
     assert captured["issuer"] == "https://id.example"
     assert captured["audience"] == "https://lineage.example/api"
     assert captured["algorithms"] == ["RS256"]
-    assert "options" not in captured
+    assert captured["options"] == {"require": ["exp", "iat", "sub"]}
 
 
 def test_decode_rejects_missing_subject(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -173,3 +174,97 @@ def test_decode_rejects_missing_subject(monkeypatch: pytest.MonkeyPatch) -> None
     with pytest.raises(HTTPException) as error:
         auth._decode_access_token("token", settings)
     assert error.value.status_code == 401
+
+
+@pytest.mark.parametrize(
+    "claims",
+    [
+        {"workspace": "workspace-a", "role": ["member"]},
+        {"org": "org-a", "role": ["member"]},
+        {"org": "org-a", "workspace": "workspace-a", "role": "member"},
+        {"org": "org-a", "workspace": "workspace-a", "role": ["member", "member"]},
+        {"org": ["org-a"], "workspace": "workspace-a", "role": ["member"]},
+    ],
+)
+def test_keyverse_account_claims_reject_partial_or_ambiguous_profiles(claims: dict) -> None:
+    """Keyverse account claims are atomic and never delimiter-decoded."""
+    with pytest.raises(HTTPException) as error:
+        auth._keyverse_account_claims(claims)
+    assert error.value.status_code == 401
+
+
+def test_keyverse_account_claims_return_one_trimmed_scope() -> None:
+    assert auth._keyverse_account_claims(
+        {"org": "org-a", "workspace": "workspace-a", "role": ["member", "reviewer"]}
+    ) == ("org-a", "workspace-a", ["member", "reviewer"])
+
+
+class _Connection:
+    def __init__(self) -> None:
+        self.fetchrow_args: tuple[object, ...] | None = None
+        self.fetch_args: tuple[object, ...] | None = None
+
+    async def fetchrow(self, _query: str, *args: object):
+        self.fetchrow_args = args
+        return {
+            "user_account_id": "account-a",
+            "display_name": "Synthetic Member",
+            "preferred_locale": "en",
+            "corporate_entity_id": "entity-a",
+            "process_unit_id": "process-a",
+        }
+
+    async def fetch(self, _query: str, *args: object):
+        self.fetch_args = args
+        return [{"permission_code": "post_read"}]
+
+
+class _Acquire:
+    def __init__(self, connection: _Connection) -> None:
+        self.connection = connection
+
+    async def __aenter__(self) -> _Connection:
+        return self.connection
+
+    async def __aexit__(self, *_args: object) -> None:
+        return None
+
+
+class _Pool:
+    def __init__(self, connection: _Connection) -> None:
+        self.connection = connection
+
+    def acquire(self) -> _Acquire:
+        return _Acquire(self.connection)
+
+
+def test_keyverse_account_resolves_exact_scope_and_role_intersection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Verified claims select one DB affiliation; DB roles retain authority."""
+    connection = _Connection()
+    monkeypatch.setattr(
+        auth,
+        "load_settings",
+        lambda: SimpleNamespace(keyverse_claim_binding_required=True),
+    )
+    monkeypatch.setattr(
+        auth,
+        "_decode_access_token",
+        lambda *_args: {
+            "sub": "subject-a",
+            "org": "org-a",
+            "workspace": "workspace-a",
+            "role": ["member"],
+        },
+    )
+
+    account = asyncio.run(
+        auth.get_current_account(SimpleNamespace(credentials="token"), _Pool(connection))
+    )
+
+    assert connection.fetchrow_args == ("subject-a", "org-a", "workspace-a")
+    assert connection.fetch_args == ("account-a", ["member"])
+    assert account.corporate_entity_ids == frozenset({"entity-a"})
+    assert account.process_unit_ids == frozenset({"process-a"})
+    assert account.permission_codes == frozenset({"post_read"})
