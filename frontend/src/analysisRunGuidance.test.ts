@@ -93,23 +93,21 @@ describe("analysisRunGuidance", () => {
     expect(analysisRunCanRequestTeppRetry(pendingLineage)).toBe(false);
   });
 
-  it("fails closed when the backend returns an unknown kind or status", () => {
+  it("fails closed with reader-safe guidance for an unknown kind or status", () => {
     const pending = run({ run_kind_code: "analysis_run_lineage", status_code: "analysis_status_pending" });
     const unknownKind = { ...pending, run_kind_code: "unknown_kind" } as unknown as AnalysisRun;
     const unknownStatus = { ...pending, status_code: "unknown_status" } as unknown as AnalysisRun;
+    const unsupported =
+      "This analysis run uses a kind or status this version cannot display. Refresh after the application is updated.";
 
-    expect(() => analysisRunNextAction(unknownKind)).toThrow("unexpected analysis run kind");
-    expect(() => analysisRunNextAction({ ...unknownKind, status_code: "analysis_status_failed" })).toThrow(
-      "unexpected analysis run kind",
-    );
-    expect(() => analysisRunNextAction({ ...unknownKind, status_code: "analysis_status_running" })).toThrow(
-      "unexpected analysis run kind",
-    );
-    expect(() => analysisRunNextAction(unknownStatus)).toThrow("unexpected analysis run status");
-    expect(() => analysisRunEmptyPostsHint(unknownKind)).toThrow("unexpected analysis run kind");
-    expect(() => analysisRunCorpusHint({ ...unknownStatus, run_kind_code: "analysis_run_tepp" })).toThrow(
-      "unexpected analysis run status",
-    );
+    expect(analysisRunNextAction(unknownKind)).toBe(unsupported);
+    expect(analysisRunNextAction({ ...unknownKind, status_code: "analysis_status_failed" })).toBe(unsupported);
+    expect(analysisRunNextAction({ ...unknownKind, status_code: "analysis_status_running" })).toBe(unsupported);
+    expect(analysisRunNextAction(unknownStatus)).toBe(unsupported);
+    expect(analysisRunEmptyPostsHint(unknownKind)).toBe(unsupported);
+    expect(analysisRunCorpusHint({ ...unknownStatus, run_kind_code: "analysis_run_tepp" })).toBe(unsupported);
+    expect(unsupported).not.toContain("unknown_kind");
+    expect(unsupported).not.toContain("unknown_status");
   });
 
   it("gives failed lineage a reconstruction next action and no start-over or TEPP copy", () => {

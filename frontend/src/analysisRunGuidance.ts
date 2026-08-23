@@ -1,5 +1,10 @@
 import type { AnalysisRun } from "./api";
 
+function unsupportedAnalysisRunGuidance(value: never): string {
+  void value;
+  return "This analysis run uses a kind or status this version cannot display. Refresh after the application is updated.";
+}
+
 /**
  * Home-list caption: kind · status · entity (ADR 0014).
  */
@@ -23,8 +28,7 @@ export function analysisRunNextAction(run: AnalysisRun): string | null {
         case "analysis_run_report":
           return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
         default: {
-          const unexpected: never = run.run_kind_code;
-          throw new Error(`unexpected analysis run kind: ${unexpected}`);
+          return unsupportedAnalysisRunGuidance(run.run_kind_code);
         }
       }
     case "analysis_status_failed":
@@ -36,8 +40,7 @@ export function analysisRunNextAction(run: AnalysisRun): string | null {
         case "analysis_run_report":
           return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
         default: {
-          const unexpected: never = run.run_kind_code;
-          throw new Error(`unexpected analysis run kind: ${unexpected}`);
+          return unsupportedAnalysisRunGuidance(run.run_kind_code);
         }
       }
     case "analysis_status_running":
@@ -49,8 +52,7 @@ export function analysisRunNextAction(run: AnalysisRun): string | null {
         case "analysis_run_report":
           return "Refresh this run. The period report is already queued on the durable outbox.";
         default: {
-          const unexpected: never = run.run_kind_code;
-          throw new Error(`unexpected analysis run kind: ${unexpected}`);
+          return unsupportedAnalysisRunGuidance(run.run_kind_code);
         }
       }
     case "analysis_status_succeeded":
@@ -58,8 +60,7 @@ export function analysisRunNextAction(run: AnalysisRun): string | null {
     case null:
       return null;
     default: {
-      const unexpected: never = run.status_code;
-      throw new Error(`unexpected analysis run status: ${unexpected}`);
+      return unsupportedAnalysisRunGuidance(run.status_code);
     }
   }
 }
@@ -82,8 +83,7 @@ export function analysisRunEmptyPostsHint(run: AnalysisRun): string {
         "Open a later run, or ask an administrator to capture a newer snapshot."
       );
     default: {
-      const unexpected: never = run.run_kind_code;
-      throw new Error(`unexpected analysis run kind: ${unexpected}`);
+      return unsupportedAnalysisRunGuidance(run.run_kind_code);
     }
   }
 }
@@ -109,8 +109,7 @@ export function analysisRunCorpusHint(run: AnalysisRun): string | null {
     case null:
       return "These posts are the cutoff corpus attached to this TEPP run.";
     default: {
-      const unexpected: never = run.status_code;
-      throw new Error(`unexpected analysis run status: ${unexpected}`);
+      return unsupportedAnalysisRunGuidance(run.status_code);
     }
   }
 }
