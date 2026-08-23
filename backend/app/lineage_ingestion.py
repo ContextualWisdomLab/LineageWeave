@@ -86,9 +86,10 @@ async def load_estimated_channel_weights(
     the fallback constants.
     """
     try:
-        rows = await conn.fetch(
-            "select channel_code, weight_value from lineage_channel_weight"
-        )
+        async with conn.transaction():
+            rows = await conn.fetch(
+                "select channel_code, weight_value from lineage_channel_weight"
+            )
     except asyncpg.UndefinedTableError:
         return None
     persisted = {row["channel_code"]: float(row["weight_value"]) for row in rows}
