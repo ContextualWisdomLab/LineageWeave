@@ -395,6 +395,13 @@ def test_support_profile_imports_prov_o_and_maps_product_classes() -> None:
         OWL.imports,
         URIRef("http://www.w3.org/ns/prov-o#"),
     ) in profile
+    assert (
+        ontology_iri,
+        OWL.imports,
+        URIRef(
+            "https://contextualwisdomlab.github.io/lineageweave/ontology/namespace-compatibility.ttl"
+        ),
+    ) in profile
     assert (local.Post, RDFS.subClassOf, PROV.Entity) in profile
     assert (local.Person, RDFS.subClassOf, PROV.Person) in profile
     assert (local.CorporateEntity, RDFS.subClassOf, PROV.Organization) in profile
