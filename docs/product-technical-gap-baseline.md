@@ -69,6 +69,11 @@ branch. Its six-file, +166/-2 compatibility-publication slice is intentionally
 minimal, but remains stack evidence only; it is not a protected-`main` merge
 or independent approval.
 
+Live publication remained incomplete at 2026-08-23 23:07 KST: the lowercase
+ontology URL, repository-case ontology URL, and repository-case
+`namespace-compatibility.ttl` URL each returned HTTP 404. Source and active-PR
+publication contracts therefore do not prove an available public endpoint.
+
 Current active-PR evidence remains outside protected `main`:
 
 - PR #258 at `f4ebfc684cdd6017255712cc4be37528cbb7d21a` carries ADR 0146's
