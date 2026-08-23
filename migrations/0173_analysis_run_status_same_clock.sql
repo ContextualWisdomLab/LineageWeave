@@ -1,4 +1,4 @@
--- Analysis-run status events share one PostgreSQL write clock (ADR 0167).
+-- Analysis-run status events share one PostgreSQL write clock (ADR 0171).
 --
 -- Replaces enforce_analysis_run_status_transition so recorded_at cannot
 -- precede occurred_at when a caller supplies a clock that is slightly

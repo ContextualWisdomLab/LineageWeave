@@ -1,4 +1,4 @@
-# ADR 0167 — Analysis-run status events share one PostgreSQL write clock
+# ADR 0171 — Analysis-run status events share one PostgreSQL write clock
 
 **Decision status:** Accepted
 **Date:** 2026-08-24

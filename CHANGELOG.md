@@ -18,7 +18,7 @@ All notable changes to this project are documented here. Format follows
 
 - Starting a Pending lineage reconstruction or TEPP measurement no
   longer fails on `analysis_run_status_time_check` when the process
-  clock is 15–20 ms ahead of PostgreSQL (ADR 0167). Status events
+  clock is 15–20 ms ahead of PostgreSQL (ADR 0171). Status events
   stamp `occurred_at` and `recorded_at` from one `clock_timestamp()`,
   and the transition trigger raises `recorded_at` if a caller
   occurrence is already ahead. After `make seed`, Open the Demo Corp
@@ -81,7 +81,7 @@ All notable changes to this project are documented here. Format follows
   concurrency/load artifact) and entirely pre-existing (verified via
   `git diff` that no file in this change touches
   `analysis_run_start.py` or the 0018 migration that defines this
-  constraint). Root cause identified in ADR 0167 / v2.12.19: the
+  constraint). Root cause identified in ADR 0171 / v2.12.19: the
   supplied occurrence can sit ahead of the trigger write clock, so
   `recorded_at` must share that clock or be raised to `occurred_at`.
   Fixed in [2.12.19](#21219---2026-08-24). 553 other tests unaffected.

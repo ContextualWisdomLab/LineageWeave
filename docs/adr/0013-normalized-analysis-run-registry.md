@@ -138,7 +138,7 @@ the run request. Failed events require a lowercase machine-code identifier; raw
 exception text is prohibited. `recorded_at` is overwritten with database system
 time on every insert and cannot precede `occurred_at`. When a caller supplies
 an occurrence already ahead of that write clock, `recorded_at` is raised to
-`occurred_at` so the check holds without rewriting occurrence (ADR 0167).
+`occurred_at` so the check holds without rewriting occurrence (ADR 0171).
 `analysis_run_current_status` is a view, not a second mutable state authority.
 
 ### Authorization scope

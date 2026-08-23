@@ -31,7 +31,7 @@ general-purpose bitemporal database:
 - `occurred_at` and `recorded_at` distinguish lifecycle occurrence from durable
   database recording. Product inserts stamp both from one PostgreSQL
   `clock_timestamp()`; the transition trigger raises `recorded_at` when a
-  caller occurrence is already ahead (ADR 0167).
+  caller occurrence is already ahead (ADR 0171).
 
 The database requires the aggregate leakage boundary:
 

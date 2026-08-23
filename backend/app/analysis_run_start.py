@@ -290,7 +290,7 @@ async def _append_status(
 
     Occurrence and recording share one PostgreSQL ``clock_timestamp()``
     so ``analysis_run_status_time_check`` cannot see a Python clock that
-    is ahead of the trigger write clock (ADR 0167).
+    is ahead of the trigger write clock (ADR 0171).
     """
     await conn.execute(
         """
