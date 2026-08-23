@@ -447,7 +447,7 @@ class _BlockTextExtractor(HTMLParser):
         self._stack: list[tuple[str, list[str], str | None, int, bool]] = []
         self._unscoped_buffer: list[str] = []
         self._script_stack: list[str] = []
-        self._table_cell_count = 0
+        self._table_cell_counts: list[int] = []
         # Each entry is ("text", str, tag_name, style) or
         # ("image", (mime_type, bytes), "", None) -- a single sequence in
         # true document order, so an image's index among its siblings
@@ -486,17 +486,20 @@ class _BlockTextExtractor(HTMLParser):
         if tag in _TABLE_CELL_TAGS:
             self._script_stack.clear()
             if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS:
-                if self._table_cell_count:
+                if self._table_cell_counts[-1]:
                     self._stack[-1][1].append(" | ")
-                self._table_cell_count += 1
+                self._table_cell_counts[-1] += 1
             return
         # A rich-text editor commonly wraps a table cell in a nested <p> or
         # <div>. Keep that content in the open row; otherwise the nested block
         # closes first and destroys the row/column boundary.
-        if any(entry[0] in _TABLE_ROW_TAGS for entry in self._stack):
+        if (
+            tag not in _TABLE_ROW_TAGS
+            and any(entry[0] in _TABLE_ROW_TAGS for entry in self._stack)
+        ):
             return
         if tag in _DOM_BLOCK_TAGS:
-            if self._stack and self._stack[-1][1]:
+            if tag not in _TABLE_ROW_TAGS and self._stack and self._stack[-1][1]:
                 tag_name, buffer, style, _, is_footnote = self._stack[-1]
                 declared_width = sum(entry[3] for entry in self._stack)
                 self._finish_block(tag_name, buffer, style, declared_width, is_footnote)
@@ -509,7 +512,7 @@ class _BlockTextExtractor(HTMLParser):
                 (tag, [], style, _declared_indent_width(tag, attrs), is_footnote)
             )
             if tag in _TABLE_ROW_TAGS:
-                self._table_cell_count = 0
+                self._table_cell_counts.append(0)
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Handle self-closing block tags without losing XML indentation state."""
@@ -552,7 +555,7 @@ class _BlockTextExtractor(HTMLParser):
         self._script_stack.clear()
         raw_text = "".join(buffer)
         if tag_name in _TABLE_ROW_TAGS:
-            self._table_cell_count = 0
+            self._table_cell_counts.pop()
         for raw_unit, source_indent in _split_dom_units(raw_text):
             text = normalize_semantic_text(raw_unit)
             if text:

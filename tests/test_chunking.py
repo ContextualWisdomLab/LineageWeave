@@ -115,6 +115,35 @@ def test_chunk_by_dom_preserves_empty_table_cells() -> None:
     ]
 
 
+def test_chunk_by_dom_preserves_self_closing_empty_table_cells() -> None:
+    html_chunks = chunk_by_dom(
+        "<table><tr><td>Left</td><td/><td>Right</td></tr></table>"
+    )
+    word_chunks = chunk_by_dom(
+        "<w:tbl><w:tr><w:tc>Left</w:tc><w:tc/><w:tc>Right</w:tc></w:tr></w:tbl>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in html_chunks] == [
+        ("tr", "Left |  | Right")
+    ]
+    assert [(chunk.label, chunk.text) for chunk in word_chunks] == [
+        ("w:tr", "Left |  | Right")
+    ]
+
+
+def test_chunk_by_dom_scopes_cell_positions_to_nested_table_rows() -> None:
+    chunks = chunk_by_dom(
+        "<table><tr><td>Outer left"
+        "<table><tr><td>Inner left</td><td>Inner right</td></tr></table>"
+        "</td><td>Outer right</td></tr></table>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "Inner left | Inner right"),
+        ("tr", "Outer left | Outer right"),
+    ]
+
+
 def test_chunk_by_dom_does_not_infer_a_footnote_from_a_bare_marker() -> None:
     chunks = chunk_by_dom("<p>Body text</p><p>*Synthetic list item</p>")
     assert [(chunk.label, chunk.text) for chunk in chunks] == [
