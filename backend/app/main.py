@@ -2626,7 +2626,7 @@ async def ask_agent(
     """Answer a buyer question from authorized post and graph evidence."""
     question = request.question.strip()
     if not question:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "question is required")
     _require_post_read(account)
     client = _post_chat_client()
     if not client.available:

@@ -30,7 +30,12 @@ Keyman.
 4. Extract semantic project mentions through the existing post-summary
    orchestrator path. Persist and expose canonical key, display name, evidence
    phrase, confidence, ontology IRI, and extraction method in
-   `post_project_mention` and the summary API.
+   `post_project_mention` and the summary API. The RDF projection models each
+   mention as an `rdf:Statement`: `rdf:subject` is the post, `rdf:predicate` is
+   `:mentionsProject`, and `rdf:object` is the project.
+   Because those RDF reification terms are reserved identifiers in OWL 2 DL,
+   the ontology explicitly uses OWL 2 Full with RDF-Based Semantics; it does
+   not claim the OWL 2 DL profile.
 5. Project period reports union non-empty imported project keys with semantic
    project mentions whose confidence is at least `0.7`. A post may belong to
    multiple project groups. Lower-confidence candidates remain visible as
