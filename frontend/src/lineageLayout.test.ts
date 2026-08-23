@@ -189,6 +189,33 @@ describe("layoutLineageDag", () => {
     expect(group.nodes.every(({ x, y }) => Number.isFinite(x) && Number.isFinite(y))).toBe(true);
   });
 
+  it("positions a shared child once while retaining both visible parent edges", () => {
+    const [group] = layoutLineageDag({
+      nodes: ["root", "branch-a", "branch-b", "shared-child"].map((id) => ({
+        id,
+        group: "Converging import",
+        label: id,
+        occurred_at: "2026-01-01T00:00:00Z",
+        is_root: id === "root",
+        is_branch_point: id === "root",
+      })),
+      edges: [
+        { source: "root", target: "branch-a", fused_score: 0.9 },
+        { source: "root", target: "branch-b", fused_score: 0.88 },
+        { source: "branch-a", target: "shared-child", fused_score: 0.82 },
+        { source: "branch-b", target: "shared-child", fused_score: 0.8 },
+      ],
+    });
+
+    expect(group.edges).toHaveLength(4);
+    expect(group.nodes.map(({ id, x, y }) => ({ id, x, y }))).toEqual([
+      { id: "root", x: 28, y: 54 },
+      { id: "branch-a", x: 248, y: 28 },
+      { id: "branch-b", x: 248, y: 80 },
+      { id: "shared-child", x: 468, y: 28 },
+    ]);
+  });
+
   it("keeps a valid relationship between two ungrouped visible nodes", () => {
     const [group] = layoutLineageDag({
       nodes: [

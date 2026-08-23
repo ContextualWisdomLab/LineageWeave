@@ -31,6 +31,12 @@ count. This preserves the backend's eligibility/ABAC decision when a partial
 or stale client payload reaches the renderer; an invisible relationship must
 not survive as buyer-facing aggregate evidence.
 
+Within one visible group, the layout may receive a converging DAG or a cyclic
+import. It retains every visible edge, positions a shared child once on the
+first deterministic walk, and excludes already-positioned or active-path
+children from recursive re-entry. This prevents non-termination and repeated
+placement without rewriting the stored graph.
+
 ## Consequences
 
 - Opening a related post shows all visible nodes in its connected lineage
@@ -42,6 +48,8 @@ not survive as buyer-facing aggregate evidence.
   remains authenticated and ABAC-filtered.
 - Captions count the same authorized, renderable edges that the buyer can see;
   a relationship to an omitted node cannot leak through a count.
+- A converging child has one stable SVG position while every authorized parent
+  edge remains visible.
 
 ## Alternatives rejected
 
