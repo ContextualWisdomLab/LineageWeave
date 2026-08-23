@@ -13,7 +13,9 @@ All notable changes to this project are documented here. Format follows
   falling back to character-overlap matching -- reduces the case where two
   posts about unrelated topics that happen to share common words or
   sentence structure get linked as parent/child within a coarsely-grouped
-  bucket (ADR 0190).
+  bucket (ADR 0190). Cosine similarity is clamped into `[0, 1]`, not
+  remapped from `[-1, 1]`, since real embeddings never place a genuinely
+  unrelated pair near the fully-opposite end of that range.
 - Corpus-wide lineage rebuilds now run synchronous orchestrator adjudication
   off the API event-loop thread and before the short atomic projection-write
   transaction. A temporary adjudication failure leaves the existing graph
