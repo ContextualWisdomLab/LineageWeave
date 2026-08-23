@@ -1,0 +1,48 @@
+# ADR 0126: Persisted Global Ask Conversation History
+
+* Status: Accepted
+* Date: 2026-08-21
+* Supersedes: the non-persistence consequence in ADR 0090
+
+## Context
+
+Global Ask currently keeps its rendered turns only in the browser. Leaving the
+Ask destination loses the question history, which makes the product behave
+differently from the conversation surface it presents. ADR 0090 deliberately
+left persisted multi-turn state for a later phase; the reader surface now
+explicitly requires that state.
+
+## Decision
+
+Persist Global Ask conversations and completed turns under the authenticated
+`user_account`. Store the question, answer, next action, retrieved source-post
+ids, cited post ids, and reader-safe evidence facts in normalized tables. A
+conversation id is explicit API state; it is never represented as a fake
+post-scoped orchestrator session id.
+
+The existing evidence retrieval and contextual-orchestrator boundary remain
+unchanged. A turn is written only after the orchestrator returns a complete
+answer object (including the authorized-no-source result). The history read
+path owns only the requesting account's conversations and re-applies the
+current post visibility rule before returning source titles, citations, or
+evidence.
+
+This is transcript persistence, not a new long-context prompt contract. The
+orchestrator continues to receive the current question and its bounded,
+authorized evidence set. Conversation summarization or cross-turn reasoning
+requires a separate ADR and upstream orchestrator contract.
+
+## Consequences
+
+* Ask history survives navigation and a new authenticated browser session.
+* A user cannot read another account's conversation by changing a UUID.
+* Revoked post visibility removes that post's source/citation projection from
+  history; the stored answer remains account-owned transcript data.
+* The UI can select an existing conversation or start a new one without
+  changing the existing `/api/ask` evidence contract.
+* Reauthorization for a conversation's turns is batched (`_visible_post_ids_batch`
+  / `_turn_evidence_batch`, one query per relation type per page instead of
+  per turn), so query count stays bounded by `turn_limit` rather than
+  growing with exchange count. Same fail-closed, per-turn authorization
+  boundary as before -- issue #358 (originally an implementation detail
+  raised on PR #342's exact-head review, not a new decision).

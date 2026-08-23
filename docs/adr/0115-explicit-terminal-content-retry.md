@@ -14,10 +14,12 @@ would silently weaken the retry limit and could create an endless loop.
 ## Decision
 
 Keep automatic retry and read-time behavior unchanged. Provide an explicit,
-single-post operator command that may requeue only a `failed` job, resets its
-attempt counter, recomputes the current source-body digest, appends an audit
+single-post operator command that may requeue only a `failed` job, starts a new
+bounded retry cycle, recomputes the current source-body digest, appends an audit
 status event, and publishes one Valkey wake-up. The command is not exposed as
-a public HTTP route and does not reset a queued, running, or succeeded job.
+a public HTTP route and does not reset a queued, running, or succeeded job. It
+never resets the monotonic `attempt_count` claim identity; a later claim must
+remain distinguishable from every worker that ran before the operator retry.
 
 The command must use the existing queue function and must not call a provider
 directly. It is an operational recovery action, not a buyer-visible status
@@ -25,10 +27,12 @@ override; the worker still performs the normal VISION, structure, and
 embedding completeness checks.
 
 The synchronous operator backfill is a separate repair path. After it
-persists derived evidence, it must call the queue module's ledger-finalization
-function in a database transaction. It must never leave a previously failed
-job marked failed while presenting newly persisted content as a successful
-backfill.
+finishes provider work, it must call the queue module's ledger-finalization
+function and replace derived evidence in one database transaction. The
+finalizer locks and rechecks the current raw body and rejects an active worker;
+artifact replacement and ledger success therefore commit or roll back
+together. It must never leave a previously failed job marked failed while
+presenting newly persisted content as a successful backfill.
 
 ## Consequences
 

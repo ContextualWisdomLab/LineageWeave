@@ -1,6 +1,6 @@
 """Bounded operator backfill for evidence-backed Keyman extraction.
 
-This is intentionally an operator script, not a buyer HTTP route. It reuses
+This is intentionally an operator script, not a reader-facing HTTP route. It reuses
 the same contextual-orchestrator boundary and post session metadata as the
 per-post extraction endpoint, while keeping the default request count small.
 """
@@ -58,16 +58,25 @@ async def _select_posts(
                  where post.post_id = $1
                    and nullif(btrim(post.source_draft_code), '') is null
                    and nullif(btrim(post.source_deleted_flag), '') is null
+                   and coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'
                    and not (
                        (
-                           nullif(btrim(post.source_author_code), '') is null
+                           nullif(btrim(post.source_system_code), '') is null
+                           and nullif(btrim(post.source_record_key), '') is null
+                           and nullif(btrim(post.source_author_code), '') is null
                            and nullif(btrim(post.source_author_name), '') is null
                            and nullif(btrim(post.source_company_code), '') is null
                            and nullif(btrim(post.source_company_name), '') is null
                            and nullif(btrim(post.source_process_unit_code), '') is null
                            and nullif(btrim(post.source_process_unit_name), '') is null
+                           and nullif(btrim(post.source_stage_code), '') is null
+                           and nullif(btrim(post.source_detail_state_code), '') is null
                            and nullif(btrim(post.source_sales_pool_code), '') is null
                            and nullif(btrim(post.source_sales_pool_name), '') is null
+                           and nullif(btrim(post.source_order_pool_code), '') is null
+                           and nullif(btrim(post.source_sales_order_code), '') is null
+                           and nullif(btrim(post.source_sales_order_item_number::text), '') is null
+                           and nullif(btrim(post.source_inspection_point_code), '') is null
                            and nullif(btrim(post.source_customer_code), '') is null
                            and nullif(btrim(post.source_customer_name), '') is null
                            and nullif(btrim(post.source_project_code), '') is null
@@ -77,14 +86,22 @@ async def _select_posts(
                            select 1
                              from source_post real_post
                             where (
-                                nullif(btrim(real_post.source_author_code), '') is not null
+                                nullif(btrim(real_post.source_system_code), '') is not null
+                                or nullif(btrim(real_post.source_record_key), '') is not null
+                                or nullif(btrim(real_post.source_author_code), '') is not null
                                 or nullif(btrim(real_post.source_author_name), '') is not null
                                 or nullif(btrim(real_post.source_company_code), '') is not null
                                 or nullif(btrim(real_post.source_company_name), '') is not null
                                 or nullif(btrim(real_post.source_process_unit_code), '') is not null
                                 or nullif(btrim(real_post.source_process_unit_name), '') is not null
+                                or nullif(btrim(real_post.source_stage_code), '') is not null
+                                or nullif(btrim(real_post.source_detail_state_code), '') is not null
                                 or nullif(btrim(real_post.source_sales_pool_code), '') is not null
                                 or nullif(btrim(real_post.source_sales_pool_name), '') is not null
+                                or nullif(btrim(real_post.source_order_pool_code), '') is not null
+                                or nullif(btrim(real_post.source_sales_order_code), '') is not null
+                                or nullif(btrim(real_post.source_sales_order_item_number::text), '') is not null
+                                or nullif(btrim(real_post.source_inspection_point_code), '') is not null
                                 or nullif(btrim(real_post.source_customer_code), '') is not null
                                 or nullif(btrim(real_post.source_customer_name), '') is not null
                                 or nullif(btrim(real_post.source_project_code), '') is not null
@@ -106,16 +123,25 @@ async def _select_posts(
               from source_post post
              where nullif(btrim(post.source_draft_code), '') is null
                and nullif(btrim(post.source_deleted_flag), '') is null
+               and coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'
                and not (
                    (
-                       nullif(btrim(post.source_author_code), '') is null
+                       nullif(btrim(post.source_system_code), '') is null
+                       and nullif(btrim(post.source_record_key), '') is null
+                       and nullif(btrim(post.source_author_code), '') is null
                        and nullif(btrim(post.source_author_name), '') is null
                        and nullif(btrim(post.source_company_code), '') is null
                        and nullif(btrim(post.source_company_name), '') is null
                        and nullif(btrim(post.source_process_unit_code), '') is null
                        and nullif(btrim(post.source_process_unit_name), '') is null
+                       and nullif(btrim(post.source_stage_code), '') is null
+                       and nullif(btrim(post.source_detail_state_code), '') is null
                        and nullif(btrim(post.source_sales_pool_code), '') is null
                        and nullif(btrim(post.source_sales_pool_name), '') is null
+                       and nullif(btrim(post.source_order_pool_code), '') is null
+                       and nullif(btrim(post.source_sales_order_code), '') is null
+                       and nullif(btrim(post.source_sales_order_item_number::text), '') is null
+                       and nullif(btrim(post.source_inspection_point_code), '') is null
                        and nullif(btrim(post.source_customer_code), '') is null
                        and nullif(btrim(post.source_customer_name), '') is null
                        and nullif(btrim(post.source_project_code), '') is null
@@ -125,14 +151,22 @@ async def _select_posts(
                        select 1
                          from source_post real_post
                         where (
-                            nullif(btrim(real_post.source_author_code), '') is not null
+                            nullif(btrim(real_post.source_system_code), '') is not null
+                            or nullif(btrim(real_post.source_record_key), '') is not null
+                            or nullif(btrim(real_post.source_author_code), '') is not null
                             or nullif(btrim(real_post.source_author_name), '') is not null
                             or nullif(btrim(real_post.source_company_code), '') is not null
                             or nullif(btrim(real_post.source_company_name), '') is not null
                             or nullif(btrim(real_post.source_process_unit_code), '') is not null
                             or nullif(btrim(real_post.source_process_unit_name), '') is not null
+                            or nullif(btrim(real_post.source_stage_code), '') is not null
+                            or nullif(btrim(real_post.source_detail_state_code), '') is not null
                             or nullif(btrim(real_post.source_sales_pool_code), '') is not null
                             or nullif(btrim(real_post.source_sales_pool_name), '') is not null
+                            or nullif(btrim(real_post.source_order_pool_code), '') is not null
+                            or nullif(btrim(real_post.source_sales_order_code), '') is not null
+                            or nullif(btrim(real_post.source_sales_order_item_number::text), '') is not null
+                            or nullif(btrim(real_post.source_inspection_point_code), '') is not null
                             or nullif(btrim(real_post.source_customer_code), '') is not null
                             or nullif(btrim(real_post.source_customer_name), '') is not null
                             or nullif(btrim(real_post.source_project_code), '') is not null

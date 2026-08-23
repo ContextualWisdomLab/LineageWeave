@@ -12,10 +12,9 @@ from .ontology import ontology_annotations
 
 FIVE_W1H_SLOTS = ("who", "what", "when", "where", "why", "how")
 _SLOT_LOOKUP_CODES = {
-    "who": ("prov_person", "prov_organization", "prov_team"),
+    "who": ("prov_person", "prov_organization", "prov_team", "prov_software_agent"),
     "what": ("node_post",),
     "when": (),
-    "where": ("prov_organization",),
     "why": (),
     "how": (),
 }
@@ -50,7 +49,6 @@ def assemble_five_w1h_slots(
     *,
     roles: list[dict[str, Any]],
     key_events: list[str],
-    counterparties: list[str] | None = None,
     lineage_node_labels: list[str] | None = None,
     evidence_claims: list[dict[str, Any]] | None = None,
 ) -> dict[str, list[dict[str, Any]]]:
@@ -70,13 +68,6 @@ def assemble_five_w1h_slots(
         item = _value(role.get("actor_name"), "post_summary_role", (actor_type,))
         if item:
             slots["who"].append(item)
-        affiliation = _value(
-            role.get("affiliated_organization_name"),
-            "post_summary_role.affiliated_organization_name",
-            ("prov_organization",),
-        )
-        if affiliation:
-            slots["where"].append(affiliation)
 
     for event in key_events:
         item = _value(event, "post_summary_event", _SLOT_LOOKUP_CODES["what"])
@@ -99,11 +90,6 @@ def assemble_five_w1h_slots(
             item = _value(title, "post_lineage_edge", _SLOT_LOOKUP_CODES["what"])
             if item:
                 slots["what"].append(item)
-
-    for name in counterparties or []:
-        item = _value(name, "post_counterparty_entity", ("prov_organization",))
-        if item:
-            slots["where"].append(item)
 
     return {slot: _unique(values) for slot, values in slots.items()}
 

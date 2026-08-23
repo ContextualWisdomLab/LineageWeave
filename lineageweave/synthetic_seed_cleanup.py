@@ -30,6 +30,16 @@ async def cleanup_synthetic_seed(conn: Any, *, apply: bool = False) -> dict[str,
            and nullif(btrim(post.source_customer_name), '') is null
            and nullif(btrim(post.source_project_code), '') is null
            and nullif(btrim(post.source_project_name), '') is null
+           and nullif(btrim(post.source_system_code), '') is null
+           and nullif(btrim(post.source_record_key), '') is null
+           and nullif(btrim(post.source_stage_code), '') is null
+           and nullif(btrim(post.source_detail_state_code), '') is null
+           and nullif(btrim(post.source_draft_code), '') is null
+           and nullif(btrim(post.source_deleted_flag), '') is null
+           and nullif(btrim(post.source_order_pool_code), '') is null
+           and nullif(btrim(post.source_sales_order_code), '') is null
+           and post.source_sales_order_item_number is null
+           and nullif(btrim(post.source_inspection_point_code), '') is null
            and entity.corporate_entity_code like 'DEMO-%'
            and exists (
                select 1
@@ -48,6 +58,16 @@ async def cleanup_synthetic_seed(conn: Any, *, apply: bool = False) -> dict[str,
                       or nullif(btrim(real_post.source_customer_name), '') is not null
                       or nullif(btrim(real_post.source_project_code), '') is not null
                       or nullif(btrim(real_post.source_project_name), '') is not null
+                      or nullif(btrim(real_post.source_system_code), '') is not null
+                      or nullif(btrim(real_post.source_record_key), '') is not null
+                      or nullif(btrim(real_post.source_stage_code), '') is not null
+                      or nullif(btrim(real_post.source_detail_state_code), '') is not null
+                      or nullif(btrim(real_post.source_draft_code), '') is not null
+                      or nullif(btrim(real_post.source_deleted_flag), '') is not null
+                      or nullif(btrim(real_post.source_order_pool_code), '') is not null
+                      or nullif(btrim(real_post.source_sales_order_code), '') is not null
+                      or real_post.source_sales_order_item_number is not null
+                      or nullif(btrim(real_post.source_inspection_point_code), '') is not null
                   )
            )
         """

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime
+from uuid import UUID
 
 from backend.app.post_chat_ingestion import gather_global_chat_sources
+from lineageweave.tepp_client import TeppClient
 
 
 def test_global_sources_apply_visibility_before_normalization() -> None:
@@ -46,6 +49,183 @@ def test_global_sources_apply_visibility_before_normalization() -> None:
     assert [source.post_id for source in sources] == ["public-post", "private-affiliated"]
     assert sources[0].post_body == "public body"
     assert sources[1].post_body == "affiliated body"
+
+
+def test_global_sources_apply_reader_eligibility_before_limit() -> None:
+    calls: list[str] = []
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            calls.append(query)
+            if "matched_in" in query:
+                return [{"post_id": "draft-post", "matched_in": "title"}]
+            if "array_position($2::uuid[], post_id)" in query:
+                return []
+            return []
+
+    asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(), lambda _row: True, question="draft", limit=1
+        )
+    )
+
+    source_query = next(query for query in calls if "array_position($2::uuid[], post_id)" in query)
+    candidate_query = next(query for query in calls if "matched_in" in query)
+    assert "authorized_source_post" in candidate_query
+    assert "source_draft_code" in candidate_query
+    assert "source_deleted_flag" in candidate_query
+    assert "source_draft_code" in source_query
+    assert "source_deleted_flag" in source_query
+
+
+def test_global_sources_normalize_authorized_uuid_values_for_text_array() -> None:
+    received = []
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            if "matched_in" in query:
+                received.extend(args[1])
+            return []
+
+    entity_id = UUID("00000000-0000-0000-0000-000000000001")
+    asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(), lambda _row: True, [entity_id], question="evidence"
+        )
+    )
+
+    assert received == [str(entity_id)]
+
+
+def test_global_sources_use_tepp_temporal_context_without_claiming_causality() -> None:
+    now = datetime(2026, 8, 23, tzinfo=UTC)
+    rows = [
+        {
+            "post_id": post_id,
+            "post_title": post_id,
+            "post_body": "synthetic body",
+            "visibility_code": "public",
+            "corporate_entity_id": None,
+            "author_account_id": f"actor-{index}",
+            "created_at": now.replace(day=20 + index),
+            "updated_at": now.replace(day=20 + index),
+            "semantic_event_time": now.replace(day=20 + index).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "semantic_event_available_at": now.replace(day=20 + index),
+        }
+        for index, post_id in enumerate(("prior-post", "anchor-post"))
+    ]
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            if "array_position($2::uuid[], post_id)" in query:
+                return rows
+            return []
+
+    client = TeppClient(
+        temporal_transport=lambda _payload: {
+            "contract_version": 1,
+            "claim_boundary": "association_not_causal",
+            "timeline_events": [
+                {
+                    "event_id": "semantic-event:prior-post",
+                    "source_post_id": "prior-post",
+                    "event_type_code": "semantic_event",
+                    "event_label": "Persisted semantic event",
+                    "event_time": "2026-08-20T00:00:00Z",
+                    "project_reference": None,
+                    "actor_references": ["actor-0"],
+                    "sequence_ordinal": 0,
+                    "is_subject": False,
+                },
+                {
+                    "event_id": "semantic-event:anchor-post",
+                    "source_post_id": "anchor-post",
+                    "event_type_code": "semantic_event",
+                    "event_label": "Persisted semantic event",
+                    "event_time": "2026-08-21T00:00:00Z",
+                    "project_reference": None,
+                    "actor_references": ["actor-1"],
+                    "sequence_ordinal": 1,
+                    "is_subject": True,
+                },
+            ],
+            "temporal_relations": [
+                {
+                    "from_event_id": "semantic-event:prior-post",
+                    "to_event_id": "semantic-event:anchor-post",
+                    "relation_code": "before",
+                }
+            ],
+            "transition_gap_candidates": [
+                {
+                    "from_event_id": "semantic-event:prior-post",
+                    "to_event_id": "semantic-event:anchor-post",
+                    "evidence_status_code": "candidate_not_causal",
+                }
+            ],
+            "source_post_ids": ["prior-post", "anchor-post"],
+        }
+    )
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda _row: True,
+            anchor_post_id="anchor-post",
+            tepp_client=client,
+        )
+    )
+
+    assert [source.post_id for source in sources] == ["anchor-post", "prior-post"]
+    assert "association_not_causal" in sources[1].evidence_facts[-1]
+
+
+def test_global_sources_use_post_recorded_boundary_without_semantic_event_time() -> None:
+    called = False
+    received = None
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            if "array_position($2::uuid[], post_id)" in query:
+                return [
+                    {
+                        "post_id": post_id,
+                        "post_title": post_id,
+                        "post_body": "synthetic body",
+                        "visibility_code": "public",
+                        "corporate_entity_id": None,
+                        "author_account_id": "synthetic-actor",
+                        "created_at": datetime(2026, 8, 20 + index, tzinfo=UTC),
+                        "updated_at": datetime(2026, 8, 20 + index, tzinfo=UTC),
+                        "semantic_event_time": None,
+                        "semantic_event_available_at": None,
+                    }
+                    for index, post_id in enumerate(("prior-post", "anchor-post"))
+                ]
+            return []
+
+    def temporal_transport(_payload):
+        nonlocal called, received
+        called = True
+        received = _payload
+        raise OSError("synthetic unavailable transport")
+
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda _row: True,
+            anchor_post_id="anchor-post",
+            tepp_client=TeppClient(temporal_transport=temporal_transport),
+        )
+    )
+
+    assert len(sources) == 2
+    assert called is True
+    assert [event["event_type_code"] for event in received["events"]] == [
+        "post_recorded",
+        "post_recorded",
+    ]
+    assert all(event["event_time"] == event["available_time"] for event in received["events"])
+    assert all("TEPP temporal context" not in fact for source in sources for fact in source.evidence_facts)
 
 
 def test_global_sources_prioritize_question_terms_and_bound_long_bodies() -> None:
@@ -170,7 +350,7 @@ def test_global_sources_keep_hyphenated_source_codes_atomic() -> None:
     assert candidate_terms == ["p41-4182-202405-0015"]
 
 
-def test_global_sources_keep_unicode_search_terms_for_localized_buyers() -> None:
+def test_global_sources_keep_unicode_search_terms_for_localized_readers() -> None:
     calls: list[tuple[str, tuple[object, ...]]] = []
 
     class FakeConnection:
@@ -189,6 +369,26 @@ def test_global_sources_keep_unicode_search_terms_for_localized_buyers() -> None
 
     candidate_terms = [args[0] for query, args in calls if "matched_in" in query]
     assert candidate_terms == ["无人机", "ドローン", "dự-án"]
+
+
+def test_global_sources_drop_generic_korean_predecessor_words() -> None:
+    calls = []
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            calls.append(query)
+            return []
+
+    asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda _row: True,
+            question="앞쪽에 있는 유관 이벤트를 찾아줘",
+            anchor_post_id="00000000-0000-0000-0000-000000000002",
+        )
+    )
+
+    assert not any("matched_in" in query for query in calls)
 
 
 def test_global_sources_keep_lineage_expansion_within_requested_limit() -> None:
@@ -291,7 +491,11 @@ def test_global_sources_expand_top_match_through_event_lineage() -> None:
     }
 
     class FakeConnection:
+        def __init__(self) -> None:
+            self.queries: list[str] = []
+
         async def fetch(self, query: str, *args):
+            self.queries.append(query)
             if "matched_in" in query:
                 return [matched_row]
             if "post_lineage_edge" in query:
@@ -300,9 +504,10 @@ def test_global_sources_expand_top_match_through_event_lineage() -> None:
                 return [matched_row, lineage_row]
             return []
 
+    connection = FakeConnection()
     sources = asyncio.run(
         gather_global_chat_sources(
-            FakeConnection(),
+            connection,
             lambda row: True,
             question="Northridge Grid capacity",
             limit=4,
@@ -310,11 +515,25 @@ def test_global_sources_expand_top_match_through_event_lineage() -> None:
     )
 
     assert [source.post_id for source in sources] == ["event-2", "event-1"]
-    assert sources[0].evidence_facts == ()
+    assert any(
+        "commercial_context=no_sales_identifier_candidate" in fact
+        for fact in sources[0].evidence_facts
+    )
+    assert any("source_lifecycle_vector=∅/∅/∅/∅" in fact for fact in sources[0].evidence_facts)
     assert any(
         "Event Lineage: reconstructed timeline neighbor of post_id=event-2" in fact
         for fact in sources[1].evidence_facts
     )
+    source_query = next(query for query in connection.queries if "array_position($2::uuid[], post_id)" in query)
+    for field_name in (
+        "source_order_pool_code",
+        "source_sales_order_code",
+        "source_sales_order_item_number",
+        "source_inspection_point_code",
+        "source_stage_code",
+        "source_deleted_flag",
+    ):
+        assert field_name in source_query
 
 
 def test_global_sources_do_not_leak_lineage_anchor_id_when_anchor_is_invisible() -> None:
@@ -357,4 +576,132 @@ def test_global_sources_do_not_leak_lineage_anchor_id_when_anchor_is_invisible()
     )
 
     assert [source.post_id for source in sources] == ["visible-neighbor"]
-    assert sources[0].evidence_facts == ()
+    assert any(
+        "commercial_context=no_sales_identifier_candidate" in fact
+        for fact in sources[0].evidence_facts
+    )
+
+
+def test_global_sources_use_selected_post_to_find_prior_semantic_event() -> None:
+    anchor = {
+        "post_id": "event-2",
+        "post_title": "Current event",
+        "post_body": "current body",
+        "visibility_code": "public",
+        "corporate_entity_id": None,
+    }
+    prior = {**anchor, "post_id": "event-1", "post_title": "Prior event"}
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            if "anchor_events" in query:
+                assert args[0] == "event-2"
+                assert "post.source_company_code = anchor.source_company_code" in query
+                assert "0.85 * (post.source_sales_order_code is not null" in query
+                return [{"post_id": "event-1", "relevance": 0.5}]
+            if "matched_in" in query:
+                return []
+            if "post_lineage_edge" in query:
+                return []
+            if "array_position($2::uuid[], post_id)" in query:
+                assert args[1][:2] == ["event-2", "event-1"]
+                return [anchor, prior]
+            return []
+
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda row: True,
+            question="what happened before?",
+            anchor_post_id="event-2",
+        )
+    )
+
+    assert [source.post_id for source in sources] == ["event-2", "event-1"]
+
+
+def test_global_sources_discover_ontology_declared_kg_sibling_and_fetch_candidates_only() -> None:
+    anchor = {
+        "post_id": "event-2",
+        "post_title": "Current event",
+        "post_body": "current body",
+        "visibility_code": "public",
+        "corporate_entity_id": None,
+    }
+    sibling = {**anchor, "post_id": "event-1", "post_title": "Prior graph event"}
+    source_query = ""
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            nonlocal source_query
+            if "with anchor_nodes as" in query:
+                return [
+                    {
+                        "post_id": "event-1",
+                        "edge_type_code": "edge_mention",
+                        "edge_weight": 1.0,
+                    },
+                    {
+                        "post_id": "ignored-post",
+                        "edge_type_code": "not_in_ontology",
+                        "edge_weight": 1.0,
+                    },
+                ]
+            if "anchor_events" in query or "matched_in" in query or "post_lineage_edge" in query:
+                return []
+            if "array_position($2::uuid[], post_id)" in query:
+                source_query = query
+                assert args[1][:2] == ["event-2", "event-1"]
+                assert "ignored-post" not in args[1]
+                return [anchor, sibling]
+            return []
+
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda _row: True,
+            anchor_post_id="event-2",
+        )
+    )
+
+    assert [source.post_id for source in sources] == ["event-2", "event-1"]
+    assert "post_id = any($2::uuid[])" in source_query
+
+
+def test_global_sources_keep_question_retrieval_with_selected_post() -> None:
+    anchor = {
+        "post_id": "event-2",
+        "post_title": "Current event",
+        "post_body": "current body",
+        "visibility_code": "public",
+        "corporate_entity_id": None,
+    }
+    question_match = {
+        **anchor,
+        "post_id": "question-match",
+        "post_title": "Northridge evidence",
+        "matched_in": "title",
+    }
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            if "matched_in" in query:
+                assert args[0] == "northridge"
+                return [question_match]
+            if "anchor_events" in query or "post_lineage_edge" in query:
+                return []
+            if "array_position($2::uuid[], post_id)" in query:
+                assert args[1][:2] == ["event-2", "question-match"]
+                return [anchor, question_match]
+            return []
+
+    sources = asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda row: True,
+            question="Northridge",
+            anchor_post_id="event-2",
+        )
+    )
+
+    assert [source.post_id for source in sources] == ["event-2", "question-match"]
