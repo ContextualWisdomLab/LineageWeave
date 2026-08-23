@@ -275,7 +275,7 @@ def test_rebuild_lineage_passes_the_adjudication_client_through(monkeypatch: pyt
     """
     captured: dict[str, object] = {}
 
-    def fake_lineage_edge_specs(records, *, llm=None):
+    def fake_lineage_edge_specs(records, *, llm=None, embedding=None):
         captured["llm"] = llm
         return []
 
@@ -288,6 +288,26 @@ def test_rebuild_lineage_passes_the_adjudication_client_through(monkeypatch: pyt
     assert captured["llm"] is sentinel_client
 
 
+def test_rebuild_lineage_passes_the_embedding_client_through(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Same class of bug as the adjudication client above, for the ``text``
+    channel's embedding source (ADR 0190): rebuild_lineage() must forward
+    its embedding_client all the way to lineage_edge_specs unchanged.
+    """
+    captured: dict[str, object] = {}
+
+    def fake_lineage_edge_specs(records, *, llm=None, embedding=None):
+        captured["embedding"] = embedding
+        return []
+
+    monkeypatch.setattr(
+        "backend.app.lineage_ingestion.lineage_edge_specs", fake_lineage_edge_specs
+    )
+
+    sentinel_client = object()
+    asyncio.run(rebuild_lineage(_RebuildConnection(), embedding_client=sentinel_client))
+    assert captured["embedding"] is sentinel_client
+
+
 def test_rebuild_lineage_defaults_to_no_adjudication_client(monkeypatch: pytest.MonkeyPatch) -> None:
     """The default stays None (lineage_edge_specs/reconstruct's own
     documented fallback) -- this only guards that rebuild_lineage's new
@@ -295,7 +315,7 @@ def test_rebuild_lineage_defaults_to_no_adjudication_client(monkeypatch: pytest.
     """
     captured: dict[str, object] = {"llm": "unset"}
 
-    def fake_lineage_edge_specs(records, *, llm=None):
+    def fake_lineage_edge_specs(records, *, llm=None, embedding=None):
         captured["llm"] = llm
         return []
 
@@ -321,9 +341,9 @@ def test_rebuild_lineage_keeps_blocking_adjudication_outside_event_loop_and_tran
     provider_release = threading.Event()
     connection = _RebuildConnection()
 
-    def blocking_lineage_edge_specs(records, *, llm=None):
+    def blocking_lineage_edge_specs(records, *, llm=None, embedding=None):
         """Model a synchronous contextual-orchestrator request."""
-        del records, llm
+        del records, llm, embedding
         connection.events.append("reconstruct")
         provider_entered.set()
         assert provider_release.wait(timeout=2), (
@@ -391,9 +411,9 @@ def test_rebuild_lineage_recomputes_a_source_snapshot_changed_during_adjudicatio
     )
     reconstructed_titles: list[list[str]] = []
 
-    def record_reconstruction(records, *, llm=None):
+    def record_reconstruction(records, *, llm=None, embedding=None):
         """Record which synthetic source version reached reconstruction."""
-        del llm
+        del llm, embedding
         reconstructed_titles.append([record.label for record in records])
         return []
 

@@ -6,6 +6,7 @@ import pytest
 
 from backend.app import analysis_run_worker
 from lineageweave.adjudication_client import NullAdjudicationClient
+from lineageweave.embedding_client import NullEmbeddingClient
 from lineageweave.tepp_client import TeppClient
 
 
@@ -71,6 +72,7 @@ async def test_consumer_forwards_valid_event_and_skips_malformed_event(monkeypat
         last_id="0-0",
         tepp_client=TeppClient(),
         adjudication_client=NullAdjudicationClient(),
+        embedding_client=NullEmbeddingClient(),
     )
 
     assert last_id == "1-1"
@@ -81,6 +83,7 @@ async def test_consumer_forwards_valid_event_and_skips_malformed_event(monkeypat
             "affiliated_entity_ids": [],
             "tepp_client": calls[0]["tepp_client"],
             "adjudication_client": calls[0]["adjudication_client"],
+            "embedding_client": calls[0]["embedding_client"],
             "valkey_stream_entry_id": "1-0",
         }
     ]
@@ -105,6 +108,7 @@ async def test_a_bad_delivery_is_logged_and_does_not_kill_the_consumer(monkeypat
         last_id="0-0",
         tepp_client=TeppClient(),
         adjudication_client=NullAdjudicationClient(),
+        embedding_client=NullEmbeddingClient(),
     )
 
     assert last_id == "1-1"
@@ -142,6 +146,7 @@ async def test_a_deleted_run_is_skipped_without_attempting_delivery(monkeypatch)
         last_id="0-0",
         tepp_client=TeppClient(),
         adjudication_client=NullAdjudicationClient(),
+        embedding_client=NullEmbeddingClient(),
     )
 
     assert last_id == "1-1"
@@ -173,6 +178,7 @@ async def test_worker_starts_from_the_full_stream_and_passes_updated_cursor(
             _Pool(),
             tepp_client=TeppClient(),
             adjudication_client=NullAdjudicationClient(),
+            embedding_client=NullEmbeddingClient(),
         )
 
     assert observed == ["0-0"]

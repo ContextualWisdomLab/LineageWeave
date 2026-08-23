@@ -14,6 +14,7 @@ import redis.asyncio as redis
 from uuid import UUID
 
 from lineageweave.adjudication_client import AdjudicationClient
+from lineageweave.embedding_client import EmbeddingClient
 from lineageweave.tepp_client import TeppClient
 
 from backend.app.analysis_run_outbox import OUTBOX_STREAM_KEY
@@ -29,6 +30,7 @@ async def consume_analysis_run_stream_once(
     last_id: str,
     tepp_client: TeppClient,
     adjudication_client: AdjudicationClient,
+    embedding_client: EmbeddingClient,
 ) -> str:
     """Consume one batch and return the last inspected Valkey entry id.
 
@@ -63,6 +65,7 @@ async def consume_analysis_run_stream_once(
                                     affiliated_entity_ids=[],
                                     tepp_client=tepp_client,
                                     adjudication_client=adjudication_client,
+                                    embedding_client=embedding_client,
                                     valkey_stream_entry_id=str(entry_id),
                                 )
                 except Exception:  # noqa: BLE001 - one bad delivery must not kill the worker task; the run stays retryable.
@@ -79,6 +82,7 @@ async def run_analysis_run_worker(
     *,
     tepp_client: TeppClient,
     adjudication_client: AdjudicationClient,
+    embedding_client: EmbeddingClient,
 ) -> None:
     """Run the single-process wake-up consumer until task cancellation."""
     last_id = "0-0"
@@ -89,4 +93,5 @@ async def run_analysis_run_worker(
             last_id=last_id,
             tepp_client=tepp_client,
             adjudication_client=adjudication_client,
+            embedding_client=embedding_client,
         )

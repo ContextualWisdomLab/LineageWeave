@@ -541,7 +541,9 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 )
             imported += 1
         cleanup = await cleanup_synthetic_seed(target, apply=True)
-        edges = await rebuild_lineage(target, adjudication_client=adjudication_client)
+        edges = await rebuild_lineage(
+            target, adjudication_client=adjudication_client, embedding_client=embedding_client
+        )
         return {
             "source_rows": len(rows),
             "imported_rows": imported,

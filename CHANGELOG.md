@@ -8,6 +8,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Event Lineage's `text` scoring channel now uses real embedding cosine
+  similarity when an embedding provider is configured, instead of always
+  falling back to character-overlap matching -- reduces the case where two
+  posts about unrelated topics that happen to share common words or
+  sentence structure get linked as parent/child within a coarsely-grouped
+  bucket (ADR 0190).
 - Corpus-wide lineage rebuilds now run synchronous orchestrator adjudication
   off the API event-loop thread and before the short atomic projection-write
   transaction. A temporary adjudication failure leaves the existing graph
