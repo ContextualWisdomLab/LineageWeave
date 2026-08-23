@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import os
 import uuid
+from contextlib import closing
 from pathlib import Path
 
 import jwt
@@ -1158,11 +1159,12 @@ def test_update_me_preferences_persists_a_supported_locale(
         me_response = client.get("/api/me", headers=headers)
         assert me_response.json()["preferred_locale"] == updated
     finally:
-        with psycopg2.connect(seeded_db["dsn"]) as conn, conn.cursor() as cur:
-            cur.execute(
-                "update user_account set preferred_locale = %s where user_account_id = %s",
-                (original, me_before["user_account_id"]),
-            )
+        with closing(psycopg2.connect(seeded_db["dsn"])) as conn:
+            with conn, conn.cursor() as cur:
+                cur.execute(
+                    "update user_account set preferred_locale = %s where user_account_id = %s",
+                    (original, me_before["user_account_id"]),
+                )
 
 
 def test_update_me_preferences_rejects_an_unsupported_locale(client, demo_analyst_token) -> None:
