@@ -27,6 +27,19 @@ def test_run_rejects_hint_code_and_all_combined() -> None:
         raise AssertionError("expected ValueError")
 
 
+def test_run_rejects_neither_hint_code_nor_all() -> None:
+    # A bare invocation must not silently resolve one real hint via a live
+    # orchestrator call -- an operator running this with no flags almost
+    # certainly expected a no-op, not a real provider call.
+    args = argparse.Namespace(hint_code=None, all=False, limit=25, hint_timeout=120.0)
+    try:
+        asyncio.run(backfill._run(args))
+    except ValueError as exc:
+        assert "one of --hint-code or --all is required" in str(exc)
+    else:
+        raise AssertionError("expected ValueError")
+
+
 def test_resolve_batch_counts_resolved_declined_and_failed(monkeypatch) -> None:
     outcomes = {
         "CUST-1": {"corporate_entity_id": "e-1", "entity_name": "Acme", "linked_post_count": 3,
