@@ -13,17 +13,6 @@ from backend.app.analysis_run_ingestion import (
     fetch_reconstructed_edges,
     fetch_tepp_accepted_receipts,
 )
-from backend.app.analysis_run_start import (
-    _deliver_tepp_measurement,
-    _persist_tepp_accepted_receipt,
-    _persist_tepp_result,
-    classify_tepp_submission,
-    deliver_queued_analysis_run,
-    tepp_receipt_digest,
-    tepp_request_digest,
-    tepp_run_request,
-    tepp_submit_outcome,
-)
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 
 _ROOT = Path(__file__).resolve().parents[1]
@@ -73,7 +62,7 @@ class _ReceiptConnection:
 
 
 def _request() -> AnalysisRunRequest:
-    return tepp_run_request(
+    return analysis_run_start_module.tepp_run_request(
         idempotency_key="buyer-tepp-2026-w07",
         snapshot_sha256="ab" * 32,
         knowledge_cutoff=datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc),
@@ -87,7 +76,7 @@ class _EnvelopeClient(TeppClient):
 
 
 def test_missing_transport_stays_failed_not_available() -> None:
-    outcome = classify_tepp_submission(TeppClient(), _request())
+    outcome = analysis_run_start_module.classify_tepp_submission(TeppClient(), _request())
     assert outcome.status_code == "analysis_status_failed"
     assert outcome.failure_code == "tepp_not_available"
     assert outcome.persist_kind == ""
@@ -137,7 +126,7 @@ def test_unpersistable_recheck_keeps_an_already_accepted_run_claimed(
     )
 
     result = asyncio.run(
-        deliver_queued_analysis_run(
+        analysis_run_start_module.deliver_queued_analysis_run(
             connection,
             analysis_run_id=analysis_run_id,
             account_id="account-1",
@@ -161,7 +150,7 @@ def test_initial_unavailability_without_a_receipt_remains_terminal() -> None:
     connection = _ReceiptConnection(rows=[])
 
     terminal = asyncio.run(
-        _deliver_tepp_measurement(
+        analysis_run_start_module._deliver_tepp_measurement(
             connection,
             analysis_run_id="11111111-1111-1111-1111-111111111111",
             locked={
@@ -182,18 +171,24 @@ def test_initial_unavailability_without_a_receipt_remains_terminal() -> None:
 
 
 def test_empty_accepted_envelope_is_not_a_receipt() -> None:
-    outcome = classify_tepp_submission(_EnvelopeClient({"status": "accepted"}), _request())
+    outcome = analysis_run_start_module.classify_tepp_submission(
+        _EnvelopeClient({"status": "accepted"}), _request()
+    )
     assert outcome.status_code == "analysis_status_failed"
     assert outcome.failure_code == "tepp_result_not_persisted"
     assert outcome.persist_kind == ""
-    status, failure = tepp_submit_outcome(_EnvelopeClient({"status": "accepted"}), _request())
+    status, failure = analysis_run_start_module.tepp_submit_outcome(
+        _EnvelopeClient({"status": "accepted"}), _request()
+    )
     assert status == "analysis_status_failed"
     assert failure == "tepp_result_not_persisted"
 
 
 def test_accepted_with_remote_run_id_is_running_receipt() -> None:
     envelope = {"status": "accepted", "run_id": "tepp-run-accepted-1"}
-    outcome = classify_tepp_submission(_EnvelopeClient(envelope), _request())
+    outcome = analysis_run_start_module.classify_tepp_submission(
+        _EnvelopeClient(envelope), _request()
+    )
     assert outcome.status_code == "analysis_status_running"
     assert outcome.failure_code == ""
     assert outcome.persist_kind == "receipt"
@@ -202,11 +197,11 @@ def test_accepted_with_remote_run_id_is_running_receipt() -> None:
 
 
 def test_queued_and_running_envelopes_are_receipts_not_results() -> None:
-    queued = classify_tepp_submission(
+    queued = analysis_run_start_module.classify_tepp_submission(
         _EnvelopeClient({"run_state": "queued", "analysis_run_id": "tepp-queued-1"}),
         _request(),
     )
-    running = classify_tepp_submission(
+    running = analysis_run_start_module.classify_tepp_submission(
         _EnvelopeClient({"status": "running", "remote_run_id": "tepp-running-1"}),
         _request(),
     )
@@ -219,7 +214,7 @@ def test_queued_and_running_envelopes_are_receipts_not_results() -> None:
 
 
 def test_completed_result_is_the_only_measurement_persist() -> None:
-    outcome = classify_tepp_submission(
+    outcome = analysis_run_start_module.classify_tepp_submission(
         _EnvelopeClient(
             {
                 "status": "completed",
@@ -237,7 +232,7 @@ def test_completed_result_is_the_only_measurement_persist() -> None:
 def test_completed_remote_run_id_alias_persists_the_result() -> None:
     connection = _ReceiptConnection()
     persisted = asyncio.run(
-        _persist_tepp_result(
+        analysis_run_start_module._persist_tepp_result(
             connection,
             analysis_run_id="local-run",
             envelope={
@@ -254,7 +249,7 @@ def test_completed_remote_run_id_alias_persists_the_result() -> None:
 def test_receipt_insert_error_is_rolled_back_by_a_savepoint() -> None:
     connection = _ReceiptConnection(error=asyncpg.UniqueViolationError("duplicate"))
     persisted = asyncio.run(
-        _persist_tepp_accepted_receipt(
+        analysis_run_start_module._persist_tepp_accepted_receipt(
             connection,
             analysis_run_id="local-run",
             envelope={"status": "accepted", "run_id": "remote-run"},
@@ -271,11 +266,11 @@ def test_receipt_transport_progression_keeps_the_same_run_running() -> None:
     connection = _ReceiptConnection(
         row={
             "remote_run_id": "remote-run",
-            "request_sha256": tepp_request_digest(request),
+            "request_sha256": analysis_run_start_module.tepp_request_digest(request),
         }
     )
     persisted = asyncio.run(
-        _persist_tepp_accepted_receipt(
+        analysis_run_start_module._persist_tepp_accepted_receipt(
             connection,
             analysis_run_id="local-run",
             envelope={"status": "running", "run_id": "remote-run"},
@@ -292,11 +287,11 @@ def test_receipt_replay_fails_closed_when_remote_run_id_changes() -> None:
     connection = _ReceiptConnection(
         row={
             "remote_run_id": "different-remote-run",
-            "request_sha256": tepp_request_digest(request),
+            "request_sha256": analysis_run_start_module.tepp_request_digest(request),
         }
     )
     persisted = asyncio.run(
-        _persist_tepp_accepted_receipt(
+        analysis_run_start_module._persist_tepp_accepted_receipt(
             connection,
             analysis_run_id="local-run",
             envelope={"status": "running", "run_id": "remote-run"},
@@ -317,7 +312,7 @@ def test_receipt_replay_fails_closed_when_request_digest_changes() -> None:
         }
     )
     persisted = asyncio.run(
-        _persist_tepp_accepted_receipt(
+        analysis_run_start_module._persist_tepp_accepted_receipt(
             connection,
             analysis_run_id="local-run",
             envelope={"status": "running", "run_id": "remote-run"},
@@ -349,7 +344,7 @@ def test_legacy_optional_reads_isolate_missing_tables() -> None:
 
 
 def test_completed_without_result_is_not_a_measurement() -> None:
-    outcome = classify_tepp_submission(
+    outcome = analysis_run_start_module.classify_tepp_submission(
         _EnvelopeClient({"status": "succeeded", "run_id": "tepp-empty-1"}),
         _request(),
     )
@@ -360,14 +355,14 @@ def test_completed_without_result_is_not_a_measurement() -> None:
 
 def test_receipt_digest_is_stable_and_omits_result_bodies() -> None:
     request = _request()
-    first = tepp_receipt_digest(
+    first = analysis_run_start_module.tepp_receipt_digest(
         remote_run_id="tepp-run-accepted-1",
         accepted_status_code="accepted",
         model_contract_version=request.model_contract_version,
         snapshot_id=request.snapshot_id,
         knowledge_cutoff=request.knowledge_cutoff,
     )
-    second = tepp_receipt_digest(
+    second = analysis_run_start_module.tepp_receipt_digest(
         remote_run_id="tepp-run-accepted-1",
         accepted_status_code="accepted",
         model_contract_version=request.model_contract_version,
@@ -376,8 +371,8 @@ def test_receipt_digest_is_stable_and_omits_result_bodies() -> None:
     )
     assert first == second
     assert len(first) == 64
-    assert tepp_request_digest(request) != first
-    assert "theta" not in tepp_request_digest(request)
+    assert analysis_run_start_module.tepp_request_digest(request) != first
+    assert "theta" not in analysis_run_start_module.tepp_request_digest(request)
 
 
 def test_unavailable_transport_still_raises_on_direct_submit() -> None:
