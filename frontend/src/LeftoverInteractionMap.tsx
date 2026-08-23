@@ -10,22 +10,23 @@ export type ProjectedLeftoverPoint = {
   x: number;
   y: number;
   kind: "person" | "item";
-  pairKind?: "closest" | "farthest";
+  pairKinds: ("closest" | "farthest")[];
 };
 
-function pairKindFor(
+function pairKindsFor(
   id: string,
   kind: "person" | "item",
   pairs: LeftoverPair[],
-): "closest" | "farthest" | undefined {
+): ("closest" | "farthest")[] {
+  const kinds = new Set<"closest" | "farthest">();
   for (const pair of pairs) {
     const match = kind === "person" ? pair.post_id === id : pair.criterion_code === id;
     if (!match) continue;
     if (pair.pair_kind === "closest" || pair.pair_kind === "farthest") {
-      return pair.pair_kind;
+      kinds.add(pair.pair_kind);
     }
   }
-  return undefined;
+  return [...kinds];
 }
 
 export function projectLeftoverMap(
@@ -76,7 +77,7 @@ export function projectLeftoverMap(
           x,
           y,
           kind: "person" as const,
-          pairKind: pairKindFor(point.id, "person", pairs),
+          pairKinds: pairKindsFor(point.id, "person", pairs),
         };
       }),
     items: raw
@@ -89,7 +90,7 @@ export function projectLeftoverMap(
           x,
           y,
           kind: "item" as const,
-          pairKind: pairKindFor(point.id, "item", pairs),
+          pairKinds: pairKindsFor(point.id, "item", pairs),
         };
       }),
   };
@@ -125,7 +126,7 @@ export function LeftoverInteractionMap({
         viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
         width="100%"
         height={MAP_HEIGHT}
-        role="img"
+        role="group"
         aria-label="Leftover interaction map"
       >
         {pairs.map((pair) => {
@@ -153,7 +154,7 @@ export function LeftoverInteractionMap({
         {projected.items.map((point) => (
           <g
             key={`item:${point.id}`}
-            className={`leftover-map-item${point.pairKind ? ` leftover-map-${point.pairKind}` : ""}`}
+            className={`leftover-map-item${point.pairKinds.map((kind) => ` leftover-map-${kind}`).join("")}`}
             transform={`translate(${point.x}, ${point.y})`}
           >
             <rect x={-6} y={-6} width={12} height={12} transform="rotate(45)" />
@@ -166,7 +167,7 @@ export function LeftoverInteractionMap({
         {projected.persons.map((point) => (
           <g
             key={`person:${point.id}`}
-            className={`leftover-map-person${point.pairKind ? ` leftover-map-${point.pairKind}` : ""}`}
+            className={`leftover-map-person${point.pairKinds.map((kind) => ` leftover-map-${kind}`).join("")}`}
             transform={`translate(${point.x}, ${point.y})`}
             role="button"
             tabIndex={0}

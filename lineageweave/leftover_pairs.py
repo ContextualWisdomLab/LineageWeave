@@ -139,7 +139,7 @@ def leftover_map_from_residual(
             if person not in local_person or item not in local_item:
                 continue
             distance = float(
-                np.linalg.norm(person_pos[local_person[person]] - item_pos[local_item[item]])
+                np.linalg.norm(person_xy[local_person[person]] - item_xy[local_item[item]])
             )
             if not np.isfinite(distance):
                 continue

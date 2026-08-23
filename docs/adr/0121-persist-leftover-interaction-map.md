@@ -25,8 +25,10 @@ coordinates that leftover pairs already use. Persist every complete-
 case post as `report_leftover_map_person` (`axis_one`, `axis_two`)
 and every complete-case criterion as `report_leftover_map_item`.
 Pad unused axes with zero when residual rank is below two. Do not
-invent a second component. Incomplete rows and columns stay out of
-the factorization.
+invent a second component. Closest/farthest selection and persisted
+distance use those same two buyer-visible axes; unpersisted higher
+components never silently change a highlighted map pair. Incomplete
+rows and columns stay out of the factorization.
 
 Cascade the rows with `report_period_score`. A leftover-map post
 must also be a `report_member_score` row. A leftover-map criterion

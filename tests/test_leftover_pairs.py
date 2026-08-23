@@ -156,6 +156,30 @@ def test_leftover_map_pads_rank_one_axis_two_to_zero() -> None:
     assert distance == pytest.approx(closest.leftover_distance, abs=1e-9)
 
 
+def test_rank_three_pair_distances_match_the_persisted_two_axis_map() -> None:
+    """Hidden higher components must not change buyer-visible pair distances."""
+    post_ids = ["post-a", "post-b", "post-c", "post-d"]
+    item_codes = ("item-a", "item-b", "item-c", "item-d")
+    matrix = np.array(
+        [
+            [4.0, 1.0, 0.0, -1.0],
+            [0.0, 3.0, 1.0, -2.0],
+            [-2.0, 0.0, 2.0, 1.0],
+            [1.0, -1.0, 0.0, 4.0],
+        ],
+        dtype=np.float64,
+    )
+    leftover_map = leftover_map_from_residual(post_ids, item_codes, matrix, np.zeros_like(matrix))
+    by_post = {person.post_id: person for person in leftover_map.persons}
+    by_item = {item.criterion_code: item for item in leftover_map.items}
+
+    for pair in leftover_map.pairs:
+        person = by_post[pair.post_id]
+        item = by_item[pair.criterion_code]
+        distance = np.hypot(person.axis_one - item.axis_one, person.axis_two - item.axis_two)
+        assert pair.leftover_distance == pytest.approx(distance)
+
+
 def test_zero_residual_map_places_every_complete_case_at_the_origin() -> None:
     post_ids = ["alpha-post", "beta-post"]
     item_codes = ("item_one", "item_two")

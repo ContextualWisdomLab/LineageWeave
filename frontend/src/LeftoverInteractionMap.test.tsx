@@ -60,9 +60,40 @@ describe("LeftoverInteractionMap", () => {
       />,
     );
 
-    expect(screen.getByLabelText("Leftover interaction map")).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "Leftover interaction map" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open leftover map post: Public post" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Open leftover map post: Public post" }));
     expect(onSelectPost).toHaveBeenCalledWith("post-1");
+  });
+
+  it("preserves closest and farthest emphasis on the same node", () => {
+    const projected = projectLeftoverMap(
+      [{ post_id: "post-1", post_title: "Public post", axis_one: 0, axis_two: 0 }],
+      [
+        { criterion_code: "item-a", axis_one: -1, axis_two: 0 },
+        { criterion_code: "item-b", axis_one: 1, axis_two: 0 },
+      ],
+      itemLabel,
+      [
+        {
+          pair_kind: "closest",
+          post_id: "post-1",
+          post_title: "Public post",
+          criterion_code: "item-a",
+          leftover_distance: 1,
+          leftover_residual: 0,
+        },
+        {
+          pair_kind: "farthest",
+          post_id: "post-1",
+          post_title: "Public post",
+          criterion_code: "item-b",
+          leftover_distance: 1,
+          leftover_residual: 0,
+        },
+      ],
+    );
+
+    expect(projected.persons[0]).toMatchObject({ pairKinds: ["closest", "farthest"] });
   });
 });
