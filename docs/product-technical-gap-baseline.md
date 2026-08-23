@@ -126,10 +126,10 @@ coverage across `8,071` statements and `2,506` branches, with `790` missed
 statements and `397` partial branches. The current composition then passed
 `90` focused Python tests with one optional integration skip. The temporal Python delta itself has
 `7/7` changed executable statements and `2/2` changed branches covered.
-The full frontend suite passed `274` tests, and frontend lint/build plus
+The full frontend suite passed `275` tests, and frontend lint/build plus
 `git diff --check` passed. The new official Vitest V8 production-source
-measurement reports `86.72%` statements, `76.58%` branches, `83.85%`
-functions, and `89.12%` lines; tests, Storybook scenes, and test setup are the
+measurement reports `86.86%` statements, `76.62%` branches, `84.08%`
+functions, and `89.28%` lines; tests, Storybook scenes, and test setup are the
 only excluded non-production files. Repository-wide 100% coverage and visual
 browser acceptance remain separate open gates.
 
@@ -542,7 +542,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | External email/project lineage package boundary | PR #343 merged at `125a8069a1554874d8067a15047e19d780ea6b7b` with strict v1.0.0 bounded request/result types, available-time cutoff handling, observed/inferred/proposed truth states, pair-budget enforcement, and no source/provider access | source + focused unit; immutable release open |
 | Naruon calendar projection boundary | PR #337 is closed as superseded; PR #355 carries the strict read projection contract without making LineageWeave a CalDAV provider | source + focused unit; Naruon endpoint, runtime wiring, and provider conformance remain open |
 | Hourly PR review/repair/merge loop | Central protected `main` owns generic `*/30 * * * *` and `*/15 * * * *` sweeps; the LineageWeave-specific minute-4 hourly repair caller remains open in `ContextualWisdomLab/.github#1086` at `aeb096a52c5f`, so no duplicate repo-local scheduler is required | source + exact-head local gate; protected merge and first scheduled run open |
-| 100% coverage/docstrings/edge-case/release gates | the public Python docstring AST contract is current-head green; the two source-research modules and PROV-O have exact focused 100% branch results; the latest complete coverage-instrumented full Python suite at `e4ce49d1` is green at `987` passed / `17` skipped but measures only `87%` across production Python source, while the subsequent exact composition passes `90` focused tests / `1` optional integration skip; official Vitest V8 measurement keeps all production TypeScript/TSX in scope and reports `86.72%` statements / `76.58%` branches / `83.85%` functions / `89.12%` lines with `274` tests green | open: current-head hosted full suite, 790 measured Python statements, 397 measured partial Python branches, 382 frontend statements, 623 frontend branches, 140 frontend functions, 286 frontend lines, independent review, and release evidence |
+| 100% coverage/docstrings/edge-case/release gates | the public Python docstring AST contract is current-head green; the two source-research modules and PROV-O have exact focused 100% branch results; the latest complete coverage-instrumented full Python suite at `e4ce49d1` is green at `987` passed / `17` skipped but measures only `87%` across production Python source, while the subsequent exact composition passes `90` focused tests / `1` optional integration skip; official Vitest V8 measurement keeps all production TypeScript/TSX in scope and reports `86.86%` statements / `76.62%` branches / `84.08%` functions / `89.28%` lines with `275` tests green | open: current-head hosted full suite, 790 measured Python statements, 397 measured partial Python branches, 378 frontend statements, 622 frontend branches, 138 frontend functions, 282 frontend lines, independent review, and release evidence |
 
 ## 4. Supplied parsing and semantic cases
 
@@ -626,9 +626,9 @@ or an explicit unavailable result.
 - **Repository-wide gate stability — partial:** the latest complete
   coverage-instrumented Python run at `e4ce49d1` passes `987` tests with `17` skips and
   measures `87%` branch-aware production-source coverage; pinned Corepack Vitest
-  passes all `274` tests, and the reproducible `test:coverage` command reports
-  `86.72%` statements / `76.58%` branches / `83.85%` functions /
-  `89.12%` lines. CI now provisions pinned Valkey and a synthetic
+  passes all `275` tests, and the reproducible `test:coverage` command reports
+  `86.86%` statements / `76.62%` branches / `84.08%` functions /
+  `89.28%` lines. CI now provisions pinned Valkey and a synthetic
   imported Keycloak realm, removing the infrastructure
   reason that made all `115` live-stack API tests self-skip; `actionlint` passes,
   but the hosted run is not yet evidence. The subsequent current composition
