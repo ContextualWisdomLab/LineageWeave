@@ -161,6 +161,8 @@ async def _resolve_batch(
 async def _run(args: argparse.Namespace) -> dict[str, object]:
     if args.hint_code and args.all:
         raise ValueError("--hint-code and --all cannot be combined")
+    if not args.hint_code and not args.all:
+        raise ValueError("one of --hint-code or --all is required")
     # The resolution channel itself must be configured; hierarchy inference
     # and verification are separately optional -- resolve_customer_hint
     # falls back to a flat entity when they decline, same as its own
@@ -170,7 +172,7 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
     resolution_client = _customer_hint_resolution_client()
     verification_client = _relation_verification_client()
     hierarchy_client = _corporate_hierarchy_inference_client()
-    limit = 1 if args.hint_code or not args.all else args.limit
+    limit = 1 if args.hint_code else args.limit
 
     pool = await asyncpg.create_pool(settings.database_url, min_size=1, max_size=1)
     try:
