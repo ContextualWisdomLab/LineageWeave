@@ -1,4 +1,4 @@
-@prefix : <https://contextualwisdomlab.github.io/LineageWeave/ontology#> .
+@prefix : <https://contextualwisdomlab.github.io/lineageweave/ontology#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix org: <http://www.w3.org/ns/org#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .

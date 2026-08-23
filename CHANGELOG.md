@@ -13,6 +13,8 @@ All notable changes to this project are documented here. Format follows
   and migration evidence required by issue #372 without rewriting identifiers.
 - The ontology Pages artifact now publishes the deprecated repository-case
   compatibility vocabulary after validating every mapping's term kind.
+- The PROV-O support profile now mints its product class mappings only in the
+  canonical lowercase namespace while importing the legacy compatibility map.
 
 ### Fixed
 

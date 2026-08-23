@@ -103,7 +103,6 @@ def _term_kind(graph: Graph, subject: URIRef) -> URIRef | None:
 
 def validate_compatibility_graph(
     canonical: Graph,
-    deprecated: Graph,
     compatibility: Graph,
 ) -> None:
     """Reject namespace mappings whose local name or RDF term kind differs."""
@@ -125,7 +124,7 @@ def validate_compatibility_graph(
         ):
             raise ValueError("namespace compatibility mapping has different local names")
         canonical_kind = _term_kind(canonical, subject)
-        deprecated_kind = _term_kind(deprecated, target)
+        deprecated_kind = _term_kind(compatibility, target)
         if canonical_kind is None or canonical_kind != deprecated_kind:
             raise ValueError("namespace compatibility mapping has different term kinds")
         if _MAPPING_FOR_KIND[canonical_kind] != predicate:
@@ -163,10 +162,10 @@ def publish_site(repository_root: Path, output_dir: Path) -> None:
     output = _validate_output_directory(output_dir, source, profile)
     renderer = _load_renderer(root)
     graph = Graph().parse(source, format="turtle")
-    profile_graph = Graph().parse(profile, format="turtle")
+    Graph().parse(profile, format="turtle")
     compatibility_graph = Graph().parse(compatibility_source, format="turtle")
     validate_public_graph(graph, renderer)
-    validate_compatibility_graph(graph, profile_graph, compatibility_graph)
+    validate_compatibility_graph(graph, compatibility_graph)
 
     if output.exists():
         shutil.rmtree(output)
