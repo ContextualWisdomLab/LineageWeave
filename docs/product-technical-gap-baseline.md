@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-23 21:18 KST. This repository records synthetic
+> Audit snapshot: 2026-08-23 22:05 KST. This repository records synthetic
 > fixtures and aggregate, non-identifying runtime evidence only. Open PRs and
 > local checks are not protected-default-branch release evidence.
 
@@ -8,10 +8,10 @@
 
 The protected default branch was
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` when this baseline was refreshed.
-The live queue contained 53 open PRs and no independently approved head. Five
-current heads exposed failed Strix contexts, six had nonterminal checks, and
-four retained unresolved review threads. Those results must be re-fetched against
-the current head before remediation or a merge claim.
+The live queue contained 52 open PRs and no independently approved head. Six
+current heads had an aggregate failed check state, four had pending checks, and
+one retained an unresolved review thread. Those results must be re-fetched
+against the current head before remediation or a merge claim.
 
 Recent protected-default-branch evidence:
 
@@ -45,15 +45,21 @@ Substantially present in source or active PRs:
 These statements describe source capability, not authenticated production
 corpus acceptance or protected release.
 
-PR #486 at `161f4eb80c7589f75010b078c2845af28d6745aa` targets non-default
-`docs/customer-master-scope-adr`, so its browser evidence applies to that stack,
-not to a protected-main release.
+PR #486 merged as `f11a2cb546792622932011587fe6f6aa54c79948`
+into non-default `docs/customer-master-scope-adr`. Its documentation follow-up
+is branch commit `5ec42616e6b4ab6ed0b7757c299523110acb62ca`, but no open PR carries that
+branch to `main`; both remain stack evidence, not protected-main release
+evidence.
+
+PR #258 is open at `d26c4c5f7db2faabfa7f110fc205db2c17fd0ca6`.
+Its exact head had no unresolved thread or independent approval, retained a
+failed Devin Review status, and had Strix still running at this snapshot.
 
 ## 3. Open product and technical gaps
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 53 PRs remained open, none had an independent current-head approval, five current heads exposed failed Strix contexts, six had nonterminal checks, and four retained unresolved review threads | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
+| Protected release | 52 PRs remained open, none had an independent current-head approval, six current heads had an aggregate failed check state, four had pending checks, and one retained an unresolved review thread | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Image understanding | Region, OCR, and description work exists across active heads | Orchestrator-backed rendered workflow, original/derived asset provenance, and honest unsupported states |
 | Semantic source rendering | Paragraph, table, list, and formula parsing exists across active stacks | Authenticated browser evidence that semantic units render without authoring-layout artifacts |
