@@ -39,6 +39,8 @@ reader-facing control you can click before changing product CSS.
 | `Workspace/AskAgentPanel` SavedHistory | Continue a saved evidence-grounded conversation. | `aria-current`, `AskAgentPanel` |
 | `Workspace/AskAgentPanel` Unavailable | Retry loading conversation history. | `ExceptionAlert`, `AskAgentPanel` |
 | `Workspace/AskAgentPanel` Phone | Review the anchored flow at the phone viewport. | `AskAgentPanel` phone breakpoint |
+| `Workspace/WorkspaceNav` Desktop | Switch workspace destinations and expose the current page. | `WorkspaceNav`, `aria-current` |
+| `Workspace/WorkspaceNav` PhoneDrawer | Review the phone drawer navigation without the admin destination. | `WorkspaceNav` drawer variant |
 | `Workspace/ChatPanel` SeededDump | Read seeded questions on a post, then ask a new question. | `ChatPanel` |
 | `Workspace/ChatPanel` SavedHistory | Select a saved post conversation, then start a new conversation. | `aria-current`, `ChatPanel` |
 | `Workspace/ChatPanel` Phone | Review post Ask history at the phone viewport. | `ChatPanel` phone breakpoint |
