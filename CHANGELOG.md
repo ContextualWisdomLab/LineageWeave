@@ -59,6 +59,26 @@ All notable changes to this project are documented here. Format follows
   inside `persist_turn`'s transaction, wired `GlobalAskEvidenceChanged`
   into `ask_agent`'s error handling, and added a regression test proving
   the fix RED-to-GREEN.
+- `GET /api/lineage`'s focused view no longer lets an edge to an
+  ABAC-hidden sibling post mask a post's `isolation_reason` (ADR 0143).
+  The connected-component check that decides whether a focused post has
+  any visible neighbor built its graph from every `post_lineage_edge` row
+  regardless of visibility, so a hidden post's edge could make an
+  otherwise-isolated post look connected -- leaking the existence of a
+  hidden relationship through an absent isolation reason. Both edge
+  endpoints must now be ABAC-visible before the edge counts. Found on a
+  divergent history line (PR #493) and ported here via cross-session
+  coordination, with a regression test proving RED-to-GREEN.
+- Unexpected exceptions inside Global Ask, per-post chat, keymen
+  extraction, entity-relationship verification, evaluation, summary
+  regeneration, and commitment derivation now reach server-side logs
+  (`logger.exception`, stdlib `logging`, no new dependency) before the
+  same stable customer-facing 503. Previously the broad fail-closed
+  `except Exception` boundary silently swallowed unclassified defects --
+  correct for the customer, but turned a real regression into an opaque
+  availability incident for operators (issue #361, partial: this covers
+  server-side traceback capture, not yet OpenTelemetry metrics/
+  correlation IDs).
 
 ### Changed
 

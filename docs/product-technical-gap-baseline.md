@@ -820,6 +820,30 @@ or an explicit unavailable result.
   no result at all, not even the existing `edge_count`); building an
   operator-facing rebuild-health panel is separate UI/UX work, not part
   of this backend-aggregate fix.
+- **Lineage hidden-sibling-edge leak — closed (2026-08-25):** a peer
+  session's review of a divergent history line (PR #493) found that
+  `visible_lineage_graph`'s connected-component BFS built its neighbor
+  graph from every `post_lineage_edge` row before filtering by ABAC
+  visibility, so an edge to a hidden sibling post could make an
+  otherwise-isolated focused post look connected -- masking
+  `isolation_reason` and leaking the existence of a hidden relationship
+  through its absence. Both edge endpoints must now be visible before an
+  edge counts toward the component. Ported the fix here (this branch's
+  canonical `isolation_reason` implementation, ADR 0143) rather than
+  merging #493's parallel reimplementation. Regression test proves RED
+  (pre-fix: focused post renders as connected) to GREEN.
+- **Provider-boundary exception diagnosability — partially closed
+  (2026-08-25, issue #361):** the 10 fail-closed `except Exception`
+  catch-alls across `backend/app/main.py` (Global Ask, per-post chat,
+  keymen extraction, entity-relationship verification, evaluation,
+  summary regeneration, commitment derivation) now log the exception
+  server-side (`logger.exception`, stdlib `logging`) before returning
+  the same stable customer-facing 503; a caplog-based test proves an
+  unexpected defect (not a classified provider error) reaches the logs
+  with a traceback. Not yet done: OpenTelemetry metrics distinguishing
+  known-provider-unavailable from internal-defect, correlation/request
+  IDs, and bounded-cardinality alerting -- those need a new-dependency
+  decision this checkpoint didn't force through.
 - **Cross-repository email/project lineage — provider boundary implemented,
   consumer open:** PR #343 merged at
   `125a8069a1554874d8067a15047e19d780ea6b7b`, but the contract remains

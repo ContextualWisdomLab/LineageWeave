@@ -116,3 +116,14 @@ comparison group," not "which channels compared it."
 - `isolation_reason` is computed on every focused `GET /api/lineage` call by
   scanning the already-fetched ABAC-visible post list once (O(n) group-by);
   no new database round-trip is added.
+- The connected-component BFS (used to decide whether a focused post has
+  *any* visible neighbor before falling back to `isolation_reason`) now
+  filters `post_lineage_edge` rows to both endpoints being ABAC-visible
+  before building the neighbor graph. An edge to a hidden sibling post
+  previously made the BFS treat the focus post as connected, silently
+  dropping `isolation_reason` to `None` -- which leaked the *existence* of
+  a hidden relationship through an absence rather than a value, and hid a
+  true isolation fact from an otherwise-authorized viewer. Found
+  independently on a divergent history line (PR #493) and ported here
+  2026-08-25 (a peer session flagged the collision via cross-session
+  coordination).

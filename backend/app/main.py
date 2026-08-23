@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import datetime
@@ -271,6 +272,8 @@ async def lifespan(app: FastAPI):
         await app.state.pool.close()
         await app.state.valkey.aclose()
 
+
+_logger = logging.getLogger(__name__)
 
 app = FastAPI(title="LineageWeave API", lifespan=lifespan)
 app.add_middleware(
@@ -1464,6 +1467,7 @@ async def resolve_customer_master_hint(
                 "Hint resolution is unavailable: the orchestrator or search provider did not respond",
             ) from exc
         except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            _logger.exception("resolve_customer_master_hint failed unexpectedly")
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Hint resolution is unavailable: the orchestrator or search provider did not respond",
@@ -2525,6 +2529,7 @@ async def verify_post_entity_relationships(
                 "Relation verification is unavailable: the search provider did not respond",
             ) from exc
         except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            _logger.exception("verify_post_entity_relationships failed unexpectedly")
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Relation verification is unavailable: the search provider did not respond",
@@ -2702,6 +2707,7 @@ async def extract_post_keymen(
                     "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
                 ) from exc
             except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                _logger.exception("extract_post_keymen.ingest_mentions failed unexpectedly")
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
@@ -2731,6 +2737,7 @@ async def extract_post_keymen(
                     "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
                 ) from exc
             except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                _logger.exception("extract_post_keymen.ingest_relationships failed unexpectedly")
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
@@ -2893,6 +2900,7 @@ async def evaluate_post(
                 "Post evaluation is unavailable: contextual-orchestrator returned no complete evidence object",
             ) from exc
         except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            _logger.exception("evaluate_post failed unexpectedly")
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Post evaluation is unavailable: contextual-orchestrator returned no complete evidence object",
@@ -3174,6 +3182,7 @@ async def read_post_summary(
                     "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
                 ) from exc
             except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                _logger.exception("read_post_summary.summarize failed unexpectedly")
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
@@ -3189,6 +3198,7 @@ async def read_post_summary(
                     verification_client=_relation_verification_client(),
                 )
             except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                _logger.exception("read_post_summary.persist failed unexpectedly")
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
@@ -3365,6 +3375,7 @@ async def chat_about_post(
             "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
         ) from exc
     except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+        _logger.exception("chat_about_post failed unexpectedly")
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
@@ -3558,6 +3569,7 @@ async def ask_agent(
                 "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
             ) from exc
         except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            _logger.exception("ask_agent failed unexpectedly")
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
@@ -3833,6 +3845,7 @@ async def derive_post_commitment(
                 "Commitment derivation is unavailable: contextual-orchestrator returned no complete evidence object",
             ) from exc
         except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            _logger.exception("derive_post_commitment failed unexpectedly")
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Commitment derivation is unavailable: contextual-orchestrator returned no complete evidence object",

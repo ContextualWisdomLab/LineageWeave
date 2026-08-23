@@ -224,6 +224,54 @@ def test_isolation_reason_distinguishes_no_relation_from_no_comparison_group() -
     assert invisible_result["isolation_reason"] is None
 
 
+def test_hidden_sibling_edge_does_not_mask_isolation_reason() -> None:
+    """An edge to a post outside this account's ABAC visibility must not
+    make an otherwise-isolated post look connected, nor let its
+    isolation_reason silently disappear -- that would leak the existence
+    of a hidden relationship through an absence rather than a value."""
+
+    class FakeConnection:
+        posts = [
+            {
+                "post_id": "post-focus",
+                "post_title": "Focus",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-solo",
+                "created_at": datetime(2026, 1, 1),
+            },
+            {
+                "post_id": "post-hidden",
+                "post_title": "Hidden",
+                "voc_type_code": "voc",
+                "visibility_code": "private",
+                "corporate_entity_id": "other-corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-solo",
+                "created_at": datetime(2026, 1, 2),
+            },
+        ]
+        edges = [
+            {"parent_post_id": "post-focus", "child_post_id": "post-hidden", "fused_score": 0.9}
+        ]
+
+        async def fetch(self, query: str):
+            return self.edges if "post_lineage_edge" in query else self.posts
+
+    connection = FakeConnection()
+    can_see_post = lambda row: row["post_id"] == "post-focus"  # noqa: E731
+
+    result = asyncio.run(
+        visible_lineage_graph(connection, can_see_post, focus_post_id="post-focus")
+    )
+
+    assert result["nodes"] == []
+    assert result["edges"] == []
+    assert result["isolation_reason"] == "no_comparison_group"
+
+
 def test_lineage_coverage_summary_counts_edges_and_both_isolation_reasons() -> None:
     """ADR 0143's per-post distinction, aggregated corpus-wide for the
     operator who just ran a rebuild -- not just a bare edge count."""

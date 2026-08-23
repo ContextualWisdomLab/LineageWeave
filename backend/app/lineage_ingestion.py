@@ -176,10 +176,17 @@ async def visible_lineage_graph(
     else:
         focus_id = str(focus_post_id)
         focus_visible = any(str(row["post_id"]) == focus_id for row in visible_all)
+        visible_all_ids = {str(row["post_id"]) for row in visible_all}
         neighbors: dict[str, set[str]] = {}
         for edge in edge_rows:
             parent_id = str(edge["parent_post_id"])
             child_id = str(edge["child_post_id"])
+            # Both ends must be ABAC-visible: an edge to a hidden sibling
+            # must not make an otherwise-isolated post look connected, nor
+            # leak the mere existence of a hidden relationship through the
+            # isolation_reason it would then be denied.
+            if parent_id not in visible_all_ids or child_id not in visible_all_ids:
+                continue
             neighbors.setdefault(parent_id, set()).add(child_id)
             neighbors.setdefault(child_id, set()).add(parent_id)
 
