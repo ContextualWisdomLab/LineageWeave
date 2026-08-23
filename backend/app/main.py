@@ -158,6 +158,7 @@ from backend.app.global_ask_history import (
 )
 from backend.app.post_ask_history import (
     PostAskConversationNotFound,
+    PostAskEvidenceChanged,
     conversation_exists as post_ask_conversation_exists,
     fetch_conversation as fetch_post_ask_conversation,
     list_conversations as list_post_ask_conversations,
@@ -3272,7 +3273,12 @@ async def _persist_post_ask_turn(
     source_post_ids: list[str],
     cited_post_ids: list[str],
 ) -> UUID:
-    """Store one completed post Ask turn; missing conversations stay 404."""
+    """Store one completed post Ask turn; missing conversations stay 404.
+
+    Re-authorizes every citation inside the same transaction right before
+    commit; a citation whose authorization changed since it was gathered
+    aborts the whole turn with a stable 503 instead of persisting it.
+    """
     try:
         return await persist_post_ask_turn(
             conn,
@@ -3283,7 +3289,13 @@ async def _persist_post_ask_turn(
             answer_text,
             source_post_ids,
             cited_post_ids,
+            can_see_post=lambda row: _can_use_post_for_analysis(account, row),
         )
+    except PostAskEvidenceChanged as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Post chat is unavailable: authorized evidence changed; retry the question",
+        ) from exc
     except PostAskConversationNotFound as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "conversation not found") from exc
 

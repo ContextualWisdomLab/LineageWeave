@@ -59,6 +59,13 @@ All notable changes to this project are documented here. Format follows
   inside `persist_turn`'s transaction, wired `GlobalAskEvidenceChanged`
   into `ask_agent`'s error handling, and added a regression test proving
   the fix RED-to-GREEN.
+- Per-post Ask (`POST /api/posts/{post_id}/chat`) had the identical
+  citation-authorization race as Global Ask above, but never received
+  the #362 fix in the first place: `post_ask_history.persist_turn` had
+  no reauthorization step at all. Added the same
+  `_ensure_citations_visible` / `PostAskEvidenceChanged` -> 503 pattern;
+  regression test confirmed RED (a revoked citation's facts served with
+  a 200) before GREEN.
 - `GET /api/lineage`'s focused view no longer lets an edge to an
   ABAC-hidden sibling post mask a post's `isolation_reason` (ADR 0143).
   The connected-component check that decides whether a focused post has

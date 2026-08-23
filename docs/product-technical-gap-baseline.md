@@ -846,6 +846,17 @@ or an explicit unavailable result.
   known-provider-unavailable from internal-defect, correlation/request
   IDs, and bounded-cardinality alerting -- those need a new-dependency
   decision this checkpoint didn't force through.
+- **Per-post Ask citation rollback — closed (2026-08-25, issue #362
+  sibling gap):** `post_ask_history.py` (ADR 0136) was scaffolded from
+  `global_ask_history.py` before the #362 atomic-reauthorization fix
+  existed, and never received it: `persist_turn` had no citation
+  reauthorization step at all, so a post that lost authorization between
+  source-gathering and commit had its facts served in the
+  `POST /api/posts/{post_id}/chat` answer and its citation row persisted
+  regardless. Added the identical `_ensure_citations_visible` /
+  `PostAskEvidenceChanged` -> 503 pattern already proven for Global Ask.
+  Regression test confirmed RED (a revoked citation's facts served with
+  a 200) before GREEN.
 - **Cross-repository email/project lineage — provider boundary implemented,
   consumer open:** PR #343 merged at
   `125a8069a1554874d8067a15047e19d780ea6b7b`, but the contract remains

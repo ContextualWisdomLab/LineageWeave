@@ -4176,6 +4176,59 @@ def test_global_ask_rolls_back_when_cited_evidence_is_revoked_mid_flight(
     assert follow_up.status_code == 200, follow_up.text
 
 
+def test_post_chat_rolls_back_when_cited_evidence_is_revoked_mid_flight(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """The per-post Ask history path (post_ask_history.py) has the same
+    persist-time reauthorization as Global Ask (issue #362): a citation
+    that loses authorization between source selection and commit must
+    not poison the session or persist a stale citation row."""
+    from lineageweave.post_chat import ChatAnswer
+
+    public_post_id = seeded_db["public_post_id"]
+
+    def _revoke_and_answer(question: str, sources) -> ChatAnswer:
+        admin_conn = psycopg2.connect(seeded_db["dsn"])
+        admin_conn.autocommit = True
+        try:
+            with admin_conn.cursor() as cur:
+                cur.execute(
+                    "update source_post set visibility_code = 'private', "
+                    "corporate_entity_id = %s where post_id = %s",
+                    (seeded_db["other_corp_id"], public_post_id),
+                )
+        finally:
+            admin_conn.close()
+        return ChatAnswer(answer_text="cites the now-revoked post", cited_post_ids=(public_post_id,))
+
+    class _RaceConditionAskClient:
+        available = True
+        answer = staticmethod(_revoke_and_answer)
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _RaceConditionAskClient())
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    raced = client.post(
+        f"/api/posts/{public_post_id}/chat",
+        json={"question": "What does this post say that no seed already answers?"},
+        headers=headers,
+    )
+    assert raced.status_code == 503, raced.text
+    assert raced.json()["detail"] == "Post chat is unavailable: authorized evidence changed; retry the question"
+
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            cur.execute("select count(*) from post_ask_session")
+            assert cur.fetchone()[0] == 0
+            cur.execute("select count(*) from post_ask_turn")
+            assert cur.fetchone()[0] == 0
+            cur.execute("select count(*) from post_ask_turn_citation")
+            assert cur.fetchone()[0] == 0
+    finally:
+        conn.close()
+
+
 def test_global_ask_conversation_reauthorizes_each_turn_independently(
     client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:

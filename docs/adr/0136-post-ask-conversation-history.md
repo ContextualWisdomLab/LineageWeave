@@ -57,6 +57,13 @@ orchestrator is off. Account history is additional, not a replacement.
   (`_visible_post_ids_batch`, one query per relation type per page instead
   of per turn), matching the same fix applied to Global Ask history (ADR
   0126) -- issue #358.
+* `persist_turn` now re-authorizes every citation inside its own commit
+  transaction (`_ensure_citations_visible`, row-share-locked, raising
+  `PostAskEvidenceChanged` -> 503), matching the fix ADR 0126 already had
+  for Global Ask (issue #362). This module never received that fix when
+  it was first written; a citation that lost authorization between
+  source-gathering and commit would have its facts served in the answer
+  and its citation row persisted regardless.
 
 ## Implementation Plan
 
