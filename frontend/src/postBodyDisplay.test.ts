@@ -145,6 +145,27 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("decodes HTML entities inside a sup/sub tag before mapping to unicode", () => {
+    // Office-tool HTML export pads <sup> content with &nbsp;. The raw,
+    // un-decoded "&nbsp;3" must not fail the all-convertible check and fall
+    // back to a literal caret (regression: entities weren't decoded before
+    // the convertibility check, matching the Python backend which unescapes
+    // first).
+    expect(splitPostBody("<p>Volume is 12 m<sup>&nbsp;3</sup>.</p>")).toEqual([
+      { kind: "text", text: "Volume is 12 m ³." },
+    ]);
+  });
+
+  it("matches sup/sub content split across a newline", () => {
+    // Pretty-printed source HTML puts tag content on its own line
+    // (regression: the regex lacked the dotAll flag, so `.` could not cross
+    // the newline and the whole tag passed through unmatched, leaving a
+    // plain un-superscripted "3" instead of "³").
+    expect(splitPostBody("<p>Tank volume is 12 m<sup>\n3\n</sup>.</p>")).toEqual([
+      { kind: "text", text: "Tank volume is 12 m ³ ." },
+    ]);
+  });
+
   it("does not treat a leading footnote caret or a comparison as an exponent", () => {
     expect(splitPostBody("^1 See the tank note.")).toEqual([
       { kind: "text", text: "^1 See the tank note." },

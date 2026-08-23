@@ -173,11 +173,11 @@ function applyUnicodeScript(text: string, kind: "super" | "sub"): string {
 
 function replaceHtmlScripts(text: string): string {
   return text
-    .replace(/<sup\b[^>]*>(.*?)<\/sup>/gi, (_match, inner: string) =>
-      applyUnicodeScript(String(inner).replace(/<[^>]+>/g, ""), "super"),
+    .replace(/<sup\b[^>]*>(.*?)<\/sup>/gis, (_match, inner: string) =>
+      applyUnicodeScript(decodeHtmlEntities(String(inner).replace(/<[^>]+>/g, "")), "super"),
     )
-    .replace(/<sub\b[^>]*>(.*?)<\/sub>/gi, (_match, inner: string) =>
-      applyUnicodeScript(String(inner).replace(/<[^>]+>/g, ""), "sub"),
+    .replace(/<sub\b[^>]*>(.*?)<\/sub>/gis, (_match, inner: string) =>
+      applyUnicodeScript(decodeHtmlEntities(String(inner).replace(/<[^>]+>/g, "")), "sub"),
     );
 }
 
