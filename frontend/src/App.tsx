@@ -3731,7 +3731,11 @@ function PostList({
       const url = new URL(window.location.href);
       if (url.searchParams.get("post") !== postId) {
         url.searchParams.set("post", postId);
-        window.history.pushState({}, "", `${url.pathname}${url.search}${url.hash}`);
+        window.history.pushState(
+          { fromWeeklyVoc: Boolean(options?.fromWeeklyVoc) },
+          "",
+          `${url.pathname}${url.search}${url.hash}`,
+        );
       }
     }
   }
@@ -3743,10 +3747,10 @@ function PostList({
   }, [onPostOpened, postIdToOpen]);
 
   useEffect(() => {
-    function handlePopState() {
+    function handlePopState(event: PopStateEvent) {
       const postId = new URLSearchParams(window.location.search).get("post");
       if (postId) {
-        selectPost(postId, { fromPopState: true });
+        selectPost(postId, { fromPopState: true, fromWeeklyVoc: Boolean(event.state?.fromWeeklyVoc) });
       } else {
         setSelectedPostId(null);
         setOpenedAfterCutoff(false);

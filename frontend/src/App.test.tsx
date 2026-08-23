@@ -2037,6 +2037,10 @@ describe("App, authenticated", () => {
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(document.getElementById("post-event-lineage")).not.toHaveFocus();
     expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
+
+    window.history.replaceState({ fromWeeklyVoc: true }, "", "/?post=post-1");
+    window.dispatchEvent(new PopStateEvent("popstate", { state: { fromWeeklyVoc: true } }));
+    await waitFor(() => expect(document.getElementById("post-event-lineage")).toHaveFocus());
   });
 
   it("renders the A-100 fork as a git-style DAG, not a flat edge list", async () => {
