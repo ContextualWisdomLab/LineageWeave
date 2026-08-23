@@ -1,26 +1,121 @@
 # Product & Technical Gap Baseline
 
-> Audit scope: the current LineageWeave buyer-surface/source-context worktree
-> and open PR #384, compared with its exact base and the UI/UX Standard Guide v3.0 supplied for this
-> product, ADR 0118, the accepted TEPP PRD/contracts, and the
-> contextual-orchestrator architecture. Real source identifiers are deliberately
-> replaced with case labels; they must not enter repository artifacts.
+> Audit scope: the current LineageWeave reader/source-context worktree and all
+> 52 open PRs, compared with protected `main`, the UI/UX Standard Guide v3.0,
+> ADR 0118, the accepted TEPP contracts, and contextual-orchestrator. Real
+> source identifiers are deliberately replaced with case labels; they must not
+> enter repository artifacts.
 
 ## 1. Exact-head evidence
 
 ### 1.1 Current continuation head
 
-The current buyer-surface/source-context implementation head for PR #384 is
-`d2d4b9209caed81cf4506908207e7b03142a1af6` (the exact head pushed after the
-remote fixture cleanup and vendor-skill revert), observed at `2026-08-21T15:35:55Z`
-(`2026-08-22` KST). Its base is
-`83ace331edc982208c290763cb0d389c1884e21b` (`docs/customer-master-scope-adr`).
-The repaired implementation includes the customer-master scope-facet base
-and preserves the source-detail-state fixes. Local acceptance evidence is
-backend `127 passed, 6 skipped`, frontend `199 passed`, lint, TypeScript, and
-production build success. The baseline update itself follows this code
-commit; hosted checks, formal review, and merge remain unclaimed until the
-remote PR is queried at its newly pushed exact head.
+Observed at `2026-08-23T10:31:20Z`: protected `main` and `origin/main` are both
+`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`. The dirty continuation worktree is
+based on `65f0a412c18286434c272eb8c4b38efeb2cd45c0`; relative to `origin/main`
+it is `821` commits ahead and `0` behind, so this checkout is not a
+merge-ready PR head and its local changes must not be attributed to any open
+PR without a fresh branch/commit comparison.
+
+Conversation-history review (example: a sidebar with New conversation and
+selectable saved conversations): Ask Agent already ships list/select/new on
+this checkout (ADR 0126, migration `0105`, `AskAgentPanel`, Vitest
+`restores saved Ask Agent history and can start a new conversation`). Open
+PRs in the current queue, including #484, #482, #258, #481, #468, #421, and
+#418, do not add the same account-owned history to each post's
+Ask-about-this-lineage surface. That gap is closed here as ADR 0136:
+`post_ask_session` / `post_ask_turn` stay account-owned and post-scoped,
+`post_chat_result` remains the seeded/cache store, and the popup starts a
+new conversation so the seeded dump stays until the reader selects a saved
+thread. TEPP topic modeling of how many posts can connect, and how many
+lineages form under temporal precedence, remains deferred. No real
+organization or person names are used in this receipt.
+
+Current local changes close evidence-backed defects without weakening trust
+boundaries: Global Ask now keeps question retrieval when a selected post is an
+anchor, filters candidates before limits through the same reader-eligibility
+and corporate-visibility boundary, bounds both chat request bodies at 4,000
+characters, and preserves formal Korean `-니다` endings. The reader can open
+Ask from a post, see and clear the starting evidence, switch saved
+conversations without a stale anchor, navigate browser history without stale
+state, confirm CJK IME composition without accidental submission, and use a
+native modal mobile navigation drawer. Reader-facing failures now share the
+token-backed `ExceptionAlert` / `SummaryStatus` surface (ADR 0134): text
+identifies the failure, next-action copy is present, recovery controls meet
+`--size-control-min`, light/dark `--color-exception-*` tokens replace
+color-only red paragraphs, and raw exception types, stacks, OIDC diagnostics,
+and 5xx provider payloads stay hidden (ADR 0123 / CWE-209). The bounded Python
+unit partition passed `750` tests with `11` skips; backend integration
+contracts passed `21` tests and skipped `115` live-stack cases. After leftover criterion landing and catalog-unbound / dropped-channel /
+confident-negative next-action copy (ADR 0049 / ADR 0135),
+`cd frontend && pnpm run test` passed all `255` tests,
+leftover landing ran twice, `pnpm run build-storybook` completed, lint
+was clean, leftover/Null-channel pytest passed `4` focused cases, and
+Playwright loaded the Running Lineage Queued Storybook scene twice with
+kind-exact next-action text, a Refresh control, no Start reconstruction
+control, and zero page errors. After the
+exception-message UI (ADR 0134) and analysis-result next-action flow
+(ADR 0135), an earlier `cd frontend && pnpm run test` passed all `238` tests,
+`pnpm run build-storybook` completed, and Playwright loaded the running
+lineage queued scene twice with kind-exact next-action text, a Refresh
+control, no Start reconstruction control, and zero page errors. Pinned
+Corepack frontend lint and the production build pass on the current source. The production chunk warning, skipped live-stack cases,
+repository-wide coverage, exact-source authenticated browser run, and hosted
+gates remain open.
+
+Subsequent source-reference research changes are not covered by those partition
+totals. The focused research/security/KG partition passed `36` tests at 100%
+branch coverage for `source_research.py` and `source_research_ingestion.py`; the
+broader research, migration-replay, and shared HTTP-client partition passed
+`69` tests. The source-research panel passed all `3` focused tests, and its
+locale partition passed `28` tests. These checks do not prove a live PostgreSQL
+migration, external SearXNG/orchestrator calls, or an authenticated API/browser
+path.
+
+The current ADR 0137 change closes the per-post customer-identity gap in
+source: `(source_system_code, source_customer_code)` now requires at least two
+authorized eligible posts, contextual-orchestrator candidate resolution, a
+versioned fast-mlsirm Judge result with persisted IRT categories, external
+corroboration, and a unique catalog outcome before promotion. Migration `0137`
+keeps the judgment, exact post evidence, stable binding, and preferred/former/
+alternate names in normalized tables. Promoted observations project as the
+distinct `edge_customer_identity_observation` ontology/KG relation; source-post
+authorization scope is not rewritten. The PostgreSQL importer automatically
+reconciles only changed customer keys and reports unavailable providers without
+rolling back imported source records. The identity/ingestion partition passed
+`19` tests at 100% statement and branch coverage (`201` statements, `46`
+branches); schema/replay checks passed `23`, focused UI/i18n checks passed `6`,
+and the production frontend build passed. The exact-current authorized catalog
+and corroborated-promotion API contracts passed against fresh migrated
+PostgreSQL databases after Keycloak recovered. A live external
+orchestrator/SearXNG/TEPP import, authenticated rendered review, hosted checks,
+and independent review are not yet claimed.
+
+The current temporal-relation correction makes explicit chronology an
+OWL-Time `time:before` edge from the earlier release/introduction milestone to
+the later milestone, advances the post-summary contract to v16 so persisted
+v15 and older rows are regenerated without reusing an observed contract number,
+projects the direction and evidence through the existing
+Knowledge Graph API, and exposes source, relation, target, evidence, and
+confidence without requiring SVG hover. Synthetic focused checks, frontend
+lint/build, and Storybook build passed. After the local PostgreSQL server
+recovered, the latest current-source full Python suite passed `815` tests with
+`126` skips and no warning. The 422-status deprecation correction also passed
+its `31` focused tests with deprecations promoted to errors. Pinned Corepack
+Vitest passed all `230` tests with the documented 20-second per-test budget.
+The authorized local aggregate and API checks found the target case on a
+persisted v14 summary with one `time:before` relation among three graph edges.
+Without exposing source content, the API aggregate confirmed distinct earlier
+and later temporal endpoints, OWL-Time IRI/label, evidence, confidence, and the
+requested source-to-target direction. The current v16 backend is running, but
+its authenticated regeneration request returned no bytes before the 200-second
+client timeout, so no v16 persistence is claimed. The frontend Docker context
+now excludes local generated artifacts; a concurrent long-running BuildKit job
+still prevented current-image replacement. The verified local `dist` was
+copied into the running nginx container for QA only, and served-asset checks
+confirmed the directed-graph name, visible direction instruction, evidence
+table contract, and table CSS. This recoverable preview mutation is not image
+or release evidence. Visual browser comparison remains open and is not claimed.
 
 The historical evidence below remains valid only at the exact heads and dates
 stated in each entry. It must not be used as proof that the current continuation
@@ -79,21 +174,165 @@ next exact head and therefore requires the protected checks to rerun.
 
 ### 1.3 Current related PR queue
 
-The following exact-head states were observed during this continuation and are
-part of the acceptance queue, not completion evidence:
+In-scope for this analysis-result UI-flow / AI-analysis-logic goal:
+leftover-map locale follow-up `#489` `7f0368ec7d04`, leftover landing `#485`
+`c2102f932e06`, leftover map `#481` `d192e8f40fff`, Event Lineage interval
+`#484` `0d8187a5d529`,
+channel evidence `#387` `c34681fdc692`, org-chip `#482` `42f7c4e81289`,
+image-region `#405` `0b1b1fcfed87`, Ask citation `#419` `b51b97be0746`
+/ `#418` `ed99c40a22cc`, workspace board `#258` `ea143748cdda`.
+This dirty continuation worktree is not a merge-ready PR head and its
+local leftover-landing and diagnosis changes must not be attributed to
+`#485` without a fresh branch comparison.
 
-| Repository | PR | Exact head | State | Remaining gate |
-| --- | ---: | --- | --- | --- |
-| LineageWeave | #384 | `d2d4b9209caed81cf4506908207e7b03142a1af6` | open, mergeable, unstable | hosted checks and review |
-| LineageWeave | #383 | `720004942dd155a85020af32da402d320038f46a` | open, blocked | required checks and review |
-| LineageWeave | #355 | `b606c2553f877fa85968d90dc46598ce16897fbf` | open, coverage pending | coverage gate and review |
-| contextual-orchestrator | #765 | `d19e3492192e21e4a040fa3fc13a0793443731bf` | open, blocked | required checks and review |
-| governance-risk-compliance | #50 | `ba78e4790f3e361826991455ce83634004f2875d` | open, mergeable, unstable | central OSV provenance gate |
-| ContextualWisdomLab/.github | #1158 | `6e93fd0b65c159c7b168d83579e5b8282096480e` | open, behind | required checks and review |
+The following open-PR heads were refreshed at `2026-08-23T12:02:11Z`, with
+#468/#481/#482/#484/#485/#489 listed through `2026-08-23T12:40:00Z`, and
+#258 at `2026-08-23T12:03:02Z`. The policy audit at
+`2026-08-23T09:01:45Z` covered the then-current queue; newer PRs are not
+assigned a gate result here. Ruleset `18156473` requires two
+approvals, an approval after the last push, resolved conversations, dismissal
+of stale approvals, and seven central workflows. Ruleset `21065108` prohibits
+force-pushes with no bypass. No protected merge is claimed from this listing.
 
-GRC stack PRs #20 and #21 were merged in order before #50. These merge SHAs do
-not make #50 or the other listed PRs merged; each remains subject to its own
-exact-head protected gate.
+```text
+#489 7f0368ec7d04  #485 c2102f932e06  #484 0d8187a5d529
+#482 42f7c4e81289
+#481 d192e8f40fff  #480 d7d830f9faa0
+#479 fe794a9a061b  #474 025bb3df4e5a  #468 228f13dd5e32
+#463 3773d40c74df
+#455 dab57fcadb3c  #454 f30e2523e9c3  #453 98fcf052b883
+#452 09e0ec034ca1  #451 e84fa8d20c7d  #450 c624e919d880
+#449 6f28daffbc85  #448 3c1506a30101  #447 af6317237bc5
+#446 8f9698993077  #445 160ca908fce1  #444 e8d6d7376d44
+#443 11fc2af36960  #442 8e6f24df1827  #441 5e59e7d1a0a3
+#440 612f20681c4b  #439 590c6c3185ba  #437 5e54a45b85d3
+#436 7f6383eaf1ab  #435 b80628bc53d3  #434 097766afd1db
+#431 290b25ca1622  #429 3763e1335cd3  #428 cf2d12bf6364
+#427 446ceddd2a44  #426 4828b3a5e4eb  #422 c54b172e439c
+#421 2fc08835485d  #419 b51b97be0746  #418 ed99c40a22cc
+#417 91b7e1cd9144  #415 d8590f1f81db  #405 0b1b1fcfed87
+#394 cf9505b75948  #393 4ddd3a83aaa7  #392 b76ae7b9aa7b
+#387 c34681fdc692  #383 2e2a8fe72bdb  #368 0f61d66ed1a8
+#355 26f25ac6d047  #349 40286c1f1e3d  #258 ea143748cdda
+```
+
+Bounded gate evidence: PR #394's earlier Corepack/Undici pnpm-download failure
+is superseded by terminal checks on unchanged head `cf9505b75948`; it still has
+no independent approval. PRs #349/#355/#383/#417 have exact-head coverage
+change requests, and #387/#405 remain blocked by older change-request decisions.
+The earlier `2026-08-23T10:52:15Z` refresh of #258
+found head `bcfb67f9b88dd62af6b6886dac4b846b6cbd0ce4` green with all 88
+threads resolved, but it is now historical. Current head
+`ea143748cdda9aa8be24f7ee8f282e56d6fc7adb` uses `math.isfinite` for
+lineage-score validation and preserves early project-key validation; its `26`
+focused project-history tests pass and all current threads are resolved. At
+`2026-08-23T12:03:02Z`, Strix had failed closed after NVIDIA rate limiting
+and a provider-less LiteLLM fallback; its completed report and SARIF contained
+zero source findings. The active OpenCode change request is on historical head
+`6dc040c6b3ea`; the current OpenCode workflow is green but does not provide a
+current-head approval, and exact-head approvals remain zero. Active ruleset
+`18156473` still requires two approvals and approval after the last push with
+no bypass actor, so #258 remains blocked. The other
+thread/check observations remain bounded to the earlier audit and are not
+restated as current. PR #481's prior exact head `732f2b25f8ce` had one Strix
+failure that explicitly reported provider/infrastructure errors; its two cited
+source locations did not contain the claimed AWS credential or syntax error,
+so no scanner-driven source patch was justified. Prior head
+`7ff509e545fa8cdcba91acaeca25e46e40bab44e` also makes pair selection and
+distance match the persisted two-axis map, preserves simultaneous
+closest/farthest emphasis, exposes nested SVG buttons to assistive technology,
+and applies migration 0104 in the real API fixture. Local evidence is backend
+`661 passed, 114 skipped`, frontend `144 passed`, lint, TypeScript, and
+production build success; all review threads are resolved. Hosted Strix later
+failed closed after Nvidia returned 429, the first fallback ended without an
+authoritative lifecycle report, and the `openai-direct` fallback reached
+LiteLLM without a recognized provider prefix. The scan logged zero
+vulnerabilities before those provider failures, but produced no authoritative
+report; this is infrastructure evidence, not a source finding. Intermediate head
+`94dc79ae6c7f40118c922c4e0042fad2b93daf85` additionally contains the merged
+#488 criterion-node interaction. Current head
+`d192e8f40fffd237525bf3b62583c36b2941a89a` removes redundant empty/rank guards
+and adds shape, disconnected-observation, and overflow regressions without
+inventing map coordinates. The leftover-map and period-report partition passes
+`24` tests and all review threads are resolved. The exact-head full suite and
+Strix are still running; qualifying approvals remain absent, so it is still
+`BLOCKED`.
+PR #482 head `42f7c4e812899131e255f117512e7a7081e7dec5` removes the unused VOC
+alias query, preserves the direct Keyman companion-label read, keeps legal
+suffixes distinct during companion matching, and includes the related-chip
+caption in its accessible name. Its parent `116af49f403d` passed `25` focused
+Python tests with 100% branch coverage for `organization_alias.py`; frontend
+chip tests and lint passed. On the current child head, both focused related-chip
+regressions, lint, and TypeScript no-emit checking pass. All review threads are
+resolved. Hosted Strix failed after three Nvidia 429s and the same unrecognized
+LiteLLM fallback provider; it reported zero vulnerabilities before failing
+closed without an authoritative report. Exact-head approvals remain zero, so
+it is still `BLOCKED`. PR #429 is also `BLOCKED` for
+independent review; a later Strix run succeeded on the same exact head at
+`2026-08-22T13:32:42Z`, superseding the earlier failed run. Auto-merge state is
+intentionally not used as merge evidence.
+
+PR #468 head `228f13dd5e32b5b0ee72d5ba7cfcd26f17c7a1c4` has all review threads
+resolved. Its affiliation lookup cardinality is already bounded by database
+uniqueness constraints, so an application-side multi-row check would duplicate
+the native invariant. Strix failed with the same provider chain as #481 and no
+authoritative source finding; exact-head approvals remain zero. PR #484 head
+`0d8187a5d5298489444e1734412be277ea584b5e` now normalizes aware `created_at`
+values to their UTC day in both the shared interval helper and migration 0105
+backfill. The +09:00 near-midnight regression failed before the repair; the
+interval, ingestion, replay, and live-schema partition now passes `29` tests.
+All review threads are resolved; the full backend/frontend gates are green,
+Strix failed closed through the same provider-infrastructure chain, and no
+approval is claimed. PR #485 head
+`c2102f932e0674175387726e0467f730c3c8af36` restores the existing OIDC return
+URL flow and removes an unreachable unauthenticated AdminPanel render that made
+the frontend TypeScript build fail, and now retains a regression for the
+session-storage fallback. Production build, lint, the focused login and
+leftover-pair landing tests, and the hosted frontend job pass on this head; all
+review threads are resolved. The hosted full suite is also green; Strix failed
+closed through the same provider-infrastructure chain, and exact-head approvals
+remain zero.
+
+PR #486 head `841f02418a9f109cd8d58894470c6b3a5fe5db3f` strengthens the
+authenticated modal test to require focus restoration to the same opener and
+forces the site-map test to navigate to Calendar and verify the URL, persistent
+navigation state, and destination heading. Its 120-second test budget covers
+the bounded serial fixture waits while retaining shorter step limits. Lint and
+TypeScript pass. It merged at exact head
+`841f02418a9f109cd8d58894470c6b3a5fe5db3f` as merge commit
+`f11a2cb546792622932011587fe6f6aa54c79948`, but only into the historical
+`docs/customer-master-scope-adr` branch. The earlier Chromium run predates the
+strengthened assertions, so an exact-head browser rerun and eventual
+protected-main gate remain open; this merge is not protected-main evidence.
+
+PR #488 merged old exact head
+`46434836e9b06453dabf6f3bfd72bbc19b3199cd` as
+`94dc79ae6c7f40118c922c4e0042fad2b93daf85`, only into #481's feature branch.
+That head makes only leftover-pair criterion nodes interactive; non-pair
+criteria remain honest visual context. The locale repair was pushed after the
+merge and therefore is not part of #488's merge evidence. PR #489 isolates that
+single repair at `7f0368ec7d043a33197f6198b2b38a7560610fc5`: connector tooltips
+use the existing i18n catalog and the displaced Event Lineage multi-locale
+assertion is restored. Its exact three-file diff passes `154` frontend tests,
+lint with only the existing Fast Refresh warnings, and forced TypeScript build;
+both hosted test jobs are green, while qualifying independent approval remains
+absent. Both branches remain stacked behind blocked #481, so neither merge is
+protected-main evidence.
+
+The LineageWeave-specific central heartbeat is not yet deployed. Central
+`.github` PR #1086 now has exact head
+`aeb096a52c5f4c2647f05f54f0aa6b17200a350f` after a normal merge of protected
+central `main`; it runs the existing repository-wide test suite and measures all
+three modified scheduler modules at 100% statement and branch coverage. Local
+exact-head evidence is `1426 passed, 1 skipped, 16 subtests`, `2159/2159`
+statements, and `868/868` branches, with Actionlint, docstrings, compileall, and
+diff checks green. All 19 review threads are resolved, but hosted checks are
+running and historical change-request decisions have not been replaced by a
+qualifying exact-head approval. The workflow inventory contains only
+pull-request runs for this caller; no `schedule` run from protected central
+`main` exists yet. The central generic scheduler on protected `main` does run
+`*/30 * * * *` and `*/15 * * * *`, but that is not evidence that the proposed
+minute-4 LineageWeave repair caller is operational.
 
 ## 2. UI/UX Standard Guide v3.0 comparison
 
@@ -264,9 +503,9 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Two-word snake_case database identifiers | ADR 0120, idempotent migration `0104`, live public-schema audit, zero invalid indexes | source + unit + local-integration |
 | Post list/detail popup, Korean summary, 5W1H, R&R, tickets/calendar | API routes, popup panels, backend/frontend tests; W is raw-source-only for author/admin and is excluded from summary and derived analysis targets | source + unit |
 | Keyman on both sides, titles, affiliations, related KG nodes | Keyman/affiliate-tree/related-node routes and popup | source + unit; live extraction open |
-| Ontology, semantic layer, provenance, W3C PROV-O projection | normalized schema, SKOS operational vocabulary concepts, `ontology_annotations` label fallback, ADR 0124, provenance modules, ADRs, evidence UI | source + unit; corpus verification open |
+| Ontology, semantic layer, provenance, W3C PROV-O projection | normalized schema, SKOS operational vocabulary concepts, `ontology_annotations` label fallback, OWL-Time canonical earlier-to-later relations, ADR 0124/0129, provenance modules, directed evidence table, ADRs | source + unit; corpus verification open |
 | Branching Event Lineage DAG with evidence trail | `LineageDag.tsx`, Storybook story, Figma frames, accessible node-kind names for screen readers/tooltips, frontend tests; runtime cases include both a rendered DAG and honest empty states, while current corpus coverage remains sparse | source + unit + local-integration partial |
-| Customer master and hierarchy tree | `/api/customer-master`, `scope_facets`, visible `post_organization_mention` enrichment, affiliate tree, migration `0105`, scope filter | source + unit + local-integration partial; authorized own/granted/unclassified facets, visible observed organizations, and admitted observed hierarchy facets are implemented, while authoritative scope backfill and broader hierarchy traversal remain open |
+| Customer master, cross-post identity, name history, and hierarchy tree | `/api/customer-master`, ADR 0125/0137, migrations `0105`/`0137`, source-system-qualified stable binding, fast-mlsirm Judge/IRT evidence, optional TEPP ordering, `edge_customer_identity_observation`, importer reconciliation, visible preferred/former/alternate names, scope filter | source + focused unit + local-integration partial; live external provider/import and broader authoritative hierarchy evidence remain open |
 | VOC/VOM/VOP/VOCC/VOCO/VOS role classification | common lookup values and relationship APIs | source + unit; live classification open |
 | Evidence-grounded chat and source navigation | `/chat`, `/ask`, citation/evidence UI | source + unit; synthetic orchestrator judge route verified, corpus chat/runtime evidence open |
 | OpenTelemetry across LineageWeave, contextual-orchestrator, Valkey, and GRC | LineageWeave PR #383 adds API/Valkey/session spans; contextual-orchestrator PR #818 carries session/provider telemetry; governance-risk-compliance PR #51 adds request telemetry, W3C trace context, OTLP export, and ADR 0009 | source + PR; protected merge and end-to-end collector evidence open |
@@ -275,8 +514,9 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | contextual-orchestrator routing, VISION, embedding, schema repair | clients and provenance/session boundary; synthetic authenticated route returned a judge score of `0.98`, OCR succeeded, and region location returned five regions | source + local-integration partial; corpus backfill, capability/readiness evidence, and schema-repair workflow open |
 | HTML semantic units, tables, indentation, footnotes, formulas | parser modules and synthetic tests; adjacent open PR #367 at exact head `b628722cb000717b0198e4337d12306d4306922d` adds numbered-footnote, leading-empty-cell, and short-ID regressions; 11-case authenticated popup sweep had no popup errors and rendered the supplied footnote/table cases; bounded metric superscript/subscript normalization has backend/frontend focused coverage | source + unit + local-integration partial; PR #367 protected checks, arbitrary formula/semantic correctness, and corpus re-backfill remain open |
 | Base64/file image regions and multimodal evidence | image-region schema and VISION client boundary; live aggregate has 12,823 images, 25 described images, 421 failed images, 12,377 unavailable images, and 19 persisted regions; the bounded real-data queue run published three Valkey wake-ups and the worker claimed one | source + local-integration partial; supplied image-table case re-backfill and complete corpus coverage open |
-| Abbreviation/multilingual alias/entity disambiguation | catalog hints and resolver boundary | source; live corroboration open |
+| Abbreviation/multilingual alias/entity disambiguation | catalog hints, ADR 0026/0137 tie boundary, alternate/former name history, source-system-qualified resolver | source + focused unit; multilingual and live corroboration evidence open |
 | SearXNG/internal relation fact check | verification endpoint and unavailable handling; local SearXNG health and JSON query both returned HTTP 200, while some upstream engines reported rate-limit/CAPTCHA results | source + local-integration partial; corroboration policy and reliable external coverage open |
+| Source-reference research agent | ADR 0133, URL/patent lead discovery, bounded public-target crawl guard, contextual-orchestrator Judge boundary, normalized provenance persistence, cited supported-actor KG/PROV-O projection, explicit admin POST/read-only GET, and reader panel; the focused research/security/KG partition passed `36` tests at 100% branch coverage for both source-research modules, the broader research/migration/HTTP partition passed `69`, and the panel passed `3` focused tests | source + focused unit; live external and authenticated API/browser validation and canonical/final URL capture remain open; TEPP calibration remains unavailable until TEPP publishes a response-event wire contract |
 | Valkey event queue and cloud-native Compose stack | queue modules, Compose services, health checks | source + local-integration; delivery stress open |
 | 3NF, hot partitions, locks, read/write contention | canonical identifier migration plus existing migrations | source; operational evidence open |
 | Rust/GPU/CPU psychometric computation | delegated to TEPP, not reimplemented here | boundary accepted; live TEPP evidence open |
@@ -285,8 +525,8 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Storybook scenes/edge events and design-token coverage | `LineageDag.stories.tsx`, inventory, Storybook build | source + unit |
 | External email/project lineage package boundary | PR #343 merged at `125a8069a1554874d8067a15047e19d780ea6b7b` with strict v1.0.0 bounded request/result types, available-time cutoff handling, observed/inferred/proposed truth states, pair-budget enforcement, and no source/provider access | source + focused unit; immutable release open |
 | Naruon calendar projection boundary | PR #337 is closed as superseded; PR #355 carries the strict read projection contract without making LineageWeave a CalDAV provider | source + focused unit; Naruon endpoint, runtime wiring, and provider conformance remain open |
-| Hourly PR review/repair/merge loop | Central `ContextualWisdomLab/.github` scheduler owns `*/15 * * * *` sweep and `0 * * * *` heartbeat; no duplicate repo-local scheduler is required | boundary accepted; current-head runtime open |
-| 100% coverage/docstrings/edge-case/release gates | current local checks pass, but repository-wide coverage/docstring reports, hosted checks, independent review, and release evidence are not complete on PR #366 | open |
+| Hourly PR review/repair/merge loop | Central protected `main` owns generic `*/30 * * * *` and `*/15 * * * *` sweeps; the LineageWeave-specific minute-4 hourly repair caller remains open in `ContextualWisdomLab/.github#1086` at `aeb096a52c5f`, so no duplicate repo-local scheduler is required | source + exact-head local gate; protected merge and first scheduled run open |
+| 100% coverage/docstrings/edge-case/release gates | the two source-research modules have an exact focused 100% branch result and the full Python suite is green, but repository-wide coverage/docstring reports, hosted checks, independent review, and release evidence remain incomplete | open |
 
 ## 4. Supplied parsing and semantic cases
 
@@ -314,6 +554,12 @@ The following user-reported cases remain tracked without storing real post IDs:
   superscript/subscript-preserving source/semantic normalization in backend and
   frontend tests; arbitrary formula parsing, ontology-safe formula semantics,
   and the authorized runtime case remain open.
+- `case-temporal-product-sequence-01`: explicit first/next product chronology
+  now extracts the corresponding release/introduction milestones as one
+  earlier-to-later OWL-Time relation and renders its direction and evidence in
+  the Knowledge Graph. Authorized re-extraction and browser confirmation remain
+  open; chronology alone does not assert revision, specialization, causation,
+  or a private product-succession predicate.
 
 These are not “resolved” merely because a prompt or heuristic was changed.
 Each requires synthetic unit coverage plus an authorized runtime reproduction
@@ -321,6 +567,59 @@ or an explicit unavailable result.
 
 ## 5. Product and technical gaps
 
+- **Global Ask anchored temporal retrieval — locally implemented, acceptance
+  open (2026-08-23):** a post detail now has a direct Ask action and carries a
+  visible, removable starting-evidence anchor into the global Ask request.
+  Question terms remain active alongside the anchor, authorized/eligible rows
+  are filtered before candidate limits, stale anchors are cleared for saved
+  conversations and browser navigation, CJK composition Enter does not submit,
+  and both chat request bodies are capped at 4,000 characters. ADR 0090 now
+  records that one exact sales-order code is sufficient retrieval evidence;
+  the query admits company-code candidates while broader hints still require
+  corroboration. Focused source, API-model, i18n, React interaction, lint, and
+  build checks passed. A live PostgreSQL regression remains required before
+  acceptance.
+- **Ask evidence labels — locally implemented, acceptance open:** persisted
+  event, event-clue, quantitative, source-fact, and semantic-relation facts now
+  have distinct reader evidence kinds and localized labels instead of falling
+  through to the raw `source_field` label. Backend evidence rendering and the
+  Ask UI regression pass; exact-source authenticated browser evidence remains
+  required.
+- **Frontend delivery and scene QA — partial:** production build succeeds but
+  the single JavaScript chunk is 555.34 kB minified (152.92 kB gzip) and exceeds
+  Vite's 500 kB warning threshold. Storybook now covers unanchored, anchored,
+  saved-history, unavailable, and phone Ask states, and its static build passes.
+  Add route- or workspace-level native code splitting only after measuring the
+  authenticated navigation path; current-source browser capture remains open.
+- **Repository-wide gate stability — partial:** the latest current-source full
+  Python run passes `815` tests with `126` skips, and pinned Corepack Vitest
+  passes all `230` tests. CI now provisions pinned Valkey and a synthetic
+  imported Keycloak realm, removing the infrastructure
+  reason that made all `115` live-stack API tests self-skip; `actionlint` passes,
+  but the hosted run is not yet evidence. Skipped live-stack cases and hosted
+  exact-head gates remain open.
+- **Coverage and docstring gates — open:** the general workflow runs pytest
+  without repository-wide coverage enforcement, frontend Vitest has no coverage
+  provider/configuration, and an AST audit found 37 missing production
+  docstrings. Exact 100% evidence is limited to the scoped PROV-O workflow and
+  the two source-research modules. Establish stable integration execution and
+  measured baselines before claiming repository-wide 100%.
+- **Central OpenCode coverage sandbox — owner repair pending protected main:**
+  issue `ContextualWisdomLab/.github#1250` is tracked in Project #1 as
+  Ops/In Progress. Owner PR #1052 at `d2629dc7d9634368f04025c570b6395a9e1413f5`
+  exports locked Python optional extras and removes pnpm's unsupported
+  `--trust-lockfile` option while retaining exact lock-blob validation,
+  offline installation, and disabled lifecycle scripts. Every other
+  current-head check was terminal-success, but Strix failed closed after Nvidia
+  429s and both configured fallback paths failed to emit an authoritative
+  report. Central owner PR #1213 at
+  `a675daccb65ee582781690db1b0e9dd282b34af1` already owns normalization of the
+  `openai-direct` selector to LiteLLM's provider prefix and the bounded
+  capability-fallback contract; it is still under review with Strix and Devin
+  pending, so this repository does not duplicate that repair. Neither #1052
+  nor #1213 is on protected `main`; LineageWeave #405 therefore still needs a
+  fresh unchanged downstream canary after both relevant central contracts
+  land.
 - **R&R role/relationship conflation and catalog-linking boundary — evidence-backed (2026-08-21):**
   Live UI/UX feedback on a real R&R extraction surfaced three related gaps,
   root-caused against source rather than assumed:
@@ -350,19 +649,12 @@ or an explicit unavailable result.
      `App.test.tsx`, `tests/test_tied_organization_no_create.py`, and
      `tests/test_migration_replay.py`.
   2. **Job title and relationship type are conflated into one free-text
-     field.** `RoleResponsibility.responsibility` (`lineageweave/post_summary.py`)
-     is documented as "what they are responsible for or did" — a single
-     string. An observed extraction produced `"상담고객 연구원"` in that one
-     field, gluing a *relationship-type* signal ("상담 고객", i.e. a
-     consulting/customer relationship — the same concept already modeled
-     elsewhere as `post_counterparty_entity.relationship_type_code`, e.g.
-     `rel_voc`) together with a *job title* ("연구원") that has no home of
-     its own on `RoleResponsibility` the way `last_known_job_title` does on
-     `Keyman`. Fixing this needs a new field plus an
-     `POST_SUMMARY_CONTRACT_VERSION` bump (currently `13`) and an extraction-
-     prompt change — not a display-layer patch, and not something to
-     implement without review given every future extraction depends on the
-     contract version.
+     field.** Remaining: `RoleResponsibility.responsibility` is still one
+     source phrase. The reader now sees fail-closed next-action copy
+     (`gluedRoleRelationshipNextAction`) instead of an inferred catalog
+     relationship. Splitting job title from `relationship_type_code` still
+     needs a reviewed `POST_SUMMARY_CONTRACT_VERSION` bump and is not done
+     here.
   3. **Planned-facility events don't become project/entity evidence, and no
      operator inference exists — ADR drafted in this worktree, implementation
      still open by design.** A key event whose text names a specific planned
@@ -391,33 +683,20 @@ or an explicit unavailable result.
   and `key_events` sharing the same `project_name` now nest under one
   heading instead of repeating the project name as a flat prefix
   (`groupKeyEventsByProject`). Neither fix touches extraction, the summary
-  contract, or catalog creation.
-- **Customer master "customer tree" — scope gap, evidence-backed (2026-08-21):**
-  `/api/customer-master`'s `corporate_entities` list (`backend/app/main.py`
-  `read_customer_master`, `entity_rows` query) is scoped to
-  `account.corporate_entity_ids`, which comes only from `account_affiliation`
-  rows (`backend/app/auth.py` `get_current_account`) — the account's own
-  employer plus any explicitly granted entities. A live query against the
-  seeded stack confirms the Demo Corp account's `account_affiliation` grants
-  exactly one entity (Demo Corp itself) with zero `source_customer_code`/
-  `source_customer_name` hints on its posts, so `buildCustomerEntityTree`
-  (`frontend/src/App.tsx`) renders a single un-nested node, not the "Harbor
-  Group -> Harbor Devices Korea" customer-affiliate tree ADR 0004 and ADR 0010
-  describe as a standing requirement. Counterparty `corporate_entity` rows
-  that ADR 0010's `get_or_create_corporate_entity` auto-creates are never
-  linked via `account_affiliation`, so they cannot reach this endpoint no
-  matter how well-populated the corpus becomes — the tree needs to traverse
-  observed post/VOC/affiliate-tree evidence, not `account_affiliation` alone.
-  Separately, there is no schema signal distinguishing "own company" from
-  "granted customer entity" inside `account_affiliation`: both use the same
-  `process_unit_id`-bearing row shape (the Demo Analyst account's grants into
-  "Source company H504"/"H904" carry `process_unit_id` exactly like Demo
-  Corp's own grant does), so a same-screen filter separating 자사(own
-  company) attributes from customer attributes has no field to filter on
-  yet. Needs an ADR before implementation: either an explicit
-  `account_affiliation`/`corporate_entity` scope flag, or a customer-tree
-  query redesign: guessing at either without a reviewed decision risks an
-  ABAC-adjacent regression.
+  contract, or catalog creation. Leftover closest/farthest clicks now land
+  on the named Post quality criterion (`focusCriterionCode`, ADR 0049);
+  kind×status next actions remain exact (ADR 0135). Missing leftover cells
+  stay out of the Gabriel factorization (not treated as zero). The planned
+  “operates” inference and R&R contract split remain open.
+- **Customer master "customer tree" — source gap closed, runtime evidence open:**
+  ADR 0125 added explicit own/granted/unclassified scope facets and admitted
+  organizations observed through already-authorized posts without widening
+  post access. ADR 0137 now promotes a repeated source customer key only after
+  collective Judge, corroboration, and unique catalog evidence, then links the
+  same customer across its supporting posts without changing the posts'
+  authorization owner. The remaining gap is an authorized external import and
+  rendered browser audit proving the resulting hierarchy, aliases/former names,
+  and source-system collision behavior on non-identifying aggregate evidence.
 - **Entity and abbreviation resolution — open:** canonical names, aliases,
   multilingual labels, team-vs-organization typing, title-aware person
   disambiguation, and SearXNG/internal corroboration need end-to-end evidence.
@@ -440,7 +719,31 @@ or an explicit unavailable result.
   call TEPP through its published import/REST contract and must not implement a
   local theta, psychometric calibration, CAT, or judge score. TEPP owns the
   Rust numerical/psychometric layer and its multilevel/multiple-membership/time
-  model.
+  model. Live inspection on 2026-08-23 found that the upstream TEPP repository
+  currently publishes strict `AnalysisRunRequest` / `AnalysisRunAccepted` DTOs
+  and outbound HTTP exchange builders, but no executable HTTP server, completed
+  measurement response contract, snapshot-evidence ingest, or production
+  estimator entrypoint. The current request carries only a snapshot digest, so
+  a service cannot calibrate the underlying observations without a new
+  purpose-bound evidence artifact/API. `TEPP_TRANSPORT_URL` alone therefore
+  cannot make measurement available. Close this in TEPP first with an ADR and
+  PRD update covering authorized evidence transfer, Rust estimator authority,
+  durable lifecycle/idempotency, completed-result provenance, and CPU/GPU
+  parity; then pin that service in Compose and prove a persisted
+  `analysis_run_tepp_result`. An accepted-envelope shim is explicitly not an
+  acceptable substitute.
+- **TEPP temporal context — source-connected, local runtime proven:** TEPP's
+  LineageWeave consumer stack publishes `TemporalContextRequest` v1 and the
+  executable loopback sidecar is proposed in upstream TEPP PR #186 at exact
+  head `169faa164ee6418f5ccce45a4fa8b244df700af2`. The Compose sidecar and backend
+  client were exercised locally with its wire-compatible predecessor
+  `f22ac1b93c877312b827479c61d23b98d21d1903`:
+  cutoff-safe opaque events returned deterministic `before` relations with the
+  explicit `association_not_causal` boundary. Global Ask now consumes that
+  exact wire contract, validates the complete response, and drops the channel
+  on any transport or shape failure. Production remains open until PR #186 is
+  protected-merged and a pinned release image replaces the sibling-source
+  Compose build; this does not change the calibrated-measurement gap.
 - **Orchestration — boundary accepted, runtime open:** all LLM/VISION/embedding
   work must cross contextual-orchestrator with provenance, session, cost, schema
   validation, synthesis/repair, and capability discovery. No provider key or
@@ -500,18 +803,22 @@ or an explicit unavailable result.
 
 ## 6. Next acceptance loop
 
-1. Re-fetch PR #366's exact head and required reviews/checks, then separately
-   audit PR #343 and the superseding calendar contract PR #355.
-2. Run frontend lint, tests, build, Storybook, backend tests, and authenticated
-   browser checks when the local stack is available.
-3. Reproduce each case label using synthetic fixtures or authorized runtime
-   aggregates, preserving `unavailable` as an explicit result.
-4. Complete exact-head review and immutable release of the LineageWeave provider
-   contract before creating the Naruon consumer implementation; do not import a
-   draft branch or share application database state.
-5. Fix only evidence-backed failures, then repeat the exact-head protected merge
-   gate. Do not self-approve, bypass protection, or claim a PR is merged without
-   a merge SHA.
+1. Isolate the dirty continuation on a current-main branch without overwriting
+   concurrent work, then rerun unit/backend files with bounded diagnostics,
+   full frontend checks, Storybook, and authenticated desktop/mobile Ask and
+   drawer flows against images built from that exact source.
+2. Land the central coverage-sandbox repair, rerun the four exact-head coverage
+   change requests on #349/#355/#383/#417, and resolve only findings that remain
+   valid on each current head.
+3. Obtain two independent approvals including an approval after the final push.
+   Start with the small operational family #429, then #434 and #435/#436;
+   refetch and revalidate every sibling after each protected merge.
+4. Validate the ADR-backed anchor source-field policy on live PostgreSQL and
+   add the missing Ask/mobile Storybook scenes. Reproduce private cases only as aggregate, non-identifying
+   runtime evidence and preserve `unavailable` explicitly.
+5. Continue issue work in evidence-integrity order: #362, #359/#358, #361,
+   #372/#341, #336, then #274. Do not self-approve, bypass protection, force
+   push, or claim a merge without the protected merge SHA.
 
 ## 7. References (APA 7th)
 

@@ -28,9 +28,39 @@ All notable changes to this project are documented here. Format follows
   breakdown (`total_posts`, `posts_with_edges`, `posts_no_relation_found`,
   `posts_no_comparison_group`) alongside `edge_count`, giving an operator
   an honest coverage summary instead of a bare edge count.
+- Posts can now run an evidence-bearing source-reference research agent
+  against cited URLs and patents (ADR 0133). Search hits stay leads until
+  a Judge outcome of supported, refuted, or not_enough_information; a
+  sharing actor is bound only from cited retrieved text.
+- Each post's Ask-about-this-lineage surface now keeps account-owned
+  conversation history (list, select, new) without replacing the seeded
+  `post_chat_result` cache (ADR 0136). Ask Agent history remains ADR 0126.
+  TEPP topic modeling of how many posts can connect under temporal
+  precedence stays deferred.
+- Repeated `(source_system_code, source_customer_code)` observations can now
+  enter Customer Master only after two authorized posts, contextual-orchestrator
+  resolution, a persisted fast-mlsirm Judge/IRT decision, external
+  corroboration, and unique catalog resolution (ADR 0137). The importer
+  reconciles changed keys automatically; promoted posts receive a distinct
+  Knowledge Graph customer-observation edge, while preferred, former, and
+  alternate organization names remain visible and auditable.
 
 ### Changed
 
+- Leftover closest/farthest pairs now name the post and the Post quality
+  criterion, and leftover clicks land on that criterion instead of a generic
+  post open (ADR 0049 / ADR 0135). Catalog-unbound, dropped/unavailable
+  channel, and confident-negative each have distinct next-action copy;
+  a glued R&R source phrase stays fail-closed and is not treated as an
+  “operates” relation.
+- Reader-facing failures now share a token-backed exception surface (title,
+  next-action copy, optional retry) instead of a color-only red paragraph.
+  Raw exception types, stacks, OIDC diagnostics, and 5xx provider payloads
+  stay hidden (ADR 0123 / ADR 0134).
+- Analysis-run next actions stay kind-and-status exact (ADR 0135): a running
+  lineage or TEPP row whose copy says the work is already queued now offers
+  Refresh, not Start reconstruction / Start TEPP; a failed report with a week
+  key opens the period-report rebuild surface.
 - Renamed "Buyer" terminology to reader/workspace naming across the frontend
   shell, backend evidence helpers, and living docs (ADR 0119). LineageWeave
   has no explicit buyer role, so `BuyerNav`/`BuyerDestination` became

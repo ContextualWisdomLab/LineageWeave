@@ -177,6 +177,11 @@ _CATALOG_UNRESOLVED_REASON_MIGRATION = (
     / "migrations"
     / "0134_catalog_unresolved_reason.sql"
 )
+_CUSTOMER_IDENTITY_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0137_cross_post_customer_identity.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -303,6 +308,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_SEMANTIC_RELATIONSHIP_MIGRATION.read_text())
             cur.execute(_SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION.read_text())
             cur.execute(_CATALOG_UNRESOLVED_REASON_MIGRATION.read_text())
+            cur.execute(_CUSTOMER_IDENTITY_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -1513,6 +1519,7 @@ def test_customer_master_returns_authorized_catalog_contract(
     assert {
         "corporate_entity_id", "corporate_entity_code", "entity_name",
         "entity_level_code", "entity_level_label", "parent_entity_id",
+        "name_history",
     } <= set(entity)
     # Live UI finding (2026-08-19): the corporate entity list rendered
     # the raw entity_level_code ("company") instead of a human label --
@@ -1557,6 +1564,7 @@ def test_customer_master_returns_authorized_catalog_contract(
     assert solo["corporate_entity_id"] is None
     assert body["source_customer_hints"] == [
         {
+            "source_system_code": None,
             "customer_code": "TEST-CUSTOMER-001",
             "customer_name": None,
             "post_count": 1,
@@ -1565,6 +1573,9 @@ def test_customer_master_returns_authorized_catalog_contract(
                 "post_title": "Public post",
             }],
             "resolution_status": "hint_only",
+            "corporate_entity_id": None,
+            "resolved_entity_name": None,
+            "customer_identity_judgment_id": None,
             "hint_trust": "normal",
             "provenance": "source_post.source_customer_code/source_post.source_customer_name",
         }
@@ -1752,28 +1763,41 @@ def test_customer_master_scope_facets_reflect_authorization_and_observed_evidenc
 def test_resolve_customer_hint_creates_and_links_a_corroborated_entity(
     client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
-    """A Customer Master hint (an opaque source_customer_code with no name)
-    must resolve to a real corporate_entity only once external search
-    corroborates the proposed name -- deterministic fake resolution/
-    verification clients (not a real LLM or Searxng call) so this is
-    CI-stable; the point under test is the resolve-then-persist wiring.
+    """Two posts must pass resolution, Judge, and corroboration before binding.
     """
-    from lineageweave.relation_verification import STATUS_CORROBORATED, RelationVerificationResult
+    from fast_mlsirm import LLMJudgeResult
+
+    from lineageweave.corporate_hierarchy_inference import HierarchyProposal
+    from lineageweave.customer_identity_judgment import (
+        IDENTITY_CRITERION_CODES,
+        RENAME_CRITERION_CODES,
+    )
+    from lineageweave.relation_verification import (
+        STATUS_CORROBORATED,
+        RelationVerificationResult,
+    )
 
     _grant_post_admin(seeded_db["dsn"])
     admin_conn = psycopg2.connect(seeded_db["dsn"])
     admin_conn.autocommit = True
     try:
         with admin_conn.cursor() as cur:
-            # corporate_entity_id is NOT NULL: a bulk-imported real record
-            # defaults to whatever entity its author account is affiliated
-            # with, never to a null "unresolved" sentinel. own_private_post_id
-            # already sits at that exact default (its author's own
-            # account_affiliation row) -- the case this endpoint reclaims.
             cur.execute(
-                "update source_post set source_customer_code = %s where post_id = %s",
-                ("HINT-CODE-001", seeded_db["own_private_post_id"]),
+                "update source_post set source_system_code = %s, source_customer_code = %s "
+                "where post_id in (%s, %s)",
+                (
+                    "synthetic-crm",
+                    "HINT-CODE-001",
+                    seeded_db["own_private_post_id"],
+                    seeded_db["late_own_private_post_id"],
+                ),
             )
+            cur.execute(
+                "select post_id::text, corporate_entity_id::text from source_post "
+                "where post_id in (%s, %s) order by post_id",
+                (seeded_db["own_private_post_id"], seeded_db["late_own_private_post_id"]),
+            )
+            original_scopes = cur.fetchall()
 
         class _FakeResolutionClient:
             available = True
@@ -1791,22 +1815,64 @@ def test_resolve_customer_hint_creates_and_links_a_corroborated_entity(
                     status_code=STATUS_CORROBORATED, evidence_url="https://example.org/northridge"
                 )
 
+        class _FakeIdentityJudge:
+            available = True
+
+            @staticmethod
+            def _result(codes):
+                return LLMJudgeResult(
+                    score=1.0,
+                    accepted=True,
+                    rationale="synthetic repeated evidence",
+                    criterion_scores={code: 1.0 for code in codes},
+                    raw_output="{}",
+                    orchestration_mode="auto",
+                    trace_step_count=2,
+                    usage={},
+                    criterion_categories={code: 4 for code in codes},
+                    category_count=5,
+                    category_method="cumulative_threshold",
+                )
+
+            def judge_identity(self, candidate_name: str, context_text: str):
+                assert candidate_name == "Northridge Grid"
+                assert context_text.count("source_customer_code=HINT-CODE-001") == 2
+                return self._result(IDENTITY_CRITERION_CODES)
+
+            def judge_rename(self, *_args):
+                return self._result(RENAME_CRITERION_CODES)
+
+        class _FakeHierarchyClient:
+            available = True
+
+            def infer(self, organization_name: str, _context_text: str):
+                assert organization_name == "Northridge Grid"
+                return HierarchyProposal(level_code="company", parent_name=None)
+
         monkeypatch.setattr(
             "backend.app.main._customer_hint_resolution_client", lambda: _FakeResolutionClient()
         )
         monkeypatch.setattr(
             "backend.app.main._relation_verification_client", lambda: _FakeVerificationClient()
         )
+        monkeypatch.setattr(
+            "backend.app.main._customer_identity_judge_client", lambda: _FakeIdentityJudge()
+        )
+        monkeypatch.setattr(
+            "backend.app.main._corporate_hierarchy_inference_client",
+            lambda: _FakeHierarchyClient(),
+        )
 
         response = client.post(
             "/api/customer-master/resolve-hint",
-            json={"hint_code": "HINT-CODE-001"},
+            json={"hint_code": "HINT-CODE-001", "source_system_code": "synthetic-crm"},
             headers={"Authorization": f"Bearer {demo_analyst_token}"},
         )
         assert response.status_code == 200, response.text
         body = response.json()
         assert body["entity_name"] == "Northridge Grid"
-        assert body["linked_post_count"] == 1
+        assert body["linked_post_count"] == 2
+        assert body["resolution_status"] == "customer_identity_promoted"
 
         with admin_conn.cursor() as cur:
             cur.execute(
@@ -1814,12 +1880,45 @@ def test_resolve_customer_hint_creates_and_links_a_corroborated_entity(
                 (body["corporate_entity_id"],),
             )
             entity_row = cur.fetchone()
-            assert entity_row == ("Northridge Grid", "HINT-HINT-CODE-001")
+            assert entity_row[0] == "Northridge Grid"
+            assert entity_row[1].startswith("AUTO-")
             cur.execute(
-                "select corporate_entity_id from source_post where post_id = %s",
-                (seeded_db["own_private_post_id"],),
+                "select post_id::text, corporate_entity_id::text from source_post "
+                "where post_id in (%s, %s) order by post_id",
+                (seeded_db["own_private_post_id"], seeded_db["late_own_private_post_id"]),
             )
-            assert str(cur.fetchone()[0]) == body["corporate_entity_id"]
+            assert cur.fetchall() == original_scopes
+            cur.execute(
+                "select count(*) from post_customer_identity_mention "
+                "where corporate_entity_id = %s",
+                (body["corporate_entity_id"],),
+            )
+            assert cur.fetchone()[0] == 2
+            cur.execute(
+                "select entity_name, name_role_code from corporate_entity_name_history "
+                "where corporate_entity_id = %s and observed_to is null",
+                (body["corporate_entity_id"],),
+            )
+            assert cur.fetchall() == [("Northridge Grid", "entity_name_preferred")]
+            cur.execute(
+                "select count(*) from knowledge_graph_edge "
+                "where edge_type_code = 'edge_customer_identity_observation' "
+                "and source_node_id = %s",
+                (body["corporate_entity_id"],),
+            )
+            assert cur.fetchone()[0] == 2
+        master_response = client.get(
+            "/api/customer-master",
+            headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        )
+        assert master_response.status_code == 200, master_response.text
+        promoted_entity = next(
+            entity
+            for entity in master_response.json()["corporate_entities"]
+            if entity["corporate_entity_id"] == body["corporate_entity_id"]
+        )
+        assert promoted_entity["scope_facets"] == ["observed_organization"]
+        assert promoted_entity["name_history"][0]["entity_name"] == "Northridge Grid"
     finally:
         admin_conn.close()
 

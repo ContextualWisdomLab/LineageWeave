@@ -125,6 +125,48 @@ def test_migrate_sh_replays_catalog_unresolved_reason_migration_on_existing_volu
     assert "reason_no_catalog_entry" in migration
 
 
+def test_migrate_sh_replays_source_reference_research_on_existing_volumes() -> None:
+    """Existing Compose volumes must receive source-research evidence tables."""
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(
+        encoding="utf-8"
+    )
+    migration = (root / "migrations" / "0133_source_reference_research.sql").read_text(
+        encoding="utf-8"
+    )
+
+    assert "0133_*" in script
+    assert "post_source_research_lead" in migration
+
+
+def test_migrate_sh_replays_post_ask_history_on_existing_volumes() -> None:
+    """Compose must create per-post Ask history tables on every volume."""
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(encoding="utf-8")
+    migration = (root / "migrations" / "0136_post_ask_conversation_history.sql").read_text(
+        encoding="utf-8"
+    )
+
+    assert "0136_*" in script
+    assert "create table if not exists post_ask_session" in migration
+    assert "post_ask_session_account_post_idx" in migration
+
+
+def test_migrate_sh_replays_cross_post_customer_identity_on_existing_volumes() -> None:
+    """Existing Compose volumes must receive governed Customer Master tables."""
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(
+        encoding="utf-8"
+    )
+    migration = (root / "migrations" / "0137_cross_post_customer_identity.sql").read_text(
+        encoding="utf-8"
+    )
+
+    assert "0137_*" in script
+    assert "customer_identity_judgment_response" in migration
+    assert "UNIQUE NULLS NOT DISTINCT (source_system_code, source_customer_code)" in migration
+
+
 def test_tenant_identity_migration_repairs_legacy_values_before_constraints() -> None:
     """Legacy blank settings cannot make an existing-volume replay fail closed."""
     migration = (

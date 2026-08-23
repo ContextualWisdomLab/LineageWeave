@@ -18,6 +18,7 @@ from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
     EDGE_CO_MENTION,
+    EDGE_CUSTOMER_IDENTITY_OBSERVATION,
     EDGE_MENTION,
     EDGE_MENTION_ORGANIZATION,
     EDGE_MENTION_TEAM,
@@ -195,6 +196,10 @@ async def persist_edges_for_post(
         "select corporate_entity_id from post_organization_mention where post_id = $1",
         post_id,
     )
+    customer_mention_rows = await conn.fetch(
+        "select corporate_entity_id from post_customer_identity_mention where post_id = $1",
+        post_id,
+    )
     edges = knowledge_graph_edges_for_post(
         post_id,
         [str(row["person_id"]) for row in mention_rows],
@@ -208,6 +213,7 @@ async def persist_edges_for_post(
             for row in team_affiliation_rows
         ],
         [str(row["corporate_entity_id"]) for row in organization_mention_rows],
+        [str(row["corporate_entity_id"]) for row in customer_mention_rows],
     )
     for edge in edges:
         await conn.fetchrow(
@@ -321,6 +327,10 @@ async def visible_affiliation_post_ids(
             select org_mention.post_id
               from post_organization_mention org_mention
              where org_mention.corporate_entity_id = $1
+            union
+            select customer_mention.post_id
+              from post_customer_identity_mention customer_mention
+             where customer_mention.corporate_entity_id = $1
          )
          order by post.created_at, post.post_id
         """,
@@ -379,7 +389,13 @@ async def load_visible_subgraph(
         visible_post_ids,
     )
     organization_ids = [row["corporate_entity_id"] for row in organization_rows]
-    if not person_ids and not team_ids and not organization_ids:
+    customer_rows = await conn.fetch(
+        "select distinct corporate_entity_id from post_customer_identity_mention "
+        "where post_id = any($1::uuid[])",
+        visible_post_ids,
+    )
+    customer_ids = [row["corporate_entity_id"] for row in customer_rows]
+    if not person_ids and not team_ids and not organization_ids and not customer_ids:
         return []
     rows = await conn.fetch(
         """
@@ -460,6 +476,13 @@ async def load_visible_subgraph(
                and edge.target_node_id = any($14::uuid[]))
             )
           )
+          or (
+            edge.edge_type_code = $15
+            and edge.source_node_type_code = $13
+            and edge.source_node_id = any($16::uuid[])
+            and edge.target_node_type_code = $4
+            and edge.target_node_id = any($1::uuid[])
+          )
         """,
         visible_post_ids,
         person_ids,
@@ -475,6 +498,8 @@ async def load_visible_subgraph(
         EDGE_MENTION_ORGANIZATION,
         NODE_CORPORATE_ENTITY,
         organization_ids,
+        EDGE_CUSTOMER_IDENTITY_OBSERVATION,
+        customer_ids,
     )
     return [edge_spec_from_row(row) for row in rows]
 
@@ -672,6 +697,93 @@ async def post_knowledge_graph(
             }
         )
 
+    research_rows = await conn.fetch(
+        """
+        select judgment.post_source_research_judgment_id::text as judgment_id,
+               retrieval.post_source_research_retrieval_id::text as retrieval_id,
+               retrieval.evidence_url, retrieval.evidence_title,
+               retrieval.passage_text, retrieval.content_sha256,
+               judgment.sharing_actor_name
+          from post_source_research_lead lead
+          join post_source_research_judgment judgment
+            using (post_source_research_lead_id)
+          join post_source_research_citation citation
+            using (post_source_research_judgment_id)
+          join post_source_research_retrieval retrieval
+            using (post_source_research_retrieval_id)
+         where lead.post_id = $1
+           and judgment.research_status_code = 'research_supported'
+           and btrim(coalesce(judgment.sharing_actor_name, '')) <> ''
+         order by lead.lead_ordinal, retrieval.retrieval_ordinal
+         limit ($2 + 1)
+        """,
+        post_id,
+        relation_limit,
+    )
+    reference_predicate = semantic_predicate_annotations("dct_references")
+    attribution_predicate = semantic_predicate_annotations("prov_was_attributed_to")
+    for row in research_rows[:relation_limit]:
+        document_key = f"source-research-document:{row['retrieval_id']}"
+        actor_key = semantic_key("organization", row["sharing_actor_name"])
+        nodes.setdefault(
+            document_key,
+            {
+                "id": document_key,
+                "node_type_code": "semantic_document",
+                "node_id": document_key,
+                "label": row["evidence_title"] or row["evidence_url"],
+                "ontology_iri": _SEMANTIC_NODE_CLASS_IRIS["document"],
+                "ontology_label": "Document",
+                "is_focus": False,
+                "is_evidence_text_node": True,
+            },
+        )
+        nodes.setdefault(
+            actor_key,
+            {
+                "id": actor_key,
+                "node_type_code": "semantic_organization",
+                "node_id": actor_key,
+                "label": row["sharing_actor_name"],
+                "ontology_iri": _SEMANTIC_NODE_CLASS_IRIS["organization"],
+                "ontology_label": "Organization",
+                "is_focus": False,
+                "is_evidence_text_node": True,
+            },
+        )
+        evidence = {
+            "assertion_status_code": "research_supported",
+            "evidence_text": row["passage_text"],
+            "evidence_url": row["evidence_url"],
+            "evidence_sha256": row["content_sha256"],
+            "research_judgment_id": row["judgment_id"],
+            "evidence_post_ids": [post_id],
+        }
+        edges.extend(
+            (
+                {
+                    "source": node_key(NODE_POST, post_id),
+                    "target": document_key,
+                    "edge_type_code": "dct_references",
+                    "ontology_iri": reference_predicate.get("ontology_iri"),
+                    "ontology_label": reference_predicate.get(
+                        "ontology_label", "References"
+                    ),
+                    **evidence,
+                },
+                {
+                    "source": document_key,
+                    "target": actor_key,
+                    "edge_type_code": "prov_was_attributed_to",
+                    "ontology_iri": attribution_predicate.get("ontology_iri"),
+                    "ontology_label": attribution_predicate.get(
+                        "ontology_label", "Was attributed to"
+                    ),
+                    **evidence,
+                },
+            )
+        )
+
     source_row = await conn.fetchrow(
         """
         select source_customer_code, source_order_pool_code,
@@ -704,10 +816,12 @@ async def post_knowledge_graph(
                 (
                     "commercial_context",
                     f"Commercial context: {source_hints['commercial_context_code']}",
-                    "combination="
-                    f"{source_hints['combination_code']}; "
-                    f"present_fields={','.join(source_hints['present_fields']) or 'none'}; "
-                    "inference=inferred; provenance=source_post.field_presence",
+                    (
+                        "combination="
+                        f"{source_hints['combination_code']}; "
+                        f"present_fields={','.join(source_hints['present_fields']) or 'none'}; "
+                        "inference=inferred; provenance=source_post.field_presence"
+                    ),
                 ),
                 (
                     "lifecycle_vector",
@@ -750,7 +864,11 @@ async def post_knowledge_graph(
         "post_id": post_id,
         "nodes": list(nodes.values()),
         "edges": edges,
-        "truncated": len(catalog_edges) > relation_limit or len(relation_rows) > relation_limit,
+        "truncated": (
+            len(catalog_edges) > relation_limit
+            or len(relation_rows) > relation_limit
+            or len(research_rows) > relation_limit
+        ),
     }
 
 

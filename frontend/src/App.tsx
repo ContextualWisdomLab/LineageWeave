@@ -7,6 +7,8 @@ import {
   askAgent,
   fetchAskConversation,
   fetchAskConversations,
+  fetchPostChatConversation,
+  fetchPostChatConversations,
   BackendError,
   createAnalysisRun,
   startAnalysisRun,
@@ -72,6 +74,7 @@ import {
   type KnowledgeGraph,
   type Keyman,
   type SourceAuthorContext,
+  type SourceCustomerHint,
   type PostAiSummary,
   type PostFiveW1H,
   type PostKeyEvent,
@@ -101,7 +104,26 @@ import { GlobalSearch } from "./components/GlobalSearch";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { RoleEvidence } from "./components/RoleEvidence";
-import { SummaryStatus } from "./components/SummaryStatus";
+import { LeftoverPairButton } from "./components/LeftoverPairButton";
+import { AnalysisRunNextAction } from "./components/AnalysisRunNextAction";
+import { ExceptionAlert, SummaryStatus } from "./components/SummaryStatus";
+import {
+  analysisRunCanRequestTeppRetry,
+  analysisRunCaption,
+  analysisRunCorpusHint,
+  analysisRunEmptyPostsHint,
+  analysisRunNextAction,
+  analysisRunReportGrouping,
+  analysisRunReportGroupingKey,
+  analysisRunReportPeriod,
+} from "./analysisRunGuidance";
+import {
+  analysisEvidenceDiagnosis,
+  gluedRoleRelationshipNextAction,
+} from "./analysisEvidenceDiagnosis";
+import { leftoverCriterionLabel, postQualityCriterionElementId } from "./leftoverPairGuidance";
+import { productExceptionCopy } from "./productExceptionCopy";
+import { SourceResearchPanel } from "./components/SourceResearchPanel";
 import { isGenericTeamActor } from "./components/roleEvidenceUtils";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
 import { MenuIcon, CloseIcon, SendIcon } from "./components/icons";
@@ -129,10 +151,7 @@ import {
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
-  if (err instanceof BackendError && err.status === 503) {
-    return `${action} ${t("is temporarily unavailable.")} ${t("Saved evidence is still available.")}`;
-  }
-  return String(err);
+  return productExceptionCopy(err, action).title;
 }
 
 function LanguageSwitcher({ accessToken }: { accessToken?: string }) {
@@ -241,17 +260,11 @@ function searchUnavailableMessage(err: unknown): string {
   if (err instanceof BackendError && err.status === 503) {
     return t("Verification unavailable (search is not configured).");
   }
-  return String(err);
+  return productExceptionCopy(err, t("Verification")).title;
 }
 
-const CRITERION_SHORT_LABEL: Record<string, string> = {
-  general_sentiment_positive: "constructive",
-  general_sentiment_negative: "negative",
-  sales_lead_specificity: "sales-lead",
-};
-
 function criterionShortLabel(itemCode: string): string {
-  return CRITERION_SHORT_LABEL[itemCode] ?? itemCode;
+  return leftoverCriterionLabel(itemCode);
 }
 
 // This popup's layout follows the textual product brief (Korean summary,
@@ -272,6 +285,7 @@ function EvidencePanel({
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
   const [postError, setPostError] = useState(false);
+  const [evidenceRetry, setEvidenceRetry] = useState(0);
 
   useEffect(() => {
     let current = true;
@@ -287,7 +301,7 @@ function EvidencePanel({
     return () => {
       current = false;
     };
-  }, [postId, accessToken]);
+  }, [postId, accessToken, evidenceRetry]);
 
   return (
     <div className="evidence-panel" role="complementary" aria-label={t("Evidence")}>
@@ -295,9 +309,12 @@ function EvidencePanel({
       <h3>{t("Evidence")}</h3>
       {!post && !postError && <p>{t("Loading source post...")}</p>}
       {postError && (
-        <p className="error" role="alert">
-          {t("Source evidence is unavailable. Continue with the saved answer.")}
-        </p>
+        <ExceptionAlert
+          title={t("Source evidence is unavailable. Continue with the saved answer.")}
+          description={t("Retry opening this source, or keep reading the saved answer.")}
+          retryLabel={t("Retry evidence")}
+          onRetry={() => setEvidenceRetry((value) => value + 1)}
+        />
       )}
       {post && (
         <>
@@ -339,7 +356,7 @@ function ChatCitations({
   );
 }
 
-function ChatPanel({
+export function ChatPanel({
   postId,
   accessToken,
   nameFirstAsk,
@@ -349,40 +366,133 @@ function ChatPanel({
   nameFirstAsk?: boolean;
 }) {
   const [question, setQuestion] = useState("");
-  const [exchanges, setExchanges] = useState<ChatExchange[]>([]);
+  const [seededExchanges, setSeededExchanges] = useState<ChatExchange[]>([]);
+  const [conversationExchanges, setConversationExchanges] = useState<ChatExchange[]>([]);
+  const [conversations, setConversations] = useState<AskConversationSummary[]>([]);
+  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [historySelected, setHistorySelected] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState<string | null>(null);
   const [answer, setAnswer] = useState<ChatAnswer | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [evidencePostId, setEvidencePostId] = useState<string | null>(null);
   const [seededOnly, setSeededOnly] = useState(false);
+  const historyRequestIdRef = useRef(0);
+
+  const exchanges = historySelected ? conversationExchanges : seededExchanges;
+  const suggestionExchanges = seededExchanges;
 
   useEffect(() => {
-    setExchanges([]);
+    const requestId = ++historyRequestIdRef.current;
+    setQuestion("");
+    setSeededExchanges([]);
+    setConversationExchanges([]);
+    setConversations([]);
+    setConversationId(null);
+    setHistorySelected(false);
+    setHistoryError(null);
+    setHistoryLoading(true);
     setAnswer(null);
     setError(null);
     setSeededOnly(false);
     setEvidencePostId(null);
     fetchPostChat(accessToken, postId)
-      .then((history) => setExchanges(history.exchanges))
-      .catch(() => setExchanges([]));
+      .then((history) => {
+        if (requestId !== historyRequestIdRef.current) return;
+        setSeededExchanges(history.exchanges);
+      })
+      .catch(() => {
+        if (requestId !== historyRequestIdRef.current) return;
+        setSeededExchanges([]);
+      });
+    fetchPostChatConversations(accessToken, postId)
+      .then((page) => {
+        if (requestId !== historyRequestIdRef.current) return;
+        setConversations(page.conversations);
+      })
+      .catch(() => {
+        if (requestId !== historyRequestIdRef.current) return;
+        setHistoryError(t("Conversation history could not be loaded."));
+      })
+      .finally(() => {
+        if (requestId === historyRequestIdRef.current) setHistoryLoading(false);
+      });
   }, [postId, accessToken]);
+
+  async function selectConversation(nextConversationId: string) {
+    if (loading) return;
+    setHistoryLoading(true);
+    setHistoryError(null);
+    try {
+      const conversation = await fetchPostChatConversation(accessToken, postId, nextConversationId);
+      setConversationId(conversation.conversation_id);
+      setConversationExchanges(
+        conversation.exchanges.map((exchange) => ({
+          question_text: exchange.question_text,
+          answer_text: exchange.answer_text,
+          cited_post_ids: exchange.cited_post_ids,
+          cited_posts: exchange.cited_posts,
+        })),
+      );
+      setHistorySelected(true);
+      setAnswer(null);
+      setError(null);
+      setEvidencePostId(null);
+    } catch {
+      setHistoryError(t("Conversation history could not be loaded."));
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  function startNewConversation() {
+    if (loading) return;
+    setConversationId(null);
+    setHistorySelected(false);
+    setConversationExchanges([]);
+    setQuestion("");
+    setAnswer(null);
+    setError(null);
+    setEvidencePostId(null);
+    setHistoryError(null);
+  }
 
   async function handleAsk(asked = question) {
     if (!asked.trim()) return;
     setLoading(true);
     setError(null);
     try {
-      const result = await askPostChat(accessToken, postId, asked);
+      const result = await askPostChat(accessToken, postId, asked, conversationId);
+      const next: ChatExchange = {
+        question_text: asked.trim(),
+        answer_text: result.answer_text,
+        cited_post_ids: result.cited_post_ids,
+        cited_posts: result.cited_posts,
+      };
+      const appendToSelected = historySelected;
       setAnswer(result);
-      setExchanges((prev) => {
-        const next: ChatExchange = {
-          question_text: asked.trim(),
-          answer_text: result.answer_text,
-          cited_post_ids: result.cited_post_ids,
-          cited_posts: result.cited_posts,
-        };
-        return [...prev.filter((row) => row.question_text !== next.question_text), next];
-      });
+      setQuestion("");
+      if (result.conversation_id) {
+        setConversationId(result.conversation_id);
+        setConversations((current) => [
+          {
+            conversation_id: result.conversation_id!,
+            title:
+              current.find((item) => item.conversation_id === result.conversation_id)?.title ??
+              asked.trim().slice(0, 80),
+            updated_at: new Date().toISOString(),
+            turn_count:
+              (current.find((item) => item.conversation_id === result.conversation_id)?.turn_count ?? 0) + 1,
+          },
+          ...current.filter((item) => item.conversation_id !== result.conversation_id),
+        ]);
+      }
+      setConversationExchanges((prev) => [
+        ...(appendToSelected ? prev : []).filter((row) => row.question_text !== next.question_text),
+        next,
+      ]);
+      setHistorySelected(true);
     } catch (err) {
       setError(orchestratorUnavailableMessage(err, "Chat"));
       if (err instanceof BackendError && err.status === 503) {
@@ -445,77 +555,136 @@ function ChatPanel({
           {landedEvidenceNextAction(firstCitedTitle)}
         </p>
       ) : null}
-      {!seededOnly && (
-        <div className="chat-input-row">
-          <input
-            type="text"
-            value={question}
-            onChange={(event) => setQuestion(event.target.value)}
-            onKeyDown={(event) => event.key === "Enter" && handleAsk()}
-            placeholder={t("What happened between these events?")}
-            aria-label={t("What happened between these events?")}
-          />
-          <button onClick={() => handleAsk()} disabled={loading || !question.trim()}>
-            <SendIcon />
-            {loading ? t("Asking...") : t("Ask")}
-          </button>
-        </div>
-      )}
-      {seededOnly && exchanges.length > 0 && (
-        <p className="popup-placeholder">
-          {t("Interactive questions are unavailable right now; saved evidence remains available.")}
-        </p>
-      )}
-      {exchanges.length > 0 && (
-        <div className="chat-suggestions">
-          {exchanges.map((exchange) => (
+      <div className="chat-layout">
+        <aside className="ask-agent-history chat-history" aria-label={t("Conversation history")}>
+          <div className="ask-agent-history-header">
+            <p>{t("Switch between saved questions and source links.")}</p>
             <button
-              key={exchange.question_text}
-              className="chat-suggestion-chip"
-              aria-label={tf("Ask seeded question: {question}", { question: exchange.question_text })}
-              aria-current={
-                nameFirstAsk && exchanges[0]?.question_text === exchange.question_text
-                  ? "true"
-                  : undefined
-              }
-              onClick={() => {
-                if (seededOnly) return;
-                setQuestion(exchange.question_text);
-                void handleAsk(exchange.question_text);
-              }}
+              type="button"
+              className="ask-agent-new"
+              onClick={startNewConversation}
+              disabled={loading || historyLoading}
             >
-              {exchange.question_text}
+              {t("New conversation")}
             </button>
+          </div>
+          {historyLoading && conversations.length === 0 ? (
+            <p className="ask-agent-history-loading">{t("Loading conversation history...")}</p>
+          ) : historyError && conversations.length === 0 ? (
+            <ExceptionAlert
+              title={historyError}
+              description={t("Retry loading this conversation, or continue with saved evidence.")}
+            />
+          ) : conversations.length > 0 ? (
+            <ul className="ask-agent-history-list">
+              {conversations.map((conversation) => (
+                <li key={conversation.conversation_id}>
+                  <button
+                    type="button"
+                    className="ask-agent-history-item"
+                    aria-current={
+                      historySelected && conversation.conversation_id === conversationId
+                        ? "page"
+                        : undefined
+                    }
+                    onClick={() => void selectConversation(conversation.conversation_id)}
+                    disabled={historyLoading || loading}
+                  >
+                    <strong>{conversation.title}</strong>
+                    <span>
+                      {conversation.turn_count} {t("questions")}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="ask-agent-history-empty">
+              <strong>{t("No saved conversations yet.")}</strong>
+              <span>{t("Ask a question to save your first conversation.")}</span>
+            </div>
+          )}
+        </aside>
+        <div className="chat-main">
+          {!seededOnly && (
+            <div className="chat-input-row">
+              <input
+                type="text"
+                value={question}
+                onChange={(event) => setQuestion(event.target.value)}
+                onKeyDown={(event) => event.key === "Enter" && handleAsk()}
+                placeholder={t("What happened between these events?")}
+                aria-label={t("What happened between these events?")}
+              />
+              <button onClick={() => handleAsk()} disabled={loading || !question.trim()}>
+                <SendIcon />
+                {loading ? t("Asking...") : t("Ask")}
+              </button>
+            </div>
+          )}
+          {seededOnly && suggestionExchanges.length > 0 && (
+            <p className="popup-placeholder">
+              {t("Interactive questions are unavailable right now; saved evidence remains available.")}
+            </p>
+          )}
+          {suggestionExchanges.length > 0 && (
+            <div className="chat-suggestions">
+              {suggestionExchanges.map((exchange) => (
+                <button
+                  key={exchange.question_text}
+                  className="chat-suggestion-chip"
+                  aria-label={tf("Ask seeded question: {question}", { question: exchange.question_text })}
+                  aria-current={
+                    nameFirstAsk && exchanges[0]?.question_text === exchange.question_text
+                      ? "true"
+                      : undefined
+                  }
+                  onClick={() => {
+                    if (seededOnly) return;
+                    setQuestion(exchange.question_text);
+                    void handleAsk(exchange.question_text);
+                  }}
+                >
+                  {exchange.question_text}
+                </button>
+              ))}
+            </div>
+          )}
+          {error && <ExceptionAlert title={error} />}
+          {historyError && conversations.length > 0 ? (
+            <ExceptionAlert
+              title={historyError}
+              description={t("Retry loading this conversation, or continue with saved evidence.")}
+            />
+          ) : null}
+          {exchanges
+            .filter(
+              (exchange) =>
+                !(nameFirstAsk && exchange.question_text === exchanges[0]?.question_text),
+            )
+            .map((exchange) => (
+            <div key={`seeded-${exchange.question_text}`} className="chat-answer">
+              <p className="chat-question">{exchange.question_text}</p>
+              <p>{exchange.answer_text}</p>
+              <ChatCitations
+                citedPosts={exchange.cited_posts}
+                citedPostIds={exchange.cited_post_ids}
+                onOpenEvidence={setEvidencePostId}
+              />
+            </div>
           ))}
+          {answer && !exchanges.some((row) => row.answer_text === answer.answer_text) && (
+            <div className="chat-answer">
+              <p>{answer.answer_text}</p>
+              <ChatCitations
+                citedPosts={answer.cited_posts}
+                citedPostIds={answer.cited_post_ids}
+                onOpenEvidence={setEvidencePostId}
+              />
+            </div>
+          )}
         </div>
-      )}
-      {error && <p className="error">{error}</p>}
-      {exchanges
-        .filter(
-          (exchange) =>
-            !(nameFirstAsk && exchange.question_text === exchanges[0]?.question_text),
-        )
-        .map((exchange) => (
-        <div key={`seeded-${exchange.question_text}`} className="chat-answer">
-          <p className="chat-question">{exchange.question_text}</p>
-          <p>{exchange.answer_text}</p>
-          <ChatCitations
-            citedPosts={exchange.cited_posts}
-            citedPostIds={exchange.cited_post_ids}
-            onOpenEvidence={setEvidencePostId}
-          />
-        </div>
-      ))}
-      {answer && !exchanges.some((row) => row.answer_text === answer.answer_text) && (
-        <div className="chat-answer">
-          <p>{answer.answer_text}</p>
-          <ChatCitations
-            citedPosts={answer.cited_posts}
-            citedPostIds={answer.cited_post_ids}
-            onOpenEvidence={setEvidencePostId}
-          />
-        </div>
-      )}
+      </div>
       {!nameFirstAsk && evidencePostId ? (
         <EvidencePanel
           postId={evidencePostId}
@@ -618,7 +787,7 @@ function EventLineageSection({
 }
 
 function summaryFetchError(err: unknown): string {
-  return err instanceof BackendError ? err.message : String(err);
+  return productExceptionCopy(err, t("Summary")).title;
 }
 
 function RelatedPostsSection({
@@ -901,6 +1070,11 @@ const CHAT_EVIDENCE_KIND_LABELS: Record<string, string> = {
   semantic_project: "Semantic project",
   semantic_role: "Semantic role",
   semantic_keyman: "Semantic Keyman",
+  semantic_event: "Semantic event",
+  semantic_event_clue: "Semantic event clue",
+  semantic_quantitative: "Semantic quantitative evidence",
+  semantic_source_fact: "Semantic source-grounded fact",
+  semantic_relation: "Semantic relationship",
 };
 
 function chatEvidenceKindLabel(kind: string): string {
@@ -1286,7 +1460,7 @@ function KeymanPanel({
           </details>
         )}
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && <ExceptionAlert title={error} />}
       {sourceAuthorContext ? (
         <details className="keyman-source-context">
           <summary>{t("Source author evidence")} · {t("Hint only")}</summary>
@@ -1413,12 +1587,16 @@ function EvaluationPanel({
   responses,
   canExtract,
   onEvaluated,
+  focusCriterionCode,
+  channelDropped = false,
 }: {
   postId: string;
   accessToken: string;
   responses: EvaluationResponse[] | null;
   canExtract: boolean;
   onEvaluated: (rows: EvaluationResponse[]) => void;
+  focusCriterionCode?: string;
+  channelDropped?: boolean;
 }) {
   const [evaluating, setEvaluating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1428,6 +1606,20 @@ function EvaluationPanel({
     setOrchestratorOff(false);
     setError(null);
   }, [postId]);
+
+  const dropped = orchestratorOff || channelDropped;
+  const droppedDiagnosis = dropped ? analysisEvidenceDiagnosis("dropped_channel") : null;
+
+  useEffect(() => {
+    if (!focusCriterionCode || responses === null) {
+      return;
+    }
+    const target =
+      document.getElementById(postQualityCriterionElementId(focusCriterionCode)) ??
+      document.getElementById("post-quality-evaluation");
+    target?.focus();
+    target?.scrollIntoView?.({ block: "nearest" });
+  }, [focusCriterionCode, responses]);
 
   async function handleEvaluate() {
     setEvaluating(true);
@@ -1448,8 +1640,10 @@ function EvaluationPanel({
   return (
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>{t("Post quality (IRT)")}</h3>
-        {canExtract && !orchestratorOff && (
+        <h3 id="post-quality-evaluation" tabIndex={-1}>
+          {t("Post quality (IRT)")}
+        </h3>
+        {canExtract && !dropped && (
           <details className="operator-action-tools">
             <summary>{t("Evidence operations")}</summary>
             <button onClick={handleEvaluate} disabled={evaluating}>
@@ -1458,18 +1652,40 @@ function EvaluationPanel({
           </details>
         )}
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && <ExceptionAlert title={error} />}
+      {droppedDiagnosis ? (
+        <p className="post-meta" role="status">
+          {t(droppedDiagnosis.title)}. {t(droppedDiagnosis.nextAction)}
+        </p>
+      ) : null}
       {responses === null ? (
         <p>{t("Loading evaluation...")}</p>
-      ) : responses.length === 0 ? (
+      ) : dropped ? null : responses.length === 0 ? (
         <p className="popup-placeholder">{t("Not yet evaluated.")}</p>
       ) : (
         <ul>
-          {responses.map((row) => (
-            <li key={row.criterion_code}>
-              {row.criterion_label ?? row.criterion_code}: {row.response_category}
-            </li>
-          ))}
+          {responses.map((row) => {
+            const negative =
+              row.criterion_code === "general_sentiment_negative" && row.response_category >= 2
+                ? analysisEvidenceDiagnosis("confident_negative")
+                : null;
+            return (
+              <li
+                key={row.criterion_code}
+                id={postQualityCriterionElementId(row.criterion_code)}
+                tabIndex={-1}
+                aria-current={focusCriterionCode === row.criterion_code ? "true" : undefined}
+              >
+                {row.criterion_label ?? row.criterion_code}: {row.response_category}
+                {negative ? (
+                  <span className="post-meta" role="status">
+                    {" "}
+                    {t(negative.nextAction)}
+                  </span>
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
@@ -1532,7 +1748,7 @@ function CounterpartyPanel({
           </details>
         )}
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && <ExceptionAlert title={error} />}
       <ul>
         {counterparties.map((c) => (
           <li key={c.counterparty_entity_name}>
@@ -1627,7 +1843,7 @@ function IssueTicketPanel({
       setNewDueDate("");
       reload();
     } catch (err) {
-      setError(String(err));
+      setError(productExceptionCopy(err, t("Issue tickets")).title);
     } finally {
       setCreating(false);
     }
@@ -1638,7 +1854,7 @@ function IssueTicketPanel({
       await updateTicketStatus(accessToken, ticket.issue_ticket_id, nextStatus);
       reload();
     } catch (err) {
-      setError(String(err));
+      setError(productExceptionCopy(err, t("Issue tickets")).title);
     }
   }
 
@@ -1675,7 +1891,7 @@ function IssueTicketPanel({
           </details>
         )}
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && <ExceptionAlert title={error} />}
       {tickets === null ? (
         <p>{t("Loading tickets...")}</p>
       ) : tickets.length === 0 ? (
@@ -1747,7 +1963,7 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
   function reload() {
     fetchPostActivity(accessToken, postId)
       .then((r) => setEvents(r.events))
-      .catch((err) => setError(String(err)));
+      .catch((err) => setError(productExceptionCopy(err, t("Activity")).title));
   }
 
   useEffect(() => {
@@ -1755,7 +1971,7 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
     setError(null);
     fetchPostActivity(accessToken, postId)
       .then((r) => setEvents(r.events))
-      .catch((err) => setError(String(err)));
+      .catch((err) => setError(productExceptionCopy(err, t("Activity")).title));
   }, [postId, accessToken]);
 
   return (
@@ -1764,7 +1980,13 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
         <h3>{t("Activity")}</h3>
         <button onClick={reload}>{t("Refresh")}</button>
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <ExceptionAlert
+          title={error}
+          retryLabel={t("Refresh")}
+          onRetry={reload}
+        />
+      )}
       {events === null ? (
         <p>{t("Loading activity...")}</p>
       ) : events.length === 0 ? (
@@ -1932,7 +2154,9 @@ function PostDetailPopup({
   liveBodyWarning,
   knowledgeCutoff,
   focusEventLineage,
+  focusCriterionCode,
   onClose,
+  onAskPost,
   onSelectPost,
   onSearch,
 }: {
@@ -1943,7 +2167,9 @@ function PostDetailPopup({
   liveBodyWarning?: string | null;
   knowledgeCutoff?: string | null;
   focusEventLineage?: boolean;
+  focusCriterionCode?: string;
   onClose: () => void;
+  onAskPost?: (postId: string, postTitle: string) => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
 }) {
@@ -1969,6 +2195,7 @@ function PostDetailPopup({
   const [affiliateTrees, setAffiliateTrees] = useState<AffiliateNode[] | null>(null);
   const [vocEvidence, setVocEvidence] = useState<VocEvidence | null>(null);
   const [evaluation, setEvaluation] = useState<EvaluationResponse[] | null>(null);
+  const [evaluationDropped, setEvaluationDropped] = useState(false);
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
   const [focusTeam, setFocusTeam] = useState<{ teamId: string; teamName: string } | null>(null);
@@ -2071,6 +2298,7 @@ function PostDetailPopup({
     setAffiliateTrees(null);
     setVocEvidence(null);
     setEvaluation(null);
+    setEvaluationDropped(false);
     setFocusPerson(null);
     setFocusEntity(null);
     setFocusTeam(null);
@@ -2080,8 +2308,14 @@ function PostDetailPopup({
     const loadDerivedPostData = (loadedPost: PostDetail) => {
       if (isWritingSourceDetailState(loadedPost.source_detail_state_code)) return;
       fetchPostEvaluation(accessToken, postId)
-        .then((r) => setEvaluation(r.responses))
-        .catch(() => setEvaluation([]));
+        .then((r) => {
+          setEvaluation(r.responses);
+          setEvaluationDropped(false);
+        })
+        .catch((err) => {
+          setEvaluation([]);
+          setEvaluationDropped(err instanceof BackendError && err.status === 503);
+        });
       fetchPostFiveW1H(accessToken, postId)
         .then(setFiveW1H)
         .catch(() => setFiveW1H(null));
@@ -2115,7 +2349,7 @@ function PostDetailPopup({
           reloadContent();
         }
       })
-      .catch((err) => setError(String(err)));
+      .catch((err) => setError(productExceptionCopy(err, "This post").title));
     const reloadContent = () =>
       fetchPostContent(accessToken, postId)
         .then((content) => {
@@ -2251,7 +2485,7 @@ function PostDetailPopup({
         onClick={(event) => event.stopPropagation()}
       >
         <PopupCloseButton onClose={onClose} label={t("Close")} />
-        {error && <p className="error">{error}</p>}
+        {error && <ExceptionAlert title={error} />}
         {!post && !error && <p>{t("Loading...")}</p>}
         {post && (
           <>
@@ -2276,6 +2510,11 @@ function PostDetailPopup({
               >
                 {bookmarked ? t("Bookmarked") : t("Bookmark")}
               </button>
+              {!isWritingSourceDetailState(post.source_detail_state_code) && onAskPost ? (
+                <button type="button" onClick={() => onAskPost(postId, post.post_title)}>
+                  {t("Ask about this lineage")}
+                </button>
+              ) : null}
             </div>
             {postActionStatus && (
               <p className="post-action-status" role="status">
@@ -2507,6 +2746,8 @@ function PostDetailPopup({
                                 rr.catalog_unresolved_reason_code,
                                 t,
                               )}
+                              unresolvedNextAction={t(analysisEvidenceDiagnosis("catalog_unbound").nextAction)}
+                              relationshipNextAction={t(gluedRoleRelationshipNextAction())}
                               genericUnitNote={t("Specific business unit not stated in source")}
                               onSelectAffiliation={(entityId, entityName) => {
                                 setFocusPerson(null);
@@ -2943,13 +3184,22 @@ function PostDetailPopup({
               )}
             </section>
 
+            {!isWritingSourceDetailState(post.source_detail_state_code) ? (
+              <SourceResearchPanel postId={postId} accessToken={accessToken} canResearch={canExtract} />
+            ) : null}
+
             {!focusEventLineage && (
               <EvaluationPanel
                 postId={postId}
                 accessToken={accessToken}
                 responses={evaluation}
                 canExtract={canExtract}
-                onEvaluated={(rows) => setEvaluation(rows)}
+                onEvaluated={(rows) => {
+                  setEvaluation(rows);
+                  setEvaluationDropped(false);
+                }}
+                focusCriterionCode={focusCriterionCode}
+                channelDropped={evaluationDropped}
               />
             )}
 
@@ -3007,7 +3257,12 @@ function PostDetailPopup({
                       accessToken={accessToken}
                       responses={evaluation}
                       canExtract={canExtract}
-                      onEvaluated={(rows) => setEvaluation(rows)}
+                      onEvaluated={(rows) => {
+                        setEvaluation(rows);
+                        setEvaluationDropped(false);
+                      }}
+                      focusCriterionCode={focusCriterionCode}
+                      channelDropped={evaluationDropped}
                     />
                     {keymen?.[0] ? (
                       <p className="post-meta" role="status" aria-label={t("Keyman next action")}>
@@ -3092,121 +3347,6 @@ function PostDetailPopup({
   );
 }
 
-function analysisRunCaption(run: AnalysisRun): string {
-  return [run.run_kind_label, run.status_label, run.scope_entity_name ?? run.scope_kind_label]
-    .filter(Boolean)
-    .join(" · ");
-}
-
-/**
- * Next action for a pending or failed run on the home list and detail.
- *
- * The machine `failure_code` stays on detail history (ADR 0014). Copy
- * is pinned to registered kinds so a pending TEPP row is not mistaken
- * for reconstruction, and a failed lineage row is not mistaken for a
- * missing TEPP transport.
- */
-function analysisRunNextAction(run: AnalysisRun): string | null {
-  switch (run.status_code) {
-    case "analysis_status_pending":
-      switch (run.run_kind_code) {
-        case "analysis_run_lineage":
-          return "Open this run, then start reconstruction. Reconstruction has not started yet.";
-        case "analysis_run_tepp":
-          return "Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.";
-        case "analysis_run_report":
-          return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
-        default: {
-          const unexpected: never = run.run_kind_code;
-          return unexpected;
-        }
-      }
-    case "analysis_status_failed":
-      switch (run.run_kind_code) {
-        case "analysis_run_tepp":
-          return "Open this run to see why it failed, then connect the measurement service and re-run.";
-        case "analysis_run_lineage":
-          return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
-        case "analysis_run_report":
-          return "Open this run to see why it failed, then rebuild the period report from a current snapshot.";
-        default: {
-          const unexpected: never = run.run_kind_code;
-          return unexpected;
-        }
-      }
-    case "analysis_status_running":
-      return "Refresh this run. Start already queued the work on the durable outbox.";
-    case "analysis_status_succeeded":
-    case "analysis_status_cancelled":
-    case null:
-      return null;
-    default: {
-      const unexpected: never = run.status_code;
-      return unexpected;
-    }
-  }
-}
-
-/**
- * Empty-corpus copy that tells the operator what to do next.
- */
-function analysisRunEmptyPostsHint(run: AnalysisRun): string {
-  switch (run.run_kind_code) {
-    case "analysis_run_tepp":
-      return (
-        "No posts were available at this cutoff for TEPP to measure. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
-      );
-    case "analysis_run_lineage":
-      return (
-        "No posts were available at this cutoff for reconstruction. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
-      );
-    case "analysis_run_report":
-      return (
-        "No posts were available at this cutoff for the period report. " +
-        "Open a later run, or ask an administrator to capture a newer snapshot."
-      );
-    default: {
-      const unexpected: never = run.run_kind_code;
-      return unexpected;
-    }
-  }
-}
-
-/**
- * Corpus copy for a TEPP run that already has cutoff posts.
- *
- * Those titles are the measurement bag, not a reconstruction result.
- * Pending or running must not claim a calibrated measurement.
- */
-function analysisRunCorpusHint(run: AnalysisRun): string | null {
-  if (run.run_kind_code !== "analysis_run_tepp") return null;
-  switch (run.status_code) {
-    case "analysis_status_failed":
-      return (
-        "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
-        "transport, then re-run, to replace Failed with a calibrated result."
-      );
-    case "analysis_status_succeeded":
-      return "These posts are the cutoff corpus this TEPP run measured.";
-    case "analysis_status_pending":
-    case "analysis_status_running":
-      return "These posts are the cutoff corpus TEPP will measure once this run finishes.";
-    case "analysis_status_cancelled":
-      return (
-        "These posts are the cutoff corpus this TEPP run would have measured. " +
-        "The run was cancelled before a calibrated result."
-      );
-    case null:
-      return "These posts are the cutoff corpus attached to this TEPP run.";
-    default: {
-      const unexpected: never = run.status_code;
-      return unexpected;
-    }
-  }
-}
-
 /** Git-style prefix. The full digest stays on `title` for verification. */
 const ANALYSIS_RUN_DIGEST_PREFIX_LENGTH = 12;
 
@@ -3218,6 +3358,8 @@ type SelectPostOptions = {
   liveAfterCutoff?: boolean;
   knowledgeCutoff?: string;
   fromReportMember?: boolean;
+  /** Land leftover clicks on this Post quality criterion (ADR 0049 / 0135). */
+  focusCriterionCode?: string;
   /** Set when re-entering a post from a popstate (browser back/forward) so
    * the handler doesn't push a duplicate history entry for a navigation
    * the browser already performed. */
@@ -3306,75 +3448,6 @@ function AnalysisRunReproducibilityDigests({
 }
 
 /**
- * Start is for a Pending lineage or TEPP row after Request.
- *
- * Period-report keeps its own rebuild path. TEPP start goes through
- * tepp_client and must not be labeled reconstruction.
- */
-function analysisRunCanStart(run: AnalysisRun): boolean {
-  return (
-    (run.run_kind_code === "analysis_run_lineage" || run.run_kind_code === "analysis_run_tepp") &&
-    (run.status_code === "analysis_status_pending" ||
-      run.status_code === "analysis_status_running")
-  );
-}
-
-function analysisRunStartLabel(run: AnalysisRun): string {
-  return run.run_kind_code === "analysis_run_tepp"
-    ? "Start TEPP measurement"
-    : "Start reconstruction";
-}
-
-/** Failed TEPP is terminal. Create cannot invent a Pending TEPP row. */
-function analysisRunCanRequestTeppRetry(run: AnalysisRun): boolean {
-  return run.run_kind_code === "analysis_run_tepp" && run.status_code === "analysis_status_failed";
-}
-
-const REPORT_PERIOD_KEY = /^\d{4}-W\d{2}$/;
-
-/**
- * Period code stored on a succeeded report run's scope key.
- *
- * That key is a week label, not a theta. Missing or malformed keys
- * stay closed so we do not invent a period.
- */
-/**
- * Report grouping that matches the run's authorized scope.
- *
- * A corporate-entity run must not leave the panel on business unit (PU).
- */
-function analysisRunReportGrouping(run: AnalysisRun): string | null {
-  switch (run.scope_kind_code) {
-    case "analysis_scope_corporate_entity":
-      return "corporate_entity";
-    case "analysis_scope_process_unit":
-      return "process_unit";
-    case "analysis_scope_thread_group":
-      return "thread_group";
-    default:
-      return null;
-  }
-}
-
-function analysisRunReportGroupingKey(run: AnalysisRun): string | undefined {
-  return run.scope_grouping_key || undefined;
-}
-
-function analysisRunReportPeriod(run: AnalysisRun): string | null {
-  if (run.run_kind_code !== "analysis_run_report") {
-    return null;
-  }
-  if (run.status_code !== "analysis_status_succeeded") {
-    return null;
-  }
-  const key = run.scope_key;
-  if (!key || !REPORT_PERIOD_KEY.test(key)) {
-    return null;
-  }
-  return key;
-}
-
-/**
  * Open options for a reconstructed parent or child.
  *
  * The run-scoped edge is the reconstruction result. The popup still
@@ -3438,7 +3511,7 @@ function AnalysisRunsPanel({
   useEffect(() => {
     fetchAnalysisRuns(accessToken)
       .then((payload) => setRuns(payload.analysis_runs))
-      .catch((err) => setError(String(err)));
+      .catch((err) => setError(productExceptionCopy(err, t("Analysis runs")).title));
   }, [accessToken]);
 
   useEffect(() => {
@@ -3482,7 +3555,7 @@ function AnalysisRunsPanel({
           "This request key already names a different reconstruction. Request again to start a new run.",
         );
       } else {
-        setError(err instanceof BackendError ? err.message : String(err));
+        setError(productExceptionCopy(err, t("Analysis runs")).title);
       }
     } finally {
       setRequesting(false);
@@ -3499,7 +3572,7 @@ function AnalysisRunsPanel({
       setRuns(listed.analysis_runs);
       setSelected(started);
     } catch (err) {
-      setError(err instanceof BackendError ? err.message : String(err));
+      setError(productExceptionCopy(err, t("Analysis runs")).title);
     } finally {
       setStarting(false);
     }
@@ -3515,15 +3588,27 @@ function AnalysisRunsPanel({
         setError("This analysis run is not visible.");
         return;
       }
-      setError(String(err));
+      setError(productExceptionCopy(err, t("Analysis runs")).title);
     }
   }
 
-  if (error && runs === null) return <p className="error">{error}</p>;
+  if (error && runs === null) {
+    return (
+      <ExceptionAlert
+        title={error}
+        retryLabel={t("Retry")}
+        onRetry={() => {
+          setError(null);
+          fetchAnalysisRuns(accessToken)
+            .then((payload) => setRuns(payload.analysis_runs))
+            .catch((err) => setError(productExceptionCopy(err, t("Analysis runs")).title));
+        }}
+      />
+    );
+  }
   if (runs === null) return <p>Loading analysis runs...</p>;
 
   const corpusHint = selected ? analysisRunCorpusHint(selected) : null;
-  const selectedNextAction = selected ? analysisRunNextAction(selected) : null;
 
   return (
     <section className="popup-section lineage-home">
@@ -3548,7 +3633,7 @@ function AnalysisRunsPanel({
           {requestLabel}
         </button>
       </div>
-      {(error || entitiesLoadError) && <p className="error">{error ?? entitiesLoadError}</p>}
+      {(error || entitiesLoadError) && <ExceptionAlert title={error ?? entitiesLoadError ?? ""} />}
       {runs.length === 0 ? (
         <p className="popup-placeholder">
           No analysis runs visible to this account yet. Request a lineage
@@ -3585,7 +3670,12 @@ function AnalysisRunsPanel({
       {selected && (
         <div className="popup-section">
           <h3>{analysisRunCaption(selected)}</h3>
-          {selectedNextAction && <p className="post-meta">{selectedNextAction}</p>}
+          <AnalysisRunNextAction
+            run={selected}
+            starting={starting}
+            onStart={() => void handleStartReconstruction()}
+            onRefresh={() => void handleOpen(selected.analysis_run_id)}
+          />
           <p className="post-meta">
             Cutoff {selected.knowledge_cutoff.slice(0, 10)}
             {" · "}
@@ -3596,20 +3686,6 @@ function AnalysisRunsPanel({
             configurationSha256={selected.configuration_sha256}
             reconstructionResultSha256={selected.reconstruction_result_sha256}
           />
-          {analysisRunCanStart(selected) && (
-            <button
-              className="keyman-select"
-              aria-label={analysisRunStartLabel(selected)}
-              disabled={starting}
-              onClick={() => void handleStartReconstruction()}
-            >
-              {starting
-                ? selected.run_kind_code === "analysis_run_tepp"
-                  ? "Submitting the TEPP request..."
-                  : "Reconstructing the cutoff bag..."
-                : analysisRunStartLabel(selected)}
-            </button>
-          )}
           {analysisRunCanRequestTeppRetry(selected) && (
             <p className="post-meta">
               Connect a TEPP transport from this Failed row. Request a lineage
@@ -3755,7 +3831,7 @@ function RankingsPanel({
     setError(null);
     fetchRankings(accessToken)
       .then(setRanking)
-      .catch((err) => setError(String(err)));
+      .catch((err) => setError(productExceptionCopy(err, t("Rankings")).title));
   }, [accessToken]);
 
   return (
@@ -3770,7 +3846,18 @@ function RankingsPanel({
           </span>
         )}
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && (
+        <ExceptionAlert
+          title={error}
+          retryLabel={t("Retry")}
+          onRetry={() => {
+            setError(null);
+            fetchRankings(accessToken)
+              .then(setRanking)
+              .catch((err) => setError(productExceptionCopy(err, t("Rankings")).title));
+          }}
+        />
+      )}
       {ranking === null && !error && <p>Loading rankings...</p>}
       {ranking && ranking.status === "unavailable" && (
         <p className="popup-placeholder">Rankings · RankWeave not available</p>
@@ -3812,10 +3899,23 @@ function CalendarPanel({
   useEffect(() => {
     fetchCalendar(accessToken)
       .then(setCalendar)
-      .catch((err) => setError(String(err)));
+      .catch((err) => setError(productExceptionCopy(err, t("Calendar")).title));
   }, [accessToken]);
 
-  if (error) return <p className="error">{error}</p>;
+  if (error) {
+    return (
+      <ExceptionAlert
+        title={error}
+        retryLabel={t("Retry")}
+        onRetry={() => {
+          setError(null);
+          fetchCalendar(accessToken)
+            .then(setCalendar)
+            .catch((err) => setError(productExceptionCopy(err, t("Calendar")).title));
+        }}
+      />
+    );
+  }
   if (calendar === null) return <p>{t("Loading calendar...")}</p>;
 
   const events = calendar.events ?? [];
@@ -3983,7 +4083,7 @@ function ReportsPanel({
         setIndex(periods);
         setComparison(compared);
       })
-      .catch((err) => setError(String(err)));
+      .catch((err) => setError(productExceptionCopy(err, t("Period reports")).title));
   }, [accessToken, grouping, period]);
 
   useEffect(() => {
@@ -4012,7 +4112,7 @@ function ReportsPanel({
       setIndex(periods);
       setComparison(compared);
     } catch (err) {
-      setError(String(err));
+      setError(productExceptionCopy(err, t("Period reports")).title);
     } finally {
       setRebuilding(false);
     }
@@ -4075,33 +4175,18 @@ function ReportsPanel({
             )}
             {report.leftover_pairs && report.leftover_pairs.length > 0 && (
               <ul className="ticket-list" aria-label="Leftover pairs">
-                {report.leftover_pairs.map((pair) => {
-                  const kindLabel =
-                    pair.pair_kind === "farthest" ? "Farthest leftover" : "Closest leftover";
-                  const nextAction =
-                    pair.pair_kind === "farthest"
-                      ? "Open this post to read the criterion it sat farthest from after main effects."
-                      : "Open this post to read the criterion it sat closest to after main effects.";
-                  const criterion = criterionShortLabel(pair.criterion_code);
-                  return (
-                    <li
-                      key={`${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
-                      className="ticket-list-item"
-                    >
-                      <button
-                        className="post-list-item"
-                        aria-label={`Open leftover ${pair.pair_kind} pair: ${pair.post_title} · ${criterion}`}
-                        onClick={() => onSelectPost(pair.post_id)}
-                      >
-                        <span className="ticket-title">
-                          {kindLabel}: {pair.post_title} · {criterion}
-                        </span>
-                        <span className="post-badge">{nextAction}</span>
-                        <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
-                      </button>
-                    </li>
-                  );
-                })}
+                {report.leftover_pairs.map((pair) => (
+                  <li
+                    key={`${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
+                    className="ticket-list-item"
+                  >
+                    <LeftoverPairButton
+                      pair={pair}
+                      leftoverDistance={pair.leftover_distance}
+                      onOpen={onSelectPost}
+                    />
+                  </li>
+                ))}
               </ul>
             )}
             {report.members.length > 0 && (
@@ -4244,7 +4329,7 @@ function ReportsPanel({
           ))}
         </ul>
       )}
-      {error && <p className="error">{error}</p>}
+      {error && <ExceptionAlert title={error} />}
       {!openedGroupingLabel && reportList}
     </section>
   );
@@ -4308,6 +4393,7 @@ function PostList({
   showLabPanels = false,
   postIdToOpen = null,
   onPostOpened,
+  onAskPost,
   focusSearchRequest = 0,
   onSearchFocusHandled,
   globalSearchRequest = null,
@@ -4319,6 +4405,7 @@ function PostList({
   showLabPanels?: boolean;
   postIdToOpen?: string | null;
   onPostOpened?: () => void;
+  onAskPost?: (postId: string, postTitle: string) => void;
   focusSearchRequest?: number;
   onSearchFocusHandled?: () => void;
   globalSearchRequest?: { id: number; query: string } | null;
@@ -4342,6 +4429,7 @@ function PostList({
   const [openedGroupingLabel, setOpenedGroupingLabel] = useState<string | null>(null);
   const [landOnComparison, setLandOnComparison] = useState(false);
   const [openedFromReportMember, setOpenedFromReportMember] = useState(false);
+  const [openedFocusCriterionCode, setOpenedFocusCriterionCode] = useState<string | null>(null);
   const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
   const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
   const [totalPosts, setTotalPosts] = useState(0);
@@ -4438,6 +4526,7 @@ function PostList({
     setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
+    setOpenedFocusCriterionCode(options?.focusCriterionCode ?? null);
     if (!options?.fromPopState) {
       const url = new URL(window.location.href);
       if (url.searchParams.get("post") !== postId) {
@@ -4474,6 +4563,7 @@ function PostList({
     setOpenedAfterCutoff(false);
     setOpenedCutoffIso(null);
     setOpenedFromReportMember(false);
+    setOpenedFocusCriterionCode(null);
     const url = new URL(window.location.href);
     if (url.searchParams.has("post")) {
       url.searchParams.delete("post");
@@ -4514,7 +4604,7 @@ function PostList({
       setCurrentPage(page);
     } catch (err) {
       if (requestId !== postsRequest.current) return;
-      setError(String(err));
+      setError(productExceptionCopy(err, t("Board")).title);
     } finally {
       if (requestId === postsRequest.current) setLoadingPage(false);
     }
@@ -4564,7 +4654,7 @@ function PostList({
       await rebuildLineage(accessToken);
       setGraph(await fetchLineageGraph(accessToken));
     } catch (err) {
-      setRebuildError(String(err));
+      setRebuildError(productExceptionCopy(err, t("Event Lineage")).title);
     } finally {
       setRebuilding(false);
     }
@@ -4652,9 +4742,11 @@ function PostList({
         )}
       </header>
       {error ? (
-        <p className="error" role="alert">
-          {error}
-        </p>
+        <ExceptionAlert
+          title={error}
+          retryLabel={t("Retry")}
+          onRetry={() => void loadPostPage(currentPage)}
+        />
       ) : !posts ? (
         <p role="status">{t("Loading posts...")}</p>
       ) : (
@@ -4934,7 +5026,7 @@ function PostList({
                   {rebuilding ? t("Rebuilding...") : t("Rebuild lineage")}
                 </button>
               </div>
-              {rebuildError && <p className="error">{rebuildError}</p>}
+              {rebuildError && <ExceptionAlert title={rebuildError} />}
             </section>
           )}
           <CalendarPanel accessToken={accessToken} onSelectPost={selectPost} />
@@ -4978,7 +5070,9 @@ function PostList({
           }
           knowledgeCutoff={openedAfterCutoff ? openedCutoffIso : null}
           focusEventLineage={openedFromReportMember}
+          focusCriterionCode={openedFocusCriterionCode ?? undefined}
           onClose={closeSelectedPost}
+          onAskPost={onAskPost}
           onSelectPost={selectPost}
           onSearch={searchBoard}
         />
@@ -5058,6 +5152,9 @@ function CustomerEntityTreeRow({
   const relatedPosts = (relatedByEntity[entity.corporate_entity_id] ?? []).filter(
     (related) => related.node_type_code === NODE_POST,
   );
+  const priorNames = (entity.name_history ?? []).filter(
+    (name) => name.name_role_code !== "entity_name_preferred",
+  );
   return (
     <li style={{ marginInlineStart: depth * 20 }}>
       <button
@@ -5076,6 +5173,15 @@ function CustomerEntityTreeRow({
       </button>
       {expandedEntityId === entity.corporate_entity_id ? (
         <div className="customer-related-posts">
+          {priorNames.length > 0 ? (
+            <ul aria-label={`${t("Name history")}: ${entity.entity_name}`}>
+              {priorNames.map((name) => (
+                <li key={`${name.name_role_code}:${name.entity_name}`}>
+                  {t(name.name_role_code === "entity_name_former" ? "Former name" : "Alternate name")}: {name.entity_name}
+                </li>
+              ))}
+            </ul>
+          ) : null}
           {relatedLoading === entity.corporate_entity_id ? <p>{t("Loading related posts...")}</p> : null}
           {relatedLoading !== entity.corporate_entity_id && relatedPosts.length === 0 ? (
             <p className="popup-placeholder">{t("No linked posts yet.")}</p>
@@ -5223,11 +5329,13 @@ function CustomerMasterPanel({
     void loadMaster();
   }, [loadMaster]);
 
-  async function handleResolveHint(hintCode: string) {
-    setResolvingHint(hintCode);
+  async function handleResolveHint(hint: SourceCustomerHint) {
+    if (!hint.customer_code) return;
+    const hintKey = `${hint.source_system_code ?? ""}:${hint.customer_code}`;
+    setResolvingHint(hintKey);
     setResolveError(null);
     try {
-      await resolveCustomerHint(accessToken, hintCode);
+      await resolveCustomerHint(accessToken, hint.customer_code, hint.source_system_code);
       await loadMaster();
     } catch {
       setResolveError(t("This hint could not be resolved to a corroborated organization name."));
@@ -5268,7 +5376,7 @@ function CustomerMasterPanel({
       <p className="section-eyebrow">{t("Customer scope")}</p>
       <h2 id="customer-master-heading">{t("Customer master")}</h2>
       <p className="workspace-destination-intro">{t("Customer entities available to this account.")}</p>
-      {error ? <p className="error">{error}</p> : null}
+      {error ? <ExceptionAlert title={error} /> : null}
       {master === null && !error ? <p>{t("Loading customer master...")}</p> : null}
       {master?.corporate_entities.length === 0 ? (
         <p className="popup-placeholder">{t("No customer entities are connected to this account.")}</p>
@@ -5372,21 +5480,22 @@ function CustomerMasterPanel({
               })}
             </p>
           )}
-          {resolveError ? <p className="error">{resolveError}</p> : null}
+          {resolveError ? <ExceptionAlert title={resolveError} /> : null}
           <ul className="customer-master-list">
             {master.source_customer_hints.slice(0, HINT_RENDER_LIMIT).map((hint) => (
-              <li key={`${hint.customer_code ?? "name"}:${hint.customer_name ?? "unknown"}`}>
-                <strong>{hint.customer_name ?? hint.customer_code ?? t("Unresolved source identifier")}</strong>
+              <li key={`${hint.source_system_code ?? "no-system"}:${hint.customer_code ?? "name"}:${hint.customer_name ?? "unknown"}`}>
+                <strong>{hint.resolved_entity_name ?? hint.customer_name ?? hint.customer_code ?? t("Unresolved source identifier")}</strong>
+                {hint.source_system_code ? <span>{t("Source system")}: {hint.source_system_code}</span> : null}
                 {hint.customer_name && hint.customer_code ? <span>{hint.customer_code}</span> : null}
-                <span>{t("Unresolved source identifier")}</span>
+                <span>{t(hint.resolution_status === "customer_identity_promoted" ? "Managed customer" : "Hint only")}</span>
                 <span>{t(hint.hint_trust === "low" ? "Weak source hint" : "Source hint")}</span>
                 <span>{hint.post_count} {t("posts")}</span>
-                {canResolveHints && hint.customer_code ? (
+                {canResolveHints && hint.customer_code && hint.resolution_status !== "customer_identity_promoted" ? (
                   <button
-                    onClick={() => void handleResolveHint(hint.customer_code as string)}
-                    disabled={resolvingHint === hint.customer_code}
+                    onClick={() => void handleResolveHint(hint)}
+                    disabled={resolvingHint === `${hint.source_system_code ?? ""}:${hint.customer_code}`}
                   >
-                    {resolvingHint === hint.customer_code ? t("Resolving...") : t("Resolve")}
+                    {resolvingHint === `${hint.source_system_code ?? ""}:${hint.customer_code}` ? t("Resolving...") : t("Resolve")}
                   </button>
                 ) : null}
                 {hint.related_posts.length > 0 ? (
@@ -5509,9 +5618,15 @@ function toAskAgentExchanges(conversation: Awaited<ReturnType<typeof fetchAskCon
 export function AskAgentPanel({
   accessToken,
   onOpenPost,
+  anchorPostId,
+  anchorPostTitle,
+  onClearAnchor,
 }: {
   accessToken: string;
   onOpenPost: (postId: string) => void;
+  anchorPostId?: string | null;
+  anchorPostTitle?: string | null;
+  onClearAnchor?: () => void;
 }) {
   const [question, setQuestion] = useState("");
   const [exchanges, setExchanges] = useState<AskAgentExchange[]>([]);
@@ -5532,6 +5647,8 @@ export function AskAgentPanel({
   const historyListRef = useRef<HTMLUListElement>(null);
   const threadRef = useRef<HTMLDivElement>(null);
   const scrollToLatestRef = useRef(false);
+  const initialAnchorPostIdRef = useRef(anchorPostId);
+  const previousAnchorPostIdRef = useRef(anchorPostId);
 
   const loadInitialHistory = useCallback(async () => {
     const requestId = ++historyRequestIdRef.current;
@@ -5546,6 +5663,11 @@ export function AskAgentPanel({
       if (requestId !== historyRequestIdRef.current) return;
       setConversations(result.conversations);
       setHistoryCursor(result.next_cursor ?? null);
+      if (initialAnchorPostIdRef.current) {
+        setConversationId(null);
+        setExchanges([]);
+        return;
+      }
       const latest = result.conversations[0];
       if (!latest) {
         setConversationId(null);
@@ -5570,6 +5692,17 @@ export function AskAgentPanel({
   useEffect(() => {
     void loadInitialHistory();
   }, [loadInitialHistory]);
+
+  useEffect(() => {
+    if (anchorPostId && anchorPostId !== previousAnchorPostIdRef.current) {
+      setConversationId(null);
+      setExchanges([]);
+      setQuestion("");
+      setOlderTurnCursor(null);
+      setOlderTurnsError(false);
+    }
+    previousAnchorPostIdRef.current = anchorPostId;
+  }, [anchorPostId]);
 
   useEffect(() => {
     if (!scrollToLatestRef.current || exchanges.length === 0) return;
@@ -5638,6 +5771,7 @@ export function AskAgentPanel({
       setExchanges(toAskAgentExchanges(conversation));
       setOlderTurnCursor(conversation.older_cursor ? Number(conversation.older_cursor) : null);
       scrollToLatestRef.current = true;
+      onClearAnchor?.();
     } catch {
       setHistoryError(t("Conversation history could not be loaded."));
     } finally {
@@ -5669,7 +5803,7 @@ export function AskAgentPanel({
     setQuestion("");
     setAsking(true);
     try {
-      const response = await askAgent(accessToken, normalized, conversationId);
+      const response = await askAgent(accessToken, normalized, conversationId, anchorPostId);
       if (response.conversation_id) {
         setConversationId(response.conversation_id);
         setConversations((current) => [
@@ -5717,12 +5851,12 @@ export function AskAgentPanel({
           {historyLoading && conversations.length === 0 ? (
             <p className="ask-agent-history-loading" role="status">{t("Loading conversation history...")}</p>
           ) : historyError && conversations.length === 0 ? (
-            <div className="ask-agent-history-error">
-              <p>{historyError}</p>
-              <button type="button" className="ask-agent-retry" onClick={() => void loadInitialHistory()} disabled={historyLoading}>
-                {t("Retry")}
-              </button>
-            </div>
+            <ExceptionAlert
+              title={historyError}
+              description={t("Retry loading this conversation, or continue with saved evidence.")}
+              retryLabel={t("Retry")}
+              onRetry={() => void loadInitialHistory()}
+            />
           ) : conversations.length > 0 ? (
             <ul
               ref={historyListRef}
@@ -5739,7 +5873,7 @@ export function AskAgentPanel({
                   <button
                     type="button"
                     className="ask-agent-history-item"
-                    aria-pressed={conversation.conversation_id === conversationId}
+                    aria-current={conversation.conversation_id === conversationId ? "page" : undefined}
                     onClick={() => void selectConversation(conversation.conversation_id)}
                     disabled={historyLoading || historyLoadingMore || olderTurnsLoading || asking}
                   >
@@ -5780,6 +5914,18 @@ export function AskAgentPanel({
               <span className="ask-agent-scope">{t("Authorized evidence")}</span>
             </div>
             <p className="workspace-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
+            {anchorPostId ? (
+              <p className="post-meta" role="status">
+                {tf("Starting evidence: {post}", {
+                  post: anchorPostTitle ?? anchorPostId.slice(0, 8),
+                })}{" "}
+                {onClearAnchor ? (
+                  <button type="button" onClick={onClearAnchor}>
+                    {t("Use all authorized evidence")}
+                  </button>
+                ) : null}
+              </p>
+            ) : null}
           </header>
 
       <div
@@ -5793,7 +5939,14 @@ export function AskAgentPanel({
           if (event.currentTarget.scrollTop < 120) void loadOlderExchanges();
         }}
       >
-        {historyError ? <p className="ask-agent-error">{historyError}</p> : null}
+        {historyError ? (
+          <ExceptionAlert
+            title={historyError}
+            description={t("Retry loading this conversation, or continue with saved evidence.")}
+            retryLabel={t("Retry")}
+            onRetry={() => void loadInitialHistory()}
+          />
+        ) : null}
         {historyLoading && exchanges.length === 0 ? <p className="ask-agent-history-loading">{t("Loading...")}</p> : null}
         {olderTurnsLoading ? <p className="ask-agent-history-loading" role="status">{t("Loading older questions...")}</p> : null}
         {olderTurnsError ? (
@@ -5833,7 +5986,9 @@ export function AskAgentPanel({
                 <div className="ask-agent-message ask-agent-assistant-message">
                   <p className="ask-agent-message-label">{t("Ask Agent")}</p>
                   {exchange.status === "pending" ? <p className="ask-agent-pending">{t("Thinking...")}</p> : null}
-                  {exchange.status === "error" ? <p className="ask-agent-error">{exchange.error}</p> : null}
+                  {exchange.status === "error" && exchange.error ? (
+                    <ExceptionAlert title={exchange.error} />
+                  ) : null}
                   {response?.answer_text ? <p>{response.answer_text}</p> : null}
                   {response?.next_action ? <p className="post-meta">{t(response.next_action)}</p> : null}
                   {response?.cited_posts && response.cited_posts.length > 0 ? (
@@ -5891,6 +6046,7 @@ export function AskAgentPanel({
             value={question}
             onChange={(event) => setQuestion(event.target.value)}
             onKeyDown={(event) => {
+              if (event.nativeEvent.isComposing) return;
               if (event.key === "Enter" && !event.shiftKey) {
                 event.preventDefault();
                 void handleAsk();
@@ -5965,10 +6121,22 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   const [globalSearchRequest, setGlobalSearchRequest] = useState<{ id: number; query: string } | null>(null);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [boardAdminTool, setBoardAdminTool] = useState<AdminBoardTool | null>(null);
+  const mobileDrawerRef = useRef<HTMLDialogElement>(null);
+  const mobileDrawerTriggerRef = useRef<HTMLButtonElement>(null);
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("post");
   });
+  const [askAnchor, setAskAnchor] = useState<{ postId: string; postTitle: string | null } | null>(
+    () => {
+      if (typeof window === "undefined") return null;
+      const params = new URLSearchParams(window.location.search);
+      const postId = params.get("post");
+      return params.get(WORKSPACE_QUERY_PARAM) === "ask" && postId
+        ? { postId, postTitle: null }
+        : null;
+    },
+  );
   // Test-only compatibility for legacy analysis-panel coverage; this prop
   // never forces the panels open outside Vitest. In a real build the
   // advanced-review section (ADR 0037) is gated on PostList's own
@@ -5990,7 +6158,13 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
 
   useEffect(() => {
     const handlePopState = () => {
-      setDestination(workspaceDestinationFromLocation());
+      const nextDestination = workspaceDestinationFromLocation();
+      const postId = new URLSearchParams(window.location.search).get("post");
+      setDestination(nextDestination);
+      setPostToOpen(nextDestination === "board" ? postId : null);
+      setAskAnchor(
+        nextDestination === "ask" && postId ? { postId, postTitle: null } : null,
+      );
       setBoardAdminTool(null);
       setMobileMenuOpen(false);
       setSiteMapOpen(false);
@@ -6041,6 +6215,22 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   }, [siteMapOpen]);
 
   useEffect(() => {
+    const dialog = mobileDrawerRef.current;
+    if (!dialog) return;
+    if (mobileMenuOpen) {
+      if (!dialog.open) {
+        if (typeof dialog.showModal === "function") dialog.showModal();
+        else dialog.setAttribute("open", "");
+      }
+      dialog.querySelector<HTMLButtonElement>(".mobile-drawer-close")?.focus();
+    } else if (dialog.open) {
+      if (typeof dialog.close === "function") dialog.close();
+      else dialog.removeAttribute("open");
+      mobileDrawerTriggerRef.current?.focus();
+    }
+  }, [mobileMenuOpen]);
+
+  useEffect(() => {
     if (accessToken) {
       fetchTenantConfig(accessToken).then((config) => {
         setTenantConfig({ ...DEFAULT_TENANT_CONFIG, ...config });
@@ -6050,8 +6240,11 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
 
   useEffect(() => {
     if (!accessToken) return;
+    const nextDestination = workspaceDestinationFromLocation();
     const postId = new URLSearchParams(window.location.search).get("post");
-    if (postId) setPostToOpen(postId);
+    setDestination(nextDestination);
+    setPostToOpen(nextDestination === "board" ? postId : null);
+    setAskAnchor(nextDestination === "ask" && postId ? { postId, postTitle: null } : null);
   }, [accessToken]);
 
   useEffect(() => {
@@ -6076,7 +6269,23 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   }
 
   if (auth.error) {
-    return <p className="error">{t(auth.error.message)}</p>;
+    return (
+      <div className="app-shell">
+        <main className="login-screen">
+          <div className="login-card">
+            <ExceptionAlert
+              title={t("Sign-in could not be completed.")}
+              description={t("Log in again to open the workspace.")}
+              retryLabel={t("Log in")}
+              onRetry={() => {
+                const returnUrl = window.location.pathname + window.location.search;
+                void auth.signinRedirect({ state: { returnUrl } });
+              }}
+            />
+          </div>
+        </main>
+      </div>
+    );
   }
 
   if (!auth.isAuthenticated) {
@@ -6115,7 +6324,23 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   }
 
   if (!accessToken) {
-    return <p className="error">{t("Authenticated, but no access token was returned.")}</p>;
+    return (
+      <div className="app-shell">
+        <main className="login-screen">
+          <div className="login-card">
+            <ExceptionAlert
+              title={t("Authenticated, but no access token was returned.")}
+              description={t("Log in again to open the workspace.")}
+              retryLabel={t("Log in")}
+              onRetry={() => {
+                const returnUrl = window.location.pathname + window.location.search;
+                void auth.signinRedirect({ state: { returnUrl } });
+              }}
+            />
+          </div>
+        </main>
+      </div>
+    );
   }
 
   return (
@@ -6136,6 +6361,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           <h1 className="app-header-title">{tenantConfig.systemName}</h1>
         </div>
         <button
+          ref={mobileDrawerTriggerRef}
           type="button"
           className="mobile-drawer-trigger"
           aria-label={
@@ -6174,11 +6400,26 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         </div>
       </header>
       <WorkspaceNav destination={activeDestination} onChange={changeDestination} showAdmin={canAdmin} />
-      {mobileMenuOpen ? (
-        <div className="mobile-drawer-backdrop" onClick={() => setMobileMenuOpen(false)}>
+      <dialog
+        ref={mobileDrawerRef}
+        className="mobile-drawer-backdrop"
+        aria-label={t("Workspace navigation")}
+        onCancel={(event) => {
+          event.preventDefault();
+          setMobileMenuOpen(false);
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            setMobileMenuOpen(false);
+          }
+        }}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) setMobileMenuOpen(false);
+        }}
+      >
           <aside
             className="mobile-drawer"
-            onClick={(event) => event.stopPropagation()}
           >
             <button
               type="button"
@@ -6196,8 +6437,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               drawer
             />
           </aside>
-        </div>
-      ) : null}
+      </dialog>
       <main id="main-content" tabIndex={-1}>
         {activeDestination === "board" ? (
           <PostList
@@ -6205,6 +6445,10 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             showLabPanels={testOnlyLabPanels}
             postIdToOpen={postToOpen}
             onPostOpened={() => setPostToOpen(null)}
+            onAskPost={(postId, postTitle) => {
+              setAskAnchor({ postId, postTitle });
+              changeDestination("ask");
+            }}
             focusSearchRequest={searchFocusRequest}
             onSearchFocusHandled={() => setSearchFocusRequest(0)}
             globalSearchRequest={globalSearchRequest}
@@ -6234,6 +6478,14 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
         {activeDestination === "ask" ? (
           <AskAgentPanel
             accessToken={accessToken}
+            anchorPostId={askAnchor?.postId}
+            anchorPostTitle={askAnchor?.postTitle}
+            onClearAnchor={() => {
+              setAskAnchor(null);
+              const url = new URL(window.location.href);
+              url.searchParams.delete("post");
+              window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+            }}
             onOpenPost={(postId) => {
               setPostToOpen(postId);
               changeDestination("board");

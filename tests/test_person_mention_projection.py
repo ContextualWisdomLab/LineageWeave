@@ -10,15 +10,16 @@ from __future__ import annotations
 
 import asyncio
 import os
+import uuid
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
-import uuid
 
 import asyncpg
 import psycopg2
-from psycopg2 import sql
 import pytest
+from psycopg2 import sql
 
+from backend.app import post_summary_ingestion as summary_ingestion
 from backend.app.keyman_ingestion import ingest_post_keymen
 from backend.app.knowledge_graph import (
     hydrate_related_nodes,
@@ -27,7 +28,6 @@ from backend.app.knowledge_graph import (
     related_for_start,
     visible_mention_post_ids,
 )
-from backend.app import post_summary_ingestion as summary_ingestion
 from backend.app.post_summary_ingestion import (
     fetch_persisted_summary,
     persist_post_summary,

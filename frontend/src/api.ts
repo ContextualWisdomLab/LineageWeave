@@ -337,6 +337,33 @@ export interface PostFiveW1H {
   slots: FiveW1HSlot[];
 }
 
+export type SourceResearchStatus = "supported" | "refuted" | "not_enough_information";
+
+export interface SourceResearchRetrieval {
+  url: string;
+  title: string;
+  passage_text: string;
+  cited: boolean;
+}
+
+export interface SourceResearchLead {
+  lead_ordinal: number;
+  lead_type_code: string;
+  query_text: string;
+  evidence_text: string;
+  source_content_unit_id: string | null;
+  source_image_region_id: string | null;
+  research_status_code: SourceResearchStatus;
+  sharing_actor_name: string | null;
+  rationale_text: string;
+  retrievals: SourceResearchRetrieval[];
+}
+
+export interface PostSourceResearch {
+  post_id: string;
+  research: SourceResearchLead[];
+}
+
 export interface LinkedPostRef {
   post_id: string;
   post_title: string;
@@ -367,6 +394,7 @@ export interface CitedPostEvidence {
 
 export interface ChatAnswer {
   post_id: string;
+  conversation_id?: string;
   answer_text: string;
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
@@ -592,6 +620,14 @@ export interface CustomerMasterEntity extends CorporateEntityRef {
   entity_level_label: string;
   parent_entity_id: string | null;
   scope_facets: CustomerMasterScopeFacet[];
+  name_history?: CustomerMasterEntityName[];
+}
+
+export interface CustomerMasterEntityName {
+  entity_name: string;
+  name_role_code: "entity_name_preferred" | "entity_name_former" | "entity_name_alternate";
+  observed_from: string;
+  observed_to: string | null;
 }
 
 export type CustomerMasterScopeFacet =
@@ -618,11 +654,15 @@ export interface CustomerMasterKeyman {
 }
 
 export interface SourceCustomerHint {
+  source_system_code: string | null;
   customer_code: string | null;
   customer_name: string | null;
   post_count: number;
   related_posts: LinkedPostRef[];
   resolution_status: string;
+  corporate_entity_id: string | null;
+  resolved_entity_name: string | null;
+  customer_identity_judgment_id: string | null;
   hint_trust: string;
   provenance: string;
 }
@@ -736,15 +776,19 @@ export interface CustomerHintResolution {
   entity_name: string;
   linked_post_count: number;
   verification_evidence_url: string | null;
+  customer_identity_judgment_id: string;
+  resolution_status: "customer_identity_promoted";
+  cached: boolean;
 }
 
 export function resolveCustomerHint(
   accessToken: string,
   hintCode: string,
+  sourceSystemCode: string | null,
 ): Promise<CustomerHintResolution> {
   return backendFetch<CustomerHintResolution>("/api/customer-master/resolve-hint", accessToken, {
     method: "POST",
-    body: JSON.stringify({ hint_code: hintCode }),
+    body: JSON.stringify({ hint_code: hintCode, source_system_code: sourceSystemCode }),
   });
 }
 
@@ -1047,6 +1091,14 @@ export function fetchPostFiveW1H(accessToken: string, postId: string): Promise<P
   return backendFetch(`/api/posts/${postId}/five-w1h`, accessToken);
 }
 
+export function fetchPostSourceResearch(accessToken: string, postId: string): Promise<PostSourceResearch> {
+  return backendFetch(`/api/posts/${postId}/source-research`, accessToken);
+}
+
+export function researchPostSources(accessToken: string, postId: string): Promise<{ post_id: string; researched_count: number }> {
+  return backendFetch(`/api/posts/${postId}/source-research`, accessToken, { method: "POST" });
+}
+
 export function fetchPostLineage(accessToken: string, postId: string): Promise<PostLineage> {
   return backendFetch(`/api/posts/${postId}/lineage`, accessToken);
 }
@@ -1059,11 +1111,40 @@ export function fetchPostChat(accessToken: string, postId: string): Promise<Chat
   return backendFetch(`/api/posts/${postId}/chat`, accessToken);
 }
 
-export function askPostChat(accessToken: string, postId: string, question: string): Promise<ChatAnswer> {
+export function askPostChat(
+  accessToken: string,
+  postId: string,
+  question: string,
+  conversationId?: string | null,
+): Promise<ChatAnswer> {
   return backendFetch(`/api/posts/${postId}/chat`, accessToken, {
     method: "POST",
-    body: JSON.stringify({ question }),
+    body: JSON.stringify({
+      question,
+      ...(conversationId ? { conversation_id: conversationId } : {}),
+    }),
   });
+}
+
+export function fetchPostChatConversations(
+  accessToken: string,
+  postId: string,
+  cursor?: AskConversationCursor | null,
+): Promise<AskConversationPage> {
+  const query = cursor
+    ? `?before_updated_at=${encodeURIComponent(cursor.updated_at)}&before_conversation_id=${encodeURIComponent(cursor.conversation_id)}`
+    : "";
+  return backendFetch(`/api/posts/${postId}/chat/conversations${query}`, accessToken);
+}
+
+export function fetchPostChatConversation(
+  accessToken: string,
+  postId: string,
+  conversationId: string,
+  beforeTurn?: number | null,
+): Promise<AskConversation> {
+  const query = beforeTurn ? `?before_turn=${encodeURIComponent(beforeTurn)}` : "";
+  return backendFetch(`/api/posts/${postId}/chat/conversations/${conversationId}${query}`, accessToken);
 }
 
 export function fetchAskConversations(
@@ -1089,10 +1170,15 @@ export function askAgent(
   accessToken: string,
   question: string,
   conversationId?: string | null,
+  anchorPostId?: string | null,
 ): Promise<AskAgentResponse> {
   return backendFetch("/api/ask", accessToken, {
     method: "POST",
-    body: JSON.stringify({ question, ...(conversationId ? { conversation_id: conversationId } : {}) }),
+    body: JSON.stringify({
+      question,
+      ...(conversationId ? { conversation_id: conversationId } : {}),
+      ...(anchorPostId ? { anchor_post_id: anchorPostId } : {}),
+    }),
   });
 }
 

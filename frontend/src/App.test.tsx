@@ -46,6 +46,20 @@ describe("App, unauthenticated", () => {
       }),
     );
   });
+
+  it("does not render raw OIDC error text and names a log-in next action", async () => {
+    mockAuth = {
+      ...mockAuth,
+      error: { message: "invalid_grant: AADSTS70000 TypeError at oidc-client" },
+    };
+    render(<App showLabPanels />);
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Sign-in could not be completed.");
+    expect(alert).toHaveTextContent("Log in again to open the workspace.");
+    expect(screen.queryByText(/invalid_grant|AADSTS70000|TypeError|oidc-client/i)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Log in" }));
+    expect(signinRedirect).toHaveBeenCalledTimes(1);
+  });
 });
 
 function jsonResponse(body: unknown): Response {
@@ -82,6 +96,7 @@ describe("App, authenticated", () => {
     askUnavailable?: boolean;
     askHistory?: boolean;
     askHistoryPages?: boolean;
+    postAskHistory?: boolean;
     verificationEvidenceUrl?: string | null;
     failedLineageRun?: boolean;
     runningLineageRun?: boolean;
@@ -1711,15 +1726,69 @@ describe("App, authenticated", () => {
             ),
           );
         }
+        let conversationId = "conversation-post-new";
+        try {
+          const body: unknown = JSON.parse(String(init?.body));
+          if (
+            body &&
+            typeof body === "object" &&
+            "conversation_id" in body &&
+            typeof body.conversation_id === "string" &&
+            body.conversation_id
+          ) {
+            conversationId = body.conversation_id;
+          }
+        } catch {
+          conversationId = "conversation-post-new";
+        }
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
+            conversation_id: conversationId,
             answer_text: "Here is what happened, drawing on the linked post.",
             cited_post_ids: ["post-2"],
             cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
             source_post_ids: ["post-1", "post-2"],
           }),
         );
+      }
+      if (url.endsWith("/api/posts/post-1/chat/conversations") && method === "GET") {
+        if (options?.postAskHistory) {
+          return Promise.resolve(
+            jsonResponse({
+              conversations: [
+                {
+                  conversation_id: "conversation-post-1",
+                  title: "Saved post question",
+                  updated_at: "2026-08-21T00:00:00Z",
+                  turn_count: 1,
+                },
+              ],
+            }),
+          );
+        }
+        return Promise.resolve(jsonResponse({ conversations: [] }));
+      }
+      if (url.endsWith("/api/posts/post-1/chat/conversations/conversation-post-1") && method === "GET") {
+        return Promise.resolve(
+          jsonResponse({
+            conversation_id: "conversation-post-1",
+            title: "Saved post question",
+            exchanges: [
+              {
+                turn_id: "turn-1",
+                question_text: "Which site visit was saved?",
+                answer_text: "The saved post answer stays grounded in the linked source.",
+                cited_post_ids: ["post-2"],
+                cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
+                source_post_ids: ["post-1", "post-2"],
+              },
+            ],
+          }),
+        );
+      }
+      if (url.includes("/chat/conversations") && method === "GET") {
+        return Promise.resolve(jsonResponse({ conversations: [] }));
       }
       if (url.endsWith("/api/ask/conversations") && method === "GET") {
         if (options?.askHistory) {
@@ -1821,6 +1890,7 @@ describe("App, authenticated", () => {
                 facts: [
                   { kind: "semantic_project", text: "project: Semantic project | evidence: Body evidence" },
                   { kind: "semantic_keyman", text: "Keyman mention: Ada West | context: account lead" },
+                  { kind: "semantic_event", text: "event: Quote revised | evidence: Customer request" },
                 ],
               },
             ],
@@ -1902,6 +1972,14 @@ describe("App, authenticated", () => {
                       entity_level_label: "Company",
                       parent_entity_id: null,
                       scope_facets: ["authorized_own"],
+                      name_history: [
+                        {
+                          entity_name: "Demo Industries",
+                          name_role_code: "entity_name_former",
+                          observed_from: "2024-01-01T00:00:00Z",
+                          observed_to: "2026-01-01T00:00:00Z",
+                        },
+                      ],
                     },
                   ],
             keymen: [
@@ -1916,11 +1994,15 @@ describe("App, authenticated", () => {
             ],
             source_customer_hints: options?.manyCustomerHints
               ? Array.from({ length: options.manyCustomerHints }, (_, index) => ({
+                  source_system_code: "synthetic-crm",
                   customer_code: `CUST-${index}`,
                   customer_name: resolvedHintCode === `CUST-${index}` ? "Southfield Utilities" : null,
                   post_count: options.manyCustomerHints! - index,
                   related_posts: [],
-                  resolution_status: resolvedHintCode === `CUST-${index}` ? "resolved" : "hint_only",
+                  resolution_status: resolvedHintCode === `CUST-${index}` ? "customer_identity_promoted" : "hint_only",
+                  corporate_entity_id: resolvedHintCode === `CUST-${index}` ? "corp-southfield" : null,
+                  resolved_entity_name: resolvedHintCode === `CUST-${index}` ? "Southfield Utilities" : null,
+                  customer_identity_judgment_id: resolvedHintCode === `CUST-${index}` ? "judgment-southfield" : null,
                   hint_trust: "normal",
                   provenance: "source_post.source_customer_code",
                 })).filter((hint) => !requestedCustomerHint || hint.customer_code === requestedCustomerHint)
@@ -1959,8 +2041,19 @@ describe("App, authenticated", () => {
             entity_name: "Southfield Utilities",
             linked_post_count: 3,
             verification_evidence_url: "https://example.org/southfield",
+            customer_identity_judgment_id: "judgment-southfield",
+            resolution_status: "customer_identity_promoted",
+            cached: false,
           }),
         );
+      }
+      if (url.includes("/source-research") && method === "GET") {
+        const postId = new URL(url, "https://backend.test").pathname.split("/")[3] ?? "post-1";
+        return Promise.resolve(jsonResponse({ post_id: postId, research: [] }));
+      }
+      if (url.includes("/source-research") && method === "POST") {
+        const postId = new URL(url, "https://backend.test").pathname.split("/")[3] ?? "post-1";
+        return Promise.resolve(jsonResponse({ post_id: postId, researched_count: 0 }));
       }
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
@@ -1980,12 +2073,13 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Which project?", { exact: true })).toBeInTheDocument();
     expect(await screen.findByRole("list", { name: "Evidence facts" })).toBeInTheDocument();
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
+    expect(screen.getByText("Semantic event", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
   });
 
   it("renders the conversation empty state and submits an Ask Agent question with Enter", async () => {
-    stubBackend();
+    const fetchMock = stubBackend();
     render(<App />);
     await userEvent.click(await screen.findByRole("button", { name: "Ask Agent" }));
 
@@ -1997,11 +2091,69 @@ describe("App, authenticated", () => {
     const input = screen.getByRole("textbox", { name: "Ask a question" });
     const send = screen.getByRole("button", { name: "Ask" });
     expect(send).toBeDisabled();
+    fireEvent.change(input, { target: { value: "작성 중" } });
+    fireEvent.keyDown(input, { key: "Enter", isComposing: true });
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, init]) => String(url).endsWith("/api/ask") && init?.method === "POST",
+      ),
+    ).toBe(false);
+    fireEvent.change(input, { target: { value: "" } });
     await userEvent.type(input, "Which project?{Enter}");
 
     expect(await screen.findByText("Which project?", { selector: ".ask-agent-user-message p:last-child" })).toBeInTheDocument();
     expect(input).toHaveValue("");
   });
+
+  it("opens Ask from a post and can clear the starting evidence", async () => {
+    const fetchMock = stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Ask about this lineage" }));
+    expect(screen.getByRole("status")).toHaveTextContent("Starting evidence: Public post");
+
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "What preceded it?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await waitFor(() => {
+      const askCall = fetchMock.mock.calls.find(
+        ([input, init]) => String(input).endsWith("/api/ask") && init?.method === "POST",
+      );
+      expect(JSON.parse(String(askCall?.[1]?.body))).toMatchObject({ anchor_post_id: "post-1" });
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "Use all authorized evidence" }));
+    expect(screen.queryByText(/Starting evidence:/)).not.toBeInTheDocument();
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "What else is related?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await waitFor(() => {
+      const askCalls = fetchMock.mock.calls.filter(
+        ([input, init]) => String(input).endsWith("/api/ask") && init?.method === "POST",
+      );
+      expect(askCalls).toHaveLength(2);
+      expect(JSON.parse(String(askCalls[1][1]?.body))).not.toHaveProperty("anchor_post_id");
+    });
+  });
+
+  it("clears a post anchor before continuing a saved conversation", async () => {
+    const fetchMock = stubBackend({ askHistory: true });
+    window.history.replaceState({}, "", "/?workspace=ask&post=post-1");
+    render(<App />);
+
+    expect(await screen.findByText("Starting evidence: post-1")).toBeInTheDocument();
+    expect(screen.getByText("Start with a question about the evidence")).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: /Saved project question/ }));
+    expect(screen.queryByText(/Starting evidence:/)).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Continue saved context");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+    await waitFor(() => {
+      const askCall = fetchMock.mock.calls.find(
+        ([input, init]) => String(input).endsWith("/api/ask") && init?.method === "POST",
+      );
+      expect(JSON.parse(String(askCall?.[1]?.body))).not.toHaveProperty("anchor_post_id");
+    });
+  }, 10_000);
 
   it("restores saved Ask Agent history and can start a new conversation", async () => {
     stubBackend({ askHistory: true });
@@ -2010,13 +2162,61 @@ describe("App, authenticated", () => {
 
     expect(await screen.findByText("Which project was saved?", { exact: true })).toBeInTheDocument();
     const savedConversation = screen.getByRole("button", { name: /Saved project question/ });
-    expect(savedConversation).toHaveAttribute("aria-pressed", "true");
+    expect(savedConversation).toHaveAttribute("aria-current", "page");
+    expect(savedConversation).not.toHaveAttribute("aria-pressed");
 
     await userEvent.click(screen.getByRole("button", { name: "New conversation" }));
     expect(screen.getByText("Start with a question about the evidence")).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: "Ask a question" })).toHaveFocus();
     await userEvent.click(savedConversation);
     expect(await screen.findByText("Which project was saved?", { exact: true })).toBeInTheDocument();
+  });
+
+  it("restores saved per-post Ask history and can start a new conversation", async () => {
+    stubBackend({ postAskHistory: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await waitFor(() =>
+      expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument(),
+    );
+    const savedConversation = await screen.findByRole("button", { name: /Saved post question/ });
+    expect(savedConversation).not.toHaveAttribute("aria-current");
+    expect(savedConversation).not.toHaveAttribute("aria-pressed");
+
+    const popup = document.querySelector(".popup-panel") as HTMLElement;
+    const askInput = within(popup).getByPlaceholderText(/what happened/i);
+    await userEvent.type(askInput, "What preceded the site visit?");
+    await userEvent.click(within(popup).getByRole("button", { name: /^ask$/i }));
+    expect(
+      await screen.findByText("Here is what happened, drawing on the linked post."),
+    ).toBeInTheDocument();
+    const liveThread = screen.getByRole("button", { name: /What preceded the site visit/ });
+    expect(liveThread).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByText("The seeded follow-up after the site visit.")).not.toBeInTheDocument();
+
+    await userEvent.click(within(popup).getByRole("button", { name: "New conversation" }));
+    expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument();
+    expect(screen.queryByText("Here is what happened, drawing on the linked post.")).not.toBeInTheDocument();
+    expect(
+      [...popup.querySelectorAll(".chat-question")].map((node) => node.textContent),
+    ).not.toContain("What preceded the site visit?");
+    expect(liveThread).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: /What preceded the site visit/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Saved post question/ })).toBeInTheDocument();
+
+    await userEvent.click(savedConversation);
+    expect(
+      await screen.findByText("The saved post answer stays grounded in the linked source."),
+    ).toBeInTheDocument();
+    expect(savedConversation).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByText("The seeded follow-up after the site visit.")).not.toBeInTheDocument();
+
+    await userEvent.click(within(popup).getByRole("button", { name: "New conversation" }));
+    expect(screen.getByText("The seeded follow-up after the site visit.")).toBeInTheDocument();
+    expect(savedConversation).not.toHaveAttribute("aria-current");
+    expect(screen.getByRole("button", { name: /Saved post question/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /What preceded the site visit/ })).toBeInTheDocument();
   });
 
   it("keeps the Ask Agent conversation visible when the orchestrator is unavailable", async () => {
@@ -2077,6 +2277,16 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Our side")).toBeInTheDocument();
     expect(screen.queryByText("company", { exact: true })).not.toBeInTheDocument();
     expect(screen.queryByText("our_side", { exact: true })).not.toBeInTheDocument();
+  });
+
+  it("shows governed former names when a customer entity is expanded", async () => {
+    stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    await userEvent.click((await screen.findByText("Demo Corp")).closest("button")!);
+
+    expect(screen.getByText("Former name: Demo Industries")).toBeInTheDocument();
   });
 
   it("nests a corporate entity under its parent instead of a flat list", async () => {
@@ -2203,6 +2413,7 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "Resolve" }));
 
     expect(await screen.findByText("Southfield Utilities")).toBeInTheDocument();
+    expect(screen.getByText("Managed customer")).toBeInTheDocument();
   });
 
   it("hides the resolve action from an account without post_admin", async () => {
@@ -2392,6 +2603,7 @@ describe("App, authenticated", () => {
     expect(requestedPaths).not.toContain("/api/posts/post-1/affiliate-tree");
     expect(requestedPaths).not.toContain("/api/posts/post-1/voc-evidence");
     expect(requestedPaths).not.toContain("/api/posts/post-1/content");
+    expect(requestedPaths).not.toContain("/api/posts/post-1/source-research");
   });
 
   it("does not show an empty source detail state filter", async () => {
@@ -2722,16 +2934,19 @@ describe("App, authenticated", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
 
-    expect(await screen.findByRole("status")).toHaveTextContent("Summary is being prepared.");
+    const processing = await screen.findByText("Summary is being prepared.");
+    expect(processing.closest('[role="status"]')).toBeInTheDocument();
     expect(screen.queryByText("No summary is available for this record yet.")).not.toBeInTheDocument();
-  });
+  }, 15_000);
 
   it("separates an unavailable summary from a missing saved summary", async () => {
     stubBackend({ summaryUnavailable: true });
     render(<App showLabPanels />);
 
     await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("Summary could not be generated.");
+    const summaryHeading = await screen.findByText("Summary could not be generated.");
+    expect(summaryHeading.closest('[role="alert"]')).toBeInTheDocument();
+    expect(screen.getAllByRole("alert")).toHaveLength(1);
     expect(screen.getByRole("button", { name: "Retry summary refresh" })).toBeInTheDocument();
     expect(screen.queryByText("No saved summary exists for this record.")).not.toBeInTheDocument();
   });
@@ -2814,11 +3029,15 @@ describe("App, authenticated", () => {
     const evidenceChips = await screen.findAllByRole("button", { name: "Open evidence: Linked post" });
     await userEvent.click(evidenceChips[evidenceChips.length - 1]);
 
-    expect(
-      await screen.findByText("Source evidence is unavailable. Continue with the saved answer."),
-    ).toBeInTheDocument();
+    const alertTitle = await screen.findByText(
+      "Source evidence is unavailable. Continue with the saved answer.",
+    );
+    const alert = alertTitle.closest('[role="alert"]');
+    expect(alert).toHaveTextContent("Source evidence is unavailable. Continue with the saved answer.");
+    expect(alert).toHaveTextContent("Retry opening this source, or keep reading the saved answer.");
+    expect(screen.getByRole("button", { name: "Retry evidence" })).toBeInTheDocument();
     expect(screen.queryByText("Loading source post...")).not.toBeInTheDocument();
-  });
+  }, 15_000);
 
   it("shows a clear empty state when chat is 503 without an orchestrator", async () => {
     stubBackend({ chatUnavailable: true });
@@ -3497,12 +3716,13 @@ describe("App, authenticated", () => {
       name: "Open analysis run: Lineage reconstruction · Running · Demo Corp",
     });
     expect(lineageButton).toHaveTextContent(
-      "Refresh this run. Start already queued the work on the durable outbox.",
+      "Refresh this run. Reconstruction is already queued on the durable outbox.",
     );
     await userEvent.click(lineageButton);
-    expect(screen.getByRole("button", { name: "Start reconstruction" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Refresh this run" })).toBeInTheDocument();
     expect(
-      screen.getAllByText("Refresh this run. Start already queued the work on the durable outbox."),
+      screen.getAllByText("Refresh this run. Reconstruction is already queued on the durable outbox."),
     ).not.toHaveLength(0);
   });
 
@@ -3809,8 +4029,8 @@ describe("App, authenticated", () => {
     await userEvent.click(reportButton);
     expect(screen.queryByRole("button", { name: "Start reconstruction" })).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Open period report 2026-W02" }),
-    ).not.toBeInTheDocument();
+      screen.getByRole("button", { name: "Open period report 2026-W02" }),
+    ).toBeInTheDocument();
     expect(
       await screen.findByText(
         "No posts were available at this cutoff for the period report. Open a later run, or ask an administrator to capture a newer snapshot.",
@@ -4063,12 +4283,12 @@ describe("App, authenticated", () => {
     });
     expect(closestPair).toHaveTextContent("Closest leftover: Public post · sales-lead");
     expect(closestPair).toHaveTextContent(
-      "Open this post to read the criterion it sat closest to after main effects.",
+      "Open Public post, then read Post quality criterion sales-lead. This pair sat closest to after main effects.",
     );
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
-      "Open this post to read the criterion it sat farthest from after main effects.",
+      "Open Specification revision requested, then read Post quality criterion negative. This pair sat farthest from after main effects.",
     );
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
@@ -4129,6 +4349,15 @@ describe("App, authenticated", () => {
       await screen.findByRole("button", { name: /open leftover closest pair: public post/i }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    const criterion = await waitFor(() => {
+      const landed = document.getElementById("post-quality-criterion-sales_lead_specificity");
+      expect(landed).not.toBeNull();
+      return landed as HTMLElement;
+    });
+    expect(criterion).toHaveAttribute("aria-current", "true");
+    expect(criterion).toHaveTextContent(/Sales-lead specificity: 3/);
+    await waitFor(() => expect(criterion).toHaveFocus());
+    expect(screen.queryByRole("status", { name: "Event Lineage next action" })).not.toBeInTheDocument();
   });
 
   it("opens Event Lineage, Keyman, and evaluation from a report member click", async () => {
@@ -4218,10 +4447,16 @@ describe("App, authenticated", () => {
     const mobileMenu = screen.getByRole("button", { name: "Open navigation" });
     expect(mobileMenu).toHaveAttribute("aria-expanded", "false");
     await userEvent.click(mobileMenu);
+    expect(screen.getByRole("dialog", { name: "Workspace navigation" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Close Workspace navigation" })).toHaveAttribute(
       "aria-expanded",
       "true",
     );
+    expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "Workspace navigation" })).not.toBeInTheDocument();
+    expect(mobileMenu).toHaveFocus();
+    await userEvent.click(mobileMenu);
     expect(screen.getAllByRole("button", { name: "Close" })).toHaveLength(1);
     expect(document.getElementById("mobile-workspace-navigation")).toBeInTheDocument();
     const drawerClose = document.querySelector<HTMLButtonElement>(".mobile-drawer-close");
@@ -4243,10 +4478,11 @@ describe("App, authenticated", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Open navigation" }));
     expect(screen.getByRole("button", { name: "Close Workspace navigation" })).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "Workspace navigation" })).not.toBeInTheDocument();
     await userEvent.click(
       within(appHeader as HTMLElement).getByRole("button", { name: "Search" }),
     );
-    expect(document.getElementById("mobile-workspace-navigation")).not.toBeInTheDocument();
     await waitFor(() =>
       expect(screen.getByRole("searchbox", { name: "Search semantic evidence" })).toHaveFocus(),
     );
@@ -4340,6 +4576,16 @@ describe("App, authenticated", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
     expect(new URL(window.location.href).searchParams.get("workspace")).toBe("ask");
+
+    window.history.replaceState({}, "", "/?workspace=ask&post=post-1");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    expect(await screen.findByText("Starting evidence: post-1")).toBeInTheDocument();
+
+    window.history.replaceState({}, "", "/?workspace=ask");
+    window.dispatchEvent(new PopStateEvent("popstate"));
+    await waitFor(() =>
+      expect(screen.queryByText(/Starting evidence:/)).not.toBeInTheDocument(),
+    );
 
     window.history.replaceState({}, "", "/?workspace=calendar");
     window.dispatchEvent(new PopStateEvent("popstate"));
