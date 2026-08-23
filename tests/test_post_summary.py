@@ -686,6 +686,15 @@ def test_summary_admits_explicit_planned_facility_relation_with_project_backing(
             id="missing-project-backing",
         ),
         pytest.param(
+            _planned_facility_details(
+                projects=(
+                    "Aurora Charging Hub | Aurora Charging Hub | "
+                    "Aurora Charging Hub plan | 0.4"
+                )
+            ),
+            id="low-confidence-project-backing",
+        ),
+        pytest.param(
             _planned_facility_details(roles="NONE"),
             id="missing-role-actor",
         ),
