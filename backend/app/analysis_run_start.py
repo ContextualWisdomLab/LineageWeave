@@ -88,7 +88,7 @@ def start_kind_rejection(run_kind_code: str) -> AnalysisRunStartError | None:
     )
 
 
-def configured_tepp_client(transport_url: str = "", api_key: str = "") -> TeppClient:
+def configured_tepp_client(transport_url: str = "") -> TeppClient:
     """Build a TEPP client from an optional HTTP transport URL.
 
     An empty URL keeps the default unavailable transport. A set URL
@@ -101,9 +101,13 @@ def configured_tepp_client(transport_url: str = "", api_key: str = "") -> TeppCl
 
     def transport(payload: dict[str, Any]) -> dict[str, Any]:
         try:
-            headers = {"authorization": f"Bearer {api_key}"} if api_key.strip() else {}
+            headers = {
+                "idempotency-key": str(payload["idempotency_key"]),
+                "tepp-consumer": "lineageweave",
+                "tepp-contract-version": str(payload["contract_version"]),
+            }
             return post_json(url, payload, headers=headers, timeout=30.0)
-        except (HttpClientError, OSError, ValueError, TypeError) as exc:
+        except (HttpClientError, KeyError, OSError, ValueError, TypeError) as exc:
             raise TeppNotAvailable(str(exc)) from exc
 
     return TeppClient(transport=transport)

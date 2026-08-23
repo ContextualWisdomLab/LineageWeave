@@ -204,7 +204,6 @@ async def lifespan(app: FastAPI):
             app.state.pool,
             tepp_client=configured_tepp_client(
                 settings.tepp_transport_url,
-                settings.tepp_api_key,
             ),
             adjudication_client=_adjudication_client(),
         )
@@ -3078,7 +3077,6 @@ async def start_analysis_run(
                     affiliated_entity_ids=list(account.corporate_entity_ids),
                     tepp_client=configured_tepp_client(
                         settings.tepp_transport_url,
-                        settings.tepp_api_key,
                     ),
                     adjudication_client=_adjudication_client(),
                     valkey_stream_entry_id=stream_id,
