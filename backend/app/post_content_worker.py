@@ -215,6 +215,7 @@ async def process_post_content_job(
     embedding_factory: Callable[[], EmbeddingClient],
     structure_factory: Callable[[], PostStructureClient],
 ) -> None:
+    """Claim, process, and durably record one post-content ingestion job."""
     settings = load_settings()
     row = await _claim_job(
         pool,
@@ -288,6 +289,7 @@ async def consume_post_content_stream_once(
     embedding_factory: Callable[[], EmbeddingClient],
     structure_factory: Callable[[], PostStructureClient],
 ) -> str:
+    """Process one Valkey stream batch and return its last-seen cursor."""
     batches = await client.xread({POST_CONTENT_STREAM_KEY: last_id}, count=10, block=1000)
     for _stream_name, entries in batches:
         for entry_id, fields in entries:

@@ -167,14 +167,17 @@ class _VisibleTextParser(HTMLParser):
         self.parts: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        """Suppress text inside non-visible HTML elements."""
         if tag in {"script", "style", "noscript", "svg"}:
             self._hidden += 1
 
     def handle_endtag(self, tag: str) -> None:
+        """Resume visible-text collection after a hidden element closes."""
         if tag in {"script", "style", "noscript", "svg"} and self._hidden:
             self._hidden -= 1
 
     def handle_data(self, data: str) -> None:
+        """Collect nonblank text when the parser is outside hidden elements."""
         if not self._hidden and data.strip():
             self.parts.append(data.strip())
 

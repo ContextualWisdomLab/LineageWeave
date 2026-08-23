@@ -78,6 +78,7 @@ class TemporalContextEvent:
     actor_references: tuple[str, ...]
 
     def to_json(self) -> dict[str, Any]:
+        """Serialize this temporal event to TEPP's published request shape."""
         return {
             "event_id": self.event_id,
             "source_post_id": self.source_post_id,
@@ -101,6 +102,7 @@ class TemporalContextRequest:
     consumer_code: str = "lineageweave"
 
     def to_json(self) -> dict[str, Any]:
+        """Serialize this cutoff-safe temporal-context request for TEPP."""
         return {
             "contract_version": self.contract_version,
             "consumer_code": self.consumer_code,

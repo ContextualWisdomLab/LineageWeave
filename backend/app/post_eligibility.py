@@ -57,6 +57,7 @@ SOURCE_POST_VISIBILITY_SQL = (
 
 
 def source_context_present_sql(alias: str) -> str:
+    """Build SQL that detects any nonblank source-context field on an alias."""
     return " or ".join(
         [
             *(f"nullif(btrim({alias}.{column}), '') is not null" for column in SOURCE_CONTEXT_COLUMNS),
@@ -66,6 +67,7 @@ def source_context_present_sql(alias: str) -> str:
 
 
 def source_context_missing_sql(alias: str) -> str:
+    """Build SQL that requires every source-context field on an alias to be blank."""
     return " and ".join(
         [
             *(f"nullif(btrim({alias}.{column}), '') is null" for column in SOURCE_CONTEXT_COLUMNS),

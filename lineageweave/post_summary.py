@@ -1094,6 +1094,7 @@ def _parse_quantitative_observation_entry(
     entry: dict[str, object],
 ) -> QuantitativeObservation | None:
     def text(*keys: str) -> str:
+        """Return the first nonblank string stored under the candidate keys."""
         for key in keys:
             value = entry.get(key)
             if isinstance(value, str) and value.strip():
@@ -1141,6 +1142,7 @@ def _parse_quantitative_observation_entry(
 
 def _parse_source_fact_entry(entry: dict[str, object]) -> SourceGroundedFact | None:
     def text(*keys: str) -> str:
+        """Return the first nonblank string stored under the candidate keys."""
         for key in keys:
             value = entry.get(key)
             if isinstance(value, str) and value.strip():

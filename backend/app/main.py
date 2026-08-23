@@ -756,6 +756,7 @@ async def read_tenant_settings(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ):
+    """Return the authenticated tenant's current display configuration."""
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
             """
@@ -772,6 +773,7 @@ async def update_tenant_settings(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ):
+    """Validate and persist tenant display configuration for an administrator."""
     # Only admins can change settings
     _require_post_admin(account)
     async with pool.acquire() as conn:
@@ -890,10 +892,14 @@ async def read_me(
 
 
 class LocalePreferenceRequest(BaseModel):
+    """Validated body for updating the current account's locale."""
+
     preferred_locale: Literal["en", "ko", "zh", "ja", "vi"]
 
 
 class CustomerHintResolveRequest(BaseModel):
+    """Validated source-hint identifiers submitted for governed resolution."""
+
     hint_code: str
     source_system_code: str | None = None
 
@@ -3590,6 +3596,8 @@ async def ask_agent(
 
 
 class PostBookmarkRequest(BaseModel):
+    """Validated body for setting the current account's post bookmark."""
+
     bookmarked: bool
 
 
@@ -3599,6 +3607,7 @@ async def read_post_bookmark(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
+    """Report whether the current account bookmarked an authorized post."""
     await _load_visible_post(post_id, account, pool, allow_writing=True)
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -3616,6 +3625,7 @@ async def write_post_bookmark(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
+    """Set or clear the current account's bookmark on an authorized post."""
     await _load_visible_post(post_id, account, pool, allow_writing=True)
     async with pool.acquire() as conn:
         if request.bookmarked:

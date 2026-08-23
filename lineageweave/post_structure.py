@@ -12,6 +12,8 @@ from .http_client import post_json
 
 @dataclass(frozen=True)
 class StructureDecision:
+    """One semantic unit's adjudicated indentation and supporting evidence."""
+
     unit_index: int
     indent_level: int
     confidence: float
@@ -20,24 +22,32 @@ class StructureDecision:
 
 
 class PostStructureClient(Protocol):
+    """Port for adjudicating semantic-unit indentation through an orchestrator."""
+
     available: bool
 
     def infer(
         self, post_title: str, units: list[dict[str, object]]
     ) -> tuple[StructureDecision, ...]:
+        """Return one structure decision per supplied semantic unit."""
         raise NotImplementedError
 
 
 class NullPostStructureClient:
+    """Fail-closed structure client used when no orchestrator is configured."""
+
     available = False
 
     def infer(
         self, post_title: str, units: list[dict[str, object]]
     ) -> tuple[StructureDecision, ...]:
+        """Raise because structure adjudication is unavailable."""
         raise RuntimeError("post structure adjudication is not available")
 
 
 class ContextualOrchestratorPostStructureClient:
+    """Structure client backed by contextual-orchestrator."""
+
     available = True
 
     _DECISION_ITEM_SCHEMA = {
@@ -71,6 +81,7 @@ class ContextualOrchestratorPostStructureClient:
     def infer(
         self, post_title: str, units: list[dict[str, object]]
     ) -> tuple[StructureDecision, ...]:
+        """Ask the orchestrator to adjudicate indentation for every unit."""
         if not units:
             return ()
         response = post_json(

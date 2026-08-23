@@ -660,6 +660,7 @@ async def post_knowledge_graph(
     )
 
     def semantic_key(node_type: str, name: str) -> str:
+        """Build a deterministic post-scoped identifier for one semantic node."""
         digest = hashlib.sha256(f"{node_type}\0{name}".encode()).hexdigest()[:16]
         return f"semantic:{post_id}:{digest}"
 

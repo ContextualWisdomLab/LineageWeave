@@ -14,19 +14,26 @@ CALDAV_UNAVAILABLE_NEXT_ACTION = (
 
 @dataclass(frozen=True)
 class CalDavEvent:
+    """One calendar event read from the configured CalDAV source."""
+
     event_id: str
     summary: str
     starts_at: str
 
 
 class NullCalDavClient:
+    """Fail-closed client used when no CalDAV source is configured."""
+
     available = False
 
     def list_events(self) -> list[CalDavEvent]:
+        """Return no events because this client has no source transport."""
         return []
 
 
 class HttpCalDavClient:
+    """CalDAV event reader backed by the configured HTTP endpoint."""
+
     available = True
 
     def __init__(self, base_url: str) -> None:
@@ -36,6 +43,7 @@ class HttpCalDavClient:
         self._events_url = f"{base_url.rstrip('/')}/events"
 
     def list_events(self) -> list[CalDavEvent]:
+        """Fetch and parse events from the configured CalDAV endpoint."""
         payload = get_json(self._events_url, timeout=10)
         rows = payload.get("events")
         if not isinstance(rows, list):
