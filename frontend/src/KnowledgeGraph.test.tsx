@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import type { KnowledgeGraph } from "./api";
@@ -150,7 +150,111 @@ describe("KnowledgeGraphView", () => {
     node.focus();
     await user.keyboard("{Enter}");
     await user.keyboard(" ");
+    await user.keyboard("x");
     expect(onSelectPost).toHaveBeenNthCalledWith(1, "linked-post");
     expect(onSelectPost).toHaveBeenNthCalledWith(2, "linked-post");
+    expect(onSelectPost).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps malformed dangling edges in the evidence trail without drawing them", () => {
+    render(
+      <KnowledgeGraphView
+        graph={{
+          post_id: "synthetic-post",
+          truncated: true,
+          nodes: [
+            {
+              id: "target",
+              node_type_code: "node_post",
+              node_id: "target",
+              label: "Synthetic target",
+              is_focus: true,
+            },
+          ],
+          edges: [
+            {
+              source: "missing-source",
+              target: "target",
+              edge_type_code: "related_to",
+              confidence: 0.5,
+              evidence_post_ids: [],
+            },
+          ],
+        }}
+      />,
+    );
+
+    expect(screen.getByText("Limited view")).toBeInTheDocument();
+    expect(document.querySelector(".knowledge-graph-edge")).not.toBeInTheDocument();
+    const cells = within(screen.getByRole("table")).getAllByRole("cell");
+    expect(cells.map((cell) => cell.textContent)).toEqual([
+      "missing-source",
+      "related_to",
+      "Synthetic target",
+      "—",
+      "50%",
+    ]);
+  });
+
+  it("supports bounded zoom and keyboard/pointer panning without opening a dragged post", () => {
+    const onSelectPost = vi.fn();
+    const graph: KnowledgeGraph = {
+      post_id: "synthetic-post",
+      nodes: [
+        {
+          id: "post-node",
+          node_type_code: "node_post",
+          node_id: "linked-post",
+          label: "Synthetic linked post",
+          is_focus: true,
+        },
+      ],
+      edges: [],
+    };
+    render(<KnowledgeGraphView graph={graph} onSelectPost={onSelectPost} />);
+
+    const viewport = document.querySelector(".knowledge-graph-viewport") as HTMLDivElement;
+    expect(viewport).not.toBeNull();
+    const svg = screen.getByRole("img", { name: "Knowledge Graph directed relations" });
+    vi.spyOn(svg, "getBoundingClientRect").mockReturnValue({
+      x: 0,
+      y: 0,
+      top: 0,
+      right: 760,
+      bottom: 260,
+      left: 0,
+      width: 760,
+      height: 260,
+      toJSON: () => ({}),
+    });
+    Object.assign(viewport, {
+      setPointerCapture: vi.fn(),
+      hasPointerCapture: vi.fn(() => true),
+      releasePointerCapture: vi.fn(),
+    });
+
+    fireEvent.keyDown(svg, { key: "ArrowLeft" });
+    fireEvent.keyDown(viewport, { key: "x" });
+    fireEvent.keyDown(viewport, { key: "ArrowRight" });
+    expect(document.querySelector("svg > g")?.getAttribute("transform")).toContain("translate(-40 0)");
+
+    fireEvent.wheel(viewport, { deltaY: -1, clientX: 380, clientY: 130 });
+    fireEvent.wheel(viewport, { deltaY: 1, clientX: 380, clientY: 130 });
+    for (let index = 0; index < 20; index += 1) {
+      fireEvent.click(screen.getByRole("button", { name: "Zoom out" }));
+    }
+    expect(screen.getByText("75%")).toBeInTheDocument();
+
+    const node = screen.getByRole("button", { name: "Open post: Synthetic linked post" });
+    fireEvent.click(node);
+    expect(onSelectPost).toHaveBeenCalledOnce();
+    fireEvent.pointerDown(viewport, { button: 0, pointerId: 7, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(viewport, { pointerId: 8, clientX: 30, clientY: 30 });
+    fireEvent.pointerMove(viewport, { pointerId: 7, clientX: 30, clientY: 30 });
+    fireEvent.pointerUp(viewport, { pointerId: 8 });
+    fireEvent.pointerUp(viewport, { pointerId: 7 });
+    fireEvent.click(node);
+    expect(onSelectPost).toHaveBeenCalledOnce();
+    expect(viewport.releasePointerCapture).toHaveBeenCalledWith(7);
   });
 });
