@@ -2621,7 +2621,7 @@ async def ask_agent(
     """Answer a buyer question from authorized post and graph evidence."""
     question = request.question.strip()
     if not question:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "question is required")
     _require_post_read(account)
     client = _post_chat_client()
     if not client.available:
@@ -3123,7 +3123,7 @@ async def read_rankings(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """RankWeave fusion of ABAC-visible posts (ADR 0024 / ADR 0163).
+    """RankWeave fusion of ABAC-visible posts (ADR 0024 / ADR 0167).
 
     Hidden posts are omitted from every channel. Never invents a fused
     score or a theta. Channel evidence is computed from owned rank

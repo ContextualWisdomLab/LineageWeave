@@ -6,6 +6,7 @@ function truncateLabel(label: string): string {
   return label.length > 34 ? `${label.slice(0, 33)}…` : label;
 }
 
+/** Render the authorized lineage projection and let the buyer open a post. */
 export function LineageDag({
   graph,
   onSelectPost,
@@ -43,7 +44,6 @@ export function LineageDag({
               {group.edges.map((edge) => {
                 const from = byId[edge.source];
                 const to = byId[edge.target];
-                if (!from || !to) return null;
                 const midX = (from.x + to.x) / 2;
                 return (
                   <path

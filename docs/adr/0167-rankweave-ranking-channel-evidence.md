@@ -1,4 +1,4 @@
-# ADR 0163 — Disclose RankWeave ranking channel evidence
+# ADR 0167 — Disclose RankWeave ranking channel evidence
 
 **Decision status:** Accepted
 **Date:** 2026-08-23

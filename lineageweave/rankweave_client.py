@@ -14,7 +14,7 @@ Wiring the in-process library is additive
 (``LibraryRankWeaveTransport``), not a redesign.
 
 Rankings channel evidence is computed from LineageWeave-owned rank
-lists (ADR 0163). The transport is trusted only for fused item order.
+lists (ADR 0167). The transport is trusted only for fused item order.
 A missing channel is omitted, never fabricated.
 """
 
