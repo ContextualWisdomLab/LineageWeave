@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-23 18:08 KST. This repository records synthetic
+> Audit snapshot: 2026-08-23 20:26 KST. This repository records synthetic
 > fixtures and aggregate, non-identifying runtime evidence only. Open PRs and
 > local checks are not protected-default-branch release evidence.
 
@@ -8,7 +8,7 @@
 
 The protected default branch was
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` when this baseline was refreshed.
-The live queue contained 45 open PRs, no independently approved head, and one
+The live queue contained 49 open PRs, no independently approved head, and one
 current head with a failed Strix result. That failure and every review thread must
 be re-fetched against the current head before remediation or a merge claim.
 
@@ -48,7 +48,7 @@ corpus acceptance or protected release.
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 45 PRs remained open, none had an independent current-head approval, and one current head had a failed Strix result | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
+| Protected release | 49 PRs remained open, none had an independent current-head approval, and one current head had a failed Strix result | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Image understanding | Region, OCR, and description work exists across active heads | Orchestrator-backed rendered workflow, original/derived asset provenance, and honest unsupported states |
 | Semantic source rendering | Paragraph, table, list, and formula parsing exists across active stacks | Authenticated browser evidence that semantic units render without authoring-layout artifacts |
