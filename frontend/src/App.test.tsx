@@ -166,7 +166,10 @@ describe("App, authenticated", () => {
     emptyLineage?: boolean;
     meFailed?: boolean;
     postBody?: string;
+    boardTotalCount?: number;
+    manyBoardPosts?: boolean;
     vocTypeOptions?: { code: string; label: string }[];
+    visibilityOptions?: { code: string; label: string }[];
     sourceDetailStateCode?: string;
     sourceDetailStateOptions?: { code: string; label: string }[];
     manyCustomerHints?: number;
@@ -1302,8 +1305,22 @@ describe("App, authenticated", () => {
                       },
                       created_at: "2026-01-01T00:00:00Z",
                     },
+                    ...(options?.manyBoardPosts
+                      ? [
+                          {
+                            post_id: "post-2",
+                            post_title: "Earlier partner post",
+                            voc_type_code: "vop",
+                            voc_type_label: "Voice of Partner",
+                            source_detail_state_code: "A",
+                            visibility_code: "private",
+                            visibility_label: "Private",
+                            created_at: "2025-12-31T00:00:00Z",
+                          },
+                        ]
+                      : []),
                   ],
-                  total_count: 1,
+                  total_count: options?.boardTotalCount ?? (options?.manyBoardPosts ? 2 : 1),
                   limit: 50,
                   offset: 0,
                   voc_type_options: [
@@ -1313,7 +1330,7 @@ describe("App, authenticated", () => {
                     ]),
                   ],
                   source_detail_state_options: options?.sourceDetailStateOptions ?? [],
-                  visibility_options: [{ code: "public", label: "Public" }],
+                  visibility_options: options?.visibilityOptions ?? [{ code: "public", label: "Public" }],
                 },
           ),
         );
@@ -3072,6 +3089,73 @@ describe("App, authenticated", () => {
     expect(within(board).getByRole("status")).toHaveTextContent("No posts match the current filters.");
     await userEvent.click(within(board).getByRole("button", { name: "Reset filters" }));
     expect(within(board).getByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+  });
+
+  it("derives missing board facets and applies every client-side sort and filter", async () => {
+    stubBackend({
+      manyBoardPosts: true,
+      sourceDetailStateCode: "D",
+      sourceDetailStateOptions: [],
+      visibilityOptions: [],
+      vocTypeOptions: [],
+    });
+    render(<App showLabPanels />);
+
+    const board = await screen.findByRole("region", { name: "Board" });
+    const titles = () =>
+      within(board).getAllByRole("button", { name: /View post:/ }).map((button) => button.getAttribute("aria-label"));
+
+    await userEvent.selectOptions(within(board).getByLabelText("Sort posts"), "title");
+    expect(titles()).toEqual(["View post: Earlier partner post", "View post: Public post"]);
+    await userEvent.selectOptions(within(board).getByLabelText("Sort posts"), "oldest");
+    expect(titles()[0]).toContain("Earlier partner post");
+    await userEvent.selectOptions(within(board).getByLabelText("Sort posts"), "newest");
+    expect(titles()[0]).toContain("Public post");
+
+    const voc = within(board).getByRole("checkbox", { name: "VOC — Voice of Customer" });
+    await userEvent.click(voc);
+    expect(within(board).queryByRole("button", { name: "View post: Earlier partner post" })).not.toBeInTheDocument();
+    await userEvent.click(voc);
+
+    const approved = within(board).getByRole("checkbox", { name: "A — Approved" });
+    await userEvent.click(approved);
+    expect(within(board).queryByRole("button", { name: "View post: Public post" })).not.toBeInTheDocument();
+    await userEvent.click(approved);
+
+    await userEvent.selectOptions(within(board).getByLabelText("Filter by visibility"), "private");
+    expect(within(board).queryByRole("button", { name: "View post: Public post" })).not.toBeInTheDocument();
+  });
+
+  it("navigates compact board pagination without losing the current-page state", async () => {
+    const fetchMock = stubBackend({ boardTotalCount: 400 });
+    render(<App showLabPanels />);
+
+    const pages = await screen.findByRole("navigation", { name: "Board pages" });
+    expect(within(pages).getByRole("button", { name: "Page 1" })).toHaveAttribute("aria-current", "page");
+    expect(within(pages).getByRole("button", { name: "Previous page" })).toBeDisabled();
+    expect(within(pages).getByText("...")).toBeInTheDocument();
+
+    await userEvent.click(within(pages).getByRole("button", { name: "Page 8" }));
+    await waitFor(() =>
+      expect(within(pages).getByRole("button", { name: "Page 8" })).toHaveAttribute("aria-current", "page"),
+    );
+    expect(within(pages).getByRole("button", { name: "Next page" })).toBeDisabled();
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("offset=350"))).toBe(true);
+
+    await userEvent.click(within(pages).getByRole("button", { name: "Previous page" }));
+    await waitFor(() =>
+      expect(within(pages).getByRole("button", { name: "Page 7" })).toHaveAttribute("aria-current", "page"),
+    );
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes("offset=300"))).toBe(true);
+
+    await userEvent.click(within(pages).getByRole("button", { name: "Page 1" }));
+    await waitFor(() =>
+      expect(within(pages).getByRole("button", { name: "Page 1" })).toHaveAttribute("aria-current", "page"),
+    );
+    await userEvent.click(within(pages).getByRole("button", { name: "Next page" }));
+    await waitFor(() =>
+      expect(within(pages).getByRole("button", { name: "Page 2" })).toHaveAttribute("aria-current", "page"),
+    );
   });
 
   it("uses canonical VOC acronyms with explanatory accessible names", async () => {
