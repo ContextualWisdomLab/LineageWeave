@@ -156,6 +156,18 @@ def test_chunk_by_dom_implicitly_closes_sibling_rows_at_the_same_table_depth() -
     ]
 
 
+def test_chunk_by_dom_closes_an_unclosed_row_at_the_table_boundary() -> None:
+    """A malformed final row still emits before its table closes."""
+
+    chunks = chunk_by_dom(
+        "<table><tr><td>Only left</td><td>Only right</td></table>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "Only left | Only right")
+    ]
+
+
 def test_chunk_by_dom_closes_sibling_rows_past_an_unclosed_cell_block() -> None:
     """Malformed inline cell markup cannot displace its owning row."""
 
@@ -514,6 +526,7 @@ def test_normalize_script_text_maps_quantity_exponents_and_leaves_comparisons() 
     assert normalize_script_text("Tank volume is 12 m<sup>3</sup>.") == "Tank volume is 12 m³."
     assert normalize_script_text("Tank volume is 12 m^3.") == "Tank volume is 12 m³."
     assert normalize_script_text("Coolant is H<sub>2</sub>O.") == "Coolant is H₂O."
+    assert normalize_script_text("x<sup> </sup>") == "x "
     assert normalize_script_text("qty < 50 and price > 10") == "qty < 50 and price > 10"
     assert normalize_script_text("^1 See the tank note.") == "^1 See the tank note."
 
