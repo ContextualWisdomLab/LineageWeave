@@ -835,7 +835,6 @@ async def gather_global_chat_sources(
     # `find_linked_post_ids`'s `.direct` set used by the post-scoped chat
     # flow. Only the top match is expanded -- expanding every keyword hit
     # would let a loosely related term drag in an unrelated lineage chain.
-    kg_neighbor_ids: list[str] = []
     kg_anchor_id = anchor_post_id or (candidate_ids[0] if candidate_ids else None)
     if kg_anchor_id:
         kg_edges = await load_visible_subgraph(conn, candidate_ids[: limit * 4])
@@ -848,7 +847,6 @@ async def gather_global_chat_sources(
             node_type, node_id = parse_node_key(node)
             if node_type != NODE_POST:
                 continue
-            kg_neighbor_ids.append(node_id)
             candidate_scores[node_id] = candidate_scores.get(node_id, 0.0) + score
         candidate_ids = sorted(
             candidate_scores,
@@ -878,7 +876,8 @@ async def gather_global_chat_sources(
         candidate_ids = []
     lineage_neighbor_id_set = frozenset(lineage_neighbor_ids)
 
-    rows = await conn.fetch(
+    # Safe SQL: eligibility is a closed schema fragment; authorization, IDs, and limit are bound.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select post_id, post_title, post_body, visibility_code, corporate_entity_id,
                author_account_id, source_detail_state_code,
