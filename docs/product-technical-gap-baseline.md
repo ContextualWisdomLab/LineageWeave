@@ -65,8 +65,23 @@ corpus acceptance or protected release.
 | Accessibility and responsive UX | Unit coverage exists for major buyer surfaces | Keyboard, screen-reader, mobile, and authenticated Playwright acceptance on the exact release head |
 | External integrations | SearXNG, Zotero, calendar, and downstream consumer contracts are bounded | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
 | Release quality | Local focused/full suites have passed on individual PR heads | Repository-wide coverage, docstrings, Storybook, security, browser, and release evidence on one exact head |
+| Public ontology | PR #373 contains the deterministic Pages publication path | Protected merge, GitHub Actions Pages source, successful main deployment, and stable term-fragment dereference evidence |
 
-## 4. Evidence boundaries
+## 4. Public ontology publication boundary
+
+- PR #373 publishes fragment-addressable HTML, byte-identical Turtle,
+  isomorphic JSON-LD and N-Triples, the PROV-O support profile, and a
+  source-digest manifest from the authoritative ontology.
+- Pull requests validate only. Only protected `main` may publish, and the
+  generated-directory marker, linked-IRI, duplicate-fragment, symlink, and
+  source-overlap checks fail closed.
+- The lowercase knowledge-graph namespace and repository-case support-profile
+  namespace remain distinct until issue #372 delivers a versioned migration
+  and compatibility decision; this publication PR rewrites neither identity.
+- Until the protected deployment and exact URL checks succeed, the public
+  ontology endpoint remains unavailable and must not be represented as live.
+
+## 5. Evidence boundaries
 
 - Never add a real record, title, name, identifier, screenshot, log, benchmark
   artifact, or documentation example to this repository.
@@ -79,7 +94,7 @@ corpus acceptance or protected release.
 - Re-fetch base/head SHAs, checks, review threads, approvals, rulesets, and the
   merge SHA immediately before any lifecycle claim.
 
-## 5. Next acceptance loop
+## 6. Next acceptance loop
 
 1. Complete the in-flight Strix rerun on PR #387 at the same exact head and
    verify the merged central scope repair removed the false finding.
