@@ -56,6 +56,33 @@ def test_collection_path_skips_files_that_import_a_missing_extra(
     assert collection_path_requires_missing_extras(path, ("asyncpg",)) is False
 
 
+def test_collection_path_skips_known_transitive_optional_importers(
+    tmp_path: Path,
+) -> None:
+    """Known local modules propagate their hard optional import."""
+    period_report = tmp_path / "test_period_report.py"
+    period_report.write_text(
+        "from lineageweave.period_report import build_period_report\n",
+        encoding="utf-8",
+    )
+    post_import = tmp_path / "test_import_postgresql_posts.py"
+    post_import.write_text(
+        "from scripts.import_postgresql_posts import parse_args\n",
+        encoding="utf-8",
+    )
+    assert (
+        collection_path_requires_missing_extras(period_report, ("fast_mlsirm",))
+        is True
+    )
+    assert (
+        collection_path_requires_missing_extras(period_report, ("asyncpg",)) is False
+    )
+    assert collection_path_requires_missing_extras(post_import, ("asyncpg",)) is True
+    seed = tmp_path / "test_seed.py"
+    seed.write_text("from scripts.seed_demo_data import seed\n", encoding="utf-8")
+    assert collection_path_requires_missing_extras(seed, ("redis",)) is True
+
+
 def test_helper_test_module_is_never_ignored(tmp_path: Path) -> None:
     """The collection-helper tests must run in the sandbox that lacks extras."""
     path = tmp_path / "test_optional_extra_collection.py"

@@ -1,4 +1,4 @@
-"""Pytest collection hooks for optional backend extras."""
+"""Repository-wide pytest collection hooks for optional backend extras."""
 
 from __future__ import annotations
 

@@ -2,7 +2,7 @@
 
 OpenCode coverage-evidence runs in a networkless sandbox that supplies
 pytest and coverage but not LineageWeave's optional backend extras
-(``asyncpg``, ``psycopg2``, ``redis``, ``fast_mlsirm``). Hosted CI
+(``asyncpg``, ``psycopg2``, ``redis``, ``fast_mlsirm``, ``numpy``). Hosted CI
 installs those extras and collects every suite. This helper keeps
 collection from failing with ``ModuleNotFoundError`` when extras are
 absent, without skipping anything when they are present.
@@ -19,9 +19,21 @@ OPTIONAL_EXTRA_MODULES: tuple[str, ...] = (
     "psycopg2",
     "redis",
     "fast_mlsirm",
+    "numpy",
 )
 
 _BACKEND_EXTRAS: frozenset[str] = frozenset({"asyncpg", "psycopg2", "redis"})
+_OPTIONAL_EXTRA_IMPORTERS: dict[str, tuple[str, ...]] = {
+    "asyncpg": (
+        "scripts.import_postgresql_posts",
+        "scripts.seed_demo_data",
+    ),
+    "fast_mlsirm": (
+        "lineageweave.period_report",
+        "lineageweave.post_evaluation",
+    ),
+    "redis": ("scripts.seed_demo_data",),
+}
 _HELPER_TEST_NAME = "test_optional_extra_collection.py"
 
 
@@ -55,12 +67,13 @@ def collection_path_requires_missing_extras(
     except OSError:
         return False
     for name in missing:
-        if (
-            f"import {name}" in text
-            or f"from {name} " in text
-            or f"from {name}." in text
-        ):
-            return True
+        for imported_name in (name, *_OPTIONAL_EXTRA_IMPORTERS.get(name, ())):
+            if (
+                f"import {imported_name}" in text
+                or f"from {imported_name} " in text
+                or f"from {imported_name}." in text
+            ):
+                return True
         if name in _BACKEND_EXTRAS and (
             "from backend" in text or "import backend" in text
         ):
