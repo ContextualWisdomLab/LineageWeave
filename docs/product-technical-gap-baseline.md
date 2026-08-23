@@ -21,6 +21,6 @@
 - **Zotero Integration**: Papers and standards referenced by TEPP must be synced via Local Zotero API (http://localhost:23119/api/) and cited using APA 7th edition in docstrings.
 - **Testing**: We need actual testing of Psychometrics (Fast-MLSIRM parameter calibration, RMSE of estimates, Fixed-Item Parameter Calibration, CAT) against synthetic/demo data.
 - **Security & Compliance**: PII masking cannot break the system. Need SOC 2 and CSAP compliance alternatives to blind PII masking. 
-- **LLM Orchestration**: Ensure ALL LLM calls route through `contextual-orchestrator` utilizing API keys (BYTEZ, NVIDIA, OPENROUTER, OPENAI) with auto model discovery and optimal reasoning effort allocation (Fugu/Conductor/TRINITY research).
+- **LLM Orchestration**: (Active PR) All LLM calls route through `contextual-orchestrator`; the Compose bootstrap now registers every available canonical BYTEZ, NVIDIA primary/sub, OPENROUTER, and OPENAI credential for upstream auto-discovery without local provider ranking.
 
 *This document is continuously updated by the hourly automated agent loop.*

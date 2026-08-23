@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 import types
 from pathlib import Path
@@ -90,6 +91,11 @@ def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch
     monkeypatch.setattr(module, "Path", FakePath)
     monkeypatch.setattr(sys, "argv", ["start.py"])
     monkeypatch.setenv("LLM_GATEWAY_API_KEY", "provider-key")
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "openrouter-key")
+    monkeypatch.setenv("NVIDIA_NIM_API_KEY", "nim-key")
+    monkeypatch.setenv("NVIDIA_NIM_API_KEY_SUB", "nim-sub-key")
+    monkeypatch.setenv("BYTEZ_API_KEY", "bytez-key")
     monkeypatch.setenv("CONTEXTUAL_ORCHESTRATOR_TOKEN", "orchestrator-token")
     monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://gateway.example")
     monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", "embedding-model")
@@ -101,9 +107,21 @@ def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch
     assert "--embedding-provider-url" not in argv
     assert "--embedding-model" not in argv
     assert captured["credentials"] == [
-        ("NVIDIA_NIM_API_KEY", "provider-key"),
         ("LLM_GATEWAY_API_KEY", "provider-key"),
+        ("OPENAI_API_KEY", "openai-key"),
+        ("OPENROUTER_API_KEY", "openrouter-key"),
+        ("NVIDIA_NIM_API_KEY", "nim-key"),
+        ("NVIDIA_NIM_API_KEY_SUB", "nim-sub-key"),
+        ("BYTEZ_API_KEY", "bytez-key"),
     ]
+    assert not {
+        "LLM_GATEWAY_API_KEY",
+        "OPENAI_API_KEY",
+        "OPENROUTER_API_KEY",
+        "NVIDIA_NIM_API_KEY",
+        "NVIDIA_NIM_API_KEY_SUB",
+        "BYTEZ_API_KEY",
+    } & os.environ.keys()
     agents = captured["agents"]
     assert isinstance(agents, dict)
     embedding_agents = [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])]
