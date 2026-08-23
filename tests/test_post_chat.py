@@ -174,6 +174,11 @@ def test_cited_post_evidence_hides_prompt_metadata_but_keeps_semantic_facts() ->
         evidence_facts=(
             "project: Semantic project | evidence: Body evidence | ontology_iri: https://example.test/ontology#Project | extraction_method: contextual_orchestrator_semantic | confidence: 0.9 [provenance=post_project_mention]",
             "Keyman mention: Ada West | context: account lead [provenance=post_person_mention]",
+            "event: Quote revised | evidence: Customer request [provenance=post_summary_event]",
+            "event clue: date | clue: March 12 | evidence: sent March 12 [provenance=post_summary_event_clue]",
+            "quantitative: Units | value: 12 | evidence: 12 units [provenance=post_summary_quantitative_observation]",
+            "source fact: Region | value: North | evidence: North region [provenance=post_summary_source_fact]",
+            "semantic relation: Ada --responsible_for--> Quote | evidence: Ada revised the quote [provenance=post_summary_semantic_relationship]",
         ),
     )
 
@@ -185,6 +190,11 @@ def test_cited_post_evidence_hides_prompt_metadata_but_keeps_semantic_facts() ->
             "facts": [
                 {"kind": "semantic_project", "text": "project: Semantic project | evidence: Body evidence"},
                 {"kind": "semantic_keyman", "text": "Keyman mention: Ada West | context: account lead"},
+                {"kind": "semantic_event", "text": "event: Quote revised | evidence: Customer request"},
+                {"kind": "semantic_event_clue", "text": "event clue: date | clue: March 12 | evidence: sent March 12"},
+                {"kind": "semantic_quantitative", "text": "quantitative: Units | value: 12 | evidence: 12 units"},
+                {"kind": "semantic_source_fact", "text": "source fact: Region | value: North | evidence: North region"},
+                {"kind": "semantic_relation", "text": "semantic relation: Ada --responsible_for--> Quote | evidence: Ada revised the quote"},
             ],
         }
     ]
@@ -335,6 +345,7 @@ def test_contextual_orchestrator_chat_requests_plain_citations(monkeypatch) -> N
 
     def fake_post_json(url, payload, *, headers, timeout):
         observed["payload"] = payload
+        observed["timeout"] = timeout
         return {
             "choices": [
                 {
@@ -353,4 +364,5 @@ def test_contextual_orchestrator_chat_requests_plain_citations(monkeypatch) -> N
     assert answer.answer_text == "근거 답변"
     assert observed["payload"]["reasoning_effort"] == "auto"
     assert observed["payload"]["mode"] == "auto"
+    assert observed["timeout"] == 900.0
     assert "CITED SOURCES" in observed["payload"]["messages"][0]["content"]

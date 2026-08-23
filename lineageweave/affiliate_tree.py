@@ -3,7 +3,7 @@
 The product popup's Affiliate Tree is the ancestor forest of every
 organization a post's Keymen are affiliated with -- not the full
 ``corporate_entity`` table. A sibling the post never mentions is omitted
-so the buyer sees only the hierarchy that this record actually touches.
+so the reader sees only the hierarchy that this record actually touches.
 
 Unresolved affiliation names (no ``corporate_entity_id``) stay as their
 own roots. Inventing a parent for "Northridge Grid" would be a guessed

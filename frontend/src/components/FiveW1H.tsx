@@ -26,6 +26,15 @@ function evidenceSourceLabel(source: string): string {
   return t(EVIDENCE_SOURCE_LABELS[source] ?? source);
 }
 
+const EMPTY_NEXT_ACTION_LABELS: Record<string, string> = {
+  inspect_source_body_or_related_posts:
+    "Review the source body or related posts for this dimension.",
+};
+
+function emptyNextActionLabel(code: string): string {
+  return t(EMPTY_NEXT_ACTION_LABELS[code] ?? "Review source evidence for this dimension.");
+}
+
 export function FiveW1H({ slots }: { slots: FiveW1HSlot[] | null }) {
   return (
     <section className="popup-section five-w1h" aria-label={t("5W1H") }>
@@ -57,7 +66,12 @@ export function FiveW1H({ slots }: { slots: FiveW1HSlot[] | null }) {
                     ))}
                   </ul>
                 ) : (
-                  t("No grounded evidence for this dimension.")
+                  <p className="five-w1h-empty">
+                    <span>{t("No grounded evidence for this dimension.")}</span>
+                    <small className="five-w1h-next-action">
+                      {emptyNextActionLabel(slot.empty_next_action_code)}
+                    </small>
+                  </p>
                 )}
               </dd>
             </div>

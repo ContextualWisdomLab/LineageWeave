@@ -44,6 +44,11 @@ expansion:
   timeline neighbor of post_id=...` evidence fact, and only when the
   anchor post itself is visible -- an expanded neighbor must never cite an
   anchor id the requesting account cannot see.
+- Treats one exact, non-null sales-order code match as sufficient retrieval
+  evidence for an earlier post. Broader organization, customer, project, PU,
+  and pool hints remain `hint_only` and need either a second matching hint or
+  semantic-event similarity; retrieval never promotes either case to a
+  lineage or ontology assertion.
 
 This is the event-centric temporal retrieval problem DyG-RAG frames
 (Sun et al., 2025): a single temporally-anchored record answers "what does

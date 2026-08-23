@@ -86,6 +86,26 @@ describe("layoutLineageDag", () => {
     expect(isolated!.x).toBeLessThan(fork!.x);
   });
 
+  it("keeps a wrapped full title in its column instead of overlapping the next depth or Topic", () => {
+    const groups = layoutLineageDag(a100Graph);
+    const a100 = groups[0];
+    const b200 = groups[1];
+    const root = a100.nodes.find((node) => node.id === "rec-001")!;
+    const fork = a100.nodes.find((node) => node.id === "rec-002")!;
+    const quote = a100.nodes.find((node) => node.id === "rec-003")!;
+    expect(root.labelLines.join(" ")).toBe("Initial site visit and project scope discussion");
+    expect(root.labelLines.some((line) => line.includes("…") || line.includes("..."))).toBe(false);
+    expect(quote.x).toBeGreaterThan(fork.x);
+    expect(fork.x + fork.labelWidth).toBeLessThanOrEqual(quote.x);
+    const rightmost = a100.nodes.reduce((current, node) =>
+      current.x + current.labelWidth >= node.x + node.labelWidth ? current : node,
+    );
+    expect(a100.width).toBeGreaterThanOrEqual(rightmost.x + rightmost.labelWidth);
+    expect(b200.heading).toBe("B-200");
+    expect(a100.nodes.some((node) => node.group === "B-200")).toBe(false);
+    expect(b200.nodes[0]?.labelLines.join(" ")).toBe("Technical specification review meeting");
+  });
+
   it("scopes a post's popup DAG to its reconstruct group, including the A-100 fork", () => {
     const scoped = subgraphForPost(a100Graph, "rec-002");
     expect(scoped.nodes.map((node) => node.id).sort()).toEqual([
@@ -109,6 +129,59 @@ describe("layoutLineageDag", () => {
 
   it("labels UUID reconstruct fallbacks as Ungrouped without merging named threads", () => {
     expect(groupHeading("A-100")).toBe("A-100");
+    expect(groupHeading("")).toBe("Ungrouped");
     expect(groupHeading("cccccccc-cccc-cccc-cccc-cccccccccccc")).toBe("Ungrouped");
+  });
+
+  it("sorts ungrouped nodes last regardless of source order", () => {
+    const named = { ...a100Graph.nodes[0], id: "named", group: "A-100" };
+    const ungrouped = { ...a100Graph.nodes[0], id: "ungrouped", group: "" };
+    expect(layoutLineageDag({ nodes: [named, ungrouped], edges: [] }).map((group) => group.heading)).toEqual([
+      "A-100",
+      "Ungrouped",
+    ]);
+    expect(layoutLineageDag({ nodes: [ungrouped, named], edges: [] }).map((group) => group.heading)).toEqual([
+      "A-100",
+      "Ungrouped",
+    ]);
+  });
+
+  it("keeps a dangling edge in an ungrouped fallback bucket", () => {
+    const groups = layoutLineageDag({
+      nodes: [{ ...a100Graph.nodes[0], id: "named", group: "A-100" }],
+      edges: [{ source: "missing", target: "named", fused_score: 0.5 }],
+    });
+
+    expect(groups.map((group) => group.heading)).toEqual(["A-100", "Ungrouped"]);
+    expect(groups[1].edges).toHaveLength(1);
+  });
+
+  it("lays out a malformed cyclic component attached to a root without recursing forever", () => {
+    const cyclicGraph = {
+      nodes: a100Graph.nodes.slice(0, 3),
+      edges: [
+        { source: "rec-001", target: "rec-002", fused_score: 0.8 },
+        { source: "rec-002", target: "rec-003", fused_score: 0.9 },
+        { source: "rec-003", target: "rec-002", fused_score: 0.7 },
+      ],
+    };
+
+    const [group] = layoutLineageDag(cyclicGraph);
+    expect(group.nodes).toHaveLength(3);
+    expect(group.nodes.every((node) => Number.isFinite(node.x) && Number.isFinite(node.y))).toBe(true);
+  });
+
+  it("places a fully cyclic orphan component in the fallback column", () => {
+    const cyclicGraph = {
+      nodes: a100Graph.nodes.slice(0, 2),
+      edges: [
+        { source: "rec-001", target: "rec-002", fused_score: 0.8 },
+        { source: "rec-002", target: "rec-001", fused_score: 0.7 },
+      ],
+    };
+
+    const [group] = layoutLineageDag(cyclicGraph);
+    expect(group.nodes.map((node) => node.x)).toEqual([28, 28]);
+    expect(new Set(group.nodes.map((node) => node.y)).size).toBe(2);
   });
 });

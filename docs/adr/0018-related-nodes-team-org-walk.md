@@ -49,6 +49,17 @@ Thread-group run list visibility requires at least one ABAC-visible
   organization chip.
 - A later public post in a thread group no longer lists a January run
   that could not have known that post.
+- `find_linked_post_ids`'s sibling-expansion step (finding every post that
+  mentions the same person as the focus post, before handing that set to
+  `load_visible_subgraph`) now filters siblings by ABAC visibility before
+  they can seed the entity graph. Previously an unauthorized sibling's
+  own org/team/customer mention could bridge to an unrelated *visible*
+  post through shared entity membership, fabricating an "indirect"
+  relationship whose only real basis was content the account could not
+  see -- the sibling itself was always correctly excluded from output,
+  but its influence on which other posts got pulled in was not. Fixed
+  2026-08-25; the same missing filter existed at three call sites
+  (`read_post_lineage`, `gather_chat_sources`, `load_five_w1h_slots`).
 
 ## References
 

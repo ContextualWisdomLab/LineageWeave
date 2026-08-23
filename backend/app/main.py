@@ -7,7 +7,9 @@ resource type.
 
 ABAC gate, evaluated per row on top of the RBAC gate: a source_post is
 visible if it is public, or if it is private and the requesting account is
-affiliated with the post's owning corporate_entity_id. abac_policy's
+affiliated with the post's owning corporate_entity_id. A W source-detail row
+is raw-source-visible only to its author or post_admin; derived readers use a
+separate eligibility boundary that excludes W. abac_policy's
 condition_expression column is reserved for a future, richer per-policy
 DSL (documented in migrations/0001_initial_schema.sql); Phase 1 implements
 exactly this one fixed rule directly, since it is the only rule the
@@ -21,6 +23,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import datetime
@@ -31,7 +34,7 @@ import asyncpg
 import redis.asyncio as redis
 from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from lineageweave.adjudication_client import (
     ContextualOrchestratorAdjudicationClient,
@@ -65,6 +68,10 @@ from lineageweave.customer_hint_resolution import (
     ContextualOrchestratorCustomerHintResolutionClient,
     NullCustomerHintResolutionClient,
 )
+from lineageweave.customer_identity_judgment import (
+    ContextualOrchestratorCustomerIdentityJudgeClient,
+    NullCustomerIdentityJudgeClient,
+)
 from lineageweave.organization_name_resolution import (
     ContextualOrchestratorOrganizationNameResolutionClient,
     NullOrganizationNameResolutionClient,
@@ -84,7 +91,12 @@ from lineageweave.post_evaluation import (
 from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
 from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
 from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
+from lineageweave.source_research import (
+    ContextualOrchestratorSourceResearchJudge,
+    SearxngSourceResearchClient,
+)
 from lineageweave.semantic_hints import customer_hint_trust, format_semantic_hints
+from lineageweave.source_lineage_hints import source_lineage_hints
 from lineageweave.ontology import LW
 from lineageweave.rankweave_client import build_rankweave_client
 
@@ -103,12 +115,22 @@ from backend.app.analysis_run_start import (
 )
 from backend.app.analysis_run_worker import run_analysis_run_worker
 from backend.app.post_content_queue import (
+    SUCCEEDED,
     ensure_post_content_job,
+    fetch_post_summary_source,
     post_content_api_status,
     post_content_is_complete,
+    post_content_summary_is_ready,
+    post_content_summary_status_message,
+    post_body_has_images,
     publish_post_content_event,
+    source_body_sha256,
 )
-from backend.app.post_content_worker import run_post_content_worker
+from backend.app.post_content_worker import run_post_content_worker_supervised
+from backend.app.source_research_ingestion import (
+    decode_research_retrievals,
+    research_post_sources,
+)
 from backend.app.source_post_revision import fetch_known_at_revision, parse_as_of_clock
 from backend.app.activity_stream import (
     create_valkey_client,
@@ -129,6 +151,22 @@ from backend.app.entity_relationship_ingestion import (
     ingest_post_entity_relationships,
 )
 from backend.app.five_w1h_ingestion import load_five_w1h_slots
+from backend.app.global_ask_history import (
+    GlobalAskConversationNotFound,
+    GlobalAskEvidenceChanged,
+    conversation_exists,
+    fetch_conversation,
+    list_conversations,
+    persist_turn,
+)
+from backend.app.post_ask_history import (
+    PostAskConversationNotFound,
+    PostAskEvidenceChanged,
+    conversation_exists as post_ask_conversation_exists,
+    fetch_conversation as fetch_post_ask_conversation,
+    list_conversations as list_post_ask_conversations,
+    persist_turn as persist_post_ask_turn,
+)
 from backend.app.post_evaluation_ingestion import fetch_post_evaluation, ingest_post_evaluation
 from backend.app.ranking_ingestion import load_visible_ranking_posts
 from backend.app.report_ingestion import (
@@ -157,6 +195,7 @@ from backend.app.knowledge_graph import (
     labels_for_codes,
     person_exists,
     persist_edges_for_post,
+    post_knowledge_graph,
     related_for_entity,
     related_for_person,
     related_for_team,
@@ -179,11 +218,17 @@ from backend.app.post_summary_ingestion import (
     persist_post_summary,
     require_summary_source_body,
 )
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.post_eligibility import (
+    SOURCE_POST_ELIGIBILITY_SQL,
+    SOURCE_POST_READER_ELIGIBILITY_SQL,
+    SOURCE_POST_VISIBILITY_SQL,
+    WRITING_SOURCE_DETAIL_STATE_CODE,
+    normalize_source_detail_state_code,
+    source_post_state_visibility_sql,
+)
 from backend.app.demo_scope import (
     fetch_demo_corporate_entity_ids,
     has_real_source_context,
-    is_demo_scope,
 )
 from lineageweave.http_client import HttpClientError
 
@@ -210,7 +255,7 @@ async def lifespan(app: FastAPI):
         )
     )
     app.state.post_content_worker = asyncio.create_task(
-        run_post_content_worker(
+        run_post_content_worker_supervised(
             app.state.valkey,
             app.state.pool,
             vision_factory=_vision_client,
@@ -231,6 +276,8 @@ async def lifespan(app: FastAPI):
         await app.state.pool.close()
         await app.state.valkey.aclose()
 
+
+_logger = logging.getLogger(__name__)
 
 app = FastAPI(title="LineageWeave API", lifespan=lifespan)
 app.add_middleware(
@@ -307,6 +354,18 @@ def _customer_hint_resolution_client():
     )
 
 
+def _customer_identity_judge_client():
+    """Build the fast-mlsirm identity Judge over contextual-orchestrator."""
+    settings = load_settings()
+    if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
+        return NullCustomerIdentityJudgeClient()
+    return ContextualOrchestratorCustomerIdentityJudgeClient(
+        base_url=settings.orchestrator_base_url,
+        api_key=settings.orchestrator_api_key,
+        timeout=200.0,
+    )
+
+
 def _corporate_hierarchy_inference_client():
     """Live orchestrator client when configured; otherwise the unavailable null."""
     settings = load_settings()
@@ -351,6 +410,23 @@ def _post_structure_client():
         return NullPostStructureClient()
     return ContextualOrchestratorPostStructureClient(
         base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+    )
+
+
+def _source_research_clients():
+    """Build the search/crawl and Judge channels required by ADR 0133."""
+    settings = load_settings()
+    if not (
+        settings.searxng_base_url
+        and settings.orchestrator_base_url
+        and settings.orchestrator_api_key
+    ):
+        return None
+    return (
+        SearxngSourceResearchClient(settings.searxng_base_url),
+        ContextualOrchestratorSourceResearchJudge(
+            settings.orchestrator_base_url, settings.orchestrator_api_key
+        ),
     )
 
 
@@ -414,10 +490,27 @@ def _rankweave_client():
 
 
 def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
-    """ABAC: public rows are visible; private rows require same-corp affiliation."""
+    """ABAC: W is author/admin-only; other rows use public/corp visibility."""
+    try:
+        state_code = normalize_source_detail_state_code(post["source_detail_state_code"])
+    except KeyError:
+        return False
+    if state_code == WRITING_SOURCE_DETAIL_STATE_CODE:
+        return account.has_permission(_POST_ADMIN) or str(
+            post.get("author_account_id")
+        ) == account.user_account_id
     if post["visibility_code"] == "public":
         return True
     return str(post["corporate_entity_id"]) in account.corporate_entity_ids
+
+
+def _can_use_post_for_analysis(account: CurrentAccount, post: asyncpg.Record) -> bool:
+    """Derived features consume only non-W authorized source posts."""
+    return (
+        normalize_source_detail_state_code(post.get("source_detail_state_code"))
+        != WRITING_SOURCE_DETAIL_STATE_CODE
+        and _can_see_post(account, post)
+    )
 
 
 def _is_synthetic_demo_member(member: dict[str, Any], demo_entity_ids: set[str]) -> bool:
@@ -443,7 +536,9 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
         "visibility_code": visibility,
         "visibility_label": resolved.get(visibility, visibility),
         "source_stage_code": post.get("source_stage_code"),
-        "source_detail_state_code": post.get("source_detail_state_code"),
+        "source_detail_state_code": normalize_source_detail_state_code(
+            post.get("source_detail_state_code")
+        ),
         "source_draft_code": post.get("source_draft_code"),
         "source_deleted_flag": post.get("source_deleted_flag"),
         "publication_state_code": _publication_state_code(post),
@@ -453,14 +548,29 @@ def _serialize_post(post: asyncpg.Record, labels: dict[str, str] | None = None) 
         "source_company_name": post.get("source_company_name"),
         "source_process_unit_code": post.get("source_process_unit_code"),
         "source_process_unit_name": post.get("source_process_unit_name"),
+        "source_process_unit_catalog_name": post.get("source_process_unit_catalog_name"),
         "source_sales_pool_code": post.get("source_sales_pool_code"),
         "source_sales_pool_name": post.get("source_sales_pool_name"),
+        "source_order_pool_code": post.get("source_order_pool_code"),
+        "source_sales_order_code": post.get("source_sales_order_code"),
+        "source_sales_order_item_number": post.get("source_sales_order_item_number"),
+        "source_inspection_point_code": post.get("source_inspection_point_code"),
         "source_customer_code": post.get("source_customer_code"),
         "source_customer_name": post.get("source_customer_name"),
         "source_project_code": post.get("source_project_code"),
         "source_project_name": post.get("source_project_name"),
         "source_system_code": post.get("source_system_code"),
         "source_record_key": post.get("source_record_key"),
+        "source_lineage_hints": source_lineage_hints(
+            customer_code=post.get("source_customer_code"),
+            order_pool_code=post.get("source_order_pool_code"),
+            sales_order_code=post.get("source_sales_order_code"),
+            sales_order_item_number=post.get("source_sales_order_item_number"),
+            stage_code=post.get("source_stage_code"),
+            detail_state_code=post.get("source_detail_state_code"),
+            inspection_point_code=post.get("source_inspection_point_code"),
+            deleted_flag=post.get("source_deleted_flag"),
+        ),
         "post_body_excerpt": post.get("post_body_excerpt"),
         "post_body_truncated": post.get("post_body_truncated", False),
         "project_evidence": project_evidence,
@@ -508,11 +618,11 @@ async def _load_project_evidence(
         )
     rows = await conn.fetch(
         """
-        select project_key, project_name, evidence_text, confidence,
+        select project_key, project_name, evidence_text, mention_confidence,
                ontology_iri, extraction_method
           from post_project_mention
          where post_id = $1
-         order by confidence desc, project_name, project_key
+         order by mention_confidence desc, project_name, project_key
         """,
         post_id,
     )
@@ -521,7 +631,7 @@ async def _load_project_evidence(
             "project_key": row["project_key"],
             "project_name": row["project_name"],
             "evidence": row["evidence_text"],
-            "confidence": float(row["confidence"]),
+            "confidence": float(row["mention_confidence"]),
             "ontology_iri": row["ontology_iri"],
             "ontology_label": "Project",
             "extraction_method": row["extraction_method"],
@@ -540,9 +650,12 @@ async def _lookup_post_labels(conn: asyncpg.Connection, rows: list[asyncpg.Recor
 
 
 async def _post_filter_options(
-    conn: asyncpg.Connection, corporate_entity_ids: frozenset[str]
-) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    conn: asyncpg.Connection, account: CurrentAccount
+) -> tuple[list[dict[str, str]], list[dict[str, str]], list[dict[str, str]]]:
     """Return every authorized filter value, not only values on the current page."""
+    state_visibility_sql = source_post_state_visibility_sql(
+        "post", corporate_param=1, account_param=2, admin_param=3
+    )
     visibility_sql = f"""
         select distinct post.visibility_code as code,
                coalesce(lookup.lookup_label, post.visibility_code) as label,
@@ -551,9 +664,8 @@ async def _post_filter_options(
           left join common_lookup_value lookup
             on lookup.lookup_category = 'post_visibility'
            and lookup.lookup_code = post.visibility_code
-         where (post.visibility_code = 'public'
-            or post.corporate_entity_id::text = any($1::text[]))
-           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+         where {state_visibility_sql}
+           and {SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
     """
     type_sql = f"""
@@ -564,56 +676,156 @@ async def _post_filter_options(
           left join common_lookup_value lookup
             on lookup.lookup_category = 'voc_type'
            and lookup.lookup_code = post.voc_type_code
-         where (post.visibility_code = 'public'
-            or post.corporate_entity_id::text = any($1::text[]))
-           and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+         where {state_visibility_sql}
+           and {SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
+    """
+    detail_state_sql = f"""
+        select distinct upper(btrim(post.source_detail_state_code)) as code,
+               upper(btrim(post.source_detail_state_code)) as label
+          from source_post post
+         where {state_visibility_sql}
+           and {SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='post')}
+           and nullif(btrim(post.source_detail_state_code), '') is not null
+         order by code
     """
     # Safe SQL: both query strings are closed lookup statements; entity ids remain asyncpg parameters.
     visibility_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        visibility_sql, list(corporate_entity_ids)
+        visibility_sql,
+        list(account.corporate_entity_ids),
+        account.user_account_id,
+        account.has_permission(_POST_ADMIN),
     )
     # Safe SQL: both query strings are closed lookup statements; entity ids remain asyncpg parameters.
     type_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        type_sql, list(corporate_entity_ids)
+        type_sql,
+        list(account.corporate_entity_ids),
+        account.user_account_id,
+        account.has_permission(_POST_ADMIN),
+    )
+    # Detail-state codes intentionally remain raw here; the UI owns the
+    # product-language explanation and preserves unknown source codes.
+    # Safe SQL: a closed lookup statement identical in shape to visibility_sql/type_sql above; entity ids remain asyncpg parameters.
+    detail_state_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        detail_state_sql,
+        list(account.corporate_entity_ids),
+        account.user_account_id,
+        account.has_permission(_POST_ADMIN),
     )
     return (
         [{"code": row["code"], "label": row["label"]} for row in type_rows],
+        [{"code": row["code"], "label": row["label"]} for row in detail_state_rows],
         [{"code": row["code"], "label": row["label"]} for row in visibility_rows],
     )
 
 
-@app.get("/healthz")
+_TENANT_SETTINGS_DEFAULTS: dict[str, str | int] = {
+    "brandName": "LineageWeave",
+    "systemName": "LineageWeave",
+    "copyrightYear": 2026,
+    "copyrightHolder": "LineageWeave",
+}
+
+
+def _tenant_settings_response(row: asyncpg.Record | None) -> dict[str, str | int]:
+    """Return the stable shell identity contract from one tenant settings row."""
+    if row is None:
+        return dict(_TENANT_SETTINGS_DEFAULTS)
+    return {
+        "brandName": row["brand_name"],
+        "systemName": row["system_name"],
+        "copyrightYear": row["copyright_year"],
+        "copyrightHolder": row["copyright_holder"],
+    }
+
+
+def _tenant_setting_text(payload: dict[str, Any], key: str, current: str) -> str:
+    """Validate and trim a required tenant display string at the API boundary."""
+    value = payload.get(key, current)
+    if not isinstance(value, str) or not value.strip():
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"{key} must not be blank")
+    return value.strip()
+
+
+def _tenant_copyright_year(payload: dict[str, Any], current: int) -> int:
+    """Validate the explicit copyright year instead of deriving it from the clock."""
+    value = payload.get("copyrightYear", current)
+    if isinstance(value, bool) or not isinstance(value, int) or not 1900 <= value <= 2100:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "copyrightYear must be an integer between 1900 and 2100",
+        )
+    return value
+
 
 @app.get("/api/settings", response_model=dict)
 async def read_tenant_settings(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ):
+    """Return the authenticated tenant's current display configuration."""
     async with pool.acquire() as conn:
-        row = await conn.fetchrow("SELECT brand_name FROM tenant_settings WHERE id = 1")
-    if not row:
-        return {"brandName": "LineageWeave"}
-    return {"brandName": row["brand_name"]}
+        row = await conn.fetchrow(
+            """
+            SELECT brand_name, system_name, copyright_year, copyright_holder
+              FROM tenant_settings
+             WHERE tenant_settings_id = 1
+            """
+        )
+    return _tenant_settings_response(row)
 
 @app.patch("/api/settings", response_model=dict)
 async def update_tenant_settings(
-    payload: dict,
+    payload: dict[str, Any],
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ):
+    """Validate and persist tenant display configuration for an administrator."""
     # Only admins can change settings
     _require_post_admin(account)
-    brand_name = payload.get("brandName", "LineageWeave")
     async with pool.acquire() as conn:
-        await conn.execute(
-            "INSERT INTO tenant_settings (id, brand_name) VALUES (1, $1) "
-            "ON CONFLICT (id) DO UPDATE SET brand_name = $1",
-            brand_name
-        )
-    return {"brandName": brand_name}
+        async with conn.transaction():
+            current_row = await conn.fetchrow(
+                """
+                SELECT brand_name, system_name, copyright_year, copyright_holder
+                  FROM tenant_settings
+                 WHERE tenant_settings_id = 1
+                 FOR UPDATE
+                """
+            )
+            current = _tenant_settings_response(current_row)
+            brand_name = _tenant_setting_text(payload, "brandName", str(current["brandName"]))
+            system_name = _tenant_setting_text(payload, "systemName", str(current["systemName"]))
+            copyright_year = _tenant_copyright_year(payload, int(current["copyrightYear"]))
+            copyright_holder = _tenant_setting_text(
+                payload, "copyrightHolder", str(current["copyrightHolder"])
+            )
+            await conn.execute(
+                """
+                INSERT INTO tenant_settings
+                    (tenant_settings_id, brand_name, system_name, copyright_year, copyright_holder)
+                VALUES (1, $1, $2, $3, $4)
+                ON CONFLICT (tenant_settings_id) DO UPDATE SET
+                    brand_name = EXCLUDED.brand_name,
+                    system_name = EXCLUDED.system_name,
+                    copyright_year = EXCLUDED.copyright_year,
+                    copyright_holder = EXCLUDED.copyright_holder,
+                    updated_at = now()
+                """,
+                brand_name,
+                system_name,
+                copyright_year,
+                copyright_holder,
+            )
+    return {
+        "brandName": brand_name,
+        "systemName": system_name,
+        "copyrightYear": copyright_year,
+        "copyrightHolder": copyright_holder,
+    }
 
 
+@app.get("/healthz")
 async def healthz() -> dict[str, str]:
     """Liveness probe: the process is up. Does not touch Postgres."""
     return {"status": "ok"}
@@ -630,39 +842,73 @@ async def read_me(
     ``POST /api/analysis-runs`` should cover.
     """
     entities: list[dict[str, str]] = []
+    account_affiliations: list[dict[str, Any]] = []
     if account.corporate_entity_ids:
         async with pool.acquire() as conn:
             rows = await conn.fetch(
                 """
-                select corporate_entity_id, entity_name
-                  from corporate_entity
-                 where corporate_entity_id = any($1::uuid[])
-                 order by entity_name
+                select affiliation.corporate_entity_id,
+                       entity.corporate_entity_code,
+                       entity.entity_name,
+                       affiliation.process_unit_id,
+                       process.process_unit_code,
+                       process.process_unit_name
+                  from account_affiliation affiliation
+                  join corporate_entity entity
+                    on entity.corporate_entity_id = affiliation.corporate_entity_id
+                  left join process_unit process
+                    on process.process_unit_id = affiliation.process_unit_id
+                   and process.corporate_entity_id = affiliation.corporate_entity_id
+                 where affiliation.user_account_id = $1
+                   and affiliation.corporate_entity_id = any($2::uuid[])
+                 order by entity.entity_name, process.process_unit_code nulls first
                 """,
+                account.user_account_id,
                 list(account.corporate_entity_ids),
             )
-        entities = [
-            {
-                "corporate_entity_id": str(row["corporate_entity_id"]),
-                "entity_name": row["entity_name"],
-            }
-            for row in rows
-        ]
+        seen_entities: set[str] = set()
+        for row in rows:
+            entity_id = str(row["corporate_entity_id"])
+            if entity_id not in seen_entities:
+                entities.append(
+                    {
+                        "corporate_entity_id": entity_id,
+                        "corporate_entity_code": row["corporate_entity_code"],
+                        "entity_name": row["entity_name"],
+                    }
+                )
+                seen_entities.add(entity_id)
+            account_affiliations.append(
+                {
+                    "corporate_entity_id": entity_id,
+                    "corporate_entity_code": row["corporate_entity_code"],
+                    "entity_name": row["entity_name"],
+                    "process_unit_id": str(row["process_unit_id"]) if row["process_unit_id"] else None,
+                    "process_unit_code": row["process_unit_code"],
+                    "process_unit_name": row["process_unit_name"],
+                }
+            )
     return {
         "user_account_id": account.user_account_id,
         "display_name": account.display_name,
         "preferred_locale": account.preferred_locale,
         "permission_codes": sorted(account.permission_codes),
         "corporate_entities": entities,
+        "account_affiliations": account_affiliations,
     }
 
 
 class LocalePreferenceRequest(BaseModel):
+    """Validated body for updating the current account's locale."""
+
     preferred_locale: Literal["en", "ko", "zh", "ja", "vi"]
 
 
 class CustomerHintResolveRequest(BaseModel):
+    """Validated source-hint identifiers submitted for governed resolution."""
+
     hint_code: str
+    source_system_code: str | None = None
 
 
 @app.patch("/api/me/preferences")
@@ -681,14 +927,59 @@ async def update_me_preferences(
     return {"preferred_locale": preference.preferred_locale}
 
 
+_AFFILIATION_SCOPE_CODE_TO_FACET = {
+    "scope_own_entity": "authorized_own",
+    "scope_granted_entity": "authorized_granted",
+    # scope_unclassified contributes no own/granted facet -- the entity is
+    # still authorized, it is just not labeled either way (ADR 0125).
+}
+
+
+def _customer_master_scope_facets(
+    row: asyncpg.Record, observed_hierarchy_ids: set[str]
+) -> list[str]:
+    """Repeatable, provenance-bearing facets for one Customer Master row."""
+    facets = [
+        _AFFILIATION_SCOPE_CODE_TO_FACET[code]
+        for code in row["scope_codes"]
+        if code in _AFFILIATION_SCOPE_CODE_TO_FACET
+    ]
+    if str(row["corporate_entity_id"]) in observed_hierarchy_ids:
+        facets.append("observed_hierarchy")
+    if row["is_observed_organization"]:
+        facets.append("observed_organization")
+    return facets
+
+
+def _observed_hierarchy_ids(rows: list[asyncpg.Record]) -> set[str]:
+    """Return authorized ancestors of entities observed in visible posts."""
+    rows_by_id = {str(row["corporate_entity_id"]): row for row in rows}
+    hierarchy_ids: set[str] = set()
+    for row in rows:
+        if not row["is_observed_organization"] or row["parent_entity_id"] is None:
+            continue
+        parent_id = row["parent_entity_id"]
+        while parent_id is not None:
+            parent_key = str(parent_id)
+            if parent_key in hierarchy_ids:
+                break
+            hierarchy_ids.add(parent_key)
+            parent = rows_by_id.get(parent_key)
+            parent_id = parent["parent_entity_id"] if parent is not None else None
+    return hierarchy_ids
+
+
 @app.get("/api/customer-master")
 async def read_customer_master(
+    hint_code: str | None = Query(default=None, max_length=255),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
     """Return the authorized customer catalog and its cataloged Keymen."""
     _require_post_read(account)
-    if not account.corporate_entity_ids:
+    requested_hint_code = (hint_code or "").strip() or None
+    authorized_entity_ids = list(account.corporate_entity_ids)
+    if not authorized_entity_ids:
         return {
             "corporate_entities": [],
             "keymen": [],
@@ -702,7 +993,7 @@ async def read_customer_master(
         source_customer_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"""
             with scoped as (
-                select post_id, post_title, created_at,
+                select post_id, post_title, created_at, source_system_code,
                        nullif(btrim(source_customer_code), '') as customer_code,
                        nullif(btrim(source_customer_name), '') as customer_name,
                        case when nullif(btrim(source_customer_code), '') is null
@@ -711,28 +1002,31 @@ async def read_customer_master(
                   from source_post
                  where (nullif(btrim(source_customer_code), '') is not null
                         or nullif(btrim(source_customer_name), '') is not null)
-                   and (visibility_code = 'public' or corporate_entity_id = any($1::uuid[]))
-                   and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
+                   and ($2::text is null
+                        or nullif(btrim(source_customer_code), '') = $2::text)
+                   and {SOURCE_POST_VISIBILITY_SQL.format(alias='source_post', authorized_entity_ids='$1')}
+                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
             ), ranked as (
                 select scoped.*,
                        row_number() over (
-                           partition by customer_code, customer_name_group
+                           partition by source_system_code, customer_code, customer_name_group
                            order by created_at desc, post_id desc
                        ) as related_rank
                   from scoped
             ), groups as (
-                select customer_code, customer_name_group,
-                       max(customer_name) as customer_name,
+                select source_system_code, customer_code, customer_name_group,
+                       (array_agg(customer_name order by created_at desc, post_id desc)
+                            filter (where customer_name is not null))[1] as customer_name,
                        count(*) as post_count
                   from ranked
-                 group by customer_code, customer_name_group
+                 group by source_system_code, customer_code, customer_name_group
             ), top_groups as materialized (
                 select *
                   from groups
-                 order by post_count desc, customer_code, customer_name
+                 order by post_count desc, source_system_code, customer_code, customer_name
                  limit 100
             ), related as (
-                select ranked.customer_code, ranked.customer_name_group,
+                select ranked.source_system_code, ranked.customer_code, ranked.customer_name_group,
                        json_agg(
                            json_build_object(
                                'post_id', post.post_id::text,
@@ -742,21 +1036,36 @@ async def read_customer_master(
                        ) as related_posts
                   from ranked
                   join top_groups
-                    on top_groups.customer_code is not distinct from ranked.customer_code
+                    on top_groups.source_system_code is not distinct from ranked.source_system_code
+                   and top_groups.customer_code is not distinct from ranked.customer_code
                    and top_groups.customer_name_group is not distinct from ranked.customer_name_group
                   join source_post post on post.post_id = ranked.post_id
                  where ranked.related_rank <= 20
-                 group by ranked.customer_code, ranked.customer_name_group
+                 group by ranked.source_system_code, ranked.customer_code, ranked.customer_name_group
             )
-            select top_groups.customer_code, top_groups.customer_name, top_groups.post_count,
-                   coalesce(related.related_posts, '[]'::json) as related_posts
+            select top_groups.source_system_code, top_groups.customer_code,
+                   top_groups.customer_name, top_groups.post_count,
+                   coalesce(related.related_posts, '[]'::json) as related_posts,
+                   coalesce(judgment.judgment_status_code, 'hint_only') as resolution_status,
+                   binding.corporate_entity_id, entity.entity_name as resolved_entity_name,
+                   binding.customer_identity_judgment_id
               from top_groups
               left join related
-                on related.customer_code is not distinct from top_groups.customer_code
+                on related.source_system_code is not distinct from top_groups.source_system_code
+               and related.customer_code is not distinct from top_groups.customer_code
                and related.customer_name_group is not distinct from top_groups.customer_name_group
-             order by top_groups.post_count desc, top_groups.customer_code, top_groups.customer_name
+              left join customer_identity_binding binding
+                on binding.source_system_code is not distinct from top_groups.source_system_code
+               and binding.source_customer_code = top_groups.customer_code
+              left join customer_identity_judgment judgment
+                on judgment.customer_identity_judgment_id = binding.customer_identity_judgment_id
+              left join corporate_entity entity
+                on entity.corporate_entity_id = binding.corporate_entity_id
+             order by top_groups.post_count desc, top_groups.source_system_code,
+                      top_groups.customer_code, top_groups.customer_name
             """,
-            list(account.corporate_entity_ids),
+            authorized_entity_ids,
+            requested_hint_code,
         )
         # Safe SQL: the evidence query uses only closed schema fragments; authorized entity ids are bound.
         source_author_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
@@ -895,29 +1204,80 @@ async def read_customer_master(
             """,
             list(account.corporate_entity_ids),
         )
-        entity_rows = await conn.fetch(
-            """
-            select corporate_entity_id, corporate_entity_code, entity_name,
-                   entity_level_code, parent_entity_id
-              from corporate_entity
-             where corporate_entity_id = any($1::uuid[])
-             order by entity_name
-            """,
-            list(account.corporate_entity_ids),
-        )
         has_source_context = bool(source_customer_rows or source_author_rows)
         if not has_source_context:
             has_source_context = await has_real_source_context(
                 conn, list(account.corporate_entity_ids)
             )
+        synthetic_only_entity_ids: set[str] = set()
         if has_source_context:
             synthetic_only_entity_ids = await fetch_demo_corporate_entity_ids(conn)
-            entity_rows = [
-                row
-                for row in entity_rows
-                if str(row["corporate_entity_id"]) not in synthetic_only_entity_ids
-            ]
+        # ADR 0125: an entity reaches Customer Master either through this
+        # account's own account_affiliation grants (authorized_own /
+        # authorized_granted, per its explicit affiliation_scope_code -- an
+        # unclassified affiliation is still authorized, it just carries no
+        # own/granted facet) or because it is actually mentioned in a post
+        # this account may already see (observed_organization). Neither
+        # path widens access: the observed branch reuses the exact same
+        # public-or-own-corp/eligibility predicate every other query on
+        # this endpoint already applies to source_post.
+        # Safe SQL: the eligibility predicate is an immutable schema fragment; ids are bound.
+        entity_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            f"""
+            with own_affiliation as (
+                select corporate_entity_id,
+                       array_agg(distinct affiliation_scope_code)
+                           filter (where affiliation_scope_code is not null) as scope_codes
+                 from account_affiliation
+                 where user_account_id = $2
+                   and corporate_entity_id = any($1::uuid[])
+                 group by corporate_entity_id
+            ), observed_mention as (
+                select post_id, corporate_entity_id
+                  from post_organization_mention
+                union
+                select post_id, corporate_entity_id
+                  from post_customer_identity_mention
+            ), observed as (
+                select mention.corporate_entity_id
+                  from observed_mention mention
+                  join source_post post on post.post_id = mention.post_id
+                 where (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
+                   and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+                   and not (mention.corporate_entity_id = any($3::uuid[]))
+                 group by mention.corporate_entity_id
+                 order by count(distinct mention.post_id) desc,
+                          mention.corporate_entity_id
+                 limit 100
+            )
+            select entity.corporate_entity_id, entity.corporate_entity_code, entity.entity_name,
+                   entity.entity_level_code, entity.parent_entity_id,
+                   coalesce(own_affiliation.scope_codes, array[]::text[]) as scope_codes,
+                   (observed.corporate_entity_id is not null) as is_observed_organization
+              from corporate_entity entity
+              left join own_affiliation on own_affiliation.corporate_entity_id = entity.corporate_entity_id
+              left join observed on observed.corporate_entity_id = entity.corporate_entity_id
+             where (own_affiliation.corporate_entity_id is not null
+                    or observed.corporate_entity_id is not null)
+               and not (entity.corporate_entity_id = any($3::uuid[]))
+             order by entity.entity_name
+            """,
+            list(account.corporate_entity_ids),
+            account.user_account_id,
+            list(synthetic_only_entity_ids),
+        )
+        observed_hierarchy_ids = _observed_hierarchy_ids(entity_rows)
         entity_ids = [row["corporate_entity_id"] for row in entity_rows]
+        entity_name_rows = await conn.fetch(
+            """
+            select corporate_entity_id, entity_name, name_role_code,
+                   observed_from, observed_to
+              from corporate_entity_name_history
+             where corporate_entity_id = any($1::uuid[])
+             order by corporate_entity_id, observed_from, entity_name
+            """,
+            entity_ids,
+        )
         source_author_affiliations = await _load_account_affiliation_hints(
             conn,
             [str(row["author_account_id"]) for row in source_author_rows],
@@ -931,11 +1291,12 @@ async def read_customer_master(
                    affiliation.affiliated_corporate_entity_id,
                    affiliation.role_title,
                    entity.entity_name
-              from cataloged_person person
-              join person_affiliation affiliation on affiliation.person_id = person.person_id
-              left join corporate_entity entity
+             from cataloged_person person
+             join person_affiliation affiliation on affiliation.person_id = person.person_id
+             left join corporate_entity entity
                 on entity.corporate_entity_id = affiliation.affiliated_corporate_entity_id
              where affiliation.affiliated_corporate_entity_id = any($1::uuid[])
+               and person.person_side_code = 'our_side'
              order by person.person_name, affiliation.affiliated_organization_name
             """,
             entity_ids,
@@ -943,6 +1304,17 @@ async def read_customer_master(
         side_labels = await labels_for_codes(conn, [row["person_side_code"] for row in keyman_rows])
         entity_level_labels = await labels_for_codes(conn, [row["entity_level_code"] for row in entity_rows])
         relationship_network = await fetch_relationship_network(conn, entity_ids)
+
+    names_by_entity: dict[str, list[dict[str, Any]]] = {}
+    for row in entity_name_rows:
+        names_by_entity.setdefault(str(row["corporate_entity_id"]), []).append(
+            {
+                "entity_name": row["entity_name"],
+                "name_role_code": row["name_role_code"],
+                "observed_from": row["observed_from"],
+                "observed_to": row["observed_to"],
+            }
+        )
 
     keymen_by_id: dict[str, dict[str, Any]] = {}
     for row in keyman_rows:
@@ -984,12 +1356,15 @@ async def read_customer_master(
                 "parent_entity_id": (
                     str(row["parent_entity_id"]) if row["parent_entity_id"] is not None else None
                 ),
+                "scope_facets": _customer_master_scope_facets(row, observed_hierarchy_ids),
+                "name_history": names_by_entity.get(str(row["corporate_entity_id"]), []),
             }
             for row in entity_rows
         ],
         "keymen": list(keymen_by_id.values()),
         "source_customer_hints": [
             {
+                "source_system_code": row["source_system_code"],
                 "customer_code": row["customer_code"],
                 "customer_name": row["customer_name"],
                 "post_count": row["post_count"],
@@ -998,7 +1373,18 @@ async def read_customer_master(
                     if isinstance(row["related_posts"], str)
                     else row["related_posts"] or []
                 ),
-                "resolution_status": "hint_only",
+                "resolution_status": row["resolution_status"],
+                "corporate_entity_id": (
+                    str(row["corporate_entity_id"])
+                    if row["corporate_entity_id"] is not None
+                    else None
+                ),
+                "resolved_entity_name": row["resolved_entity_name"],
+                "customer_identity_judgment_id": (
+                    str(row["customer_identity_judgment_id"])
+                    if row["customer_identity_judgment_id"] is not None
+                    else None
+                ),
                 "hint_trust": customer_hint_trust(row["customer_name"], row["customer_code"]),
                 "provenance": "source_post.source_customer_code/source_post.source_customer_name",
             }
@@ -1058,11 +1444,21 @@ async def resolve_customer_master_hint(
     _require_post_admin(account)
     async with pool.acquire() as conn:
         try:
+            settings = load_settings()
             resolution = await resolve_customer_hint(
                 conn,
                 _customer_hint_resolution_client(),
                 _relation_verification_client(),
                 request.hint_code,
+                source_system_code=request.source_system_code,
+                authorized_corporate_entity_ids=tuple(account.corporate_entity_ids),
+                identity_judge_client=_customer_identity_judge_client(),
+                hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+                tepp_client=configured_tepp_client(
+                    settings.tepp_transport_url,
+                    settings.tepp_api_key,
+                    settings.tepp_temporal_context_url,
+                ),
             )
         except (HttpClientError, OSError) as exc:
             # resolve_and_verify_organization_name's resolution/verification
@@ -1074,9 +1470,15 @@ async def resolve_customer_master_hint(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Hint resolution is unavailable: the orchestrator or search provider did not respond",
             ) from exc
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            _logger.exception("resolve_customer_master_hint failed unexpectedly")
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Hint resolution is unavailable: the orchestrator or search provider did not respond",
+            ) from exc
     if resolution is None:
         raise HTTPException(
-            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
             "this hint could not be resolved to a corroborated organization name",
         )
     return resolution
@@ -1094,7 +1496,7 @@ async def read_lineage_graph(
     async with pool.acquire() as conn:
         return await visible_lineage_graph(
             conn,
-            lambda row: _can_see_post(account, row),
+            lambda row: _can_use_post_for_analysis(account, row),
             limit=limit,
             focus_post_id=post_id,
         )
@@ -1112,8 +1514,8 @@ async def rebuild_lineage_graph(
     _require_post_admin(account)
     async with pool.acquire() as conn:
         async with conn.transaction():
-            edges = await rebuild_lineage(conn)
-    return {"edge_count": len(edges)}
+            result = await rebuild_lineage(conn)
+    return {"edge_count": len(result.edges), "coverage": result.coverage}
 
 
 @app.get("/api/posts")
@@ -1122,6 +1524,7 @@ async def list_posts(
     offset: int = Query(0, ge=0),
     search: str | None = Query(None, max_length=200),
     voc_type: list[str] | None = Query(None, max_length=80),
+    source_detail_state: list[str] | None = Query(None, max_length=80),
     visibility: str | None = Query(None, max_length=80),
     sort: Literal["newest", "oldest", "title"] = Query("newest"),
     account: CurrentAccount = Depends(get_current_account),
@@ -1130,9 +1533,17 @@ async def list_posts(
     """List authorized posts, with semantic evidence search when requested."""
     _require_post_read(account)
     search_term = search.strip() if search and search.strip() else None
+    voc_type_codes = (
+        [code.strip() for code in voc_type if code.strip()] if voc_type else None
+    ) or None
+    source_detail_state_codes = (
+        [code.strip().upper() for code in source_detail_state if code.strip()]
+        if source_detail_state
+        else None
+    ) or None
     async with pool.acquire() as conn:
-        voc_type_options, visibility_options = await _post_filter_options(
-            conn, account.corporate_entity_ids
+        voc_type_options, source_detail_state_options, visibility_options = await _post_filter_options(
+            conn, account
         )
         body_search_ids: list[str] = []
         if search_term:
@@ -1141,7 +1552,8 @@ async def list_posts(
                 f"""
                 select post_id
                   from source_post
-                where {SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post")}
+                where {source_post_state_visibility_sql("source_post", corporate_param=4, account_param=2, admin_param=3)}
+                  and {SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias="source_post")}
                   and (lower(left(source_post_search_text(post_body), 16384))
                            like '%' || lower($1) || '%'
                     or to_tsvector('simple', source_post_search_text(post_body))
@@ -1156,35 +1568,16 @@ async def list_posts(
                     post_id
                 """,
                 search_term,
+                account.user_account_id,
+                account.has_permission(_POST_ADMIN),
+                list(account.corporate_entity_ids),
             )
             body_search_ids = [str(row["post_id"]) for row in body_rows]
-        # Safe SQL: page SQL is a closed schema query; every request value is an asyncpg parameter.
-        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-            f"""
-            with page as (
-                select post.post_id, post.post_title, post.voc_type_code, post.visibility_code,
-                       post.source_stage_code, post.source_detail_state_code,
-                       post.source_draft_code, post.source_deleted_flag,
-                       post.source_author_code, post.source_author_name,
-                       post.source_company_code, post.source_company_name,
-                       post.source_process_unit_code, post.source_process_unit_name,
-                       post.source_sales_pool_code, post.source_sales_pool_name,
-                       post.source_customer_code, post.source_customer_name,
-                       post.source_project_code, post.source_project_name,
-                       post.source_system_code,
-                       post.source_record_key,
-                       post.corporate_entity_id, post.created_at,
-                       case
-                           when $1::text is null then 0
-                           when lower(coalesce(post.post_title, '')) like '%' || lower($1) || '%' then 0
-                           when post.post_id = any($5::uuid[]) then 1
-                           else 2
-                       end as search_priority,
-                       count(*) over() as total_count
-                  from source_post post
-             where (post.visibility_code = 'public'
-                or post.corporate_entity_id::text = any($2::text[]))
-               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
+        # Extracted once so the pagination-overshoot fallback below can
+        # reuse the identical predicate without duplicating ~170 lines of SQL.
+        _list_posts_predicate_sql = f"""
+             {source_post_state_visibility_sql("post", corporate_param=2, account_param=10, admin_param=11)}
+               and {SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias="post")}
                and (
                     $1::text is null
                     or post.post_title ilike '%' || $1 || '%'
@@ -1203,6 +1596,10 @@ async def list_posts(
                         post.source_process_unit_name,
                         post.source_sales_pool_code,
                         post.source_sales_pool_name,
+                        post.source_order_pool_code,
+                        post.source_sales_order_code,
+                        post.source_sales_order_item_number,
+                        post.source_inspection_point_code,
                         post.source_customer_code,
                         post.source_customer_name,
                         post.source_project_code,
@@ -1233,6 +1630,10 @@ async def list_posts(
                                     post.source_process_unit_name,
                                     post.source_sales_pool_code,
                                     post.source_sales_pool_name,
+                                    post.source_order_pool_code,
+                                    post.source_sales_order_code,
+                                    post.source_sales_order_item_number,
+                                    post.source_inspection_point_code,
                                     post.source_customer_code,
                                     post.source_customer_name,
                                     post.source_project_code,
@@ -1241,7 +1642,7 @@ async def list_posts(
                             ) >= 0.45
                         )
                     )
-                    or post.post_id = any($5::uuid[])
+                    or post.post_id = any($6::uuid[])
                     or exists (
                         select 1 from post_project_mention project
                          where project.post_id = post.post_id
@@ -1254,7 +1655,7 @@ async def list_posts(
                         select 1 from post_summary_role role
                          where role.post_id = post.post_id
                            and (role.actor_name ilike '%' || $1 || '%'
-                                or role.responsibility ilike '%' || $1 || '%'
+                                or role.responsibility_text ilike '%' || $1 || '%'
                                 or coalesce(role.affiliated_organization_name, '') ilike '%' || $1 || '%'
                                 or (char_length($1) >= 3 and word_similarity(lower($1), lower(role.actor_name)) >= 0.45))
                     )
@@ -1276,7 +1677,51 @@ async def list_posts(
                     or exists (
                         select 1 from post_summary_event event
                          where event.post_id = post.post_id
-                           and event.event_text ilike '%' || $1 || '%'
+                           and (event.event_text ilike '%' || $1 || '%'
+                                or coalesce(event.evidence_text, '') ilike '%' || $1 || '%')
+                    )
+                    or exists (
+                        select 1 from post_summary_event_clue clue
+                         where clue.post_id = post.post_id
+                           and (clue.clue_text ilike '%' || $1 || '%'
+                                or coalesce(clue.target_text, '') ilike '%' || $1 || '%'
+                                or coalesce(clue.normalized_value_text, '') ilike '%' || $1 || '%'
+                                or clue.evidence_text ilike '%' || $1 || '%')
+                    )
+                    or exists (
+                        select 1 from post_summary_five_w1h evidence
+                         where evidence.post_id = post.post_id
+                           and (evidence.value_text ilike '%' || $1 || '%'
+                                or evidence.evidence_text ilike '%' || $1 || '%')
+                    )
+                    or exists (
+                        select 1 from post_summary_quantitative_observation observation
+                         where observation.post_id = post.post_id
+                           and (observation.label_text ilike '%' || $1 || '%'
+                                or observation.raw_value_text ilike '%' || $1 || '%'
+                                or observation.evidence_text ilike '%' || $1 || '%'
+                                or observation.qualifier_text ilike '%' || $1 || '%'
+                                or observation.measurement_type_code ilike '%' || $1 || '%'
+                                or observation.unit_code ilike '%' || $1 || '%'
+                                or observation.value_numeric::text ilike '%' || $1 || '%'
+                                or observation.quantity_numeric::text ilike '%' || $1 || '%')
+                    )
+                    or exists (
+                        select 1 from post_summary_source_fact fact
+                         where fact.post_id = post.post_id
+                           and (fact.label_text ilike '%' || $1 || '%'
+                                or fact.value_text ilike '%' || $1 || '%'
+                                or coalesce(fact.normalized_value_text, '') ilike '%' || $1 || '%'
+                                or fact.evidence_text ilike '%' || $1 || '%'
+                                or fact.normalized_date::text ilike '%' || $1 || '%')
+                    )
+                    or exists (
+                        select 1 from post_summary_semantic_relationship relation
+                         where relation.post_id = post.post_id
+                           and (relation.subject_name ilike '%' || $1 || '%'
+                                or relation.predicate_code ilike '%' || $1 || '%'
+                                or relation.object_name ilike '%' || $1 || '%'
+                                or relation.evidence_text ilike '%' || $1 || '%')
                     )
                     or exists (
                         select 1 from corporate_entity customer
@@ -1307,19 +1752,48 @@ async def list_posts(
                     )
                )
                and ($3::text[] is null or post.voc_type_code = any($3::text[]))
-               and ($4::text is null or post.visibility_code = $4)
+               and ($4::text[] is null or coalesce(upper(btrim(post.source_detail_state_code)), '') = any($4::text[]))
+               and ($5::text is null or post.visibility_code = $5)
+        """
+        # Safe SQL: page SQL is a closed schema query; every request value is an asyncpg parameter.
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            f"""
+            with page as (
+                select post.post_id, post.post_title, post.voc_type_code, post.visibility_code,
+                       post.source_stage_code, post.source_detail_state_code,
+                       post.source_draft_code, post.source_deleted_flag,
+                       post.source_author_code, post.source_author_name,
+                       post.source_company_code, post.source_company_name,
+                       post.source_process_unit_code, post.source_process_unit_name,
+                       post.source_sales_pool_code, post.source_sales_pool_name,
+                       post.source_order_pool_code, post.source_sales_order_code,
+                       post.source_sales_order_item_number, post.source_inspection_point_code,
+                       post.source_customer_code, post.source_customer_name,
+                       post.source_project_code, post.source_project_name,
+                       post.source_system_code,
+                       post.source_record_key,
+                       post.corporate_entity_id, post.author_account_id, post.created_at,
+                       case
+                           when $1::text is null then 0
+                           when lower(coalesce(post.post_title, '')) like '%' || lower($1) || '%' then 0
+                           when post.post_id = any($6::uuid[]) then 1
+                           else 2
+                       end as search_priority,
+                       count(*) over() as total_count
+                  from source_post post
+             where {_list_posts_predicate_sql}
                  order by
                     search_priority asc,
                     case
-                        when $1::text is not null and post.post_id = any($5::uuid[])
-                        then array_position($5::uuid[], post.post_id)
+                        when $1::text is not null and post.post_id = any($6::uuid[])
+                        then array_position($6::uuid[], post.post_id)
                     end asc,
-                    case when $8::text = 'title' then lower(coalesce(post.post_title, '')) end asc,
-                    case when $8::text = 'oldest' then post.created_at end asc,
-                    case when $8::text in ('newest', 'title') then post.created_at end desc,
+                    case when $9::text = 'title' then lower(coalesce(post.post_title, '')) end asc,
+                    case when $9::text = 'oldest' then post.created_at end asc,
+                    case when $9::text in ('newest', 'title') then post.created_at end desc,
                     post.post_id desc
-                   offset $6
-                   limit $7
+                   offset $7
+                   limit $8
             )
             select page.*,
                    case
@@ -1344,21 +1818,21 @@ async def list_posts(
                                  'project_key', project.project_key,
                                  'project_name', project.project_name,
                                  'evidence', project.evidence_text,
-                                 'confidence', project.confidence,
+                                 'confidence', project.mention_confidence,
                                  'ontology_iri', project.ontology_iri,
                                  'ontology_label', 'Project',
                                  'extraction_method', project.extraction_method,
                                  'resolution_status', 'semantic_candidate',
                                  'provenance', 'post_project_mention.evidence_text'
                              )
-                             order by project.confidence desc, project.project_name, project.project_key
+                             order by project.mention_confidence desc, project.project_name, project.project_key
                          ) as project_evidence
                     from (
-                        select project_key, project_name, evidence_text, confidence,
+                        select project_key, project_name, evidence_text, mention_confidence,
                                ontology_iri, extraction_method
                           from post_project_mention
                          where post_id = page.post_id
-                         order by confidence desc, project_name, project_key
+                         order by mention_confidence desc, project_name, project_key
                          limit 5
                     ) project
               ) projects on true
@@ -1366,31 +1840,58 @@ async def list_posts(
                 case when $1::text is not null then page.search_priority end asc,
                 case
                     when $1::text is not null and page.search_priority = 1
-                    then array_position($5::uuid[], page.post_id)
+                    then array_position($6::uuid[], page.post_id)
                 end asc,
-                case when $8::text = 'title' then lower(coalesce(page.post_title, '')) end asc,
-                case when $8::text = 'oldest' then page.created_at end asc,
-                case when $8::text in ('newest', 'title') then page.created_at end desc,
+                case when $9::text = 'title' then lower(coalesce(page.post_title, '')) end asc,
+                case when $9::text = 'oldest' then page.created_at end asc,
+                case when $9::text in ('newest', 'title') then page.created_at end desc,
                 page.post_id desc
             """,
             search_term,
             list(account.corporate_entity_ids),
-            [code.strip() for code in voc_type if code.strip()] if voc_type else None,
+            voc_type_codes,
+            source_detail_state_codes,
             visibility.strip() if visibility and visibility.strip() else None,
             body_search_ids,
             offset,
             limit,
             sort,
+            account.user_account_id,
+            account.has_permission(_POST_ADMIN),
         )
         visible = [row for row in rows if _can_see_post(account, row)]
         labels = await _lookup_post_labels(conn, visible)
-    total_count = int(rows[0]["total_count"]) if rows else 0
+        if rows:
+            total_count = int(rows[0]["total_count"])
+        else:
+            # count(*) over() only rides along on rows that survive this
+            # page's own OFFSET/LIMIT -- an offset past the last matching
+            # row returns zero rows and would otherwise silently report
+            # total_count=0 even though matches exist (a paginator relying
+            # on total_count to detect it overshot would see "no results"
+            # instead). $10/$11 in the shared predicate become $7/$8 here
+            # since this query has no offset/limit/sort parameters of its own.
+            fallback_predicate = _list_posts_predicate_sql.replace("$10", "$7").replace("$11", "$8")
+            # Safe SQL: identical predicate as the page query above, just renumbered; every value is still an asyncpg parameter.
+            fallback_total_count = await conn.fetchval(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+                f"select count(*) as total_count from source_post post where {fallback_predicate}",
+                search_term,
+                list(account.corporate_entity_ids),
+                voc_type_codes,
+                source_detail_state_codes,
+                visibility.strip() if visibility and visibility.strip() else None,
+                body_search_ids,
+                account.user_account_id,
+                account.has_permission(_POST_ADMIN),
+            )
+            total_count = int(fallback_total_count or 0)
     return {
         "posts": [_serialize_post(row, labels) for row in visible],
         "total_count": total_count,
         "limit": limit,
         "offset": offset,
         "voc_type_options": voc_type_options,
+        "source_detail_state_options": source_detail_state_options,
         "visibility_options": visibility_options,
     }
 
@@ -1417,7 +1918,7 @@ async def read_post(
             as_of_clock = parse_as_of_clock(as_of)
         except ValueError as exc:
             raise HTTPException(
-                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
                 "as_of must be an ISO-8601 timestamp. Use the run cutoff, "
                 "then compare the known body with the live body.",
             ) from exc
@@ -1428,11 +1929,18 @@ async def read_post(
             "source_stage_code, source_detail_state_code, source_draft_code, source_deleted_flag, "
                 "source_author_code, source_author_name, source_company_code, source_company_name, "
                 "source_process_unit_code, source_process_unit_name, "
+                "source_process_unit.process_unit_name as source_process_unit_catalog_name, "
                 "source_sales_pool_code, source_sales_pool_name, "
+                "source_order_pool_code, source_sales_order_code, "
+                "source_sales_order_item_number, source_inspection_point_code, "
                 "source_customer_code, source_customer_name, source_project_code, source_project_name, "
-                "source_system_code, source_record_key, "
-            "corporate_entity_id, created_at "
-            f"from source_post where post_id = $1 and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
+                "source_system_code, source_record_key, author_account_id, "
+                "source_post.corporate_entity_id, source_post.created_at "
+            "from source_post "
+            "left join process_unit source_process_unit "
+            "on source_process_unit.process_unit_id = source_post.process_unit_id "
+            "and source_process_unit.corporate_entity_id = source_post.corporate_entity_id "
+            f"where source_post.post_id = $1 and {SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='source_post')}",
             post_id,
         )
         if row is None:
@@ -1463,100 +1971,138 @@ async def read_post_content(
     pool: asyncpg.Pool = Depends(get_pool),
     valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
-    """Return persisted content evidence; never derive or invent buyer copy."""
+    """Return persisted content evidence; never derive or invent reader-facing copy."""
     await _load_visible_post(post_id, account, pool)
     queue_event: tuple[str, str] | None = None
+    derived_content_is_current = False
     async with pool.acquire() as conn:
-        unit_rows = await conn.fetch(
-            """
-            select unit.unit_index, unit.unit_kind_code, unit.unit_label, unit.unit_text,
-                   coalesce(structure.indent_level, 0) as indent_level,
-                   structure.decision_source_code, structure.confidence,
-                   structure.evidence_text
-              from post_content_unit unit
-              left join post_content_unit_structure structure
-                on structure.post_content_unit_id = unit.post_content_unit_id
-             where unit.post_id = $1
-             order by unit.unit_index
-            """,
-            post_id,
-        )
-        content_status = post_content_api_status(
-            None,
-            content_present=bool(unit_rows),
-        )
-        body_row = await conn.fetchrow(
-            "select post_body from source_post where post_id = $1", post_id
-        )
-        raw_body = None if body_row is None else body_row["post_body"]
-        if isinstance(raw_body, str) and raw_body.strip():
-            content_present = bool(unit_rows)
-            content_complete = await post_content_is_complete(
-                conn,
+        unit_rows: list[asyncpg.Record] = []
+        rows: list[asyncpg.Record] = []
+        region_rows: list[asyncpg.Record] = []
+        content_status = post_content_api_status(None, content_present=False)
+        job = None
+        async with conn.transaction():
+            body_row = await conn.fetchrow(
+                "select post_body from source_post where post_id = $1 for update",
                 post_id,
-                embedding_model_code=load_settings().embedding_model,
-                require_structure=bool(
-                    load_settings().orchestrator_base_url
-                    and load_settings().orchestrator_api_key
-                ),
             )
-            async with conn.transaction():
+            raw_body = None if body_row is None else body_row["post_body"]
+            if isinstance(raw_body, str) and raw_body.strip():
+                content_complete = await post_content_is_complete(
+                    conn,
+                    post_id,
+                    embedding_model_code=load_settings().embedding_model,
+                    require_structure=bool(
+                        load_settings().orchestrator_base_url
+                        and load_settings().orchestrator_api_key
+                    ),
+                )
                 job = await ensure_post_content_job(
                     conn,
                     post_id,
                     raw_body,
                     content_complete=content_complete,
                 )
+        if job is not None:
             content_status = post_content_api_status(
                 job.status_code,
-                content_present=content_present,
+                content_present=False,
             )
             if job.should_publish:
                 queue_event = (job.post_id, job.source_body_sha256)
-        rows = await conn.fetch(
-            """
-            select image.post_content_image_id, unit.unit_index, image.mime_type, image.description_status_code,
-                   image.extracted_text, image.caption,
-                   coalesce(
-                       array_agg(tag.tag_text order by tag.tag_text)
-                           filter (where tag.tag_text is not null),
-                       '{}'::text[]
-                   ) as tags
-              from post_content_unit unit
-              join post_content_image image
-                on image.post_content_unit_id = unit.post_content_unit_id
-              left join post_content_image_tag tag
-                on tag.post_content_image_id = image.post_content_image_id
-             where unit.post_id = $1
-             group by image.post_content_image_id, unit.unit_index, image.mime_type, image.description_status_code,
-                      image.extracted_text, image.caption
-             order by unit.unit_index
-            """,
-            post_id,
-        )
-        region_rows = await conn.fetch(
-            """
-            select image.post_content_image_id, region.region_index,
-                   region.x_ratio, region.y_ratio, region.width_ratio, region.height_ratio,
-                   region.description_status_code, region.extracted_text, region.caption,
-                   coalesce(
-                       array_agg(tag.tag_text order by tag.tag_text)
-                           filter (where tag.tag_text is not null),
-                       '{}'::text[]
-                   ) as tags
-              from post_content_image image
-              join post_content_image_region region
-                on region.post_content_image_id = image.post_content_image_id
-              left join post_content_image_region_tag tag
-                on tag.post_content_image_region_id = region.post_content_image_region_id
-             where image.post_content_image_id = any($1::uuid[])
-             group by image.post_content_image_id, region.region_index,
-                      region.x_ratio, region.y_ratio, region.width_ratio, region.height_ratio,
-                      region.description_status_code, region.extracted_text, region.caption
-             order by image.post_content_image_id, region.region_index
-            """,
-            [row["post_content_image_id"] for row in rows],
-        ) if rows else []
+            async with conn.transaction():
+                source_binding = await conn.fetchrow(
+                    "select post_body from source_post where post_id = $1 for share",
+                    post_id,
+                )
+                binding = await conn.fetchrow(
+                    """
+                    select source_body_sha256, status_code
+                    from post_content_ingestion_job
+                    where post_id = $1
+                    for share
+                    """,
+                    post_id,
+                ) if source_binding is not None else None
+                bound_body = (
+                    None if source_binding is None else source_binding["post_body"]
+                )
+                derived_content_is_current = bool(
+                    isinstance(bound_body, str)
+                    and binding is not None
+                    and binding["status_code"] == SUCCEEDED
+                    and binding["source_body_sha256"] == source_body_sha256(bound_body)
+                )
+                if derived_content_is_current:
+                    unit_rows = await conn.fetch(
+                        """
+                        select unit.unit_index, unit.unit_kind_code, unit.unit_label,
+                               unit.unit_text,
+                               coalesce(structure.indent_level, 0) as indent_level,
+                               structure.decision_source_code,
+                               structure.structure_confidence, structure.evidence_text
+                          from post_content_unit unit
+                          left join post_content_unit_structure structure
+                            on structure.post_content_unit_id = unit.post_content_unit_id
+                         where unit.post_id = $1
+                         order by unit.unit_index
+                        """,
+                        post_id,
+                    )
+                    content_status = post_content_api_status(
+                        str(binding["status_code"]),
+                        content_present=bool(unit_rows),
+                    )
+                elif job.status_code == SUCCEEDED:
+                    content_status = "processing"
+                rows = await conn.fetch(
+                    """
+                    select image.post_content_image_id, unit.unit_index, image.mime_type,
+                           image.description_status_code, image.extracted_text,
+                           image.image_caption,
+                           coalesce(
+                               array_agg(tag.tag_text order by tag.tag_text)
+                                   filter (where tag.tag_text is not null),
+                               '{}'::text[]
+                           ) as tags
+                      from post_content_unit unit
+                      join post_content_image image
+                        on image.post_content_unit_id = unit.post_content_unit_id
+                      left join post_content_image_tag tag
+                        on tag.post_content_image_id = image.post_content_image_id
+                     where unit.post_id = $1
+                     group by image.post_content_image_id, unit.unit_index,
+                              image.mime_type, image.description_status_code,
+                              image.extracted_text, image.image_caption
+                     order by unit.unit_index
+                    """,
+                    post_id,
+                ) if derived_content_is_current else []
+                region_rows = await conn.fetch(
+                    """
+                    select image.post_content_image_id, region.region_index,
+                           region.x_ratio, region.y_ratio, region.width_ratio,
+                           region.height_ratio, region.description_status_code,
+                           region.extracted_text, region.image_caption,
+                           coalesce(
+                               array_agg(tag.tag_text order by tag.tag_text)
+                                   filter (where tag.tag_text is not null),
+                               '{}'::text[]
+                           ) as tags
+                      from post_content_image image
+                      join post_content_image_region region
+                        on region.post_content_image_id = image.post_content_image_id
+                      left join post_content_image_region_tag tag
+                        on tag.post_content_image_region_id = region.post_content_image_region_id
+                     where image.post_content_image_id = any($1::uuid[])
+                     group by image.post_content_image_id, region.region_index,
+                              region.x_ratio, region.y_ratio, region.width_ratio,
+                              region.height_ratio, region.description_status_code,
+                              region.extracted_text, region.image_caption
+                     order by image.post_content_image_id, region.region_index
+                    """,
+                    [row["post_content_image_id"] for row in rows],
+                ) if rows else []
     if queue_event is not None:
         await publish_post_content_event(
             valkey,
@@ -1574,7 +2120,7 @@ async def read_post_content(
                 "height_ratio": row["height_ratio"],
                 "status_code": row["description_status_code"],
                 "extracted_text": row["extracted_text"],
-                "caption": row["caption"],
+                "caption": row["image_caption"],
                 "tags": list(row["tags"] or []),
             }
         )
@@ -1588,7 +2134,7 @@ async def read_post_content(
                 "unit_text": row["unit_text"],
                 "indent_level": row["indent_level"],
                 "indent_source_code": row["decision_source_code"] or "unresolved",
-                "indent_confidence": float(row["confidence"] or 0),
+                "indent_confidence": float(row["structure_confidence"] or 0),
                 "indent_evidence": row["evidence_text"] or "",
             }
             for row in unit_rows
@@ -1599,7 +2145,7 @@ async def read_post_content(
                 "mime_type": row["mime_type"],
                 "status_code": row["description_status_code"],
                 "extracted_text": row["extracted_text"],
-                "caption": row["caption"],
+                "caption": row["image_caption"],
                 "tags": list(row["tags"] or []),
                 "regions": regions_by_image.get(str(row["post_content_image_id"]), []),
             }
@@ -1612,8 +2158,14 @@ async def _load_visible_post(
     post_id: str,
     account: CurrentAccount,
     pool: asyncpg.Pool,
+    *,
+    allow_writing: bool = False,
 ) -> asyncpg.Record:
-    """Load one post the account may see, or raise 404 / 403."""
+    """Load one post the account may see, or raise 404 / 403.
+
+    Analysis callers keep the default W-state rejection. Non-analysis actions
+    such as an author's bookmark may explicitly read an authorized W row.
+    """
     _require_post_read(account)
     async with pool.acquire() as conn:
         # Safe SQL: the eligibility predicate is an immutable schema fragment; post id is bound.
@@ -1621,6 +2173,7 @@ async def _load_visible_post(
             """
             select source_post.post_id, source_post.post_title, source_post.voc_type_code,
                    source_post.visibility_code, source_post.corporate_entity_id,
+                   source_post.source_detail_state_code,
                    source_post.created_at, source_post.author_account_id,
                    source_post.source_process_unit_code, source_post.source_author_code,
                    source_post.source_company_code, source_post.source_customer_code,
@@ -1631,13 +2184,22 @@ async def _load_visible_post(
                 on customer.corporate_entity_id = source_post.corporate_entity_id
              where source_post.post_id = $1
                and """
-            f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
+            f"{SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='source_post')}",
             post_id,
         )
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "post not found")
     if not _can_see_post(account, row):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this post")
+    if (
+        not allow_writing
+        and normalize_source_detail_state_code(row.get("source_detail_state_code"))
+        == WRITING_SOURCE_DETAIL_STATE_CODE
+    ):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "Writing-in-progress posts are not analysis targets.",
+        )
     return row
 
 
@@ -1657,6 +2219,13 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
                source_process_unit.process_unit_name as source_process_unit_catalog_name,
                post.source_sales_pool_code,
                post.source_sales_pool_name,
+               post.source_order_pool_code,
+               post.source_sales_order_code,
+               post.source_sales_order_item_number,
+               post.source_inspection_point_code,
+               post.source_stage_code,
+               post.source_detail_state_code,
+               post.source_deleted_flag,
                post.source_customer_code,
                post.source_customer_name,
                source_customer.entity_name as source_customer_catalog_name,
@@ -1696,6 +2265,10 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
             "source_process_unit_name",
             "source_sales_pool_code",
             "source_sales_pool_name",
+            "source_order_pool_code",
+            "source_sales_order_code",
+            "source_sales_order_item_number",
+            "source_inspection_point_code",
             "source_customer_code",
             "source_customer_name",
             "source_project_code",
@@ -1728,6 +2301,13 @@ async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> s
         source_process_unit_catalog_name=first["source_process_unit_catalog_name"],
         source_sales_pool_code=first["source_sales_pool_code"],
         source_sales_pool_name=first["source_sales_pool_name"],
+        source_order_pool_code=first["source_order_pool_code"],
+        source_sales_order_code=first["source_sales_order_code"],
+        source_sales_order_item_number=first["source_sales_order_item_number"],
+        source_inspection_point_code=first["source_inspection_point_code"],
+        source_stage_code=first["source_stage_code"],
+        source_detail_state_code=first["source_detail_state_code"],
+        source_deleted_flag=first["source_deleted_flag"],
         source_customer_code=first["source_customer_code"],
         source_customer_name=first["source_customer_name"],
         source_customer_catalog_name=first["source_customer_catalog_name"],
@@ -1852,7 +2432,7 @@ async def read_related_keymen(
     async with pool.acquire() as conn:
         if not await person_exists(conn, person_id):
             raise HTTPException(status.HTTP_404_NOT_FOUND, "person not found")
-        visible_post_ids = await visible_mention_post_ids(conn, person_id, lambda row: _can_see_post(account, row))
+        visible_post_ids = await visible_mention_post_ids(conn, person_id, lambda row: _can_use_post_for_analysis(account, row))
         if not visible_post_ids:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this person")
         person = await conn.fetchrow(
@@ -1882,7 +2462,7 @@ async def read_related_corporate_entity(
         if not await corporate_entity_exists(conn, entity_id):
             raise HTTPException(status.HTTP_404_NOT_FOUND, "corporate entity not found")
         visible_post_ids = await visible_affiliation_post_ids(
-            conn, entity_id, lambda row: _can_see_post(account, row)
+            conn, entity_id, lambda row: _can_use_post_for_analysis(account, row)
         )
         if not visible_post_ids:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this entity")
@@ -1911,7 +2491,7 @@ async def read_related_team(
         if not await team_exists(conn, team_id):
             raise HTTPException(status.HTTP_404_NOT_FOUND, "team not found")
         visible_post_ids = await visible_team_mention_post_ids(
-            conn, team_id, lambda row: _can_see_post(account, row)
+            conn, team_id, lambda row: _can_use_post_for_analysis(account, row)
         )
         if not visible_post_ids:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "not authorized to view this team")
@@ -2018,6 +2598,12 @@ async def verify_post_entity_relationships(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Relation verification is unavailable: the search provider did not respond",
             ) from exc
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            _logger.exception("verify_post_entity_relationships failed unexpectedly")
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Relation verification is unavailable: the search provider did not respond",
+            ) from exc
     await publish_activity_event(
         valkey,
         post_id,
@@ -2036,6 +2622,103 @@ async def verify_post_entity_relationships(
             }
             for row in verified
         ],
+    }
+
+
+@app.get("/api/posts/{post_id}/source-research")
+async def read_post_source_research(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Read persisted URL/patent research without triggering external calls."""
+    post = await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            select lead.lead_ordinal, lead.lead_type_code, lead.query_text,
+                   lead.evidence_text, lead.source_content_unit_id::text,
+                   lead.source_image_region_id::text,
+                   case judgment.research_status_code
+                       when 'research_supported' then 'supported'
+                       when 'research_refuted' then 'refuted'
+                       else 'not_enough_information'
+                   end as research_status_code,
+                   judgment.sharing_actor_name, judgment.rationale_text,
+                   coalesce(
+                       jsonb_agg(
+                           jsonb_build_object(
+                               'url', retrieval.evidence_url,
+                               'title', retrieval.evidence_title,
+                               'passage_text', retrieval.passage_text,
+                               'cited', citation.post_source_research_citation_id is not null
+                           ) order by retrieval.retrieval_ordinal
+                       ) filter (where retrieval.post_source_research_retrieval_id is not null),
+                       '[]'::jsonb
+                   ) as retrievals
+              from post_source_research_lead lead
+              join post_source_research_judgment judgment
+                using (post_source_research_lead_id)
+              left join post_source_research_retrieval retrieval
+                using (post_source_research_lead_id)
+              left join post_source_research_citation citation
+                on citation.post_source_research_judgment_id = judgment.post_source_research_judgment_id
+               and citation.post_source_research_retrieval_id = retrieval.post_source_research_retrieval_id
+             where lead.post_id = $1
+             group by lead.post_source_research_lead_id,
+                      judgment.post_source_research_judgment_id
+             order by lead.lead_ordinal
+            """,
+            post_id,
+        )
+    research = []
+    for row in rows:
+        item = dict(row)
+        item["retrievals"] = decode_research_retrievals(item["retrievals"])
+        research.append(item)
+    return {
+        "post_id": str(post["post_id"]),
+        "research": research,
+    }
+
+
+@app.post("/api/posts/{post_id}/source-research")
+async def research_post_source_references(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
+) -> dict[str, Any]:
+    """Search, crawl, and Judge explicit URL/patent leads under ADR 0133."""
+    _require_post_admin(account)
+    post = await _load_visible_post(post_id, account, pool)
+    clients = _source_research_clients()
+    if clients is None:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Source research is unavailable: configure SearXNG and contextual-orchestrator",
+        )
+    search_client, judge_client = clients
+    try:
+        with use_llm_metadata(build_post_llm_metadata(post_id, post)):
+            researched = await research_post_sources(
+                pool, post_id, search_client, judge_client
+            )
+    except (HttpClientError, OSError, TypeError, ValueError, RuntimeError) as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Source research is unavailable: retrieval or adjudication produced no complete evidence",
+        ) from exc
+    await publish_activity_event(
+        valkey,
+        post_id,
+        "source_research_completed",
+        account.user_account_id,
+        f"Source research completed: {len(researched)} reference lead(s)",
+    )
+    return {
+        "post_id": str(post["post_id"]),
+        "researched_count": len(researched),
     }
 
 
@@ -2071,22 +2754,34 @@ async def extract_post_keymen(
             # tags dilute the model's attention and a base64 payload sent as
             # literal text either blows the token budget or is silently
             # ignored (see lineageweave/post_content_normalization.py).
-            post_body = (
-                await asyncio.to_thread(normalize_post_body, raw_body, _vision_client())
-            ).text
             context_hints = await _load_post_semantic_hints(conn, post_id)
-            mentions = await ingest_post_keymen(
-                conn,
-                keyman_client,
-                post_id,
-                post["post_title"],
-                post_body,
-                resolution_client=_organization_name_resolution_client(),
-                verification_client=_relation_verification_client(),
-                hierarchy_inference_client=_corporate_hierarchy_inference_client(),
-                context_hints=context_hints,
-                persist_graph=False,
-            )
+            try:
+                post_body = (
+                    await asyncio.to_thread(normalize_post_body, raw_body, _vision_client())
+                ).text
+                mentions = await ingest_post_keymen(
+                    conn,
+                    keyman_client,
+                    post_id,
+                    post["post_title"],
+                    post_body,
+                    resolution_client=_organization_name_resolution_client(),
+                    verification_client=_relation_verification_client(),
+                    hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+                    context_hints=context_hints,
+                    persist_graph=False,
+                )
+            except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
+            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                _logger.exception("extract_post_keymen.ingest_mentions failed unexpectedly")
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
             # Live bug (2026-08-19): an organization affiliated ONLY with an
             # our_side person (our own factory, our own affiliate) got fed
             # into the counterparty-relationship classifier the same as any
@@ -2102,9 +2797,21 @@ async def extract_post_keymen(
                     for name in mention.affiliated_organization_names
                 }
             )
-            relationships = await ingest_post_entity_relationships(
-                conn, relationship_client, post_id, post["post_title"], post_body, organization_names
-            )
+            try:
+                relationships = await ingest_post_entity_relationships(
+                    conn, relationship_client, post_id, post["post_title"], post_body, organization_names
+                )
+            except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
+            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                _logger.exception("extract_post_keymen.ingest_relationships failed unexpectedly")
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
             async with conn.transaction():
                 await persist_edges_for_post(conn, post_id)
     await publish_activity_event(
@@ -2150,13 +2857,16 @@ async def read_post_lineage(
     """
     await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
-        linked = await find_linked_post_ids(conn, post_id)
+        linked = await find_linked_post_ids(
+            conn, post_id, lambda row: _can_use_post_for_analysis(account, row)
+        )
         candidate_ids = linked.direct | linked.indirect
         rows = {}
         if candidate_ids:
             # Safe SQL: the eligibility predicate is an immutable schema fragment; candidate ids are bound.
             fetched = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
                 "select post_id, post_title, visibility_code, corporate_entity_id, "
+                "author_account_id, source_detail_state_code, "
                 "btrim(left(source_post_search_text(post_body), 420)) as post_body_excerpt, "
                 "char_length(coalesce(post_body, '')) > 420 as post_body_truncated "
                 f"from source_post where post_id = any($1::uuid[]) and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
@@ -2173,7 +2883,7 @@ async def read_post_lineage(
                 "post_body_truncated": rows[post_id_].get("post_body_truncated", False),
             }
             for post_id_ in ids
-            if post_id_ in rows and _can_see_post(account, rows[post_id_])
+            if post_id_ in rows and _can_use_post_for_analysis(account, rows[post_id_])
         ]
 
     return {
@@ -2181,6 +2891,18 @@ async def read_post_lineage(
         "direct": _visible_summaries(linked.direct),
         "indirect": _visible_summaries(linked.indirect),
     }
+
+
+@app.get("/api/posts/{post_id}/knowledge-graph")
+async def read_post_knowledge_graph(
+    post_id: str,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return the authorized post-scoped KG projection for visualization."""
+    await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        return await post_knowledge_graph(conn, post_id)
 
 
 @app.get("/api/posts/{post_id}/evaluation")
@@ -2232,17 +2954,29 @@ async def evaluate_post(
             )
         async with pool.acquire() as conn:
             body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-        normalized_body = (
-            await asyncio.to_thread(
-                normalize_post_body,
-                "" if body_row is None else body_row["post_body"],
-                _vision_client(),
-            )
-        ).text
-        async with pool.acquire() as conn:
-            rows = await ingest_post_evaluation(
-                conn, client, post_id, post["post_title"], normalized_body
-            )
+        try:
+            normalized_body = (
+                await asyncio.to_thread(
+                    normalize_post_body,
+                    "" if body_row is None else body_row["post_body"],
+                    _vision_client(),
+                )
+            ).text
+            async with pool.acquire() as conn:
+                rows = await ingest_post_evaluation(
+                    conn, client, post_id, post["post_title"], normalized_body
+                )
+        except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Post evaluation is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            _logger.exception("evaluate_post failed unexpectedly")
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Post evaluation is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
     await publish_activity_event(
         valkey,
         post_id,
@@ -2276,7 +3010,7 @@ async def compare_period_groupings(
     try:
         parse_period_code(period_code)
     except ValueError as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
     async with pool.acquire() as conn:
         rows = await fetch_period_comparison(conn, period_code)
         demo_entity_ids: set[str] = set()
@@ -2287,7 +3021,7 @@ async def compare_period_groupings(
         members = [
             member
             for member in row["members"]
-            if _can_see_post(account, member)
+            if _can_use_post_for_analysis(account, member)
             and not _is_synthetic_demo_member(member, demo_entity_ids)
         ]
         if not members:
@@ -2305,7 +3039,7 @@ async def list_period_reports(
     """Available calibrated periods for one grouping kind (FIPC trend)."""
     _require_post_read(account)
     if grouping_kind not in GROUPING_KINDS:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "unknown grouping_kind")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "unknown grouping_kind")
     async with pool.acquire() as conn:
         summaries = await list_period_report_summaries(conn, grouping_kind)
         demo_entity_ids: set[str] = set()
@@ -2316,7 +3050,7 @@ async def list_period_reports(
         members = [
             member
             for member in summary["members"]
-            if _can_see_post(account, member)
+            if _can_use_post_for_analysis(account, member)
             and not _is_synthetic_demo_member(member, demo_entity_ids)
         ]
         if not members:
@@ -2335,11 +3069,11 @@ async def read_period_reports(
     """Calibrated IRT scores for one grouping kind and calendar period."""
     _require_post_read(account)
     if grouping_kind not in GROUPING_KINDS:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "unknown grouping_kind")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "unknown grouping_kind")
     try:
         parse_period_code(period_code)
     except ValueError as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
     async with pool.acquire() as conn:
         reports = await fetch_period_reports(conn, grouping_kind, period_code)
         demo_entity_ids: set[str] = set()
@@ -2350,7 +3084,7 @@ async def read_period_reports(
         members = [
             member
             for member in report["members"]
-            if _can_see_post(account, member)
+            if _can_use_post_for_analysis(account, member)
             and not _is_synthetic_demo_member(member, demo_entity_ids)
         ]
         if not members:
@@ -2358,15 +3092,37 @@ async def read_period_reports(
         leftover_pairs = [
             pair
             for pair in report.get("leftover_pairs", [])
-            if _can_see_post(account, pair)
+            if _can_use_post_for_analysis(account, pair)
             and not _is_synthetic_demo_member(pair, demo_entity_ids)
         ]
         members = [
-            {key: value for key, value in member.items() if key != "has_real_source_context"}
+            {
+                key: value
+                for key, value in member.items()
+                if key
+                not in {
+                    "visibility_code",
+                    "corporate_entity_id",
+                    "author_account_id",
+                    "source_detail_state_code",
+                    "has_real_source_context",
+                }
+            }
             for member in members
         ]
         leftover_pairs = [
-            {key: value for key, value in pair.items() if key != "has_real_source_context"}
+            {
+                key: value
+                for key, value in pair.items()
+                if key
+                not in {
+                    "visibility_code",
+                    "corporate_entity_id",
+                    "author_account_id",
+                    "source_detail_state_code",
+                    "has_real_source_context",
+                }
+            }
             for pair in leftover_pairs
         ]
         visible.append(
@@ -2385,11 +3141,11 @@ async def rebuild_period_report_endpoint(
     """Refit or FIPC-score every group in the period. post_admin only."""
     _require_post_admin(account)
     if grouping_kind not in GROUPING_KINDS:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "unknown grouping_kind")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "unknown grouping_kind")
     try:
         parse_period_code(period_code)
     except ValueError as exc:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
     async with pool.acquire() as conn:
         async with conn.transaction():
             reports = await rebuild_period_reports(conn, grouping_kind, period_code)
@@ -2410,14 +3166,15 @@ async def read_post_summary(
 ) -> dict[str, Any]:
     """A Korean summary, key events, and R&R for the popup.
 
-    Returns a persisted row when one exists so a seeded demo stack is
-    not empty without a live LLM. Otherwise derives through the
-    orchestrator and stores the result. Missing both is 503 -- never a
-    fabricated summary.
+    Returns current persisted evidence when it exists. A stale text summary is
+    returned immediately with its explicit status; operator backfill refreshes
+    it without making a reader wait for two orchestrator calls. Missing both is
+    derived and persisted, or returns 503 -- never a fabricated summary.
     """
     post = await _load_visible_post(post_id, account, pool)
     post_metadata = build_post_llm_metadata(post_id, post)
     queue_event: tuple[str, str] | None = None
+    summary_waiting_for_images = False
     async with pool.acquire() as conn:
         body_row = await conn.fetchrow(
             "select post_body from source_post where post_id = $1", post_id
@@ -2428,21 +3185,88 @@ async def read_post_summary(
             )
         except ValueError as exc:
             raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, str(exc)) from exc
-        stored = await fetch_persisted_summary(conn, post_id)
-        if stored is not None:
-            return stored
-        stale = await fetch_persisted_summary(conn, post_id, allow_stale=True)
+        image_body = post_body_has_images(raw_body)
+        if image_body:
+            content_complete = await post_content_is_complete(
+                conn,
+                post_id,
+                embedding_model_code=load_settings().embedding_model,
+                require_structure=bool(
+                    load_settings().orchestrator_base_url
+                    and load_settings().orchestrator_api_key
+                ),
+            )
+            async with conn.transaction():
+                job = await ensure_post_content_job(
+                    conn,
+                    post_id,
+                    raw_body,
+                    content_complete=content_complete,
+                )
+            if job.should_publish:
+                queue_event = (job.post_id, job.source_body_sha256)
+            summary_waiting_for_images = not await post_content_summary_is_ready(
+                conn,
+                post_id,
+                job.source_body_sha256,
+            )
+            if summary_waiting_for_images and queue_event is not None:
+                await publish_post_content_event(
+                    valkey,
+                    post_id=queue_event[0],
+                    source_body_digest=queue_event[1],
+                )
+                queue_event = None
+            if summary_waiting_for_images:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    post_content_summary_status_message(job.status_code),
+                )
+            normalized_body = await fetch_post_summary_source(conn, post_id)
+            if not normalized_body:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Post summary is unavailable: persisted post content is not available",
+                )
+            stored = await fetch_persisted_summary(
+                conn,
+                post_id,
+                summary_input=normalized_body,
+            )
+            if stored is not None:
+                if queue_event is not None:
+                    await publish_post_content_event(
+                        valkey,
+                        post_id=queue_event[0],
+                        source_body_digest=queue_event[1],
+                    )
+                return stored
+        else:
+            normalized_body = (
+                await asyncio.to_thread(normalize_post_body, raw_body)
+            ).text
+            stored = await fetch_persisted_summary(
+                conn,
+                post_id,
+                summary_input=normalized_body,
+            )
+            if stored is not None:
+                return stored
+            stale = await fetch_persisted_summary(
+                conn,
+                post_id,
+                summary_input=normalized_body,
+                allow_stale=True,
+            )
+            if stale is not None:
+                return stale
         with use_llm_metadata(post_metadata):
             client = _post_summary_client()
             if not client.available:
-                if stale is not None:
-                    return stale
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
                 )
-            normalized = await asyncio.to_thread(normalize_post_body, raw_body)
-            normalized_body = normalized.text
             context_hints = await _load_post_semantic_hints(conn, post_id)
             summarize_with_hints = getattr(client, "summarize_with_hints", None)
             try:
@@ -2453,38 +3277,53 @@ async def read_post_summary(
                 else:
                     summary = await asyncio.to_thread(client.summarize, post["post_title"], normalized_body)
             except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
-                if stale is not None:
-                    return stale
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
                 ) from exc
-            payload = await persist_post_summary(
+            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                _logger.exception("read_post_summary.summarize failed unexpectedly")
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
+                ) from exc
+            try:
+                payload = await persist_post_summary(
+                    conn,
+                    post_id,
+                    summary,
+                    post_body=normalized_body,
+                    expected_source_body_sha256=source_body_sha256(raw_body),
+                    require_image_evidence=image_body,
+                    resolution_client=_organization_name_resolution_client(),
+                    hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+                    verification_client=_relation_verification_client(),
+                )
+            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                _logger.exception("read_post_summary.persist failed unexpectedly")
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Post summary is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
+        if not image_body:
+            content_complete = await post_content_is_complete(
                 conn,
                 post_id,
-                summary,
-                post_body=normalized_body,
-                hierarchy_inference_client=_corporate_hierarchy_inference_client(),
-                verification_client=_relation_verification_client(),
+                embedding_model_code=load_settings().embedding_model,
+                require_structure=bool(
+                    load_settings().orchestrator_base_url
+                    and load_settings().orchestrator_api_key
+                ),
             )
-        content_complete = await post_content_is_complete(
-            conn,
-            post_id,
-            embedding_model_code=load_settings().embedding_model,
-            require_structure=bool(
-                load_settings().orchestrator_base_url
-                and load_settings().orchestrator_api_key
-            ),
-        )
-        async with conn.transaction():
-            job = await ensure_post_content_job(
-                conn,
-                post_id,
-                raw_body,
-                content_complete=content_complete,
-            )
-        if job.should_publish:
-            queue_event = (job.post_id, job.source_body_sha256)
+            async with conn.transaction():
+                job = await ensure_post_content_job(
+                    conn,
+                    post_id,
+                    raw_body,
+                    content_complete=content_complete,
+                )
+            if job.should_publish:
+                queue_event = (job.post_id, job.source_body_sha256)
     if queue_event is not None:
         await publish_post_content_event(
             valkey,
@@ -2506,20 +3345,60 @@ async def read_post_five_w1h(
         return await load_five_w1h_slots(
             conn,
             post_id,
-            lambda row: _can_see_post(account, row),
+            lambda row: _can_use_post_for_analysis(account, row),
         )
 
 
 class ChatRequest(BaseModel):
     """JSON body for ``POST /api/posts/{post_id}/chat``."""
 
-    question: str
+    question: str = Field(max_length=4000)
+    conversation_id: UUID | None = None
 
 
 class GlobalAskRequest(BaseModel):
-    """JSON body for the buyer's source-grounded Global Ask Agent."""
+    """JSON body for the reader's source-grounded Global Ask Agent."""
 
-    question: str
+    question: str = Field(max_length=4000)
+    conversation_id: UUID | None = None
+    anchor_post_id: UUID | None = None
+
+
+async def _persist_post_ask_turn(
+    conn: asyncpg.Connection,
+    account: CurrentAccount,
+    post_id: str,
+    conversation_id: UUID | None,
+    question: str,
+    answer_text: str,
+    source_post_ids: list[str],
+    cited_post_ids: list[str],
+) -> UUID:
+    """Store one completed post Ask turn; missing conversations stay 404.
+
+    Re-authorizes every citation inside the same transaction right before
+    commit; a citation whose authorization changed since it was gathered
+    aborts the whole turn with a stable 503 instead of persisting it.
+    """
+    try:
+        return await persist_post_ask_turn(
+            conn,
+            account.user_account_id,
+            post_id,
+            conversation_id,
+            question,
+            answer_text,
+            source_post_ids,
+            cited_post_ids,
+            can_see_post=lambda row: _can_use_post_for_analysis(account, row),
+        )
+    except PostAskEvidenceChanged as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Post chat is unavailable: authorized evidence changed; retry the question",
+        ) from exc
+    except PostAskConversationNotFound as exc:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "conversation not found") from exc
 
 
 @app.get("/api/posts/{post_id}/chat")
@@ -2560,20 +3439,35 @@ async def chat_about_post(
     """
     question = request.question.strip()
     if not question:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "question is required")
     post = await _load_visible_post(post_id, account, pool)
     post_metadata = build_post_llm_metadata(post_id, post)
     async with pool.acquire() as conn:
+        if request.conversation_id is not None and not await post_ask_conversation_exists(
+            conn, account.user_account_id, post_id, request.conversation_id
+        ):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "conversation not found")
         stored = await fetch_persisted_chat(conn, post_id, question)
         if stored is not None:
             source_ids = [post_id]
             source_ids.extend(cid for cid in stored["cited_post_ids"] if cid != post_id)
+            conversation_id = await _persist_post_ask_turn(
+                conn,
+                account,
+                post_id,
+                request.conversation_id,
+                question,
+                stored["answer_text"],
+                source_ids,
+                list(stored["cited_post_ids"]),
+            )
             return {
                 "post_id": post_id,
                 "answer_text": stored["answer_text"],
                 "cited_post_ids": stored["cited_post_ids"],
                 "cited_posts": stored["cited_posts"],
                 "source_post_ids": source_ids,
+                "conversation_id": str(conversation_id),
             }
         with use_llm_metadata(post_metadata):
             client = _post_chat_client()
@@ -2583,19 +3477,36 @@ async def chat_about_post(
                     "Post chat is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
                 )
             sources = await gather_chat_sources(
-                conn, post_id, lambda row: _can_see_post(account, row), vision_client=_vision_client()
+                conn, post_id, lambda row: _can_use_post_for_analysis(account, row), vision_client=_vision_client()
             )
     try:
         with use_llm_metadata(post_metadata):
             answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, ValueError) as exc:
+    except (HttpClientError, KeyError, OSError, RuntimeError, ValueError) as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
+        ) from exc
+    except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+        _logger.exception("chat_about_post failed unexpectedly")
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Post chat is unavailable: contextual-orchestrator returned no complete evidence object",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
+    source_ids = [source.post_id for source in sources]
     async with pool.acquire() as conn:
         await persist_post_chat(conn, post_id, question, answer.answer_text, cited_ids)
+        conversation_id = await _persist_post_ask_turn(
+            conn,
+            account,
+            post_id,
+            request.conversation_id,
+            question,
+            answer.answer_text,
+            source_ids,
+            cited_ids,
+        )
     await publish_activity_event(
         valkey,
         post_id,
@@ -2608,8 +3519,111 @@ async def chat_about_post(
         "answer_text": answer.answer_text,
         "cited_post_ids": cited_ids,
         "cited_posts": cited_post_summaries(sources, cited_ids),
-        "source_post_ids": [source.post_id for source in sources],
+        "source_post_ids": source_ids,
+        "conversation_id": str(conversation_id),
     }
+
+
+@app.get("/api/posts/{post_id}/chat/conversations")
+async def read_post_chat_conversations(
+    post_id: str,
+    limit: int = Query(50, ge=1, le=50),
+    before_updated_at: datetime | None = Query(None),
+    before_conversation_id: UUID | None = Query(None),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return this account's Ask conversations on one visible post."""
+    await _load_visible_post(post_id, account, pool)
+    if (before_updated_at is None) != (before_conversation_id is None):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT,
+            "before_updated_at and before_conversation_id must be provided together",
+        )
+    async with pool.acquire() as conn:
+        return await list_post_ask_conversations(
+            conn,
+            account.user_account_id,
+            post_id,
+            limit=limit,
+            before_updated_at=before_updated_at,
+            before_conversation_id=before_conversation_id,
+        )
+
+
+@app.get("/api/posts/{post_id}/chat/conversations/{conversation_id}")
+async def read_post_chat_conversation(
+    post_id: str,
+    conversation_id: UUID,
+    limit: int = Query(50, ge=1, le=50),
+    before_turn: int | None = Query(None, ge=1),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return one owned post Ask transcript with currently authorized citations."""
+    await _load_visible_post(post_id, account, pool)
+    async with pool.acquire() as conn:
+        conversation = await fetch_post_ask_conversation(
+            conn,
+            account.user_account_id,
+            post_id,
+            conversation_id,
+            lambda row: _can_use_post_for_analysis(account, row),
+            turn_limit=limit,
+            before_turn_ordinal=before_turn,
+        )
+    if conversation is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "conversation not found")
+    return conversation
+
+
+@app.get("/api/ask/conversations")
+async def read_ask_conversations(
+    limit: int = Query(50, ge=1, le=50),
+    before_updated_at: datetime | None = Query(None),
+    before_conversation_id: UUID | None = Query(None),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return only the authenticated account's Global Ask conversations."""
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        if (before_updated_at is None) != (before_conversation_id is None):
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_CONTENT,
+                "before_updated_at and before_conversation_id must be provided together",
+            )
+        return await list_conversations(
+            conn,
+            account.user_account_id,
+            limit=limit,
+            before_updated_at=before_updated_at,
+            before_conversation_id=before_conversation_id,
+        )
+
+
+@app.get("/api/ask/conversations/{conversation_id}")
+async def read_ask_conversation(
+    conversation_id: UUID,
+    limit: int = Query(50, ge=1, le=50),
+    before_turn: int | None = Query(None, ge=1),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Return one owned transcript with currently authorized evidence."""
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        conversation = await fetch_conversation(
+            conn,
+            account.user_account_id,
+            conversation_id,
+            lambda row: _can_use_post_for_analysis(account, row),
+            turn_limit=limit,
+            before_turn_ordinal=before_turn,
+        )
+    if conversation is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "conversation not found")
+    return conversation
 
 
 @app.post("/api/ask")
@@ -2618,26 +3632,40 @@ async def ask_agent(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Answer a buyer question from authorized post and graph evidence."""
+    """Answer a reader question from authorized post and graph evidence."""
     question = request.question.strip()
     if not question:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "question is required")
     _require_post_read(account)
+    if request.anchor_post_id is not None:
+        await _load_visible_post(str(request.anchor_post_id), account, pool)
+    async with pool.acquire() as conn:
+        if request.conversation_id is not None and not await conversation_exists(
+            conn, account.user_account_id, request.conversation_id
+        ):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "conversation not found")
     client = _post_chat_client()
     if not client.available:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
         )
+    settings = load_settings()
     async with pool.acquire() as conn:
         sources = await gather_global_chat_sources(
             conn,
-            lambda row: _can_see_post(account, row),
+            lambda row: _can_use_post_for_analysis(account, row),
             account.corporate_entity_ids,
             question=question,
+            anchor_post_id=str(request.anchor_post_id) if request.anchor_post_id else None,
+            tepp_client=configured_tepp_client(
+                settings.tepp_transport_url,
+                settings.tepp_api_key,
+                settings.tepp_temporal_context_url,
+            ),
         )
     if not sources:
-        return {
+        response: dict[str, Any] = {
             "answer_text": "",
             "cited_post_ids": [],
             "cited_posts": [],
@@ -2645,24 +3673,56 @@ async def ask_agent(
             "cited_post_evidence": [],
             "next_action": "No authorized source posts are available for this question.",
         }
-    try:
-        answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, ValueError) as exc:
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            f"Ask Agent is unavailable: {exc}",
-        ) from exc
-    cited_ids = list(answer.cited_post_ids)
-    return {
-        "answer_text": answer.answer_text,
-        "cited_post_ids": cited_ids,
-        "cited_posts": cited_post_summaries(sources, cited_ids),
-        "cited_post_evidence": cited_post_evidence(sources, cited_ids),
-        "source_post_ids": [source.post_id for source in sources],
-    }
+    else:
+        try:
+            answer = await asyncio.to_thread(client.answer, question, sources)
+        except (HttpClientError, KeyError, OSError, RuntimeError, ValueError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            _logger.exception("ask_agent failed unexpectedly")
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
+        cited_ids = list(answer.cited_post_ids)
+        response = {
+            "answer_text": answer.answer_text,
+            "cited_post_ids": cited_ids,
+            "cited_posts": cited_post_summaries(sources, cited_ids),
+            "cited_post_evidence": cited_post_evidence(sources, cited_ids),
+            "source_post_ids": [source.post_id for source in sources],
+        }
+    async with pool.acquire() as conn:
+        try:
+            persisted_conversation_id = await persist_turn(
+                conn,
+                account.user_account_id,
+                request.conversation_id,
+                question,
+                response["answer_text"],
+                response.get("next_action"),
+                response["source_post_ids"],
+                response["cited_post_ids"],
+                response["cited_post_evidence"],
+                can_see_post=lambda row: _can_use_post_for_analysis(account, row),
+            )
+        except GlobalAskEvidenceChanged as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Ask Agent is unavailable: authorized evidence changed; retry the question",
+            ) from exc
+        except GlobalAskConversationNotFound as exc:
+            raise HTTPException(status.HTTP_404_NOT_FOUND, "conversation not found") from exc
+    response["conversation_id"] = str(persisted_conversation_id)
+    return response
 
 
 class PostBookmarkRequest(BaseModel):
+    """Validated body for setting the current account's post bookmark."""
+
     bookmarked: bool
 
 
@@ -2672,10 +3732,11 @@ async def read_post_bookmark(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    await _load_visible_post(post_id, account, pool)
+    """Report whether the current account bookmarked an authorized post."""
+    await _load_visible_post(post_id, account, pool, allow_writing=True)
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "select 1 from bookmark where user_account_id = $1 and post_id = $2",
+            "select 1 from post_bookmark where user_account_id = $1 and post_id = $2",
             account.user_account_id,
             post_id,
         )
@@ -2689,12 +3750,13 @@ async def write_post_bookmark(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    await _load_visible_post(post_id, account, pool)
+    """Set or clear the current account's bookmark on an authorized post."""
+    await _load_visible_post(post_id, account, pool, allow_writing=True)
     async with pool.acquire() as conn:
         if request.bookmarked:
             await conn.execute(
                 """
-                insert into bookmark (user_account_id, post_id)
+                insert into post_bookmark (user_account_id, post_id)
                 values ($1, $2)
                 on conflict (user_account_id, post_id) do nothing
                 """,
@@ -2703,7 +3765,7 @@ async def write_post_bookmark(
             )
         else:
             await conn.execute(
-                "delete from bookmark where user_account_id = $1 and post_id = $2",
+                "delete from post_bookmark where user_account_id = $1 and post_id = $2",
                 account.user_account_id,
                 post_id,
             )
@@ -2881,14 +3943,26 @@ async def derive_post_commitment(
             )
         async with pool.acquire() as conn:
             body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-        normalized_body = (
-            await asyncio.to_thread(normalize_post_body, body_row["post_body"], _vision_client())
-        ).text
-        # TimeML/TempEval document creation time, not wall-clock now: "by next
-        # Friday" in a January post must resolve to that January, not to the
-        # Friday after the operator clicked Derive.
-        reference_date = post["created_at"].date().isoformat()
-        commitment = client.extract(post["post_title"], normalized_body, reference_date)
+        try:
+            normalized_body = (
+                await asyncio.to_thread(normalize_post_body, body_row["post_body"], _vision_client())
+            ).text
+            # TimeML/TempEval document creation time, not wall-clock now: "by next
+            # Friday" in a January post must resolve to that January, not to the
+            # Friday after the operator clicked Derive.
+            reference_date = post["created_at"].date().isoformat()
+            commitment = client.extract(post["post_title"], normalized_body, reference_date)
+        except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Commitment derivation is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            _logger.exception("derive_post_commitment failed unexpectedly")
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Commitment derivation is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
     if not commitment.has_commitment:
         return {"post_id": str(post["post_id"]), "has_commitment": False, "ticket": None}
     async with pool.acquire() as conn:
@@ -3099,7 +4173,7 @@ async def read_calendar(
         demo_entity_ids: set[str] = set()
         if commitments and await has_real_source_context(conn, list(account.corporate_entity_ids)):
             demo_entity_ids = await fetch_demo_corporate_entity_ids(conn)
-    visible = [c for c in commitments if _can_see_post(account, c)]
+    visible = [c for c in commitments if _can_use_post_for_analysis(account, c)]
     # Once real evidence is visible, the synthetic Demo Corp commitments
     # (ADR 0001 / ADR 0042) stop appearing beside it.
     if demo_entity_ids:
@@ -3107,7 +4181,14 @@ async def read_calendar(
             c for c in visible if not _is_synthetic_demo_member(c, demo_entity_ids)
         ]
     for c in visible:
-        del c["visibility_code"], c["corporate_entity_id"], c["has_real_source_context"]
+        for key in (
+            "visibility_code",
+            "corporate_entity_id",
+            "author_account_id",
+            "source_detail_state_code",
+            "has_real_source_context",
+        ):
+            c.pop(key, None)
     return {
         "events": events,
         "commitments": visible,
@@ -3132,7 +4213,7 @@ async def read_rankings(
     _require_post_read(account)
     async with pool.acquire() as conn:
         posts = await load_visible_ranking_posts(
-            conn, lambda row: _can_see_post(account, row)
+            conn, lambda row: _can_use_post_for_analysis(account, row)
         )
     return _rankweave_client().as_api_payload(
         posts, can_see_post=lambda _row: True

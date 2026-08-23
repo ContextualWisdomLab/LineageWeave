@@ -9,7 +9,6 @@ import asyncpg
 
 from lineageweave.five_w1h import assemble_five_w1h_slots, slots_payload
 
-from .entity_relationship_ingestion import fetch_post_counterparties
 from .post_chat_ingestion import find_linked_post_ids
 from .post_summary_ingestion import fetch_persisted_summary
 
@@ -20,7 +19,7 @@ async def load_five_w1h_slots(
     can_see_post: Callable[[asyncpg.Record], bool],
 ) -> dict[str, Any]:
     """Build 5W1H from stored projections and visible lineage only."""
-    summary = await fetch_persisted_summary(conn, post_id) or {}
+    summary = await fetch_persisted_summary(conn, post_id, allow_stale=True) or {}
     evidence_claims = await conn.fetch(
         """
         select slot_code, value_text, evidence_text
@@ -30,22 +29,21 @@ async def load_five_w1h_slots(
         """,
         post_id,
     )
-    linked = await find_linked_post_ids(conn, post_id)
+    linked = await find_linked_post_ids(conn, post_id, can_see_post)
     candidate_ids = sorted(linked.direct | linked.indirect)
     linked_titles: list[str] = []
     if candidate_ids:
         rows = await conn.fetch(
-            "select post_id, post_title, visibility_code, corporate_entity_id "
+            "select post_id, post_title, visibility_code, corporate_entity_id, "
+            "author_account_id, source_detail_state_code "
             "from source_post where post_id = any($1::uuid[])",
             candidate_ids,
         )
         linked_titles = [row["post_title"] for row in rows if can_see_post(row)]
 
-    counterparties = await fetch_post_counterparties(conn, post_id)
     slots = assemble_five_w1h_slots(
         roles=summary.get("roles_and_responsibilities", []),
         key_events=summary.get("key_events", []),
-        counterparties=[row["counterparty_entity_name"] for row in counterparties],
         lineage_node_labels=linked_titles,
         evidence_claims=[dict(row) for row in evidence_claims],
     )

@@ -49,6 +49,8 @@ def build_server(host: str = "127.0.0.1", port: int = 8420) -> ThreadingHTTPServ
     """Build, but do not start, the demo server."""
 
     class Handler(BaseHTTPRequestHandler):
+        """Serve the demo lineage JSON endpoint and static DAG viewer."""
+
         def do_GET(self) -> None:  # noqa: N802
             """Handle a GET request using the server's health endpoint contract."""
             if self.path == "/api/lineage":

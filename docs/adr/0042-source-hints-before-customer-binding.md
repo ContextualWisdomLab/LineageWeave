@@ -25,6 +25,12 @@ belong to a fictional organization.
   the resulting catalog id and provenance persisted separately.
 - Keep `기타` and unregistered customer values unresolved until corroborating
   evidence exists.
+- Treat every non-lifecycle `source_*` provenance field, including source
+  system, source record identity, source stage, and source detail state, as
+  real-import evidence for Demo-scope and operator eligibility. Metadata-only
+  imports must not be classified as synthetic merely because customer,
+  project, or author fields are empty. Draft and deleted markers remain
+  separate lifecycle gates.
 - Include only ABAC-visible source-post references in each customer hint so a
   buyer can open the original post, read its body, and inspect semantic
   evidence without turning the hint into a customer binding.

@@ -19,8 +19,10 @@ from __future__ import annotations
 
 import asyncio
 import re
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from typing import Any, Callable, Iterable
+from datetime import UTC, datetime
+from typing import Any
 
 import asyncpg
 
@@ -33,6 +35,7 @@ from lineageweave.knowledge_graph import (
     random_walk_with_restart,
     select_related_nodes,
 )
+from lineageweave.ontology import ontology_annotations
 from lineageweave.post_chat import (
     CANONICAL_CHAT_QUESTION,
     CANONICAL_COMMITMENT_QUESTION,
@@ -41,9 +44,16 @@ from lineageweave.post_chat import (
     normalize_chat_question,
 )
 from lineageweave.post_content_normalization import normalize_post_body
+from lineageweave.source_lineage_hints import source_lineage_hint_facts
+from lineageweave.tepp_client import (
+    TemporalContextEvent,
+    TemporalContextRequest,
+    TeppClient,
+    TeppNotAvailable,
+)
 
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
-from lineageweave.ontology import ontology_annotations
+from .post_eligibility import SOURCE_POST_READER_ELIGIBILITY_SQL
 
 
 @dataclass(frozen=True)
@@ -155,6 +165,10 @@ _SOURCE_HINT_FIELDS = (
     ("source_process_unit_name", "source business unit name (PU)"),
     ("source_sales_pool_code", "source sales pool"),
     ("source_sales_pool_name", "source sales pool name"),
+    ("source_order_pool_code", "source order pool"),
+    ("source_sales_order_code", "source sales order"),
+    ("source_sales_order_item_number", "source sales order item"),
+    ("source_inspection_point_code", "source inspection point"),
     ("source_customer_code", "source customer code"),
     ("source_customer_name", "source customer name"),
     ("source_project_code", "source project code"),
@@ -175,7 +189,29 @@ def _source_hint_facts(row: Any) -> tuple[str, ...]:
             facts.append(
                 f"{label}={str(value).strip()} [provenance=source_post.{field_name}; hint_only]"
             )
-    return tuple(facts)
+    return tuple(facts) + source_lineage_hint_facts(
+        customer_code=row.get("source_customer_code"),
+        order_pool_code=row.get("source_order_pool_code"),
+        sales_order_code=row.get("source_sales_order_code"),
+        sales_order_item_number=row.get("source_sales_order_item_number"),
+        stage_code=row.get("source_stage_code"),
+        detail_state_code=row.get("source_detail_state_code"),
+        inspection_point_code=row.get("source_inspection_point_code"),
+        deleted_flag=row.get("source_deleted_flag"),
+    )
+
+
+def _semantic_event_time(value: object) -> datetime | None:
+    """Parse one explicit event clue instant; ambiguous/local times stay unavailable."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        parsed = datetime.fromisoformat(value.strip())
+    except ValueError:
+        return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed.astimezone(UTC)
 
 
 async def _semantic_facts_for_posts(
@@ -191,14 +227,14 @@ async def _semantic_facts_for_posts(
                    || ' | evidence: ' || left(evidence_text, 500)
                    || ' | ontology_iri: ' || ontology_iri
                    || ' | extraction_method: ' || extraction_method
-                   || ' | confidence: ' || confidence::text
+                   || ' | confidence: ' || mention_confidence::text
                    || ' [provenance=post_project_mention]' as fact
           from post_project_mention
          where post_id = any($1::uuid[])
         union all
         select post_id::text as post_id,
                'actor: ' || left(actor_name, 200)
-                   || ' | responsibility: ' || left(responsibility, 500)
+                   || ' | responsibility: ' || left(responsibility_text, 500)
                    || coalesce(' | affiliation: ' || left(affiliated_organization_name, 200), '')
                    || ' [provenance=post_summary_role]' as fact
           from post_summary_role
@@ -211,6 +247,62 @@ async def _semantic_facts_for_posts(
           from post_person_mention mention
           join cataloged_person person on person.person_id = mention.person_id
          where mention.post_id = any($1::uuid[])
+        union all
+        select event.post_id::text as post_id,
+               'event: ' || left(event.event_text, 300)
+                   || coalesce(' | evidence: ' || left(event.evidence_text, 500), '')
+                   || ' | ontology_iri: ' || event.ontology_iri
+                   || ' | extraction_method: ' || event.extraction_method
+                   || ' [provenance=post_summary_event]' as fact
+          from post_summary_event event
+         where event.post_id = any($1::uuid[])
+        union all
+        select clue.post_id::text as post_id,
+               'event clue: ' || clue.clue_type_code
+                   || ' | clue: ' || left(clue.clue_text, 300)
+                   || coalesce(' | target: ' || left(clue.target_text, 200), '')
+                   || coalesce(' | normalized: ' || left(clue.normalized_value_text, 200), '')
+                   || coalesce(' | assertion: ' || clue.assertion_code, '')
+                   || ' | evidence: ' || left(clue.evidence_text, 500)
+                   || ' | ontology_iri: ' || clue.ontology_iri
+                   || ' | extraction_method: ' || clue.extraction_method
+                   || ' [provenance=post_summary_event_clue]' as fact
+          from post_summary_event_clue clue
+         where clue.post_id = any($1::uuid[])
+        union all
+        select observation.post_id::text as post_id,
+               'quantitative: ' || left(observation.label_text, 200)
+                   || ' | value: ' || left(observation.raw_value_text, 200)
+                   || coalesce(' | quantity: ' || observation.quantity_numeric::text || ' ' || observation.quantity_unit_code, '')
+                   || ' | evidence: ' || left(observation.evidence_text, 500)
+                   || ' | ontology_iri: ' || observation.ontology_iri
+                   || ' | extraction_method: ' || observation.extraction_method
+                   || ' [provenance=post_summary_quantitative_observation]' as fact
+          from post_summary_quantitative_observation observation
+         where observation.post_id = any($1::uuid[])
+        union all
+        select fact.post_id::text as post_id,
+               'source fact: ' || left(fact.label_text, 200)
+                   || ' | value: ' || left(fact.value_text, 500)
+                   || coalesce(' | normalized_value: ' || left(fact.normalized_value_text, 200), '')
+                   || coalesce(' | normalized_date: ' || fact.normalized_date::text, '')
+                   || coalesce(' | assertion: ' || fact.assertion_code, '')
+                   || ' | evidence: ' || left(fact.evidence_text, 500)
+                   || ' | ontology_iri: ' || fact.ontology_iri
+                   || ' | extraction_method: ' || fact.extraction_method
+                   || ' [provenance=post_summary_source_fact]' as fact
+          from post_summary_source_fact fact
+         where fact.post_id = any($1::uuid[])
+        union all
+        select relation.post_id::text as post_id,
+               'semantic relation: ' || left(relation.subject_name, 200)
+                   || ' --' || relation.predicate_code || '--> '
+                   || left(relation.object_name, 200)
+                   || ' | evidence: ' || left(relation.evidence_text, 500)
+                   || ' | confidence: ' || relation.relation_confidence::text
+                   || ' [provenance=post_summary_semantic_relationship]' as fact
+          from post_summary_semantic_relationship relation
+         where relation.post_id = any($1::uuid[])
          order by post_id, fact
         """,
         post_ids,
@@ -221,7 +313,11 @@ async def _semantic_facts_for_posts(
     return {post_id: tuple(dict.fromkeys(values)) for post_id, values in facts.items()}
 
 
-async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> LinkedPostIds:
+async def find_linked_post_ids(
+    conn: asyncpg.Connection,
+    post_id: str,
+    can_see_post: Callable[[asyncpg.Record], bool],
+) -> LinkedPostIds:
     """Both link kinds for `post_id`, NOT yet ABAC-filtered -- callers must
     check `can_see_post` on each id before showing or using it as chat
     context.
@@ -251,6 +347,26 @@ async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> Linked
             person_ids,
         )
         sibling_post_ids = list({str(row["post_id"]) for row in sibling_rows} | {post_id})
+
+    # A hidden sibling's mentions must not seed the entity graph
+    # load_visible_subgraph walks: an unauthorized post's org/team/customer
+    # mention could otherwise bridge to an unrelated visible post through
+    # shared entity membership, fabricating an "indirect" relationship
+    # whose only real basis is content this account cannot see (the
+    # sibling itself stays correctly excluded from output either way).
+    if len(sibling_post_ids) > 1:
+        # Safe SQL: eligibility predicate is an immutable schema fragment; ids are bound.
+        visibility_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            "select post_id, visibility_code, corporate_entity_id, "
+            "author_account_id, source_detail_state_code "
+            f"from source_post where post_id = any($1::uuid[]) and ({SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='source_post')})",
+            sibling_post_ids,
+        )
+        sibling_post_ids = [
+            str(row["post_id"]) for row in visibility_rows if can_see_post(row)
+        ]
+        if post_id not in sibling_post_ids:
+            sibling_post_ids.append(post_id)
 
     edges = await load_visible_subgraph(conn, sibling_post_ids)
     start = node_key(NODE_POST, post_id)
@@ -292,6 +408,8 @@ async def gather_chat_sources(
         "source_author_code, source_author_name, source_company_code, source_company_name, "
         "source_process_unit_code, source_process_unit_name, "
         "source_sales_pool_code, source_sales_pool_name, "
+        "source_order_pool_code, source_sales_order_code, source_sales_order_item_number, "
+        "source_inspection_point_code, source_stage_code, source_detail_state_code, source_deleted_flag, "
         "source_customer_code, source_customer_name, source_project_code, "
         "source_project_name from source_post where post_id = $1",
         post_id,
@@ -313,7 +431,7 @@ async def gather_chat_sources(
         )
     ]
 
-    linked = await find_linked_post_ids(conn, post_id)
+    linked = await find_linked_post_ids(conn, post_id, can_see_post)
     candidate_ids = [
         *sorted(linked.direct),
         *sorted(linked.indirect),
@@ -323,9 +441,12 @@ async def gather_chat_sources(
 
     rows = await conn.fetch(
         "select post_id, post_title, post_body, visibility_code, corporate_entity_id, "
+        "author_account_id, source_detail_state_code, "
         "source_system_code, source_record_key, source_author_code, source_author_name, "
         "source_company_code, source_company_name, source_process_unit_code, "
         "source_process_unit_name, source_sales_pool_code, source_sales_pool_name, "
+        "source_order_pool_code, source_sales_order_code, source_sales_order_item_number, "
+        "source_inspection_point_code, source_stage_code, source_deleted_flag, "
         "source_customer_code, source_customer_name, "
         "source_project_code, source_project_name "
         "from source_post where post_id = any($1::uuid[]) "
@@ -374,6 +495,8 @@ async def gather_global_chat_sources(
     vision_client: ImageContentClient | None = None,
     *,
     question: str | None = None,
+    anchor_post_id: str | None = None,
+    tepp_client: TeppClient | None = None,
     limit: int = 4,
 ) -> list[ChatSourceDocument]:
     """Assemble a bounded, ABAC-filtered source set for Global Ask.
@@ -382,6 +505,7 @@ async def gather_global_chat_sources(
     needed for a much larger corpus; every selected body still uses the same
     image normalization and persisted graph evidence as post-scoped chat.
     """
+    authorized_entity_ids = tuple(str(value) for value in authorized_corporate_entity_ids)
     if limit <= 0:
         return []
     if vision_client is None:
@@ -415,9 +539,18 @@ async def gather_global_chat_sources(
                 "무엇",
                 "무엇인가요",
                 "인가요",
+                "있는",
+                "앞쪽",
+                "앞쪽에",
+                "이벤트",
+                "이벤트를",
+                "유관",
+                "선행",
+                "이텐트",
+                "찾아줘",
             }
         )
-    )[:8]
+    )[:4]
     # A post whose title names the exact thing asked about is a far more
     # specific match than one that only shares a generic term (a common
     # word, or a hit buried in a 16KB body prefix); weighting every match
@@ -425,51 +558,298 @@ async def gather_global_chat_sources(
     # tiebreak let recency crowd out relevance -- a year-old post whose
     # title is an exact company-name match lost to four newer, only
     # loosely related posts in a live reproduction of this bug.
-    _MATCH_WEIGHT = {"title": 3.0, "body": 1.0, "source_field": 1.0}
+    _MATCH_WEIGHT = {"title": 3.0, "body": 1.0, "source_field": 1.0, "semantic": 2.5}
     candidate_scores: dict[str, float] = {}
     for term in search_terms:
-        candidate_rows = await conn.fetch(
-            """
+        candidate_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            f"""
+            with authorized_source_post as (
+                select *
+                  from source_post
+                 where (visibility_code = 'public'
+                    or corporate_entity_id::text = any($2::text[]))
+                   and ({SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='source_post')})
+            )
             select post_id, matched_in
               from (
                    (select post_id, created_at, 'title' as matched_in
-                      from source_post
+                      from authorized_source_post
                      where post_title ilike '%' || $1 || '%'
                      limit 32)
                     union all
                    (select post_id, created_at, 'body' as matched_in
-                      from source_post
+                      from authorized_source_post
                      where lower(left(source_post_search_text(post_body), 16384))
                                like '%' || lower($1) || '%'
                      limit 32)
                     union all
                    (select post_id, created_at, 'body' as matched_in
-                      from source_post
+                      from authorized_source_post
                      where to_tsvector('simple', source_post_search_text(post_body))
                                @@ plainto_tsquery('simple', $1)
                      limit 32)
                     union all
                    (select post_id, created_at, 'source_field' as matched_in
-                      from source_post
+                      from authorized_source_post
                      where concat_ws(' ', source_system_code, source_record_key,
                                       source_author_code, source_author_name,
                                       source_company_code, source_company_name,
                                       source_process_unit_code, source_process_unit_name,
                                       source_sales_pool_code, source_sales_pool_name,
+                                      source_order_pool_code, source_sales_order_code,
+                                      source_sales_order_item_number,
+                                      source_inspection_point_code, source_stage_code,
+                                      source_deleted_flag,
                                       source_customer_code, source_customer_name,
                                       source_project_code, source_project_name)
                                ilike '%' || $1 || '%'
+                     limit 32)
+                   union all
+                   (select post.post_id, post.created_at, 'semantic' as matched_in
+                      from authorized_source_post post
+                      join post_summary_event semantic
+                        on semantic.post_id = post.post_id
+                     where semantic.event_text ilike '%' || $1 || '%'
+                        or semantic.evidence_text ilike '%' || $1 || '%'
+                     limit 32)
+                    union all
+                   (select post.post_id, post.created_at, 'semantic' as matched_in
+                      from authorized_source_post post
+                      join post_summary_event_clue semantic
+                        on semantic.post_id = post.post_id
+                     where semantic.clue_text ilike '%' || $1 || '%'
+                        or semantic.target_text ilike '%' || $1 || '%'
+                        or semantic.normalized_value_text ilike '%' || $1 || '%'
+                        or semantic.evidence_text ilike '%' || $1 || '%'
+                        or semantic.ontology_iri ilike '%' || $1 || '%'
+                     limit 32)
+                    union all
+                   (select post.post_id, post.created_at, 'semantic' as matched_in
+                      from authorized_source_post post
+                      join post_project_mention semantic
+                        on semantic.post_id = post.post_id
+                     where semantic.project_name ilike '%' || $1 || '%'
+                        or semantic.evidence_text ilike '%' || $1 || '%'
+                        or semantic.ontology_iri ilike '%' || $1 || '%'
+                     limit 32)
+                    union all
+                   (select post.post_id, post.created_at, 'semantic' as matched_in
+                      from authorized_source_post post
+                      join post_summary_role semantic
+                        on semantic.post_id = post.post_id
+                     where semantic.actor_name ilike '%' || $1 || '%'
+                        or semantic.responsibility_text ilike '%' || $1 || '%'
+                        or semantic.affiliated_organization_name ilike '%' || $1 || '%'
+                     limit 32)
+                    union all
+                   (select post.post_id, post.created_at, 'semantic' as matched_in
+                      from authorized_source_post post
+                      join post_summary_quantitative_observation semantic
+                        on semantic.post_id = post.post_id
+                     where semantic.label_text ilike '%' || $1 || '%'
+                        or semantic.raw_value_text ilike '%' || $1 || '%'
+                        or semantic.evidence_text ilike '%' || $1 || '%'
+                        or semantic.value_numeric::text ilike '%' || $1 || '%'
+                        or semantic.quantity_numeric::text ilike '%' || $1 || '%'
+                     limit 32)
+                    union all
+                   (select post.post_id, post.created_at, 'semantic' as matched_in
+                      from authorized_source_post post
+                      join post_summary_source_fact semantic
+                        on semantic.post_id = post.post_id
+                     where semantic.label_text ilike '%' || $1 || '%'
+                        or semantic.value_text ilike '%' || $1 || '%'
+                        or semantic.normalized_value_text ilike '%' || $1 || '%'
+                        or semantic.evidence_text ilike '%' || $1 || '%'
+                        or semantic.normalized_date::text ilike '%' || $1 || '%'
+                     limit 32)
+                    union all
+                   (select post.post_id, post.created_at, 'semantic' as matched_in
+                      from authorized_source_post post
+                      join post_summary_semantic_relationship semantic
+                        on semantic.post_id = post.post_id
+                     where semantic.subject_name ilike '%' || $1 || '%'
+                        or semantic.predicate_code ilike '%' || $1 || '%'
+                        or semantic.object_name ilike '%' || $1 || '%'
+                        or semantic.evidence_text ilike '%' || $1 || '%'
                      limit 32)
                    ) matches
              order by created_at desc, post_id desc
             limit 32
             """,
             term,
+            authorized_entity_ids,
         )
         for row in candidate_rows:
             post_id = str(row["post_id"])
             candidate_scores[post_id] = candidate_scores.get(post_id, 0.0) + _MATCH_WEIGHT[row["matched_in"]]
     candidate_ids = sorted(candidate_scores, key=lambda post_id: candidate_scores[post_id], reverse=True)
+
+    # A post opened in the Ask workspace is stronger context than words the
+    # reader happens to repeat in the question.  Reuse persisted event and
+    # source semantics to retrieve earlier candidates; never manufacture a
+    # lineage edge from the similarity score.
+    if anchor_post_id:
+        prior_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            f"""
+            with authorized_source_post as (
+                select *
+                  from source_post
+                 where (visibility_code = 'public'
+                    or corporate_entity_id::text = any($2::text[]))
+                   and ({SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='source_post')})
+            ), anchor as (
+                select post_id, created_at, source_customer_code, source_project_code,
+                       source_company_code, source_process_unit_code,
+                       source_sales_pool_code, source_order_pool_code,
+                       source_sales_order_code
+                  from authorized_source_post
+                 where post_id = $1
+            ), anchor_events as (
+                select string_agg(event_text, ' ') as event_text
+                  from post_summary_event
+                 where post_id = $1
+            ), source_candidates as (
+                select post.post_id
+                  from authorized_source_post post
+                  cross join anchor
+                 where post.post_id <> anchor.post_id
+                   and post.created_at < anchor.created_at
+                   and (post.source_customer_code = anchor.source_customer_code
+                    or post.source_project_code = anchor.source_project_code
+                    or post.source_company_code = anchor.source_company_code
+                    or post.source_process_unit_code = anchor.source_process_unit_code
+                    or post.source_sales_pool_code = anchor.source_sales_pool_code
+                    or post.source_order_pool_code = anchor.source_order_pool_code
+                    or post.source_sales_order_code = anchor.source_sales_order_code)
+                 order by post.created_at desc, post.post_id desc
+                 limit 64
+            ), event_candidates as (
+                select distinct event.post_id
+                  from post_summary_event event
+                  join authorized_source_post post on post.post_id = event.post_id
+                  cross join anchor
+                  cross join anchor_events
+                 where post.post_id <> anchor.post_id
+                   and post.created_at < anchor.created_at
+                   and to_tsvector('simple', event.event_text)
+                       @@ plainto_tsquery('simple', anchor_events.event_text)
+                 limit 128
+            ), candidates as (
+                select post_id from source_candidates
+                union
+                select post_id from event_candidates
+            ), ranked as (
+                select post.post_id, post.created_at,
+                       greatest(
+                           coalesce((
+                               select max(word_similarity(event.event_text, anchor_events.event_text))
+                                 from post_summary_event event
+                                where event.post_id = post.post_id
+                           ), 0),
+                           0.85 * (post.source_sales_order_code is not null and post.source_sales_order_code = anchor.source_sales_order_code)::int +
+                           0.15 * (
+                               (post.source_customer_code is not null and post.source_customer_code = anchor.source_customer_code)::int +
+                               (post.source_project_code is not null and post.source_project_code = anchor.source_project_code)::int +
+                               (post.source_company_code is not null and post.source_company_code = anchor.source_company_code)::int +
+                               (post.source_process_unit_code is not null and post.source_process_unit_code = anchor.source_process_unit_code)::int +
+                               (post.source_sales_pool_code is not null and post.source_sales_pool_code = anchor.source_sales_pool_code)::int +
+                               (post.source_order_pool_code is not null and post.source_order_pool_code = anchor.source_order_pool_code)::int +
+                               (post.source_sales_order_code is not null and post.source_sales_order_code = anchor.source_sales_order_code)::int
+                           )
+                       ) as relevance
+                  from anchor
+                  cross join anchor_events
+                  join candidates on true
+                  join authorized_source_post post on post.post_id = candidates.post_id
+            )
+            select post_id, relevance
+              from ranked
+             where relevance >= 0.25
+             order by relevance desc, created_at desc, post_id desc
+             limit $3
+            """,
+            anchor_post_id,
+            authorized_entity_ids,
+            limit * 4,
+        )
+        candidate_scores[anchor_post_id] = candidate_scores.get(anchor_post_id, 0.0) + 10.0
+        for row in prior_rows:
+            post_id = str(row["post_id"])
+            candidate_scores[post_id] = candidate_scores.get(post_id, 0.0) + float(row["relevance"])
+        candidate_ids = sorted(candidate_scores, key=lambda post_id: candidate_scores[post_id], reverse=True)
+
+        # Discover new post ids through normalized KG evidence before asking
+        # the visible-subgraph walker to rank them.  Only ontology-declared
+        # relations cross from the graph projection into retrieval.
+        kg_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            f"""
+            with anchor_nodes as (
+                select edge.source_node_type_code as node_type_code,
+                       edge.source_node_id as node_id
+                  from knowledge_graph_edge edge
+                  join knowledge_graph_edge_evidence evidence
+                    using (knowledge_graph_edge_id)
+                 where evidence.evidence_post_id = $1
+                   and not (edge.source_node_type_code = 'node_post'
+                            and edge.source_node_id = $1)
+                union
+                select edge.target_node_type_code, edge.target_node_id
+                  from knowledge_graph_edge edge
+                  join knowledge_graph_edge_evidence evidence
+                    using (knowledge_graph_edge_id)
+                 where evidence.evidence_post_id = $1
+                   and not (edge.target_node_type_code = 'node_post'
+                            and edge.target_node_id = $1)
+            ), related_edges as (
+                select edge.knowledge_graph_edge_id, edge.edge_type_code,
+                       edge.edge_weight
+                  from anchor_nodes node
+                  join knowledge_graph_edge edge
+                    on edge.source_node_type_code = node.node_type_code
+                   and edge.source_node_id = node.node_id
+                union
+                select edge.knowledge_graph_edge_id, edge.edge_type_code,
+                       edge.edge_weight
+                  from anchor_nodes node
+                  join knowledge_graph_edge edge
+                    on edge.target_node_type_code = node.node_type_code
+                   and edge.target_node_id = node.node_id
+            ), related as (
+                select distinct evidence.evidence_post_id as post_id,
+                       edge.edge_type_code, edge.edge_weight
+                  from related_edges edge
+                  join knowledge_graph_edge_evidence evidence
+                    using (knowledge_graph_edge_id)
+            )
+            select related.post_id, related.edge_type_code, related.edge_weight
+              from related
+              join source_post post on post.post_id = related.post_id
+              join source_post anchor on anchor.post_id = $1
+             where related.post_id <> $1
+               and post.created_at < anchor.created_at
+               and (post.visibility_code = 'public'
+                    or post.corporate_entity_id::text = any($2::text[]))
+               and ({SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='post')})
+             order by related.edge_weight desc, post.created_at desc, related.post_id
+             limit $3
+            """,
+            anchor_post_id,
+            authorized_entity_ids,
+            limit * 4,
+        )
+        kg_discovered_ids = list(
+            dict.fromkeys(
+                str(row["post_id"])
+                for row in kg_rows
+                if ontology_annotations(str(row["edge_type_code"])).get("ontology_iri")
+            )
+        )
+        for post_id in kg_discovered_ids:
+            candidate_scores.setdefault(post_id, 0.0)
+        candidate_ids = list(
+            dict.fromkeys([anchor_post_id, *kg_discovered_ids, *candidate_ids])
+        )
 
     # A keyword match only proves one post's text is relevant -- the
     # account asking almost always wants to know what happened before and
@@ -479,8 +859,27 @@ async def gather_global_chat_sources(
     # `find_linked_post_ids`'s `.direct` set used by the post-scoped chat
     # flow. Only the top match is expanded -- expanding every keyword hit
     # would let a loosely related term drag in an unrelated lineage chain.
+    kg_anchor_id = anchor_post_id or (candidate_ids[0] if candidate_ids else None)
+    if kg_anchor_id:
+        kg_edges = await load_visible_subgraph(conn, candidate_ids[: limit * 4])
+        kg_scores = random_walk_with_restart(
+            adjacency_from_edges(kg_edges), node_key(NODE_POST, kg_anchor_id)
+        )
+        for node, score in select_related_nodes(
+            kg_scores, node_key(NODE_POST, kg_anchor_id), max_nodes=limit * 2
+        ):
+            node_type, node_id = parse_node_key(node)
+            if node_type != NODE_POST:
+                continue
+            candidate_scores[node_id] = candidate_scores.get(node_id, 0.0) + score
+        candidate_ids = sorted(
+            candidate_scores,
+            key=lambda post_id: candidate_scores[post_id],
+            reverse=True,
+        )
+
     lineage_neighbor_ids: list[str] = []
-    lineage_anchor_id = candidate_ids[0] if candidate_ids else None
+    lineage_anchor_id = anchor_post_id or (candidate_ids[0] if candidate_ids else None)
     if lineage_anchor_id:
         lineage_rows = await conn.fetch(
             "select child_post_id as other_id from post_lineage_edge where parent_post_id = $1 "
@@ -501,26 +900,109 @@ async def gather_global_chat_sources(
         candidate_ids = []
     lineage_neighbor_id_set = frozenset(lineage_neighbor_ids)
 
-    rows = await conn.fetch(
-        """
+    # Safe SQL: eligibility is a closed schema fragment; authorization, IDs, and limit are bound.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
         select post_id, post_title, post_body, visibility_code, corporate_entity_id,
+               author_account_id, source_detail_state_code,
                source_system_code, source_record_key, source_author_code, source_author_name,
                source_company_code, source_company_name, source_process_unit_code,
                source_process_unit_name, source_sales_pool_code, source_sales_pool_name,
+               source_order_pool_code, source_sales_order_code, source_sales_order_item_number,
+               source_inspection_point_code, source_stage_code, source_deleted_flag,
                source_customer_code, source_customer_name,
-               source_project_code, source_project_name
+               source_project_code, source_project_name, created_at, updated_at,
+               (
+                   select min(clue.normalized_value_text)
+                     from post_summary_event_clue clue
+                    where clue.post_id = source_post.post_id
+                      and clue.clue_type_code = 'clue_time'
+                      and clue.assertion_code = 'assertion_affirmed'
+                      and nullif(btrim(clue.normalized_value_text), '') is not null
+                   having count(*) = 1
+               ) as semantic_event_time,
+               (
+                   select result.computed_at
+                     from post_summary_result result
+                    where result.post_id = source_post.post_id
+               ) as semantic_event_available_at
           from source_post
-         where visibility_code = 'public'
-            or corporate_entity_id::text = any($1::text[])
+         where (visibility_code = 'public'
+            or corporate_entity_id::text = any($1::text[]))
+           and ({SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='source_post')})
+           and post_id = any($2::uuid[])
          order by array_position($2::uuid[], post_id) nulls last,
                   created_at desc, post_id desc
          limit $3
         """,
-        list(authorized_corporate_entity_ids),
+        authorized_entity_ids,
         candidate_ids,
         limit,
     )
     visible_rows = [row for row in rows if can_see_post(row)][:limit]
+    tepp_prior_ids: frozenset[str] = frozenset()
+    semantic_event_times = {
+        str(row["post_id"]): _semantic_event_time(row.get("semantic_event_time"))
+        for row in visible_rows
+    }
+    if (
+        tepp_client is not None
+        and anchor_post_id
+        and len(visible_rows) > 1
+        and all(row["author_account_id"] is not None for row in visible_rows)
+    ):
+        temporal_events: list[TemporalContextEvent] = []
+        for row in visible_rows:
+            post_id = str(row["post_id"])
+            semantic_time = semantic_event_times[post_id]
+            semantic_available_at = row.get("semantic_event_available_at")
+            is_semantic_event = semantic_time is not None and semantic_available_at is not None
+            event_time = semantic_time if is_semantic_event else row["created_at"]
+            available_time = (
+                semantic_available_at if is_semantic_event else row["created_at"]
+            )
+            temporal_events.append(
+                TemporalContextEvent(
+                    event_id=f"{'semantic-event' if is_semantic_event else 'post-recorded'}:{post_id}",
+                    source_post_id=post_id,
+                    event_type_code="semantic_event" if is_semantic_event else "post_recorded",
+                    event_label=(
+                        "Persisted semantic event"
+                        if is_semantic_event
+                        else "Source post recorded"
+                    ),
+                    event_time=event_time.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                    available_time=available_time.astimezone(UTC).strftime(
+                        "%Y-%m-%dT%H:%M:%SZ"
+                    ),
+                    project_reference=None,
+                    actor_references=(str(row["author_account_id"]),),
+                )
+            )
+        request = TemporalContextRequest(
+            knowledge_cutoff=datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            subject_post_id=anchor_post_id,
+            events=tuple(temporal_events),
+        )
+        try:
+            temporal = await asyncio.to_thread(tepp_client.temporal_context, request)
+        except (TeppNotAvailable, OSError, TypeError, ValueError):
+            temporal = None
+        timeline = temporal["timeline_events"] if temporal else None
+        if timeline:
+            ordinal = {
+                str(item["source_post_id"]): int(item["sequence_ordinal"])
+                for item in timeline
+                if isinstance(item, dict)
+                and isinstance(item.get("source_post_id"), str)
+                and isinstance(item.get("sequence_ordinal"), int)
+            }
+            if len(ordinal) == len(visible_rows) and anchor_post_id in ordinal:
+                anchor_ordinal = ordinal[anchor_post_id]
+                visible_rows.sort(key=lambda row: (str(row["post_id"]) != anchor_post_id, ordinal[str(row["post_id"])]))
+                tepp_prior_ids = frozenset(
+                    post_id for post_id, value in ordinal.items() if value < anchor_ordinal
+                )
     visible_ids = [str(row["post_id"]) for row in visible_rows]
     anchor_is_visible = lineage_anchor_id in visible_ids
     semantic_facts = await _semantic_facts_for_posts(conn, visible_ids)
@@ -539,6 +1021,11 @@ async def gather_global_chat_sources(
             if post_id in lineage_neighbor_id_set and anchor_is_visible
             else ()
         )
+        tepp_fact = (
+            ("TEPP temporal context: before the starting post; association_not_causal",)
+            if post_id in tepp_prior_ids
+            else ()
+        )
         sources.append(
             ChatSourceDocument(
                 post_id,
@@ -547,7 +1034,8 @@ async def gather_global_chat_sources(
                 graph_facts=graph_facts if index == 0 else (),
                 evidence_facts=_source_hint_facts(row)
                 + semantic_facts.get(post_id, ())
-                + lineage_fact,
+                + lineage_fact
+                + tepp_fact,
             )
         )
     return sources

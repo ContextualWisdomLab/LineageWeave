@@ -1,16 +1,21 @@
 -- Search rendered post text, never arbitrary bytes inside an embedded image.
+set client_min_messages = warning;
+
 create or replace function source_post_search_text(body text)
 returns text
 language sql
 immutable
 parallel safe
 as $$
-    select regexp_replace(
+    select left(
         regexp_replace(
-            regexp_replace(coalesce(body, ''), '<img[^>]*>', ' ', 'gi'),
-            '<[^>]+>', ' ', 'g'
+            regexp_replace(
+                regexp_replace(coalesce(body, ''), '<img[^>]*>', ' ', 'gi'),
+                '<[^>]+>', ' ', 'g'
+            ),
+            '\s+', ' ', 'g'
         ),
-        '\s+', ' ', 'g'
+        16384
     )
 $$;
 
