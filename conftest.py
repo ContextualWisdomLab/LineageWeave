@@ -10,10 +10,12 @@ from lineageweave.optional_extra_collection import (
 )
 
 
-def pytest_ignore_collect(collection_path: Path, config: object) -> bool:
+def pytest_ignore_collect(collection_path: Path, config: object) -> bool | None:
     """Skip files that import optional extras the sandbox did not install."""
     del config
-    return collection_path_requires_missing_extras(
+    if collection_path_requires_missing_extras(
         collection_path,
         missing_optional_extra_modules(),
-    )
+    ):
+        return True
+    return None

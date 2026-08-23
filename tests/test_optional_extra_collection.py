@@ -92,6 +92,7 @@ def test_collection_path_skips_known_transitive_optional_importers(
         collection_path_requires_missing_extras(period_report, ("fast_mlsirm",))
         is True
     )
+    assert collection_path_requires_missing_extras(period_report, ("numpy",)) is True
     assert (
         collection_path_requires_missing_extras(period_report, ("asyncpg",)) is False
     )
