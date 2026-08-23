@@ -131,7 +131,9 @@ exact-head protected gate.
   (`customer-master.spec.ts`, `knowledge-graph.spec.ts`) -- never a failed
   assertion inside this spec's own logic. A from-a-quiet-machine confirmation
   is still open; do not read the one clean run as proof of zero flakiness
-  under contention.
+  under contention. That browser run predates exact head `613a739532ed`, which
+  strengthened focus restoration to require the same opener element; an
+  exact-head browser rerun remains open.
 - **Approved CI/BI asset — open:** the header/footer currently render the
   tenant brand name as text. Do not invent or alter a corporate logo; add the
   approved asset only after the tenant CI/BI source and usage permission are
@@ -141,7 +143,9 @@ exact-head protected gate.
   focus request is cleared when navigation leaves the board. A desktop site-map
   utility now reuses `WorkspaceNav`, closes on Escape or destination selection,
   and is omitted on phones where the drawer owns navigation; approved CI/BI
-  assets and a no-JavaScript fallback remain open.
+  assets and a no-JavaScript fallback remain open. Exact head `613a739532ed`
+  also requires the site-map E2E to select a different destination rather than
+  reselecting the default board; its browser rerun remains open.
 - **Header top-menu language placement — fixed in this worktree:** UI/UX
   Standard Guide v3.0 §2.2.2 assigns 언어설정 (language setting) to the header
   top menu alongside user info, login/logout, search, and utility items.
