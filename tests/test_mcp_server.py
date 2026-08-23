@@ -5,6 +5,7 @@ from dataclasses import replace
 import pytest
 from mcp.client import Client
 from mcp.server.auth.provider import AccessToken
+from starlette.responses import JSONResponse
 from starlette.testclient import TestClient
 
 from backend.app import mcp_server
@@ -89,6 +90,33 @@ class FakeRateLimiter:
 
     async def close(self) -> None:
         self.closed = True
+
+
+@pytest.mark.parametrize(
+    ("retry_after", "expected"),
+    [(None, None), (37, "37")],
+)
+def test_retry_after_header_is_request_scoped_to_exceeded_quota(
+    retry_after: int | None,
+    expected: str | None,
+) -> None:
+    """Success and non-quota errors cannot inherit retry advice."""
+
+    async def sdk_response(scope, receive, send) -> None:
+        if retry_after is not None:
+            scope.setdefault("state", {})[mcp_server._RETRY_AFTER_STATE_KEY] = retry_after
+        await JSONResponse({"jsonrpc": "2.0", "result": {}})(scope, receive, send)
+
+    client = TestClient(mcp_server.McpRetryAfterHeaderApp(sdk_response))
+    response = client.get("/")
+
+    assert response.headers.get("retry-after") == expected
+
+
+def test_mcp_quota_error_codes_are_outside_json_rpc_reserved_range() -> None:
+    """Application-defined MCP errors do not occupy JSON-RPC reserved codes."""
+    assert not -32768 <= mcp_server._MCP_RATE_LIMIT_EXCEEDED <= -32000
+    assert not -32768 <= mcp_server._MCP_RATE_LIMITER_UNAVAILABLE <= -32000
 
 
 @pytest.mark.asyncio
@@ -213,6 +241,7 @@ async def test_global_ask_tool_is_read_only_structured_and_closes_lifespan() -> 
 )
 async def test_global_ask_tool_fails_without_authenticated_subject(access_token) -> None:
     pool = FakePool()
+    limiter = FakeRateLimiter()
 
     async def pool_factory(_database_url: str):
         return pool
@@ -221,12 +250,14 @@ async def test_global_ask_tool_fails_without_authenticated_subject(access_token)
         settings(),
         pool_factory=pool_factory,
         access_token_provider=lambda: access_token,
+        rate_limiter_factory=lambda _url, _requests, _window: limiter,
     )
     async with Client(server) as client:
         result = await client.call_tool("global_ask", {"question": "question"})
         assert result.is_error
         assert "authenticated MCP principal" in result.content[0].text
     assert pool.closed is True
+    assert limiter.accounts == []
 
 
 def test_chat_client_factory_uses_null_or_configured_orchestrator() -> None:

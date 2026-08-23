@@ -23,7 +23,7 @@ from mcp.types import CallToolResult, ImageContent, TextContent, ToolAnnotations
 from pydantic import AnyHttpUrl, BaseModel, Field
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
-from starlette.types import ASGIApp, Receive, Scope, Send
+from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from backend.app.auth import CurrentAccount, resolve_current_account
 from backend.app.config import Settings, load_settings
@@ -50,6 +50,11 @@ from lineageweave.post_chat import (
     NullPostChatClient,
     PostChatClient,
 )
+
+
+_MCP_RATE_LIMIT_EXCEEDED = -31929
+_MCP_RATE_LIMITER_UNAVAILABLE = -31930
+_RETRY_AFTER_STATE_KEY = "lineageweave.mcp_retry_after_seconds"
 
 
 class GlobalAskContentBlockModel(BaseModel):
@@ -123,6 +128,40 @@ class PreAuthTransportSecurityApp:
             await rejection(scope, receive, send)
             return
         await self._app(scope, receive, send)
+
+
+class McpRetryAfterHeaderApp:
+    """Expose a request-scoped retry delay only for exhausted MCP quota."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        """Wrap the SDK transport without changing its response serialization."""
+        self._app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        """Add ``Retry-After`` when the tool marked this request as exceeded."""
+
+        async def send_with_retry_after(message: Message) -> None:
+            if message.get("type") == "http.response.start":
+                retry_after = scope.get("state", {}).get(_RETRY_AFTER_STATE_KEY)
+                if isinstance(retry_after, int) and retry_after > 0:
+                    headers = list(message.get("headers", []))
+                    headers = [
+                        (name, value)
+                        for name, value in headers
+                        if name.lower() != b"retry-after"
+                    ]
+                    headers.append((b"retry-after", str(retry_after).encode("ascii")))
+                    message = {**message, "headers": headers}
+            await send(message)
+
+        await self._app(scope, receive, send_with_retry_after)
+
+
+def _mark_retry_after(ctx: Context[Any, Any], retry_after_seconds: int) -> None:
+    """Store the bounded quota delay on this HTTP request, when one exists."""
+    request = ctx.request_context.request
+    if isinstance(request, Request):
+        request.scope.setdefault("state", {})[_RETRY_AFTER_STATE_KEY] = retry_after_seconds
 
 
 PoolFactory = Callable[[str], Awaitable[Any]]
@@ -270,13 +309,17 @@ def build_mcp_server(
         try:
             await dependencies.rate_limiter.consume(account.user_account_id)
         except McpRateLimitExceeded as exc:
+            _mark_retry_after(ctx, exc.retry_after_seconds)
             raise MCPError(
-                -32029,
+                _MCP_RATE_LIMIT_EXCEEDED,
                 "mcp_rate_limit_exceeded",
                 {"retry_after_seconds": exc.retry_after_seconds},
             ) from exc
         except McpRateLimiterUnavailable as exc:
-            raise MCPError(-32030, "mcp_rate_limiter_unavailable") from exc
+            raise MCPError(
+                _MCP_RATE_LIMITER_UNAVAILABLE,
+                "mcp_rate_limiter_unavailable",
+            ) from exc
         result = await answerer(
             dependencies.pool,
             account,
@@ -328,8 +371,9 @@ def build_mcp_http_app(
         allowed_origins=settings.mcp_allowed_origins,
     )
     sdk_app = server.streamable_http_app(transport_security=transport_security)
+    retry_after_app = McpRetryAfterHeaderApp(sdk_app)
     cors_app = CORSMiddleware(
-        sdk_app,
+        retry_after_app,
         allow_origins=settings.mcp_allowed_origins,
         allow_methods=["GET", "POST", "DELETE"],
         allow_headers=[

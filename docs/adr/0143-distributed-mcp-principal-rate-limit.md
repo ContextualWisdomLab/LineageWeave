@@ -20,9 +20,11 @@ account or bearer subject.  One atomic Valkey script increments the counter,
 sets the first-entry expiry, and returns the remaining window.
 
 An exceeded quota returns the stable `mcp_rate_limit_exceeded` MCP error with a
-bounded `retry_after_seconds` value.  Authentication, provisioning, transport,
-and request-shape failures do not consume quota and do not advertise a retry
-delay.  If Valkey is unavailable or returns an invalid result, Global Ask fails
+non-reserved application error code, a bounded `retry_after_seconds` value, and
+the same bounded delay in the HTTP `Retry-After` header.  Authentication,
+provisioning, transport, successful responses, and request-shape failures do
+not consume quota or advertise a retry delay.  If Valkey is unavailable or
+returns an invalid result, Global Ask fails
 closed with `mcp_rate_limiter_unavailable`; it never substitutes process-local
 state.  Limits remain bounded runtime configuration so an invalid deployment
 cannot create an unbounded window or counter.
