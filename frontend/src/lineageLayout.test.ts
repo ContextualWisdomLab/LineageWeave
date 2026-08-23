@@ -168,6 +168,27 @@ describe("layoutLineageDag", () => {
     ]);
   });
 
+  it("terminates when a visible root feeds a cycle", () => {
+    const [group] = layoutLineageDag({
+      nodes: ["root", "cycle-a", "cycle-b"].map((id) => ({
+        id,
+        group: "Cyclic import",
+        label: id,
+        occurred_at: "2026-01-01T00:00:00Z",
+        is_root: id === "root",
+        is_branch_point: false,
+      })),
+      edges: [
+        { source: "root", target: "cycle-a", fused_score: 0.9 },
+        { source: "cycle-a", target: "cycle-b", fused_score: 0.8 },
+        { source: "cycle-b", target: "cycle-a", fused_score: 0.7 },
+      ],
+    });
+
+    expect(group.nodes).toHaveLength(3);
+    expect(group.nodes.every(({ x, y }) => Number.isFinite(x) && Number.isFinite(y))).toBe(true);
+  });
+
   it("keeps a valid relationship between two ungrouped visible nodes", () => {
     const [group] = layoutLineageDag({
       nodes: [
