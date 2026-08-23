@@ -36,8 +36,9 @@ After loading `corporate_entity` candidates, expand them with every
   competes under the preferred label.
 
 The expansion is a virtual candidate with the **same**
-`corporate_entity_id`. `score_corporate_entity` still fail-closes on a
-tie (ADR 0026). Uncorroborated or pending pairs are not loaded.
+`corporate_entity_id`. Score the raw catalog first. Alias labels enrich
+candidates only after a raw miss; they never override a raw unique result
+or tie (ADR 0026). Uncorroborated or pending pairs are not loaded.
 Identical or empty labels are ignored.
 
 The same expansion runs on the post-lock exact recheck

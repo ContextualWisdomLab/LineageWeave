@@ -48,6 +48,13 @@ class _CreateIfReachedVerificationClient:
         return SimpleNamespace(status_code=STATUS_CORROBORATED)
 
 
+class _RejectLiveInferenceClient:
+    available = True
+
+    def infer(self, organization_name: str, context_text: str) -> HierarchyProposal:
+        raise AssertionError("an alias tie must not enter hierarchy inference")
+
+
 class _AliasLockConnection:
     """Serve corroborated aliases and a catalog row stored under the altLabel."""
 
@@ -92,6 +99,17 @@ class _AliasLockConnection:
         raise AssertionError("alias round-trip must reuse the existing catalog row")
 
 
+class _AliasTieLockConnection(_AliasLockConnection):
+    """Expose two rows that tie only after their shared alias is expanded."""
+
+    async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
+        assert "from corporate_entity" in query
+        return [
+            {"corporate_entity_id": "alias-a", "entity_name": "Aurora Grid Power"},
+            {"corporate_entity_id": "alias-b", "entity_name": "Alpine Grid Power"},
+        ]
+
+
 def test_short_form_mention_reuses_pref_label_catalog_row() -> None:
     catalog_id = str(uuid.uuid4())
     result = asyncio.run(
@@ -103,6 +121,21 @@ def test_short_form_mention_reuses_pref_label_catalog_row() -> None:
             _RejectVerificationClient(),
             [CorporateEntityCandidate(catalog_id, "Aurora Grid Power")],
             aliases=[_AGP_ALIAS],
+        )
+    )
+    assert result == catalog_id
+
+
+def test_raw_unique_match_does_not_load_aliases() -> None:
+    catalog_id = str(uuid.uuid4())
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            object(),
+            "Aurora Grid Power",
+            _SYNTHETIC_CONTEXT,
+            _RejectInferenceClient(),
+            _RejectVerificationClient(),
+            [CorporateEntityCandidate(catalog_id, "Aurora Grid Power")],
         )
     )
     assert result == catalog_id
@@ -138,3 +171,76 @@ def test_uncorroborated_alias_does_not_bind() -> None:
         )
     )
     assert result is None
+
+
+def test_raw_catalog_tie_precedes_unique_alias_match() -> None:
+    candidates = [
+        CorporateEntityCandidate("tied-north", "Tied Energy North"),
+        CorporateEntityCandidate("tied-south", "Tied Energy South"),
+        CorporateEntityCandidate("alias-target", "Aurora Grid Power"),
+    ]
+
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            object(),
+            "Tied Energy",
+            _SYNTHETIC_CONTEXT,
+            _CreateIfReachedInferenceClient(),
+            _CreateIfReachedVerificationClient(),
+            candidates,
+            aliases=[
+                OrganizationNameAlias(
+                    alt_label="Tied Energy",
+                    pref_label="Aurora Grid Power",
+                )
+            ],
+        )
+    )
+
+    assert result is None
+
+
+def test_alias_expansion_tie_does_not_enter_inference() -> None:
+    candidates = [
+        CorporateEntityCandidate("alias-a", "Aurora Grid Power"),
+        CorporateEntityCandidate("alias-b", "Alpine Grid Power"),
+    ]
+    aliases = [
+        OrganizationNameAlias("AGP", "Aurora Grid Power"),
+        OrganizationNameAlias("AGP", "Alpine Grid Power"),
+    ]
+
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            object(),
+            "AGP",
+            _SYNTHETIC_CONTEXT,
+            _RejectLiveInferenceClient(),
+            _RejectVerificationClient(),
+            candidates,
+            aliases=aliases,
+        )
+    )
+
+    assert result is None
+
+
+def test_post_lock_alias_tie_does_not_insert() -> None:
+    connection = _AliasTieLockConnection("unused", "unused")
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            connection,
+            "AGP",
+            _SYNTHETIC_CONTEXT,
+            _CreateIfReachedInferenceClient(),
+            _CreateIfReachedVerificationClient(),
+            [],
+            aliases=[
+                OrganizationNameAlias("AGP", "Aurora Grid Power"),
+                OrganizationNameAlias("AGP", "Alpine Grid Power"),
+            ],
+        )
+    )
+
+    assert result is None
+    assert connection.insert_attempted is False

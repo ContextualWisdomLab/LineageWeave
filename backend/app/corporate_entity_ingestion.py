@@ -127,13 +127,12 @@ async def get_or_create_corporate_entity(
 
     A unique similarity match is reused. A tied top score stays unbound
     and does not create a third same-named row (ADR 0026). Corroborated
-    SKOS alt/pref pairs expand the candidate labels so a synthetic short
-    form and full form bind the same row (ADR 0120). Only a genuine
-    miss -- no candidate at or above ``min_similarity`` -- may enter ADR
-    0010 inference. A proposed parent must independently corroborate and
-    resolve before the child can be inserted. Repeated names in the
-    recursion path are cycles, including multi-node cycles such as
-    A -> B -> A.
+    After a raw miss, SKOS alt/pref pairs expand the candidate labels so a
+    synthetic short form and full form bind the same row (ADR 0120). Only
+    an alias-expanded miss may enter ADR 0010 inference. A proposed parent
+    must independently corroborate and resolve before the child can be
+    inserted. Repeated names in the recursion path are cycles, including
+    multi-node cycles such as A -> B -> A.
     """
     normalized_name = organization_name.strip()
     if not normalized_name:
@@ -142,16 +141,21 @@ async def get_or_create_corporate_entity(
     if visit_key in _visited_names:
         return None
 
+    existing = score_corporate_entity(normalized_name, candidates)
+    if existing.kind == RESOLUTION_UNIQUE and existing.catalog_id is not None:
+        return existing.catalog_id
+    if existing.kind == RESOLUTION_TIE:
+        return None
+
     resolved_aliases: Sequence[OrganizationNameAlias]
     if aliases is None:
         resolved_aliases = await load_corroborated_organization_name_aliases(conn)
     else:
         resolved_aliases = aliases
-    scored_candidates = expand_candidates_with_skos_aliases(
-        candidates, resolved_aliases
+    existing = score_corporate_entity(
+        normalized_name,
+        expand_candidates_with_skos_aliases(candidates, resolved_aliases),
     )
-
-    existing = score_corporate_entity(normalized_name, scored_candidates)
     if existing.kind == RESOLUTION_UNIQUE and existing.catalog_id is not None:
         return existing.catalog_id
     if existing.kind == RESOLUTION_TIE:
@@ -230,12 +234,20 @@ async def get_or_create_corporate_entity(
         # mistake an inferred child for the parent just created above. The
         # initial lookup remains fuzzy, while this check only prevents a
         # concurrent insert of the same normalized name.
+        fresh_candidates = await _reload_candidates(conn)
         fresh = score_corporate_entity(
             normalized_name,
-            expand_candidates_with_skos_aliases(
-                await _reload_candidates(conn),
-                resolved_aliases,
-            ),
+            fresh_candidates,
+            min_similarity=1.0,
+        )
+        if fresh.kind == RESOLUTION_UNIQUE and fresh.catalog_id is not None:
+            _remember_candidate(candidates, fresh.catalog_id, normalized_name)
+            return fresh.catalog_id
+        if fresh.kind == RESOLUTION_TIE:
+            return None
+        fresh = score_corporate_entity(
+            normalized_name,
+            expand_candidates_with_skos_aliases(fresh_candidates, resolved_aliases),
             min_similarity=1.0,
         )
         if fresh.kind == RESOLUTION_UNIQUE and fresh.catalog_id is not None:

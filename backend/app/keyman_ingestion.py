@@ -61,7 +61,6 @@ from lineageweave.corporate_hierarchy_resolution import (
     RESOLUTION_TIE,
     CorporateEntityCandidate,
     OrganizationNameAlias,
-    expand_candidates_with_skos_aliases,
     score_corporate_entity,
 )
 from lineageweave.keyman_extraction import KeymanExtractionClient, PersonMention
@@ -191,10 +190,7 @@ async def _resolve_affiliated_organization(
 ) -> tuple[str, str, str | None]:
     """Resolve one affiliation without rewriting a known raw-name tie."""
     resolved_aliases = aliases if aliases is not None else []
-    scored_candidates = expand_candidates_with_skos_aliases(
-        candidates, resolved_aliases
-    )
-    raw_outcome = score_corporate_entity(organization_name, scored_candidates)
+    raw_outcome = score_corporate_entity(organization_name, candidates)
     if raw_outcome.kind == RESOLUTION_TIE:
         return organization_name, organization_name, None
 

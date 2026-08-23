@@ -9,7 +9,10 @@ from typing import Any
 
 from backend.app import corporate_entity_ingestion, keyman_ingestion
 from lineageweave.corporate_hierarchy_inference import HierarchyProposal
-from lineageweave.corporate_hierarchy_resolution import CorporateEntityCandidate
+from lineageweave.corporate_hierarchy_resolution import (
+    CorporateEntityCandidate,
+    OrganizationNameAlias,
+)
 from lineageweave.relation_verification import STATUS_CORROBORATED
 
 
@@ -168,6 +171,35 @@ def test_keyman_raw_tie_blocks_abbreviation_rewrite_and_auto_creation() -> None:
             object(),
             object(),
             list(_TIED_CANDIDATES),
+        )
+    )
+
+    assert result == ("Tied Energy", "Tied Energy", None)
+
+
+def test_keyman_raw_tie_precedes_unique_alias_match() -> None:
+    """A virtual alias cannot rewrite an already ambiguous raw mention."""
+    candidates = [
+        CorporateEntityCandidate("tied-north", "Tied Energy North"),
+        CorporateEntityCandidate("tied-south", "Tied Energy South"),
+        CorporateEntityCandidate("alias-target", "Aurora Grid Power"),
+    ]
+
+    result = asyncio.run(
+        keyman_ingestion._resolve_affiliated_organization(
+            object(),
+            "Tied Energy",
+            "Synthetic context",
+            object(),
+            object(),
+            object(),
+            candidates,
+            aliases=[
+                OrganizationNameAlias(
+                    alt_label="Tied Energy",
+                    pref_label="Aurora Grid Power",
+                )
+            ],
         )
     )
 
