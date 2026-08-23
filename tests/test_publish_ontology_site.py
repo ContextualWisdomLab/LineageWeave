@@ -163,14 +163,11 @@ def test_compatibility_validation_is_term_kind_safe() -> None:
     canonical = Graph().parse(
         ROOT / "docs" / "ontology" / "lineageweave-kg.ttl", format="turtle"
     )
-    deprecated = Graph().parse(
-        ROOT / "docs" / "ontology" / "prov-o-support-profile.ttl", format="turtle"
-    )
     compatibility = Graph().parse(
         ROOT / "docs" / "ontology" / "namespace-compatibility.ttl", format="turtle"
     )
 
-    publisher.validate_compatibility_graph(canonical, deprecated, compatibility)
+    publisher.validate_compatibility_graph(canonical, compatibility)
 
     post = URIRef(f"{publisher.CANONICAL_NAMESPACE}Post")
     legacy_post = URIRef(f"{publisher.DEPRECATED_NAMESPACE}Post")
@@ -192,15 +189,17 @@ def test_compatibility_validation_is_term_kind_safe() -> None:
         ),
     ):
         with pytest.raises(ValueError, match=message):
-            publisher.validate_compatibility_graph(canonical, deprecated, broken)
+            publisher.validate_compatibility_graph(canonical, broken)
 
     wrong_kind = Graph().add((post, RDF.type, OWL.ObjectProperty))
     with pytest.raises(ValueError, match="different term kinds"):
-        publisher.validate_compatibility_graph(wrong_kind, deprecated, compatibility)
+        publisher.validate_compatibility_graph(wrong_kind, compatibility)
 
-    wrong_predicate = Graph().add((post, OWL.equivalentProperty, legacy_post))
+    wrong_predicate = Graph()
+    wrong_predicate.add((legacy_post, RDF.type, OWL.Class))
+    wrong_predicate.add((post, OWL.equivalentProperty, legacy_post))
     with pytest.raises(ValueError, match="wrong predicate"):
-        publisher.validate_compatibility_graph(canonical, deprecated, wrong_predicate)
+        publisher.validate_compatibility_graph(canonical, wrong_predicate)
 
     ambiguous = Graph()
     ambiguous.add((post, RDF.type, OWL.Class))

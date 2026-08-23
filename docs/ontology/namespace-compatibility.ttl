@@ -9,6 +9,11 @@
     owl:deprecated "true"^^xsd:boolean ;
     dcterms:isReplacedBy <https://contextualwisdomlab.github.io/lineageweave/ontology> .
 
+legacy:Post a owl:Class .
+legacy:Person a owl:Class .
+legacy:CorporateEntity a owl:Class .
+legacy:Team a owl:Class .
+
 canonical:Post owl:equivalentClass legacy:Post .
 canonical:Person owl:equivalentClass legacy:Person .
 canonical:CorporateEntity owl:equivalentClass legacy:CorporateEntity .

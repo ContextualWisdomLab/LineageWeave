@@ -14,7 +14,7 @@ unknown, not empty.
 |---|---|---|---|
 | Ontology source | `docs/ontology/lineageweave-kg.ttl` prefix and ontology IRI | — | Lowercase terms are the formal vocabulary. |
 | Runtime resolver | `lineageweave/ontology.py` (`LW`, `LOOKUP_CODE`) | — | Every generated lookup IRI is lowercase. |
-| PROV-O support profile | — | `docs/ontology/prov-o-support-profile.ttl` prefix and four class mappings | Public RDF can already be copied into external graphs. |
+| PROV-O support profile | `docs/ontology/prov-o-support-profile.ttl` now mints its four class mappings in the canonical namespace | The imported compatibility vocabulary retains the four repository-case mappings | Public RDF can already be copied into external graphs. |
 | Relational persistence | `post_project_mention.ontology_iri` accepts runtime-generated text | `provenance_resource.resource_iri` accepts arbitrary external IRIs | Existing private rows are not inspected; both columns are migration surfaces. |
 | Backend serialization | Project and ontology annotations return `ontology_iri` | — | API consumers may persist emitted lowercase IRIs. |
 | Frontend | Typed API fields consume `ontology_iri`; tests use representative lowercase class IRIs | — | UI links and exports must stay synchronized with the migration. |
@@ -26,8 +26,8 @@ The tracked exact-string occurrences on protected main are:
 - lowercase: `docs/ontology/lineageweave-kg.ttl`,
   `lineageweave/ontology.py`, `backend/tests/test_api.py`,
   `frontend/src/App.test.tsx`, and `tests/test_post_chat.py`;
-- repository-case: `docs/ontology/prov-o-support-profile.ttl` and
-  `tests/test_prov_o.py`.
+- repository-case: `docs/ontology/namespace-compatibility.ttl` and the
+  compatibility assertion in `tests/test_prov_o.py`.
 
 ## Open-PR impact inventory
 
