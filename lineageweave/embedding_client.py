@@ -148,14 +148,29 @@ def orchestrator_embedding_client(base_url: str, api_key: str, model: str):
 
 
 def cosine_similarity(a: list[float], b: list[float]) -> float:
-    """Cosine similarity mapped from ``[-1, 1]`` into the ``[0, 1]`` channel range."""
+    """Cosine similarity clamped into the ``[0, 1]`` channel range.
+
+    Sentence embeddings occupy an anisotropic cone rather than spreading
+    across the full unit sphere (Ethayarajh, 2019): two genuinely unrelated
+    short texts from a real provider routinely score a modestly *positive*
+    raw cosine (roughly 0.0-0.3 in practice), never near -1. Remapping via
+    ``(cosine + 1) / 2`` -- the textbook transform for a similarity measure
+    that actually spans the full range -- inflates that unrelated baseline
+    to roughly 0.5-0.65, which silently defeats
+    ``reconstruct.DEFAULT_MIN_FUSED_SCORE``: an unrelated pair's "weak
+    positive" channel score, combined with any temporal proximity, can
+    still clear the floor. Clamping the raw cosine instead (never remapping
+    it) keeps unrelated pairs near their true low score and matches how
+    cosine similarity is used, unremapped, in the STS evaluation convention
+    (Reimers & Gurevych, 2019) this channel is otherwise built to.
+    """
     dot = sum(x * y for x, y in zip(a, b))
     norm_a = math.sqrt(sum(x * x for x in a))
     norm_b = math.sqrt(sum(y * y for y in b))
     if norm_a == 0.0 or norm_b == 0.0:
         return 0.0
     cosine = dot / (norm_a * norm_b)
-    return (cosine + 1.0) / 2.0
+    return max(0.0, min(1.0, cosine))
 
 
 def chunked_max_similarity(

@@ -114,9 +114,19 @@ def test_embedding_channel_overrides_a_difflib_false_positive() -> None:
     ratio -- high enough, combined with temporal closeness, to clear
     DEFAULT_MIN_FUSED_SCORE and force a spurious parent-child Event Lineage
     edge between unrelated posts (see docs/product-technical-gap-baseline.md).
-    A real embedding channel judging the two topics as dissimilar (mapped
-    here to opposite unit vectors, cosine similarity 0.0) must be able to
-    keep them apart instead.
+
+    The stub vectors below give a raw cosine of 0.05 -- a low, but not
+    artificially perfect, positive similarity -- rather than exactly
+    opposite (-1.0) unit vectors. Real sentence embeddings occupy an
+    anisotropic cone (Ethayarajh, 2019): two genuinely unrelated texts from
+    an actual provider essentially never score near -1, so a fixture that
+    only proves the fix works at that unrealistic extreme would not have
+    caught the (cosine+1)/2 remap bug this test also guards against (see
+    lineageweave/embedding_client.py::cosine_similarity) -- that remap would
+    have turned even a true -1.0 into 0.0, same as this clamp does, but it
+    would *also* have turned this test's realistic 0.05 into a
+    floor-clearing ~0.525. Clamping instead of remapping is what keeps this
+    pair apart.
     """
     budget_label = "Quarterly budget review for the northern region team"
     safety_label = "Quarterly safety review for the northern region plant"
@@ -133,7 +143,8 @@ def test_embedding_channel_overrides_a_difflib_false_positive() -> None:
         "the false-positive link this test's embedding channel must prevent"
     )
 
-    stub = _StubEmbeddingClient({budget_label: [1.0, 0.0], safety_label: [-1.0, 0.0]})
+    low_similarity_vector = [0.05, 0.9987492177719986]  # cosine 0.05 against [1.0, 0.0]
+    stub = _StubEmbeddingClient({budget_label: [1.0, 0.0], safety_label: low_similarity_vector})
     with_embedding = reconstruct(records, embedding=stub)
     assert with_embedding[0].edges == []
     assert "r2" in with_embedding[0].roots
