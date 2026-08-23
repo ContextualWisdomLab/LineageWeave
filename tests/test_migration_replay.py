@@ -108,6 +108,23 @@ def test_migrate_sh_replays_tenant_identity_metadata_migration_on_existing_volum
     assert "tenant_settings_copyright_year_range_check" in migration
 
 
+def test_migrate_sh_replays_catalog_unresolved_reason_migration_on_existing_volumes() -> None:
+    """Existing Compose volumes must receive the new unresolved-reason column."""
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(encoding="utf-8")
+    migration = (root / "migrations" / "0134_catalog_unresolved_reason.sql").read_text(
+        encoding="utf-8"
+    )
+
+    assert "0134_*" in script
+    assert "add column if not exists catalog_unresolved_reason_code" in migration
+    assert "add column if not exists affiliation_catalog_unresolved_reason_code" in migration
+    assert "reason_tied_candidates" in migration
+    assert "reason_no_live_client" in migration
+    assert "reason_not_corroborated" in migration
+    assert "reason_no_catalog_entry" in migration
+
+
 def test_tenant_identity_migration_repairs_legacy_values_before_constraints() -> None:
     """Legacy blank settings cannot make an existing-volume replay fail closed."""
     migration = (

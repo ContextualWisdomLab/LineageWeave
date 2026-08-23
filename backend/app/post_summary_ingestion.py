@@ -145,7 +145,9 @@ async def fetch_persisted_summary(
                role.cataloged_team_id,
                role.cataloged_corporate_entity_id,
                role.cataloged_person_id,
-               role.cataloged_affiliated_corporate_entity_id
+               role.cataloged_affiliated_corporate_entity_id,
+               role.catalog_unresolved_reason_code,
+               role.affiliation_catalog_unresolved_reason_code
           from post_summary_role role
          where role.post_id = $1
          order by role.actor_name
@@ -261,6 +263,14 @@ async def fetch_persisted_summary(
                 "affiliated_organization_catalog_id": (
                     str(row["cataloged_affiliated_corporate_entity_id"])
                     if row["cataloged_affiliated_corporate_entity_id"] is not None
+                    else None
+                ),
+                "catalog_unresolved_reason_code": (
+                    row["catalog_unresolved_reason_code"] if catalog_node_id is None else None
+                ),
+                "affiliation_catalog_unresolved_reason_code": (
+                    row["affiliation_catalog_unresolved_reason_code"]
+                    if row["cataloged_affiliated_corporate_entity_id"] is None
                     else None
                 ),
                 **ontology_annotations(row["actor_type_code"]),
@@ -427,32 +437,42 @@ async def persist_post_summary(
         else []
     )
     resolved_organization_ids: dict[int, str] = {}
+    resolved_organization_reasons: dict[int, str] = {}
     resolved_affiliation_names: dict[int, str] = {}
     resolved_affiliation_ids: dict[int, str] = {}
+    resolved_affiliation_reasons: dict[int, str] = {}
     for role_index, role in enumerate(summary.roles_and_responsibilities):
         if role.actor_type_code == ACTOR_TYPE_TEAM and is_generic_team_actor(role.actor_name):
             continue
         if role.actor_type_code != ACTOR_TYPE_ORGANIZATION:
             if role.actor_type_code in {ACTOR_TYPE_PERSON, ACTOR_TYPE_TEAM} and role.affiliated_organization_name:
                 try:
-                    _, resolved_name, corporate_entity_id = await _resolve_affiliated_organization(
-                        conn,
-                        role.affiliated_organization_name,
-                        context_text,
-                        resolution_client,
-                        verification_client,
-                        hierarchy_inference_client,
-                        candidates,
+                    _, resolved_name, corporate_entity_id, affiliation_reason = (
+                        await _resolve_affiliated_organization(
+                            conn,
+                            role.affiliated_organization_name,
+                            context_text,
+                            resolution_client,
+                            verification_client,
+                            hierarchy_inference_client,
+                            candidates,
+                        )
                     )
                 except (HttpClientError, OSError, TimeoutError, ValueError):
                     # R&R affiliation is enrichment. A provider outage must
                     # preserve the raw source name and the summary itself.
-                    resolved_name, corporate_entity_id = role.affiliated_organization_name, None
+                    resolved_name, corporate_entity_id, affiliation_reason = (
+                        role.affiliated_organization_name,
+                        None,
+                        "reason_no_live_client",
+                    )
                 resolved_affiliation_names[role_index] = resolved_name
                 if corporate_entity_id is not None:
                     resolved_affiliation_ids[role_index] = corporate_entity_id
+                elif affiliation_reason is not None:
+                    resolved_affiliation_reasons[role_index] = affiliation_reason
             continue
-        corporate_entity_id = await get_or_create_corporate_entity(
+        corporate_entity_id, unresolved_reason = await get_or_create_corporate_entity(
             conn,
             role.actor_name,
             context_text,
@@ -462,6 +482,8 @@ async def persist_post_summary(
         )
         if corporate_entity_id is not None:
             resolved_organization_ids[role_index] = corporate_entity_id
+        elif unresolved_reason is not None:
+            resolved_organization_reasons[role_index] = unresolved_reason
 
     async with conn.transaction():
         await _replace_summary_projection(
@@ -472,6 +494,8 @@ async def persist_post_summary(
             resolved_organization_ids,
             resolved_affiliation_names,
             resolved_affiliation_ids,
+            resolved_organization_reasons,
+            resolved_affiliation_reasons,
         )
 
     payload = await fetch_persisted_summary(conn, post_id)
@@ -482,12 +506,15 @@ async def persist_post_summary(
 
 async def _resolve_existing_cataloged_person_id(
     conn: asyncpg.Connection, person_name: str
-) -> str | None:
-    """Return the earliest existing catalog person id for ``person_name``.
+) -> tuple[str | None, str | None]:
+    """Return ``(earliest existing catalog person id, unresolved reason)``.
 
     Lookup orders by ``created_at``, then ``person_id``. This function
     does not insert a ``cataloged_person`` row (ADR 0009). A missing
-    catalog row stays unbound rather than inventing a person.
+    catalog row stays unbound rather than inventing a person; ADR 0141
+    records that absence as ``reason_no_catalog_entry`` -- the only reason
+    code available here, since this lookup has no live-client dependency
+    to distinguish further.
     """
     person_row = await conn.fetchrow(
         "select person_id from cataloged_person "
@@ -496,8 +523,8 @@ async def _resolve_existing_cataloged_person_id(
         person_name,
     )
     if person_row is None:
-        return None
-    return str(person_row["person_id"])
+        return None, "reason_no_catalog_entry"
+    return str(person_row["person_id"]), None
 
 
 async def _replace_summary_projection(
@@ -508,6 +535,8 @@ async def _replace_summary_projection(
     resolved_organization_ids: dict[int, str],
     resolved_affiliation_names: dict[int, str],
     resolved_affiliation_ids: dict[int, str],
+    resolved_organization_reasons: dict[int, str] | None = None,
+    resolved_affiliation_reasons: dict[int, str] | None = None,
 ) -> None:
     """Write one atomic replacement using pre-resolved shared identities."""
     # Summary replacement owns only R&R projections. Keyman mentions remain
@@ -700,7 +729,13 @@ async def _replace_summary_projection(
         cataloged_team_id = None
         cataloged_corporate_entity_id = None
         cataloged_person_id = None
+        catalog_unresolved_reason_code = None
         cataloged_affiliated_corporate_entity_id = resolved_affiliation_ids.get(role_index)
+        affiliation_catalog_unresolved_reason_code = (
+            None
+            if cataloged_affiliated_corporate_entity_id is not None
+            else (resolved_affiliation_reasons or {}).get(role_index)
+        )
         affiliation_name = resolved_affiliation_names.get(
             role_index, role.affiliated_organization_name
         )
@@ -715,18 +750,26 @@ async def _replace_summary_projection(
             cataloged_corporate_entity_id = resolved_organization_ids.get(
                 role_index
             )
+            if cataloged_corporate_entity_id is None:
+                catalog_unresolved_reason_code = (resolved_organization_reasons or {}).get(
+                    role_index
+                )
         elif role.actor_type_code == ACTOR_TYPE_PERSON:
-            cataloged_person_id = await _resolve_existing_cataloged_person_id(
-                conn,
-                role.actor_name,
+            cataloged_person_id, catalog_unresolved_reason_code = (
+                await _resolve_existing_cataloged_person_id(
+                    conn,
+                    role.actor_name,
+                )
             )
         await conn.execute(
             "insert into post_summary_role "
             "(post_id, actor_name, responsibility_text, actor_type_code, "
             "affiliated_organization_name, cataloged_team_id, "
             "cataloged_corporate_entity_id, cataloged_person_id, "
-            "cataloged_affiliated_corporate_entity_id) values "
-            "($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+            "cataloged_affiliated_corporate_entity_id, "
+            "catalog_unresolved_reason_code, "
+            "affiliation_catalog_unresolved_reason_code) values "
+            "($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
             post_id,
             role.actor_name,
             role.responsibility,
@@ -736,6 +779,8 @@ async def _replace_summary_projection(
             cataloged_corporate_entity_id,
             cataloged_person_id,
             cataloged_affiliated_corporate_entity_id,
+            catalog_unresolved_reason_code,
+            affiliation_catalog_unresolved_reason_code,
         )
         if cataloged_team_id is not None:
             await conn.execute(

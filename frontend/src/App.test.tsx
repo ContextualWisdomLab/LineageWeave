@@ -1347,12 +1347,14 @@ describe("App, authenticated", () => {
                 responsibility: "부품 납품",
                 actor_type_code: "prov_organization",
                 affiliated_organization_name: "Northridge Grid",
+                affiliation_catalog_unresolved_reason_code: "reason_no_live_client",
               },
               {
                 actor_name: "당사",
                 responsibility: "출하 일정 확정",
                 actor_type_code: "prov_organization",
                 affiliated_organization_name: null,
+                catalog_unresolved_reason_code: "reason_not_corroborated",
               },
               {
                 actor_name: "설계팀",
@@ -2564,6 +2566,12 @@ describe("App, authenticated", () => {
     const northridgeGroupStart = rrOrder.findIndex((text) => text?.includes("Northridge Grid Devices"));
     expect(rrOrder[northridgeGroupStart]).toContain("Northridge Grid Devices");
     expect(rrOrder[northridgeGroupStart + 1]).toContain("Priya Nair");
+    // ADR 0141: an unresolved affiliation shows the specific reason instead
+    // of the generic "Not linked to catalog" label when the reason is known.
+    expect(screen.getByText("(No live enrichment service configured)")).toBeInTheDocument();
+    // ADR 0141: an unresolved primary actor (organization/person) also gets
+    // a specific reason note, where it previously showed nothing at all.
+    expect(screen.getByText("(Checked, not independently corroborated)")).toBeInTheDocument();
     const relatedPosts = screen.getByRole("heading", { name: "Related posts", level: 3 }).closest(
       ".related-posts-section",
     );

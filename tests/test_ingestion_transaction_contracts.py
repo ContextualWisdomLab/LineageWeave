@@ -130,7 +130,7 @@ def test_corporate_entity_creation_locks_rechecks_and_inserts_in_one_transaction
         )
     )
 
-    assert result == str(inserted_id)
+    assert result == (str(inserted_id), None)
     assert [candidate.entity_name for candidate in candidates] == ["Synthetic Energy"]
     assert events[:4] == [
         "inference",
@@ -171,7 +171,7 @@ def test_locked_candidate_recheck_reuses_concurrently_created_entity() -> None:
         )
     )
 
-    assert result == str(existing_id)
+    assert result == (str(existing_id), None)
     assert [candidate.entity_name for candidate in candidates] == ["Synthetic Energy"]
     assert "entity_insert" not in events
     assert events[-1] == "transaction:exit"
@@ -250,6 +250,8 @@ class _SummaryConnection:
                     "cataloged_corporate_entity_id": None,
                     "cataloged_person_id": None,
                     "cataloged_affiliated_corporate_entity_id": None,
+                    "catalog_unresolved_reason_code": None,
+                    "affiliation_catalog_unresolved_reason_code": None,
                 }
             ]
         raise AssertionError(f"unexpected fetch query: {compact}")
@@ -344,10 +346,10 @@ def test_organization_enrichment_finishes_before_summary_transaction(monkeypatch
         inference_client,
         verification_client,
         candidates,
-    ) -> str:
+    ) -> tuple[str, str | None]:
         events.append(("organization_resolve", conn.in_transaction))
         assert not conn.in_transaction
-        return corporate_entity_id
+        return corporate_entity_id, None
 
     async def persist_edges(conn, post_id) -> list[Any]:
         assert conn.in_transaction
@@ -458,10 +460,10 @@ def test_keyman_organization_enrichment_finishes_before_write_transaction(monkey
         inference_client,
         verification_client,
         candidates,
-    ) -> str:
+    ) -> tuple[str, str | None]:
         events.append(("organization_create", conn.in_transaction))
         assert not conn.in_transaction
-        return corporate_entity_id
+        return corporate_entity_id, None
 
     class _Client:
         available = True
@@ -563,6 +565,8 @@ def test_fetch_persisted_summary_returns_stored_person_catalog_id() -> None:
                         "cataloged_corporate_entity_id": None,
                         "cataloged_person_id": person_id,
                         "cataloged_affiliated_corporate_entity_id": None,
+                        "catalog_unresolved_reason_code": None,
+                        "affiliation_catalog_unresolved_reason_code": None,
                     }
                 ]
             raise AssertionError(f"unexpected fetch query: {compact}")
@@ -704,6 +708,14 @@ def test_persist_leaves_uncataloged_person_unbound(monkeypatch) -> None:
         and "insert into post_summary_person_mention" in event[1]
     ]
     assert mention_inserts == []
+    role_insert_args = next(
+        event
+        for event in events
+        if isinstance(event, tuple)
+        and event[0] == "execute"
+        and "insert into post_summary_role" in event[1]
+    )
+    assert "catalog_unresolved_reason_code" in role_insert_args[1]
 
 
 def test_role_catalog_identity_is_stored_on_the_role_row() -> None:
@@ -737,3 +749,40 @@ def test_role_catalog_identity_is_stored_on_the_role_row() -> None:
     assert "0025_role_person_catalog_identity.sql" in dockerfile
     assert "ADR 0019" in changelog
     assert "ADR 0027" in changelog
+
+
+def test_resolve_existing_cataloged_person_id_reports_no_catalog_entry() -> None:
+    """ADR 0141: a missing person-catalog row is reason_no_catalog_entry,
+    the only reason code this lookup can report -- it has no live-client
+    dependency to distinguish further."""
+
+    class _NoPersonConnection:
+        async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
+            assert "select person_id from cataloged_person" in query
+            return None
+
+    result = asyncio.run(
+        summary_ingestion._resolve_existing_cataloged_person_id(
+            _NoPersonConnection(), "Uncataloged Person"
+        )
+    )
+
+    assert result == (None, "reason_no_catalog_entry")
+
+
+def test_resolve_existing_cataloged_person_id_reports_no_reason_when_found() -> None:
+    """A found catalog row has no unresolved reason -- it isn't unresolved."""
+
+    person_id = str(uuid.uuid4())
+
+    class _FoundPersonConnection:
+        async def fetchrow(self, query: str, *args: Any) -> dict[str, Any] | None:
+            return {"person_id": person_id}
+
+    result = asyncio.run(
+        summary_ingestion._resolve_existing_cataloged_person_id(
+            _FoundPersonConnection(), "Kim Cheolsu"
+        )
+    )
+
+    assert result == (person_id, None)

@@ -182,11 +182,19 @@ async def _resolve_affiliated_organization(
     verification_client: RelationVerificationClient,
     hierarchy_inference_client: CorporateHierarchyInferenceClient,
     candidates: list[CorporateEntityCandidate],
-) -> tuple[str, str, str | None]:
-    """Resolve one affiliation without rewriting a known raw-name tie."""
+) -> tuple[str, str, str | None, str | None]:
+    """Resolve one affiliation without rewriting a known raw-name tie.
+
+    The fourth element is ADR 0141's unresolved-reason code (``None`` when
+    ``corporate_entity_id`` is set). The Keyman ingestion caller below does
+    not yet surface it -- only the R&R post-summary path
+    (``post_summary_ingestion.py``) does -- but the reason is real and
+    computed either way, so callers that need it later don't have to
+    re-derive it.
+    """
     raw_outcome = score_corporate_entity(organization_name, candidates)
     if raw_outcome.kind == RESOLUTION_TIE:
-        return organization_name, organization_name, None
+        return organization_name, organization_name, None, "reason_tied_candidates"
 
     resolved_name = await resolve_organization_name(
         conn,
@@ -195,7 +203,7 @@ async def _resolve_affiliated_organization(
         organization_name,
         context_text,
     )
-    corporate_entity_id = await get_or_create_corporate_entity(
+    corporate_entity_id, unresolved_reason = await get_or_create_corporate_entity(
         conn,
         resolved_name,
         context_text,
@@ -203,7 +211,7 @@ async def _resolve_affiliated_organization(
         verification_client,
         candidates,
     )
-    return organization_name, resolved_name, corporate_entity_id
+    return organization_name, resolved_name, corporate_entity_id, unresolved_reason
 
 
 async def ingest_post_keymen(
@@ -249,9 +257,11 @@ async def ingest_post_keymen(
     else:
         mentions = await asyncio.to_thread(client.extract, post_title, post_body)
     candidates = await _load_corporate_entity_candidates(conn)
-    resolved_by_mention: list[tuple[PersonMention, list[tuple[str, str, str | None]]]] = []
+    resolved_by_mention: list[
+        tuple[PersonMention, list[tuple[str, str, str | None, str | None]]]
+    ] = []
     for mention in mentions:
-        resolved_orgs: list[tuple[str, str, str | None]] = []
+        resolved_orgs: list[tuple[str, str, str | None, str | None]] = []
         for organization_name in mention.affiliated_organization_names:
             resolved_orgs.append(
                 await _resolve_affiliated_organization(
@@ -279,7 +289,7 @@ async def ingest_post_keymen(
                 person_id,
             )
             resolved_names: list[str] = []
-            for organization_name, resolved_name, corporate_entity_id in resolved_orgs:
+            for organization_name, resolved_name, corporate_entity_id, _reason in resolved_orgs:
                 await _upsert_affiliation(
                     conn,
                     person_id,
