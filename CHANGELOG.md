@@ -25,6 +25,15 @@ All notable changes to this project are documented here. Format follows
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 
+## [2.12.16] - 2026-08-24
+
+### Added
+
+- Period leftover pair rows now name signed residual `R` beside observed
+  `Y`, expected `E`, leftover-map rank, and distance `d`, then open that
+  post from the reusable `LeftoverPairList` Storybook component
+  (Jeon et al., 2021, eq. 3; ADR 0162).
+
 ## [2.12.15] - 2026-08-24
 
 ### Added

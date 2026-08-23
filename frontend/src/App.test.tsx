@@ -3373,6 +3373,7 @@ describe("App, authenticated", () => {
     expect(closestPair).toHaveTextContent(
       "Read leftover map rank 1, observed Y 2.40, and expected E 2.00 after IRT main effects, then open this post.",
     );
+    expect(closestPair).toHaveTextContent("R +0.40");
     expect(closestPair).toHaveTextContent("Y 2.40 · E 2.00");
     expect(closestPair).toHaveTextContent("rank 1");
     expect(closestPair).toHaveTextContent("d 0.12");
@@ -3380,6 +3381,7 @@ describe("App, authenticated", () => {
     expect(farthestPair).toHaveTextContent(
       "Read leftover map rank 1, observed Y 0.90, and expected E 2.00 after IRT main effects, then open this post.",
     );
+    expect(farthestPair).toHaveTextContent("R −1.10");
     expect(farthestPair).toHaveTextContent("Y 0.90 · E 2.00");
     expect(farthestPair).toHaveTextContent("rank 1");
     expect(farthestPair).toHaveTextContent("d 1.84");
