@@ -22,7 +22,12 @@ export const test = base.extend({
       await page.click("#kc-login");
       await page.waitForURL((url) => !url.pathname.includes("/realms/"), { timeout: 15000 });
     }
-    await page.waitForLoadState("networkidle");
+    // "networkidle" never resolves against this app -- some background
+    // connection (HMR, polling) keeps the network non-idle forever, which
+    // is exactly why Playwright's own docs discourage it. Wait for the
+    // authenticated shell's own navigation instead, a concrete signal the
+    // initial render/data cycle is done.
+    await page.getByRole("navigation").first().waitFor({ state: "visible" });
     await runFixture(page);
   },
 });
