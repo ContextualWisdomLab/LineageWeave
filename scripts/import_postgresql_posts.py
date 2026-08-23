@@ -172,6 +172,14 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--source-project-code-column")
     parser.add_argument("--source-project-name-column")
     parser.add_argument("--thread-group-column")
+    parser.add_argument(
+        "--allow-unique-thread-group",
+        action="store_true",
+        help=(
+            "Accept a thread-group column that is >=95%% distinct (normally "
+            "rejected as per-row identity, not a thread key)"
+        ),
+    )
     parser.add_argument("--secondary-group-column")
     parser.add_argument("--author-subject-id", required=True)
     parser.add_argument("--corporate-entity-code", required=True)
@@ -302,6 +310,44 @@ def _source_body_resolver(
             raise ValueError(f"source body artifact failed at source row {row_number}") from exc
 
     return resolve
+
+
+# Above this share of distinct non-empty values, a mapped thread-group
+# column is identity, not grouping -- a real thread key repeats across
+# the posts of a thread. The zcrht811 import mapped a per-row GUID here
+# and silently reduced Event Lineage to ~43k singleton groups, so
+# reconstruction never scored a single real candidate pair (ADR 0145's
+# grouping-evidence restoration cleaned it up after the fact; this
+# preflight prevents the next import from recreating it).
+_THREAD_GROUP_UNIQUE_RATIO_LIMIT = 0.95
+
+
+def _validate_thread_group_mapping(
+    rows: list[Any],
+    mapping: ColumnMapping,
+    allow_unique_thread_group: bool,
+) -> None:
+    """Reject a thread-group mapping that never actually groups anything."""
+    if mapping.thread_group is None or not rows:
+        return
+    values = [
+        str(_value(row, mapping.thread_group) or "").strip()
+        for row in rows
+    ]
+    non_empty = [value for value in values if value]
+    if not non_empty:
+        return
+    distinct_ratio = len(set(non_empty)) / len(non_empty)
+    if distinct_ratio >= _THREAD_GROUP_UNIQUE_RATIO_LIMIT and not allow_unique_thread_group:
+        raise ValueError(
+            f"mapped thread-group column {mapping.thread_group!r} is "
+            f"{distinct_ratio:.1%} distinct across {len(non_empty)} rows -- "
+            "that is a per-row identity, not a thread key, and it would "
+            "reduce Event Lineage to singleton groups. Drop the mapping "
+            "(reconstruction's own grouping fallback and evidence channels "
+            "take over), or pass --allow-unique-thread-group if this corpus "
+            "genuinely has near-unique threads."
+        )
 
 
 def _validate_publication_state(
@@ -486,6 +532,9 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             args.exclude_draft_value,
             args.exclude_deleted_value,
             body_resolver=resolve_body,
+        )
+        _validate_thread_group_mapping(
+            rows, mapping, getattr(args, "allow_unique_thread_group", False)
         )
         account_id, corporate_id, process_unit_id = await _ensure_scope(target, args)
         vision_client = orchestrator_vision_client(

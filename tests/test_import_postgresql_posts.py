@@ -17,6 +17,7 @@ from scripts.import_postgresql_posts import (
     _validate_corporate_entity_scope,
     _validate_source_mapping,
     _validate_source_rows,
+    _validate_thread_group_mapping,
 )
 
 
@@ -290,3 +291,60 @@ def test_importer_resolves_the_mapped_mhtml_body_before_target_writes(tmp_path: 
         },
         1,
     ) == "<p>synthetic artifact body</p>"
+
+
+def test_importer_rejects_a_per_row_unique_thread_group_column() -> None:
+    # The zcrht811 import mapped a per-row GUID as the thread key and
+    # silently reduced Event Lineage to singleton groups (ADR 0145's
+    # grouping-evidence restoration cleaned it up after the fact); a
+    # thread key that never repeats is identity, not grouping, and must
+    # be refused at the import boundary.
+    mapping = SimpleNamespace(thread_group="thread_col")
+    rows = [{"thread_col": f"guid-{index}"} for index in range(100)]
+    with pytest.raises(ValueError, match="per-row identity, not a thread key"):
+        _validate_thread_group_mapping(rows, mapping, allow_unique_thread_group=False)
+
+
+def test_importer_accepts_a_thread_group_column_that_actually_groups() -> None:
+    mapping = SimpleNamespace(thread_group="thread_col")
+    rows = [{"thread_col": f"thread-{index % 10}"} for index in range(100)]
+    _validate_thread_group_mapping(rows, mapping, allow_unique_thread_group=False)
+
+
+def test_importer_unique_thread_group_override_is_explicit() -> None:
+    mapping = SimpleNamespace(thread_group="thread_col")
+    rows = [{"thread_col": f"guid-{index}"} for index in range(100)]
+    _validate_thread_group_mapping(rows, mapping, allow_unique_thread_group=True)
+
+
+def test_importer_thread_group_preflight_is_a_no_op_without_signal() -> None:
+    # No mapping at all, and a mapped column whose values are all empty,
+    # both carry nothing to validate.
+    _validate_thread_group_mapping(
+        [{"thread_col": "x"}], SimpleNamespace(thread_group=None), False
+    )
+    mapping = SimpleNamespace(thread_group="thread_col")
+    _validate_thread_group_mapping(
+        [{"thread_col": ""}, {"thread_col": "  "}], mapping, False
+    )
+
+
+def test_importer_exposes_the_unique_thread_group_override_flag() -> None:
+    args = _parser().parse_args(
+        [
+            "--source-dsn", "postgresql://source",
+            "--target-dsn", "postgresql://target",
+            "--query-file", "query.sql",
+            "--source-system-code", "source",
+            "--record-key-column", "record_key",
+            "--title-column", "title",
+            "--body-column", "body",
+            "--created-at-column", "created_at",
+            "--author-subject-id", "subject",
+            "--corporate-entity-code", "corp",
+            "--process-unit-code", "pu",
+            "--allow-unique-thread-group",
+        ]
+    )
+
+    assert args.allow_unique_thread_group is True

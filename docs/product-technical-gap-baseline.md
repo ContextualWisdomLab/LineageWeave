@@ -500,6 +500,33 @@ or an explicit unavailable result.
   `post_lineage_edge` chain with fused scores above the 0.3 floor); the
   dataset-wide backfill and import-script fix remain open and need their
   own reviewed checkpoint before running against the full corpus.
+  **Update (2026-08-24, PR #499 + executed operator run):** substantially
+  closed. The reviewed checkpoint this bullet asked for landed as ADR
+  0145's grouping-evidence restoration plus psychometric weight
+  estimation, and the operator sequence has now actually run against the
+  dev corpus with an explicit user go: (1)
+  `scripts/backfill_thread_group_keys.py` cleared 43,811
+  placeholder-signature rows (thread key = own record GUID) to migration
+  0002's designed empty-string no-signal value and routed
+  `source_project_code` into `secondary_grouping_key` -- the
+  secondary-key channel's own documented signal -- as fused *evidence*,
+  never a hard partition; a fail-closed guard refuses the rewrite if any
+  `analysis_scope_thread_group` run's live scope match would be orphaned
+  (none existed). (2) `scripts/estimate_channel_weights.py` fitted
+  fast-mlsirm's multilevel 2PL over 244,921 real candidate pairs and
+  persisted grounded fusion weights (temporal 0.868 / secondary_key
+  0.121 / text 0.011 -- the hand-picked 0.30 text weight was ~26x off
+  what the data supports) with provenance into `lineage_channel_weight`
+  (migration 0135). (3) The weighted rebuild took `post_lineage_edge`
+  from 943 to 41,257 edges; 41,698/43,839 posts (95.1%) now participate
+  in the lineage graph, min fused score exactly at the 0.3 floor.
+  The import-script fix also landed: `_validate_thread_group_mapping`
+  preflight rejects a mapped thread-group column that is >=95% distinct
+  (per-row identity, not a thread key) unless
+  `--allow-unique-thread-group` is passed explicitly. **Still open from
+  this finding:** the llm adjudication channel joining the weight
+  estimate (ADR 0145 SS5), and re-verifying the named 3-post family's
+  chain under the new corpus-wide graph.
 - **Entity and abbreviation resolution — source-stated case fixed
   (2026-08-22), inferred case open:** an organization's former/alternate
   name (e.g. "X(구 Y)") the post text itself states was dropped entirely
