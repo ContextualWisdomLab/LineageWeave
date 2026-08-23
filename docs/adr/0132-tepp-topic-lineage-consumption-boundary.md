@@ -121,6 +121,18 @@ No Figma frame exists yet for this primitive (cf. ADR 0002's precedent for
 recording that gap rather than fabricating a frame reference); add the file
 ID here when a designer produces one.
 
+Decision 5's fail-closed Playwright half also ships ahead of the wiring:
+`frontend/e2e/topic-lineage-fail-closed.spec.ts` (config in
+`frontend/playwright.config.ts`, `npm run test:e2e`) walks the seeded
+Failed topic-lineage row end to end — Keycloak login, the ADR 0014
+`kind · status · entity` caption, the connect-a-transport next action, the
+detail-only machine failure code, and the absence of any evidence/
+inference/prediction mark without a TEPP envelope. On a deployment holding
+real imported source data the spec skips itself with a named reason,
+because ADR 0001/0042 deliberately hide the synthetic Demo Corp runs
+there; it runs fully against the seed-only stack `make seed` builds. The
+golden-path e2e half still waits on TEPP issue #156.
+
 ## Considered alternatives
 
 1. **Fit a local LDA/BERTopic-style model over `zcrht811_export_rows` now,

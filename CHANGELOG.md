@@ -8,6 +8,15 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Playwright e2e harness (`frontend/playwright.config.ts`, `npm run
+  test:e2e`) with the ADR 0132 fail-closed spec
+  (`frontend/e2e/topic-lineage-fail-closed.spec.ts`): a seeded Failed
+  topic-lineage run must show its caption, connect-a-transport next
+  action, and detail-only failure code, and must render no
+  evidence/inference/prediction mark without a TEPP envelope. Skips
+  itself, with the ADR 0001/0042 reason named, on deployments holding
+  real source data.
+
 - Registered the `analysis_run_topic_lineage` analysis-run kind (migrations
   0131/0132, ADR 0132), the LineageWeave-side consumption boundary for
   TEPP's Temporal Relational Shared-Latent Topic Measurement (TRSL-TM,
