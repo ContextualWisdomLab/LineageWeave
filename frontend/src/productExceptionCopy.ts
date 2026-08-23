@@ -42,10 +42,7 @@ export function productExceptionCopy(
     };
   }
   if (backend) {
-    return {
-      title: backend.message,
-      description: t("Retry, or continue with saved evidence."),
-    };
+    return fallbackCopy(action);
   }
   return fallbackCopy(action);
 }

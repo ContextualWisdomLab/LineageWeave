@@ -32,4 +32,10 @@ describe("analysisEvidenceDiagnosis", () => {
     expect(copy.toLowerCase()).toMatch(/job title and relationship type/);
     expect(copy.toLowerCase()).not.toMatch(/operates/);
   });
+
+  it("fails closed when an untyped caller supplies an unknown diagnosis", () => {
+    expect(() =>
+      analysisEvidenceDiagnosis("unknown" as never),
+    ).toThrow("Unsupported analysis evidence diagnosis: unknown");
+  });
 });
