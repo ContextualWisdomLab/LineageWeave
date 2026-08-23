@@ -42,8 +42,23 @@ async def list_conversations(
     before_updated_at: datetime | None = None,
     before_conversation_id: UUID | None = None,
 ) -> dict[str, Any]:
-    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+    cursor_clause = ""
+    arguments: list[Any] = [user_account_id]
+    if before_updated_at is not None and before_conversation_id is not None:
+        cursor_clause = """
+           and (
+               session.updated_at < $2
+               or (session.updated_at = $2 and session.global_ask_session_id < $3)
+           )
         """
+        arguments.extend([before_updated_at, before_conversation_id])
+    arguments.append(limit + 1)
+    limit_placeholder = f"${len(arguments)}"
+    # Safe SQL: cursor_clause is one of two hardcoded literals and
+    # limit_placeholder is a computed positional index ($N); no request
+    # value is ever interpolated, all bound below.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
         select session.global_ask_session_id,
                coalesce(
                    (select left(turn.question_text, 80)
@@ -56,23 +71,15 @@ async def list_conversations(
                session.updated_at,
                count(turn.turn_ordinal)::int as turn_count
           from global_ask_session session
-         left join global_ask_turn turn
+          left join global_ask_turn turn
             on turn.global_ask_session_id = session.global_ask_session_id
          where session.user_account_id = $1
-           and (
-               $2 is null
-               or $3 is null
-               or session.updated_at < $2
-               or (session.updated_at = $2 and session.global_ask_session_id < $3)
-           )
+               {cursor_clause}
          group by session.global_ask_session_id, session.updated_at
          order by session.updated_at desc, session.global_ask_session_id desc
-         limit $4
+         limit {limit_placeholder}
         """,
-        user_account_id,
-        before_updated_at,
-        before_conversation_id,
-        limit + 1,
+        *arguments,
     )
     page_rows = rows[:limit]
     next_cursor = None

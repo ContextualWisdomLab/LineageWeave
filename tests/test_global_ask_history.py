@@ -64,6 +64,24 @@ def test_list_conversations_uses_static_sql_and_bound_cursor_values() -> None:
     assert result["next_cursor"] is not None
 
 
+def test_list_conversations_first_page_binds_no_null_cursor_parameters() -> None:
+    """The no-cursor first page must not send untyped NULL parameters.
+
+    Postgres cannot infer a type for a bare ``$n is null`` parameter, so
+    asyncpg's statement Describe fails with AmbiguousParameterError before
+    execution — breaking the very first Ask history load for every reader.
+    The cursor predicate must therefore be omitted entirely (not NULL-tested)
+    when no cursor is supplied.
+    """
+    connection = _Connection([])
+
+    asyncio.run(list_conversations(connection, "account-1", limit=1))
+
+    query, arguments = connection.calls[0]
+    assert "is null" not in query.lower()
+    assert arguments == ("account-1", 2)
+
+
 def test_visible_post_ids_uses_fixed_source_and_citation_queries() -> None:
     """Both relation types use fixed identifiers rather than interpolated SQL."""
     for source, table, column in (
