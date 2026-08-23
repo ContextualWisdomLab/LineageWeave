@@ -20,10 +20,15 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
     The Dockerfile only bakes migrations into a brand-new Postgres data
     directory via docker-entrypoint-initdb.d; any volume created before a
     migration existed never gets it unless migrate.sh replays it on every
-    `docker compose up`. A window starting above 0012 silently leaves
+    `docker compose up`. A boundary above 12 silently leaves
     report_leftover_pair missing on such volumes -- GET
     /api/reports/{grouping}/{period} then 500s on undefined_table the
     first time a period actually has leftover pairs.
+
+    migrate.sh replaced the old explicit `0012_*|0013_*|...` case-pattern
+    whitelist (which silently fell behind as new migration files were
+    added, per the ADR this test guards) with a numeric boundary check.
+    Assert on that mechanism instead of the retired literal token.
     """
     script = (
         Path(__file__).resolve().parents[1]
@@ -32,4 +37,8 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
         / "migrate.sh"
     ).read_text(encoding="utf-8")
 
-    assert "0012_*" in script
+    # 0001-0011 are baked into the image; 0012 and up must replay.
+    assert '"$migration_number" -lt 12' in script
+    # Base-10 forced so a leading-zero migration number (e.g. 0103) isn't
+    # misread as octal.
+    assert "10#${migration_name%%_*}" in script
