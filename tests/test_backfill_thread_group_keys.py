@@ -125,10 +125,11 @@ def _patch_pool(monkeypatch, conn: _Connection) -> None:
     async def fake_create_pool(*_args, **_kwargs):
         return _FakePool(conn)
 
+    def fake_load_settings():
+        return type("S", (), {"database_url": "postgresql://x"})()
+
     monkeypatch.setattr(backfill.asyncpg, "create_pool", fake_create_pool)
-    monkeypatch.setattr(
-        backfill, "load_settings", lambda: type("S", (), {"database_url": "postgresql://x"})()
-    )
+    monkeypatch.setattr(backfill, "load_settings", fake_load_settings)
 
 
 def test_run_reports_dry_run_counts_without_the_internal_exception_leaking(monkeypatch) -> None:

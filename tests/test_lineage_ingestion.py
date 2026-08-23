@@ -7,12 +7,6 @@ import math
 from datetime import UTC, datetime, timezone
 
 import backend.app.lineage_ingestion as ingestion
-from backend.app.lineage_ingestion import (
-    load_estimated_channel_weights,
-    reconstruct_group_key,
-    records_from_source_posts,
-    visible_lineage_graph,
-)
 from lineageweave.fixtures import sample_records
 from lineageweave.lineage_persistence import lineage_edge_specs
 
@@ -29,7 +23,7 @@ def test_missing_weight_table_is_detected_without_an_aborting_query() -> None:
             )
 
     assert asyncio.run(
-        load_estimated_channel_weights(
+        ingestion.load_estimated_channel_weights(
             MissingTableConnection(), {"temporal", "secondary_key", "text"}
         )
     ) is None
@@ -57,7 +51,7 @@ def test_unapproved_weight_provenance_is_never_activated() -> None:
             ]
 
     assert asyncio.run(
-        load_estimated_channel_weights(
+        ingestion.load_estimated_channel_weights(
             StoredWeightConnection(), {"temporal", "secondary_key", "text"}
         )
     ) is None
@@ -94,12 +88,16 @@ def test_supported_vectors_still_require_numeric_and_provenance_integrity(
 
     active = {"temporal", "secondary_key", "text"}
     assert asyncio.run(
-        load_estimated_channel_weights(StoredWeightConnection((0.2, 0.3, 0.5)), active)
+        ingestion.load_estimated_channel_weights(
+            StoredWeightConnection((0.2, 0.3, 0.5)), active
+        )
     ) == {"temporal": 0.2, "secondary_key": 0.3, "text": 0.5}
     for invalid in ((0.2, 0.3, 0.6), (0.2, 0.8, math.nan), (0.2, 0.8, 0.0)):
         assert (
             asyncio.run(
-                load_estimated_channel_weights(StoredWeightConnection(invalid), active)
+                ingestion.load_estimated_channel_weights(
+                    StoredWeightConnection(invalid), active
+                )
             )
             is None
         )
@@ -118,7 +116,7 @@ def test_records_use_persisted_thread_keys_not_process_unit_or_voc_type() -> Non
             "created_at": datetime(2026, 1, 6, tzinfo=timezone.utc),
         }
     ]
-    records = records_from_source_posts(rows)
+    records = ingestion.records_from_source_posts(rows)
     assert records[0].group_key == "A-100"
     assert records[0].secondary_key == "proj-alpha"
     assert records[0].occurred_at.tzinfo is None
@@ -137,7 +135,7 @@ def test_records_fall_back_to_corporate_entity_when_thread_keys_are_empty() -> N
             "created_at": datetime(2026, 2, 1),
         }
     ]
-    records = records_from_source_posts(rows)
+    records = ingestion.records_from_source_posts(rows)
     assert records[0].group_key == "cccccccc-cccc-cccc-cccc-cccccccccccc"
     assert records[0].secondary_key == ""
     assert records[0].label == "Corp-only post"
@@ -155,8 +153,8 @@ def test_display_group_matches_reconstruct_group_key() -> None:
         "corporate_entity_id": "shared-corp",
         "thread_group_key": "",
     }
-    assert reconstruct_group_key(a100) == "A-100"
-    assert reconstruct_group_key(ungrouped) == "shared-pu"
+    assert ingestion.reconstruct_group_key(a100) == "A-100"
+    assert ingestion.reconstruct_group_key(ungrouped) == "shared-pu"
 
 
 def test_seed_shaped_rows_rebuild_to_the_designed_a100_fork() -> None:
@@ -179,7 +177,7 @@ def test_seed_shaped_rows_rebuild_to_the_designed_a100_fork() -> None:
                 "created_at": rec.occurred_at,
             }
         )
-    edges = lineage_edge_specs(records_from_source_posts(rows))
+    edges = lineage_edge_specs(ingestion.records_from_source_posts(rows))
     pairs = {(edge.parent_id, edge.child_id) for edge in edges}
     assert ("rec-002", "rec-003") in pairs
     assert ("rec-002", "rec-004") in pairs
@@ -228,12 +226,18 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
             return self.edges if "post_lineage_edge" in query else self.posts
 
     connection = FakeConnection()
-    landing = asyncio.run(visible_lineage_graph(connection, lambda row: True, limit=1))
+    landing = asyncio.run(
+        ingestion.visible_lineage_graph(connection, lambda row: True, limit=1)
+    )
     focused = asyncio.run(
-        visible_lineage_graph(connection, lambda row: True, limit=1, focus_post_id="post-a")
+        ingestion.visible_lineage_graph(
+            connection, lambda row: True, limit=1, focus_post_id="post-a"
+        )
     )
     isolated = asyncio.run(
-        visible_lineage_graph(connection, lambda row: True, limit=1, focus_post_id="post-c")
+        ingestion.visible_lineage_graph(
+            connection, lambda row: True, limit=1, focus_post_id="post-c"
+        )
     )
 
     assert [node["id"] for node in landing["nodes"]] == ["post-c"]

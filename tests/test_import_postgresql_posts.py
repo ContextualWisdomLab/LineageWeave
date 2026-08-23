@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-import scripts.import_postgresql_posts as importer
 from scripts.import_postgresql_posts import (
+    _lineage_grouping_values,
     _parser,
     _normalize_voc_type,
     _source_post_id,
@@ -17,14 +17,14 @@ from scripts.import_postgresql_posts import (
 
 
 def test_placeholder_grouping_is_derived_without_losing_raw_source_values() -> None:
-    assert hasattr(importer, "_lineage_grouping_values")
+    assert callable(_lineage_grouping_values)
     mapping = SimpleNamespace(
         thread_group="thread",
         secondary_group="document",
         project_code="project",
     )
 
-    assert importer._lineage_grouping_values(
+    assert _lineage_grouping_values(
         {"thread": " record-1 ", "document": " document-1 ", "project": " project-1 "},
         mapping,
         record_key="record-1",
@@ -33,14 +33,14 @@ def test_placeholder_grouping_is_derived_without_losing_raw_source_values() -> N
 
 
 def test_real_source_grouping_remains_the_derived_grouping() -> None:
-    assert hasattr(importer, "_lineage_grouping_values")
+    assert callable(_lineage_grouping_values)
     mapping = SimpleNamespace(
         thread_group="thread",
         secondary_group="secondary",
         project_code="project",
     )
 
-    assert importer._lineage_grouping_values(
+    assert _lineage_grouping_values(
         {"thread": "thread-a", "secondary": "secondary-a", "project": "project-a"},
         mapping,
         record_key="record-1",
