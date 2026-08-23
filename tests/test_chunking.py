@@ -427,6 +427,12 @@ def test_chunk_by_dom_keeps_html_quantity_scripts_as_unicode() -> None:
     assert [chunk.text for chunk in chunks] == ["Tank volume is 12 m³ of H₂O."]
 
 
+def test_chunk_by_dom_unclosed_sup_does_not_cross_table_cells() -> None:
+    chunks = chunk_by_dom("<table><tr><td>m<sup>3</td><td>Acme Corp</td></tr></table>")
+
+    assert [chunk.text for chunk in chunks] == ["m³ | Acme Corp"]
+
+
 def test_chunk_by_dom_unclosed_sup_does_not_corrupt_later_paragraphs() -> None:
     """A malformed, never-closed <sup> must not leak its script context into
     every later block. HTMLParser (unlike a browser) does not implicitly

@@ -483,6 +483,7 @@ class _BlockTextExtractor(HTMLParser):
             self._stack[-1] = (tag_name, buffer, style, indent_width, True)
             return
         if tag in _TABLE_CELL_TAGS:
+            self._script_stack.clear()
             if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS and self._stack[-1][1]:
                 self._stack[-1][1].append(" | ")
             return
