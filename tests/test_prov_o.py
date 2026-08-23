@@ -389,13 +389,28 @@ def test_support_profile_imports_prov_o_and_maps_product_classes() -> None:
     ontology_iri = URIRef(
         "https://contextualwisdomlab.github.io/LineageWeave/prov-o-support"
     )
-    local = Namespace("https://contextualwisdomlab.github.io/LineageWeave/ontology#")
+    local = Namespace("https://contextualwisdomlab.github.io/lineageweave/ontology#")
+    legacy = Namespace("https://contextualwisdomlab.github.io/LineageWeave/ontology#")
     assert (
         ontology_iri,
         OWL.imports,
         URIRef("http://www.w3.org/ns/prov-o#"),
     ) in profile
+    assert (
+        ontology_iri,
+        OWL.imports,
+        URIRef(
+            "https://contextualwisdomlab.github.io/lineageweave/ontology/namespace-compatibility.ttl"
+        ),
+    ) in profile
     assert (local.Post, RDFS.subClassOf, PROV.Entity) in profile
     assert (local.Person, RDFS.subClassOf, PROV.Person) in profile
     assert (local.CorporateEntity, RDFS.subClassOf, PROV.Organization) in profile
     assert (local.Team, RDFS.subClassOf, PROV.Organization) in profile
+    assert not any(str(subject).startswith(str(legacy)) for subject in profile.subjects())
+
+    compatibility = Graph().parse(
+        profile_path.with_name("namespace-compatibility.ttl"), format="turtle"
+    )
+    assert (legacy.Post, RDF.type, OWL.Class) in compatibility
+    assert (local.Post, OWL.equivalentClass, legacy.Post) in compatibility
