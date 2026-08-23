@@ -333,9 +333,9 @@ runtime note into a shipped/live claim.
 
 ## Project-history lineage counts (2026-08-23)
 
-- The shared timeline now distinguishes all authorized project posts from posts
-  incident to a persisted forward `post_lineage_edge`, and reports the number of
-  weakly connected evidence-lineage components.
+- The shared timeline now distinguishes displayed authorized project posts from
+  posts incident to a persisted forward `post_lineage_edge`, and reports the
+  number of weakly connected evidence-lineage components in that bounded set.
 - Isolated project posts remain visible but do not inflate the lineage count.
   These counts describe LineageWeave's evidence-fusion DAG; they are not TEPP
   topic identities and do not close the TRSL-TM topic-lineage dependency.

@@ -36,13 +36,17 @@ responsibility transitions, and related paths are bounded projections, not an
 HR ledger or a causal graph.
 
 The projection reports three explicit evidence-fusion statistics over the same
-authorized event set: `event_count` counts all project posts,
+bounded authorized event set: `event_count` counts displayed project posts,
 `connected_post_count` counts posts incident to at least one forward
 `post_lineage_edge`, and `lineage_count` counts weakly connected components
 containing those posts. Isolated project posts remain in `event_count` but do
 not become a lineage. These are LineageWeave evidence-DAG statistics, not TEPP
 topic identities; TEPP topic birth, split, merge, dormancy, and reactivation
 stay on the separate fail-closed TEPP contract.
+
+The reader-facing label always says that the post count is the shown set. When
+`truncated` is true, none of these statistics claims to cover project evidence
+outside the bounded response.
 
 The UI uses the existing design-token and Storybook component boundary. The
 Figma file above is the design source for the desktop, mobile, and evidence

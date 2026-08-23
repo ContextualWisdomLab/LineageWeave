@@ -144,7 +144,7 @@ describe("ProjectHistoryTimeline", () => {
     expect(screen.getByText(/evidence gap/i, { selector: "dd" })).toBeInTheDocument();
     expect(screen.getByText(/related history, not causality/i)).toBeInTheDocument();
     expect(screen.getByText(/permission, visibility, publication, and cutoff gates/i)).toBeInTheDocument();
-    expect(screen.getByText(/3 project posts · 3 connected · lineage count 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/3 shown project posts · 3 connected · lineage count 1/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /open source record: VOC received/i }));
     expect(onOpenPost).toHaveBeenCalledWith("post-voc");
