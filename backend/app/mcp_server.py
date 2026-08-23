@@ -387,6 +387,7 @@ def build_mcp_http_app(
         expose_headers=[
             "MCP-Protocol-Version",
             "Mcp-Session-Id",
+            "Retry-After",
             "WWW-Authenticate",
         ],
         allow_credentials=False,
