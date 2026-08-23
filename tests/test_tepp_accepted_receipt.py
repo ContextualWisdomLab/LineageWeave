@@ -31,8 +31,9 @@ class _Transaction:
 
 
 class _ReceiptConnection:
-    def __init__(self, *, rows=None, error=None) -> None:
+    def __init__(self, *, rows=None, row=None, error=None) -> None:
         self.rows = [] if rows is None else rows
+        self.row = row
         self.error = error
         self.transactions = 0
         self.executions: list[tuple[object, ...]] = []
@@ -49,6 +50,7 @@ class _ReceiptConnection:
     async def fetchrow(self, query, analysis_run_id):
         if self.error is not None:
             raise self.error
+        return self.row
 
     async def execute(self, *args):
         self.executions.append(args)
@@ -161,6 +163,27 @@ def test_receipt_insert_error_is_rolled_back_by_a_savepoint() -> None:
     )
     assert persisted is False
     assert connection.transactions == 1
+
+
+def test_receipt_transport_progression_keeps_the_same_run_running() -> None:
+    request = _request()
+    connection = _ReceiptConnection(
+        row={
+            "remote_run_id": "remote-run",
+            "request_sha256": tepp_request_digest(request),
+        }
+    )
+    persisted = asyncio.run(
+        _persist_tepp_accepted_receipt(
+            connection,
+            analysis_run_id="local-run",
+            envelope={"status": "running", "run_id": "remote-run"},
+            request=request,
+            knowledge_cutoff=datetime(2026, 1, 12, tzinfo=timezone.utc),
+        )
+    )
+    assert persisted is True
+    assert connection.executions == []
 
 
 def test_missing_receipt_table_isolated_from_the_callers_transaction() -> None:

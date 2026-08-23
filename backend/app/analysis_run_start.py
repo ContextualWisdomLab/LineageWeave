@@ -312,7 +312,7 @@ async def _persist_tepp_accepted_receipt(
         async with conn.transaction():
             existing = await conn.fetchrow(
                 """
-                select remote_run_id, receipt_sha256
+                select remote_run_id, request_sha256
                 from analysis_run_tepp_accepted_receipt
                 where analysis_run_id = $1
                 """,
@@ -321,7 +321,7 @@ async def _persist_tepp_accepted_receipt(
             if existing is not None:
                 return (
                     str(existing["remote_run_id"]) == remote_run_id
-                    and str(existing["receipt_sha256"]) == receipt_sha256
+                    and str(existing["request_sha256"]) == request_sha256
                 )
             await conn.execute(  # nosemgrep: python.django.security.injection.sql.sql-injection-using-db-cursor-execute.sql-injection-db-cursor-execute -- fixed SQL with bound parameters; code-scanning alert 226
                 """
