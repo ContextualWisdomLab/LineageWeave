@@ -195,7 +195,9 @@ it fetches a genuine access token from a live Keycloak, verifies the
 allow/deny ABAC boundary against a throwaway migrated Postgres database
 (a private post scoped to a *different* corporate entity is proven
 excluded from the list and 403s on direct fetch), and proves a forged
-token is rejected. `scripts/seed_demo_data.py` populates the docker-compose
+token is rejected. Its dev-only FastAPI `TestClient` uses Starlette with the
+project's official `httpx` dev dependency; no alternate transport package is
+introduced. `scripts/seed_demo_data.py` populates the docker-compose
 stack itself with the same shape of synthetic data for manual/frontend use.
 `CORSMiddleware` (`backend/app/main.py`) allows exactly the frontend's
 origin(s) (`FRONTEND_ORIGINS`), `GET` and `POST` (the extract-keymen
@@ -588,7 +590,7 @@ on those same fixed parameters (Kim, 2006 FIPC). After scoring,
 `information_polytomous` ranks the shared-bank items by Fisher
 information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
-residual SVD leftover pairs (Jeon et al., 2021; ADR 0017) persist to
+residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021; ADR 0048 / 0119) persist to
 `report_leftover_pair`. Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;

@@ -6,11 +6,35 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- ADR 0157 and its exact-head inventory choose the existing lowercase public
+  ontology namespace as canonical and define the compatibility, publication,
+  and migration evidence required by issue #372 without rewriting identifiers.
+- The ontology Pages artifact now publishes the deprecated repository-case
+  compatibility vocabulary after validating every mapping's term kind.
+- The PROV-O support profile now mints its product class mappings only in the
+  canonical lowercase namespace while importing the legacy compatibility map.
+
 ### Fixed
 
+- The public ontology now states its OWL 2 Full/RDF-Based semantics for the
+  ADR 0036 RDF-reified project evidence, and the PROV-O support profile uses
+  its canonical lowercase deployed IRI.
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
+
+## [2.12.13] - 2026-08-24
+
+### Fixed
+
+- Closest and farthest leftover post–criterion distances are now
+  Euclidean on the two-axis Jeon / Gabriel interaction map (ADR 0119).
+  Hidden SVD axes after the second no longer change `leftover_distance`.
+  Rank-0 and rank-1 maps still pad unused axes with zero, so seed
+  leftover pairs above the member list still open that post. Never
+  invent a leftover score or a theta.
 
 ## [2.12.6] - 2026-08-20
 
