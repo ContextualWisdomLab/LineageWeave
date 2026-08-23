@@ -4019,6 +4019,22 @@ def test_post_activity_is_empty_before_any_mutation(client, demo_analyst_token, 
     assert response.json()["events"] == []
 
 
+def test_post_activity_requires_post_read(client, demo_analyst_token, seeded_db) -> None:
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute("delete from role_permission where permission_code = 'post_read'")
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/activity",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
 def test_ticket_mutations_publish_real_events_to_the_activity_feed(
     client, demo_analyst_token, seeded_db
 ) -> None:
