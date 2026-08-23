@@ -20,7 +20,7 @@ member list. Each pair is a button: closest or farthest label, post
 title, criterion short label, leftover-map distance, and the next
 action (“Open this post so the leftover criterion is current in Post
 quality.”). Clicking the button opens that post with leftover focus
-so Post quality marks the named criterion current (ADR 0125).
+so Post quality marks the named criterion current (ADR 0158).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post with the leftover

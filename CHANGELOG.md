@@ -20,7 +20,7 @@ All notable changes to this project are documented here. Format follows
   the leftover criterion current in Post quality (IRT). The Post quality
   heading is focused, the named criterion row is `aria-current`, and the
   next action names the leftover score to read (Jeon leftover map,
-  ADR 0125). Home-list and report-member opens do not carry leftover
+  ADR 0158). Home-list and report-member opens do not carry leftover
   focus.
 
 ## [2.12.6] - 2026-08-20

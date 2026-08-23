@@ -1,4 +1,4 @@
-# ADR 0125 — Leftover pair click lands Post quality on the named criterion
+# ADR 0158 — Leftover pair click lands Post quality on the named criterion
 
 **Decision status:** Accepted
 **Date:** 2026-08-23
@@ -7,7 +7,7 @@
 
 ADR 0049 puts closest and farthest leftover post–criterion pairs above
 the period-report member list. Clicking a pair already opens that post.
-The buyer still has to hunt through Post quality (IRT) for the named
+The reader still has to hunt through Post quality (IRT) for the named
 criterion. The leftover residual (Jeon et al., 2021, eq. 3; Gabriel
 1971 biplot) is a post–criterion fact, not a post-only fact.
 
