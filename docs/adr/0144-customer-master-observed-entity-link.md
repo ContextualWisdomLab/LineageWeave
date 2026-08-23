@@ -68,9 +68,10 @@ reach Customer Master once observed in a readable post, with no per-request
 traversal query. Correctness stays pinned to the one ABAC predicate the
 endpoint already trusts, evaluated once at ingestion and re-evaluated only
 on events that can change its answer — not reimplemented as a bespoke
-read-time graph walk. The link table is small and audit-friendly:
-`granting_corporate_entity_id` and `source_post_id` make every surfaced
-entity traceable to the grant and post that justified it.
+read-time graph walk. The link table is audit-friendly: each row retains the
+exact grant and post that justified one observation, while the read query
+deduplicates entities. Multiple independent observations are never collapsed
+into a counter that cannot support correct revocation.
 
 **Negative.** This is a write-amplifying background system, not a pure query
 change — a new table, a new ingestion hook, and a mutation-triggered
@@ -106,8 +107,10 @@ own critique with a bounded, well-understood fix.
 
 1. New table `account_observed_entity(account_id, corporate_entity_id,
    granting_corporate_entity_id, source_post_id, first_observed_at,
-   last_observed_at, observation_count)`, unique on `(account_id,
-   corporate_entity_id)`.
+   last_observed_at)`, unique on `(account_id, corporate_entity_id,
+   granting_corporate_entity_id, source_post_id)`. This is one normalized
+   authorization-evidence fact per account, entity, grant, and source post;
+   do not replace independent provenance with `observation_count`.
 2. Hook the write into the existing `get_or_create_corporate_entity` call
    sites (`keyman_ingestion.py`, `post_summary_ingestion.py`,
    `customer_hint_ingestion.py` — the sites ADR 0010 already wired), not a
@@ -115,8 +118,9 @@ own critique with a bounded, well-understood fix.
    compute the post's authorized-account set with the predicate
    `read_customer_master` already applies, and upsert one row per account.
 3. `entity_rows` becomes a `UNION` of the existing
-   `account.corporate_entity_ids` scope and an `account_observed_entity ⋈
-   account_affiliation ON (account_id, granting_corporate_entity_id)` scope,
+   `account.corporate_entity_ids` scope and a deduplicated
+   `account_observed_entity ⋈ account_affiliation ON (account_id,
+   granting_corporate_entity_id)` scope,
    tagged into ADR 0125's existing `observed_organization` /
    `observed_hierarchy` facets — a materialization strategy, not a new
    evidence class, so no new facet is needed. No per-ancestor row: ADR 0010
@@ -130,14 +134,18 @@ own critique with a bounded, well-understood fix.
    /api/analysis-runs/{id}/start`) and prunes rows for accounts no longer in
    the recomputed set; nightly full-corpus reconciliation, reusing the
    customer-hint bulk-backfill script's batch shape, is a backstop for
-   missed events only.
+   missed events only. Reconciliation deletes only evidence rows sourced
+   from the post being recomputed; another currently authorized post or
+   grant continues to justify the same surfaced entity.
 5. Tests required before wiring the query: an ingestion-time test that the
    write-time account set matches `read_customer_master`'s predicate
    exactly, so the two call sites cannot silently drift; a mutation test
    that narrowing a post's visibility prunes its links within one
    synchronous cycle; an `entity_rows` test that a private post's
    counterparty never appears for a non-authorized account across
-   grant/redaction race orderings.
+   grant/redaction race orderings; and a two-source test that narrows
+   independently authorizing posts in both orders and retains the entity
+   until the last valid observation is removed.
 
 ## References (APA 7th)
 

@@ -439,8 +439,9 @@ or an explicit unavailable result.
   with a missing top link whenever that top entity was inferred but never
   itself named in text. (b)/(c) above only improve the *creation* path, not
   this visibility gap. **ADR 0144** (`docs/adr/0144-customer-master-observed-entity-link.md`)
-  now records a reviewed decision for closing it: a write-time
-  `account_observed_entity` link table populated at ingestion, not a
+  now records a reviewed decision for closing it: a write-time normalized
+  `account_observed_entity` evidence table keyed by account, observed entity,
+  granting entity, and source post, not a
   read-time catalog traversal -- the traversal alternative was evaluated and
   rejected after an adversarial security review found a concrete cross-account
   leak (`corporate_entity` is one catalog shared across every account; a
@@ -751,7 +752,8 @@ not yet implemented).
   `entity_name`/`parent_entity_id` can trace entirely to a different
   account's private post evidence, which a public-verification-only gate
   cannot distinguish from evidence *this* account itself provided. The
-  second design (write-time `account_observed_entity` link table) survived
+  second design (write-time, per-source `account_observed_entity` evidence)
+  survived
   its own critique with one required fix (synchronous reconciliation on
   post-mutation, not merely nightly) and was adopted with that fix folded
   into the decision as mandatory, not optional.
