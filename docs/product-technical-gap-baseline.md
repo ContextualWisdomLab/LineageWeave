@@ -8,8 +8,8 @@
 
 The protected default branch was
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` when this baseline was refreshed.
-The live queue contained 45 open PRs, no independently approved head, and two
-heads with a failed Strix result. Those failures and every review thread must
+The live queue contained 45 open PRs, no independently approved head, and one
+current head with a failed Strix result. That failure and every review thread must
 be re-fetched against the current head before remediation or a merge claim.
 
 Recent protected-default-branch evidence:
@@ -48,7 +48,7 @@ corpus acceptance or protected release.
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 45 PRs remained open and none had an independent current-head approval | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
+| Protected release | 45 PRs remained open, none had an independent current-head approval, and one current head had a failed Strix result | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Image understanding | Region, OCR, and description work exists across active heads | Orchestrator-backed rendered workflow, original/derived asset provenance, and honest unsupported states |
 | Semantic source rendering | Paragraph, table, list, and formula parsing exists across active stacks | Authenticated browser evidence that semantic units render without authoring-layout artifacts |
@@ -72,7 +72,7 @@ corpus acceptance or protected release.
 
 ## 5. Next acceptance loop
 
-1. Reproduce and repair the two current Strix failures without weakening the
+1. Reproduce and repair the current Strix failure without weakening the
    scanner or transferring results across heads.
 2. Re-fetch every open head, latest checks, unresolved threads, and independent
    reviews before any merge claim.
