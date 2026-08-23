@@ -26,9 +26,10 @@ Each leftover pair names `leftover_map_rank`: the number of Gabriel
 singular values above the leftover singular floor on the complete-case
 residual rectangle. Closest and farthest pairs on one period report share
 that rank. A fallback pair that is not placed on a leftover map stores
-rank `0`. Fresh `0001` / `0012` tables require the column. Migration
-`0164` adds a nullable column so older leftover rows keep distance and
-residual without fabricating a rank.
+rank `0`. Migration `0164` is the single source of the column on every
+install path; shipped migrations (`0001` / `0012`) are never rewritten.
+It adds a nullable column so older leftover rows keep distance and residual
+without fabricating a rank.
 
 The pair button shows `rank {n}` when the value is a finite
 non-negative integer. Rank `0` next action: leftover map has no leftover

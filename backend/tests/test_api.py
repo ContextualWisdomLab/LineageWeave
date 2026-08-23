@@ -114,6 +114,11 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     / "migrations"
     / "0102_project_bound_summary_event.sql"
 )
+_LEFTOVER_MAP_RANK_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0164_report_leftover_map_rank.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -227,6 +232,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
+            cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "

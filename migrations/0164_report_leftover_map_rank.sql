@@ -1,8 +1,8 @@
 -- ADR 0164: persist leftover-map rank on leftover post–criterion pairs.
 -- Rank is the number of Gabriel singular values above the leftover
 -- singular floor. Upgrade columns are nullable so older leftover rows
--- keep distance and residual without fabricating a rank. Fresh 0001 /
--- 0012 tables require the column.
+-- keep distance and residual without fabricating a rank. This sequential
+-- migration is the single source of the column on every install path.
 
 alter table report_leftover_pair
     add column if not exists leftover_map_rank integer;
