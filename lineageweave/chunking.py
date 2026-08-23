@@ -214,13 +214,13 @@ def apply_unicode_script(text: str, kind: str) -> str:
 
 
 def _replace_html_script(match: re.Match[str], kind: str) -> str:
-    inner = _INNER_TAG.sub("", match.group(1))
+    inner = match.group(1)
     for _ in range(3):
         decoded = unescape(inner)
         if decoded == inner:
             break
         inner = decoded
-    return apply_unicode_script(inner, kind)
+    return apply_unicode_script(_INNER_TAG.sub("", inner), kind)
 
 
 def normalize_script_text(text: str) -> str:

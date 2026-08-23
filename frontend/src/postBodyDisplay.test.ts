@@ -190,6 +190,25 @@ describe("splitPostBody", () => {
     ).toEqual([{ kind: "text", text: "Volume is m ³." }]);
   });
 
+  it("normalizes encoded script content wrapped in encoded inline markup", () => {
+    expect(
+      splitPostBody("<p>x&lt;sup&gt;&lt;span&gt;2&lt;/span&gt;&lt;/sup&gt;</p>"),
+    ).toEqual([{ kind: "text", text: "x²" }]);
+  });
+
+  it("keeps encoded script-prefixed custom and namespaced tags literal", () => {
+    expect(
+      splitPostBody(
+        "<p>Keep &lt;sup-note&gt;2&lt;/sup-note&gt; and &lt;sub:item&gt;3&lt;/sub:item&gt; literal.</p>",
+      ),
+    ).toEqual([
+      {
+        kind: "text",
+        text: "Keep <sup-note>2</sup-note> and <sub:item>3</sub:item> literal.",
+      },
+    ]);
+  });
+
   it("matches sup/sub content split across a newline", () => {
     // Pretty-printed source HTML puts tag content on its own line
     // (regression: the regex lacked the dotAll flag, so `.` could not cross

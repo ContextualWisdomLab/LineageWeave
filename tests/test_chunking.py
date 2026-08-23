@@ -508,6 +508,10 @@ def test_normalize_script_text_keeps_mixed_script_content_as_a_visible_fallback(
     assert normalize_script_text("x<sup>3a</sup>") == "x^3a"
 
 
+def test_normalize_script_text_decodes_nested_inline_markup_before_stripping() -> None:
+    assert normalize_script_text("x<sup>&lt;span&gt;2&lt;/span&gt;</sup>") == "x²"
+
+
 def test_chunk_by_dom_keeps_html_quantity_scripts_as_unicode() -> None:
     chunks = chunk_by_dom("<p>Tank volume is 12 m<sup>3</sup> of H<sub>2</sub>O.</p>")
 
