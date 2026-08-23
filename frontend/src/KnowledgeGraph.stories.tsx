@@ -66,6 +66,41 @@ const mixedStateGraph: KnowledgeGraph = {
   ],
 };
 
+const directedTemporalGraph: KnowledgeGraph = {
+  post_id: "synthetic-post",
+  nodes: [
+    {
+      id: "earlier",
+      node_type_code: "semantic_temporal_entity",
+      node_id: "earlier",
+      label: "Synthetic base release",
+      ontology_label: "temporal_entity",
+      is_focus: false,
+      is_evidence_text_node: true,
+    },
+    {
+      id: "later",
+      node_type_code: "semantic_temporal_entity",
+      node_id: "later",
+      label: "Synthetic multi-stage release",
+      ontology_label: "temporal_entity",
+      is_focus: false,
+      is_evidence_text_node: true,
+    },
+  ],
+  edges: [
+    {
+      source: "earlier",
+      target: "later",
+      edge_type_code: "time_before",
+      ontology_label: "Before",
+      confidence: 0.98,
+      evidence_text: "The base release came first.",
+      evidence_post_ids: ["synthetic-post"],
+    },
+  ],
+};
+
 const meta = {
   title: "Evidence/KnowledgeGraph",
   component: KnowledgeGraphView,
@@ -85,6 +120,53 @@ export const MixedNodeStates: Story = {
 export const EmptyState: Story = {
   args: {
     graph: { post_id: "post-1", nodes: [], edges: [] },
+    onSelectPost: () => undefined,
+  },
+};
+
+export const DirectedTemporalRelation: Story = {
+  args: {
+    graph: directedTemporalGraph,
+  },
+};
+
+const longLabelGraph: KnowledgeGraph = {
+  post_id: "synthetic-post",
+  nodes: [
+    {
+      id: "focus",
+      node_type_code: "node_post",
+      node_id: "synthetic-post",
+      label: "Initial site visit and project scope discussion",
+      ontology_label: "Post",
+      is_focus: true,
+    },
+    {
+      id: "later",
+      node_type_code: "semantic_temporal_entity",
+      node_id: "later",
+      label: "Pricing renegotiation: revised quote sent",
+      ontology_label: "temporal_entity",
+      is_focus: false,
+      is_evidence_text_node: true,
+    },
+  ],
+  edges: [
+    {
+      source: "focus",
+      target: "later",
+      edge_type_code: "time_before",
+      ontology_label: "mentioned in reconstructed continuation",
+      confidence: 0.91,
+      evidence_text: "The site visit came first.",
+      evidence_post_ids: ["synthetic-post"],
+    },
+  ],
+};
+
+export const LongLabels: Story = {
+  args: {
+    graph: longLabelGraph,
     onSelectPost: () => undefined,
   },
 };

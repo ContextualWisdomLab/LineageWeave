@@ -27,17 +27,23 @@
 }
 
 .lineage-dag-legend-root {
+  border-radius: 2px;
   border-color: var(--color-accent-info);
 }
 
 .lineage-dag-legend-branch {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 1px;
   border-color: var(--badge-actor-organization-text);
   background: var(--badge-actor-organization-bg);
+  transform: rotate(45deg);
 }
 
 .lineage-dag-legend-current {
   border-width: 3px;
   border-color: var(--color-text-heading);
+  box-shadow: 0 0 0 2px var(--color-background), 0 0 0 3.5px var(--color-text-heading);
 }
 
 .lineage-dag-legend-direction {
@@ -83,10 +89,33 @@
   fill: currentColor;
 }
 
+.lineage-dag-topic {
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--text-h);
+}
+
+.lineage-dag-axis {
+  font-size: 10px;
+  fill: var(--text-muted);
+}
+
+.lineage-dag-current-ring {
+  fill: none;
+  stroke: var(--text-h);
+  stroke-width: 1.5;
+}
+
 .lineage-dag-node text.lineage-dag-node-date {
   font-size: 9px;
   opacity: 0.72;
   fill: var(--text);
+}
+
+.lineage-dag-node text.lineage-dag-node-kind {
+  font-size: 9px;
+  font-weight: 650;
+  fill: var(--text-muted);
 }
 
 .lineage-dag-boundary {

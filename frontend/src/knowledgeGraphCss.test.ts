@@ -21,4 +21,8 @@ describe("Knowledge Graph CSS contract", () => {
   it("evidence nodes use a real, globally-defined color token", () => {
     expect(css).toContain("var(--color-accent-orange)");
   });
+
+  it("does not ellipsize on-graph labels through CSS overflow", () => {
+    expect(css).not.toContain("text-overflow: ellipsis");
+  });
 });

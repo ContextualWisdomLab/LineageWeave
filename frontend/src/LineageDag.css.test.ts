@@ -14,6 +14,12 @@ describe("LineageDag CSS contracts", () => {
     expect(css).not.toMatch(/(^|\n)\.lineage-dag-node-date\s*\{/);
   });
 
+  it("names hierarchy on-graph with a kind selector as specific as the date rule", () => {
+    expect(css).toContain(".lineage-dag-node text.lineage-dag-node-kind {");
+    expect(css).toContain(".lineage-dag-topic {");
+    expect(css).not.toContain("text-overflow: ellipsis");
+  });
+
   it("does not override each edge's instance-specific SVG marker", () => {
     expect(appCss).not.toContain('marker-end: url("#lineage-dag-arrow");');
   });

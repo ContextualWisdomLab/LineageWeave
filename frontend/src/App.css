@@ -2033,17 +2033,23 @@ a:focus-visible {
 }
 
 .lineage-dag-legend-root {
+  border-radius: 2px;
   border-color: var(--color-accent-info);
 }
 
 .lineage-dag-legend-branch {
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 1px;
   border-color: var(--color-accent-orange);
   background: var(--badge-actor-organization-bg);
+  transform: rotate(45deg);
 }
 
 .lineage-dag-legend-current {
   border-color: var(--text-h);
   border-width: 3px;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--text-h);
 }
 
 .lineage-dag-viewport {
@@ -2054,9 +2060,11 @@ a:focus-visible {
 }
 
 .lineage-dag-group figcaption {
-  font-size: 0.85rem;
-  opacity: 0.8;
+  font-size: 0.95rem;
+  font-weight: 700;
+  opacity: 1;
   margin-bottom: 0.4rem;
+  color: var(--text-h);
 }
 
 .lineage-dag svg {
@@ -2074,18 +2082,21 @@ a:focus-visible {
   cursor: pointer;
 }
 
-.lineage-dag-node circle {
+.lineage-dag-node circle,
+.lineage-dag-node .lineage-dag-mark {
   fill: var(--surface-muted);
   stroke: var(--border);
   stroke-width: 1.5;
 }
 
-.lineage-dag-branch circle {
+.lineage-dag-branch circle,
+.lineage-dag-branch .lineage-dag-mark {
   fill: var(--badge-actor-organization-bg);
   stroke: var(--color-accent-orange);
 }
 
-.lineage-dag-root circle {
+.lineage-dag-root circle,
+.lineage-dag-root .lineage-dag-mark {
   stroke: var(--color-accent-info);
 }
 
@@ -2099,11 +2110,14 @@ a:focus-visible {
 }
 
 .lineage-dag-node:focus circle,
-.lineage-dag-node:hover circle {
+.lineage-dag-node:hover circle,
+.lineage-dag-node:focus .lineage-dag-mark,
+.lineage-dag-node:hover .lineage-dag-mark {
   stroke-width: 2.5;
 }
 
-.lineage-dag-node[aria-current="true"] circle {
+.lineage-dag-node[aria-current="true"] circle,
+.lineage-dag-node[aria-current="true"] .lineage-dag-mark {
   stroke-width: 3;
   stroke: var(--text-h);
 }

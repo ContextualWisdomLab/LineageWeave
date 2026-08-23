@@ -86,6 +86,26 @@ describe("layoutLineageDag", () => {
     expect(isolated!.x).toBeLessThan(fork!.x);
   });
 
+  it("keeps a wrapped full title in its column instead of overlapping the next depth or Topic", () => {
+    const groups = layoutLineageDag(a100Graph);
+    const a100 = groups[0];
+    const b200 = groups[1];
+    const root = a100.nodes.find((node) => node.id === "rec-001")!;
+    const fork = a100.nodes.find((node) => node.id === "rec-002")!;
+    const quote = a100.nodes.find((node) => node.id === "rec-003")!;
+    expect(root.labelLines.join(" ")).toBe("Initial site visit and project scope discussion");
+    expect(root.labelLines.some((line) => line.includes("…") || line.includes("..."))).toBe(false);
+    expect(quote.x).toBeGreaterThan(fork.x);
+    expect(fork.x + fork.labelWidth).toBeLessThanOrEqual(quote.x);
+    const rightmost = a100.nodes.reduce((current, node) =>
+      current.x + current.labelWidth >= node.x + node.labelWidth ? current : node,
+    );
+    expect(a100.width).toBeGreaterThanOrEqual(rightmost.x + rightmost.labelWidth);
+    expect(b200.heading).toBe("B-200");
+    expect(a100.nodes.some((node) => node.group === "B-200")).toBe(false);
+    expect(b200.nodes[0]?.labelLines.join(" ")).toBe("Technical specification review meeting");
+  });
+
   it("scopes a post's popup DAG to its reconstruct group, including the A-100 fork", () => {
     const scoped = subgraphForPost(a100Graph, "rec-002");
     expect(scoped.nodes.map((node) => node.id).sort()).toEqual([

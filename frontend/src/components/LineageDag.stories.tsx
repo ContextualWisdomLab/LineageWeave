@@ -105,3 +105,60 @@ export const Empty: Story = {
     currentPostId: undefined,
   },
 };
+
+const longLabelMultiTopic: LineageGraph = {
+  nodes: [
+    {
+      id: "rec-001",
+      group: "A-100",
+      label: "Initial site visit and project scope discussion",
+      occurred_at: "2026-01-01T09:00:00Z",
+      is_root: true,
+      is_branch_point: false,
+    },
+    {
+      id: "rec-002",
+      group: "A-100",
+      label: "Pricing renegotiation follow-up",
+      occurred_at: "2026-01-06T09:00:00Z",
+      is_root: false,
+      is_branch_point: true,
+    },
+    {
+      id: "rec-003",
+      group: "A-100",
+      label: "Pricing renegotiation: revised quote sent",
+      occurred_at: "2026-01-10T09:00:00Z",
+      is_root: false,
+      is_branch_point: false,
+    },
+    {
+      id: "rec-004",
+      group: "A-100",
+      label: "Delivery schedule question raised",
+      occurred_at: "2026-01-07T09:00:00Z",
+      is_root: false,
+      is_branch_point: false,
+    },
+    {
+      id: "rec-101",
+      group: "B-200",
+      label: "Technical specification review meeting",
+      occurred_at: "2026-01-03T09:00:00Z",
+      is_root: true,
+      is_branch_point: false,
+    },
+  ],
+  edges: [
+    { source: "rec-001", target: "rec-002", fused_score: 0.83 },
+    { source: "rec-002", target: "rec-003", fused_score: 0.94 },
+    { source: "rec-002", target: "rec-004", fused_score: 0.87 },
+  ],
+};
+
+export const LongLabelMultiTopic: Story = {
+  args: {
+    graph: longLabelMultiTopic,
+    currentPostId: "rec-002",
+  },
+};

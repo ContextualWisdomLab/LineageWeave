@@ -1,20 +1,18 @@
 import { useId } from "react";
 import type { LineageGraph } from "./api";
 import "./LineageDag.css";
+import { LINE_H } from "./graphLabel";
 import { t, tf } from "./i18n";
 import { lineageDagText } from "./lineageDagI18n";
-import { layoutLineageDag } from "./lineageLayout";
+import { layoutLineageDag, PAD } from "./lineageLayout";
 
 const NODE_RADIUS = 7;
+const MARK_EXTENT = 11;
 const EDGE_CLEARANCE = 4;
 
 interface Point {
   x: number;
   y: number;
-}
-
-function truncateLabel(label: string): string {
-  return label.length > 34 ? `${label.slice(0, 33)}…` : label;
 }
 
 function eventDate(occurredAt: string): string {
@@ -23,14 +21,37 @@ function eventDate(occurredAt: string): string {
 
 function edgePath(from: Point, to: Point): string {
   const angle = Math.atan2(to.y - from.y, to.x - from.x);
-  const offsetX = Math.cos(angle) * (NODE_RADIUS + EDGE_CLEARANCE);
-  const offsetY = Math.sin(angle) * (NODE_RADIUS + EDGE_CLEARANCE);
+  const offsetX = Math.cos(angle) * (MARK_EXTENT + EDGE_CLEARANCE);
+  const offsetY = Math.sin(angle) * (MARK_EXTENT + EDGE_CLEARANCE);
   const startX = from.x + offsetX;
   const startY = from.y + offsetY;
   const endX = to.x - offsetX;
   const endY = to.y - offsetY;
   const midX = (startX + endX) / 2;
   return `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`;
+}
+
+function wrapTspans(lines: string[], x: number, lineHeight: number) {
+  return lines.map((line, index) => (
+    <tspan key={index} x={x} dy={index === 0 ? 0 : lineHeight}>
+      {index < lines.length - 1 ? `${line} ` : line}
+    </tspan>
+  ));
+}
+
+function NodeMark({ kind, isCurrent }: { kind: "root" | "branch" | "node"; isCurrent: boolean }) {
+  return (
+    <>
+      {isCurrent ? <circle className="lineage-dag-current-ring" r={11} /> : null}
+      {kind === "root" ? (
+        <rect className="lineage-dag-mark" x={-7} y={-7} width={14} height={14} rx={2} />
+      ) : kind === "branch" ? (
+        <polygon className="lineage-dag-mark" points="0,-9 9,0 0,9 -9,0" />
+      ) : (
+        <circle className="lineage-dag-mark" r={NODE_RADIUS} />
+      )}
+    </>
+  );
 }
 
 export function LineageDag({
@@ -88,6 +109,10 @@ export function LineageDag({
           <span className="lineage-dag-legend-direction" aria-hidden="true" />
           {lineageDagText("Parent to child")}
         </li>
+        <li className="lineage-dag-legend-item">
+          <span className="lineage-dag-legend-direction" aria-hidden="true" />
+          {lineageDagText("Predecessor to successor")}
+        </li>
       </ul>
       {groups.map((group, groupIndex) => {
         const byId = Object.fromEntries(group.nodes.map((node) => [node.id, node]));
@@ -100,11 +125,11 @@ export function LineageDag({
         return (
           <figure key={group.group} className="lineage-dag-group">
             <figcaption id={captionId}>
-              {tf("{group} ({records} records, {edges} lineage edges)", {
+              {`${lineageDagText("Topic")} ${tf("{group} ({records} records, {edges} lineage edges)", {
                 group: group.heading,
                 records: group.nodes.length,
                 edges: group.edges.length,
-              })}
+              })}`}
             </figcaption>
             <div
               className="lineage-dag-scroll lineage-dag-viewport"
@@ -133,6 +158,18 @@ export function LineageDag({
                     <path className="lineage-dag-arrow" d="M 0 0 L 8 4 L 0 8 z" />
                   </marker>
                 </defs>
+                <text className="lineage-dag-topic" x={PAD} y={16}>
+                  {`${lineageDagText("Topic")}: ${group.heading}`}
+                </text>
+                <text className="lineage-dag-axis" x={PAD} y={32}>
+                  {lineageDagText("Earlier")}
+                </text>
+                <text className="lineage-dag-axis" x={group.width / 2} y={32} textAnchor="middle">
+                  {`${lineageDagText("Predecessor to successor")} · ${lineageDagText("Parent to child")}`}
+                </text>
+                <text className="lineage-dag-axis" x={group.width - PAD} y={32} textAnchor="end">
+                  {lineageDagText("Later")}
+                </text>
                 {group.edges.map((edge) => {
                   const from = byId[edge.source];
                   const to = byId[edge.target];
@@ -161,6 +198,8 @@ export function LineageDag({
                     kind === "root" ? lineageDagText("Root record") : null,
                   ].filter((label): label is string => Boolean(label));
                   const kindSuffix = kindLabels.length > 0 ? ` (${kindLabels.join(", ")})` : "";
+                  const dateY = node.labelLines.length * LINE_H + 4;
+                  const kindY = dateY + 12;
                   return (
                     <g
                       key={node.id}
@@ -178,13 +217,18 @@ export function LineageDag({
                         }
                       }}
                     >
-                      <circle r={NODE_RADIUS} />
-                      <text x={12} y={1}>
-                        {truncateLabel(node.label)}
+                      <NodeMark kind={kind} isCurrent={isCurrent} />
+                      <text className="lineage-dag-node-label" x={12} y={1}>
+                        {wrapTspans(node.labelLines, 12, LINE_H)}
                       </text>
-                      <text className="lineage-dag-node-date" x={12} y={15}>
+                      <text className="lineage-dag-node-date" x={12} y={dateY}>
                         {eventDate(node.occurred_at)}
                       </text>
+                      {kindLabels.length > 0 ? (
+                        <text className="lineage-dag-node-kind" x={12} y={kindY}>
+                          {kindLabels.join(" · ")}
+                        </text>
+                      ) : null}
                       <title>
                         {tf("{label} — {date}", {
                           label: node.label,

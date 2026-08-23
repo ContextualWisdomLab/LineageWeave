@@ -16,6 +16,10 @@ describe("lineageDagText", () => {
       expect(lineageDagText("Branch point")).not.toBe("Branch point");
       expect(lineageDagText("Current record")).not.toBe("Current record");
       expect(lineageDagText("Parent to child")).not.toBe("Parent to child");
+      expect(lineageDagText("Topic")).not.toBe("Topic");
+      expect(lineageDagText("Predecessor to successor")).not.toBe("Predecessor to successor");
+      expect(lineageDagText("Earlier")).not.toBe("Earlier");
+      expect(lineageDagText("Later")).not.toBe("Later");
       expect(
         lineageDagText(
           "Reconstructed edges suggest continuation; they do not prove causality or authoritative fact.",

@@ -120,6 +120,88 @@ describe("LineageDag", () => {
     expect(screen.queryByRole("note")).not.toBeInTheDocument();
   });
 
+  it("keeps long titles, Topic partitions, hierarchy, and predecessor/successor on the graph", () => {
+    const multiTopic: LineageGraph = {
+      nodes: [
+        {
+          id: "rec-001",
+          group: "A-100",
+          label: "Initial site visit and project scope discussion",
+          occurred_at: "2026-01-01T00:00:00",
+          is_root: true,
+          is_branch_point: false,
+        },
+        {
+          id: "rec-002",
+          group: "A-100",
+          label: "Pricing renegotiation follow-up",
+          occurred_at: "2026-01-06T00:00:00",
+          is_root: false,
+          is_branch_point: true,
+        },
+        {
+          id: "rec-003",
+          group: "A-100",
+          label: "Pricing renegotiation: revised quote sent",
+          occurred_at: "2026-01-10T00:00:00",
+          is_root: false,
+          is_branch_point: false,
+        },
+        {
+          id: "rec-004",
+          group: "A-100",
+          label: "Delivery schedule question raised",
+          occurred_at: "2026-01-07T00:00:00",
+          is_root: false,
+          is_branch_point: false,
+        },
+        {
+          id: "rec-101",
+          group: "B-200",
+          label: "Technical specification review meeting",
+          occurred_at: "2026-01-03T00:00:00",
+          is_root: true,
+          is_branch_point: false,
+        },
+      ],
+      edges: [
+        { source: "rec-001", target: "rec-002", fused_score: 0.8 },
+        { source: "rec-002", target: "rec-003", fused_score: 0.9 },
+        { source: "rec-002", target: "rec-004", fused_score: 0.85 },
+      ],
+    };
+
+    render(<LineageDag graph={multiTopic} onSelectPost={vi.fn()} currentPostId="rec-002" />);
+
+    const a100 = screen.getByRole("group", { name: "A-100 lineage" });
+    const b200 = screen.getByRole("group", { name: "B-200 lineage" });
+    expect(a100).toHaveTextContent("Initial site visit and project scope discussion");
+    expect(a100).toHaveTextContent("Pricing renegotiation: revised quote sent");
+    expect(a100).toHaveTextContent("Topic: A-100");
+    expect(b200).toHaveTextContent("Topic: B-200");
+    expect(b200).toHaveTextContent("Technical specification review meeting");
+    expect(a100.textContent).not.toMatch(/…|\.\.\./);
+    expect(b200.textContent).not.toMatch(/…|\.\.\./);
+    expect(
+      screen.getByRole("button", {
+        name: "Open post: Pricing renegotiation follow-up (Current record, Branch point)",
+      }),
+    ).toHaveClass("lineage-dag-branch");
+    expect(a100).toHaveTextContent("Root record");
+    expect(a100).toHaveTextContent("Branch point");
+    expect(a100).toHaveTextContent("Current record");
+    expect(a100).toHaveTextContent("Earlier");
+    expect(a100).toHaveTextContent("Later");
+    expect(a100).toHaveTextContent("Predecessor → successor");
+    expect(screen.getByRole("list", { name: "Lineage legend" })).toHaveTextContent(
+      "Predecessor → successor",
+    );
+    const edge = document.querySelector(".lineage-dag-edge");
+    expect(edge?.getAttribute("marker-end")).toMatch(/^url\(#lineage-dag-arrow-/);
+    expect(a100).toHaveTextContent("2026-01-01");
+    expect(a100).toHaveTextContent("2026-01-06");
+  });
+
   it("renders an actionable empty state without graph controls", () => {
     render(<LineageDag graph={{ nodes: [], edges: [] }} onSelectPost={vi.fn()} />);
 

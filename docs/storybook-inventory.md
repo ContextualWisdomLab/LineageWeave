@@ -10,6 +10,10 @@ reader-facing control you can click before changing product CSS.
 | `Analysis/LineageEntityPicker` | Choose which corp to reconstruct, then click Request a lineage reconstruction. | `--space-control-gap`, `--size-control-min`, `--radius-control`, `LineageEntityPicker` |
 | `Chrome/PopupCloseButton` | Close the evidence panel or post popup. | `--space-close-inset`, `--font-size-close`, `PopupCloseButton` |
 | `Evidence/LineageDag` | Inspect a branching Event Lineage, then open a record or read its evidence trail. | `--color-primary`, `--color-accent-orange`, `LineageDag` |
+| `Evidence/LineageDag` LongLabelMultiTopic | Read full titles, Topic A-100 vs B-200, and predecessor → successor, then open the current branch record. | `LineageDag`, wrapLabel |
+| `Analysis/LineageDag` LongLabelMultiTopic | Read the same long-label multi-Topic branching case from the analysis catalog. | `LineageDag` |
+| `Evidence/KnowledgeGraph` DirectedTemporalRelation | Follow the source → target arrow, then read the evidence trail. | `KnowledgeGraphView` |
+| `Evidence/KnowledgeGraph` LongLabels | Read the untruncated titles and relation on the graph, then open the focus post. | `KnowledgeGraphView`, wrapLabel |
 
 Repeated web objects must use `frontend/src/styles/tokens.css` and a module
 under `frontend/src/components/`. Do not add a second Node package manager;

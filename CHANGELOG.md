@@ -41,6 +41,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Event Lineage and Knowledge Graph on-graph titles wrap instead of chopping
+  into `…`, so a long synthetic title stays readable on the graph. Topic
+  partitions, root/branch/current marks, and predecessor → successor
+  (선·후행) stay named on the graph without relying on hover or stroke color
+  alone.
+
 - Tenant settings now refresh their audit timestamp on every successful update,
   keep the year field visibly blank while it is edited, and disable no-op
   whitespace-only saves.
