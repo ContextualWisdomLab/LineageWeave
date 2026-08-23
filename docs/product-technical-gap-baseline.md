@@ -40,7 +40,7 @@ Recent protected-default-branch and org-control-plane evidence:
 | ContextualWisdomLab/.github #1259 | `6041f2aa9e23af5850cd83fa838a3eb6c45d84b9`; auto-merge armed; blocked on independent review | thin LineageWeave hourly review-repair caller at minute 4; supersedes #1086 stack driver |
 | LineageWeave #426 | `4988fb773d30b31371bcc7b184d3bc6dbe32666d` (this stack) | open, mergeable but blocked, review required, auto-merge armed; all 23 threads resolved, zero approvals; 3 checks passing, 15 pending, and 8 skipped |
 | LineageWeave #429 | `3763e1335cd3ac38b5e02b964ab49af34c8d73a0` | open, mergeable but blocked, review required, auto-merge armed |
-| LineageWeave #494 | `327c359b35add7b8011542fb5bd07e625de41e29` | login `tsc` plus optional-extra collection skip; auto-merge armed; hosted frontend typecheck passing; do not fold this baseline back into #494 |
+| LineageWeave #494 | `b195b42dd327f6a6659cca315b34886ab11d38ed` | login `tsc` plus optional-extra collection skip; auto-merge armed; hosted frontend typecheck passing; do not fold this baseline back into #494 |
 | LineageWeave #497 | `07554b238a822e4423f8e6b4c000e5882fe49163`; merged as `250f20e8a6f830479ce904448cd29ab1a106aeef` into #426 only | ADR 0001 baseline is present on this hidden stack, not on protected `main` |
 | LineageWeave #498 | `35823d889c5360ebf2152ed5679d7c22d6832545` | `/healthz` + docstring coverage; overlaps #429; blocked on independent review |
 | LineageWeave #496 | `78287c08309f614ca1de04612c3e15c555bed1c6` | accepted TEPP receipts remain Running during an unavailable recheck; the mixed-import review fix has 21 focused tests passing; open and blocked with 20 checks passing, 2 pending, all 22 threads resolved, and zero approvals |
@@ -120,7 +120,7 @@ evidence across heads.
 | ---: | --- | --- | --- |
 | #426 | `4988fb773d30b31371bcc7b184d3bc6dbe32666d` | Login `tsc`, ontology Pages, namespace compatibility, and canonical baseline ownership | Shared frontend typecheck and public ontology publication on protected `main`; all 23 threads resolved, hosted checks pending, and no independent approval |
 | #507 | `e4e5bf321b303248d14d735fbf717ef2f4c0ce81` | Clean fail-closed weighting repair restacked directly on protected `main` | Resolve all 7 review threads and the failing frontend gate, then obtain independent exact-head approval |
-| #494 | `7eb5b2a89a6f32785bbbaf89126cb1ba931a03a8` | Overlapping login repair | Audit for unique value after #426; do not create a second shared dependency |
+| #494 | `b195b42dd327f6a6659cca315b34886ab11d38ed` | Overlapping login repair plus optional-extra collection skip | Audit for unique value after #426; do not create a second shared dependency |
 | #497 | `07554b238a822e4423f8e6b4c000e5882fe49163` | Non-identifying gap baseline (ADR 0001), merged only into #426 as `250f20e8a6f830479ce904448cd29ab1a106aeef` | Removes identifying post identifiers from the #426 tree; protected history still requires incident remediation and protected `main` has not received it |
 | #498 | `35823d889c5360ebf2152ed5679d7c22d6832545` | `/healthz`, public docstring gate, and overlapping login repair | Preserve only value unique from #426 and #429 after their protected merge order is resolved |
 | #429 | `3763e1335cd3ac38b5e02b964ab49af34c8d73a0` | `/healthz` routes to the liveness probe | Operability: liveness vs settings mix-up |
