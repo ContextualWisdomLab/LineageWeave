@@ -112,10 +112,6 @@ function renderSegment(segment: PostBodySegment, index: number, imageContent?: P
       );
     case "image":
       return renderImageEvidence(index, imageContent, segment);
-    default: {
-      const _exhaustive: never = segment;
-      throw new Error(`unexpected post body segment: ${JSON.stringify(_exhaustive)}`);
-    }
   }
 }
 

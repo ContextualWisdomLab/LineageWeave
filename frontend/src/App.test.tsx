@@ -117,13 +117,16 @@ describe("App, authenticated", () => {
     manyCustomerHints?: number;
     customerEntityHierarchy?: boolean;
     customerScopeFacets?: boolean;
+    customerRelatedPost?: boolean;
     rrOrgWithMembers?: boolean;
     groupedKeyEvents?: boolean;
+    semanticRelationships?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
     summaryPending?: boolean;
     summaryUnavailable?: boolean;
     lineageIsolationReason?: "no_relation_found" | "no_comparison_group";
+    bookmarkUnavailable?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePosts: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -149,6 +152,7 @@ describe("App, authenticated", () => {
     let createdPendingTepp: Record<string, unknown> | null = null;
     let resolvedHintCode: string | null = null;
     let contentRequests = 0;
+    let bookmarked = false;
     const authorizedAffiliations = options?.noAffiliations
       ? []
       : options?.manyAffiliations
@@ -250,6 +254,20 @@ describe("App, authenticated", () => {
             account_affiliations: authorizedAffiliations,
           });
         });
+      }
+      if (url.endsWith("/api/posts/post-1/bookmark")) {
+        if (method === "POST") {
+          if (options?.bookmarkUnavailable) {
+            return Promise.resolve(
+              new Response(JSON.stringify({ detail: "bookmark unavailable" }), {
+                status: 503,
+                headers: { "Content-Type": "application/json" },
+              }),
+            );
+          }
+          bookmarked = Boolean(JSON.parse(String(init?.body)).bookmarked);
+        }
+        return Promise.resolve(jsonResponse({ post_id: "post-1", bookmarked }));
       }
       if (url.endsWith("/api/lineage/rebuild") && method === "POST") {
         return Promise.resolve(jsonResponse({ edge_count: 4 }));
@@ -1401,6 +1419,45 @@ describe("App, authenticated", () => {
                 extraction_method: "contextual_orchestrator_semantic",
               },
             ],
+            ...(options?.semanticRelationships
+              ? {
+                  semantic_relationships: [
+                    {
+                      relation_ordinal: 0,
+                      subject_name: "Design team",
+                      subject_type: "prov:Agent",
+                      predicate_code: "lw_responsible_for",
+                      object_name: "Synthetic launch",
+                      object_type: "lw:Project",
+                      evidence_text: "The design team owns the synthetic launch.",
+                      confidence: 0.91,
+                      extraction_method: "contextual_orchestrator_semantic",
+                    },
+                    {
+                      relation_ordinal: 1,
+                      subject_name: "Prototype Alpha",
+                      subject_type: "prov:Entity",
+                      predicate_code: "lw_precedes",
+                      ontology_label: "Precedes",
+                      object_name: "Prototype Beta",
+                      object_type: "prov:Entity",
+                      evidence_text: "Alpha was completed before Beta.",
+                      confidence: 0.84,
+                      extraction_method: null,
+                    },
+                    {
+                      relation_ordinal: 2,
+                      subject_name: "Synthetic note",
+                      subject_type: "prov:Entity",
+                      predicate_code: "synthetic_relation",
+                      object_name: "Synthetic record",
+                      object_type: "prov:Entity",
+                      evidence_text: "The source states this synthetic relation.",
+                      confidence: 0.75,
+                    },
+                  ],
+                }
+              : {}),
           }),
         );
       }
@@ -1563,6 +1620,26 @@ describe("App, authenticated", () => {
                 person_side_code: "our_side",
                 person_side_label: "Our side",
                 relevance: 0.5,
+              },
+            ],
+          }),
+        );
+      }
+      if (url.endsWith("/api/corporate-entities/corp-demo/related") && options?.customerRelatedPost) {
+        return Promise.resolve(
+          jsonResponse({
+            corporate_entity_id: "corp-demo",
+            entity_name: "Demo Corp",
+            related: [
+              {
+                node_id: "post-2",
+                node_type_code: "node_post",
+                ontology_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                ontology_label: "Post",
+                label: "Linked post",
+                post_body_excerpt: "Linked body preview",
+                post_body_truncated: true,
+                relevance: 0.6,
               },
             ],
           }),
@@ -2091,6 +2168,8 @@ describe("App, authenticated", () => {
     const input = screen.getByRole("textbox", { name: "Ask a question" });
     const send = screen.getByRole("button", { name: "Ask" });
     expect(send).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Who is involved?" }));
+    expect(input).toHaveValue("Who is involved?");
     fireEvent.change(input, { target: { value: "작성 중" } });
     fireEvent.keyDown(input, { key: "Enter", isComposing: true });
     expect(
@@ -2133,6 +2212,83 @@ describe("App, authenticated", () => {
       expect(askCalls).toHaveLength(2);
       expect(JSON.parse(String(askCalls[1][1]?.body))).not.toHaveProperty("anchor_post_id");
     });
+  });
+
+  it("shares, prints, and toggles a post bookmark from the popup actions", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const browserNavigator = Object.create(navigator);
+    Object.defineProperty(browserNavigator, "clipboard", { value: { writeText } });
+    vi.stubGlobal("navigator", browserNavigator);
+    const print = vi.fn();
+    vi.stubGlobal("print", print);
+    const fetchMock = stubBackend();
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const dialog = await screen.findByRole("dialog", { name: "Public post" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Share" }));
+    await waitFor(() => expect(writeText).toHaveBeenCalledOnce());
+    expect(new URL(String(writeText.mock.calls[0][0])).searchParams.get("post")).toBe("post-1");
+    expect(within(dialog).getByText("Permanent link copied.", { selector: ".post-action-status" })).toBeVisible();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Print" }));
+    expect(print).toHaveBeenCalledOnce();
+
+    const bookmark = within(dialog).getByRole("button", { name: "Bookmark" });
+    await waitFor(() => expect(bookmark).toBeEnabled());
+    fireEvent.click(bookmark);
+    await waitFor(() => expect(within(dialog).getByRole("button", { name: "Bookmarked" })).toBeEnabled());
+    fireEvent.click(within(dialog).getByRole("button", { name: "Bookmarked" }));
+    await waitFor(() => expect(within(dialog).getByRole("button", { name: "Bookmark" })).toBeEnabled());
+    const bookmarkBodies = fetchMock.mock.calls
+      .filter(([input, init]) => String(input).endsWith("/api/posts/post-1/bookmark") && init?.method === "POST")
+      .map(([, init]) => JSON.parse(String(init?.body)).bookmarked);
+    expect(bookmarkBodies).toEqual([true, false]);
+  });
+
+  it("keeps share cancellation quiet and reports share or bookmark failures", async () => {
+    const share = vi
+      .fn()
+      .mockRejectedValueOnce(new DOMException("cancelled", "AbortError"))
+      .mockRejectedValueOnce(new Error("share failed"));
+    const browserNavigator = Object.create(navigator);
+    Object.defineProperty(browserNavigator, "share", { value: share });
+    Object.defineProperty(browserNavigator, "clipboard", { value: undefined });
+    vi.stubGlobal("navigator", browserNavigator);
+    stubBackend({ bookmarkUnavailable: true });
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const dialog = await screen.findByRole("dialog", { name: "Public post" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Share" }));
+    await waitFor(() => expect(share).toHaveBeenCalledOnce());
+    expect(dialog.querySelector(".post-action-status")).not.toBeInTheDocument();
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Share" }));
+    expect(await within(dialog).findByText("Share unavailable.", { selector: ".post-action-status" })).toBeVisible();
+
+    const bookmark = within(dialog).getByRole("button", { name: "Bookmark" });
+    await waitFor(() => expect(bookmark).toBeEnabled());
+    fireEvent.click(bookmark);
+    await waitFor(() =>
+      expect(within(dialog).getByText("Bookmark unavailable.", { selector: ".post-action-status" })).toBeVisible(),
+    );
+    expect(bookmark).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("explains when neither native share nor clipboard is available", async () => {
+    const browserNavigator = Object.create(navigator);
+    Object.defineProperty(browserNavigator, "share", { value: undefined });
+    Object.defineProperty(browserNavigator, "clipboard", { value: undefined });
+    vi.stubGlobal("navigator", browserNavigator);
+    stubBackend();
+    render(<App />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    const dialog = await screen.findByRole("dialog", { name: "Public post" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Share" }));
+
+    expect(await within(dialog).findByText("Share unavailable.", { selector: ".post-action-status" })).toBeVisible();
   });
 
   it("clears a post anchor before continuing a saved conversation", async () => {
@@ -2289,6 +2445,19 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Former name: Demo Industries")).toBeInTheDocument();
   });
 
+  it("opens a linked post from an expanded customer entity", async () => {
+    stubBackend({ customerRelatedPost: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    await userEvent.click((await screen.findByText("Demo Corp")).closest("button")!);
+
+    const relatedPost = await screen.findByRole("button", { name: "Open related post: Linked post" });
+    expect(relatedPost).toHaveTextContent("Linked body preview ...");
+    await userEvent.click(relatedPost);
+    expect(await screen.findByRole("dialog", { name: "Linked post" })).toBeInTheDocument();
+  });
+
   it("nests a corporate entity under its parent instead of a flat list", async () => {
     // Live bug (2026-08-19): corporate_entities already carries
     // parent_entity_id and the codebase already builds a real forest from
@@ -2375,6 +2544,23 @@ describe("App, authenticated", () => {
     // An event with no shared project stays a flat, ungrouped bullet.
     const standalone = screen.getByText("Unrelated standalone event", { exact: false }).closest("li") as HTMLLIElement;
     expect(projectItem.contains(standalone)).toBe(false);
+  });
+
+  it("renders explicit semantic relationships with direction, evidence, and provenance", async () => {
+    stubBackend({ semanticRelationships: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const relationships = await screen.findByRole("heading", { name: "Explicit semantic relationships" });
+    const list = relationships.nextElementSibling as HTMLUListElement;
+    expect(within(list).getByText("Responsible for")).toBeInTheDocument();
+    expect(within(list).getByText("Precedes")).toBeInTheDocument();
+    expect(within(list).getByText("synthetic_relation")).toBeInTheDocument();
+    expect(within(list).getByText(/Alpha was completed before Beta\. · Confidence: 84%/)).toBeInTheDocument();
+
+    const temporalRelation = within(list).getByText("Prototype Alpha").closest("li")!;
+    await userEvent.click(within(temporalRelation).getByText("Evidence provenance"));
+    expect(within(temporalRelation).getByText("Extraction source: Recorded extraction")).toBeInTheDocument();
   });
 
   it("shows every observed relationship role for a counterparty, flagging multi-role names", async () => {

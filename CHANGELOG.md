@@ -119,6 +119,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Post-summary contract v19 now preserves an explicit predecessor-to-successor
+  statement in its source direction instead of replacing it with a guessed
+  base-to-variant relation. Knowledge Graph and ontology readers expose that
+  direction with evidence, confidence, and extraction provenance.
 - Event Lineage and Knowledge Graph on-graph titles wrap instead of chopping
   into `…`, so a long synthetic title stays readable on the graph. Topic
   partitions, root/branch/current marks, and predecessor → successor
