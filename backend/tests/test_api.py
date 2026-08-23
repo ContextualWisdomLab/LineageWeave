@@ -4091,6 +4091,7 @@ def test_calendar_hides_other_corp_private_commitments_and_sorts_by_due_date(
     assert commitments[0]["commitment_summary"] == "Send the revised quote"
     assert "visibility_code" not in commitments[0]
     assert "corporate_entity_id" not in commitments[0]
+    assert "process_unit_id" not in commitments[0]
 
 
 def test_calendar_keeps_real_ticket_when_demo_code_is_shared(

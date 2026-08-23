@@ -3137,7 +3137,7 @@ async def read_calendar(
             c for c in visible if not _is_synthetic_demo_member(c, demo_entity_ids)
         ]
     for c in visible:
-        del c["visibility_code"], c["corporate_entity_id"], c["has_real_source_context"]
+        del c["visibility_code"], c["corporate_entity_id"], c["process_unit_id"], c["has_real_source_context"]
     return {
         "events": events,
         "commitments": visible,
