@@ -42,6 +42,36 @@ describe("App, unauthenticated", () => {
       }),
     );
   });
+
+  it("shows a session-expired screen with a working retry, not a bare error string", async () => {
+    // Live bug (2026-08-23): a raw IdP error string (Keycloak's literal
+    // "Token is not active" once the session's token expires) used to be
+    // the entire page -- a bare red line of un-translated text with no
+    // layout and no way back short of a manual reload.
+    mockAuth.error = new Error("Token is not active");
+    render(<App showLabPanels />);
+
+    expect(screen.getByText("Your session has expired.")).toBeInTheDocument();
+    // The raw detail stays visible for diagnostics, but is not the only content.
+    expect(screen.getByText("Token is not active")).toBeInTheDocument();
+
+    const button = screen.getByRole("button", { name: /log in again/i });
+    await userEvent.click(button);
+    expect(signinRedirect).toHaveBeenCalledTimes(1);
+    expect(signinRedirect).toHaveBeenCalledWith(
+      expect.objectContaining({
+        state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
+      }),
+    );
+  });
+
+  it("falls back to a generic authentication-error screen for an unrelated auth error", () => {
+    mockAuth.error = new Error("Network request failed");
+    render(<App showLabPanels />);
+
+    expect(screen.getByText("An authentication error occurred.")).toBeInTheDocument();
+    expect(screen.queryByText("Your session has expired.")).not.toBeInTheDocument();
+  });
 });
 
 function jsonResponse(body: unknown): Response {
