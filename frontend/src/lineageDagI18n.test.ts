@@ -34,6 +34,13 @@ describe("lineageDagText", () => {
       ).not.toBe(
         "No reconstructed lineage yet. Add eligible source records, then rebuild Event Lineage.",
       );
+      expect(
+        lineageDagText(
+          "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.",
+        ),
+      ).not.toBe(
+        "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.",
+      );
     },
   );
 });

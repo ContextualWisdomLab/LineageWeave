@@ -15,6 +15,8 @@ const LINEAGE_DAG_COPY = {
       "Reconstructed edges suggest continuation; they do not prove causality or authoritative fact.",
     "No reconstructed lineage yet. Add eligible source records, then rebuild Event Lineage.":
       "No reconstructed lineage yet. Add eligible source records, then rebuild Event Lineage.",
+    "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.":
+      "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.",
   },
   ko: {
     "Lineage legend": "계보 범례",
@@ -30,6 +32,8 @@ const LINEAGE_DAG_COPY = {
       "재구성된 연결은 후속 관계를 제안할 뿐, 인과관계나 권위 있는 사실을 증명하지 않습니다.",
     "No reconstructed lineage yet. Add eligible source records, then rebuild Event Lineage.":
       "아직 재구성된 계보가 없습니다. 대상 원본 기록을 추가한 뒤 이벤트 계보를 다시 만드세요.",
+    "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.":
+      "이 사슬에는 분기점이 없습니다: 각 기록이 가장 유력한 선행 기록을 정확히 하나씩 찾았기 때문입니다. 아래 근거 내역에서 각 연결의 이유를 확인하세요.",
   },
   zh: {
     "Lineage legend": "谱系图例",
@@ -45,6 +49,8 @@ const LINEAGE_DAG_COPY = {
       "重建的连线仅表示可能的延续关系，不证明因果关系或权威事实。",
     "No reconstructed lineage yet. Add eligible source records, then rebuild Event Lineage.":
       "尚无重建的谱系。请先添加符合条件的源记录，然后重建事件谱系。",
+    "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.":
+      "此链没有分支点：每条记录都恰好匹配到一个最可能的前序记录。请查看下方的证据记录，了解每条连接的原因。",
   },
   ja: {
     "Lineage legend": "系譜の凡例",
@@ -60,6 +66,8 @@ const LINEAGE_DAG_COPY = {
       "再構成されたエッジは継続関係の候補を示すだけで、因果関係や権威ある事実を証明しません。",
     "No reconstructed lineage yet. Add eligible source records, then rebuild Event Lineage.":
       "再構成された系譜はまだありません。対象となる元記録を追加してから、イベント系譜を再構築してください。",
+    "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.":
+      "この鎖に分岐点はありません。各記録がそれぞれ最も可能性の高い先行記録を1件だけ見つけたためです。各リンクの理由は下の証跡でご確認ください。",
   },
   vi: {
     "Lineage legend": "Chú giải dòng sự kiện",
@@ -75,6 +83,8 @@ const LINEAGE_DAG_COPY = {
       "Các cạnh tái dựng chỉ gợi ý quan hệ tiếp nối; chúng không chứng minh quan hệ nhân quả hoặc sự thật có thẩm quyền.",
     "No reconstructed lineage yet. Add eligible source records, then rebuild Event Lineage.":
       "Chưa có dòng sự kiện được tái dựng. Hãy thêm các bản ghi nguồn đủ điều kiện rồi tái dựng Dòng sự kiện.",
+    "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.":
+      "Chuỗi này không có điểm phân nhánh: mỗi bản ghi chỉ khớp với đúng một bản ghi tiền nhiệm khả dĩ nhất. Xem bằng chứng bên dưới để biết lý do của từng liên kết.",
   },
 } as const satisfies Record<Locale, Record<string, string>>;
 

@@ -901,6 +901,21 @@ or an explicit unavailable result.
   for the corpus-wide rebuild path) -- that PR raises `llm`'s 0.40 weight
   back into the fusion but does not address either cause above on its
   own; both remain open after it merges.
+- **Event Lineage gives no reason for a branch-point-free chain — fixed in
+  this worktree (2026-08-24):** a reader opening a post whose reconstructed
+  lineage is a single linear chain (e.g. `?post=<uuid>` with every node's
+  `is_branch_point` false) saw a continuous DAG with a "Branch point" legend
+  entry that never lit up, and no text anywhere explained why. Root cause:
+  `is_branch_point` (`backend/app/lineage_ingestion.py`, `visible_lineage_graph`)
+  is `true` only when a post has two or more children (`len(children_of.get(post_id, []))
+  >= 2`) — correct reconstruction behavior, not a bug, but `LineageDag.tsx`
+  never told the reader that. Fixed by rendering an explicit
+  `role="note"` ("This chain has no branch point: each record matched
+  exactly one likely predecessor. See the evidence trail below for why each
+  link was made.") whenever a group has edges but no node with
+  `is_branch_point`, translated across all five product locales
+  (`lineageDagI18n.ts`) with a consistency test in
+  `lineageDagI18n.test.ts`. Frontend suite green (369/369) after the fix.
 - **Provider-boundary exception diagnosability — partially closed
   (2026-08-25, issue #361):** the 10 fail-closed `except Exception`
   catch-alls across `backend/app/main.py` (Global Ask, per-post chat,

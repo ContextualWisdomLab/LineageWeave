@@ -8,6 +8,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Event Lineage now tells the reader explicitly when a reconstructed chain
+  has no branch point: every record in it matched exactly one likely
+  predecessor, so the DAG renders as a single line rather than leaving the
+  absent branch-point mark unexplained. The note points to the evidence
+  trail below for why each link was made.
 - R&R catalog links now record why they are unresolved (ADR 0141): tied
   candidates, no live enrichment client, checked-but-not-corroborated, or no
   matching catalog entry. The reader sees the specific reason next to an

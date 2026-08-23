@@ -116,6 +116,7 @@ export function LineageDag({
       </ul>
       {groups.map((group, groupIndex) => {
         const byId = Object.fromEntries(group.nodes.map((node) => [node.id, node]));
+        const hasBranchPoint = group.nodes.some((node) => node.is_branch_point);
         const arrowMarkerId = `lineage-dag-arrow-${instanceId}-${groupIndex}`;
         const captionId = `lineage-dag-caption-${instanceId}-${groupIndex}`;
         const lineageLabel = tf("{group} lineage", { group: group.heading });
@@ -242,6 +243,13 @@ export function LineageDag({
             </div>
             {group.edges.length > 0 ? (
               <>
+                {!hasBranchPoint ? (
+                  <p className="lineage-dag-boundary lineage-dag-linear-note" role="note">
+                    {lineageDagText(
+                      "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.",
+                    )}
+                  </p>
+                ) : null}
                 <p className="lineage-dag-boundary lineage-dag-inference-note" role="note">
                   <strong>{t("Inference boundary")}</strong>{" "}
                   {lineageDagText(

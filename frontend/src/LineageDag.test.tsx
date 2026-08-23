@@ -83,9 +83,11 @@ describe("LineageDag", () => {
     expect(within(legend).getByText("Current record")).toBeInTheDocument();
     expect(within(legend).getByText("Parent → child")).toBeInTheDocument();
 
-    expect(screen.getByRole("note")).toHaveTextContent(
-      "Reconstructed edges suggest continuation; they do not prove causality or authoritative fact.",
-    );
+    const notes = screen.getAllByRole("note");
+    expect(notes.map((note) => note.textContent)).toEqual([
+      "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.",
+      "Inference boundary Reconstructed edges suggest continuation; they do not prove causality or authoritative fact.",
+    ]);
 
     const arrowMarker = document.querySelector('marker[id^="lineage-dag-arrow-"]');
     expect(arrowMarker).not.toBeNull();
@@ -218,6 +220,7 @@ describe("LineageDag", () => {
     expect(edge?.getAttribute("marker-end")).toMatch(/^url\(#lineage-dag-arrow-/);
     expect(a100).toHaveTextContent("2026-01-01");
     expect(a100).toHaveTextContent("2026-01-06");
+    expect(a100.textContent).not.toContain("This chain has no branch point");
   });
 
   it("renders an actionable empty state without graph controls", () => {
