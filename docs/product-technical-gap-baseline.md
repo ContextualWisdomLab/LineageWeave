@@ -147,10 +147,15 @@ exact-head protected gate.
   mobile Playwright checks cover the disclosure, no-unassigned-code behavior,
   and no horizontal overflow; the external Keyverse/OIDC runtime gate remains
   open below.
-- **Locale document metadata — substantially present:** `i18n.ts` synchronizes
-  `document.documentElement.lang` after locale selection and `i18n.test.ts`
-  covers the supported locales. `frontend/index.html` remains an English
-  pre-JavaScript fallback, so a no-JavaScript locale check is still open.
+- **Locale document metadata — substantially present; no-JS fallback fixed
+  in this worktree:** `i18n.ts` synchronizes `document.documentElement.lang`
+  after locale selection and `i18n.test.ts` covers the supported locales.
+  `frontend/index.html` now renders a visible `<noscript>` message
+  (English + Korean, inline-styled so it doesn't depend on the JS-bundled
+  CSS) instead of a silent blank page when JavaScript is disabled, covered
+  by `indexHtml.test.ts`. A fully locale-aware no-JS message (matching the
+  visitor's `Accept-Language`) remains open -- that needs server-side
+  locale negotiation, not a client-only fix.
 - **Event Lineage locale parity — fixed in this worktree:** the PR review
   exposed ten Event Lineage, graph-evidence, navigation, and authorization
   labels translated only for Korean while Chinese, Japanese, and Vietnamese
@@ -313,7 +318,8 @@ or an explicit unavailable result.
   Live UI/UX feedback on a real R&R extraction surfaced three related gaps,
   root-caused against source rather than assumed:
   1. **"카탈로그 미연결" is the designed fail-closed behavior, not a bug, but
-     is undiagnosable from the UI.** `_resolve_existing_cataloged_person_id`
+     was undiagnosable from the UI — fixed in this worktree (ADR 0141).**
+     `_resolve_existing_cataloged_person_id`
      (`backend/app/post_summary_ingestion.py`) is documented as never
      inserting a `cataloged_person` row (ADR 0009 — "a missing catalog row
      stays unbound rather than inventing a person"). Organization actors do
@@ -323,9 +329,19 @@ or an explicit unavailable result.
      wired — in that state it can only match an *already-cataloged* entity,
      never create one, so an organization actor stays unlinked too. The
      resulting "카탈로그 미연결" label is a correct, honest reflection of
-     missing live infrastructure, not a code defect — but it gives the
+     missing live infrastructure, not a code defect — but it gave the
      reader no way to tell "not yet processed" from "no live orchestrator in
-     this environment" from "verification declined to corroborate."
+     this environment" from "verification declined to corroborate." ADR 0141
+     and migration `0134_catalog_unresolved_reason.sql` add a closed reason
+     vocabulary (tied candidates / no live client / not corroborated / no
+     catalog entry) captured at write time on `post_summary_role`, on both
+     the primary actor link and the separate affiliated-organization link
+     (the field the shipped label actually renders next to); the frontend
+     (`RoleEvidence.tsx`, `App.tsx`) now shows the specific reason instead of
+     the flat label, falling back to today's behavior on historical rows
+     with no recorded reason. Covered by `RoleEvidence.test.tsx`,
+     `App.test.tsx`, `tests/test_tied_organization_no_create.py`, and
+     `tests/test_migration_replay.py`.
   2. **Job title and relationship type are conflated into one free-text
      field.** `RoleResponsibility.responsibility` (`lineageweave/post_summary.py`)
      is documented as "what they are responsible for or did" — a single
@@ -341,8 +357,9 @@ or an explicit unavailable result.
      implement without review given every future extraction depends on the
      contract version.
   3. **Planned-facility events don't become project/entity evidence, and no
-     operator inference exists.** A key event whose text names a specific
-     planned facility (e.g. "X 충전소 구축 계획") produces `key_events`/
+     operator inference exists — ADR drafted in this worktree, implementation
+     still open by design.** A key event whose text names a specific planned
+     facility (e.g. "X 충전소 구축 계획") produces `key_events`/
      `key_event_details` prose only — it is never checked against
      `post_project_mention`/`ProjectEvidence`, so the facility itself is
      not recognized as an entity, and no relationship is inferred between it
@@ -350,9 +367,17 @@ or an explicit unavailable result.
      This is a deliberate ontology-design question, not a quick fix:
      inferring an "operates" relationship from event-adjacent context risks
      inventing a fact the source text does not state, which is exactly what
-     ADR 0010's fail-closed design exists to prevent. Needs its own ADR
-     (a new PROV-O/SKOS relationship class and a conservative admission
-     rule) before any inference code is written.
+     ADR 0010's fail-closed design exists to prevent. ADR 0142 proposes
+     reusing the existing `post_summary_semantic_relationship` channel
+     (rather than a new table) with one new closed predicate,
+     `lw_plans_to_operate`, whose name itself carries the "announced intent,
+     not standing fact" distinction, plus a conservative admission rule
+     (source names both actor and facility in the same evidence span; the
+     facility is independently backed by a `post_project_mention` row, not
+     just event prose). Per its own text, ADR 0142 authorizes only the
+     follow-up implementation shape; the `POST_SUMMARY_CONTRACT_VERSION`
+     bump, prompt change, and fixture-backed tests remain separately
+     reviewed work, not something this ADR performs itself.
   Two related, safely-scoped UI fixes shipped alongside this finding: R&R
   rows now nest under their affiliated organization's row instead of each
   repeating "· 소속: X" as flat text (`buildRoleTree`, `frontend/src/App.tsx`),

@@ -113,8 +113,16 @@ async def get_or_create_corporate_entity(
     *,
     _depth: int = 0,
     _visited_names: frozenset[str] = frozenset(),
-) -> str | None:
-    """Return a verified catalog id, otherwise ``None``.
+) -> tuple[str | None, str | None]:
+    """Return ``(catalog id, unresolved reason code)``.
+
+    The catalog id is ``None`` exactly when the reason code is one of
+    ADR 0141's closed values (``reason_tied_candidates``,
+    ``reason_no_live_client``, ``reason_not_corroborated``) -- the caller
+    persists that reason instead of a flat "unresolved" fact. It is
+    ``None, None`` only for the pure input-validation edge cases (an empty
+    name, or a name already in the recursion path) that never represent a
+    real actor mention.
 
     A unique similarity match is reused. A tied top score stays unbound
     and does not create a third same-named row (ADR 0026). Only a genuine
@@ -126,18 +134,21 @@ async def get_or_create_corporate_entity(
     """
     normalized_name = organization_name.strip()
     if not normalized_name:
-        return None
+        return None, None
     visit_key = normalized_name.casefold()
     if visit_key in _visited_names:
-        return None
+        return None, None
 
     existing = score_corporate_entity(normalized_name, candidates)
     if existing.kind == RESOLUTION_UNIQUE and existing.catalog_id is not None:
-        return existing.catalog_id
+        return existing.catalog_id, None
     if existing.kind == RESOLUTION_TIE:
-        return None
+        return None, "reason_tied_candidates"
     if _depth >= _MAX_HIERARCHY_DEPTH or not inference_client.available:
-        return None
+        # Excessive recursion depth is folded into the same "not attempted"
+        # bucket as an unconfigured client: from the reader's perspective
+        # both mean enrichment never ran for this specific mention.
+        return None, "reason_no_live_client"
 
     try:
         proposal = await asyncio.to_thread(
@@ -149,9 +160,11 @@ async def get_or_create_corporate_entity(
         # A provider timeout is an unavailable enrichment channel, not a
         # reason to discard the source-grounded summary. Keep the actor
         # unbound and let an explicit retry attempt catalog enrichment later.
-        return None
-    if proposal is None or not verification_client.available:
-        return None
+        return None, "reason_no_live_client"
+    if proposal is None:
+        return None, "reason_not_corroborated"
+    if not verification_client.available:
+        return None, "reason_no_live_client"
 
     try:
         placement_result = await asyncio.to_thread(
@@ -165,16 +178,16 @@ async def get_or_create_corporate_entity(
         # ingestion) -- treat it the same as "not corroborated this run":
         # the entity simply isn't auto-created, same conservative outcome
         # as a real search that found nothing.
-        return None
+        return None, "reason_no_live_client"
     if placement_result.status_code != STATUS_CORROBORATED:
-        return None
+        return None, "reason_not_corroborated"
 
     visited_names = _visited_names | {visit_key}
     parent_entity_id: str | None = None
     if proposal.parent_name is not None:
         normalized_parent = proposal.parent_name.strip()
         if not normalized_parent or normalized_parent.casefold() in visited_names:
-            return None
+            return None, "reason_not_corroborated"
         try:
             parent_result = await asyncio.to_thread(
                 verification_client.verify,
@@ -184,10 +197,10 @@ async def get_or_create_corporate_entity(
         except (HttpClientError, OSError):
             # Same fail-closed-without-crashing behavior as the placement
             # verification above.
-            return None
+            return None, "reason_no_live_client"
         if parent_result.status_code != STATUS_CORROBORATED:
-            return None
-        parent_entity_id = await get_or_create_corporate_entity(
+            return None, "reason_not_corroborated"
+        parent_entity_id, _parent_reason = await get_or_create_corporate_entity(
             conn,
             normalized_parent,
             context_text,
@@ -198,7 +211,9 @@ async def get_or_create_corporate_entity(
             _visited_names=visited_names,
         )
         if parent_entity_id is None:
-            return None
+            # The child's own corroboration succeeded; it's the hierarchy
+            # placement (ADR 0010 requires the whole chain) that didn't.
+            return None, "reason_not_corroborated"
 
     async with conn.transaction():
         await conn.execute(
@@ -216,9 +231,9 @@ async def get_or_create_corporate_entity(
         )
         if fresh.kind == RESOLUTION_UNIQUE and fresh.catalog_id is not None:
             _remember_candidate(candidates, fresh.catalog_id, normalized_name)
-            return fresh.catalog_id
+            return fresh.catalog_id, None
         if fresh.kind == RESOLUTION_TIE:
-            return None
+            return None, "reason_tied_candidates"
         new_id = await _create_entity(
             conn,
             normalized_name,
@@ -226,4 +241,4 @@ async def get_or_create_corporate_entity(
             parent_entity_id,
         )
         _remember_candidate(candidates, new_id, normalized_name)
-        return new_id
+        return new_id, None

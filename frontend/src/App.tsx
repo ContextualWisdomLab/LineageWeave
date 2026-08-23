@@ -1824,6 +1824,28 @@ function sortRolesByOntologyOrder(
     .map(({ role }) => role);
 }
 
+// ADR 0141: translate a closed catalog_unresolved_reason_code into the
+// specific, honest reason a reader can act on, instead of one flat
+// "Not linked to catalog" label for every cause. Returns null (render
+// nothing) for a historical row written before the reason was tracked.
+function catalogUnresolvedReasonLabel(
+  reasonCode: string | null | undefined,
+  translate: (key: string) => string,
+): string | null {
+  switch (reasonCode) {
+    case "reason_tied_candidates":
+      return translate("Multiple equally likely matches");
+    case "reason_no_live_client":
+      return translate("No live enrichment service configured");
+    case "reason_not_corroborated":
+      return translate("Checked, not independently corroborated");
+    case "reason_no_catalog_entry":
+      return translate("No matching catalog entry yet");
+    default:
+      return null;
+  }
+}
+
 interface RoleTreeNode {
   role: PostRoleResponsibility;
   children: RoleTreeNode[];
@@ -2461,6 +2483,14 @@ function PostDetailPopup({
                                 name: rr.affiliated_organization_name ?? "",
                               })}
                               unresolvedLabel={t("Not linked to catalog")}
+                              affiliationUnresolvedReasonLabel={catalogUnresolvedReasonLabel(
+                                rr.affiliation_catalog_unresolved_reason_code,
+                                t,
+                              )}
+                              actorUnresolvedReasonLabel={catalogUnresolvedReasonLabel(
+                                rr.catalog_unresolved_reason_code,
+                                t,
+                              )}
                               genericUnitNote={t("Specific business unit not stated in source")}
                               onSelectAffiliation={(entityId, entityName) => {
                                 setFocusPerson(null);

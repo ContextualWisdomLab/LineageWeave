@@ -6,6 +6,20 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- R&R catalog links now record why they are unresolved (ADR 0141): tied
+  candidates, no live enrichment client, checked-but-not-corroborated, or no
+  matching catalog entry. The reader sees the specific reason next to an
+  unlinked person, organization, or affiliation instead of one flat "Not
+  linked to catalog" label; a historical row written before this change
+  keeps its prior behavior.
+- `frontend/index.html` now shows a visible, styled message when JavaScript
+  is disabled, instead of a silent blank page.
+- ADR 0142 proposes reusing the existing semantic-relationship channel with
+  one new `lw_plans_to_operate` predicate for planned-facility evidence,
+  scoped to the decision only -- no inference code ships with it.
+
 ### Changed
 
 - Renamed "Buyer" terminology to reader/workspace naming across the frontend
