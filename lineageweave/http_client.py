@@ -59,7 +59,6 @@ def _request(
     connection = http.client.HTTPConnection(parsed.hostname, port, timeout=timeout)
 
     try:
-        transport_error = False
         try:
             if parsed.scheme == "https":
                 connection.connect()
@@ -72,12 +71,11 @@ def _request(
             response = connection.getresponse()
             length_header = response.getheader("Content-Length")
             raw = response.read(int(length_header)) if length_header is not None else response.read()
-            response_status = response.status
-        except (OSError, ValueError, http.client.HTTPException):
-            transport_error = True
-        if transport_error:
-            raise HttpClientError("provider transport unavailable")
-        return response_status, raw
+            return response.status, raw
+        except (OSError, ValueError, http.client.HTTPException) as exc:
+            # Chain internally for operator logging (ADR 0123); the exposed
+            # message stays generic/hostname-only, never the raw exception text.
+            raise HttpClientError("provider transport unavailable") from exc
     finally:
         connection.close()
 
@@ -86,11 +84,8 @@ def _decode_json(raw: bytes, hostname: str) -> object:
     """Implement the _decode_json operation for this channel."""
     try:
         return json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError):
-        # Keep the provider parser exception out of both the public error and
-        # its implicit context. The provider response body is not trusted data.
-        pass
-    raise HttpClientError(f"non-JSON response from {hostname}")
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise HttpClientError(f"non-JSON response from {hostname}") from exc
 
 
 def _decode_json_object(raw: bytes, hostname: str) -> dict:

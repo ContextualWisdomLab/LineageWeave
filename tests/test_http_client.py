@@ -181,8 +181,7 @@ def test_post_json_https_negotiates_tls_instead_of_plaintext() -> None:
         https_url = base.replace("http://", "https://", 1) + "/v1/embeddings"
         with pytest.raises(HttpClientError, match="provider transport unavailable") as error:
             post_json(https_url, {"model": "demo"}, headers={}, timeout=2.0)
-        assert error.value.__cause__ is None
-        assert error.value.__context__ is None
+        assert error.value.__cause__ is not None
     finally:
         server.shutdown()
 

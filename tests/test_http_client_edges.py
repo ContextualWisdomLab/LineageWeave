@@ -12,8 +12,7 @@ def test_json_helpers_reject_non_json_and_wrong_shapes(
     monkeypatch.setattr(http_client, "_request", lambda *_args, **_kwargs: (200, raw))
     with pytest.raises(http_client.HttpClientError, match="non-JSON") as error:
         http_client.get_json("https://gateway.example/health", timeout=1)
-    assert error.value.__cause__ is None
-    assert error.value.__context__ is None
+    assert isinstance(error.value.__cause__, (UnicodeDecodeError, http_client.json.JSONDecodeError))
 
     monkeypatch.setattr(http_client, "_request", lambda *_args, **_kwargs: (200, b"[]"))
     with pytest.raises(http_client.HttpClientError, match="JSON object"):
@@ -77,5 +76,4 @@ def test_request_hides_raw_provider_transport_errors(monkeypatch: pytest.MonkeyP
             timeout=1,
         )
     assert "provider secret" not in str(error.value)
-    assert error.value.__cause__ is None
-    assert error.value.__context__ is None
+    assert isinstance(error.value.__cause__, TimeoutError)

@@ -82,5 +82,5 @@ def test_configured_transport_hides_raw_provider_exception_chain(
 
     assert str(error.value) == "TEPP transport unavailable"
     assert "provider secret" not in str(error.value)
-    assert error.value.__cause__ is None
-    assert error.value.__context__ is None
+    assert isinstance(error.value.__cause__, OSError)
+    assert str(error.value.__cause__) == "provider secret must not escape"
