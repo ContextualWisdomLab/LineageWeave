@@ -69,7 +69,7 @@ from lineageweave.organization_name_resolution import (
 )
 from lineageweave.relation_verification import NullRelationVerificationClient, RelationVerificationClient
 
-from .corporate_entity_ingestion import get_or_create_corporate_entity
+from .corporate_entity_ingestion import get_or_create_corporate_entity, record_observed_entity
 from .knowledge_graph import persist_edges_for_post
 from .organization_name_resolution_ingestion import resolve_organization_name
 
@@ -288,6 +288,8 @@ async def ingest_post_keymen(
                     corporate_entity_id,
                     mention.job_title,
                 )
+                if corporate_entity_id is not None:
+                    await record_observed_entity(conn, corporate_entity_id, post_id)
                 if resolved_name not in resolved_names:
                     resolved_names.append(resolved_name)
             normalized_mentions.append(

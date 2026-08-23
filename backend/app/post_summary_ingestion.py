@@ -68,7 +68,7 @@ from lineageweave.relation_verification import (
     RelationVerificationClient,
 )
 
-from .corporate_entity_ingestion import get_or_create_corporate_entity
+from .corporate_entity_ingestion import get_or_create_corporate_entity, record_observed_entity
 from .keyman_ingestion import (
     _load_corporate_entity_candidates,
     _resolve_affiliated_organization,
@@ -474,6 +474,12 @@ async def persist_post_summary(
             resolved_affiliation_names,
             resolved_affiliation_ids,
         )
+        # Cheap local writes, unlike the network-calling resolution above:
+        # belongs in the same atomic transaction as the rest of the post's
+        # mutation, not the pre-transaction enrichment phase (ADR 0144).
+        observed_ids = set(resolved_organization_ids.values()) | set(resolved_affiliation_ids.values())
+        for corporate_entity_id in observed_ids:
+            await record_observed_entity(conn, corporate_entity_id, post_id)
 
     payload = await fetch_persisted_summary(conn, post_id)
     if payload is None:

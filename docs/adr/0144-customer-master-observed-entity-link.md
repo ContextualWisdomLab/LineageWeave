@@ -1,6 +1,6 @@
 # ADR 0144 — Customer Master surfaces ADR 0010 counterparty entities through a write-time, provenance-bearing observation link, not read-time catalog traversal
 
-**Decision status:** Proposed
+**Decision status:** Accepted on active PR; not protected-main truth until merge
 **Date:** 2026-08-23
 
 > Numbering note: this repository currently has multiple in-flight branches
