@@ -2,7 +2,7 @@
 
 ADR 0021 reconstructs lineage. ADR 0022 starts TEPP through
 ``tepp_client`` only. ADR 0023 enqueues that work on a durable outbox
-so a crash after Running does not lose the item. ADR 0157 persists a
+so a crash after Running does not lose the item. ADR 0162 persists a
 TEPP accepted envelope as transport evidence and keeps the local run
 Running. Period-report stays another path. Neither start invents a
 theta or a calibrated report score.

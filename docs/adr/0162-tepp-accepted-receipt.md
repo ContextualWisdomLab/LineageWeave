@@ -1,4 +1,4 @@
-# ADR 0157 — Persist TEPP AnalysisRunAccepted as transport evidence
+# ADR 0162 — Persist TEPP AnalysisRunAccepted as transport evidence
 
 **Decision status:** Accepted on this active PR; not protected-main truth until merge
 **Date:** 2026-08-23

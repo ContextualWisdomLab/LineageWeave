@@ -1,7 +1,7 @@
 # ADR 0022 — Operators start a pending TEPP measurement through tepp_client
 
 **Decision status:** Accepted on this active PR; not protected-main truth until merge
-**Amended by:** ADR 0157 (accepted receipts with a remote run id stay
+**Amended by:** ADR 0162 (accepted receipts with a remote run id stay
 Running as transport evidence; empty accepted envelopes remain Failed)
 **Date:** 2026-08-17
 **Depends on:** ADR 0013 registry; ADR 0017 authorized create; ADR 0021

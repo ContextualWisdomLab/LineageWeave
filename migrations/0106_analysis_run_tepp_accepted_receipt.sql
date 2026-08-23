@@ -1,4 +1,4 @@
--- Persist TEPP AnalysisRunAccepted as transport evidence (ADR 0157).
+-- Persist TEPP AnalysisRunAccepted as transport evidence (ADR 0162).
 -- This is not a measurement: no result JSON and no Succeeded stamp.
 -- Completed envelopes stay on analysis_run_tepp_result (migration 0027).
 create table if not exists analysis_run_tepp_accepted_receipt (

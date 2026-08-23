@@ -487,7 +487,7 @@ more than one), then open the Pending row to confirm the cutoff corpus.
 `POST /api/analysis-runs/{id}/start` then commits Running plus a
 durable outbox row, wakes Valkey, and delivers ThreadWeave on that
 frozen bag (ADR 0021 / ADR 0023) or submits TEPP through
-`tepp_client` (ADR 0022 / ADR 0157). It does not invent a TEPP score.
+`tepp_client` (ADR 0022 / ADR 0162). It does not invent a TEPP score.
 Request a lineage reconstruction from the home list, open the Pending
 row, then start reconstruction. A Pending TEPP row starts a
 measurement; a missing transport stays Failed /

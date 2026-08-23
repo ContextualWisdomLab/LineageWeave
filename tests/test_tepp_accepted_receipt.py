@@ -240,8 +240,8 @@ def test_migrate_sh_replays_accepted_receipt_migration() -> None:
     assert "0105_*" not in script
 
 
-def test_adr_0157_keeps_measurement_authority_with_tepp() -> None:
-    adr = (_ROOT / "docs" / "adr" / "0157-tepp-accepted-receipt.md").read_text(encoding="utf-8")
+def test_adr_0162_keeps_measurement_authority_with_tepp() -> None:
+    adr = (_ROOT / "docs" / "adr" / "0162-tepp-accepted-receipt.md").read_text(encoding="utf-8")
     assert "transport evidence" in adr.casefold()
     assert "do not invent a theta" in adr.casefold()
     assert "TEPP#156" in adr
