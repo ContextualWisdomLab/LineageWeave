@@ -1,7 +1,9 @@
 # ADR 0132 — TEPP topic-lineage consumption boundary (TRSL-TM + CHRONOS/TDT)
 
 **Decision status:** Accepted
-**Implementation maturity:** boundary-accepted, runtime open
+**Implementation maturity:** boundary-accepted; evidence/inference/prediction
+mark primitive implemented (`frontend/src/components/EvidenceStatusMark.tsx`,
+below); DAG topic-thread wiring and runtime remain open
 **Date:** 2026-08-22
 **Depends on:** ADR 0022 (authorized TEPP start); ADR 0064 (lineage evidence
 and tree assembly); ADR 0084 (research-grounded lineage and ontology policy)
@@ -98,6 +100,26 @@ sequenceDiagram
     end
     API-->>Operator: run status + evidence/inference/prediction detail
 ```
+
+### Implementation note: the status-mark primitive ships ahead of the wiring
+
+Decision item 5's "distinct visual channel, not color alone" requirement is
+implemented now as `EvidenceStatusMark` (`frontend/src/components/
+EvidenceStatusMark.tsx`, i18n in `evidenceStatusI18n.ts`, tokens in
+`styles/tokens.css`): a reusable badge distinguishing evidence / inference /
+prediction by label text and glyph shape (`●` / `◆` / `△`) in addition to
+color, satisfying WCAG 1.4.1 with redundant, testable channels (see its
+Storybook stories and `EvidenceStatusMark.test.tsx`). It is presentational
+only — every call site must supply `status` from a real TEPP-sourced
+envelope; the component never infers or invents one. Wiring it into
+`LineageDag`'s topic-thread overlay is the remaining step once TEPP issue
+#156 publishes the topic-identity/CHRONOS-status envelope this ADR's
+decision 3-4 depend on; until then, no topic-lineage run reaches Succeeded,
+so there is no envelope to source a `status` prop from.
+
+No Figma frame exists yet for this primitive (cf. ADR 0002's precedent for
+recording that gap rather than fabricating a frame reference); add the file
+ID here when a designer produces one.
 
 ## Considered alternatives
 

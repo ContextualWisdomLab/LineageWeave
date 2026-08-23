@@ -19,6 +19,13 @@ All notable changes to this project are documented here. Format follows
   `make seed` now also writes a Demo Corp topic-lineage run alongside the
   existing lineage/TEPP/period-report rows.
 
+- `EvidenceStatusMark`, a reusable evidence/inference/prediction status
+  badge (ADR 0132 decision 5, TEPP ADR 0016) distinguishing status by label
+  text and glyph shape, not color alone. Ships ahead of the Event Lineage
+  DAG topic-thread wiring it is designed for, so review and Storybook
+  coverage (`Analysis/EvidenceStatusMark`) are available now; it is
+  presentational only and never infers a status itself.
+
 ### Changed
 
 - Renamed "Buyer" terminology to reader/workspace naming across the frontend

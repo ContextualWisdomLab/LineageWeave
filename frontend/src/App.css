@@ -2351,6 +2351,37 @@ a:focus-visible {
   color: var(--badge-status-danger-text);
 }
 
+.evidence-status-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.6rem;
+  border-radius: var(--radius-chip);
+  font-size: var(--font-size-badge);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.evidence-status-glyph {
+  font-size: 0.7em;
+  line-height: 1;
+}
+
+.evidence-status-evidence {
+  background: var(--badge-status-evidence-bg);
+  color: var(--badge-status-evidence-text);
+}
+
+.evidence-status-inference {
+  background: var(--badge-status-inference-bg);
+  color: var(--badge-status-inference-text);
+}
+
+.evidence-status-prediction {
+  background: var(--badge-status-prediction-bg);
+  color: var(--badge-status-prediction-text);
+}
+
 .keyman-select {
   background: none;
   border: none;
