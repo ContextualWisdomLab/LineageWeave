@@ -6,7 +6,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 import conftest as root_conftest
-
 from lineageweave.optional_extra_collection import (
     OPTIONAL_EXTRA_MODULES,
     collection_path_requires_missing_extras,
@@ -116,7 +115,7 @@ def test_collection_path_skips_known_transitive_optional_importers(
     assert collection_path_requires_missing_extras(post_import, ("asyncpg",)) is True
     seed = tmp_path / "test_seed.py"
     seed.write_text("from scripts.seed_demo_data import seed\n", encoding="utf-8")
-    assert collection_path_requires_missing_extras(seed, ("redis",)) is True
+    assert collection_path_requires_missing_extras(seed, ("redis",)) is False
 
 
 def test_helper_test_module_is_never_ignored(tmp_path: Path) -> None:

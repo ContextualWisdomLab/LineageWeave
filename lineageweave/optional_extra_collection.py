@@ -34,7 +34,6 @@ _OPTIONAL_EXTRA_IMPORTERS: dict[str, tuple[str, ...]] = {
         "lineageweave.post_evaluation",
     ),
     "numpy": ("lineageweave.period_report",),
-    "redis": ("scripts.seed_demo_data",),
 }
 _HELPER_TEST_NAME = "test_optional_extra_collection.py"
 
