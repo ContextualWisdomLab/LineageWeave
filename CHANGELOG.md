@@ -18,6 +18,14 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- `GET /healthz`: a stray decorator had stacked this route onto
+  `read_tenant_settings`, so the liveness probe silently required auth and
+  hit Postgres instead of returning `{"status": "ok"}`, and the real
+  `healthz()` handler had no route at all. Restored the decorator to the
+  correct handler.
+- Closed the repository-wide docstring-coverage gap: added the 35 missing
+  public docstrings the AST audit found across `lineageweave/` and
+  `backend/app/`.
 - The product-gap baseline now records private-runtime findings only as
   aggregate synthetic-fixture contracts and identifies the existing
   post-scoped lineage DAG without retaining post or organization identifiers.

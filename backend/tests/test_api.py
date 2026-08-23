@@ -114,6 +114,9 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     / "migrations"
     / "0102_project_bound_summary_event.sql"
 )
+_TENANT_SETTINGS_MIGRATION = (
+    Path(__file__).resolve().parents[2] / "migrations" / "0103_tenant_settings.sql"
+)
 _CHANNEL_WEIGHT_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -242,6 +245,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
+            cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
             cur.execute(_CHANNEL_WEIGHT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
@@ -2089,6 +2093,51 @@ def test_nonexistent_post_is_not_found(client, demo_analyst_token) -> None:
         f"/api/posts/{uuid.uuid4()}", headers={"Authorization": f"Bearer {demo_analyst_token}"}
     )
     assert response.status_code == 404
+
+
+def test_settings_get_returns_the_seeded_brand_name(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """An authenticated reader receives the persisted synthetic brand."""
+
+    response = client.get(
+        "/api/settings",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200
+    assert response.json() == {"brandName": "LineageWeave"}
+
+
+def test_update_settings_requires_post_admin(client, demo_analyst_token, seeded_db) -> None:
+    """A non-admin reader cannot mutate tenant presentation settings."""
+
+    response = client.patch(
+        "/api/settings",
+        json={"brandName": "Someone Else's Brand"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_update_settings_as_admin_changes_the_brand_name(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A post admin can persist and subsequently read a synthetic brand."""
+
+    _grant_post_admin(seeded_db["dsn"])
+    patch_response = client.patch(
+        "/api/settings",
+        json={"brandName": "Renamed Corp"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert patch_response.status_code == 200
+    assert patch_response.json() == {"brandName": "Renamed Corp"}
+
+    get_response = client.get(
+        "/api/settings",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert get_response.json() == {"brandName": "Renamed Corp"}
 
 
 def test_missing_token_is_unauthorized(client) -> None:
@@ -5145,3 +5194,14 @@ def test_post_search_matches_source_record_key_and_one_character_typo(
     fuzzy = client.get("/api/posts", params={"search": typo}, headers=headers)
     assert fuzzy.status_code == 200, fuzzy.text
     assert any(post["post_id"] == seeded_db["own_private_post_id"] for post in fuzzy.json()["posts"])
+
+
+def test_healthz_is_a_public_liveness_probe_not_tenant_settings(client) -> None:
+    """/healthz must stay the plain liveness probe, never the tenant-settings route it once
+    collided with when a stray decorator stacked onto read_tenant_settings."""
+    health = client.get("/healthz")
+    assert health.status_code == 200
+    assert health.json() == {"status": "ok"}
+
+    unauthenticated_settings = client.get("/api/settings")
+    assert unauthenticated_settings.status_code in (401, 403)

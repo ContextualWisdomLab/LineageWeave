@@ -197,6 +197,7 @@ class RankedPost:
     channel_evidence: tuple[RankingChannelEvidence, ...] = ()
 
     def to_json(self) -> dict[str, Any]:
+        """Serialize this ranked hit to its API-facing JSON shape."""
         return {
             "post_id": self.post_id,
             "post_title": self.post_title,
@@ -212,6 +213,7 @@ class RankingList:
     items: tuple[RankedPost, ...]
 
     def to_json(self) -> list[dict[str, Any]]:
+        """Serialize the accepted ranking list to its API-facing JSON shape."""
         return [item.to_json() for item in self.items]
 
 
@@ -348,6 +350,7 @@ class RankWeaveClient:
         titles_by_id: Mapping[str, str],
         weights: dict[str, float] | None = None,
     ) -> RankingList:
+        """Fuse the given per-channel id lists into one weighted RankingList."""
         active_weights = weights or DEFAULT_CHANNEL_WEIGHTS
         try:
             raw = self._transport(channels, active_weights)
