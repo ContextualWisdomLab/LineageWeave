@@ -126,6 +126,20 @@ All notable changes to this project are documented here. Format follows
   availability incident for operators (issue #361, partial: this covers
   server-side traceback capture, not yet OpenTelemetry metrics/
   correlation IDs).
+- `GET /api/customer-master`'s `relationship_network` no longer scopes its
+  ABAC check with the endpoint's broader Customer Master entity listing,
+  which also includes merely-*observed* entities (organizations only ever
+  mentioned in a visible post, never actually affiliated with the
+  account). `fetch_relationship_network`'s `corporate_entity_ids`
+  parameter is an ABAC scope, not a display list -- the query treats it
+  exactly like `_can_see_post`'s `post.corporate_entity_id = any($1)`
+  clause, so a broader listing let a private post owned by one of those
+  observed-only entities leak its counterparty classification into the
+  response. Scoped it to `account.corporate_entity_ids` (the account's
+  own real affiliations), with the same synthetic-only/stale-demo-grant
+  exclusion the entity tree already applies once real source context
+  exists. Regression test confirmed RED (a private post's counterparty
+  leaked) before GREEN.
 
 ### Changed
 

@@ -1643,6 +1643,85 @@ def test_customer_master_returns_authorized_catalog_contract(
     assert "account_affiliation.corporate_entity_id" in author_hint[0]["provenance"]
 
 
+def test_customer_master_relationship_network_excludes_merely_observed_entity_posts(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """A private post owned by a merely-*observed* entity (mentioned in a
+    visible post, but never actually affiliated with the account) must
+    not leak its counterparty classification into relationship_network.
+    fetch_relationship_network's corporate_entity_ids parameter is an
+    ABAC scope, not a display list -- it must be the account's own real
+    affiliations, not the broader Customer-Master entity_ids list that
+    also includes observed-only entities."""
+    from backend.app import main as main_module
+
+    captured_entity_ids: list[str] = []
+    original_fetch = main_module.fetch_relationship_network
+
+    async def capture(conn, corporate_entity_ids):
+        captured_entity_ids.extend(str(entity_id) for entity_id in corporate_entity_ids)
+        return await original_fetch(conn, corporate_entity_ids)
+
+    monkeypatch.setattr(main_module, "fetch_relationship_network", capture)
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            # other_corp_id becomes "observed" (not affiliated) via a
+            # mention on a post the account can already see.
+            cur.execute(
+                "insert into post_organization_mention (post_id, corporate_entity_id) "
+                "values (%s, %s)",
+                (seeded_db["public_post_id"], seeded_db["other_corp_id"]),
+            )
+            # Real source context on both posts -- the private post so it
+            # is not incidentally excluded by the demo/real-data
+            # eligibility heuristic (the leak must be defeated by ABAC
+            # scoping, not by an unrelated exclusion rule), and the
+            # mentioning public post so IT stays eligible too once any
+            # post in the fixture has real context (same two-post
+            # technique the existing giant Customer Master test uses).
+            cur.execute(
+                "update source_post set source_customer_code = %s, "
+                "source_author_code = %s, source_author_name = %s "
+                "where post_id = %s",
+                (
+                    "LEAK-TEST-CUSTOMER",
+                    "LEAK-TEST-AUTHOR",
+                    "Leak Test Author",
+                    seeded_db["other_private_post_id"],
+                ),
+            )
+            cur.execute(
+                "update source_post set source_project_code = %s where post_id = %s",
+                ("LEAK-TEST-PROJECT", seeded_db["public_post_id"]),
+            )
+            cur.execute(
+                "insert into post_counterparty_entity "
+                "(post_id, counterparty_entity_name, relationship_type_code, verification_status_code) "
+                "values (%s, 'Leaked Private Counterparty', 'rel_voc', 'verify_pending')",
+                (seeded_db["other_private_post_id"],),
+            )
+    finally:
+        admin_conn.close()
+
+    response = client.get(
+        "/api/customer-master",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 200, response.text
+    body = response.json()
+
+    observed = next(
+        item for item in body["corporate_entities"] if item["entity_name"] == "Other Corp"
+    )
+    assert observed["scope_facets"] == ["observed_organization"]
+    assert seeded_db["other_corp_id"] not in captured_entity_ids
+    network = {row["counterparty_entity_name"]: row for row in body["relationship_network"]}
+    assert "Leaked Private Counterparty" not in network
+
+
 def test_customer_master_scope_facets_reflect_authorization_and_observed_evidence(
     client, demo_analyst_token, seeded_db
 ) -> None:
