@@ -4495,7 +4495,7 @@ function PostList({
     const target = adminTool === "advanced" || adminTool === "lineage"
       ? details
       : details.querySelector<HTMLElement>(`[data-admin-surface="${adminTool}"]`) ?? details;
-    window.requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block: "start" }));
+    window.requestAnimationFrame(() => target.scrollIntoView?.({ behavior: "smooth", block: "start" }));
     onAdminToolHandled();
   }, [adminTool, onAdminToolHandled, posts]);
 
