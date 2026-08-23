@@ -10,7 +10,7 @@ from typing import Any
 from backend.app import corporate_entity_ingestion, keyman_ingestion
 from lineageweave.corporate_hierarchy_inference import HierarchyProposal
 from lineageweave.corporate_hierarchy_resolution import CorporateEntityCandidate
-from lineageweave.relation_verification import STATUS_CORROBORATED
+from lineageweave.relation_verification import STATUS_CORROBORATED, STATUS_UNCORROBORATED
 
 
 _TIED_CANDIDATES = [
@@ -52,6 +52,24 @@ class _TimeoutInferenceClient:
 
     def infer(self, organization_name: str, context_text: str) -> HierarchyProposal:
         raise TimeoutError("synthetic orchestrator timeout")
+
+
+class _NoProposalInferenceClient:
+    """A live orchestrator that declines to propose a hierarchy placement."""
+
+    available = True
+
+    def infer(self, organization_name: str, context_text: str) -> HierarchyProposal | None:
+        return None
+
+
+class _DecliningVerificationClient:
+    """A live verification service that never corroborates."""
+
+    available = True
+
+    def verify(self, subject: str, relation: str) -> SimpleNamespace:
+        return SimpleNamespace(status_code=STATUS_UNCORROBORATED)
 
 
 class _Transaction:
@@ -111,7 +129,7 @@ def test_initial_tie_never_reaches_live_inference_or_creation() -> None:
         )
     )
 
-    assert result is None
+    assert result == (None, "reason_tied_candidates")
     assert inference.calls == 0
     assert verification.calls == 0
 
@@ -129,7 +147,41 @@ def test_hierarchy_timeout_leaves_actor_unbound_without_raising() -> None:
         )
     )
 
-    assert result is None
+    assert result == (None, "reason_no_live_client")
+
+
+def test_no_hierarchy_proposal_is_not_corroborated() -> None:
+    """A live orchestrator that proposes nothing is a considered decision,
+    not an unavailable channel -- ADR 0141 distinguishes the two."""
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            object(),
+            "Unresolved Energy",
+            "Synthetic context",
+            _NoProposalInferenceClient(),
+            _LiveVerificationClient(),
+            [],
+        )
+    )
+
+    assert result == (None, "reason_not_corroborated")
+
+
+def test_declined_verification_is_not_corroborated() -> None:
+    """A live verification service that checks and declines is a considered
+    decision, not an unavailable channel -- ADR 0141 distinguishes the two."""
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            object(),
+            "Unresolved Energy",
+            "Synthetic context",
+            _LiveInferenceClient(),
+            _DecliningVerificationClient(),
+            [],
+        )
+    )
+
+    assert result == (None, "reason_not_corroborated")
 
 
 def test_tie_discovered_under_creation_lock_does_not_insert() -> None:
@@ -149,7 +201,7 @@ def test_tie_discovered_under_creation_lock_does_not_insert() -> None:
         )
     )
 
-    assert result is None
+    assert result == (None, "reason_tied_candidates")
     assert inference.calls == 1
     assert verification.calls == 1
     assert connection.insert_attempted is False
@@ -169,4 +221,4 @@ def test_keyman_raw_tie_blocks_abbreviation_rewrite_and_auto_creation() -> None:
         )
     )
 
-    assert result == ("Tied Energy", "Tied Energy", None)
+    assert result == ("Tied Energy", "Tied Energy", None, "reason_tied_candidates")

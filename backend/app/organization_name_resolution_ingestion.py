@@ -4,10 +4,12 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import dataclass
 
 import asyncpg
 
 from lineageweave.organization_name_resolution import (
+    OrganizationNameResolution,
     OrganizationNameResolutionClient,
     resolve_and_verify_organization_name,
 )
@@ -17,14 +19,22 @@ from lineageweave.relation_verification import (
 )
 
 
-async def resolve_organization_name(
+@dataclass(frozen=True)
+class PreparedOrganizationNameResolution:
+    """Effective name plus an optional verified cache row awaiting apply."""
+
+    resolved_name: str
+    resolution: OrganizationNameResolution | None
+
+
+async def prepare_organization_name_resolution(
     conn: asyncpg.Connection,
     resolution_client: OrganizationNameResolutionClient,
     verification_client: RelationVerificationClient,
     raw_name: str,
     context_text: str,
-) -> str:
-    """Return the corroborated canonical name, otherwise ``raw_name``.
+) -> PreparedOrganizationNameResolution:
+    """Resolve and verify a name without mutating the shared cache.
 
     Synchronous network adapters run in a worker thread so this async
     ingestion path does not block unrelated requests.
@@ -36,10 +46,13 @@ async def resolve_organization_name(
     )
     if cached is not None:
         if cached["verification_status_code"] == STATUS_CORROBORATED:
-            return cached["resolved_organization_name"]
-        return raw_name
+            return PreparedOrganizationNameResolution(
+                cached["resolved_organization_name"],
+                None,
+            )
+        return PreparedOrganizationNameResolution(raw_name, None)
     if not resolution_client.available:
-        return raw_name
+        return PreparedOrganizationNameResolution(raw_name, None)
 
     resolution = await asyncio.to_thread(
         resolve_and_verify_organization_name,
@@ -49,7 +62,26 @@ async def resolve_organization_name(
         verification_client,
     )
     if resolution is None:
-        return raw_name
+        return PreparedOrganizationNameResolution(raw_name, None)
+
+    return PreparedOrganizationNameResolution(
+        (
+            resolution.resolved_organization_name
+            if resolution.verification_status_code == STATUS_CORROBORATED
+            else raw_name
+        ),
+        resolution,
+    )
+
+
+async def apply_prepared_organization_name_resolution(
+    conn: asyncpg.Connection,
+    prepared: PreparedOrganizationNameResolution,
+) -> str:
+    """Persist a prepared cache row without making provider calls."""
+    resolution = prepared.resolution
+    if resolution is None:
+        return prepared.resolved_name
 
     await conn.execute(
         """
@@ -68,6 +100,22 @@ async def resolve_organization_name(
         resolution.verification_status_code,
         resolution.verification_evidence_url,
     )
-    if resolution.verification_status_code == STATUS_CORROBORATED:
-        return resolution.resolved_organization_name
-    return raw_name
+    return prepared.resolved_name
+
+
+async def resolve_organization_name(
+    conn: asyncpg.Connection,
+    resolution_client: OrganizationNameResolutionClient,
+    verification_client: RelationVerificationClient,
+    raw_name: str,
+    context_text: str,
+) -> str:
+    """Prepare provider evidence, then persist and return the effective name."""
+    prepared = await prepare_organization_name_resolution(
+        conn,
+        resolution_client,
+        verification_client,
+        raw_name,
+        context_text,
+    )
+    return await apply_prepared_organization_name_resolution(conn, prepared)

@@ -31,6 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import psycopg2
 
 from lineageweave.http_client import get_json_list, post_form
+from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_summary import ACTOR_TYPE_PERSON, POST_SUMMARY_CONTRACT_VERSION
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 
@@ -117,6 +118,7 @@ def seed(
             cur.execute((migrations / "0010_report_item_information.sql").read_text())
             cur.execute((migrations / "0011_post_chat_result.sql").read_text())
             cur.execute((migrations / "0012_report_leftover_pair.sql").read_text())
+            cur.execute((migrations / "0177_report_leftover_observed_expected.sql").read_text())
             cur.execute((migrations / "0060_role_responsibility_agent_type.sql").read_text())
             cur.execute((migrations / "0013_person_job_title.sql").read_text())
             cur.execute((migrations / "0014_role_responsibility_team_actor_type.sql").read_text())
@@ -130,6 +132,7 @@ def seed(
             cur.execute((migrations / "0023_analysis_run_outbox.sql").read_text())
             cur.execute((migrations / "0024_source_post_revision.sql").read_text())
             cur.execute((migrations / "0025_role_person_catalog_identity.sql").read_text())
+            cur.execute((migrations / "0139_post_summary_input_binding.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -231,8 +234,9 @@ def seed(
                 account_ids[username] = account_id
 
                 cur.execute(
-                    "insert into account_affiliation (user_account_id, corporate_entity_id, process_unit_id) "
-                    "values (%s, %s, %s) on conflict do nothing",
+                    "insert into account_affiliation "
+                    "(user_account_id, corporate_entity_id, process_unit_id, affiliation_scope_code) "
+                    "values (%s, %s, %s, 'scope_own_entity') on conflict do nothing",
                     (account_id, corporate_entity_id, process_units[pu_code]),
                 )
                 cur.execute(
@@ -523,12 +527,25 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
 
 def _write_post_summary(cur, post_id, summary) -> None:
     """Replace the stored summary for ``post_id`` (idempotent re-seed)."""
+    from backend.app.post_summary_ingestion import summary_input_sha256
+
+    cur.execute("select post_body from source_post where post_id = %s", (post_id,))
+    source_row = cur.fetchone()
+    if source_row is None:
+        raise ValueError("synthetic summary target is unavailable")
+    normalized_input = normalize_post_body(source_row[0]).text
     cur.execute("delete from post_summary_person_mention where post_id = %s", (post_id,))
     cur.execute("delete from post_summary_result where post_id = %s", (post_id,))
     cur.execute(
         "insert into post_summary_result "
-        "(post_id, korean_summary, summary_contract_version) values (%s, %s, %s)",
-        (post_id, summary.korean_summary, POST_SUMMARY_CONTRACT_VERSION),
+        "(post_id, korean_summary, summary_contract_version, summary_input_sha256) "
+        "values (%s, %s, %s, %s)",
+        (
+            post_id,
+            summary.korean_summary,
+            POST_SUMMARY_CONTRACT_VERSION,
+            summary_input_sha256(normalized_input),
+        ),
     )
     for ordinal, event_text in enumerate(summary.key_events):
         cur.execute(
@@ -549,7 +566,7 @@ def _write_post_summary(cur, post_id, summary) -> None:
                 cataloged_person_id = str(person_row[0])
         cur.execute(
             "insert into post_summary_role "
-            "(post_id, actor_name, responsibility, actor_type_code, "
+            "(post_id, actor_name, responsibility_text, actor_type_code, "
             "affiliated_organization_name, cataloged_person_id) "
             "values (%s, %s, %s, %s, %s, %s)",
             (
@@ -1162,7 +1179,7 @@ def _persist_seed_period_report(
         cur.execute(
             "insert into report_item_parameter ("
             "grouping_kind, grouping_key, period_code, rubric_version, "
-            "item_code, item_index, slope, cat_params"
+            "item_code, item_index, item_slope, cat_params"
             ") values (%s,%s,%s,%s,%s,%s,%s,%s)",
             (
                 grouping_kind,
@@ -1179,7 +1196,7 @@ def _persist_seed_period_report(
         cur.execute(
             "insert into report_item_information ("
             "grouping_kind, grouping_key, period_code, rubric_version, "
-            "item_code, item_rank, information"
+            "item_code, item_rank, information_value"
             ") values (%s,%s,%s,%s,%s,%s,%s)",
             (
                 grouping_kind,
@@ -1195,8 +1212,9 @@ def _persist_seed_period_report(
         cur.execute(
             "insert into report_leftover_pair ("
             "grouping_kind, grouping_key, period_code, rubric_version, "
-            "pair_kind, post_id, criterion_code, leftover_distance, leftover_residual"
-            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            "pair_kind, post_id, criterion_code, leftover_distance, leftover_residual, "
+            "observed_response, expected_response, leftover_map_rank"
+            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
             (
                 grouping_kind,
                 grouping_key,
@@ -1207,6 +1225,9 @@ def _persist_seed_period_report(
                 pair.criterion_code,
                 pair.leftover_distance,
                 pair.leftover_residual,
+                pair.observed_response,
+                pair.expected_response,
+                pair.leftover_map_rank,
             ),
         )
 
@@ -1216,7 +1237,7 @@ def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, proces
 
     High-band and low-band posts live in different process units. A
     pooled free-calibrate writes the shared bank; each unit is then
-    FIPC-scored so the buyer can compare them. W03 is all-high on the
+    FIPC-scored so the reader can compare them. W03 is all-high on the
     high unit. Categories are constructed; thetas come only from
     ``score_groups_on_shared_metric``. A-100 fixtures (and the
     Riverbend calendar post) fold into the high unit; B-200 fixtures

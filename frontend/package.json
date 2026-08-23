@@ -1,14 +1,15 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "2.12.22",
+  "version": "2.12.20",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "vitest run --no-file-parallelism --maxWorkers=1",
+    "test:coverage": "vitest run --no-file-parallelism --maxWorkers=1 --coverage",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
@@ -27,6 +28,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.4",
+    "@vitest/coverage-v8": "4.1.10",
     "jsdom": "^30.0.1",
     "oxlint": "^1.75.0",
     "playwright": "^1.62.1",

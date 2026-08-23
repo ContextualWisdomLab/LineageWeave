@@ -128,11 +128,11 @@ async def fetch_relationship_network(
     can be a customer in one post, a competitor in another (their own
     product line competes with ours elsewhere), the customer of our
     customer in a third, or a supplier -- Customer Master's per-post
-    reads never rolled these up, so buyers could only see one role at
+    reads never rolled these up, so readers could only see one role at
     a time and never the entity's whole network. This groups every
     visible, eligible post's classifications by counterparty name,
     keeping every distinct relationship type observed (not just the
-    most frequent), so a buyer can see a name marked both Customer and
+    most frequent), so a reader can see a name marked both Customer and
     Competitor and know that reflects the real, mixed relationship
     rather than a classification error.
 

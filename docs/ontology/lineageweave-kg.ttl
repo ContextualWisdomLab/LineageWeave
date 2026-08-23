@@ -6,15 +6,28 @@
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 @prefix prov: <http://www.w3.org/ns/prov#> .
 @prefix org: <http://www.w3.org/ns/org#> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix time: <http://www.w3.org/2006/time#> .
+@prefix sosa: <http://www.w3.org/ns/sosa/> .
+@prefix ssn: <http://www.w3.org/ns/ssn/> .
+@prefix qudt: <http://qudt.org/schema/qudt/> .
+@prefix odrl: <http://www.w3.org/ns/odrl/2/> .
+@prefix oa: <http://www.w3.org/ns/oa#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
 
 #################################################################
 # LineageWeave Knowledge Graph Ontology
 #
 # The formal OWL 2 / RDFS / SKOS vocabulary for the
 # `knowledge_graph_edge` table's node/edge types, the
-# `entity_relationship_type` / `person_side` / `corporate_entity_level`
-# controlled vocabularies in migrations/0001_initial_schema.sql, and
+# `entity_relationship_type` / `person_side` / `corporate_entity_level`,
+# `post_visibility` / `voc_type` / `permission` / `ticket_status` controlled
+# vocabularies in migrations/0001_initial_schema.sql, and
 # `post_summary_role.actor_type_code` (migrations/0012).
+# The semantic assertion classes and verbs below are backed by normalized
+# summary/content tables. They are not silently promoted to
+# `knowledge_graph_edge` node/edge codes; the navigation projection remains
+# the compact graph and provenance/semantic assertions remain qualified data.
 #
 # `knowledge_graph_edge` (source_node_type_code, source_node_id) --
 # [edge_type_code] --> (target_node_type_code, target_node_id) is
@@ -22,6 +35,7 @@
 # this file is the formal semantic layer over it -- PostgreSQL stays
 # the source of record. See docs/adr/0004-knowledge-graph-ontology.md
 # for the KG design rationale, docs/adr/0006-role-responsibility-agent-ontology.md
+# and docs/adr/0124-operational-controlled-vocabulary-semantic-layer.md
 # for the R&R actor-type rationale (grounded in W3C PROV-O), and
 # tests/test_ontology.py for the round-trip check that every code below
 # actually exists as a common_lookup_value row, and vice versa.
@@ -33,7 +47,7 @@
 
 <https://contextualwisdomlab.github.io/lineageweave/ontology> a owl:Ontology ;
     rdfs:label "LineageWeave Knowledge Graph Ontology" ;
-    rdfs:comment "Formal OWL 2 / RDFS / SKOS vocabulary for LineageWeave's knowledge_graph_edge node and edge types, entity_relationship_type, person_side, corporate_entity_level, and post_summary_role.actor_type_code controlled vocabularies." .
+    rdfs:comment "Formal OWL 2 / RDFS / SKOS vocabulary for LineageWeave's knowledge graph, operational controlled vocabularies, and post-summary actor types." .
 
 :lookupCode a owl:AnnotationProperty ;
     rdfs:label "lookup code" ;
@@ -44,11 +58,13 @@
 #################################################################
 
 :Post a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
     rdfs:label "Post" ;
     rdfs:comment "A source_post row: one VOC/VOM/VOP/VOCC/VOCO/VOS record." ;
     :lookupCode "node_post" .
 
 :Person a owl:Class ;
+    rdfs:subClassOf prov:Person ;
     rdfs:label "Person" ;
     rdfs:comment "A cataloged_person row: a Keyman mentioned in one or more posts." ;
     :lookupCode "node_person" .
@@ -64,7 +80,7 @@
     :lookupCode "counterparty" .
 
 :CorporateEntity a owl:Class ;
-    rdfs:subClassOf skos:Concept ;
+    rdfs:subClassOf prov:Organization, org:Organization, skos:Concept ;
     rdfs:label "Corporate entity" ;
     rdfs:comment "A corporate_entity row. Also a skos:Concept so the self-referencing parent_entity_id hierarchy (e.g. Group -> Company -> Plant) is expressible with skos:broader/skos:narrower on instances." ;
     :lookupCode "node_corporate_entity" .
@@ -97,6 +113,7 @@
 :affiliatedWith a owl:ObjectProperty ;
     rdfs:domain :Person ;
     rdfs:range :CorporateEntity ;
+    rdfs:subPropertyOf org:memberOf ;
     rdfs:label "affiliated with" ;
     rdfs:comment "A person's N:N organizational affiliation (person_affiliation)." ;
     :lookupCode "edge_affiliation" .
@@ -127,6 +144,7 @@
 :teamAffiliatedWith a owl:ObjectProperty ;
     rdfs:domain :Team ;
     rdfs:range :CorporateEntity ;
+    rdfs:subPropertyOf org:unitOf ;
     rdfs:label "team affiliated with" ;
     rdfs:comment "The company a cataloged team belongs to (cataloged_team.affiliated_corporate_entity_id)." ;
     :lookupCode "edge_team_affiliation" .
@@ -137,6 +155,13 @@
     rdfs:label "mentioned in post" ;
     rdfs:comment "A resolved organization is named by a post (post_organization_mention)." ;
     :lookupCode "edge_mention_organization" .
+
+:observedCustomerIdentityIn a owl:ObjectProperty ;
+    rdfs:domain :CorporateEntity ;
+    rdfs:range :Post ;
+    rdfs:label "customer identity observed in post" ;
+    rdfs:comment "A governed Customer Master identity is supported by a source post through a persisted cross-post judgment (post_customer_identity_mention)." ;
+    :lookupCode "edge_customer_identity_observation" .
 
 #################################################################
 # Object properties -- entity_relationship_type
@@ -160,18 +185,130 @@
 
 :hasVoccRelationship a owl:ObjectProperty ;
     rdfs:domain :Post ; rdfs:range :CorporateEntity ;
+    rdfs:subPropertyOf :hasCounterpartyRelationship ;
     rdfs:label "has Voice-of-Customer's-Customer relationship" ;
     :lookupCode "rel_vocc" .
 
 :hasVocoRelationship a owl:ObjectProperty ;
     rdfs:domain :Post ; rdfs:range :CorporateEntity ;
+    rdfs:subPropertyOf :hasCounterpartyRelationship ;
     rdfs:label "has Voice-of-Competitor relationship" ;
     :lookupCode "rel_voco" .
 
 :hasVosRelationship a owl:ObjectProperty ;
     rdfs:domain :Post ; rdfs:range :CorporateEntity ;
+    rdfs:subPropertyOf :hasCounterpartyRelationship ;
     rdfs:label "has Voice-of-Supplier relationship" ;
     :lookupCode "rel_vos" .
+
+#################################################################
+# Operational controlled vocabularies
+#
+# These values are persisted in common_lookup_value and participate in
+# authorization, filtering, and workflow state. They are SKOS concepts,
+# not KG edge predicates: the object properties below make the semantic
+# relationship explicit without pretending that a visibility or ticket
+# status is a graph edge.
+#################################################################
+
+:postVisibilityScheme a skos:ConceptScheme ;
+    rdfs:label "Post visibility scheme"@en .
+
+:PublicVisibility a skos:Concept ;
+    skos:inScheme :postVisibilityScheme ;
+    skos:prefLabel "Public"@en ;
+    :lookupCode "public" .
+
+:PrivateVisibility a skos:Concept ;
+    skos:inScheme :postVisibilityScheme ;
+    skos:prefLabel "Private"@en ;
+    :lookupCode "private" .
+
+:vocTypeScheme a skos:ConceptScheme ;
+    rdfs:label "Voice-of relationship type scheme"@en .
+
+:VoiceOfCustomer a skos:Concept ;
+    skos:inScheme :vocTypeScheme ;
+    skos:prefLabel "Voice of Customer"@en ;
+    :lookupCode "voc" .
+
+:VoiceOfCustomersCustomer a skos:Concept ;
+    skos:inScheme :vocTypeScheme ;
+    skos:prefLabel "Voice of Customer's Customer"@en ;
+    :lookupCode "vocc" .
+
+:VoiceOfCompetitor a skos:Concept ;
+    skos:inScheme :vocTypeScheme ;
+    skos:prefLabel "Voice of Competitor"@en ;
+    :lookupCode "voco" .
+
+:VoiceOfMarket a skos:Concept ;
+    skos:inScheme :vocTypeScheme ;
+    skos:prefLabel "Voice of Market"@en ;
+    :lookupCode "vom" .
+
+:VoiceOfPartner a skos:Concept ;
+    skos:inScheme :vocTypeScheme ;
+    skos:prefLabel "Voice of Partner"@en ;
+    :lookupCode "vop" .
+
+:permissionScheme a skos:ConceptScheme ;
+    rdfs:label "Application permission scheme"@en .
+
+:ReadPostsPermission a skos:Concept ;
+    skos:inScheme :permissionScheme ;
+    skos:prefLabel "Read posts"@en ;
+    :lookupCode "post_read" .
+
+:AdministerPostsPermission a skos:Concept ;
+    skos:inScheme :permissionScheme ;
+    skos:prefLabel "Administer posts"@en ;
+    :lookupCode "post_admin" .
+
+:ticketStatusScheme a skos:ConceptScheme ;
+    rdfs:label "Issue ticket status scheme"@en .
+
+:OpenTicketStatus a skos:Concept ;
+    skos:inScheme :ticketStatusScheme ;
+    skos:prefLabel "Open"@en ;
+    :lookupCode "open" .
+
+:InProgressTicketStatus a skos:Concept ;
+    skos:inScheme :ticketStatusScheme ;
+    skos:prefLabel "In progress"@en ;
+    :lookupCode "in_progress" .
+
+:ClosedTicketStatus a skos:Concept ;
+    skos:inScheme :ticketStatusScheme ;
+    skos:prefLabel "Closed"@en ;
+    :lookupCode "closed" .
+
+:IssueTicket a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Issue ticket"@en .
+
+:hasPostVisibility a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range skos:Concept ;
+    rdfs:label "has post visibility"@en .
+
+:hasVocType a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range skos:Concept ;
+    rdfs:label "has Voice-of type"@en .
+
+:AccessRole a owl:Class ;
+    rdfs:label "Access role"@en .
+
+:hasPermission a owl:ObjectProperty ;
+    rdfs:domain :AccessRole ;
+    rdfs:range skos:Concept ;
+    rdfs:label "has permission"@en .
+
+:hasTicketStatus a owl:ObjectProperty ;
+    rdfs:domain :IssueTicket ;
+    rdfs:range skos:Concept ;
+    rdfs:label "has ticket status"@en .
 
 #################################################################
 # SKOS -- corporate_entity_level (Group -> Company -> Plant)
@@ -202,6 +339,107 @@
 :CompanyLevel skos:narrower :PlantLevel .
 
 #################################################################
+# Source-grounded quantitative observations (ADR 0128)
+#################################################################
+
+:measurementTypeScheme a skos:ConceptScheme ;
+    rdfs:label "Measurement type scheme"@en .
+
+:BudgetAmountMeasurement a skos:Concept ;
+    skos:inScheme :measurementTypeScheme ;
+    skos:prefLabel "Budget amount"@en ;
+    :lookupCode "measurement_budget_amount" .
+
+:CapacityMeasurement a skos:Concept ;
+    skos:inScheme :measurementTypeScheme ;
+    skos:prefLabel "Capacity"@en ;
+    :lookupCode "measurement_capacity" .
+
+:DailyCapacityMeasurement a skos:Concept ;
+    skos:inScheme :measurementTypeScheme ;
+    skos:prefLabel "Daily capacity"@en ;
+    :lookupCode "measurement_daily_capacity" .
+
+:measurementUnitScheme a skos:ConceptScheme ;
+    rdfs:label "Measurement unit scheme"@en .
+
+:KoreanWonUnit a skos:Concept ;
+    skos:inScheme :measurementUnitScheme ;
+    skos:prefLabel "Korean won"@en ;
+    :lookupCode "unit_krw" .
+
+:KilogramUnit a skos:Concept ;
+    skos:inScheme :measurementUnitScheme ;
+    skos:prefLabel "Kilogram"@en ;
+    :lookupCode "unit_kg" .
+
+:TractorUnit a skos:Concept ;
+    skos:inScheme :measurementUnitScheme ;
+    skos:prefLabel "Tractor"@en ;
+    :lookupCode "unit_tractor" .
+
+:factTypeScheme a skos:ConceptScheme ;
+    rdfs:label "Source fact type scheme"@en .
+
+:ConditionFactType a skos:Concept ;
+    skos:inScheme :factTypeScheme ;
+    skos:prefLabel "Source condition"@en ;
+    :lookupCode "fact_condition" .
+
+:DateFactType a skos:Concept ;
+    skos:inScheme :factTypeScheme ;
+    skos:prefLabel "Source date"@en ;
+    :lookupCode "fact_date" .
+
+:factAssertionScheme a skos:ConceptScheme ;
+    rdfs:label "Fact assertion scheme"@en .
+
+:AffirmedAssertion a skos:Concept ;
+    skos:inScheme :factAssertionScheme ;
+    skos:prefLabel "Affirmed"@en ;
+    :lookupCode "assertion_affirmed" .
+
+:NegatedAssertion a skos:Concept ;
+    skos:inScheme :factAssertionScheme ;
+    skos:prefLabel "Negated"@en ;
+    :lookupCode "assertion_negated" .
+
+:UnknownAssertion a skos:Concept ;
+    skos:inScheme :factAssertionScheme ;
+    skos:prefLabel "Unknown"@en ;
+    :lookupCode "assertion_unknown" .
+
+:BroadFactTypeScheme a skos:ConceptScheme ;
+    rdfs:label "Broad source fact type scheme"@en .
+
+:ObservationFactType a skos:Concept ; skos:inScheme :BroadFactTypeScheme ;
+    skos:prefLabel "Observation fact"@en ; :lookupCode "fact_observation" .
+:OrganizationFactType a skos:Concept ; skos:inScheme :BroadFactTypeScheme ;
+    skos:prefLabel "Organization fact"@en ; :lookupCode "fact_organization" .
+:IndustrialAssetFactType a skos:Concept ; skos:inScheme :BroadFactTypeScheme ;
+    skos:prefLabel "Industrial asset fact"@en ; :lookupCode "fact_industrial_asset" .
+:IndustrialProcessFactType a skos:Concept ; skos:inScheme :BroadFactTypeScheme ;
+    skos:prefLabel "Industrial process fact"@en ; :lookupCode "fact_industrial_process" .
+:NormativeFactType a skos:Concept ; skos:inScheme :BroadFactTypeScheme ;
+    skos:prefLabel "Normative fact"@en ; :lookupCode "fact_normative" .
+:QualityFactType a skos:Concept ; skos:inScheme :BroadFactTypeScheme ;
+    skos:prefLabel "Quality fact"@en ; :lookupCode "fact_quality" .
+:RiskFactType a skos:Concept ; skos:inScheme :BroadFactTypeScheme ;
+    skos:prefLabel "Risk fact"@en ; :lookupCode "fact_risk" .
+:PlaceFactType a skos:Concept ; skos:inScheme :BroadFactTypeScheme ;
+    skos:prefLabel "Place fact"@en ; :lookupCode "fact_place" .
+:ActorFactType a skos:Concept ; skos:inScheme :BroadFactTypeScheme ;
+    skos:prefLabel "Actor fact"@en ; :lookupCode "fact_actor" .
+:CauseFactType a skos:Concept ; skos:inScheme :BroadFactTypeScheme ;
+    skos:prefLabel "Cause fact"@en ; :lookupCode "fact_cause" .
+:GoalFactType a skos:Concept ; skos:inScheme :BroadFactTypeScheme ;
+    skos:prefLabel "Goal fact"@en ; :lookupCode "fact_goal" .
+:ResultFactType a skos:Concept ; skos:inScheme :BroadFactTypeScheme ;
+    skos:prefLabel "Result fact"@en ; :lookupCode "fact_result" .
+:NextStepFactType a skos:Concept ; skos:inScheme :BroadFactTypeScheme ;
+    skos:prefLabel "Next-step fact"@en ; :lookupCode "fact_next_step" .
+
+#################################################################
 # Classes -- prov_agent_type (post_summary_role.actor_type_code)
 #
 # A post's R&R (roles & responsibilities) actor is not always a person
@@ -225,22 +463,304 @@
 #################################################################
 
 :RoleActorPerson a owl:Class ;
-    rdfs:subClassOf prov:Person ;
+    rdfs:subClassOf :RoleActorAgent, prov:Person ;
     rdfs:label "Role actor (person)" ;
     rdfs:comment "An R&R actor that is a named individual, per prov:Person." ;
     :lookupCode "prov_person" .
 
 :RoleActorOrganization a owl:Class ;
-    rdfs:subClassOf prov:Organization ;
+    rdfs:subClassOf :RoleActorAgent, prov:Organization, org:Organization ;
     rdfs:label "Role actor (organization)" ;
     rdfs:comment "An R&R actor that is an organization acting in its own name, per prov:Organization." ;
     :lookupCode "prov_organization" .
 
 :RoleActorTeam a owl:Class ;
-    rdfs:subClassOf org:OrganizationalUnit ;
+    rdfs:subClassOf :RoleActorAgent, org:OrganizationalUnit ;
     rdfs:label "Role actor (team)" ;
     rdfs:comment "An R&R actor that is a named sub-unit of a company (e.g. 설계팀), per org:OrganizationalUnit -- not the company itself." ;
     :lookupCode "prov_team" .
+
+# PROV-O also defines software agents. They are valid acting parties in a
+# responsibility assertion, but remain unbound to person/team/organization
+# catalog identities unless a future source-grounded catalog relation exists.
+:RoleActorAgent a owl:Class ;
+    rdfs:subClassOf prov:Agent ;
+    rdfs:label "Role actor (agent)"@en ;
+    rdfs:comment "Abstract acting-party class for a persisted role responsibility."@en .
+
+:RoleActorSoftwareAgent a owl:Class ;
+    rdfs:subClassOf :RoleActorAgent, prov:SoftwareAgent ;
+    rdfs:label "Role actor (software agent)"@en ;
+    rdfs:comment "An R&R actor that is a bot, scheduler, or other software agent, per prov:SoftwareAgent."@en ;
+    :lookupCode "prov_software_agent" .
+
+#################################################################
+# Semantic resources and ontology verbs
+#
+# These are normalized, evidence-bearing resources. They deliberately do
+# not become compact knowledge_graph_edge predicates; their inverse links
+# expose provenance and navigation without losing qualification fields.
+#################################################################
+
+:SemanticAssertion a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Semantic assertion"@en .
+
+:PostSummary a owl:Class ;
+    rdfs:subClassOf :SemanticAssertion ;
+    rdfs:label "Post summary"@en .
+
+:KeyEvent a owl:Class ;
+    rdfs:subClassOf :SemanticAssertion ;
+    rdfs:label "Key event"@en .
+
+:RoleResponsibility a owl:Class ;
+    rdfs:subClassOf :SemanticAssertion ;
+    rdfs:label "Role responsibility"@en .
+
+:MajorEventAction a owl:Class ;
+    rdfs:subClassOf :SemanticAssertion ;
+    rdfs:label "Major event action"@en .
+
+:FiveW1HClaim a owl:Class ;
+    rdfs:subClassOf :SemanticAssertion ;
+    rdfs:label "5W1H claim"@en .
+
+:PostChatResult a owl:Class ;
+    rdfs:subClassOf :SemanticAssertion ;
+    rdfs:label "Post chat result"@en .
+
+:ContentUnit a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Content unit"@en .
+
+:ImageRegion a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Image region"@en .
+
+:Project rdfs:subClassOf prov:Entity .
+
+:hasSemanticAssertion a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range :SemanticAssertion ;
+    rdfs:label "has semantic assertion"@en .
+
+:hasSummary a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasSemanticAssertion ;
+    rdfs:domain :Post ;
+    rdfs:range :PostSummary ;
+    rdfs:label "has summary"@en .
+
+:summaryOf a owl:ObjectProperty ;
+    rdfs:domain :PostSummary ;
+    rdfs:range :Post ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    owl:inverseOf :hasSummary ;
+    rdfs:label "summary of"@en .
+
+:hasKeyEvent a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasSemanticAssertion ;
+    rdfs:domain :Post ;
+    rdfs:range :KeyEvent ;
+    rdfs:label "has key event"@en .
+
+:keyEventOf a owl:ObjectProperty ;
+    rdfs:domain :KeyEvent ;
+    rdfs:range :Post ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    owl:inverseOf :hasKeyEvent ;
+    rdfs:label "key event of"@en .
+
+:hasRoleResponsibility a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasSemanticAssertion ;
+    rdfs:domain :Post ;
+    rdfs:range :RoleResponsibility ;
+    rdfs:label "has role responsibility"@en .
+
+:roleResponsibilityOf a owl:ObjectProperty ;
+    rdfs:domain :RoleResponsibility ;
+    rdfs:range :Post ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    owl:inverseOf :hasRoleResponsibility ;
+    rdfs:label "role responsibility of"@en .
+
+:hasMajorEventAction a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasSemanticAssertion ;
+    rdfs:domain :Post ;
+    rdfs:range :MajorEventAction ;
+    rdfs:label "has major event action"@en .
+
+:majorEventActionOf a owl:ObjectProperty ;
+    rdfs:domain :MajorEventAction ;
+    rdfs:range :Post ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    owl:inverseOf :hasMajorEventAction ;
+    rdfs:label "major event action of"@en .
+
+:hasFiveW1HClaim a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasSemanticAssertion ;
+    rdfs:domain :Post ;
+    rdfs:range :FiveW1HClaim ;
+    rdfs:label "has 5W1H claim"@en .
+
+:fiveW1HClaimOf a owl:ObjectProperty ;
+    rdfs:domain :FiveW1HClaim ;
+    rdfs:range :Post ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    owl:inverseOf :hasFiveW1HClaim ;
+    rdfs:label "5W1H claim of"@en .
+
+:hasChatResult a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasSemanticAssertion ;
+    rdfs:domain :Post ;
+    rdfs:range :PostChatResult ;
+    rdfs:label "has chat result"@en .
+
+:chatResultOf a owl:ObjectProperty ;
+    rdfs:domain :PostChatResult ;
+    rdfs:range :Post ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    owl:inverseOf :hasChatResult ;
+    rdfs:label "chat result of"@en .
+
+:hasProjectMention a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasSemanticAssertion ;
+    rdfs:domain :Post ;
+    rdfs:range :ProjectMention ;
+    rdfs:label "has project mention"@en .
+
+:projectMentionOfPost a owl:ObjectProperty ;
+    rdfs:domain :ProjectMention ;
+    rdfs:range :Post ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    owl:inverseOf :hasProjectMention ;
+    rdfs:label "project mention of post"@en .
+
+:projectMentionFor a owl:ObjectProperty ;
+    rdfs:domain :ProjectMention ;
+    rdfs:range :Project ;
+    rdfs:label "project mention for"@en .
+
+:hasQuantitativeObservation a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasSemanticAssertion ;
+    rdfs:domain :Post ;
+    rdfs:range :QuantitativeObservation ;
+    rdfs:label "has quantitative observation"@en .
+
+:quantitativeObservationOf a owl:ObjectProperty ;
+    rdfs:domain :QuantitativeObservation ;
+    rdfs:range :Post ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    owl:inverseOf :hasQuantitativeObservation ;
+    rdfs:label "quantitative observation of"@en .
+
+:hasSourceGroundedFact a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasSemanticAssertion ;
+    rdfs:domain :Post ;
+    rdfs:range :SourceGroundedFact ;
+    rdfs:label "has source-grounded fact"@en .
+
+:sourceGroundedFactOf a owl:ObjectProperty ;
+    rdfs:domain :SourceGroundedFact ;
+    rdfs:range :Post ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    owl:inverseOf :hasSourceGroundedFact ;
+    rdfs:label "source-grounded fact of"@en .
+
+:hasCommitmentTicket a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range :IssueTicket ;
+    rdfs:label "has commitment ticket"@en .
+
+:commitmentTicketOf a owl:ObjectProperty ;
+    rdfs:domain :IssueTicket ;
+    rdfs:range :Post ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    owl:inverseOf :hasCommitmentTicket ;
+    rdfs:label "commitment ticket of"@en .
+
+:hasContentUnit a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range :ContentUnit ;
+    rdfs:label "has content unit"@en .
+
+:contentUnitOf a owl:ObjectProperty ;
+    rdfs:domain :ContentUnit ;
+    rdfs:range :Post ;
+    owl:inverseOf :hasContentUnit ;
+    rdfs:label "content unit of"@en .
+
+:hasImageRegion a owl:ObjectProperty ;
+    rdfs:domain :ContentUnit ;
+    rdfs:range :ImageRegion ;
+    rdfs:label "has image region"@en .
+
+:imageRegionOf a owl:ObjectProperty ;
+    rdfs:domain :ImageRegion ;
+    rdfs:range :ContentUnit ;
+    owl:inverseOf :hasImageRegion ;
+    rdfs:label "image region of"@en .
+
+:actorName a owl:DatatypeProperty ;
+    rdfs:domain :RoleResponsibility ;
+    rdfs:range xsd:string .
+
+:responsibilityText a owl:DatatypeProperty ;
+    rdfs:domain :RoleResponsibility ;
+    rdfs:range xsd:string .
+
+:actorType a owl:ObjectProperty ;
+    rdfs:domain :RoleResponsibility ;
+    rdfs:range :RoleActorAgent .
+
+:SemanticRelationship a owl:Class ;
+    rdfs:subClassOf :SemanticAssertion ;
+    rdfs:label "Semantic relationship"@en ;
+    rdfs:comment "An explicit relation extracted from source text with a controlled predicate, endpoints, evidence, and confidence."@en .
+
+:responsibleFor a owl:ObjectProperty ;
+    rdfs:domain :RoleActorAgent ;
+    rdfs:range :SemanticAssertion ;
+    rdfs:label "responsible for"@en .
+
+:supports a owl:ObjectProperty ;
+    rdfs:domain prov:Agent ;
+    rdfs:range prov:Entity ;
+    rdfs:label "supports"@en ;
+    rdfs:comment "LineageWeave profile relation for an explicit source statement that an agent supports an entity such as a named project. It is not inferred from co-occurrence or role evidence."@en .
+
+:plansToOperate a owl:ObjectProperty ;
+    rdfs:domain prov:Agent ;
+    rdfs:label "plans to operate"@en ;
+    rdfs:comment "An explicit source-backed intention to operate a planned facility, not evidence that the facility is already operating."@en .
+
+:subjectName a owl:DatatypeProperty ;
+    rdfs:domain :SemanticRelationship ;
+    rdfs:range xsd:string .
+
+:subjectType a owl:DatatypeProperty ;
+    rdfs:domain :SemanticRelationship ;
+    rdfs:range xsd:string .
+
+:predicateCode a owl:DatatypeProperty ;
+    rdfs:domain :SemanticRelationship ;
+    rdfs:range xsd:string .
+
+:objectName a owl:DatatypeProperty ;
+    rdfs:domain :SemanticRelationship ;
+    rdfs:range xsd:string .
+
+:objectType a owl:DatatypeProperty ;
+    rdfs:domain :SemanticRelationship ;
+    rdfs:range xsd:string .
+
+:relationEvidence a owl:DatatypeProperty ;
+    rdfs:domain :SemanticRelationship ;
+    rdfs:range xsd:string .
+
+:relationConfidence a owl:DatatypeProperty ;
+    rdfs:domain :SemanticRelationship ;
+    rdfs:range xsd:decimal .
 
 #################################################################
 # organization_name_resolution (raw/canonical organization-name pairs)
@@ -266,6 +786,7 @@
     rdfs:comment "A business project referred to by a source post."@en .
 
 :ProjectMention a owl:Class ;
+    rdfs:subClassOf :SemanticAssertion ;
     rdfs:label "Project mention"@en ;
     rdfs:comment "An evidence-backed semantic assertion that a post refers to a project."@en .
 
@@ -279,3 +800,780 @@
 
 :semanticConfidence a owl:DatatypeProperty ;
     rdfs:range xsd:decimal .
+
+:QuantitativeObservation a owl:Class ;
+    rdfs:subClassOf :SemanticAssertion ;
+    rdfs:label "Quantitative observation"@en ;
+    rdfs:comment "A source-grounded numeric fact preserved with its raw value, unit, qualifier, and evidence."@en .
+
+:hasQuantitativeObservation a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range :QuantitativeObservation .
+
+:numericValue a owl:DatatypeProperty ;
+    rdfs:domain :QuantitativeObservation ;
+    rdfs:range xsd:decimal .
+
+:measurementUnit a owl:DatatypeProperty ;
+    rdfs:domain :QuantitativeObservation ;
+    rdfs:range xsd:string .
+
+:measurementQualifier a owl:DatatypeProperty ;
+    rdfs:domain :QuantitativeObservation ;
+    rdfs:range xsd:string .
+
+:sourceEvidence a owl:DatatypeProperty ;
+    rdfs:domain :QuantitativeObservation ;
+    rdfs:range xsd:string .
+
+:SourceGroundedFact a owl:Class ;
+    rdfs:subClassOf :SemanticAssertion ;
+    rdfs:label "Source-grounded fact"@en ;
+    rdfs:comment "A source-backed condition or date fact with explicit normalization evidence."@en .
+
+:hasSourceGroundedFact a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range :SourceGroundedFact .
+
+:factValue a owl:DatatypeProperty ;
+    rdfs:domain :SourceGroundedFact ;
+    rdfs:range xsd:string .
+
+:factNormalizedDate a owl:DatatypeProperty ;
+    rdfs:domain :SourceGroundedFact ;
+    rdfs:range xsd:date .
+
+:factAssertion a owl:DatatypeProperty ;
+    rdfs:domain :SourceGroundedFact ;
+    rdfs:range xsd:string .
+
+:factNormalizationEvidence a owl:DatatypeProperty ;
+    rdfs:domain :SourceGroundedFact ;
+    rdfs:range xsd:string .
+
+:factSourceEvidence a owl:DatatypeProperty ;
+    rdfs:domain :SourceGroundedFact ;
+    rdfs:range xsd:string ;
+    rdfs:label "fact source evidence"@en .
+
+#################################################################
+# Broad standards profile -- observation, time, organization, industry,
+# normative meaning, quality/risk, documents, and evidence paths (ADR 0129)
+#################################################################
+
+# The following classes are semantic-layer resources. They become hydrated KG
+# nodes only when a source table, authorization-aware projection, and evidence
+# contract are added. Declaring them here never fabricates a database node.
+:ObservationRecord a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Observation record"@en ;
+    rdfs:comment "An extracted, source-grounded observation record; not necessarily a physical sensor observation."@en ;
+    rdfs:seeAlso sosa:Observation .
+
+:Event a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Event"@en ;
+    rdfs:comment "A transient or time-bounded occurrence represented by source evidence."@en ;
+    rdfs:seeAlso <https://reference.opcfoundation.org/specs/OPC-10000-3/4.7> .
+
+:EventObservation a owl:Class ;
+    rdfs:subClassOf :ObservationRecord ;
+    rdfs:label "Event observation"@en ;
+    rdfs:comment "An evidence-bearing assertion that a source describes an event; it is not asserted as sosa:Observation without a procedure, feature, time, and result."@en ;
+    rdfs:seeAlso sosa:Result .
+
+:Place a owl:Class ;
+    rdfs:subClassOf prov:Location ;
+    rdfs:label "Place"@en ;
+    rdfs:comment "A source-grounded location or site label; it is not geocoded without an authorized source."@en .
+
+:Observation a owl:Class ;
+    rdfs:subClassOf :ObservationRecord ;
+    rdfs:label "Observation"@en ;
+    rdfs:seeAlso sosa:Observation .
+
+:Activity a owl:Class ;
+    rdfs:subClassOf prov:Activity ;
+    rdfs:label "Activity"@en .
+
+:TemporalEntity a owl:Class ;
+    rdfs:subClassOf time:TemporalEntity ;
+    rdfs:label "Temporal entity"@en ;
+    rdfs:seeAlso time:TemporalEntity .
+
+:EvidenceClue a owl:Class ;
+    rdfs:subClassOf prov:Entity, oa:Annotation ;
+    rdfs:label "Evidence clue"@en ;
+    rdfs:comment "A source-grounded clue that can connect an observation to an actor, time, place, cause, purpose, result, next step, quantity, condition, or source segment."@en .
+
+:TemporalClaim a owl:Class ;
+    rdfs:subClassOf :ObservationRecord ;
+    rdfs:label "Temporal claim"@en ;
+    rdfs:seeAlso time:TemporalEntity .
+
+:OrganizationContext a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Organization context"@en ;
+    rdfs:comment "Source-grounded organization, unit, membership, reporting, or role context."@en ;
+    rdfs:seeAlso org:Membership .
+
+:IndustrialAsset a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Industrial asset"@en ;
+    rdfs:comment "Equipment, facility, device, material, or other industrial object named by source evidence."@en ;
+    rdfs:seeAlso <https://reference.opcfoundation.org/specs/OPC-10000-1/full> ;
+    rdfs:seeAlso <https://www.isa.org/standards-and-publications/isa-standards/isa-95-standard> .
+
+:IndustrialProcess a owl:Class ;
+    rdfs:subClassOf prov:Activity ;
+    rdfs:label "Industrial process"@en ;
+    rdfs:comment "A manufacturing, logistics, maintenance, engineering, or operational process supported by source evidence."@en ;
+    rdfs:seeAlso <https://www.isa.org/standards-and-publications/isa-standards/isa-95-standard> .
+
+:IndustrialCondition a owl:Class ;
+    rdfs:subClassOf :ObservationRecord ;
+    rdfs:label "Industrial condition"@en ;
+    rdfs:comment "A source-grounded operating, availability, alarm, quality, or state condition."@en ;
+    rdfs:seeAlso <https://reference.opcfoundation.org/Core/Part9/v105/docs/4.1> .
+
+:FailureEvent a owl:Class ;
+    rdfs:subClassOf :Event ;
+    rdfs:label "Failure event"@en ;
+    rdfs:seeAlso <https://www.iso.org/standard/64076.html> .
+
+:MaintenanceAction a owl:Class ;
+    rdfs:subClassOf prov:Activity ;
+    rdfs:label "Maintenance action"@en ;
+    rdfs:seeAlso <https://www.iso.org/standard/64076.html> .
+
+:NormativeStatement a owl:Class ;
+    rdfs:subClassOf :ObservationRecord, odrl:Rule ;
+    rdfs:label "Normative statement"@en ;
+    rdfs:comment "An explicit permission, prohibition, duty, constraint, or policy statement; descriptive conditions are not normative by default."@en ;
+    rdfs:seeAlso odrl:Rule .
+
+:NormativeConstraint a owl:Class ;
+    rdfs:subClassOf :NormativeStatement, odrl:Constraint ;
+    rdfs:label "Normative constraint"@en .
+
+:NormativePermission a owl:Class ;
+    rdfs:subClassOf :NormativeStatement, odrl:Permission ;
+    rdfs:label "Normative permission"@en .
+
+:NormativeProhibition a owl:Class ;
+    rdfs:subClassOf :NormativeStatement, odrl:Prohibition ;
+    rdfs:label "Normative prohibition"@en .
+
+:NormativeDuty a owl:Class ;
+    rdfs:subClassOf :NormativeStatement, odrl:Duty ;
+    rdfs:label "Normative duty"@en .
+
+:QualityAssessment a owl:Class ;
+    rdfs:subClassOf :ObservationRecord ;
+    rdfs:label "Quality assessment"@en ;
+    rdfs:comment "A source-grounded assessment of data, product, process, or service quality."@en ;
+    rdfs:seeAlso <https://www.iso.org/standard/62085.html> .
+
+:RiskStatement a owl:Class ;
+    rdfs:subClassOf :ObservationRecord ;
+    rdfs:label "Risk statement"@en ;
+    rdfs:comment "An explicit source statement about uncertainty, exposure, risk cause, or consequence."@en ;
+    rdfs:seeAlso <https://www.iso.org/iso-31000-risk-management.html> .
+
+:Document a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Document"@en ;
+    rdfs:seeAlso dcterms:BibliographicResource .
+
+:Actor a owl:Class ;
+    rdfs:subClassOf prov:Agent ;
+    rdfs:label "Actor"@en .
+
+:Stakeholder a owl:Class ;
+    rdfs:subClassOf :Actor ;
+    rdfs:label "Stakeholder"@en .
+
+:ActorRole a owl:Class ;
+    rdfs:subClassOf prov:Role, org:Role ;
+    rdfs:label "Actor role"@en .
+
+:Membership a owl:Class ;
+    rdfs:subClassOf prov:Entity, org:Membership ;
+    rdfs:label "Organization membership"@en .
+
+:RoleActorPerson rdfs:subClassOf :Actor .
+:RoleActorOrganization rdfs:subClassOf :Actor .
+:RoleActorTeam rdfs:subClassOf :Actor .
+:RoleActorSoftwareAgent rdfs:subClassOf :Actor .
+:CorporateEntity rdfs:subClassOf org:FormalOrganization .
+:Team rdfs:subClassOf org:OrganizationalUnit .
+
+# Event, observation, clue, source, and question-answering relations.
+:hasObservation a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range :ObservationRecord ;
+    rdfs:label "has observation"@en .
+
+:observationOf a owl:ObjectProperty ;
+    rdfs:domain :ObservationRecord ;
+    rdfs:range :Post ;
+    owl:inverseOf :hasObservation ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    rdfs:label "observation of"@en .
+
+:hasEventObservation a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasObservation ;
+    rdfs:domain :Post ;
+    rdfs:range :EventObservation ;
+    rdfs:label "has event observation"@en .
+
+:eventObservationOf a owl:ObjectProperty ;
+    rdfs:domain :EventObservation ;
+    rdfs:range :Post ;
+    owl:inverseOf :hasEventObservation ;
+    rdfs:subPropertyOf :observationOf .
+
+:observesEvent a owl:ObjectProperty ;
+    rdfs:domain :EventObservation ;
+    rdfs:range :Event ;
+    rdfs:label "observes event"@en .
+
+:eventObservedBy a owl:ObjectProperty ;
+    rdfs:domain :Event ;
+    rdfs:range :EventObservation ;
+    owl:inverseOf :observesEvent .
+
+:hasEvidenceClue a owl:ObjectProperty ;
+    rdfs:domain :ObservationRecord ;
+    rdfs:range :EvidenceClue ;
+    rdfs:label "has evidence clue"@en .
+
+:clueFor a owl:ObjectProperty ;
+    rdfs:domain :EvidenceClue ;
+    rdfs:range prov:Entity ;
+    owl:inverseOf :hasEvidenceClue ;
+    rdfs:label "clue for"@en .
+
+:clueSupports a owl:ObjectProperty ;
+    rdfs:domain :EvidenceClue ;
+    rdfs:range prov:Entity ;
+    rdfs:subPropertyOf oa:hasTarget ;
+    rdfs:label "clue supports"@en .
+
+:clueSource a owl:ObjectProperty ;
+    rdfs:domain :EvidenceClue ;
+    rdfs:range prov:Entity ;
+    rdfs:subPropertyOf prov:hadPrimarySource ;
+    rdfs:label "clue source"@en .
+
+:clueText a owl:DatatypeProperty ;
+    rdfs:domain :EvidenceClue ;
+    rdfs:range xsd:string .
+
+:clueTargetLabel a owl:DatatypeProperty ;
+    rdfs:domain :EvidenceClue ;
+    rdfs:range xsd:string .
+
+:normalizedValueText a owl:DatatypeProperty ;
+    rdfs:domain :EvidenceClue ;
+    rdfs:range xsd:string .
+
+:assertionStatus a owl:ObjectProperty ;
+    rdfs:domain :ObservationRecord ;
+    rdfs:range skos:Concept ;
+    rdfs:label "assertion status"@en .
+
+:inferredFrom a owl:ObjectProperty ;
+    rdfs:domain prov:Entity ;
+    rdfs:range prov:Entity ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    rdfs:label "inferred from"@en .
+
+:inferenceRule a owl:DatatypeProperty ;
+    rdfs:domain prov:Entity ;
+    rdfs:range xsd:string .
+
+:inferenceMethod a owl:DatatypeProperty ;
+    rdfs:domain prov:Entity ;
+    rdfs:range xsd:string .
+
+# Explicit clue dimensions. These are profile extensions because no single
+# standard gives this exact source-grounded business-question vocabulary.
+:hasTimeClue a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasEvidenceClue ;
+    rdfs:label "has time clue"@en .
+:hasPlaceClue a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasEvidenceClue ;
+    rdfs:label "has place clue"@en .
+:hasActorClue a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasEvidenceClue ;
+    rdfs:label "has actor clue"@en .
+:hasActionClue a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasEvidenceClue ;
+    rdfs:label "has action clue"@en .
+:hasCauseClue a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasEvidenceClue ;
+    rdfs:label "has cause clue"@en .
+:hasGoalClue a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasEvidenceClue ;
+    rdfs:label "has goal clue"@en .
+:hasObjectClue a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasEvidenceClue ;
+    rdfs:label "has object clue"@en .
+:hasResultClue a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasEvidenceClue ;
+    rdfs:label "has result clue"@en .
+:hasNextStepClue a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasEvidenceClue ;
+    rdfs:label "has next-step clue"@en .
+:hasQuantityClue a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasEvidenceClue ;
+    rdfs:label "has quantity clue"@en .
+:hasConditionClue a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasEvidenceClue ;
+    rdfs:label "has condition clue"@en .
+:hasSourceClue a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasEvidenceClue ;
+    rdfs:label "has source clue"@en .
+
+:hasCause a owl:ObjectProperty ;
+    rdfs:domain prov:Entity ;
+    rdfs:range prov:Entity ;
+    rdfs:subPropertyOf prov:wasInfluencedBy ;
+    rdfs:label "has cause"@en .
+
+:hasGoal a owl:ObjectProperty ;
+    rdfs:domain prov:Entity ;
+    rdfs:range prov:Entity ;
+    rdfs:label "has goal"@en .
+
+:hasConsequence a owl:ObjectProperty ;
+    rdfs:domain prov:Entity ;
+    rdfs:range prov:Entity ;
+    rdfs:label "has consequence"@en .
+
+:hasNextStep a owl:ObjectProperty ;
+    rdfs:domain prov:Entity ;
+    rdfs:range prov:Entity ;
+    rdfs:label "has next step"@en .
+
+:atPlace a owl:ObjectProperty ;
+    rdfs:domain prov:Entity ;
+    rdfs:range prov:Location ;
+    rdfs:subPropertyOf prov:atLocation ;
+    rdfs:label "at place"@en .
+
+:hasPlace a owl:ObjectProperty ;
+    rdfs:domain prov:Entity ;
+    rdfs:range prov:Location ;
+    owl:inverseOf :atPlace ;
+    rdfs:label "has place"@en .
+
+:hasEventTime a owl:ObjectProperty ;
+    rdfs:domain prov:Entity ;
+    rdfs:range time:TemporalEntity ;
+    rdfs:subPropertyOf time:hasTime ;
+    rdfs:label "has event time"@en .
+
+:factNormalizedDate rdfs:subPropertyOf time:inXSDDate .
+
+# Organization and actor combinations follow org:Membership rather than
+# joining display names. The property chain is a deterministic inference
+# pattern; it does not resolve an ambiguous name into a catalog identity.
+:hasMembership a owl:ObjectProperty ;
+    rdfs:domain prov:Agent ;
+    rdfs:range org:Membership ;
+    rdfs:subPropertyOf org:hasMembership .
+
+:memberOf a owl:ObjectProperty ;
+    rdfs:domain prov:Agent ;
+    rdfs:range org:Organization ;
+    rdfs:subPropertyOf org:memberOf .
+
+:memberRole a owl:ObjectProperty ;
+    rdfs:domain org:Membership ;
+    rdfs:range org:Role ;
+    rdfs:subPropertyOf org:role .
+
+:memberOrganization a owl:ObjectProperty ;
+    rdfs:domain org:Membership ;
+    rdfs:range org:Organization ;
+    rdfs:subPropertyOf org:organization .
+
+:memberDuring a owl:ObjectProperty ;
+    rdfs:domain org:Membership ;
+    rdfs:range time:TemporalEntity ;
+    rdfs:subPropertyOf org:memberDuring .
+
+:reportsTo a owl:ObjectProperty ;
+    rdfs:domain prov:Agent ;
+    rdfs:range prov:Agent ;
+    rdfs:subPropertyOf org:reportsTo .
+
+:headOf a owl:ObjectProperty ;
+    rdfs:domain prov:Agent ;
+    rdfs:range org:Organization ;
+    rdfs:subPropertyOf org:headOf .
+
+:subOrganizationOf a owl:ObjectProperty ;
+    rdfs:domain org:Organization ;
+    rdfs:range org:Organization ;
+    rdfs:subPropertyOf org:subOrganizationOf ;
+    owl:inverseOf :hasSubOrganization .
+
+:hasSubOrganization a owl:ObjectProperty ;
+    rdfs:domain org:Organization ;
+    rdfs:range org:Organization ;
+    rdfs:subPropertyOf org:hasSubOrganization .
+
+:affiliatedWith owl:propertyChainAxiom ( org:hasMembership org:organization ) .
+
+# Existing quantity facts are source assertions, not unqualified sensor data.
+:QuantitativeObservation rdfs:subClassOf :ObservationRecord ;
+    rdfs:seeAlso sosa:Result ;
+    rdfs:seeAlso qudt:QuantityValue .
+
+:hasQuantityValue a owl:ObjectProperty ;
+    rdfs:domain :QuantitativeObservation ;
+    rdfs:range qudt:QuantityValue .
+
+:quantityKind a owl:ObjectProperty ;
+    rdfs:domain :QuantitativeObservation ;
+    rdfs:range sosa:Property ;
+    rdfs:seeAlso qudt:hasQuantityKind .
+
+:measurementValue a owl:DatatypeProperty ;
+    rdfs:domain :QuantitativeObservation ;
+    rdfs:range xsd:decimal ;
+    rdfs:seeAlso qudt:numericValue .
+
+:measurementUnitResource a owl:ObjectProperty ;
+    rdfs:domain :QuantitativeObservation ;
+    rdfs:range qudt:Unit ;
+    rdfs:seeAlso qudt:unit .
+
+# Normative relation combinations. A descriptive condition may use
+# :hasConditionClue; only an explicit policy/rule may use these ODRL-aligned
+# properties.
+:hasNormativeConstraint a owl:ObjectProperty ;
+    rdfs:domain :NormativeStatement ;
+    rdfs:range odrl:Constraint ;
+    rdfs:subPropertyOf odrl:constraint .
+
+:normativeTarget a owl:ObjectProperty ;
+    rdfs:domain :NormativeStatement ;
+    rdfs:range prov:Entity ;
+    rdfs:subPropertyOf odrl:target .
+
+:normativeAction a owl:ObjectProperty ;
+    rdfs:domain :NormativeStatement ;
+    rdfs:range prov:Entity ;
+    rdfs:subPropertyOf odrl:action .
+
+:normativeDuty a owl:ObjectProperty ;
+    rdfs:domain :NormativeStatement ;
+    rdfs:range odrl:Duty ;
+    rdfs:subPropertyOf odrl:duty .
+
+:normativePermission a owl:ObjectProperty ;
+    rdfs:domain :NormativeStatement ;
+    rdfs:range odrl:Permission ;
+    rdfs:subPropertyOf odrl:permission .
+
+:normativeProhibition a owl:ObjectProperty ;
+    rdfs:domain :NormativeStatement ;
+    rdfs:range odrl:Prohibition ;
+    rdfs:subPropertyOf odrl:prohibition .
+
+# Metadata/provenance relations for export and KG rendering.
+:hasProvenance a owl:ObjectProperty ;
+    rdfs:subPropertyOf dcterms:provenance ;
+    rdfs:domain prov:Entity ;
+    rdfs:range prov:Entity .
+
+:referencesDocument a owl:ObjectProperty ;
+    rdfs:subPropertyOf dcterms:references ;
+    rdfs:domain prov:Entity ;
+    rdfs:range :Document .
+
+:conformsTo a owl:ObjectProperty ;
+    rdfs:subPropertyOf dcterms:conformsTo ;
+    rdfs:domain prov:Entity ;
+    rdfs:range prov:Entity .
+
+# Common inverse and inheritance axioms used by KG drawing/reasoning.
+:hasObservation owl:inverseOf :observationOf .
+:hasEvidenceClue owl:inverseOf :clueFor .
+:hasCause owl:inverseOf :causedBy .
+:hasConsequence owl:inverseOf :consequenceOf .
+:hasNextStep owl:inverseOf :nextStepOf .
+:causedBy a owl:ObjectProperty ;
+    rdfs:domain prov:Entity ;
+    rdfs:range prov:Entity .
+:consequenceOf a owl:ObjectProperty ;
+    rdfs:domain prov:Entity ;
+    rdfs:range prov:Entity .
+:nextStepOf a owl:ObjectProperty ;
+    rdfs:domain prov:Entity ;
+    rdfs:range prov:Entity .
+
+#################################################################
+# Machine-readable semantic predicate registry. The relational
+# predicate_code is an application code; this registry resolves it to the
+# standard/profile IRI used by KG drawing and export.
+#################################################################
+
+:predicateCode a owl:AnnotationProperty .
+:predicateIri a owl:AnnotationProperty .
+:SemanticPredicateMapping a owl:Class .
+:hasSemanticPredicateMapping a owl:ObjectProperty .
+:semanticPredicateRegistry a owl:Thing ;
+    :hasSemanticPredicateMapping
+        [ a :SemanticPredicateMapping ; :predicateCode "org_member_of" ; :predicateIri org:memberOf ; rdfs:label "Organization member of"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "org_unit_of" ; :predicateIri org:unitOf ; rdfs:label "Organization unit of"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "org_reports_to" ; :predicateIri org:reportsTo ; rdfs:label "Reports to"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "org_has_membership" ; :predicateIri org:hasMembership ; rdfs:label "Has membership"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "org_role" ; :predicateIri org:role ; rdfs:label "Organization role"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "org_organization" ; :predicateIri org:organization ; rdfs:label "Membership organization"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "org_member_during" ; :predicateIri org:memberDuring ; rdfs:label "Member during"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "org_head_of" ; :predicateIri org:headOf ; rdfs:label "Head of"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "org_suborganization_of" ; :predicateIri org:subOrganizationOf ; rdfs:label "Sub-organization of"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "skos_broader" ; :predicateIri skos:broader ; rdfs:label "Broader concept"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "skos_related" ; :predicateIri skos:related ; rdfs:label "Related concept"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "prov_was_derived_from" ; :predicateIri prov:wasDerivedFrom ; rdfs:label "Was derived from"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "prov_used" ; :predicateIri prov:used ; rdfs:label "Used"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "prov_was_generated_by" ; :predicateIri prov:wasGeneratedBy ; rdfs:label "Was generated by"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "prov_was_attributed_to" ; :predicateIri prov:wasAttributedTo ; rdfs:label "Was attributed to"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "prov_was_associated_with" ; :predicateIri prov:wasAssociatedWith ; rdfs:label "Was associated with"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "prov_acted_on_behalf_of" ; :predicateIri prov:actedOnBehalfOf ; rdfs:label "Acted on behalf of"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "prov_had_primary_source" ; :predicateIri prov:hadPrimarySource ; rdfs:label "Had primary source"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "prov_was_influenced_by" ; :predicateIri prov:wasInfluencedBy ; rdfs:label "Was influenced by"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "prov_specialization_of" ; :predicateIri prov:specializationOf ; rdfs:label "Specialization of"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "prov_alternate_of" ; :predicateIri prov:alternateOf ; rdfs:label "Alternate of"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "prov_had_member" ; :predicateIri prov:hadMember ; rdfs:label "Had member"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "time_has_time" ; :predicateIri time:hasTime ; rdfs:label "Has time"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "time_before" ; :predicateIri time:before ; rdfs:label "Before"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "time_after" ; :predicateIri time:after ; rdfs:label "After"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "time_interval_during" ; :predicateIri time:intervalDuring ; rdfs:label "Interval during"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "sosa_has_result" ; :predicateIri sosa:hasResult ; rdfs:label "Has observation result"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "sosa_observed_property" ; :predicateIri sosa:observedProperty ; rdfs:label "Observed property"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "sosa_phenomenon_time" ; :predicateIri sosa:phenomenonTime ; rdfs:label "Phenomenon time"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "sosa_has_feature_of_interest" ; :predicateIri sosa:hasFeatureOfInterest ; rdfs:label "Has feature of interest"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "odrl_target" ; :predicateIri odrl:target ; rdfs:label "Normative target"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "odrl_action" ; :predicateIri odrl:action ; rdfs:label "Normative action"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "odrl_constraint" ; :predicateIri odrl:constraint ; rdfs:label "Normative constraint"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "odrl_duty" ; :predicateIri odrl:duty ; rdfs:label "Normative duty"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "odrl_permission" ; :predicateIri odrl:permission ; rdfs:label "Normative permission"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "odrl_prohibition" ; :predicateIri odrl:prohibition ; rdfs:label "Normative prohibition"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "dct_references" ; :predicateIri dcterms:references ; rdfs:label "References"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "dct_provenance" ; :predicateIri dcterms:provenance ; rdfs:label "Provenance"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "dct_conforms_to" ; :predicateIri dcterms:conformsTo ; rdfs:label "Conforms to"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "lw_observes_event" ; :predicateIri :observesEvent ; rdfs:label "Observes event"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "lw_clue_for" ; :predicateIri :clueFor ; rdfs:label "Clue for"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "lw_clue_supports" ; :predicateIri :clueSupports ; rdfs:label "Clue supports"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "lw_has_cause" ; :predicateIri :hasCause ; rdfs:label "Has cause"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "lw_has_goal" ; :predicateIri :hasGoal ; rdfs:label "Has goal"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "lw_has_consequence" ; :predicateIri :hasConsequence ; rdfs:label "Has consequence"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "lw_has_next_step" ; :predicateIri :hasNextStep ; rdfs:label "Has next step"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "lw_has_time" ; :predicateIri :hasEventTime ; rdfs:label "Has time"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "lw_at_place" ; :predicateIri :atPlace ; rdfs:label "At place"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "lw_has_actor" ; :predicateIri :hasActorClue ; rdfs:label "Has actor clue"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "lw_has_result" ; :predicateIri :hasResultClue ; rdfs:label "Has result clue"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "lw_has_condition" ; :predicateIri :hasConditionClue ; rdfs:label "Has condition clue"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "lw_inferred_from" ; :predicateIri :inferredFrom ; rdfs:label "Inferred from"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "lw_plans_to_operate" ; :predicateIri :plansToOperate ; rdfs:label "Plans to operate"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "lw_responsible_for" ; :predicateIri :responsibleFor ; rdfs:label "Responsible for"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "lw_supports" ; :predicateIri :supports ; rdfs:label "Supports"@en ] .
+
+:EventObservation rdfs:subClassOf :SemanticAssertion .
+:EvidenceClue rdfs:subClassOf :SemanticAssertion .
+:TemporalClaim rdfs:subClassOf :SemanticAssertion .
+:OrganizationContext rdfs:subClassOf :SemanticAssertion .
+:IndustrialCondition rdfs:subClassOf :SemanticAssertion .
+:NormativeStatement rdfs:subClassOf :SemanticAssertion .
+:QualityAssessment rdfs:subClassOf :SemanticAssertion .
+:RiskStatement rdfs:subClassOf :SemanticAssertion .
+
+# Fine-grained fact classes let Ask and KG renderers retain the distinction
+# between an organization, an industrial object/process, a normative rule,
+# and a descriptive cause/result without relying on a free-text label.
+:ObservationFact a owl:Class ; rdfs:subClassOf :SourceGroundedFact, :ObservationRecord .
+:OrganizationFact a owl:Class ; rdfs:subClassOf :SourceGroundedFact, :OrganizationContext .
+:IndustrialAssetFact a owl:Class ; rdfs:subClassOf :SourceGroundedFact, :IndustrialAsset .
+:IndustrialProcessFact a owl:Class ; rdfs:subClassOf :SourceGroundedFact ; rdfs:seeAlso :IndustrialProcess .
+:NormativeFact a owl:Class ; rdfs:subClassOf :SourceGroundedFact, :NormativeStatement .
+:QualityFact a owl:Class ; rdfs:subClassOf :SourceGroundedFact, :QualityAssessment .
+:RiskFact a owl:Class ; rdfs:subClassOf :SourceGroundedFact, :RiskStatement .
+:PlaceFact a owl:Class ; rdfs:subClassOf :SourceGroundedFact .
+:ActorFact a owl:Class ; rdfs:subClassOf :SourceGroundedFact ; rdfs:seeAlso :Actor .
+:CauseFact a owl:Class ; rdfs:subClassOf :SourceGroundedFact .
+:GoalFact a owl:Class ; rdfs:subClassOf :SourceGroundedFact .
+:ResultFact a owl:Class ; rdfs:subClassOf :SourceGroundedFact .
+:NextStepFact a owl:Class ; rdfs:subClassOf :SourceGroundedFact .
+
+#################################################################
+# Relationship combinations, hierarchy, and inference
+#################################################################
+
+:hasCorporateEntityRelation a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range :CorporateEntity ;
+    rdfs:label "has corporate-entity relation"@en .
+
+:hasCounterpartyRelationship a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasCorporateEntityRelation ;
+    rdfs:domain :Post ;
+    rdfs:range :CorporateEntity ;
+    rdfs:label "has counterparty relationship"@en .
+
+:hasVocRelationship rdfs:subPropertyOf :hasCounterpartyRelationship .
+:hasVomRelationship rdfs:subPropertyOf :hasCounterpartyRelationship .
+:hasVopRelationship rdfs:subPropertyOf :hasCounterpartyRelationship .
+
+:hasOrganizationMention a owl:ObjectProperty ;
+    rdfs:subPropertyOf :hasCorporateEntityRelation ;
+    rdfs:domain :Post ;
+    rdfs:range :CorporateEntity ;
+    owl:inverseOf :mentionsOrganization ;
+    rdfs:label "has organization mention"@en .
+
+:postMentionsTeam a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range :Team ;
+    owl:inverseOf :mentionsTeam ;
+    rdfs:label "post mentions team"@en .
+
+:hasParentCorporateEntity a owl:ObjectProperty ;
+    rdfs:domain :CorporateEntity ;
+    rdfs:range :CorporateEntity ;
+    rdfs:subPropertyOf skos:broader ;
+    rdfs:label "has parent corporate entity"@en .
+
+:hasChildCorporateEntity a owl:ObjectProperty ;
+    rdfs:domain :CorporateEntity ;
+    rdfs:range :CorporateEntity ;
+    rdfs:subPropertyOf skos:narrower ;
+    owl:inverseOf :hasParentCorporateEntity ;
+    rdfs:label "has child corporate entity"@en .
+
+:hasAffiliatedCorporateContext a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range :CorporateEntity ;
+    rdfs:comment "Inferred post context through a mentioned person and that person's affiliation; not a direct organization mention."@en ;
+    owl:propertyChainAxiom ( :mentions :affiliatedWith ) .
+
+:hasTeamCorporateContext a owl:ObjectProperty ;
+    rdfs:domain :Post ;
+    rdfs:range :CorporateEntity ;
+    rdfs:comment "Inferred post context through a mentioned team and that team's organizational unit."@en ;
+    owl:propertyChainAxiom ( :postMentionsTeam :teamAffiliatedWith ) .
+
+:mentionsProject owl:propertyChainAxiom ( :hasProjectMention :projectMentionFor ) .
+
+#################################################################
+# SHACL norms for persisted semantic resources
+#################################################################
+
+:PostSemanticShape a sh:NodeShape ;
+    sh:targetClass :Post ;
+    sh:property [
+        sh:path :hasSemanticAssertion ;
+        sh:class :SemanticAssertion ;
+        sh:severity sh:Violation ;
+        sh:message "A semantic assertion attached to a post must be an evidence-bearing resource."@en
+    ] .
+
+:RoleResponsibilityShape a sh:NodeShape ;
+    sh:targetClass :RoleResponsibility ;
+    sh:property [
+        sh:path :actorName ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:severity sh:Violation
+    ] ;
+    sh:property [
+        sh:path :responsibilityText ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:severity sh:Violation
+    ] .
+
+:ProjectMentionShape a sh:NodeShape ;
+    sh:targetClass :ProjectMention ;
+    sh:property [
+        sh:path :projectMentionFor ;
+        sh:class :Project ;
+        sh:minCount 1 ;
+        sh:maxCount 1 ;
+        sh:severity sh:Violation
+    ] ;
+    sh:property [
+        sh:path :projectEvidence ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:severity sh:Violation
+    ] ;
+    sh:property [
+        sh:path :semanticConfidence ;
+        sh:datatype xsd:decimal ;
+        sh:minCount 1 ;
+        sh:minInclusive 0 ;
+        sh:maxInclusive 1 ;
+        sh:severity sh:Violation
+    ] .
+
+:QuantitativeObservationShape a sh:NodeShape ;
+    sh:targetClass :QuantitativeObservation ;
+    sh:property [
+        sh:path :numericValue ;
+        sh:datatype xsd:decimal ;
+        sh:minCount 1 ;
+        sh:severity sh:Violation
+    ] ;
+    sh:property [
+        sh:path :measurementUnit ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:severity sh:Violation
+    ] ;
+    sh:property [
+        sh:path :sourceEvidence ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:severity sh:Violation
+    ] .
+
+:SemanticRelationshipShape a sh:NodeShape ;
+    sh:targetClass :SemanticRelationship ;
+    sh:property [
+        sh:path :subjectName ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:severity sh:Violation
+    ] ;
+    sh:property [
+        sh:path :predicateCode ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:severity sh:Violation
+    ] ;
+    sh:property [
+        sh:path :objectName ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:severity sh:Violation
+    ] ;
+    sh:property [
+        sh:path :relationEvidence ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:severity sh:Violation
+    ] ;
+    sh:property [
+        sh:path :relationConfidence ;
+        sh:datatype xsd:decimal ;
+        sh:minCount 1 ;
+        sh:minInclusive 0 ;
+        sh:maxInclusive 1 ;
+        sh:severity sh:Violation
+    ] .

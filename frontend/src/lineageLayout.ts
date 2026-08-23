@@ -1,14 +1,24 @@
 import type { LineageGraph, LineageGraphEdge, LineageGraphNode } from "./api";
+import { lineageLabelMetrics } from "./graphLabel";
 
+/** Minimum column width; the layout grows this to fit a wrapped title. */
 export const COL_W = 220;
+/** Minimum row height; the layout grows this to fit wrapped title + date + kind. */
 export const ROW_H = 52;
 export const PAD = 28;
+export const COL_GAP = 28;
+export const ROW_GAP = 18;
+/** Room for the on-graph Topic heading and 선·후행 axis above the first node. */
+export const GROUP_HEADING_H = 44;
 
 const UUID_GROUP = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export interface PositionedNode extends LineageGraphNode {
   x: number;
   y: number;
+  labelLines: string[];
+  labelWidth: number;
+  labelHeight: number;
 }
 
 export interface LaidOutGroup {
@@ -41,43 +51,59 @@ function layoutGroup(nodes: LineageGraphNode[], edges: LineageGraphEdge[]): {
   height: number;
 } {
   const byId = new Map(nodes.map((node) => [node.id, node]));
+  const metrics = new Map(nodes.map((node) => [node.id, lineageLabelMetrics(node.label)]));
+  const colW = Math.max(
+    COL_W,
+    ...[...metrics.values()].map((item) => item.labelWidth + COL_GAP),
+  );
+  const rowH = Math.max(
+    ROW_H,
+    ...[...metrics.values()].map((item) => item.labelHeight + ROW_GAP),
+  );
   const children = childrenByParent(edges);
   const hasParent = new Set(edges.map((edge) => edge.target));
   const roots = nodes.filter((node) => !hasParent.has(node.id));
   const positions = new Map<string, { x: number; y: number }>();
+  const visiting = new Set<string>();
   let nextRow = 0;
 
   const walk = (id: string, depth: number) => {
-    const kids = (children.get(id) ?? []).filter((childId) => byId.has(childId));
+    visiting.add(id);
+    const kids = (children.get(id) ?? []).filter(
+      (childId) => byId.has(childId) && !positions.has(childId) && !visiting.has(childId),
+    );
     if (kids.length === 0) {
-      positions.set(id, { x: PAD + depth * COL_W, y: PAD + nextRow * ROW_H });
+      positions.set(id, { x: PAD + depth * colW, y: GROUP_HEADING_H + PAD + nextRow * rowH });
       nextRow += 1;
+      visiting.delete(id);
       return;
     }
     const startRow = nextRow;
     for (const childId of kids) walk(childId, depth + 1);
     const midRow = (startRow + nextRow - 1) / 2;
-    positions.set(id, { x: PAD + depth * COL_W, y: PAD + midRow * ROW_H });
+    positions.set(id, { x: PAD + depth * colW, y: GROUP_HEADING_H + PAD + midRow * rowH });
+    visiting.delete(id);
   };
 
   for (const root of roots) walk(root.id, 0);
   for (const node of nodes) {
     if (!positions.has(node.id)) {
-      positions.set(node.id, { x: PAD, y: PAD + nextRow * ROW_H });
+      positions.set(node.id, { x: PAD, y: GROUP_HEADING_H + PAD + nextRow * rowH });
       nextRow += 1;
     }
   }
 
   const positioned = nodes.map((node) => {
-    const pos = positions.get(node.id) ?? { x: PAD, y: PAD };
-    return { ...node, ...pos };
+    const pos = positions.get(node.id)!;
+    const box = metrics.get(node.id)!;
+    return { ...node, ...pos, ...box };
   });
-  const maxX = Math.max(PAD, ...positioned.map((node) => node.x));
-  const maxY = Math.max(PAD, ...positioned.map((node) => node.y));
+  const maxRight = Math.max(PAD, ...positioned.map((node) => node.x + node.labelWidth));
+  const maxBottom = Math.max(PAD, ...positioned.map((node) => node.y + node.labelHeight));
   return {
     positioned,
-    width: maxX + COL_W,
-    height: maxY + PAD + 16,
+    width: maxRight + PAD,
+    height: maxBottom + PAD,
   };
 }
 

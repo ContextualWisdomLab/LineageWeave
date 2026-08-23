@@ -129,7 +129,7 @@ _EVAL_ROWS_PROJECT_WEEK = """
         from post_evaluation_response e
         join source_post p on p.post_id = e.post_id
         join post_project_mention mention on mention.post_id = p.post_id
-                                           and mention.confidence >= 0.7
+                                           and mention.mention_confidence >= 0.7
         where e.rubric_version = $1
           and to_char(p.created_at at time zone 'UTC', 'IYYY-"W"IW') = $2
         """
@@ -154,7 +154,7 @@ _EVAL_ROWS_PROJECT_MONTH = """
         from post_evaluation_response e
         join source_post p on p.post_id = e.post_id
         join post_project_mention mention on mention.post_id = p.post_id
-                                           and mention.confidence >= 0.7
+                                           and mention.mention_confidence >= 0.7
         where e.rubric_version = $1
           and to_char(p.created_at at time zone 'UTC', 'YYYY-MM') = $2
         """
@@ -256,7 +256,7 @@ async def load_shared_item_bank(
         return None
     items = await conn.fetch(
         """
-        select item_code, item_index, slope, cat_params
+        select item_code, item_index, item_slope, cat_params
         from report_item_parameter
         where grouping_kind = $1 and grouping_key = $2
           and period_code = $3 and rubric_version = $4
@@ -272,7 +272,7 @@ async def load_shared_item_bank(
     return ItemBank(
         model=str(header["selected_model"]),
         item_codes=tuple(str(row["item_code"]) for row in items),
-        slope=tuple(float(row["slope"]) for row in items),
+        slope=tuple(float(row["item_slope"]) for row in items),
         cat_params=tuple(tuple(float(value) for value in row["cat_params"]) for row in items),
         source_period_code=str(header["period_code"]),
     )
@@ -319,7 +319,7 @@ async def load_anchor_item_bank(
         return None
     items = await conn.fetch(
         """
-        select item_code, item_index, slope, cat_params
+        select item_code, item_index, item_slope, cat_params
         from report_item_parameter
         where grouping_kind = $1 and grouping_key = $2
           and period_code = $3 and rubric_version = $4
@@ -336,7 +336,7 @@ async def load_anchor_item_bank(
         ItemBank(
             model=str(header["selected_model"]),
             item_codes=tuple(str(row["item_code"]) for row in items),
-            slope=tuple(float(row["slope"]) for row in items),
+            slope=tuple(float(row["item_slope"]) for row in items),
             cat_params=tuple(tuple(float(value) for value in row["cat_params"]) for row in items),
             source_period_code=str(header["period_code"]),
         ),
@@ -410,7 +410,7 @@ async def persist_period_report(
             """
             insert into report_item_parameter (
                 grouping_kind, grouping_key, period_code, rubric_version,
-                item_code, item_index, slope, cat_params
+                item_code, item_index, item_slope, cat_params
             ) values ($1,$2,$3,$4,$5,$6,$7,$8)
             """,
             grouping_kind,
@@ -427,7 +427,7 @@ async def persist_period_report(
             """
             insert into report_item_information (
                 grouping_kind, grouping_key, period_code, rubric_version,
-                item_code, item_rank, information
+                item_code, item_rank, information_value
             ) values ($1,$2,$3,$4,$5,$6,$7)
             """,
             grouping_kind,
@@ -443,8 +443,9 @@ async def persist_period_report(
             """
             insert into report_leftover_pair (
                 grouping_kind, grouping_key, period_code, rubric_version,
-                pair_kind, post_id, criterion_code, leftover_distance, leftover_residual
-            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+                pair_kind, post_id, criterion_code, leftover_distance, leftover_residual,
+                observed_response, expected_response, leftover_map_rank
+            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
             """,
             grouping_kind,
             grouping_key,
@@ -455,6 +456,9 @@ async def persist_period_report(
             pair.criterion_code,
             pair.leftover_distance,
             pair.leftover_residual,
+            pair.observed_response,
+            pair.expected_response,
+            pair.leftover_map_rank,
         )
 
 
@@ -552,6 +556,7 @@ async def fetch_period_reports(
         f"""
         select m.grouping_key, m.post_id, m.theta_eap, m.theta_sd, p.post_title,
                p.visibility_code, p.corporate_entity_id,
+               p.author_account_id, p.source_detail_state_code,
                ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context,
                t.due_date as ticket_due_date, t.ticket_title, t.ticket_status_code
         from report_member_score m
@@ -588,7 +593,7 @@ async def fetch_period_reports(
     )
     selected = await conn.fetch(
         """
-        select grouping_key, item_code, item_rank, information
+        select grouping_key, item_code, item_rank, information_value
         from report_item_information
         where grouping_kind = $1 and period_code = $2 and rubric_version = $3
         order by grouping_key, item_rank
@@ -601,8 +606,10 @@ async def fetch_period_reports(
     leftover = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select lp.grouping_key, lp.pair_kind, lp.post_id, lp.criterion_code,
-               lp.leftover_distance, lp.leftover_residual, p.post_title,
+               lp.leftover_distance, lp.leftover_residual,
+               lp.observed_response, lp.expected_response, lp.leftover_map_rank, p.post_title,
                p.visibility_code, p.corporate_entity_id,
+               p.author_account_id, p.source_detail_state_code,
                ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_leftover_pair lp
         join source_post p on p.post_id = lp.post_id
@@ -664,6 +671,8 @@ async def fetch_period_reports(
                         "theta_sd": float(row["theta_sd"]),
                         "visibility_code": row["visibility_code"],
                         "corporate_entity_id": str(row["corporate_entity_id"]),
+                        "author_account_id": str(row["author_account_id"]),
+                        "source_detail_state_code": row["source_detail_state_code"],
                         "has_real_source_context": bool(row["has_real_source_context"]),
                         "ticket_due_date": (
                             None
@@ -686,7 +695,7 @@ async def fetch_period_reports(
                     {
                         "item_code": str(row["item_code"]),
                         "rank": int(row["item_rank"]),
-                        "information": float(row["information"]),
+                        "information": float(row["information_value"]),
                     }
                     for row in selected_by_group.get(header["grouping_key"], [])
                 ],
@@ -698,8 +707,25 @@ async def fetch_period_reports(
                         "criterion_code": str(row["criterion_code"]),
                         "leftover_distance": float(row["leftover_distance"]),
                         "leftover_residual": float(row["leftover_residual"]),
+                        "observed_response": (
+                            None
+                            if row["observed_response"] is None
+                            else float(row["observed_response"])
+                        ),
+                        "expected_response": (
+                            None
+                            if row["expected_response"] is None
+                            else float(row["expected_response"])
+                        ),
+                        "leftover_map_rank": (
+                            None
+                            if row["leftover_map_rank"] is None
+                            else int(row["leftover_map_rank"])
+                        ),
                         "visibility_code": row["visibility_code"],
                         "corporate_entity_id": str(row["corporate_entity_id"]),
+                        "author_account_id": str(row["author_account_id"]),
+                        "source_detail_state_code": row["source_detail_state_code"],
                         "has_real_source_context": bool(row["has_real_source_context"]),
                     }
                     for row in leftover_by_group.get(header["grouping_key"], [])
@@ -731,7 +757,8 @@ async def list_period_report_summaries(
     # Safe SQL: the source-context expression is an immutable schema fragment; report keys are bound.
     members = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
-        select m.grouping_key, m.period_code, p.visibility_code, p.corporate_entity_id
+        select m.grouping_key, m.period_code, p.visibility_code, p.corporate_entity_id,
+               p.author_account_id, p.source_detail_state_code
                , ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_member_score m
         join source_post p on p.post_id = m.post_id
@@ -742,7 +769,7 @@ async def list_period_report_summaries(
     )
     top_items = await conn.fetch(
         """
-        select grouping_key, period_code, item_code, information
+        select grouping_key, period_code, item_code, information_value
         from report_item_information
         where grouping_kind = $1 and rubric_version = $2 and item_rank = 1
         """,
@@ -777,12 +804,14 @@ async def list_period_report_summaries(
             "selected_item_information": (
                 None
                 if top_by_key.get((row["grouping_key"], row["period_code"])) is None
-                else float(top_by_key[(row["grouping_key"], row["period_code"])]["information"])
+                else float(top_by_key[(row["grouping_key"], row["period_code"])]["information_value"])
             ),
             "members": [
                 {
                     "visibility_code": member["visibility_code"],
                     "corporate_entity_id": str(member["corporate_entity_id"]),
+                    "author_account_id": str(member["author_account_id"]),
+                    "source_detail_state_code": member["source_detail_state_code"],
                     "has_real_source_context": bool(member["has_real_source_context"]),
                 }
                 for member in members_by_key.get((row["grouping_key"], row["period_code"]), [])
@@ -818,7 +847,7 @@ async def resolve_grouping_label(conn: asyncpg.Connection, grouping_kind: str, g
     elif grouping_kind == "project":
         row = await conn.fetchrow(
             "select project_name from post_project_mention "
-            "where project_key = $1 order by confidence desc, project_name limit 1",
+            "where project_key = $1 order by mention_confidence desc, project_name limit 1",
             grouping_key,
         )
         if row is not None:
@@ -847,7 +876,8 @@ async def fetch_period_comparison(
     # Safe SQL: the source-context expression is an immutable schema fragment; grouping filters are bound.
     members = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
-        select m.grouping_kind, m.grouping_key, p.visibility_code, p.corporate_entity_id
+        select m.grouping_kind, m.grouping_key, p.visibility_code, p.corporate_entity_id,
+               p.author_account_id, p.source_detail_state_code
                , ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_member_score m
         join source_post p on p.post_id = m.post_id
@@ -876,6 +906,8 @@ async def fetch_period_comparison(
                     {
                         "visibility_code": member["visibility_code"],
                         "corporate_entity_id": str(member["corporate_entity_id"]),
+                        "author_account_id": str(member["author_account_id"]),
+                        "source_detail_state_code": member["source_detail_state_code"],
                         "has_real_source_context": bool(member["has_real_source_context"]),
                     }
                     for member in members_by_key.get((row["grouping_kind"], row["grouping_key"]), [])

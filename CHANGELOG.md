@@ -6,11 +6,221 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Added
+
+- R&R catalog links now record why they are unresolved (ADR 0141): tied
+  candidates, no live enrichment client, checked-but-not-corroborated, or no
+  matching catalog entry. The reader sees the specific reason next to an
+  unlinked person, organization, or affiliation instead of one flat "Not
+  linked to catalog" label; a historical row written before this change
+  keeps its prior behavior.
+- `frontend/index.html` now shows a visible, styled message when JavaScript
+  is disabled, instead of a silent blank page.
+- Planned-facility evidence now reuses the semantic-relationship channel with
+  `lw_plans_to_operate` (ADR 0142). The relationship is retained only when the
+  same source span names a matching R&R actor and project-backed facility; it
+  never represents an already-operating facility. Migration 0138 keeps the
+  database write constraint aligned with the closed predicate vocabulary.
+- Event Lineage now reports why a post has no DAG (ADR 0143):
+  "no_relation_found" when reconstruct compared it against real
+  candidates and found no relation, or "no_comparison_group" when it was
+  the only visible post in its group. The reader sees the specific reason
+  instead of one flat "No linked posts yet."
+- `POST /api/lineage/rebuild` now returns a corpus-wide `coverage`
+  breakdown (`total_posts`, `posts_with_edges`, `posts_no_relation_found`,
+  `posts_no_comparison_group`) alongside `edge_count`, giving an operator
+  an honest coverage summary instead of a bare edge count.
+- Posts can now run an evidence-bearing source-reference research agent
+  against cited URLs and patents (ADR 0133). Search hits stay leads until
+  a Judge outcome of supported, refuted, or not_enough_information; a
+  sharing actor is bound only from cited retrieved text.
+- Each post's Ask-about-this-lineage surface now keeps account-owned
+  conversation history (list, select, new) without replacing the seeded
+  `post_chat_result` cache (ADR 0136). Ask Agent history remains ADR 0126.
+  TEPP topic modeling of how many posts can connect under temporal
+  precedence stays deferred.
+- Repeated `(source_system_code, source_customer_code)` observations can now
+  enter Customer Master only after two authorized posts, contextual-orchestrator
+  resolution, a persisted fast-mlsirm Judge/IRT decision, external
+  corroboration, and unique catalog resolution (ADR 0137). The importer
+  reconciles changed keys automatically; promoted posts receive a distinct
+  Knowledge Graph customer-observation edge, while preferred, former, and
+  alternate organization names remain visible and auditable.
+
 ### Fixed
+
+- Admin Panel labels (control center, endpoint catalog, tenant settings,
+  authorized-entity/board/calendar navigation, and related copy -- 20
+  strings) were only translated into Korean; zh/ja/vi silently fell back
+  to the raw English key since no test enforced locale parity for these
+  strings (the existing i18n test only checks curated key lists, and
+  this component's keys were never added to one). Added zh/ja/vi
+  translations matching this file's established terminology (Tenant,
+  Workspace, Board, Admin) and a new curated `adminPanelLabels` parity
+  test following the same pattern as the existing workspace/Event
+  Lineage label tests. Also translated 33 more AdminPanel labels this
+  session's second pass found: its endpoint-catalog and navigation
+  metadata is defined as data (rendered via `t(item.label)`), which a
+  literal-`t("...")` grep had missed the first time. `adminPanelLabels`
+  now covers all 53 of AdminPanel's live keys. ~64 other pre-existing
+  ko-only keys (mostly in App.tsx) remain untranslated repo-wide and
+  are tracked separately, not claimed fixed here.
+- `GET /api/posts`'s `total_count` no longer silently reports `0` when the
+  requested page is past the last page of results. `total_count` came
+  from `count(*) over()`, a window function that only rides along on rows
+  that survive the query's own `OFFSET`/`LIMIT` -- once the offset skipped
+  past every matching row, the query returned zero rows and `total_count`
+  fell back to `0` even though matches existed. A paginator relying on
+  `total_count` to detect it overshot the last page (or that a filter
+  change shrank the result set) would instead see "0 results" and could
+  wrongly conclude nothing matched. Extracted the query's predicate into
+  a shared variable so a small fallback `count(*)` query (used only when
+  the main page comes back empty) can reuse it without duplicating ~170
+  lines of SQL; regression test confirmed RED (reported 0 instead of the
+  real count) before GREEN.
+- Global Ask (`POST /api/ask`) no longer persists or returns a citation
+  whose authorization changes between source selection and commit. This
+  branch had lost the atomic reauthorize-and-rollback fix from #399/#374
+  during a divergent history merge; a cited post that turned private or
+  changed corporate entity mid-request would have its facts served in the
+  answer, and its citation row would persist even on the 503 path,
+  poisoning the session (issue #362). Restored `_ensure_citations_visible`
+  inside `persist_turn`'s transaction, wired `GlobalAskEvidenceChanged`
+  into `ask_agent`'s error handling, and added a regression test proving
+  the fix RED-to-GREEN.
+- Per-post Ask (`POST /api/posts/{post_id}/chat`) had the identical
+  citation-authorization race as Global Ask above, but never received
+  the #362 fix in the first place: `post_ask_history.persist_turn` had
+  no reauthorization step at all. Added the same
+  `_ensure_citations_visible` / `PostAskEvidenceChanged` -> 503 pattern;
+  regression test confirmed RED (a revoked citation's facts served with
+  a 200) before GREEN.
+- The Event Lineage / 5W1H "indirect" relationship walk (`find_linked_post_ids`,
+  ADR 0018) no longer lets an ABAC-hidden sibling post seed the
+  Knowledge Graph traversal. Finding indirect neighbors first expands to
+  every post mentioning the same person as the focus post, then walks
+  their shared org/team/customer entities -- but that sibling expansion
+  was never ABAC-filtered, so a hidden sibling's own entity mention could
+  bridge to an unrelated *visible* post, fabricating an "indirect"
+  relationship whose only real basis was content the account cannot see
+  (the hidden sibling itself was already correctly excluded from output).
+  Fixed at all three call sites (`read_post_lineage`, `gather_chat_sources`,
+  `load_five_w1h_slots`); regression test confirmed RED before GREEN.
+- `GET /api/lineage`'s focused view no longer lets an edge to an
+  ABAC-hidden sibling post mask a post's `isolation_reason` (ADR 0143).
+  The connected-component check that decides whether a focused post has
+  any visible neighbor built its graph from every `post_lineage_edge` row
+  regardless of visibility, so a hidden post's edge could make an
+  otherwise-isolated post look connected -- leaking the existence of a
+  hidden relationship through an absent isolation reason. Both edge
+  endpoints must now be ABAC-visible before the edge counts. Found on a
+  divergent history line (PR #493) and ported here via cross-session
+  coordination, with a regression test proving RED-to-GREEN.
+- Unexpected exceptions inside Global Ask, per-post chat, keymen
+  extraction, entity-relationship verification, evaluation, summary
+  regeneration, and commitment derivation now reach server-side logs
+  (`logger.exception`, stdlib `logging`, no new dependency) before the
+  same stable customer-facing 503. Previously the broad fail-closed
+  `except Exception` boundary silently swallowed unclassified defects --
+  correct for the customer, but turned a real regression into an opaque
+  availability incident for operators (issue #361, partial: this covers
+  server-side traceback capture, not yet OpenTelemetry metrics/
+  correlation IDs).
+
+### Changed
+
+- Global Ask and per-post Ask history (`GET /api/ask/conversations/{id}`)
+  now reauthorize a whole conversation's sources, citations, and evidence
+  in one bounded query per relation type, instead of one query per turn.
+  An N-turn conversation dropped from up to `3N+3` queries to a constant
+  6; behavior and the fail-closed per-turn authorization boundary are
+  unchanged (issue #358).
+- Leftover closest/farthest pairs now name the post and the Post quality
+  criterion, and leftover clicks land on that criterion instead of a generic
+  post open (ADR 0049 / ADR 0135). Catalog-unbound, dropped/unavailable
+  channel, and confident-negative each have distinct next-action copy;
+  a glued R&R source phrase stays fail-closed and is not treated as an
+  “operates” relation.
+- Reader-facing failures now share a token-backed exception surface (title,
+  next-action copy, optional retry) instead of a color-only red paragraph.
+  Raw exception types, stacks, OIDC diagnostics, and 5xx provider payloads
+  stay hidden (ADR 0123 / ADR 0134).
+- Analysis-run next actions stay kind-and-status exact (ADR 0135): a running
+  lineage or TEPP row whose copy says the work is already queued now offers
+  Refresh, not Start reconstruction / Start TEPP; a failed report with a week
+  key opens the period-report rebuild surface.
+- Renamed "Buyer" terminology to reader/workspace naming across the frontend
+  shell, backend evidence helpers, and living docs (ADR 0119). LineageWeave
+  has no explicit buyer role, so `BuyerNav`/`BuyerDestination` became
+  `WorkspaceNav`/`WorkspaceDestination`, `.buyer-gnb*` CSS became
+  `.workspace-gnb*`, and prose referring to the reading user now says
+  "reader" instead of "buyer". Historical ADRs and changelog entries keep
+  their original wording as a point-in-time record.
+
+### Fixed
+
+- Post-summary contract v19 now preserves an explicit predecessor-to-successor
+  statement in its source direction instead of replacing it with a guessed
+  base-to-variant relation. Knowledge Graph and ontology readers expose that
+  direction with evidence, confidence, and extraction provenance.
+- Event Lineage and Knowledge Graph on-graph titles wrap instead of chopping
+  into `…`, so a long synthetic title stays readable on the graph. Topic
+  partitions, root/branch/current marks, and predecessor → successor
+  (선·후행) stay named on the graph without relying on hover or stroke color
+  alone.
+
+- Tenant settings now refresh their audit timestamp on every successful update,
+  keep the year field visibly blank while it is edited, and disable no-op
+  whitespace-only saves.
+
+- Tenant identity metadata migration now repairs blank legacy settings before
+  adding non-empty and copyright-year constraints, so existing Compose volumes
+  can replay the migration without losing valid tenant-provided values.
+
+- The post-detail dialog focus trap now excludes descendants of `aria-hidden`
+  content as well as collapsed `details`, keeping keyboard focus inside the
+  visible modal controls.
 
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
+- The workspace Event Lineage global Search action now retries focus after the
+  board finishes loading, so navigation from Customer master, Calendar, or
+  Ask Agent lands the cursor in the search box. The handled request is consumed,
+  so later board navigation does not steal focus, and Search closes an open
+  mobile drawer like every other destination change.
+- Mobile Event Lineage evidence cards now read their translated column labels
+  from the rendered cells instead of hardcoded English CSS, and the two drawer
+  close controls have distinct accessible names.
+- Event Lineage SVG edges now retain their instance-specific direction markers,
+  so parent-to-child arrows remain visible when multiple lineage groups render.
+- All OpenAI-compatible chat-completion consumers now validate the shared
+  response envelope before parsing it, preventing malformed provider bodies
+  from escaping as raw `KeyError` or response-shape details.
+- Customer Master integration fixtures no longer reference an unshipped
+  Global Ask history migration; Global Ask remains stateless as documented by
+  ADR 0090, while the shipped scope-facet migration is applied directly.
+- The static SQL review contract now counts the Customer Master evidence query
+  that uses closed schema fragments and bound entity ids.
+
+## [2.12.20] - 2026-08-24
+
+### Added
+
+- Period leftover pair rows now name observed `Y` and expected
+  `E[Y|θ, item]` after IRT main effects next to leftover-map distance
+  `d`, then open that post (Jeon et al., 2021, eq. 3; ADR 0177). Residual
+  stays `R = Y − E`. Missing or non-finite `Y` / `E` omit the badge
+  rather than inventing a leftover score.
+
+## [2.12.21] - 2026-08-24
+
+### Added
+
+- Period leftover pair rows now name leftover-map rank after IRT main
+  effects next to leftover-map distance `d`, then open that post
+  (Jeon et al., 2021, eq. 3; ADR 0172). Rank 0 names no leftover
+  structure rather than inventing a leftover score.
 
 ## [2.12.22] - 2026-08-24
 

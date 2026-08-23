@@ -102,18 +102,33 @@ _LIST_ITEM_START = re.compile(
     r"^(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)"
 )
 _FOOTNOTE_START = re.compile(r"^[*†‡](?=\S)")
+_FOOTNOTE_IDENTIFIER = re.compile(
+    r"^(?:fn|ftn|endnote)[:_-]?\d+(?:[:_-][a-z0-9]+)*$",
+    re.IGNORECASE,
+)
+
+
+def _is_footnote_identifier(value: str) -> bool:
+    """Recognize a numbered footnote definition identifier, not a backlink."""
+    normalized = value.strip().lstrip("#_")
+    return bool(_FOOTNOTE_IDENTIFIER.fullmatch(normalized))
 
 
 def _is_footnote_block(tag: str, attrs: list[tuple[str, str | None]]) -> bool:
     """Recognize semantic footnote markup emitted by HTML and Word exports."""
     if tag.casefold().rsplit(":", 1)[-1] in {"footnote", "endnote"}:
         return True
-    values = " ".join(
+    values = [
         value or ""
         for name, value in attrs
         if name.casefold() in {"class", "id", "role", "data-role"}
-    ).casefold()
-    return "footnote" in values or "endnote" in values
+    ]
+    joined = " ".join(values).casefold()
+    return (
+        "footnote" in joined
+        or "endnote" in joined
+        or any(_is_footnote_identifier(value) for value in values)
+    )
 
 
 def _is_footnote_reference(attrs: list[tuple[str, str | None]]) -> bool:
@@ -125,8 +140,9 @@ def _is_footnote_reference(attrs: list[tuple[str, str | None]]) -> bool:
     }
     href = values.get("href", "")
     anchor_values = (values.get("id", ""), values.get("name", ""))
-    return "ftnref" in href and any(
-        "ftn" in value and "ftnref" not in value for value in anchor_values
+    href_is_reference = bool(re.search(r"(?:fn|ftn)ref", href))
+    return href_is_reference and any(
+        _is_footnote_identifier(value) for value in anchor_values
     )
 
 
@@ -294,6 +310,28 @@ def chunk_by_paragraph(text: str) -> list[Chunk]:
 
 
 _SENTENCE_BOUNDARY = re.compile(r"(?<=[.!?])\s+(?=[A-Z0-9가-힣])")
+_SUPERSCRIPT_DIGITS = str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹")
+_SUBSCRIPT_DIGITS = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
+_METRIC_MARKUP = re.compile(
+    r"(?P<base>(?<![A-Za-z])(?:\d+(?:\.\d+)?\s*)?(?:km|cm|mm|kg|m))\s*"
+    r"<(?P<kind>sup|sub)\b[^>]*>\s*(?P<digits>\d{1,3})\s*</(?P=kind)>",
+    re.IGNORECASE,
+)
+
+
+def _normalize_metric_markup(html: str) -> str:
+    """Keep explicit metric superscript/subscript digits in semantic text."""
+
+    def replace(match: re.Match[str]) -> str:
+        """Translate one matched metric exponent into Unicode semantic text."""
+        table = (
+            _SUPERSCRIPT_DIGITS
+            if match.group("kind").lower() == "sup"
+            else _SUBSCRIPT_DIGITS
+        )
+        return f"{match.group('base')}{match.group('digits').translate(table)}"
+
+    return _METRIC_MARKUP.sub(replace, html)
 
 
 def chunk_by_sentence(text: str) -> list[Chunk]:
@@ -343,6 +381,7 @@ class _BlockTextExtractor(HTMLParser):
         super().__init__()
         self._stack: list[tuple[str, list[str], str | None, int, bool]] = []
         self._unscoped_buffer: list[str] = []
+        self._table_cell_counts: dict[int, int] = {}
         # Each entry is ("text", str, tag_name, style) or
         # ("image", (mime_type, bytes), "", None) -- a single sequence in
         # true document order, so an image's index among its siblings
@@ -376,8 +415,22 @@ class _BlockTextExtractor(HTMLParser):
             self._stack[-1] = (tag_name, buffer, style, indent_width, True)
             return
         if tag in _TABLE_CELL_TAGS:
-            if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS and self._stack[-1][1]:
-                self._stack[-1][1].append(" | ")
+            if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS:
+                row_buffer = self._stack[-1][1]
+                row_key = id(row_buffer)
+                cell_count = self._table_cell_counts.get(row_key, 0)
+                row_text = "".join(row_buffer)
+                leading_empty_cells = not row_text.replace("|", "").strip()
+                first_cell_is_empty = (
+                    cell_count == 1 and leading_empty_cells
+                )
+                if (cell_count or row_text.strip()) and not (
+                    cell_count > 1 and leading_empty_cells
+                ):
+                    row_buffer.append(" | ")
+                    if first_cell_is_empty:
+                        row_buffer.append(" | ")
+                self._table_cell_counts[row_key] = cell_count + 1
             return
         # A rich-text editor commonly wraps a table cell in a nested <p> or
         # <div>. Keep that content in the open row; otherwise the nested block
@@ -421,6 +474,9 @@ class _BlockTextExtractor(HTMLParser):
     ) -> None:
         """Emit one block buffer, including a block closed only at EOF."""
         raw_text = "".join(buffer)
+        self._table_cell_counts.pop(id(buffer), None)
+        if tag_name in _TABLE_ROW_TAGS and not raw_text.replace("|", "").strip():
+            return
         for raw_unit, source_indent in _split_dom_units(raw_text):
             text = normalize_semantic_text(raw_unit)
             if text:
@@ -473,6 +529,7 @@ def _split_dom_units(raw_text: str) -> list[tuple[str, int]]:
     current: list[str] = []
 
     def flush() -> None:
+        """Join the buffered lines into one DOM unit and clear the buffer."""
         if current:
             raw_unit = "\n".join(current)
             if raw_unit.strip():
@@ -513,6 +570,7 @@ def _split_plain_text_units(text: str) -> list[tuple[str, int, str]]:
     current: list[str] = []
 
     def flush() -> None:
+        """Normalize the buffered lines into one plain-text unit and clear it."""
         if current:
             raw_unit = "\n".join(current)
             normalized = normalize_semantic_text(raw_unit)
@@ -569,7 +627,7 @@ def chunk_by_dom(html: str) -> list[Chunk]:
     to the surrounding text chunks.
     """
     parser = _BlockTextExtractor()
-    parser.feed(html)
+    parser.feed(_normalize_metric_markup(html))
     entries = parser.finished()
     chunks: list[Chunk] = []
     for index, (
