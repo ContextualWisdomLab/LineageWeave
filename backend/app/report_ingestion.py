@@ -443,8 +443,9 @@ async def persist_period_report(
             """
             insert into report_leftover_pair (
                 grouping_kind, grouping_key, period_code, rubric_version,
-                pair_kind, post_id, criterion_code, leftover_distance, leftover_residual
-            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+                pair_kind, post_id, criterion_code, leftover_distance, leftover_residual,
+                leftover_map_unexplained_share
+            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
             """,
             grouping_kind,
             grouping_key,
@@ -455,6 +456,7 @@ async def persist_period_report(
             pair.criterion_code,
             pair.leftover_distance,
             pair.leftover_residual,
+            pair.leftover_map_unexplained_share,
         )
 
 
@@ -601,7 +603,8 @@ async def fetch_period_reports(
     leftover = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select lp.grouping_key, lp.pair_kind, lp.post_id, lp.criterion_code,
-               lp.leftover_distance, lp.leftover_residual, p.post_title,
+               lp.leftover_distance, lp.leftover_residual, lp.leftover_map_unexplained_share,
+               p.post_title,
                p.visibility_code, p.corporate_entity_id,
                ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_leftover_pair lp
@@ -698,6 +701,11 @@ async def fetch_period_reports(
                         "criterion_code": str(row["criterion_code"]),
                         "leftover_distance": float(row["leftover_distance"]),
                         "leftover_residual": float(row["leftover_residual"]),
+                        "leftover_map_unexplained_share": (
+                            None
+                            if row["leftover_map_unexplained_share"] is None
+                            else float(row["leftover_map_unexplained_share"])
+                        ),
                         "visibility_code": row["visibility_code"],
                         "corporate_entity_id": str(row["corporate_entity_id"]),
                         "has_real_source_context": bool(row["has_real_source_context"]),

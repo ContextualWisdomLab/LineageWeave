@@ -35,6 +35,13 @@ describe("i18n", () => {
     "Search",
     "Page",
     "Answer",
+    "Leftover pairs",
+    "Closest leftover",
+    "Farthest leftover",
+    "Open this post to read the criterion it sat closest to after main effects.",
+    "Open this post to read the criterion it sat farthest from after main effects.",
+    "Leftover map leaves unexplained share {value} of centered leftover after IRT main effects. Open this post to read {criterion}.",
+    "Open leftover {kind} pair: {title} · {criterion}",
     "Showing the first {shown} of {total} posts known at this cutoff.",
   ] as const;
 
@@ -73,6 +80,33 @@ describe("i18n", () => {
   ] as const)("formats dynamic buyer guidance in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("{post} is current in Event Lineage. Read Keyman and evaluation next.", { post: "DEMO" })).toBe(expected);
+  });
+
+  it.each([
+    [
+      "ko",
+      "잔여 지도가 IRT 주효과 이후 중심화 잔여의 설명되지 않은 몫 0.12을(를) 남깁니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
+    ],
+    [
+      "zh",
+      "残差图在 IRT 主效应后留下中心化残差中未解释的份额 0.12。打开这篇帖子阅读 sales-lead。",
+    ],
+    [
+      "ja",
+      "残差マップはIRT主効果後の中心化残差のうち未説明の割合 0.12 を残します。この投稿を開いて sales-lead を読んでください。",
+    ],
+    [
+      "vi",
+      "Bản đồ phần dư để lại phần chưa giải thích 0.12 của phần dư đã căn giữa sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead.",
+    ],
+  ] as const)("formats leftover-map unexplained share next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Leftover map leaves unexplained share {value} of centered leftover after IRT main effects. Open this post to read {criterion}.",
+        { value: "0.12", criterion: "sales-lead" },
+      ),
+    ).toBe(expected);
   });
 });
 
