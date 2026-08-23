@@ -859,6 +859,48 @@ or an explicit unavailable result.
   canonical `isolation_reason` implementation, ADR 0143) rather than
   merging #493's parallel reimplementation. Regression test proves RED
   (pre-fix: focused post renders as connected) to GREEN.
+- **Event Lineage links topically/causally unrelated posts within a
+  mega-group fallback — evidence-backed (2026-08-24), root-caused against
+  a live corpus:** a reader-reported case (Event Lineage popup on a
+  charging-station-construction post) showed a parent and a child edge to
+  two posts about unrelated engineering topics (a volume-unit change
+  request; an unrelated steering-mechanism note) with `fused_score` 0.40
+  and 0.45 -- just above `DEFAULT_MIN_FUSED_SCORE` (0.3). Traced to two
+  compounding causes, neither yet fixed:
+  1. **Grouping fallback is too coarse.** `reconstruct_group_key`
+     (`backend/app/lineage_ingestion.py`) falls back to `process_unit_id`
+     when `thread_group_key` is empty (documented, intentional design --
+     it must match what `GET /api/lineage`'s display grouping uses, per
+     ADR 0143 above). For the reported post, that fallback groups it with
+     21,670 other posts spanning three-plus years -- an entire team's
+     inbox, not a thread -- so `reconstruct()`'s `DEFAULT_CANDIDATE_WINDOW`
+     (50 temporally-preceding records) draws candidates from a
+     topically unbounded pool.
+  2. **The text channel is not semantic.** `text_similarity_score`
+     (`lineageweave/channels.py`) is `difflib.SequenceMatcher` character-overlap
+     ratio on raw titles, not embeddings -- its own docstring already
+     names this as a stand-in pending a real embedding channel. With no
+     `AdjudicationClient` configured for the rebuild path (the `llm`
+     channel drops out and `temporal`/`secondary_key`/`text` renormalize
+     to 0.25/0.25/0.50), two same-length Korean titles sharing common
+     particles and a close timestamp can clear the 0.3 floor on
+     temporal-proximity plus coincidental character overlap alone, with
+     `secondary_key_match_score` contributing 0 (empty
+     `secondary_grouping_key` on both posts in the reproduced case).
+  Fix (1) is an architecture decision (grouping-key redesign) needing its
+  own ADR before implementation, not appropriate to improvise solo.
+  Fix (2) has a concrete path already staged by the codebase itself:
+  `lineageweave/embedding_client.py` (`ContextualOrchestratorEmbeddingClient`,
+  already wired for post-content search embeddings,
+  `LLM_GATEWAY_EMBEDDING_MODEL=text-embedding-3-large` configured in this
+  environment) is not yet passed into `reconstruct()`/`channels.py` at
+  all -- doing so would need batch (not per-pair) embedding calls for
+  cost, unlike the per-pair `llm.judge()` pattern. Independent of, and
+  does not duplicate, the separate open PR wiring `AdjudicationClient`
+  into `rebuild_lineage()` (restores the highest-weighted `llm` channel
+  for the corpus-wide rebuild path) -- that PR raises `llm`'s 0.40 weight
+  back into the fusion but does not address either cause above on its
+  own; both remain open after it merges.
 - **Provider-boundary exception diagnosability — partially closed
   (2026-08-25, issue #361):** the 10 fail-closed `except Exception`
   catch-alls across `backend/app/main.py` (Global Ask, per-post chat,
