@@ -81,6 +81,7 @@ def test_adrs_keep_post_open_separate_from_image_summary_readiness() -> None:
     assert "normalized summary-input SHA-256" in semantic_contract
     assert "durable job row to match the current raw-body SHA-256" in ingestion_contract
     assert "Legacy rows with no input binding are never current" in stale_contract
+    assert "bounded enrichment latency under the source lock" in stale_contract
 
 
 def test_summary_waits_for_image_evidence_and_detects_images_without_body_logging() -> None:
@@ -484,12 +485,15 @@ def test_explicit_retry_rejects_missing_and_nonterminal_jobs() -> None:
 
 def test_backfill_success_clears_terminal_error_and_records_succeeded() -> None:
     executed: list[tuple[str, tuple[object, ...]]] = []
+    lock_order: list[str] = []
 
     class FakeConnection:
         async def fetchrow(self, query: str, *_args: object):
             assert "for update" in query
             if "from source_post" in query:
+                lock_order.append("source")
                 return {"post_body": "current body"}
+            lock_order.append("job")
             return {"status_code": FAILED}
 
         async def fetchval(self, query: str, *_args: object) -> int:
@@ -510,6 +514,7 @@ def test_backfill_success_clears_terminal_error_and_records_succeeded() -> None:
 
     assert request.status_code == SUCCEEDED
     assert request.should_publish is False
+    assert lock_order == ["source", "job"]
     assert len(executed) == 2
     assert "last_error_code = null" in executed[0][0]
     assert executed[1][1][-1] == "operator backfill persisted post-content evidence"

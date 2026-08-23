@@ -470,12 +470,11 @@ async def persist_post_summary(
     clients, so an organization actor then only resolves against an existing
     ``corporate_entity``.
 
-    Organization inference, verification, and any lock-protected catalog
-    creation complete before the atomic summary transaction.  The catalog is
-    an idempotent shared identity registry; keeping that enrichment separate
-    prevents network latency and ``pg_advisory_xact_lock`` from extending the
-    summary replacement transaction while all post-owned rows still commit or
-    roll back together.
+    Catalog-writing resolution and summary replacement share the exact-current
+    source/evidence transaction. Existing resolution APIs interleave bounded
+    provider work with catalog creation, so the source lock is deliberately
+    held across that enrichment rather than allowing stale output to mutate a
+    shared catalog before the summary input is rejected (ADR 0114).
     """
     await require_summary_target(conn, post_id)
     normalized_summary_input = require_summary_source_body(post_body)
@@ -498,49 +497,6 @@ async def persist_post_summary(
     resolved_affiliation_names: dict[int, str] = {}
     resolved_affiliation_ids: dict[int, str] = {}
     resolved_affiliation_reasons: dict[int, str] = {}
-    for role_index, role in enumerate(summary.roles_and_responsibilities):
-        if role.actor_type_code == ACTOR_TYPE_TEAM and is_generic_team_actor(role.actor_name):
-            continue
-        if role.actor_type_code != ACTOR_TYPE_ORGANIZATION:
-            if role.actor_type_code in {ACTOR_TYPE_PERSON, ACTOR_TYPE_TEAM} and role.affiliated_organization_name:
-                try:
-                    _, resolved_name, corporate_entity_id, affiliation_reason = (
-                        await _resolve_affiliated_organization(
-                            conn,
-                            role.affiliated_organization_name,
-                            context_text,
-                            resolution_client,
-                            verification_client,
-                            hierarchy_inference_client,
-                            candidates,
-                        )
-                    )
-                except (HttpClientError, OSError, TimeoutError, ValueError):
-                    # R&R affiliation is enrichment. A provider outage must
-                    # preserve the raw source name and the summary itself.
-                    resolved_name, corporate_entity_id, affiliation_reason = (
-                        role.affiliated_organization_name,
-                        None,
-                        "reason_no_live_client",
-                    )
-                resolved_affiliation_names[role_index] = resolved_name
-                if corporate_entity_id is not None:
-                    resolved_affiliation_ids[role_index] = corporate_entity_id
-                elif affiliation_reason is not None:
-                    resolved_affiliation_reasons[role_index] = affiliation_reason
-            continue
-        corporate_entity_id, unresolved_reason = await get_or_create_corporate_entity(
-            conn,
-            role.actor_name,
-            context_text,
-            hierarchy_inference_client,
-            verification_client,
-            candidates,
-        )
-        if corporate_entity_id is not None:
-            resolved_organization_ids[role_index] = corporate_entity_id
-        elif unresolved_reason is not None:
-            resolved_organization_reasons[role_index] = unresolved_reason
 
     async with conn.transaction():
         input_is_current = await _lock_current_summary_input(
@@ -552,6 +508,54 @@ async def persist_post_summary(
         )
         if not input_is_current:
             raise RuntimeError("post summary input is no longer current")
+        for role_index, role in enumerate(summary.roles_and_responsibilities):
+            if role.actor_type_code == ACTOR_TYPE_TEAM and is_generic_team_actor(
+                role.actor_name
+            ):
+                continue
+            if role.actor_type_code != ACTOR_TYPE_ORGANIZATION:
+                if (
+                    role.actor_type_code in {ACTOR_TYPE_PERSON, ACTOR_TYPE_TEAM}
+                    and role.affiliated_organization_name
+                ):
+                    try:
+                        _, resolved_name, corporate_entity_id, affiliation_reason = (
+                            await _resolve_affiliated_organization(
+                                conn,
+                                role.affiliated_organization_name,
+                                context_text,
+                                resolution_client,
+                                verification_client,
+                                hierarchy_inference_client,
+                                candidates,
+                            )
+                        )
+                    except (HttpClientError, OSError, TimeoutError, ValueError):
+                        # R&R affiliation is enrichment. A provider outage must
+                        # preserve the raw source name and the summary itself.
+                        resolved_name, corporate_entity_id, affiliation_reason = (
+                            role.affiliated_organization_name,
+                            None,
+                            "reason_no_live_client",
+                        )
+                    resolved_affiliation_names[role_index] = resolved_name
+                    if corporate_entity_id is not None:
+                        resolved_affiliation_ids[role_index] = corporate_entity_id
+                    elif affiliation_reason is not None:
+                        resolved_affiliation_reasons[role_index] = affiliation_reason
+                continue
+            corporate_entity_id, unresolved_reason = await get_or_create_corporate_entity(
+                conn,
+                role.actor_name,
+                context_text,
+                hierarchy_inference_client,
+                verification_client,
+                candidates,
+            )
+            if corporate_entity_id is not None:
+                resolved_organization_ids[role_index] = corporate_entity_id
+            elif unresolved_reason is not None:
+                resolved_organization_reasons[role_index] = unresolved_reason
         await _replace_summary_projection(
             conn,
             post_id,

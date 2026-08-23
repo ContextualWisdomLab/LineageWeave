@@ -215,7 +215,7 @@ class _SummaryConnection:
                 "summary_input_sha256": self.summary_input_sha256,
             }
         if compact.startswith("select resolved_organization_name, verification_status_code"):
-            assert not self.in_transaction
+            assert self.in_transaction
             return None
         if compact.startswith("select person_id from cataloged_person"):
             assert self.in_transaction
@@ -293,6 +293,7 @@ def test_post_summary_replacement_mentions_and_edges_share_one_transaction(monke
     monkeypatch.setattr(summary_ingestion, "persist_edges_for_post", persist_edges)
 
     async def current_input(*_args, **_kwargs) -> bool:
+        events.append("input_lock")
         return True
 
     monkeypatch.setattr(summary_ingestion, "_lock_current_summary_input", current_input)
@@ -323,6 +324,7 @@ def test_post_summary_replacement_mentions_and_edges_share_one_transaction(monke
     )
 
     enter_index = events.index("transaction:enter")
+    lock_index = events.index("input_lock")
     exit_index = events.index("transaction:exit")
     required_sql = (
         "delete from post_summary_person_mention",
@@ -344,7 +346,7 @@ def test_post_summary_replacement_mentions_and_edges_share_one_transaction(monke
         )
         assert enter_index < operation_index < exit_index
     assert events.index("candidate_load") < enter_index
-    assert enter_index < events.index("team_upsert") < exit_index
+    assert enter_index < lock_index < events.index("team_upsert") < exit_index
     assert enter_index < events.index("edge_persist") < exit_index
     assert payload["korean_summary"] == "합성 요약"
     assert connection.summary_input_sha256 == hashlib.sha256(
@@ -357,6 +359,7 @@ def test_summary_source_revision_after_provider_work_preserves_prior_projection(
 ) -> None:
     events: list[Any] = []
     connection = _SummaryConnection(events)
+    catalog_writes: list[str] = []
 
     async def stale_input(*_args, **_kwargs) -> bool:
         return False
@@ -364,15 +367,52 @@ def test_summary_source_revision_after_provider_work_preserves_prior_projection(
     async def must_not_replace(*_args, **_kwargs) -> None:
         raise AssertionError("stale provider output must not replace summary projections")
 
+    async def load_candidates(*_args, **_kwargs) -> list[Any]:
+        return []
+
+    async def must_not_resolve_organization(*_args, **_kwargs):
+        catalog_writes.append("organization")
+        return None, "reason_no_catalog_entry"
+
+    async def must_not_resolve_affiliation(*_args, **_kwargs):
+        catalog_writes.append("affiliation")
+        return "Synthetic Affiliate", "Synthetic Affiliate", None, None
+
     monkeypatch.setattr(summary_ingestion, "_lock_current_summary_input", stale_input)
     monkeypatch.setattr(summary_ingestion, "_replace_summary_projection", must_not_replace)
+    monkeypatch.setattr(summary_ingestion, "_load_corporate_entity_candidates", load_candidates)
+    monkeypatch.setattr(
+        summary_ingestion,
+        "get_or_create_corporate_entity",
+        must_not_resolve_organization,
+    )
+    monkeypatch.setattr(
+        summary_ingestion,
+        "_resolve_affiliated_organization",
+        must_not_resolve_affiliation,
+    )
 
     with pytest.raises(RuntimeError, match="no longer current"):
         asyncio.run(
             summary_ingestion.persist_post_summary(
                 connection,
                 str(uuid.uuid4()),
-                PostSummary(korean_summary="합성 요약이다."),
+                PostSummary(
+                    korean_summary="합성 요약이다.",
+                    roles_and_responsibilities=(
+                        RoleResponsibility(
+                            actor_name="Synthetic Organization",
+                            responsibility="합성 책임",
+                            actor_type_code=ACTOR_TYPE_ORGANIZATION,
+                        ),
+                        RoleResponsibility(
+                            actor_name="Synthetic Person",
+                            responsibility="합성 후속",
+                            actor_type_code=ACTOR_TYPE_PERSON,
+                            affiliated_organization_name="Synthetic Affiliate",
+                        ),
+                    ),
+                ),
                 post_body="Synthetic provider input.",
                 expected_source_body_sha256=hashlib.sha256(
                     b"Synthetic original source."
@@ -387,10 +427,11 @@ def test_summary_source_revision_after_provider_work_preserves_prior_projection(
         and "delete from post_summary_result" in event[1]
         for event in events
     )
+    assert catalog_writes == []
 
 
-def test_organization_enrichment_finishes_before_summary_transaction(monkeypatch) -> None:
-    """LLM verification and the advisory-lock transaction precede summary writes."""
+def test_organization_enrichment_runs_under_current_source_lock(monkeypatch) -> None:
+    """Catalog-writing enrichment runs inside the current-input transaction."""
     events: list[Any] = []
     connection = _SummaryConnection(events)
     corporate_entity_id = str(uuid.uuid4())
@@ -408,7 +449,7 @@ def test_organization_enrichment_finishes_before_summary_transaction(monkeypatch
         candidates,
     ) -> tuple[str, str | None]:
         events.append(("organization_resolve", conn.in_transaction))
-        assert not conn.in_transaction
+        assert conn.in_transaction
         return corporate_entity_id, None
 
     async def persist_edges(conn, post_id) -> list[Any]:
@@ -421,6 +462,7 @@ def test_organization_enrichment_finishes_before_summary_transaction(monkeypatch
     monkeypatch.setattr(summary_ingestion, "persist_edges_for_post", persist_edges)
 
     async def current_input(*_args, **_kwargs) -> bool:
+        events.append("input_lock")
         return True
 
     monkeypatch.setattr(summary_ingestion, "_lock_current_summary_input", current_input)
@@ -449,9 +491,10 @@ def test_organization_enrichment_finishes_before_summary_transaction(monkeypatch
     )
 
     assert ("candidate_load", False) in events
-    assert ("organization_resolve", False) in events
-    resolve_index = events.index(("organization_resolve", False))
+    assert ("organization_resolve", True) in events
+    resolve_index = events.index(("organization_resolve", True))
     enter_index = events.index("transaction:enter")
+    lock_index = events.index("input_lock")
     exit_index = events.index("transaction:exit")
     mention_index = next(
         index
@@ -469,7 +512,7 @@ def test_organization_enrichment_finishes_before_summary_transaction(monkeypatch
     )
     assert "cataloged_corporate_entity_id" in role_insert
     assert "cataloged_person_id" in role_insert
-    assert resolve_index < enter_index < mention_index < exit_index
+    assert enter_index < lock_index < resolve_index < mention_index < exit_index
 
 
 class _KeymanConnection:
