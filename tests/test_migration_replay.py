@@ -36,11 +36,11 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
 
 
 def test_migrate_sh_replays_interval_relation_migration_on_existing_volumes() -> None:
-    """migrate.sh must cover 0105 so existing volumes get the Allen column.
+    """migrate.sh must cover 0140 so existing volumes get the Allen column.
 
     0001 creates post_lineage_edge without interval_relation_code. A
     volume that already ran 0001 never sees that column unless
-    migrate.sh replays 0105. GET /api/lineage then 500s on the new
+    migrate.sh replays 0140. GET /api/lineage then 500s on the new
     SELECT, and rebuild cannot persist interval-relation codes.
     """
     script = (
@@ -50,14 +50,14 @@ def test_migrate_sh_replays_interval_relation_migration_on_existing_volumes() ->
         / "migrate.sh"
     ).read_text(encoding="utf-8")
 
-    assert "0105_*" in script
+    assert "0140_*" in script
 
 
 def test_interval_relation_backfill_uses_utc_created_day() -> None:
     sql = (
         Path(__file__).resolve().parents[1]
         / "migrations"
-        / "0105_post_lineage_interval_relation.sql"
+        / "0140_post_lineage_interval_relation.sql"
     ).read_text(encoding="utf-8")
 
     assert "created_at at time zone 'UTC'" in sql

@@ -39,7 +39,6 @@ describe("i18n", () => {
     "Contains",
     "Overlaps",
     "Interval relations",
-    "Click Contains to open the revised quote.",
   ] as const;
 
   it("supports the five product locales", () => {

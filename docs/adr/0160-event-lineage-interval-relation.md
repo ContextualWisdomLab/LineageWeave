@@ -1,4 +1,4 @@
-# ADR 0122 — Name Allen interval relations on Event Lineage edges
+# ADR 0160 — Name Allen interval relations on Event Lineage edges
 
 **Decision status:** Accepted
 **Date:** 2026-08-23
@@ -47,9 +47,15 @@ After `make seed`, the A-100 pricing follow-up is **before** the revised quote
 and delivery question. Ticket creation, editing, closing, or deletion does not
 rewrite that observed chronology. Click a directed relation row to open the
 other post. Migration
-`0105_post_lineage_interval_relation.sql` upgrades volumes that
+`0140_post_lineage_interval_relation.sql` upgrades volumes that
 already applied `0001`. Point-only backfill uses created days so
 existing edges are never left null.
+
+Renumbered from the originally proposed `0105` (migration) and `0122`
+(ADR) to the free numbers above after a collision was found with
+PR #387 (`migrations/0105_post_lineage_edge_signal.sql`) and PR #383
+(`docs/adr/0122-otel-session-observability.md`); see
+ContextualWisdomLab/.github#1249.
 
 ## References
 

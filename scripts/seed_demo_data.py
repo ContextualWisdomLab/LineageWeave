@@ -130,7 +130,7 @@ def seed(
             cur.execute((migrations / "0023_analysis_run_outbox.sql").read_text())
             cur.execute((migrations / "0024_source_post_revision.sql").read_text())
             cur.execute((migrations / "0025_role_person_catalog_identity.sql").read_text())
-            cur.execute((migrations / "0105_post_lineage_interval_relation.sql").read_text())
+            cur.execute((migrations / "0140_post_lineage_interval_relation.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -969,7 +969,7 @@ def _seed_fixture_tickets(cur) -> None:
 
 
 def _seed_lineage_interval_relations(cur) -> None:
-    """Name Allen relations from observed post creation-day points (ADR 0122)."""
+    """Name Allen relations from observed post creation-day points (ADR 0160)."""
     from lineageweave.interval_relation import (
         allen_interval_relation,
         interval_from_post,

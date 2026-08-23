@@ -218,7 +218,7 @@ contextual-orchestrator; persist is `backend/app/keyman_ingestion.py`.
 includes `group` from the same `reconstruct_group_key()` rebuild uses
 (persisted `thread_group_key`, else process unit, else corp). Each
 direct edge includes `interval_relation_code` / `interval_relation_label`
-(Allen 1983; ADR 0122) computed from the two posts' dated windows.
+(Allen 1983; ADR 0160) computed from the two posts' dated windows.
 `POST /api/lineage/rebuild` (`post_admin`) re-runs `reconstruct()` over
 every `source_post` and rewrites those edges, then names the Allen
 relation in the same transaction. Reconstruct grouping is

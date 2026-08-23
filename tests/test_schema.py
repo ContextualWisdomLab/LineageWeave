@@ -46,7 +46,7 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
 _INTERVAL_RELATION_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
-    / "0105_post_lineage_interval_relation.sql"
+    / "0140_post_lineage_interval_relation.sql"
 )
 
 
