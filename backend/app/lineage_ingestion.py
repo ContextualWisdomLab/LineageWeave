@@ -78,18 +78,25 @@ def interval_relation_code_for_edge(
 async def persist_lineage_edges(
     conn: asyncpg.Connection,
     edges: list[Edge],
-    points_by_post_id: Mapping[str, Mapping[str, Any]] | None = None,
+    points_by_post_id: Mapping[str, Mapping[str, Any]],
 ) -> None:
     """Replace ``post_lineage_edge`` with ``edges`` (reconstruct is source of truth)."""
+    missing_point_ids = {
+        post_id
+        for edge in edges
+        for post_id in (edge.parent_id, edge.child_id)
+        if post_id not in points_by_post_id
+    }
+    if missing_point_ids:
+        raise ValueError(
+            "missing observed interval point for post ids: "
+            + ", ".join(sorted(missing_point_ids))
+        )
     await conn.execute("delete from post_lineage_edge")
-    points = points_by_post_id or {}
     for edge in edges:
-        parent_point = points.get(edge.parent_id)
-        child_point = points.get(edge.child_id)
-        if parent_point is not None and child_point is not None:
-            relation_code = interval_relation_code_for_edge(parent_point, child_point)
-        else:
-            relation_code = "interval_before"
+        relation_code = interval_relation_code_for_edge(
+            points_by_post_id[edge.parent_id], points_by_post_id[edge.child_id]
+        )
         await conn.execute(
             "insert into post_lineage_edge "
             "(parent_post_id, child_post_id, fused_score, interval_relation_code) "

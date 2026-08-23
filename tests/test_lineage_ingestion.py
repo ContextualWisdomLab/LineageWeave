@@ -5,14 +5,18 @@ from __future__ import annotations
 import asyncio
 from datetime import datetime, timezone
 
+import pytest
+
 from backend.app.lineage_ingestion import (
     interval_relations_for_post,
+    persist_lineage_edges,
     reconstruct_group_key,
     records_from_source_posts,
     visible_lineage_graph,
 )
 from lineageweave.fixtures import sample_records
 from lineageweave.lineage_persistence import lineage_edge_specs
+from lineageweave.models import Edge
 
 
 def test_records_use_persisted_thread_keys_not_process_unit_or_voc_type() -> None:
@@ -94,6 +98,27 @@ def test_seed_shaped_rows_rebuild_to_the_designed_a100_fork() -> None:
     assert ("rec-002", "rec-003") in pairs
     assert ("rec-002", "rec-004") in pairs
     assert "rec-006" not in {edge.child_id for edge in edges}
+
+
+def test_persist_requires_observed_points_before_replacing_edges() -> None:
+    class FakeConnection:
+        calls: list[str] = []
+
+        async def execute(self, query: str, *_args):
+            self.calls.append(query)
+
+    connection = FakeConnection()
+    edge = Edge("parent", "child", 0.8, {})
+
+    with pytest.raises(ValueError, match="child"):
+        asyncio.run(
+            persist_lineage_edges(
+                connection,
+                [edge],
+                {"parent": {"created_at": datetime(2026, 1, 1)}},
+            )
+        )
+    assert connection.calls == []
 
 
 def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
