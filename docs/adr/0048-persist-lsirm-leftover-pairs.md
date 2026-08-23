@@ -2,6 +2,7 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-17
+**Amended by:** [ADR 0166](0166-leftover-map-two-dimensional-distance.md) (two leftover-map axes)
 
 ## Context
 
@@ -30,7 +31,8 @@ and one `farthest` observed cell per period report in
 `report_leftover_pair` (3NF, two-or-more-word `snake_case`).
 
 The biplot lives in `lineageweave/leftover_pairs.py` so leftover
-tests do not import `period_report` or `fast_mlsirm`.
+tests do not import `period_report` or `fast_mlsirm`. Distances are
+Euclidean on the two leftover-map axes (ADR 0166).
 
 Cascade the rows with `report_period_score`. A leftover post must
 also be a `report_member_score` row, and the leftover criterion
