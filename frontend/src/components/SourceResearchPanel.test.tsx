@@ -40,6 +40,12 @@ it("shows only persisted cited evidence and refreshes it through the explicit ad
             passage_text: "Synthetic Publisher is named in this bounded passage.",
             cited: true,
           },
+          {
+            url: "https://example.test/untitled",
+            title: "",
+            passage_text: "A second bounded synthetic passage.",
+            cited: true,
+          },
           { url: "https://example.test/unused", title: "Unused result", passage_text: "...", cited: false },
         ],
       }],
@@ -56,6 +62,10 @@ it("shows only persisted cited evidence and refreshes it through the explicit ad
   expect(screen.getByRole("link", { name: "Open source in new tab: Patent record" })).toHaveAttribute(
     "href",
     "https://example.test/cited",
+  );
+  expect(screen.getByRole("link", { name: "Open source in new tab: https://example.test/untitled" })).toHaveAttribute(
+    "href",
+    "https://example.test/untitled",
   );
   expect(screen.getByText(/Next action/)).toBeInTheDocument();
   expect(screen.queryByText("Unused result")).not.toBeInTheDocument();
@@ -98,4 +108,28 @@ it("does not render a TypeError when source research fails", async () => {
   expect(alert).toHaveTextContent("Retry, or continue with saved evidence.");
   expect(alert).not.toHaveTextContent(/TypeError|choices/i);
   expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+});
+
+it("retries a failed persisted-evidence read", async () => {
+  fetchPostSourceResearch
+    .mockRejectedValueOnce(new Error("temporary read failure"))
+    .mockResolvedValueOnce({ post_id: "post-1", research: [] });
+
+  render(<SourceResearchPanel postId="post-1" accessToken="token" canResearch />);
+  fireEvent.click(await screen.findByRole("button", { name: "Retry" }));
+
+  expect(await screen.findByText("No persisted source research yet.")).toBeInTheDocument();
+  expect(fetchPostSourceResearch).toHaveBeenCalledTimes(2);
+});
+
+it("shows reader-safe next-action copy when explicit research fails", async () => {
+  fetchPostSourceResearch.mockResolvedValue({ post_id: "post-1", research: [] });
+  researchPostSources.mockRejectedValue(new Error("temporary research failure"));
+
+  render(<SourceResearchPanel postId="post-1" accessToken="token" canResearch />);
+  fireEvent.click(await screen.findByRole("button", { name: "Research sources" }));
+
+  const alert = await screen.findByRole("alert");
+  expect(alert).toHaveTextContent("Source reference research could not be completed.");
+  expect(alert).toHaveTextContent("Retry, or continue with saved evidence.");
 });
