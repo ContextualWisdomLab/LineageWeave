@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-24 00:37 KST. This repository records synthetic
+> Audit snapshot: 2026-08-24 00:42 KST. This repository records synthetic
 > fixtures and aggregate, non-identifying runtime evidence only. Open PRs and
 > local checks are not protected-default-branch release evidence.
 
@@ -9,8 +9,8 @@
 The protected default branch was
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` when this baseline was refreshed.
 The live queue contained 58 open PRs and no independently approved head. Sixteen
-current heads had an aggregate failed check state, thirteen had pending checks, and
-four current heads retained unresolved review threads (#501, #500, #496, and #439).
+current heads had an aggregate failed check state, fourteen had pending checks, and
+two current heads retained unresolved review threads (#497 and #435).
 Those results must be re-fetched against the current head before remediation or
 a merge claim.
 
@@ -114,13 +114,13 @@ Current active-PR evidence remains outside protected `main`:
   suite passed 81 tests, and lint plus diff-check were clean. The later head
   had no unresolved thread or exact-head approval, while hosted checks
   remained pending.
-- PR #496 at `e40a9a12b5f1f00997a77f1336860069872e511b` carries savepoint,
+- PR #496 at `9fe1932b4bd8abe8ac062ae1b18eb8a99efcbc00` carries savepoint,
   normalized TEPP analysis-run identifier, batched list/detail receipt, state
-  progression, and replay-contract fixes. Its included focused head passed 32
-  tests, then its receipt suite passed 14 tests after a narrow Semgrep
-  annotation. Its current full suite failed, three review threads remained
-  unresolved, and it had no exact-head approval while other hosted checks were
-  pending; earlier local results are not current-head acceptance.
+  progression, and replay-contract fixes. The current head also isolates the
+  older optional outbox and reconstruction reads in savepoints so a missing
+  optional table cannot poison the caller transaction; 33 focused tests passed.
+  It had no unresolved thread or exact-head approval, while hosted checks were
+  pending; local results are not protected-release acceptance.
 - PR #498 at `35823d889c5360ebf2152ed5679d7c22d6832545` retained the public
   health probe, login return, and production docstring gate. Its informational
   review threads were resolved; it had no exact-head approval and hosted checks
@@ -128,9 +128,17 @@ Current active-PR evidence remains outside protected `main`:
 - PR #439 at `c8924d550733a94c764e7b91fbf2d751a113aa40` fixes the shared
   lineage-layout walk so a visible root feeding a cycle terminates, with a
   synthetic rooted-cycle regression. Ninety-five focused frontend tests and
-  TypeScript compilation passed before the guarded fast-forward push. One
-  later informational thread remained unresolved, exact-head approval was
-  absent, and hosted checks were pending.
+  TypeScript compilation passed before the guarded fast-forward push. Its later
+  informational thread was resolved; exact-head approval was absent, and hosted
+  checks were pending.
+- PR #501 at `b895aa57d8b7c8b70f8830ecf32a44972199e6a1` preserves the lineage
+  channel-weight fallback transaction with the same savepoint boundary at both
+  callers. Its informational thread was resolved; it had no approval and hosted
+  checks were pending.
+- PR #500 at `c5a435853c5bfb89abe4064abdf47b47f24d616c` discloses owned
+  RankWeave channel contributions without inventing a fused score or theta. Its
+  three informational threads were resolved; it had no approval, an aggregate
+  failed check state, and other hosted checks pending.
 - PR #490 at `2f05c4255a9a75f85dbe4b99e952c721e74444bf` is the current carrier
   of the consolidated product stack and includes ADR 0143. ADR 0144 was absent
   from both this exact tree and protected `main`, so it is not attributed to
@@ -141,7 +149,7 @@ Current active-PR evidence remains outside protected `main`:
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 58 PRs remained open, none had an independent current-head approval, sixteen current heads had an aggregate failed check state, thirteen had pending checks, and four current heads retained unresolved review threads | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
+| Protected release | 58 PRs remained open, none had an independent current-head approval, sixteen current heads had an aggregate failed check state, fourteen had pending checks, and two current heads retained unresolved review threads | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Image understanding | Region, OCR, and description work exists across active heads | Orchestrator-backed rendered workflow, original/derived asset provenance, and honest unsupported states |
 | Semantic source rendering | Paragraph, table, list, and formula parsing exists across active stacks | Authenticated browser evidence that semantic units render without authoring-layout artifacts |
