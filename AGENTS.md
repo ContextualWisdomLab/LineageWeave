@@ -208,6 +208,11 @@ A run-bearing analysis-run registry empties only after an unrevoked
 (ADR 0020 / v0.87.0). The documented phrase is not a secret. Do not
 expose purge on a public HTTP route.
 
+Unauthenticated **Log in** must call `returnUrlFromLocation()` then
+`rememberOidcReturnUrl` before `signinRedirect` (ADR 0109 / 0119) so a
+shared `/?post=` link still opens that post. Do not mount tenant admin
+settings on the signed-out login shell.
+
 `POST /api/analysis-runs` records Pending lineage only (ADR 0017 /
 v2.7.1). TEPP and period-report kinds 422 before any snapshot write.
 `POST /api/analysis-runs/{id}/start` reconstructs a Pending lineage

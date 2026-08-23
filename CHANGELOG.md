@@ -12,6 +12,16 @@ All notable changes to this project are documented here. Format follows
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 
+## [2.12.19] - 2026-08-24
+
+### Fixed
+
+- Log in remembers a validated same-origin return path (ADR 0119) before
+  the OIDC redirect, so a shared `/?post=` link still opens that post
+  after callback. Tenant admin settings stay off the signed-out login
+  shell. The production frontend build type-checks again.
+
+
 ## [2.12.6] - 2026-08-20
 
 ### Added

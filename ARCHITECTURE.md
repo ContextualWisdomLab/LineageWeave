@@ -301,7 +301,9 @@ config baked in at build time from the same `.env` ports every other
 service uses (Vite embeds `import.meta.env.VITE_*` at build time, not
 runtime, so these are Docker build args, not container env vars).
 `src/App.test.tsx` mocks `react-oidc-context`'s `useAuth` to test the
-component's own render logic (login button -> `signinRedirect()`; the
+component's own render logic (login button stores a safe return path
+then `signinRedirect()`; the signed-out shell never mounts tenant
+admin settings; the
 A-100 fork DAG shows a branch point and rec-006 as its own root;
 `post_admin` can rebuild; fetch posts with the token -> render list ->
 click -> popup shows the fetched body and every panel; ask a chat

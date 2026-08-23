@@ -31,6 +31,11 @@ afterEach(() => {
 });
 
 describe("App, unauthenticated", () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+    window.localStorage.clear();
+  });
+
   it("shows a login button that starts the real OIDC redirect", async () => {
     render(<App showLabPanels />);
     const button = screen.getByRole("button", { name: /log in/i });
@@ -41,6 +46,27 @@ describe("App, unauthenticated", () => {
         state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
       }),
     );
+  });
+
+  it("remembers a same-origin post deep link before the OIDC redirect", async () => {
+    window.history.replaceState({}, "", "/?post=synthetic-post-ada");
+    render(<App />);
+    await userEvent.click(screen.getByRole("button", { name: /log in/i }));
+    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toBe(
+      "/?post=synthetic-post-ada",
+    );
+    expect(window.localStorage.getItem("lineageweave.oidc.returnUrl")).toBe(
+      "/?post=synthetic-post-ada",
+    );
+    expect(signinRedirect).toHaveBeenCalledWith({
+      state: { returnUrl: "/?post=synthetic-post-ada" },
+    });
+  });
+
+  it("does not mount tenant admin settings before authentication", () => {
+    render(<App />);
+    expect(screen.queryByRole("heading", { name: /admin settings/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/tenant brand name/i)).not.toBeInTheDocument();
   });
 });
 

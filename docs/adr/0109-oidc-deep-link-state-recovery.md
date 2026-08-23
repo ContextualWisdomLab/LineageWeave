@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-08-20
 - Depends on: [0069](0069-member-locale-preference.md), [0028](0028-keyverse-oidc-provider.md)
+- Amended by: [0119](0119-oidc-login-remembers-return-path.md)
 
 ## Context
 
