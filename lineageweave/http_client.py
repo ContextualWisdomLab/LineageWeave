@@ -73,7 +73,7 @@ def _request(
             raw = response.read(int(length_header)) if length_header is not None else response.read()
             return response.status, raw
         except (OSError, ValueError, http.client.HTTPException) as exc:
-            # Chain internally for operator logging (ADR 0123); the exposed
+            # Chain internally for operator logging; the exposed
             # message stays generic/hostname-only, never the raw exception text.
             raise HttpClientError("provider transport unavailable") from exc
     finally:
