@@ -177,6 +177,11 @@ _CATALOG_UNRESOLVED_REASON_MIGRATION = (
     / "migrations"
     / "0134_catalog_unresolved_reason.sql"
 )
+_POST_ASK_HISTORY_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0136_post_ask_conversation_history.sql"
+)
 _CUSTOMER_IDENTITY_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -308,6 +313,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_SEMANTIC_RELATIONSHIP_MIGRATION.read_text())
             cur.execute(_SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION.read_text())
             cur.execute(_CATALOG_UNRESOLVED_REASON_MIGRATION.read_text())
+            cur.execute(_POST_ASK_HISTORY_MIGRATION.read_text())
             cur.execute(_CUSTOMER_IDENTITY_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "

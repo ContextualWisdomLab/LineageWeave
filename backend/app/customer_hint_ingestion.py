@@ -322,7 +322,7 @@ async def _catalog_entity(
     ]
     if inference_client is None:
         return None
-    return await get_or_create_corporate_entity(
+    entity_id, _unresolved_reason = await get_or_create_corporate_entity(
         conn,
         candidate_name,
         context_text,
@@ -330,6 +330,7 @@ async def _catalog_entity(
         verification_client,
         candidates,
     )
+    return entity_id
 
 
 async def _record_name(

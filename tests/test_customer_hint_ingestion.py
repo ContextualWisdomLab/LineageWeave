@@ -327,7 +327,7 @@ def test_catalog_entity_reuses_the_existing_resolution_path(monkeypatch) -> None
 
     async def catalog(_conn, name, context, inference, verification, candidates):
         seen.update(name=name, context=context, candidates=candidates)
-        return "entity"
+        return "entity", None
 
     monkeypatch.setattr(ingestion, "get_or_create_corporate_entity", catalog)
     assert asyncio.run(
