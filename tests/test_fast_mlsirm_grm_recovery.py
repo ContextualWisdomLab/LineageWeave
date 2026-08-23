@@ -15,7 +15,7 @@ probabilities.
 from __future__ import annotations
 
 import numpy as np
-from fast_mlsirm import fit_polytomous, score_polytomous
+from fast_mlsirm import fit_polytomous, score_polytomous, validate_irt_response_matrix
 
 N_PERSONS = 400
 N_ITEMS = 12
@@ -35,7 +35,7 @@ MIN_THETA_CORRELATION = 0.75
 def _grm_category_probs(theta: float, discrimination: float, thresholds: np.ndarray) -> np.ndarray:
     """Samejima (1969) graded-response category probabilities for one
     person/item pair, given known true parameters."""
-    cumulative = np.concatenate(([1.0], 1.0 / (1.0 + np.exp(-discrimination * (theta - thresholds))), [0.0]))
+    cumulative = np.concatenate(([1.0], 1.0 / (1.0 + np.exp(-(discrimination * theta - thresholds))), [0.0]))
     return -np.diff(cumulative)
 
 
@@ -53,7 +53,8 @@ def test_grm_recovers_true_theta_within_expected_rmse() -> None:
             probs = probs / probs.sum()
             responses[person, item] = rng.choice(N_CAT, p=probs)
 
-    fit = fit_polytomous(responses, n_cat=N_CAT, model="grm")
+    responses = validate_irt_response_matrix(responses, item_type="polytomous", n_categories=N_CAT)
+    fit = fit_polytomous(responses, n_cat=N_CAT, model="grm", max_iter=80)
     assert fit.converged
 
     scored = score_polytomous(responses, fit)
