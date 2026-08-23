@@ -11,6 +11,79 @@ All notable changes to this project are documented here. Format follows
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
+- The session-expiry auth-error screen now shows a login-card-styled
+  recovery screen ("Your session has expired." / "Log in again",
+  preserving the return URL) instead of dumping the raw IdP error string
+  (e.g. Keycloak's literal "Token is not active") as bare, unstyled text.
+
+## [2.21.1] - 2026-08-23
+
+### Fixed
+
+- Aligned ADR 0083 with the immutable `contextual-orchestrator` commit used
+  by the Compose image and added a regression check so the image and ADR
+  cannot drift apart again.
+
+## [2.21.0] - 2026-08-23
+
+### Fixed
+
+- Restricted synthetic-seed cleanup to `DEMO-*` corporate entities so a real
+  PostgreSQL import cannot delete blank-context posts from a production
+  scope.
+
+## [2.13.1] - 2026-08-23
+
+### Added
+
+- Extracted ~13 repeated inline hex colors in `App.css` (lineage-link
+  accents, R&R actor-type badges, relation-verification status badges) into
+  named design tokens in `styles/tokens.css`, each with a
+  `prefers-color-scheme: dark` variant. Dark mode previously left every
+  pastel badge exactly as light as it is in light mode (ADR 0099).
+
+### Fixed
+
+- Matched persisted post units to their source text instead of using
+  ordinal position, so a table or embedded image cannot shift the fallback
+  indentation of a later unresolved paragraph.
+- Retained valid salient image regions for panel-level OCR and search, and
+  analyzed the parent image when locator coverage is partial so text
+  outside the returned panels stays searchable.
+- Kept consecutive persisted rows in separate buyer-facing tables when the
+  source post contains more than one HTML table, preserving the authored
+  table boundary without changing source text or semantic row content.
+- Kept leading spaces and `&nbsp;` available as diagnostics without
+  persisting them as authoritative structure; only declared
+  HTML/CSS/OOXML or list nesting now counts as explicit indentation.
+  Expected structure/embedding-channel failures stay retryable while
+  unexpected defects still propagate to the durable ingestion ledger.
+
+## [2.13.0] - 2026-08-23
+
+### Added
+
+- Buyer GNB: Board, Customer master, Calendar, and Ask Agent.
+- Direct related-post controls from lineage and Keyman/R&R evidence.
+- Korean, English, Chinese, Japanese, and Vietnamese locale switching.
+
+### Changed
+
+- Moved analysis-run and period-report controls into collapsed advanced
+  review tools instead of the default buyer surface.
+
+## [2.12.7] - 2026-08-23
+
+### Security
+
+- Required every accepted Semgrep SQL-composition suppression to use the
+  exact rule identifier and an adjacent written audit reason.
+- Verified that schema-fixed eligibility/source-context fragments keep
+  request values in asyncpg parameters, and that synthetic-cleanup catalog
+  identifiers are quoted before execution while UUID values remain
+  parameters.
+- Replaced the document-structure protocol no-op body with an explicit
+  `NotImplementedError` contract.
 
 ## [2.12.6] - 2026-08-20
 
