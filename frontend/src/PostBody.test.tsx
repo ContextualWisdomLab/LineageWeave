@@ -333,6 +333,36 @@ describe("PostBody", () => {
     expect(screen.queryByText(/This post is an image/)).not.toBeInTheDocument();
   });
 
+  it("treats whitespace-only region caption and OCR as missing evidence", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
+        imageContent={[{
+          unit_index: 0,
+          mime_type: "image/png",
+          status_code: "described",
+          extracted_text: null,
+          caption: "A process diagram",
+          tags: [],
+          regions: [{
+            region_index: 0,
+            x_ratio: 0.1,
+            y_ratio: 0.2,
+            width_ratio: 0.3,
+            height_ratio: 0.4,
+            status_code: "described",
+            extracted_text: "\n",
+            caption: "   ",
+            tags: [],
+          }],
+        }]}
+      />,
+    );
+
+    expect(screen.getByText("Unknown")).toBeInTheDocument();
+    expect(screen.queryByText("Text detected in image:")).not.toBeInTheDocument();
+  });
+
   it.each([
     [Number.NaN, 0.2, 0.3, 0.4],
     [-0.1, 0.2, 0.3, 0.4],

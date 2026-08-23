@@ -88,13 +88,15 @@ function renderImageEvidence(
           <ol>
             {imageContent.regions.map((region) => {
               const location = formatImageRegionLocation(region);
+              const caption = region.caption?.trim() || "";
+              const extractedText = region.extracted_text?.trim() || "";
               return (
                 <li key={region.region_index}>
-                  {region.caption ? <span>{region.caption}</span> : null}
-                  {region.extracted_text && region.extracted_text !== region.caption ? (
-                    <small>{t("Text detected in image")}: {region.extracted_text}</small>
+                  {caption ? <span>{caption}</span> : null}
+                  {extractedText && extractedText !== caption ? (
+                    <small>{t("Text detected in image")}: {extractedText}</small>
                   ) : null}
-                  {!region.caption && !region.extracted_text ? <span>{t("Unknown")}</span> : null}
+                  {!caption && !extractedText ? <span>{t("Unknown")}</span> : null}
                   {region.tags.length ? (
                     <small>
                       {t("Image tags")}: {region.tags.join(", ")}

@@ -31,6 +31,8 @@ unrelated stacks.
   boundary. Keep the existing localized `Embedded image` short text
   alternative rather than exposing a whitespace-only accessible name, and do
   not add an empty visual `figcaption` merely because whitespace was stored.
+- Treat all-whitespace region captions and OCR excerpts as absent too, so they
+  cannot suppress the localized `Unknown` evidence fallback.
 - Keep image tags, OCR tables, and the source raster on their existing
   contracts. This is a presentation boundary, not a new VISION call.
 
