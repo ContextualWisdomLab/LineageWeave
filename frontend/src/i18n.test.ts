@@ -178,6 +178,30 @@ describe("i18n", () => {
     "Verify post relations",
     "Workspace",
   ] as const;
+  const boardAndRoleRelationshipLabels = [
+    "Account",
+    "Affiliation",
+    "Answers cite authorized posts when available.",
+    "Authorized evidence",
+    "Board advanced review",
+    "Evidence workspace",
+    "Existing workspace surface",
+    "Explicit semantic relationships",
+    "Lifecycle vector",
+    "None",
+    "Open in Board",
+    "Organization member of",
+    "Organization unit of",
+    "Permissions",
+    "R&R affiliation: {name}",
+    "Responsible for",
+    "Sub-organization of",
+    "Summary could not be generated.",
+    "Summary is not created for writing posts.",
+    "Supports",
+    "The existing Board owns the selected post and its provenance, so this action opens there instead of duplicating the workflow.",
+    "routes",
+  ] as const;
 
   it("supports the five product locales", () => {
     expect(SUPPORTED_LOCALES).toEqual(["en", "ko", "zh", "ja", "vi"]);
@@ -235,6 +259,16 @@ describe("i18n", () => {
     (locale) => {
       setLocale(locale);
       for (const key of adminPanelLabels) {
+        expect(t(key), `${locale}:${key}`).not.toBe(key);
+      }
+    },
+  );
+
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "translates Board and R&R relationship labels in %s",
+    (locale) => {
+      setLocale(locale);
+      for (const key of boardAndRoleRelationshipLabels) {
         expect(t(key), `${locale}:${key}`).not.toBe(key);
       }
     },
