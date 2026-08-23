@@ -45,6 +45,19 @@ All notable changes to this project are documented here. Format follows
   Knowledge Graph customer-observation edge, while preferred, former, and
   alternate organization names remain visible and auditable.
 
+### Fixed
+
+- Global Ask (`POST /api/ask`) no longer persists or returns a citation
+  whose authorization changes between source selection and commit. This
+  branch had lost the atomic reauthorize-and-rollback fix from #399/#374
+  during a divergent history merge; a cited post that turned private or
+  changed corporate entity mid-request would have its facts served in the
+  answer, and its citation row would persist even on the 503 path,
+  poisoning the session (issue #362). Restored `_ensure_citations_visible`
+  inside `persist_turn`'s transaction, wired `GlobalAskEvidenceChanged`
+  into `ask_agent`'s error handling, and added a regression test proving
+  the fix RED-to-GREEN.
+
 ### Changed
 
 - Leftover closest/farthest pairs now name the post and the Post quality

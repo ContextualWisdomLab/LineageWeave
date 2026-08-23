@@ -33,6 +33,11 @@ _KEYCLOAK_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_KEYCLOAK_BASE_URL", "http
 _VALKEY_URL = os.environ.get("LINEAGEWEAVE_TEST_VALKEY_URL", "redis://localhost:16379/0")
 _REALM = "lineageweave-demo"
 _MIGRATION_PATH = Path(__file__).resolve().parents[2] / "migrations" / "0001_initial_schema.sql"
+_GLOBAL_ASK_HISTORY_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0105_global_ask_conversation_history.sql"
+)
 _REGISTRY_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0018_analysis_run_registry.sql"
 _RETENTION_MIGRATION = Path(__file__).resolve().parents[2] / "migrations" / "0020_analysis_run_retention_purge.sql"
 _RECONSTRUCTION_MIGRATION = (
@@ -269,6 +274,7 @@ def seeded_db(demo_analyst_token):
     try:
         with conn.cursor() as cur:
             cur.execute(_MIGRATION_PATH.read_text())
+            cur.execute(_GLOBAL_ASK_HISTORY_MIGRATION.read_text())
             cur.execute(_REGISTRY_MIGRATION.read_text())
             cur.execute(_RETENTION_MIGRATION.read_text())
             cur.execute(_RECONSTRUCTION_MIGRATION.read_text())
@@ -4069,6 +4075,68 @@ def test_global_ask_provider_error_does_not_leak_raw_error(
 
     assert response.status_code == 503
     assert "raw-global-provider-secret" not in response.text
+
+
+def test_global_ask_rolls_back_when_cited_evidence_is_revoked_mid_flight(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """A citation that loses authorization between source selection and commit
+    must not poison the session: no orphaned turn/citation rows, and the same
+    session can immediately ask a safe follow-up (issue #362)."""
+    from lineageweave.post_chat import ChatAnswer
+
+    public_post_id = seeded_db["public_post_id"]
+
+    def _revoke_and_answer(question: str, sources) -> ChatAnswer:
+        admin_conn = psycopg2.connect(seeded_db["dsn"])
+        admin_conn.autocommit = True
+        try:
+            with admin_conn.cursor() as cur:
+                cur.execute(
+                    "update source_post set visibility_code = 'private', "
+                    "corporate_entity_id = %s where post_id = %s",
+                    (seeded_db["other_corp_id"], public_post_id),
+                )
+        finally:
+            admin_conn.close()
+        return ChatAnswer(answer_text="cites the now-revoked post", cited_post_ids=(public_post_id,))
+
+    class _RaceConditionAskClient:
+        available = True
+        answer = staticmethod(_revoke_and_answer)
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _RaceConditionAskClient())
+
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    raced = client.post("/api/ask", json={"question": "What does the public post say?"}, headers=headers)
+    assert raced.status_code == 503, raced.text
+    assert raced.json()["detail"] == "Ask Agent is unavailable: authorized evidence changed; retry the question"
+
+    conn = psycopg2.connect(seeded_db["dsn"])
+    try:
+        with conn.cursor() as cur:
+            # The raced request was this account's first Ask call, so a clean
+            # rollback means no session, turn, or citation row exists at all.
+            cur.execute("select count(*) from global_ask_session")
+            assert cur.fetchone()[0] == 0
+            cur.execute("select count(*) from global_ask_turn")
+            assert cur.fetchone()[0] == 0
+            cur.execute("select count(*) from global_ask_turn_citation")
+            assert cur.fetchone()[0] == 0
+    finally:
+        conn.close()
+
+    class _FakeChatClient:
+        available = True
+
+        def answer(self, question: str, sources) -> ChatAnswer:
+            return ChatAnswer(answer_text="a safe follow-up answer", cited_post_ids=())
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _FakeChatClient())
+    follow_up = client.post(
+        "/api/ask", json={"question": "Ask something safe as a follow-up"}, headers=headers
+    )
+    assert follow_up.status_code == 200, follow_up.text
 
 
 def test_keymen_provider_error_does_not_leak_raw_error(

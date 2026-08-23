@@ -16,6 +16,10 @@ class GlobalAskConversationNotFound(LookupError):
     """The requested conversation is absent or owned by another account."""
 
 
+class GlobalAskEvidenceChanged(RuntimeError):
+    """A cited post became unauthorized before the new turn could commit."""
+
+
 def conversation_title(question: str) -> str:
     """Use the first question as a bounded, readable transcript label."""
     compact = " ".join(question.strip().split())
@@ -261,6 +265,32 @@ async def fetch_conversation(
     }
 
 
+async def _ensure_citations_visible(
+    conn: asyncpg.Connection,
+    conversation_id: UUID,
+    turn_ordinal: int,
+    cited_post_count: int,
+    can_see_post: Callable[[asyncpg.Record], bool],
+) -> None:
+    """Lock and re-authorize new citations before their transaction commits."""
+    rows = await conn.fetch(
+        """
+        select relation.cited_post_id::text as post_id,
+               post.post_title, post.visibility_code, post.corporate_entity_id,
+               post.author_account_id, post.source_detail_state_code
+          from global_ask_turn_citation relation
+          join source_post post on post.post_id = relation.cited_post_id
+         where relation.global_ask_session_id = $1
+           and relation.turn_ordinal = $2
+         for share of post
+        """,
+        conversation_id,
+        turn_ordinal,
+    )
+    if len(rows) != cited_post_count or any(not can_see_post(row) for row in rows):
+        raise GlobalAskEvidenceChanged
+
+
 async def persist_turn(
     conn: asyncpg.Connection,
     user_account_id: str,
@@ -271,6 +301,7 @@ async def persist_turn(
     source_post_ids: Iterable[str],
     cited_post_ids: Iterable[str],
     cited_post_evidence: Iterable[dict[str, Any]],
+    can_see_post: Callable[[asyncpg.Record], bool] | None = None,
 ) -> UUID:
     source_ids = list(dict.fromkeys(str(post_id) for post_id in source_post_ids))
     source_set = set(source_ids)
@@ -359,5 +390,13 @@ async def persist_turn(
             "update global_ask_session set updated_at = now() where global_ask_session_id = $1",
             conversation_id,
         )
+        if can_see_post is not None:
+            await _ensure_citations_visible(
+                conn,
+                conversation_id,
+                ordinal,
+                len(cited_ids),
+                can_see_post,
+            )
     assert conversation_id is not None
     return conversation_id
