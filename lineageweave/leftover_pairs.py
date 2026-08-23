@@ -183,12 +183,6 @@ def _leftover_map_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray,
     left, singular, right = np.linalg.svd(filled, full_matrices=False)
     keep = singular > _LEFTOVER_SINGULAR_FLOOR
     leftover_map_rank = int(np.count_nonzero(keep))
-    if leftover_map_rank == 0:
-        return (
-            np.zeros((n_persons, 1), dtype=np.float64),
-            np.zeros((n_items, 1), dtype=np.float64),
-            0,
-        )
     scale = np.sqrt(singular[keep])
     person_pos = left[:, keep] * scale
     item_pos = right[keep, :].T * scale

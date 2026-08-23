@@ -170,7 +170,7 @@ def test_leftover_map_rank_rejects_negative_rank() -> None:
         )
 
 
-def test_rank_three_pair_distances_match_two_dimensional_gabriel_coords() -> None:
+def test_rank_four_pair_distances_match_two_dimensional_gabriel_coords() -> None:
     """Jeon leftover_distance is Euclidean on the 2D map, not the full SVD rank."""
     post_ids = ["post-a", "post-b", "post-c", "post-d"]
     item_codes = ("item-a", "item-b", "item-c", "item-d")
@@ -186,7 +186,7 @@ def test_rank_three_pair_distances_match_two_dimensional_gabriel_coords() -> Non
     expected = np.zeros_like(matrix)
     filled = matrix - float(np.mean(matrix))
     person_full, item_full = _gabriel_positions(filled)
-    assert person_full.shape[1] >= 3
+    assert person_full.shape[1] == 4
     person_map = _pad_map_axes(person_full)
     item_map = _pad_map_axes(item_full)
     full_distances = np.linalg.norm(person_full[:, None, :] - item_full[None, :, :], axis=2)
@@ -198,6 +198,7 @@ def test_rank_three_pair_distances_match_two_dimensional_gabriel_coords() -> Non
     post_index = {post_id: index for index, post_id in enumerate(post_ids)}
     item_index = {code: index for index, code in enumerate(item_codes)}
     for pair in pairs:
+        assert pair.leftover_map_rank == 4
         person = post_index[pair.post_id]
         item = item_index[pair.criterion_code]
         assert pair.leftover_distance == pytest.approx(float(map_distances[person, item]))
@@ -242,6 +243,7 @@ def test_sparse_residual_uses_only_observed_cells_for_fallback_distance() -> Non
         ("post-b", "item-b"),
     ]
     assert [pair.leftover_distance for pair in pairs] == pytest.approx([1.0, 1.0])
+    assert [pair.leftover_map_rank for pair in pairs] == [0, 0]
 
 
 def test_nonfinite_map_distance_falls_back_to_centered_residual(
