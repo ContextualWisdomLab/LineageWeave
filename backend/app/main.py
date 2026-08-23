@@ -1245,6 +1245,7 @@ async def resolve_customer_master_hint(
                 conn,
                 _customer_hint_resolution_client(),
                 _relation_verification_client(),
+                _corporate_hierarchy_inference_client(),
                 request.hint_code,
             )
         except (HttpClientError, OSError) as exc:

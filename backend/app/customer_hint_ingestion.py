@@ -6,6 +6,21 @@ abbreviations (ADR 0008), never binding a new customer name that external
 search did not corroborate. An uncorroborated or unresolved guess leaves
 the hint exactly as unresolved as it started; it never invents a Customer
 Master entity from a single ungrounded LLM answer.
+
+A newly resolved name is created through
+:func:`backend.app.corporate_entity_ingestion.get_or_create_corporate_entity`
+-- the same "통합 고객사 계열 tree AI" hierarchy-inference pipeline
+`keyman_ingestion.py`'s affiliation resolution already uses -- rather than
+a bare same-level insert, so a SAP-sourced customer code that resolves to
+e.g. "Acme Electronics South Plant" gets its inferred parent chain
+(plant -> company -> group) at resolution time instead of landing as a
+permanently flat, unparented row.
+
+A genuine similarity tie among *existing* catalog entities is checked for
+separately, before that hierarchy-aware path runs, and stays unbound per
+ADR 0026 (a tie must never create a third same-named row) -- it is not
+treated as "no hierarchy channel configured" and does not fall back to a
+flat insert.
 """
 
 from __future__ import annotations
@@ -15,12 +30,16 @@ from typing import Any
 
 import asyncpg
 
+from lineageweave.corporate_hierarchy_inference import CorporateHierarchyInferenceClient
+from lineageweave.corporate_hierarchy_resolution import RESOLUTION_TIE, score_corporate_entity
 from lineageweave.customer_hint_resolution import CustomerHintResolutionClient
 from lineageweave.image_content import NullImageContentClient
 from lineageweave.organization_name_resolution import resolve_and_verify_organization_name
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.relation_verification import STATUS_CORROBORATED, RelationVerificationClient
 
+from .corporate_entity_ingestion import get_or_create_corporate_entity
+from .keyman_ingestion import _load_corporate_entity_candidates
 
 _EXCERPT_LENGTH = 1500
 
@@ -29,6 +48,7 @@ async def resolve_customer_hint(
     conn: asyncpg.Connection,
     resolution_client: CustomerHintResolutionClient,
     verification_client: RelationVerificationClient,
+    hierarchy_inference_client: CorporateHierarchyInferenceClient,
     hint_code: str,
 ) -> dict[str, Any] | None:
     """Resolve one `source_customer_code` hint to a real `corporate_entity`.
@@ -111,32 +131,59 @@ async def resolve_customer_hint(
         return None
 
     entity_name = resolution.resolved_organization_name
-    existing = await conn.fetchrow(
-        "select corporate_entity_id from corporate_entity where lower(entity_name) = lower($1)",
+    candidates = await _load_corporate_entity_candidates(conn)
+    if score_corporate_entity(entity_name, candidates).kind == RESOLUTION_TIE:
+        # ADR 0026: a tied top similarity score among *existing* catalog
+        # entities must stay unbound, never create a third same-named row.
+        # This is checked before get_or_create_corporate_entity runs so a
+        # tie is never mistaken for "no hierarchy channel configured" below
+        # and quietly given a flat fallback entity anyway.
+        return None
+    entity_id = await get_or_create_corporate_entity(
+        conn,
         entity_name,
+        excerpts,
+        hierarchy_inference_client,
+        verification_client,
+        candidates,
     )
-    if existing is not None:
-        entity_id = existing["corporate_entity_id"]
-    else:
-        # ON CONFLICT, not a plain INSERT: re-resolving the same hint_code
-        # is not guaranteed to get byte-identical LLM phrasing back, so the
-        # name-based lookup above can miss an entity this same hint already
-        # created -- corporate_entity_code (deterministic from hint_code)
-        # is the stable identity key a retry must key off instead.
-        entity_code = f"HINT-{hint_code}"
-        # Safe SQL: the statement is a literal migration-shaped query; both observed values are bound.
-        created = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-            """
-            insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code)
-            values ($1, $2, 'company')
-            on conflict (corporate_entity_code)
-            do update set entity_name = excluded.entity_name
-            returning corporate_entity_id
-            """,
-            entity_code,
+    if entity_id is None:
+        # get_or_create_corporate_entity declined for a genuine miss -- no
+        # hierarchy inference channel configured, or an inferred placement
+        # that did not corroborate (a tie was already ruled out above).
+        # `resolve_and_verify_organization_name` above already independently
+        # corroborated the NAME itself, so a declined *placement* must not
+        # regress this hint back to fully unresolved: fall back to the
+        # flat, unparented entity this pathway always created before
+        # hierarchy inference existed. A later re-resolve (once a hierarchy
+        # channel is configured) can still enrich it with a real parent by
+        # matching this same name.
+        existing = await conn.fetchrow(
+            "select corporate_entity_id from corporate_entity where lower(entity_name) = lower($1)",
             entity_name,
         )
-        entity_id = created["corporate_entity_id"]
+        if existing is not None:
+            entity_id = existing["corporate_entity_id"]
+        else:
+            # ON CONFLICT, not a plain INSERT: re-resolving the same hint_code
+            # is not guaranteed to get byte-identical LLM phrasing back, so the
+            # name-based lookup above can miss an entity this same hint already
+            # created -- corporate_entity_code (deterministic from hint_code)
+            # is the stable identity key a retry must key off instead.
+            entity_code = f"HINT-{hint_code}"
+            # Safe SQL: the statement is a literal migration-shaped query; both observed values are bound.
+            created = await conn.fetchrow(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+                """
+                insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code)
+                values ($1, $2, 'company')
+                on conflict (corporate_entity_code)
+                do update set entity_name = excluded.entity_name
+                returning corporate_entity_id
+                """,
+                entity_code,
+                entity_name,
+            )
+            entity_id = created["corporate_entity_id"]
 
     # `corporate_entity_id` is NOT NULL, so a bulk-imported real record
     # never sits at NULL waiting to be resolved -- it defaults to whatever
@@ -159,9 +206,20 @@ async def resolve_customer_hint(
         entity_id,
         hint_code,
     )
+    # get_or_create_corporate_entity may have bound this hint to an
+    # existing entity via fuzzy similarity matching, whose stored name can
+    # differ from the freshly LLM-resolved name (e.g. punctuation/casing);
+    # the exact-match fallback above can differ too (its lookup is
+    # case-insensitive). Report the entity's actual catalog name, not the
+    # possibly-divergent resolved name, so the response never claims a
+    # name that disagrees with what is actually bound.
+    canonical_name = await conn.fetchval(
+        "select entity_name from corporate_entity where corporate_entity_id = $1",
+        entity_id,
+    )
     return {
         "corporate_entity_id": str(entity_id),
-        "entity_name": entity_name,
+        "entity_name": canonical_name or entity_name,
         "linked_post_count": len(linked),
         "verification_evidence_url": resolution.verification_evidence_url,
     }
