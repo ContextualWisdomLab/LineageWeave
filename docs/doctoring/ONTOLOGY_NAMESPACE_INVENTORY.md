@@ -35,7 +35,7 @@ Open PR content is migration impact evidence, not protected-main authority.
 
 | PR | Exact audited head | Additional surface |
 |---|---|---|
-| #258 | `d26c4c5f7db2faabfa7f110fc205db2c17fd0ca6` | SHACL and interoperability tests add lowercase consumers while retaining the repository-case support profile. |
+| #258 | `2e2ddd1998734d6e29dad0ba916053dd8cf27983` | SHACL and interoperability tests add lowercase consumers while retaining the repository-case support profile. |
 | #349 | `40286c1f1e3d25b1e28dc6464ebd031d601fa800` | Ontology Explorer stories consume lowercase IRIs. |
 | #426 | `4828b3a5e4eb180bb3cb9c5a06d1327e1003065a` | Pages generator and tests publish at the repository-case project path but deliberately do not migrate semantic identifiers. |
 | #490 | `87f74c6395b7090421965359222fa29f9dd9a84d` | Knowledge-graph code, SHACL, and a semantic-projection migration add further persisted/serialized namespace surfaces. |
@@ -71,8 +71,10 @@ with `git grep` rather than inferred from PR titles.
 
 ## ADR number collision audit
 
-At the time of this inventory, ADR `0143` is independently introduced by open
-PRs #258, #355, and #490. ADRs `0150`–`0156` are also occupied by open PRs.
-No protected-main or live open-PR file used `0157`, so this decision uses ADR
-0157. Recheck immediately before integration; the number is not a global
+At exact audited heads `87f74c63` (#490), `de7f78c5` (#355), and `2e2ddd19`
+(#258), the formerly colliding work has a distinct allocation: PR #490 owns
+ADR `0143`, the non-default Customer Master stack owns `0144`, PR #355 owns
+`0145`, and PR #258 owns `0146`. ADRs `0150`–`0156` are also occupied by open
+PRs. No protected-main or live open-PR file uses `0157`, so this decision uses
+ADR 0157. Recheck immediately before integration; the number is not a global
 allocator reservation.
