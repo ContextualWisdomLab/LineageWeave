@@ -94,8 +94,13 @@ def test_missing_transport_stays_failed_not_available() -> None:
     assert outcome.envelope is None
 
 
-def test_transient_unavailability_keeps_an_already_accepted_run_claimed(
-    monkeypatch,
+@pytest.mark.parametrize(
+    "tepp_client",
+    [TeppClient(), _EnvelopeClient({"status": "accepted"})],
+    ids=["transport-unavailable", "empty-accepted-envelope"],
+)
+def test_unpersistable_recheck_keeps_an_already_accepted_run_claimed(
+    monkeypatch, tepp_client,
 ) -> None:
     analysis_run_id = "11111111-1111-1111-1111-111111111111"
     visible = {
@@ -137,7 +142,7 @@ def test_transient_unavailability_keeps_an_already_accepted_run_claimed(
             analysis_run_id=analysis_run_id,
             account_id="account-1",
             affiliated_entity_ids=[],
-            tepp_client=TeppClient(),
+            tepp_client=tepp_client,
         )
     )
 

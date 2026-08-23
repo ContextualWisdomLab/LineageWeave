@@ -929,7 +929,7 @@ async def _deliver_tepp_measurement(
         corporate_entity_id=str(locked["corporate_entity_id"]),
     )
     outcome = classify_tepp_submission(tepp_client, request)
-    if outcome.failure_code == "tepp_not_available" and await fetch_tepp_accepted_receipt(
+    if not outcome.persist_kind and await fetch_tepp_accepted_receipt(
         conn, analysis_run_id
     ) is not None:
         return False

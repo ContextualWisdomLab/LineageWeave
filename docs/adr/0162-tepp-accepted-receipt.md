@@ -25,13 +25,15 @@ completed-result contract stays blocked on TEPP#156.
 
 ## Decision
 
-Classify a `TeppClient.submit_analysis_run` envelope as follows:
+Classify a `TeppClient.submit_analysis_run` envelope as follows. On a re-check
+with a stored receipt, an outcome carrying neither another persistable receipt
+nor a completed result leaves the run Running; only durable evidence may
+advance or revoke durable acceptance. A new receipt still must pass the
+immutable remote-run and request-digest checks below.
 
 1. `TeppNotAvailable` with no stored receipt → Failed /
    `tepp_not_available`. Seed keeps this default. Do not change seed to
-   Running. When the same local run already has a stored accepted receipt,
-   transient unavailability during a status re-check leaves it Running and
-   leaves the outbox claimed; transport loss cannot revoke durable acceptance.
+   Running.
 2. `status` or `run_state` in `{completed, succeeded}` plus a result
    object plus a remote run id → Succeeded, persist
    `analysis_run_tepp_result` (migration 0027).
@@ -41,8 +43,10 @@ Classify a `TeppClient.submit_analysis_run` envelope as follows:
    Running, do not append a terminal status, and do not mark the
    outbox delivered.
 4. `accepted` / `queued` / `running` without a remote run id → Failed /
-   `tepp_result_not_persisted` (empty envelopes stay unpersistable).
-5. Anything else → Failed / `tepp_result_not_persisted`.
+   `tepp_result_not_persisted` when no receipt was previously stored. Empty
+   re-check envelopes cannot revoke an existing receipt.
+5. Anything else → Failed / `tepp_result_not_persisted` when no receipt was
+   previously stored.
 
 The receipt table stores transport evidence only: remote run id,
 request digest, receipt digest, accepted status code, model contract
@@ -77,7 +81,7 @@ sequenceDiagram
     alt TeppNotAvailable without a stored receipt
         Registry->>Registry: Failed tepp_not_available
         Registry->>Registry: outbox delivered
-    else TeppNotAvailable after a stored receipt
+    else unavailable or unpersistable re-check after a stored receipt
         Note over Registry: stay Running, outbox stays claimed
     else accepted with remote run id
         Registry->>Registry: persist accepted receipt
@@ -96,10 +100,10 @@ sequenceDiagram
 
 A connected TEPP transport that returns `accepted` plus a remote run
 id no longer looks like a product failure. The operator refreshes a
-Running run. Refresh may replay the same idempotent submit; transient
-transport unavailability after that durable receipt keeps the run Running
-and its outbox claimed, and it still must not stamp Succeeded from the
-receipt. Seed and an empty `accepted` envelope stay Failed.
+Running run. Refresh may replay the same idempotent submit; an unavailable or
+unpersistable response after that durable receipt keeps the run Running and its
+outbox claimed, and it still must not stamp Succeeded from the receipt. Seed
+and an initial empty `accepted` envelope stay Failed.
 Do not invent a theta.
 
 ## References — APA 7th
