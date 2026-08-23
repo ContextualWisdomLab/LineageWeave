@@ -58,6 +58,15 @@ describe("PostBody", () => {
     expect(screen.getByText("Embedded image")).toBeInTheDocument();
   });
 
+  it("renders encoded malicious markup as inert text", () => {
+    const { container } = render(
+      <PostBody body="<p>Keep &lt;script&gt;alert(1)&lt;/script&gt; literal.</p>" />,
+    );
+
+    expect(container.querySelector("script")).toBeNull();
+    expect(screen.getByText("Keep alert(1) literal.")).toBeInTheDocument();
+  });
+
   it("renders authoritative LLM structure levels for semantic list units", () => {
     render(
       <PostBody
