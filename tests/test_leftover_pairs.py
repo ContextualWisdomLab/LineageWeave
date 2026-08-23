@@ -305,6 +305,7 @@ def test_nonfinite_map_distance_falls_back_to_centered_residual(
         np.array([[0.0]], dtype=np.float64),
     )
     assert [pair.leftover_distance for pair in pairs] == [0.0, 0.0]
+    assert [pair.leftover_map_rank for pair in pairs] == [0, 0]
 
 
 def test_empty_observation_mask_has_no_complete_case_axes() -> None:
