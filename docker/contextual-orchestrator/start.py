@@ -15,11 +15,12 @@ from pathlib import Path
 
 def _pop_first_env(*names: str) -> str:
     """Read the first configured alias without leaving credentials in the environment."""
+    first = ""
     for name in names:
         value = os.environ.pop(name, "").strip()
-        if value:
-            return value
-    return ""
+        if value and not first:
+            first = value
+    return first
 
 
 def main() -> None:

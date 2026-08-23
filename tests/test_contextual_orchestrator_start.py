@@ -91,6 +91,7 @@ def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch
     monkeypatch.setattr(module, "Path", FakePath)
     monkeypatch.setattr(sys, "argv", ["start.py"])
     monkeypatch.setenv("LLM_GATEWAY_API_KEY", "provider-key")
+    monkeypatch.setenv("LLM_API_KEY", "legacy-provider-key")
     monkeypatch.setenv("OPENAI_API_KEY", "openai-key")
     monkeypatch.setenv("OPENROUTER_API_KEY", "openrouter-key")
     monkeypatch.setenv("NVIDIA_NIM_API_KEY", "nim-key")
@@ -116,6 +117,7 @@ def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch
     ]
     assert not {
         "LLM_GATEWAY_API_KEY",
+        "LLM_API_KEY",
         "OPENAI_API_KEY",
         "OPENROUTER_API_KEY",
         "NVIDIA_NIM_API_KEY",
