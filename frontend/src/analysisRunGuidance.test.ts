@@ -177,6 +177,31 @@ describe("analysisRunGuidance", () => {
     expect(analysisRunCanRefresh(runningTepp)).toBe(true);
   });
 
+  it("names an accepted TEPP receipt as transport evidence, not a calibrated score", () => {
+    const runningTepp = run({
+      run_kind_code: "analysis_run_tepp",
+      status_code: "analysis_status_running",
+    });
+    const withReceipt = {
+      ...runningTepp,
+      tepp_accepted_receipt: {
+        remote_run_id: "tepp-run-accepted-1",
+        accepted_status_code: "accepted" as const,
+        received_at: "2026-01-12T12:36:00Z",
+      },
+    };
+    const copy = analysisRunNextAction(withReceipt) ?? "";
+    expect(copy).toBe(
+      "TEPP accepted this measurement. Check its status to retrieve the completed result. This receipt is not a calibrated score.",
+    );
+    expect(copy.toLowerCase()).not.toMatch(/theta/);
+    expect(analysisRunStartLabel(withReceipt)).toBe("Check TEPP measurement status");
+    expect(analysisRunNextAction(runningTepp)).toMatch(/already queued/i);
+    expect(analysisRunCanStart(withReceipt)).toBe(true);
+    expect(analysisRunCanRefresh(withReceipt)).toBe(false);
+    expect(analysisRunCanStart(runningTepp)).toBe(false);
+  });
+
   it("keeps succeeded report copy free of unbuilt/rebuild/reconstruct/measure language", () => {
     const succeeded = run({
       run_kind_code: "analysis_run_report",

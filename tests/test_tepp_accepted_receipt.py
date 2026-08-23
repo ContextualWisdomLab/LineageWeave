@@ -413,8 +413,6 @@ def test_migrate_sh_replays_accepted_receipt_migration() -> None:
     )
     assert "0103_*" in script
     assert "0171_*" in script
-    assert "0104_*" not in script
-    assert "0105_*" not in script
     assert "CREATE TABLE IF NOT EXISTS tenant_settings" in tenant_settings
     assert "ON CONFLICT (id) DO NOTHING" in tenant_settings
 

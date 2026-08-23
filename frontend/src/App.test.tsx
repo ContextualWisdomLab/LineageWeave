@@ -304,6 +304,28 @@ describe("App, authenticated", () => {
           },
         ];
 
+    const teppStatus = options?.acceptedTeppRun
+      ? "analysis_status_running"
+      : options?.succeededTeppRun
+        ? "analysis_status_succeeded"
+        : options?.pendingTeppRun
+          ? "analysis_status_pending"
+          : "analysis_status_failed";
+    const teppLabel = options?.acceptedTeppRun
+      ? "Running"
+      : options?.succeededTeppRun
+        ? "Succeeded"
+        : options?.pendingTeppRun
+          ? "Pending"
+          : "Failed";
+    const teppAcceptedReceipt = options?.acceptedTeppRun
+      ? {
+          remote_run_id: "tepp-run-accepted-1",
+          accepted_status_code: "accepted" as const,
+          received_at: "2026-01-12T12:36:30Z",
+        }
+      : undefined;
+
     let releaseMe = () => {};
     let releasePosts = () => {};
     const meReady = options?.deferMe
