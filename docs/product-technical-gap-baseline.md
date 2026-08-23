@@ -1020,6 +1020,20 @@ or an explicit unavailable result.
   Regression test confirmed RED (a stale response's lead rendered after
   the postId change) before GREEN; full frontend suite 361 passed, lint
   clean.
+- **Source lineage combination i18n gap — closed (2026-08-24):** the
+  Source Detail popup's "Source lineage combination" panel -- the badge,
+  field-presence list, and the nine `commercial_context_code` labels
+  plus four `SOURCE_LINEAGE_FIELDS` labels computed in
+  `frontend/src/sourceLineageHints.ts` -- was ko-only across 29 keys;
+  zh/ja/vi silently fell back to raw English. A per-locale re-run of
+  the key-diff (per-locale missing-from-ko, not "missing from all
+  three") found all three locales missing the identical 68-key set,
+  confirming no asymmetry to track separately. Scoped this checkpoint
+  to the 29 keys belonging to this one panel (the other ~39 are a
+  separate Board/R&R/customer-identity-search slice). Added zh/ja/vi
+  translations and a curated `sourceLineageHintLabels` parity test.
+  Confirmed RED (all three locales fell back to English) before GREEN.
+  Full frontend suite: 365 passed, lint clean, tsc clean.
 - **Cross-repository email/project lineage — provider boundary implemented,
   consumer open:** PR #343 merged at
   `125a8069a1554874d8067a15047e19d780ea6b7b`, but the contract remains

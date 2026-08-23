@@ -126,6 +126,17 @@ All notable changes to this project are documented here. Format follows
   availability incident for operators (issue #361, partial: this covers
   server-side traceback capture, not yet OpenTelemetry metrics/
   correlation IDs).
+- The Source Detail popup's "Source lineage combination" panel (badge, field
+  presence list, and commercial-context labels from `sourceLineageHints.ts`)
+  was only translated into Korean; zh/ja/vi silently fell back to the raw
+  English key for all 29 of its labels ("Catalog hint", "Combination code",
+  "Present"/"Not present", the nine `commercial_context_code` labels, the four
+  `SOURCE_LINEAGE_FIELDS` labels, and related `Source *` field-hint keys).
+  Added zh/ja/vi translations matching this file's established terminology
+  (来源/原典/nguồn for "Source", 谱系/系譜/dòng for "lineage") and a new curated
+  `sourceLineageHintLabels` parity test. ~39 other pre-existing ko-only keys
+  (Board/R&R/customer-identity-search area) remain untranslated and are
+  tracked separately, not claimed fixed here.
 - `SourceResearchPanel` no longer lets a slow, stale `postId` fetch overwrite
   the currently-displayed post's research. `load`'s `fetchPostSourceResearch`
   call had no request-id guard, so switching posts quickly (or a race between

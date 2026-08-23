@@ -178,6 +178,37 @@ describe("i18n", () => {
     "Verify post relations",
     "Workspace",
   ] as const;
+  const sourceLineageHintLabels = [
+    "Source process unit catalog hint",
+    "Catalog hint",
+    "Source order pool",
+    "Source sales order",
+    "Source sales order item",
+    "Source inspection point",
+    "Source context",
+    "Source fields",
+    "Source lineage combination",
+    "Combination code",
+    "Field combination",
+    "Present",
+    "Not present",
+    "Inferred from field presence",
+    "Lifecycle vector",
+    "Raw codes only",
+    "No sales identifier candidate",
+    "Customer only candidate",
+    "Customer + order-pool candidate",
+    "Sales-order item context",
+    "Sales-order item without customer",
+    "Order-pool only candidate",
+    "Sales order without item candidate",
+    "Customer + sales order without item",
+    "Mixed source identifier context",
+    "Customer code",
+    "Order pool",
+    "Sales order",
+    "Sales-order item",
+  ] as const;
 
   it("supports the five product locales", () => {
     expect(SUPPORTED_LOCALES).toEqual(["en", "ko", "zh", "ja", "vi"]);
@@ -235,6 +266,16 @@ describe("i18n", () => {
     (locale) => {
       setLocale(locale);
       for (const key of adminPanelLabels) {
+        expect(t(key), `${locale}:${key}`).not.toBe(key);
+      }
+    },
+  );
+
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "translates source lineage combination hint labels in %s",
+    (locale) => {
+      setLocale(locale);
+      for (const key of sourceLineageHintLabels) {
         expect(t(key), `${locale}:${key}`).not.toBe(key);
       }
     },
