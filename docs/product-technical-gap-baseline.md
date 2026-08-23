@@ -873,6 +873,19 @@ or an explicit unavailable result.
   Filtered siblings by `can_see_post` before they can seed the entity
   graph, at all three call sites. Regression test confirmed RED before
   GREEN.
+- **Board pagination total_count overshoot — closed (2026-08-25):**
+  `GET /api/posts`'s `total_count` came from `count(*) over()`, a window
+  function that only rides along on rows surviving the query's own
+  `OFFSET`/`LIMIT` -- an offset past the last matching row returned zero
+  rows and silently reported `total_count=0` even though matches
+  existed (a routine "user paged past the end" or "a filter change
+  shrank the result set" scenario). Found by an Explore agent hunting
+  for a different bug class after the ABAC-leak well ran dry.
+  Extracted the query's predicate into a shared variable so a small
+  fallback `count(*)` query (used only when the main page comes back
+  empty) can reuse it without duplicating ~170 lines of SQL. Regression
+  test confirmed RED (reported 0 instead of the real count) before
+  GREEN.
 - **Cross-repository email/project lineage — provider boundary implemented,
   consumer open:** PR #343 merged at
   `125a8069a1554874d8067a15047e19d780ea6b7b`, but the contract remains

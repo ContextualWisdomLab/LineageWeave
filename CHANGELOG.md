@@ -49,6 +49,19 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- `GET /api/posts`'s `total_count` no longer silently reports `0` when the
+  requested page is past the last page of results. `total_count` came
+  from `count(*) over()`, a window function that only rides along on rows
+  that survive the query's own `OFFSET`/`LIMIT` -- once the offset skipped
+  past every matching row, the query returned zero rows and `total_count`
+  fell back to `0` even though matches existed. A paginator relying on
+  `total_count` to detect it overshot the last page (or that a filter
+  change shrank the result set) would instead see "0 results" and could
+  wrongly conclude nothing matched. Extracted the query's predicate into
+  a shared variable so a small fallback `count(*)` query (used only when
+  the main page comes back empty) can reuse it without duplicating ~170
+  lines of SQL; regression test confirmed RED (reported 0 instead of the
+  real count) before GREEN.
 - Global Ask (`POST /api/ask`) no longer persists or returns a citation
   whose authorization changes between source selection and commit. This
   branch had lost the atomic reauthorize-and-rollback fix from #399/#374
