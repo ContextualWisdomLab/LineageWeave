@@ -935,6 +935,34 @@ or an explicit unavailable result.
   channel for the corpus-wide rebuild path) -- the two PRs fix different
   channels of the same fusion and compose without conflict; cause (1)
   remains open after both merge.
+
+  **Post-review correction on PR #538 (2026-08-24):** the first
+  implementation mapped `cosine_similarity`'s output via
+  `(cosine + 1) / 2`, the textbook transform for a similarity spanning the
+  full `[-1, 1]` range. Real sentence embeddings do not span it -- they
+  occupy an anisotropic cone (Ethayarajh, 2019), so two genuinely unrelated
+  texts from an actual provider score a modestly *positive* raw cosine in
+  practice, essentially never near -1. The remap inflated that unrelated
+  baseline to roughly 0.5-0.65, a "weak positive" that could still clear
+  `DEFAULT_MIN_FUSED_SCORE` combined with temporal proximity -- silently
+  reproducing this exact gap through the embedding channel instead of
+  difflib. Fixed by clamping the raw cosine into `[0, 1]` instead of
+  remapping it (matches the unremapped STS evaluation convention, Reimers &
+  Gurevych, 2019). Caught by Devin Review before merge; the regression test
+  was also strengthened to use a realistic low-positive cosine (0.05)
+  rather than an unrealistic exact -1.0, since the old remap bug would not
+  have failed the original -1.0 fixture.
+
+  **New, still-open calibration observation surfaced by that review:** for
+  two records roughly an hour apart, `temporal_score` alone
+  (`1 / (1 + gap_days)`) already contributes close to
+  `DEFAULT_MIN_FUSED_SCORE` once weights renormalize without an `llm`
+  channel, so *any* weakly-positive text score -- clamped cosine included --
+  can still tip a temporally-close, topically-unrelated pair over the
+  floor. Changing `temporal_score`'s steepness or
+  `DEFAULT_MIN_FUSED_SCORE` is a calibration decision, not something to
+  fold into PR #538 -- **remains open**, tracked here for whoever picks up
+  the reconstruction-fusion tuning work next.
 - **Provider-boundary exception diagnosability — partially closed
   (2026-08-25, issue #361):** the 10 fail-closed `except Exception`
   catch-alls across `backend/app/main.py` (Global Ask, per-post chat,
