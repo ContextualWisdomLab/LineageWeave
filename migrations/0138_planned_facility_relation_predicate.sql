@@ -1,5 +1,4 @@
--- ADR 0142: admit the explicit planned-facility predicate at write time.
--- Rebuild the closed check from ADR 0129 and add only lw_plans_to_operate.
+-- ADR 0142: admit the planned-facility predicate at the write boundary.
 
 alter table post_summary_semantic_relationship
     drop constraint if exists post_summary_semantic_relationship_predicate_code_check;
@@ -25,6 +24,6 @@ alter table post_summary_semantic_relationship
             'lw_clue_supports', 'lw_has_cause', 'lw_has_goal',
             'lw_has_consequence', 'lw_has_next_step', 'lw_has_time',
             'lw_at_place', 'lw_has_actor', 'lw_has_result',
-            'lw_has_condition', 'lw_inferred_from', 'lw_plans_to_operate',
-            'lw_responsible_for', 'lw_supports'
+            'lw_has_condition', 'lw_inferred_from', 'lw_responsible_for',
+            'lw_supports', 'lw_plans_to_operate'
         ));

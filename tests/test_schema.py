@@ -99,7 +99,7 @@ _SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION = (
 _PLANNED_FACILITY_RELATIONSHIP_PREDICATE_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
-    / "0138_planned_facility_relationship_predicate.sql"
+    / "0138_planned_facility_relation_predicate.sql"
 )
 
 

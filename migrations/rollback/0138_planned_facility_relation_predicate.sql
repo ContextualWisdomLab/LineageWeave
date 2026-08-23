@@ -1,5 +1,3 @@
--- Roll back ADR 0142's predicate while preserving the ADR 0129 vocabulary.
-
 alter table post_summary_semantic_relationship
     drop constraint if exists post_summary_semantic_relationship_predicate_code_check;
 
