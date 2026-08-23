@@ -888,19 +888,24 @@ or an explicit unavailable result.
      `secondary_key_match_score` contributing 0 (empty
      `secondary_grouping_key` on both posts in the reproduced case).
   Fix (1) is an architecture decision (grouping-key redesign) needing its
-  own ADR before implementation, not appropriate to improvise solo.
-  Fix (2) has a concrete path already staged by the codebase itself:
-  `lineageweave/embedding_client.py` (`ContextualOrchestratorEmbeddingClient`,
-  already wired for post-content search embeddings,
-  `LLM_GATEWAY_EMBEDDING_MODEL=text-embedding-3-large` configured in this
-  environment) is not yet passed into `reconstruct()`/`channels.py` at
-  all -- doing so would need batch (not per-pair) embedding calls for
-  cost, unlike the per-pair `llm.judge()` pattern. Independent of, and
-  does not duplicate, the separate open PR wiring `AdjudicationClient`
-  into `rebuild_lineage()` (restores the highest-weighted `llm` channel
-  for the corpus-wide rebuild path) -- that PR raises `llm`'s 0.40 weight
-  back into the fusion but does not address either cause above on its
-  own; both remain open after it merges.
+  own ADR before implementation, not appropriate to improvise solo --
+  **remains open.**
+  Fix (2) **implemented, open PR (2026-08-24, #538, ADR 0190), stacked on
+  PR #434:** `reconstruct()` now batch-embeds every record's label once up
+  front via `lineageweave/embedding_client.py` and scores the `text`
+  channel with cosine similarity for any pair with vectors, falling back
+  to the prior difflib ratio otherwise -- reusing the existing
+  `_embedding_client()` factory already wired for post-content search
+  embeddings. Threaded through the same call chain as PR #434's
+  `adjudication_client` (`lineage_edge_specs` -> `rebuild_lineage` ->
+  the analysis-run worker -> `main.py`'s three call sites ->
+  `scripts/import_postgresql_posts.py`). A new regression test
+  (`tests/test_reconstruct.py::test_embedding_channel_overrides_a_difflib_false_positive`)
+  reproduces the reported false-positive synthetically. Independent of,
+  and does not duplicate, PR #434 (restores the highest-weighted `llm`
+  channel for the corpus-wide rebuild path) -- the two PRs fix different
+  channels of the same fusion and compose without conflict; cause (1)
+  remains open after both merge.
 - **Provider-boundary exception diagnosability — partially closed
   (2026-08-25, issue #361):** the 10 fail-closed `except Exception`
   catch-alls across `backend/app/main.py` (Global Ask, per-post chat,
