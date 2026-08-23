@@ -227,6 +227,21 @@ def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
     assert farthest.leftover_distance == pytest.approx(2.0 * np.sqrt(2.0), rel=1e-6)
 
 
+def test_leftover_missing_cells_are_not_treated_as_zero() -> None:
+    """NaN response cells stay out of leftover pairs; they are not zero residuals."""
+    post_ids = ["obs-a", "obs-b"]
+    item_codes = ("item_one", "item_two")
+    matrix = np.array([[1.0, np.nan], [1.0, 0.0]], dtype=np.float64)
+    expected = np.zeros_like(matrix)
+    pairs = leftover_pairs_from_residual(post_ids, item_codes, matrix, expected)
+    assert pairs
+    pair_keys = {(pair.post_id, pair.criterion_code) for pair in pairs}
+    assert ("obs-a", "item_two") not in pair_keys
+    for pair in pairs:
+        assert np.isfinite(pair.leftover_residual)
+        assert np.isfinite(pair.leftover_distance)
+
+
 def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
     post_ids = ["alpha-post", "beta-post"]
     item_codes = ("item_one", "item_two")

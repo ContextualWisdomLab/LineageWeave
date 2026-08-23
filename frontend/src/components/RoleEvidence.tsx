@@ -23,6 +23,8 @@ export type RoleEvidenceProps = {
    * affiliation case there is no prior generic label to fall back to --
    * this note simply doesn't render when the reason is unknown. */
   actorUnresolvedReasonLabel?: string | null;
+  unresolvedNextAction?: string;
+  relationshipNextAction?: string;
   genericUnitNote: string;
   onSelectAffiliation?: (entityId: string, entityName: string) => void;
   /** Other R&R rows affiliated with this one, nested as a sub-list so the
@@ -44,6 +46,8 @@ export function RoleEvidence({
   unresolvedLabel,
   affiliationUnresolvedReasonLabel,
   actorUnresolvedReasonLabel,
+  unresolvedNextAction,
+  relationshipNextAction,
   genericUnitNote,
   onSelectAffiliation,
   children,
@@ -82,12 +86,24 @@ export function RoleEvidence({
               <span className="ontology-role-resolution">
                 ({affiliationUnresolvedReasonLabel ?? unresolvedLabel})
               </span>
+              {unresolvedNextAction ? (
+                <span className="post-meta" role="status">
+                  {" "}
+                  {unresolvedNextAction}
+                </span>
+              ) : null}
             </>
           )}
         </span>
       ) : null}
       {genericTeam ? <span className="ontology-role-note"> · {genericUnitNote}</span> : null}
       {`: ${responsibility}`}
+      {relationshipNextAction ? (
+        <span className="post-meta" role="status">
+          {" "}
+          {relationshipNextAction}
+        </span>
+      ) : null}
       {children}
     </li>
   );
