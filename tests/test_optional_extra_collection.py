@@ -5,6 +5,8 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
+import conftest as root_conftest
+
 from lineageweave.optional_extra_collection import (
     OPTIONAL_EXTRA_MODULES,
     collection_path_requires_missing_extras,
@@ -114,3 +116,11 @@ def test_non_python_paths_are_not_ignored(tmp_path: Path) -> None:
     directory = tmp_path / "tests"
     directory.mkdir()
     assert collection_path_requires_missing_extras(directory, ("asyncpg",)) is False
+
+
+def test_root_hook_defers_kept_paths_to_other_pytest_ignore_rules(
+    tmp_path: Path,
+) -> None:
+    """A kept path returns None so pytest may apply its remaining hooks."""
+    with patch.object(root_conftest, "missing_optional_extra_modules", return_value=()):
+        assert root_conftest.pytest_ignore_collect(tmp_path / "test_ok.py", object()) is None
