@@ -16,7 +16,7 @@ _ROLE_CATALOG_COLUMNS = (
 )
 _ADR_NAME = re.compile(r"^(?P<number>[0-9]{4})-.+\.md$")
 _PRIVATE_POST_IDENTIFIER = re.compile(
-    r"(?ix)"
+    r"(?i)"
     r"\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b"
     r"|\bpost(?:_id)?\s*(?:=|:)\s*[`'\"]?[a-z0-9][a-z0-9-]{5,}"
     r"|\bpost\s+[`'\"]?(?:[0-9][a-z0-9-]{5,}|[a-f][a-f0-9-]{7,})\b"
