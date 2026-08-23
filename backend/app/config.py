@@ -43,7 +43,6 @@ class Settings:
     frontend_origins: list[str]
     orchestrator_base_url: str
     orchestrator_api_key: str
-    embedding_model: str
     valkey_url: str
     searxng_base_url: str
     tepp_transport_url: str
@@ -130,7 +129,6 @@ def load_settings() -> Settings:
         ],
         orchestrator_base_url=os.environ.get("ORCHESTRATOR_BASE_URL", ""),
         orchestrator_api_key=os.environ.get("ORCHESTRATOR_API_KEY", ""),
-        embedding_model=os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip(),
         valkey_url=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
         searxng_base_url=os.environ.get("SEARXNG_BASE_URL", ""),
         tepp_transport_url=os.environ.get("TEPP_TRANSPORT_URL", ""),

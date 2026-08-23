@@ -50,7 +50,7 @@ async def _claim_job(
     post_id: str,
     source_body_digest: str,
     *,
-    embedding_model_code: str,
+    require_embedding: bool,
     require_structure: bool = False,
 ) -> asyncpg.Record | None:
     async with pool.acquire() as conn:
@@ -107,7 +107,7 @@ async def _claim_job(
                 content_complete = await post_content_is_complete(
                     conn,
                     post_id,
-                    embedding_model_code=embedding_model_code,
+                    require_embedding=require_embedding,
                     require_structure=require_structure,
                 )
                 if content_complete:
@@ -215,7 +215,7 @@ async def process_post_content_job(
         pool,
         post_id,
         source_body_digest,
-        embedding_model_code=settings.embedding_model,
+        require_embedding=bool(settings.orchestrator_base_url and settings.orchestrator_api_key),
         require_structure=bool(settings.orchestrator_base_url and settings.orchestrator_api_key),
     )
     if row is None:
@@ -238,7 +238,6 @@ async def process_post_content_job(
                     raw_body,
                     vision_client=vision_client,
                     embedding_client=embedding_client,
-                    embedding_model_code=settings.embedding_model or None,
                     normalized_result=normalized,
                     structure_client=structure_client,
                     post_title=str(row["post_title"]),
@@ -247,7 +246,8 @@ async def process_post_content_job(
                 complete = await post_content_is_complete(
                     conn,
                     post_id,
-                    embedding_model_code=settings.embedding_model,
+                    embedding_model_code=getattr(embedding_client, "resolved_model", None),
+                    require_embedding=True,
                     require_structure=bool(
                         settings.orchestrator_base_url and settings.orchestrator_api_key
                     ),

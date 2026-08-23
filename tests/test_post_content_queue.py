@@ -63,6 +63,7 @@ def test_embedding_gap_is_not_complete_content() -> None:
                 FakeConnection(),
                 "00000000-0000-0000-0000-000000000001",
                 embedding_model_code="text-embedding-3-large",
+                require_embedding=True,
             )
         )
         is False
@@ -82,6 +83,7 @@ def test_structure_gap_is_part_of_orchestrated_completeness() -> None:
                 FakeConnection(),
                 "00000000-0000-0000-0000-000000000001",
                 embedding_model_code="text-embedding-3-large",
+                require_embedding=True,
                 require_structure=True,
             )
         )

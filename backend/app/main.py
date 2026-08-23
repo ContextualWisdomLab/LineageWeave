@@ -393,7 +393,6 @@ def _embedding_client():
     return orchestrator_embedding_client(
         settings.orchestrator_base_url,
         settings.orchestrator_api_key,
-        settings.embedding_model,
     )
 
 
@@ -1516,7 +1515,10 @@ async def read_post_content(
             content_complete = await post_content_is_complete(
                 conn,
                 post_id,
-                embedding_model_code=load_settings().embedding_model,
+                require_embedding=bool(
+                    load_settings().orchestrator_base_url
+                    and load_settings().orchestrator_api_key
+                ),
                 require_structure=bool(
                     load_settings().orchestrator_base_url
                     and load_settings().orchestrator_api_key
@@ -2512,7 +2514,10 @@ async def read_post_summary(
         content_complete = await post_content_is_complete(
             conn,
             post_id,
-            embedding_model_code=load_settings().embedding_model,
+            require_embedding=bool(
+                load_settings().orchestrator_base_url
+                and load_settings().orchestrator_api_key
+            ),
             require_structure=bool(
                 load_settings().orchestrator_base_url
                 and load_settings().orchestrator_api_key
