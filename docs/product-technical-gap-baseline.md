@@ -22,6 +22,6 @@
 - **Testing**: We need actual testing of Psychometrics (Fast-MLSIRM parameter calibration, RMSE of estimates, Fixed-Item Parameter Calibration, CAT) against synthetic/demo data.
 - **Security & Compliance**: PII masking cannot break the system. Need SOC 2 and CSAP compliance alternatives to blind PII masking. 
 - **Keyverse account scope**: (Active PR) Production tokens must bind the account-derived `org`, `workspace`, and `role` claims to one provisioned local affiliation before ABAC/RBAC; ADR 0119 defines the fail-closed integration.
-- **LLM Orchestration**: Ensure ALL LLM calls route through `contextual-orchestrator` utilizing API keys (BYTEZ, NVIDIA, OPENROUTER, OPENAI) with auto model discovery and optimal reasoning effort allocation (Fugu/Conductor/TRINITY research).
+- **LLM Orchestration**: (Active PR) All LLM calls route through `contextual-orchestrator`; the Compose bootstrap now registers every available canonical BYTEZ, NVIDIA primary/sub, OPENROUTER, and OPENAI credential for upstream auto-discovery without local provider ranking.
 
 *This document is continuously updated by the hourly automated agent loop.*

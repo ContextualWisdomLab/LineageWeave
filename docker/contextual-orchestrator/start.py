@@ -15,18 +15,32 @@ from pathlib import Path
 
 def _pop_first_env(*names: str) -> str:
     """Read the first configured alias without leaving credentials in the environment."""
+    first = ""
     for name in names:
         value = os.environ.pop(name, "").strip()
-        if value:
-            return value
-    return ""
+        if value and not first:
+            first = value
+    return first
 
 
 def main() -> None:
     """Register the provider credential and delegate to the upstream server."""
-    provider_key = _pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY", "NVIDIA_NIM_API_KEY")
-    if not provider_key:
-        raise SystemExit("LLM_GATEWAY_API_KEY or LLM_API_KEY is required to start the real LLM service")
+    gateway_key = _pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY")
+    provider_credentials = {
+        name: value
+        for name in (
+            "OPENAI_API_KEY",
+            "OPENROUTER_API_KEY",
+            "NVIDIA_NIM_API_KEY",
+            "NVIDIA_NIM_API_KEY_SUB",
+            "BYTEZ_API_KEY",
+        )
+        if (value := os.environ.pop(name, "").strip())
+    }
+    if not gateway_key:
+        gateway_key = provider_credentials.get("NVIDIA_NIM_API_KEY", "")
+    if not gateway_key:
+        raise SystemExit("LLM_GATEWAY_API_KEY, LLM_API_KEY, or NVIDIA_NIM_API_KEY is required to start the real LLM service")
     auth_token = os.environ.get("CONTEXTUAL_ORCHESTRATOR_TOKEN", "").strip()
     if not auth_token:
         raise SystemExit("CONTEXTUAL_ORCHESTRATOR_TOKEN is required to start the authenticated LLM service")
@@ -82,9 +96,11 @@ def main() -> None:
 
     from contextual_orchestrator.credentials import register_credential
 
-    register_credential("NVIDIA_NIM_API_KEY", provider_key)
-    register_credential("LLM_GATEWAY_API_KEY", provider_key)
-    del provider_key
+    register_credential("LLM_GATEWAY_API_KEY", gateway_key)
+    for credential_name, credential_value in provider_credentials.items():
+        register_credential(credential_name, credential_value)
+    del gateway_key
+    del provider_credentials
     sys.argv = [
         "contextual_orchestrator",
         "--serve",
