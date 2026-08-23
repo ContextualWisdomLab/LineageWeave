@@ -12,12 +12,12 @@ The current acceptance queue was re-fetched immediately before this update:
 
 | Repository | PR | Exact head | State | Remaining gate |
 | --- | ---: | --- | --- | --- |
-| LineageWeave | #392 | `a73d98850f985d0996bfbc4f2b1f17787710f206` | open, blocked | independent review and required protected checks |
+| LineageWeave | #392 | `a73d98850f985d0996bfbc4f2b1f17787710f206` | open, blocked, auto-merge armed | independent review and required protected checks |
 | LineageWeave | #387 | `55a13f3473789a9481061ca2cd1f9ea042fc5902` | open, blocked, changes requested, auto-merge armed | current-head approval and Strix rerun after the central scope fix |
-| LineageWeave | #405 | `0ac80616cb723a7810acae7c945fb12721a6cf7c` | open, blocked, changes requested | independent current-head approval |
-| LineageWeave | #421 | `33ec5cd521bcf861db64b9f0c1faac3b3bf4deff` | open, blocked | terminal Strix result and independent review |
+| LineageWeave | #405 | `0ac80616cb723a7810acae7c945fb12721a6cf7c` | open, blocked, changes requested, auto-merge armed | independent current-head approval |
+| LineageWeave | #421 | `33ec5cd521bcf861db64b9f0c1faac3b3bf4deff` | open, blocked, auto-merge armed | terminal Strix result and independent review |
 | LineageWeave | #426 | `11a60b370d7b5783733febb593e8f91678cc403d` | open, blocked, review required, auto-merge armed | independent current-head approval; current checks are terminal-success |
-| LineageWeave | #468 | `48c7ec09d282e96b411e1060ea4ef1a769893ef9` | open, blocked | current-head protected checks and independent review |
+| LineageWeave | #468 | `48c7ec09d282e96b411e1060ea4ef1a769893ef9` | open, blocked, auto-merge armed | current-head protected checks and independent review |
 | ContextualWisdomLab/.github | #1248 | `3f78370f3ad01409c7b2fcfb63dfb66862098fa6` | open, blocked | protected checks and independent review for the Strix scope repair |
 
 PR #464 merged into its stacked base as
