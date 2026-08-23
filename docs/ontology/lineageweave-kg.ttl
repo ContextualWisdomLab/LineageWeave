@@ -266,8 +266,12 @@
     rdfs:comment "A business project referred to by a source post."@en .
 
 :ProjectMention a owl:Class ;
+    rdfs:subClassOf rdf:Statement,
+        [ a owl:Restriction ; owl:onProperty rdf:subject ; owl:allValuesFrom :Post ],
+        [ a owl:Restriction ; owl:onProperty rdf:predicate ; owl:hasValue :mentionsProject ],
+        [ a owl:Restriction ; owl:onProperty rdf:object ; owl:allValuesFrom :Project ] ;
     rdfs:label "Project mention"@en ;
-    rdfs:comment "An evidence-backed semantic assertion that a post refers to a project."@en .
+    rdfs:comment "An evidence-backed, RDF-reified assertion that a post refers to a project; rdf:subject identifies the post, rdf:predicate is :mentionsProject, and rdf:object identifies the project."@en .
 
 :mentionsProject a owl:ObjectProperty ;
     rdfs:domain :Post ;
@@ -278,4 +282,5 @@
     rdfs:range xsd:string .
 
 :semanticConfidence a owl:DatatypeProperty ;
+    rdfs:domain :ProjectMention ;
     rdfs:range xsd:decimal .
