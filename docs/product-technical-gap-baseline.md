@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-23 20:50 KST. This repository records synthetic
+> Audit snapshot: 2026-08-23 21:18 KST. This repository records synthetic
 > fixtures and aggregate, non-identifying runtime evidence only. Open PRs and
 > local checks are not protected-default-branch release evidence.
 
@@ -8,9 +8,9 @@
 
 The protected default branch was
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` when this baseline was refreshed.
-The live queue contained 51 open PRs and no independently approved head. Five
-current heads exposed failed Strix contexts, four had nonterminal checks, and
-two retained unresolved review threads. Those results must be re-fetched against
+The live queue contained 53 open PRs and no independently approved head. Five
+current heads exposed failed Strix contexts, six had nonterminal checks, and
+four retained unresolved review threads. Those results must be re-fetched against
 the current head before remediation or a merge claim.
 
 Recent protected-default-branch evidence:
@@ -45,11 +45,15 @@ Substantially present in source or active PRs:
 These statements describe source capability, not authenticated production
 corpus acceptance or protected release.
 
+PR #486 at `161f4eb80c7589f75010b078c2845af28d6745aa` targets non-default
+`docs/customer-master-scope-adr`, so its browser evidence applies to that stack,
+not to a protected-main release.
+
 ## 3. Open product and technical gaps
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 51 PRs remained open, none had an independent current-head approval, five current heads exposed failed Strix contexts, four had nonterminal checks, and two retained unresolved review threads | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
+| Protected release | 53 PRs remained open, none had an independent current-head approval, five current heads exposed failed Strix contexts, six had nonterminal checks, and four retained unresolved review threads | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Image understanding | Region, OCR, and description work exists across active heads | Orchestrator-backed rendered workflow, original/derived asset provenance, and honest unsupported states |
 | Semantic source rendering | Paragraph, table, list, and formula parsing exists across active stacks | Authenticated browser evidence that semantic units render without authoring-layout artifacts |
