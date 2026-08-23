@@ -203,15 +203,15 @@ All notable changes to this project are documented here. Format follows
 - The static SQL review contract now counts the Customer Master evidence query
   that uses closed schema fragments and bound entity ids.
 
-## [2.12.20] - 2026-08-24
+## [2.12.19] - 2026-08-24
 
-### Added
+### Fixed
 
-- Period leftover pair rows now name observed `Y` and expected
-  `E[Y|θ, item]` after IRT main effects next to leftover-map distance
-  `d`, then open that post (Jeon et al., 2021, eq. 3; ADR 0177). Residual
-  stays `R = Y − E`. Missing or non-finite `Y` / `E` omit the badge
-  rather than inventing a leftover score.
+- Log in remembers a validated same-origin return path (ADR 0109) before
+  the OIDC redirect, so a shared `/?post=` link still opens that post
+  after callback. Tenant admin settings stay off the signed-out login
+  shell. The production frontend build type-checks again.
+
 
 ## [2.12.21] - 2026-08-24
 
