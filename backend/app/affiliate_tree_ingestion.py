@@ -7,9 +7,11 @@ from typing import Any
 import asyncpg
 
 from lineageweave.affiliate_tree import AffiliationLeaf, CorporateEntityRow, build_affiliate_forest
+from lineageweave.organization_alias import attach_organization_aliases
 from lineageweave.voc_evidence import first_excerpt_for, sentence_excerpts
 
 from .knowledge_graph import fetch_post_keymen, labels_for_codes
+from .organization_name_resolution_ingestion import fetch_corroborated_organization_aliases
 
 
 async def fetch_affiliate_forest(conn: asyncpg.Connection, post_id: str) -> list[dict[str, Any]]:
@@ -43,6 +45,10 @@ async def fetch_affiliate_forest(conn: asyncpg.Connection, post_id: str) -> list
             )
     forest = [node.to_dict() for node in build_affiliate_forest(entities, tuple(leaves))]
     await _attach_lookup_labels(conn, forest)
+    attach_organization_aliases(
+        forest,
+        await fetch_corroborated_organization_aliases(conn),
+    )
     return forest
 
 

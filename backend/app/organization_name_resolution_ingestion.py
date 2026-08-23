@@ -7,6 +7,7 @@ import asyncio
 
 import asyncpg
 
+from lineageweave.organization_alias import OrganizationNameAlias
 from lineageweave.organization_name_resolution import (
     OrganizationNameResolutionClient,
     resolve_and_verify_organization_name,
@@ -103,3 +104,28 @@ async def resolve_organization_name(
     if resolution.verification_status_code == STATUS_CORROBORATED:
         return resolution.resolved_organization_name
     return raw_name
+
+
+async def fetch_corroborated_organization_aliases(
+    conn: asyncpg.Connection,
+) -> tuple[OrganizationNameAlias, ...]:
+    """Load every search-corroborated SKOS alt/pref pair.
+
+    Pending and uncorroborated rows stay out. The statement is a static
+    literal; only the status code is bound.
+    """
+    rows = await conn.fetch(
+        """
+        select raw_organization_name, resolved_organization_name
+        from organization_name_resolution
+        where verification_status_code = $1
+        """,
+        STATUS_CORROBORATED,
+    )
+    return tuple(
+        OrganizationNameAlias(
+            alt_label=row["raw_organization_name"],
+            pref_label=row["resolved_organization_name"],
+        )
+        for row in rows
+    )

@@ -116,9 +116,14 @@ describe("App, authenticated", () => {
     customerEntityHierarchy?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
+<<<<<<< HEAD
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
+=======
+    organizationAliases?: boolean;
+  }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
+>>>>>>> 5ef5bf66 (feat: show corroborated SKOS companion on organization chips)
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -145,6 +150,7 @@ describe("App, authenticated", () => {
     let contentRequests = 0;
 
     let releaseMe = () => {};
+    const demoOrgAlias = options?.organizationAliases ? { organization_alias: "DC" } : {};
     const meReady = options?.deferMe
       ? new Promise<void>((resolve) => {
           releaseMe = resolve;
@@ -1301,7 +1307,14 @@ describe("App, authenticated", () => {
                 person_side_label: "Our side",
                 last_known_job_title: "Account manager",
                 mention_context: null,
-                affiliations: [{ organization_name: "Demo Corp", corporate_entity_id: "corp-1", role_title: null }],
+                affiliations: [
+                  {
+                    organization_name: "Demo Corp",
+                    corporate_entity_id: "corp-1",
+                    role_title: null,
+                    ...demoOrgAlias,
+                  },
+                ],
               },
             ],
           }),
@@ -1403,6 +1416,7 @@ describe("App, authenticated", () => {
                 ontology_label: "Organization",
                 label: "Demo Corp",
                 relevance: 0.2,
+                ...demoOrgAlias,
               },
               {
                 node_id: "team-1",
@@ -1530,6 +1544,7 @@ describe("App, authenticated", () => {
                     entity_level_code: "company",
                     entity_level_label: "Company",
                     resolved: true,
+                    ...demoOrgAlias,
                     people: [
                       {
                         person_id: "person-ada",
@@ -1596,6 +1611,7 @@ describe("App, authenticated", () => {
                 verification_status_code: "verify_pending",
                 verification_evidence_url: null,
                 corporate_entity_id: "corp-1",
+                ...demoOrgAlias,
               },
               {
                 counterparty_entity_name: "Northridge Grid",
@@ -2635,6 +2651,30 @@ describe("App, authenticated", () => {
     );
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+  });
+
+  it("shows the corroborated SKOS companion on organization chips", async () => {
+    stubBackend({ organizationAliases: true });
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Affiliate org: Demo Corp (DC)" })).toBeInTheDocument(),
+    );
+    expect(screen.getByRole("button", { name: "Counterparty org: Demo Corp (DC)" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Keyman affiliation: Demo Corp (DC)" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Affiliate org: Demo Corp" })).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
+    await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Related nodes for Demo Corp (DC)" })).toBeInTheDocument();
+    expect(screen.getByText("Related to Ada West").closest(".related-keymen")).toHaveTextContent(
+      "Demo Corp (DC)",
+    );
+    expect(screen.getByText("Related to Ada West").closest(".related-keymen")).not.toHaveTextContent(
+      "Demo Corp (Organization)",
     );
   });
 

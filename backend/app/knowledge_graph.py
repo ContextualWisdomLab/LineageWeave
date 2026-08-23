@@ -15,6 +15,7 @@ import asyncpg
 
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.ontology import ontology_annotations
+from lineageweave.organization_alias import attach_organization_alias, attach_organization_aliases
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
     EDGE_CO_MENTION,
@@ -34,6 +35,8 @@ from lineageweave.knowledge_graph import (
     random_walk_with_restart,
     select_related_nodes,
 )
+
+from .organization_name_resolution_ingestion import fetch_corroborated_organization_aliases
 
 
 _GRAPH_PROJECTION_LOCK_KEY = "lineageweave:knowledge_graph_projection"
@@ -106,7 +109,8 @@ async def fetch_post_keymen(conn: asyncpg.Connection, post_id: str) -> list[dict
         )
 
     side_labels = await labels_for_codes(conn, [row["person_side_code"] for row in person_rows])
-    return [
+    aliases = await fetch_corroborated_organization_aliases(conn)
+    people = [
         {
             "person_id": str(row["person_id"]),
             "person_name": row["person_name"],
@@ -118,6 +122,13 @@ async def fetch_post_keymen(conn: asyncpg.Connection, post_id: str) -> list[dict
         }
         for row in person_rows
     ]
+    for person in people:
+        attach_organization_aliases(
+            person["affiliations"],
+            aliases,
+            name_key="organization_name",
+        )
+    return people
 
 
 async def persist_edges_for_post(
@@ -511,6 +522,7 @@ async def hydrate_related_nodes(
     side_labels = await labels_for_codes(
         conn, [row["person_side_code"] for row in people.values()]
     )
+    aliases = await fetch_corroborated_organization_aliases(conn) if corp_ids else ()
 
     payload: list[dict[str, Any]] = []
     for node_type_code, node_id, score in parsed:
@@ -531,6 +543,7 @@ async def hydrate_related_nodes(
             item["post_body_truncated"] = posts[node_id]["post_body_truncated"]
         elif node_type_code == NODE_CORPORATE_ENTITY and node_id in corps:
             item["label"] = corps[node_id]["entity_name"]
+            attach_organization_alias(item, aliases, name_key="label")
         elif node_type_code == NODE_TEAM and node_id in teams:
             item["label"] = teams[node_id]["team_name"]
         else:
