@@ -63,6 +63,7 @@ function renderImageEvidence(
   const sourceImageSrc =
     sourceImage && SAFE_EMBEDDED_IMAGE_SOURCE.test(sourceImage.src) ? sourceImage.src : undefined;
   const imageCaption = imageContent?.caption?.trim() || "";
+  const imageExtractedText = imageContent?.extracted_text?.trim() || "";
   return (
     <figure key={`post-body-image-${index}`} className="post-embedded-image">
       {sourceImageSrc ? (
@@ -76,10 +77,10 @@ function renderImageEvidence(
           <strong>{t("Image tags")}:</strong> {imageContent.tags.join(", ")}
         </p>
       ) : null}
-      {imageContent?.extracted_text ? (
+      {imageExtractedText ? (
         <details className="post-image-text">
           <summary>{t("Text detected in image")}</summary>
-          {renderImageText(imageContent.extracted_text)}
+          {renderImageText(imageExtractedText)}
         </details>
       ) : null}
       {imageContent?.regions?.length ? (

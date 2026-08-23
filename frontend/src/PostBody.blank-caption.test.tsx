@@ -15,7 +15,7 @@ describe("PostBody image accessibility fallback", () => {
             unit_index: 0,
             mime_type: "image/png",
             status_code: "described",
-            extracted_text: null,
+            extracted_text: " \n ",
             caption: "   ",
             tags: [],
           },
@@ -25,5 +25,6 @@ describe("PostBody image accessibility fallback", () => {
 
     expect(screen.getByRole("img", { name: "Embedded image" })).toBeInTheDocument();
     expect(container.querySelector("figcaption")).toBeNull();
+    expect(container.querySelector(".post-image-text")).toBeNull();
   });
 });
