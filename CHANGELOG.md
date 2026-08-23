@@ -126,6 +126,16 @@ All notable changes to this project are documented here. Format follows
   availability incident for operators (issue #361, partial: this covers
   server-side traceback capture, not yet OpenTelemetry metrics/
   correlation IDs).
+- `SourceResearchPanel` no longer lets a slow, stale `postId` fetch overwrite
+  the currently-displayed post's research. `load`'s `fetchPostSourceResearch`
+  call had no request-id guard, so switching posts quickly (or a race between
+  the initial load and a fast-following `runResearch` refresh) could let an
+  earlier post's response land after the panel had already moved to a newer
+  post, showing another post's persisted evidence in the wrong place. Added
+  the same `requestIdRef` counter/compare pattern already used elsewhere in
+  `App.tsx` (`historyRequestIdRef`, `relatedRequest`, `postsRequest`).
+  Regression test confirmed RED (a stale response rendered its lead after a
+  postId change) before GREEN.
 - `GET /api/customer-master`'s `relationship_network` no longer scopes its
   ABAC check with the endpoint's broader Customer Master entity listing,
   which also includes merely-*observed* entities (organizations only ever

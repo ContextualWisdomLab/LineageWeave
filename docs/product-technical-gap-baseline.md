@@ -965,6 +965,19 @@ or an explicit unavailable result.
   mentioned posts real source context) to isolate the ABAC-scoping
   behavior; RED confirmed pre-fix, GREEN after, full suite (1032 passed,
   17 skipped) shows no regressions.
+- **SourceResearchPanel stale-fetch race — closed (2026-08-24):** the
+  same `lineageweave-bug-sweep` Workflow finder that found the Customer
+  Master leak above also found `SourceResearchPanel.tsx`'s `load`
+  callback had no request-id guard on its `fetchPostSourceResearch`
+  call. A fast `postId` change (or the `runResearch` -> `load` refresh
+  racing a still-in-flight initial load) could let an earlier post's
+  response resolve after the panel had already moved to a newer post,
+  rendering the wrong post's persisted evidence. Added the same
+  `requestIdRef` counter/compare guard already used elsewhere in
+  `App.tsx` (`historyRequestIdRef`, `relatedRequest`, `postsRequest`).
+  Regression test confirmed RED (a stale response's lead rendered after
+  the postId change) before GREEN; full frontend suite 361 passed, lint
+  clean.
 - **Cross-repository email/project lineage — provider boundary implemented,
   consumer open:** PR #343 merged at
   `125a8069a1554874d8067a15047e19d780ea6b7b`, but the contract remains

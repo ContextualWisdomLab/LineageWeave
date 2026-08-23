@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   fetchPostSourceResearch,
   researchPostSources,
@@ -28,16 +28,21 @@ export function SourceResearchPanel({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [researching, setResearching] = useState(false);
+  const requestIdRef = useRef(0);
 
   const load = useCallback(async () => {
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     try {
-      setResult(await fetchPostSourceResearch(accessToken, postId));
+      const research = await fetchPostSourceResearch(accessToken, postId);
+      if (requestId !== requestIdRef.current) return;
+      setResult(research);
     } catch (err) {
+      if (requestId !== requestIdRef.current) return;
       setError(productExceptionCopy(err, t("Source reference research")).title);
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
   }, [accessToken, postId]);
 

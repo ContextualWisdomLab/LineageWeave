@@ -122,6 +122,41 @@ it("retries a failed persisted-evidence read", async () => {
   expect(fetchPostSourceResearch).toHaveBeenCalledTimes(2);
 });
 
+it("ignores a stale fetch response after postId changes before it resolves", async () => {
+  let resolveStale: (value: unknown) => void = () => {};
+  const stale = new Promise((resolve) => {
+    resolveStale = resolve;
+  });
+  fetchPostSourceResearch.mockImplementation((_token: string, postId: string) =>
+    postId === "post-1" ? stale : Promise.resolve({ post_id: "post-2", research: [] }),
+  );
+
+  const { rerender } = render(<SourceResearchPanel postId="post-1" accessToken="token" canResearch />);
+  rerender(<SourceResearchPanel postId="post-2" accessToken="token" canResearch />);
+
+  expect(await screen.findByText("No persisted source research yet.")).toBeInTheDocument();
+
+  resolveStale({
+    post_id: "post-1",
+    research: [{
+      lead_ordinal: 1,
+      lead_type_code: "source_reference_url",
+      query_text: "STALE-POST-1-LEAD",
+      evidence_text: "should never render once post-2 is current",
+      source_content_unit_id: "content-unit-1",
+      source_image_region_id: null,
+      research_status_code: "supported",
+      sharing_actor_name: null,
+      rationale_text: "stale",
+      retrievals: [],
+    }],
+  });
+
+  await waitFor(() => expect(fetchPostSourceResearch).toHaveBeenCalledTimes(2));
+  expect(screen.queryByText("STALE-POST-1-LEAD")).not.toBeInTheDocument();
+  expect(screen.getByText("No persisted source research yet.")).toBeInTheDocument();
+});
+
 it("shows reader-safe next-action copy when explicit research fails", async () => {
   fetchPostSourceResearch.mockResolvedValue({ post_id: "post-1", research: [] });
   researchPostSources.mockRejectedValue(new Error("temporary research failure"));
