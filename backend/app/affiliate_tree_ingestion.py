@@ -49,6 +49,7 @@ async def fetch_affiliate_forest(conn: asyncpg.Connection, post_id: str) -> list
     attach_organization_aliases(
         forest,
         aliases,
+        entity_id_key="entity_id",
     )
     return forest
 

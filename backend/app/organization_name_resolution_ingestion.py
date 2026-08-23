@@ -109,16 +109,27 @@ async def resolve_organization_name(
 async def fetch_corroborated_organization_aliases(
     conn: asyncpg.Connection,
 ) -> tuple[OrganizationNameAlias, ...]:
-    """Load every search-corroborated SKOS alt/pref pair.
+    """Load corroborated pairs with a unique current catalog target, if any.
 
     Pending and uncorroborated rows stay out. The statement is a static
-    literal; only the status code is bound.
+    literal; only the status code is bound. Same-named catalog rows fail
+    closed with a null target id.
     """
     rows = await conn.fetch(
         """
-        select raw_organization_name, resolved_organization_name
-        from organization_name_resolution
-        where verification_status_code = $1
+        select resolution.raw_organization_name,
+               resolution.resolved_organization_name,
+               case when count(distinct entity.corporate_entity_id) = 1
+                    then min(entity.corporate_entity_id::text)
+                    else null
+               end as corporate_entity_id
+        from organization_name_resolution as resolution
+        left join corporate_entity as entity
+          on entity.entity_name = resolution.raw_organization_name
+          or entity.entity_name = resolution.resolved_organization_name
+        where resolution.verification_status_code = $1
+        group by resolution.raw_organization_name,
+                 resolution.resolved_organization_name
         """,
         STATUS_CORROBORATED,
     )
@@ -126,6 +137,11 @@ async def fetch_corroborated_organization_aliases(
         OrganizationNameAlias(
             alt_label=row["raw_organization_name"],
             pref_label=row["resolved_organization_name"],
+            corporate_entity_id=(
+                str(row["corporate_entity_id"])
+                if row["corporate_entity_id"] is not None
+                else None
+            ),
         )
         for row in rows
     )

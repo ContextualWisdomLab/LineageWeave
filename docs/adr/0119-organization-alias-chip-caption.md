@@ -13,17 +13,20 @@ prints that name hides the short form the source used. After seed, a buyer
 who reads "DC" in a post cannot see that the Demo Corp chip is the same
 organization.
 
-Catalog identity binding (one row for both labels) is a separate stack and
-must not be mixed into this increment. This record only decides the
-buyer-visible caption.
+Catalog creation and mention-to-catalog resolution remain a separate stack.
+This record only decides the buyer-visible caption, but that caption must be
+bound to the catalog id already carried by the chip. A display-name match alone
+cannot prove identity because `corporate_entity.entity_name` is not unique.
 
 ## Decision
 
-1. Load every `verify_corroborated` pair as `OrganizationNameAlias`. Pending
-   and uncorroborated rows stay out.
-2. When a displayed name uniquely matches one side of a pair, attach the
-   other label as `organization_alias`. A miss, identical labels, or two
-   distinct companions stay unlabeled. The product never invents an
+1. Load every `verify_corroborated` pair as `OrganizationNameAlias`, bound to a
+   target `corporate_entity_id` only when exactly one current catalog row has
+   either stored label. Pending and uncorroborated rows stay out.
+2. Attach the other label as `organization_alias` only when the pair's target
+   id equals the catalog id already stored on the displayed record. An unbound
+   record, catalog tie, id mismatch, name miss, identical labels, or two
+   distinct companions stays unlabeled. The product never invents an
    abbreviation from letters.
 3. Render the chip as `Demo Corp (DC)` when a companion is present, otherwise
    the catalog name. Affiliate-org, Keyman-affiliation, and counterparty-org
@@ -38,7 +41,8 @@ buyer-visible caption.
 
 - The raw/canonical mapping remains in `organization_name_resolution` (3NF).
   Chips project the companion at read time; they do not duplicate it onto
-  affiliation or counterparty rows.
+  affiliation or counterparty rows, and a same-named catalog row cannot borrow
+  another row's alias.
 - Default frontend tests stay on unlabeled names. A stub option supplies the
   companion so the parenthetical is covered without changing the unlabeled
   walk.

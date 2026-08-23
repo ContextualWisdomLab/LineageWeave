@@ -114,7 +114,7 @@ def test_to_dict_is_the_api_shape() -> None:
 
 def test_affiliate_forest_reuses_one_corroborated_alias_load(monkeypatch) -> None:
     """One request shares its alias snapshot with Keyman and forest hydration."""
-    aliases = (OrganizationNameAlias("DC", "Demo Corp"),)
+    aliases = (OrganizationNameAlias("DC", "Demo Corp", "demo-id"),)
 
     class _Connection:
         async def fetch(self, query: str, *_args: object):

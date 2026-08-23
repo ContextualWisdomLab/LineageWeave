@@ -6,9 +6,9 @@ persists a search-corroborated ``skos:altLabel`` / ``skos:prefLabel`` pair
 resolution still compares mentions to ``corporate_entity.entity_name``, so
 a chip that only prints that name hides the short form the source used.
 
-This module does not invent aliases. It returns the *other* label when the
-displayed name uniquely matches one side of a corroborated pair, and stays
-silent on a miss, a pending row, identical labels, or a tie.
+This module does not invent aliases. It returns the *other* label only when the
+displayed record already carries the corroborated pair's unique catalog id,
+and stays silent on a miss, an unbound record, identical labels, or a tie.
 
 Synthetic fixtures only: ``DC`` / ``Demo Corp``, ``AGP`` / ``Aurora Grid
 Power``. Real organization names must not appear here.
@@ -28,10 +28,12 @@ class OrganizationNameAlias:
     Attributes:
         alt_label: the abbreviated or slang form (``skos:altLabel``).
         pref_label: the preferred catalog form (``skos:prefLabel``).
+        corporate_entity_id: unique existing catalog target, otherwise ``None``.
     """
 
     alt_label: str
     pref_label: str
+    corporate_entity_id: str | None
 
 
 def _normalize_alias_label(name: str) -> str:
@@ -41,6 +43,7 @@ def _normalize_alias_label(name: str) -> str:
 
 def companion_organization_alias(
     display_name: str,
+    corporate_entity_id: str | None,
     aliases: Sequence[OrganizationNameAlias],
 ) -> str | None:
     """Return the other corroborated label, or ``None``.
@@ -50,12 +53,14 @@ def companion_organization_alias(
     miss. Callers must not invent a parenthetical in those cases.
     """
     normalized = _normalize_alias_label(display_name)
-    if not normalized:
+    if not normalized or not corporate_entity_id:
         return None
 
     companions: list[str] = []
     seen: set[str] = set()
     for alias in aliases:
+        if alias.corporate_entity_id != corporate_entity_id:
+            continue
         alt = _normalize_alias_label(alias.alt_label)
         pref = _normalize_alias_label(alias.pref_label)
         if not alt or not pref or alt == pref:
@@ -93,12 +98,18 @@ def attach_organization_alias(
     aliases: Sequence[OrganizationNameAlias],
     *,
     name_key: str = "entity_name",
+    entity_id_key: str = "corporate_entity_id",
 ) -> None:
     """Write ``organization_alias`` onto one JSON record when unique."""
     name = record.get(name_key)
     if not isinstance(name, str):
         return
-    companion = companion_organization_alias(name, aliases)
+    entity_id = record.get(entity_id_key)
+    companion = companion_organization_alias(
+        name,
+        str(entity_id) if entity_id is not None else None,
+        aliases,
+    )
     if companion:
         record["organization_alias"] = companion
 
@@ -108,18 +119,25 @@ def attach_organization_aliases(
     aliases: Sequence[OrganizationNameAlias],
     *,
     name_key: str = "entity_name",
+    entity_id_key: str = "corporate_entity_id",
     children_key: str = "children",
 ) -> None:
     """Write ``organization_alias`` onto a forest or a flat record list."""
     for record in records:
         if not isinstance(record, MutableMapping):
             continue
-        attach_organization_alias(record, aliases, name_key=name_key)
+        attach_organization_alias(
+            record,
+            aliases,
+            name_key=name_key,
+            entity_id_key=entity_id_key,
+        )
         children = record.get(children_key)
         if isinstance(children, list):
             attach_organization_aliases(
                 children,
                 aliases,
                 name_key=name_key,
+                entity_id_key=entity_id_key,
                 children_key=children_key,
             )

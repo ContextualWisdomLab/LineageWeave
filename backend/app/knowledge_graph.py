@@ -554,7 +554,12 @@ async def hydrate_related_nodes(
             item["post_body_truncated"] = posts[node_id]["post_body_truncated"]
         elif node_type_code == NODE_CORPORATE_ENTITY and node_id in corps:
             item["label"] = corps[node_id]["entity_name"]
-            attach_organization_alias(item, aliases, name_key="label")
+            attach_organization_alias(
+                item,
+                aliases,
+                name_key="label",
+                entity_id_key="node_id",
+            )
         elif node_type_code == NODE_TEAM and node_id in teams:
             item["label"] = teams[node_id]["team_name"]
         else:

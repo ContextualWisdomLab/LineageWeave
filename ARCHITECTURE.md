@@ -893,15 +893,6 @@ and the offline synthetic-batch script's paced re-implementation of it
 (the batch script's own copy was also missing `role_title` persistence
 entirely -- fixed alongside this).
 
-Buyer-facing organization chips (affiliate tree, Keyman affiliation,
-counterparty, related corporate node) project the *other* corroborated
-label as `organization_alias` when the match is unique, and render
-`Demo Corp (DC)` (ADR 0119). A miss, pending row, identical labels, or
-a tie stays unlabeled. The mapping is not copied onto affiliation rows;
-it is read from `organization_name_resolution` at hydrate time. Seed
-writes the synthetic `DC` / `Demo Corp` pair so the walk is clickable
-after `make seed`.
-
 Also fixed while running this against synthetic embedded-image fixtures:
 `image_content.py`'s `_parse_description` required an exact single-pass
 `TEXT:`/`CAPTION:`/`TAGS:` match, which was rejecting real vision
