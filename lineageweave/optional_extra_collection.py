@@ -22,7 +22,7 @@ OPTIONAL_EXTRA_MODULES: tuple[str, ...] = (
     "numpy",
 )
 
-_BACKEND_EXTRAS: frozenset[str] = frozenset({"asyncpg", "psycopg2", "redis"})
+_BACKEND_EXTRAS: frozenset[str] = frozenset(OPTIONAL_EXTRA_MODULES)
 _OPTIONAL_EXTRA_IMPORTERS: dict[str, tuple[str, ...]] = {
     "asyncpg": (
         "scripts.import_postgresql_posts",
@@ -59,9 +59,10 @@ def collection_path_requires_missing_extras(
     if collection_path.name == _HELPER_TEST_NAME:
         return False
     posix = collection_path.as_posix()
-    if any(name in _BACKEND_EXTRAS for name in missing):
-        if posix == "backend" or posix.startswith("backend/") or "/backend/" in posix:
-            return True
+    if any(name in _BACKEND_EXTRAS for name in missing) and (
+        posix == "backend" or posix.startswith("backend/") or "/backend/" in posix
+    ):
+        return True
     try:
         text = collection_path.read_text(encoding="utf-8")
     except OSError:

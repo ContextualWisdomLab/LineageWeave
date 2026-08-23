@@ -44,6 +44,8 @@ def test_collection_path_skips_backend_tree_when_asyncpg_is_missing(
     backend_test.parent.mkdir(parents=True)
     backend_test.write_text("import pytest\n", encoding="utf-8")
     assert collection_path_requires_missing_extras(backend_test, ("asyncpg",)) is True
+    assert collection_path_requires_missing_extras(backend_test, ("fast_mlsirm",)) is True
+    assert collection_path_requires_missing_extras(backend_test, ("numpy",)) is True
 
 
 def test_collection_path_skips_files_that_import_a_missing_extra(
