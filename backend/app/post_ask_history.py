@@ -112,48 +112,69 @@ async def list_conversations(
     }
 
 
-async def _visible_post_ids(
+async def _visible_post_ids_batch(
     conn: asyncpg.Connection,
     conversation_id: UUID,
-    turn_ordinal: int,
+    turn_ordinals: list[int],
     can_see_post: Callable[[asyncpg.Record], bool],
     *,
     source: bool,
-) -> tuple[list[str], dict[str, asyncpg.Record]]:
+) -> dict[int, tuple[list[str], dict[str, asyncpg.Record]]]:
+    """Reauthorize every turn's sources or citations in one query.
+
+    Fetches all `turn_ordinals` at once instead of one query per turn, so a
+    conversation's query count stays constant regardless of how many turns
+    it has. Returns each turn's currently-visible post ids and rows, keyed
+    by turn ordinal; a turn with no visible rows still gets an empty entry.
+    """
+    by_turn: dict[int, tuple[list[str], dict[str, asyncpg.Record]]] = {
+        ordinal: ([], {}) for ordinal in turn_ordinals
+    }
+    if not turn_ordinals:
+        return by_turn
     if source:
         rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"""
-        select relation.source_post_id::text as post_id, relation.source_ordinal as ordinal,
+        select relation.turn_ordinal as turn_ordinal,
+               relation.source_post_id::text as post_id, relation.source_ordinal as ordinal,
                post.post_title, post.visibility_code, post.corporate_entity_id,
                post.author_account_id, post.source_detail_state_code
           from post_ask_turn_source relation
           join source_post post on post.post_id = relation.source_post_id
          where relation.post_ask_session_id = $1
-           and relation.turn_ordinal = $2
+           and relation.turn_ordinal = any($2::int[])
            and ({SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='post')})
-         order by relation.source_ordinal
+         order by relation.turn_ordinal, relation.source_ordinal
         """,
             conversation_id,
-            turn_ordinal,
+            turn_ordinals,
         )
     else:
         rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"""
-        select relation.cited_post_id::text as post_id, relation.citation_ordinal as ordinal,
+        select relation.turn_ordinal as turn_ordinal,
+               relation.cited_post_id::text as post_id, relation.citation_ordinal as ordinal,
                post.post_title, post.visibility_code, post.corporate_entity_id,
                post.author_account_id, post.source_detail_state_code
           from post_ask_turn_citation relation
           join source_post post on post.post_id = relation.cited_post_id
          where relation.post_ask_session_id = $1
-           and relation.turn_ordinal = $2
+           and relation.turn_ordinal = any($2::int[])
            and ({SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='post')})
-         order by relation.citation_ordinal
+         order by relation.turn_ordinal, relation.citation_ordinal
         """,
             conversation_id,
-            turn_ordinal,
+            turn_ordinals,
         )
-    visible = [row for row in rows if can_see_post(row)]
-    return [str(row["post_id"]) for row in visible], {str(row["post_id"]): row for row in visible}
+    for row in rows:
+        if not can_see_post(row):
+            continue
+        ordinal = int(row["turn_ordinal"])
+        post_id = str(row["post_id"])
+        ids, id_map = by_turn[ordinal]
+        ids.append(post_id)
+        id_map[post_id] = row
+    return by_turn
 
 
 async def fetch_conversation(
@@ -221,15 +242,18 @@ async def fetch_conversation(
     has_older = len(turns) > turn_limit
     turns = list(turns[:turn_limit])
     turns.reverse()
+    ordinals = [int(turn["turn_ordinal"]) for turn in turns]
+    sources_by_turn = await _visible_post_ids_batch(
+        conn, conversation_id, ordinals, can_see_post, source=True
+    )
+    citations_by_turn = await _visible_post_ids_batch(
+        conn, conversation_id, ordinals, can_see_post, source=False
+    )
     exchanges: list[dict[str, Any]] = []
     for turn in turns:
         ordinal = int(turn["turn_ordinal"])
-        source_ids, _ = await _visible_post_ids(
-            conn, conversation_id, ordinal, can_see_post, source=True
-        )
-        cited_ids, cited_rows = await _visible_post_ids(
-            conn, conversation_id, ordinal, can_see_post, source=False
-        )
+        source_ids, _ = sources_by_turn[ordinal]
+        cited_ids, cited_rows = citations_by_turn[ordinal]
         exchanges.append(
             {
                 "turn_id": f"{conversation_id}:{ordinal}",

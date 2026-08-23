@@ -53,6 +53,10 @@ orchestrator is off. Account history is additional, not a replacement.
   stored answer remains account-owned transcript data.
 * TEPP topic modeling of how many posts can connect, and how many
   lineages form under temporal precedence, remains deferred.
+* Reauthorization for a conversation's turns is batched
+  (`_visible_post_ids_batch`, one query per relation type per page instead
+  of per turn), matching the same fix applied to Global Ask history (ADR
+  0126) -- issue #358.
 
 ## Implementation Plan
 

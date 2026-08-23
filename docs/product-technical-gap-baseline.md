@@ -595,6 +595,21 @@ or an explicit unavailable result.
   corroboration. Focused source, API-model, i18n, React interaction, lint, and
   build checks passed. A live PostgreSQL regression remains required before
   acceptance.
+- **Ask history N+1 reauthorization — closed (2026-08-24, issue #358):**
+  `fetch_conversation` in both `global_ask_history.py` and
+  `post_ask_history.py` reauthorized each turn's sources/citations (and,
+  for Global Ask, evidence facts) with its own query per turn --
+  `2N+3`/`3N+3` queries for an `N`-turn conversation. Replaced with
+  `_visible_post_ids_batch` / `_turn_evidence_batch`: one query per
+  relation type per page load, independent of turn count, verified by a
+  fake-connection unit test asserting exactly one `fetch()` call across 50
+  turns. `turn_limit` (already capped at 50 by the `/api/ask/conversations/{id}`
+  route) is the existing bound on citations-per-page, so no new budget
+  parameter was needed. Same fail-closed, per-turn authorization boundary
+  as before -- a real-Postgres integration test proves a citation revoked
+  after persistence is dropped from only its own turn, never a neighbor's.
+  Explicit query-latency benchmarking (vs. only query-count) is not yet
+  measured; the AST/unit evidence above is the current acceptance basis.
 - **Ask evidence labels — locally implemented, acceptance open:** persisted
   event, event-clue, quantitative, source-fact, and semantic-relation facts now
   have distinct reader evidence kinds and localized labels instead of falling

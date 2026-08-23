@@ -40,3 +40,9 @@ requires a separate ADR and upstream orchestrator contract.
   history; the stored answer remains account-owned transcript data.
 * The UI can select an existing conversation or start a new one without
   changing the existing `/api/ask` evidence contract.
+* Reauthorization for a conversation's turns is batched (`_visible_post_ids_batch`
+  / `_turn_evidence_batch`, one query per relation type per page instead of
+  per turn), so query count stays bounded by `turn_limit` rather than
+  growing with exchange count. Same fail-closed, per-turn authorization
+  boundary as before -- issue #358 (originally an implementation detail
+  raised on PR #342's exact-head review, not a new decision).

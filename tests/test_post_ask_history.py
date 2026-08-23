@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from backend.app.post_ask_history import (
-    _visible_post_ids,
+    _visible_post_ids_batch,
     conversation_exists,
     list_conversations,
     persist_turn,
@@ -112,7 +112,7 @@ def test_conversation_exists_requires_account_and_post() -> None:
     assert found is True
 
 
-def test_visible_post_ids_uses_fixed_source_and_citation_queries() -> None:
+def test_visible_post_ids_batch_uses_fixed_source_and_citation_queries() -> None:
     """Both relation types use fixed identifiers rather than interpolated SQL."""
     for source, table, column in (
         (True, "post_ask_turn_source", "source_post_id"),
@@ -121,6 +121,7 @@ def test_visible_post_ids_uses_fixed_source_and_citation_queries() -> None:
         connection = _Connection(
             [
                 {
+                    "turn_ordinal": 1,
                     "post_id": "post-1",
                     "post_title": "Synthetic source",
                     "visibility_code": "workspace",
@@ -130,15 +131,16 @@ def test_visible_post_ids_uses_fixed_source_and_citation_queries() -> None:
                 }
             ]
         )
-        post_ids, rows = asyncio.run(
-            _visible_post_ids(
+        by_turn = asyncio.run(
+            _visible_post_ids_batch(
                 connection,
                 UUID("00000000-0000-0000-0000-000000000004"),
-                1,
+                [1],
                 lambda row: row["post_id"] == "post-1",
                 source=source,
             )
         )
+        post_ids, rows = by_turn[1]
 
         query, arguments = connection.calls[0]
         assert table in query
@@ -146,9 +148,68 @@ def test_visible_post_ids_uses_fixed_source_and_citation_queries() -> None:
         assert "relation.{" not in query
         assert "source_draft_code" in query
         assert "source_deleted_flag" in query
-        assert arguments[1] == 1
+        assert arguments[1] == [1]
         assert post_ids == ["post-1"]
         assert rows["post-1"]["post_title"] == "Synthetic source"
+
+
+def test_visible_post_ids_batch_stays_at_one_query_regardless_of_turn_count() -> None:
+    """Query count must not grow with the number of turns being reauthorized."""
+    connection = _Connection([])
+
+    by_turn = asyncio.run(
+        _visible_post_ids_batch(
+            connection,
+            UUID("00000000-0000-0000-0000-000000000004"),
+            list(range(1, 51)),
+            lambda row: True,
+            source=True,
+        )
+    )
+
+    assert len(connection.calls) == 1
+    assert set(by_turn.keys()) == set(range(1, 51))
+    assert all(ids == [] and rows == {} for ids, rows in by_turn.values())
+
+
+def test_visible_post_ids_batch_never_leaks_a_row_into_the_wrong_turn() -> None:
+    """A row is partitioned to its own turn_ordinal, never a neighboring turn."""
+    connection = _Connection(
+        [
+            {
+                "turn_ordinal": 1,
+                "post_id": "post-turn-1",
+                "post_title": "Turn 1 post",
+                "visibility_code": "public",
+                "corporate_entity_id": "entity-1",
+                "author_account_id": "account-1",
+                "source_detail_state_code": "current",
+            },
+            {
+                "turn_ordinal": 2,
+                "post_id": "post-turn-2",
+                "post_title": "Turn 2 post",
+                "visibility_code": "public",
+                "corporate_entity_id": "entity-1",
+                "author_account_id": "account-1",
+                "source_detail_state_code": "current",
+            },
+        ]
+    )
+
+    by_turn = asyncio.run(
+        _visible_post_ids_batch(
+            connection,
+            UUID("00000000-0000-0000-0000-000000000004"),
+            [1, 2, 3],
+            lambda row: True,
+            source=False,
+        )
+    )
+
+    assert by_turn[1][0] == ["post-turn-1"]
+    assert by_turn[2][0] == ["post-turn-2"]
+    assert by_turn[3] == ([], {})
 
 
 def test_persist_turn_creates_a_new_session_then_writes_the_turn() -> None:

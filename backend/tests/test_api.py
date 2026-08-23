@@ -4139,6 +4139,77 @@ def test_global_ask_rolls_back_when_cited_evidence_is_revoked_mid_flight(
     assert follow_up.status_code == 200, follow_up.text
 
 
+def test_global_ask_conversation_reauthorizes_each_turn_independently(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Batched per-conversation reauthorization (issue #358) must not leak a
+    citation across turns or under/over-filter when one turn's post is
+    revoked mid-conversation."""
+    from lineageweave.post_chat import ChatAnswer, ChatSourceDocument
+
+    public_post_id = seeded_db["public_post_id"]
+    own_post_id = seeded_db["own_private_post_id"]
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+
+    def _one_source_gatherer(post_id: str):
+        async def _gather(*_args, **_kwargs) -> list[ChatSourceDocument]:
+            return [ChatSourceDocument(post_id=post_id, post_title="post", post_body="body")]
+
+        return _gather
+
+    class _CitesPublicPost:
+        available = True
+
+        def answer(self, question: str, sources) -> ChatAnswer:
+            return ChatAnswer(answer_text="cites the public post", cited_post_ids=(public_post_id,))
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _CitesPublicPost())
+    monkeypatch.setattr("backend.app.main.gather_global_chat_sources", _one_source_gatherer(public_post_id))
+    first = client.post("/api/ask", json={"question": "What does the public post say?"}, headers=headers)
+    assert first.status_code == 200, first.text
+    conversation_id = first.json()["conversation_id"]
+
+    class _CitesOwnPost:
+        available = True
+
+        def answer(self, question: str, sources) -> ChatAnswer:
+            return ChatAnswer(answer_text="cites the own post", cited_post_ids=(own_post_id,))
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _CitesOwnPost())
+    monkeypatch.setattr("backend.app.main.gather_global_chat_sources", _one_source_gatherer(own_post_id))
+    second = client.post(
+        "/api/ask",
+        json={"question": "What does the own post say?", "conversation_id": conversation_id},
+        headers=headers,
+    )
+    assert second.status_code == 200, second.text
+
+    before = client.get(f"/api/ask/conversations/{conversation_id}", headers=headers)
+    assert before.status_code == 200, before.text
+    exchanges = before.json()["exchanges"]
+    assert len(exchanges) == 2
+    assert exchanges[0]["cited_post_ids"] == [public_post_id]
+    assert exchanges[1]["cited_post_ids"] == [own_post_id]
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "update source_post set visibility_code = 'private', corporate_entity_id = %s "
+                "where post_id = %s",
+                (seeded_db["other_corp_id"], public_post_id),
+            )
+    finally:
+        admin_conn.close()
+
+    after = client.get(f"/api/ask/conversations/{conversation_id}", headers=headers)
+    assert after.status_code == 200, after.text
+    exchanges_after = after.json()["exchanges"]
+    assert exchanges_after[0]["cited_post_ids"] == [], "revoked citation must be dropped"
+    assert exchanges_after[1]["cited_post_ids"] == [own_post_id], "unrelated turn must be unaffected"
+
+
 def test_keymen_provider_error_does_not_leak_raw_error(
     client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:

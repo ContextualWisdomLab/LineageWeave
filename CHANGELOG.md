@@ -60,6 +60,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Changed
 
+- Global Ask and per-post Ask history (`GET /api/ask/conversations/{id}`)
+  now reauthorize a whole conversation's sources, citations, and evidence
+  in one bounded query per relation type, instead of one query per turn.
+  An N-turn conversation dropped from up to `3N+3` queries to a constant
+  6; behavior and the fail-closed per-turn authorization boundary are
+  unchanged (issue #358).
 - Leftover closest/farthest pairs now name the post and the Post quality
   criterion, and leftover clicks land on that criterion instead of a generic
   post open (ADR 0049 / ADR 0135). Catalog-unbound, dropped/unavailable
