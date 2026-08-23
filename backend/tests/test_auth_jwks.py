@@ -150,6 +150,7 @@ def test_decode_requires_configured_resource_audience(monkeypatch: pytest.Monkey
         oidc_issuer="https://id.example",
         oidc_audience="https://lineage.example/api",
         oidc_clock_skew_seconds=5,
+        keyverse_claim_binding_required=True,
     )
 
     claims = auth._decode_access_token("token", settings)
@@ -168,11 +169,35 @@ def test_decode_rejects_missing_subject(monkeypatch: pytest.MonkeyPatch) -> None
         oidc_issuer="https://id.example",
         oidc_audience="lineageweave-api",
         oidc_clock_skew_seconds=5,
+        keyverse_claim_binding_required=False,
     )
 
     with pytest.raises(HTTPException) as error:
         auth._decode_access_token("token", settings)
     assert error.value.status_code == 401
+
+
+def test_local_decode_does_not_require_keyverse_issued_at_claim(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+    monkeypatch.setattr(auth, "_signing_key", lambda settings, token: "signing-key")
+
+    def fake_decode(token, **kwargs):
+        captured.update(kwargs)
+        return {"sub": "subject-1"}
+
+    monkeypatch.setattr(auth.jwt, "decode", fake_decode)
+    settings = SimpleNamespace(
+        oidc_issuer="https://local.example",
+        oidc_audience="lineageweave-api",
+        oidc_clock_skew_seconds=5,
+        keyverse_claim_binding_required=False,
+    )
+
+    auth._decode_access_token("token", settings)
+
+    assert captured["options"] == {"require": ["exp", "sub"]}
 
 
 @pytest.mark.parametrize(

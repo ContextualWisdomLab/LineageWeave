@@ -38,9 +38,7 @@ def main() -> None:
         if (value := os.environ.pop(name, "").strip())
     }
     if not gateway_key:
-        gateway_key = provider_credentials.get("NVIDIA_NIM_API_KEY", "")
-    if not gateway_key:
-        raise SystemExit("LLM_GATEWAY_API_KEY, LLM_API_KEY, or NVIDIA_NIM_API_KEY is required to start the real LLM service")
+        raise SystemExit("LLM_GATEWAY_API_KEY or LLM_API_KEY is required to start the real LLM service")
     auth_token = os.environ.get("CONTEXTUAL_ORCHESTRATOR_TOKEN", "").strip()
     if not auth_token:
         raise SystemExit("CONTEXTUAL_ORCHESTRATOR_TOKEN is required to start the authenticated LLM service")

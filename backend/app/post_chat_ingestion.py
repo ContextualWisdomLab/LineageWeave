@@ -371,6 +371,7 @@ async def gather_global_chat_sources(
     conn: asyncpg.Connection,
     can_see_post: Callable[[asyncpg.Record], bool],
     authorized_corporate_entity_ids: Iterable[str] = (),
+    authorized_process_unit_ids: Iterable[str] = (),
     vision_client: ImageContentClient | None = None,
     *,
     question: str | None = None,
@@ -509,14 +510,17 @@ async def gather_global_chat_sources(
                source_process_unit_name, source_sales_pool_code, source_sales_pool_name,
                source_customer_code, source_customer_name,
                source_project_code, source_project_name
-          from source_post
+         from source_post
          where visibility_code = 'public'
-            or corporate_entity_id::text = any($1::text[])
-         order by array_position($2::uuid[], post_id) nulls last,
+            or (corporate_entity_id::text = any($1::text[])
+                and (cardinality($2::text[]) = 0
+                     or process_unit_id::text = any($2::text[])))
+         order by array_position($3::uuid[], post_id) nulls last,
                   created_at desc, post_id desc
-         limit $3
+         limit $4
         """,
         list(authorized_corporate_entity_ids),
+        list(authorized_process_unit_ids),
         candidate_ids,
         limit,
     )

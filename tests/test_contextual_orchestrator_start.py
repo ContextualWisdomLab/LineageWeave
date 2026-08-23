@@ -9,6 +9,8 @@ import sys
 import types
 from pathlib import Path
 
+import pytest
+
 
 def _load_start_module():
     stubs = {}
@@ -51,6 +53,16 @@ def test_gateway_api_key_accepts_local_compatibility_alias(monkeypatch) -> None:
     monkeypatch.setenv("LLM_API_KEY", "compatibility-key")
 
     assert module._pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY") == "compatibility-key"
+
+
+def test_provider_key_is_not_aliased_as_gateway_transport(monkeypatch) -> None:
+    module = _load_start_module()
+    for name in ("LLM_GATEWAY_API_KEY", "LLM_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("NVIDIA_NIM_API_KEY", "provider-only-key")
+
+    with pytest.raises(SystemExit, match="LLM_GATEWAY_API_KEY or LLM_API_KEY"):
+        module.main()
 
 
 def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch) -> None:

@@ -123,6 +123,9 @@ class CurrentAccount:
 
 def _decode_access_token(token: str, settings: Settings) -> dict:
     """Validate signature, issuer, resource audience, time claims, and subject."""
+    required_claims = ["exp", "sub"]
+    if settings.keyverse_claim_binding_required:
+        required_claims.insert(1, "iat")
     try:
         claims = jwt.decode(
             token,
@@ -131,7 +134,7 @@ def _decode_access_token(token: str, settings: Settings) -> dict:
             issuer=settings.oidc_issuer,
             audience=settings.oidc_audience,
             leeway=settings.oidc_clock_skew_seconds,
-            options={"require": ["exp", "iat", "sub"]},
+            options={"require": required_claims},
         )
     except HTTPException:
         raise

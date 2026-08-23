@@ -2657,6 +2657,7 @@ async def ask_agent(
             conn,
             lambda row: _can_see_post(account, row),
             account.corporate_entity_ids,
+            account.process_unit_ids,
             question=question,
         )
     if not sources:
