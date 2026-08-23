@@ -58,9 +58,13 @@ All notable changes to this project are documented here. Format follows
   translations matching this file's established terminology (Tenant,
   Workspace, Board, Admin) and a new curated `adminPanelLabels` parity
   test following the same pattern as the existing workspace/Event
-  Lineage label tests. 97 other pre-existing ko-only keys remain
-  untranslated repo-wide and are tracked separately, not claimed fixed
-  here.
+  Lineage label tests. Also translated 33 more AdminPanel labels this
+  session's second pass found: its endpoint-catalog and navigation
+  metadata is defined as data (rendered via `t(item.label)`), which a
+  literal-`t("...")` grep had missed the first time. `adminPanelLabels`
+  now covers all 53 of AdminPanel's live keys. ~64 other pre-existing
+  ko-only keys (mostly in App.tsx) remain untranslated repo-wide and
+  are tracked separately, not claimed fixed here.
 - `GET /api/posts`'s `total_count` no longer silently reports `0` when the
   requested page is past the last page of results. `total_count` came
   from `count(*) over()`, a window function that only rides along on rows
