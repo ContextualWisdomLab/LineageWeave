@@ -14,17 +14,29 @@ healthy while silently discarding roles and project mentions.
 
 ## Decision
 
-`ContextualOrchestratorPostSummaryClient` makes two sequential calls to
-contextual-orchestrator, both with `mode=route` and no raw LLM or provider call:
+`ContextualOrchestratorPostSummaryClient` makes three sequential calls to
+contextual-orchestrator, all with `mode=auto` and no raw LLM or provider call:
 
 1. The first call returns a Korean evidence-grounded summary followed by a
    `KEY EVENTS:` line.
-2. The second call returns `ROLES:` and `PROJECTS:` sections. Each role row is
+2. The second call returns the plain evidence sections. Loss-sensitive
+   `FACTS:` appears before the potentially high-cardinality `CLUES:` and
+   `MEASUREMENTS:` sections. This ordering is normative: a bounded provider
+   response must not lose source-grounded facts merely because earlier lists
+   consumed the response budget. Each role row is
    `actor | responsibility | actor type | affiliation`; a compact three-field
    role row defaults to the existing `prov_person` contract. Each project row
    is `name | canonical name | evidence | confidence`; a compact three-field
    row is `name | evidence | confidence` and derives only the deterministic
    comparison key with `normalize_project_key`.
+3. The third call is a focused `RELATIONS:` extraction. It receives the same
+   source and weak context hints, but no competing role, clue, measurement, or
+   fact output. A missing `RELATIONS:` marker is an unavailable channel rather
+   than a successful empty result; `RELATIONS: NONE` is the explicit supported
+   negative outcome. It emits every explicit source relation rather than
+   choosing one representative edge. A named base-to-later-variant chronology
+   cannot be replaced by another product merely because that product appears
+   in a nearby enumeration.
 
 Structured source fields remain weak, provenance-labelled hints. Values such
 as `기타`, `미등록고객`, `unknown`, and `other` cannot confirm a customer or
@@ -43,6 +55,29 @@ current evidence. The Buyer UI renders the localized ontology label and
 localized extraction/provenance labels; it never renders the ontology IRI or
 contextual-orchestrator/storage identifiers as user-facing text.
 
+A reader GET does not synchronously refresh an existing text-only summary from
+an older contract. It returns that row immediately with `summary_status=stale`,
+while `scripts/backfill_post_summaries.py --post-id ...` remains the explicit,
+durable operator path for regeneration. Source-post open and source rendering
+never wait for summary, VISION, or embedding work.
+
+An image-bearing post has a stricter evidence boundary. The summary endpoint
+enqueues or observes the durable post-content job and does not call VISION
+synchronously. It withholds both current and stale persisted summaries until
+the durable job for the current raw-body SHA-256 has status `succeeded` and the
+parent image and every persisted visual region have status `described`.
+Queued or running evidence is reported as processing; a terminal failure is
+reported unavailable until the explicit ADR 0115 retry. Once ready, a current
+persisted summary may be returned only when its normalized summary-input SHA-256
+matches the exact ordered persisted semantic-unit, parent-image, and
+region-evidence text. A stale or legacy-unbound image-bearing summary is
+regenerated. New image-bearing
+summaries use only persisted semantic units in document order, including
+completed OCR and captions; an unavailable placeholder is never promoted into
+summary evidence. Text-only summaries bind the same column to the normalized
+source text; a source revision makes the prior row explicitly stale continuity
+rather than current evidence.
+
 Ask Agent citations expose the persisted source and semantic facts associated
 with each cited post through a Buyer-safe projection. Prompt metadata such as
 ontology IRIs, provider names, extraction identifiers, and storage provenance
@@ -53,14 +88,18 @@ for reading the complete body and related evidence.
 
 - Semantic roles and projects are no longer silently dropped when the summary
   call succeeds.
-- The channel incurs a second orchestrator request and therefore a bounded
-  latency/cost increase.
+- Source-grounded facts are emitted before larger clue and measurement lists,
+  and explicit ontology relations have a dedicated bounded response.
+- The channel incurs two additional orchestrator requests and therefore a bounded
+  latency/cost increase on explicit regeneration, not on a stale reader GET.
+- Image evidence can delay only the image-bearing summary projection; opening
+  and reading the source post remains immediate.
 - Plain line parsing is intentionally narrow; unsupported provider output is
   rejected rather than promoted into ontology facts.
 
 ## Verification
 
-- Unit tests cover both plain calls, compact rows, title-backed evidence, and
-  rejection of unsupported project evidence.
+- Unit tests cover all three plain calls, the loss-sensitive section order, compact
+  rows, title-backed evidence, and rejection of unsupported project evidence.
 - Runtime verification uses only the repository's synthetic fixture and the
   contextual-orchestrator service.

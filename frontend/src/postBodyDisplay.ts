@@ -1,7 +1,7 @@
 /**
  * Split a raw `post_body` into text and in-place data-URI images.
  *
- * The popup used to dump the source string, so a buyer who opened a post
+ * The popup used to dump the source string, so a reader who opened a post
  * with an embedded invoice saw a base64 wall instead of the picture.
  * Only `data:image/...;base64,...` payloads are turned into images —
  * remote `http(s)` img tags are stripped, never fetched.
@@ -12,7 +12,7 @@ export type PostBodySegment =
   | { kind: "image"; src: string; mimeType: string; position: number };
 
 const DATA_URI_IMG =
-  /<img\b[^>]*\bsrc\s*=\s*["']data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]+)["'][^>]*>/gi;
+  /<img\b[^>]*\bsrc\s*=\s*["']data:(image\/[a-zA-Z0-9.+-]+);base64,([A-Za-z0-9+/=\s]*)["'][^>]*>/gi;
 
 const HTML_TAG = /<\/?[a-zA-Z][^>]*>/g;
 const BREAK_TAG = /<br\b[^>]*>/gi;
@@ -24,6 +24,20 @@ const FOOTNOTE_START = /^\s*[*†‡](?=\S)/;
 const INDENT_MARKER = "\u0001lw-indent:";
 const INDENT_MARKER_END = "\u0002";
 const INDENT_MARKER_PATTERN = /lw-indent:(\d+)/g;
+const SUPERSCRIPT_DIGITS = "⁰¹²³⁴⁵⁶⁷⁸⁹";
+const SUBSCRIPT_DIGITS = "₀₁₂₃₄₅₆₇₈₉";
+const METRIC_MARKUP =
+  /((?<![A-Za-z])(?:\d+(?:\.\d+)?\s*)?(?:km|cm|mm|kg|m))\s*<(sup|sub)\b[^>]*>\s*(\d{1,3})\s*<\/\2>/gi;
+
+function normalizeMetricMarkup(raw: string): string {
+  return raw.replace(
+    METRIC_MARKUP,
+    (_match, base: string, kind: string, digits: string) => {
+      const table = kind.toLowerCase() === "sup" ? SUPERSCRIPT_DIGITS : SUBSCRIPT_DIGITS;
+      return `${base}${[...digits].map((digit) => table[Number(digit)]).join("")}`;
+    },
+  );
+}
 
 function stripIndentMarkers(value: string): string {
   return value
@@ -56,15 +70,16 @@ function lengthToIndentUnits(value: string): number {
   if (!match) return 0;
   const amount = Number(match[1]);
   if (!Number.isFinite(amount) || amount <= 0) return 0;
+  const unit = (match[2] ?? "px").toLowerCase() as "px" | "pt" | "em" | "rem" | "in" | "cm" | "mm" | "%";
   const pixels = amount *
     ({ px: 1, pt: 96 / 72, em: 16, rem: 16, in: 96, cm: 96 / 2.54, mm: 96 / 25.4, "%": 16 / 100 }[
-      (match[2] ?? "px").toLowerCase() as "px" | "pt" | "em" | "rem" | "in" | "cm" | "mm" | "%"
-    ] ?? 1);
+      unit
+    ]);
   return Math.max(0, Math.round(pixels / 8));
 }
 
 function declaredIndentWidth(tag: string): number {
-  const name = tag.match(/^<\/?\s*([a-z0-9:]+)/i)?.[1]?.toLowerCase() ?? "";
+  const name = tag.match(/^<\/?\s*([a-z0-9:]+)/i)![1].toLowerCase();
   let width = name === "blockquote" || name === "ul" || name === "ol" ? 4 : 0;
   const style = tag.match(/\bstyle\s*=\s*(["'])(.*?)\1/i)?.[2] ?? "";
   for (const match of style.matchAll(
@@ -90,7 +105,7 @@ function indentMarker(width: number): string {
 }
 
 function stripHtmlTags(text: string): string {
-  text = text.replace(/<sup[^>]*>(.*?)<\/sup>/gi, "^$1");
+  text = normalizeMetricMarkup(text).replace(/<sup[^>]*>(.*?)<\/sup>/gi, "^$1");
   const withBoundaries = text
     .replace(BREAK_TAG, "\n")
     .replace(BLOCK_TAG, (tag) => {
@@ -106,7 +121,7 @@ function stripHtmlTags(text: string): string {
     .split("\n")
     .map((line) => {
       if (!line.trim()) return "";
-      const leading = line.match(/^[^\S\n]*/)?.[0] ?? "";
+      const leading = line.match(/^[^\S\n]*/)![0];
       return `${leading}${line
         .slice(leading.length)
         .replace(/[^\S\n]+/g, " ")}`;

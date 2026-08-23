@@ -2,11 +2,98 @@ from __future__ import annotations
 
 import pytest
 
-import lineageweave.http_client as http_client
+from lineageweave import http_client
 
 
-def test_json_helpers_reject_non_json_and_wrong_shapes(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(http_client, "_request", lambda *_args, **_kwargs: (200, b"not-json"))
+def test_request_rejects_private_connected_peer_before_sending(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Socket:
+        def getpeername(self) -> tuple[str, int]:
+            return "127.0.0.1", 443
+
+    class Connection:
+        sock = Socket()
+        requested = False
+
+        def __init__(self, *_args, **_kwargs) -> None:
+            pass
+
+        def connect(self) -> None:
+            pass
+
+        def request(self, *_args, **_kwargs) -> None:
+            self.requested = True
+
+        def close(self) -> None:
+            pass
+
+    monkeypatch.setattr(http_client.http.client, "HTTPConnection", Connection)
+
+    with pytest.raises(ValueError, match="non-public network target"):
+        http_client._request(
+            "GET",
+            "http://example.test/evidence",
+            body=None,
+            headers={},
+            timeout=1,
+            require_public_peer=True,
+        )
+
+
+def test_request_sends_after_public_connected_peer_check(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class Socket:
+        def getpeername(self) -> tuple[str, int]:
+            return "93.184.216.34", 80
+
+    class Response:
+        status = 200
+
+        def getheader(self, _name: str) -> str:
+            return "2"
+
+        def read(self, _length: int) -> bytes:
+            return b"ok"
+
+    class Connection:
+        sock = Socket()
+        requested = False
+
+        def __init__(self, *_args, **_kwargs) -> None:
+            pass
+
+        def connect(self) -> None:
+            pass
+
+        def request(self, *_args, **_kwargs) -> None:
+            self.requested = True
+
+        def getresponse(self) -> Response:
+            return Response()
+
+        def close(self) -> None:
+            pass
+
+    monkeypatch.setattr(http_client.http.client, "HTTPConnection", Connection)
+
+    assert http_client._request(
+        "GET",
+        "http://example.test/evidence",
+        body=None,
+        headers={},
+        timeout=1,
+        require_public_peer=True,
+    ) == (200, b"ok")
+
+
+def test_json_helpers_reject_non_json_and_wrong_shapes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        http_client, "_request", lambda *_args, **_kwargs: (200, b"not-json")
+    )
     with pytest.raises(http_client.HttpClientError, match="non-JSON"):
         http_client.get_json("https://gateway.example/health", timeout=1)
 
@@ -21,9 +108,16 @@ def test_json_helpers_reject_non_json_and_wrong_shapes(monkeypatch: pytest.Monke
 
 @pytest.mark.parametrize(
     "helper",
-    [http_client.post_json, http_client.post_form, http_client.get_json, http_client.get_json_list],
+    [
+        http_client.post_json,
+        http_client.post_form,
+        http_client.get_json,
+        http_client.get_json_list,
+    ],
 )
-def test_json_helpers_raise_on_http_errors(monkeypatch: pytest.MonkeyPatch, helper) -> None:
+def test_json_helpers_raise_on_http_errors(
+    monkeypatch: pytest.MonkeyPatch, helper
+) -> None:
     monkeypatch.setattr(http_client, "_request", lambda *_args, **_kwargs: (503, b"{}"))
     kwargs = {"timeout": 1}
     if helper is http_client.post_json:
@@ -42,7 +136,7 @@ def test_json_helpers_accept_optional_headers(monkeypatch: pytest.MonkeyPatch) -
 
     def request(*args, **kwargs):
         calls.append((args, kwargs))
-        return 200, b"{}" if kwargs["headers"].get("content-type") != "application/json" else b"{}"
+        return 200, b"{}"
 
     monkeypatch.setattr(http_client, "_request", request)
     assert http_client.get_json("https://gateway.example", timeout=1) == {}

@@ -16,15 +16,20 @@ constant anyone hardcoded, and (3) the algorithm is symmetric-graph-fair
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
+from backend.app.knowledge_graph import post_knowledge_graph
 from lineageweave.knowledge_graph import (
     EDGE_AFFILIATION,
     EDGE_CO_MENTION,
+    EDGE_CUSTOMER_IDENTITY_OBSERVATION,
     EDGE_MENTION,
     NODE_CORPORATE_ENTITY,
     NODE_PERSON,
     NODE_POST,
+    KnowledgeGraphEdgeSpec,
     adjacency_from_edges,
     knowledge_graph_edges_for_post,
     random_walk_with_restart,
@@ -70,6 +75,89 @@ def test_adaptive_depth_hub_reaches_more_nodes_than_a_sparse_node(synthetic_grap
     assert len(hub_related) == 5  # all five spokes
     assert len(loner_related) == 1  # only "far" -- nothing else is reachable
     assert len(hub_related) > len(loner_related)
+
+
+@pytest.mark.parametrize(("overflow", "expected_truncated"), [(False, False), (True, True)])
+@pytest.mark.parametrize(
+    ("semantic_node_type", "predicate_code"),
+    [
+        ("organization", "rel_voc"),
+        ("future_type", "rel_voc"),
+        ("temporal_entity", "time_before"),
+    ],
+)
+def test_post_knowledge_graph_relation_limit_boundary(
+    overflow: bool,
+    expected_truncated: bool,
+    semantic_node_type: str,
+    predicate_code: str,
+) -> None:
+    """A look-ahead row distinguishes an exact page from an overflow page."""
+    post_id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1"
+    organization_id = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1"
+
+    class Connection:
+        def __init__(self) -> None:
+            self.semantic_query = ""
+            self.semantic_rows = [
+                {
+                    "relation_ordinal": 1,
+                    "subject_name": "Synthetic source",
+                    "subject_type": semantic_node_type,
+                    "predicate_code": predicate_code,
+                    "object_name": "Synthetic customer",
+                    "object_type": semantic_node_type,
+                    "evidence_text": "Synthetic evidence",
+                    "relation_confidence": 0.9,
+                }
+            ]
+            if overflow:
+                self.semantic_rows.append({**self.semantic_rows[0], "relation_ordinal": 2})
+
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            normalized = " ".join(query.lower().split())
+            if "select distinct person_id" in normalized:
+                return []
+            if "select distinct team_id" in normalized:
+                return []
+            if "select distinct corporate_entity_id" in normalized:
+                return [{"corporate_entity_id": organization_id}]
+            if "from knowledge_graph_edge edge" in normalized:
+                return []
+            if "from post_summary_semantic_relationship" in normalized:
+                self.semantic_query = normalized
+                return self.semantic_rows
+            return []
+
+        async def fetchval(self, query: str, *args: object) -> str | None:
+            return None
+
+        async def fetchrow(self, query: str, *args: object) -> dict[str, object | None]:
+            assert "from source_post" in query
+            return {
+                "source_customer_code": None,
+                "source_order_pool_code": None,
+                "source_sales_order_code": None,
+                "source_sales_order_item_number": None,
+                "source_stage_code": None,
+                "source_detail_state_code": None,
+                "source_inspection_point_code": None,
+                "source_deleted_flag": None,
+            }
+
+    conn = Connection()
+    result = asyncio.run(post_knowledge_graph(conn, post_id, relation_limit=1))
+
+    assert "limit ($2 + 1)" in conn.semantic_query
+    assert result["truncated"] is expected_truncated
+    assert len(result["edges"]) == 1
+    if predicate_code == "time_before":
+        nodes = {node["id"]: node for node in result["nodes"]}
+        edge = result["edges"][0]
+        assert nodes[edge["source"]]["label"] == "Synthetic source"
+        assert nodes[edge["target"]]["label"] == "Synthetic customer"
+        assert edge["ontology_iri"] == "http://www.w3.org/2006/time#before"
+        assert edge["evidence_text"] == "Synthetic evidence"
 
 
 def test_start_node_absent_from_graph_returns_only_itself() -> None:
@@ -123,6 +211,24 @@ def test_knowledge_graph_edges_for_post_covers_mention_affiliation_and_co_mentio
         NODE_CORPORATE_ENTITY,
         NODE_PERSON,
     }
+
+
+def test_customer_identity_observation_is_a_distinct_cross_post_edge() -> None:
+    edges = knowledge_graph_edges_for_post(
+        post_id="post-1",
+        person_ids=[],
+        customer_corporate_entity_ids=["customer-1", "customer-1"],
+    )
+
+    assert edges == [
+        KnowledgeGraphEdgeSpec(
+            source_node_type_code=NODE_CORPORATE_ENTITY,
+            source_node_id="customer-1",
+            target_node_type_code=NODE_POST,
+            target_node_id="post-1",
+            edge_type_code=EDGE_CUSTOMER_IDENTITY_OBSERVATION,
+        )
+    ]
 
 
 def test_rwr_from_a_keyman_reaches_co_mentioned_person_and_affiliated_org() -> None:

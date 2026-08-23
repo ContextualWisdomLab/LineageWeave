@@ -16,13 +16,14 @@ information at the group's mean θ (Lord, 1980 max-info CAT rule) via
 ``fast_mlsirm.information_polytomous`` -- Samejima (1969) GRM /
 Muraki (1993) GPCM, computed in Rust. A missing bank is not invented.
 
-Leftover post–criterion pairs (ADR 0017) come from the residual
-interaction after those IRT main effects: ``R = Y − E[Y|θ, item]``.
-A Gabriel biplot of ``R`` supplies person and item leftover-map
-positions. Closest / farthest pairs are the min / max Euclidean
-distances on that map (Jeon et al., 2021, eq. 3). ``fast-mlsirm``
-has no leftover-pair API; this module does not invent a second IRT
-fit and does not fork LSIRM.
+Leftover post–criterion pairs (ADR 0017 / 0048 / 0177) come from the
+residual interaction after those IRT main effects:
+``R = Y − E[Y|θ, item]``. A Gabriel biplot of ``R`` supplies person
+and item leftover-map positions. Closest / farthest pairs are the
+min / max Euclidean distances on that map (Jeon et al., 2021, eq. 3).
+Each pair names observed ``Y`` and expected ``E`` so residual
+reconciles to ``Y − E``. ``fast-mlsirm`` has no leftover-pair API;
+this module does not invent a second IRT fit and does not fork LSIRM.
 
 This module is pure compute. Persistence lives in
 ``backend/app/report_ingestion.py``. TEPP is not used here; temporal
@@ -251,7 +252,7 @@ def leftover_pairs_for_fit(
     theta: np.ndarray,
     fit: PolytomousFit,
 ) -> tuple[LeftoverPair, ...]:
-    """Leftover pairs from the already-fitted GRM/GPCM main effects."""
+    """Leftover pairs from the already-fitted GRM/GPCM main effects, with cosine."""
     probs = _category_probabilities(model, theta, fit)
     expected = expected_category_matrix(matrix, probs)
     return leftover_pairs_from_residual(post_ids, item_codes, matrix, expected)

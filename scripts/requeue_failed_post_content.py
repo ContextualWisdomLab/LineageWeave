@@ -37,7 +37,12 @@ async def requeue_post_content(
     client = redis.from_url(valkey_url, decode_responses=True)
     try:
         body_row = await connection.fetchrow(
-            "select post_body from source_post where post_id = $1::uuid",
+            """
+            select post.post_body
+              from source_post post
+             where post.post_id = $1::uuid
+               and coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'
+            """,
             post_id,
         )
         if body_row is None:

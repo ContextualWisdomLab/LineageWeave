@@ -64,7 +64,7 @@ flowchart LR
 | `chunking.py` | Splits a document into meaning-identifiable units (paragraph, sentence, DOM, conversation-turn) plus embedded-image extraction, in document order |
 | `embedding_client.py` | Pluggable text-embedding channel (`Null` default, `OpenAiCompatible` real impl) + `chunked_max_similarity` |
 | `adjudication_client.py` | Pluggable LLM-judgment channel (`Null` default, `ContextualOrchestrator` real impl) |
-| `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl). The product popup (`frontend/src/PostBody.tsx`) renders each `data:image` payload in document order so the buyer sees the picture, not the base64 string; GET does not call the vision client. |
+| `image_content.py` | Pluggable vision channel: OCR + object recognition/tagging for embedded images (`Null` default, `OpenAiCompatibleVisionClient` real impl). The product popup (`frontend/src/PostBody.tsx`) renders each `data:image` payload in document order so the reader sees the picture, not the base64 string; GET does not call the vision client. |
 | `tepp_client.py` | TEPP's published `AnalysisRunRequest` wire contract, pluggable transport |
 | `rankweave_client.py` | Fail-closed RankWeave ranking port (`weighted_reciprocal_rank_fuse` in-process; never invent a fused score or a theta) |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
@@ -301,7 +301,9 @@ config baked in at build time from the same `.env` ports every other
 service uses (Vite embeds `import.meta.env.VITE_*` at build time, not
 runtime, so these are Docker build args, not container env vars).
 `src/App.test.tsx` mocks `react-oidc-context`'s `useAuth` to test the
-component's own render logic (login button -> `signinRedirect()`; the
+component's own render logic (login button stores a safe return path
+then `signinRedirect()`; the signed-out shell never mounts tenant
+admin settings; the
 A-100 fork DAG shows a branch point and rec-006 as its own root;
 `post_admin` can rebuild; fetch posts with the token -> render list ->
 click -> popup shows the fetched body and every panel; ask a chat
@@ -326,7 +328,7 @@ Keymen are affiliated with (`lineageweave/affiliate_tree.py`, loaded by
 set of those leaves, not the whole company directory -- a sibling the
 post never mentions is omitted. People on the tree are buttons that
 reuse `GET /api/keymen/{person_id}/related` so the popup Keyman walk
-starts from the affiliation the buyer clicked. A resolved organization
+starts from the affiliation the reader clicked. A resolved organization
 is the same walk via `GET /api/corporate-entities/{id}/related`. An affiliation that did not resolve to
 a `corporate_entity` row stays as its own root (`resolved=false`); that
 is the same never-guess-a-parent rule
@@ -467,7 +469,7 @@ truly have no dated open tickets.
 
 ## Phase 6-M2: authorized analysis-run evidence (read projection)
 
-Issue #79's first buyer-visible Milestone 2 slice is a source-redacting
+Issue #79's first reader-visible Milestone 2 slice is a source-redacting
 read of the #89 registry. `GET /api/analysis-runs` and
 `GET /api/analysis-runs/{id}` require `post_read` and apply the scope
 in SQL: the requester always sees their own run; a corporate-entity or
@@ -475,7 +477,7 @@ process-unit scope is visible only to affiliated accounts; a
 thread-group scope is visible only when the account can already see a
 post in that group; `all_visible` is requester-only. Hidden runs 404. Detail also lists ABAC-visible post titles in the
 run's scope whose `created_at` is at or before `knowledge_cutoff`
-(ADR 0016) so a buyer can open a post the run was allowed to know
+(ADR 0016) so a reader can open a post the run was allowed to know
 without seeing later live rows or hidden bodies. Detail also returns
 revision and configuration digest prefixes.
 `POST /api/analysis-runs` records a Pending lineage run on a new
@@ -588,8 +590,9 @@ on those same fixed parameters (Kim, 2006 FIPC). After scoring,
 `information_polytomous` ranks the shared-bank items by Fisher
 information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
-residual SVD leftover pairs (Jeon et al., 2021; ADR 0048 / 0181) persist to
-`report_leftover_pair` with two-axis leftover-map reconstruction named on the pair row. Results persist to
+residual SVD leftover pairs (Jeon et al., 2021; ADR 0017 / 0048 / 0177)
+persist to `report_leftover_pair` with observed `Y` and expected
+`E[Y|θ, item]`. Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
@@ -601,7 +604,8 @@ bank as the dummy high/low band rows, so comparison-strip click
 through opens those DAG posts. Report members include the earliest
 open ticket title, status lookup label, and due date when one exists. The home page renders
 the actual mean θ, the FIPC delta, the CAT-selected item, leftover
-closest/farthest pairs above the member list, and the
+closest/farthest pairs (observed `Y` and expected `E` after IRT main
+effects plus leftover-map distance `d`) above the member list, and the
 PU / corp / thread comparison -- never a placeholder. TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer
@@ -925,7 +929,7 @@ code. Wired into both `keyman_ingestion.py`'s affiliation loop and
 ## Standards-complete W3C PROV-O provenance layer
 
 ADR 0011 separates standards-complete provenance from the compact
-buyer-facing navigation graph. `lineageweave/prov_o.py` validates
+reader-facing navigation graph. `lineageweave/prov_o.py` validates
 and materializes all 50 normative PROV-O properties, including
 literal-valued times/values and qualified Influence resources.
 `migrations/0017_prov_o_standard_relations.sql` stores definitions,
