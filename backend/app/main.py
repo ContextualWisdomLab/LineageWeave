@@ -2661,8 +2661,7 @@ async def ask_agent(
     async with pool.acquire() as conn:
         lineage_graph = await lineage_graphs_for_posts(
             conn,
-            lambda row: _can_see_post(account, row)
-            and str(row["corporate_entity_id"]) in account.corporate_entity_ids,
+            lambda row: _can_see_post(account, row),
             cited_ids,
         )
     return {

@@ -89,6 +89,7 @@ async def visible_lineage_graph(
     can_see_post,
     limit: int = 500,
     focus_post_id: str | None = None,
+    include_isolated: bool = False,
 ) -> dict[str, Any]:
     """ABAC-filtered graph bounded for the browser's initial viewport.
 
@@ -132,7 +133,11 @@ async def visible_lineage_graph(
             component_ids.add(current_id)
             frontier.extend(neighbors.get(current_id, set()) - component_ids)
 
-        visible = [row for row in visible_all if str(row["post_id"]) in component_ids]
+        visible = (
+            [row for row in visible_all if str(row["post_id"]) in component_ids]
+            if include_isolated or len(component_ids) > 1
+            else []
+        )
         truncated = False
 
     visible_ids = {str(row["post_id"]) for row in visible}
@@ -193,7 +198,9 @@ async def lineage_graphs_for_posts(
     edges_by_key: dict[tuple[str, str], dict[str, Any]] = {}
     truncated = False
     for post_id in dict.fromkeys(post_ids):
-        graph = await visible_lineage_graph(conn, can_see_post, focus_post_id=post_id)
+        graph = await visible_lineage_graph(
+            conn, can_see_post, focus_post_id=post_id, include_isolated=True
+        )
         truncated = truncated or graph["truncated"]
         for node in graph["nodes"]:
             nodes_by_id[node["id"]] = node
