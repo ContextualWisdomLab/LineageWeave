@@ -1,27 +1,35 @@
 # Product & Technical Gap Baseline
 
-## 1. Known Parsing & Frontend Display Gaps
-- **Footnote Parsing**: `post=00505695-3e61-1fd1-83c5-263f88a9e77a` fails to recognize footnotes (li/oi level errors).
-- **Table Parsing**: `post=00505695-3e61-1fd1-80c6-86bb61c8ddc5` completely fails at parsing tables.
-- **Indentation**: Incorrect indentation rendering in `post=00505695-7571-1fd1-83c3-d521b187ad5b` and `post=00505695-3e61-1fd1-83c0-497b3c1c455e`.
-- **Image/Table OCR**: `post=00505695-7571-1fd1-83dd-3d22a61a5734` fails text recognition for tables inside images, markdown parsing fails, and image OCR description is too shallow for Ontology & Semantics.
-- **Math/Superscripts**: `post=00505695-9612-1fe1-83a7-e30153323f25` fails to parse superscripts like m^3 properly. Needs strict Ontology grammar for math formulas.
-- **Missing UI Elements**: DAG (Directed Acyclic Graph) view is currently missing from the frontend for `post=00505695-7571-1fd1-83c5-895ed333cdbc`.
+## 1. Parsing and reader display
 
-## 2. LLM Extraction & Knowledge Graph Gaps
-- **Multiple Project Extraction**: (Resolved) LLM prompt updated to request key_events as objects with project_name, separating events correctly.
-- **5W1H Missing**: (Resolved) LLM prompt updated to explicitly request 5W1H evidence items in the JSON output array.
-- **R&R and Keyman Missing**: (Resolved) LLM prompt updated to explicitly instruct using actual stated names rather than collective titles.
-- **Entity Resolution / Searxng**: Abbreviations like "한전" and "한국전력" are not mapped properly using Searxng and KG corroboration. 
-- **Meso-level Team Mapping**: (Resolved) Checked extraction logic; `team` mapping logic is present and correct, but LLM needed better explicit instruction which is covered by R&R resolution.
-- **Base64 Image Omni-modal**: Current text-only embedding fails on images. Omni-modal LLM processing is required for images to capture layout, font size, colors, and spatial meaning.
+- **Footnotes**: Synthetic markerless, HTML, Word, citation, and OOXML cases are covered on active PR #446. Authorized runtime validation remains aggregate and non-identifying.
+- **Tables**: Partially resolved. Synthetic DOM tests prove row-atomic parsing and malformed inline-script isolation on PRs #447 and #427; authenticated reader rendering remains open.
+- **Indentation**: Source indentation is preserved for orchestrator adjudication on PR #394. Hosted frontend CI is being rerun after a transient Corepack download failure.
+- **Image/table understanding**: Region evidence and reader rendering exist on PRs #405 and #419. Authenticated table-in-image OCR quality remains open.
+- **Math and superscripts**: Plain caret and HTML `sup`/`sub` quantities are normalized on PR #427; general mathematical grammar remains open.
+- **Lineage DAG**: The reader DAG and Storybook coverage exist on stacked PR #438, based on terminology PR #474.
 
-## 3. General Architecture Gaps
-- **DB Architecture**: Ensure PostgreSQL is strictly used (no file DBs), 3rd normal form is maintained, and Hot Partitions are handled. DB locks must be managed (or use read/write replicas).
-- **Zotero Integration**: Papers and standards referenced by TEPP must be synced via Local Zotero API (http://localhost:23119/api/) and cited using APA 7th edition in docstrings.
-- **Testing**: We need actual testing of Psychometrics (Fast-MLSIRM parameter calibration, RMSE of estimates, Fixed-Item Parameter Calibration, CAT) against synthetic/demo data.
-- **Security & Compliance**: PII masking cannot break the system. Need SOC 2 and CSAP compliance alternatives to blind PII masking. 
-- **Keyverse account scope**: (Active PR) Production tokens must bind the account-derived `org`, `workspace`, and `role` claims to one provisioned local affiliation before ABAC/RBAC; ADR 0156 defines the fail-closed integration.
-- **LLM Orchestration**: (Active PR) All LLM calls route through `contextual-orchestrator`; the Compose bootstrap now registers every available canonical BYTEZ, NVIDIA primary/sub, OPENROUTER, and OPENAI credential for upstream auto-discovery without local provider ranking.
+## 2. Semantic and knowledge-graph evidence
 
-*This document is continuously updated by the hourly automated agent loop.*
+- **Multiple projects, 5W1H, roles, and Keyman**: Synthetic extraction and persisted evidence paths exist. Co-occurrence is not promoted to project, responsibility, or affiliation evidence.
+- **Entity resolution**: Ambiguous organization names remain unbound; live search hints are corroborating evidence only. Authenticated runtime verification remains open.
+- **Omni-modal evidence**: Image regions, OCR, captions, and embeddings cross `contextual-orchestrator`; unsupported or incomplete evidence stays unavailable.
+
+## 3. Internal-library integration
+
+- **ThreadWeave**: Integrated in the production reconstruction path; no local tree-assembly substitute is planned.
+- **RankWeave**: Integrated through the in-process ranking port and fails closed when the package is unavailable or disabled.
+- **fast-mlsirm**: PR #468 pins the refreshed internal package. GRM, GPCM, CAT, and FIPC recovery evidence is split across PRs #451-#454; item-parameter calibration claims remain open where those tests measure theta recovery only.
+- **Keyverse**: PR #468 binds `org`, `workspace`, and roles to one provisioned organization/process-unit affiliation under ADR 0156. The strict contract intentionally denies incomplete affiliations.
+- **contextual-orchestrator**: PR #468 routes generative, VISION, structured-output, and embedding work through the provider-neutral boundary. Upstream model discovery and paper-grounded selection remain contextual-orchestrator responsibilities, not LineageWeave heuristics.
+- **TEPP**: PR #468 sends the published analysis-run body with LineageWeave consumer, contract-version, and idempotency headers and removes the rejected credential-header option. Provider PR TEPP #155 must merge and be deployed before requests can be accepted; completed-result contract/persistence remains dependent on TEPP #157. No local theta substitute is allowed.
+- **Other organization repositories**: `disksage` and `wardnet` do not satisfy a demonstrated LineageWeave product boundary, so no dependency is added.
+
+## 4. Remaining architecture and governance gaps
+
+- **PostgreSQL**: Production persistence uses PostgreSQL and normalized provenance tables. Hot-partition and read-replica work requires measured load evidence before implementation.
+- **Research references**: APA 7 references are maintained in ADRs and research notes. Local Zotero synchronization remains an operator tooling gap, not runtime authority.
+- **Security and compliance**: PII controls must preserve authorized evidence and provenance. SOC 2 and CSAP evidence mapping remains open.
+- **Protected delivery**: Review threads are resolved at the latest audit snapshot, but open PRs remain blocked on independent approval and, for recently updated heads, terminal hosted checks. Local success is not merge evidence.
+
+This file records only synthetic or aggregate non-identifying evidence. It is updated as protected-main evidence changes.
