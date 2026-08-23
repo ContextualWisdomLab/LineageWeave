@@ -1,10 +1,13 @@
-"""Jeon leftover post–criterion pairs after a main-effect IRT (ADR 0048 / 0164).
+"""Jeon leftover post–criterion pairs after a main-effect IRT (ADR 0048 / 0119 / 0164).
 
 Does not import ``fast_mlsirm`` or ``period_report``. A Gabriel biplot
 of the residual ``R = Y − E[Y|θ, item]`` supplies person and item
 positions. Missing response cells are excluded from the factorization;
-they are never treated as zero residuals. Each pair names leftover-map
-rank so a rank-0 collapse is not read as leftover structure.
+they are never treated as zero residuals. Pair distances are Euclidean
+on the two leftover-map axes (Jeon et al., 2021); unused axes pad with
+zero rather than inventing a second component, and hidden SVD axes
+after the second are dropped. Each pair names full leftover-map rank so
+a rank-0 collapse is not read as leftover structure.
 """
 
 from __future__ import annotations
@@ -16,6 +19,7 @@ import numpy as np
 PAIR_KIND_CLOSEST = "closest"
 PAIR_KIND_FARTHEST = "farthest"
 _LEFTOVER_SINGULAR_FLOOR = 1e-12
+_LEFTOVER_MAP_AXES = 2
 
 
 @dataclass(frozen=True)
@@ -40,10 +44,11 @@ def leftover_pairs_from_residual(
 
     Jeon et al. (2021) leftover interaction is ``−γ‖ξ_p − ζ_i‖``. This
     estimator places persons and items from the residual after IRT main
-    effects (Gabriel, 1971). Only observed cells become pairs. A rank-0
-    residual still emits a stable closest/farthest pair so seed is not
-    empty; it does not invent a leftover score. Stored leftover-map rank
-    is the number of Gabriel singular values above the floor.
+    effects (Gabriel, 1971). Only observed cells become pairs. Distances
+    use the two leftover-map axes; a rank-0 residual still emits a
+    stable closest/farthest pair so seed is not empty and does not
+    invent a leftover score. Stored leftover-map rank is the number of
+    Gabriel singular values above the floor.
     """
     if matrix.shape != (len(post_ids), len(item_codes)):
         raise ValueError(
@@ -77,13 +82,15 @@ def leftover_pairs_from_residual(
     if person_pos is not None and item_pos is not None:
         person_index = np.flatnonzero(keep_person)
         item_index = np.flatnonzero(keep_item)
+        person_xy = _pad_map_axes(person_pos)
+        item_xy = _pad_map_axes(item_pos)
         local_person = {int(person): local for local, person in enumerate(person_index)}
         local_item = {int(item): local for local, item in enumerate(item_index)}
         for person, item in observed:
             if person not in local_person or item not in local_item:
                 continue
             distance = float(
-                np.linalg.norm(person_pos[local_person[person]] - item_pos[local_item[item]])
+                np.linalg.norm(person_xy[local_person[person]] - item_xy[local_item[item]])
             )
             if not np.isfinite(distance):
                 continue
@@ -160,7 +167,12 @@ def _complete_case_positions(
 
 
 def _leftover_map_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray, int]:
-    """Gabriel biplot coordinates; rank-0 residuals collapse to the origin."""
+    """Gabriel coordinates ordered by descending singular value.
+
+    NumPy's SVD contract returns singular values largest-first, so filtering
+    by the numerical floor preserves a prefix and the first two columns remain
+    the two leading leftover-map axes. Rank-0 residuals collapse to the origin.
+    """
     n_persons, n_items = filled.shape
     if n_persons == 0 or n_items == 0 or not np.any(np.abs(filled) > _LEFTOVER_SINGULAR_FLOOR):
         return (
@@ -181,3 +193,11 @@ def _leftover_map_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray,
     person_pos = left[:, keep] * scale
     item_pos = right[keep, :].T * scale
     return person_pos, item_pos, leftover_map_rank
+
+
+def _pad_map_axes(positions: np.ndarray) -> np.ndarray:
+    """Pad or truncate Gabriel coordinates to two leftover-map axes."""
+    padded = np.zeros((positions.shape[0], _LEFTOVER_MAP_AXES), dtype=np.float64)
+    width = min(_LEFTOVER_MAP_AXES, positions.shape[1])
+    padded[:, :width] = positions[:, :width]
+    return padded

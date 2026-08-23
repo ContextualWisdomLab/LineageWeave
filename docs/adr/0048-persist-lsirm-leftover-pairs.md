@@ -2,7 +2,7 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-17
-**Amended by:** [ADR 0164](0164-leftover-map-rank.md) (leftover-map rank)
+**Amended by:** [ADR 0119](0119-leftover-map-two-dimensional-distance.md) (two leftover-map axes) and [ADR 0164](0164-leftover-map-rank.md) (leftover-map rank)
 
 ## Context
 
@@ -33,7 +33,8 @@ and one `farthest` observed cell per period report in
 The biplot lives in `lineageweave/leftover_pairs.py` so leftover
 tests do not import `period_report` or `fast_mlsirm`. Each leftover
 row also names leftover-map rank so a rank-0 collapse is not read as
-leftover structure (ADR 0164).
+leftover structure (ADR 0164). Distances are Euclidean on the two
+leftover-map axes (ADR 0119).
 
 Cascade the rows with `report_period_score`. A leftover post must
 also be a `report_member_score` row, and the leftover criterion
