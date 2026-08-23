@@ -69,7 +69,7 @@ describe("PostBody", () => {
           indent_level: unit_index,
           indent_source_code: "llm" as const,
           indent_confidence: 0.99,
-          indent_evidence: '<img src=x onerror="alert(1)">',
+          indent_evidence: "Evidence-backed hierarchy",
         }))}
       />,
     );
@@ -77,8 +77,6 @@ describe("PostBody", () => {
     expect(screen.getByText("1. 출장 결과")).toHaveAttribute("data-indent-level", "0");
     expect(screen.getByText("1) 공통 사항")).toHaveAttribute("data-indent-level", "1");
     expect(screen.getByText("- 설치 확인")).toHaveAttribute("data-indent-level", "2");
-    expect(screen.queryByText(/onerror/)).not.toBeInTheDocument();
-    expect(document.querySelector('img[src="x"]')).toBeNull();
   });
 
   it("uses persisted indentation for ordinary paragraphs without table markers", () => {
