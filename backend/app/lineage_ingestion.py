@@ -91,33 +91,32 @@ async def persist_lineage_edges(conn: asyncpg.Connection, edges: list[Edge]) -> 
         spec.min_fused_score,
         spec.candidate_window,
     )
-    for signal_code, signal_weight in spec.channel_weights:
-        await conn.execute(
-            "insert into event_lineage_rebuild_channel "
-            "(rebuild_lock, signal_code, signal_weight) values (true, $1, $2)",
-            signal_code,
-            signal_weight,
-        )
-    for edge in edges:
-        await conn.execute(
-            "insert into post_lineage_edge (parent_post_id, child_post_id, fused_score) "
-            "values ($1::uuid, $2::uuid, $3)",
-            edge.parent_id,
-            edge.child_id,
-            edge.fused_score,
-        )
-    for row in spec.signal_rows:
-        await conn.execute(
-            "insert into post_lineage_edge_signal "
-            "(parent_post_id, child_post_id, signal_code, signal_score, signal_weight, signal_contribution) "
-            "values ($1::uuid, $2::uuid, $3, $4, $5, $6)",
-            row["parent_post_id"],
-            row["child_post_id"],
-            row["signal_code"],
-            row["signal_score"],
-            row["signal_weight"],
-            row["signal_contribution"],
-        )
+    await conn.executemany(
+        "insert into event_lineage_rebuild_channel "
+        "(rebuild_lock, signal_code, signal_weight) values (true, $1, $2)",
+        spec.channel_weights,
+    )
+    await conn.executemany(
+        "insert into post_lineage_edge (parent_post_id, child_post_id, fused_score) "
+        "values ($1::uuid, $2::uuid, $3)",
+        [(edge.parent_id, edge.child_id, edge.fused_score) for edge in edges],
+    )
+    await conn.executemany(
+        "insert into post_lineage_edge_signal "
+        "(parent_post_id, child_post_id, signal_code, signal_score, signal_weight, signal_contribution) "
+        "values ($1::uuid, $2::uuid, $3, $4, $5, $6)",
+        [
+            (
+                row["parent_post_id"],
+                row["child_post_id"],
+                row["signal_code"],
+                row["signal_score"],
+                row["signal_weight"],
+                row["signal_contribution"],
+            )
+            for row in spec.signal_rows
+        ],
+    )
 
 
 async def _load_lineage_records(conn: asyncpg.Connection) -> list[Record]:

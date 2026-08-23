@@ -315,9 +315,15 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
 class _RecordingConnection:
     def __init__(self) -> None:
         self.statements: list[tuple[str, tuple]] = []
+        self.batches: list[tuple[str, list[tuple]]] = []
 
     async def execute(self, query: str, *args):
         self.statements.append((query, args))
+
+    async def executemany(self, query: str, args):
+        rows = list(args)
+        self.batches.append((query, rows))
+        self.statements.extend((query, row) for row in rows)
 
     async def fetch(self, query: str, *_args):
         return []
@@ -550,6 +556,7 @@ def test_persist_lineage_edges_replaces_signals_atomically_without_llm() -> None
         "lineage_signal_secondary_key",
         "lineage_signal_text",
     ]
+    assert [len(rows) for _query, rows in connection.batches] == [3, 1, 3]
     spec = lineage_rebuild_spec([edge], package_version="2.14.0")
     assert spec.reconstruction_version == "lineageweave.reconstruct/2.14.0"
 
