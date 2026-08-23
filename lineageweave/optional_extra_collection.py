@@ -81,7 +81,7 @@ def collection_path_requires_missing_extras(
         return True
     try:
         text = collection_path.read_text(encoding="utf-8")
-    except OSError:
+    except (OSError, UnicodeError):
         return False
     imported_modules = _imported_module_names(text)
     for name in missing:

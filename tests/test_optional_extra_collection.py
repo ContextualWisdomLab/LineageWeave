@@ -147,6 +147,10 @@ def test_unreadable_or_invalid_python_does_not_suppress_collection(
             is False
         )
 
+    non_utf8 = tmp_path / "test_non_utf8.py"
+    non_utf8.write_bytes(b"\xff")
+    assert collection_path_requires_missing_extras(non_utf8, ("asyncpg",)) is False
+
 
 def test_root_hook_defers_kept_paths_to_other_pytest_ignore_rules(
     tmp_path: Path,
