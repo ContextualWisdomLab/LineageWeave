@@ -100,6 +100,16 @@ def _cited_evidence_kind(fact: str) -> str:
         return "semantic_role"
     if fact.startswith("Keyman mention:"):
         return "semantic_keyman"
+    if fact.startswith("event:"):
+        return "semantic_event"
+    if fact.startswith("event clue:"):
+        return "semantic_event_clue"
+    if fact.startswith("quantitative:"):
+        return "semantic_quantitative"
+    if fact.startswith("source fact:"):
+        return "semantic_source_fact"
+    if fact.startswith("semantic relation:"):
+        return "semantic_relation"
     return "source_field"
 
 
@@ -298,7 +308,7 @@ class ContextualOrchestratorPostChatClient:
     available = True
 
     def __init__(
-        self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float = 180.0
+        self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float = 900.0
     ) -> None:
         self._base_url = base_url.rstrip("/")
         self._api_key = api_key

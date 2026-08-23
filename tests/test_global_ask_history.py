@@ -96,6 +96,8 @@ def test_visible_post_ids_uses_fixed_source_and_citation_queries() -> None:
         assert table in query
         assert column in query
         assert "relation.{" not in query
+        assert "source_draft_code" in query
+        assert "source_deleted_flag" in query
         assert arguments[1] == 1
         assert post_ids == ["post-1"]
         assert rows["post-1"]["post_title"] == "Synthetic source"
