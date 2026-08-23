@@ -272,6 +272,7 @@ describe("i18n", () => {
     setLocale(locale);
     expect(tf("{post} is current in Event Lineage. Read Keyman and evaluation next.", { post: "DEMO" })).toBe(expected);
   });
+
 });
 
 describe("locale-aware source labels", () => {

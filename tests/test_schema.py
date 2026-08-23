@@ -117,6 +117,11 @@ _POST_CONTENT_QUEUE_MIGRATION = (
     / "migrations"
     / "0050_post_content_ingestion_queue.sql"
 )
+_LEFTOVER_OBSERVED_EXPECTED_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0177_report_leftover_observed_expected.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -179,6 +184,7 @@ def schema_db():
                 cur.execute(summary_input_migration)
                 cur.execute(summary_input_migration)
                 cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -460,6 +466,31 @@ def test_leftover_pair_references_member_and_item_rows(schema_db) -> None:
     assert "report_member_score" in targets
     assert "report_item_information" in targets
     assert "report_period_score" in targets
+
+
+def test_leftover_pair_names_nullable_observed_and_expected_columns(schema_db) -> None:
+    """Every install path preserves legacy pairs while naming new Y and E."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select column_name, is_nullable
+            from information_schema.columns
+            where table_name = 'report_leftover_pair'
+            """
+        )
+        columns = dict(cur.fetchall())
+        cur.execute(
+            """
+            select count(*)
+            from pg_constraint
+            where conname = 'leftover_pair_observed_expected_reconcile_chk'
+            """
+        )
+        reconcile_constraint_count = cur.fetchone()[0]
+    assert columns["observed_response"] == "YES"
+    assert columns["expected_response"] == "YES"
+    assert columns["leftover_residual"] == "NO"
+    assert reconcile_constraint_count == 1
 
 
 

@@ -4198,6 +4198,8 @@ function ReportsPanel({
                     <LeftoverPairButton
                       pair={pair}
                       leftoverDistance={pair.leftover_distance}
+                      observedResponse={pair.observed_response}
+                      expectedResponse={pair.expected_response}
                       onOpen={onSelectPost}
                     />
                   </li>

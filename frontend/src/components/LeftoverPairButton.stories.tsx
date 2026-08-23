@@ -25,13 +25,25 @@ const farthest: LeftoverPairOpen = {
   criterion_code: "general_sentiment_negative",
 };
 
-function LeftoverLanding({ pair, leftoverDistance }: { pair: LeftoverPairOpen; leftoverDistance: number }) {
+function LeftoverLanding({
+  pair,
+  leftoverDistance,
+  observedResponse,
+  expectedResponse,
+}: {
+  pair: LeftoverPairOpen;
+  leftoverDistance: number;
+  observedResponse?: number;
+  expectedResponse?: number;
+}) {
   const [focusCode, setFocusCode] = useState<string | null>(null);
   return (
     <section>
       <LeftoverPairButton
         pair={pair}
         leftoverDistance={leftoverDistance}
+        observedResponse={observedResponse}
+        expectedResponse={expectedResponse}
         onOpen={(_postId, options) => setFocusCode(options.focusCriterionCode)}
       />
       {focusCode ? (
@@ -64,11 +76,14 @@ export const ClosestPair: Story = {
     leftoverDistance: 0.12,
     onOpen: () => undefined,
   },
-  render: () => <LeftoverLanding pair={closest} leftoverDistance={0.12} />,
+  render: () => (
+    <LeftoverLanding pair={closest} leftoverDistance={0.12} observedResponse={2.4} expectedResponse={2.0} />
+  ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const button = canvas.getByRole("button", { name: /open leftover closest pair: public post/i });
     await expect(button).toHaveTextContent(leftoverPairNextAction(closest));
+    await expect(button).toHaveTextContent("Y 2.40 · E 2.00");
     await userEvent.click(button);
     const landed = canvas.getByRole("status");
     await expect(landed).toHaveAttribute("id", postQualityCriterionElementId(closest.criterion_code));
