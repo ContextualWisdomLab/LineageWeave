@@ -9,8 +9,12 @@ Accepted.
 Post structure, VISION, OCR, embeddings, summaries, and queue work can run in
 different processes. Existing ADR 0071 already defines a deterministic,
 post-scoped session metadata value, but transport and queue failures were not
-visible as one trace. The organization GRC repository owns the telemetry
-control contract in [ADR 0009](https://github.com/ContextualWisdomLab/governance-risk-compliance/blob/develop/docs/adr/0009-opentelemetry-request-telemetry.md).
+visible as one trace. The proposed organization control contract currently
+lives in [GRC PR #51 at exact head
+`1a8f90dd15f37ffc86b8a0efd217a8b2812e5f99`](https://github.com/ContextualWisdomLab/governance-risk-compliance/blob/1a8f90dd15f37ffc86b8a0efd217a8b2812e5f99/docs/adr/0009-opentelemetry-request-telemetry.md),
+not on protected `develop`. Until that proposal lands, this accepted
+LineageWeave ADR remains the operative product boundary and the GRC proposal
+must not be cited as protected organization evidence.
 
 ## Decision
 

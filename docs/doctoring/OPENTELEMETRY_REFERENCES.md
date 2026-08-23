@@ -1,6 +1,6 @@
 # OpenTelemetry references and implementation traceability
 
-## Normative references
+## Normative and alignment references
 
 - OpenTelemetry Authors. (n.d.). *Manual instrumentation with OpenTelemetry
   Python*. Retrieved August 21, 2026, from
@@ -8,9 +8,11 @@
 - OpenTelemetry Authors. (n.d.). *Service semantic conventions*. Retrieved
   August 21, 2026, from
   https://opentelemetry.io/docs/specs/semconv/registry/attributes/service/
-- ContextualWisdomLab governance-risk-compliance. (2026). *ADR 0009:
-  Emit bounded OpenTelemetry request telemetry*. Retrieved August 21, 2026,
-  from https://github.com/ContextualWisdomLab/governance-risk-compliance/blob/develop/docs/adr/0009-opentelemetry-request-telemetry.md
+- Organization alignment proposal, not protected-`develop` evidence:
+  ContextualWisdomLab governance-risk-compliance PR #51 exact head
+  `1a8f90dd15f37ffc86b8a0efd217a8b2812e5f99`, *ADR 0009: Emit bounded
+  OpenTelemetry request telemetry*. Retrieved August 23, 2026, from
+  https://github.com/ContextualWisdomLab/governance-risk-compliance/blob/1a8f90dd15f37ffc86b8a0efd217a8b2812e5f99/docs/adr/0009-opentelemetry-request-telemetry.md
 
 ## Implementation mapping
 
