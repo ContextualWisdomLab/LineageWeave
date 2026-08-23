@@ -937,11 +937,15 @@ particular:
 - use lw_supports for an explicit organization-to-named-project support
   statement such as "provided installation support for [project]" or
   "supported [project]"; generic work wording is not enough;
-- use lw_plans_to_operate only for an explicitly planned facility whose actor
-  is an organization or team in ROLES and whose facility has a matching PROJECTS row;
-  the same supporting phrase must name both the actor and facility, and the
-  facility object type must be industrial_asset or place. Never use this planned
-  predicate for a facility the source says is already operating;
+- use lw_plans_to_operate only for an explicitly planned facility relation
+  stated by the source. The actor type must be organization or team, the
+  facility object type must be industrial_asset or place. The same supporting phrase must name both
+  the actor and facility. The application
+  admits the candidate only when a separate extraction pass has a matching
+  ROLES actor and a matching PROJECTS row. Do not suppress an explicit source relation
+  merely because those separate sections are not shown in this
+  request. Never use this planned predicate for a facility the source says is
+  already operating;
 - emit separate organization-to-project rows when the source explicitly
   assigns different organizations different project responsibilities;
 - do not turn attendance, an affiliation field, or a project mention alone

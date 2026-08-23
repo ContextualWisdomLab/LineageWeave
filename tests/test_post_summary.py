@@ -590,6 +590,8 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
     assert "lw_plans_to_operate" in relations_prompt
     assert "same supporting phrase must name both" in relations_prompt
     assert "matching PROJECTS row" in relations_prompt
+    assert "separate extraction pass" in relations_prompt
+    assert "Do not suppress an explicit source relation" in relations_prompt
     assert summary.roles_and_responsibilities[0].actor_name == "Jordan Hale"
     assert summary.project_mentions[0].canonical_name == "hvdc-pilot"
     assert summary.semantic_relationships == (
