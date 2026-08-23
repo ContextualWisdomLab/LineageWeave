@@ -33,6 +33,21 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
     ).read_text(encoding="utf-8")
 
     assert "0012_*" in script
+
+
+def test_tenant_settings_migration_is_safe_to_replay() -> None:
+    """Existing Compose volumes receive tenant settings without repeat failures."""
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(
+        encoding="utf-8"
+    )
+    migration = (root / "migrations" / "0103_tenant_settings.sql").read_text(
+        encoding="utf-8"
+    ).casefold()
+
+    assert "0103_*" in script
+    assert "create table if not exists tenant_settings" in migration
+    assert "on conflict (id) do nothing" in migration
 def test_channel_weight_migration_preserves_raw_source_grouping() -> None:
     migration = (
         Path(__file__).resolve().parents[1]
