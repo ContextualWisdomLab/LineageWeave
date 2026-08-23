@@ -997,8 +997,10 @@ async def create_pending_analysis_run(
     await conn.execute(
         """
         insert into analysis_run_status_event
-            (analysis_run_id, status_ordinal, status_code, occurred_at)
-        values ($1, 1, 'analysis_status_pending', clock_timestamp())
+            (analysis_run_id, status_ordinal, status_code,
+             occurred_at, recorded_at)
+        select $1, 1, 'analysis_status_pending', write_clock, write_clock
+        from (select clock_timestamp() as write_clock) same_clock
         """,
         run_id,
     )
