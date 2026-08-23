@@ -101,7 +101,7 @@ async def fetch_voc_evidence(conn: asyncpg.Connection, post_id: str, voc_type_co
         post_id,
     )
     names: list[str] = [row["counterparty_entity_name"] for row in counterparties]
-    for person in await fetch_post_keymen(conn, post_id):
+    for person in await fetch_post_keymen(conn, post_id, organization_aliases=()):
         names.extend(affiliation["organization_name"] for affiliation in person["affiliations"])
     return {
         "post_id": post_id,

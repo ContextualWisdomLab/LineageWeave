@@ -130,3 +130,18 @@ def test_affiliate_forest_reuses_one_corroborated_alias_load(monkeypatch) -> Non
     assert asyncio.run(ingestion.fetch_affiliate_forest(conn, "post-1")) == []
     fetch_aliases.assert_awaited_once_with(conn)
     fetch_keymen.assert_awaited_once_with(conn, "post-1", organization_aliases=aliases)
+
+
+def test_voc_evidence_skips_unused_organization_aliases(monkeypatch) -> None:
+    """VOC excerpts need affiliation names, not alias decoration or its query."""
+
+    conn = AsyncMock()
+    conn.fetchrow.side_effect = [{"lookup_label": "VOC"}, {"post_body": "Demo Corp update."}]
+    conn.fetch.return_value = []
+    fetch_keymen = AsyncMock(return_value=[])
+    monkeypatch.setattr(ingestion, "fetch_post_keymen", fetch_keymen)
+
+    payload = asyncio.run(ingestion.fetch_voc_evidence(conn, "post-1", "voc"))
+
+    assert payload["voc_type_label"] == "VOC"
+    fetch_keymen.assert_awaited_once_with(conn, "post-1", organization_aliases=())
