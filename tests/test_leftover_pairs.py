@@ -84,7 +84,6 @@ def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
 
 
 def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
-    """A rank-zero map retains deterministic closest and farthest rows."""
     post_ids = ["alpha-post", "beta-post"]
     item_codes = ("item_one", "item_two")
     matrix = np.ones((2, 2), dtype=np.float64)
@@ -133,7 +132,6 @@ def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
 
 
 def test_leftover_is_empty_without_observed_cells() -> None:
-    """An entirely missing response matrix yields no invented pair."""
     post_ids = ["post-empty"]
     item_codes = ("item_one",)
     matrix = np.array([[np.nan]], dtype=np.float64)

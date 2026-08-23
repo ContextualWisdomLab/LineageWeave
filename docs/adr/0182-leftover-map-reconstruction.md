@@ -1,4 +1,4 @@
-# ADR 0181 — Name two-axis leftover-map reconstruction on period-report pair rows
+# ADR 0182 — Name two-axis leftover-map reconstruction on period-report pair rows
 
 **Decision status:** Accepted
 **Date:** 2026-08-24
@@ -14,11 +14,11 @@ ADR 0049 already renders closest and farthest pairs above the member
 list and opens the named post. Distance is the Jeon et al. (2021,
 eq. 3) map gap. Gabriel (1971) reconstructs a matrix from the biplot
 as the inner product of person and item coordinates. The leftover map
-buyers read is two-axis: unused axes pad with zero, and hidden SVD
+readers read is two-axis: unused axes pad with zero, and hidden SVD
 axes after the second are dropped. Full-rank inner product `ξ·ζ`
 therefore reconstructs the centered residual, not the cell the
 two-axis map shows. Hiding two-axis reconstruction `R̂ = ξ_{1:2} · ζ_{1:2}`
-lets a buyer read leftover residual `R` or leftover-map distance `d`
+lets a reader read leftover residual `R` or leftover-map distance `d`
 as the reconstructed leftover cell.
 
 This increment does not persist leftover-map coordinates, does not
@@ -29,7 +29,7 @@ distance onto two axes, and does not land Post quality on the leftover
 criterion. Leftover-map distance stays full-rank Euclidean.
 
 The unprotected-stack reconstructions for neighbouring leftover facts
-use 0162–0180. This protected-main increment uses **0181** so it does
+use 0162–0180. This protected-main increment uses **0182** so it does
 not collide with leftover-map cosine (0180), leftover-map inner product
 (0179), leftover residual disclosure (0178), leftover observed `Y` /
 expected `E` (0177), leftover-map rank (0172), two-axis leftover-map
@@ -40,7 +40,7 @@ distance (0166), leftover coverage (0168), leftover-map axis share
 
 Each leftover pair names `leftover_map_reconstruction` — the two-axis
 Gabriel reconstruction `R̂ = ξ_{1:2} · ζ_{1:2}` of the leftover-map
-person and item coordinates. Migration `0181` is the single source of
+person and item coordinates. Migration `0182` is the single source of
 the column on every install path, fresh or existing -- shipped
 migrations (`0001` / `0012`) are never edited after the fact. The
 column is nullable so older leftover rows keep distance and residual

@@ -1,4 +1,4 @@
--- ADR 0181: persist two-axis leftover-map reconstruction R̂ = ξ_{1:2} · ζ_{1:2}
+-- ADR 0182: persist two-axis leftover-map reconstruction R̂ = ξ_{1:2} · ζ_{1:2}
 -- on leftover post–criterion pairs. Distance stays Euclidean leftover-map d.
 -- Upgrade column is nullable so older leftover rows keep distance and
 -- residual without fabricating a reconstruction. This migration is the

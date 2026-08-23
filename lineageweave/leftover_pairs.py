@@ -82,8 +82,6 @@ def leftover_pairs_from_residual(
     if person_pos is not None and item_pos is not None:
         person_index = np.flatnonzero(keep_person)
         item_index = np.flatnonzero(keep_item)
-        person_xy = _pad_map_axes(person_pos)
-        item_xy = _pad_map_axes(item_pos)
         local_person = {int(person): local for local, person in enumerate(person_index)}
         local_item = {int(item): local for local, item in enumerate(item_index)}
         for person, item in observed:
