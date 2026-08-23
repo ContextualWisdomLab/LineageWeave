@@ -123,10 +123,11 @@ orchestrator integration skip, and frontend Knowledge Graph/i18n checks passed
 `30`. The exact-head coverage-instrumented full Python suite passed `971`
 tests with `16` skips; production Python source measured `87%` branch-aware
 coverage across `8,021` statements and `2,484` branches, with `813` missed
-statements and `390` partial branches. The full frontend suite passed `267`
-tests, and frontend lint/build plus `git diff --check` passed. Repository-wide
-100% coverage, frontend coverage measurement, and visual browser acceptance
-remain separate open gates.
+statements and `390` partial branches. The temporal Python delta itself has
+`7/7` changed executable statements and `2/2` changed branches covered.
+The full frontend suite passed `267` tests, and frontend lint/build plus
+`git diff --check` passed. Repository-wide 100% coverage, frontend coverage
+measurement, and visual browser acceptance remain separate open gates.
 
 The historical evidence below remains valid only at the exact heads and dates
 stated in each entry. It must not be used as proof that the current continuation
