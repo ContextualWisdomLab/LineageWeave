@@ -1,4 +1,4 @@
-# ADR 0119: Bind Keyverse account claims to one local authorization scope
+# ADR 0156: Bind Keyverse account claims to one local authorization scope
 
 ## Status
 

@@ -20,7 +20,7 @@ must not be presented as one.
    `KEYVERSE_JWKS_URI` are explicit overrides for deployments where discovery
    is proxied.
 3. The verified `sub` is resolved to a provisioned `user_account`; the database
-   remains authoritative for affiliations and permissions. ADR 0119 further
+   remains authoritative for affiliations and permissions. ADR 0156 further
    requires the production Keyverse `org`, `workspace`, and `role` claims to
    select one matching local scope before either authority is used.
 4. Compose uses its existing local Keycloak realm only when no Keyverse issuer

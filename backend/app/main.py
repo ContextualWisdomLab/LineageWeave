@@ -421,6 +421,7 @@ def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
         str(post["corporate_entity_id"]) in account.corporate_entity_ids
         and (
             not account.process_unit_ids
+            or post["process_unit_id"] is None
             or str(post["process_unit_id"]) in account.process_unit_ids
         )
     )
@@ -562,6 +563,7 @@ async def _post_filter_options(
          where (post.visibility_code = 'public'
             or (post.corporate_entity_id::text = any($1::text[])
                 and (cardinality($2::text[]) = 0
+                     or post.process_unit_id is null
                      or post.process_unit_id::text = any($2::text[]))))
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
@@ -577,6 +579,7 @@ async def _post_filter_options(
          where (post.visibility_code = 'public'
             or (post.corporate_entity_id::text = any($1::text[])
                 and (cardinality($2::text[]) = 0
+                     or post.process_unit_id is null
                      or post.process_unit_id::text = any($2::text[]))))
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
@@ -726,6 +729,7 @@ async def read_customer_master(
                    and (visibility_code = 'public' or (
                         corporate_entity_id = any($1::uuid[])
                         and (cardinality($2::uuid[]) = 0
+                             or process_unit_id is null
                              or process_unit_id = any($2::uuid[]))))
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
             ), ranked as (
@@ -796,6 +800,7 @@ async def read_customer_master(
                    and (post.visibility_code = 'public' or (
                         post.corporate_entity_id = any($1::uuid[])
                         and (cardinality($2::uuid[]) = 0
+                             or post.process_unit_id is null
                              or post.process_unit_id = any($2::uuid[]))))
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
             ), ranked as (
@@ -1205,6 +1210,7 @@ async def list_posts(
              where (post.visibility_code = 'public'
                 or (post.corporate_entity_id::text = any($2::text[])
                     and (cardinality($9::text[]) = 0
+                         or post.process_unit_id is null
                          or post.process_unit_id::text = any($9::text[]))))
                and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
                and (
