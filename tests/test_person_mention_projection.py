@@ -780,3 +780,88 @@ def test_same_name_person_roles_bind_the_earliest_catalog_row(
 
     database_dsn, post_id, _summary_person_id = projection_database.split("|")
     asyncio.run(_exercise_same_name_person_catalog_order(database_dsn, post_id))
+
+
+async def _exercise_two_project_event_streams_stay_separate(
+    database_dsn: str,
+    post_id: str,
+) -> None:
+    """case-multi-project-01: two named projects on one post must keep
+    their own key events -- an event's project_key only survives onto the
+    persisted row when it matches an actually-declared project_mentions
+    entry (`_replace_summary_projection`'s allow-list join), so a stray or
+    misattributed key never borrows another project's identity."""
+
+    connection = await asyncpg.connect(database_dsn)
+    try:
+        payload = await persist_post_summary(
+            connection,
+            post_id,
+            PostSummary(
+                korean_summary="두 프로젝트가 독립적으로 진행되었다.",
+                key_events=(
+                    "Alpha 프로젝트 착수",
+                    "Beta 프로젝트 착수",
+                    "Alpha 프로젝트 1차 검토 완료",
+                    "관련 없는 일반 공지",
+                ),
+                key_event_details=(
+                    KeyEvent(event_text="Alpha 프로젝트 착수", project_key="Project Alpha"),
+                    KeyEvent(event_text="Beta 프로젝트 착수", project_key="Project Beta"),
+                    KeyEvent(
+                        event_text="Alpha 프로젝트 1차 검토 완료",
+                        project_key="Project Alpha",
+                    ),
+                    KeyEvent(event_text="관련 없는 일반 공지"),
+                ),
+                project_mentions=(
+                    ProjectMention(
+                        project_name="Project Alpha",
+                        canonical_name="Project Alpha",
+                        evidence="Alpha 프로젝트 관련 근거",
+                        confidence=0.9,
+                    ),
+                    ProjectMention(
+                        project_name="Project Beta",
+                        canonical_name="Project Beta",
+                        evidence="Beta 프로젝트 관련 근거",
+                        confidence=0.9,
+                    ),
+                ),
+            ),
+        )
+
+        events_by_text = {
+            event["event_text"]: event["project_name"] for event in payload["key_event_details"]
+        }
+        assert events_by_text["Alpha 프로젝트 착수"] == "Project Alpha"
+        assert events_by_text["Beta 프로젝트 착수"] == "Project Beta"
+        assert events_by_text["Alpha 프로젝트 1차 검토 완료"] == "Project Alpha"
+        # An event naming no project stays unattached -- never guessed onto
+        # either declared project just because two exist on this post.
+        assert events_by_text["관련 없는 일반 공지"] is None
+
+        fetched = await fetch_persisted_summary(connection, post_id)
+        assert fetched is not None
+        fetched_events_by_text = {
+            event["event_text"]: event["project_name"] for event in fetched["key_event_details"]
+        }
+        assert fetched_events_by_text == events_by_text
+
+        project_keys = {
+            project["project_name"] for project in fetched["project_mentions"]
+        }
+        assert project_keys == {"Project Alpha", "Project Beta"}
+    finally:
+        await connection.close()
+
+
+def test_two_projects_on_one_post_keep_separate_key_event_streams(
+    projection_database: str,
+) -> None:
+    """case-multi-project-01 (docs/product-technical-gap-baseline.md §4):
+    two projects mentioned in one post must produce separate event
+    streams, never conflated onto a single project."""
+
+    database_dsn, post_id, _summary_person_id = projection_database.split("|")
+    asyncio.run(_exercise_two_project_event_streams_stay_separate(database_dsn, post_id))

@@ -295,8 +295,15 @@ The following user-reported cases remain tracked without storing real post IDs:
 - `case-footnote-01`: footnote/list `li`/`ol` boundary is misclassified.
 - `case-table-01`: HTML table parsing fails.
 - `case-indent-01` and `case-indent-02`: semantic indentation is wrong.
-- `case-multi-project-01`: two projects must produce separate event streams;
-  internal facilities must not be guessed as Partner/Supplier.
+- `case-multi-project-01`: two projects must produce separate event streams
+  (synthetic unit coverage added in this worktree --
+  `tests/test_person_mention_projection.py`'s
+  `test_two_projects_on_one_post_keep_separate_key_event_streams` persists a
+  post with two declared `project_mentions` and confirms each `KeyEvent`
+  keeps its own `project_key`, with an event naming no project staying
+  unattached rather than guessed onto either); internal facilities must not
+  be guessed as Partner/Supplier remains open -- a separate claim about
+  entity role classification, not addressed by this event-stream test.
 - `case-image-table-01`: image tables need region-aware OCR/description and
   rendered Markdown/table support.
 - `case-summary-affiliation-01`: a role such as PM needs person, title, and
