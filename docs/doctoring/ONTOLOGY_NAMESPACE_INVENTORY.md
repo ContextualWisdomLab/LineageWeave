@@ -1,0 +1,78 @@
+# Public ontology namespace inventory
+
+**Observed repository head:** `ef6f5a5f` (`origin/main`, 2026-08-23)
+**Decision:** [ADR 0157](../adr/0157-public-ontology-namespace-identity.md)
+**Issue:** [#372](https://github.com/ContextualWisdomLab/LineageWeave/issues/372)
+
+This is a non-identifying repository inventory. It does not inspect or copy
+private runtime records. An unobserved downstream store is classified as
+unknown, not empty.
+
+## Protected-main inventory
+
+| Surface | Lowercase namespace | Repository-case namespace | Compatibility risk |
+|---|---|---|---|
+| Ontology source | `docs/ontology/lineageweave-kg.ttl` prefix and ontology IRI | — | Lowercase terms are the formal vocabulary. |
+| Runtime resolver | `lineageweave/ontology.py` (`LW`, `LOOKUP_CODE`) | — | Every generated lookup IRI is lowercase. |
+| PROV-O support profile | — | `docs/ontology/prov-o-support-profile.ttl` prefix and four class mappings | Public RDF can already be copied into external graphs. |
+| Relational persistence | `post_project_mention.ontology_iri` accepts runtime-generated text | `provenance_resource.resource_iri` accepts arbitrary external IRIs | Existing private rows are not inspected; both columns are migration surfaces. |
+| Backend serialization | Project and ontology annotations return `ontology_iri` | — | API consumers may persist emitted lowercase IRIs. |
+| Frontend | Typed API fields consume `ontology_iri`; tests use representative lowercase class IRIs | — | UI links and exports must stay synchronized with the migration. |
+| Tests/examples | Backend, frontend, ontology, and post-chat tests assert lowercase strings | PROV-O contract test asserts repository-case class IRIs | Tests currently preserve the split. |
+| Generated publication | Not present on protected main | Not present on protected main | No Pages artifact is protected-main evidence yet. |
+
+The tracked exact-string occurrences on protected main are:
+
+- lowercase: `docs/ontology/lineageweave-kg.ttl`,
+  `lineageweave/ontology.py`, `backend/tests/test_api.py`,
+  `frontend/src/App.test.tsx`, and `tests/test_post_chat.py`;
+- repository-case: `docs/ontology/prov-o-support-profile.ttl` and
+  `tests/test_prov_o.py`.
+
+## Open-PR impact inventory
+
+Open PR content is migration impact evidence, not protected-main authority.
+
+| PR | Exact audited head | Additional surface |
+|---|---|---|
+| #258 | `d26c4c5f7db2faabfa7f110fc205db2c17fd0ca6` | SHACL and interoperability tests add lowercase consumers while retaining the repository-case support profile. |
+| #349 | `40286c1f1e3d25b1e28dc6464ebd031d601fa800` | Ontology Explorer stories consume lowercase IRIs. |
+| #426 | `4828b3a5e4eb180bb3cb9c5a06d1327e1003065a` | Pages generator and tests publish at the repository-case project path but deliberately do not migrate semantic identifiers. |
+| #490 | `87f74c6395b7090421965359222fa29f9dd9a84d` | Knowledge-graph code, SHACL, and a semantic-projection migration add further persisted/serialized namespace surfaces. |
+
+Re-fetch these heads before using the inventory for implementation. PR #426
+contains the publication work formerly proposed by closed, unmerged PR #371.
+
+## External-consumer classification
+
+- **Known export-capable:** RDF ontology/support-profile files and API
+  `ontology_iri` fields can leave the repository boundary.
+- **Known persistence-capable:** `post_project_mention.ontology_iri` and
+  `provenance_resource.resource_iri` can retain values across releases.
+- **Unknown actual population:** customer databases, cached API responses,
+  generated RDF bundles, and downstream graph stores are not inspectable from
+  repository evidence. Migration must assume both namespace forms may exist.
+- **Not evidence:** repository search cannot prove that a public IRI was never
+  copied, indexed, cached, or stored elsewhere.
+
+## Reproducible audit commands
+
+```bash
+git grep -n -E \
+  'contextualwisdomlab\.github\.io/(lineageweave|LineageWeave)/ontology' \
+  origin/main
+
+gh api 'repos/ContextualWisdomLab/LineageWeave/pulls?state=open&per_page=100' \
+  --paginate --jq '.[].number'
+```
+
+The second command supplies the live PR set. Each head was fetched and scanned
+with `git grep` rather than inferred from PR titles.
+
+## ADR number collision audit
+
+At the time of this inventory, ADR `0143` is independently introduced by open
+PRs #258, #355, and #490. ADRs `0150`–`0156` are also occupied by open PRs.
+No protected-main or live open-PR file used `0157`, so this decision uses ADR
+0157. Recheck immediately before integration; the number is not a global
+allocator reservation.
