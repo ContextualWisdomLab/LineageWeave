@@ -72,6 +72,7 @@ def test_build_publishes_dereferenceable_html_and_machine_formats(tmp_path: Path
 
     html = (ontology_dir / "index.html").read_text(encoding="utf-8")
     assert '<link rel="canonical" href="https://contextualwisdomlab.github.io/LineageWeave/ontology">' in html
+    assert "canonical metadata fetches no subresource" in html
     assert 'id="Post"' in html
     assert 'href="#Post"' in html
     assert "LineageWeave Knowledge Graph Ontology" in html
@@ -97,6 +98,20 @@ def test_render_term_escapes_untrusted_ontology_text() -> None:
     assert "<script>alert(1)</script>" not in rendered
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in rendered
     assert "A &lt;source&gt; &amp; evidence." in rendered
+
+
+def test_render_term_omits_missing_lookup_code_and_does_not_link_external_iris() -> None:
+    builder = _load_builder()
+    graph = Graph()
+    term = builder.URIRef("https://example.test/ontology#Term")
+    external = builder.URIRef("http://www.w3.org/2002/07/owl#Class")
+    graph.add((term, builder.RDF.type, external))
+
+    rendered = builder._render_term(graph, term, {term})
+
+    assert "Lookup code" not in rendered
+    assert f"<code>{external}</code>" in rendered
+    assert f'href="{external}"' not in rendered
 
 
 def test_preferred_literal_uses_english_before_untagged_and_other_languages() -> None:

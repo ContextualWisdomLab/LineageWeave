@@ -28,6 +28,10 @@ from rdflib.namespace import OWL, RDF, RDFS, SKOS
 
 PUBLIC_BASE_URL = "https://contextualwisdomlab.github.io/LineageWeave"
 DOCUMENTATION_URL = f"{PUBLIC_BASE_URL}/ontology"
+CANONICAL_LINK_SUPPRESSION = (
+    "<!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity "
+    "-- canonical metadata fetches no subresource -->"
+)
 SOURCE_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg.ttl")
 PROV_PROFILE_RELATIVE_PATH = Path("docs/ontology/prov-o-support-profile.ttl")
 COMPATIBILITY_RELATIVE_PATH = Path("docs/ontology/namespace-compatibility.ttl")
@@ -123,11 +127,11 @@ def _term_href(value: URIRef, ontology_subjects: set[URIRef]) -> str:
 
 
 def _render_link(value: URIRef, ontology_subjects: set[URIRef]) -> str:
-    """Render one safe HTML link for an ontology or external resource."""
+    """Render a local term link or a non-navigating external RDF identifier."""
+    if value not in ontology_subjects:
+        return f"<code>{html.escape(str(value))}</code>"
     href = html.escape(_term_href(value, ontology_subjects), quote=True)
-    label = html.escape(_fragment(value) if value in ontology_subjects else str(value))
-    external = "" if value in ontology_subjects else ' rel="external noreferrer"'
-    return f'<a href="{href}"{external}>{label}</a>'
+    return f'<a href="{href}">{html.escape(_fragment(value))}</a>'
 
 
 def _render_relation_rows(
@@ -169,9 +173,13 @@ def _render_term(graph: Graph, subject: URIRef, ontology_subjects: set[URIRef]) 
     )
     relation_rows = _render_relation_rows(graph, subject, ontology_subjects)
     type_links = ", ".join(_render_link(value, ontology_subjects) for value in type_values)
-    lookup_html = "".join(
-        f"<code>{html.escape(code)}</code>" for code in lookup_codes
-    ) or "<span>None</span>"
+    lookup_row = (
+        "<dt>Lookup code</dt><dd>"
+        + "".join(f"<code>{html.escape(code)}</code>" for code in lookup_codes)
+        + "</dd>"
+        if lookup_codes
+        else ""
+    )
     comment_html = (
         f'<p class="term-comment">{html.escape(comment)}</p>' if comment else ""
     )
@@ -184,7 +192,7 @@ def _render_term(graph: Graph, subject: URIRef, ontology_subjects: set[URIRef]) 
         f"{comment_html}"
         '<dl class="term-facts">'
         f"<dt>RDF type</dt><dd>{type_links or '<span>Unspecified</span>'}</dd>"
-        f"<dt>Lookup code</dt><dd>{lookup_html}</dd>"
+        f"{lookup_row}"
         f"{relation_rows}"
         "</dl>"
         "</article>"
@@ -277,6 +285,7 @@ a { color: #174ea6; }
 a:focus-visible, button:focus-visible { outline: 3px solid #f2b705; outline-offset: 3px; }
 header { color: white; background: #102a43; padding: 3rem max(1.25rem, calc((100vw - 78rem)/2)); }
 header p { max-width: 70ch; color: #d9e8f5; }
+header a { color: #fff; }
 header code { overflow-wrap: anywhere; }
 main { max-width: 78rem; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
 .downloads, .summary-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
@@ -328,7 +337,8 @@ def _render_ontology_page(graph: Graph, source_sha256: str) -> tuple[str, int]:
         '<meta name="viewport" content="width=device-width, initial-scale=1">\n'
         f"<title>{html.escape(label)}</title>\n"
         f'<meta name="description" content="{html.escape(comment, quote=True)}">\n'
-        f'<link rel="canonical" href="{DOCUMENTATION_URL}">\n'
+        f'<link rel="canonical" href="{DOCUMENTATION_URL}"> '
+        f"{CANONICAL_LINK_SUPPRESSION}\n"
         '<link rel="alternate" type="text/turtle" href="ontology.ttl" title="Turtle">\n'
         '<link rel="alternate" type="application/ld+json" href="ontology.jsonld" title="JSON-LD">\n'
         '<link rel="alternate" type="application/n-triples" href="ontology.nt" title="N-Triples">\n'
@@ -375,6 +385,7 @@ def _render_root_page() -> str:
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         "<title>LineageWeave public specifications</title>"
         f'<link rel="canonical" href="{PUBLIC_BASE_URL}/">'
+        f"{CANONICAL_LINK_SUPPRESSION}"
         f"<style>{_style_sheet()}</style></head><body>"
         "<header><h1>LineageWeave public specifications</h1>"
         "<p>Stable, machine-readable public artifacts published from the protected repository source.</p></header>"

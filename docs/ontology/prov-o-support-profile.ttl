@@ -9,7 +9,8 @@
     a owl:Ontology ;
     dcterms:title "LineageWeave PROV-O support profile"@en ;
     dcterms:conformsTo <http://www.w3.org/TR/2013/REC-prov-o-20130430/> ;
-    owl:imports <http://www.w3.org/ns/prov-o#> ;
+    owl:imports <http://www.w3.org/ns/prov-o#>,
+        <https://contextualwisdomlab.github.io/lineageweave/ontology/namespace-compatibility.ttl> ;
     rdfs:comment "The runtime supports all 30 PROV-O classes, all 50 normative properties, both qualification tables, and Appendix B inverse names without redefining the W3C vocabulary."@en .
 
 :Post rdfs:subClassOf prov:Entity .

@@ -55,8 +55,10 @@ interchangeable.
    A term without sufficient evidence receives no equivalence assertion.
 5. Existing repository-case class IRIs in the PROV-O support profile are
    compatibility inputs, not authority to mint more repository-case terms.
-   Their migration is a later implementation slice with RDF-isomorphism and
-   term-kind tests.
+   Until their migration, the profile imports the term-kind-validated
+   compatibility vocabulary so its subclass assertions also apply to the
+   canonical terms. Their direct migration is a later implementation slice
+   with RDF-isomorphism and term-kind tests.
 6. Historical RDF, provenance bundles, and evidence rows are immutable.
    Migration tooling may create a versioned canonical projection and retain a
    source-to-target mapping, but must not silently rewrite the historical
