@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-24 02:47 KST. This repository records synthetic
+> Audit snapshot: 2026-08-24 03:19 KST. This repository records synthetic
 > fixtures and aggregate, non-identifying runtime evidence only. Open PRs and
 > local checks are not protected-default-branch release evidence.
 
@@ -8,8 +8,8 @@
 
 The protected default branch was
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` when this baseline was refreshed.
-The live queue contained 54 open PRs and no independently approved head.
-Twenty-one current heads had an aggregate failed check state, seven had pending
+The live queue contained 53 open PRs and no independently approved head.
+Twenty-two current heads had an aggregate failed check state, four had pending
 checks, and no current head retained an unresolved review thread.
 Those results must be re-fetched against the current head before remediation or
 a merge claim.
@@ -97,20 +97,23 @@ local green evidence, do not authorize transfer of a Strix result.
 
 Current active-PR evidence remains outside protected `main`:
 
-- PR #258 at `52deb37294aa647e4be4b4b1c6448b52ba861e49` carries ADR 0146's
-  distributed MCP principal rate-limit decision. Its current hosted checks
-  were running while a failed Devin status remained; it had no unresolved
-  thread or exact-head approval.
-- PR #426 at `f6f295057eea649caf00fa119345c43cb57c2415` is the current
+- PR #258 at `f0b5234db6d3b8ef76cfd98126f6d7165e9308dc` carries ADR 0146's
+  distributed MCP principal rate-limit decision. Its current MCP lifespan uses
+  the standard-library `AsyncExitStack` so a limiter-factory failure closes an
+  already-open database pool and normal shutdown remains ordered. Forty-seven
+  focused MCP tests passed. It had no unresolved thread or exact-head approval;
+  the current Devin failure supplied no review, comment, or annotation.
+- PR #426 at `c4a16c20bbdd50cbf51d596448e4c09fe38cea31` is the current
   prerequisite carrier for ontology publication and the merged ADR 0157 and
   compatibility-publication stacks. ADR 0036 now explicitly names the OWL 2
   Full/RDF-Based semantics required by the retained `rdf:Statement` contract,
   and the PROV support-profile IRI is canonical lowercase. Seventy-seven
   focused ontology tests, deterministic publication, and profile byte-equality
-  passed on source head `9b47ce42`; later stack merge `f6f29505` adds the
-  reviewed two-axis leftover map. It had no unresolved review thread or
-  exact-head approval; hosted checks were pending. Results from prior heads are
-  stale, and Pages activation alone does not deploy this unmerged source.
+  passed on source head `9b47ce42`; later stack merges add the reviewed two-axis
+  leftover map, observed/expected residual operands, and optional-extra
+  collection repair. It had no unresolved review thread or exact-head approval;
+  hosted checks were pending. Results from prior heads are stale, and Pages
+  activation alone does not deploy this unmerged source.
 - PR #355 at `6fc22a9471bfb4d94b18f884e012cd823b296382` carries ADR 0145's
   Naruon calendar projection boundary. Its aggregate checks failed, with no
   unresolved thread or exact-head approval.
@@ -175,7 +178,7 @@ Current active-PR evidence remains outside protected `main`:
   Its review follow-ups reused existing imports and a named helper; the latest
   focused suite passed 13 tests. It had no unresolved thread, failure, or
   exact-head approval; hosted checks restarted.
-- PR #490 at `c92206727c7de9d8511713cc1a2b5d98c63c96b9` is the current carrier
+- PR #490 at `63f3231d249f20b0f34f7fc56fbd3f28f62f6d0c` is the current carrier
   of the consolidated product stack and includes ADR 0143. ADR 0144 was absent
   from both this exact tree and protected `main`, so it is not attributed to
   this head. The validated post-merge #505 migration correction was transplanted
@@ -197,26 +200,36 @@ Current active-PR evidence remains outside protected `main`:
   into non-default #426. It reuses the shared OIDC gate and measures leftover
   distance on the first two retained Gabriel axes; 140 frontend tests, lint,
   typecheck, and build passed. This is not protected-main evidence.
-- Stacked PR #511 at `d5fe5797dd4e160c902b5aaddd8c674da845936e`
-  aligns the Python reconciliation boundary with the database's strict
-  `1e-6` constraint and persists observed/expected leftover operands without
-  fabricating historical values. Fourteen focused PostgreSQL, migration, and
-  leftover tests passed; hosted checks restarted with no unresolved thread or
-  exact-head approval.
-- Stacked PR #513 at `a992e374fd25ff04728986ded9a85905fe2bca18`
+- Stacked PR #511 at `9227477774565ea2a89b52c38769c0080060e0c7`
+  merged normally as `4dd8b364bb2ea2db036e47c15dd87eff2b560d42`
+  into non-default #426. It aligns the Python reconciliation boundary with the
+  database's strict `1e-6` constraint and persists observed/expected leftover
+  operands without fabricating historical values. PostgreSQL, migration, API,
+  frontend, lint, and build checks passed; this is not protected-main evidence.
+- Stacked PR #513 at `2b9dfacfd66707b7920ffc5b02efdbbde008a68a`
   keeps migration 0164 as the sole sequential source for leftover-map rank and
-  composes it with #508's two-axis distance. Nineteen focused backend tests,
-  80 frontend tests, lint, and build passed; hosted checks remained pending.
+  composes it with #508's two-axis distance and #511's observed/expected
+  operands. The composed head passed 144 backend tests, 179 frontend tests,
+  lint, build, and 37 latest-base focused tests. Its hosted full, frontend,
+  CodeRabbit, and Devin checks then reached terminal success, and it merged
+  normally as `c4a16c20bbdd50cbf51d596448e4c09fe38cea31` into non-default
+  #426. This remains stack evidence, not protected-main evidence.
 - Stacked PR #514 at `b90d976270036adce8464434836d7e1541ba5223`
   merged normally as `d02ab8fda2a6d561991e0f88f71e18d5dafe4a49`
   into non-default #490 after documentation hygiene passed. Its effective diff
   removed one trailing ADR blank line; it is not protected-main evidence.
+- Stacked PR #515 at `2d11b4b87beed3eaa7e452349a2daedb44cc32f7`
+  carries quantity superscript display work onto non-default
+  `feat/quantity-superscript-display-v2129`. Fifty-one backend tests, forty
+  frontend tests, lint, build, Ruff, and diff-check passed; hosted full and
+  frontend suites also succeeded. Devin remained pending, so the exact head
+  was not terminal green and was not merged.
 
 ## 3. Open product and technical gaps
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 54 PRs remained open, none had an independent current-head approval, twenty-one current heads had an aggregate failed check state, seven had pending checks, and none retained an unresolved review thread | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
+| Protected release | 53 PRs remained open, none had an independent current-head approval, twenty-two current heads had an aggregate failed check state, four had pending checks, and none retained an unresolved review thread | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Image understanding | Region, OCR, and description work exists across active heads | Orchestrator-backed rendered workflow, original/derived asset provenance, and honest unsupported states |
 | Semantic source rendering | Paragraph, table, list, and formula parsing exists across active stacks | Authenticated browser evidence that semantic units render without authoring-layout artifacts |
