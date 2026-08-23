@@ -43,6 +43,11 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     / "migrations"
     / "0102_project_bound_summary_event.sql"
 )
+_LEFTOVER_MAP_LENGTH_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0181_report_leftover_map_length.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -79,6 +84,7 @@ def schema_db():
                 cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_LENGTH_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -170,6 +176,25 @@ def test_leftover_pair_references_member_and_item_rows(schema_db) -> None:
     assert "report_member_score" in targets
     assert "report_item_information" in targets
     assert "report_period_score" in targets
+
+
+def test_leftover_pair_map_length_columns_are_nullable(schema_db) -> None:
+    """0181 adds leftover-map lengths without fabricating values on old rows."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select column_name, is_nullable
+            from information_schema.columns
+            where table_name = 'report_leftover_pair'
+              and column_name in (
+                  'leftover_map_person_length',
+                  'leftover_map_item_length'
+              )
+            """
+        )
+        columns = {row[0]: row[1] for row in cur.fetchall()}
+    assert columns["leftover_map_person_length"] == "YES"
+    assert columns["leftover_map_item_length"] == "YES"
 
 
 

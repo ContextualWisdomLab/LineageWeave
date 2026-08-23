@@ -2,6 +2,7 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-17
+**Amended by:** [ADR 0181](0181-leftover-map-length.md) (leftover-map length)
 
 ## Context
 

@@ -356,6 +356,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "관측된 원본 작성자 {total}명 중 게시물 수 기준 상위 {shown}명을 표시합니다.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "대화형 질문을 지금 사용할 수 없습니다. 저장된 근거는 계속 확인할 수 있습니다.",
+    "Leftover-map length ‖ξ‖ {person} and ‖ζ‖ {item} names leftover-map magnitude independently of leftover-map distance. Open this post to read {criterion}.":
+      "잔여 지도 길이 ‖ξ‖ {person} 및 ‖ζ‖ {item}이(가) 잔여 지도 거리와 별개로 잔여 지도 크기를 이름 붙입니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
   },
   zh: {
     "Unknown": "未知",
@@ -694,6 +696,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "显示按文章数排序的 {total} 位已观察来源作者中的前 {shown} 位。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "交互式提问暂不可用；已保存的证据仍可查看。",
+    "Leftover-map length ‖ξ‖ {person} and ‖ζ‖ {item} names leftover-map magnitude independently of leftover-map distance. Open this post to read {criterion}.":
+      "残差图长度 ‖ξ‖ {person} 与 ‖ζ‖ {item} 标明与残差图距离无关的残差图幅度。打开这篇帖子阅读 {criterion}。",
   },
   ja: {
     "Unknown": "不明",
@@ -1032,6 +1036,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "投稿数順に、観測された{total}名の元投稿者のうち上位{shown}名を表示しています。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "対話形式の質問は現在利用できません。保存された証拠は確認できます。",
+    "Leftover-map length ‖ξ‖ {person} and ‖ζ‖ {item} names leftover-map magnitude independently of leftover-map distance. Open this post to read {criterion}.":
+      "残差マップ長さ ‖ξ‖ {person} と ‖ζ‖ {item} が残差マップ距離とは独立に残差マップの大きさを示します。この投稿を開いて {criterion} を読んでください。",
   },
   vi: {
     "Unknown": "Không rõ",
@@ -1370,6 +1376,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Đang hiển thị {shown} tác giả nguồn hàng đầu trong số {total} tác giả đã quan sát, xếp theo số bài viết.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "Câu hỏi tương tác hiện không khả dụng; bằng chứng đã lưu vẫn có thể xem.",
+    "Leftover-map length ‖ξ‖ {person} and ‖ζ‖ {item} names leftover-map magnitude independently of leftover-map distance. Open this post to read {criterion}.":
+      "Độ dài bản đồ phần dư ‖ξ‖ {person} và ‖ζ‖ {item} đặt tên độ lớn trên bản đồ phần dư, độc lập với khoảng cách bản đồ phần dư. Mở bài viết này để đọc {criterion}.",
   },
 };
 

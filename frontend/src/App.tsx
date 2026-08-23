@@ -102,6 +102,12 @@ import {
   useLocale,
 } from "./i18n";
 import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
+import {
+  formatLeftoverMapItemLength,
+  formatLeftoverMapLength,
+  formatLeftoverMapPersonLength,
+  LEFTOVER_MAP_LENGTH_ACTION,
+} from "./leftoverMapLength";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -3394,11 +3400,19 @@ function ReportsPanel({
                 {report.leftover_pairs.map((pair) => {
                   const kindLabel =
                     pair.pair_kind === "farthest" ? "Farthest leftover" : "Closest leftover";
-                  const nextAction =
-                    pair.pair_kind === "farthest"
-                      ? "Open this post to read the criterion it sat farthest from after main effects."
-                      : "Open this post to read the criterion it sat closest to after main effects.";
                   const criterion = criterionShortLabel(pair.criterion_code);
+                  const personLength = formatLeftoverMapPersonLength(pair.leftover_map_person_length);
+                  const itemLength = formatLeftoverMapItemLength(pair.leftover_map_item_length);
+                  const nextAction =
+                    personLength === null || itemLength === null
+                      ? pair.pair_kind === "farthest"
+                        ? "Open this post to read the criterion it sat farthest from after main effects."
+                        : "Open this post to read the criterion it sat closest to after main effects."
+                      : tf(LEFTOVER_MAP_LENGTH_ACTION, {
+                          person: formatLeftoverMapLength(pair.leftover_map_person_length) ?? "—",
+                          item: formatLeftoverMapLength(pair.leftover_map_item_length) ?? "—",
+                          criterion,
+                        });
                   return (
                     <li
                       key={`${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
@@ -3413,6 +3427,8 @@ function ReportsPanel({
                           {kindLabel}: {pair.post_title} · {criterion}
                         </span>
                         <span className="post-badge">{nextAction}</span>
+                        {personLength ? <span className="post-badge">{personLength}</span> : null}
+                        {itemLength ? <span className="post-badge">{itemLength}</span> : null}
                         <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
                       </button>
                     </li>

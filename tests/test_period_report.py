@@ -225,6 +225,10 @@ def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
     }
     assert farthest.leftover_residual == pytest.approx(-2.0)
     assert farthest.leftover_distance == pytest.approx(2.0 * np.sqrt(2.0), rel=1e-6)
+    assert closest.leftover_map_person_length == pytest.approx(0.0, abs=1e-9)
+    assert closest.leftover_map_item_length == pytest.approx(0.0, abs=1e-9)
+    assert farthest.leftover_map_person_length == pytest.approx(np.sqrt(2.0), rel=1e-6)
+    assert farthest.leftover_map_item_length == pytest.approx(np.sqrt(2.0), rel=1e-6)
 
 
 def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
@@ -266,6 +270,12 @@ def test_calibrated_report_attaches_leftover_pairs() -> None:
         assert pair.criterion_code in items
         assert pair.leftover_distance >= 0.0
         assert np.isfinite(pair.leftover_residual)
+        if pair.leftover_map_person_length is not None:
+            assert pair.leftover_map_person_length >= 0.0
+            assert np.isfinite(pair.leftover_map_person_length)
+        if pair.leftover_map_item_length is not None:
+            assert pair.leftover_map_item_length >= 0.0
+            assert np.isfinite(pair.leftover_map_item_length)
 
 
 

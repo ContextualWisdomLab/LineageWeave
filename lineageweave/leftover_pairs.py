@@ -1,9 +1,13 @@
-"""Jeon leftover post–criterion pairs after a main-effect IRT (ADR 0017).
+"""Jeon leftover post–criterion pairs after a main-effect IRT.
+
+Implements ADR 0048 as amended by ADR 0181.
 
 Does not import ``fast_mlsirm`` or ``period_report``. A Gabriel biplot
 of the residual ``R = Y − E[Y|θ, item]`` supplies person and item
 positions. Missing response cells are excluded from the factorization;
-they are never treated as zero residuals.
+they are never treated as zero residuals. Each map pair names leftover
+map lengths ``‖ξ‖`` and ``‖ζ‖`` so leftover-map magnitude is not
+confused with leftover-map Euclidean distance ``d``.
 """
 
 from __future__ import annotations
@@ -26,6 +30,8 @@ class LeftoverPair:
     criterion_code: str
     leftover_distance: float
     leftover_residual: float
+    leftover_map_person_length: float | None = None
+    leftover_map_item_length: float | None = None
 
 
 def leftover_pairs_from_residual(
@@ -40,7 +46,10 @@ def leftover_pairs_from_residual(
     estimator places persons and items from the residual after IRT main
     effects (Gabriel, 1971). Only observed cells become pairs. A rank-0
     residual still emits a stable closest/farthest pair so seed is not
-    empty; it does not invent a leftover score.
+    empty; it does not invent a leftover score. When Gabriel coordinates
+    exist, leftover-map lengths name leftover-map magnitude independently
+    of Euclidean distance. Fallback pairs (no complete-case map) omit
+    lengths rather than fabricating them.
     """
     if matrix.shape != (len(post_ids), len(item_codes)):
         raise ValueError(
@@ -68,7 +77,7 @@ def leftover_pairs_from_residual(
     else:
         center = float(np.mean([residual[person, item] for person, item in observed]))
     person_pos, item_pos = _complete_case_positions(residual, center, keep_person, keep_item)
-    candidates: list[tuple[float, str, str, float]] = []
+    candidates: list[tuple[float, str, str, float, float | None, float | None]] = []
     if person_pos is not None and item_pos is not None:
         person_index = np.flatnonzero(keep_person)
         item_index = np.flatnonzero(keep_item)
@@ -77,47 +86,87 @@ def leftover_pairs_from_residual(
         for person, item in observed:
             if person not in local_person or item not in local_item:
                 continue
-            distance = float(
-                np.linalg.norm(person_pos[local_person[person]] - item_pos[local_item[item]])
-            )
+            person_coord = person_pos[local_person[person]]
+            item_coord = item_pos[local_item[item]]
+            distance = float(np.linalg.norm(person_coord - item_coord))
             if not np.isfinite(distance):
                 continue
             candidates.append(
-                (
-                    max(distance, 0.0),
-                    post_ids[person],
-                    item_codes[item],
-                    float(residual[person, item]),
+                _candidate_row(
+                    post_ids,
+                    item_codes,
+                    residual,
+                    person,
+                    item,
+                    distance,
+                    _leftover_map_length(person_coord),
+                    _leftover_map_length(item_coord),
                 )
             )
     if not candidates:
         for person, item in observed:
             distance = abs(float(residual[person, item]) - center)
             candidates.append(
-                (
-                    max(distance, 0.0),
-                    post_ids[person],
-                    item_codes[item],
-                    float(residual[person, item]),
+                _candidate_row(
+                    post_ids,
+                    item_codes,
+                    residual,
+                    person,
+                    item,
+                    distance,
+                    None,
+                    None,
                 )
             )
     closest = min(candidates, key=lambda row: (row[0], row[1], row[2]))
     farthest = max(candidates, key=lambda row: (row[0], row[1], row[2]))
     return (
-        LeftoverPair(
-            pair_kind=PAIR_KIND_CLOSEST,
-            post_id=closest[1],
-            criterion_code=closest[2],
-            leftover_distance=closest[0],
-            leftover_residual=closest[3],
-        ),
-        LeftoverPair(
-            pair_kind=PAIR_KIND_FARTHEST,
-            post_id=farthest[1],
-            criterion_code=farthest[2],
-            leftover_distance=farthest[0],
-            leftover_residual=farthest[3],
-        ),
+        _pair_from_candidate(PAIR_KIND_CLOSEST, closest),
+        _pair_from_candidate(PAIR_KIND_FARTHEST, farthest),
+    )
+
+
+def _leftover_map_length(coord: np.ndarray) -> float | None:
+    """Gabriel leftover-map Euclidean length; omit non-finite norms."""
+    value = float(np.linalg.norm(coord))
+    if not np.isfinite(value):
+        return None
+    return max(0.0, value)
+
+
+def _candidate_row(
+    post_ids: list[str],
+    item_codes: tuple[str, ...],
+    residual: np.ndarray,
+    person: int,
+    item: int,
+    distance: float,
+    leftover_map_person_length: float | None,
+    leftover_map_item_length: float | None,
+) -> tuple[float, str, str, float, float | None, float | None]:
+    """One observed leftover cell: distance, ids, residual, map lengths."""
+    return (
+        max(distance, 0.0),
+        post_ids[person],
+        item_codes[item],
+        float(residual[person, item]),
+        leftover_map_person_length,
+        leftover_map_item_length,
+    )
+
+
+def _pair_from_candidate(
+    pair_kind: str, row: tuple[float, str, str, float, float | None, float | None]
+) -> LeftoverPair:
+    """Build a leftover pair from a candidate row."""
+    return LeftoverPair(
+        pair_kind=pair_kind,
+        post_id=row[1],
+        criterion_code=row[2],
+        leftover_distance=row[0],
+        leftover_residual=row[3],
+        leftover_map_person_length=row[4],
+        leftover_map_item_length=row[5],
     )
 
 
