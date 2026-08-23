@@ -1965,25 +1965,22 @@ def test_nonexistent_post_is_not_found(client, demo_analyst_token) -> None:
     assert response.status_code == 404
 
 
-def test_healthz_is_reachable_without_a_token(client) -> None:
-    # Live bug (2026-08-22): two @app.get decorators stacked before
-    # read_tenant_settings meant "/healthz" and "/api/settings" both routed
-    # to that auth-required handler, and the real healthz() below had no
-    # route at all -- the docker-compose backend healthcheck
-    # (urllib.request.urlopen against /healthz, no Authorization header)
-    # would have failed on every fresh deployment.
-    response = client.get("/healthz")
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+def test_settings_get_returns_the_seeded_brand_name(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """An authenticated reader receives the persisted synthetic brand."""
 
-
-def test_settings_get_returns_the_seeded_brand_name(client, demo_analyst_token, seeded_db) -> None:
-    response = client.get("/api/settings", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    response = client.get(
+        "/api/settings",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
     assert response.status_code == 200
     assert response.json() == {"brandName": "LineageWeave"}
 
 
 def test_update_settings_requires_post_admin(client, demo_analyst_token, seeded_db) -> None:
+    """A non-admin reader cannot mutate tenant presentation settings."""
+
     response = client.patch(
         "/api/settings",
         json={"brandName": "Someone Else's Brand"},
@@ -1992,7 +1989,11 @@ def test_update_settings_requires_post_admin(client, demo_analyst_token, seeded_
     assert response.status_code == 403
 
 
-def test_update_settings_as_admin_changes_the_brand_name(client, demo_analyst_token, seeded_db) -> None:
+def test_update_settings_as_admin_changes_the_brand_name(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """A post admin can persist and subsequently read a synthetic brand."""
+
     _grant_post_admin(seeded_db["dsn"])
     patch_response = client.patch(
         "/api/settings",
@@ -2002,7 +2003,10 @@ def test_update_settings_as_admin_changes_the_brand_name(client, demo_analyst_to
     assert patch_response.status_code == 200
     assert patch_response.json() == {"brandName": "Renamed Corp"}
 
-    get_response = client.get("/api/settings", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    get_response = client.get(
+        "/api/settings",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
     assert get_response.json() == {"brandName": "Renamed Corp"}
 
 
@@ -5018,3 +5022,14 @@ def test_post_search_matches_source_record_key_and_one_character_typo(
     fuzzy = client.get("/api/posts", params={"search": typo}, headers=headers)
     assert fuzzy.status_code == 200, fuzzy.text
     assert any(post["post_id"] == seeded_db["own_private_post_id"] for post in fuzzy.json()["posts"])
+
+
+def test_healthz_is_a_public_liveness_probe_not_tenant_settings(client) -> None:
+    """/healthz must stay the plain liveness probe, never the tenant-settings route it once
+    collided with when a stray decorator stacked onto read_tenant_settings."""
+    health = client.get("/healthz")
+    assert health.status_code == 200
+    assert health.json() == {"status": "ok"}
+
+    unauthenticated_settings = client.get("/api/settings")
+    assert unauthenticated_settings.status_code in (401, 403)

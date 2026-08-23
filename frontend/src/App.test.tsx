@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { setLocale } from "./i18n";
+import { OIDC_RETURN_URL_STORAGE_KEY } from "./oidcReturnUrl";
 
 const signinRedirect = vi.fn();
 const signoutRedirect = vi.fn();
@@ -28,11 +29,14 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  window.sessionStorage.removeItem(OIDC_RETURN_URL_STORAGE_KEY);
+  window.localStorage.removeItem(OIDC_RETURN_URL_STORAGE_KEY);
 });
 
 describe("App, unauthenticated", () => {
   it("shows a login button that starts the real OIDC redirect", async () => {
     render(<App showLabPanels />);
+    expect(screen.queryByRole("heading", { name: /admin settings/i })).toBeNull();
     const button = screen.getByRole("button", { name: /log in/i });
     await userEvent.click(button);
     expect(signinRedirect).toHaveBeenCalledTimes(1);
@@ -41,9 +45,8 @@ describe("App, unauthenticated", () => {
         state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
       }),
     );
-    // Persisted as a fallback in case the OIDC state round-trip is dropped
-    // (see oidcReturnUrl.ts's restoreOidcReturnUrl, consumed in main.tsx).
-    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toMatch(/^\//);
+    expect(window.sessionStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toMatch(/^\//);
+    expect(window.localStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toMatch(/^\//);
   });
 });
 

@@ -588,6 +588,7 @@ async def read_tenant_settings(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ):
+    """Return the tenant's current brand name, defaulting to "LineageWeave" if unset."""
     async with pool.acquire() as conn:
         row = await conn.fetchrow("SELECT brand_name FROM tenant_settings WHERE id = 1")
     if not row:
@@ -600,6 +601,7 @@ async def update_tenant_settings(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ):
+    """Admin-only: upsert the tenant's brand name and return the stored value."""
     # Only admins can change settings
     _require_post_admin(account)
     brand_name = payload.get("brandName", "LineageWeave")
@@ -657,10 +659,14 @@ async def read_me(
 
 
 class LocalePreferenceRequest(BaseModel):
+    """Body of a PATCH /api/me/preferences request."""
+
     preferred_locale: Literal["en", "ko", "zh", "ja", "vi"]
 
 
 class CustomerHintResolveRequest(BaseModel):
+    """Body of a POST /api/customer-master/resolve-hint request."""
+
     hint_code: str
 
 
@@ -2662,6 +2668,8 @@ async def ask_agent(
 
 
 class PostBookmarkRequest(BaseModel):
+    """Body of a POST /api/posts/{post_id}/bookmark request."""
+
     bookmarked: bool
 
 
@@ -2671,6 +2679,7 @@ async def read_post_bookmark(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
+    """Report whether the current account has bookmarked this post."""
     await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -2688,6 +2697,7 @@ async def write_post_bookmark(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
+    """Set or clear the current account's bookmark on this post."""
     await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
         if request.bookmarked:
