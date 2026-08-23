@@ -858,7 +858,7 @@ Grounded in SKOS `skos:altLabel`/`skos:prefLabel` (Miles & Bechhofer,
 2009). After a pair is search-corroborated, both labels compete as
 virtual candidates for the **same** `corporate_entity_id`, so a later
 mention of `AGP` or `Aurora Grid Power` reuses one catalog row instead
-of inserting a second `AUTO-` identity (ADR 0158). Wired into
+of inserting a second `AUTO-` identity (ADR 0160). Wired into
 `backend/app/keyman_ingestion.py`'s affiliation loop
 and the offline synthetic-batch script's paced re-implementation of it
 (the batch script's own copy was also missing `role_title` persistence

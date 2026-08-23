@@ -24,10 +24,10 @@ The transaction-scoped lock is acquired immediately before persistence and is re
 1. The lock is acquired only after inference and verification complete. Holding it across network I/O would unnecessarily serialize unrelated workers.
 2. Under the lock, candidates and corroborated organization aliases are
    reloaded. Raw candidates repeat the normal similarity classification; a
-   parent resolved by the current recursion is excluded so it cannot absorb
-   its child. Alias-expanded candidates then repeat ADR 0158's exact-label
-   check. Another transaction may have committed the same entity or alias
-   after the caller's original snapshot was read.
+   full ancestor path resolved by the current recursion is excluded so an
+   ancestor cannot absorb its child. Alias-expanded candidates then repeat
+   ADR 0160's exact-label check. Another transaction may have committed the
+   same entity or alias after the caller's original snapshot was read.
 3. The key is one fixed creation-path key rather than a per-name key. Per-name locking still permits the opposite-order multi-entity deadlock shape `A: [X, Y]` versus `B: [Y, X]`.
 4. The already-cataloged resolution path remains lock-free.
 

@@ -67,7 +67,7 @@ class OrganizationNameAlias:
     ``alt_label`` is the abbreviated/slang form stored as
     ``organization_name_resolution.raw_organization_name``. ``pref_label``
     is the canonical form stored as ``resolved_organization_name``. Only
-    search-corroborated rows belong here (ADR 0008 / ADR 0158).
+    search-corroborated rows belong here (ADR 0008 / ADR 0160).
     """
 
     alt_label: str

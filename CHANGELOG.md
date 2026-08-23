@@ -11,11 +11,15 @@ All notable changes to this project are documented here. Format follows
 - Corroborated SKOS `altLabel` / `prefLabel` pairs now expand corporate
   catalog candidates so a synthetic short form (`AGP`) and full form
   (`Aurora Grid Power`) bind one `corporate_entity` row instead of
-  creating a second `AUTO-` identity (ADR 0158). Tied scores still stay
+  creating a second `AUTO-` identity (ADR 0160). Tied scores still stay
   unbound.
 
 ### Fixed
 
+- Corporate-entity creation repeats normal similarity classification after
+  its lock to catch concurrent ties, while excluding the full resolved
+  ancestor path so no inferred ancestor can absorb its child. The separate
+  corroborated-alias recheck remains exact-only (ADR 0012 / ADR 0160).
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.

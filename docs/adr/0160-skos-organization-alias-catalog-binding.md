@@ -1,4 +1,4 @@
-# ADR 0158 — Corroborated SKOS aliases bind one corporate catalog row
+# ADR 0160 — Corroborated SKOS aliases bind one corporate catalog row
 
 **Decision status:** Accepted
 **Date:** 2026-08-23
