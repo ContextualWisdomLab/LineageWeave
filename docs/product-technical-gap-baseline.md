@@ -74,11 +74,11 @@ ontology URL, repository-case ontology URL, and repository-case
 `namespace-compatibility.ttl` URL each returned HTTP 404. Source and active-PR
 publication contracts therefore do not prove an available public endpoint.
 Cross-repository organization-site PR #188 at
-`c9c2003aaf7aaaf17f9ed54d66459e02c8f64a64` provides the owned lowercase
+`a25f72146688f920555b91b275d4eb92aa6200e9` provides the owned lowercase
 route from LineageWeave artifact commit `c8a4be8f`; its 19 local tests passed
 and its static acceptance returned HTTP 200. The PR remains open with hosted
-checks queued, so that result is not protected deployment evidence and the
-live HTTP 404 remains authoritative.
+checks pending, no unresolved thread, and no approval, so that result is not
+protected deployment evidence and the live HTTP 404 remains authoritative.
 
 Current active-PR evidence remains outside protected `main`:
 
