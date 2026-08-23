@@ -122,6 +122,7 @@ async def get_or_create_corporate_entity(
     aliases: Sequence[OrganizationNameAlias] | None = None,
     _depth: int = 0,
     _visited_names: frozenset[str] = frozenset(),
+    _ancestor_entity_ids: set[str] | None = None,
 ) -> str | None:
     """Return a verified catalog id, otherwise ``None``.
 
@@ -140,6 +141,9 @@ async def get_or_create_corporate_entity(
     visit_key = normalized_name.casefold()
     if visit_key in _visited_names:
         return None
+    ancestor_entity_ids = (
+        _ancestor_entity_ids if _ancestor_entity_ids is not None else set()
+    )
 
     existing = score_corporate_entity(normalized_name, candidates)
     if existing.kind == RESOLUTION_UNIQUE and existing.catalog_id is not None:
@@ -222,9 +226,11 @@ async def get_or_create_corporate_entity(
             aliases=resolved_aliases,
             _depth=_depth + 1,
             _visited_names=visited_names,
+            _ancestor_entity_ids=ancestor_entity_ids,
         )
         if parent_entity_id is None:
             return None
+        ancestor_entity_ids.add(parent_entity_id)
 
     async with conn.transaction():
         await conn.execute(
@@ -234,11 +240,11 @@ async def get_or_create_corporate_entity(
         # ponytail: exclude the resolved parent before repeating normal raw
         # scoring, or a parent created by this recursion can absorb its child.
         fresh_candidates = await _reload_candidates(conn)
-        if parent_entity_id is not None:
+        if ancestor_entity_ids:
             fresh_candidates = [
                 candidate
                 for candidate in fresh_candidates
-                if candidate.corporate_entity_id != parent_entity_id
+                if candidate.corporate_entity_id not in ancestor_entity_ids
             ]
         fresh = score_corporate_entity(
             normalized_name,

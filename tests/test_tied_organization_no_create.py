@@ -69,6 +69,17 @@ class _ParentProposalInferenceClient:
         return HierarchyProposal(level_code="company", parent_name=parent_name)
 
 
+class _GrandparentProposalInferenceClient:
+    available = True
+
+    def infer(self, organization_name: str, context_text: str) -> HierarchyProposal:
+        parent_name = {
+            "Aurora Grid Holdings Division": "Aurora Grid Operations",
+            "Aurora Grid Operations": "Aurora Grid Holdings",
+        }.get(organization_name)
+        return HierarchyProposal(level_code="company", parent_name=parent_name)
+
+
 class _Transaction:
     """Minimal async transaction context manager."""
 
@@ -145,6 +156,23 @@ class _ParentAwareConnection(_ReloadTieConnection):
             if organization_name == "Aurora Grid Power"
             else "child-row"
         )
+        self.rows.append(
+            {
+                "corporate_entity_id": corporate_entity_id,
+                "entity_name": organization_name,
+            }
+        )
+        return {"corporate_entity_id": corporate_entity_id}
+
+
+class _GrandparentAwareConnection(_ParentAwareConnection):
+    async def fetchrow(self, query: str, *args: Any) -> dict[str, Any]:
+        organization_name = args[2]
+        corporate_entity_id = {
+            "Aurora Grid Holdings": "grandparent-row",
+            "Aurora Grid Operations": "parent-row",
+            "Aurora Grid Holdings Division": "child-row",
+        }[organization_name]
         self.rows.append(
             {
                 "corporate_entity_id": corporate_entity_id,
@@ -250,6 +278,29 @@ def test_post_lock_raw_scoring_excludes_recursively_resolved_parent() -> None:
 
     assert result == "child-row"
     assert [row["corporate_entity_id"] for row in connection.rows] == [
+        "parent-row",
+        "child-row",
+    ]
+
+
+def test_post_lock_raw_scoring_excludes_entire_resolved_ancestor_path() -> None:
+    connection = _GrandparentAwareConnection()
+
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            connection,
+            "Aurora Grid Holdings Division",
+            "Synthetic context",
+            _GrandparentProposalInferenceClient(),
+            _LiveVerificationClient(),
+            [],
+            aliases=[],
+        )
+    )
+
+    assert result == "child-row"
+    assert [row["corporate_entity_id"] for row in connection.rows] == [
+        "grandparent-row",
         "parent-row",
         "child-row",
     ]
