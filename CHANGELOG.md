@@ -12,7 +12,23 @@ All notable changes to this project are documented here. Format follows
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 
+## [2.16.0] - 2026-08-23
+
+### Added
+
+- Canonical knowledge-graph namespace remains
+  `https://contextualwisdomlab.github.io/lineageweave/ontology#`.
+  The repository-case PROV-O support-profile prefix stays a documentation
+  alias. `docs/ontology/namespace-compatibility.ttl` maps only the four
+  matching classes (`Post`, `Person`, `CorporateEntity`, `Team`) with
+  `owl:equivalentClass`. Both documents are specified as HTTP 200. A
+  GitHub Pages redirect is not RDF identity. Historical lowercase IRIs
+  are not rewritten. After `make seed`, Demo Analyst still sees the same
+  ontology IRIs on related-node chips; RDF consumers load the
+  compatibility file for the four class aliases (ADR 0158).
+
 ## [2.12.6] - 2026-08-20
+
 
 ### Added
 

@@ -1,0 +1,65 @@
+@prefix : <https://contextualwisdomlab.github.io/lineageweave/ontology#> .
+@prefix compat: <https://contextualwisdomlab.github.io/lineageweave/ontology-namespace-compat#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix pages: <https://contextualwisdomlab.github.io/LineageWeave/ontology#> .
+
+#################################################################
+# LineageWeave ontology namespace compatibility vocabulary (ADR 0158)
+#
+# Canonical KG namespace (runtime, persisted evidence):
+#   https://contextualwisdomlab.github.io/lineageweave/ontology#
+# Repository-case PROV-O support-profile prefix (documentation path):
+#   https://contextualwisdomlab.github.io/LineageWeave/ontology#
+#
+# GitHub Pages project paths are case-sensitive. A documentation HTTP
+# redirect is NOT RDF identity (RDF 1.1 Concepts §3.2). Both documents
+# are specified as HTTP 200. This file maps only the four class terms
+# that share local name AND term kind. It does not claim owl:sameAs
+# between the KG ontology document and the PROV-O support profile, and
+# it does not claim owl:equivalentClass or owl:equivalentProperty for
+# unmatched fragments.
+#################################################################
+
+<https://contextualwisdomlab.github.io/lineageweave/ontology-namespace-compat>
+    a owl:Ontology ;
+    dcterms:title "LineageWeave ontology namespace compatibility"@en ;
+    rdfs:comment "Compatibility vocabulary between the canonical lowercase KG namespace and the repository-case PROV-O support-profile prefix. A Pages redirect is not RDF identity."@en ;
+    owl:imports <https://contextualwisdomlab.github.io/lineageweave/ontology> ,
+                <https://contextualwisdomlab.github.io/LineageWeave/prov-o-support> ;
+    dcterms:conformsTo <https://www.w3.org/TR/owl2-overview/> ,
+                       <https://www.w3.org/TR/skos-reference/> ,
+                       <https://www.w3.org/TR/rdf11-concepts/> .
+
+# The two *documents* remain distinct resources. SKOS closeMatch records
+# that both describe LineageWeave ontology documentation without claiming
+# the KG vocabulary and the PROV-O support profile are the same ontology.
+<https://contextualwisdomlab.github.io/lineageweave/ontology>
+    skos:closeMatch <https://contextualwisdomlab.github.io/LineageWeave/prov-o-support> .
+
+# Compatible classes: same local name, both classes, same LineageWeave
+# concept. owl:equivalentClass is valid here (OWL 2, matching term kind).
+:Post owl:equivalentClass pages:Post .
+:Person owl:equivalentClass pages:Person .
+:CorporateEntity owl:equivalentClass pages:CorporateEntity .
+:Team owl:equivalentClass pages:Team .
+
+# Explicit non-mappings. These local names exist only in the KG
+# namespace. Publishing owl:equivalentClass for them against a
+# repository-case IRI would invent a PROV-O profile term.
+compat:unmappedLocalName a owl:AnnotationProperty ;
+    rdfs:label "unmapped local name" ;
+    rdfs:comment "A KG local name that must not be treated as equivalent to a repository-case fragment of the same spelling when that fragment is absent or of a different term kind." .
+
+:OurSidePerson compat:unmappedLocalName "OurSidePerson" .
+:CounterpartyPerson compat:unmappedLocalName "CounterpartyPerson" .
+:RoleActorPerson compat:unmappedLocalName "RoleActorPerson" .
+:RoleActorOrganization compat:unmappedLocalName "RoleActorOrganization" .
+:RoleActorTeam compat:unmappedLocalName "RoleActorTeam" .
+:Project compat:unmappedLocalName "Project" .
+:mentionedIn compat:unmappedLocalName "mentionedIn" .
+:affiliatedWith compat:unmappedLocalName "affiliatedWith" .
