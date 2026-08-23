@@ -126,6 +126,17 @@ All notable changes to this project are documented here. Format follows
   availability incident for operators (issue #361, partial: this covers
   server-side traceback capture, not yet OpenTelemetry metrics/
   correlation IDs).
+- The role-evidence panel (quantitative/normalization evidence, connected
+  and negated clues, subject/object type) and the Customer Master
+  "find source customer code" search dialog were ko-only; zh/ja/vi
+  silently fell back to raw English for 17 keys. Added translations and
+  a new curated `roleEvidenceAndCustomerIdentitySearchLabels` parity
+  test. This, together with a peer session's concurrent Board/R&R i18n
+  slice (`171c869b`/`f238ef49`/`b8d69320`), closes the remaining
+  ko-only key backlog tracked since the Admin Panel i18n fix earlier in
+  this file: only one key (`Present fields`) is left untranslated, and
+  it is dead code with no live call site, not a visible reader-facing
+  gap.
 - The Source Detail popup's "Source lineage combination" panel (badge, field
   presence list, and commercial-context labels from `sourceLineageHints.ts`)
   was only translated into Korean; zh/ja/vi silently fell back to the raw

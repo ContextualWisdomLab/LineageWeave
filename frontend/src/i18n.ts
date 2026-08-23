@@ -1219,6 +1219,25 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "The existing Board owns the selected post and its provenance, so this action opens there instead of duplicating the workflow.":
       "所选帖子及其来源由现有看板管理，因此此操作会跳转到该处，而不会重复该工作流程。",
     routes: "个",
+    "Quantitative evidence": "定量证据",
+    Quantity: "数量",
+    "Connected clues": "关联线索",
+    "Negated clue": "否定线索",
+    "Source-grounded facts": "基于来源的事实",
+    "Subject type": "主体类型",
+    "Object type": "客体类型",
+    "Negated condition": "否定条件",
+    "Normalized date": "归一化日期",
+    "Normalization evidence": "归一化依据",
+    "Specific business unit not stated in source": "来源中未注明具体事业部",
+    "Find source customer code": "查找来源客户代码",
+    "Paste an observed customer code": "粘贴一个已观察到的客户代码",
+    Find: "查找",
+    "Searches all authorized source hints, not only the ranked first page.":
+      "搜索所有有权限的来源提示，而不仅是排名靠前的第一页。",
+    "No source customer evidence matches {code}.": "没有与 {code} 匹配的来源客户证据。",
+    "The source is still being written; analysis starts after approval.":
+      "来源仍在编写中；分析将在批准后开始。",
   },
   ja: {
     "Unknown": "不明",
@@ -1809,6 +1828,25 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "The existing Board owns the selected post and its provenance, so this action opens there instead of duplicating the workflow.":
       "選択した投稿とその出典は既存の掲示板が管理しているため、この操作は作業を複製せずそちらの画面へ移動します。",
     routes: "件",
+    "Quantitative evidence": "定量的根拠",
+    Quantity: "数量",
+    "Connected clues": "関連する手がかり",
+    "Negated clue": "否定の手がかり",
+    "Source-grounded facts": "原典に基づく事実",
+    "Subject type": "サブジェクト種別",
+    "Object type": "オブジェクト種別",
+    "Negated condition": "否定条件",
+    "Normalized date": "正規化された日付",
+    "Normalization evidence": "正規化の根拠",
+    "Specific business unit not stated in source": "原典に特定の事業部が記載されていません",
+    "Find source customer code": "原典の顧客コードを検索",
+    "Paste an observed customer code": "観測された顧客コードを貼り付けてください",
+    Find: "検索",
+    "Searches all authorized source hints, not only the ranked first page.":
+      "ランキングされた最初のページだけでなく、権限のあるすべての原典ヒントを検索します。",
+    "No source customer evidence matches {code}.": "{code} に一致する原典の顧客証拠がありません。",
+    "The source is still being written; analysis starts after approval.":
+      "原典はまだ作成中です。分析は承認後に開始します。",
   },
   vi: {
     "Unknown": "Không rõ",
@@ -2399,6 +2437,25 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "The existing Board owns the selected post and its provenance, so this action opens there instead of duplicating the workflow.":
       "Bài viết đã chọn và nguồn gốc của bài viết do Bảng tin hiện có quản lý, vì vậy thao tác này sẽ chuyển đến đó thay vì lặp lại quy trình.",
     routes: "mục",
+    "Quantitative evidence": "Bằng chứng định lượng",
+    Quantity: "Số lượng",
+    "Connected clues": "Manh mối liên quan",
+    "Negated clue": "Manh mối phủ định",
+    "Source-grounded facts": "Sự kiện dựa trên nguồn",
+    "Subject type": "Loại chủ thể",
+    "Object type": "Loại đối tượng",
+    "Negated condition": "Điều kiện phủ định",
+    "Normalized date": "Ngày đã chuẩn hóa",
+    "Normalization evidence": "Bằng chứng chuẩn hóa",
+    "Specific business unit not stated in source": "Nguồn không nêu rõ đơn vị kinh doanh cụ thể",
+    "Find source customer code": "Tìm mã khách hàng nguồn",
+    "Paste an observed customer code": "Dán mã khách hàng đã quan sát được",
+    Find: "Tìm",
+    "Searches all authorized source hints, not only the ranked first page.":
+      "Tìm kiếm trong tất cả gợi ý nguồn được cấp quyền, không chỉ trang đầu đã xếp hạng.",
+    "No source customer evidence matches {code}.": "Không có bằng chứng khách hàng nguồn khớp với {code}.",
+    "The source is still being written; analysis starts after approval.":
+      "Nguồn vẫn đang được soạn thảo; phân tích sẽ bắt đầu sau khi được phê duyệt.",
   },
 };
 

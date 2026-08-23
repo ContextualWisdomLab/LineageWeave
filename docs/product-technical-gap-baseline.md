@@ -1078,6 +1078,27 @@ or an explicit unavailable result.
   translations and a curated `sourceLineageHintLabels` parity test.
   Confirmed RED (all three locales fell back to English) before GREEN.
   Full frontend suite: 365 passed, lint clean, tsc clean.
+- **i18n ko-only key backlog — closed (2026-08-24):** the remaining
+  17 ko-only keys after this checkpoint's source-lineage-hints slice
+  and a peer session's concurrent 21-key Board/R&R slice
+  (`171c869b`/`f238ef49`/`b8d69320`) belonged to the role-evidence
+  panel (quantitative/normalization evidence, connected/negated
+  clues, subject/object type) and the Customer Master "find source
+  customer code" search dialog. Verified via a per-locale key-diff
+  (missing-from-ko independently for zh, ja, vi, not "missing from
+  all three at once" -- the bug in an earlier version of this
+  checkpoint's own diff script) that all three locales were missing
+  the identical 17-key set. One additional key in that set,
+  `"Present fields"`, was confirmed via grep to have no live
+  `t("...")` call site anywhere in the frontend -- dead code, left
+  untranslated since there is no reader-facing gap to close. Added
+  zh/ja/vi translations for the other 17 and a new curated
+  `roleEvidenceAndCustomerIdentitySearchLabels` parity test.
+  Confirmed RED (all three locales fell back to English) before
+  GREEN. Full frontend suite: 373 passed, lint clean, tsc clean. This
+  closes the entire i18n ko-only backlog opened by the Admin Panel
+  fix earlier in this document -- `t()` now has no live English
+  fallback across zh/ja/vi.
 - **Cross-repository email/project lineage — provider boundary implemented,
   consumer open:** PR #343 merged at
   `125a8069a1554874d8067a15047e19d780ea6b7b`, but the contract remains

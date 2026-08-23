@@ -232,6 +232,25 @@ describe("i18n", () => {
     "Sales order",
     "Sales-order item",
   ] as const;
+  const roleEvidenceAndCustomerIdentitySearchLabels = [
+    "Quantitative evidence",
+    "Quantity",
+    "Connected clues",
+    "Negated clue",
+    "Source-grounded facts",
+    "Subject type",
+    "Object type",
+    "Negated condition",
+    "Normalized date",
+    "Normalization evidence",
+    "Specific business unit not stated in source",
+    "Find source customer code",
+    "Paste an observed customer code",
+    "Find",
+    "Searches all authorized source hints, not only the ranked first page.",
+    "No source customer evidence matches {code}.",
+    "The source is still being written; analysis starts after approval.",
+  ] as const;
 
   it("supports the five product locales", () => {
     expect(SUPPORTED_LOCALES).toEqual(["en", "ko", "zh", "ja", "vi"]);
@@ -309,6 +328,16 @@ describe("i18n", () => {
     (locale) => {
       setLocale(locale);
       for (const key of sourceLineageHintLabels) {
+        expect(t(key), `${locale}:${key}`).not.toBe(key);
+      }
+    },
+  );
+
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "translates role-evidence and customer-identity-search labels in %s",
+    (locale) => {
+      setLocale(locale);
+      for (const key of roleEvidenceAndCustomerIdentitySearchLabels) {
         expect(t(key), `${locale}:${key}`).not.toBe(key);
       }
     },
