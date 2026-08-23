@@ -190,8 +190,7 @@ def _complete_case_masks(observed: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Drop incomplete rows, then incomplete columns among remaining rows."""
     keep_person = observed.any(axis=1)
     keep_item = observed.any(axis=0)
-    if np.any(keep_item):
-        keep_person = keep_person & observed[:, keep_item].all(axis=1)
+    keep_person = keep_person & observed[:, keep_item].all(axis=1)
     if np.any(keep_person):
         keep_item = keep_item & observed[keep_person, :].all(axis=0)
     return keep_person, keep_item
@@ -215,18 +214,13 @@ def _complete_case_positions(
 def _leftover_map_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Gabriel biplot coordinates; rank-0 residuals collapse to the origin."""
     n_persons, n_items = filled.shape
-    if n_persons == 0 or n_items == 0 or not np.any(np.abs(filled) > _LEFTOVER_SINGULAR_FLOOR):
+    if not np.any(np.abs(filled) > _LEFTOVER_SINGULAR_FLOOR):
         return (
             np.zeros((n_persons, 1), dtype=np.float64),
             np.zeros((n_items, 1), dtype=np.float64),
         )
     left, singular, right = np.linalg.svd(filled, full_matrices=False)
     keep = singular > _LEFTOVER_SINGULAR_FLOOR
-    if not np.any(keep):
-        return (
-            np.zeros((n_persons, 1), dtype=np.float64),
-            np.zeros((n_items, 1), dtype=np.float64),
-        )
     scale = np.sqrt(singular[keep])
     person_pos = left[:, keep] * scale
     item_pos = right[keep, :].T * scale
@@ -236,8 +230,6 @@ def _leftover_map_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray]
 def _pad_map_axes(positions: np.ndarray) -> np.ndarray:
     """Pad Gabriel coordinates to two leftover-map axes; unused axes stay 0."""
     padded = np.zeros((positions.shape[0], _LEFTOVER_MAP_AXES), dtype=np.float64)
-    if positions.size == 0:
-        return padded
     width = min(_LEFTOVER_MAP_AXES, positions.shape[1])
     padded[:, :width] = positions[:, :width]
     return padded

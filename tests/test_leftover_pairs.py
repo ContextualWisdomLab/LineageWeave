@@ -123,6 +123,48 @@ def test_leftover_is_empty_without_observed_cells() -> None:
     assert empty_map.items == ()
 
 
+def test_leftover_map_rejects_mismatched_shapes() -> None:
+    """Post/item and expected shapes must agree before factorization."""
+    with pytest.raises(ValueError, match="matrix shape"):
+        leftover_map_from_residual(["post-a"], ("item-a",), np.zeros((2, 1)), np.zeros((2, 1)))
+    with pytest.raises(ValueError, match="expected shape"):
+        leftover_map_from_residual(["post-a"], ("item-a",), np.zeros((1, 1)), np.zeros((1, 2)))
+
+
+def test_disconnected_observations_emit_pairs_without_invented_coordinates() -> None:
+    """A sparse pattern with no complete rectangle retains only observed-cell evidence."""
+    matrix = np.array([[1.0, np.nan], [np.nan, 3.0]], dtype=np.float64)
+    leftover_map = leftover_map_from_residual(
+        ["post-a", "post-b"],
+        ("item-a", "item-b"),
+        matrix,
+        np.zeros_like(matrix),
+    )
+
+    assert leftover_map.persons == ()
+    assert leftover_map.items == ()
+    assert [(pair.post_id, pair.criterion_code) for pair in leftover_map.pairs] == [
+        ("post-a", "item-a"),
+        ("post-b", "item-b"),
+    ]
+    assert [pair.leftover_distance for pair in leftover_map.pairs] == pytest.approx([1.0, 1.0])
+
+
+def test_overflowed_projected_distance_is_not_persisted() -> None:
+    """Finite extreme residuals may overflow a norm; those distances stay out."""
+    extreme = 5e307
+    matrix = np.array([[extreme, -extreme], [-extreme, extreme]], dtype=np.float64)
+    with np.errstate(over="ignore"):
+        leftover_map = leftover_map_from_residual(
+            ["post-a", "post-b"],
+            ("item-a", "item-b"),
+            matrix,
+            np.zeros_like(matrix),
+        )
+
+    assert all(np.isfinite(pair.leftover_distance) for pair in leftover_map.pairs)
+
+
 def test_leftover_map_pads_rank_one_axis_two_to_zero() -> None:
     """A rank-1 residual still emits two map axes; the unused axis is zero."""
     post_ids = ["post-a", "post-b", "post-c"]
