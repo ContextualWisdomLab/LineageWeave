@@ -94,6 +94,7 @@ describe("App, authenticated", () => {
       }[];
     };
     rankingsUnavailable?: boolean;
+    relatedUnavailable?: "all" | "entity" | "person" | "team";
     chatUnavailable?: boolean;
     evidenceUnavailable?: boolean;
     legacyChatCitations?: boolean;
@@ -127,6 +128,7 @@ describe("App, authenticated", () => {
     deferMe?: boolean;
     deferPosts?: boolean;
     directLineage?: boolean;
+    deriveNoCommitment?: boolean;
     emptyLineage?: boolean;
     meFailed?: boolean;
     postBody?: string;
@@ -147,6 +149,10 @@ describe("App, authenticated", () => {
     contentAfterSummary?: boolean;
     summaryPending?: boolean;
     summaryUnavailable?: boolean;
+    activityUnavailable?: boolean;
+    ticketCreateUnavailable?: boolean;
+    ticketListUnavailable?: boolean;
+    ticketUpdateUnavailable?: boolean;
     lineageIsolationReason?: "no_relation_found" | "no_comparison_group";
     bookmarkUnavailable?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePosts: () => void } {
@@ -299,9 +305,15 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ edge_count: 4 }));
       }
       if (url.endsWith("/api/posts/post-1/tickets") && method === "GET") {
+        if (options?.ticketListUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(jsonResponse({ tickets }));
       }
       if (url.endsWith("/api/posts/post-1/tickets") && method === "POST") {
+        if (options?.ticketCreateUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         const body = JSON.parse(String(init?.body));
         const ticket = {
           issue_ticket_id: `ticket-${nextTicketId++}`,
@@ -325,6 +337,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(new Response(JSON.stringify(ticket), { status: 201 }));
       }
       if (url.match(/\/api\/tickets\/ticket-\d+$/) && method === "PATCH") {
+        if (options?.ticketUpdateUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         const ticketId = url.split("/").pop();
         const body = JSON.parse(String(init?.body));
         const ticket = tickets.find((t) => t.issue_ticket_id === ticketId);
@@ -340,6 +355,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse(ticket));
       }
       if (url.endsWith("/api/posts/post-1/activity") && method === "GET") {
+        if (options?.activityUnavailable) {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(jsonResponse({ events }));
       }
       if (url.endsWith("/api/posts/post-1/derive-commitment") && method === "POST") {
@@ -352,6 +370,9 @@ describe("App, authenticated", () => {
               { status: 503, headers: { "Content-Type": "application/json" } },
             ),
           );
+        }
+        if (options?.deriveNoCommitment) {
+          return Promise.resolve(jsonResponse({ post_id: "post-1", has_commitment: false, ticket: null }));
         }
         const ticket = {
           issue_ticket_id: `ticket-${nextTicketId++}`,
@@ -1553,6 +1574,9 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ post_id: "post-1", rubric_version: "2026-08-13", responses: [] }));
       }
       if (url.endsWith("/api/keymen/person-priya/related")) {
+        if (options?.relatedUnavailable === "all" || options?.relatedUnavailable === "person") {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             person_id: "person-priya",
@@ -1575,6 +1599,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/keymen/person-ada/related")) {
+        if (options?.relatedUnavailable === "all" || options?.relatedUnavailable === "person") {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             person_id: "person-ada",
@@ -1636,6 +1663,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/teams/team-1/related")) {
+        if (options?.relatedUnavailable === "all" || options?.relatedUnavailable === "team") {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             team_id: "team-1",
@@ -1654,6 +1684,9 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/corporate-entities/corp-1/related")) {
+        if (options?.relatedUnavailable === "all" || options?.relatedUnavailable === "entity") {
+          return Promise.resolve(new Response(null, { status: 503 }));
+        }
         return Promise.resolve(
           jsonResponse({
             corporate_entity_id: "corp-1",
@@ -3761,6 +3794,26 @@ describe("App, authenticated", () => {
     );
   });
 
+  it.each([
+    ["person" as const, "Ada West", null],
+    ["entity" as const, "Demo Corp", "Related nodes for Demo Corp"],
+    ["team" as const, "설계팀", "Related nodes for 설계팀"],
+  ])("fails closed when a %s related-node lookup is unavailable", async (kind, name, nestedAction) => {
+    stubBackend({ relatedUnavailable: kind });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    if (nestedAction) {
+      await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
+      await userEvent.click(await screen.findByRole("button", { name: nestedAction }));
+    } else {
+      await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
+    }
+
+    const panel = await screen.findByText(`Related to ${name}`);
+    expect(panel.closest(".related-keymen")).toHaveTextContent("No related nodes in the visible graph.");
+  });
+
   it("shows the VOC excerpt under its counterparty, not a detached list", async () => {
     stubBackend();
     render(<App showLabPanels />);
@@ -3931,6 +3984,46 @@ describe("App, authenticated", () => {
     expect(screen.getByText("due 2026-03-15")).toBeInTheDocument();
   });
 
+  it("fails closed when tickets cannot be loaded and ignores an empty Enter", async () => {
+    const fetchMock = stubBackend({ ticketListUnavailable: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    expect(await screen.findByText("No tickets yet.")).toBeInTheDocument();
+    fireEvent.keyDown(screen.getByPlaceholderText(/new ticket title/i), { key: "Enter" });
+    expect(
+      fetchMock.mock.calls.filter(
+        ([url, init]) => String(url).endsWith("/api/posts/post-1/tickets") && init?.method === "POST",
+      ),
+    ).toHaveLength(0);
+  });
+
+  it("restores ticket creation after a request failure", async () => {
+    stubBackend({ ticketCreateUnavailable: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    await userEvent.type(screen.getByPlaceholderText(/new ticket title/i), "Synthetic ticket");
+    await userEvent.click(screen.getByRole("button", { name: /create ticket/i }));
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /create ticket/i })).toBeEnabled();
+  });
+
+  it("keeps a ticket's saved status when an update fails", async () => {
+    stubBackend({ ticketUpdateUnavailable: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    await userEvent.type(screen.getByPlaceholderText(/new ticket title/i), "Synthetic ticket");
+    await userEvent.click(screen.getByRole("button", { name: /create ticket/i }));
+
+    const status = await screen.findByLabelText(/status for synthetic ticket/i);
+    await userEvent.selectOptions(status, "closed");
+
+    expect(await screen.findByRole("alert")).toBeInTheDocument();
+    expect(status).toHaveValue("open");
+  });
+
   it("shows real ticket mutations on the activity feed after a refresh", async () => {
     stubBackend();
     render(<App showLabPanels />);
@@ -3963,6 +4056,21 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("ticket_status_changed")).not.toBeInTheDocument();
   });
 
+  it("retries an unavailable activity feed", async () => {
+    const fetchMock = stubBackend({ activityUnavailable: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const heading = await screen.findByRole("heading", { name: "Activity" });
+    const section = heading.closest("section")!;
+    const attempts = fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/posts/post-1/activity")).length;
+    await userEvent.click(within(section).getAllByRole("button", { name: "Refresh" })[0]);
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith("/api/posts/post-1/activity")))
+        .toHaveLength(attempts + 1),
+    );
+  });
+
   it("hides derive commitment for accounts without post_admin", async () => {
     stubBackend();
     render(<App showLabPanels />);
@@ -3985,6 +4093,16 @@ describe("App, authenticated", () => {
       expect(screen.getByText("Send the revised delivery schedule")).toBeInTheDocument(),
     );
     expect(screen.getByText("due 2026-01-09")).toBeInTheDocument();
+  });
+
+  it("explains when no commitment can be derived", async () => {
+    stubBackend({ admin: true, deriveNoCommitment: true });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    await userEvent.click(await screen.findByRole("button", { name: /derive commitment/i }));
+
+    expect(await screen.findByText("No customer commitment found in this post.")).toBeInTheDocument();
   });
 
   it("tells the reader how to populate an empty calendar", async () => {
