@@ -11,6 +11,7 @@ describe("SummaryStatus exception surface", () => {
         kind="unavailable"
         title="This board could not be loaded."
         description="Retry loading posts, or choose another destination."
+        detail="The previous saved board remains unchanged."
         retryLabel="Retry"
         onRetry={onRetry}
       />,
@@ -18,6 +19,7 @@ describe("SummaryStatus exception surface", () => {
     const alert = screen.getByRole("alert");
     expect(alert).toHaveTextContent("This board could not be loaded.");
     expect(alert).toHaveTextContent("Retry loading posts, or choose another destination.");
+    expect(alert).toHaveTextContent("The previous saved board remains unchanged.");
     await userEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(onRetry).toHaveBeenCalledTimes(1);
   });

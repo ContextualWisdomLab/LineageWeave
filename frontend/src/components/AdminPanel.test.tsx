@@ -87,6 +87,15 @@ describe("AdminPanel", () => {
     expect(screen.getByText("SYN-1 / PU-1, SYN-2")).toBeInTheDocument();
   });
 
+  it("shows explicit unavailable scope values while the account is loading", () => {
+    render(<AdminPanel {...baseProps} currentUser={null} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Account scope/ }));
+
+    expect(screen.getByText("Loading...")).toBeInTheDocument();
+    expect(screen.getAllByText("Not available")).toHaveLength(2);
+  });
+
   it("keeps tenant settings in the admin surface", () => {
     render(<AdminPanel {...baseProps} />);
 
@@ -255,6 +264,15 @@ describe("AdminPanel", () => {
     fireEvent.change(screen.getByRole("textbox", { name: "Tenant brand name" }), {
       target: { value: "Draft Brand" },
     });
+    fireEvent.change(screen.getByRole("textbox", { name: "Tenant system name" }), {
+      target: { value: "Draft System" },
+    });
+    fireEvent.change(screen.getByRole("spinbutton", { name: "Tenant copyright year" }), {
+      target: { value: "2024" },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Tenant copyright holder" }), {
+      target: { value: "Draft Rights Holder" },
+    });
     rerender(
       <AdminPanel
         {...baseProps}
@@ -268,9 +286,9 @@ describe("AdminPanel", () => {
     );
 
     expect(screen.getByRole("textbox", { name: "Tenant brand name" })).toHaveValue("Draft Brand");
-    expect(screen.getByRole("textbox", { name: "Tenant system name" })).toHaveValue("Fetched System");
-    expect(screen.getByRole("spinbutton", { name: "Tenant copyright year" })).toHaveValue(2025);
-    expect(screen.getByRole("textbox", { name: "Tenant copyright holder" })).toHaveValue("Fetched Rights Holder");
+    expect(screen.getByRole("textbox", { name: "Tenant system name" })).toHaveValue("Draft System");
+    expect(screen.getByRole("spinbutton", { name: "Tenant copyright year" })).toHaveValue(2024);
+    expect(screen.getByRole("textbox", { name: "Tenant copyright holder" })).toHaveValue("Draft Rights Holder");
   });
 
 });
