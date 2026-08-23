@@ -55,13 +55,28 @@ current evidence. The Buyer UI renders the localized ontology label and
 localized extraction/provenance labels; it never renders the ontology IRI or
 contextual-orchestrator/storage identifiers as user-facing text.
 
-A reader GET does not synchronously refresh an existing text summary from an
-older contract. It returns that row immediately with `summary_status=stale`,
+A reader GET does not synchronously refresh an existing text-only summary from
+an older contract. It returns that row immediately with `summary_status=stale`,
 while `scripts/backfill_post_summaries.py --post-id ...` remains the explicit,
-durable operator path for regeneration. This preserves readable evidence and
-its uncertainty without making a popup wait for the two sequential
-orchestrator calls. Image-bearing posts retain the post-content readiness
-boundary before any summary is returned.
+durable operator path for regeneration. Source-post open and source rendering
+never wait for summary, VISION, or embedding work.
+
+An image-bearing post has a stricter evidence boundary. The summary endpoint
+enqueues or observes the durable post-content job and does not call VISION
+synchronously. It withholds both current and stale persisted summaries until
+the durable job for the current raw-body SHA-256 has status `succeeded` and the
+parent image and every persisted visual region have status `described`.
+Queued or running evidence is reported as processing; a terminal failure is
+reported unavailable until the explicit ADR 0115 retry. Once ready, a current
+persisted summary may be returned only when its normalized summary-input SHA-256
+matches the exact ordered persisted semantic-unit, parent-image, and
+region-evidence text. A stale or legacy-unbound image-bearing summary is
+regenerated. New image-bearing
+summaries use only persisted semantic units in document order, including
+completed OCR and captions; an unavailable placeholder is never promoted into
+summary evidence. Text-only summaries bind the same column to the normalized
+source text; a source revision makes the prior row explicitly stale continuity
+rather than current evidence.
 
 Ask Agent citations expose the persisted source and semantic facts associated
 with each cited post through a Buyer-safe projection. Prompt metadata such as
@@ -77,6 +92,8 @@ for reading the complete body and related evidence.
   and explicit ontology relations have a dedicated bounded response.
 - The channel incurs two additional orchestrator requests and therefore a bounded
   latency/cost increase on explicit regeneration, not on a stale reader GET.
+- Image evidence can delay only the image-bearing summary projection; opening
+  and reading the source post remains immediate.
 - Plain line parsing is intentionally narrow; unsupported provider output is
   rejected rather than promoted into ontology facts.
 

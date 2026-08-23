@@ -11,6 +11,7 @@ import asyncio
 import hashlib
 import logging
 import math
+from collections.abc import Awaitable, Callable
 from typing import Any, TypeVar
 
 from .chunking import Chunk, chunk_by_source_body
@@ -79,12 +80,17 @@ async def persist_post_content(
     normalized_result: Any | None = None,
     structure_client: PostStructureClient | None = None,
     post_title: str = "",
-) -> int:
+    expected_source_body_sha256: str | None = None,
+    expected_attempt_count: int | None = None,
+    transaction_fence: Callable[[Any], Awaitable[None]] | None = None,
+) -> int | None:
     """Replace one post's normalized content artifacts and return unit count.
 
     Provider calls happen before the short database transaction. A failed or
     unavailable embedding call writes no vector row; it never writes a zero or
     guessed vector. The raw body remains in ``source_post`` for future retry.
+    A supplied worker claim that is no longer current returns ``None`` without
+    replacing any persisted artifact.
     """
     normalized = normalized_result or normalize_post_body(body, vision_client)
     chunks = chunk_by_source_body(body)
@@ -225,7 +231,43 @@ async def persist_post_content(
                     },
                 )
 
+    if (expected_source_body_sha256 is None) != (expected_attempt_count is None):
+        raise ValueError("post-content persistence claim fence must be complete")
+    if expected_source_body_sha256 is not None and transaction_fence is not None:
+        raise ValueError("post-content persistence accepts only one transaction fence")
+
     async with conn.transaction():
+        if expected_source_body_sha256 is not None:
+            source_row = await conn.fetchrow(
+                "select post_body from source_post where post_id = $1 for update",
+                post_id,
+            )
+            if source_row is None:
+                return None
+            current_body = source_row["post_body"]
+            if not isinstance(current_body, str):
+                return None
+            current_digest = hashlib.sha256(current_body.encode("utf-8")).hexdigest()
+            if current_digest != expected_source_body_sha256 or current_body != body:
+                return None
+            claim_row = await conn.fetchrow(
+                """
+                select status_code
+                from post_content_ingestion_job
+                where post_id = $1
+                  and source_body_sha256 = $2
+                  and attempt_count = $3
+                  and status_code = 'post_content_ingestion_running'
+                for update
+                """,
+                post_id,
+                expected_source_body_sha256,
+                expected_attempt_count,
+            )
+            if claim_row is None:
+                return None
+        if transaction_fence is not None:
+            await transaction_fence(conn)
         await conn.execute("delete from post_content_unit where post_id = $1", post_id)
         unit_ids: dict[int, str] = {}
         for chunk, unit_text, style in prepared:

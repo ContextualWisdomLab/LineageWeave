@@ -14,14 +14,20 @@ with a real Postgres, same spirit as the real-provider LLM tests.
 
 from __future__ import annotations
 
+import asyncio
+import hashlib
 import os
 import uuid
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
+import asyncpg
 import psycopg2
 import psycopg2.errors
 import pytest
+
+from backend.app.post_content_queue import RUNNING
+from backend.app.post_content_worker import _lock_current_claim
 
 _ADMIN_DSN = os.environ.get(
     "LINEAGEWEAVE_TEST_POSTGRES_ADMIN_DSN", "postgresql://localhost/postgres"
@@ -101,6 +107,16 @@ _PLANNED_FACILITY_RELATIONSHIP_PREDICATE_MIGRATION = (
     / "migrations"
     / "0138_planned_facility_relation_predicate.sql"
 )
+_SUMMARY_INPUT_BINDING_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0139_post_summary_input_binding.sql"
+)
+_POST_CONTENT_QUEUE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0050_post_content_ingestion_queue.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -159,6 +175,10 @@ def schema_db():
                 )
                 cur.execute(planned_predicate_migration)
                 cur.execute(planned_predicate_migration)
+                summary_input_migration = _SUMMARY_INPUT_BINDING_MIGRATION.read_text()
+                cur.execute(summary_input_migration)
+                cur.execute(summary_input_migration)
+                cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -167,6 +187,116 @@ def schema_db():
         with admin_conn.cursor() as cur:
             cur.execute(f'drop database "{db_name}"')
         admin_conn.close()
+
+
+def test_post_content_claim_lock_order_avoids_source_job_deadlock(schema_db) -> None:
+    """A source holder can lock the job while a worker waits on that source."""
+    post_id = uuid.uuid4()
+    body = "A synthetic body for the lock-order regression."
+    digest = hashlib.sha256(body.encode("utf-8")).hexdigest()
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            insert into common_lookup_value (lookup_category, lookup_code, lookup_label)
+            values
+                ('corporate_entity_level', 'company', 'Company'),
+                ('voc_type', 'voc', 'Voice of Customer'),
+                ('post_visibility', 'public', 'Public')
+            """
+        )
+        cur.execute(
+            """
+            with synthetic_entity as (
+                insert into corporate_entity (
+                    corporate_entity_code, entity_name, entity_level_code
+                ) values ('SYNTHETIC-LOCK-ORG', 'Synthetic Lock Org', 'company')
+                returning corporate_entity_id
+            ), synthetic_account as (
+                insert into user_account (
+                    external_subject_id, display_name, email_address
+                ) values (
+                    'synthetic-lock-account', 'Synthetic Lock User',
+                    'synthetic.lock@example.test'
+                ) returning user_account_id
+            )
+            insert into source_post (
+                post_id, author_account_id, corporate_entity_id,
+                post_title, post_body, voc_type_code, visibility_code
+            )
+            select %s, user_account_id, corporate_entity_id,
+                   'Synthetic lock post', %s, 'voc', 'public'
+              from synthetic_account cross join synthetic_entity
+            """,
+            (str(post_id), body),
+        )
+        cur.execute(
+            """
+            insert into post_content_ingestion_job (
+                post_id, source_body_sha256, status_code, attempt_count, started_at
+            ) values (%s, %s, %s, 1, now())
+            """,
+            (str(post_id), digest, RUNNING),
+        )
+    schema_db.commit()
+
+    async def exercise() -> None:
+        parsed_admin_dsn = urlsplit(_ADMIN_DSN)
+        database_dsn = urlunsplit(
+            parsed_admin_dsn._replace(path=f"/{schema_db.info.dbname}")
+        )
+        first = await asyncpg.connect(database_dsn)
+        worker = await asyncpg.connect(database_dsn)
+        observer = await asyncpg.connect(database_dsn)
+        first_tx = first.transaction()
+        await first_tx.start()
+        worker_task: asyncio.Task[bool] | None = None
+        try:
+            await first.fetchrow(
+                "select post_body from source_post where post_id = $1 for update",
+                post_id,
+            )
+
+            async def lock_worker_claim() -> bool:
+                async with worker.transaction():
+                    return await _lock_current_claim(
+                        worker,
+                        str(post_id),
+                        expected_source_body_sha256=digest,
+                        expected_attempt_count=1,
+                    )
+
+            worker_task = asyncio.create_task(lock_worker_claim())
+            for _attempt in range(100):
+                waiting = await observer.fetchval(
+                    "select wait_event_type = 'Lock' from pg_stat_activity where pid = $1",
+                    worker.get_server_pid(),
+                )
+                if waiting:
+                    break
+                await asyncio.sleep(0.01)
+            else:
+                raise AssertionError("worker did not reach the source-row lock")
+
+            await asyncio.wait_for(
+                first.fetchrow(
+                    "select status_code from post_content_ingestion_job "
+                    "where post_id = $1 for update",
+                    post_id,
+                ),
+                timeout=1,
+            )
+            await first_tx.commit()
+            assert await asyncio.wait_for(worker_task, timeout=1) is True
+        finally:
+            if first.is_in_transaction():
+                await first_tx.rollback()
+            if worker_task is not None and not worker_task.done():
+                worker_task.cancel()
+            await first.close()
+            await worker.close()
+            await observer.close()
+
+    asyncio.run(exercise())
 
 
 def test_migration_applies_cleanly(schema_db) -> None:
@@ -215,6 +345,21 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_summary_semantic_relationship",
     }
     assert expected <= tables
+
+
+def test_summary_result_accepts_only_normalized_sha256_binding(schema_db) -> None:
+    with schema_db.cursor() as cur:
+        cur.execute(
+            "select is_nullable from information_schema.columns "
+            "where table_name = 'post_summary_result' "
+            "and column_name = 'summary_input_sha256'"
+        )
+        assert cur.fetchone() == ("YES",)
+        cur.execute(
+            "select pg_get_constraintdef(oid) from pg_constraint "
+            "where conname = 'post_summary_result_summary_input_sha256_check'"
+        )
+        assert "[0-9a-f]{64}" in cur.fetchone()[0]
 
 
 def test_planned_facility_relationship_predicate_persists(schema_db) -> None:

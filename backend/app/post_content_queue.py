@@ -149,12 +149,20 @@ async def post_content_is_complete(
 async def post_content_summary_is_ready(
     conn: asyncpg.Connection,
     post_id: str,
+    source_body_digest: str,
 ) -> bool:
-    """Require every embedded image and visual region to have VISION evidence."""
+    """Require current-body success and complete persisted VISION evidence."""
     return bool(
         await conn.fetchval(
             """
             select exists(
+                       select 1
+                         from post_content_ingestion_job job
+                        where job.post_id = $1
+                          and job.source_body_sha256 = $2
+                          and job.status_code = $3
+                   )
+               and exists(
                        select 1
                          from post_content_unit unit
                         where unit.post_id = $1
@@ -179,6 +187,8 @@ async def post_content_summary_is_ready(
                )
             """,
             post_id,
+            source_body_digest,
+            SUCCEEDED,
         )
     )
 
@@ -187,21 +197,43 @@ async def fetch_post_summary_source(
     conn: asyncpg.Connection,
     post_id: str,
 ) -> str | None:
-    """Return persisted semantic units, including completed image evidence."""
+    """Return ordered semantic units plus persisted region VISION evidence."""
     rows = await conn.fetch(
         """
-        select unit_text
-          from post_content_unit
-         where post_id = $1
-         order by unit_index
+        select unit.unit_index, unit.unit_text,
+               region.region_index, region.extracted_text, region.image_caption
+          from post_content_unit unit
+          left join post_content_image image
+            on image.post_content_unit_id = unit.post_content_unit_id
+          left join post_content_image_region region
+            on region.post_content_image_id = image.post_content_image_id
+         where unit.post_id = $1
+         order by unit.unit_index, region.region_index
         """,
         post_id,
     )
-    source = "\n\n".join(
-        str(row["unit_text"]).strip()
-        for row in rows
-        if isinstance(row["unit_text"], str) and row["unit_text"].strip()
-    )
+    source_parts: list[str] = []
+    previous_unit_index: int | None = None
+    for row in rows:
+        unit_index = int(row["unit_index"])
+        if unit_index != previous_unit_index:
+            unit_text = row["unit_text"]
+            if isinstance(unit_text, str) and unit_text.strip():
+                source_parts.append(unit_text.strip())
+            previous_unit_index = unit_index
+        region_index = row["region_index"]
+        if region_index is None:
+            continue
+        region_evidence = [
+            value.strip()
+            for value in (row["image_caption"], row["extracted_text"])
+            if isinstance(value, str) and value.strip()
+        ]
+        if region_evidence:
+            source_parts.append(
+                f"[image region {int(region_index)}]\n" + "\n".join(region_evidence)
+            )
+    source = "\n\n".join(source_parts)
     return source or None
 
 
@@ -277,12 +309,14 @@ async def transition_post_content_job(
     failure_code: str | None = None,
     detail_text: str | None = None,
     expected_attempt_count: int | None = None,
+    expected_source_body_sha256: str | None = None,
+    expected_status_code: str | None = None,
 ) -> bool:
     """Update one job attempt and append its lifecycle event atomically.
 
-    ``expected_attempt_count`` fences stale workers after lease recovery.  A
-    late completion from an older attempt must not overwrite the newer
-    attempt's status or append a misleading lifecycle event.
+    The optional claim fields fence stale workers after lease recovery. A late
+    completion from an older attempt must not overwrite the newer attempt's
+    status or append a misleading lifecycle event.
     """
     updated = await conn.execute(
         """
@@ -300,6 +334,8 @@ async def transition_post_content_job(
             last_error_detail = $8
         where post_id = $1
           and ($9::integer is null or attempt_count = $9)
+          and ($10::text is null or source_body_sha256 = $10)
+          and ($11::text is null or status_code = $11)
         """,
         post_id,
         status_code,
@@ -310,6 +346,8 @@ async def transition_post_content_job(
         failure_code,
         detail_text,
         expected_attempt_count,
+        expected_source_body_sha256,
+        expected_status_code,
     )
     if not updated.endswith(" 1"):
         return False
@@ -342,7 +380,7 @@ async def ensure_post_content_job(
         post_id,
     )
     if row is None:
-        initial_status = SUCCEEDED if content_complete else QUEUED
+        initial_status = QUEUED
         await conn.execute(
             """
             insert into post_content_ingestion_job
@@ -372,7 +410,6 @@ async def ensure_post_content_job(
             update post_content_ingestion_job
             set source_body_sha256 = $2,
                 status_code = $3,
-                attempt_count = 0,
                 queued_at = now(),
                 started_at = null,
                 completed_at = null,
@@ -420,7 +457,6 @@ async def requeue_failed_post_content_job(
         update post_content_ingestion_job
         set source_body_sha256 = $2,
             status_code = $3,
-            attempt_count = 0,
             queued_at = now(),
             started_at = null,
             completed_at = null,
@@ -451,6 +487,13 @@ async def record_post_content_backfill_success(
 ) -> PostContentJobRequest:
     """Synchronize a completed operator backfill with the durable job ledger."""
     digest = source_body_sha256(body)
+    source_row = await conn.fetchrow(
+        "select post_body from source_post where post_id = $1 for update",
+        post_id,
+    )
+    current_body = None if source_row is None else source_row["post_body"]
+    if not isinstance(current_body, str) or source_body_sha256(current_body) != digest:
+        raise ValueError("source body changed during post-content backfill")
     row = await conn.fetchrow(
         """
         select status_code
@@ -518,7 +561,7 @@ async def republish_queued_post_content_jobs(
                     (
                         post_content_ingestion_job.status_code = $1
                         and (
-                            post_content_ingestion_job.attempt_count = 0
+                            post_content_ingestion_job.last_error_code is null
                             or post_content_ingestion_job.queued_at <= now() - $2::interval
                         )
                     )

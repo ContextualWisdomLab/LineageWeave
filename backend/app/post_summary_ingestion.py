@@ -28,6 +28,7 @@ therefore cannot extend the lock or the atomic replacement window.
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
 import asyncpg
@@ -68,12 +69,19 @@ from lineageweave.relation_verification import (
     RelationVerificationClient,
 )
 
-from .corporate_entity_ingestion import get_or_create_corporate_entity
+from .corporate_entity_ingestion import (
+    PreparedCorporateEntityResolution,
+    apply_prepared_corporate_entity_resolution,
+    prepare_corporate_entity_resolution,
+)
 from .keyman_ingestion import (
+    PreparedAffiliatedOrganization,
     _load_corporate_entity_candidates,
-    _resolve_affiliated_organization,
+    apply_prepared_affiliated_organization,
+    prepare_affiliated_organization,
 )
 from .knowledge_graph import persist_edges_for_post
+from .post_content_queue import SUCCEEDED, fetch_post_summary_source, source_body_sha256
 from .post_eligibility import normalize_source_detail_state_code
 from .team_ingestion import upsert_team
 
@@ -91,6 +99,11 @@ def require_summary_source_body(body: str | None) -> str:
     return body
 
 
+def summary_input_sha256(summary_input: str) -> str:
+    """Bind a summary row to its exact normalized source/evidence text."""
+    return hashlib.sha256(summary_input.encode("utf-8")).hexdigest()
+
+
 async def require_summary_target(conn: asyncpg.Connection, post_id: str) -> None:
     """Keep W out of both persisted and on-demand summary generation."""
     state_code = await conn.fetchval(
@@ -101,10 +114,51 @@ async def require_summary_target(conn: asyncpg.Connection, post_id: str) -> None
         raise ValueError(SUMMARY_TARGET_UNAVAILABLE)
 
 
+async def _lock_current_summary_input(
+    conn: asyncpg.Connection,
+    post_id: str,
+    *,
+    expected_source_body_sha256: str,
+    expected_summary_input: str,
+    require_image_evidence: bool,
+) -> bool:
+    """Lock and recheck the exact source and persisted summary evidence."""
+    row = await conn.fetchrow(
+        "select post_body from source_post where post_id = $1 for update",
+        post_id,
+    )
+    if row is None:
+        return False
+    current_body = row["post_body"]
+    if not isinstance(current_body, str):
+        return False
+    if source_body_sha256(current_body) != expected_source_body_sha256:
+        return False
+    if not require_image_evidence:
+        return True
+    job = await conn.fetchrow(
+        """
+        select status_code
+        from post_content_ingestion_job
+        where post_id = $1
+          and source_body_sha256 = $2
+          and status_code = $3
+        for update
+        """,
+        post_id,
+        expected_source_body_sha256,
+        SUCCEEDED,
+    )
+    if job is None:
+        return False
+    return await fetch_post_summary_source(conn, post_id) == expected_summary_input
+
+
 async def fetch_persisted_summary(
     conn: asyncpg.Connection,
     post_id: str,
     *,
+    summary_input: str | None = None,
     allow_stale: bool = False,
 ) -> dict[str, Any] | None:
     """Return the stored summary payload, or None when none is usable.
@@ -114,16 +168,24 @@ async def fetch_persisted_summary(
     by ``entity_name``. Person chips read ``cataloged_person_id``. A stale
     row is returned only when ``allow_stale`` is explicit so a caller can
     preserve reader continuity without presenting old semantics as current.
+    A current row additionally requires an exact normalized-input binding.
     """
     header = await conn.fetchrow(
-        "select korean_summary, summary_contract_version "
+        "select korean_summary, summary_contract_version, summary_input_sha256 "
         "from post_summary_result where post_id = $1",
         post_id,
     )
     if header is None:
         return None
     summary_contract_version = header["summary_contract_version"]
-    if summary_contract_version != POST_SUMMARY_CONTRACT_VERSION and not allow_stale:
+    input_matches = bool(
+        summary_input is not None
+        and header.get("summary_input_sha256") == summary_input_sha256(summary_input)
+    )
+    summary_is_current = (
+        summary_contract_version == POST_SUMMARY_CONTRACT_VERSION and input_matches
+    )
+    if not summary_is_current and not allow_stale:
         return None
     events = await conn.fetch(
         """
@@ -280,9 +342,7 @@ async def fetch_persisted_summary(
         "post_id": post_id,
         "korean_summary": header["korean_summary"],
         "summary_status": (
-            "current"
-            if summary_contract_version == POST_SUMMARY_CONTRACT_VERSION
-            else "stale"
+            "current" if summary_is_current else "stale"
         ),
         "summary_contract_version": summary_contract_version,
         "key_events": [row["event_text"] for row in events],
@@ -400,29 +460,30 @@ async def persist_post_summary(
     post_id: str,
     summary: PostSummary,
     *,
-    post_body: str | None = None,
+    post_body: str,
+    expected_source_body_sha256: str,
+    require_image_evidence: bool = False,
     resolution_client: OrganizationNameResolutionClient | None = None,
     hierarchy_inference_client: CorporateHierarchyInferenceClient | None = None,
     verification_client: RelationVerificationClient | None = None,
 ) -> dict[str, Any]:
     """Replace the stored summary for ``post_id`` and return the public payload.
 
-    ``post_body`` is the context an organization-actor hierarchy proposal
-    is inferred from (ADR 0010); it falls back to the summary's own Korean
-    text when not given.  The pluggable clients default to unavailable Null
+    ``post_body`` is the exact normalized summary input and the context an
+    organization-actor hierarchy proposal is inferred from (ADR 0010). The
+    pluggable clients default to unavailable Null
     clients, so an organization actor then only resolves against an existing
     ``corporate_entity``.
 
-    Organization inference, verification, and any lock-protected catalog
-    creation complete before the atomic summary transaction.  The catalog is
-    an idempotent shared identity registry; keeping that enrichment separate
-    prevents network latency and ``pg_advisory_xact_lock`` from extending the
-    summary replacement transaction while all post-owned rows still commit or
-    roll back together.
+    Provider-only organization proposals are prepared before the
+    exact-current source/evidence transaction. Catalog writes apply only after
+    that recheck and share its transaction with summary replacement, so neither
+    network latency nor stale provider output holds or mutates locked state
+    (ADR 0114).
     """
     await require_summary_target(conn, post_id)
-    if post_body is not None:
-        require_summary_source_body(post_body)
+    normalized_summary_input = require_summary_source_body(post_body)
+    summary_input_digest = summary_input_sha256(normalized_summary_input)
 
     hierarchy_inference_client = (
         hierarchy_inference_client or NullCorporateHierarchyInferenceClient()
@@ -430,62 +491,109 @@ async def persist_post_summary(
     resolution_client = resolution_client or NullOrganizationNameResolutionClient()
     verification_client = verification_client or NullRelationVerificationClient()
 
-    context_text = post_body if post_body is not None else summary.korean_summary
+    context_text = normalized_summary_input
     candidates = (
         await _load_corporate_entity_candidates(conn)
         if summary.roles_and_responsibilities
         else []
     )
+    prepared_organizations: dict[int, PreparedCorporateEntityResolution] = {}
+    prepared_affiliations: dict[int, PreparedAffiliatedOrganization] = {}
+    unavailable_affiliations: dict[int, tuple[str, str | None, str]] = {}
+    for role_index, role in enumerate(summary.roles_and_responsibilities):
+        if role.actor_type_code == ACTOR_TYPE_TEAM and is_generic_team_actor(
+            role.actor_name
+        ):
+            continue
+        if role.actor_type_code == ACTOR_TYPE_ORGANIZATION:
+            prepared_organizations[role_index] = (
+                await prepare_corporate_entity_resolution(
+                    role.actor_name,
+                    context_text,
+                    hierarchy_inference_client,
+                    verification_client,
+                    candidates,
+                )
+            )
+            continue
+        if (
+            role.actor_type_code in {ACTOR_TYPE_PERSON, ACTOR_TYPE_TEAM}
+            and role.affiliated_organization_name
+        ):
+            try:
+                prepared_affiliations[role_index] = (
+                    await prepare_affiliated_organization(
+                        conn,
+                        role.affiliated_organization_name,
+                        context_text,
+                        resolution_client,
+                        verification_client,
+                        hierarchy_inference_client,
+                        candidates,
+                    )
+                )
+            except (HttpClientError, OSError, TimeoutError, ValueError):
+                unavailable_affiliations[role_index] = (
+                    role.affiliated_organization_name,
+                    None,
+                    "reason_no_live_client",
+                )
     resolved_organization_ids: dict[int, str] = {}
     resolved_organization_reasons: dict[int, str] = {}
     resolved_affiliation_names: dict[int, str] = {}
     resolved_affiliation_ids: dict[int, str] = {}
     resolved_affiliation_reasons: dict[int, str] = {}
-    for role_index, role in enumerate(summary.roles_and_responsibilities):
-        if role.actor_type_code == ACTOR_TYPE_TEAM and is_generic_team_actor(role.actor_name):
-            continue
-        if role.actor_type_code != ACTOR_TYPE_ORGANIZATION:
-            if role.actor_type_code in {ACTOR_TYPE_PERSON, ACTOR_TYPE_TEAM} and role.affiliated_organization_name:
-                try:
-                    _, resolved_name, corporate_entity_id, affiliation_reason = (
-                        await _resolve_affiliated_organization(
-                            conn,
-                            role.affiliated_organization_name,
-                            context_text,
-                            resolution_client,
-                            verification_client,
-                            hierarchy_inference_client,
-                            candidates,
-                        )
-                    )
-                except (HttpClientError, OSError, TimeoutError, ValueError):
-                    # R&R affiliation is enrichment. A provider outage must
-                    # preserve the raw source name and the summary itself.
-                    resolved_name, corporate_entity_id, affiliation_reason = (
-                        role.affiliated_organization_name,
-                        None,
-                        "reason_no_live_client",
-                    )
-                resolved_affiliation_names[role_index] = resolved_name
-                if corporate_entity_id is not None:
-                    resolved_affiliation_ids[role_index] = corporate_entity_id
-                elif affiliation_reason is not None:
-                    resolved_affiliation_reasons[role_index] = affiliation_reason
-            continue
-        corporate_entity_id, unresolved_reason = await get_or_create_corporate_entity(
-            conn,
-            role.actor_name,
-            context_text,
-            hierarchy_inference_client,
-            verification_client,
-            candidates,
-        )
-        if corporate_entity_id is not None:
-            resolved_organization_ids[role_index] = corporate_entity_id
-        elif unresolved_reason is not None:
-            resolved_organization_reasons[role_index] = unresolved_reason
 
     async with conn.transaction():
+        input_is_current = await _lock_current_summary_input(
+            conn,
+            post_id,
+            expected_source_body_sha256=expected_source_body_sha256,
+            expected_summary_input=normalized_summary_input,
+            require_image_evidence=require_image_evidence,
+        )
+        if not input_is_current:
+            raise RuntimeError("post summary input is no longer current")
+        for role_index, role in enumerate(summary.roles_and_responsibilities):
+            if role.actor_type_code == ACTOR_TYPE_TEAM and is_generic_team_actor(
+                role.actor_name
+            ):
+                continue
+            if role.actor_type_code != ACTOR_TYPE_ORGANIZATION:
+                if (
+                    role.actor_type_code in {ACTOR_TYPE_PERSON, ACTOR_TYPE_TEAM}
+                    and role.affiliated_organization_name
+                ):
+                    prepared_affiliation = prepared_affiliations.get(role_index)
+                    if prepared_affiliation is not None:
+                        _, resolved_name, corporate_entity_id, affiliation_reason = (
+                            await apply_prepared_affiliated_organization(
+                                conn,
+                                prepared_affiliation,
+                                candidates,
+                            )
+                        )
+                    else:
+                        resolved_name, corporate_entity_id, affiliation_reason = (
+                            unavailable_affiliations[role_index]
+                        )
+                    resolved_affiliation_names[role_index] = resolved_name
+                    if corporate_entity_id is not None:
+                        resolved_affiliation_ids[role_index] = corporate_entity_id
+                    elif affiliation_reason is not None:
+                        resolved_affiliation_reasons[role_index] = affiliation_reason
+                continue
+            corporate_entity_id, unresolved_reason = (
+                await apply_prepared_corporate_entity_resolution(
+                    conn,
+                    prepared_organizations[role_index],
+                    candidates,
+                )
+            )
+            if corporate_entity_id is not None:
+                resolved_organization_ids[role_index] = corporate_entity_id
+            elif unresolved_reason is not None:
+                resolved_organization_reasons[role_index] = unresolved_reason
         await _replace_summary_projection(
             conn,
             post_id,
@@ -494,14 +602,18 @@ async def persist_post_summary(
             resolved_organization_ids,
             resolved_affiliation_names,
             resolved_affiliation_ids,
+            summary_input_digest,
             resolved_organization_reasons,
             resolved_affiliation_reasons,
         )
-
-    payload = await fetch_persisted_summary(conn, post_id)
-    if payload is None:
-        raise RuntimeError("persist_post_summary wrote no row")
-    return payload
+        payload = await fetch_persisted_summary(
+            conn,
+            post_id,
+            summary_input=normalized_summary_input,
+        )
+        if payload is None:
+            raise RuntimeError("persist_post_summary wrote no row")
+        return payload
 
 
 async def _resolve_existing_cataloged_person_id(
@@ -535,6 +647,7 @@ async def _replace_summary_projection(
     resolved_organization_ids: dict[int, str],
     resolved_affiliation_names: dict[int, str],
     resolved_affiliation_ids: dict[int, str],
+    summary_input_digest: str,
     resolved_organization_reasons: dict[int, str] | None = None,
     resolved_affiliation_reasons: dict[int, str] | None = None,
 ) -> None:
@@ -561,10 +674,12 @@ async def _replace_summary_projection(
     await conn.execute("delete from post_project_mention where post_id = $1", post_id)
     await conn.execute(
         "insert into post_summary_result "
-        "(post_id, korean_summary, summary_contract_version) values ($1, $2, $3)",
+        "(post_id, korean_summary, summary_contract_version, summary_input_sha256) "
+        "values ($1, $2, $3, $4)",
         post_id,
         summary.korean_summary,
         POST_SUMMARY_CONTRACT_VERSION,
+        summary_input_digest,
     )
     for project in summary.project_mentions:
         project_key = normalize_project_key(project.canonical_name)

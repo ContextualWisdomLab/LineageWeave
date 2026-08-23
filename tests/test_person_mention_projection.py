@@ -369,8 +369,16 @@ async def _exercise_projection_contract(
                     ),
                 ),
             ),
+            post_body="Synthetic body",
+            expected_source_body_sha256=summary_ingestion.source_body_sha256(
+                "Synthetic body"
+            ),
         )
-        summary_payload = await fetch_persisted_summary(connection, post_id)
+        summary_payload = await fetch_persisted_summary(
+            connection,
+            post_id,
+            summary_input="Synthetic body",
+        )
         assert summary_payload is not None
         assert [
             action["project_name"]
@@ -402,6 +410,10 @@ async def _exercise_projection_contract(
             connection,
             post_id,
             PostSummary(korean_summary="역할이 제거된 합성 요약"),
+            post_body="Synthetic body",
+            expected_source_body_sha256=summary_ingestion.source_body_sha256(
+                "Synthetic body"
+            ),
         )
         assert await visible_mention_post_ids(
             connection, summary_person_id, lambda row: True
@@ -660,11 +672,27 @@ async def _exercise_homonym_organization_role_binding(
             )
         )
 
-        async def resolve_mentioned_organization(*_args, **_kwargs) -> tuple[str, None]:
+        prepared = object()
+
+        async def prepare_mentioned_organization(*_args, **_kwargs):
+            return prepared
+
+        async def apply_mentioned_organization(
+            _conn,
+            proposal,
+            _candidates,
+        ) -> tuple[str, None]:
+            assert proposal is prepared
             return mentioned_id, None
 
-        original = summary_ingestion.get_or_create_corporate_entity
-        summary_ingestion.get_or_create_corporate_entity = resolve_mentioned_organization
+        original_prepare = summary_ingestion.prepare_corporate_entity_resolution
+        original_apply = summary_ingestion.apply_prepared_corporate_entity_resolution
+        summary_ingestion.prepare_corporate_entity_resolution = (
+            prepare_mentioned_organization
+        )
+        summary_ingestion.apply_prepared_corporate_entity_resolution = (
+            apply_mentioned_organization
+        )
         try:
             payload = await persist_post_summary(
                 connection,
@@ -679,15 +707,24 @@ async def _exercise_homonym_organization_role_binding(
                         ),
                     ),
                 ),
+                post_body="Synthetic body",
+                expected_source_body_sha256=summary_ingestion.source_body_sha256(
+                    "Synthetic body"
+                ),
             )
         finally:
-            summary_ingestion.get_or_create_corporate_entity = original
+            summary_ingestion.prepare_corporate_entity_resolution = original_prepare
+            summary_ingestion.apply_prepared_corporate_entity_resolution = original_apply
 
         roles = payload["roles_and_responsibilities"]
         assert len(roles) == 1
         assert roles[0]["catalog_node_id"] == mentioned_id
         assert roles[0]["catalog_node_type_code"] == NODE_CORPORATE_ENTITY
-        fetched = await fetch_persisted_summary(connection, post_id)
+        fetched = await fetch_persisted_summary(
+            connection,
+            post_id,
+            summary_input="Synthetic body",
+        )
         assert fetched is not None
         assert fetched["roles_and_responsibilities"][0]["catalog_node_id"] == mentioned_id
         assert fetched["roles_and_responsibilities"][0]["catalog_node_id"] != other_id
@@ -757,8 +794,16 @@ async def _exercise_same_name_person_catalog_order(
                     ),
                 ),
             ),
+            post_body="Synthetic body",
+            expected_source_body_sha256=summary_ingestion.source_body_sha256(
+                "Synthetic body"
+            ),
         )
-        payload = await fetch_persisted_summary(connection, post_id)
+        payload = await fetch_persisted_summary(
+            connection,
+            post_id,
+            summary_input="Synthetic body",
+        )
         assert payload is not None
         roles = payload["roles_and_responsibilities"]
         assert len(roles) == 1
@@ -835,6 +880,10 @@ async def _exercise_two_project_event_streams_stay_separate(
                     ),
                 ),
             ),
+            post_body="Synthetic body",
+            expected_source_body_sha256=summary_ingestion.source_body_sha256(
+                "Synthetic body"
+            ),
         )
 
         events_by_text = {
@@ -847,7 +896,11 @@ async def _exercise_two_project_event_streams_stay_separate(
         # either declared project just because two exist on this post.
         assert events_by_text["관련 없는 일반 공지"] is None
 
-        fetched = await fetch_persisted_summary(connection, post_id)
+        fetched = await fetch_persisted_summary(
+            connection,
+            post_id,
+            summary_input="Synthetic body",
+        )
         assert fetched is not None
         fetched_events_by_text = {
             event["event_text"]: event["project_name"] for event in fetched["key_event_details"]

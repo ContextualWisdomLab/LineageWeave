@@ -11,13 +11,6 @@ from uuid import UUID
 import asyncpg
 import redis.asyncio as redis
 
-from lineageweave.embedding_client import EmbeddingClient
-from lineageweave.image_content import ImageContentClient
-from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
-from lineageweave.post_content_normalization import normalize_post_body
-from lineageweave.post_content_persistence import persist_post_content
-from lineageweave.post_structure import PostStructureClient
-
 from backend.app.config import load_settings
 from backend.app.post_content_queue import (
     FAILED,
@@ -29,9 +22,16 @@ from backend.app.post_content_queue import (
     STALE_RUNNING_INTERVAL,
     SUCCEEDED,
     post_content_is_complete,
-    transition_post_content_job,
     republish_queued_post_content_jobs,
+    source_body_sha256,
+    transition_post_content_job,
 )
+from lineageweave.embedding_client import EmbeddingClient
+from lineageweave.image_content import ImageContentClient
+from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
+from lineageweave.post_content_normalization import normalize_post_body
+from lineageweave.post_content_persistence import persist_post_content
+from lineageweave.post_structure import PostStructureClient
 
 _logger = logging.getLogger(__name__)
 _RECOVERY_INTERVAL_SECONDS = 30.0
@@ -54,35 +54,78 @@ async def _claim_job(
     *,
     embedding_model_code: str,
     require_structure: bool = False,
-) -> asyncpg.Record | None:
+) -> dict[str, object] | None:
     async with pool.acquire() as conn:
         async with conn.transaction():
-            row = await conn.fetchrow(
+            source_row = await conn.fetchrow(
                 """
-                select p.*, j.source_body_sha256 as job_source_body_sha256,
+                select p.*
+                from source_post p
+                where p.post_id = $1::uuid
+                  and coalesce(upper(btrim(p.source_detail_state_code)), '') <> 'W'
+                for update of p
+                """,
+                post_id,
+            )
+            if source_row is None:
+                return None
+            if str(source_row.get("source_detail_state_code") or "").strip().upper() == "W":
+                return None
+            raw_body = source_row["post_body"]
+            if not isinstance(raw_body, str):
+                return None
+            if source_body_sha256(raw_body) != source_body_digest:
+                return None
+            job_row = await conn.fetchrow(
+                """
+                select j.source_body_sha256 as job_source_body_sha256,
                        j.status_code as job_status_code,
                        j.attempt_count as job_attempt_count,
+                       (
+                           select count(*)
+                           from post_content_ingestion_job_status_event event
+                           where event.post_id = j.post_id
+                             and event.status_code = $3
+                             and event.status_ordinal > coalesce(
+                                 (
+                                     select max(boundary.status_ordinal)
+                                     from post_content_ingestion_job_status_event boundary
+                                     where boundary.post_id = j.post_id
+                                       and boundary.status_code = $4
+                                       and boundary.failure_code is null
+                                 ),
+                                 -1
+                             )
+                       ) as job_cycle_attempt_count,
                        j.started_at as job_started_at,
                        j.queued_at as job_queued_at
                 from post_content_ingestion_job j
-                join source_post p on p.post_id = j.post_id
                 where j.post_id = $1::uuid
                   and j.source_body_sha256 = $2
-                  and coalesce(upper(btrim(p.source_detail_state_code)), '') <> 'W'
-                for update of j, p
+                for update
                 """,
                 post_id,
                 source_body_digest,
+                RUNNING,
+                QUEUED,
             )
-            if row is None:
+            if job_row is None:
                 return None
-            if str(row.get("source_detail_state_code") or "").strip().upper() == "W":
-                return None
+            row = dict(source_row)
+            row.update(dict(job_row))
             status_code = str(row["job_status_code"])
-            attempt_count = int(row["job_attempt_count"])
+            cycle_attempt_count = int(row["job_cycle_attempt_count"])
             if status_code == FAILED:
                 return None
-            if status_code == RUNNING and attempt_count >= POST_CONTENT_MAX_ATTEMPTS:
+            if status_code == RUNNING and row["job_started_at"] is not None:
+                stale = await conn.fetchval(
+                    "select now() - $1::timestamptz > $2::interval",
+                    row["job_started_at"],
+                    STALE_RUNNING_INTERVAL,
+                )
+                if not stale:
+                    return None
+            if status_code == RUNNING and cycle_attempt_count >= POST_CONTENT_MAX_ATTEMPTS:
                 await transition_post_content_job(
                     conn,
                     post_id,
@@ -91,7 +134,7 @@ async def _claim_job(
                     detail_text="post-content ingestion attempt limit was already reached",
                 )
                 return None
-            if status_code == QUEUED and attempt_count >= POST_CONTENT_MAX_ATTEMPTS:
+            if status_code == QUEUED and cycle_attempt_count >= POST_CONTENT_MAX_ATTEMPTS:
                 await transition_post_content_job(
                     conn,
                     post_id,
@@ -100,7 +143,7 @@ async def _claim_job(
                     detail_text="post-content ingestion attempt limit was already reached",
                 )
                 return None
-            if status_code == QUEUED and attempt_count > 0:
+            if status_code == QUEUED and cycle_attempt_count > 0:
                 retry_ready = await conn.fetchval(
                     "select now() >= $1::timestamptz + $2::interval",
                     row["job_queued_at"],
@@ -117,24 +160,67 @@ async def _claim_job(
                 )
                 if content_complete:
                     return None
-            if status_code == RUNNING and row["job_started_at"] is not None:
-                stale = await conn.fetchval(
-                    "select now() - $1::timestamptz > $2::interval",
-                    row["job_started_at"],
-                    STALE_RUNNING_INTERVAL,
+            claimed_attempt_count = int(
+                await conn.fetchval(
+                    """
+                    update post_content_ingestion_job
+                    set attempt_count = attempt_count + 1
+                    where post_id = $1
+                      and source_body_sha256 = $2
+                    returning attempt_count
+                    """,
+                    post_id,
+                    source_body_digest,
                 )
-                if not stale:
-                    return None
-            await conn.execute(
-                """
-                update post_content_ingestion_job
-                set attempt_count = attempt_count + 1
-                where post_id = $1
-                """,
-                post_id,
             )
-            await transition_post_content_job(conn, post_id, RUNNING)
-            return row
+            await transition_post_content_job(
+                conn,
+                post_id,
+                RUNNING,
+                expected_attempt_count=claimed_attempt_count,
+                expected_source_body_sha256=source_body_digest,
+            )
+            claimed = dict(row)
+            claimed["job_attempt_count"] = claimed_attempt_count
+            claimed["job_cycle_attempt_count"] = cycle_attempt_count + 1
+            return claimed
+
+
+async def _lock_current_claim(
+    conn: asyncpg.Connection,
+    post_id: str,
+    *,
+    expected_source_body_sha256: str,
+    expected_attempt_count: int,
+) -> bool:
+    """Lock and validate the immutable worker claim against current source."""
+    source_row = await conn.fetchrow(
+        "select post_body from source_post where post_id = $1::uuid for update",
+        post_id,
+    )
+    if source_row is None:
+        return False
+    raw_body = source_row["post_body"]
+    if not isinstance(raw_body, str) or (
+        source_body_sha256(raw_body) != expected_source_body_sha256
+    ):
+        return False
+    job_row = await conn.fetchrow(
+        """
+        select status_code
+        from post_content_ingestion_job
+        where post_id = $1::uuid
+          and source_body_sha256 = $2
+          and attempt_count = $3
+          and status_code = $4
+        for update
+        """,
+        post_id,
+        expected_source_body_sha256,
+        expected_attempt_count,
+        RUNNING,
+    )
+    return job_row is not None
 
 
 async def _finish_job(
@@ -142,21 +228,30 @@ async def _finish_job(
     post_id: str,
     status_code: str,
     *,
+    expected_source_body_sha256: str,
     expected_attempt_count: int,
     failure_code: str | None = None,
     detail_text: str | None = None,
 ) -> None:
     """Finish only the attempt that actually owns the running lease."""
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            await transition_post_content_job(
-                conn,
-                post_id,
-                status_code,
-                expected_attempt_count=expected_attempt_count,
-                failure_code=failure_code,
-                detail_text=detail_text,
-            )
+    async with pool.acquire() as conn, conn.transaction():
+        if not await _lock_current_claim(
+            conn,
+            post_id,
+            expected_source_body_sha256=expected_source_body_sha256,
+            expected_attempt_count=expected_attempt_count,
+        ):
+            return
+        await transition_post_content_job(
+            conn,
+            post_id,
+            status_code,
+            expected_attempt_count=expected_attempt_count,
+            expected_source_body_sha256=expected_source_body_sha256,
+            expected_status_code=RUNNING,
+            failure_code=failure_code,
+            detail_text=detail_text,
+        )
 
 
 async def _finish_failed_job(
@@ -165,7 +260,9 @@ async def _finish_failed_job(
     *,
     failure_code: str,
     detail_text: str,
+    expected_source_body_sha256: str,
     expected_attempt_count: int,
+    cycle_attempt_count: int,
 ) -> None:
     """Schedule one retry, or persist a terminal failure for this attempt.
 
@@ -173,37 +270,29 @@ async def _finish_failed_job(
     a worker whose lease was reclaimed cannot retry or terminally fail a newer
     attempt.
     """
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            attempt_count = int(
-                await conn.fetchval(
-                    """
-                    select attempt_count
-                    from post_content_ingestion_job
-                    where post_id = $1
-                      and status_code = $2
-                    for update
-                    """,
-                    post_id,
-                    RUNNING,
-                )
-                or -1
-            )
-            if attempt_count != expected_attempt_count:
-                return
-            terminal = attempt_count >= POST_CONTENT_MAX_ATTEMPTS
-            await transition_post_content_job(
-                conn,
-                post_id,
-                FAILED if terminal else QUEUED,
-                failure_code=_ATTEMPT_LIMIT_FAILURE_CODE if terminal else failure_code,
-                detail_text=(
-                    "post-content ingestion reached its bounded retry limit"
-                    if terminal
-                    else detail_text
-                ),
-                expected_attempt_count=expected_attempt_count,
-            )
+    async with pool.acquire() as conn, conn.transaction():
+        if not await _lock_current_claim(
+            conn,
+            post_id,
+            expected_source_body_sha256=expected_source_body_sha256,
+            expected_attempt_count=expected_attempt_count,
+        ):
+            return
+        terminal = cycle_attempt_count >= POST_CONTENT_MAX_ATTEMPTS
+        await transition_post_content_job(
+            conn,
+            post_id,
+            FAILED if terminal else QUEUED,
+            failure_code=_ATTEMPT_LIMIT_FAILURE_CODE if terminal else failure_code,
+            detail_text=(
+                "post-content ingestion reached its bounded retry limit"
+                if terminal
+                else detail_text
+            ),
+            expected_attempt_count=expected_attempt_count,
+            expected_source_body_sha256=expected_source_body_sha256,
+            expected_status_code=RUNNING,
+        )
 
 
 async def process_post_content_job(
@@ -226,7 +315,8 @@ async def process_post_content_job(
     )
     if row is None:
         return
-    attempt_count = int(row["job_attempt_count"]) + 1
+    attempt_count = int(row["job_attempt_count"])
+    cycle_attempt_count = int(row["job_cycle_attempt_count"])
     try:
         raw_body = row["post_body"]
         if not isinstance(raw_body, str) or not raw_body.strip():
@@ -238,7 +328,7 @@ async def process_post_content_job(
             vision_client = vision_factory()
             normalized = await asyncio.to_thread(normalize_post_body, raw_body, vision_client)
             async with pool.acquire() as conn:
-                await persist_post_content(
+                persisted_count = await persist_post_content(
                     conn,
                     post_id,
                     raw_body,
@@ -248,7 +338,11 @@ async def process_post_content_job(
                     normalized_result=normalized,
                     structure_client=structure_client,
                     post_title=str(row["post_title"]),
+                    expected_source_body_sha256=source_body_digest,
+                    expected_attempt_count=attempt_count,
                 )
+            if persisted_count is None:
+                return
             async with pool.acquire() as conn:
                 complete = await post_content_is_complete(
                     conn,
@@ -264,20 +358,30 @@ async def process_post_content_job(
                     post_id,
                     failure_code=_INCOMPLETE_FAILURE_CODE,
                     detail_text="post-content providers did not produce complete persisted evidence",
+                    expected_source_body_sha256=source_body_digest,
                     expected_attempt_count=attempt_count,
+                    cycle_attempt_count=cycle_attempt_count,
                 )
                 return
-    except Exception:  # noqa: BLE001 - durable failure is recorded for retry.
+    except Exception:
         _logger.exception("post content ingestion failed for post_id=%s", post_id)
         await _finish_failed_job(
             pool,
             post_id,
             failure_code="post_content_ingestion_failed",
             detail_text=_UNEXPECTED_FAILURE_DETAIL,
+            expected_source_body_sha256=source_body_digest,
             expected_attempt_count=attempt_count,
+            cycle_attempt_count=cycle_attempt_count,
         )
         return
-    await _finish_job(pool, post_id, SUCCEEDED, expected_attempt_count=attempt_count)
+    await _finish_job(
+        pool,
+        post_id,
+        SUCCEEDED,
+        expected_source_body_sha256=source_body_digest,
+        expected_attempt_count=attempt_count,
+    )
 
 
 async def consume_post_content_stream_once(

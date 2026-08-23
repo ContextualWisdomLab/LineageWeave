@@ -22,6 +22,10 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
+from backend.app.post_content_queue import (
+    record_post_content_backfill_success,
+    source_body_sha256,
+)
 from backend.app.post_summary_ingestion import persist_post_summary
 from lineageweave.corporate_hierarchy_inference import (
     NullCorporateHierarchyInferenceClient,
@@ -284,6 +288,20 @@ async def backfill_post_summaries(
                     normalized = normalize_post_body(row["post_body"], vision_client=vision_client)
                     if not normalized.text.strip():
                         raise ValueError("normalized post body is empty")
+                    backfill_post_id = str(row["post_id"])
+                    backfill_body = str(row["post_body"] or "")
+
+                    async def finalize_backfill(
+                        inner_conn: asyncpg.Connection,
+                        current_post_id: str = backfill_post_id,
+                        current_body: str = backfill_body,
+                    ) -> None:
+                        await record_post_content_backfill_success(
+                            inner_conn,
+                            current_post_id,
+                            current_body,
+                        )
+
                     await persist_post_content(
                         conn,
                         str(row["post_id"]),
@@ -294,6 +312,7 @@ async def backfill_post_summaries(
                         normalized_result=normalized,
                         structure_client=structure_client,
                         post_title=row["post_title"],
+                        transaction_fence=finalize_backfill,
                     )
                     summary = await asyncio.to_thread(
                         summary_client.summarize_with_hints,
@@ -306,6 +325,8 @@ async def backfill_post_summaries(
                         str(row["post_id"]),
                         summary,
                         post_body=normalized.text,
+                        expected_source_body_sha256=source_body_sha256(row["post_body"]),
+                        require_image_evidence=bool(normalized.image_results),
                         hierarchy_inference_client=NullCorporateHierarchyInferenceClient(),
                         verification_client=NullRelationVerificationClient(),
                     )

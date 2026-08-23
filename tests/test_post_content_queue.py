@@ -13,18 +13,19 @@ from backend.app.post_content_queue import (
     FAILED,
     POST_CONTENT_RETRY_INTERVAL,
     POST_CONTENT_STREAM_KEY,
-    STALE_RUNNING_INTERVAL,
     QUEUED,
     RUNNING,
+    STALE_RUNNING_INTERVAL,
     SUCCEEDED,
-    record_post_content_backfill_success,
-    requeue_failed_post_content_job,
+    fetch_post_summary_source,
+    post_body_has_images,
     post_content_api_status,
     post_content_is_complete,
-    post_content_summary_status_message,
-    post_content_summary_is_ready,
-    post_body_has_images,
     post_content_stream_fields,
+    post_content_summary_is_ready,
+    post_content_summary_status_message,
+    record_post_content_backfill_success,
+    requeue_failed_post_content_job,
     source_body_sha256,
 )
 
@@ -58,11 +59,44 @@ def test_summary_status_distinguishes_terminal_image_failure_from_processing() -
     assert "still being processed" in post_content_summary_status_message(RUNNING)
 
 
+def test_adrs_keep_post_open_separate_from_image_summary_readiness() -> None:
+    semantic_contract = (
+        _ROOT / "docs/adr/0052-plain-orchestrator-semantic-evidence.md"
+    ).read_text()
+    ingestion_contract = (
+        _ROOT / "docs/adr/0098-valkey-backed-post-content-ingestion.md"
+    ).read_text()
+    stale_contract = (
+        _ROOT / "docs/adr/0114-stale-summary-buyer-continuity.md"
+    ).read_text()
+    semantic_contract = " ".join(semantic_contract.split())
+    ingestion_contract = " ".join(ingestion_contract.split())
+    stale_contract = " ".join(stale_contract.split())
+
+    assert "Source-post open and source rendering" in semantic_contract
+    assert "withholds both current and stale persisted summaries" in semantic_contract
+    assert "never blocks source-post open or source" in ingestion_contract
+    assert "MUST NOT call VISION directly" in ingestion_contract
+    assert "image-bearing stale summary is" in stale_contract
+    assert "normalized summary-input SHA-256" in semantic_contract
+    assert "durable job row to match the current raw-body SHA-256" in ingestion_contract
+    assert "Legacy rows with no input binding are never current" in stale_contract
+    assert "Provider calls never run while source" in stale_contract
+
+
 def test_summary_waits_for_image_evidence_and_detects_images_without_body_logging() -> None:
     class FakeConnection:
-        async def fetchval(self, query: str, *_args: object) -> int:
+        async def fetchval(self, query: str, *args: object) -> int:
+            assert "post_content_ingestion_job" in query
+            assert "job.source_body_sha256 = $2" in query
+            assert "job.status_code = $3" in query
             assert "post_content_image" in query
             assert "description_status_code <> 'described'" in query
+            assert args == (
+                "00000000-0000-0000-0000-000000000001",
+                "ab" * 32,
+                SUCCEEDED,
+            )
             return 0
 
     assert post_body_has_images(
@@ -72,10 +106,70 @@ def test_summary_waits_for_image_evidence_and_detects_images_without_body_loggin
     assert (
         asyncio.run(
             post_content_summary_is_ready(
-                FakeConnection(), "00000000-0000-0000-0000-000000000001"
+                FakeConnection(),
+                "00000000-0000-0000-0000-000000000001",
+                "ab" * 32,
             )
         )
         is False
+    )
+
+
+def test_summary_input_binding_migration_is_wired_for_every_database_path() -> None:
+    migration = (_ROOT / "migrations/0139_post_summary_input_binding.sql").read_text()
+    rollback = (
+        _ROOT / "migrations/rollback/0139_post_summary_input_binding.sql"
+    ).read_text()
+    initial = (_ROOT / "migrations/0001_initial_schema.sql").read_text()
+    standalone = (_ROOT / "migrations/0008_post_summary_result.sql").read_text()
+    replay = (_ROOT / "docker/postgres-init/migrate.sh").read_text()
+    seed = (_ROOT / "scripts/seed_demo_data.py").read_text()
+
+    assert "add column if not exists summary_input_sha256" in migration
+    assert "post_summary_result_summary_input_sha256_check" in migration
+    assert "drop column if exists summary_input_sha256" in rollback
+    assert "summary_input_sha256 text" in initial
+    assert "summary_input_sha256 text" in standalone
+    assert "0139_*" in replay
+    assert "0139_post_summary_input_binding.sql" in seed
+
+
+def test_summary_source_orders_parent_and_region_vision_evidence() -> None:
+    class FakeConnection:
+        async def fetch(self, query: str, post_id: str) -> list[dict[str, object]]:
+            assert "post_content_image_region" in query
+            assert "order by unit.unit_index, region.region_index" in query
+            return [
+                {
+                    "unit_index": 0,
+                    "unit_text": "Synthetic paragraph.",
+                    "region_index": None,
+                    "extracted_text": None,
+                    "image_caption": None,
+                },
+                {
+                    "unit_index": 1,
+                    "unit_text": "[image: Synthetic parent caption.]",
+                    "region_index": 0,
+                    "extracted_text": "Synthetic table header",
+                    "image_caption": "Synthetic upper region.",
+                },
+                {
+                    "unit_index": 1,
+                    "unit_text": "[image: Synthetic parent caption.]",
+                    "region_index": 1,
+                    "extracted_text": "Synthetic table row",
+                    "image_caption": "Synthetic lower region.",
+                },
+            ]
+
+    source = asyncio.run(fetch_post_summary_source(FakeConnection(), "synthetic-post"))
+
+    assert source == (
+        "Synthetic paragraph.\n\n"
+        "[image: Synthetic parent caption.]\n\n"
+        "[image region 0]\nSynthetic upper region.\nSynthetic table header\n\n"
+        "[image region 1]\nSynthetic lower region.\nSynthetic table row"
     )
 
 
@@ -225,7 +319,7 @@ def test_existing_units_are_requeued_when_the_source_digest_changes() -> None:
     assert any("set source_body_sha256" in query for query, _args in conn.executed)
 
 
-def test_existing_units_register_as_succeeded_without_a_wakeup() -> None:
+def test_preledger_units_cannot_register_current_digest_as_succeeded() -> None:
     from backend.app.post_content_queue import ensure_post_content_job
 
     class FakeConnection:
@@ -251,8 +345,8 @@ def test_existing_units_register_as_succeeded_without_a_wakeup() -> None:
         )
     )
 
-    assert job.status_code == SUCCEEDED
-    assert job.should_publish is False
+    assert job.status_code == QUEUED
+    assert job.should_publish is True
     assert any("insert into post_content_ingestion_job" in query for query, _args in conn.executed)
 
 
@@ -285,7 +379,7 @@ def test_failed_same_body_is_not_requeued_by_a_read_poll() -> None:
     assert job.should_publish is False
 
 
-def test_changed_body_resets_a_terminal_job_and_republishes() -> None:
+def test_changed_body_starts_a_retry_cycle_without_reusing_claim_identity() -> None:
     from backend.app.post_content_queue import ensure_post_content_job
 
     class FakeConnection:
@@ -316,7 +410,7 @@ def test_changed_body_resets_a_terminal_job_and_republishes() -> None:
 
     assert job.status_code == QUEUED
     assert job.should_publish is True
-    assert any("attempt_count = 0" in query for query, _args in conn.executed)
+    assert not any("attempt_count = 0" in query for query, _args in conn.executed)
 
 
 def test_recovery_query_carries_one_bounded_retry_interval() -> None:
@@ -325,12 +419,14 @@ def test_recovery_query_carries_one_bounded_retry_interval() -> None:
     assert "queued_at timestamptz not null" in migration
 
 
-def test_explicit_retry_resets_only_one_failed_job() -> None:
+def test_explicit_retry_requeues_only_one_failed_job_without_reusing_claim_identity() -> None:
     executed: list[tuple[str, tuple[object, ...]]] = []
 
     class FakeConnection:
         async def fetchrow(self, query: str, *_args: object):
             assert "for update" in query
+            if "from source_post" in query:
+                return {"post_body": "current body"}
             return {"status_code": FAILED}
 
         async def fetchval(self, query: str, *_args: object) -> int:
@@ -353,7 +449,7 @@ def test_explicit_retry_resets_only_one_failed_job() -> None:
     assert request.should_publish is True
     assert request.source_body_sha256 == source_body_sha256("current body")
     assert len(executed) == 2
-    assert "attempt_count = 0" in executed[0][0]
+    assert "attempt_count = 0" not in executed[0][0]
     assert executed[1][1][-1] == "operator requested an explicit post-content retry"
 
 
@@ -389,10 +485,15 @@ def test_explicit_retry_rejects_missing_and_nonterminal_jobs() -> None:
 
 def test_backfill_success_clears_terminal_error_and_records_succeeded() -> None:
     executed: list[tuple[str, tuple[object, ...]]] = []
+    lock_order: list[str] = []
 
     class FakeConnection:
         async def fetchrow(self, query: str, *_args: object):
             assert "for update" in query
+            if "from source_post" in query:
+                lock_order.append("source")
+                return {"post_body": "current body"}
+            lock_order.append("job")
             return {"status_code": FAILED}
 
         async def fetchval(self, query: str, *_args: object) -> int:
@@ -413,9 +514,30 @@ def test_backfill_success_clears_terminal_error_and_records_succeeded() -> None:
 
     assert request.status_code == SUCCEEDED
     assert request.should_publish is False
+    assert lock_order == ["source", "job"]
     assert len(executed) == 2
     assert "last_error_code = null" in executed[0][0]
     assert executed[1][1][-1] == "operator backfill persisted post-content evidence"
+
+
+def test_backfill_success_rejects_a_source_revision_after_provider_work() -> None:
+    class FakeConnection:
+        async def fetchrow(self, query: str, *_args: object):
+            if "from source_post" in query:
+                return {"post_body": "newer body"}
+            return {"status_code": FAILED}
+
+        async def execute(self, *_args: object) -> None:
+            raise AssertionError("a stale backfill must not update the ledger")
+
+    with pytest.raises(ValueError, match="source body changed"):
+        asyncio.run(
+            record_post_content_backfill_success(
+                FakeConnection(),
+                "00000000-0000-0000-0000-000000000001",
+                "older body",
+            )
+        )
 
 
 def test_recovery_republishes_due_rows_in_queued_at_order() -> None:
@@ -479,3 +601,9 @@ def test_migration_contains_normalized_job_and_status_event_tables() -> None:
 def test_migration_replay_window_includes_post_content_queue() -> None:
     migrate = (_ROOT / "docker/postgres-init/migrate.sh").read_text()
     assert "0050_*)" in migrate
+
+
+def test_claim_identity_is_never_reset_by_queue_transitions() -> None:
+    source = (_ROOT / "backend/app/post_content_queue.py").read_text()
+    assert "attempt_count = 0" not in source
+    assert "attempt_count = attempt_count + 1" not in source
