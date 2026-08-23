@@ -324,7 +324,8 @@ async def _persist_tepp_accepted_receipt(
                     str(existing["remote_run_id"]) == remote_run_id
                     and str(existing["request_sha256"]) == request_sha256
                 )
-            await conn.execute(  # nosemgrep: python.django.security.injection.sql.sql-injection-using-db-cursor-execute.sql-injection-db-cursor-execute -- fixed SQL with bound parameters; code-scanning alert 226
+            # Safe SQL: fixed insert text; every external value is bound as $1 through $8.
+            await conn.execute(  # nosemgrep: python.django.security.injection.sql.sql-injection-using-db-cursor-execute.sql-injection-db-cursor-execute, python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli -- code-scanning alert 226
                 """
                 insert into analysis_run_tepp_accepted_receipt
                     (analysis_run_id, remote_run_id, request_sha256, receipt_sha256,
