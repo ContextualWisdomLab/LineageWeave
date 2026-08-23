@@ -230,24 +230,28 @@ async def get_or_create_corporate_entity(
             "select pg_advisory_xact_lock(hashtext($1))",
             _CREATION_LOCK_KEY,
         )
-        # ponytail: the lock recheck is exact-only; fuzzy matching here can
-        # mistake an inferred child for the parent just created above. The
-        # initial lookup remains fuzzy, while this check only prevents a
-        # concurrent insert of the same normalized name.
+        # ponytail: exclude the resolved parent before repeating normal raw
+        # scoring, or a parent created by this recursion can absorb its child.
         fresh_candidates = await _reload_candidates(conn)
+        if parent_entity_id is not None:
+            fresh_candidates = [
+                candidate
+                for candidate in fresh_candidates
+                if candidate.corporate_entity_id != parent_entity_id
+            ]
         fresh = score_corporate_entity(
             normalized_name,
             fresh_candidates,
-            min_similarity=1.0,
         )
         if fresh.kind == RESOLUTION_UNIQUE and fresh.catalog_id is not None:
             _remember_candidate(candidates, fresh.catalog_id, normalized_name)
             return fresh.catalog_id
         if fresh.kind == RESOLUTION_TIE:
             return None
+        fresh_aliases = await load_corroborated_organization_name_aliases(conn)
         fresh = score_corporate_entity(
             normalized_name,
-            expand_candidates_with_skos_aliases(fresh_candidates, resolved_aliases),
+            expand_candidates_with_skos_aliases(fresh_candidates, fresh_aliases),
             min_similarity=1.0,
         )
         if fresh.kind == RESOLUTION_UNIQUE and fresh.catalog_id is not None:

@@ -41,9 +41,11 @@ candidates only after a raw miss; they never override a raw unique result
 or tie (ADR 0026). Uncorroborated or pending pairs are not loaded.
 Identical or empty labels are ignored.
 
-The same expansion runs on the post-lock exact recheck
-(`min_similarity=1.0`) so a concurrent catalog row stored under the
-other label is reused instead of inserting a duplicate.
+Under the creation lock, reload both the catalog and corroborated aliases.
+First repeat ADR 0026's normal-threshold raw classification, excluding only
+the parent resolved by the current recursion; then run the alias-expanded
+exact check (`min_similarity=1.0`). A concurrent catalog row stored under the
+other label is therefore reused instead of inserting a duplicate.
 
 Synthetic fixtures only: `AGP` / `Aurora Grid Power` (and similarly
 `NRG` / `Northridge Grid` where already present). Real organization

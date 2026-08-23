@@ -103,10 +103,45 @@ class _AliasTieLockConnection(_AliasLockConnection):
     """Expose two rows that tie only after their shared alias is expanded."""
 
     async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
+        if "organization_name_resolution" in query:
+            return [
+                {
+                    "raw_organization_name": "AGP",
+                    "resolved_organization_name": "Aurora Grid Power",
+                },
+                {
+                    "raw_organization_name": "AGP",
+                    "resolved_organization_name": "Alpine Grid Power",
+                },
+            ]
         assert "from corporate_entity" in query
         return [
             {"corporate_entity_id": "alias-a", "entity_name": "Aurora Grid Power"},
             {"corporate_entity_id": "alias-b", "entity_name": "Alpine Grid Power"},
+        ]
+
+
+class _LateAliasLockConnection(_AliasLockConnection):
+    """Publish one corroborated alias while hierarchy inference is running."""
+
+    def __init__(self) -> None:
+        super().__init__("short-row", "AGP")
+        self.alias_reads = 0
+
+    async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
+        if "organization_name_resolution" in query:
+            self.alias_reads += 1
+            if self.alias_reads == 1:
+                return []
+            return [
+                {
+                    "raw_organization_name": "AGP",
+                    "resolved_organization_name": "Aurora Grid Power",
+                }
+            ]
+        assert "from corporate_entity" in query
+        return [
+            {"corporate_entity_id": self.catalog_id, "entity_name": self.entity_name}
         ]
 
 
@@ -243,4 +278,22 @@ def test_post_lock_alias_tie_does_not_insert() -> None:
     )
 
     assert result is None
+    assert connection.insert_attempted is False
+
+
+def test_post_lock_reloads_aliases_before_inserting() -> None:
+    connection = _LateAliasLockConnection()
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            connection,
+            "Aurora Grid Power",
+            _SYNTHETIC_CONTEXT,
+            _CreateIfReachedInferenceClient(),
+            _CreateIfReachedVerificationClient(),
+            [],
+        )
+    )
+
+    assert result == "short-row"
+    assert connection.alias_reads == 2
     assert connection.insert_attempted is False

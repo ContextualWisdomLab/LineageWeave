@@ -57,6 +57,18 @@ class _TimeoutInferenceClient:
         raise TimeoutError("synthetic orchestrator timeout")
 
 
+class _ParentProposalInferenceClient:
+    available = True
+
+    def infer(self, organization_name: str, context_text: str) -> HierarchyProposal:
+        parent_name = (
+            "Aurora Grid Power"
+            if organization_name == "Aurora Grid Power Division"
+            else None
+        )
+        return HierarchyProposal(level_code="company", parent_name=parent_name)
+
+
 class _Transaction:
     """Minimal async transaction context manager."""
 
@@ -98,6 +110,48 @@ class _ReloadTieConnection:
     async def fetchrow(self, query: str, *args: Any) -> dict[str, Any]:
         self.insert_attempted = True
         raise AssertionError("a refreshed tie must not insert an AUTO row")
+
+
+class _ReloadFuzzyTieConnection(_ReloadTieConnection):
+    """Expose a qualifying raw-name tie only after inference."""
+
+    async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
+        if "organization_name_resolution" in query:
+            return []
+        assert "from corporate_entity" in query
+        return [
+            {"corporate_entity_id": "north", "entity_name": "Tied Energy North"},
+            {"corporate_entity_id": "south", "entity_name": "Tied Energy South"},
+        ]
+
+
+class _ParentAwareConnection(_ReloadTieConnection):
+    """Persist a recursively inferred parent before the child lock refresh."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.rows: list[dict[str, Any]] = []
+
+    async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
+        if "organization_name_resolution" in query:
+            return []
+        assert "from corporate_entity" in query
+        return list(self.rows)
+
+    async def fetchrow(self, query: str, *args: Any) -> dict[str, Any]:
+        organization_name = args[2]
+        corporate_entity_id = (
+            "parent-row"
+            if organization_name == "Aurora Grid Power"
+            else "child-row"
+        )
+        self.rows.append(
+            {
+                "corporate_entity_id": corporate_entity_id,
+                "entity_name": organization_name,
+            }
+        )
+        return {"corporate_entity_id": corporate_entity_id}
 
 
 def test_initial_tie_never_reaches_live_inference_or_creation() -> None:
@@ -158,6 +212,47 @@ def test_tie_discovered_under_creation_lock_does_not_insert() -> None:
     assert inference.calls == 1
     assert verification.calls == 1
     assert connection.insert_attempted is False
+
+
+def test_fuzzy_tie_discovered_under_creation_lock_does_not_insert() -> None:
+    """The lock refresh repeats normal raw classification, not exact-only."""
+    connection = _ReloadFuzzyTieConnection()
+
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            connection,
+            "Tied Energy",
+            "Synthetic context",
+            _LiveInferenceClient(),
+            _LiveVerificationClient(),
+            [],
+        )
+    )
+
+    assert result is None
+    assert connection.insert_attempted is False
+
+
+def test_post_lock_raw_scoring_excludes_recursively_resolved_parent() -> None:
+    connection = _ParentAwareConnection()
+
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            connection,
+            "Aurora Grid Power Division",
+            "Synthetic context",
+            _ParentProposalInferenceClient(),
+            _LiveVerificationClient(),
+            [],
+            aliases=[],
+        )
+    )
+
+    assert result == "child-row"
+    assert [row["corporate_entity_id"] for row in connection.rows] == [
+        "parent-row",
+        "child-row",
+    ]
 
 
 def test_keyman_raw_tie_blocks_abbreviation_rewrite_and_auto_creation() -> None:
