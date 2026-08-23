@@ -2,8 +2,23 @@ from __future__ import annotations
 
 import pytest
 
-from lineageweave.adjudication_client import ContextualOrchestratorAdjudicationClient
+from lineageweave.adjudication_client import (
+    AdjudicationClient,
+    ContextualOrchestratorAdjudicationClient,
+)
 from lineageweave.http_client import HttpClientError
+
+
+def test_adjudication_protocol_default_method_is_not_an_implementation() -> None:
+    """A concrete adapter must implement ``judge`` rather than inherit a stub."""
+
+    class IncompleteAdjudicationClient(AdjudicationClient):
+        """Synthetic incomplete adapter used to exercise the protocol guard."""
+
+        available = True
+
+    with pytest.raises(NotImplementedError):
+        IncompleteAdjudicationClient().judge("candidate", "record")
 
 
 def test_adjudication_uses_supported_auto_mode_and_long_local_timeout(monkeypatch) -> None:

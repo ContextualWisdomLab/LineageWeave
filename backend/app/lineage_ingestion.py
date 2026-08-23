@@ -10,6 +10,7 @@ not derived from process unit or voc type.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import datetime
 from typing import Any, Mapping
 
@@ -89,14 +90,23 @@ async def rebuild_lineage(
     without the highest-weighted reconstruction channel
     (``DEFAULT_CHANNEL_WEIGHTS``, the only channel that reasons about
     content instead of approximating it, ADR 0064).
+
+    Reconstruction runs in a worker thread because the published
+    adjudication adapter is synchronous. Only the successful projection
+    replacement is transactional, so provider latency does not block the
+    event loop or hold a PostgreSQL write transaction open.
     """
     rows = await conn.fetch(
         "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
         "process_unit_id, thread_group_key, secondary_grouping_key "
         f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
     )
-    edges = lineage_edge_specs(records_from_source_posts(rows), llm=adjudication_client)
-    await persist_lineage_edges(conn, edges)
+    records = records_from_source_posts(rows)
+    edges = await asyncio.to_thread(
+        lineage_edge_specs, records, llm=adjudication_client
+    )
+    async with conn.transaction():
+        await persist_lineage_edges(conn, edges)
     return edges
 
 

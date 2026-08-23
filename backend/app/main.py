@@ -1115,9 +1115,17 @@ async def rebuild_lineage_graph(
     post_admin only: this is a corpus-wide write. Reads stay ABAC-gated.
     """
     _require_post_admin(account)
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            edges = await rebuild_lineage(conn, adjudication_client=_adjudication_client())
+    try:
+        async with pool.acquire() as conn:
+            edges = await rebuild_lineage(
+                conn, adjudication_client=_adjudication_client()
+            )
+    except (HttpClientError, OSError) as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Lineage rebuild is unavailable because adjudication did not complete. "
+            "Retry after the orchestrator is available.",
+        ) from exc
     return {"edge_count": len(edges)}
 
 

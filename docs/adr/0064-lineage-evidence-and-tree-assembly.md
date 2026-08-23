@@ -26,6 +26,14 @@ or promoting an inferred relation to fact.
   parent, then delegate tree assembly to ThreadWeave.
 - Route LLM adjudication through contextual-orchestrator only. LineageWeave
   never calls a raw LLM API and never presents its output as TEPP measurement.
+- Corpus-wide reconstruction obtains its source rows before invoking the
+  synchronous adjudication adapter, runs that blocking adapter outside the
+  asyncio event-loop thread, and propagates the request context into that
+  worker thread. A provider or response-contract failure aborts before the
+  stored lineage projection is changed.
+- Replace the stored lineage projection in one short PostgreSQL transaction
+  after reconstruction succeeds. The delete-and-insert replacement remains
+  atomic, while provider latency does not hold that write transaction open.
 
 ## Consequences
 
@@ -35,3 +43,14 @@ or promoting an inferred relation to fact.
   deterministic chain.
 - The graph is less complete when signals are unavailable or below threshold,
   but the product does not hide uncertainty behind invented links.
+- Other API work remains responsive during a corpus-wide adjudication, and a
+  failed adjudication leaves the previously stored projection intact. The API
+  reports that temporary dependency failure as retryable unavailability.
+
+## References — APA 7th
+
+PostgreSQL Global Development Group. (2026). *Transactions* (PostgreSQL 18
+documentation). https://www.postgresql.org/docs/current/tutorial-transactions.html
+
+Python Software Foundation. (2026). *Coroutines and tasks* (Python 3.14.6
+documentation). https://docs.python.org/3/library/asyncio-task.html#running-in-threads

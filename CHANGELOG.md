@@ -8,6 +8,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Corpus-wide lineage rebuilds now run synchronous orchestrator adjudication
+  off the API event-loop thread and before the short atomic projection-write
+  transaction. A temporary adjudication failure leaves the existing graph
+  intact and tells the operator when to retry instead of returning an opaque
+  server error.
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
