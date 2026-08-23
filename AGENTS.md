@@ -302,6 +302,12 @@ Gabriel factorization. Closest and farthest post–criterion pairs
 persist to `report_leftover_pair` and sit above the member list so
 a click opens that post. The grouping comparison strip reuses that
 authorized leftover store; a leftover pair for a hidden post is omitted.
+a click opens that post.
+
+Organization chips show a unique search-corroborated SKOS companion
+(`Demo Corp (DC)`) and stay unlabeled on a miss or tie (ADR 0008 /
+ADR 0170). Do not invent an abbreviation from letters. Synthetic
+fixtures only.
 
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a

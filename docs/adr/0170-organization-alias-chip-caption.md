@@ -1,4 +1,4 @@
-# ADR 0119 — Corroborated SKOS companion labels appear on organization chips
+# ADR 0170 — Corroborated SKOS companion labels appear on organization chips
 
 **Decision status:** Accepted
 **Date:** 2026-08-23
