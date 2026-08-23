@@ -7,6 +7,8 @@ supplies the internal visibility scope, and no event body is trusted.
 
 from __future__ import annotations
 
+import logging
+
 import asyncpg
 import redis.asyncio as redis
 from uuid import UUID
@@ -16,6 +18,8 @@ from lineageweave.tepp_client import TeppClient
 
 from backend.app.analysis_run_outbox import OUTBOX_STREAM_KEY
 from backend.app.analysis_run_start import deliver_queued_analysis_run
+
+_logger = logging.getLogger(__name__)
 
 
 async def consume_analysis_run_stream_once(
@@ -40,26 +44,31 @@ async def consume_analysis_run_stream_once(
             except ValueError:
                 analysis_run_id = ""
             if analysis_run_id:
-                async with pool.acquire() as conn:
-                    async with conn.transaction():
-                        owner = await conn.fetchrow(
-                            """
-                            select requested_by_account_id
-                            from analysis_run
-                            where analysis_run_id = $1::uuid
-                            """,
-                            analysis_run_id,
-                        )
-                        if owner is not None:
-                            await deliver_queued_analysis_run(
-                                conn,
-                                analysis_run_id=analysis_run_id,
-                                account_id=str(owner["requested_by_account_id"]),
-                                affiliated_entity_ids=[],
-                                tepp_client=tepp_client,
-                                adjudication_client=adjudication_client,
-                                valkey_stream_entry_id=str(entry_id),
+                try:
+                    async with pool.acquire() as conn:
+                        async with conn.transaction():
+                            owner = await conn.fetchrow(
+                                """
+                                select requested_by_account_id
+                                from analysis_run
+                                where analysis_run_id = $1::uuid
+                                """,
+                                analysis_run_id,
                             )
+                            if owner is not None:
+                                await deliver_queued_analysis_run(
+                                    conn,
+                                    analysis_run_id=analysis_run_id,
+                                    account_id=str(owner["requested_by_account_id"]),
+                                    affiliated_entity_ids=[],
+                                    tepp_client=tepp_client,
+                                    adjudication_client=adjudication_client,
+                                    valkey_stream_entry_id=str(entry_id),
+                                )
+                except Exception:  # noqa: BLE001 - one bad delivery must not kill the worker task; the run stays retryable.
+                    _logger.exception(
+                        "analysis run delivery failed for analysis_run_id=%s", analysis_run_id
+                    )
             last_id = str(entry_id)
     return last_id
 

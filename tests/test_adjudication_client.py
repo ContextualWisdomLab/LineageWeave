@@ -61,6 +61,25 @@ def test_adjudication_raises_instead_of_faking_zero_when_reply_has_no_number(
         client.judge("workshop", "follow-up bid")
 
 
+def test_adjudication_raises_when_content_is_json_null(monkeypatch) -> None:
+    """Some gateways emit ``content: null`` for a moderation-blocked or
+    tool-call-only completion. That shape passes the existing key/index
+    checks, so it must be caught explicitly instead of crashing the regex
+    search with an undocumented TypeError.
+    """
+    monkeypatch.setattr(
+        "lineageweave.adjudication_client.post_json",
+        lambda *args, **kwargs: {"choices": [{"message": {"content": None}}]},
+    )
+
+    client = ContextualOrchestratorAdjudicationClient(
+        base_url="http://orchestrator:8000", api_key="synthetic-token"
+    )
+
+    with pytest.raises(HttpClientError):
+        client.judge("workshop", "follow-up bid")
+
+
 def test_adjudication_raises_when_response_shape_is_malformed(monkeypatch) -> None:
     """A gateway response missing the expected message shape must also raise,
     not be silently coerced into a score.

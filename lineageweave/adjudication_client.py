@@ -98,6 +98,10 @@ class ContextualOrchestratorAdjudicationClient:
             raise HttpClientError(
                 "adjudication response is missing choices[0].message.content"
             ) from exc
+        if not isinstance(content, str):
+            raise HttpClientError(
+                f"adjudication response content was not a string: {content!r}"
+            )
         match = _CONFIDENCE_PATTERN.search(content)
         if match is None:
             raise HttpClientError(

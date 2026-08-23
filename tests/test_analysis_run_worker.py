@@ -84,3 +84,27 @@ async def test_consumer_forwards_valid_event_and_skips_malformed_event(monkeypat
             "valkey_stream_entry_id": "1-0",
         }
     ]
+
+
+@pytest.mark.anyio
+async def test_a_bad_delivery_is_logged_and_does_not_kill_the_consumer(monkeypatch):
+    """A judge()/delivery failure on one run must not propagate out of the
+    consume loop -- that would kill the whole worker task and stop every
+    other queued run from ever being delivered.
+    """
+
+    async def fake_deliver(conn, **kwargs):
+        del conn, kwargs
+        raise RuntimeError("adjudication response had no parseable confidence score")
+
+    monkeypatch.setattr(analysis_run_worker, "deliver_queued_analysis_run", fake_deliver)
+
+    last_id = await analysis_run_worker.consume_analysis_run_stream_once(
+        _Valkey(),
+        _Pool(),
+        last_id="0-0",
+        tepp_client=TeppClient(),
+        adjudication_client=NullAdjudicationClient(),
+    )
+
+    assert last_id == "1-1"
