@@ -48,6 +48,11 @@ _LEFTOVER_OBSERVED_EXPECTED_MIGRATION = (
     / "migrations"
     / "0163_report_leftover_observed_expected.sql"
 )
+_LEFTOVER_MAP_RANK_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0164_report_leftover_map_rank.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -85,6 +90,7 @@ def schema_db():
                 cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -201,6 +207,17 @@ def test_leftover_pair_names_nullable_observed_and_expected_columns(schema_db) -
     assert columns["expected_response"] == "YES"
     assert columns["leftover_residual"] == "NO"
     assert reconcile_constraint_count == 1
+
+
+def test_leftover_pair_names_leftover_map_rank_column(schema_db) -> None:
+    """Fresh leftover rows name map rank without backfilling legacy evidence."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            "select column_name, is_nullable from information_schema.columns "
+            "where table_name = 'report_leftover_pair'"
+        )
+        columns = dict(cur.fetchall())
+    assert columns["leftover_map_rank"] == "YES"
 
 
 

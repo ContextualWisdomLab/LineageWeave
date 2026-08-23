@@ -25,6 +25,17 @@ All notable changes to this project are documented here. Format follows
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 
+## [2.12.15] - 2026-08-24
+
+### Added
+
+- Period leftover pair rows now name leftover-map rank after IRT main
+  effects next to leftover-map distance `d`, then open that post
+  (Jeon et al., 2021, eq. 3; ADR 0164). Rank 0 names no leftover
+  structure rather than inventing a leftover score. When observed `Y`
+  and expected `E` are also present, one localized next action names all
+  three measurements instead of hiding either amendment.
+
 ## [2.12.14] - 2026-08-24
 
 ### Added
