@@ -647,6 +647,7 @@ async def fetch_period_reports(
         period_code,
         RUBRIC_VERSION,
     )
+    # Safe SQL: the source-context expression is an immutable schema fragment; report keys are bound.
     leftover_map_persons = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select lp.grouping_key, lp.post_id, lp.axis_one, lp.axis_two, p.post_title,
