@@ -325,7 +325,7 @@ create table report_item_information (
     check (item_rank >= 1)
 );
 
--- Leftover interaction map pairs after IRT main effects (ADR 0017).
+-- Leftover interaction map pairs after IRT main effects (ADR 0048).
 -- Closest / farthest post–criterion Euclidean distances on the residual
 -- biplot (Jeon et al., 2021). Cascade with the period score. The pair
 -- post must be a member of this report; the criterion must be a CAT

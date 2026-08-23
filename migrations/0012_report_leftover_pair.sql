@@ -1,4 +1,4 @@
--- ADR 0017: persist closest/farthest leftover post–criterion pairs after
+-- ADR 0048: persist closest/farthest leftover post–criterion pairs after
 -- IRT main effects. CREATE IF NOT EXISTS so a volume that already ran
 -- 0001 still upgrades. Composite FKs are added below so an existing
 -- table from an earlier 0012 still gains member/item integrity.

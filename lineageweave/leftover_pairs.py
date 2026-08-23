@@ -1,4 +1,4 @@
-"""Jeon leftover post–criterion pairs after a main-effect IRT (ADR 0017).
+"""Jeon leftover post–criterion pairs after a main-effect IRT (ADR 0048).
 
 Does not import ``fast_mlsirm`` or ``period_report``. A Gabriel biplot
 of the residual ``R = Y − E[Y|θ, item]`` supplies person and item
