@@ -155,7 +155,12 @@ def _complete_case_positions(
 
 
 def _leftover_map_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Gabriel biplot coordinates; rank-0 residuals collapse to the origin."""
+    """Gabriel coordinates ordered by descending singular value.
+
+    NumPy's SVD contract returns singular values largest-first, so filtering
+    by the numerical floor preserves a prefix and the first two columns remain
+    the two leading leftover-map axes. Rank-0 residuals collapse to the origin.
+    """
     n_persons, n_items = filled.shape
     if n_persons == 0 or n_items == 0 or not np.any(np.abs(filled) > _LEFTOVER_SINGULAR_FLOOR):
         return (
@@ -164,11 +169,6 @@ def _leftover_map_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray]
         )
     left, singular, right = np.linalg.svd(filled, full_matrices=False)
     keep = singular > _LEFTOVER_SINGULAR_FLOOR
-    if not np.any(keep):
-        return (
-            np.zeros((n_persons, 1), dtype=np.float64),
-            np.zeros((n_items, 1), dtype=np.float64),
-        )
     scale = np.sqrt(singular[keep])
     person_pos = left[:, keep] * scale
     item_pos = right[keep, :].T * scale
