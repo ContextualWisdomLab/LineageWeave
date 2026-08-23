@@ -7,11 +7,14 @@ from pathlib import Path
 import asyncpg
 import pytest
 
+import backend.app.analysis_run_start as analysis_run_start_module
 from backend.app.analysis_run_ingestion import fetch_tepp_accepted_receipts
 from backend.app.analysis_run_start import (
+    _deliver_tepp_measurement,
     _persist_tepp_accepted_receipt,
     _persist_tepp_result,
     classify_tepp_submission,
+    deliver_queued_analysis_run,
     tepp_receipt_digest,
     tepp_request_digest,
     tepp_run_request,
@@ -57,6 +60,13 @@ class _ReceiptConnection:
         if self.error is not None:
             raise self.error
 
+    async def fetchval(self, query, *args):
+        if "select delivery_status_code" in query:
+            return "analysis_outbox_claimed"
+        if "max(status_ordinal)" in query or "max(delivery_ordinal)" in query:
+            return 1
+        raise AssertionError(f"Unexpected fetchval query: {query}")
+
 
 def _request() -> AnalysisRunRequest:
     return tepp_run_request(
@@ -78,6 +88,88 @@ def test_missing_transport_stays_failed_not_available() -> None:
     assert outcome.failure_code == "tepp_not_available"
     assert outcome.persist_kind == ""
     assert outcome.envelope is None
+
+
+def test_transient_unavailability_keeps_an_already_accepted_run_claimed(
+    monkeypatch,
+) -> None:
+    analysis_run_id = "11111111-1111-1111-1111-111111111111"
+    visible = {
+        "analysis_run_id": analysis_run_id,
+        "status_code": "analysis_status_running",
+    }
+
+    async def fetch_visible(*_args, **_kwargs):
+        return visible
+
+    monkeypatch.setattr(
+        analysis_run_start_module,
+        "fetch_visible_analysis_run",
+        fetch_visible,
+    )
+    connection = _ReceiptConnection(
+        row={
+            "analysis_run_id": analysis_run_id,
+            "work_kind_code": "analysis_run_tepp",
+            "knowledge_cutoff": datetime(2026, 1, 12, tzinfo=timezone.utc),
+            "idempotency_key": "buyer-tepp-2026-w07",
+            "analysis_source_snapshot_id": "snapshot-1",
+            "snapshot_sha256": "ab" * 32,
+            "corporate_entity_id": "22222222-2222-2222-2222-222222222222",
+        },
+        rows=[
+            {
+                "analysis_run_id": analysis_run_id,
+                "remote_run_id": "remote-run-1",
+                "accepted_status_code": "accepted",
+                "received_at": datetime(2026, 1, 12, tzinfo=timezone.utc),
+            }
+        ],
+    )
+
+    result = asyncio.run(
+        deliver_queued_analysis_run(
+            connection,
+            analysis_run_id=analysis_run_id,
+            account_id="account-1",
+            affiliated_entity_ids=[],
+            tepp_client=TeppClient(),
+        )
+    )
+
+    assert result["status_code"] == "analysis_status_running"
+    assert not any(
+        "insert into analysis_run_status_event" in str(execution[0])
+        for execution in connection.executions
+    )
+    assert not any(
+        "analysis_outbox_delivered" in execution
+        for execution in connection.executions
+    )
+
+
+def test_initial_unavailability_without_a_receipt_remains_terminal() -> None:
+    connection = _ReceiptConnection(rows=[])
+
+    terminal = asyncio.run(
+        _deliver_tepp_measurement(
+            connection,
+            analysis_run_id="11111111-1111-1111-1111-111111111111",
+            locked={
+                "knowledge_cutoff": datetime(2026, 1, 12, tzinfo=timezone.utc),
+                "idempotency_key": "buyer-tepp-2026-w07",
+                "snapshot_sha256": "ab" * 32,
+                "corporate_entity_id": "22222222-2222-2222-2222-222222222222",
+            },
+            tepp_client=TeppClient(),
+        )
+    )
+
+    assert terminal is True
+    assert any(
+        execution[3:] == ("analysis_status_failed", "tepp_not_available")
+        for execution in connection.executions
+    )
 
 
 def test_empty_accepted_envelope_is_not_a_receipt() -> None:

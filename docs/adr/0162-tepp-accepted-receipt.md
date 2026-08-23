@@ -27,8 +27,11 @@ completed-result contract stays blocked on TEPP#156.
 
 Classify a `TeppClient.submit_analysis_run` envelope as follows:
 
-1. `TeppNotAvailable` → Failed / `tepp_not_available`. Seed keeps
-   this default. Do not change seed to Running.
+1. `TeppNotAvailable` with no stored receipt → Failed /
+   `tepp_not_available`. Seed keeps this default. Do not change seed to
+   Running. When the same local run already has a stored accepted receipt,
+   transient unavailability during a status re-check leaves it Running and
+   leaves the outbox claimed; transport loss cannot revoke durable acceptance.
 2. `status` or `run_state` in `{completed, succeeded}` plus a result
    object plus a remote run id → Succeeded, persist
    `analysis_run_tepp_result` (migration 0027).
@@ -71,9 +74,11 @@ sequenceDiagram
     Operator->>API: POST /api/analysis-runs/{id}/start
     API->>Registry: Running + outbox
     API->>TeppClient: AnalysisRunRequest v1
-    alt TeppNotAvailable
+    alt TeppNotAvailable without a stored receipt
         Registry->>Registry: Failed tepp_not_available
         Registry->>Registry: outbox delivered
+    else TeppNotAvailable after a stored receipt
+        Note over Registry: stay Running, outbox stays claimed
     else accepted with remote run id
         Registry->>Registry: persist accepted receipt
         Note over Registry: stay Running, outbox stays claimed
@@ -91,9 +96,11 @@ sequenceDiagram
 
 A connected TEPP transport that returns `accepted` plus a remote run
 id no longer looks like a product failure. The operator refreshes a
-Running run. Refresh may replay the same idempotent submit; it still
-must not stamp Succeeded from the receipt. Seed and an empty
-`accepted` envelope stay Failed. Do not invent a theta.
+Running run. Refresh may replay the same idempotent submit; transient
+transport unavailability after that durable receipt keeps the run Running
+and its outbox claimed, and it still must not stamp Succeeded from the
+receipt. Seed and an empty `accepted` envelope stay Failed.
+Do not invent a theta.
 
 ## References — APA 7th
 

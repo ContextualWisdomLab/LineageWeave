@@ -21,6 +21,7 @@ import asyncpg
 
 from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
+    fetch_tepp_accepted_receipt,
     fetch_visible_analysis_run,
 )
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
@@ -927,6 +928,10 @@ async def _deliver_tepp_measurement(
         corporate_entity_id=str(locked["corporate_entity_id"]),
     )
     outcome = classify_tepp_submission(tepp_client, request)
+    if outcome.failure_code == "tepp_not_available" and await fetch_tepp_accepted_receipt(
+        conn, analysis_run_id
+    ) is not None:
+        return False
     status_code = outcome.status_code
     failure_code = outcome.failure_code
     if outcome.persist_kind == _PERSIST_RESULT and outcome.envelope is not None:
