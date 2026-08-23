@@ -17,7 +17,7 @@ from types import ModuleType
 from urllib.parse import urlsplit
 
 from rdflib import Graph, URIRef
-from rdflib.namespace import RDF
+from rdflib.namespace import OWL, RDF, RDFS, SKOS
 
 try:
     from scripts.ontology_site_contract import public_fragment
@@ -27,6 +27,17 @@ except ModuleNotFoundError:  # direct execution with ``scripts`` as sys.path[0]
 OUTPUT_MARKER = ".lineageweave-ontology-site"
 SOURCE_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg.ttl")
 PROV_PROFILE_RELATIVE_PATH = Path("docs/ontology/prov-o-support-profile.ttl")
+COMPATIBILITY_RELATIVE_PATH = Path("docs/ontology/namespace-compatibility.ttl")
+CANONICAL_NAMESPACE = "https://contextualwisdomlab.github.io/lineageweave/ontology#"
+DEPRECATED_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
+
+_MAPPING_FOR_KIND = {
+    OWL.Class: OWL.equivalentClass,
+    OWL.ObjectProperty: OWL.equivalentProperty,
+    OWL.DatatypeProperty: OWL.equivalentProperty,
+    OWL.AnnotationProperty: OWL.equivalentProperty,
+    SKOS.Concept: SKOS.exactMatch,
+}
 
 
 def _load_renderer(repository_root: Path) -> ModuleType:
@@ -82,6 +93,45 @@ def validate_public_graph(graph: Graph, renderer: ModuleType) -> None:
                     )
 
 
+def _term_kind(graph: Graph, subject: URIRef) -> URIRef | None:
+    """Return one supported RDF term kind, including entailed classes."""
+    kinds = {kind for kind in _MAPPING_FOR_KIND if (subject, RDF.type, kind) in graph}
+    if any(graph.objects(subject, RDFS.subClassOf)):
+        kinds.add(OWL.Class)
+    return next(iter(kinds)) if len(kinds) == 1 else None
+
+
+def validate_compatibility_graph(
+    canonical: Graph,
+    deprecated: Graph,
+    compatibility: Graph,
+) -> None:
+    """Reject namespace mappings whose local name or RDF term kind differs."""
+    mappings = {
+        (subject, predicate, target)
+        for predicate in set(_MAPPING_FOR_KIND.values())
+        for subject, target in compatibility.subject_objects(predicate)
+    }
+    if not mappings:
+        raise ValueError("namespace compatibility vocabulary has no mappings")
+    for subject, predicate, target in mappings:
+        canonical_iri, deprecated_iri = str(subject), str(target)
+        if not canonical_iri.startswith(CANONICAL_NAMESPACE) or not deprecated_iri.startswith(
+            DEPRECATED_NAMESPACE
+        ):
+            raise ValueError("namespace compatibility mapping has an unexpected namespace")
+        if canonical_iri.removeprefix(CANONICAL_NAMESPACE) != deprecated_iri.removeprefix(
+            DEPRECATED_NAMESPACE
+        ):
+            raise ValueError("namespace compatibility mapping has different local names")
+        canonical_kind = _term_kind(canonical, subject)
+        deprecated_kind = _term_kind(deprecated, target)
+        if canonical_kind is None or canonical_kind != deprecated_kind:
+            raise ValueError("namespace compatibility mapping has different term kinds")
+        if _MAPPING_FOR_KIND[canonical_kind] != predicate:
+            raise ValueError("namespace compatibility mapping uses the wrong predicate")
+
+
 def _validate_output_directory(output_dir: Path, source: Path, profile: Path) -> Path:
     """Resolve an output path and ensure replacement cannot delete source data."""
     requested = output_dir.expanduser()
@@ -100,15 +150,23 @@ def publish_site(repository_root: Path, output_dir: Path) -> None:
     root = repository_root.resolve()
     source = root / SOURCE_RELATIVE_PATH
     profile = root / PROV_PROFILE_RELATIVE_PATH
+    compatibility_source = root / COMPATIBILITY_RELATIVE_PATH
     if not source.is_file():
         raise FileNotFoundError(f"ontology source is missing: {source}")
     if not profile.is_file():
         raise FileNotFoundError(f"PROV-O support profile is missing: {profile}")
+    if not compatibility_source.is_file():
+        raise FileNotFoundError(
+            f"namespace compatibility vocabulary is missing: {compatibility_source}"
+        )
 
     output = _validate_output_directory(output_dir, source, profile)
     renderer = _load_renderer(root)
     graph = Graph().parse(source, format="turtle")
+    profile_graph = Graph().parse(profile, format="turtle")
+    compatibility_graph = Graph().parse(compatibility_source, format="turtle")
     validate_public_graph(graph, renderer)
+    validate_compatibility_graph(graph, profile_graph, compatibility_graph)
 
     if output.exists():
         shutil.rmtree(output)

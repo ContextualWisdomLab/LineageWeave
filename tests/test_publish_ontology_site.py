@@ -47,7 +47,11 @@ def _repository_fixture(tmp_path: Path) -> Path:
     scripts_dir = repository / "scripts"
     ontology_dir.mkdir(parents=True)
     scripts_dir.mkdir(parents=True)
-    for name in ("lineageweave-kg.ttl", "prov-o-support-profile.ttl"):
+    for name in (
+        "lineageweave-kg.ttl",
+        "prov-o-support-profile.ttl",
+        "namespace-compatibility.ttl",
+    ):
         (ontology_dir / name).write_bytes((ROOT / "docs" / "ontology" / name).read_bytes())
     (scripts_dir / "build_ontology_site.py").write_bytes(
         (ROOT / "scripts" / "build_ontology_site.py").read_bytes()
@@ -154,6 +158,56 @@ def test_graph_validation_allows_http_relations_and_multiple_term_types() -> Non
     publisher.validate_public_graph(graph, renderer)
 
 
+def test_compatibility_validation_is_term_kind_safe() -> None:
+    publisher = _load_publisher()
+    canonical = Graph().parse(
+        ROOT / "docs" / "ontology" / "lineageweave-kg.ttl", format="turtle"
+    )
+    deprecated = Graph().parse(
+        ROOT / "docs" / "ontology" / "prov-o-support-profile.ttl", format="turtle"
+    )
+    compatibility = Graph().parse(
+        ROOT / "docs" / "ontology" / "namespace-compatibility.ttl", format="turtle"
+    )
+
+    publisher.validate_compatibility_graph(canonical, deprecated, compatibility)
+
+    post = URIRef(f"{publisher.CANONICAL_NAMESPACE}Post")
+    legacy_post = URIRef(f"{publisher.DEPRECATED_NAMESPACE}Post")
+    for broken, message in (
+        (Graph(), "no mappings"),
+        (
+            Graph().add((post, OWL.equivalentClass, URIRef("https://other.test/#Post"))),
+            "unexpected namespace",
+        ),
+        (
+            Graph().add(
+                (
+                    post,
+                    OWL.equivalentClass,
+                    URIRef(f"{publisher.DEPRECATED_NAMESPACE}Person"),
+                )
+            ),
+            "different local names",
+        ),
+    ):
+        with pytest.raises(ValueError, match=message):
+            publisher.validate_compatibility_graph(canonical, deprecated, broken)
+
+    wrong_kind = Graph().add((post, RDF.type, OWL.ObjectProperty))
+    with pytest.raises(ValueError, match="different term kinds"):
+        publisher.validate_compatibility_graph(wrong_kind, deprecated, compatibility)
+
+    wrong_predicate = Graph().add((post, OWL.equivalentProperty, legacy_post))
+    with pytest.raises(ValueError, match="wrong predicate"):
+        publisher.validate_compatibility_graph(canonical, deprecated, wrong_predicate)
+
+    ambiguous = Graph()
+    ambiguous.add((post, RDF.type, OWL.Class))
+    ambiguous.add((post, RDF.type, OWL.ObjectProperty))
+    assert publisher._term_kind(ambiguous, post) is None
+
+
 def test_main_publishes_site(tmp_path: Path) -> None:
     publisher = _load_publisher()
     repository = _repository_fixture(tmp_path)
@@ -207,6 +261,12 @@ def test_publication_fails_closed_for_missing_sources(tmp_path: Path) -> None:
         (ROOT / "docs" / "ontology" / "lineageweave-kg.ttl").read_bytes()
     )
     with pytest.raises(FileNotFoundError, match="PROV-O support profile"):
+        publisher.publish_site(repository, output)
+
+    (ontology_dir / "prov-o-support-profile.ttl").write_bytes(
+        (ROOT / "docs" / "ontology" / "prov-o-support-profile.ttl").read_bytes()
+    )
+    with pytest.raises(FileNotFoundError, match="namespace compatibility"):
         publisher.publish_site(repository, output)
 
 

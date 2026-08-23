@@ -1,0 +1,15 @@
+@prefix canonical: <https://contextualwisdomlab.github.io/lineageweave/ontology#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix legacy: <https://contextualwisdomlab.github.io/LineageWeave/ontology#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+<https://contextualwisdomlab.github.io/LineageWeave/ontology>
+    a owl:Ontology ;
+    owl:deprecated "true"^^xsd:boolean ;
+    dcterms:isReplacedBy <https://contextualwisdomlab.github.io/lineageweave/ontology> .
+
+canonical:Post owl:equivalentClass legacy:Post .
+canonical:Person owl:equivalentClass legacy:Person .
+canonical:CorporateEntity owl:equivalentClass legacy:CorporateEntity .
+canonical:Team owl:equivalentClass legacy:Team .
