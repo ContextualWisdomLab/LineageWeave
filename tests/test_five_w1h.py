@@ -12,6 +12,13 @@ def test_five_w1h_keeps_persisted_evidence_and_leaves_unsupported_slots_empty() 
         ],
         key_events=["검사 일정 확정"],
         counterparties=["Northwind Labs"],
+        evidence_claims=[
+            {
+                "slot_code": "where",
+                "value_text": "Assembly Bay 4",
+                "evidence_text": "Inspection took place in Assembly Bay 4.",
+            }
+        ],
     )
 
     assert [item["text"] for item in slots["who"]] == ["Ada West"]
@@ -21,7 +28,11 @@ def test_five_w1h_keeps_persisted_evidence_and_leaves_unsupported_slots_empty() 
     # PROV-O category (prov:generatedAtTime), and must not be shown here
     # as if it answered "when did this happen" (see five_w1h.py).
     assert slots["when"] == []
-    assert {item["text"] for item in slots["where"]} == {"Demo Corp", "Northwind Labs"}
+    assert [item["text"] for item in slots["where"]] == ["Assembly Bay 4"]
+    assert slots["where"][0]["source"] == "post_summary_five_w1h"
+    assert slots["where"][0]["evidence_text"] == (
+        "Inspection took place in Assembly Bay 4."
+    )
     assert slots["why"] == []
     assert slots["how"] == []
 
