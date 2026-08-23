@@ -1,12 +1,12 @@
 # Product & Technical Gap Baseline
 
 ## 1. Known Parsing & Frontend Display Gaps
-- **Footnote Parsing**: `post=00505695-3e61-1fd1-83c5-263f88a9e77a` fails to recognize footnotes (li/oi level errors).
-- **Table Parsing**: (Resolved) Verified against the real row for `post=00505695-3e61-1fd1-80c6-86bb61c8ddc5` (confirmed still present in the running compose stack's seeded DB). Its `post_body` genuinely contains a real HTML `<table>`/`<tr>`/`<td>` structure. Ran `lineageweave.chunking.chunk_by_dom` against it: it emits 14 `label="tr"` chunks, each rendered as a consistent 5-cell `" | "`-joined row (`_TABLE_ROW_TAGS`/`_TABLE_CELL_TAGS` treat the row as the atomic unit, specifically to avoid a row flattening into unrelated one-cell paragraphs) -- no dropped cells, no row/column count drift across any of the 14 rows. No content-level failure reproduced.
-- **Indentation**: Incorrect indentation rendering in `post=00505695-7571-1fd1-83c3-d521b187ad5b` and `post=00505695-3e61-1fd1-83c0-497b3c1c455e`.
-- **Image/Table OCR**: `post=00505695-7571-1fd1-83dd-3d22a61a5734` fails text recognition for tables inside images, markdown parsing fails, and image OCR description is too shallow for Ontology & Semantics.
-- **Math/Superscripts**: `post=00505695-9612-1fe1-83a7-e30153323f25` fails to parse superscripts like m^3 properly. Needs strict Ontology grammar for math formulas.
-- **Missing UI Elements**: DAG (Directed Acyclic Graph) view is currently missing from the frontend for `post=00505695-7571-1fd1-83c5-895ed333cdbc`.
+- **Footnote Parsing**: Authorized private-runtime validation found a footnote/list-level recognition failure. No identifying record evidence is retained here.
+- **Table Parsing**: Partially resolved -- `tests/test_chunking.py::test_chunk_by_dom_groups_table_cells_by_row_instead_of_flattening` proves row-atomic DOM chunking with a synthetic HTML table. Reader-facing table rendering remains unverified, so the display gap stays open.
+- **Indentation**: Authorized private-runtime validation found incorrect indentation rendering in two records. Only the non-identifying count is retained here.
+- **Image/Table OCR**: Authorized private-runtime validation found one image-table record whose text recognition, markdown parsing, and ontology description were insufficient. No identifying record evidence is retained here.
+- **Math/Superscripts**: Authorized private-runtime validation found one record whose superscript quantity was rendered incorrectly. Strict ontology grammar for mathematical notation remains open.
+- **Missing UI Elements**: Authorized private-runtime validation found one record whose lineage DAG was unavailable in the reader surface. No identifying record evidence is retained here.
 
 ## 2. LLM Extraction & Knowledge Graph Gaps
 - **Multiple Project Extraction**: (Resolved) LLM prompt updated to request key_events as objects with project_name, separating events correctly.
