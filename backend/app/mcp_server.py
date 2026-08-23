@@ -129,7 +129,7 @@ PoolFactory = Callable[[str], Awaitable[Any]]
 AccountResolver = Callable[[Any, str], Awaitable[CurrentAccount]]
 Answerer = Callable[..., Awaitable[GlobalAskAnswer]]
 AccessTokenProvider = Callable[[], AccessToken | None]
-RateLimiterFactory = Callable[[str], ValkeyMcpRateLimiter]
+RateLimiterFactory = Callable[[str, int, int], ValkeyMcpRateLimiter]
 
 
 def _validate_mcp_allowed_origins(origins: list[str]) -> None:
@@ -197,7 +197,11 @@ def build_mcp_server(
     async def lifespan(_: MCPServer) -> AsyncIterator[McpAppContext]:
         """Open and close the MCP process-wide database and client context."""
         pool = await pool_factory(resolved_settings.database_url)
-        rate_limiter = rate_limiter_factory(resolved_settings.valkey_url)
+        rate_limiter = rate_limiter_factory(
+            resolved_settings.valkey_url,
+            resolved_settings.mcp_rate_limit_requests,
+            resolved_settings.mcp_rate_limit_window_seconds,
+        )
         try:
             yield McpAppContext(
                 pool=pool,

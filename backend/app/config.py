@@ -120,6 +120,8 @@ class Settings:
     # A 4,000-character tool question fits comfortably inside this default.
     # The ASGI boundary enforces the bytes before OAuth or SDK JSON parsing.
     mcp_max_request_bytes: int = 65_536
+    mcp_rate_limit_requests: int = 30
+    mcp_rate_limit_window_seconds: int = 60
 
     @property
     def keycloak_jwks_uri(self) -> str:
@@ -221,5 +223,11 @@ def load_settings() -> Settings:
             65_536,
             minimum=8_192,
             maximum=1_048_576,
+        ),
+        mcp_rate_limit_requests=_bounded_int_setting(
+            "MCP_RATE_LIMIT_REQUESTS", 30, minimum=1, maximum=10_000
+        ),
+        mcp_rate_limit_window_seconds=_bounded_int_setting(
+            "MCP_RATE_LIMIT_WINDOW_SECONDS", 60, minimum=1, maximum=3_600
         ),
     )

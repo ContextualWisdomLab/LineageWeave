@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import os
 from typing import Any
 
 from backend.app.activity_stream import create_valkey_client
@@ -53,25 +52,12 @@ class ValkeyMcpRateLimiter:
         await self._client.aclose()
 
 
-def build_mcp_rate_limiter(valkey_url: str) -> ValkeyMcpRateLimiter:
-    """Build the limiter from bounded runtime settings and the existing client."""
-    request_limit = _bounded_env("MCP_RATE_LIMIT_REQUESTS", default=30, minimum=1, maximum=10_000)
-    window_seconds = _bounded_env("MCP_RATE_LIMIT_WINDOW_SECONDS", default=60, minimum=1, maximum=3_600)
+def build_mcp_rate_limiter(
+    valkey_url: str, request_limit: int, window_seconds: int
+) -> ValkeyMcpRateLimiter:
+    """Build the limiter from validated settings and the existing client."""
     return ValkeyMcpRateLimiter(
         create_valkey_client(valkey_url),
         request_limit=request_limit,
         window_seconds=window_seconds,
     )
-
-
-def _bounded_env(name: str, *, default: int, minimum: int, maximum: int) -> int:
-    raw = os.environ.get(name)
-    if raw is None:
-        return default
-    try:
-        value = int(raw)
-    except ValueError as exc:
-        raise ValueError(f"{name} must be an integer") from exc
-    if not minimum <= value <= maximum:
-        raise ValueError(f"{name} must be between {minimum} and {maximum}")
-    return value

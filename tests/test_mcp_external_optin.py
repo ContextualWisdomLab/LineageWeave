@@ -115,7 +115,7 @@ async def test_default_global_ask_never_calls_external_verifier() -> None:
         answerer=answerer,
         access_token_provider=lambda: token,
         external_verifier=ForbiddenExternalVerifier(),
-        rate_limiter_factory=lambda _: _AllowRateLimiter(),
+        rate_limiter_factory=lambda _url, requests, window: _AllowRateLimiter(),
     )
 
     async with Client(server) as client:

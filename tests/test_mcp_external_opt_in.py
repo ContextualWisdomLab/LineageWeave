@@ -120,7 +120,7 @@ async def test_global_ask_does_not_verify_external_evidence_without_explicit_opt
         answerer=answerer,
         access_token_provider=lambda: token,
         external_verifier=_MustNotRunVerifier(),
-        rate_limiter_factory=lambda _: _AllowRateLimiter(),
+        rate_limiter_factory=lambda _url, requests, window: _AllowRateLimiter(),
     )
 
     async with Client(server) as client:

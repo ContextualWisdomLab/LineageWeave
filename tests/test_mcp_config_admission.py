@@ -67,6 +67,28 @@ def test_load_settings_exposes_validated_mcp_request_limit(
     assert load_settings().mcp_max_request_bytes == 32768
 
 
+def test_load_settings_exposes_validated_mcp_rate_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "45")
+    monkeypatch.setenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "90")
+    settings = load_settings()
+    assert settings.mcp_rate_limit_requests == 45
+    assert settings.mcp_rate_limit_window_seconds == 90
+
+
+@pytest.mark.parametrize(
+    ("name", "value"),
+    [("MCP_RATE_LIMIT_REQUESTS", "0"), ("MCP_RATE_LIMIT_WINDOW_SECONDS", "3601")],
+)
+def test_load_settings_rejects_invalid_mcp_rate_limit(
+    monkeypatch: pytest.MonkeyPatch, name: str, value: str
+) -> None:
+    monkeypatch.setenv(name, value)
+    with pytest.raises(ValueError):
+        load_settings()
+
+
 @pytest.mark.parametrize("raw_value", ["8191", "1048577", "invalid"])
 def test_load_settings_rejects_invalid_mcp_request_limit(
     monkeypatch: pytest.MonkeyPatch,

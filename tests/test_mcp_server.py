@@ -148,7 +148,7 @@ async def test_global_ask_tool_is_read_only_structured_and_closes_lifespan() -> 
         answerer=answerer,
         access_token_provider=lambda: token,
         external_verifier=FakeExternalVerifier(),
-        rate_limiter_factory=lambda _: limiter,
+        rate_limiter_factory=lambda _url, requests, window: limiter,
     )
     async with Client(server) as client:
         listed = await client.list_tools()
