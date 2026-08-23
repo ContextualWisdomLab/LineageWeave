@@ -4544,7 +4544,7 @@ function AskAgentPanel({
                           key={`${image.post_id}:${image.unit_index}`}
                           className="post-meta ask-agent-image-citation"
                         >
-                          {t("Image evidence")}: {image.caption ?? t("Untitled image")}
+                          {t("Image evidence")}: {image.caption?.trim() ? image.caption : t("Untitled image")}
                           {image.extracted_text ? ` — ${image.extracted_text}` : ""}
                         </p>
                       ))}
