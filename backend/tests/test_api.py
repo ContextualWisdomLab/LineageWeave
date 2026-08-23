@@ -4257,6 +4257,60 @@ def test_other_corp_private_post_chat_is_forbidden(client, demo_analyst_token, s
     assert listed.status_code == 403
 
 
+def test_other_corp_private_post_content_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/posts/{seeded_db['other_private_post_id']}/content",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_other_corp_private_post_knowledge_graph_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/posts/{seeded_db['other_private_post_id']}/knowledge-graph",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_other_corp_private_post_evaluation_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/posts/{seeded_db['other_private_post_id']}/evaluation",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_other_corp_private_post_five_w1h_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        f"/api/posts/{seeded_db['other_private_post_id']}/five-w1h",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_other_corp_private_post_lineage_endpoint_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
+    """The per-post lineage endpoint (direct/indirect links), not the
+    corpus-wide /api/lineage graph -- a separate ABAC-gated route."""
+    response = client.get(
+        f"/api/posts/{seeded_db['other_private_post_id']}/lineage",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 403
+
+
+def test_other_corp_private_post_bookmark_is_forbidden(client, demo_analyst_token, seeded_db) -> None:
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    read = client.get(f"/api/posts/{seeded_db['other_private_post_id']}/bookmark", headers=headers)
+    assert read.status_code == 403
+    written = client.post(
+        f"/api/posts/{seeded_db['other_private_post_id']}/bookmark",
+        json={"bookmarked": True},
+        headers=headers,
+    )
+    assert written.status_code == 403
+
+
 @pytest.mark.skipif(
     not (_ORCHESTRATOR_BASE_URL and _ORCHESTRATOR_API_KEY),
     reason="set LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL and LINEAGEWEAVE_TEST_ORCHESTRATOR_API_KEY to run",
