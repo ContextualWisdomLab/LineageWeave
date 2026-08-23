@@ -5,7 +5,7 @@
 -- ahead of PostgreSQL (the live CheckViolationError on
 -- analysis_run_status_time_check). Occurrence is not rewritten; the
 -- durable write clock is raised to the supplied occurrence when needed.
--- Idempotent: create or replace. Does not invent a theta.
+-- Idempotent migration 0173: create or replace. Does not invent a theta.
 
 create or replace function enforce_analysis_run_status_transition()
 returns trigger

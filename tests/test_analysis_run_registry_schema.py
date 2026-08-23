@@ -756,8 +756,8 @@ def test_status_requires_scope_and_cannot_predate_request(registry_db) -> None:
 
 
 def test_status_same_clock_migration_is_idempotent_and_allowlisted() -> None:
-    """Compose must replay the same-clock trigger; 0018 matches 0104."""
-    migration = (_ROOT / "migrations" / "0104_analysis_run_status_same_clock.sql").read_text(
+    """Compose must replay the same-clock trigger; 0018 matches 0173."""
+    migration = (_ROOT / "migrations" / "0173_analysis_run_status_same_clock.sql").read_text(
         encoding="utf-8"
     )
     registry = _REGISTRY_MIGRATION.read_text(encoding="utf-8")
@@ -766,7 +766,7 @@ def test_status_same_clock_migration_is_idempotent_and_allowlisted() -> None:
     assert "if new.recorded_at < new.occurred_at then" in migration
     assert "new.recorded_at := new.occurred_at" in migration
     assert "if new.recorded_at < new.occurred_at then" in registry
-    assert "0104_*" in migrate
+    assert "0173_*" in migrate
     assert "Do not invent a theta" in migration or "invent a theta" in migration
 
 

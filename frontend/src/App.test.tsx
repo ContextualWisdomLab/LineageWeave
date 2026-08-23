@@ -32,6 +32,7 @@ afterEach(() => {
 
 describe("App, unauthenticated", () => {
   it("shows a login button that starts the real OIDC redirect", async () => {
+    window.sessionStorage.clear();
     render(<App showLabPanels />);
     const button = screen.getByRole("button", { name: /log in/i });
     await userEvent.click(button);
@@ -41,6 +42,7 @@ describe("App, unauthenticated", () => {
         state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
       }),
     );
+    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toBe("/");
   });
 });
 
