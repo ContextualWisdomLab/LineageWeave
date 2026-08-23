@@ -9,7 +9,7 @@
 - **Footnote Parsing**: synthetic case `case-footnote-01` exercises numbered footnote recognition; authorized production/browser corpus evidence remains pending.
 - **Table Parsing**: synthetic case `case-table-01` exercises malformed row boundaries and empty cells; region-aware image tables and protected-corpus evidence remain open.
 - **Indentation**: synthetic cases `case-indent-01` and `case-indent-02` retain corpus coverage gaps; authorized production/browser evidence remains open.
-- **Image/Table OCR**: synthetic case `case-image-table-01` now shows buyer-visible normalized region locations through v2.12.8 / ADR 0133; authorized production/browser evidence and complete image-region overlay coverage remain open.
+- **Image/Table OCR**: synthetic case `case-image-table-01` now shows buyer-visible normalized region locations through v2.12.8 / ADR 0155; authorized production/browser evidence and complete image-region overlay coverage remain open.
 - **Math/Superscripts**: synthetic case `case-math-01` covers bounded metric normalization such as m³; arbitrary formula semantics and authorized runtime verification remain open.
 - **Missing UI Elements**: synthetic case `case-dag-01` tracks the Event Lineage DAG surface; current source includes the DAG, but corpus coverage and browser evidence remain open.
 

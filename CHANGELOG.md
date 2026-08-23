@@ -17,7 +17,7 @@ All notable changes to this project are documented here. Format follows
 ### Added
 
 - Opening a post with persisted image-region evidence now shows each region's
-  bounding range beside its caption, OCR, and tags (ADR 0133). After
+  bounding range beside its caption, OCR, and tags (ADR 0155). After
   `make seed`, a synthetic process-diagram region reads **Region location:
   0%, 0% – 100%, 100%**. Internal LLM instructions stay hidden. Click the
   region list to compare that box with the caption, then read the source

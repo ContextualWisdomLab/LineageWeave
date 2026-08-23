@@ -127,7 +127,7 @@ contextual-orchestrator owns model discovery and selection.
   retaining the original asset and provenance. Recognize image DOM/visual
   regions before OCR, descriptions, Keyman extraction, or embeddings. Store
   region-level evidence and show each region's bounding range beside its
-  caption and OCR (ADR 0133); never show an internal LLM instruction such as
+  caption and OCR (ADR 0155); never show an internal LLM instruction such as
   `This post is an image` to a buyer.
 
 ## Source parsing and semantic units

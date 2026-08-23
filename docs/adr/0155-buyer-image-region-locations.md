@@ -1,4 +1,4 @@
-# ADR 0133: Show persisted image-region locations to buyers
+# ADR 0155: Show persisted image-region locations to buyers
 
 - Status: Accepted
 - Date: 2026-08-22
