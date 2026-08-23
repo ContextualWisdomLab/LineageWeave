@@ -37,20 +37,18 @@ test("selecting a destination from the site map closes it", async ({ page }) => 
   const menu = page.locator("#site-map-menu");
   await expect(menu).toBeVisible();
 
-  const destinationItem = menu.locator('.workspace-gnb-item:not([aria-current="page"])').first();
-  const destinationLabel = (await destinationItem.innerText()).trim();
-  expect(destinationLabel).not.toBe("");
-  await destinationItem.click();
+  // Board is the default destination, so select a distinct, always-present
+  // destination to prove the site-map action changes application state.
+  await menu.getByRole("button", { name: "Calendar", exact: true }).click();
 
   await expect(menu).not.toBeVisible({ timeout: 5000 });
   await expect(toggle).toHaveAttribute("aria-expanded", "false");
 
-  // The header's persistent WorkspaceNav (not the site-map's own copy)
-  // reflects the same selection, confirming the click actually navigated
-  // rather than just closing the menu.
+  await expect(page).toHaveURL(/(?:\?|&)workspace=calendar(?:&|$)/);
   const headerNav = page.locator("nav.workspace-gnb").first();
-  await expect(headerNav.getByRole("button", { name: destinationLabel, exact: true })).toHaveAttribute(
+  await expect(headerNav.getByRole("button", { name: "Calendar", exact: true })).toHaveAttribute(
     "aria-current",
     "page",
   );
+  await expect(page.getByRole("main").getByRole("heading", { name: "Calendar", exact: true })).toBeVisible();
 });

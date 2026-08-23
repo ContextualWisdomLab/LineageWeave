@@ -11,9 +11,9 @@ export default defineConfig({
   // The default 30s budget covers the whole authenticated-page fixture
   // (goto, OIDC redirect, Keycloak form submit, callback, authenticated shell) --
   // fine on a quiet machine, but the full flow's several sequential
-  // network round trips can exceed it under real load. 90s gives headroom
-  // without masking a genuinely hung flow.
-  timeout: 90_000,
+  // network round trips can exceed it under real load. The fixture's serial
+  // waits can consume up to 100s, so 120s leaves a bounded test-action margin.
+  timeout: 120_000,
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
