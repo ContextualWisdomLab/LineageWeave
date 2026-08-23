@@ -1,4 +1,4 @@
--- Reverse 0170. Leftover distance and residual stay on the pair row.
+-- Reverse 0177. Leftover distance and residual stay on the pair row.
 
 alter table report_leftover_pair
     drop constraint if exists leftover_pair_observed_expected_reconcile_chk;

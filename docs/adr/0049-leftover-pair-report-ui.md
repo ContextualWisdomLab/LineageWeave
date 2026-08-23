@@ -2,7 +2,7 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-17
-**Amended by:** [ADR 0170](0170-leftover-observed-expected.md) (observed Y and expected E)
+**Amended by:** [ADR 0177](0177-leftover-observed-expected.md) (observed Y and expected E)
 
 ## Context
 
@@ -22,7 +22,7 @@ title, criterion short label, leftover-map distance, observed `Y` and
 expected `E` when both are finite, and the next action (“Read observed
 Y and expected E after IRT main effects, then open this post.”).
 Clicking the button opens that post with the same handler as a member
-row. Observed/expected naming is [ADR 0170](0170-leftover-observed-expected.md).
+row. Observed/expected naming is [ADR 0177](0177-leftover-observed-expected.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post.

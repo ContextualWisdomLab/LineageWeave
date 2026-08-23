@@ -46,7 +46,7 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
 _LEFTOVER_OBSERVED_EXPECTED_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
-    / "0170_report_leftover_observed_expected.sql"
+    / "0177_report_leftover_observed_expected.sql"
 )
 
 

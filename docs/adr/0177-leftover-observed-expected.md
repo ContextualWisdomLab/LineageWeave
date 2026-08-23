@@ -1,4 +1,4 @@
-# ADR 0170 — Persist observed Y and expected E on leftover pairs
+# ADR 0177 — Persist observed Y and expected E on leftover pairs
 
 **Decision status:** Accepted
 **Date:** 2026-08-24
@@ -26,9 +26,8 @@ change leftover-map axis count, does not name complete-case coverage,
 and does not land Post quality on the leftover criterion.
 
 The unprotected-stack ADR for the same buyer fact was 0163. This
-protected-main reconstruction uses **0170** so it does not collide
-with leftover coverage (0168), leftover-map axis share (0169), or
-two-axis leftover-map distance (0166).
+protected-main reconstruction uses **0177** so it does not collide
+with any current open-head ADR.
 
 ## Decision
 
@@ -40,7 +39,7 @@ Each leftover pair names:
    GRM/GPCM main effects;
 3. `leftover_residual`, which must equal `Y − E` within `1e-6`.
 
-Migration `0170` is the single source of both columns on every
+Migration `0177` is the single source of both columns on every
 install path, fresh or existing -- shipped migrations (`0001`/`0012`)
 are never edited after the fact. It adds them as nullable so older
 leftover rows keep distance and residual without fabricating `Y` or

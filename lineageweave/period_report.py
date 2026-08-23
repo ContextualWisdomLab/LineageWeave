@@ -16,7 +16,7 @@ information at the group's mean θ (Lord, 1980 max-info CAT rule) via
 ``fast_mlsirm.information_polytomous`` -- Samejima (1969) GRM /
 Muraki (1993) GPCM, computed in Rust. A missing bank is not invented.
 
-Leftover post–criterion pairs (ADR 0017 / 0048 / 0170) come from the
+Leftover post–criterion pairs (ADR 0017 / 0048 / 0177) come from the
 residual interaction after those IRT main effects:
 ``R = Y − E[Y|θ, item]``. A Gabriel biplot of ``R`` supplies person
 and item leftover-map positions. Closest / farthest pairs are the

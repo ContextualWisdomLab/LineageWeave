@@ -100,7 +100,7 @@ than one large PR:
    `information_polytomous` (Lord, 1980 max-info). Persist the ranking
    (`report_item_information`) and show the rank-1 item on the Period
    reports panel. Do not reimplement an information function here.
-7. **Leftover-pair slice** (shipped in 0.71.2; ADR 0017 / 0018 / 0048 / 0049 / 0170): after
+7. **Leftover-pair slice** (shipped in 0.71.2; ADR 0017 / 0018 / 0048 / 0049 / 0177): after
    IRT main effects, persist closest and farthest post–criterion pairs
    from the residual leftover map, naming observed `Y` and expected
    `E[Y|θ, item]` so residual reconciles to `Y − E`. Do not fork LSIRM;

@@ -18,7 +18,7 @@ All notable changes to this project are documented here. Format follows
 
 - Period leftover pair rows now name observed `Y` and expected
   `E[Y|θ, item]` after IRT main effects next to leftover-map distance
-  `d`, then open that post (Jeon et al., 2021, eq. 3; ADR 0170). Residual
+  `d`, then open that post (Jeon et al., 2021, eq. 3; ADR 0177). Residual
   stays `R = Y − E`. Missing or non-finite `Y` / `E` omit the badge
   rather than inventing a leftover score.
 

@@ -1,4 +1,4 @@
--- ADR 0170: persist observed Y and expected E[Y|θ, item] on leftover
+-- ADR 0177: persist observed Y and expected E[Y|θ, item] on leftover
 -- post–criterion pairs. Residual stays R = Y − E. Upgrade columns are
 -- nullable so older leftover rows keep distance and residual without
 -- fabricating Y or E. This migration is the single source of both columns
