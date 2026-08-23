@@ -62,18 +62,24 @@ suites, but the target-repository central review workflows did not run for
 that non-default target. This is stack integration evidence, not evidence of a
 protected `main` release or independent approval.
 
+At 2026-08-23 23:00 KST, PR #492 at
+`38f3734f58477bad04f82758fc685e798e9d4b7b` also merged normally as
+`c8a4be8fc2417f05d53fb68d32d9e59c3d443e25` into that same non-default
+branch. Its six-file, +166/-2 compatibility-publication slice is intentionally
+minimal, but remains stack evidence only; it is not a protected-`main` merge
+or independent approval.
+
 Current active-PR evidence remains outside protected `main`:
 
 - PR #258 at `f4ebfc684cdd6017255712cc4be37528cbb7d21a` carries ADR 0146's
   distributed MCP principal rate-limit decision. Its current hosted checks
   were running while a failed Devin status remained; it had no unresolved
   thread or exact-head approval.
-- PR #426 at `60efee9b9a97fa433f1d8a83f396c7f8d55df39e` is the current
-  prerequisite carrier for ontology publication and the merged ADR 0157 stack.
-  Its two informational review threads were resolved against the accepted ADR;
-  it had no exact-head approval and a pending Strix rerun. The provider-
-  unavailable Strix result on its prior
-  `4828b3a5e4eb180bb3cb9c5a06d1327e1003065a` head is stale evidence.
+- PR #426 at `c8a4be8fc2417f05d53fb68d32d9e59c3d443e25` is the current
+  prerequisite carrier for ontology publication and the merged ADR 0157 and
+  compatibility-publication stacks. It had no unresolved review thread or
+  exact-head approval; full-suite, coverage, Strix, and automated-review
+  evidence were still rerunning. Results from its prior heads are stale.
 - PR #355 at `de7f78c5afe1a9e7f50303da9b5ee81a6f767633` carries ADR 0145's
   Naruon calendar projection boundary. Its checks were pending, with no
   unresolved thread or exact-head approval.
