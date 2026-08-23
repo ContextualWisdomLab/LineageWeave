@@ -1454,7 +1454,7 @@ async def read_post(
                 "source_sales_pool_code, source_sales_pool_name, "
                 "source_customer_code, source_customer_name, source_project_code, source_project_name, "
                 "source_system_code, source_record_key, "
-            "corporate_entity_id, created_at "
+            "corporate_entity_id, process_unit_id, created_at "
             f"from source_post where post_id = $1 and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
             post_id,
         )
@@ -1644,7 +1644,7 @@ async def _load_visible_post(
             """
             select source_post.post_id, source_post.post_title, source_post.voc_type_code,
                    source_post.visibility_code, source_post.corporate_entity_id,
-                   source_post.created_at, source_post.author_account_id,
+                   source_post.process_unit_id, source_post.created_at, source_post.author_account_id,
                    source_post.source_process_unit_code, source_post.source_author_code,
                    source_post.source_company_code, source_post.source_customer_code,
                    source_post.source_project_code, source_post.source_sales_pool_code,

@@ -209,7 +209,6 @@ async def get_current_account(
                 workspace,
             )
         else:
-            token_roles = None
             account_row = await conn.fetchrow(
                 "select user_account_id, display_name, preferred_locale from user_account where external_subject_id = $1",
                 subject,
