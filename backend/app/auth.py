@@ -13,8 +13,10 @@ schemes, so provider configuration cannot become a file-scheme read.
 
 from __future__ import annotations
 
+import asyncio
 import json
 from dataclasses import dataclass
+from typing import Any
 
 import asyncpg
 import jwt
@@ -30,6 +32,13 @@ _bearer_scheme = HTTPBearer(auto_error=True)
 _jwks_cache: dict[tuple[str, str, str], dict] = {}
 
 
+class _SigningKeyNotFound(HTTPException):
+    """No unique acceptable RSA signing key matched the token header."""
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(status.HTTP_401_UNAUTHORIZED, detail)
+
+
 def _jwks_cache_key(settings: Settings) -> tuple[str, str, str]:
     """Bind cached keys to the exact issuer and key-discovery configuration."""
     return (
@@ -39,7 +48,7 @@ def _jwks_cache_key(settings: Settings) -> tuple[str, str, str]:
     )
 
 
-def _jwks(settings: Settings, *, force_refresh: bool = False) -> dict:
+def _jwks(settings: Settings, *, force_refresh: bool = False) -> dict[str, Any]:
     """Return provider JWKS, refreshing explicitly when signing keys rotate."""
     cache_key = _jwks_cache_key(settings)
     cached = None if force_refresh else _jwks_cache.get(cache_key)
@@ -58,6 +67,16 @@ def _jwks(settings: Settings, *, force_refresh: bool = False) -> dict:
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "could not fetch OIDC JWKS from the configured identity provider",
             ) from exc
+        if not isinstance(cached, dict):
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "issuer JWKS is not an object",
+            )
+        if not isinstance(cached.get("keys"), list):
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "issuer JWKS keys is not an array",
+            )
         _jwks_cache[cache_key] = cached
     return cached
 
@@ -72,36 +91,47 @@ def _signing_key_from_jwks(jwks: dict, token: str):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token must use RS256")
     kid = header.get("kid")
     if not isinstance(kid, str) or not kid.strip():
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token must include a non-empty kid")
-    for key in jwks.get("keys", []):
-        if not isinstance(key, dict) or key.get("kid") != kid:
-            continue
-        if key.get("kty") != "RSA":
-            continue
-        if key.get("alg") not in (None, "RS256"):
-            continue
-        if key.get("use") not in (None, "sig"):
-            continue
-        key_ops = key.get("key_ops")
-        if key_ops is not None and (
-            not isinstance(key_ops, list) or "verify" not in key_ops
-        ):
-            continue
-        try:
-            return RSAAlgorithm.from_jwk(json.dumps(key))
-        except (KeyError, TypeError, ValueError) as exc:
-            raise HTTPException(status.HTTP_401_UNAUTHORIZED, "matching JWKS key is invalid") from exc
-    raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token signing key is not recognized")
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid token: missing kid")
+    keys = jwks.get("keys")
+    if not isinstance(keys, list):
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "issuer JWKS keys is not an array",
+        )
+    matches = [
+        key
+        for key in keys
+        if isinstance(key, dict)
+        and key.get("kid") == kid
+        and key.get("kty") == "RSA"
+        and key.get("alg") in (None, "RS256")
+        and key.get("use") in (None, "sig")
+        and (
+            key.get("key_ops") is None
+            or isinstance(key.get("key_ops"), list)
+            and "verify" in key["key_ops"]
+        )
+    ]
+    if len(matches) != 1:
+        raise _SigningKeyNotFound(f"expected one RSA signing key for kid={kid!r}")
+    try:
+        return RSAAlgorithm.from_jwk(json.dumps(matches[0]))
+    except (KeyError, TypeError, ValueError, jwt.PyJWTError) as exc:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "invalid token signing key") from exc
 
 
 def _signing_key(settings: Settings, token: str):
     """Resolve a signing key and refresh JWKS once when a new ``kid`` appears."""
     try:
         return _signing_key_from_jwks(_jwks(settings), token)
-    except HTTPException as exc:
-        if str(exc.detail) != "access token signing key is not recognized":
-            raise
-    return _signing_key_from_jwks(_jwks(settings, force_refresh=True), token)
+    except _SigningKeyNotFound:
+        try:
+            return _signing_key_from_jwks(_jwks(settings, force_refresh=True), token)
+        except _SigningKeyNotFound as exc:
+            raise HTTPException(
+                status.HTTP_401_UNAUTHORIZED,
+                f"invalid token: {exc.detail}",
+            ) from exc
 
 
 @dataclass(frozen=True)
@@ -111,25 +141,31 @@ class CurrentAccount:
     user_account_id: str
     external_subject_id: str
     display_name: str
-    preferred_locale: str | None
     corporate_entity_ids: frozenset[str]
     permission_codes: frozenset[str]
+    preferred_locale: str | None = None
 
     def has_permission(self, permission_code: str) -> bool:
         """True when one of the account's roles grants ``permission_code``."""
         return permission_code in self.permission_codes
 
 
-def _decode_access_token(token: str, settings: Settings) -> dict:
-    """Validate signature, issuer, resource audience, time claims, and subject."""
+def decode_access_token(
+    token: str,
+    settings: Settings,
+    *,
+    audience: str | None = None,
+) -> dict[str, Any]:
+    """Validate a token for the REST audience or an explicit resource audience."""
     try:
         claims = jwt.decode(
             token,
             key=_signing_key(settings, token),
             algorithms=["RS256"],
             issuer=settings.oidc_issuer,
-            audience=settings.oidc_audience,
+            audience=audience or settings.oidc_audience,
             leeway=settings.oidc_clock_skew_seconds,
+            options={"require": ["exp"]},
         )
     except HTTPException:
         raise
@@ -141,14 +177,15 @@ def _decode_access_token(token: str, settings: Settings) -> dict:
     return claims
 
 
-async def get_current_account(
-    credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
-    pool: asyncpg.Pool = Depends(get_pool),
-) -> CurrentAccount:
-    """Resolve the bearer token to a provisioned ``user_account`` row."""
-    settings = load_settings()
-    claims = _decode_access_token(credentials.credentials, settings)
-    subject = claims["sub"]
+def _decode_access_token(token: str, settings: Settings) -> dict[str, Any]:
+    """Validate a REST bearer token against the configured API audience."""
+    return decode_access_token(token, settings)
+
+
+async def resolve_current_account(pool: asyncpg.Pool, subject: str) -> CurrentAccount:
+    """Resolve one verified subject to database-owned affiliations and permissions."""
+    if not subject:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token has no subject")
 
     async with pool.acquire() as conn:
         account_row = await conn.fetchrow(
@@ -180,7 +217,20 @@ async def get_current_account(
         user_account_id=str(account_row["user_account_id"]),
         external_subject_id=subject,
         display_name=account_row["display_name"],
-        preferred_locale=account_row["preferred_locale"],
+        preferred_locale=account_row.get("preferred_locale"),
         corporate_entity_ids=frozenset(str(row["corporate_entity_id"]) for row in entity_rows),
-        permission_codes=frozenset(row["permission_code"] for row in permission_rows),
+        permission_codes=frozenset(str(row["permission_code"]) for row in permission_rows),
     )
+
+
+async def get_current_account(
+    credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> CurrentAccount:
+    """Resolve the bearer token to a provisioned ``user_account`` row."""
+    settings = load_settings()
+    claims = await asyncio.to_thread(_decode_access_token, credentials.credentials, settings)
+    subject = claims.get("sub")
+    if not isinstance(subject, str) or not subject:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "access token has no subject")
+    return await resolve_current_account(pool, subject)

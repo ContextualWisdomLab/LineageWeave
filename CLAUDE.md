@@ -85,3 +85,40 @@ Open Calendar. Authorized commitments are current. Open a commitment:
 Event Lineage takes focus and names Keyman and evaluation next
 (ADR 0094). A home-list open does not. Do not invent a theta or a
 CalDAV event.
+
+## Customer master open (v2.15.0)
+
+Open Customer master. Authorized customer entities are current. Open a
+related post: Event Lineage takes focus and names Keyman and evaluation
+next (ADR 0095). A home-list open does not. Do not invent a theta or a
+customer.
+
+## Ask Agent open (v2.16.0)
+
+Open Ask Agent. After an authorized answer, cited posts are current. Open
+a cited post: Event Lineage takes focus and names Keyman and evaluation
+next (ADR 0096). A home-list open does not. Do not invent a theta or a
+cited post.
+
+## Event Lineage DAG walk (v2.17.0)
+
+From a GNB-focused popup, open a linked Event Lineage node: Event Lineage
+stays focused and names the new post as current (ADR 0097). A home-list
+DAG walk does not. Do not invent a theta.
+
+## Ask Agent knowledge cutoff (v2.23.0)
+
+Open Ask Agent. Optionally set a knowledge cutoff. A dated question uses
+retained source-post revisions from that clock. A live query stays
+live-only and is never labeled as-of. A missing historical body is named
+and the live rewrite is not used (ADR 0135). Do not invent a theta or a
+cutoff body.
+
+## GNB Event Lineage focuses Keyman (v2.19.0)
+
+A GNB-origin popup (Weekly VOC, Calendar, Customer master, Ask Agent, or a
+linked Event Lineage DAG walk from one of those) keeps Event Lineage
+current and moves focus to the Keyman heading once Keyman rows have
+settled (ADR 0100). The report-member auto-land chain to related nodes
+and Ask is not used for GNB origins. A home-list open does not gain that
+ focus. Do not invent a theta.

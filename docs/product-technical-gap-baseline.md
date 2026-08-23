@@ -1,338 +1,396 @@
 # Product & Technical Gap Baseline
 
-> Audit scope: the current `fix/uiux-standard-guide-v3-postmerge` worktree,
-> compared with `origin/main`, the UI/UX Standard Guide v3.0 supplied for this
-> product, ADR 0118, the accepted TEPP PRD/contracts, and the
-> contextual-orchestrator architecture. Real source identifiers are deliberately
-> replaced with case labels; they must not enter repository artifacts.
+**Active Ask Agent design head:** PR #353, stacked directly on #264 exact head `39f21261052a9d2ae82c4b851a54831eaf909805`; this is proposed work until merged.
 
-## 1. Exact-head evidence
+## 1. Known Parsing & Frontend Display Gaps
+- **Footnote and table parsing**: rich-text exports still require synthetic regression cases for footnote ownership, table-row grouping, and nested list semantics.
+- **Indentation**: mixed source whitespace, CSS, and OOXML indentation must remain distinguishable so visual alignment cannot manufacture hierarchy.
+- **Image/table OCR**: partial visual regions, table text, markdown-like source, and image captions require persisted, position-aware evidence or an explicit unavailable state.
+- **Math/superscripts**: superscript and formula-like source needs a semantic-unit grammar that preserves the original text and exposes normalized search text.
+- **Buyer navigation**: Board, Project History, Global Ask, Customer Master, Calendar, and Admin routes must preserve source focus and the next actionable step across transitions.
 
-Audit anchor: the exact source state carried by this commit at 2026-08-21;
-record the final PR head with `git rev-parse HEAD` during acceptance.
+Exact private runtime identifiers are intentionally omitted; the authorized
+runtime and synthetic fixtures retain the reproducibility detail.
 
-Current source/test exact head observed before this documentation update:
-`b897fabe18332081a64a9286e4ab580c79a38f8d`. This documentation update will
-create the next exact head and therefore requires the protected checks to
-rerun.
+## Historical exact-head checkpoint (2026-08-20 19:14 Asia/Seoul)
 
-- **Implemented in source:** PostgreSQL-backed API boundaries, Keyverse/OIDC
-  identity boundary, workspace navigation, post popup, ABAC/RBAC surfaces, Korean
-  summary, 5W1H, R&R/Keyman, customer hierarchy, tickets/calendar, chat,
-  provenance/evidence, and reconstructed lineage API/DAG layout.
-- **Implemented in source, runtime evidence still required:** TEPP import/API
-  transport, contextual-orchestrator processing of the authorized corpus,
-  SearXNG corroboration, Local Zotero ingestion, real PostgreSQL import, and
-  complete accessibility/edge-case browser workflows. Synthetic routes and
-  health checks are recorded separately and are not corpus proof.
-- **Implemented in source:** an explicit body-column or hash-verified
-  `multipart/related` MHTML artifact resolver now gives the private importer a
-  fail-closed path for exports whose PostgreSQL rows contain artifact
-  provenance but no body column. The operator artifact root and raw artifacts
-  remain outside the repository.
-- **Figma reference:** ADR 0118 records file `1Su3lDRmiZdcUs47t1QwIX`; the
-  inspected Event Lineage frames are desktop `5:14` and mobile `5:15`.
-- **Local quality evidence at the source/test head:** backend `uv run pytest -q`
-  passed `786` tests with `16` skips; frontend Vitest passed `172` tests in `19`
-  files, frontend lint/build passed, and Storybook build completed. These are
-  local checks, not hosted protected-gate or independent-review evidence.
-- **Current PR gate:** PR #350 is open, `MERGEABLE` but `BLOCKED`, and has no
-  independent approval. Its current-head OpenCode/Noema/product/security
-  checks are pending after the latest push. The prior PR #347 merged at
-  `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`, before this clean post-merge PR
-  was opened. PR #350 is still unmerged; this is not merge-ready evidence.
+The following is the current GitHub observation used for this branch. It
+supersedes the historical 17:08 snapshot and does not claim protected-main
+behavior. GitHub reports 24 open PRs from #190 through #309; none of the
+`#258`-and-later stack has an independent `APPROVED` review at this checkpoint.
 
-## 2. UI/UX Standard Guide v3.0 comparison
+| PR group | Exact observed heads | Merge observation |
+|---|---|---|
+| #258-#266 | `#258 f8d2fa98`, `#260 dfd95d9c`, `#261 bd1b4d2f`, `#262 80445b8a`, `#263 d670acd5`, `#264 d5dbdf71`, `#266 26a6d9c6` | `BLOCKED`, review required |
+| #270-#276 | `#270 c58aef89`, `#275 35035783`, `#276 55679fa2` | `BLOCKED`, review required or draft |
+| #282-#287 | `#282 6eeaf89d`, `#285 cbb959ce`, `#286 65a461de`, `#287 554efb9b` | `UNSTABLE`/`UNKNOWN`/`BLOCKED`; not merge-ready |
+| #298-#303 | `#298 49c9976f`, `#301 59ccdf91`, `#302 40b0a8ea`, `#303 fe0a4f26` | `UNKNOWN`/`CLEAN`/`UNSTABLE`; independent review pending |
+| #306-#309 | `#306 e0dbc386`, `#307 313d38a4`, `#308 42e6230c`, `#309 e6fd907e` | `UNSTABLE`; independent review pending |
 
-### 2.1 Satisfied or substantially present
+PR #285 received concurrent remote commits through `cbb959ce` while its local
+Buyer wiring was under review. Those commits were incorporated with a normal
+merge; no force push is permitted. The current change adds the missing API/GNB
+connection, exact-input validation, source-name whitespace fallback, a shared
+timeline entry point, Storybook-compatible truth rendering, and live
+PostgreSQL/API regressions. The final exact head and Checks must be recorded
+after the ordinary push.
 
-- Desktop shell has a sticky header, top-right user/logout controls, GNB,
-  footer with brand/copyright, standard breakpoints, 1920px maximum layout,
-  Noto Sans family, CI/BI palette tokens, table alignment tokens, focus styles,
-  required-field marker, and 50% modal backdrop.
-- GNB active state is exposed with `aria-current`; the lineage DAG has keyboard
-  activation and branch/root/current visual states.
-- PostgreSQL, orchestrator, TEPP, provenance, and synthetic-fixture boundaries
-  are documented in `ARCHITECTURE.md` and the applicable ADRs.
+## Historical exact-head refresh (2026-08-20 19:50 Asia/Seoul)
 
-### 2.2 Gaps and status
+This refresh supersedes the 19:14 checkpoint for the PRs it names. It records
+GitHub observations, not protected-main behavior. The repository has 25 open
+PRs; no approval or queued Check is treated as merge evidence.
 
-- **Mobile drawer — fixed in this worktree:** CSS referenced a drawer trigger but
-  the authenticated shell rendered no trigger or drawer. The shell now renders
-  an accessible hamburger button, close action, overlay, and reusable WorkspaceNav.
-- **Event Lineage Figma parity — fixed in this worktree:** the DAG now includes
-  lineage-evidence context, legend, horizontal overflow on phones, inference
-  boundary, direction markers, and an evidence trail table/cards treatment.
-- **Approved CI/BI asset — open:** the header/footer currently render the
-  tenant brand name as text. Do not invent or alter a corporate logo; add the
-  approved asset only after the tenant CI/BI source and usage permission are
-  available.
-- **Header utilities/search — partial:** the authenticated header now exposes a
-  global Search action that focuses the existing board search, and its pending
-  focus request is cleared when navigation leaves the board. A desktop site-map
-  utility now reuses `WorkspaceNav`, closes on Escape or destination selection,
-  and is omitted on phones where the drawer owns navigation; approved CI/BI
-  assets and a no-JavaScript fallback remain open.
-- **Header top-menu language placement — fixed in this worktree:** UI/UX
-  Standard Guide v3.0 §2.2.2 assigns 언어설정 (language setting) to the header
-  top menu alongside user info, login/logout, search, and utility items.
-  `LanguageSwitcher` now renders inside `.app-header-top-menu` (`App.tsx`)
-  instead of the GNB row; the now-unused `WorkspaceNav` `tools` prop and
-  `.workspace-gnb-tools` CSS were removed.
-- **Locale document metadata — substantially present:** `i18n.ts` synchronizes
-  `document.documentElement.lang` after locale selection and `i18n.test.ts`
-  covers the supported locales. `frontend/index.html` remains an English
-  pre-JavaScript fallback, so a no-JavaScript locale check is still open.
-- **Event Lineage locale parity — fixed in this worktree:** the PR review
-  exposed ten Event Lineage, graph-evidence, navigation, and authorization
-  labels translated only for Korean while Chinese, Japanese, and Vietnamese
-  fell back to English. The three locale maps now contain those translations,
-  and the i18n test rejects raw-key fallback for every supported non-English
-  locale. This does not close the separate no-JavaScript fallback gap.
-- **Phone content affordance — fixed and covered:** the authenticated 390px
-  browser sweep had a scrollable page and rendered the post list below the
-  sticky shell. A duplicate phone `.app-header` rule that overrode the required
-  vertical padding was removed; `mobileHeaderCss.test.ts` now enforces one
-  phone rule with `0.6rem 1rem` padding. The current exact-head frontend image
-  was rebuilt and the authenticated 390px sweep reconfirmed the header and
-  below-the-fold content affordance.
-- **Large-body search migration — fixed in this worktree:** current PostgreSQL
-  migration replay initially exhausted the 58.8 GB container overlay while
-  building a raw HTML/Base64 body FTS index. The normalized search function and
-  intermediate FTS index now bound indexed rendered text to 16,384 characters;
-  the raw indexes are dropped by migration 0036. After reclaiming only Docker
-  build cache (never the PostgreSQL volume), the live migration completed with
-  exit 0 and the bounded function/index aggregate was verified.
-- **Tenant settings replay — fixed in this worktree:** the idempotent migration
-  runner stopped at `0102`, so existing volumes returned a misleading CORS
-  symptom for `/api/settings` while the table was absent. The allowlist now
-  replays `0103_tenant_settings.sql`; the existing PostgreSQL volume applied it
-  with exit 0 and contains one tenant-settings row. Migration `0104` now
-  preserves the canonical `tenant_settings_id` column during replay.
-- **Database identifier contract — fixed in this worktree:** the live public
-  schema audit found one single-token table and nine single-token persistent
-  columns, including the legacy bookmark, status, content, report, and tenant
-  settings fields. ADR 0120 and migration `0104_two_word_database_identifiers`
-  rename them to two-word snake_case names, retain stable API JSON names, and
-  recreate the current-status view. The replayed live schema now reports zero
-  single-token table/view/column violations and zero invalid indexes. 3NF,
-  hot-partition, lock, and read/write contention evidence remains open.
-- **Metric superscript/subscript display — partially fixed in this worktree:**
-  bounded metric markup such as `m<sup>3</sup>` and `m<sub>3</sub>` is now
-  normalized consistently in the backend semantic parser and React renderer,
-  with focused tests. Arbitrary mathematical formula semantics remain open.
+| PR | Exact observed head | Current observation |
+|---|---|---|
+| #258 | `f8d2fa98` | `BLOCKED`, review required |
+| #260-#266 | `dfd95d9c`, `bd1b4d2f`, `80445b8a`, `d670acd5`, `d5dbdf71`, `26a6d9c6` | stacked, review required; #264 is `DIRTY` |
+| #282 | `6eeaf89d` | `CLEAN`, no formal approval |
+| #285 | `30dae74a` | `UNSTABLE`, exact-head Checks queued, no formal approval |
+| #287 | `26fa7346` | `UNKNOWN`, review required, exact-head Checks queued |
+| #298-#303 | `49c9976f`, `59ccdf91`, `40b0a8ea`, `b7e6e82d` | mixed `DIRTY`/`CLEAN`/`UNSTABLE`, review pending |
+| #306-#311 | `e0dbc386`, `a4d1de59`, `42e6230c`, `e6fd907e`, `d8b7f561` | `CLEAN`/`UNSTABLE`, review pending |
 
-### 2.3 Authenticated runtime evidence
+The #285 exact head includes the independent review repairs for case-preserving
+project identity, route-specific bounds, and sibling-project match isolation;
+the local tree recorded `741 passed, 16 skipped`. The #287 exact head removes
+the Semgrep dynamic-SQL findings and aligns public claim adjudication with the
+contextual-orchestrator `mode=auto` strict structured contract; its local tree
+recorded `791 passed, 16 skipped`. Both remain open until current-head Checks
+and protected approval are observed.
 
-The local Compose stack accepted the synthetic Keycloak OIDC account and the
-real React client rendered the protected board. Aggregate evidence only:
+The organization-owned `.github` repository already provides the hourly
+commercial-readiness coordinator at cron `7 * * * *` and the review/merge
+scheduler's hourly fallback. This repository does not add a competing local
+timer; the central OpenCode/scheduler credential boundary remains authoritative
+and `COPILOT_GITHUB_TOKEN` is not used.
 
-- `/api/me` returned two authorized corporate entities and eight account
-  affiliations, with corporate and process-unit code/name fields.
-- At a 390×958 viewport, logout, scope display, language control, 50 visible
-  posts, drawer open/close, and global-search-to-input focus all worked.
-- On the rebuilt authenticated frontend, switching the header language to
-  Chinese set `html[lang]` to `zh`, localized the drawer, authorized-scope,
-  logout, summary, and Event Lineage labels, opened a post popup, and produced
-  zero popup errors.
-- The authorized PostgreSQL export relation contained 43,814 rows with
-  complete title, source-key, and artifact-path metadata, but its schema had
-  no body/content/HTML column. The importer now accepts an explicit
-  body-column mapping or a path-column plus SHA-256-column mapping beneath an
-  operator-supplied artifact root; this is source and synthetic-fixture
-  evidence only because the authorized raw artifacts were not present in the
-  repository runtime. No real-corpus import or multimodal backfill is claimed
-  from this relation.
-- After replaying the tenant-settings migration on the existing PostgreSQL
-  volume, authenticated `/api/settings` returned HTTP 200 and the fresh React
-  browser session recorded zero console errors and zero warnings. At 390×958,
-  the document had no horizontal overflow (`scrollWidth=390`) and the protected
-  board rendered the authenticated content surface.
-- All 11 supplied post cases opened a popup with a loaded title and zero popup
-  error elements. The footnote case rendered one footnote, the table case one
-  semantic table, the known lineage case one DAG, and the image-table case
-  rendered five images but zero persisted image-region panels.
-- The full lineage endpoint returned 500 bounded nodes and one edge; the focused
-  isolated case correctly returned an empty graph. PostgreSQL aggregates were
-  43,839 source posts, 54 knowledge-graph edges, 65 edge-evidence rows, 1,308
-  persisted post-lineage edges, and 1,929 posts participating in those edges.
-  This is evidence of a sparse current relationship projection, not evidence
-  that the Event Lineage product goal is complete.
-- After the health-probe correction, the rebuilt backend returned unauthenticated
-  `/healthz` HTTP 200. The focused representative case in the later mixed
-  workspace image returned no DAG, so the earlier single-case DAG observation
-  must not be generalized to corpus coverage.
+## PRD
 
-## 3. Requirement traceability
+## 3. General Architecture Gaps
+- **DB Architecture**: Ensure PostgreSQL is strictly used (no file DBs), 3rd normal form is maintained, and Hot Partitions are handled. DB locks must be managed (or use read/write replicas).
+- **Zotero Integration**: Papers and standards referenced by TEPP must be synced via Local Zotero API (http://localhost:23119/api/) and cited using APA 7th edition in docstrings.
+- **Testing**: We need actual testing of Psychometrics (Fast-MLSIRM parameter calibration, RMSE of estimates, Fixed-Item Parameter Calibration, CAT) against synthetic/demo data.
+- **Security & Compliance**: PII masking cannot break the system. Need SOC 2 and CSAP compliance alternatives to blind PII masking.
+- **LLM Orchestration**: Ensure ALL LLM calls route through `contextual-orchestrator` utilizing API keys (BYTEZ, NVIDIA, OPENROUTER, OPENAI) with auto model discovery and optimal reasoning effort allocation (Fugu/Conductor/TRINITY research).
 
-Status is intentionally evidence-specific: `source` means the implementation
-boundary exists; `unit` means synthetic automated coverage exists;
-`local-integration` means the local PostgreSQL/Keycloak/Valkey stack exercised
-the path; `live-external` means the requested external service or authorized
-corpus was exercised; `open` means the requirement is not yet proven. A source
-adapter, fixture, or HTTP-shaped test double never upgrades a row to
-`live-external`.
+Buyers need to turn scattered, timestamped records into reviewable branching
+histories without confusing a plausible relation with a proven fact. The
+product succeeds when an authorized buyer can move from an aggregate signal or
+answer to its source post, lineage neighborhood, channel evidence, actor and
+project context, while every derived claim retains provenance and an explicit
+availability boundary.
 
-| Requirement | Evidence at this audit | Status |
-| --- | --- | --- |
-| 1024/1280/1920 layout and three responsive tiers | ADR 0118, `App.css`, responsive popup width/secondary evidence grid, frontend build/tests | source + unit |
-| Sticky header, footer, GNB, active state, phone drawer | `App.tsx`, `WorkspaceNav.tsx`, `App.test.tsx` | source + unit |
-| Approved CI/BI logo asset | Tenant text is present; approved asset and permission are absent | open |
-| User/logout/language/global search header actions | `App.tsx`, `i18n.ts`, handled/pending search-focus tests | source + unit |
-| Site map / utility menu | `SiteMapUtility`, accessible toggle/region, Escape and destination-close behavior, responsive CSS contract, locale coverage | source + unit; authenticated browser evidence open |
-| Noto Sans, palette, table/form/button conventions, modal 50% mask | ADR 0118, token CSS, component tests | source + unit |
-| Keyverse/OIDC login with real account | `auth.py`, OIDC discovery/JWKS boundary, local redirect check | source + local-integration; Keyverse open |
-| Authenticated corp/PU attributes | `/api/me` returns DB-backed codes; backend integration test covers `TEST-CORP`/`TEST-PU` and header displays them | source + local-integration |
-| RBAC/ABAC, public/private visibility, tenant isolation | `_can_see_post`, API authorization tests, aggregate-only runtime checks | source + local-integration |
-| React product surface and PostgreSQL boundary | React routes/components, asyncpg API, Compose stack | source + local-integration |
-| Authorized PostgreSQL export import mapping | `scripts/import_postgresql_posts.py`, ADR 0121, hash-verified RFC 2557 MHTML resolver, and synthetic preflight/import tests; authorized relation has artifact-path metadata but no body/content/HTML field | source + unit + local-integration partial; operator artifact files and authorized live import open |
-| Bounded large-body search migration | `0035_body_search_prefix.sql`, `0036_normalized_body_search.sql`; live replay completed after bounded rendered-text indexing | source + local-integration |
-| Public Compose liveness and tenant settings boundary | health-probe regression test, `0103_tenant_settings.sql`, replayed existing volume, one tenant-settings row, canonical `tenant_settings_id` after `0104`, rebuilt backend `/healthz` and authenticated `/api/settings` HTTP 200 | source + unit + local-integration |
-| Two-word snake_case database identifiers | ADR 0120, idempotent migration `0104`, live public-schema audit, zero invalid indexes | source + unit + local-integration |
-| Post list/detail popup, Korean summary, 5W1H, R&R, tickets/calendar | API routes, popup panels, backend/frontend tests | source + unit |
-| Keyman on both sides, titles, affiliations, related KG nodes | Keyman/affiliate-tree/related-node routes and popup | source + unit; live extraction open |
-| Ontology, semantic layer, provenance, W3C PROV-O projection | normalized schema, SKOS operational vocabulary concepts, `ontology_annotations` label fallback, ADR 0124, provenance modules, ADRs, evidence UI | source + unit; corpus verification open |
-| Branching Event Lineage DAG with evidence trail | `LineageDag.tsx`, Storybook story, Figma frames, accessible node-kind names for screen readers/tooltips, frontend tests; runtime cases include both a rendered DAG and honest empty states, while current corpus coverage remains sparse | source + unit + local-integration partial |
-| Customer master and hierarchy tree | `/api/customer-master`, affiliate tree, catalog migrations | source + unit; live resolution open |
-| VOC/VOM/VOP/VOCC/VOCO/VOS role classification | common lookup values and relationship APIs | source + unit; live classification open |
-| Evidence-grounded chat and source navigation | `/chat`, `/ask`, citation/evidence UI | source + unit; synthetic orchestrator judge route verified, corpus chat/runtime evidence open |
-| PU/team/project weekly/monthly reports | report API/UI and grouping controls | source + unit; TEPP-backed live report open |
-| TEPP calibrated measurement, dichotomous items, multilevel/MMM/time model | published import/REST boundary and TEPP ADR/PRD references | boundary-only; live-external open |
-| contextual-orchestrator routing, VISION, embedding, schema repair | clients and provenance/session boundary; synthetic authenticated route returned a judge score of `0.98`, OCR succeeded, and region location returned five regions | source + local-integration partial; corpus backfill, capability/readiness evidence, and schema-repair workflow open |
-| HTML semantic units, tables, indentation, footnotes, formulas | parser modules and synthetic tests; 11-case authenticated popup sweep had no popup errors and rendered the supplied footnote/table cases; bounded metric superscript/subscript normalization has backend/frontend focused coverage | source + unit + local-integration partial; arbitrary formula/semantic correctness open |
-| Base64/file image regions and multimodal evidence | image-region schema and VISION client boundary; live aggregate has 12,823 images, 22 described images/regions, and 422 failed images; current synthetic VISION route returned five regions | source + local-integration partial; supplied image-table case re-backfill and complete corpus coverage open |
-| Abbreviation/multilingual alias/entity disambiguation | catalog hints and resolver boundary | source; live corroboration open |
-| SearXNG/internal relation fact check | verification endpoint and unavailable handling; local SearXNG health and JSON query both returned HTTP 200, while some upstream engines reported rate-limit/CAPTCHA results | source + local-integration partial; corroboration policy and reliable external coverage open |
-| Valkey event queue and cloud-native Compose stack | queue modules, Compose services, health checks | source + local-integration; delivery stress open |
-| 3NF, hot partitions, locks, read/write contention | canonical identifier migration plus existing migrations | source; operational evidence open |
-| Rust/GPU/CPU psychometric computation | delegated to TEPP, not reimplemented here | boundary accepted; live TEPP evidence open |
-| APA 7 doctoring and Zotero OA records | baseline bibliography, local Zotero API reachable, known metadata found | source + local-integration; OA attachment audit open |
-| Browser E2E from login through evidence | authenticated local OIDC login, protected list, drawer/search, popup sweep, and aggregate evidence checks at 390x958; post-migration fresh session had `htmlLang=zh`, localized protected shell, zero console errors/warnings, no horizontal overflow, popup, summary, and Event Lineage | source + local-integration; external provider/runtime evidence remains open |
-| Storybook scenes/edge events and design-token coverage | `LineageDag.stories.tsx`, inventory, Storybook build | source + unit |
-| External email/project lineage package boundary | PR #343 publishes strict v1.0.0 bounded request/result types, available-time cutoff handling, observed/inferred/proposed truth states, pair-budget enforcement, and no source/provider access | source + focused unit; exact-head hosted gates, independent review, and immutable release open |
-| Naruon calendar projection boundary | PR #337 is closed as superseded; draft PR #355 carries the strict read projection contract without making LineageWeave a CalDAV provider | source + focused unit; Naruon endpoint, runtime wiring, restack, and review open |
-| Hourly PR review/repair/merge loop | Central `ContextualWisdomLab/.github` scheduler owns `*/15 * * * *` sweep and `0 * * * *` heartbeat; no duplicate repo-local scheduler is required | boundary accepted; current-head runtime open |
-| 100% coverage/docstrings/edge-case/release gates | current checks and coverage evidence are not complete on PR #350 | open |
+### Users and jobs
 
-## 4. Supplied parsing and semantic cases
+| User | Job | Success evidence |
+|---|---|---|
+| Buyer | Find a relevant customer, project, event, commitment, or Keyman and inspect its history | Browser navigation reaches an authorized source-backed post and focused lineage |
+| Analyst | Reconstruct a cutoff-bounded lineage and inspect why edges were selected | Persisted run, digest, edge scores, channel breakdown, and status history |
+| Operator | Import, rebuild, retry, and diagnose without inventing unavailable results | Durable ledger/outbox state and explicit failed/unavailable status |
+| Retention admin | Purge run-bearing evidence only under a deliberate grant | Database role plus unrevoked retention grant; no public purge route |
 
-The following user-reported cases remain tracked without storing real post IDs:
+### Scope
 
-- `case-footnote-01`: footnote/list `li`/`ol` boundary is misclassified.
-- `case-table-01`: HTML table parsing fails.
-- `case-indent-01` and `case-indent-02`: semantic indentation is wrong.
-- `case-multi-project-01`: two projects must produce separate event streams;
-  internal facilities must not be guessed as Partner/Supplier.
-- `case-image-table-01`: image tables need region-aware OCR/description and
-  rendered Markdown/table support.
-- `case-summary-affiliation-01`: a role such as PM needs person, title, and
-  organization evidence rather than an unqualified collective label.
-- `case-r-and-r-01`: requester, assignee, action, and cost/payment owner must
-  remain explicit in R&R evidence.
-- `case-math-01`: bounded metric units such as m³ now have
-  superscript/subscript-preserving source/semantic normalization in backend and
-  frontend tests; arbitrary formula parsing, ontology-safe formula semantics,
-  and the authorized runtime case remain open.
+In scope: authorized source import, semantic units and visual regions,
+multi-channel lineage reconstruction, source-grounded ontology/provenance,
+period reports, Board/Global Ask/Calendar/Customer/Keyman navigation, TEPP and
+contextual-orchestrator integration, and buyer-visible evidence.
 
-These are not “resolved” merely because a prompt or heuristic was changed.
-Each requires synthetic unit coverage plus an authorized runtime reproduction
-or an explicit unavailable result.
+Out of scope: TEPP model reimplementation, raw provider calls, locally chosen
+models, forced links for missing channels, public real-data fixtures, and
+claims that an unmerged PR or historical runtime observation is live behavior.
 
-## 5. Product and technical gaps
+### Product measures
 
-- **Entity and abbreviation resolution — open:** canonical names, aliases,
-  multilingual labels, team-vs-organization typing, title-aware person
-  disambiguation, and SearXNG/internal corroboration need end-to-end evidence.
-- **Image/HTML semantic units — partially implemented:** source DOM, layout
-  metadata, region evidence, and provenance must remain separate from embedding
-  text; transparent/unsupported image conversion and multimodal processing need
-  live verification.
-- **Metric/formula semantics — partially fixed:** bounded metric markup is now
-  preserved across the backend parser and React renderer. Full formula AST,
-  units, exponents, and ontology mapping remain an evidence-backed follow-up,
-  not a claim of mathematical completeness.
-- **Authorized source mapping — partially implemented:** the inspected export
-  relation exposes metadata and artifact paths but no body/content/HTML field.
-  ADR 0121 and the importer now connect a path plus SHA-256 mapping to an
-  operator-local MHTML root, while rejecting traversal, missing files, and
-  digest mismatches before writes. The remaining acceptance work is to mount
-  the authorized raw artifacts and run the real import/backfill; do not map an
-  unrelated metadata column as body.
-- **TEPP measurement — boundary accepted, runtime open:** LineageWeave must
-  call TEPP through its published import/REST contract and must not implement a
-  local theta, psychometric calibration, CAT, or judge score. TEPP owns the
-  Rust numerical/psychometric layer and its multilevel/multiple-membership/time
-  model.
-- **Orchestration — boundary accepted, runtime open:** all LLM/VISION/embedding
-  work must cross contextual-orchestrator with provenance, session, cost, schema
-  validation, synthesis/repair, and capability discovery. No provider key or
-  model selector belongs here.
-- **Authorization — runtime open:** verify actual Keyverse/OIDC login, corp/PU
-  attributes, post visibility, ABAC/RBAC denials, and no cross-tenant evidence
-  leakage using aggregate, non-identifying results.
-- **Database/operations — audit open:** verify 3NF constraints, hot-partition
-  behavior, lock boundaries, Valkey event delivery, multithreaded server
-  behavior, retention grants, and read/write contention on the local Compose
-  stack.
-- **Lineage coverage — open:** the persisted graph has 1,308 post-lineage edges
-  across 1,929 participating posts, while the bounded current view exposed one
-  edge and some focused posts had no component. Add a rebuild/coverage gate that
-  distinguishes genuinely isolated posts from missing extraction or grouping
-  evidence before presenting a reader-facing branching DAG as complete.
-- **Cross-repository email/project lineage — provider boundary implemented,
-  consumer open:** PR #343 provides the store-agnostic LineageWeave contract but
-  remains unmerged and unreleased. Naruon issue #1437 still needs a disabled-by-
-  default admission policy, durable idempotent analysis job, immutable artifact
-  pin, result projection, accept/correct/reject audit, and integration into the
-  existing email/thread/project surfaces. No draft branch, direct SQL, shared ORM,
-  credential forwarding, or automatic promotion of inferred facts is allowed.
-- **Calendar interoperability — contract-only:** PR #337 defines the LineageWeave
-  consumer contract. Naruon must still publish the provider-side read endpoint,
-  service audience, provider conformance fixtures, sync/revision semantics, and
-  failure/reconciliation behavior before fail-closed runtime wiring is enabled.
-- **Literature/Zotero — open:** record APA 7 references and verify Local Zotero
-  API availability before claiming synchronization. The repository must retain
-  only metadata/citations appropriate for public artifacts.
-- **Release/quality gates — open:** current PR checks and required reviews must
-  complete on the exact current head; frontend, backend, browser, accessibility,
-  Storybook, security, and coverage evidence must be collected before release.
+- Every displayed derived claim can navigate to authorized evidence or is
+  labeled unavailable.
+- No relation crosses the analysis cutoff or caller ABAC boundary.
+- Missing model, embedding, TEPP, Vision, or verification channels are dropped
+  and weights renormalized; no placeholder score or actor is invented.
+- A real-stack acceptance run covers login, PostgreSQL-backed API behavior,
+  buyer navigation, and aggregate non-identifying evidence.
 
-## 6. Next acceptance loop
+## Functional specification
 
-1. Re-fetch the exact PR head and required reviews/checks for the workspace UI stack,
-   PR #343, and the superseding calendar contract PR #355.
-2. Run frontend lint, tests, build, Storybook, backend tests, and authenticated
-   browser checks when the local stack is available.
-3. Reproduce each case label using synthetic fixtures or authorized runtime
-   aggregates, preserving `unavailable` as an explicit result.
-4. Complete exact-head review and immutable release of the LineageWeave provider
-   contract before creating the Naruon consumer implementation; do not import a
-   draft branch or share application database state.
-5. Fix only evidence-backed failures, then repeat the exact-head protected merge
-   gate. Do not self-approve, bypass protection, or claim a PR is merged without
-   a merge SHA.
+| ID | Requirement and acceptance criterion | Normative source | Current evidence |
+|---|---|---|---|
+| FR-01 | Import authorized records while preserving immutable source identity, raw state, publication state, and revisions. No real record enters git. | ADR 0001, 0040, 0046, 0056-0059, 0068, 0089 | Import/reconciliation modules and migrations; private runtime evidence only |
+| FR-02 | Derive paragraph/list/table/image-region semantic units without replacing the source representation. | ADR 0061, 0062, 0066, 0067, 0077, 0087, 0091 | Chunking, image-content, visual-region and embedding paths |
+| FR-03 | Reconstruct backward-only candidate edges from available channels, fuse through RankWeave, apply a minimum floor, persist scores, and assemble trees through ThreadWeave. | ADR 0024, 0064, 0084 | `lineageweave/reconstruct.py`, channel clients, reconstruction tables/tests |
+| FR-04 | Create, start, observe, and retain analysis runs with cutoff snapshots, append-only status, outbox delivery, authorization, and explicit failure. | ADR 0013-0023, 0025 | Backend analysis-run modules, migrations, API tests |
+| FR-05 | Keep TEPP as a versioned external measurement boundary; failed or unused responses never become invented theta. | ADR 0003, 0022 | `tepp_client.py`, report and start contracts |
+| FR-06 | Resolve actors, organizations, projects, roles, and relationships without collapsing ties or same-name mentions; preserve catalog identifiers on role rows. | ADR 0004-0012, 0018-0019, 0026-0027, 0036 | Summary, entity-resolution, KG and report paths/tests |
+| FR-07 | Global Ask and buyer surfaces retrieve only authorized evidence and let cited results open the relevant post/lineage context. | ADR 0032, 0037, 0039, 0041-0044, 0047, 0053-0055, 0075, 0078, 0090 | Main has the earlier surfaces; PR stack #258-#301 proposes the integrated navigation/evidence flow |
+| FR-08 | LLM, structured output, embedding, and Vision work crosses contextual-orchestrator with one post session and bounded provenance; provider/model/protocol selection stays upstream. | ADR 0030, 0045, 0052, 0070-0077, 0079, 0081-0088 | Orchestrator clients, Compose boundary, historical gateway observations |
+| FR-09 | Period reports use real fast-mlsirm results; missing cells remain missing and leftover pairs are residual-derived and navigable. | ADR 0003, 0034-0035, 0048-0050 | Historical authenticated report rebuilds; report tests and schema |
+| FR-10 | Standard provenance uses normalized PROV-O relations; qualified influence implies its unqualified relation and KG edges remain a navigation projection. | ADR 0011, 0065 | PROV-O implementation matrices, ontology, CI contract |
+| FR-11 | Post summaries expose evidence-bearing events and R&R. Requester/processor actions are nullable and may only name actors already bound to the same post summary. | ADR 0052, ADR 0102 | Commit `15e1a378` is on PR #258 and the schema exists locally; the current database has zero populated action rows, so buyer-data acceptance remains unproven |
+| FR-12 | A hierarchy-enrichment timeout leaves the source-grounded summary readable and the actor unbound; it never creates a guessed catalog identity. | ADR 0101, ADR 0010, ADR 0026 | Commit `1c260f20` contains the boundary, ADR, and focused test; independent review, protected-main merge, and fresh runtime evidence remain pending |
+| FR-13 | Customer Master projects authorized corporate entities as a Group → Company → Plant tree. Real organization containment uses W3C ORG while Group/Company/Plant remain separate SKOS level concepts. Missing-parent, self-parent, and cyclic edges remain visible as unresolved roots; the UI owns nested `group` elements from their parent `treeitem`, supports Arrow/Home/End and Enter/Space operation, and opens source-backed evidence outside the tree. | ADR 0124, ADR 0004, ADR 0010 | Ontology/SHACL interoperability tests, `customerMasterTree.ts`, `CustomerMasterTree.tsx`, component tests, Storybook, and code commit `21074cf80cbfab3001bf18b6e1a618f75f4bed24` |
+| FR-14 | Global Ask presents a dedicated evidence workspace: semantic form submission, IME-safe keyboard behavior, explicit empty/loading/error/answer states, separated timeline and cited evidence, answer focus, responsive phone/tablet/PC layout, and the existing authorized cited-post → Event Lineage handoff. | ADR 0137, ADR 0002, ADR 0032, ADR 0090 | `AskAgentWorkspace.tsx`, focused component/token tests, Storybook state inventory, and existing App navigation regressions on #353 |
 
-## 7. References (APA 7th)
+## TRD
 
-ContextualWisdomLab. (2026). *TEPP* [Computer software]. GitHub.
-https://github.com/ContextualWisdomLab/TEPP
+### Runtime components and trust boundaries
 
-ContextualWisdomLab. (2026). *contextual-orchestrator architecture notes*
-[Computer software]. GitHub.
-https://github.com/ContextualWisdomLab/contextual-orchestrator/blob/main/docs/architecture.md
+```mermaid
+flowchart LR
+  B[Authenticated buyer] -->|OIDC token| F[React buyer UI]
+  F -->|bounded JSON| A[FastAPI]
+  A -->|ABAC-scoped SQL| P[(PostgreSQL)]
+  A -->|durable ledger| P
+  A -->|wake-up only| V[(Valkey)]
+  A -->|provider-neutral contract| O[contextual-orchestrator]
+  A -->|published wire contract| T[TEPP]
+  O --> X[LLM / Vision / embedding providers]
+  P -->|authorized source boundary| S[(Private source)]
+```
 
-Nielsen, S., Cetin, E., Schwendeman, P., Sun, Q., Xu, J., & Tang, Y. (2025).
-*Learning to orchestrate agents in natural language with the Conductor*.
-arXiv. https://doi.org/10.48550/arXiv.2512.04388
+- PostgreSQL is authoritative for normalized product state, run snapshots,
+  provenance, status, and durable work ledgers. Valkey is not the source of
+  truth.
+- FastAPI applies authentication and ABAC before projecting records or edge
+  endpoints. The browser receives bounded projections, not raw source bags.
+- contextual-orchestrator owns provider capability discovery, reasoning
+  effort, structured synthesis/repair, sessions, and cost lineage.
+- ThreadWeave, RankWeave, TEPP, and fast-mlsirm are reused at their published
+  boundaries; LineageWeave does not clone their algorithms.
 
-Tang, Y., Cetin, E., Xu, J., Sun, Q., Nielsen, S., Richard, V., Goda, H.,
-Tymchenko, I., Nguyen, N., Lee, H., Ashiga, M., Kotyan, S., & Kuroki, S.
-(2026). *Sakana Fugu technical report*. arXiv.
-https://arxiv.org/abs/2606.21228
+### Analysis-run lifecycle UML
 
-Xu, J., Sun, Q., Schwendeman, P., Nielsen, S., Cetin, E., & Tang, Y. (2025).
-*TRINITY: An evolved LLM coordinator*. arXiv.
-https://doi.org/10.48550/arXiv.2512.04695
+```mermaid
+stateDiagram-v2
+  [*] --> Pending: authorized lineage request + frozen cutoff
+  Pending --> Running: start + durable outbox claim
+  Running --> Succeeded: result persisted + digest recorded
+  Running --> Failed: explicit failure code
+  Failed --> [*]
+  Succeeded --> [*]
+  note right of Pending
+    TEPP creation is not a fake Pending lineage run.
+    Retention purge has a separate DB-only grant boundary.
+  end note
+```
 
-World Wide Web Consortium. (2024). *Web Content Accessibility Guidelines
- (WCAG) 2.2* (W3C Recommendation). https://www.w3.org/TR/WCAG22/
+### Evidence sequence UML
+
+```mermaid
+sequenceDiagram
+  actor Buyer
+  participant UI
+  participant API
+  participant DB as PostgreSQL
+  participant Orch as contextual-orchestrator
+  Buyer->>UI: open source-backed feature
+  UI->>API: authenticated bounded request
+  API->>DB: load ABAC-visible cutoff evidence
+  opt semantic adjudication is available
+    API->>Orch: bounded units + provenance + session id
+    Orch-->>API: validated result + usage/verification metadata
+  end
+  API->>DB: persist result or explicit unavailable/failure state
+  API-->>UI: evidence-bearing projection
+  UI-->>Buyer: claim, provenance, and source navigation
+```
+
+### Non-functional requirements
+
+| ID | Contract | Verification |
+|---|---|---|
+| NFR-01 | OIDC authentication, endpoint ABAC, no public retention purge, no repository secrets | authorization-specific API tests and Compose identity-boundary check |
+| NFR-02 | Bounded row, batch, browser, image, and MCP payloads | boundary unit tests plus real-stack response-size observation |
+| NFR-03 | Third-normal-form identities and provenance; database constraints enforce integrity | migration/schema tests against PostgreSQL |
+| NFR-04 | Python 3.12+ project-local environment; pinned Node/pnpm and Rust toolchain; checked lockfiles | clean-environment backend/frontend builds |
+| NFR-05 | Synthetic fixtures only; runtime validation returns aggregate, non-identifying evidence | repository scan and evidence-document review |
+| NFR-06 | ADR-first architectural change and paper-grounded model policy | ADR link check and review; unsupported policies remain unavailable |
+| NFR-07 | Buyer hierarchy controls meet WCAG 2.2 keyboard operation and the WAI-ARIA tree ownership contract without inventing ontology facts | Ontology tests, focused hierarchy tests, full frontend test/lint/build, Storybook build, and final-head hosted verification |
+| NFR-08 | Ask Agent uses shared UI-standard button/focus/color/radius tokens, clear focus differentiation, a primary content action, and 1024px/768px responsive transitions without horizontal scrolling | Focused component and CSS-contract tests, complete frontend build, Storybook state build, and UI/UX Standard Guide v3.0 review |
+
+## Current aggregate data and runtime evidence
+
+Observed from the running local Compose stack without selecting a post title,
+body, source code, person, organization, or identifier:
+
+| Evidence | Observed result |
+|---|---|
+| Stack availability | PostgreSQL, Valkey, and contextual-orchestrator healthy; backend and frontend running; backend `/healthz` and frontend `/` returned HTTP 200 |
+| Source boundary | 43,839 source posts: 43,814 have both source-system and source-record identity; 25 lack that import identity |
+| Source state/body | 43,814 rows carry source-state evidence; 43,438 rows have a non-empty body; 87,297 source revisions persist |
+| Derived content | 562,394 semantic units, 1,308 live lineage edges, 48 KG navigation edges, and 95 persisted summaries |
+| Run registry | Three runs: one lineage, one report, one TEPP; latest states are two Succeeded and one Failed |
+| Run evidence | One snapshot with 42,577 members; one persisted reconstruction with 1,281 edges; zero persisted TEPP results |
+| Requester/processor | `post_summary_action` exists with composite actor foreign keys; one authorized target refresh stored three action rows |
+| Summary refresh | One authorized target request returned HTTP 200 with contract v5, four key events, one role, three actions, and one project |
+| Authentication | Real synthetic-user OIDC login, live JWKS fetch, and RS256 verification passed |
+| Authorization | Unauthenticated `/api/analysis-runs` and `/api/posts` returned 401; four focused live-Keycloak/PostgreSQL API tests covering authenticated account, list ABAC, direct deny, and missing token passed |
+| Focused contracts | Post-summary and transaction-contract tests: 31 passed, 1 skipped; the skip is not runtime proof for the skipped capability |
+
+These observations prove data presence and the listed boundaries only. They do
+not prove a browser-clicked buyer journey, current TEPP transport success,
+post-summary-action population across the corpus, or equivalence between every
+running container image and the PR head. The target refresh is bounded runtime
+evidence for one authorized post, not a corpus-wide acceptance claim.
+
+## Active-PR gap closure evidence
+
+| Closed gap | Root cause | Closure evidence | Remaining boundary |
+|---|---|---|---|
+| Ask Agent had no dedicated UI component or executable state inventory; its chatbox reused a Keyman link-style action and mixed answer, timeline, citations, and evidence facts in one generic section. | The Global Ask feature accumulated inside `App.tsx` while the stack focused on authorization and cross-surface navigation, leaving presentation without its own ownership boundary. | #353 extracts a token-based evidence workspace, uses a semantic and IME-safe form, focuses completed answers, separates source-backed result regions, and adds five Storybook scenes plus focused regressions. | Streaming and persisted conversation history remain separate future product work; final-head hosted Checks and independent approval are still required. |
+| Customer entities could disappear from the buyer surface when `parent_entity_id` formed a self-parent or cycle; the first tree refactor also placed child `group` content beside rather than inside its parent `treeitem`. | The old projection assembled only root-reachable nodes, overloaded evidence state with hierarchy semantics, and did not satisfy the APG ownership rule. | Code commit `21074cf80cbfab3001bf18b6e1a618f75f4bed24` promotes malformed edges to visible unresolved roots, keeps ORG containment separate from SKOS classification, makes every parent `treeitem` own its child `group`, separates evidence into an external region, and adds navigation, failure, stale-response, ontology, and Storybook regressions. | The API still exposes one parent context; authoritative acyclicity, level-transition rules, legal/operating/sales/billing contexts, and effective-dated history remain future normalized-model work. |
+
+## Active PR audit
+
+A focused 2026-08-21 refresh found PR #258 open and mergeable at customer-hierarchy
+code commit `21074cf80cbfab3001bf18b6e1a618f75f4bed24`. The organization queue has changed since the 18-row inventory below, so the
+table is retained only as historical stack topology. Current acceptance must be read from the final
+PR head, valid unresolved threads, qualifying independent review, and terminal hosted Checks.
+
+| PR | Proposed increment | Base → head | Snapshot state |
+|---|---|---|---|
+| #353 | Ask Agent evidence workspace and semantic chatbox | `#264` → `v2.18.0` | Exact-head verification and independent review required |
+| #301 | Global Ask knowledge cutoff | `#264 stack` → `v2.23.0` | Ready / UNSTABLE |
+| #298 | bounded async lineage LLM rebuild | `#276` → `v2.22.0` | Ready / UNSTABLE |
+| #287 | exact Event Lineage channel evidence | `#276` → feature | Ready / UNSTABLE |
+| #286 | exact byte-bounded MCP browser admission | `#270` → fix | Ready / UNSTABLE |
+| #285 | project lifecycle timeline | `#264 stack` → `v2.18.4` | Ready / UNSTABLE |
+| #282 | TEPP project history in read/Ask | `#264 stack` → `v2.18.0` | Ready / UNSTABLE |
+| #276 | public verification of Global Ask claims | `#266` → `v2.20.0` | Ready / UNSTABLE |
+| #275 | evidence-bound Event Intelligence | `#270` → `v2.18.3` | Ready / UNSTABLE |
+| #270 | authenticated MCP Global Ask | `main` → feature | Ready / BLOCKED / review required |
+| #266 | Event Lineage to Keyman focus | `#264` → `v2.19.0` | Ready / BLOCKED / review required |
+| #264 | keep Event Lineage DAG focus | `#263` → `v2.17.0` | Ready / BLOCKED / review required |
+| #263 | Ask citation to Event Lineage | `#262` → `v2.16.0` | Ready / BLOCKED / review required |
+| #262 | Customer post to Event Lineage | `#261` → `v2.15.0` | Ready / BLOCKED / review required |
+| #261 | Calendar commitment to Event Lineage | `#260` → `v2.14.0` | Ready / BLOCKED / review required |
+| #260 | Weekly VOC to Event Lineage | `#258` → `v2.13.0` | Ready / DIRTY / review required |
+| #258 | buyer evidence board, standards-composed ontology, and cycle-safe Customer Master tree | `main` → `21074cf80cbfab3001bf18b6e1a618f75f4bed24` | Ready / mergeable / final-head Checks and independent approval pending |
+| #258 | buyer evidence board, standards-composed ontology, and cycle-safe Customer Master tree | `main` → `21074cf80cbfab3001bf18b6e1a618f75f4bed24` | Ready / mergeable / final-head Checks and independent approval pending |
+| #192 | plural affiliation next action | `main` → `v0.77.0` | Ready / DIRTY / review required |
+| #190 | duplicate-numbered entity-resolution ADR | `main` → docs | Ready / BLOCKED |
+
+The dominant delivery topology is a long dependent stack rooted at #258 and
+then #260-#266. Parallel descendants (#275, #282, #285, #276-#301) are based
+on intermediate heads rather than one integration head. Green checks on a
+child do not prove that the stack is mergeable or that the behavior exists on
+main.
+
+Manual triage of #258's four unresolved scanner threads found literal SQL in
+`entity_relationship_ingestion.py` and `demo_scope.py`; request-derived entity
+ids are passed as `$1` arguments rather than interpolated. This is evidence for
+a likely narrow false-positive suppression, not authority to dismiss the
+findings: the required security workflow and independent reviewer must accept
+the exact-head disposition.
+
+## Gap register
+
+| Priority | Gap | Evidence | Closure criterion |
+|---|---|---|---|
+| P0 | No protected-main integrated buyer journey for the active feature stack | Main is 2.12.5; 18 open PRs span dependent and parallel bases | Establish one reviewed integration order, update each exact head, pass required checks, merge without bypass, then run login-to-source browser acceptance on main |
+| P0 | Current runtime proof is incomplete | The current aggregate/OIDC/ABAC checks cover data presence and selected boundaries; 2026-08-18/19 notes cover other slices, but no evidence set proves the entire PR head or main journey | Complete the real-stack matrix on an exact revision: browser login/navigation, Ask, reports, Vision, TEPP availability, action population, and cleanup |
+| P0 | PR #190's duplicate ADR identity was corrected but is not protected-main truth | Active PR head `ac1b4e17` now uses ADR 0038 and aligns the entity-resolution claims with implementation; independent review and Checks remain pending | Re-audit exact head, obtain independent approval, pass required Checks, and merge normally; never merge a duplicate ADR identity |
+| P0 | PR #258 still requires final-head review and hosted CI | Customer hierarchy code is at `21074cf80cbfab3001bf18b6e1a618f75f4bed24`; branch-local verification does not transfer to the following documentation-only head | Re-read review threads, obtain qualifying independent approval, require all final-head hosted Checks to reach terminal success, and merge only through normal protection |
+| P1 | Requirements were implicit across ADRs and architecture phases | No prior PRD/TRD/requirement traceability baseline existed | Keep FR/NFR IDs in this document linked from ADR index; require new product PRs to name affected IDs and runtime evidence |
+| P1 | Active PR topology obscures release truth | 8 blocked, 8 unstable, and 2 dirty; many bases are other open branches | Publish a dependency order, retire obsolete/duplicate branches, and avoid version claims until their base chain reaches main |
+| P1 | ADR 0102 schema exists but current data does not exercise it | Commit `15e1a378` is on PR #258 and the table exists, but 95 summaries yield zero requester/processor action rows | Regenerate an authorized bounded sample, report aggregate accepted/dropped/absent counts, verify source evidence and actor FKs, then exercise the buyer popup without exposing record content |
+| P1 | ADR 0101 is active-PR behavior but not protected-main behavior | Commit `1c260f20` contains the corrected ADR link, boundary, and focused tests; independent review and protected-main merge remain pending | Re-audit the exact head, obtain independent approval, pass required checks, merge normally, and collect fresh runtime evidence |
+| P1 | ADR status vocabulary is inconsistent and sometimes stale | Several ADRs say “Accepted on this active PR; not protected-main truth” even after branch evolution | Add a mechanical ADR status/link audit that distinguishes Proposed, Accepted-on-PR, Accepted-on-main, and Superseded |
+| P2 | ADR numbering skips 0031 and 0093-0097 while file 0092 titles itself ADR 0031 | File identity and displayed identity differ | Correct the 0092 title or document an intentional alias; reserve or explain skipped numbers in the index |
+| P2 | Product measures lack explicit targets | Research supports evidence boundaries but not universal model-quality thresholds | Define targets only from an approved evaluation protocol and authorized labeled aggregate dataset; do not invent accuracy goals |
+| P2 | UML covers core trust/lifecycle flow but not every buyer navigation branch | Architecture and PR stack evolve faster than diagrams | Add diagrams only when a stable main integration makes a flow materially distinct; keep this baseline small |
+
+## Verification matrix
+
+| Scope | Evidence available now | Claim allowed now | Missing proof |
+|---|---|---|---|
+| Protected main | `origin/main` manifests show 2.12.5 | Existing main contracts only | Fresh main runtime matrix |
+| Historical local runtime | Authenticated PostgreSQL report rebuilds and orchestrator/Vision observations dated 2026-08-18/19 | Those exact bounded observations | Current head/main equivalence and full browser journey |
+| Active PRs | GitHub head/base, review, merge, check, and review-thread states at snapshot | Proposed increments and gate state | Normal merge and post-merge runtime behavior |
+| Local PR checkout | PR #258 was observed at `bf599aca`; full suite passed and one authorized target summary refresh returned v5/HTTP 200 with persisted actions | Only the exact observations in the current-data table; no claim for protected-main behavior | Full suite/CI, browser journey, external channel results, review, merge, and corpus-level action evidence |
+
+## Maintenance rule
+
+ADRs remain normative. This document is the product/technical traceability
+projection: update the affected FR/NFR row and Gap closure evidence when an ADR
+or PR changes product behavior. Never turn a PR title, green unit test, or old
+runtime note into a shipped/live claim.
+
+## Recovered TEPP project-history integration (2026-08-21)
+
+- The canonical Buyer project timeline remains owned by the stacked Project history PR.
+- The previously implemented TEPP work had become stranded in a closed parent and an
+  orphaned duplicate stack. This recovery consumes the canonical timeline instead of
+  introducing another project query, classifier, or timeline component.
+- The dependency is the exact `ContextualWisdomLab/TEPP#159` project-history contract.
+  Until that contract is merged and a TEPP endpoint is deployed, the UI reports an
+  actionable fail-closed state and keeps the authorized LineageWeave timeline readable.
+- TEPP receives opaque actor references and bounded source-field evidence only. Browser,
+  review, provider, and `TEPP_API_KEY` credentials are not forwarded.
+- `temporal_association_only` is the maximum accepted authority. Buyer copy must say
+  that a preceding event is related in time, not that it caused the VOC.
+- The next stacked slice attaches this same canonical timeline and TEPP metadata to
+  Global Ask and post-scoped Ask without re-retrieving hidden evidence.
+
+## Ask-to-project-history integration (2026-08-21)
+
+- Protected-stack checkpoint: PR #342 is based on PR #339 head
+  `43262dc76622928fdf90b922653949b4ac7c6631`; the PR description and hosted Checks
+  record its exact current head. Both remain review/check gated and are not represented
+  as merged production behavior.
+- Post-scoped Ask and Global Ask return structured project-history links only for exact
+  project identities on their currently authorized cited posts.
+- Opening a link lazily calls the canonical Project history endpoint with the answer
+  knowledge cutoff and cited focus post; no second timeline, classifier, or TEPP query is
+  implemented in either Ask surface.
+- Source publication eligibility and cutoff are applied before Ask retrieval. Persisted
+  answers are withheld when any citation loses visibility, and a Global Ask session with
+  stale citations must start a new session before prior answer prose is reused. The
+  browser session identifier uses one shared `sessionStorage` key across bootstrap,
+  persist, 404 retry, 409 restart, and logout.
+- The response bounds citation and project counts, discloses truncated project links, and
+  keeps answers readable when a timeline or TEPP validation is unavailable.
+- Remaining causal-analysis work is explicitly outside this slice: temporal association
+  and evidence navigation do not identify why a VOC occurred.
+
+## Current stacked PR product-surface gaps
+
+- **Customer Master relationship composition — PR #262**: Resolved on the
+  current feature branch. ADR 0129 and Figma frames `313:2` / `314:2` define a
+  customer-centered three-pane workspace that keeps the selected customer
+  stable while the user inspects relationships and source posts.
+- **Responsive Customer Master flow — PR #262**: Resolved on the current
+  feature branch. PC uses three horizontal panes, tablet uses two columns plus
+  full-width evidence, and phone preserves the semantic order hierarchy →
+  selected customer → evidence at the shared 1024 px / 768 px breakpoints.
+- **Effective-dated relationship authority**: Open. The current projection
+  still owns one `parent_entity_id`; legal ownership, operating structure,
+  sales roll-up, billing hierarchy, historical roles, and simultaneous
+  relationship types require a normalized effective-dated relation model.
+- **Unresolved hierarchy repair workflow**: Open. Cycle, self-parent, and
+  missing-visible-parent members remain visible and unresolved, but operators
+  still need a source-data quality queue, evidence review, and approved
+  correction workflow.
+- **Customer relationship exact-value export**: Open. An auditable CSV/JSON
+  export of the selected customer, visible relations, truth status, effective
+  interval, and evidence references remains a later product slice.
+
+## Batched persisted post-Ask reauthorization (2026-08-22)
+
+- The issue #358 implementation remains stacked and is not protected-main
+  behavior. ADR 0131 bounds one post history at 64 exchanges and 256 citation
+  occurrences; excess history fails closed without returning a partial answer.
+- After the existing parent-post visibility lookup, the supported history phase
+  uses one ordered history query and one authorization/project-evidence query.
+  Tenant ABAC, publication eligibility, and each exchange's persisted knowledge
+  cutoff are evaluated in the latter query before partitioning.
+- Observed local PostgreSQL 18.4 evidence used 64 synthetic exchanges with one
+  citation each on a single loopback connection, five measured repetitions after
+  warmup. The previous-equivalent path made 193 queries with an 11.544 ms median;
+  the batched path made 2 queries with a 1.190 ms median, a 9.70x reduction for
+  this bounded fixture. This is query-path evidence, not a production latency SLO.
+- The real-PostgreSQL regression also executes mixed per-exchange cutoffs and a
+  private tenant mismatch. Its observed outcomes are cutoff miss, cutoff hit, and
+  tenant miss respectively; hidden evidence does not disclose answer prose, title,
+  identifier, count, or project link from the affected exchange.
+
+*This document is continuously updated by the hourly automated agent loop.*

@@ -4,6 +4,108 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versioning follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.23.1] - 2026-08-22
+
+### Fixed
+
+- Persisted post-Ask history now loads and reauthorizes up to 64 exchanges and
+  256 citation occurrences in two bounded PostgreSQL queries. Each exchange
+  keeps its own knowledge cutoff and fail-closed tenant/publication decision;
+  oversized history returns an actionable error instead of partial evidence
+  (ADR 0131).
+- Global Ask now reads, writes, and clears one shared `sessionStorage` key for
+  bootstrap, successful answers, 404 retry, 409 stale-citation restart, and
+  logout, so a restart cannot leave a desynchronized session id (ADR 0113).
+- Global Ask now reuses the already-materialized authorized corporate-entity
+  identifiers on the final cutoff-bounded source query instead of re-listing the
+  original input (ADR 0130).
+
+## [2.23.0] - 2026-08-20
+
+### Added
+
+- Ask Agent now accepts an optional knowledge cutoff. A dated question
+  matches retained source-post revisions from that clock and never
+  substitutes a live body or live rewrite text. Fully, partly, and
+  live-only answers are named separately. No TEPP theta is invented. No
+  as-of label is applied to a live query (ADR 0135 / ADR 0016 / ADR 0025).
+
+### Fixed
+
+- Partial cutoff answers now show which historical bodies were unavailable,
+  and commitment-derived ticket writes enforce the owning-post authorization
+  boundary before provider work.
+
+## [2.20.0] - 2026-08-21
+
+### Added
+
+- Post-scoped Ask and Global Ask now attach exact project-history links derived
+  only from currently authorized cited posts. Opening a link reuses the canonical
+  Project history timeline and its optional TEPP validation at the answer cutoff.
+
+### Security
+
+- Persisted post answers are withheld when any citation is no longer visible, and
+  stale Global Ask sessions are restarted before hidden prior prose can re-enter
+  conversation context (ADR 0113).
+
+## [2.19.0] - 2026-08-21
+
+### Added
+
+- Recovered the credential-free TEPP project-history validation boundary on top of
+  the canonical Buyer timeline. TEPP may return only cutoff-safe temporal
+  associations over the exact authorized events; the timeline remains readable
+  when TEPP is absent, and no result is labelled as a cause (ADR 0127).
+
+## [2.18.0] - 2026-08-20
+
+### Added
+
+- Added a Buyer Project history destination and post-detail entry point for
+  bounded, authorized exact-project chronology. The release remains pending
+  protected-main review and Checks (ADR 0111).
+
+### Added
+
+- Opening a Board Weekly VOC post, Calendar commitment, Customer master
+  related post, or Ask Agent cited post now keeps Event Lineage current
+  and focuses Keyman as the named next read. A linked Event Lineage DAG
+  walk from that popup keeps the same Keyman focus. A home-list open
+  does not add that focus or copy. No TEPP theta is invented. No cited
+  post, customer, week, or cutoff body is invented (ADR 0100 / ADR 0097
+  / ADR 0016).
+## [2.17.0] - 2026-08-19
+
+### Added
+
+- Opening a linked Event Lineage DAG node from a GNB-focused popup now
+  keeps Event Lineage focused and names Keyman and evaluation as the next
+  read. A home-list DAG walk does not add that focus or copy. No TEPP
+  theta is invented. No cited post, customer, week, or cutoff body is
+  invented (ADR 0097 / ADR 0096 / ADR 0016).
+
+## [2.16.0] - 2026-08-19
+
+### Added
+
+- Opening an Ask Agent cited post now focuses Event Lineage and names Keyman
+  and evaluation as the next read. After an authorized answer, Ask Agent
+  names cited posts as current before that open. Home-list opens do not add
+  that focus or copy. No TEPP theta is invented. No cited post is invented
+  (ADR 0096 / ADR 0039 / ADR 0016).
+
+## [2.15.0] - 2026-08-19
+
+### Added
+
+- Opening a Customer master related post now focuses Event Lineage and names
+  Keyman and evaluation as the next read. Customer master names authorized
+  customer entities as current before that open. Home-list opens do not add
+  that focus or copy. No TEPP theta is invented. No customer is invented
+  (ADR 0095 / ADR 0037 / ADR 0016).
+
 ## [2.14.0] - 2026-08-19
 
 ### Added
@@ -35,16 +137,6 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
-### Changed
-
-- Renamed "Buyer" terminology to reader/workspace naming across the frontend
-  shell, backend evidence helpers, and living docs (ADR 0119). LineageWeave
-  has no explicit buyer role, so `BuyerNav`/`BuyerDestination` became
-  `WorkspaceNav`/`WorkspaceDestination`, `.buyer-gnb*` CSS became
-  `.workspace-gnb*`, and prose referring to the reading user now says
-  "reader" instead of "buyer". Historical ADRs and changelog entries keep
-  their original wording as a point-in-time record.
-
 ### Fixed
 
 - Removed the completed one-shot Global Ask package-manager repair workflow;
@@ -52,19 +144,6 @@ All notable changes to this project are documented here. Format follows
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
-- The workspace Event Lineage global Search action now retries focus after the
-  board finishes loading, so navigation from Customer master, Calendar, or
-  Ask Agent lands the cursor in the search box. The handled request is consumed,
-  so later board navigation does not steal focus, and Search closes an open
-  mobile drawer like every other destination change.
-- Mobile Event Lineage evidence cards now read their translated column labels
-  from the rendered cells instead of hardcoded English CSS, and the two drawer
-  close controls have distinct accessible names.
-- Event Lineage SVG edges now retain their instance-specific direction markers,
-  so parent-to-child arrows remain visible when multiple lineage groups render.
-- All OpenAI-compatible chat-completion consumers now validate the shared
-  response envelope before parsing it, preventing malformed provider bodies
-  from escaping as raw `KeyError` or response-shape details.
 
 ## [2.12.6] - 2026-08-20
 

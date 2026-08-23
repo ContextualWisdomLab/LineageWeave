@@ -1,0 +1,80 @@
+.tepp-project-evidence {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--accent-color, #3157d5) 35%, transparent);
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, var(--surface-color, #ffffff) 94%, var(--accent-color, #3157d5));
+}
+
+.tepp-project-evidence > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.tepp-project-evidence h4,
+.tepp-project-evidence h5,
+.tepp-project-evidence p {
+  margin-top: 0;
+}
+
+.tepp-project-evidence-boundary {
+  font-weight: 700;
+}
+
+.tepp-project-evidence dl {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.tepp-project-evidence dl > div {
+  padding: 0.75rem;
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--surface-color, #ffffff) 88%, transparent);
+}
+
+.tepp-project-evidence dt {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.tepp-project-evidence dd {
+  margin: 0.3rem 0 0;
+}
+
+.tepp-project-evidence ul {
+  display: grid;
+  gap: 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.tepp-project-evidence-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.tepp-project-evidence-links button {
+  min-height: 2.75rem;
+}
+
+.tepp-project-evidence-status {
+  border-style: dashed;
+}
+
+@media (max-width: 42rem) {
+  .tepp-project-evidence > header {
+    flex-direction: column;
+  }
+}
+
+@media print {
+  .tepp-project-evidence-links button {
+    border: 0;
+    padding: 0;
+    background: none;
+  }
+}

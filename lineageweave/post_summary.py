@@ -716,12 +716,16 @@ def parse_summary_response(content: str) -> PostSummary | None:
             name = entry.get("actor_name")
             responsibility = entry.get("responsibility")
             actor_type_raw = entry.get("actor_type")
-            if actor_type_raw == "organization":
+            if actor_type_raw is None:
+                actor_type_code = ACTOR_TYPE_PERSON
+            elif actor_type_raw == "person":
+                actor_type_code = ACTOR_TYPE_PERSON
+            elif actor_type_raw == "organization":
                 actor_type_code = ACTOR_TYPE_ORGANIZATION
             elif actor_type_raw == "team":
                 actor_type_code = ACTOR_TYPE_TEAM
             else:
-                actor_type_code = ACTOR_TYPE_PERSON
+                continue
             affiliation_raw = entry.get("affiliated_organization_name")
             affiliated_organization_name = (
                 affiliation_raw.strip()

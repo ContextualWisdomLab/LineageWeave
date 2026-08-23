@@ -103,6 +103,9 @@ _SOURCE_NAMED_HINTS_MIGRATION = (
 _SOURCE_ORG_NAMED_HINTS_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0039_source_org_named_hints.sql"
 )
+_MAJOR_EVENT_ACTION_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0100_major_event_action.sql"
+)
 
 
 def _postgres_available() -> bool:

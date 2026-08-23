@@ -85,6 +85,35 @@ def test_parse_description_preserves_multiline_ocr_text() -> None:
     assert description.caption == "A scanned page."
 
 
+def test_parse_description_preserves_multiline_caption_evidence() -> None:
+    """Detailed VISION captions remain complete when providers wrap lines."""
+    content = (
+        "CAPTION: A project status table for the customer meeting.\n"
+        "The left column lists workstreams and the right column lists owners.\n"
+        "TEXT: Workstream | Owner\nAlpha | Team A\nTAGS: table, assignment"
+    )
+
+    description = _parse_description(content)
+
+    assert description.caption == (
+        "A project status table for the customer meeting.\n"
+        "The left column lists workstreams and the right column lists owners."
+    )
+    assert description.extracted_text == "Workstream | Owner\nAlpha | Team A"
+
+
+def test_parse_description_preserves_ocr_lines_that_contain_colons() -> None:
+    """A colon in a scanned field is OCR content, not a new response field."""
+    content = (
+        "TEXT: Invoice\nDate: 2026-08-21\nTotal: 100\n"
+        "CAPTION: A synthetic invoice.\nTAGS: invoice"
+    )
+
+    description = _parse_description(content)
+
+    assert description.extracted_text == "Invoice\nDate: 2026-08-21\nTotal: 100"
+
+
 def test_parse_description_preserves_table_row_structure_in_ocr_text() -> None:
     """Live gap (2026-08-19): an image containing a table used to have its
     text flattened into an unstructured word list on OCR, the same
@@ -202,10 +231,58 @@ def test_orchestrator_vision_client_does_not_double_v1() -> None:
     assert client._base_url == "https://gateway.example/v1"
 
 
+def test_orchestrator_vision_client_allows_deep_agent_runtime() -> None:
+    """A valid VISION result must not be cut off by the former 180s limit."""
+    client = orchestrator_vision_client("https://gateway.example", "key")
+
+    assert isinstance(client, OpenAiCompatibleVisionClient)
+    assert client._timeout == 600.0
+
+
 def test_orchestrator_vision_client_is_null_when_unconfigured() -> None:
     client = orchestrator_vision_client("", "")
     assert isinstance(client, NullImageContentClient)
     assert client.available is False
+
+
+def test_vision_request_uses_gateway_model_selection_and_post_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_post_json(url, payload, *, headers, timeout):
+        captured.update(url=url, payload=payload, headers=headers, timeout=timeout)
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": "TEXT: NONE\nCAPTION: A synthetic diagram.\nTAGS: diagram"
+                    }
+                }
+            ]
+        }
+
+    monkeypatch.setattr("lineageweave.image_content.post_json", fake_post_json)
+    client = OpenAiCompatibleVisionClient(
+        "https://gateway.example/v1", "service-token", "caller-model"
+    )
+    description = client.describe(
+        base64.b64decode(_TINY_PNG_B64),
+        "image/png",
+        session_id="lineageweave:post:post-1",
+        metadata={"pu_code": "PU-1"},
+    )
+
+    assert description.caption == "A synthetic diagram."
+    assert "model" not in captured["payload"]
+    assert captured["payload"]["mode"] == "auto"
+    assert captured["payload"]["reasoning_effort"] == "auto"
+    assert captured["payload"]["max_tokens"] == 1200
+    assert captured["payload"]["metadata"] == {
+        "session_id": "lineageweave:post:post-1",
+        "pu_code": "PU-1",
+    }
+    assert captured["payload"]["messages"][0]["role"] == "system"
 
 
 def test_image_content_client_protocol_stub_raises() -> None:
@@ -224,6 +301,17 @@ def test_ocr_prompt_asks_for_table_row_structure() -> None:
     """
     assert "row" in _RESPONSE_FORMAT.lower()
     assert "table" in _RESPONSE_FORMAT.lower()
+
+
+def test_ocr_prompt_allows_multiline_tables_and_requests_semantic_detail() -> None:
+    """Table rows and ontology-ready captions must fit the response contract."""
+    prompt = _RESPONSE_FORMAT.lower()
+
+    assert "text may span multiple lines" in prompt
+    assert "separator row" in prompt
+    assert "named entities" in prompt
+    assert "relationships" in prompt
+    assert "exactly three lines" not in prompt
 
 
 def test_region_prompt_requires_full_image_coverage() -> None:

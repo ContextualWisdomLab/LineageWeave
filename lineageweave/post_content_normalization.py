@@ -40,8 +40,8 @@ from .image_content import (
 # what chunk_by_dom already splits on, plus the inline/replaced tags
 # that carry images or wrap rich-text fragments.
 _HTML_OPEN_TAG = re.compile(
-    r"<\s*/?\s*(?:article|section|nav|aside|header|footer|div|p|li|td|th|tr|"
-    r"table|blockquote|h[1-6]|img|br|hr|ul|ol|span|strong|em|b|i|u|a|"
+    r"<\s*/?\s*(?:article|section|nav|aside|header|footer|div|p|li|td|th|tr|sup|"
+    r"table|blockquote|h[1-6]|img|br|hr|ul|ol|oi|span|strong|em|b|i|u|a|"
     r"html|body|head|style|script|font|center|pre)\b",
     re.IGNORECASE,
 )
@@ -155,18 +155,32 @@ def _describe_image_region(
     mime_type: str,
     region: ImageRegion,
     vision_client: ImageContentClient,
+    session_id: str | None = None,
+    metadata: dict[str, str] | None = None,
 ) -> ImageRegionResult:
     """Describe one region without allowing one failed crop to cancel siblings."""
     try:
         cropped, cropped_mime = crop_image_region(image_bytes, mime_type, region)
-        description = vision_client.describe(cropped, cropped_mime)
+        description = (
+            vision_client.describe(cropped, cropped_mime)
+            if session_id is None and not metadata
+            else vision_client.describe(
+                cropped,
+                cropped_mime,
+                session_id=session_id,
+                metadata=metadata,
+            )
+        )
     except Exception:  # noqa: BLE001 - preserve the region-level failure evidence.
         return ImageRegionResult(region_index, region, "failed")
     return ImageRegionResult(region_index, region, "described", description)
 
 
 def _describe_image_chunk(
-    chunk: Chunk, vision_client: ImageContentClient
+    chunk: Chunk,
+    vision_client: ImageContentClient,
+    session_id: str | None = None,
+    metadata: dict[str, str] | None = None,
 ) -> tuple[ImageContentResult, ImageDescription | None, str]:
     """Analyze one image chunk and keep its evidence and failure state."""
     result = ImageContentResult(
@@ -181,7 +195,18 @@ def _describe_image_chunk(
     try:
         locator = getattr(vision_client, "locate_regions", None)
         try:
-            regions = locator(chunk.image_data, chunk.label) if callable(locator) else ()
+            regions = (
+                locator(chunk.image_data, chunk.label)
+                if callable(locator) and session_id is None and not metadata
+                else locator(
+                    chunk.image_data,
+                    chunk.label,
+                    session_id=session_id,
+                    metadata=metadata,
+                )
+                if callable(locator)
+                else ()
+            )
         except Exception:  # noqa: BLE001 - locator failure falls back to whole-image evidence.
             regions = ()
         try:
@@ -201,17 +226,18 @@ def _describe_image_chunk(
         # ponytail: serialize per-post VISION calls; nested image/region pools
         # overwhelmed the gateway and turned valid region evidence into failures.
         # Reintroduce bounded concurrency only after provider capacity is measured.
-        if regions:
-            region_results.extend(
-                _describe_image_region(
-                    region_index,
-                    chunk.image_data,
-                    chunk.label,
-                    region,
-                    vision_client,
-                )
-                for region_index, region in enumerate(regions)
+        region_results.extend(
+            _describe_image_region(
+                region_index,
+                chunk.image_data,
+                chunk.label,
+                region,
+                vision_client,
+                session_id,
+                metadata,
             )
+            for region_index, region in enumerate(regions)
+        )
         successful_regions = [
             item.description for item in region_results if item.description is not None
         ]
@@ -220,7 +246,16 @@ def _describe_image_chunk(
             # crop, then ask once more for the uncovered parent image so text outside
             # those panels remains searchable and its original location is preserved.
             try:
-                description = vision_client.describe(chunk.image_data, chunk.label)
+                description = (
+                    vision_client.describe(chunk.image_data, chunk.label)
+                    if session_id is None and not metadata
+                    else vision_client.describe(
+                        chunk.image_data,
+                        chunk.label,
+                        session_id=session_id,
+                        metadata=metadata,
+                    )
+                )
             except Exception:
                 if not successful_regions:
                     raise
@@ -229,7 +264,16 @@ def _describe_image_chunk(
             description = (
                 _merge_region_descriptions(successful_regions)
                 if successful_regions
-                else vision_client.describe(chunk.image_data, chunk.label)
+                else (
+                    vision_client.describe(chunk.image_data, chunk.label)
+                    if session_id is None and not metadata
+                    else vision_client.describe(
+                        chunk.image_data,
+                        chunk.label,
+                        session_id=session_id,
+                        metadata=metadata,
+                    )
+                )
             )
     except Exception:  # noqa: BLE001 - a provider failure must not drop the whole post.
         return ImageContentResult(chunk.index, chunk.label, "failed"), None, "[image: content unavailable]"
@@ -245,7 +289,11 @@ def _describe_image_chunk(
 
 
 def normalize_post_body(
-    body: str, vision_client: ImageContentClient | None = None
+    body: str,
+    vision_client: ImageContentClient | None = None,
+    *,
+    session_id: str | None = None,
+    metadata: dict[str, str] | None = None,
 ) -> NormalizedPostContent:
     """Turn a raw ``post_body`` into text safe for an LLM/embedding call.
 
@@ -262,6 +310,11 @@ def normalize_post_body(
         vision_client = NullImageContentClient()
 
     if not _looks_like_html(body):
+        markdown_chunks = chunk_by_dom(body)
+        if any(chunk.label == "markdown_tr" for chunk in markdown_chunks):
+            return NormalizedPostContent(
+                text="\n\n".join(chunk.text for chunk in markdown_chunks if chunk.text)
+            )
         return NormalizedPostContent(text=normalize_semantic_text(body))
 
     chunks: list[Chunk] = chunk_by_dom(body)
@@ -272,8 +325,16 @@ def normalize_post_body(
     image_outcomes: dict[int, tuple[ImageContentResult, ImageDescription | None, str]] = {}
     image_chunks = [chunk for chunk in chunks if chunk.unit_type == "image"]
     if image_chunks and vision_client.available:
+        # ponytail: serialize all provider calls for one post; nested image and
+        # region pools previously overwhelmed the gateway. Reintroduce bounded
+        # concurrency only after provider capacity is measured.
         for chunk in image_chunks:
-            image_outcomes[chunk.index] = _describe_image_chunk(chunk, vision_client)
+            image_outcomes[chunk.index] = _describe_image_chunk(
+                chunk,
+                vision_client,
+                session_id,
+                metadata,
+            )
 
     for chunk in chunks:
         if chunk.unit_type == "dom":
