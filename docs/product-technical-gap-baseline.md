@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-24 01:09 KST. This repository records synthetic
+> Audit snapshot: 2026-08-24 01:52 KST. This repository records synthetic
 > fixtures and aggregate, non-identifying runtime evidence only. Open PRs and
 > local checks are not protected-default-branch release evidence.
 
@@ -8,9 +8,9 @@
 
 The protected default branch was
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` when this baseline was refreshed.
-The live queue contained 58 open PRs and no independently approved head. Nineteen
-current heads had an aggregate failed check state, twelve had pending checks,
-and six current heads retained an unresolved review thread.
+The live queue contained 55 open PRs and no independently approved head. Eighteen
+current heads had an aggregate failed check state, eleven had pending checks,
+and three current heads retained an unresolved review thread.
 Those results must be re-fetched against the current head before remediation or
 a merge claim.
 
@@ -78,7 +78,7 @@ ontology URL, repository-case ontology URL, and repository-case
 `namespace-compatibility.ttl` URL each returned HTTP 404. Source and active-PR
 publication contracts therefore do not prove an available public endpoint.
 Cross-repository organization-site PR #188 at
-`b2d49bf39d84d5006a99cddf6bd911451dce222f` provides the owned lowercase
+`3ac59eb7eb7122c101df77945abbe644922dbe34` provides the owned lowercase
 route from LineageWeave artifact commit `c8a4be8f`; its 19 local tests passed
 before the current provenance/semantics repair, whose focused suite passed 20
 tests with zero Semgrep findings; its static acceptance returned HTTP 200. The PR remains open with hosted
@@ -99,9 +99,9 @@ Current active-PR evidence remains outside protected `main`:
   distributed MCP principal rate-limit decision. Its current hosted checks
   were running while a failed Devin status remained; it had no unresolved
   thread or exact-head approval.
-- PR #426 at `a2daa92438a0ea337c9567b0c7abe3607ce3cb94` is the current
+- PR #426 at `c0a77731d46dba5f951cf69df6578f35aa93a2d6` is the current
   prerequisite carrier for ontology publication and the merged ADR 0157 and
-  compatibility-publication stacks. It had no unresolved review thread or
+  compatibility-publication stacks. It had one unresolved review thread and no
   exact-head approval; hosted checks were pending. Results from its prior heads
   are stale, and Pages activation alone does not deploy this unmerged source.
 - PR #355 at `6fc22a9471bfb4d94b18f884e012cd823b296382` carries ADR 0145's
@@ -110,15 +110,19 @@ Current active-PR evidence remains outside protected `main`:
 - PR #417 at `c5c0929c68abf876de6c924d5a93b554d6bcadfb` preserves stale image
   summaries across provider refresh failures. Two focused unit tests and two
   API tests passed; it had no unresolved thread or exact-head approval.
-- PR #494 at `bc562738225096aa382d3a6d83a4c261e963dda2` is limited to `App` and
-  `App.test`; TypeScript compilation and 83 tests passed. It remained open with
-  two unresolved threads, no exact-head approval, and hosted checks pending.
+- PR #494 at `b195b42dd327f6a6659cca315b34886ab11d38ed` keeps optional-extra test
+  collection fail-closed without misclassifying non-skip hook results, uses the
+  existing NumPy-only period-report mapping, tolerates non-UTF-8 optional source
+  during collection, and restores the shared OIDC login gate after a concurrent
+  regression. Its exact head passed ten collection tests, 83 frontend tests,
+  lint, TypeScript compilation, and production build. It had no unresolved
+  thread or exact-head approval; hosted checks restarted.
 - PR #493 at `499c8b1bc4cdffff5bb985658bcb3821d312cedb` includes product-fix
   head `612c4cc1`, where the focused backend suite passed 13 tests, the App
   suite passed 81 tests, and lint plus diff-check were clean. The later head
   had no unresolved thread or exact-head approval, while hosted checks
   remained pending.
-- PR #496 at `195ddf597c8eceaeaa00c9c86dc8103a4c7a8b89` carries savepoint,
+- PR #496 at `78287c08309f614ca1de04612c3e15c555bed1c6` carries savepoint,
   normalized TEPP analysis-run identifier, batched list/detail receipt, state
   progression, and replay-contract fixes. The current head also isolates the
   older optional outbox and reconstruction reads in savepoints so a missing
@@ -147,24 +151,47 @@ Current active-PR evidence remains outside protected `main`:
   OIDC return-URL persistence and remove the unreachable unauthenticated Admin
   render. Their exact composed heads passed frontend lint, respectively 140,
   140, and 147 tests, and production builds. Hosted checks restarted; none had
-  an exact-head approval, and #500/#502 each had one newly unresolved thread.
+  an exact-head approval. Their aggregate hosted failures still require
+  exact-head diagnosis before release.
 - Stacked PR #504 at `166436d519341aa10ec9b32b4d67b1a24818f5c8`
-  targets #426 and stops the PROV-O support profile from minting repository-case
-  product IRIs. Its 67 focused tests and deterministic site build passed. The
-  stored project-mention migration remains deferred to avoid duplicating #428's
-  existing-volume migration-replay ownership. Hosted checks remained pending,
-  with one unresolved thread and no exact-head approval.
-- PR #490 at `d806bb960c12e30d2e74dd58fda8f1bb1e174591` is the current carrier
+  merged normally into non-default #426 and stops the PROV-O support profile
+  from minting repository-case product IRIs. Its 67 focused tests and
+  deterministic site build passed, but the stack merge is not protected-main
+  release evidence. The stored project-mention migration remains deferred
+  until #428, #484, and #426 reach protected `main`.
+- PR #428 at `f81f831c14aa080f671fbdb781bf8afecdd36e82`
+  makes migration 0103 replay idempotent while preserving operator-customized
+  synthetic catalog rows. Five focused static tests and a twice-applied local
+  PostgreSQL replay passed; hosted evidence remained pending and it had no
+  exact-head approval.
+- PR #507 at `6751623df553c1e26976cef26b12b0ec4d0e15cf`
+  reuses that migration replay fix and the existing safe OIDC return helpers.
+  Its review follow-up reused existing imports and a named helper; 36 focused
+  backend tests passed. It had no unresolved thread, failure, or exact-head
+  approval; hosted checks restarted.
+- PR #490 at `494ccf53da6e4a12d54e171bbb6dfeea9b336ffc` is the current carrier
   of the consolidated product stack and includes ADR 0143. ADR 0144 was absent
   from both this exact tree and protected `main`, so it is not attributed to
-  this head. Its aggregate checks failed, with no unresolved thread or
+  this head. The validated post-merge #505 migration correction was transplanted
+  here because #505 merged before that source-branch commit; fifteen migration
+  replay tests passed. Hosted checks restarted, with no unresolved thread or
   exact-head approval.
+- Stacked PR #509 at `bba8a8ac43a43db70c563dd9612ab74c3fbe7930`
+  was normally restacked and merged as `e4d692c6e5daede2af7c0e259d3fc5a4c1c7636a`
+  into non-default #490 after its duplicate migration slice conflicted.
+  Ninety-six focused tests and twelve PostgreSQL schema tests passed; that stack
+  merge is not protected-main evidence.
+- Stacked PR #511 at `3c61e8fd5de116231cdaf5b681e03878f825f5aa`
+  aligns the Python reconciliation boundary with the database's strict
+  `1e-6` constraint and reuses the shared login-return path. Twenty-one focused
+  Python tests, 146 frontend tests, lint, and production build passed; hosted
+  checks restarted with no unresolved thread or exact-head approval.
 
 ## 3. Open product and technical gaps
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 58 PRs remained open, none had an independent current-head approval, nineteen current heads had an aggregate failed check state, twelve had pending checks, and six retained an unresolved review thread | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
+| Protected release | 55 PRs remained open, none had an independent current-head approval, eighteen current heads had an aggregate failed check state, eleven had pending checks, and three retained an unresolved review thread | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Image understanding | Region, OCR, and description work exists across active heads | Orchestrator-backed rendered workflow, original/derived asset provenance, and honest unsupported states |
 | Semantic source rendering | Paragraph, table, list, and formula parsing exists across active stacks | Authenticated browser evidence that semantic units render without authoring-layout artifacts |
