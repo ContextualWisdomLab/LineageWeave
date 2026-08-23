@@ -18,6 +18,9 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- The product-gap baseline now records private-runtime findings only as
+  aggregate synthetic-fixture contracts and identifies the existing
+  post-scoped lineage DAG without retaining post or organization identifiers.
 - The public ontology now states its OWL 2 Full/RDF-Based semantics for the
   ADR 0036 RDF-reified project evidence, and the PROV-O support profile uses
   its canonical lowercase deployed IRI.
