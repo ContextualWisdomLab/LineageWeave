@@ -47,17 +47,21 @@ describe("splitPostBody", () => {
     ]);
   });
 
-  it("reads CSS box shorthand indentation and markerless footnotes", () => {
+  it("reads CSS box shorthand indentation", () => {
     expect(
       splitPostBody(
         '<ul><li style="margin: 0cm 0cm 0cm 56px">Outer</li></ul>' +
-          '<ul><li style="margin: 0cm 0cm 0cm 80px">Nested</li></ul>' +
-          "<p>*Tier 2: note</p>",
+          '<ul><li style="margin: 0cm 0cm 0cm 80px">Nested</li></ul>',
       ),
     ).toEqual([
       { kind: "text", text: "Outer", indentLevel: 7 },
       { kind: "text", text: "Nested", indentLevel: 10 },
-      { kind: "text", text: "*Tier 2: note", role: "footnote" },
+    ]);
+  });
+
+  it("does not infer a footnote from a bare marker", () => {
+    expect(splitPostBody("<p>*Synthetic list item</p>")).toEqual([
+      { kind: "text", text: "*Synthetic list item" },
     ]);
   });
 
@@ -176,6 +180,10 @@ describe("splitPostBody", () => {
       { text: "3", script: "super" },
       { text: "." },
     ]);
+  });
+
+  it("keeps mixed script content as a visible fallback", () => {
+    expect(splitPostBody("x<sup>3a</sup>")).toEqual([{ kind: "text", text: "x^3a" }]);
   });
 
   it("decodes a stored superscript letter deterministically to lowercase", () => {

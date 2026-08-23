@@ -101,7 +101,6 @@ _TABLE_CELL_TAGS = frozenset({"td", "th", "w:tc"})
 _LIST_ITEM_START = re.compile(
     r"^(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)"
 )
-_FOOTNOTE_START = re.compile(r"^[*†‡](?=\S)")
 
 
 def _is_footnote_block(tag: str, attrs: list[tuple[str, str | None]]) -> bool:
@@ -225,12 +224,13 @@ def _replace_html_script(match: re.Match[str], kind: str) -> str:
 
 def normalize_script_text(text: str) -> str:
     """Turn HTML/caret quantity scripts into Unicode without treating comparisons as tags."""
-    replaced = _HTML_SUP.sub(lambda match: _replace_html_script(match, "sup"), text)
-    replaced = _HTML_SUB.sub(lambda match: _replace_html_script(match, "sub"), replaced)
-    return _CARET_EXPONENT.sub(
+    replaced = _CARET_EXPONENT.sub(
         lambda match: apply_unicode_script(match.group(1) or match.group(2), "sup"),
-        replaced,
+        text,
     )
+    replaced = _HTML_SUP.sub(lambda match: _replace_html_script(match, "sup"), replaced)
+    replaced = _HTML_SUB.sub(lambda match: _replace_html_script(match, "sub"), replaced)
+    return replaced
 
 
 def normalize_semantic_text(text: str) -> str:
@@ -447,6 +447,7 @@ class _BlockTextExtractor(HTMLParser):
         self._stack: list[tuple[str, list[str], str | None, int, bool]] = []
         self._unscoped_buffer: list[str] = []
         self._script_stack: list[str] = []
+        self._table_cell_count = 0
         # Each entry is ("text", str, tag_name, style) or
         # ("image", (mime_type, bytes), "", None) -- a single sequence in
         # true document order, so an image's index among its siblings
@@ -484,8 +485,10 @@ class _BlockTextExtractor(HTMLParser):
             return
         if tag in _TABLE_CELL_TAGS:
             self._script_stack.clear()
-            if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS and self._stack[-1][1]:
-                self._stack[-1][1].append(" | ")
+            if self._stack and self._stack[-1][0] in _TABLE_ROW_TAGS:
+                if self._table_cell_count:
+                    self._stack[-1][1].append(" | ")
+                self._table_cell_count += 1
             return
         # A rich-text editor commonly wraps a table cell in a nested <p> or
         # <div>. Keep that content in the open row; otherwise the nested block
@@ -505,6 +508,8 @@ class _BlockTextExtractor(HTMLParser):
             self._stack.append(
                 (tag, [], style, _declared_indent_width(tag, attrs), is_footnote)
             )
+            if tag in _TABLE_ROW_TAGS:
+                self._table_cell_count = 0
 
     def handle_startendtag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         """Handle self-closing block tags without losing XML indentation state."""
@@ -520,6 +525,9 @@ class _BlockTextExtractor(HTMLParser):
                     closed = self._script_stack.pop()
                     if closed == tag:
                         break
+            return
+        if tag in _TABLE_CELL_TAGS:
+            self._script_stack.clear()
             return
         if tag in _DOM_BLOCK_TAGS and self._stack and self._stack[-1][0] == tag:
             declared_width = sum(entry[3] for entry in self._stack)
@@ -543,11 +551,13 @@ class _BlockTextExtractor(HTMLParser):
         # formatting survive a block-level boundary.
         self._script_stack.clear()
         raw_text = "".join(buffer)
+        if tag_name in _TABLE_ROW_TAGS:
+            self._table_cell_count = 0
         for raw_unit, source_indent in _split_dom_units(raw_text):
             text = normalize_semantic_text(raw_unit)
             if text:
                 indent_width = declared_width + source_indent
-                label = "footnote" if is_footnote or _FOOTNOTE_START.match(text) else tag_name
+                label = "footnote" if is_footnote else tag_name
                 self._finished.append(
                     (
                         "text",
@@ -619,15 +629,25 @@ _MARKDOWN_TABLE_SEPARATOR = re.compile(
 )
 
 
+def _markdown_table_cells(line: str) -> list[str]:
+    """Return cells while removing only optional outer pipe delimiters."""
+    cells = line.strip().split("|")
+    if cells and not cells[0]:
+        cells.pop(0)
+    if cells and not cells[-1]:
+        cells.pop()
+    return cells
+
+
 def _is_markdown_table_row(line: str) -> bool:
     """Recognize a pipe row only when it has at least two cells."""
-    cells = line.strip().strip("|").split("|")
-    return len(cells) >= 2 and all(cell.strip() for cell in cells)
+    cells = _markdown_table_cells(line)
+    return len(cells) >= 2 and any(cell.strip() for cell in cells)
 
 
 def _render_markdown_table_row(line: str) -> str:
     """Keep Markdown table columns as searchable row evidence."""
-    return " | ".join(cell.strip() for cell in line.strip().strip("|").split("|"))
+    return " | ".join(cell.strip() for cell in _markdown_table_cells(line))
 
 
 def _split_plain_text_units(text: str) -> list[tuple[str, int, str]]:

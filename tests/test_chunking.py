@@ -105,11 +105,21 @@ def test_chunk_by_dom_keeps_nested_table_cell_blocks_in_their_row() -> None:
     assert [(chunk.label, chunk.text) for chunk in chunks] == [("tr", "No. | Company")]
 
 
-def test_chunk_by_dom_labels_markerless_footnotes() -> None:
-    chunks = chunk_by_dom("<p>Body text</p><p>*Tier 2: follow-up note</p>")
+def test_chunk_by_dom_preserves_empty_table_cells() -> None:
+    chunks = chunk_by_dom(
+        "<table><tr><td></td><td>Synthetic item</td><td></td></tr></table>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "| Synthetic item |")
+    ]
+
+
+def test_chunk_by_dom_does_not_infer_a_footnote_from_a_bare_marker() -> None:
+    chunks = chunk_by_dom("<p>Body text</p><p>*Synthetic list item</p>")
     assert [(chunk.label, chunk.text) for chunk in chunks] == [
         ("p", "Body text"),
-        ("footnote", "*Tier 2: follow-up note"),
+        ("p", "*Synthetic list item"),
     ]
 
 
@@ -230,6 +240,19 @@ def test_chunk_by_source_body_splits_plain_lists_and_markdown_tables() -> None:
         ("", "2. Decision"),
         ("tr", "Field | Value"),
         ("tr", "Volume | 12 m³"),
+    ]
+
+
+def test_chunk_by_source_body_preserves_empty_markdown_table_cells() -> None:
+    chunks = chunk_by_source_body(
+        "| Key | Value | State |\n"
+        "| --- | --- | --- |\n"
+        "| A | | Open |"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "Key | Value | State"),
+        ("tr", "A |  | Open"),
     ]
 
 
@@ -419,6 +442,10 @@ def test_normalize_script_text_maps_quantity_exponents_and_leaves_comparisons() 
     assert normalize_script_text("Coolant is H<sub>2</sub>O.") == "Coolant is H₂O."
     assert normalize_script_text("qty < 50 and price > 10") == "qty < 50 and price > 10"
     assert normalize_script_text("^1 See the tank note.") == "^1 See the tank note."
+
+
+def test_normalize_script_text_keeps_mixed_script_content_as_a_visible_fallback() -> None:
+    assert normalize_script_text("x<sup>3a</sup>") == "x^3a"
 
 
 def test_chunk_by_dom_keeps_html_quantity_scripts_as_unicode() -> None:
