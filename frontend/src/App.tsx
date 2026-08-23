@@ -4596,7 +4596,46 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   }
 
   if (auth.error) {
-    return <p className="error">{t(auth.error.message)}</p>;
+    // A raw IdP error string (e.g. Keycloak's literal "Token is not active"
+    // once the session's access/refresh token expires) used to be dumped
+    // as the entire page: a bare red line of un-translated text with no
+    // layout, no explanation, and no way back in short of a manual reload.
+    // Session/token expiry is a routine, recoverable condition, not a
+    // fatal one -- give it the same login-card treatment as the normal
+    // login screen, with the raw detail kept as diagnostic-only text.
+    const isSessionExpired = /token|session/i.test(auth.error.message) &&
+      /expired|inactive|not active|invalid/i.test(auth.error.message);
+    return (
+      <div className="app-shell">
+        <main className="login-screen">
+          <div className="login-card">
+            <div className="login-header">
+              <h1>{brandName}</h1>
+              <p className="login-subtitle">
+                {isSessionExpired
+                  ? t("Your session has expired.")
+                  : t("An authentication error occurred.")}
+              </p>
+            </div>
+            <div className="login-controls">
+              <button
+                className="btn-primary"
+                onClick={() => {
+                  const returnUrl = returnUrlFromLocation();
+                  rememberOidcReturnUrl(returnUrl);
+                  void auth.signinRedirect({ state: { returnUrl } });
+                }}
+              >
+                {t("Log in again")}
+              </button>
+            </div>
+            <p className="login-help error" aria-label={t("Technical detail")}>
+              {auth.error.message}
+            </p>
+          </div>
+        </main>
+      </div>
+    );
   }
 
   if (!auth.isAuthenticated) {
