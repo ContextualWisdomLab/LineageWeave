@@ -7,7 +7,13 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 
-from lineageweave.http_client import HttpClientError, get_json, get_json_list, post_form, post_json
+from lineageweave.http_client import (
+    HttpClientError,
+    get_json,
+    get_json_list,
+    post_form,
+    post_json,
+)
 from lineageweave.observability import traced
 from tests.test_observability import attach_inmemory_tracer
 

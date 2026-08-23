@@ -33,61 +33,18 @@ from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from lineageweave.adjudication_client import (
-    ContextualOrchestratorAdjudicationClient,
-    NullAdjudicationClient,
+from backend.app.activity_stream import (
+    create_valkey_client,
+    get_valkey,
+    publish_activity_event,
+    read_activity_events,
+    ticket_created_summary,
+    ticket_status_changed_summary,
 )
-from lineageweave.commitment_extraction import (
-    ContextualOrchestratorCommitmentExtractionClient,
-    NullCommitmentExtractionClient,
+from backend.app.affiliate_tree_ingestion import (
+    fetch_affiliate_forest,
+    fetch_voc_evidence,
 )
-from lineageweave.caldav_client import (
-    CALDAV_UNAVAILABLE_NEXT_ACTION,
-    build_caldav_client,
-)
-from lineageweave.entity_relationship_classification import (
-    ContextualOrchestratorEntityRelationshipClient,
-    NullEntityRelationshipClient,
-)
-from lineageweave.image_content import orchestrator_vision_client
-from lineageweave.embedding_client import orchestrator_embedding_client
-from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
-from lineageweave.corporate_hierarchy_inference import (
-    ContextualOrchestratorHierarchyInferenceClient,
-    NullCorporateHierarchyInferenceClient,
-)
-from lineageweave.keyman_extraction import (
-    COUNTERPARTY,
-    ContextualOrchestratorKeymanExtractionClient,
-    NullKeymanExtractionClient,
-)
-from lineageweave.customer_hint_resolution import (
-    ContextualOrchestratorCustomerHintResolutionClient,
-    NullCustomerHintResolutionClient,
-)
-from lineageweave.organization_name_resolution import (
-    ContextualOrchestratorOrganizationNameResolutionClient,
-    NullOrganizationNameResolutionClient,
-)
-from lineageweave.post_chat import (
-    ContextualOrchestratorPostChatClient,
-    NullPostChatClient,
-    cited_post_evidence,
-    cited_post_summaries,
-)
-from lineageweave.post_content_normalization import normalize_post_body
-from lineageweave.post_evaluation import (
-    ContextualOrchestratorPostEvaluationClient,
-    NullPostEvaluationClient,
-    RUBRIC_VERSION,
-)
-from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
-from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
-from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
-from lineageweave.semantic_hints import customer_hint_trust, format_semantic_hints
-from lineageweave.ontology import LW
-from lineageweave.rankweave_client import build_rankweave_client
-
 from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
     create_pending_analysis_run,
@@ -102,45 +59,20 @@ from backend.app.analysis_run_start import (
     enqueue_pending_analysis_run,
 )
 from backend.app.analysis_run_worker import run_analysis_run_worker
-from backend.app.post_content_queue import (
-    ensure_post_content_job,
-    post_content_api_status,
-    post_content_is_complete,
-    publish_post_content_event,
-)
-from backend.app.post_content_worker import run_post_content_worker
-from backend.app.source_post_revision import fetch_known_at_revision, parse_as_of_clock
-from backend.app.activity_stream import (
-    create_valkey_client,
-    get_valkey,
-    publish_activity_event,
-    read_activity_events,
-    ticket_created_summary,
-    ticket_status_changed_summary,
-)
-from backend.app.affiliate_tree_ingestion import fetch_affiliate_forest, fetch_voc_evidence
 from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
 from backend.app.customer_hint_ingestion import resolve_customer_hint
 from backend.app.db import create_pool, get_pool
+from backend.app.demo_scope import (
+    fetch_demo_corporate_entity_ids,
+    has_real_source_context,
+)
 from backend.app.entity_relationship_ingestion import (
     fetch_post_counterparties,
     fetch_relationship_network,
     ingest_post_entity_relationships,
 )
 from backend.app.five_w1h_ingestion import load_five_w1h_slots
-from backend.app.post_evaluation_ingestion import fetch_post_evaluation, ingest_post_evaluation
-from backend.app.ranking_ingestion import load_visible_ranking_posts
-from backend.app.report_ingestion import (
-    GROUPING_KINDS,
-    fetch_period_comparison,
-    fetch_period_reports,
-    iso_week_period,
-    list_period_report_summaries,
-    parse_period_code,
-    rebuild_period_reports,
-)
-from backend.app.relation_verification_ingestion import verify_post_relations
 from backend.app.issue_ticket_ingestion import (
     create_ticket,
     fetch_ticket_post_id,
@@ -155,8 +87,8 @@ from backend.app.knowledge_graph import (
     fetch_person_role_history,
     fetch_post_keymen,
     labels_for_codes,
-    person_exists,
     persist_edges_for_post,
+    person_exists,
     related_for_entity,
     related_for_person,
     related_for_team,
@@ -174,23 +106,105 @@ from backend.app.post_chat_ingestion import (
     gather_global_chat_sources,
     persist_post_chat,
 )
+from backend.app.post_content_queue import (
+    ensure_post_content_job,
+    post_content_api_status,
+    post_content_is_complete,
+    publish_post_content_event,
+)
+from backend.app.post_content_worker import run_post_content_worker
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.post_evaluation_ingestion import (
+    fetch_post_evaluation,
+    ingest_post_evaluation,
+)
 from backend.app.post_summary_ingestion import (
     fetch_persisted_summary,
     persist_post_summary,
     require_summary_source_body,
 )
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
-from backend.app.demo_scope import (
-    fetch_demo_corporate_entity_ids,
-    has_real_source_context,
+from backend.app.ranking_ingestion import load_visible_ranking_posts
+from backend.app.relation_verification_ingestion import verify_post_relations
+from backend.app.report_ingestion import (
+    GROUPING_KINDS,
+    fetch_period_comparison,
+    fetch_period_reports,
+    iso_week_period,
+    list_period_report_summaries,
+    parse_period_code,
+    rebuild_period_reports,
+)
+from backend.app.source_post_revision import fetch_known_at_revision, parse_as_of_clock
+from lineageweave.adjudication_client import (
+    ContextualOrchestratorAdjudicationClient,
+    NullAdjudicationClient,
+)
+from lineageweave.caldav_client import (
+    CALDAV_UNAVAILABLE_NEXT_ACTION,
+    build_caldav_client,
+)
+from lineageweave.commitment_extraction import (
+    ContextualOrchestratorCommitmentExtractionClient,
+    NullCommitmentExtractionClient,
+)
+from lineageweave.corporate_hierarchy_inference import (
+    ContextualOrchestratorHierarchyInferenceClient,
+    NullCorporateHierarchyInferenceClient,
+)
+from lineageweave.customer_hint_resolution import (
+    ContextualOrchestratorCustomerHintResolutionClient,
+    NullCustomerHintResolutionClient,
+)
+from lineageweave.embedding_client import orchestrator_embedding_client
+from lineageweave.entity_relationship_classification import (
+    ContextualOrchestratorEntityRelationshipClient,
+    NullEntityRelationshipClient,
 )
 from lineageweave.http_client import HttpClientError
+from lineageweave.image_content import orchestrator_vision_client
+from lineageweave.keyman_extraction import (
+    COUNTERPARTY,
+    ContextualOrchestratorKeymanExtractionClient,
+    NullKeymanExtractionClient,
+)
+from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.observability import (
     configure_telemetry,
     record_server_failure,
     shutdown_telemetry,
     traced,
 )
+from lineageweave.ontology import LW
+from lineageweave.organization_name_resolution import (
+    ContextualOrchestratorOrganizationNameResolutionClient,
+    NullOrganizationNameResolutionClient,
+)
+from lineageweave.post_chat import (
+    ContextualOrchestratorPostChatClient,
+    NullPostChatClient,
+    cited_post_evidence,
+    cited_post_summaries,
+)
+from lineageweave.post_content_normalization import normalize_post_body
+from lineageweave.post_evaluation import (
+    RUBRIC_VERSION,
+    ContextualOrchestratorPostEvaluationClient,
+    NullPostEvaluationClient,
+)
+from lineageweave.post_structure import (
+    ContextualOrchestratorPostStructureClient,
+    NullPostStructureClient,
+)
+from lineageweave.post_summary import (
+    ContextualOrchestratorPostSummaryClient,
+    NullPostSummaryClient,
+)
+from lineageweave.rankweave_client import build_rankweave_client
+from lineageweave.relation_verification import (
+    NullRelationVerificationClient,
+    SearxngRelationVerificationClient,
+)
+from lineageweave.semantic_hints import customer_hint_trust, format_semantic_hints
 
 _POST_READ = "post_read"
 _POST_ADMIN = "post_admin"
@@ -2579,7 +2593,9 @@ async def chat_about_post(
     """
     question = request.question.strip()
     if not question:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required"
+        )
     post = await _load_visible_post(post_id, account, pool)
     post_metadata = build_post_llm_metadata(post_id, post)
     async with pool.acquire() as conn:
@@ -2622,7 +2638,13 @@ async def chat_about_post(
                 answer = await asyncio.to_thread(client.answer, question, sources)
             except HTTPException:
                 raise
-            except (HttpClientError, TimeoutError, KeyError, OSError, ValueError) as exc:
+            except (
+                HttpClientError,
+                TimeoutError,
+                KeyError,
+                OSError,
+                ValueError,
+            ) as exc:
                 record_server_failure("post_chat", exc, outcome="provider_unavailable")
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -2664,7 +2686,9 @@ async def ask_agent(
     """Answer a buyer question from authorized post and graph evidence."""
     question = request.question.strip()
     if not question:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required"
+        )
     _require_post_read(account)
     with traced(
         "lineageweave.api.global_ask",
@@ -2697,12 +2721,20 @@ async def ask_agent(
                     "cited_posts": [],
                     "source_post_ids": [],
                     "cited_post_evidence": [],
-                    "next_action": "No authorized source posts are available for this question.",
+                    "next_action": (
+                        "No authorized source posts are available for this question."
+                    ),
                 }
             answer = await asyncio.to_thread(client.answer, question, sources)
         except HTTPException:
             raise
-        except (HttpClientError, TimeoutError, KeyError, OSError, ValueError) as exc:
+        except (
+            HttpClientError,
+            TimeoutError,
+            KeyError,
+            OSError,
+            ValueError,
+        ) as exc:
             record_server_failure("global_ask", exc, outcome="provider_unavailable")
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,

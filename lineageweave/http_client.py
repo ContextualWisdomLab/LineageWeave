@@ -71,7 +71,11 @@ def _request(
         connection.request(method, path, body=body, headers=headers)
         response = connection.getresponse()
         length_header = response.getheader("Content-Length")
-        raw = response.read(int(length_header)) if length_header is not None else response.read()
+        raw = (
+            response.read(int(length_header))
+            if length_header is not None
+            else response.read()
+        )
         return response.status, raw
     finally:
         connection.close()
@@ -179,7 +183,10 @@ def post_form(
         "POST",
         url,
         body=urlencode(fields).encode("utf-8"),
-        headers={"content-type": "application/x-www-form-urlencoded", **(headers or {})},
+        headers={
+            "content-type": "application/x-www-form-urlencoded",
+            **(headers or {}),
+        },
         timeout=timeout,
     )
     hostname = urlparse(url).hostname or url
