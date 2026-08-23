@@ -324,6 +324,12 @@ def test_bounded_batches_cover_empty_count_and_character_limits() -> None:
     assert [len(batch) for batch in metadata_bounded] == [1, 1]
 
 
+def test_structure_batches_count_the_transmitted_envelope_and_utf8_bytes() -> None:
+    units = [(str(index), {"unit_index": index, "text": "가" * 3_990}) for index in range(2)]
+
+    assert [len(batch) for batch in _bounded_unit_batches(units, post_title="Synthetic title")] == [1, 1]
+
+
 def test_explicit_and_adjudicated_structure_are_persisted_by_unit() -> None:
     """Persist explicit depth and only in-scope orchestrator decisions."""
     conn = _Connection()

@@ -10,6 +10,11 @@ from typing import Any, ClassVar, Protocol
 from .http_client import post_json
 
 
+def serialize_structure_units(post_title: str, units: list[dict[str, object]]) -> str:
+    """Serialize the exact user payload sent for structure adjudication."""
+    return json.dumps({"post_title": post_title, "ordered_units": units}, ensure_ascii=False)
+
+
 @dataclass(frozen=True)
 class StructureDecision:
     unit_index: int
@@ -107,10 +112,7 @@ class ContextualOrchestratorPostStructureClient:
                     },
                     {
                         "role": "user",
-                        "content": json.dumps(
-                            {"post_title": post_title, "ordered_units": units},
-                            ensure_ascii=False,
-                        ),
+                        "content": serialize_structure_units(post_title, units),
                     },
                 ],
                 "response_format": {

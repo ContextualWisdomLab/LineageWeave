@@ -22,6 +22,7 @@ from .post_structure import (
     NullPostStructureClient,
     PostStructureClient,
     StructureDecision,
+    serialize_structure_units,
 )
 
 _LLM_BATCH_MAX_UNITS = 32
@@ -33,6 +34,8 @@ _LOGGER = logging.getLogger(__name__)
 
 def _bounded_unit_batches(  # noqa: UP047 - retain Python 3.10 compatibility.
     units: list[tuple[_BatchKey, str | dict[str, object]]],
+    *,
+    post_title: str | None = None,
 ) -> list[list[tuple[_BatchKey, str | dict[str, object]]]]:
     """Keep provider requests bounded without changing persisted source units."""
     batches: list[list[tuple[_BatchKey, str | dict[str, object]]]] = []
@@ -40,20 +43,27 @@ def _bounded_unit_batches(  # noqa: UP047 - retain Python 3.10 compatibility.
     batch_chars = 0
     for unit in units:
         payload = unit[1]
-        unit_chars = (
-            len(payload)
-            if isinstance(payload, str)
-            else len(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
-        )
+        if post_title is not None and isinstance(payload, dict):
+            candidate = [item for _key, item in [*batch, unit] if isinstance(item, dict)]
+            unit_chars = len(serialize_structure_units(post_title, candidate).encode("utf-8"))
+        else:
+            unit_chars = (
+                len(payload)
+                if isinstance(payload, str)
+                else len(json.dumps(payload, ensure_ascii=False, separators=(",", ":")))
+            )
         if batch and (
             len(batch) >= _LLM_BATCH_MAX_UNITS
-            or batch_chars + unit_chars > _LLM_BATCH_MAX_CHARS
+            or (unit_chars if post_title is not None else batch_chars + unit_chars)
+            > _LLM_BATCH_MAX_CHARS
         ):
             batches.append(batch)
             batch = []
             batch_chars = 0
+            if post_title is not None and isinstance(payload, dict):
+                unit_chars = len(serialize_structure_units(post_title, [payload]).encode("utf-8"))
         batch.append(unit)
-        batch_chars += unit_chars
+        batch_chars = unit_chars if post_title is not None else batch_chars + unit_chars
     if batch:
         batches.append(batch)
     return batches
@@ -176,7 +186,7 @@ async def persist_post_content(
             )
             for chunk in unresolved
         ]
-        for batch in _bounded_unit_batches(structure_units):
+        for batch in _bounded_unit_batches(structure_units, post_title=post_title):
             try:
                 decisions = await asyncio.to_thread(
                     client.infer,
