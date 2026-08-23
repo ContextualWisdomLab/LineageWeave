@@ -313,7 +313,11 @@ async def _semantic_facts_for_posts(
     return {post_id: tuple(dict.fromkeys(values)) for post_id, values in facts.items()}
 
 
-async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> LinkedPostIds:
+async def find_linked_post_ids(
+    conn: asyncpg.Connection,
+    post_id: str,
+    can_see_post: Callable[[asyncpg.Record], bool],
+) -> LinkedPostIds:
     """Both link kinds for `post_id`, NOT yet ABAC-filtered -- callers must
     check `can_see_post` on each id before showing or using it as chat
     context.
@@ -343,6 +347,26 @@ async def find_linked_post_ids(conn: asyncpg.Connection, post_id: str) -> Linked
             person_ids,
         )
         sibling_post_ids = list({str(row["post_id"]) for row in sibling_rows} | {post_id})
+
+    # A hidden sibling's mentions must not seed the entity graph
+    # load_visible_subgraph walks: an unauthorized post's org/team/customer
+    # mention could otherwise bridge to an unrelated visible post through
+    # shared entity membership, fabricating an "indirect" relationship
+    # whose only real basis is content this account cannot see (the
+    # sibling itself stays correctly excluded from output either way).
+    if len(sibling_post_ids) > 1:
+        # Safe SQL: eligibility predicate is an immutable schema fragment; ids are bound.
+        visibility_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            "select post_id, visibility_code, corporate_entity_id, "
+            "author_account_id, source_detail_state_code "
+            f"from source_post where post_id = any($1::uuid[]) and ({SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias='source_post')})",
+            sibling_post_ids,
+        )
+        sibling_post_ids = [
+            str(row["post_id"]) for row in visibility_rows if can_see_post(row)
+        ]
+        if post_id not in sibling_post_ids:
+            sibling_post_ids.append(post_id)
 
     edges = await load_visible_subgraph(conn, sibling_post_ids)
     start = node_key(NODE_POST, post_id)
@@ -407,7 +431,7 @@ async def gather_chat_sources(
         )
     ]
 
-    linked = await find_linked_post_ids(conn, post_id)
+    linked = await find_linked_post_ids(conn, post_id, can_see_post)
     candidate_ids = [
         *sorted(linked.direct),
         *sorted(linked.indirect),

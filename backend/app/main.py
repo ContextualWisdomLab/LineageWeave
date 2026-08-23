@@ -2788,7 +2788,9 @@ async def read_post_lineage(
     """
     await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
-        linked = await find_linked_post_ids(conn, post_id)
+        linked = await find_linked_post_ids(
+            conn, post_id, lambda row: _can_use_post_for_analysis(account, row)
+        )
         candidate_ids = linked.direct | linked.indirect
         rows = {}
         if candidate_ids:

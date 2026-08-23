@@ -66,6 +66,17 @@ All notable changes to this project are documented here. Format follows
   `_ensure_citations_visible` / `PostAskEvidenceChanged` -> 503 pattern;
   regression test confirmed RED (a revoked citation's facts served with
   a 200) before GREEN.
+- The Event Lineage / 5W1H "indirect" relationship walk (`find_linked_post_ids`,
+  ADR 0018) no longer lets an ABAC-hidden sibling post seed the
+  Knowledge Graph traversal. Finding indirect neighbors first expands to
+  every post mentioning the same person as the focus post, then walks
+  their shared org/team/customer entities -- but that sibling expansion
+  was never ABAC-filtered, so a hidden sibling's own entity mention could
+  bridge to an unrelated *visible* post, fabricating an "indirect"
+  relationship whose only real basis was content the account cannot see
+  (the hidden sibling itself was already correctly excluded from output).
+  Fixed at all three call sites (`read_post_lineage`, `gather_chat_sources`,
+  `load_five_w1h_slots`); regression test confirmed RED before GREEN.
 - `GET /api/lineage`'s focused view no longer lets an edge to an
   ABAC-hidden sibling post mask a post's `isolation_reason` (ADR 0143).
   The connected-component check that decides whether a focused post has

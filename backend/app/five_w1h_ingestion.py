@@ -30,7 +30,7 @@ async def load_five_w1h_slots(
         """,
         post_id,
     )
-    linked = await find_linked_post_ids(conn, post_id)
+    linked = await find_linked_post_ids(conn, post_id, can_see_post)
     candidate_ids = sorted(linked.direct | linked.indirect)
     linked_titles: list[str] = []
     if candidate_ids:

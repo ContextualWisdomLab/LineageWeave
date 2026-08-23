@@ -857,6 +857,22 @@ or an explicit unavailable result.
   `PostAskEvidenceChanged` -> 503 pattern already proven for Global Ask.
   Regression test confirmed RED (a revoked citation's facts served with
   a 200) before GREEN.
+- **Indirect-relationship hidden-sibling bridge — closed (2026-08-25):**
+  `find_linked_post_ids` (ADR 0018, used by `read_post_lineage`,
+  `gather_chat_sources`, and `load_five_w1h_slots`) expands to every
+  post mentioning the same person as the focus post before walking their
+  shared org/team/customer entities via `load_visible_subgraph` -- but
+  that sibling-post expansion was never ABAC-filtered. A hidden sibling's
+  own entity mention could bridge to an unrelated visible post through
+  shared entity membership, fabricating an "indirect" relationship (and
+  a chat-source citation slot) whose only real basis was content the
+  account cannot see; the hidden sibling itself was always correctly
+  excluded from output, only its influence on other results leaked.
+  Found by an Explore agent hunting for the "unfiltered-then-filtered"
+  pattern after two earlier fixes this session had the same shape.
+  Filtered siblings by `can_see_post` before they can seed the entity
+  graph, at all three call sites. Regression test confirmed RED before
+  GREEN.
 - **Cross-repository email/project lineage — provider boundary implemented,
   consumer open:** PR #343 merged at
   `125a8069a1554874d8067a15047e19d780ea6b7b`, but the contract remains

@@ -10,6 +10,7 @@ from backend.app.post_chat_ingestion import (
     LinkedPostIds,
     fetch_persisted_chat,
     fetch_persisted_chats,
+    find_linked_post_ids,
     gather_chat_sources,
     normalize_chat_question,
     persist_post_chat,
@@ -119,7 +120,7 @@ def test_gather_chat_sources_bounds_and_orders_linked_context(
         f"00000000-0000-0000-0001-{index:012d}" for index in range(1, 21)
     )
 
-    async def fake_find_linked_post_ids(_conn: object, _post_id: str) -> LinkedPostIds:
+    async def fake_find_linked_post_ids(_conn: object, _post_id: str, _can_see_post: object) -> LinkedPostIds:
         return LinkedPostIds(direct=direct_ids, indirect=indirect_ids)
 
     monkeypatch.setattr(
@@ -204,6 +205,61 @@ def test_gather_chat_sources_bounds_and_orders_linked_context(
     assert conn.candidate_query.count("source_detail_state_code") == 1
     assert [source.post_id for source in sources] == [root_id, *expected_candidates[:7]]
     assert len(sources) == 8
+
+
+def test_find_linked_post_ids_excludes_a_hidden_sibling_from_the_entity_graph_seed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A hidden sibling post sharing a mentioned person must not seed
+    load_visible_subgraph's entity graph -- its org/team/customer mentions
+    could otherwise bridge to an unrelated visible post, fabricating an
+    "indirect" relationship whose only real basis is unauthorized content."""
+    focus_id = "00000000-0000-0000-0000-000000000001"
+    hidden_sibling_id = "00000000-0000-0000-0000-000000000002"
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args: object):
+            if "post_lineage_edge" in query:
+                return []
+            if "combined_post_person_mention where post_id = $1" in query:
+                return [{"person_id": "person-1"}]
+            if "combined_post_person_mention" in query and "any($1::uuid[])" in query:
+                return [{"post_id": focus_id}, {"post_id": hidden_sibling_id}]
+            if "from source_post where post_id = any($1::uuid[])" in query:
+                return [
+                    {
+                        "post_id": focus_id,
+                        "visibility_code": "public",
+                        "corporate_entity_id": "corp-own",
+                        "author_account_id": "account-1",
+                        "source_detail_state_code": "current",
+                    },
+                    {
+                        "post_id": hidden_sibling_id,
+                        "visibility_code": "private",
+                        "corporate_entity_id": "corp-other",
+                        "author_account_id": "account-2",
+                        "source_detail_state_code": "current",
+                    },
+                ]
+            raise AssertionError(f"unexpected query: {query}")
+
+    seeded_visible_post_ids: list[str] = []
+
+    async def fake_load_visible_subgraph(_conn: object, visible_post_ids: list[str]):
+        seeded_visible_post_ids.extend(visible_post_ids)
+        return []
+
+    monkeypatch.setattr(
+        "backend.app.post_chat_ingestion.load_visible_subgraph",
+        fake_load_visible_subgraph,
+    )
+
+    can_see_post = lambda row: row["post_id"] == focus_id  # noqa: E731
+    asyncio.run(find_linked_post_ids(FakeConnection(), focus_id, can_see_post))
+
+    assert hidden_sibling_id not in seeded_visible_post_ids
+    assert focus_id in seeded_visible_post_ids
 
 
 def test_normalize_question_rejects_empty_and_collapses_whitespace() -> None:
