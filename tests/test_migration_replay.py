@@ -51,3 +51,13 @@ def test_migrate_sh_replays_interval_relation_migration_on_existing_volumes() ->
     ).read_text(encoding="utf-8")
 
     assert "0105_*" in script
+
+
+def test_interval_relation_backfill_uses_utc_created_day() -> None:
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0105_post_lineage_interval_relation.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "created_at at time zone 'UTC'" in sql

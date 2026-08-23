@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
 
@@ -64,6 +64,14 @@ def test_missing_due_date_is_a_point_interval() -> None:
         _d(1, 6),
         _d(1, 6),
     )
+
+
+def test_created_day_is_normalized_to_utc() -> None:
+    local_midnight = datetime(
+        2026, 1, 2, 0, 30, tzinfo=timezone(timedelta(hours=9))
+    )
+
+    assert interval_from_post(local_midnight, None) == (_d(1, 1), _d(1, 1))
 
 
 def test_earlier_due_date_is_not_inverted() -> None:

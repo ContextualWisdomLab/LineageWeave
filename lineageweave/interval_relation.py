@@ -13,7 +13,7 @@ Does not invent a theta, a fused score, or a lineage parent.
 
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 INTERVAL_BEFORE = "interval_before"
 INTERVAL_AFTER = "interval_after"
@@ -81,8 +81,10 @@ ClosedInterval = tuple[date, date]
 
 
 def calendar_day(value: datetime | date) -> date:
-    """Normalize a timestamptz or date to a calendar day."""
+    """Normalize a timestamptz to its UTC day; preserve a calendar date."""
     if isinstance(value, datetime):
+        if value.utcoffset() is not None:
+            value = value.astimezone(timezone.utc)
         return value.date()
     return value
 

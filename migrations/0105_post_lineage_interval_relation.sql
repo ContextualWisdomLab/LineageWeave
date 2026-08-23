@@ -22,8 +22,8 @@ alter table post_lineage_edge
 
 update post_lineage_edge as edge
    set interval_relation_code = case
-        when parent_post.created_at::date < child_post.created_at::date then 'interval_before'
-        when parent_post.created_at::date > child_post.created_at::date then 'interval_after'
+        when (parent_post.created_at at time zone 'UTC')::date < (child_post.created_at at time zone 'UTC')::date then 'interval_before'
+        when (parent_post.created_at at time zone 'UTC')::date > (child_post.created_at at time zone 'UTC')::date then 'interval_after'
         else 'interval_equals'
        end
   from source_post as parent_post

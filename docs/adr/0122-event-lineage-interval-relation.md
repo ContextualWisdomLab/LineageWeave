@@ -13,8 +13,9 @@ day. Allen (1983) partitions every pair of closed intervals into
 thirteen relations. CHRONOS (Anagnostopoulos et al., 2013) uses that
 algebra as temporal-consistency evidence, not as a causal claim.
 
-A post's dated window is observed: `source_post.created_at` as the
-start, and the earliest *open* `issue_ticket.due_date` as the end
+A post's dated window is observed: the UTC calendar day of
+`source_post.created_at` as the start, and the earliest *open*
+`issue_ticket.due_date` as the end
 when that due date is on or after the created day. A missing or
 earlier due date is a point interval. The product does not invent a
 duration, swap bounds, or promote the relation to a reconstructed
@@ -25,7 +26,7 @@ parent.
 Persist `interval_relation_code` on `post_lineage_edge` (3NF,
 two-or-more-word `snake_case`) as a `common_lookup_value` code in
 the `interval_relation` category. Compute it in
-`lineageweave/interval_relation.py` from the two posts' dated
+`lineageweave/interval_relation.py` from the two posts' UTC-dated
 windows after reconstruct has chosen the parent. Rebuild and seed
 write the code in the same transaction as the edge. Ticket-aware
 windows run after fixture tickets exist so `make seed` is not a
