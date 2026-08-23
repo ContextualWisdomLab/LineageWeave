@@ -6,7 +6,7 @@ buyer-facing control you can click before changing product CSS.
 | Story | Buyer next action | Token / module |
 |---|---|---|
 | `Evidence/CitationChip` | Click a cited title to open that source post. | `--color-chip-border`, `--radius-chip`, `CitationChip` |
-| `Lineage/LineageDag` | Read Contains on the A-100 fork, then click that row to open the revised quote. | `--color-accent-background`, `--radius-control`, `LineageDag` |
+| `Lineage/LineageDag` | Read Before on the A-100 fork, then click the revised-quote row to open that post. | `--color-accent-background`, `--radius-control`, `LineageDag` |
 | `AnalysisRun/CutoffKnownBody` | Read the cutoff-known sentence, then compare it with the live body below. | `--color-accent-border`, `--space-panel-block`, `--radius-panel`, `CutoffKnownBody` |
 | `Analysis/LineageEntityPicker` | Choose which corp to reconstruct, then click Request a lineage reconstruction. | `--space-control-gap`, `--size-control-min`, `--radius-control`, `LineageEntityPicker` |
 | `Chrome/PopupCloseButton` | Close the evidence panel or post popup. | `--space-close-inset`, `--font-size-close`, `PopupCloseButton` |

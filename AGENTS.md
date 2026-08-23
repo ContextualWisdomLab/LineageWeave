@@ -195,10 +195,11 @@ a click opens that post.
 
 Event Lineage edges persist an Allen (1983) `interval_relation_code`
 (ADR 0122 / v2.15.0). Reconstruct still owns the parent choice; this
-only names the dated windows. A missing or earlier due date is a
-point interval. After `make seed`, rec-002 **Contains** rec-003 and
-**Overlaps** rec-004. Click Contains to open the revised quote. Do
-not treat During/Contains as causation.
+only names the dated windows. Every post is a point interval on its UTC
+creation day; mutable ticket dates are not Event Lineage evidence. After
+`make seed`, rec-002 is **Before** rec-003 and rec-004. Click the Before
+row for rec-003 to open the revised quote. Do not treat an interval label
+as causation.
 
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a

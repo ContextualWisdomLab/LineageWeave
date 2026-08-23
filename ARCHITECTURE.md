@@ -69,7 +69,7 @@ flowchart LR
 | `rankweave_client.py` | Fail-closed RankWeave ranking port (`weighted_reciprocal_rank_fuse` in-process; never invent a fused score or a theta) |
 | `reconstruct.py` | The pipeline: group → candidate window → score → fuse → thread |
 | `lineage_persistence.py` | Flattens reconstruct trees into `post_lineage_edge` row specs (parent, child, fused_score) |
-| `interval_relation.py` | Allen (1983) closed interval relations for those edges. Ticket-aware windows: created day through the earliest open `issue_ticket.due_date`. Does not choose a parent or invent a fused score. |
+| `interval_relation.py` | Allen (1983) closed interval relations for those edges. Each post is a point interval on its observed UTC `created_at` day; mutable ticket dates are not Event Lineage evidence. Does not choose a parent or invent a fused score. |
 | `knowledge_graph.py` | Random-walk-with-restart relevance + per-node adaptive related-node cutoff (Tong et al., 2006) -- pure graph math, no Postgres |
 | `keyman_extraction.py` | Pluggable LLM extraction of two-sided (our-side/counterparty) person mentions + N:N org affiliations from a post |
 | `entity_relationship_classification.py` | Pluggable LLM classification of a named organization's relationship to the post author (`rel_voc`/`rel_vom`/`rel_vop`/`rel_vocc`/`rel_voco`/`rel_vos`) |
