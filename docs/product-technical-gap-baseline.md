@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
 > Audit scope: the current LineageWeave reader/source-context worktree and all
-> 52 open PRs, compared with protected `main`, the UI/UX Standard Guide v3.0,
+> 55 open PRs, compared with protected `main`, the UI/UX Standard Guide v3.0,
 > ADR 0118, the accepted TEPP contracts, and contextual-orchestrator. Real
 > source identifiers are deliberately replaced with case labels; they must not
 > enter repository artifacts.
@@ -10,7 +10,26 @@
 
 ### 1.1 Current continuation head
 
-Observed at `2026-08-23T10:31:20Z`: protected `main` and `origin/main` are both
+Observed at `2026-08-24T06:45:00+09:00`: protected `main` and `origin/main`
+remain `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`. This loop's continuation
+head is PR #490 `feat/board-source-detail-state-filter` at
+`154a13ef180a5f5e859c52fe056f4925c7fe2757`. The live queue has 55 open PRs,
+all targeting protected `main` and GitHub-`MERGEABLE`. Protected merge stays
+blocked by ruleset `18156473` (two approvals and approval-after-last-push)
+and ruleset `21065108` (no force-push). This loop closed leftover-pair
+next-action jargon on that head (ADR 0049: `Open {post}, then read Post
+quality criterion {criterion}.`) and kept saved evaluation scores when the
+evaluation channel is down. Worker factory review threads
+`PRRT_kwDOT22WIM6biC_J` / `_K` / `_L` are resolved. Leftover-map PRs
+#532 `53f84127cd2a`, #531 `e359dcd28e5c`, #530 `2ca0974625e8`, and
+#529 `54f3f69fb3f7` had the inherited unauthenticated AdminPanel TypeScript
+break repaired in source. Those leftover-map PRs still fork `ef6f5a5f`
+independently rather than stacking on #426/#490. Local evidence on the
+continuation head: worker pytest `20` passed twice, frontend Vitest `358`
+passed twice, oxlint 0, Storybook static build completed. No real
+organization or person names are used in this receipt.
+
+Earlier observed at `2026-08-23T10:31:20Z`: protected `main` and `origin/main` are both
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`. The dirty continuation worktree is
 based on `65f0a412c18286434c272eb8c4b38efeb2cd45c0`; relative to `origin/main`
 it is `821` commits ahead and `0` behind, so this checkout is not a
@@ -190,47 +209,52 @@ next exact head and therefore requires the protected checks to rerun.
 
 ### 1.3 Current related PR queue
 
-In-scope for this analysis-result UI-flow / AI-analysis-logic goal:
-leftover-map locale follow-up `#489` `7f0368ec7d04`, leftover landing `#485`
-`c2102f932e06`, leftover map `#481` `d192e8f40fff`, Event Lineage interval
-`#484` `0d8187a5d529`,
-channel evidence `#387` `c34681fdc692`, org-chip `#482` `42f7c4e81289`,
-image-region `#405` `0b1b1fcfed87`, Ask citation `#419` `b51b97be0746`
-/ `#418` `ed99c40a22cc`, workspace board `#258` `ea143748cdda`.
-This dirty continuation worktree is not a merge-ready PR head and its
-local leftover-landing and diagnosis changes must not be attributed to
-`#485` without a fresh branch comparison.
+Live queue at `2026-08-24T06:45:00+09:00` is 55 open PRs, all based on
+protected `main` `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7`. Continuation
+head is #490 `154a13ef180a`. Leftover-map family still forks `main`
+independently: #532 cosine, #531 inner product, #530 residual, #529 rank,
+#527 observed/expected, #522 two-axis distance, #521 comparison strip,
+#519 axis share, #518 complete-case, #485 criterion landing, #481
+interaction-map. Hosted Checks on the heads repaired this loop are queued,
+not a stop. Independent leftover-map PRs should stack onto #426/#490 rather
+than keep inheriting the unauthenticated AdminPanel TypeScript break.
 
-The following open-PR heads were refreshed at `2026-08-23T12:02:11Z`, with
-#468/#481/#482/#484/#485/#489 listed through `2026-08-23T12:40:00Z`, and
-#258 at `2026-08-23T12:03:02Z`. The policy audit at
-`2026-08-23T09:01:45Z` covered the then-current queue; newer PRs are not
-assigned a gate result here. Ruleset `18156473` requires two
-approvals, an approval after the last push, resolved conversations, dismissal
-of stale approvals, and seven central workflows. Ruleset `21065108` prohibits
-force-pushes with no bypass. No protected merge is claimed from this listing.
+Ruleset `18156473` requires two approvals, an approval after the last push,
+resolved conversations, dismissal of stale approvals, and seven central
+workflows. Ruleset `21065108` prohibits force-pushes with no bypass. No
+protected merge is claimed from this listing.
 
 ```text
-#489 7f0368ec7d04  #485 c2102f932e06  #484 0d8187a5d529
-#482 42f7c4e81289
-#481 d192e8f40fff  #480 d7d830f9faa0
-#479 fe794a9a061b  #474 025bb3df4e5a  #468 228f13dd5e32
-#463 3773d40c74df
-#455 dab57fcadb3c  #454 f30e2523e9c3  #453 98fcf052b883
-#452 09e0ec034ca1  #451 e84fa8d20c7d  #450 c624e919d880
-#449 6f28daffbc85  #448 3c1506a30101  #447 af6317237bc5
-#446 8f9698993077  #445 160ca908fce1  #444 e8d6d7376d44
-#443 11fc2af36960  #442 8e6f24df1827  #441 5e59e7d1a0a3
-#440 612f20681c4b  #439 590c6c3185ba  #437 5e54a45b85d3
-#436 7f6383eaf1ab  #435 b80628bc53d3  #434 097766afd1db
-#431 290b25ca1622  #429 3763e1335cd3  #428 cf2d12bf6364
-#427 446ceddd2a44  #426 4828b3a5e4eb  #422 c54b172e439c
-#421 2fc08835485d  #419 b51b97be0746  #418 ed99c40a22cc
-#417 91b7e1cd9144  #415 d8590f1f81db  #405 0b1b1fcfed87
-#394 cf9505b75948  #393 4ddd3a83aaa7  #392 b76ae7b9aa7b
-#387 c34681fdc692  #383 2e2a8fe72bdb  #368 0f61d66ed1a8
-#355 26f25ac6d047  #349 40286c1f1e3d  #258 ea143748cdda
+#532 53f84127cd2a  #531 e359dcd28e5c  #530 2ca0974625e8
+#529 54f3f69fb3f7  #527 df18ed69ad43  #525 e4d6717c147c
+#524 4b1691b4be7d  #522 2ab96809c374  #521 d9d2207360ea
+#519 29bff9270764  #518 3117823ffc34  #496 288125acb1e6
+#493 499c8b1bc4cd  #490 154a13ef180a  #485 f17a116dd60d
+#484 c5c9911c102c  #482 c38c08d6f464  #481 329449790cc6
+#480 f18b421d8522  #479 f8bb4102719e  #474 025bb3df4e5a
+#468 228f13dd5e32  #463 3773d40c74df  #455 dab57fcadb3c
+#454 f30e2523e9c3  #453 98fcf052b883  #452 09e0ec034ca1
+#451 e84fa8d20c7d  #450 c624e919d880  #449 0cc40bc75a80
+#448 3c1506a30101  #447 af6317237bc5  #446 8f9698993077
+#445 160ca908fce1  #444 4af7d4b79689  #443 11fc2af36960
+#442 8e6f24df1827  #441 5e59e7d1a0a3  #434 9f506a962f73
+#426 3b7c3e29d608  #422 c54b172e439c  #421 2fc08835485d
+#419 b51b97be0746  #418 ed99c40a22cc  #417 c5c0929c68ab
+#415 d8590f1f81db  #405 0b1b1fcfed87  #394 cf9505b75948
+#393 4ddd3a83aaa7  #387 6bcd52f1d8b1  #383 ab5d4c272532
+#368 0f61d66ed1a8  #355 6fc22a9471bf  #349 bef4a858b2f0
+#258 f0b5234db6d3
 ```
+
+Historical snapshot retained below. Earlier in-scope leftover/workspace heads
+included leftover-map locale follow-up `#489` `7f0368ec7d04`, leftover
+landing `#485` `c2102f932e06`, leftover map `#481` `d192e8f40fff`, Event
+Lineage interval `#484` `0d8187a5d529`, channel evidence `#387`
+`c34681fdc692`, org-chip `#482` `42f7c4e81289`, image-region `#405`
+`0b1b1fcfed87`, Ask citation `#419` `b51b97be0746` / `#418`
+`ed99c40a22cc`, workspace board `#258` `ea143748cdda`. The following
+open-PR heads were refreshed at `2026-08-23T12:02:11Z`. Newer PRs in the
+live listing above supersede that snapshot.
 
 Bounded gate evidence: PR #394's earlier Corepack/Undici pnpm-download failure
 is superseded by terminal checks on unchanged head `cf9505b75948`; it still has
@@ -906,6 +930,15 @@ or an explicit unavailable result.
   ko-only and not claimed fixed -- tracked as the next slice, not
   attempted this checkpoint given the translation-quality risk of
   rushing many keys without a dedicated review pass.
+- **Leftover pair next-action jargon — closed (2026-08-24, PR #490
+  `154a13ef`):** ADR 0049 already names `Open {post}, then read Post quality
+  criterion {criterion}.` Origin leftover copy still appended `This pair sat
+  closest/farthest after main effects.` `leftoverPairNextAction` now matches
+  the ADR sentence only. Evaluation keeps saved IRT scores when the
+  orchestrator or evaluation channel is down, instead of hiding them behind
+  the dropped-channel diagnosis. Vitest leftover-pair and evaluation-503
+  tests cover both; leftover Storybook scenes read the same next-action
+  helper.
 - **Cross-repository email/project lineage — provider boundary implemented,
   consumer open:** PR #343 merged at
   `125a8069a1554874d8067a15047e19d780ea6b7b`, but the contract remains
@@ -935,8 +968,10 @@ or an explicit unavailable result.
    change requests on #349/#355/#383/#417, and resolve only findings that remain
    valid on each current head.
 3. Obtain two independent approvals including an approval after the final push.
-   Start with the small operational family #429, then #434 and #435/#436;
-   refetch and revalidate every sibling after each protected merge.
+   Stack leftover-map PRs #532/#531/#530/#529/#527 onto #426/#490 rather than
+   forking protected `main` independently. Refetch and revalidate every
+   sibling after each protected merge. Do not claim a protected-main merge
+   without the merge SHA.
 4. Validate the ADR-backed anchor source-field policy on live PostgreSQL and
    add the missing Ask/mobile Storybook scenes. Reproduce private cases only as aggregate, non-identifying
    runtime evidence and preserve `unavailable` explicitly.
