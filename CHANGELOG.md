@@ -12,6 +12,15 @@ All notable changes to this project are documented here. Format follows
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 
+## [2.12.12] - 2026-08-23
+
+### Added
+
+- Rankings now names the newest-first and title-overlap ranks that
+  RankWeave fused, with each channel's Cormack RRF contribution.
+  Missing channels stay omitted. This is ranking evidence, not a
+  calibrated score. Click still opens that post.
+
 ## [2.12.6] - 2026-08-20
 
 ### Added

@@ -36,6 +36,8 @@ reimplementing them:
   multi-channel score fusion (`weighted_convex_fuse` in
   `reconstruct.py`) and the buyer-facing Rankings port
   (`rankweave_client.py`) -- never invent a fused score or a theta.
+  Rankings disclose Cormack RRF channel contributions from owned
+  rank lists (ADR 0163).
 - [TEPP](https://github.com/ContextualWisdomLab/TEPP)'s published wire
   contract for calibrated measurement (`tepp_client.py`) -- never
   reimplement TEPP's model here.

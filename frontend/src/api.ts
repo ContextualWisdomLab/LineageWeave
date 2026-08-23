@@ -1034,10 +1034,20 @@ export function startAnalysisRun(
   });
 }
 
+export interface RankingChannelEvidence {
+  signal_code: string;
+  signal_label: string;
+  channel_rank: number;
+  weight: number;
+  contribution: number;
+  rank: number;
+}
+
 export interface RankedPost {
   post_id: string;
   post_title: string;
   fused_rank: number;
+  channel_evidence?: RankingChannelEvidence[];
 }
 
 export interface RankingList {

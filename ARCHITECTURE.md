@@ -122,7 +122,10 @@ flowchart LR
   `rankweave_client.py`'s default transport raises
   `RankWeaveNotAvailable`. `GET /api/rankings` then returns
   `rankweave_not_available` and an empty ranking list. Hidden posts
-  are omitted from every channel. See ADR 0024.
+  are omitted from every channel. Accepted hits include
+  `channel_evidence` computed from owned temporal/lexical ranks
+  (Cormack weighted RRF contribution); RankWeave extra fields are
+  ignored and no theta is invented. See ADR 0024 and ADR 0163.
 
 ## Standards and citations
 

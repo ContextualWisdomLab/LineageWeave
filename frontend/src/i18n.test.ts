@@ -36,6 +36,9 @@ describe("i18n", () => {
     "Page",
     "Answer",
     "Showing the first {shown} of {total} posts known at this cutoff.",
+    "Rankings",
+    "Title overlap",
+    "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
   ] as const;
 
   it("supports the five product locales", () => {
