@@ -57,6 +57,23 @@ def test_unapproved_weight_provenance_is_never_activated() -> None:
     ) is None
 
 
+def test_incomplete_persisted_weight_vector_is_unavailable() -> None:
+    """A partial vector must not silently reweight only some channels."""
+
+    class IncompleteWeightConnection:
+        async def fetchval(self, _query: str):
+            return True
+
+        async def fetch(self, _query: str):
+            return [{"channel_code": "temporal", "weight_value": 1.0}]
+
+    assert asyncio.run(
+        ingestion.load_estimated_channel_weights(
+            IncompleteWeightConnection(), {"temporal", "secondary_key", "text"}
+        )
+    ) is None
+
+
 def test_mixed_weight_provenance_is_never_activated(monkeypatch) -> None:
     """A numerically complete vector cannot combine two estimation runs."""
     monkeypatch.setattr(ingestion, "_SUPPORTED_ANCHOR_METHOD_CODES", {"test_anchor"})
@@ -219,6 +236,46 @@ def test_seed_shaped_rows_rebuild_to_the_designed_a100_fork() -> None:
     assert ("rec-002", "rec-003") in pairs
     assert ("rec-002", "rec-004") in pairs
     assert "rec-006" not in {edge.child_id for edge in edges}
+
+
+def test_rebuild_persists_the_synthetic_fork_without_estimated_weights() -> None:
+    """A missing weight table keeps deterministic reconstruction operational."""
+    rows = [
+        {
+            "post_id": rec.record_id,
+            "process_unit_id": "shared-pu",
+            "corporate_entity_id": "shared-corp",
+            "post_title": rec.label,
+            "voc_type_code": "voc" if rec.secondary_key else "vom",
+            "thread_group_key": rec.group_key,
+            "secondary_grouping_key": rec.secondary_key,
+            "created_at": rec.occurred_at,
+        }
+        for rec in sample_records()
+    ]
+
+    class FakeConnection:
+        def __init__(self) -> None:
+            self.executions: list[tuple[str, tuple[object, ...]]] = []
+
+        async def fetch(self, query: str):
+            assert "from source_post" in query
+            return rows
+
+        async def fetchval(self, query: str):
+            assert "to_regclass('public.lineage_channel_weight')" in query
+            return False
+
+        async def execute(self, query: str, *args: object) -> None:
+            self.executions.append((query, args))
+
+    connection = FakeConnection()
+    edges = asyncio.run(ingestion.rebuild_lineage(connection))
+
+    pairs = {(edge.parent_id, edge.child_id) for edge in edges}
+    assert {("rec-002", "rec-003"), ("rec-002", "rec-004")} <= pairs
+    assert connection.executions[0] == ("delete from post_lineage_edge", ())
+    assert len(connection.executions) == len(edges) + 1
 
 
 def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
