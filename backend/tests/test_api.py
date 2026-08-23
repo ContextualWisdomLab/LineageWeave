@@ -193,6 +193,11 @@ _CUSTOMER_IDENTITY_MIGRATION = (
     / "migrations"
     / "0137_cross_post_customer_identity.sql"
 )
+_LEFTOVER_OBSERVED_EXPECTED_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0177_report_leftover_observed_expected.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -322,6 +327,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_CATALOG_UNRESOLVED_REASON_MIGRATION.read_text())
             cur.execute(_POST_ASK_HISTORY_MIGRATION.read_text())
             cur.execute(_CUSTOMER_IDENTITY_MIGRATION.read_text())
+            cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "

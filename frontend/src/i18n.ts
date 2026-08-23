@@ -629,6 +629,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "원문 문장을 읽은 다음 계속하세요. 측정된 부정이며, 채널 불가가 아닙니다.",
     "This R&R row is one source phrase. Do not treat it as a catalog relationship until job title and relationship type are stored separately.":
       "이 R&R 행은 원문 구절 하나입니다. 직함과 관계 유형이 따로 저장되기 전에는 카탈로그 관계로 보지 마세요.",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "IRT 주효과 이후 잔여 맵에 잔여 구조가 없습니다. 이 글을 여세요.",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "IRT 주효과 이후 잔여 맵 랭크 {rank}. 이 글을 여세요.",
   },
   zh: {
     "Unknown": "未知",
@@ -1168,6 +1172,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "阅读源句后继续。这是测得的否定，不是通道不可用。",
     "This R&R row is one source phrase. Do not treat it as a catalog relationship until job title and relationship type are stored separately.":
       "此 R&R 行是一个源短语。在职务与关系类型分开存储之前，不要将其视为目录关系。",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "IRT 主效应后残余图没有残余结构。打开这篇帖子。",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "IRT 主效应后的残余图秩 {rank}。打开这篇帖子。",
   },
   ja: {
     "Unknown": "不明",
@@ -1707,6 +1715,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "原典の文を読んでから続けてください。測定された否定であり、チャネル利用不可ではありません。",
     "This R&R row is one source phrase. Do not treat it as a catalog relationship until job title and relationship type are stored separately.":
       "この R&R 行は原典の一フレーズです。職名と関係種別が別に保存されるまで、カタログ関係として扱わないでください。",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "IRT主効果後の残差マップに残差構造はありません。この投稿を開いてください。",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "IRT主効果後の残差マップランク {rank}。この投稿を開いてください。",
   },
   vi: {
     "Unknown": "Không rõ",
@@ -2246,6 +2258,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Đọc câu nguồn, rồi tiếp tục. Đây là phủ định đo được, không phải kênh không khả dụng.",
     "This R&R row is one source phrase. Do not treat it as a catalog relationship until job title and relationship type are stored separately.":
       "Hàng R&R này là một cụm từ nguồn. Đừng coi là quan hệ catalog cho đến khi chức danh và loại quan hệ được lưu riêng.",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "Bản đồ phần dư không có cấu trúc phần dư sau hiệu ứng chính IRT. Mở bài viết này.",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "Hạng bản đồ phần dư {rank} sau hiệu ứng chính IRT. Mở bài viết này.",
   },
 };
 
