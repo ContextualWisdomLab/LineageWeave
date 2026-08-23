@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-24 01:51 KST. This repository records synthetic
+> Audit snapshot: 2026-08-24 02:06 KST. This repository records synthetic
 > fixtures and aggregate, non-identifying runtime evidence only. Open PRs and
 > local checks are not protected-default-branch release evidence.
 > Identifying post identifiers, organization names, and production record keys
@@ -38,16 +38,16 @@ Recent protected-default-branch and org-control-plane evidence:
 | ContextualWisdomLab/.github #1245 | `92624300414b19dbed0f96a0295b1ac516181b4b`; auto-merge armed; blocked on independent review | retry/defer shared GitHub App installation rate limits so OpenCode dispatch is not starved |
 | ContextualWisdomLab/.github #1258 | `9b5dba9f558d20dbb651b409ea9fa54a865e3405`; auto-merge armed; blocked on independent review | `--trust-lockfile` only on pnpm 11.3+; Jest keeps native `--coverage`; no invented Vitest instrumenter |
 | ContextualWisdomLab/.github #1259 | `6041f2aa9e23af5850cd83fa838a3eb6c45d84b9`; auto-merge armed; blocked on independent review | thin LineageWeave hourly review-repair caller at minute 4; supersedes #1086 stack driver |
-| LineageWeave #426 | `4988fb773d30b31371bcc7b184d3bc6dbe32666d` (this stack) | open, mergeable but blocked, review required, auto-merge armed; all 23 threads resolved, zero approvals; 3 checks passing, 15 pending, and 8 skipped |
+| LineageWeave #426 | `2cf16db25d25ef90bf43737917a911ed8b840794` (this stack) | open, mergeable but blocked, review required, auto-merge armed; all 24 threads resolved, zero approvals; 23 checks passing, 1 pending, and 8 skipped |
 | LineageWeave #429 | `3763e1335cd3ac38b5e02b964ab49af34c8d73a0` | open, mergeable but blocked, review required, auto-merge armed |
-| LineageWeave #494 | `b195b42dd327f6a6659cca315b34886ab11d38ed` | login `tsc` plus optional-extra collection skip; auto-merge armed; hosted frontend typecheck passing; do not fold this baseline back into #494 |
+| LineageWeave #494 | `5d9728a16051e7db453ca513cd5baa75be7450cc` merge-restacked on exact #426 | unique diff is the four optional-extra collection files; hosted Frontend is green and Full suite is in progress, all 16 threads are resolved, and zero approvals remain |
 | LineageWeave #497 | `07554b238a822e4423f8e6b4c000e5882fe49163`; merged as `250f20e8a6f830479ce904448cd29ab1a106aeef` into #426 only | ADR 0001 baseline is present on this hidden stack, not on protected `main` |
 | LineageWeave #498 | `35823d889c5360ebf2152ed5679d7c22d6832545` | `/healthz` + docstring coverage; overlaps #429; blocked on independent review |
 | LineageWeave #496 | `78287c08309f614ca1de04612c3e15c555bed1c6` | accepted TEPP receipts remain Running during an unavailable recheck; the mixed-import review fix has 21 focused tests passing; open and blocked with 20 checks passing, 2 pending, all 22 threads resolved, and zero approvals |
 | LineageWeave #499 | `a985f820af7a6552bcf32860b35b513e213a498c`; merged as `8f43d7fd17ae7ae9c197fe89ddb4beee82a2886a` into `docs/customer-master-scope-adr` only | channel-weight estimation remains hidden-stack evidence, not protected-`main` evidence; #507 is the clean protected-main restack of the fail-closed repair |
 | LineageWeave #505 | `cbc6bd727d613216e8b0bf93b80d476205e2dd37`; merged as `c6d0ae57ca88684f3e7de992891adc2c208f06ed` into #490 only | merged into the non-default, unprotected parent branch rather than protected `main`; all 5 threads, including the 4 latest findings, are resolved; 4 checks passed and zero approvals |
 | LineageWeave #506 | closed unmerged at `fd27f2d52766ac6cfe00e0713dcfc3fe938c6078` | its public PR head and pre-existing public history contain a real private runtime source-table identifier; this baseline intentionally neither names nor describes its value |
-| LineageWeave #507 | `e4e5bf321b303248d14d735fbf717ef2f4c0ce81` directly on protected `main` | clean fail-closed weighting restack; open, mergeable but blocked, 17 checks passing, 1 failing, 2 pending, 7 skipped, all 7 threads unresolved, zero approvals |
+| LineageWeave #507 | `b8d9ce429f223d43a8639d0e2b2b0777e9105d2b` directly on protected `main` | exact remote tree matches the validated local tree; focused 41 passed and parent full 770 passed; hosted Frontend and Full suite are green, OpenCode has passed, only Strix is in progress, all 12 threads are resolved, and zero approvals leave review required |
 | LineageWeave #490 | `494ccf53da6e4a12d54e171bbb6dfeea9b336ffc` directly on protected `main` | open, mergeable but blocked, review required; the parent advanced after accepting #509 only on its non-default branch; 5 checks passing, 1 failing, 11 pending, 7 skipped, no threads, and zero approvals |
 | LineageWeave #509 | `bba8a8ac43a43db70c563dd9612ab74c3fbe7930`; merged as `e4d692c6e5daede2af7c0e259d3fc5a4c1c7636a` into #490 only | all 4 hosted checks passed, its 1 thread is resolved, and approvals remain zero; unique diff was limited to the changelog, legacy-JSON fail-closed parser/test, and live PostgreSQL schema regression; local focused validation was 108 passed/1 skipped including 12 live PostgreSQL, migration vocabulary 54/55/54, compile and diff checks passing; this is not protected-`main` delivery |
 
@@ -59,7 +59,11 @@ into #490's non-default branch; #509's isolated fixes also merged only into
 #490 as `e4d692c6e5daede2af7c0e259d3fc5a4c1c7636a`, after which #490 advanced to
 `494ccf53da6e4a12d54e171bbb6dfeea9b336ffc`. That stack remains unprotected.
 #499 remains hidden-stack evidence; #507 is the clean
-protected-main delivery path for its fail-closed repair. If any exact head
+protected-main delivery path for its fail-closed repair. Repeated concurrent
+add/revert oscillation on #494 was not chased. Exact `5d9728a` instead changed
+stack ownership by merging current #426, so its diff is now optional-only and
+its frontend gate is independently green; #426 must still land first to keep
+that ancestry valid. If any exact head
 changes, re-fetch and recheck the diff, checks, threads, and approvals before
 making a lifecycle claim.
 
@@ -118,9 +122,9 @@ evidence across heads.
 
 | PR | Observed head | Intent | Gap it closes when merged |
 | ---: | --- | --- | --- |
-| #426 | `4988fb773d30b31371bcc7b184d3bc6dbe32666d` | Login `tsc`, ontology Pages, namespace compatibility, and canonical baseline ownership | Shared frontend typecheck and public ontology publication on protected `main`; all 23 threads resolved, hosted checks pending, and no independent approval |
-| #507 | `e4e5bf321b303248d14d735fbf717ef2f4c0ce81` | Clean fail-closed weighting repair restacked directly on protected `main` | Resolve all 7 review threads and the failing frontend gate, then obtain independent exact-head approval |
-| #494 | `b195b42dd327f6a6659cca315b34886ab11d38ed` | Overlapping login repair plus optional-extra collection skip | Audit for unique value after #426; do not create a second shared dependency |
+| #426 | `2cf16db25d25ef90bf43737917a911ed8b840794` | Login `tsc`, ontology Pages, namespace compatibility, and canonical baseline ownership | Shared frontend typecheck and public ontology publication on protected `main`; all 24 threads resolved, 23 checks passing, 1 pending, 8 skipped, and no independent approval |
+| #507 | `b8d9ce429f223d43a8639d0e2b2b0777e9105d2b` | Clean fail-closed weighting repair restacked directly on protected `main` | Local focused 41 and parent full 770 passed; hosted Frontend, Full suite, and OpenCode are green; wait for Strix and obtain independent exact-head approval |
+| #494 | `5d9728a16051e7db453ca513cd5baa75be7450cc` merge-restacked on exact #426 | Optional-extra collection only; four-file unique diff | Stack ownership now preserves unique scope and a green Frontend gate; land #426 first, let Full suite and remaining hosted checks settle, and obtain independent approval |
 | #497 | `07554b238a822e4423f8e6b4c000e5882fe49163` | Non-identifying gap baseline (ADR 0001), merged only into #426 as `250f20e8a6f830479ce904448cd29ab1a106aeef` | Removes identifying post identifiers from the #426 tree; protected history still requires incident remediation and protected `main` has not received it |
 | #498 | `35823d889c5360ebf2152ed5679d7c22d6832545` | `/healthz`, public docstring gate, and overlapping login repair | Preserve only value unique from #426 and #429 after their protected merge order is resolved |
 | #429 | `3763e1335cd3ac38b5e02b964ab49af34c8d73a0` | `/healthz` routes to the liveness probe | Operability: liveness vs settings mix-up |
@@ -184,7 +188,10 @@ After #426 and this non-identifying inventory land on protected `main`, those
 mixed and docs-only heads have no independently demonstrated source value and
 should be closed as superseded rather than merged as conflicting rewrites. Do
 not merge an identifying baseline over this file. #494 likewise remains
-limited to value independently verified as unique from #426.
+limited to value independently verified as unique from #426. Repeated
+concurrent add/revert oscillation was not chased; exact `5d9728a` changed stack
+ownership by merging current #426 and now has an optional-only diff plus a
+green Frontend gate. #426 must land first to retain that dependency order.
 
 ## 4. Open issues (product acceptance remaining on `main`)
 
@@ -214,8 +221,8 @@ limited to value independently verified as unique from #426.
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 56 PRs open; the audited #426/#496/#499/#505/#507/#509 dependency set has no independent current-head approval; #426 has 15 pending checks, #490 has one failing check, and #507 has 7 unresolved threads plus one failing check | Terminal exact-head checks, no unresolved threads, independent OpenCode/Strix/Noema approval, protected squash-merge SHA |
-| Shared frontend gate | Unauthenticated `AdminPanel` + unused OIDC helpers failed `tsc -b` on `main` | #426 on protected `main`; revalidate #494 for unique value, then subsequent PRs rebase and stay green without duplicating the login patch |
+| Protected release | 56 PRs open; the audited #426/#496/#499/#505/#507/#509 dependency set has no independent current-head approval; #426 and #507 are each waiting on Strix, while #490 has one failing check | Terminal exact-head checks, no unresolved threads, independent OpenCode/Strix/Noema approval, protected squash-merge SHA |
+| Shared frontend gate | Unauthenticated `AdminPanel` + unused OIDC helpers failed `tsc -b` on `main`; exact #494 now merge-restacks current #426, has a four-file optional-only diff, and passes Frontend | Land #426 first, then settle #494's exact-head checks and independent review without another add/revert cycle |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419) | Orchestrator-backed rendered workflow, original/derived asset provenance, and honest unsupported states |
@@ -299,8 +306,8 @@ of leverage; open connector PRs there when the defect is upstream:
 
 ## 10. Next acceptance loop
 
-1. Let #426's exact-head checks settle; its current 3 passing, 15 pending, and
-   8 skipped checks are not a terminal protected gate even though all 23 review
+1. Let #426's exact-head checks settle; its current 23 passing, 1 pending, and
+   8 skipped checks are not a terminal protected gate even though all 24 review
    threads are resolved.
 2. Obtain two independent exact-head approvals for #426 and land that stack on
    protected `main`; auto-merge being armed does not itself satisfy the gate.
@@ -310,9 +317,11 @@ of leverage; open connector PRs there when the defect is upstream:
 4. Treat #505 and #509 merge commits as #490-only evidence. Repair the failing
    gate on exact #490 head `494ccf53da6e4a12d54e171bbb6dfeea9b336ffc`, obtain independent review, and
    deliver the resulting stack through protected `main` before a release claim.
-5. Resolve #507's 7 current review threads and failing frontend check, then
-   obtain independent exact-head approval for that clean protected-main path;
-   do not credit #499's hidden-stack merge as protected delivery.
+5. Let #507's remaining Strix check settle, then obtain independent exact-head
+   approval for `b8d9ce429f223d43a8639d0e2b2b0777e9105d2b`; its 12 threads,
+   Frontend, Full suite, and OpenCode are green, but zero approvals still block
+   the clean protected-main path. Do not credit #499's hidden-stack merge as
+   protected delivery.
 6. Coordinate the ADR 0001 history incident with security/privacy owners. Keep
    current `main` and #507 clean, never reproduce the private identifier, and
    do not force-push or delete public-history evidence ad hoc.
@@ -320,16 +329,20 @@ of leverage; open connector PRs there when the defect is upstream:
    minute-4 caller owns the GitHub Actions heartbeat. Close superseded baseline
    PRs (#368, #440–#450, #455, #463, #479) once #426 is on
    `main`; #368 and #479 also carry already-covered login changes.
-8. Merge smallest shared-gate repairs next (#429, #428, #393, #436, #439)
+8. Land #426 before #494. Exact `5d9728a` now merge-restacks #426, retains a
+   four-file optional-only diff, and passes Frontend; let its Full suite and
+   remaining hosted checks settle without chasing another concurrent
+   add/revert oscillation.
+9. Merge smallest shared-gate repairs next (#429, #428, #393, #436, #439)
    when independently approved.
-9. Advance user-visible gaps in leverage order: Event Lineage evidence (#387 /
+10. Advance user-visible gaps in leverage order: Event Lineage evidence (#387 /
    #274), Naruon calendar (#355 / #336), SKOS aliases (#480 / #482), ontology
    explorer (#349 / #341), Ask Agent (#415–#422 / #358–#363).
-10. Keep psychometric tests as true-parameter recovery (RMSE), never fixture
+11. Keep psychometric tests as true-parameter recovery (RMSE), never fixture
    tautologies.
-11. Run frontend lint/test/build/Storybook, backend tests, and authenticated
+12. Run frontend lint/test/build/Storybook, backend tests, and authenticated
    browser/accessibility checks on the exact candidate release head.
-12. Fix only evidence-backed failures and repeat the protected merge gate.
+13. Fix only evidence-backed failures and repeat the protected merge gate.
 
 ## 11. Spec pointers (derive, do not fork)
 
