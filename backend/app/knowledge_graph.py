@@ -576,7 +576,7 @@ async def fetch_person_role_history(
     responsibility, in posts at different times (a job change, a title
     change, a move between projects). ``post_summary_role`` already
     carries this per post; this simply orders it chronologically for
-    one person instead of leaving a buyer to open every post that
+    one person instead of leaving a reader to open every post that
     mentions them and compare manually.
 
     ``visible_post_ids`` must already be ABAC-filtered by the caller

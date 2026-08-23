@@ -661,7 +661,7 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
         json={
             "run_kind_code": "analysis_run_lineage",
             "corporate_entity_id": seeded_db["own_corp_id"],
-            "idempotency_key": "buyer-create-2026-w02",
+            "idempotency_key": "run-create-2026-w02",
         },
     )
     assert created.status_code == 201
@@ -682,7 +682,7 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
         json={
             "run_kind_code": "analysis_run_lineage",
             "corporate_entity_id": seeded_db["own_corp_id"],
-            "idempotency_key": "buyer-create-2026-w02",
+            "idempotency_key": "run-create-2026-w02",
         },
     )
     assert replay.status_code == 201
@@ -694,7 +694,7 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
         json={
             "run_kind_code": "analysis_run_tepp",
             "corporate_entity_id": seeded_db["own_corp_id"],
-            "idempotency_key": "buyer-create-tepp",
+            "idempotency_key": "run-create-tepp",
         },
     )
     assert tepp.status_code == 422
@@ -707,7 +707,7 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
         json={
             "run_kind_code": "analysis_run_report",
             "corporate_entity_id": seeded_db["own_corp_id"],
-            "idempotency_key": "buyer-create-report",
+            "idempotency_key": "run-create-report",
         },
     )
     assert report.status_code == 422
@@ -720,7 +720,7 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
             "run_kind_code": "analysis_run_lineage",
             "corporate_entity_id": seeded_db["own_corp_id"],
             "knowledge_cutoff": "2026-01-01T00:00:00Z",
-            "idempotency_key": "buyer-create-2026-w02",
+            "idempotency_key": "run-create-2026-w02",
         },
     )
     assert conflict.status_code == 409
@@ -731,14 +731,14 @@ def test_create_analysis_run_records_pending_without_inventing_a_score(
         json={
             "run_kind_code": "analysis_run_lineage",
             "corporate_entity_id": seeded_db["other_corp_id"],
-            "idempotency_key": "buyer-create-hidden-corp",
+            "idempotency_key": "run-create-hidden-corp",
         },
     )
     assert hidden.status_code == 404
 
     unauthenticated = client.post(
         "/api/analysis-runs",
-        json={"idempotency_key": "buyer-create-unauthenticated"},
+        json={"idempotency_key": "run-create-unauthenticated"},
     )
     assert unauthenticated.status_code == 401
 
@@ -781,7 +781,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
             "run_kind_code": "analysis_run_lineage",
             "corporate_entity_id": seeded_db["own_corp_id"],
             "knowledge_cutoff": "2026-02-15T00:00:00Z",
-            "idempotency_key": "buyer-start-2026-w07",
+            "idempotency_key": "run-start-2026-w07",
         },
     )
     assert created.status_code == 201, created.text
@@ -853,7 +853,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
             "run_kind_code": "analysis_run_tepp",
             "corporate_entity_id": seeded_db["own_corp_id"],
             "knowledge_cutoff": "2026-02-15T00:00:00Z",
-            "idempotency_key": "buyer-start-tepp-2026-w07",
+            "idempotency_key": "run-start-tepp-2026-w07",
         },
     )
     assert tepp_create.status_code == 422
@@ -887,7 +887,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
                      requested_by_account_id, knowledge_cutoff,
                      configuration_schema_version, configuration_sha256,
                      code_revision_sha, requested_at)
-                values (%s, 'analysis_run_tepp', 'buyer-start-tepp-seeded',
+                values (%s, 'analysis_run_tepp', 'run-start-tepp-seeded',
                         %s, '2026-02-15T00:00:00Z', 'tepp-run-v1', %s, %s,
                         '2026-02-15T12:30:00Z')
                 returning analysis_run_id
@@ -956,7 +956,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
                      requested_by_account_id, knowledge_cutoff,
                      configuration_schema_version, configuration_sha256,
                      code_revision_sha, requested_at)
-                values (%s, 'analysis_run_report', 'buyer-start-report',
+                values (%s, 'analysis_run_report', 'run-start-report',
                         %s, '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
                         '2026-01-12T12:30:00Z')
                 returning analysis_run_id
@@ -999,7 +999,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
                      requested_by_account_id, knowledge_cutoff,
                      configuration_schema_version, configuration_sha256,
                      code_revision_sha, requested_at)
-                values (%s, 'analysis_run_lineage', 'buyer-start-running',
+                values (%s, 'analysis_run_lineage', 'run-start-running',
                         %s, '2026-01-12T12:00:00Z', 'lineage-run-v1', %s, %s,
                         '2026-01-12T12:30:00Z')
                 returning analysis_run_id
@@ -1072,7 +1072,7 @@ def test_start_analysis_run_recovers_the_a100_fork(
                      requested_by_account_id, knowledge_cutoff,
                      configuration_schema_version, configuration_sha256,
                      code_revision_sha, requested_at)
-                values (%s, 'analysis_run_lineage', 'buyer-start-outbox-resume',
+                values (%s, 'analysis_run_lineage', 'run-start-outbox-resume',
                         %s, '2026-02-15T00:00:00Z', 'lineage-run-v1', %s, %s,
                         '2026-02-15T12:30:00Z')
                 returning analysis_run_id
@@ -1568,7 +1568,7 @@ def test_persisted_summary_is_returned_without_an_llm(client, demo_analyst_token
 def test_stale_summary_is_returned_labeled_when_orchestrator_is_unavailable(
     client, demo_analyst_token, seeded_db
 ) -> None:
-    """A legacy saved summary preserves buyer continuity with an explicit label."""
+    """A legacy saved summary preserves reader continuity with an explicit label."""
     os.environ.pop("ORCHESTRATOR_BASE_URL", None)
     os.environ.pop("ORCHESTRATOR_API_KEY", None)
     admin_conn = psycopg2.connect(seeded_db["dsn"])
@@ -4633,7 +4633,7 @@ def test_seed_period_report_member_click_lands_on_decorated_fixture(
     client, demo_analyst_token, seeded_db
 ) -> None:
     """The first W02 report member must already have Event Lineage,
-    Keyman, and evaluation -- otherwise the buyer click opens a dummy
+    Keyman, and evaluation -- otherwise the reader click opens a dummy
     high/low band row.
     """
     from lineageweave.fixtures import fixture_thread_cast, fixture_titles_in_iso_week

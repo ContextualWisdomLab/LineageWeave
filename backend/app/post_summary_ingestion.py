@@ -89,7 +89,7 @@ async def fetch_persisted_summary(
     (ADR 0019 / 0027). This function does not join ``corporate_entity``
     by ``entity_name``. Person chips read ``cataloged_person_id``. A stale
     row is returned only when ``allow_stale`` is explicit so a caller can
-    preserve buyer continuity without presenting old semantics as current.
+    preserve reader continuity without presenting old semantics as current.
     """
     header = await conn.fetchrow(
         "select korean_summary, summary_contract_version "

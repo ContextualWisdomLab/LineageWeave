@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Backfill evidence-backed summaries for posts without a project field.
 
-This is an operator command, not a buyer HTTP route. It uses the existing
+This is an operator command, not a reader HTTP route. It uses the existing
 post-summary contract through contextual-orchestrator, keeps one metadata
 session per post, and never prints source bodies or model responses.
 """

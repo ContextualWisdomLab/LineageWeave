@@ -1,4 +1,4 @@
-"""Regression tests for buyer-visible stale summary continuity."""
+"""Regression tests for reader-visible stale summary continuity."""
 
 import asyncio
 

@@ -1,9 +1,9 @@
 # Storybook inventory
 
 Open the catalog after `cd frontend && pnpm run storybook`. Each story is a
-buyer-facing control you can click before changing product CSS.
+reader-facing control you can click before changing product CSS.
 
-| Story | Buyer next action | Token / module |
+| Story | Reader next action | Token / module |
 |---|---|---|
 | `Evidence/CitationChip` | Click a cited title to open that source post. | `--color-chip-border`, `--radius-chip`, `CitationChip` |
 | `AnalysisRun/CutoffKnownBody` | Read the cutoff-known sentence, then compare it with the live body below. | `--color-accent-border`, `--space-panel-block`, `--radius-panel`, `CutoffKnownBody` |
