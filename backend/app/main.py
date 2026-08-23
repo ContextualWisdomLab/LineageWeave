@@ -1303,7 +1303,15 @@ async def read_customer_master(
         )
         side_labels = await labels_for_codes(conn, [row["person_side_code"] for row in keyman_rows])
         entity_level_labels = await labels_for_codes(conn, [row["entity_level_code"] for row in entity_rows])
-        relationship_network = await fetch_relationship_network(conn, entity_ids)
+        # Same synthetic-only exclusion as the entity tree above (line
+        # ~1262): a stale demo-only grant is not a real affiliation once
+        # real source context exists, so it must not extend this ABAC scope.
+        authorized_relationship_entity_ids = [
+            entity_id
+            for entity_id in account.corporate_entity_ids
+            if entity_id not in synthetic_only_entity_ids
+        ]
+        relationship_network = await fetch_relationship_network(conn, authorized_relationship_entity_ids)
 
     names_by_entity: dict[str, list[dict[str, Any]]] = {}
     for row in entity_name_rows:

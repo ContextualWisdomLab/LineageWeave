@@ -982,6 +982,44 @@ or an explicit unavailable result.
   the dropped-channel diagnosis. Vitest leftover-pair and evaluation-503
   tests cover both; leftover Storybook scenes read the same next-action
   helper.
+- **Customer Master relationship-network ABAC scope-widening leak —
+  closed (2026-08-24):** a `lineageweave-bug-sweep` Workflow finder
+  found that `read_customer_master` (`GET /api/customer-master`,
+  ADR 0125) passed `entity_ids` -- the endpoint's broad Customer Master
+  listing, which includes entities the account merely *observes*
+  (mentioned in a visible post, never actually affiliated with) -- into
+  `fetch_relationship_network` as its ABAC scope. That function's SQL
+  treats its `corporate_entity_ids` parameter exactly like
+  `_can_see_post`'s `post.corporate_entity_id = any($1)` clause, so the
+  broader listing let a private post owned by an observed-only entity
+  leak its counterparty classification into `relationship_network`. The
+  pre-existing giant Customer Master contract test did not catch this:
+  its `"Private Other Corp" not in network` assertion passed only
+  incidentally, because the demo-vs-real-data source-context heuristic
+  happened to exclude the relevant fixture post. Scoped the call to
+  `account.corporate_entity_ids` (the account's own real affiliations),
+  net of the same synthetic-only/stale-demo-grant exclusion the entity
+  tree above it already applies once real source context exists -- an
+  initial fix using the raw affiliation list still leaked a stale demo
+  grant back in, caught by the existing giant test after the fix, and
+  corrected before commit. A new focused regression test defeats the
+  eligibility heuristic on purpose (giving both the mentioning and the
+  mentioned posts real source context) to isolate the ABAC-scoping
+  behavior; RED confirmed pre-fix, GREEN after, full suite (1032 passed,
+  17 skipped) shows no regressions.
+- **SourceResearchPanel stale-fetch race — closed (2026-08-24):** the
+  same `lineageweave-bug-sweep` Workflow finder that found the Customer
+  Master leak above also found `SourceResearchPanel.tsx`'s `load`
+  callback had no request-id guard on its `fetchPostSourceResearch`
+  call. A fast `postId` change (or the `runResearch` -> `load` refresh
+  racing a still-in-flight initial load) could let an earlier post's
+  response resolve after the panel had already moved to a newer post,
+  rendering the wrong post's persisted evidence. Added the same
+  `requestIdRef` counter/compare guard already used elsewhere in
+  `App.tsx` (`historyRequestIdRef`, `relatedRequest`, `postsRequest`).
+  Regression test confirmed RED (a stale response's lead rendered after
+  the postId change) before GREEN; full frontend suite 361 passed, lint
+  clean.
 - **Cross-repository email/project lineage — provider boundary implemented,
   consumer open:** PR #343 merged at
   `125a8069a1554874d8067a15047e19d780ea6b7b`, but the contract remains

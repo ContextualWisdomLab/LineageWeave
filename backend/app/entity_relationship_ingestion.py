@@ -140,6 +140,17 @@ async def fetch_relationship_network(
     missing-vs-guessed discipline as :func:`attach_resolved_entity_ids`.
     Capped at the 100 entities with the most total observed posts; ties
     break on name for a stable order.
+
+    ``corporate_entity_ids`` is used as an ABAC scope, not a display
+    list: the query treats it exactly like ``_can_see_post``'s
+    ``or post.corporate_entity_id = any($1)`` clause, so it must be the
+    caller account's own real affiliations (``account.corporate_entity_ids``),
+    with any synthetic-only (demo/stale-grant) ids already excluded --
+    the same filter Customer Master applies to its own entity tree.
+    Passing a broader Customer-Master listing that also includes
+    merely-*observed* entities (organizations only ever mentioned in a
+    post, never affiliated with) would let a private post owned by one
+    of those observed entities leak into ``relationship_network``.
     """
     if not corporate_entity_ids:
         return []
