@@ -618,7 +618,14 @@ def assemble_ontology_neighborhood(
                     metadata.recorded_at,
                 )
 
-    ordered_keys = [focus_key] + sorted(key for key in node_meta if key != focus_key)
+    # Trim by proximity to the focus (BFS/source-hop distance in `reached`),
+    # not by the "type:id" key string -- otherwise farther nodes of an
+    # alphabetically-earlier type code survive over closer nodes of a later
+    # type code. Node key is only a tiebreaker for equal distance.
+    ordered_keys = [focus_key] + sorted(
+        (key for key in node_meta if key != focus_key),
+        key=lambda key: (reached.get(key, maximum_depth + 1), key),
+    )
     if len(ordered_keys) > maximum_nodes:
         keep = set(ordered_keys[:maximum_nodes])
         page_edges = [

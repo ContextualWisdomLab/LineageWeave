@@ -700,6 +700,68 @@ def test_node_bound_truncation_drops_cursor_and_jsonld_rejects_dangling() -> Non
     assert rows == ()
 
 
+def test_node_bound_truncation_keeps_nearer_hop_over_farther_alphabetically_earlier_type() -> None:
+    """Trim by BFS distance, not by the raw "type:id" key string.
+
+    Two hop-1 ``node_post`` neighbors and one hop-2 ``node_corporate_entity``
+    neighbor straddle ``maximum_nodes``. "node_corporate_entity" sorts
+    before "node_post" lexicographically, so a key-string trim would keep
+    the farther corporate entity and drop a nearer post. Distance-based
+    trimming must keep both nearer posts instead.
+    """
+    post_b_id = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2"
+    labels = {
+        **_labels(),
+        (NODE_POST, post_b_id): "Second post",
+    }
+    mention_a = fact_from_knowledge_graph_edge(
+        source_node_type_code=NODE_PERSON,
+        source_node_id=PERSON_ID,
+        target_node_type_code=NODE_POST,
+        target_node_id=POST_ID,
+        edge_type_code=EDGE_MENTION,
+        recorded_at=T0,
+        evidence_references=(POST_ID,),
+        provenance_reference="kg-edge-mention-a",
+    )
+    mention_b = fact_from_knowledge_graph_edge(
+        source_node_type_code=NODE_PERSON,
+        source_node_id=PERSON_ID,
+        target_node_type_code=NODE_POST,
+        target_node_id=post_b_id,
+        edge_type_code=EDGE_MENTION,
+        recorded_at=T0,
+        evidence_references=(post_b_id,),
+        provenance_reference="kg-edge-mention-b",
+    )
+    mention_organization = fact_from_knowledge_graph_edge(
+        source_node_type_code=NODE_CORPORATE_ENTITY,
+        source_node_id=CORP_ID,
+        target_node_type_code=NODE_POST,
+        target_node_id=POST_ID,
+        edge_type_code=EDGE_MENTION_ORGANIZATION,
+        recorded_at=T0,
+        evidence_references=(POST_ID,),
+        provenance_reference="kg-edge-mention-organization",
+    )
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_PERSON,
+        focus_node_id=PERSON_ID,
+        facts=[mention_a, mention_b, mention_organization],
+        labels=labels,
+        maximum_depth=2,
+        maximum_nodes=3,
+    )
+    assert neighborhood.truncated is True
+    kept = {(node.node_type_code, node.node_id) for node in neighborhood.nodes}
+    assert kept == {
+        (NODE_PERSON, PERSON_ID),
+        (NODE_POST, POST_ID),
+        (NODE_POST, post_b_id),
+    }
+    assert (NODE_CORPORATE_ENTITY, CORP_ID) not in kept
+
+
 def test_malformed_cursor_token_and_owl_alias_fail_closed() -> None:
     with pytest.raises(OntologyNeighborhoodError) as owl:
         canonicalize_property_code(PROPERTY_OWL_SUBCLASS_OF)
