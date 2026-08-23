@@ -35,11 +35,12 @@ Recent protected-default-branch and org-control-plane evidence:
 | ---: | --- | --- |
 | #347 | merged as `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` | Korean UI standards on the current protected head |
 | ContextualWisdomLab/.github #1248 | merged | central Strix scope repair is available to subsequent reruns |
+| ContextualWisdomLab/.github #1245 | `92624300414b19dbed0f96a0295b1ac516181b4b`; auto-merge armed; blocked on independent review | retry/defer shared GitHub App installation rate limits so OpenCode dispatch is not starved |
 | ContextualWisdomLab/.github #1258 | `9b5dba9f558d20dbb651b409ea9fa54a865e3405`; auto-merge armed; blocked on independent review | `--trust-lockfile` only on pnpm 11.3+; Jest keeps native `--coverage`; no invented Vitest instrumenter |
 | ContextualWisdomLab/.github #1259 | `6041f2aa9e23af5850cd83fa838a3eb6c45d84b9`; auto-merge armed; blocked on independent review | thin LineageWeave hourly review-repair caller at minute 4; supersedes #1086 stack driver |
 | LineageWeave #426 | `b2d9bdb07cd8267742bbd5c8bad13985bd250aef` (this stack) | open, mergeable but blocked, review required, auto-merge armed; all 21 threads resolved, zero approvals; 9 checks passing, 10 pending, and 8 skipped |
 | LineageWeave #429 | `3763e1335cd3ac38b5e02b964ab49af34c8d73a0` | open, mergeable but blocked, review required, auto-merge armed |
-| LineageWeave #494 | `7eb5b2a89a6f32785bbbaf89126cb1ba931a03a8` | login-only overlap; auto-merge armed; do not fold this baseline back into #494 |
+| LineageWeave #494 | `327c359b35add7b8011542fb5bd07e625de41e29` | login `tsc` plus optional-extra collection skip; auto-merge armed; hosted frontend typecheck passing; do not fold this baseline back into #494 |
 | LineageWeave #497 | `07554b238a822e4423f8e6b4c000e5882fe49163`; merged as `250f20e8a6f830479ce904448cd29ab1a106aeef` into #426 only | ADR 0001 baseline is present on this hidden stack, not on protected `main` |
 | LineageWeave #498 | `35823d889c5360ebf2152ed5679d7c22d6832545` | `/healthz` + docstring coverage; overlaps #429; blocked on independent review |
 | LineageWeave #496 | `78287c08309f614ca1de04612c3e15c555bed1c6` | accepted TEPP receipts remain Running during an unavailable recheck; the mixed-import review fix has 21 focused tests passing; open and blocked with 20 checks passing, 2 pending, all 22 threads resolved, and zero approvals |
