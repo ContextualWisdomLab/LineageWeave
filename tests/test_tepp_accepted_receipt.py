@@ -8,7 +8,11 @@ import asyncpg
 import pytest
 
 import backend.app.analysis_run_start as analysis_run_start_module
-from backend.app.analysis_run_ingestion import fetch_tepp_accepted_receipts
+from backend.app.analysis_run_ingestion import (
+    fetch_outbox_deliveries,
+    fetch_reconstructed_edges,
+    fetch_tepp_accepted_receipts,
+)
 from backend.app.analysis_run_start import (
     _deliver_tepp_measurement,
     _persist_tepp_accepted_receipt,
@@ -325,6 +329,18 @@ def test_missing_receipt_table_isolated_from_the_callers_transaction() -> None:
     receipts = asyncio.run(fetch_tepp_accepted_receipts(connection, ["local-run"]))
     assert receipts == {}
     assert connection.transactions == 1
+
+
+def test_legacy_optional_reads_isolate_missing_tables() -> None:
+    outbox = _ReceiptConnection(error=asyncpg.UndefinedTableError("missing"))
+    reconstruction = _ReceiptConnection(error=asyncpg.UndefinedTableError("missing"))
+
+    assert asyncio.run(fetch_outbox_deliveries(outbox, "local-run")) == []
+    assert asyncio.run(fetch_reconstructed_edges(reconstruction, "local-run", [])) == (
+        None,
+        [],
+    )
+    assert outbox.transactions == reconstruction.transactions == 1
 
 
 def test_completed_without_result_is_not_a_measurement() -> None:

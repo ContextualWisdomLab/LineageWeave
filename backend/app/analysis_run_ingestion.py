@@ -252,15 +252,16 @@ async def fetch_outbox_deliveries(
     entry ids stay off the payload -- they are not buyer evidence.
     """
     try:
-        rows = await conn.fetch(
-            """
-            select delivery_ordinal, delivery_status_code, occurred_at
-            from analysis_run_outbox_delivery
-            where analysis_run_id = $1::uuid
-            order by delivery_ordinal
-            """,
-            analysis_run_id,
-        )
+        async with conn.transaction():
+            rows = await conn.fetch(
+                """
+                select delivery_ordinal, delivery_status_code, occurred_at
+                from analysis_run_outbox_delivery
+                where analysis_run_id = $1::uuid
+                order by delivery_ordinal
+                """,
+                analysis_run_id,
+            )
     except asyncpg.UndefinedTableError:
         return []
     labels = await labels_for_codes(
@@ -487,14 +488,15 @@ async def fetch_reconstructed_edges(
     Titles follow the same public-or-affiliated rule as ``visible_posts``.
     """
     try:
-        header = await conn.fetchrow(
-            """
-            select result_sha256
-            from analysis_run_reconstruction
-            where analysis_run_id = $1
-            """,
-            analysis_run_id,
-        )
+        async with conn.transaction():
+            header = await conn.fetchrow(
+                """
+                select result_sha256
+                from analysis_run_reconstruction
+                where analysis_run_id = $1
+                """,
+                analysis_run_id,
+            )
     except asyncpg.UndefinedTableError:
         return None, []
     if header is None:
