@@ -628,7 +628,6 @@ async def gather_global_chat_sources(
     # `find_linked_post_ids`'s `.direct` set used by the post-scoped chat
     # flow. Only the top match is expanded -- expanding every keyword hit
     # would let a loosely related term drag in an unrelated lineage chain.
-    kg_neighbor_ids: list[str] = []
     kg_anchor_id = candidate_ids[0] if candidate_ids else None
     if kg_anchor_id:
         kg_edges = await load_visible_subgraph(conn, [kg_anchor_id])
@@ -641,7 +640,6 @@ async def gather_global_chat_sources(
             node_type, node_id = parse_node_key(node)
             if node_type != NODE_POST:
                 continue
-            kg_neighbor_ids.append(node_id)
             candidate_scores[node_id] = candidate_scores.get(node_id, 0.0) + score
         candidate_ids = sorted(
             candidate_scores,
