@@ -1,14 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { BuyerNav } from "./BuyerNav";
+import { WorkspaceNav } from "./WorkspaceNav";
 
 const meta = {
-  title: "Navigation/BuyerNav",
-  component: BuyerNav,
+  title: "Navigation/WorkspaceNav",
+  component: WorkspaceNav,
   args: {
     destination: "board",
     onChange: () => undefined,
   },
-} satisfies Meta<typeof BuyerNav>;
+} satisfies Meta<typeof WorkspaceNav>;
 
 export default meta;
 
