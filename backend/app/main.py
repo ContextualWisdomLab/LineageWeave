@@ -1983,19 +1983,25 @@ async def read_post_content(
             if job.should_publish:
                 queue_event = (job.post_id, job.source_body_sha256)
             async with conn.transaction():
-                binding = await conn.fetchrow(
-                    """
-                    select post.post_body, job.source_body_sha256, job.status_code
-                    from source_post post
-                    join post_content_ingestion_job job on job.post_id = post.post_id
-                    where post.post_id = $1
-                    for share of job, post
-                    """,
+                source_binding = await conn.fetchrow(
+                    "select post_body from source_post where post_id = $1 for share",
                     post_id,
                 )
-                bound_body = None if binding is None else binding["post_body"]
+                binding = await conn.fetchrow(
+                    """
+                    select source_body_sha256, status_code
+                    from post_content_ingestion_job
+                    where post_id = $1
+                    for share
+                    """,
+                    post_id,
+                ) if source_binding is not None else None
+                bound_body = (
+                    None if source_binding is None else source_binding["post_body"]
+                )
                 derived_content_is_current = bool(
                     isinstance(bound_body, str)
+                    and binding is not None
                     and binding["status_code"] == SUCCEEDED
                     and binding["source_body_sha256"] == source_body_sha256(bound_body)
                 )

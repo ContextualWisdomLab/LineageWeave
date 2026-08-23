@@ -238,28 +238,33 @@ async def persist_post_content(
 
     async with conn.transaction():
         if expected_source_body_sha256 is not None:
+            source_row = await conn.fetchrow(
+                "select post_body from source_post where post_id = $1 for update",
+                post_id,
+            )
+            if source_row is None:
+                return None
+            current_body = source_row["post_body"]
+            if not isinstance(current_body, str):
+                return None
+            current_digest = hashlib.sha256(current_body.encode("utf-8")).hexdigest()
+            if current_digest != expected_source_body_sha256 or current_body != body:
+                return None
             claim_row = await conn.fetchrow(
                 """
-                select post.post_body
-                from post_content_ingestion_job job
-                join source_post post on post.post_id = job.post_id
-                where job.post_id = $1
-                  and job.source_body_sha256 = $2
-                  and job.attempt_count = $3
-                  and job.status_code = 'post_content_ingestion_running'
-                for update of job, post
+                select status_code
+                from post_content_ingestion_job
+                where post_id = $1
+                  and source_body_sha256 = $2
+                  and attempt_count = $3
+                  and status_code = 'post_content_ingestion_running'
+                for update
                 """,
                 post_id,
                 expected_source_body_sha256,
                 expected_attempt_count,
             )
             if claim_row is None:
-                return None
-            current_body = claim_row["post_body"]
-            if not isinstance(current_body, str):
-                return None
-            current_digest = hashlib.sha256(current_body.encode("utf-8")).hexdigest()
-            if current_digest != expected_source_body_sha256 or current_body != body:
                 return None
         if transaction_fence is not None:
             await transaction_fence(conn)

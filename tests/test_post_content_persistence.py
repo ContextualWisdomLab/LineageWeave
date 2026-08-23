@@ -20,10 +20,16 @@ class _Transaction:
 
 
 class _Connection:
-    def __init__(self, claim_row: dict[str, object] | None = None) -> None:
+    def __init__(
+        self,
+        claim_row: dict[str, object] | None = None,
+        *,
+        source_body: str | None = None,
+    ) -> None:
         self.executed: list[tuple[str, tuple[object, ...]]] = []
         self.fetched: list[str] = []
         self.claim_row = claim_row
+        self.source_body = source_body
         self.in_transaction = False
 
     def transaction(self) -> _Transaction:
@@ -41,6 +47,8 @@ class _Connection:
 
     async def fetchrow(self, query: str, *args: object):
         self.fetched.append(query)
+        if "from source_post" in query and "post_content_ingestion_job" not in query:
+            return {"post_body": self.source_body}
         return self.claim_row
 
 
@@ -98,7 +106,7 @@ def test_persist_post_content_keeps_units_when_embedding_provider_fails() -> Non
 def test_stale_claim_cannot_replace_current_post_content_artifacts() -> None:
     body = "A synthetic source revision."
     digest = hashlib.sha256(body.encode("utf-8")).hexdigest()
-    conn = _Connection(claim_row=None)
+    conn = _Connection(claim_row=None, source_body=body)
 
     unit_count = asyncio.run(
         persist_post_content(
@@ -111,14 +119,15 @@ def test_stale_claim_cannot_replace_current_post_content_artifacts() -> None:
     )
 
     assert unit_count is None
-    assert any("for update of job, post" in query for query in conn.fetched)
+    assert "from source_post" in conn.fetched[0]
+    assert "from post_content_ingestion_job" in conn.fetched[1]
     assert not any("delete from post_content_unit" in query for query, _args in conn.executed)
 
 
 def test_claim_with_changed_source_body_cannot_replace_artifacts() -> None:
     body = "The source body used by an older worker."
     digest = hashlib.sha256(body.encode("utf-8")).hexdigest()
-    conn = _Connection(claim_row={"post_body": "A newer source body."})
+    conn = _Connection(source_body="A newer source body.")
 
     unit_count = asyncio.run(
         persist_post_content(
@@ -132,6 +141,29 @@ def test_claim_with_changed_source_body_cannot_replace_artifacts() -> None:
 
     assert unit_count is None
     assert not any("delete from post_content_unit" in query for query, _args in conn.executed)
+
+
+def test_worker_artifact_fence_locks_source_before_job() -> None:
+    body = "A current synthetic worker body."
+    digest = hashlib.sha256(body.encode("utf-8")).hexdigest()
+    conn = _Connection(claim_row={"post_body": body}, source_body=body)
+
+    unit_count = asyncio.run(
+        persist_post_content(
+            conn,
+            "post-1",
+            body,
+            expected_source_body_sha256=digest,
+            expected_attempt_count=9,
+        )
+    )
+
+    assert unit_count == 1
+    lock_queries = [" ".join(query.split()) for query in conn.fetched[:2]]
+    assert "from source_post" in lock_queries[0]
+    assert "post_content_ingestion_job" not in lock_queries[0]
+    assert "from post_content_ingestion_job" in lock_queries[1]
+    assert "source_post" not in lock_queries[1]
 
 
 def test_operator_fence_and_artifact_replacement_share_one_transaction() -> None:

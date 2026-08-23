@@ -35,12 +35,14 @@ class _Connection:
         self.row = row
         self.values = list(values or [])
         self.executed: list[tuple[str, tuple[object, ...]]] = []
+        self.queries: list[str] = []
 
     def transaction(self) -> _Transaction:
         return _Transaction()
 
     async def fetchrow(self, query: str, *args: object):
-        if "job.attempt_count = $3" in query and self.row is not None:
+        self.queries.append(" ".join(query.split()))
+        if "attempt_count = $3" in query and self.row is not None:
             if int(self.row["job_attempt_count"]) != int(args[2]):
                 return None
             if str(self.row["job_source_body_sha256"]) != str(args[1]):
@@ -177,6 +179,25 @@ def test_due_retry_is_claimed_and_attempt_is_incremented() -> None:
     assert claimed["job_attempt_count"] == 2
     assert claimed["job_cycle_attempt_count"] == 2
     assert any(args[1] == RUNNING for query, args in connection.executed if len(args) > 1 and "set status_code" in query)
+
+
+def test_worker_claim_locks_source_before_job() -> None:
+    connection = _Connection(_row(QUEUED, 0))
+
+    claimed = asyncio.run(
+        post_content_worker._claim_job(
+            _Pool(connection),
+            "00000000-0000-0000-0000-000000000001",
+            _DIGEST,
+            embedding_model_code="",
+        )
+    )
+
+    assert claimed is not None
+    assert "from source_post" in connection.queries[0]
+    assert "post_content_ingestion_job" not in connection.queries[0]
+    assert "from post_content_ingestion_job" in connection.queries[1]
+    assert "source_post" not in connection.queries[1]
 
 
 def test_fresh_retry_cycle_preserves_a_high_monotonic_claim_identity() -> None:
@@ -462,6 +483,9 @@ def test_completion_transition_rechecks_running_digest_and_attempt() -> None:
     assert "source_body_sha256 = $10" in query
     assert "status_code = $11" in query
     assert args[8:] == (7, _DIGEST, RUNNING)
+    assert "from source_post" in connection.queries[0]
+    assert "post_content_ingestion_job" not in connection.queries[0]
+    assert "from post_content_ingestion_job" in connection.queries[1]
 
 
 def test_claim_rejects_a_job_digest_that_no_longer_matches_the_locked_source() -> None:

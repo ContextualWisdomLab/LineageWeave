@@ -38,14 +38,15 @@ though the source post remains authorized and available.
    source-body SHA-256. For image-bearing input it also requires the exact
    current succeeded content job and re-reads the ordered persisted image
    evidence; that evidence must match the normalized summary input byte for
-   byte. Catalog-writing resolution, summary-owned projection replacement,
-   and current-payload fetch then complete in that same transaction while the
-   source/evidence lock remains held. This deliberately accepts bounded
-   enrichment latency under the source lock so stale provider output cannot
-   mutate a shared catalog before its evidence is rejected. A source or
-   evidence change during provider work therefore leaves both the shared
-   catalog and prior summary projection intact and cannot return the
-   superseded result as current.
+   byte. Organization name and hierarchy provider calls first produce frozen,
+   no-write proposals before that transaction begins. After the recheck,
+   applying those proposals to shared name/catalog tables, replacing the
+   summary-owned projection, and fetching the current payload complete in the
+   same transaction while the source/evidence lock remains held. Provider
+   calls never run while source, job, or catalog advisory locks are held. A
+   source or evidence change during provider work therefore rejects every
+   proposed catalog mutation, leaves the prior summary projection intact, and
+   cannot return the superseded result as current.
 
 ## Consequences
 

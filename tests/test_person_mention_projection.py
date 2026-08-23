@@ -672,11 +672,27 @@ async def _exercise_homonym_organization_role_binding(
             )
         )
 
-        async def resolve_mentioned_organization(*_args, **_kwargs) -> tuple[str, None]:
+        prepared = object()
+
+        async def prepare_mentioned_organization(*_args, **_kwargs):
+            return prepared
+
+        async def apply_mentioned_organization(
+            _conn,
+            proposal,
+            _candidates,
+        ) -> tuple[str, None]:
+            assert proposal is prepared
             return mentioned_id, None
 
-        original = summary_ingestion.get_or_create_corporate_entity
-        summary_ingestion.get_or_create_corporate_entity = resolve_mentioned_organization
+        original_prepare = summary_ingestion.prepare_corporate_entity_resolution
+        original_apply = summary_ingestion.apply_prepared_corporate_entity_resolution
+        summary_ingestion.prepare_corporate_entity_resolution = (
+            prepare_mentioned_organization
+        )
+        summary_ingestion.apply_prepared_corporate_entity_resolution = (
+            apply_mentioned_organization
+        )
         try:
             payload = await persist_post_summary(
                 connection,
@@ -697,7 +713,8 @@ async def _exercise_homonym_organization_role_binding(
                 ),
             )
         finally:
-            summary_ingestion.get_or_create_corporate_entity = original
+            summary_ingestion.prepare_corporate_entity_resolution = original_prepare
+            summary_ingestion.apply_prepared_corporate_entity_resolution = original_apply
 
         roles = payload["roles_and_responsibilities"]
         assert len(roles) == 1

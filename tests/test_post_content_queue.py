@@ -81,7 +81,7 @@ def test_adrs_keep_post_open_separate_from_image_summary_readiness() -> None:
     assert "normalized summary-input SHA-256" in semantic_contract
     assert "durable job row to match the current raw-body SHA-256" in ingestion_contract
     assert "Legacy rows with no input binding are never current" in stale_contract
-    assert "bounded enrichment latency under the source lock" in stale_contract
+    assert "Provider calls never run while source" in stale_contract
 
 
 def test_summary_waits_for_image_evidence_and_detects_images_without_body_logging() -> None:

@@ -180,6 +180,80 @@ def test_locked_candidate_recheck_reuses_concurrently_created_entity() -> None:
     assert events[-1] == "transaction:exit"
 
 
+def test_prepared_parent_chain_applies_parent_before_child_without_provider_locks() -> None:
+    """The composite caller preserves provider-first, parent-first semantics."""
+    events: list[Any] = []
+    parent_id = uuid.uuid4()
+    child_id = uuid.uuid4()
+
+    class ParentInference:
+        available = True
+
+        def infer(self, organization_name: str, _context_text: str) -> HierarchyProposal:
+            events.append(("inference", organization_name))
+            if organization_name == "Synthetic Child":
+                return HierarchyProposal(
+                    level_code="plant",
+                    parent_name="Synthetic Parent",
+                )
+            return HierarchyProposal(level_code="company", parent_name=None)
+
+    class ParentVerification:
+        available = True
+
+        def verify(self, subject: str, relation: str) -> SimpleNamespace:
+            events.append(("verification", subject, relation))
+            return SimpleNamespace(status_code=STATUS_CORROBORATED)
+
+    class ParentConnection:
+        def transaction(self) -> _RecordedTransaction:
+            events.append("transaction:open")
+            return _RecordedTransaction(events)
+
+        async def execute(self, query: str, *_args: Any) -> str:
+            assert "pg_advisory_xact_lock" in query
+            events.append("creation_lock")
+            return "SELECT 1"
+
+        async def fetch(self, _query: str, *_args: Any) -> list[Any]:
+            return []
+
+        async def fetchrow(self, query: str, *args: Any) -> dict[str, uuid.UUID]:
+            assert "insert into corporate_entity" in query
+            organization_name = args[2]
+            events.append(("entity_insert", organization_name, args[0]))
+            return {
+                "corporate_entity_id": (
+                    parent_id if organization_name == "Synthetic Parent" else child_id
+                )
+            }
+
+    result = asyncio.run(
+        corporate_ingestion.get_or_create_corporate_entity(
+            ParentConnection(),
+            "Synthetic Child",
+            "Synthetic parent-chain context",
+            ParentInference(),
+            ParentVerification(),
+            [],
+        )
+    )
+
+    assert result == (str(child_id), None)
+    inserts = [event for event in events if isinstance(event, tuple) and event[0] == "entity_insert"]
+    assert inserts == [
+        ("entity_insert", "Synthetic Parent", None),
+        ("entity_insert", "Synthetic Child", str(parent_id)),
+    ]
+    first_transaction = events.index("transaction:open")
+    last_provider = max(
+        index
+        for index, event in enumerate(events)
+        if isinstance(event, tuple) and event[0] in {"inference", "verification"}
+    )
+    assert last_provider < first_transaction
+
+
 class _SummaryConnection:
     """Minimal connection that records every post-summary database operation."""
 
@@ -215,7 +289,7 @@ class _SummaryConnection:
                 "summary_input_sha256": self.summary_input_sha256,
             }
         if compact.startswith("select resolved_organization_name, verification_status_code"):
-            assert self.in_transaction
+            assert not self.in_transaction
             return None
         if compact.startswith("select person_id from cataloged_person"):
             assert self.in_transaction
@@ -359,6 +433,7 @@ def test_summary_source_revision_after_provider_work_preserves_prior_projection(
 ) -> None:
     events: list[Any] = []
     connection = _SummaryConnection(events)
+    proposals: list[str] = []
     catalog_writes: list[str] = []
 
     async def stale_input(*_args, **_kwargs) -> bool:
@@ -370,11 +445,19 @@ def test_summary_source_revision_after_provider_work_preserves_prior_projection(
     async def load_candidates(*_args, **_kwargs) -> list[Any]:
         return []
 
-    async def must_not_resolve_organization(*_args, **_kwargs):
+    async def prepare_organization(*_args, **_kwargs):
+        proposals.append("organization")
+        return object()
+
+    async def prepare_affiliation(*_args, **_kwargs):
+        proposals.append("affiliation")
+        return object()
+
+    async def apply_organization(*_args, **_kwargs):
         catalog_writes.append("organization")
         return None, "reason_no_catalog_entry"
 
-    async def must_not_resolve_affiliation(*_args, **_kwargs):
+    async def apply_affiliation(*_args, **_kwargs):
         catalog_writes.append("affiliation")
         return "Synthetic Affiliate", "Synthetic Affiliate", None, None
 
@@ -383,13 +466,27 @@ def test_summary_source_revision_after_provider_work_preserves_prior_projection(
     monkeypatch.setattr(summary_ingestion, "_load_corporate_entity_candidates", load_candidates)
     monkeypatch.setattr(
         summary_ingestion,
-        "get_or_create_corporate_entity",
-        must_not_resolve_organization,
+        "prepare_corporate_entity_resolution",
+        prepare_organization,
+        raising=False,
     )
     monkeypatch.setattr(
         summary_ingestion,
-        "_resolve_affiliated_organization",
-        must_not_resolve_affiliation,
+        "prepare_affiliated_organization",
+        prepare_affiliation,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        summary_ingestion,
+        "apply_prepared_corporate_entity_resolution",
+        apply_organization,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        summary_ingestion,
+        "apply_prepared_affiliated_organization",
+        apply_affiliation,
+        raising=False,
     )
 
     with pytest.raises(RuntimeError, match="no longer current"):
@@ -427,28 +524,34 @@ def test_summary_source_revision_after_provider_work_preserves_prior_projection(
         and "delete from post_summary_result" in event[1]
         for event in events
     )
+    assert proposals == ["organization", "affiliation"]
     assert catalog_writes == []
 
 
-def test_organization_enrichment_runs_under_current_source_lock(monkeypatch) -> None:
-    """Catalog-writing enrichment runs inside the current-input transaction."""
+def test_blocking_organization_provider_finishes_before_current_source_lock(
+    monkeypatch,
+) -> None:
+    """Network proposal work never holds the current source transaction."""
     events: list[Any] = []
     connection = _SummaryConnection(events)
     corporate_entity_id = str(uuid.uuid4())
+    provider_started = asyncio.Event()
+    provider_release = asyncio.Event()
+    prepared = object()
 
     async def load_candidates(conn) -> list[Any]:
         events.append(("candidate_load", conn.in_transaction))
         return []
 
-    async def resolve_organization(
-        conn,
-        organization_name,
-        context_text,
-        inference_client,
-        verification_client,
-        candidates,
-    ) -> tuple[str, str | None]:
-        events.append(("organization_resolve", conn.in_transaction))
+    async def prepare_organization(*_args, **_kwargs):
+        events.append(("organization_prepare", connection.in_transaction))
+        provider_started.set()
+        await provider_release.wait()
+        return prepared
+
+    async def apply_organization(conn, proposal, candidates) -> tuple[str, str | None]:
+        assert proposal is prepared
+        events.append(("organization_apply", conn.in_transaction))
         assert conn.in_transaction
         return corporate_entity_id, None
 
@@ -458,7 +561,18 @@ def test_organization_enrichment_runs_under_current_source_lock(monkeypatch) -> 
         return []
 
     monkeypatch.setattr(summary_ingestion, "_load_corporate_entity_candidates", load_candidates)
-    monkeypatch.setattr(summary_ingestion, "get_or_create_corporate_entity", resolve_organization)
+    monkeypatch.setattr(
+        summary_ingestion,
+        "prepare_corporate_entity_resolution",
+        prepare_organization,
+        raising=False,
+    )
+    monkeypatch.setattr(
+        summary_ingestion,
+        "apply_prepared_corporate_entity_resolution",
+        apply_organization,
+        raising=False,
+    )
     monkeypatch.setattr(summary_ingestion, "persist_edges_for_post", persist_edges)
 
     async def current_input(*_args, **_kwargs) -> bool:
@@ -478,21 +592,31 @@ def test_organization_enrichment_runs_under_current_source_lock(monkeypatch) -> 
         ),
     )
 
-    asyncio.run(
-        summary_ingestion.persist_post_summary(
-            connection,
-            str(uuid.uuid4()),
-            summary,
-            post_body="Synthetic organization evidence.",
-            expected_source_body_sha256=hashlib.sha256(
-                b"Synthetic organization evidence."
-            ).hexdigest(),
+    async def persist_while_provider_is_blocked() -> bool:
+        task = asyncio.create_task(
+            summary_ingestion.persist_post_summary(
+                connection,
+                str(uuid.uuid4()),
+                summary,
+                post_body="Synthetic organization evidence.",
+                expected_source_body_sha256=hashlib.sha256(
+                    b"Synthetic organization evidence."
+                ).hexdigest(),
+            )
         )
-    )
+        await asyncio.wait_for(provider_started.wait(), timeout=1)
+        lock_was_held = connection.in_transaction
+        provider_release.set()
+        await task
+        return lock_was_held
+
+    assert asyncio.run(persist_while_provider_is_blocked()) is False
 
     assert ("candidate_load", False) in events
-    assert ("organization_resolve", True) in events
-    resolve_index = events.index(("organization_resolve", True))
+    assert ("organization_prepare", False) in events
+    assert ("organization_apply", True) in events
+    prepare_index = events.index(("organization_prepare", False))
+    apply_index = events.index(("organization_apply", True))
     enter_index = events.index("transaction:enter")
     lock_index = events.index("input_lock")
     exit_index = events.index("transaction:exit")
@@ -512,7 +636,7 @@ def test_organization_enrichment_runs_under_current_source_lock(monkeypatch) -> 
     )
     assert "cataloged_corporate_entity_id" in role_insert
     assert "cataloged_person_id" in role_insert
-    assert enter_index < lock_index < resolve_index < mention_index < exit_index
+    assert prepare_index < enter_index < lock_index < apply_index < mention_index < exit_index
 
 
 class _KeymanConnection:
@@ -560,22 +684,22 @@ def test_keyman_organization_enrichment_finishes_before_write_transaction(monkey
     connection = _KeymanConnection(events)
     corporate_entity_id = str(uuid.uuid4())
 
-    async def resolve_name(conn, resolution_client, verification_client, organization_name, post_body) -> str:
+    prepared = object()
+
+    async def prepare_affiliation(conn, *_args, **_kwargs):
         events.append(("organization_resolve", conn.in_transaction))
         assert not conn.in_transaction
-        return "Aurora Grid Power"
+        return prepared
 
-    async def resolve_organization(
+    async def apply_affiliation(
         conn,
-        organization_name,
-        context_text,
-        inference_client,
-        verification_client,
+        proposal,
         candidates,
-    ) -> tuple[str, str | None]:
+    ) -> tuple[str, str, str | None, str | None]:
+        assert proposal is prepared
         events.append(("organization_create", conn.in_transaction))
         assert not conn.in_transaction
-        return corporate_entity_id, None
+        return "AGP", "Aurora Grid Power", corporate_entity_id, None
 
     class _Client:
         available = True
@@ -589,8 +713,16 @@ def test_keyman_organization_enrichment_finishes_before_write_transaction(monkey
                 )
             ]
 
-    monkeypatch.setattr(keyman_ingestion, "resolve_organization_name", resolve_name)
-    monkeypatch.setattr(keyman_ingestion, "get_or_create_corporate_entity", resolve_organization)
+    monkeypatch.setattr(
+        keyman_ingestion,
+        "prepare_affiliated_organization",
+        prepare_affiliation,
+    )
+    monkeypatch.setattr(
+        keyman_ingestion,
+        "apply_prepared_affiliated_organization",
+        apply_affiliation,
+    )
 
     asyncio.run(
         keyman_ingestion.ingest_post_keymen(

@@ -57,9 +57,28 @@ async def _claim_job(
 ) -> dict[str, object] | None:
     async with pool.acquire() as conn:
         async with conn.transaction():
-            row = await conn.fetchrow(
+            source_row = await conn.fetchrow(
                 """
-                select p.*, j.source_body_sha256 as job_source_body_sha256,
+                select p.*
+                from source_post p
+                where p.post_id = $1::uuid
+                  and coalesce(upper(btrim(p.source_detail_state_code)), '') <> 'W'
+                for update of p
+                """,
+                post_id,
+            )
+            if source_row is None:
+                return None
+            if str(source_row.get("source_detail_state_code") or "").strip().upper() == "W":
+                return None
+            raw_body = source_row["post_body"]
+            if not isinstance(raw_body, str):
+                return None
+            if source_body_sha256(raw_body) != source_body_digest:
+                return None
+            job_row = await conn.fetchrow(
+                """
+                select j.source_body_sha256 as job_source_body_sha256,
                        j.status_code as job_status_code,
                        j.attempt_count as job_attempt_count,
                        (
@@ -81,26 +100,19 @@ async def _claim_job(
                        j.started_at as job_started_at,
                        j.queued_at as job_queued_at
                 from post_content_ingestion_job j
-                join source_post p on p.post_id = j.post_id
                 where j.post_id = $1::uuid
                   and j.source_body_sha256 = $2
-                  and coalesce(upper(btrim(p.source_detail_state_code)), '') <> 'W'
-                for update of j, p
+                for update
                 """,
                 post_id,
                 source_body_digest,
                 RUNNING,
                 QUEUED,
             )
-            if row is None:
+            if job_row is None:
                 return None
-            if str(row.get("source_detail_state_code") or "").strip().upper() == "W":
-                return None
-            raw_body = row["post_body"]
-            if not isinstance(raw_body, str):
-                return None
-            if source_body_sha256(raw_body) != source_body_digest:
-                return None
+            row = dict(source_row)
+            row.update(dict(job_row))
             status_code = str(row["job_status_code"])
             cycle_attempt_count = int(row["job_cycle_attempt_count"])
             if status_code == FAILED:
@@ -182,28 +194,33 @@ async def _lock_current_claim(
     expected_attempt_count: int,
 ) -> bool:
     """Lock and validate the immutable worker claim against current source."""
-    row = await conn.fetchrow(
+    source_row = await conn.fetchrow(
+        "select post_body from source_post where post_id = $1::uuid for update",
+        post_id,
+    )
+    if source_row is None:
+        return False
+    raw_body = source_row["post_body"]
+    if not isinstance(raw_body, str) or (
+        source_body_sha256(raw_body) != expected_source_body_sha256
+    ):
+        return False
+    job_row = await conn.fetchrow(
         """
-        select post.post_body
-        from post_content_ingestion_job job
-        join source_post post on post.post_id = job.post_id
-        where job.post_id = $1::uuid
-          and job.source_body_sha256 = $2
-          and job.attempt_count = $3
-          and job.status_code = $4
-        for update of job, post
+        select status_code
+        from post_content_ingestion_job
+        where post_id = $1::uuid
+          and source_body_sha256 = $2
+          and attempt_count = $3
+          and status_code = $4
+        for update
         """,
         post_id,
         expected_source_body_sha256,
         expected_attempt_count,
         RUNNING,
     )
-    if row is None:
-        return False
-    raw_body = row["post_body"]
-    return isinstance(raw_body, str) and (
-        source_body_sha256(raw_body) == expected_source_body_sha256
-    )
+    return job_row is not None
 
 
 async def _finish_job(

@@ -113,9 +113,13 @@ def test_summary_persistence_lock_rejects_a_changed_current_source() -> None:
 
 def test_summary_persistence_lock_rejects_changed_ordered_image_evidence() -> None:
     body = '<img src="data:image/png;base64,AA==">'
+    lock_queries: list[str] = []
 
     class ChangedEvidenceConnection:
-        async def fetchrow(self, *_args, **_kwargs):
+        async def fetchrow(self, query: str, *_args, **_kwargs):
+            lock_queries.append(" ".join(query.split()))
+            if "post_content_ingestion_job" in query:
+                return {"status_code": "post_content_ingestion_succeeded"}
             return {"post_body": body}
 
         async def fetch(self, *_args, **_kwargs):
@@ -140,6 +144,9 @@ def test_summary_persistence_lock_rejects_changed_ordered_image_evidence() -> No
     )
 
     assert result is False
+    assert "from source_post" in lock_queries[0]
+    assert "post_content_ingestion_job" not in lock_queries[0]
+    assert "from post_content_ingestion_job" in lock_queries[1]
 
 
 def test_legacy_unbound_summary_is_only_explicit_stale_continuity() -> None:

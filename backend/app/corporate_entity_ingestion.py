@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+from dataclasses import dataclass
 
 import asyncpg
 
@@ -38,6 +39,17 @@ from lineageweave.relation_verification import (
 _AUTO_CODE_PREFIX = "AUTO-"
 _MAX_HIERARCHY_DEPTH = 4
 _CREATION_LOCK_KEY = "lineageweave:corporate_entity_creation"
+
+
+@dataclass(frozen=True)
+class PreparedCorporateEntityResolution:
+    """Provider-complete corporate resolution plan with no database writes."""
+
+    normalized_name: str
+    catalog_id: str | None
+    unresolved_reason: str | None
+    proposal: HierarchyProposal | None
+    parent: PreparedCorporateEntityResolution | None
 
 
 def _auto_entity_code(organization_name: str) -> str:
@@ -103,8 +115,7 @@ def _remember_candidate(
     )
 
 
-async def get_or_create_corporate_entity(
-    conn: asyncpg.Connection,
+async def prepare_corporate_entity_resolution(
     organization_name: str,
     context_text: str,
     inference_client: CorporateHierarchyInferenceClient,
@@ -113,42 +124,38 @@ async def get_or_create_corporate_entity(
     *,
     _depth: int = 0,
     _visited_names: frozenset[str] = frozenset(),
-) -> tuple[str | None, str | None]:
-    """Return ``(catalog id, unresolved reason code)``.
+) -> PreparedCorporateEntityResolution:
+    """Run scoring and provider checks without mutating the catalog.
 
-    The catalog id is ``None`` exactly when the reason code is one of
-    ADR 0141's closed values (``reason_tied_candidates``,
-    ``reason_no_live_client``, ``reason_not_corroborated``) -- the caller
-    persists that reason instead of a flat "unresolved" fact. It is
-    ``None, None`` only for the pure input-validation edge cases (an empty
-    name, or a name already in the recursion path) that never represent a
-    real actor mention.
-
-    A unique similarity match is reused. A tied top score stays unbound
-    and does not create a third same-named row (ADR 0026). Only a genuine
-    miss -- no candidate at or above ``min_similarity`` -- may enter ADR
-    0010 inference. A proposed parent must independently corroborate and
-    resolve before the child can be inserted. Repeated names in the
-    recursion path are cycles, including multi-node cycles such as
-    A -> B -> A.
+    The frozen result can be applied only after a caller's own current-input
+    fence. A tie remains terminal and parent chains remain bounded exactly as
+    in ADR 0010/0026.
     """
     normalized_name = organization_name.strip()
     if not normalized_name:
-        return None, None
+        return PreparedCorporateEntityResolution("", None, None, None, None)
     visit_key = normalized_name.casefold()
     if visit_key in _visited_names:
-        return None, None
+        return PreparedCorporateEntityResolution(
+            normalized_name, None, None, None, None
+        )
 
     existing = score_corporate_entity(normalized_name, candidates)
     if existing.kind == RESOLUTION_UNIQUE and existing.catalog_id is not None:
-        return existing.catalog_id, None
+        return PreparedCorporateEntityResolution(
+            normalized_name, existing.catalog_id, None, None, None
+        )
     if existing.kind == RESOLUTION_TIE:
-        return None, "reason_tied_candidates"
+        return PreparedCorporateEntityResolution(
+            normalized_name, None, "reason_tied_candidates", None, None
+        )
     if _depth >= _MAX_HIERARCHY_DEPTH or not inference_client.available:
         # Excessive recursion depth is folded into the same "not attempted"
         # bucket as an unconfigured client: from the reader's perspective
         # both mean enrichment never ran for this specific mention.
-        return None, "reason_no_live_client"
+        return PreparedCorporateEntityResolution(
+            normalized_name, None, "reason_no_live_client", None, None
+        )
 
     try:
         proposal = await asyncio.to_thread(
@@ -160,11 +167,17 @@ async def get_or_create_corporate_entity(
         # A provider timeout is an unavailable enrichment channel, not a
         # reason to discard the source-grounded summary. Keep the actor
         # unbound and let an explicit retry attempt catalog enrichment later.
-        return None, "reason_no_live_client"
+        return PreparedCorporateEntityResolution(
+            normalized_name, None, "reason_no_live_client", None, None
+        )
     if proposal is None:
-        return None, "reason_not_corroborated"
+        return PreparedCorporateEntityResolution(
+            normalized_name, None, "reason_not_corroborated", None, None
+        )
     if not verification_client.available:
-        return None, "reason_no_live_client"
+        return PreparedCorporateEntityResolution(
+            normalized_name, None, "reason_no_live_client", None, None
+        )
 
     try:
         placement_result = await asyncio.to_thread(
@@ -178,16 +191,22 @@ async def get_or_create_corporate_entity(
         # ingestion) -- treat it the same as "not corroborated this run":
         # the entity simply isn't auto-created, same conservative outcome
         # as a real search that found nothing.
-        return None, "reason_no_live_client"
+        return PreparedCorporateEntityResolution(
+            normalized_name, None, "reason_no_live_client", None, None
+        )
     if placement_result.status_code != STATUS_CORROBORATED:
-        return None, "reason_not_corroborated"
+        return PreparedCorporateEntityResolution(
+            normalized_name, None, "reason_not_corroborated", None, None
+        )
 
     visited_names = _visited_names | {visit_key}
-    parent_entity_id: str | None = None
+    parent_plan: PreparedCorporateEntityResolution | None = None
     if proposal.parent_name is not None:
         normalized_parent = proposal.parent_name.strip()
         if not normalized_parent or normalized_parent.casefold() in visited_names:
-            return None, "reason_not_corroborated"
+            return PreparedCorporateEntityResolution(
+                normalized_name, None, "reason_not_corroborated", None, None
+            )
         try:
             parent_result = await asyncio.to_thread(
                 verification_client.verify,
@@ -197,11 +216,14 @@ async def get_or_create_corporate_entity(
         except (HttpClientError, OSError):
             # Same fail-closed-without-crashing behavior as the placement
             # verification above.
-            return None, "reason_no_live_client"
+            return PreparedCorporateEntityResolution(
+                normalized_name, None, "reason_no_live_client", None, None
+            )
         if parent_result.status_code != STATUS_CORROBORATED:
-            return None, "reason_not_corroborated"
-        parent_entity_id, _parent_reason = await get_or_create_corporate_entity(
-            conn,
+            return PreparedCorporateEntityResolution(
+                normalized_name, None, "reason_not_corroborated", None, None
+            )
+        parent_plan = await prepare_corporate_entity_resolution(
             normalized_parent,
             context_text,
             inference_client,
@@ -210,9 +232,41 @@ async def get_or_create_corporate_entity(
             _depth=_depth + 1,
             _visited_names=visited_names,
         )
-        if parent_entity_id is None:
+        if parent_plan.catalog_id is None and parent_plan.proposal is None:
             # The child's own corroboration succeeded; it's the hierarchy
             # placement (ADR 0010 requires the whole chain) that didn't.
+            return PreparedCorporateEntityResolution(
+                normalized_name, None, "reason_not_corroborated", None, None
+            )
+
+    return PreparedCorporateEntityResolution(
+        normalized_name,
+        None,
+        None,
+        proposal,
+        parent_plan,
+    )
+
+
+async def apply_prepared_corporate_entity_resolution(
+    conn: asyncpg.Connection,
+    prepared: PreparedCorporateEntityResolution,
+    candidates: list[CorporateEntityCandidate],
+) -> tuple[str | None, str | None]:
+    """Apply a provider-complete plan using database work only."""
+    if prepared.catalog_id is not None or prepared.proposal is None:
+        return prepared.catalog_id, prepared.unresolved_reason
+
+    parent_entity_id: str | None = None
+    if prepared.parent is not None:
+        parent_entity_id, _parent_reason = (
+            await apply_prepared_corporate_entity_resolution(
+                conn,
+                prepared.parent,
+                candidates,
+            )
+        )
+        if parent_entity_id is None:
             return None, "reason_not_corroborated"
 
     async with conn.transaction():
@@ -225,20 +279,44 @@ async def get_or_create_corporate_entity(
         # initial lookup remains fuzzy, while this check only prevents a
         # concurrent insert of the same normalized name.
         fresh = score_corporate_entity(
-            normalized_name,
+            prepared.normalized_name,
             await _reload_candidates(conn),
             min_similarity=1.0,
         )
         if fresh.kind == RESOLUTION_UNIQUE and fresh.catalog_id is not None:
-            _remember_candidate(candidates, fresh.catalog_id, normalized_name)
+            _remember_candidate(candidates, fresh.catalog_id, prepared.normalized_name)
             return fresh.catalog_id, None
         if fresh.kind == RESOLUTION_TIE:
             return None, "reason_tied_candidates"
         new_id = await _create_entity(
             conn,
-            normalized_name,
-            proposal.level_code,
+            prepared.normalized_name,
+            prepared.proposal.level_code,
             parent_entity_id,
         )
-        _remember_candidate(candidates, new_id, normalized_name)
+        _remember_candidate(candidates, new_id, prepared.normalized_name)
         return new_id, None
+
+
+async def get_or_create_corporate_entity(
+    conn: asyncpg.Connection,
+    organization_name: str,
+    context_text: str,
+    inference_client: CorporateHierarchyInferenceClient,
+    verification_client: RelationVerificationClient,
+    candidates: list[CorporateEntityCandidate],
+    *,
+    _depth: int = 0,
+    _visited_names: frozenset[str] = frozenset(),
+) -> tuple[str | None, str | None]:
+    """Prepare provider evidence, then resolve or create the catalog row."""
+    prepared = await prepare_corporate_entity_resolution(
+        organization_name,
+        context_text,
+        inference_client,
+        verification_client,
+        candidates,
+        _depth=_depth,
+        _visited_names=_visited_names,
+    )
+    return await apply_prepared_corporate_entity_resolution(conn, prepared, candidates)

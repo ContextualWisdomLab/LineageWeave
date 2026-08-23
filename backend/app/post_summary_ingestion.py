@@ -69,10 +69,16 @@ from lineageweave.relation_verification import (
     RelationVerificationClient,
 )
 
-from .corporate_entity_ingestion import get_or_create_corporate_entity
+from .corporate_entity_ingestion import (
+    PreparedCorporateEntityResolution,
+    apply_prepared_corporate_entity_resolution,
+    prepare_corporate_entity_resolution,
+)
 from .keyman_ingestion import (
+    PreparedAffiliatedOrganization,
     _load_corporate_entity_candidates,
-    _resolve_affiliated_organization,
+    apply_prepared_affiliated_organization,
+    prepare_affiliated_organization,
 )
 from .knowledge_graph import persist_edges_for_post
 from .post_content_queue import SUCCEEDED, fetch_post_summary_source, source_body_sha256
@@ -117,26 +123,10 @@ async def _lock_current_summary_input(
     require_image_evidence: bool,
 ) -> bool:
     """Lock and recheck the exact source and persisted summary evidence."""
-    if require_image_evidence:
-        row = await conn.fetchrow(
-            """
-            select post.post_body
-            from source_post post
-            join post_content_ingestion_job job on job.post_id = post.post_id
-            where post.post_id = $1
-              and job.source_body_sha256 = $2
-              and job.status_code = $3
-            for update of job, post
-            """,
-            post_id,
-            expected_source_body_sha256,
-            SUCCEEDED,
-        )
-    else:
-        row = await conn.fetchrow(
-            "select post_body from source_post where post_id = $1 for update",
-            post_id,
-        )
+    row = await conn.fetchrow(
+        "select post_body from source_post where post_id = $1 for update",
+        post_id,
+    )
     if row is None:
         return False
     current_body = row["post_body"]
@@ -146,6 +136,21 @@ async def _lock_current_summary_input(
         return False
     if not require_image_evidence:
         return True
+    job = await conn.fetchrow(
+        """
+        select status_code
+        from post_content_ingestion_job
+        where post_id = $1
+          and source_body_sha256 = $2
+          and status_code = $3
+        for update
+        """,
+        post_id,
+        expected_source_body_sha256,
+        SUCCEEDED,
+    )
+    if job is None:
+        return False
     return await fetch_post_summary_source(conn, post_id) == expected_summary_input
 
 
@@ -470,11 +475,11 @@ async def persist_post_summary(
     clients, so an organization actor then only resolves against an existing
     ``corporate_entity``.
 
-    Catalog-writing resolution and summary replacement share the exact-current
-    source/evidence transaction. Existing resolution APIs interleave bounded
-    provider work with catalog creation, so the source lock is deliberately
-    held across that enrichment rather than allowing stale output to mutate a
-    shared catalog before the summary input is rejected (ADR 0114).
+    Provider-only organization proposals are prepared before the
+    exact-current source/evidence transaction. Catalog writes apply only after
+    that recheck and share its transaction with summary replacement, so neither
+    network latency nor stale provider output holds or mutates locked state
+    (ADR 0114).
     """
     await require_summary_target(conn, post_id)
     normalized_summary_input = require_summary_source_body(post_body)
@@ -492,6 +497,47 @@ async def persist_post_summary(
         if summary.roles_and_responsibilities
         else []
     )
+    prepared_organizations: dict[int, PreparedCorporateEntityResolution] = {}
+    prepared_affiliations: dict[int, PreparedAffiliatedOrganization] = {}
+    unavailable_affiliations: dict[int, tuple[str, str | None, str]] = {}
+    for role_index, role in enumerate(summary.roles_and_responsibilities):
+        if role.actor_type_code == ACTOR_TYPE_TEAM and is_generic_team_actor(
+            role.actor_name
+        ):
+            continue
+        if role.actor_type_code == ACTOR_TYPE_ORGANIZATION:
+            prepared_organizations[role_index] = (
+                await prepare_corporate_entity_resolution(
+                    role.actor_name,
+                    context_text,
+                    hierarchy_inference_client,
+                    verification_client,
+                    candidates,
+                )
+            )
+            continue
+        if (
+            role.actor_type_code in {ACTOR_TYPE_PERSON, ACTOR_TYPE_TEAM}
+            and role.affiliated_organization_name
+        ):
+            try:
+                prepared_affiliations[role_index] = (
+                    await prepare_affiliated_organization(
+                        conn,
+                        role.affiliated_organization_name,
+                        context_text,
+                        resolution_client,
+                        verification_client,
+                        hierarchy_inference_client,
+                        candidates,
+                    )
+                )
+            except (HttpClientError, OSError, TimeoutError, ValueError):
+                unavailable_affiliations[role_index] = (
+                    role.affiliated_organization_name,
+                    None,
+                    "reason_no_live_client",
+                )
     resolved_organization_ids: dict[int, str] = {}
     resolved_organization_reasons: dict[int, str] = {}
     resolved_affiliation_names: dict[int, str] = {}
@@ -518,25 +564,18 @@ async def persist_post_summary(
                     role.actor_type_code in {ACTOR_TYPE_PERSON, ACTOR_TYPE_TEAM}
                     and role.affiliated_organization_name
                 ):
-                    try:
+                    prepared_affiliation = prepared_affiliations.get(role_index)
+                    if prepared_affiliation is not None:
                         _, resolved_name, corporate_entity_id, affiliation_reason = (
-                            await _resolve_affiliated_organization(
+                            await apply_prepared_affiliated_organization(
                                 conn,
-                                role.affiliated_organization_name,
-                                context_text,
-                                resolution_client,
-                                verification_client,
-                                hierarchy_inference_client,
+                                prepared_affiliation,
                                 candidates,
                             )
                         )
-                    except (HttpClientError, OSError, TimeoutError, ValueError):
-                        # R&R affiliation is enrichment. A provider outage must
-                        # preserve the raw source name and the summary itself.
+                    else:
                         resolved_name, corporate_entity_id, affiliation_reason = (
-                            role.affiliated_organization_name,
-                            None,
-                            "reason_no_live_client",
+                            unavailable_affiliations[role_index]
                         )
                     resolved_affiliation_names[role_index] = resolved_name
                     if corporate_entity_id is not None:
@@ -544,13 +583,12 @@ async def persist_post_summary(
                     elif affiliation_reason is not None:
                         resolved_affiliation_reasons[role_index] = affiliation_reason
                 continue
-            corporate_entity_id, unresolved_reason = await get_or_create_corporate_entity(
-                conn,
-                role.actor_name,
-                context_text,
-                hierarchy_inference_client,
-                verification_client,
-                candidates,
+            corporate_entity_id, unresolved_reason = (
+                await apply_prepared_corporate_entity_resolution(
+                    conn,
+                    prepared_organizations[role_index],
+                    candidates,
+                )
             )
             if corporate_entity_id is not None:
                 resolved_organization_ids[role_index] = corporate_entity_id

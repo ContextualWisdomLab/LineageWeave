@@ -42,19 +42,28 @@ class _Connection:
     def __init__(self, status_code: str, *, binding_body: str = _BODY) -> None:
         self.status_code = status_code
         self.binding_body = binding_body
+        self.source_reads = 0
+        self.lock_queries: list[str] = []
 
     def transaction(self) -> _Transaction:
         return _Transaction()
 
     async def fetchrow(self, query: str, *_args: object):
+        self.lock_queries.append(" ".join(query.split()))
         if "join post_content_ingestion_job" in query:
             return {
                 "post_body": self.binding_body,
                 "source_body_sha256": source_body_sha256(_BODY),
                 "status_code": self.status_code,
             }
+        if "from post_content_ingestion_job" in query:
+            return {
+                "source_body_sha256": source_body_sha256(_BODY),
+                "status_code": self.status_code,
+            }
         assert "select post_body from source_post" in query
-        return {"post_body": _BODY}
+        self.source_reads += 1
+        return {"post_body": _BODY if self.source_reads == 1 else self.binding_body}
 
     async def fetch(self, query: str, *_args: object):
         if "from post_content_unit unit" in query and "join post_content_image" not in query:
@@ -68,10 +77,12 @@ class _Pool:
     def __init__(self, status_code: str, *, binding_body: str = _BODY) -> None:
         self.status_code = status_code
         self.binding_body = binding_body
+        self.connection: _Connection | None = None
 
     @asynccontextmanager
     async def acquire(self):
-        yield _Connection(self.status_code, binding_body=self.binding_body)
+        self.connection = _Connection(self.status_code, binding_body=self.binding_body)
+        yield self.connection
 
 
 def _configure(
@@ -131,17 +142,23 @@ def test_exact_current_succeeded_content_exposes_persisted_units(
 ) -> None:
     _configure(monkeypatch, status_code=SUCCEEDED)
 
+    pool = _Pool(SUCCEEDED)
     payload = asyncio.run(
         main.read_post_content(
             _POST_ID,
             account=object(),
-            pool=_Pool(SUCCEEDED),
+            pool=pool,
             valkey=None,
         )
     )
 
     assert payload["status"] == "ready"
     assert payload["units"][0]["unit_text"] == _UNIT["unit_text"]
+    assert pool.connection is not None
+    binding_queries = pool.connection.lock_queries[-2:]
+    assert "from source_post" in binding_queries[0]
+    assert "post_content_ingestion_job" not in binding_queries[0]
+    assert "from post_content_ingestion_job" in binding_queries[1]
 
 
 def test_source_change_after_enqueue_withholds_succeeded_artifacts(
