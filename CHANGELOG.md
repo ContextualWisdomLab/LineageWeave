@@ -213,7 +213,7 @@ All notable changes to this project are documented here. Format follows
   shell. The production frontend build type-checks again.
 
 
-## [2.12.19] - 2026-08-24
+## [2.12.20] - 2026-08-24
 
 ### Fixed
 

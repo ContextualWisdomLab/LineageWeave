@@ -218,7 +218,7 @@ v2.7.1). TEPP and period-report kinds 422 before any snapshot write.
 `POST /api/analysis-runs/{id}/start` reconstructs a Pending lineage
 cutoff bag through `reconstruct()` / `lineage_edge_specs` (ADR 0021 /
 v0.88.0). Status events stamp `occurred_at` and `recorded_at` from
-one PostgreSQL `clock_timestamp()` (ADR 0171 / v2.12.19). Do not
+one PostgreSQL `clock_timestamp()` (ADR 0171 / v2.12.20). Do not
 bind Python `datetime.now` as occurrence. Do not invent a theta.
 Opening a cutoff-rewritten title shows **Body this run knew** from
 `source_post_revision` beside the live rewrite (ADR 0025 / v2.1.0).
