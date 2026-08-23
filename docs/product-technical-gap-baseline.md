@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-24 00:42 KST. This repository records synthetic
+> Audit snapshot: 2026-08-24 00:53 KST. This repository records synthetic
 > fixtures and aggregate, non-identifying runtime evidence only. Open PRs and
 > local checks are not protected-default-branch release evidence.
 
@@ -8,9 +8,9 @@
 
 The protected default branch was
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` when this baseline was refreshed.
-The live queue contained 58 open PRs and no independently approved head. Sixteen
-current heads had an aggregate failed check state, fourteen had pending checks, and
-two current heads retained unresolved review threads (#497 and #435).
+The live queue contained 56 open PRs and no independently approved head. Nineteen
+current heads had an aggregate failed check state, ten had pending checks, and no
+current head retained an unresolved review thread.
 Those results must be re-fetched against the current head before remediation or
 a merge claim.
 
@@ -70,12 +70,15 @@ branch. Its six-file, +166/-2 compatibility-publication slice is intentionally
 minimal, but remains stack evidence only; it is not a protected-`main` merge
 or independent approval.
 
-Live publication remained incomplete at 2026-08-23 23:07 KST: the lowercase
+The official repository Pages API was activated at 2026-08-24 00:53 KST with
+`build_type=workflow`, public visibility, HTTPS enforcement, and repository-case
+`html_url` `https://contextualwisdomlab.github.io/LineageWeave/`. Live
+publication nevertheless remained incomplete: the lowercase
 ontology URL, repository-case ontology URL, and repository-case
 `namespace-compatibility.ttl` URL each returned HTTP 404. Source and active-PR
 publication contracts therefore do not prove an available public endpoint.
 Cross-repository organization-site PR #188 at
-`eefb389969c13b42b9eaf951316e6c7e8795eb96` provides the owned lowercase
+`b2d49bf39d84d5006a99cddf6bd911451dce222f` provides the owned lowercase
 route from LineageWeave artifact commit `c8a4be8f`; its 19 local tests passed
 before the current provenance/semantics repair, whose focused suite passed 20
 tests with zero Semgrep findings; its static acceptance returned HTTP 200. The PR remains open with hosted
@@ -95,11 +98,11 @@ Current active-PR evidence remains outside protected `main`:
   distributed MCP principal rate-limit decision. Its current hosted checks
   were running while a failed Devin status remained; it had no unresolved
   thread or exact-head approval.
-- PR #426 at `7ff31046cc2c8e2476d16b64df3bc00d55bf3eff` is the current
+- PR #426 at `3e214a5bafcff4b7c9644ccee99b2cf0c9e48637` is the current
   prerequisite carrier for ontology publication and the merged ADR 0157 and
-  compatibility-publication stacks. Its exact head passed the full suite with
-  780 tests and 17 skips. It had no unresolved review thread or exact-head
-  approval; hosted checks were pending. Results from its prior heads are stale.
+  compatibility-publication stacks. It had no unresolved review thread or
+  exact-head approval; hosted checks were pending. Results from its prior heads
+  are stale, and Pages activation alone does not deploy this unmerged source.
 - PR #355 at `6fc22a9471bfb4d94b18f884e012cd823b296382` carries ADR 0145's
   Naruon calendar projection boundary. Its aggregate checks failed, with no
   unresolved thread or exact-head approval.
@@ -114,18 +117,20 @@ Current active-PR evidence remains outside protected `main`:
   suite passed 81 tests, and lint plus diff-check were clean. The later head
   had no unresolved thread or exact-head approval, while hosted checks
   remained pending.
-- PR #496 at `9fe1932b4bd8abe8ac062ae1b18eb8a99efcbc00` carries savepoint,
+- PR #496 at `195ddf597c8eceaeaa00c9c86dc8103a4c7a8b89` carries savepoint,
   normalized TEPP analysis-run identifier, batched list/detail receipt, state
   progression, and replay-contract fixes. The current head also isolates the
   older optional outbox and reconstruction reads in savepoints so a missing
-  optional table cannot poison the caller transaction; 33 focused tests passed.
+  optional table cannot poison the caller transaction. Its latest change keeps
+  a durable accepted receipt Running across an unpersistable re-check; the
+  exact-head receipt suite passed 21 tests.
   It had no unresolved thread or exact-head approval, while hosted checks were
   pending; local results are not protected-release acceptance.
 - PR #498 at `35823d889c5360ebf2152ed5679d7c22d6832545` retained the public
   health probe, login return, and production docstring gate. Its informational
   review threads were resolved; it had no exact-head approval and hosted checks
   remained pending. This is source and test evidence, not a live-runtime claim.
-- PR #439 at `c8924d550733a94c764e7b91fbf2d751a113aa40` fixes the shared
+- PR #439 at `5db6276c53e8f59499dbac0f59f6cbf0555b99f2` fixes the shared
   lineage-layout walk so a visible root feeding a cycle terminates, with a
   synthetic rooted-cycle regression. Ninety-five focused frontend tests and
   TypeScript compilation passed before the guarded fast-forward push. Its later
@@ -139,7 +144,7 @@ Current active-PR evidence remains outside protected `main`:
   RankWeave channel contributions without inventing a fused score or theta. Its
   three informational threads were resolved; it had no approval, an aggregate
   failed check state, and other hosted checks pending.
-- PR #490 at `2f05c4255a9a75f85dbe4b99e952c721e74444bf` is the current carrier
+- PR #490 at `49eb339656105a3c840ad83ec84d221608191711` is the current carrier
   of the consolidated product stack and includes ADR 0143. ADR 0144 was absent
   from both this exact tree and protected `main`, so it is not attributed to
   this head. Its aggregate checks failed, with no unresolved thread or
@@ -149,7 +154,7 @@ Current active-PR evidence remains outside protected `main`:
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 58 PRs remained open, none had an independent current-head approval, sixteen current heads had an aggregate failed check state, fourteen had pending checks, and two current heads retained unresolved review threads | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
+| Protected release | 56 PRs remained open, none had an independent current-head approval, nineteen current heads had an aggregate failed check state, ten had pending checks, and none retained an unresolved review thread | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Image understanding | Region, OCR, and description work exists across active heads | Orchestrator-backed rendered workflow, original/derived asset provenance, and honest unsupported states |
 | Semantic source rendering | Paragraph, table, list, and formula parsing exists across active stacks | Authenticated browser evidence that semantic units render without authoring-layout artifacts |
