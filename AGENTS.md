@@ -246,9 +246,3 @@ add a narrow, documented suppression referencing the specific finding.
 - Appendix B inverse names normalize to the preferred W3C direction;
   do not proliferate private inverse vocabulary.
 - Keep `knowledge_graph_edge` an explicit navigation projection.
-- Public ontology IRIs use the canonical lowercase namespace
-  `https://contextualwisdomlab.github.io/lineageweave/ontology#`
-  (ADR 0158). The repository-case Pages prefix is a compatibility
-  alias for four matching classes only. Do not mint new
-  repository-case term IRIs. Do not treat a GitHub Pages redirect as
-  RDF identity. Do not rewrite historical lowercase evidence.

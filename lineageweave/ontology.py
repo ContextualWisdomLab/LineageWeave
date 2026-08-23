@@ -14,10 +14,6 @@ rather than a separate BI-metrics concept.
 `tests/test_ontology.py` is the real correctness check: it loads the
 same file with `rdflib` and asserts every lookup code the relational
 schema actually defines has a matching ontology term, and vice versa.
-
-Public ontology IRIs stay on the lowercase namespace (ADR 0158). The
-repository-case Pages prefix is a compatibility alias for four matching
-classes only; see `ontology_namespace.py`.
 """
 
 from __future__ import annotations
@@ -28,17 +24,9 @@ from rdflib import Graph, Namespace
 from rdflib.namespace import OWL, RDF, RDFS, SKOS
 from rdflib.term import Identifier
 
-from .ontology_namespace import (
-    CANONICAL_ONTOLOGY_NAMESPACE,
-    COMPATIBLE_CLASS_LOCAL_NAMES,
-    DEPRECATED_PAGES_ONTOLOGY_NAMESPACE,
-    canonical_iri,
-    migrate_stored_iri,
-)
-
 #: The ontology's own namespace -- every class/property IRI below is
 #: this prefix plus the term's local name (e.g. LW.Post).
-LW = Namespace(CANONICAL_ONTOLOGY_NAMESPACE)
+LW = Namespace("https://contextualwisdomlab.github.io/lineageweave/ontology#")
 
 #: The custom annotation property linking an ontology term to the exact
 #: `common_lookup_value.lookup_code` string it corresponds to.
@@ -109,9 +97,6 @@ def all_declared_lookup_codes() -> set[str]:
 
 
 __all__ = [
-    "CANONICAL_ONTOLOGY_NAMESPACE",
-    "COMPATIBLE_CLASS_LOCAL_NAMES",
-    "DEPRECATED_PAGES_ONTOLOGY_NAMESPACE",
     "LOOKUP_CODE",
     "LW",
     "ONTOLOGY",
@@ -120,9 +105,7 @@ __all__ = [
     "RDFS",
     "SKOS",
     "all_declared_lookup_codes",
-    "canonical_iri",
     "iri_for_lookup_code",
     "load_ontology",
-    "migrate_stored_iri",
     "ontology_annotations",
 ]

@@ -66,6 +66,9 @@ def test_build_publishes_dereferenceable_html_and_machine_formats(tmp_path: Path
         ROOT / "docs" / "ontology" / "lineageweave-kg.ttl"
     ).read_bytes()
     assert (ontology_dir / "prov-o-support-profile.ttl").is_file()
+    assert (ontology_dir / "namespace-compatibility.ttl").read_bytes() == (
+        ROOT / "docs" / "ontology" / "namespace-compatibility.ttl"
+    ).read_bytes()
 
     html = (ontology_dir / "index.html").read_text(encoding="utf-8")
     assert '<link rel="canonical" href="https://contextualwisdomlab.github.io/LineageWeave/ontology">' in html
@@ -143,9 +146,16 @@ def test_serializations_round_trip_to_the_source_graph(tmp_path: Path) -> None:
     source = Graph().parse(ROOT / "docs" / "ontology" / "lineageweave-kg.ttl", format="turtle")
     jsonld = Graph().parse(output / "ontology" / "ontology.jsonld", format="json-ld")
     ntriples = Graph().parse(output / "ontology" / "ontology.nt", format="nt")
+    compatibility_source = Graph().parse(
+        ROOT / "docs" / "ontology" / "namespace-compatibility.ttl", format="turtle"
+    )
+    compatibility_published = Graph().parse(
+        output / "ontology" / "namespace-compatibility.ttl", format="turtle"
+    )
 
     assert isomorphic(source, jsonld)
     assert isomorphic(source, ntriples)
+    assert isomorphic(compatibility_source, compatibility_published)
 
 
 def test_build_is_byte_deterministic(tmp_path: Path) -> None:
@@ -172,6 +182,7 @@ def test_metadata_manifest_has_source_digest_and_no_build_clock(tmp_path: Path) 
     assert manifest["generated_artifacts"] == [
         "index.html",
         "manifest.json",
+        "namespace-compatibility.ttl",
         "ontology.jsonld",
         "ontology.nt",
         "ontology.ttl",
@@ -245,6 +256,17 @@ def test_builder_fails_closed_for_missing_sources_and_rejects_existing_output(tm
         raise AssertionError("missing PROV-O profile was accepted")
 
     (ontology_dir / "prov-o-support-profile.ttl").write_text("", encoding="utf-8")
+
+    try:
+        builder.build_site(repository, output)
+    except FileNotFoundError as exc:
+        assert "namespace compatibility" in str(exc)
+    else:
+        raise AssertionError("missing namespace compatibility vocabulary was accepted")
+
+    (ontology_dir / "namespace-compatibility.ttl").write_bytes(
+        (ROOT / "docs" / "ontology" / "namespace-compatibility.ttl").read_bytes()
+    )
 
     try:
         builder.build_site(repository, output)

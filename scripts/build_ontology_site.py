@@ -30,6 +30,7 @@ PUBLIC_BASE_URL = "https://contextualwisdomlab.github.io/LineageWeave"
 DOCUMENTATION_URL = f"{PUBLIC_BASE_URL}/ontology"
 SOURCE_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg.ttl")
 PROV_PROFILE_RELATIVE_PATH = Path("docs/ontology/prov-o-support-profile.ttl")
+COMPATIBILITY_RELATIVE_PATH = Path("docs/ontology/namespace-compatibility.ttl")
 TERM_TYPES: tuple[tuple[str, URIRef], ...] = (
     ("Classes", OWL.Class),
     ("Object properties", OWL.ObjectProperty),
@@ -347,6 +348,7 @@ def _render_ontology_page(graph: Graph, source_sha256: str) -> tuple[str, int]:
         '<a href="ontology.jsonld" type="application/ld+json">JSON-LD <small>generated equivalent</small></a>'
         '<a href="ontology.nt" type="application/n-triples">N-Triples <small>generated equivalent</small></a>'
         '<a href="prov-o-support-profile.ttl" type="text/turtle">PROV-O support profile</a>'
+        '<a href="namespace-compatibility.ttl" type="text/turtle">Deprecated namespace compatibility</a>'
         '<a href="manifest.json" type="application/json">Build manifest</a>'
         "</div></section>"
         '<section class="summary-grid" aria-label="Ontology publication summary">'
@@ -395,6 +397,7 @@ def _write_manifest(
         "generated_artifacts": [
             "index.html",
             "manifest.json",
+            "namespace-compatibility.ttl",
             "ontology.jsonld",
             "ontology.nt",
             "ontology.ttl",
@@ -417,10 +420,13 @@ def build_site(repository_root: Path, output_dir: Path) -> None:
     output = output_dir.resolve()
     source = root / SOURCE_RELATIVE_PATH
     prov_profile = root / PROV_PROFILE_RELATIVE_PATH
+    compatibility = root / COMPATIBILITY_RELATIVE_PATH
     if not source.is_file():
         raise FileNotFoundError(f"ontology source is missing: {source}")
     if not prov_profile.is_file():
         raise FileNotFoundError(f"PROV-O support profile is missing: {prov_profile}")
+    if not compatibility.is_file():
+        raise FileNotFoundError(f"namespace compatibility vocabulary is missing: {compatibility}")
 
     if output.exists():
         raise FileExistsError(
@@ -439,6 +445,7 @@ def build_site(repository_root: Path, output_dir: Path) -> None:
     (ontology_dir / "index.html").write_text(ontology_html, encoding="utf-8")
     shutil.copyfile(source, ontology_dir / "ontology.ttl")
     shutil.copyfile(prov_profile, ontology_dir / "prov-o-support-profile.ttl")
+    shutil.copyfile(compatibility, ontology_dir / "namespace-compatibility.ttl")
     _write_serializations(graph, ontology_dir)
     _write_manifest(ontology_dir, source, graph, term_count)
     (output / "robots.txt").write_text(
