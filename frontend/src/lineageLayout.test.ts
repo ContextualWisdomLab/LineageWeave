@@ -204,10 +204,11 @@ describe("layoutLineageDag", () => {
         { source: "root", target: "branch-b", fused_score: 0.88 },
         { source: "branch-a", target: "shared-child", fused_score: 0.82 },
         { source: "branch-b", target: "shared-child", fused_score: 0.8 },
+        { source: "root", target: "shared-child", fused_score: 0.78 },
       ],
     });
 
-    expect(group.edges).toHaveLength(4);
+    expect(group.edges).toHaveLength(5);
     expect(group.nodes.map(({ id, x, y }) => ({ id, x, y }))).toEqual([
       { id: "root", x: 28, y: 54 },
       { id: "branch-a", x: 248, y: 28 },
