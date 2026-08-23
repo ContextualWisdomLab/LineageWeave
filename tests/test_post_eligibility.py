@@ -30,11 +30,7 @@ def test_keyverse_private_post_requires_the_bound_process_unit() -> None:
         account,
         {"visibility_code": "private", "corporate_entity_id": "entity-a", "process_unit_id": "process-b"},
     )
-
-
-def test_keyverse_private_post_with_no_process_unit_is_visible_in_corp() -> None:
-    account = _account(process_unit_ids=frozenset({"process-a"}))
-    assert _can_see_post(
+    assert not _can_see_post(
         account,
         {"visibility_code": "private", "corporate_entity_id": "entity-a", "process_unit_id": None},
     )
