@@ -973,6 +973,27 @@ or an explicit unavailable result.
   ko-only and not claimed fixed -- tracked as the next slice, not
   attempted this checkpoint given the translation-quality risk of
   rushing many keys without a dedicated review pass.
+- **Admin Panel i18n gap — third slice, closed (2026-08-24):** two
+  concurrent sessions split the remaining ~68 ko-only keys by domain
+  to avoid an `i18n.ts` merge collision. This checkpoint closed the 22
+  Board/R&R keys: the Board hand-off prompt (`Open in Board`, `Board
+  advanced review`, the existing-Board-owns-this-post explanation),
+  the R&R semantic-relationship predicate labels (`Responsible for`,
+  `Supports`, `Organization member/unit of`, `Sub-organization of`,
+  `Explicit semantic relationships`), the evidence workspace, and
+  AdminPanel's `Account`/`Permissions`/`routes` fields, verified with
+  translations cross-checked against already-established terminology
+  for `Board`/`Organization`/`Summary`/`Workspace` elsewhere in the
+  file. A sibling session's concurrent slice closed the 30
+  source-lineage-hints-panel keys (`sourceLineageHintLabels` in
+  `i18n.test.ts`); both slices merged on `feat/board-source-detail-
+  state-filter` (PR #490) with one duplicate key (`Lifecycle vector`,
+  independently translated by both sessions) resolved in favor of the
+  source-lineage-hints session's copy, since it is the key's actual
+  domain (`post.source_lineage_hints.lifecycle_vector`,
+  `App.tsx:3182`). Full frontend suite (369 tests), lint, and build
+  pass after the merge. Any keys outside these two domains remain
+  open.
 - **Leftover pair next-action jargon — closed (2026-08-24, PR #490
   `154a13ef`):** ADR 0049 already names `Open {post}, then read Post quality
   criterion {criterion}.` Origin leftover copy still appended `This pair sat
