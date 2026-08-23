@@ -598,12 +598,17 @@ or an explicit unavailable result.
   reason that made all `115` live-stack API tests self-skip; `actionlint` passes,
   but the hosted run is not yet evidence. Skipped live-stack cases and hosted
   exact-head gates remain open.
-- **Coverage and docstring gates — open:** the general workflow runs pytest
-  without repository-wide coverage enforcement, frontend Vitest has no coverage
-  provider/configuration, and an AST audit found 37 missing production
-  docstrings. Exact 100% evidence is limited to the scoped PROV-O workflow and
-  the two source-research modules. Establish stable integration execution and
-  measured baselines before claiming repository-wide 100%.
+- **Coverage and docstring gates — docstrings closed, coverage enforcement
+  open:** an independent AST re-audit of `lineageweave/` and `backend/app/`
+  found 35 missing production docstrings (excluding private/dunder names,
+  `__init__.py`, and tests); all 35 were written and the full Python suite
+  (762 passed, 17 pre-existing skips) still passes (PR #498). Still open:
+  the general workflow runs pytest without repository-wide coverage
+  enforcement, and frontend Vitest has no coverage provider/configuration.
+  Exact 100% branch-coverage evidence is limited to the scoped PROV-O
+  workflow and the two source-research modules. Establish stable
+  integration execution and measured coverage baselines before claiming
+  repository-wide 100%.
 - **Central OpenCode coverage sandbox — owner repair pending protected main:**
   issue `ContextualWisdomLab/.github#1250` is tracked in Project #1 as
   Ops/In Progress. Owner PR #1052 at `d2629dc7d9634368f04025c570b6395a9e1413f5`
