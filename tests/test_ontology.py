@@ -27,6 +27,7 @@ from lineageweave.ontology import (
     load_ontology,
     ontology_annotations,
 )
+from rdflib import URIRef
 from rdflib.namespace import OWL, RDF, RDFS, SKOS, XSD
 
 _SEED_SCRIPT_PATH = Path(__file__).resolve().parents[1] / "scripts" / "seed_demo_data.py"
@@ -204,10 +205,29 @@ def test_actor_mentions_follow_stored_edge_direction() -> None:
 def test_semantic_project_terms_preserve_post_evidence_and_confidence() -> None:
     """ADR 0036's project vocabulary must remain machine-checkable."""
     graph = load_ontology()
+    ontology = URIRef("https://contextualwisdomlab.github.io/lineageweave/ontology")
+    assert "OWL 2 Full" in str(graph.value(ontology, RDFS.comment))
     assert (LW.Project, RDF.type, OWL.Class) in graph
     assert (LW.ProjectMention, RDF.type, OWL.Class) in graph
+    restrictions = set(graph.objects(LW.ProjectMention, RDFS.subClassOf))
+    assert any(
+        (node, OWL.onProperty, RDF.subject) in graph
+        and (node, OWL.allValuesFrom, LW.Post) in graph
+        for node in restrictions
+    )
+    assert any(
+        (node, OWL.onProperty, RDF.predicate) in graph
+        and (node, OWL.hasValue, LW.mentionsProject) in graph
+        for node in restrictions
+    )
+    assert any(
+        (node, OWL.onProperty, RDF.object) in graph
+        and (node, OWL.allValuesFrom, LW.Project) in graph
+        for node in restrictions
+    )
     assert (LW.mentionsProject, RDFS.domain, LW.Post) in graph
     assert (LW.mentionsProject, RDFS.range, LW.Project) in graph
     assert (LW.projectEvidence, RDFS.domain, LW.ProjectMention) in graph
     assert (LW.projectEvidence, RDFS.range, XSD.string) in graph
     assert (LW.semanticConfidence, RDFS.range, XSD.decimal) in graph
+    assert (LW.semanticConfidence, RDFS.domain, LW.ProjectMention) in graph
