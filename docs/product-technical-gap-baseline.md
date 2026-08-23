@@ -261,7 +261,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Keyman on both sides, titles, affiliations, related KG nodes | Keyman/affiliate-tree/related-node routes and popup | source + unit; live extraction open |
 | Ontology, semantic layer, provenance, W3C PROV-O projection | normalized schema, SKOS operational vocabulary concepts, `ontology_annotations` label fallback, ADR 0124, provenance modules, ADRs, evidence UI | source + unit; corpus verification open |
 | Branching Event Lineage DAG with evidence trail | `LineageDag.tsx`, Storybook story, Figma frames, accessible node-kind names for screen readers/tooltips, frontend tests; runtime cases include both a rendered DAG and honest empty states, while current corpus coverage remains sparse | source + unit + local-integration partial |
-| Customer master and hierarchy tree | `/api/customer-master`, `scope_facets`, visible `post_organization_mention` enrichment, affiliate tree, migration `0105`, scope filter, in-place related-post popup, hierarchy-aware `resolve_customer_hint`, `scripts/backfill_customer_hints.py`, Storybook coverage | source + unit + local-integration partial; authorized own/granted/unclassified facets, visible observed organizations, admitted observed hierarchy facets, in-place post viewing, and hierarchy-aware customer-hint resolution are implemented, while authoritative scope backfill and broader `account_affiliation` hierarchy traversal for auto-created counterparty entities remain open |
+| Customer master and hierarchy tree | `/api/customer-master`, `scope_facets`, visible `post_organization_mention` enrichment (directly-observed entities need no affiliation row), affiliate tree, migration `0105`, scope filter, in-place related-post popup, hierarchy-aware `resolve_customer_hint`, `scripts/backfill_customer_hints.py`, Storybook coverage, ADR 0144 (reviewed decision, not yet implemented) | source + unit + local-integration partial; authorized own/granted/unclassified facets, directly-observed organizations (with zero affiliation row), admitted observed hierarchy facets, in-place post viewing, and hierarchy-aware customer-hint resolution are implemented, while authoritative scope backfill and surfacing an *ancestor* entity never itself directly named in any visible post (ADR 0144's scope) remain open |
 | VOC/VOM/VOP/VOCC/VOCO/VOS role classification | common lookup values and relationship APIs | source + unit; live classification open |
 | Evidence-grounded chat and source navigation | `/chat`, `/ask`, citation/evidence UI | source + unit; synthetic orchestrator judge route verified, corpus chat/runtime evidence open |
 | OpenTelemetry across LineageWeave, contextual-orchestrator, Valkey, and GRC | LineageWeave PR #383 adds API/Valkey/session spans; contextual-orchestrator PR #765 carries session/provider telemetry; governance-risk-compliance PR #50 adds request telemetry, W3C trace context, OTLP export, and ADR 0009 | source + PR; protected merge and end-to-end collector evidence open |
@@ -420,12 +420,35 @@ or an explicit unavailable result.
   now resolves a bounded batch through the same pipeline, closing the "no
   bulk/automatic backfill" gap for a SAP export whose only customer field
   (`zcrht811_export_rows.kunnr_field`) is an opaque number with no name at
-  all. **What remains open:** (b)/(c) only improve the *creation* path for
-  entities this pipeline resolves -- the standing gap this bullet describes
-  (a counterparty `corporate_entity` ADR 0010 auto-creates is never linked
-  via `account_affiliation`, so it cannot reach `/api/customer-master`
-  regardless of how well-populated the corpus becomes) is unchanged and
-  still needs the ADR named above. Storybook coverage for
+  all. **Correction (2026-08-23):** the original bullet's framing above --
+  "counterparty `corporate_entity` rows... are never linked via
+  `account_affiliation`, so they cannot reach this endpoint no matter how
+  well-populated the corpus becomes" -- is no longer accurate and should not
+  be read as still-current: ADR 0125 (merged after the original 2026-08-21
+  finding, before this checkpoint even started) already added an `observed`
+  path to `entity_rows` (`backend/app/main.py`, joining
+  `post_organization_mention`) that surfaces an ADR-0010-created entity with
+  zero affiliation row, the moment it is directly named in any post the
+  account is authorized to read. Verified by reading the current query
+  directly, not assumed. **The real remaining gap is narrower:** `entity_rows`
+  never adds a row for an ancestor that is itself *not* directly named in any
+  visible post -- only inferred as a parent by ADR 0010's hierarchy pipeline.
+  `_observed_hierarchy_ids` (`backend/app/main.py`) only *facet-marks* an
+  ancestor already present in the result set; it cannot add one that
+  is missing. So a real, verified "그룹 -> 본사 -> 공장" chain still renders
+  with a missing top link whenever that top entity was inferred but never
+  itself named in text. (b)/(c) above only improve the *creation* path, not
+  this visibility gap. **ADR 0144** (`docs/adr/0144-customer-master-observed-entity-link.md`)
+  now records a reviewed decision for closing it: a write-time
+  `account_observed_entity` link table populated at ingestion, not a
+  read-time catalog traversal -- the traversal alternative was evaluated and
+  rejected after an adversarial security review found a concrete cross-account
+  leak (`corporate_entity` is one catalog shared across every account; a
+  reused/fuzzy-matched ancestor row's data can trace entirely to a different
+  account's private post evidence, and a public-verification-only gate
+  cannot tell the difference). Implementation itself is not started -- ADR
+  0144 is Proposed status, this checkpoint's deliverable was the reviewed
+  decision, not the code. Storybook coverage for
   `CustomerEntityTreeRow`/`CustomerRelatedPostCard` (default/loading/empty/
   interactive states, reviewed against this repo's `ui-ux-pro-max` +
   `Anti-Slop-UI` skills) and two accessibility fixes (WCAG 2.5.5 touch
@@ -696,6 +719,48 @@ Detailed evidence for each item lives in section 5's "Customer master
   this checkpoint's diffs touch). The new Playwright e2e spec
   (`frontend/e2e/customer-master.spec.ts`) was not executed: no local
   stack was running in this environment at the time.
+
+## 6c. 2026-08-23 update: ADR 0144 design panel and a self-correction
+
+Ran a multi-agent design panel (2 independent design proposals + 2
+adversarial ABAC-safety critiques + 1 synthesis) to resolve the "Customer
+master 'customer tree'" bullet's open ADR requirement. Produced
+`docs/adr/0144-customer-master-observed-entity-link.md` (Proposed status,
+not yet implemented).
+
+- **Self-correction, not just new work:** the design panel's first agent
+  re-read `backend/app/main.py` before proposing anything and found that
+  section 5's own "counterparty entities are never linked via
+  `account_affiliation`, so they cannot reach this endpoint no matter how
+  well-populated the corpus becomes" claim -- repeated without
+  re-verification in this checkpoint's own earlier `## 6b` update -- is
+  false as stated: ADR 0125 already added an `observed` path
+  (`post_organization_mention`-joined) that surfaces a directly-named
+  counterparty entity with zero affiliation row. Verified directly against
+  the current query rather than trusting the agent's claim. Corrected
+  section 5's bullet in place (see its "Correction (2026-08-23)"
+  paragraph) rather than leaving the overbroad claim standing. The real,
+  narrower gap: an ancestor entity never itself directly named in any
+  visible post is still invisible, because `_observed_hierarchy_ids` only
+  facet-marks rows already in the result set, it cannot add a missing one.
+- **Adversarial review caught a real security defect before it shipped:**
+  the panel's first design (bounded read-time traversal gated on the
+  `AUTO-` entity-code prefix) was rejected after its critique constructed a
+  concrete cross-account leak -- `corporate_entity` is one catalog shared
+  across every account, and a fuzzy-matched/reused ancestor row's
+  `entity_name`/`parent_entity_id` can trace entirely to a different
+  account's private post evidence, which a public-verification-only gate
+  cannot distinguish from evidence *this* account itself provided. The
+  second design (write-time `account_observed_entity` link table) survived
+  its own critique with one required fix (synchronous reconciliation on
+  post-mutation, not merely nightly) and was adopted with that fix folded
+  into the decision as mandatory, not optional.
+- **Not done this checkpoint:** implementation of ADR 0144 (new table,
+  ingestion hook, reconciliation path, tests) -- intentionally scoped out;
+  ADR-before-implementation discipline per this repo's own constraint on
+  ABAC-adjacent changes. ADR number `0144` may need renumbering when this
+  branch reconciles with others assigning numbers in parallel (see the
+  numbering note at the top of the ADR file itself).
 
 ## 7. References (APA 7th)
 
