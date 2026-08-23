@@ -1,4 +1,6 @@
-"""Leftover post–criterion pairs after the main-effect IRT (ADR 0017).
+"""Leftover post–criterion pairs after the main-effect IRT.
+
+Covers ADR 0048 as amended by ADR 0171.
 
 Uses a constructed residual matrix so the closest and farthest pair
 are known without calling ``fit_polytomous``. Loads
@@ -67,6 +69,8 @@ def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
     }
     assert farthest.leftover_residual == pytest.approx(-2.0)
     assert farthest.leftover_distance == pytest.approx(2.0 * np.sqrt(2.0), rel=1e-6)
+    for pair in pairs:
+        assert pair.leftover_map_rank == 1
 
 
 def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
@@ -82,6 +86,8 @@ def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
     assert pairs[0].criterion_code == "item_one"
     assert pairs[1].post_id == "beta-post"
     assert pairs[1].criterion_code == "item_two"
+    for pair in pairs:
+        assert pair.leftover_map_rank == 0
 
 
 def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
@@ -108,6 +114,8 @@ def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
         ("aligned-post", "item_far"),
         ("opposed-post", "item_near"),
     }
+    for pair in pairs:
+        assert pair.leftover_map_rank == 1
 
 
 def test_leftover_is_empty_without_observed_cells() -> None:
@@ -116,3 +124,29 @@ def test_leftover_is_empty_without_observed_cells() -> None:
     matrix = np.array([[np.nan]], dtype=np.float64)
     expected = np.array([[0.0]], dtype=np.float64)
     assert leftover_pairs_from_residual(post_ids, item_codes, matrix, expected) == ()
+
+
+def test_empty_observation_mask_has_no_complete_case_axes() -> None:
+    observed = np.zeros((1, 1), dtype=bool)
+    keep_person, keep_item = leftover._complete_case_masks(observed)
+    assert not keep_person.any()
+    assert not keep_item.any()
+    person_pos, item_pos, rank = leftover._complete_case_positions(
+        np.zeros((1, 1), dtype=np.float64),
+        0.0,
+        keep_person,
+        keep_item,
+    )
+    assert person_pos is None
+    assert item_pos is None
+    assert rank == 0
+
+
+def test_leftover_map_rank_rejects_negative_rank() -> None:
+    """Python must reject a leftover-map rank excluded by the DB check."""
+    with pytest.raises(ValueError, match="non-negative integer"):
+        leftover._pair_from_candidate(
+            PAIR_KIND_CLOSEST,
+            (0.0, "public-post", "sales_lead_specificity", 0.0),
+            -1,
+        )

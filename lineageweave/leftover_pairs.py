@@ -1,9 +1,12 @@
-"""Jeon leftover post–criterion pairs after a main-effect IRT (ADR 0017).
+"""Jeon leftover post–criterion pairs after a main-effect IRT.
+
+Implements ADR 0048 as amended by ADR 0171.
 
 Does not import ``fast_mlsirm`` or ``period_report``. A Gabriel biplot
 of the residual ``R = Y − E[Y|θ, item]`` supplies person and item
 positions. Missing response cells are excluded from the factorization;
-they are never treated as zero residuals.
+they are never treated as zero residuals. Each pair names leftover-map
+rank so a rank-0 collapse is not read as leftover structure.
 """
 
 from __future__ import annotations
@@ -26,6 +29,7 @@ class LeftoverPair:
     criterion_code: str
     leftover_distance: float
     leftover_residual: float
+    leftover_map_rank: int
 
 
 def leftover_pairs_from_residual(
@@ -40,7 +44,8 @@ def leftover_pairs_from_residual(
     estimator places persons and items from the residual after IRT main
     effects (Gabriel, 1971). Only observed cells become pairs. A rank-0
     residual still emits a stable closest/farthest pair so seed is not
-    empty; it does not invent a leftover score.
+    empty; it does not invent a leftover score. Stored leftover-map rank
+    is the number of Gabriel singular values above the floor.
     """
     if matrix.shape != (len(post_ids), len(item_codes)):
         raise ValueError(
@@ -67,7 +72,9 @@ def leftover_pairs_from_residual(
         center = float(np.mean(residual[np.ix_(person_index, item_index)]))
     else:
         center = float(np.mean([residual[person, item] for person, item in observed]))
-    person_pos, item_pos = _complete_case_positions(residual, center, keep_person, keep_item)
+    person_pos, item_pos, leftover_map_rank = _complete_case_positions(
+        residual, center, keep_person, keep_item
+    )
     candidates: list[tuple[float, str, str, float]] = []
     if person_pos is not None and item_pos is not None:
         person_index = np.flatnonzero(keep_person)
@@ -91,6 +98,7 @@ def leftover_pairs_from_residual(
                 )
             )
     if not candidates:
+        leftover_map_rank = 0
         for person, item in observed:
             distance = abs(float(residual[person, item]) - center)
             candidates.append(
@@ -104,20 +112,26 @@ def leftover_pairs_from_residual(
     closest = min(candidates, key=lambda row: (row[0], row[1], row[2]))
     farthest = max(candidates, key=lambda row: (row[0], row[1], row[2]))
     return (
-        LeftoverPair(
-            pair_kind=PAIR_KIND_CLOSEST,
-            post_id=closest[1],
-            criterion_code=closest[2],
-            leftover_distance=closest[0],
-            leftover_residual=closest[3],
-        ),
-        LeftoverPair(
-            pair_kind=PAIR_KIND_FARTHEST,
-            post_id=farthest[1],
-            criterion_code=farthest[2],
-            leftover_distance=farthest[0],
-            leftover_residual=farthest[3],
-        ),
+        _pair_from_candidate(PAIR_KIND_CLOSEST, closest, leftover_map_rank),
+        _pair_from_candidate(PAIR_KIND_FARTHEST, farthest, leftover_map_rank),
+    )
+
+
+def _pair_from_candidate(
+    pair_kind: str,
+    row: tuple[float, str, str, float],
+    leftover_map_rank: int,
+) -> LeftoverPair:
+    """Build a leftover pair from a candidate row."""
+    if leftover_map_rank < 0:
+        raise ValueError("leftover map rank must be a non-negative integer")
+    return LeftoverPair(
+        pair_kind=pair_kind,
+        post_id=row[1],
+        criterion_code=row[2],
+        leftover_distance=row[0],
+        leftover_residual=row[3],
+        leftover_map_rank=leftover_map_rank,
     )
 
 
@@ -137,32 +151,35 @@ def _complete_case_positions(
     center: float,
     keep_person: np.ndarray,
     keep_item: np.ndarray,
-) -> tuple[np.ndarray | None, np.ndarray | None]:
+) -> tuple[np.ndarray | None, np.ndarray | None, int]:
     """Gabriel coordinates on the complete-case residual rectangle only."""
     person_index = np.flatnonzero(keep_person)
     item_index = np.flatnonzero(keep_item)
     if person_index.size == 0 or item_index.size == 0:
-        return None, None
+        return None, None, 0
     filled = residual[np.ix_(person_index, item_index)] - center
     return _leftover_map_positions(filled)
 
 
-def _leftover_map_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+def _leftover_map_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray, int]:
     """Gabriel biplot coordinates; rank-0 residuals collapse to the origin."""
     n_persons, n_items = filled.shape
     if n_persons == 0 or n_items == 0 or not np.any(np.abs(filled) > _LEFTOVER_SINGULAR_FLOOR):
         return (
             np.zeros((n_persons, 1), dtype=np.float64),
             np.zeros((n_items, 1), dtype=np.float64),
+            0,
         )
     left, singular, right = np.linalg.svd(filled, full_matrices=False)
     keep = singular > _LEFTOVER_SINGULAR_FLOOR
-    if not np.any(keep):
+    leftover_map_rank = int(np.count_nonzero(keep))
+    if leftover_map_rank == 0:
         return (
             np.zeros((n_persons, 1), dtype=np.float64),
             np.zeros((n_items, 1), dtype=np.float64),
+            0,
         )
     scale = np.sqrt(singular[keep])
     person_pos = left[:, keep] * scale
     item_pos = right[keep, :].T * scale
-    return person_pos, item_pos
+    return person_pos, item_pos, leftover_map_rank

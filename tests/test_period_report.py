@@ -266,6 +266,7 @@ def test_calibrated_report_attaches_leftover_pairs() -> None:
         assert pair.criterion_code in items
         assert pair.leftover_distance >= 0.0
         assert np.isfinite(pair.leftover_residual)
+        assert pair.leftover_map_rank >= 0
 
 
 

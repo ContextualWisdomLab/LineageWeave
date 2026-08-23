@@ -117,6 +117,7 @@ def seed(
             cur.execute((migrations / "0010_report_item_information.sql").read_text())
             cur.execute((migrations / "0011_post_chat_result.sql").read_text())
             cur.execute((migrations / "0012_report_leftover_pair.sql").read_text())
+            cur.execute((migrations / "0171_report_leftover_map_rank.sql").read_text())
             cur.execute((migrations / "0060_role_responsibility_agent_type.sql").read_text())
             cur.execute((migrations / "0013_person_job_title.sql").read_text())
             cur.execute((migrations / "0014_role_responsibility_team_actor_type.sql").read_text())
@@ -1195,8 +1196,9 @@ def _persist_seed_period_report(
         cur.execute(
             "insert into report_leftover_pair ("
             "grouping_kind, grouping_key, period_code, rubric_version, "
-            "pair_kind, post_id, criterion_code, leftover_distance, leftover_residual"
-            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            "pair_kind, post_id, criterion_code, leftover_distance, leftover_residual, "
+            "leftover_map_rank"
+            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
             (
                 grouping_kind,
                 grouping_key,
@@ -1207,6 +1209,7 @@ def _persist_seed_period_report(
                 pair.criterion_code,
                 pair.leftover_distance,
                 pair.leftover_residual,
+                pair.leftover_map_rank,
             ),
         )
 

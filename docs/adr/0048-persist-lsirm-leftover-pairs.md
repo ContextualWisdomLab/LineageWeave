@@ -2,6 +2,7 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-17
+**Amended by:** [ADR 0171](0171-leftover-map-rank.md) (full map rank)
 
 ## Context
 
@@ -30,7 +31,10 @@ and one `farthest` observed cell per period report in
 `report_leftover_pair` (3NF, two-or-more-word `snake_case`).
 
 The biplot lives in `lineageweave/leftover_pairs.py` so leftover
-tests do not import `period_report` or `fast_mlsirm`.
+tests do not import `period_report` or `fast_mlsirm`. Each leftover
+row names leftover-map rank: the number of Gabriel singular values
+above the floor (ADR 0171). A rank-0 collapse still emits a stable
+pair; the stored rank is then `0`, not invented leftover structure.
 
 Cascade the rows with `report_period_score`. A leftover post must
 also be a `report_member_score` row, and the leftover criterion

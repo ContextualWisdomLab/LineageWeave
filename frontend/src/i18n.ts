@@ -356,6 +356,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "관측된 원본 작성자 {total}명 중 게시물 수 기준 상위 {shown}명을 표시합니다.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "대화형 질문을 지금 사용할 수 없습니다. 저장된 근거는 계속 확인할 수 있습니다.",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "IRT 주효과 이후 잔여 맵에 잔여 구조가 없습니다. 이 글을 여세요.",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "IRT 주효과 이후 잔여 맵 랭크 {rank}. 이 글을 여세요.",
   },
   zh: {
     "Unknown": "未知",
@@ -694,6 +698,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "显示按文章数排序的 {total} 位已观察来源作者中的前 {shown} 位。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "交互式提问暂不可用；已保存的证据仍可查看。",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "IRT 主效应后残余图没有残余结构。打开这篇帖子。",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "IRT 主效应后的残余图秩 {rank}。打开这篇帖子。",
   },
   ja: {
     "Unknown": "不明",
@@ -1032,6 +1040,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "投稿数順に、観測された{total}名の元投稿者のうち上位{shown}名を表示しています。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "対話形式の質問は現在利用できません。保存された証拠は確認できます。",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "IRT主効果後の残差マップに残差構造はありません。この投稿を開いてください。",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "IRT主効果後の残差マップランク {rank}。この投稿を開いてください。",
   },
   vi: {
     "Unknown": "Không rõ",
@@ -1370,6 +1382,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Đang hiển thị {shown} tác giả nguồn hàng đầu trong số {total} tác giả đã quan sát, xếp theo số bài viết.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "Câu hỏi tương tác hiện không khả dụng; bằng chứng đã lưu vẫn có thể xem.",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "Bản đồ phần dư không có cấu trúc phần dư sau hiệu ứng chính IRT. Mở bài viết này.",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "Hạng bản đồ phần dư {rank} sau hiệu ứng chính IRT. Mở bài viết này.",
   },
 };
 

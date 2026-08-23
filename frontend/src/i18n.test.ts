@@ -36,6 +36,8 @@ describe("i18n", () => {
     "Page",
     "Answer",
     "Showing the first {shown} of {total} posts known at this cutoff.",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.",
+    "Leftover map rank {rank} after IRT main effects. Open this post.",
   ] as const;
 
   it("supports the five product locales", () => {
@@ -87,5 +89,19 @@ describe("locale-aware source labels", () => {
     setLocale(locale);
     expect(t("Voice of Customer")).toBe(customerVoice);
     expect(t("Public")).toBe(visibility);
+  });
+});
+
+describe("leftover-map rank next action", () => {
+  it.each([
+    ["ko", "IRT 주효과 이후 잔여 맵 랭크 1. 이 글을 여세요."],
+    ["zh", "IRT 主效应后的残余图秩 1。打开这篇帖子。"],
+    ["ja", "IRT主効果後の残差マップランク 1。この投稿を開いてください。"],
+    ["vi", "Hạng bản đồ phần dư 1 sau hiệu ứng chính IRT. Mở bài viết này."],
+  ] as const)("formats leftover-map rank next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf("Leftover map rank {rank} after IRT main effects. Open this post.", { rank: "1" }),
+    ).toBe(expected);
   });
 });

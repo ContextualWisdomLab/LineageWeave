@@ -2,6 +2,7 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-17
+**Amended by:** [ADR 0171](0171-leftover-map-rank.md) (full map rank)
 
 ## Context
 
@@ -17,10 +18,14 @@ second navigation surface.
 
 On each period-report group, render leftover pairs **above** the
 member list. Each pair is a button: closest or farthest label, post
-title, criterion short label, leftover-map distance, and the next
-action (“Open this post to read the criterion it sat closest to /
-farthest from after main effects.”). Clicking the button opens that
-post with the same handler as a member row.
+title, criterion short label, leftover-map distance, leftover-map
+rank when the value is a finite non-negative integer, and the next
+action. Rank 0 next action: leftover map has no leftover structure
+after IRT main effects; open this post. Rank ≥ 1 next action: read
+leftover map rank after IRT main effects, then open this post.
+Missing rank omits the badge and keeps the closest/farthest action.
+Clicking the button opens that post with the same handler as a member
+row. Rank naming is [ADR 0171](0171-leftover-map-rank.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post.
