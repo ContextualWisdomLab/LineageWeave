@@ -131,7 +131,7 @@ exact-head protected gate.
   (`customer-master.spec.ts`, `knowledge-graph.spec.ts`) -- never a failed
   assertion inside this spec's own logic. A from-a-quiet-machine confirmation
   is still open; do not read the one clean run as proof of zero flakiness
-  under contention. That browser run predates current head `161f4eb80c75`,
+  under contention. That browser run predates browser-assertion head `161f4eb80c75`,
   whose modal assertion requires the same opener element; an
   exact-head browser rerun remains open.
 - **Approved CI/BI asset — open:** the header/footer currently render the
