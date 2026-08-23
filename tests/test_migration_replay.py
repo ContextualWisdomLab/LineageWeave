@@ -33,3 +33,21 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
     ).read_text(encoding="utf-8")
 
     assert "0012_*" in script
+
+
+def test_migrate_sh_replays_interval_relation_migration_on_existing_volumes() -> None:
+    """migrate.sh must cover 0105 so existing volumes get the Allen column.
+
+    0001 creates post_lineage_edge without interval_relation_code. A
+    volume that already ran 0001 never sees that column unless
+    migrate.sh replays 0105. GET /api/lineage then 500s on the new
+    SELECT, and rebuild cannot persist Contains/Overlaps.
+    """
+    script = (
+        Path(__file__).resolve().parents[1]
+        / "docker"
+        / "postgres-init"
+        / "migrate.sh"
+    ).read_text(encoding="utf-8")
+
+    assert "0105_*" in script

@@ -6,6 +6,7 @@ import asyncio
 from datetime import datetime, timezone
 
 from backend.app.lineage_ingestion import (
+    interval_relations_for_post,
     reconstruct_group_key,
     records_from_source_posts,
     visible_lineage_graph,
@@ -133,7 +134,7 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
             {"parent_post_id": "post-a", "child_post_id": "post-b", "fused_score": 0.8}
         ]
 
-        async def fetch(self, query: str):
+        async def fetch(self, query: str, *_args):
             return self.edges if "post_lineage_edge" in query else self.posts
 
     connection = FakeConnection()
@@ -150,3 +151,68 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
     assert len(focused["edges"]) == 1
     assert focused["truncated"] is False
     assert isolated == {"nodes": [], "edges": [], "truncated": False}
+
+
+def test_visible_lineage_graph_attaches_allen_labels() -> None:
+    class FakeConnection:
+        posts = [
+            {
+                "post_id": "rec-002",
+                "post_title": "Pricing renegotiation follow-up",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "A-100",
+                "created_at": datetime(2026, 1, 6),
+            },
+            {
+                "post_id": "rec-003",
+                "post_title": "Pricing renegotiation: revised quote sent",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "A-100",
+                "created_at": datetime(2026, 1, 10),
+            },
+        ]
+        edges = [
+            {
+                "parent_post_id": "rec-002",
+                "child_post_id": "rec-003",
+                "fused_score": 0.9,
+                "interval_relation_code": "interval_contains",
+            }
+        ]
+
+        async def fetch(self, query: str, *_args):
+            return self.edges if "post_lineage_edge" in query else self.posts
+
+    graph = asyncio.run(
+        visible_lineage_graph(FakeConnection(), lambda row: True, focus_post_id="rec-002")
+    )
+    assert graph["edges"][0]["interval_relation_code"] == "interval_contains"
+    assert graph["edges"][0]["interval_relation_label"] == "Contains"
+
+
+def test_interval_relations_for_post_orient_from_the_opened_child() -> None:
+    class FakeConnection:
+        edges = [
+            {
+                "parent_post_id": "rec-002",
+                "child_post_id": "rec-003",
+                "interval_relation_code": "interval_contains",
+            }
+        ]
+
+        async def fetch(self, query: str, *_args):
+            return self.edges
+
+    from_parent = asyncio.run(interval_relations_for_post(FakeConnection(), "rec-002"))
+    from_child = asyncio.run(interval_relations_for_post(FakeConnection(), "rec-003"))
+    assert from_parent["rec-003"]["interval_relation_code"] == "interval_contains"
+    assert from_parent["rec-003"]["interval_is_parent"] is True
+    assert from_child["rec-002"]["interval_relation_code"] == "interval_during"
+    assert from_child["rec-002"]["interval_relation_label"] == "During"
+    assert from_child["rec-002"]["interval_is_parent"] is False

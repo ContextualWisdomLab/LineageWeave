@@ -130,6 +130,7 @@ def seed(
             cur.execute((migrations / "0023_analysis_run_outbox.sql").read_text())
             cur.execute((migrations / "0024_source_post_revision.sql").read_text())
             cur.execute((migrations / "0025_role_person_catalog_identity.sql").read_text())
+            cur.execute((migrations / "0105_post_lineage_interval_relation.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -161,7 +162,20 @@ def seed(
                     ('entity_relationship_type', 'rel_vos', 'Voice of Supplier', 5),
                     ('ticket_status', 'open', 'Open', 0),
                     ('ticket_status', 'in_progress', 'In progress', 1),
-                    ('ticket_status', 'closed', 'Closed', 2)
+                    ('ticket_status', 'closed', 'Closed', 2),
+                    ('interval_relation', 'interval_before', 'Before', 0),
+                    ('interval_relation', 'interval_after', 'After', 1),
+                    ('interval_relation', 'interval_meets', 'Meets', 2),
+                    ('interval_relation', 'interval_met_by', 'Met by', 3),
+                    ('interval_relation', 'interval_overlaps', 'Overlaps', 4),
+                    ('interval_relation', 'interval_overlapped_by', 'Overlapped by', 5),
+                    ('interval_relation', 'interval_starts', 'Starts', 6),
+                    ('interval_relation', 'interval_started_by', 'Started by', 7),
+                    ('interval_relation', 'interval_during', 'During', 8),
+                    ('interval_relation', 'interval_contains', 'Contains', 9),
+                    ('interval_relation', 'interval_finishes', 'Finishes', 10),
+                    ('interval_relation', 'interval_finished_by', 'Finished by', 11),
+                    ('interval_relation', 'interval_equals', 'Equals', 12)
                 on conflict (lookup_code) do nothing
                 """
             )
@@ -422,6 +436,7 @@ def seed(
             _seed_fixture_chats(cur)
             _seed_fixture_evaluations(cur)
             _seed_fixture_tickets(cur)
+            _seed_lineage_interval_relations(cur)
             _seed_fixture_ticket_activity(cur, account_ids["demo.analyst"], valkey_url)
             _seed_demo_period_report(
                 cur,
@@ -515,8 +530,9 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
     )
     for edge in lineage_edge_specs(persisted):
         cur.execute(
-            "insert into post_lineage_edge (parent_post_id, child_post_id, fused_score) "
-            "values (%s, %s, %s) on conflict do nothing",
+            "insert into post_lineage_edge "
+            "(parent_post_id, child_post_id, fused_score, interval_relation_code) "
+            "values (%s, %s, %s, 'interval_before') on conflict do nothing",
             (edge.parent_id, edge.child_id, edge.fused_score),
         )
 
@@ -950,6 +966,47 @@ def _seed_fixture_tickets(cur) -> None:
             "values (%s, 'open', %s, %s)",
             (post_id, ticket_title, due_date),
         )
+
+
+def _seed_lineage_interval_relations(cur) -> None:
+    """Name Allen relations after fixture tickets exist (ADR 0122).
+
+    Reconstruct already wrote parent→child edges. Point-only created_at
+    windows would label every A-100 fork edge Before. Ticket due dates
+    turn the pricing follow-up into Contains/Overlaps so seed is not a
+    point-only map. Idempotent: every persisted edge is rewritten.
+    """
+    from lineageweave.interval_relation import allen_interval_relation, interval_from_post
+
+    cur.execute(
+        """
+        select edge.parent_post_id, edge.child_post_id,
+               parent_post.created_at, child_post.created_at,
+               (select min(issue_ticket.due_date) from issue_ticket
+                 where issue_ticket.post_id = parent_post.post_id
+                   and issue_ticket.ticket_status_code <> 'closed'
+                   and issue_ticket.due_date is not null) as parent_due,
+               (select min(issue_ticket.due_date) from issue_ticket
+                 where issue_ticket.post_id = child_post.post_id
+                   and issue_ticket.ticket_status_code <> 'closed'
+                   and issue_ticket.due_date is not null) as child_due
+          from post_lineage_edge as edge
+          join source_post as parent_post on parent_post.post_id = edge.parent_post_id
+          join source_post as child_post on child_post.post_id = edge.child_post_id
+        """
+    )
+    rows = list(cur.fetchall())
+    for parent_id, child_id, parent_created, child_created, parent_due, child_due in rows:
+        code = allen_interval_relation(
+            interval_from_post(parent_created, parent_due),
+            interval_from_post(child_created, child_due),
+        )
+        cur.execute(
+            "update post_lineage_edge set interval_relation_code = %s "
+            "where parent_post_id = %s and child_post_id = %s",
+            (code, parent_id, child_id),
+        )
+
 
 
 def _seed_fixture_ticket_activity(cur, actor_account_id, valkey_url: str) -> None:

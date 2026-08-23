@@ -1027,8 +1027,20 @@ describe("App, authenticated", () => {
             ],
             edges: [
               { source: "post-1", target: "post-2", fused_score: 0.8 },
-              { source: "rec-002", target: "rec-003", fused_score: 0.9 },
-              { source: "rec-002", target: "rec-004", fused_score: 0.85 },
+              {
+                source: "rec-002",
+                target: "rec-003",
+                fused_score: 0.9,
+                interval_relation_code: "interval_contains",
+                interval_relation_label: "Contains",
+              },
+              {
+                source: "rec-002",
+                target: "rec-004",
+                fused_score: 0.85,
+                interval_relation_code: "interval_overlaps",
+                interval_relation_label: "Overlaps",
+              },
             ],
           }),
         );
@@ -1491,7 +1503,15 @@ describe("App, authenticated", () => {
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
-            direct: [],
+            direct: [
+              {
+                post_id: "rec-003",
+                post_title: "Pricing renegotiation: revised quote sent",
+                interval_relation_code: "interval_contains",
+                interval_relation_label: "Contains",
+                interval_is_parent: true,
+              },
+            ],
             indirect: [{ post_id: "post-2", post_title: "Linked post" }],
           }),
         );
@@ -1885,6 +1905,7 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Sales-lead specificity: 3")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Related posts" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open related post: Linked post" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open related post: Pricing renegotiation: revised quote sent" })).toBeInTheDocument();
     expect(screen.queryByText("Not yet evaluated.")).not.toBeInTheDocument();
   });
 
@@ -1976,7 +1997,10 @@ describe("App, authenticated", () => {
     );
     expect(relatedPosts).not.toBeNull();
     expect(within(relatedPosts as HTMLElement).getByText("Indirect relation")).toBeInTheDocument();
+    expect(within(relatedPosts as HTMLElement).getByText("Direct relation")).toBeInTheDocument();
+    expect(within(relatedPosts as HTMLElement).getByText("Contains")).toBeInTheDocument();
     expect(relatedPosts).toHaveTextContent("Linked post");
+    expect(screen.getByRole("button", { name: "Contains: open Pricing renegotiation: revised quote sent" })).toBeInTheDocument();
     // The Event Lineage DAG belongs to the opened post, not the list surface.
     expect(screen.getAllByLabelText("A-100 lineage")).toHaveLength(1);
     expect(screen.getAllByLabelText("Open post: Pricing renegotiation follow-up")).toHaveLength(1);

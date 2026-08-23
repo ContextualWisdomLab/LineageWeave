@@ -547,6 +547,9 @@ function RelatedPostsSection({
                 const cardContent = (
                   <>
                     <span className="related-post-kind">{t(kind)}</span>
+                    {kind === "Direct relation" && post.interval_relation_label ? (
+                      <span className="related-post-interval">{t(post.interval_relation_label)}</span>
+                    ) : null}
                     <span className="related-post-content">
                       <strong>{post.post_title}</strong>
                       <span className="post-body-excerpt" aria-label={t("Post body preview")}>

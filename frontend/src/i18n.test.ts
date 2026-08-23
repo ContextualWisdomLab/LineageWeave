@@ -36,6 +36,10 @@ describe("i18n", () => {
     "Page",
     "Answer",
     "Showing the first {shown} of {total} posts known at this cutoff.",
+    "Contains",
+    "Overlaps",
+    "Interval relations",
+    "Click Contains to open the revised quote.",
   ] as const;
 
   it("supports the five product locales", () => {

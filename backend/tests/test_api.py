@@ -113,6 +113,11 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     / "migrations"
     / "0102_project_bound_summary_event.sql"
 )
+_INTERVAL_RELATION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0105_post_lineage_interval_relation.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -226,6 +231,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
+            cur.execute(_INTERVAL_RELATION_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -3724,6 +3730,93 @@ def test_rebuild_lineage_recovers_the_a100_fork(client, demo_analyst_token, seed
     direct_titles = {post["post_title"] for post in per_post.json()["direct"]}
     assert "Pricing renegotiation: revised quote sent" in direct_titles
     assert "Delivery schedule question raised" in direct_titles
+
+
+def test_rebuild_lineage_names_a100_ticket_windows(client, demo_analyst_token, seeded_db) -> None:
+    """Ticket-aware windows make rec-002 contain rec-003 and overlap rec-004.
+
+    Point-only created_at days would label every A-100 fork edge Before.
+    The same tickets `make seed` writes turn those into Contains/Overlaps.
+    """
+    from scripts.seed_demo_data import _seed_fixture_tickets, insert_fixture_source_posts
+
+    admin_conn = psycopg2.connect(seeded_db["dsn"])
+    admin_conn.autocommit = True
+    try:
+        with admin_conn.cursor() as cur:
+            cur.execute(
+                "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+                "values ('permission', 'post_admin', 'Administer posts'), "
+                "('voc_type', 'vom', 'Voice of Market') "
+                "on conflict (lookup_code) do nothing"
+            )
+            cur.execute("select access_role_id from account_role_assignment limit 1")
+            role_id = cur.fetchone()[0]
+            cur.execute(
+                "insert into role_permission (access_role_id, permission_code) values (%s, 'post_admin') "
+                "on conflict do nothing",
+                (role_id,),
+            )
+            cur.execute(
+                "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
+                "select corporate_entity_id, 'TEST-PU-INTERVAL', 'Interval thread' "
+                "from source_post where post_id = %s returning process_unit_id",
+                (seeded_db["own_private_post_id"],),
+            )
+            process_unit_id = cur.fetchone()[0]
+            cur.execute(
+                "select author_account_id, corporate_entity_id from source_post where post_id = %s",
+                (seeded_db["own_private_post_id"],),
+            )
+            author_id, corp_id = cur.fetchone()
+            insert_fixture_source_posts(cur, author_id, corp_id, process_unit_id)
+            _seed_fixture_tickets(cur)
+    finally:
+        admin_conn.close()
+
+    rebuild = client.post("/api/lineage/rebuild", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert rebuild.status_code == 200, rebuild.text
+
+    graph = client.get("/api/lineage", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert graph.status_code == 200
+    body = graph.json()
+    nodes = {node["label"]: node for node in body["nodes"]}
+    fork = nodes["Pricing renegotiation follow-up"]
+    quote = nodes["Pricing renegotiation: revised quote sent"]
+    delivery = nodes["Delivery schedule question raised"]
+    quote_edge = next(
+        edge
+        for edge in body["edges"]
+        if edge["source"] == fork["id"] and edge["target"] == quote["id"]
+    )
+    delivery_edge = next(
+        edge
+        for edge in body["edges"]
+        if edge["source"] == fork["id"] and edge["target"] == delivery["id"]
+    )
+    assert quote_edge["interval_relation_code"] == "interval_contains"
+    assert quote_edge["interval_relation_label"] == "Contains"
+    assert delivery_edge["interval_relation_code"] == "interval_overlaps"
+    assert delivery_edge["interval_relation_label"] == "Overlaps"
+
+    per_post = client.get(
+        f"/api/posts/{fork['id']}/lineage",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert per_post.status_code == 200
+    by_title = {post["post_title"]: post for post in per_post.json()["direct"]}
+    assert by_title["Pricing renegotiation: revised quote sent"]["interval_relation_code"] == "interval_contains"
+    assert by_title["Delivery schedule question raised"]["interval_relation_code"] == "interval_overlaps"
+
+    from_quote = client.get(
+        f"/api/posts/{quote['id']}/lineage",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert from_quote.status_code == 200
+    quote_direct = {post["post_id"]: post for post in from_quote.json()["direct"]}
+    assert quote_direct[fork["id"]]["interval_relation_code"] == "interval_during"
+    assert quote_direct[fork["id"]]["interval_relation_label"] == "During"
+    assert quote_direct[fork["id"]]["interval_is_parent"] is False
 
 
 def test_lineage_graph_hides_other_corp_private_posts(client, demo_analyst_token, seeded_db) -> None:

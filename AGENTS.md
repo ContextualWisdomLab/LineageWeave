@@ -193,6 +193,13 @@ Gabriel factorization. Closest and farthest post–criterion pairs
 persist to `report_leftover_pair` and sit above the member list so
 a click opens that post.
 
+Event Lineage edges persist an Allen (1983) `interval_relation_code`
+(ADR 0122 / v2.15.0). Reconstruct still owns the parent choice; this
+only names the dated windows. A missing or earlier due date is a
+point interval. After `make seed`, rec-002 **Contains** rec-003 and
+**Overlaps** rec-004. Click Contains to open the revised quote. Do
+not treat During/Contains as causation.
+
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a
 floating Node version):

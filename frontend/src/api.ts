@@ -258,6 +258,9 @@ export interface LinkedPostRef {
   post_title: string;
   post_body_excerpt?: string | null;
   post_body_truncated?: boolean;
+  interval_relation_code?: string;
+  interval_relation_label?: string;
+  interval_is_parent?: boolean;
 }
 
 export interface PostLineage {
@@ -406,6 +409,8 @@ export interface LineageGraphEdge {
   source: string;
   target: string;
   fused_score: number;
+  interval_relation_code?: string;
+  interval_relation_label?: string;
 }
 
 export interface LineageGraph {

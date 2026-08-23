@@ -35,6 +35,12 @@ after cutoff were rewritten after the run; the opened body names
 both clocks and shows **Body this run knew** beside the live
 rewrite. Compare those two texts before treating the live body as
 reconstructed evidence (ADR 0016 / 0025).
+After `make seed`, open the A-100 pricing follow-up in Event Lineage.
+**Contains** names the revised quote (point 2026-01-10 inside the
+2026-01-06..2026-01-12 ticket window) and **Overlaps** names the
+delivery question. Click Contains to open the revised quote
+(ADR 0122 / v2.15.0). Reconstruct still owns the parent; the label
+is not a causal claim.
 `POST /api/analysis-runs` records Pending lineage only on an
 authorized cutoff capture (ADR 0017). TEPP and period-report kinds
 are 422. The Request button waits until affiliated corps load; choose

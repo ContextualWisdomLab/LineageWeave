@@ -16,6 +16,12 @@ from typing import Any, Mapping
 import asyncpg
 
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from lineageweave.interval_relation import (
+    INTERVAL_RELATION_LABELS,
+    allen_interval_relation,
+    interval_from_post,
+    interval_relation_from_current,
+)
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge, Record
 
@@ -59,17 +65,53 @@ def records_from_source_posts(rows: list[Mapping[str, Any]]) -> list[Record]:
     return records
 
 
-async def persist_lineage_edges(conn: asyncpg.Connection, edges: list[Edge]) -> None:
+def interval_relation_code_for_edge(
+    parent_row: Mapping[str, Any], child_row: Mapping[str, Any]
+) -> str:
+    """Allen relation of the parent window toward the child window."""
+    return allen_interval_relation(
+        interval_from_post(parent_row["created_at"], parent_row.get("due_date")),
+        interval_from_post(child_row["created_at"], child_row.get("due_date")),
+    )
+
+
+async def persist_lineage_edges(
+    conn: asyncpg.Connection,
+    edges: list[Edge],
+    bounds_by_post_id: Mapping[str, Mapping[str, Any]] | None = None,
+) -> None:
     """Replace ``post_lineage_edge`` with ``edges`` (reconstruct is source of truth)."""
     await conn.execute("delete from post_lineage_edge")
+    bounds = bounds_by_post_id or {}
     for edge in edges:
+        parent_bounds = bounds.get(edge.parent_id)
+        child_bounds = bounds.get(edge.child_id)
+        if parent_bounds is not None and child_bounds is not None:
+            relation_code = interval_relation_code_for_edge(parent_bounds, child_bounds)
+        else:
+            relation_code = "interval_before"
         await conn.execute(
-            "insert into post_lineage_edge (parent_post_id, child_post_id, fused_score) "
-            "values ($1::uuid, $2::uuid, $3)",
+            "insert into post_lineage_edge "
+            "(parent_post_id, child_post_id, fused_score, interval_relation_code) "
+            "values ($1::uuid, $2::uuid, $3, $4)",
             edge.parent_id,
             edge.child_id,
             edge.fused_score,
+            relation_code,
         )
+
+
+async def _post_interval_bounds(conn: asyncpg.Connection) -> dict[str, dict[str, Any]]:
+    """Created day plus earliest open ticket due date, keyed by post id."""
+    rows = await conn.fetch(
+        "select source_post.post_id, source_post.created_at, "
+        "(select min(issue_ticket.due_date) from issue_ticket "
+        "  where issue_ticket.post_id = source_post.post_id "
+        "    and issue_ticket.ticket_status_code <> 'closed' "
+        "    and issue_ticket.due_date is not null) as due_date "
+        f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
+    )
+    return {str(row["post_id"]): row for row in rows}
 
 
 async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
@@ -80,8 +122,19 @@ async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
         f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
     )
     edges = lineage_edge_specs(records_from_source_posts(rows))
-    await persist_lineage_edges(conn, edges)
+    await persist_lineage_edges(conn, edges, await _post_interval_bounds(conn))
     return edges
+
+
+def _interval_payload(row: Mapping[str, Any]) -> dict[str, Any]:
+    code = row.get("interval_relation_code")
+    if not code:
+        return {}
+    label = row.get("interval_relation_label") or INTERVAL_RELATION_LABELS.get(str(code))
+    payload = {"interval_relation_code": str(code)}
+    if label:
+        payload["interval_relation_label"] = str(label)
+    return payload
 
 
 async def visible_lineage_graph(
@@ -103,7 +156,8 @@ async def visible_lineage_graph(
     )
     visible_all = [row for row in posts if can_see_post(row)]
     edge_rows = await conn.fetch(
-        "select parent_post_id, child_post_id, fused_score from post_lineage_edge"
+        "select parent_post_id, child_post_id, fused_score, "
+        "interval_relation_code from post_lineage_edge"
     )
 
     if focus_post_id is None:
@@ -170,7 +224,41 @@ async def visible_lineage_graph(
             "source": str(row["parent_post_id"]),
             "target": str(row["child_post_id"]),
             "fused_score": float(row["fused_score"]),
+            **_interval_payload(row),
         }
         for row in visible_edges
     ]
     return {"nodes": nodes, "edges": edges, "truncated": truncated}
+
+
+async def interval_relations_for_post(
+    conn: asyncpg.Connection, post_id: str
+) -> dict[str, dict[str, Any]]:
+    """Allen labels on direct reconstructed neighbors of ``post_id``."""
+    rows = await conn.fetch(
+        "select parent_post_id, child_post_id, interval_relation_code "
+        "from post_lineage_edge "
+        "where parent_post_id = $1::uuid or child_post_id = $1::uuid",
+        post_id,
+    )
+    current = str(post_id)
+    relations: dict[str, dict[str, Any]] = {}
+    for row in rows:
+        parent_id = str(row["parent_post_id"])
+        child_id = str(row["child_post_id"])
+        other_id = child_id if parent_id == current else parent_id
+        current_is_parent = parent_id == current
+        stored = _interval_payload(row)
+        code = stored.get("interval_relation_code")
+        if not code:
+            continue
+        oriented = interval_relation_from_current(str(code), current_is_parent)
+        relations[other_id] = {
+            "interval_relation_code": oriented,
+            "interval_relation_label": INTERVAL_RELATION_LABELS.get(
+                oriented, stored.get("interval_relation_label")
+            ),
+            "interval_is_parent": current_is_parent,
+        }
+    return relations
+
