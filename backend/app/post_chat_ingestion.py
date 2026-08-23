@@ -20,7 +20,9 @@ from __future__ import annotations
 import asyncio
 import re
 from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Any, Callable, Iterable
+from zoneinfo import ZoneInfo
 
 import asyncpg
 
@@ -167,6 +169,20 @@ _SOURCE_HINT_FIELDS = (
 
 _GLOBAL_ASK_TERM_PATTERN = re.compile(r"[^\W_]+(?:-[^\W_]+)*", re.UNICODE)
 _POST_CHAT_SOURCE_LIMIT = 8
+
+# Korean relative-time words ("어제", "오늘", ...) name a KST calendar day,
+# not the server process's local/UTC day -- the whole repo otherwise runs on
+# UTC (no per-account timezone exists to ask instead). Both the resolver's
+# `today` and the SQL day-boundary cast below must use this same zone, or a
+# question asked between KST 00:00-09:00 (UTC still "yesterday") resolves
+# and filters against two different calendar days.
+_ASK_TIME_ZONE = ZoneInfo("Asia/Seoul")
+
+
+def _seoul_today() -> date:
+    return datetime.now(_ASK_TIME_ZONE).date()
+
+
 _POST_CHAT_CANDIDATE_LIMIT = 32
 
 
@@ -399,7 +415,7 @@ async def gather_global_chat_sources(
     # A relative-time expression ("어제", "작년 이맘때쯤", ...) narrows the
     # candidate window by created_at below; it must not also become a
     # near-meaningless literal keyword search term (see TEMPORAL_STOPWORDS).
-    resolved_time_range = resolve_korean_relative_time(question or "")
+    resolved_time_range = resolve_korean_relative_time(question or "", today=_seoul_today())
     search_terms = tuple(
         dict.fromkeys(
             token.casefold()
@@ -430,7 +446,11 @@ async def gather_global_chat_sources(
                 "무엇인가요",
                 "인가요",
             }
-            and token not in TEMPORAL_STOPWORDS
+            # A Korean particle (은/는/이/가/에/의/도/쯤/...) attaches directly
+            # to a time word with no space ("어제는", "지난주에"), so the
+            # tokenizer above yields one token that a bare `in` check against
+            # TEMPORAL_STOPWORDS never matches -- check by prefix instead.
+            and not any(token.startswith(stopword) for stopword in TEMPORAL_STOPWORDS)
         )
     )[:8]
     # A post whose title names the exact thing asked about is a far more
@@ -527,8 +547,8 @@ async def gather_global_chat_sources(
           from source_post
          where (visibility_code = 'public'
             or corporate_entity_id::text = any($1::text[]))
-           and ($4::date is null or created_at::date >= $4)
-           and ($5::date is null or created_at::date <= $5)
+           and ($4::date is null or (created_at at time zone 'Asia/Seoul')::date >= $4)
+           and ($5::date is null or (created_at at time zone 'Asia/Seoul')::date <= $5)
          order by array_position($2::uuid[], post_id) nulls last,
                   created_at desc, post_id desc
          limit $3
