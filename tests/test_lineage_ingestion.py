@@ -3,15 +3,106 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+import math
+from datetime import UTC, datetime, timezone
 
+import backend.app.lineage_ingestion as ingestion
 from backend.app.lineage_ingestion import (
+    load_estimated_channel_weights,
     reconstruct_group_key,
     records_from_source_posts,
     visible_lineage_graph,
 )
 from lineageweave.fixtures import sample_records
 from lineageweave.lineage_persistence import lineage_edge_specs
+
+
+def test_missing_weight_table_is_detected_without_an_aborting_query() -> None:
+    class MissingTableConnection:
+        async def fetchval(self, query: str):
+            assert "to_regclass('public.lineage_channel_weight')" in query
+            return False
+
+        async def fetch(self, _query: str):
+            raise AssertionError(
+                "missing tables must not be queried inside the outer transaction"
+            )
+
+    assert asyncio.run(
+        load_estimated_channel_weights(
+            MissingTableConnection(), {"temporal", "secondary_key", "text"}
+        )
+    ) is None
+
+
+def test_unapproved_weight_provenance_is_never_activated() -> None:
+    class StoredWeightConnection:
+        async def fetchval(self, _query: str):
+            return True
+
+        async def fetch(self, _query: str):
+            provenance = {
+                "estimation_run_id": "00000000-0000-0000-0000-000000000001",
+                "estimation_method_code": "mls2plm_discrimination",
+                "estimator_version": "5006c382",
+                "anchor_method_code": "unanchored_channel_covariance",
+                "source_snapshot_sha256": "a" * 64,
+                "sample_pair_count": 600,
+                "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
+            }
+            return [
+                {**provenance, "channel_code": "temporal", "weight_value": 0.2},
+                {**provenance, "channel_code": "secondary_key", "weight_value": 0.3},
+                {**provenance, "channel_code": "text", "weight_value": 0.5},
+            ]
+
+    assert asyncio.run(
+        load_estimated_channel_weights(
+            StoredWeightConnection(), {"temporal", "secondary_key", "text"}
+        )
+    ) is None
+
+
+def test_supported_vectors_still_require_numeric_and_provenance_integrity(
+    monkeypatch,
+) -> None:
+    monkeypatch.setattr(ingestion, "_SUPPORTED_ANCHOR_METHOD_CODES", {"test_anchor"})
+
+    class StoredWeightConnection:
+        def __init__(self, weights: tuple[float, float, float]) -> None:
+            self.weights = weights
+
+        async def fetchval(self, _query: str):
+            return True
+
+        async def fetch(self, _query: str):
+            provenance = {
+                "estimation_run_id": "00000000-0000-0000-0000-000000000001",
+                "estimation_method_code": "test_method",
+                "estimator_version": "1.0.0",
+                "anchor_method_code": "test_anchor",
+                "source_snapshot_sha256": "a" * 64,
+                "sample_pair_count": 600,
+                "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
+            }
+            return [
+                {**provenance, "channel_code": channel, "weight_value": weight}
+                for channel, weight in zip(
+                    ("temporal", "secondary_key", "text"), self.weights
+                )
+            ]
+
+    active = {"temporal", "secondary_key", "text"}
+    assert asyncio.run(
+        load_estimated_channel_weights(StoredWeightConnection((0.2, 0.3, 0.5)), active)
+    ) == {"temporal": 0.2, "secondary_key": 0.3, "text": 0.5}
+    for invalid in ((0.2, 0.3, 0.6), (0.2, 0.8, math.nan), (0.2, 0.8, 0.0)):
+        assert (
+            asyncio.run(
+                load_estimated_channel_weights(StoredWeightConnection(invalid), active)
+            )
+            is None
+        )
 
 
 def test_records_use_persisted_thread_keys_not_process_unit_or_voc_type() -> None:

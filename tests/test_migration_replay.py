@@ -33,3 +33,33 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
     ).read_text(encoding="utf-8")
 
     assert "0012_*" in script
+def test_channel_weight_migration_preserves_raw_source_grouping() -> None:
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0135_lineage_channel_weight.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "source_thread_group_key" in migration
+    assert "source_secondary_grouping_key" in migration
+
+
+def test_channel_weight_migration_enforces_integrity_and_provenance() -> None:
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0135_lineage_channel_weight.sql"
+    ).read_text(encoding="utf-8").casefold()
+
+    for field in (
+        "estimation_run_id",
+        "estimator_version",
+        "anchor_method_code",
+        "source_snapshot_sha256",
+        "knowledge_cutoff",
+    ):
+        assert field in migration
+    assert "channel_code in ('temporal', 'secondary_key', 'text', 'llm')" in migration
+    assert "weight_value > 0 and weight_value <= 1" in migration
+    assert "sample_pair_count >= 200" in migration
+    assert "source_snapshot_sha256 ~ '^[0-9a-f]{64}$'" in migration
