@@ -47,17 +47,21 @@ describe("splitPostBody", () => {
     ]);
   });
 
-  it("reads CSS box shorthand indentation and markerless footnotes", () => {
+  it("reads CSS box shorthand indentation", () => {
     expect(
       splitPostBody(
         '<ul><li style="margin: 0cm 0cm 0cm 56px">Outer</li></ul>' +
-          '<ul><li style="margin: 0cm 0cm 0cm 80px">Nested</li></ul>' +
-          "<p>*Tier 2: note</p>",
+          '<ul><li style="margin: 0cm 0cm 0cm 80px">Nested</li></ul>',
       ),
     ).toEqual([
       { kind: "text", text: "Outer", indentLevel: 7 },
       { kind: "text", text: "Nested", indentLevel: 10 },
-      { kind: "text", text: "*Tier 2: note", role: "footnote" },
+    ]);
+  });
+
+  it("does not infer a footnote from a bare marker", () => {
+    expect(splitPostBody("<p>*Synthetic list item</p>")).toEqual([
+      { kind: "text", text: "*Synthetic list item" },
     ]);
   });
 
@@ -156,6 +160,55 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("normalizes entity-encoded quantity syntax without leaking raw markup", () => {
+    expect(
+      splitPostBody("<p>Reserve 12 m&#94;3 and x&lt;sup&gt;2&lt;/sup&gt; units.</p>"),
+    ).toEqual([{ kind: "text", text: "Reserve 12 m³ and x² units." }]);
+  });
+
+  it("keeps encoded non-script inline markup literal", () => {
+    expect(splitPostBody("<p>Keep &lt;b&gt;bold&lt;/b&gt; literal.</p>")).toEqual([
+      { kind: "text", text: "Keep <b>bold</b> literal." },
+    ]);
+  });
+
+  it("keeps encoded non-script block markup literal", () => {
+    expect(
+      splitPostBody(
+        "<p>Keep &lt;table&gt;&lt;tr&gt;&lt;td&gt;grid&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt; literal.</p>",
+      ),
+    ).toEqual([
+      { kind: "text", text: "Keep <table><tr><td>grid</td></tr></table> literal." },
+    ]);
+  });
+
+  it("normalizes nested-encoded script tags and their inner entity", () => {
+    expect(
+      splitPostBody(
+        "<p>Volume is m&amp;lt;sup&amp;gt;&amp;nbsp;3&amp;lt;/sup&amp;gt;.</p>",
+      ),
+    ).toEqual([{ kind: "text", text: "Volume is m ³." }]);
+  });
+
+  it("normalizes encoded script content wrapped in encoded inline markup", () => {
+    expect(
+      splitPostBody("<p>x&lt;sup&gt;&lt;span&gt;2&lt;/span&gt;&lt;/sup&gt;</p>"),
+    ).toEqual([{ kind: "text", text: "x²" }]);
+  });
+
+  it("keeps encoded script-prefixed custom and namespaced tags literal", () => {
+    expect(
+      splitPostBody(
+        "<p>Keep &lt;sup-note&gt;2&lt;/sup-note&gt; and &lt;sub:item&gt;3&lt;/sub:item&gt; literal.</p>",
+      ),
+    ).toEqual([
+      {
+        kind: "text",
+        text: "Keep <sup-note>2</sup-note> and <sub:item>3</sub:item> literal.",
+      },
+    ]);
+  });
+
   it("matches sup/sub content split across a newline", () => {
     // Pretty-printed source HTML puts tag content on its own line
     // (regression: the regex lacked the dotAll flag, so `.` could not cross
@@ -176,6 +229,10 @@ describe("splitPostBody", () => {
       { text: "3", script: "super" },
       { text: "." },
     ]);
+  });
+
+  it("keeps mixed script content as a visible fallback", () => {
+    expect(splitPostBody("x<sup>3a</sup>")).toEqual([{ kind: "text", text: "x^3a" }]);
   });
 
   it("decodes a stored superscript letter deterministically to lowercase", () => {

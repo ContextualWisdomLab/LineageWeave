@@ -150,7 +150,7 @@ contextual-orchestrator owns model discovery and selection.
   paragraphs, not the authoring application's spacing workaround.
 - Quantity HTML `<sup>`/`<sub>` and caret exponents such as `m^3` become
   Unicode in derived units and React `<sup>`/`<sub>` in the post view
-  (ADR 0119). Never assign the body to `innerHTML`. Do not treat
+  (ADR 0165). Never assign the body to `innerHTML`. Do not treat
   `qty < 50` or a leading footnote `^1` as an exponent.
 - Image descriptions, OCR text, and region evidence are analysis artifacts,
   not buyer-facing prompt instructions. Buyer UI shows the source content and

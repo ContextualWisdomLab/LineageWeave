@@ -105,11 +105,62 @@ def test_chunk_by_dom_keeps_nested_table_cell_blocks_in_their_row() -> None:
     assert [(chunk.label, chunk.text) for chunk in chunks] == [("tr", "No. | Company")]
 
 
-def test_chunk_by_dom_labels_markerless_footnotes() -> None:
-    chunks = chunk_by_dom("<p>Body text</p><p>*Tier 2: follow-up note</p>")
+def test_chunk_by_dom_preserves_empty_table_cells() -> None:
+    chunks = chunk_by_dom(
+        "<table><tr><td></td><td>Synthetic item</td><td></td></tr></table>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "| Synthetic item |")
+    ]
+
+
+def test_chunk_by_dom_preserves_self_closing_empty_table_cells() -> None:
+    html_chunks = chunk_by_dom(
+        "<table><tr><td>Left</td><td/><td>Right</td></tr></table>"
+    )
+    word_chunks = chunk_by_dom(
+        "<w:tbl><w:tr><w:tc>Left</w:tc><w:tc/><w:tc>Right</w:tc></w:tr></w:tbl>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in html_chunks] == [
+        ("tr", "Left |  | Right")
+    ]
+    assert [(chunk.label, chunk.text) for chunk in word_chunks] == [
+        ("w:tr", "Left |  | Right")
+    ]
+
+
+def test_chunk_by_dom_scopes_cell_positions_to_nested_table_rows() -> None:
+    chunks = chunk_by_dom(
+        "<table><tr><td>Outer left"
+        "<table><tr><td>Inner left</td><td>Inner right</td></tr></table>"
+        "</td><td>Outer right</td></tr></table>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "Inner left | Inner right"),
+        ("tr", "Outer left | Outer right"),
+    ]
+
+
+def test_chunk_by_dom_implicitly_closes_sibling_rows_at_the_same_table_depth() -> None:
+    chunks = chunk_by_dom(
+        "<table><tr><td>First left</td><td>First right</td>"
+        "<tr><td>Second left</td><td>Second right</td></tr></table>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "First left | First right"),
+        ("tr", "Second left | Second right"),
+    ]
+
+
+def test_chunk_by_dom_does_not_infer_a_footnote_from_a_bare_marker() -> None:
+    chunks = chunk_by_dom("<p>Body text</p><p>*Synthetic list item</p>")
     assert [(chunk.label, chunk.text) for chunk in chunks] == [
         ("p", "Body text"),
-        ("footnote", "*Tier 2: follow-up note"),
+        ("p", "*Synthetic list item"),
     ]
 
 
@@ -231,6 +282,38 @@ def test_chunk_by_source_body_splits_plain_lists_and_markdown_tables() -> None:
         ("tr", "Field | Value"),
         ("tr", "Volume | 12 m³"),
     ]
+
+
+def test_chunk_by_source_body_preserves_empty_markdown_table_cells() -> None:
+    chunks = chunk_by_source_body(
+        "| Key | Value | State |\n"
+        "| --- | --- | --- |\n"
+        "| A | | Open |"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "Key | Value | State"),
+        ("tr", "A |  | Open"),
+    ]
+
+
+def test_chunk_by_source_body_keeps_contextual_all_empty_markdown_rows() -> None:
+    chunks = chunk_by_source_body(
+        "| Key | Value | State |\n"
+        "| --- | --- | --- |\n"
+        "| | | |"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "Key | Value | State"),
+        ("tr", "|  |"),
+    ]
+
+
+def test_chunk_by_source_body_does_not_promote_a_standalone_empty_pipe_line() -> None:
+    chunks = chunk_by_source_body("| | |")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [("", "| | |")]
 
 
 def test_chunk_by_dom_joins_visual_continuation_lines_but_keeps_list_items() -> None:
@@ -421,10 +504,26 @@ def test_normalize_script_text_maps_quantity_exponents_and_leaves_comparisons() 
     assert normalize_script_text("^1 See the tank note.") == "^1 See the tank note."
 
 
+def test_normalize_script_text_keeps_mixed_script_content_as_a_visible_fallback() -> None:
+    assert normalize_script_text("x<sup>3a</sup>") == "x^3a"
+
+
+def test_normalize_script_text_decodes_nested_inline_markup_before_stripping() -> None:
+    assert normalize_script_text("x<sup>&lt;span&gt;2&lt;/span&gt;</sup>") == "x²"
+
+
 def test_chunk_by_dom_keeps_html_quantity_scripts_as_unicode() -> None:
     chunks = chunk_by_dom("<p>Tank volume is 12 m<sup>3</sup> of H<sub>2</sub>O.</p>")
 
     assert [chunk.text for chunk in chunks] == ["Tank volume is 12 m³ of H₂O."]
+
+
+def test_chunk_by_dom_normalizes_entity_encoded_quantity_scripts() -> None:
+    chunks = chunk_by_dom(
+        "<p>Reserve 12 m&#94;3 and x&lt;sup&gt;2&lt;/sup&gt; units.</p>"
+    )
+
+    assert [chunk.text for chunk in chunks] == ["Reserve 12 m³ and x² units."]
 
 
 def test_chunk_by_dom_unclosed_sup_does_not_cross_table_cells() -> None:

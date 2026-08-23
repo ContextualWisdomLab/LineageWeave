@@ -20,7 +20,6 @@ const BLOCK_TAG =
   /<\/?(?:article|blockquote|div|h[1-6]|li|ol|p|section|table|tbody|td|tfoot|th|thead|tr|ul|w:p|w:tbl|w:tr|w:tc)\b[^>]*>/gi;
 const WORD_INDENT_TAG = /<w:ind\b[^>]*\/?\s*>/gi;
 const LIST_ITEM_START = /^\s*(?:[-*•·]\s+|[*†‡](?=\S)|(?:\d{1,3}|[A-Za-z가-힣])[.)]\s+|[①-⑳]\s+)/;
-const FOOTNOTE_START = /^\s*[*†‡](?=\S)/;
 const INDENT_MARKER = "\u0001lw-indent:";
 const INDENT_MARKER_END = "\u0002";
 const INDENT_MARKER_PATTERN = /lw-indent:(\d+)/g;
@@ -156,6 +155,9 @@ const SUPER_UNI_TO_ASCII = buildUnicodeToAsciiTable(SUPER_ASCII_TO_UNI);
 const SUB_UNI_TO_ASCII = buildUnicodeToAsciiTable(SUB_ASCII_TO_UNI);
 const CARET_EXPONENT =
   /(?<=[A-Za-z0-9µμ°ΩÅåÅ)])\^(?:\{([+-]?\d{1,3}|[nNiI])\}|([+-]?\d{1,3}|[nNiI]))/g;
+const ENCODED_CARET = /&(?:amp;)*(?:#0*94|#x0*5e);/gi;
+const ENCODED_SCRIPT_TAG =
+  /&(?:amp;)*(?:lt|#0*60|#x0*3c);\s*\/?\s*(?:sup|sub)(?=\s|\/|&(?:amp;)*(?:gt|#0*62|#x0*3e);).*?&(?:amp;)*(?:gt|#0*62|#x0*3e);/gis;
 
 function applyUnicodeScript(text: string, kind: "super" | "sub"): string {
   const table = kind === "super" ? SUPER_ASCII_TO_UNI : SUB_ASCII_TO_UNI;
@@ -174,17 +176,25 @@ function applyUnicodeScript(text: string, kind: "super" | "sub"): string {
 function replaceHtmlScripts(text: string): string {
   return text
     .replace(/<sup\b[^>]*>(.*?)<\/sup>/gis, (_match, inner: string) =>
-      applyUnicodeScript(decodeHtmlEntities(String(inner).replace(/<[^>]+>/g, "")), "super"),
+      applyUnicodeScript(decodeHtmlEntities(String(inner)).replace(/<[^>]+>/g, ""), "super"),
     )
     .replace(/<sub\b[^>]*>(.*?)<\/sub>/gis, (_match, inner: string) =>
-      applyUnicodeScript(decodeHtmlEntities(String(inner).replace(/<[^>]+>/g, "")), "sub"),
+      applyUnicodeScript(decodeHtmlEntities(String(inner)).replace(/<[^>]+>/g, ""), "sub"),
     );
 }
 
+function decodeScriptEntities(text: string): string {
+  return text
+    .replace(ENCODED_SCRIPT_TAG, (tag) => decodeHtmlEntities(tag))
+    .replace(ENCODED_CARET, (caret) => decodeHtmlEntities(caret));
+}
+
 export function normalizeScriptText(text: string): string {
-  return replaceHtmlScripts(text).replace(CARET_EXPONENT, (_match, braced: string, bare: string) =>
-    applyUnicodeScript(braced || bare, "super"),
+  const withCarets = decodeScriptEntities(text).replace(
+    CARET_EXPONENT,
+    (_match, braced: string, bare: string) => applyUnicodeScript(braced || bare, "super"),
   );
+  return replaceHtmlScripts(withCarets);
 }
 
 export type ScriptRun = { text: string; script?: "super" | "sub" };
@@ -239,7 +249,7 @@ export function splitScriptRuns(text: string): ScriptRun[] {
 }
 
 function stripHtmlTags(text: string): string {
-  const withScripts = replaceHtmlScripts(text);
+  const withScripts = normalizeScriptText(text);
   const withBoundaries = withScripts
     .replace(BREAK_TAG, "\n")
     .replace(BLOCK_TAG, (tag) => {
@@ -250,8 +260,7 @@ function stripHtmlTags(text: string): string {
   const withoutTags = withBoundaries.replace(HTML_TAG, (tag) =>
     /^<\/?w:/i.test(tag) ? "" : " ",
   );
-  const decoded = decodeHtmlEntities(withoutTags);
-  return normalizeScriptText(decoded)
+  return decodeHtmlEntities(withoutTags)
     .split("\n")
     .map((line) => {
       if (!line.trim()) return "";
@@ -358,7 +367,6 @@ function pushText(segments: PostBodySegment[], raw: string, indentUnit: number):
         kind: "text",
         text: normalized,
         ...(indentLevel > 0 ? { indentLevel } : {}),
-        ...(FOOTNOTE_START.test(normalized) ? { role: "footnote" as const } : {}),
       });
     }
   }

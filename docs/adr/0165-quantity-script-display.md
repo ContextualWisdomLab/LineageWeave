@@ -1,4 +1,4 @@
-# ADR 0119: Render quantity superscripts as text runs, Unicode in units
+# ADR 0165: Render quantity superscripts as text runs, Unicode in units
 
 - Status: Accepted
 - Date: 2026-08-22
