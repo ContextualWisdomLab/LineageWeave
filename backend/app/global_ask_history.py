@@ -29,6 +29,7 @@ def conversation_title(question: str) -> str:
 async def conversation_exists(
     conn: asyncpg.Connection, user_account_id: str, conversation_id: UUID
 ) -> bool:
+    """Return whether an account owns the requested conversation."""
     return bool(
         await conn.fetchval(
             "select exists(select 1 from global_ask_session where global_ask_session_id = $1 and user_account_id = $2)",
@@ -46,6 +47,7 @@ async def list_conversations(
     before_updated_at: datetime | None = None,
     before_conversation_id: UUID | None = None,
 ) -> dict[str, Any]:
+    """Return one reverse-chronological, account-owned conversation page."""
     cursor_clause = ""
     arguments: list[Any] = [user_account_id]
     if before_updated_at is not None and before_conversation_id is not None:
@@ -205,6 +207,7 @@ async def fetch_conversation(
     turn_limit: int = 50,
     before_turn_ordinal: int | None = None,
 ) -> dict[str, Any] | None:
+    """Return an authorized transcript page with only currently visible evidence."""
     header = await conn.fetchrow(
         """
         select global_ask_session_id
@@ -342,6 +345,7 @@ async def persist_turn(
     cited_post_evidence: Iterable[dict[str, Any]],
     can_see_post: Callable[[asyncpg.Record], bool] | None = None,
 ) -> UUID:
+    """Persist one account-owned turn and atomically reauthorize its citations."""
     source_ids = list(dict.fromkeys(str(post_id) for post_id in source_post_ids))
     source_set = set(source_ids)
     cited_ids = list(dict.fromkeys(str(post_id) for post_id in cited_post_ids if str(post_id) in source_set))

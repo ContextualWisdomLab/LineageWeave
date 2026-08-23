@@ -25,6 +25,8 @@ POST_CONTENT_RETRY_INTERVAL = timedelta(minutes=5)
 
 @dataclass(frozen=True)
 class PostContentJobRequest:
+    """One queued or running post-content ingestion job."""
+
     post_id: str
     source_body_sha256: str
     status_code: str
@@ -37,6 +39,7 @@ def source_body_sha256(body: str) -> str:
 
 
 def post_content_api_status(status_code: str | None, *, content_present: bool) -> str:
+    """Map an internal ingestion state to the reader-facing API status."""
     if status_code in _ACTIVE:
         return "processing"
     if status_code == FAILED:

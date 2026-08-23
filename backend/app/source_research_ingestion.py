@@ -103,6 +103,7 @@ async def research_post_sources(
     )
 
     def research() -> list[PersistedResearch]:
+        """Retrieve and judge every discovered lead outside the event loop."""
         researched: list[PersistedResearch] = []
         for lead in leads:
             passages = search_client.retrieve(lead)

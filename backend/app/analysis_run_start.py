@@ -106,9 +106,11 @@ def configured_tepp_client(
         return TeppClient()
 
     def unavailable_transport(_payload: dict[str, Any]) -> dict[str, Any]:
+        """Fail closed when only a temporal-context TEPP endpoint exists."""
         raise TeppNotAvailable("TEPP analysis-run transport unavailable")
 
     def transport(payload: dict[str, Any]) -> dict[str, Any]:
+        """Submit an analysis-run request through the configured TEPP endpoint."""
         try:
             headers = {
                 "tepp-consumer": "lineageweave",
@@ -126,6 +128,7 @@ def configured_tepp_client(
             raise TeppNotAvailable("TEPP transport unavailable") from exc
 
     def temporal_transport(payload: dict[str, Any]) -> dict[str, Any]:
+        """Submit a temporal-context request through the configured TEPP endpoint."""
         if not temporal_url:
             raise TeppNotAvailable("TEPP temporal-context transport unavailable")
         try:

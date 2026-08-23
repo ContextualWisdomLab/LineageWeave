@@ -120,10 +120,10 @@ search indexes when migration 0036's normalized successors exist; a complete
 existing-volume replay completed in 7 seconds with zero active or legacy index
 builds. Focused backend/migration checks passed `102` tests with one optional
 orchestrator integration skip, and frontend Knowledge Graph/i18n checks passed
-`30`. The exact-head coverage-instrumented full Python suite passed `971`
-tests with `16` skips; production Python source measured `87%` branch-aware
-coverage across `8,021` statements and `2,484` branches, with `813` missed
-statements and `390` partial branches. The temporal Python delta itself has
+`30`. The exact-head coverage-instrumented full Python suite passed `987`
+tests with `17` skips; production Python source measured `87%` branch-aware
+coverage across `8,071` statements and `2,506` branches, with `790` missed
+statements and `397` partial branches. The temporal Python delta itself has
 `7/7` changed executable statements and `2/2` changed branches covered.
 The full frontend suite passed `267` tests, and frontend lint/build plus
 `git diff --check` passed. The new official Vitest V8 production-source
@@ -541,7 +541,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | External email/project lineage package boundary | PR #343 merged at `125a8069a1554874d8067a15047e19d780ea6b7b` with strict v1.0.0 bounded request/result types, available-time cutoff handling, observed/inferred/proposed truth states, pair-budget enforcement, and no source/provider access | source + focused unit; immutable release open |
 | Naruon calendar projection boundary | PR #337 is closed as superseded; PR #355 carries the strict read projection contract without making LineageWeave a CalDAV provider | source + focused unit; Naruon endpoint, runtime wiring, and provider conformance remain open |
 | Hourly PR review/repair/merge loop | Central protected `main` owns generic `*/30 * * * *` and `*/15 * * * *` sweeps; the LineageWeave-specific minute-4 hourly repair caller remains open in `ContextualWisdomLab/.github#1086` at `aeb096a52c5f`, so no duplicate repo-local scheduler is required | source + exact-head local gate; protected merge and first scheduled run open |
-| 100% coverage/docstrings/edge-case/release gates | the two source-research modules and PROV-O have exact focused 100% branch results; the exact-head coverage-instrumented full Python suite is green at `971` passed / `16` skipped but measures only `87%` across production Python source; official Vitest V8 measurement keeps all production TypeScript/TSX in scope and reports `86.20%` statements / `76.21%` branches / `83.39%` functions / `88.63%` lines with `267` tests green | open: 813 Python statements, 390 partial Python branches, 397 frontend statements, 633 frontend branches, 144 frontend functions, 299 frontend lines, hosted checks, independent review, and release evidence |
+| 100% coverage/docstrings/edge-case/release gates | the public Python docstring AST contract is exact-head green; the two source-research modules and PROV-O have exact focused 100% branch results; the exact-head coverage-instrumented full Python suite is green at `987` passed / `17` skipped but measures only `87%` across production Python source; official Vitest V8 measurement keeps all production TypeScript/TSX in scope and reports `86.20%` statements / `76.21%` branches / `83.39%` functions / `88.63%` lines with `267` tests green | open: 790 Python statements, 397 partial Python branches, 397 frontend statements, 633 frontend branches, 144 frontend functions, 299 frontend lines, hosted checks, independent review, and release evidence |
 
 ## 4. Supplied parsing and semantic cases
 
@@ -623,7 +623,7 @@ or an explicit unavailable result.
   Add route- or workspace-level native code splitting only after measuring the
   authenticated navigation path; current-source browser capture remains open.
 - **Repository-wide gate stability — partial:** the latest current-source full
-  coverage-instrumented Python run passes `971` tests with `16` skips and
+  coverage-instrumented Python run passes `987` tests with `17` skips and
   measures `87%` branch-aware production-source coverage; pinned Corepack Vitest
   passes all `267` tests, and the reproducible `test:coverage` command reports
   `86.20%` statements / `76.21%` branches / `83.39%` functions /
@@ -633,16 +633,15 @@ or an explicit unavailable result.
   but the hosted run is not yet evidence. Skipped live-stack cases and hosted
   exact-head gates remain open.
 - **Coverage and docstring gates — docstrings closed, coverage enforcement
-  open:** an independent AST re-audit of `lineageweave/` and `backend/app/`
-  found 35 missing production docstrings (excluding private/dunder names,
-  `__init__.py`, and tests); all 35 were written and the full Python suite
-  (762 passed, 17 pre-existing skips) still passes (PR #498). Still open:
-  the general workflow runs pytest without repository-wide coverage
-  enforcement, and frontend Vitest has no coverage provider/configuration.
-  Exact 100% branch-coverage evidence is limited to the scoped PROV-O
-  workflow and the two source-research modules. Establish stable
-  integration execution and measured coverage baselines before claiming
-  repository-wide 100%.
+  open:** the exact-branch AST contract scans every non-private function,
+  method, nested callback, and class under `lineageweave/` and `backend/app/`;
+  all 51 definitions missing on this head are now documented and the contract
+  plus documentation-hygiene tests pass `5/5`. The full Python and official
+  Vitest V8 production-source measurements remain below 100%, so their exact
+  uncovered statement and branch counts stay open above. Exact 100% branch
+  evidence remains limited to the scoped PROV-O workflow, the two
+  source-research modules, and this docstring contract does not substitute for
+  executable coverage.
 - **Central OpenCode coverage sandbox — owner repair pending protected main:**
   issue `ContextualWisdomLab/.github#1250` is tracked in Project #1 as
   Ops/In Progress. Owner PR #1052 at `d2629dc7d9634368f04025c570b6395a9e1413f5`

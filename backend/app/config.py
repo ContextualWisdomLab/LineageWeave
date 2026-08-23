@@ -10,6 +10,8 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class Settings:
+    """Immutable snapshot of environment-driven backend configuration."""
+
     database_url: str
     # Reachable *from this backend process* -- used only to fetch JWKS
     # signing keys. Inside docker-compose this is the internal service DNS
