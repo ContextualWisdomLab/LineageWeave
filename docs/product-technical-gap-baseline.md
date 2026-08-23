@@ -914,9 +914,17 @@ or an explicit unavailable result.
   server-side (`logger.exception`, stdlib `logging`) before returning
   the same stable customer-facing 503; a caplog-based test proves an
   unexpected defect (not a classified provider error) reaches the logs
-  with a traceback. Not yet done: OpenTelemetry metrics distinguishing
-  known-provider-unavailable from internal-defect, correlation/request
-  IDs, and bounded-cardinality alerting -- those need a new-dependency
+  with a traceback. **Correlation/request IDs closed in this worktree
+  (2026-08-24):** a stdlib-only `contextvars.ContextVar` plus a
+  `@app.middleware("http")` handler stamps a server-generated UUID4 onto
+  every request (returned as the `X-Request-Id` response header, never
+  echoing an inbound client-supplied value back into logs -- a
+  log-injection vector this design does not need to accept); a
+  `logging.LoggerAdapter` subclass wraps the module's one `_logger` so
+  every one of the 10 call sites above picks up the active request ID
+  automatically, without a per-site change. Not yet done: OpenTelemetry
+  metrics distinguishing known-provider-unavailable from internal-defect,
+  and bounded-cardinality alerting -- those still need the new-dependency
   decision this checkpoint didn't force through.
 - **Per-post Ask citation rollback — closed (2026-08-25, issue #362
   sibling gap):** `post_ask_history.py` (ADR 0136) was scaffolded from

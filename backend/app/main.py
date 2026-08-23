@@ -22,17 +22,18 @@ read is ``source_post`` -- two-or-more-word table names, per AGENTS.md.
 from __future__ import annotations
 
 import asyncio
+import contextvars
 import json
 import logging
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Literal
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import asyncpg
 import redis.asyncio as redis
-from fastapi import Depends, FastAPI, HTTPException, Query, status
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -277,7 +278,31 @@ async def lifespan(app: FastAPI):
         await app.state.valkey.aclose()
 
 
-_logger = logging.getLogger(__name__)
+_request_id_var: contextvars.ContextVar[str | None] = contextvars.ContextVar(
+    "request_id", default=None
+)
+
+
+class _RequestIdLoggerAdapter(logging.LoggerAdapter):
+    """Appends the current request's correlation ID to every log record.
+
+    A single adapter here, rather than a change at each of this module's
+    fail-closed ``except Exception`` sites, so an operator can grep one
+    ``X-Request-Id`` value (returned to the client on every response)
+    across all log lines a request produced, including its own unexpected-
+    defect traceback -- without threading a request-id parameter through
+    every call site.
+    """
+
+    def process(self, msg: object, kwargs: dict) -> tuple[object, dict]:
+        """Suffix ``msg`` with the active request ID, or leave it unchanged."""
+        request_id = _request_id_var.get()
+        if request_id is None:
+            return msg, kwargs
+        return f"{msg} [request_id={request_id}]", kwargs
+
+
+_logger = _RequestIdLoggerAdapter(logging.getLogger(__name__), {})
 
 app = FastAPI(title="LineageWeave API", lifespan=lifespan)
 app.add_middleware(
@@ -286,6 +311,24 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH"],
     allow_headers=["Authorization"],
 )
+
+
+@app.middleware("http")
+async def _assign_request_id(request: Request, call_next):
+    """Stamp every request with a server-generated correlation ID.
+
+    Always server-generated, never an inbound client-supplied header --
+    logging an unsanitized client value would be a log-injection vector
+    for the sake of a convenience this endpoint boundary does not need.
+    """
+    request_id = str(uuid4())
+    token = _request_id_var.set(request_id)
+    try:
+        response = await call_next(request)
+    finally:
+        _request_id_var.reset(token)
+    response.headers["X-Request-Id"] = request_id
+    return response
 
 
 def _require_post_read(account: CurrentAccount) -> None:

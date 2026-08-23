@@ -46,6 +46,10 @@ All notable changes to this project are documented here. Format follows
   reconciles changed keys automatically; promoted posts receive a distinct
   Knowledge Graph customer-observation edge, while preferred, former, and
   alternate organization names remain visible and auditable.
+- Every API response now carries a server-generated `X-Request-Id` header,
+  and the backend's fail-closed `except Exception` handlers stamp the same
+  ID onto their unexpected-defect log lines, so an operator can grep one ID
+  to see everything a single failing request logged.
 
 ### Fixed
 
