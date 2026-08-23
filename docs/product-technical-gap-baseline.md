@@ -1,58 +1,92 @@
 # Product & Technical Gap Baseline
 
-## 1. Known Parsing & Frontend Display Gaps
-- **Footnote Parsing**: `post=00505695-3e61-1fd1-83c5-263f88a9e77a` fails to recognize footnotes (li/oi level errors).
-- **Table Parsing**: `post=00505695-3e61-1fd1-80c6-86bb61c8ddc5` completely fails at parsing tables.
-- **Indentation**: Incorrect indentation rendering in `post=00505695-7571-1fd1-83c3-d521b187ad5b` and `post=00505695-3e61-1fd1-83c0-497b3c1c455e`.
-- **Image/Table OCR**: `post=00505695-7571-1fd1-83dd-3d22a61a5734` fails text recognition for tables inside images, markdown parsing fails, and image OCR description is too shallow for Ontology & Semantics.
-- **Math/Superscripts**: `post=00505695-9612-1fe1-83a7-e30153323f25` fails to parse superscripts like m^3 properly. Needs strict Ontology grammar for math formulas.
-- **Missing UI Elements**: DAG (Directed Acyclic Graph) view is currently missing from the frontend for `post=00505695-7571-1fd1-83c5-895ed333cdbc`.
+> Audit date: 2026-08-23. This repository records synthetic fixtures and
+> aggregate, non-identifying runtime evidence only. Open PRs and local checks
+> are not protected-default-branch release evidence.
 
-## 2. LLM Extraction & Knowledge Graph Gaps
-- **Multiple Project Extraction**: (Resolved) LLM prompt updated to request key_events as objects with project_name, separating events correctly.
-- **5W1H Missing**: (Resolved) LLM prompt updated to explicitly request 5W1H evidence items in the JSON output array.
-- **R&R and Keyman Missing**: (Resolved) LLM prompt updated to explicitly instruct using actual stated names rather than collective titles.
-- **Entity Resolution / Searxng**: Abbreviations like "한전" and "한국전력" are not mapped properly using Searxng and KG corroboration. 
-- **Meso-level Team Mapping**: (Resolved) Checked extraction logic; `team` mapping logic is present and correct, but LLM needed better explicit instruction which is covered by R&R resolution.
-- **Base64 Image Omni-modal**: Current text-only embedding fails on images. Omni-modal LLM processing is required for images to capture layout, font size, colors, and spatial meaning.
+## 1. Exact-head and governance evidence
 
-## 3. General Architecture Gaps
-- **DB Architecture**: Ensure PostgreSQL is strictly used (no file DBs), 3rd normal form is maintained, and Hot Partitions are handled. DB locks must be managed (or use read/write replicas).
-- **Zotero Integration**: Papers and standards referenced by TEPP must be synced via Local Zotero API (http://localhost:23119/api/) and cited using APA 7th edition in docstrings.
-- **Testing**: We need actual testing of Psychometrics (Fast-MLSIRM parameter calibration, RMSE of estimates, Fixed-Item Parameter Calibration, CAT) against synthetic/demo data.
-- **Security & Compliance**: PII masking cannot break the system. Need SOC 2 and CSAP compliance alternatives to blind PII masking. 
-- **LLM Orchestration**: Ensure ALL LLM calls route through `contextual-orchestrator` utilizing API keys (BYTEZ, NVIDIA, OPENROUTER, OPENAI) with auto model discovery and optimal reasoning effort allocation (Fugu/Conductor/TRINITY research).
+The protected default branch was
+`ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` when this baseline was refreshed.
+The acceptance queue remains active; every lifecycle decision must re-fetch
+the current base, head, checks, threads, approvals, rulesets, and merge SHA.
 
-## 4. Ask Agent Gaps
-- **Korean relative-time understanding**: (Resolved, PR #415 / ADR 0150)
-  Global Ask could not answer "어제", "오늘", "그제", "작년 이맘때쯤",
-  "재작년에", "언젠가", or the general "N일/주/개월/년 전" pattern -- the
-  expression only ever became a literal keyword search term. Resolved by
-  `lineageweave.temporal_expressions.resolve_korean_relative_time`, wired
-  into `gather_global_chat_sources` as a `created_at` retrieval bound.
-- **Multi-thread Event Lineage in answers**: (Resolved, PR #418 / ADR 0151)
-  An Ask answer could speak to at most one connected Event Lineage
-  timeline (ADR 0090's single-top-match expansion), shown as prose only.
-  Resolved by `lineage_graphs_for_posts` merging every cited post's full
-  thread into one `lineage_graph` response field, rendered as N
-  independent git-branch-style figures by the existing `LineageDag`
-  component.
-- **Image citation in answers**: (Resolved, PR #419 / ADR 0152) A citation
-  whose evidence came from an embedded picture read as an unmarked text
-  claim. Resolved by `cited_post_images`, surfacing the same persisted
-  caption/OCR/tags `GET /api/posts/{id}/content` already renders, scoped
-  to cited posts -- no new image-serving mechanism, consistent with this
-  codebase's existing never-raw-bytes boundary.
-- **Evidence Layer Popup**: (Resolved, PR #420 / ADR 0153) Inspecting one
-  citation's evidence meant either scanning every citation's facts inline
-  at once or leaving the answer for the full post detail popup. Resolved
-  by `AskEvidenceLayerPopup`, a focused modal opened per citation.
-- **Ask Agent e2e coverage**: (Resolved, PR #421) No Playwright config
-  existed despite `playwright` already being a frontend devDependency.
-  Resolved by `frontend/playwright.config.ts` + `frontend/e2e/` (a
-  Keycloak-OIDC login helper, a verified-passing smoke spec, and a spec
-  covering all four capabilities above -- the latter requires PRs
-  #415/#418/#419/#420 merged and the images rebuilt from `main` before it
-  can pass; not yet true as of this entry).
+Central PR #1248 repairs the backend-Python Strix partial-scope context by
+including trusted-base authentication code. Its local quick-gate evidence is
+not a protected merge or release result.
 
-*This document is continuously updated by the hourly automated agent loop.*
+The organization scheduler is the single review/repair control plane. Its
+quarter-hour queue sweep satisfies the required hourly loop without adding a
+duplicate repository-local scheduler.
+
+## 2. Reader-visible capability baseline
+
+Substantially present in source or active PRs:
+
+- PostgreSQL-backed import, normalized provenance, cutoff-aware analysis runs,
+  source revisions, lineage reconstruction, and explicit unavailable states.
+- Authenticated workspace navigation, post detail, Korean summaries, 5W1H,
+  R&R/Keyman, evidence citations, chat, customer hierarchy, and lineage DAG.
+- Semantic paragraph/list/table/image-region units that preserve source
+  representation and provenance instead of flattening one opaque body string.
+- Contextual-orchestrator boundaries for adjudication, extraction, summaries,
+  chat, embeddings, and VISION; null channels remain unavailable and are
+  dropped from score fusion.
+- W3C PROV-O projection through normalized provenance tables, with the
+  knowledge graph retained as an explicit navigation projection.
+
+These statements describe source capability, not authenticated production
+corpus acceptance or protected release.
+
+## 3. Open product and technical gaps
+
+| Gap | Current evidence | Acceptance requirement |
+| --- | --- | --- |
+| Protected release | Material work remains on open or stacked PR heads | Terminal exact-head checks, no unresolved threads, independent approval, and a protected merge SHA |
+| Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
+| Image understanding | Region, OCR, and description work exists on active heads | Orchestrator-backed rendered workflow, original/derived asset provenance, and honest unsupported states |
+| Semantic source rendering | Paragraph, table, and list parsing exists across active stacks | Authenticated browser evidence that semantic units render without authoring-layout artifacts |
+| Scientific measurement | TEPP and fast-mlsirm adapters are present or under review | Persisted accepted envelopes, calibration/recovery evidence, and no invented theta |
+| Accessibility and responsive UX | Unit coverage exists for major reader surfaces | Keyboard, screen-reader, mobile, and authenticated Playwright acceptance on the exact release head |
+| External integrations | SearXNG, Zotero, calendar, and downstream consumer contracts are bounded | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
+| Release quality | Local focused/full suites have passed on individual PR heads | Repository-wide coverage, docstrings, Storybook, security, browser, and release evidence on one exact head |
+
+## 4. Ask Agent delivery evidence
+
+ADRs 0150-0153 record the intended boundaries before implementation becomes
+protected-main evidence:
+
+- PR #415 implements Korean relative-time retrieval under ADR 0150.
+- PR #418 implements scoped multi-thread Event Lineage answers under ADR 0151.
+- PR #419 implements persisted image-evidence citations under ADR 0152.
+- PR #420 implements a focused citation evidence popup under ADR 0153.
+- PR #421 adds the Playwright harness intended to verify the combined flow.
+
+These capabilities remain active-PR evidence until their exact heads pass all
+protected gates and merge. The combined browser scenario is not release
+evidence until it runs successfully against one merged release candidate.
+
+## 5. Evidence boundaries
+
+- Never add a real record, title, name, identifier, screenshot, log, benchmark
+  artifact, or documentation example to this repository.
+- Attendance or co-occurrence is not responsibility, project, customer, or
+  affiliation evidence. Preserve uncertainty and provenance.
+- Missing transport, model capability, accepted envelope, or persistence is
+  unavailable/failed evidence, never a placeholder result.
+- Local green tests, bot statuses, auto-merge, and warning-only checks do not
+  prove a protected merge.
+
+## 6. Next acceptance loop
+
+1. Complete protected review of central PR #1248 and rerun affected Strix
+   evidence only on unchanged exact heads.
+2. Re-fetch current heads, latest checks, unresolved threads, and independent
+   reviews before every merge decision.
+3. Run frontend lint/test/build/Storybook, backend tests, and authenticated
+   browser/accessibility checks on the exact candidate release head.
+4. Reproduce reader cases with synthetic fixtures or authorized aggregate
+   runtime evidence, preserving `unavailable` explicitly.
+5. Fix only evidence-backed failures and repeat the protected merge gate. Do
+   not self-approve, force merge/push, bypass protection, or transfer stale
+   review/check evidence across heads.
