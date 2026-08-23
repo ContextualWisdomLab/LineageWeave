@@ -1158,12 +1158,7 @@ function KeymanPanel({
                   <li key={key}>
                     <button
                       className="keyman-select"
-                      aria-label={tf("Related nodes for {name}", {
-                        name: organizationAliasCaption(
-                          node.label ?? node.node_id,
-                          node.organization_alias,
-                        ),
-                      })}
+                      aria-label={tf("Related nodes for {name}", { name: caption })}
                       onClick={() => handleSelectEntity(node.node_id, node.label ?? node.node_id)}
                     >
                       {caption}
