@@ -328,6 +328,15 @@ def test_cited_post_images_returns_persisted_captions_for_cited_posts_only() -> 
                 "caption": "irrelevant",
                 "tags": [],
             },
+            {
+                "post_id": "post-a",
+                "unit_index": 3,
+                "mime_type": "image/png",
+                "description_status_code": "unavailable",
+                "extracted_text": None,
+                "caption": None,
+                "tags": [],
+            },
         ]
     )
     images = asyncio.run(cited_post_images(connection, ["post-a"]))

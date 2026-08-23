@@ -606,6 +606,7 @@ async def cited_post_images(
             "tags": list(row["tags"] or []),
         }
         for row in rows
+        if row["caption"] or row["extracted_text"] or row["tags"]
     ]
 
 
