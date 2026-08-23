@@ -126,8 +126,8 @@ async def get_or_create_corporate_entity(
     """Return a verified catalog id, otherwise ``None``.
 
     A unique similarity match is reused. A tied top score stays unbound
-    and does not create a third same-named row (ADR 0026). Corroborated
-    After a raw miss, SKOS alt/pref pairs expand the candidate labels so a
+    and does not create a third same-named row (ADR 0026). After a raw
+    miss, SKOS alt/pref pairs expand the candidate labels so a
     synthetic short form and full form bind the same row (ADR 0120). Only
     an alias-expanded miss may enter ADR 0010 inference. A proposed parent
     must independently corroborate and resolve before the child can be
