@@ -421,7 +421,7 @@ def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
         str(post["corporate_entity_id"]) in account.corporate_entity_ids
         and (
             not account.process_unit_ids
-            or str(post.get("process_unit_id")) in account.process_unit_ids
+            or str(post["process_unit_id"]) in account.process_unit_ids
         )
     )
 
@@ -2179,7 +2179,7 @@ async def read_post_lineage(
         if candidate_ids:
             # Safe SQL: the eligibility predicate is an immutable schema fragment; candidate ids are bound.
             fetched = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-                "select post_id, post_title, visibility_code, corporate_entity_id, "
+                "select post_id, post_title, visibility_code, corporate_entity_id, process_unit_id, "
                 "btrim(left(source_post_search_text(post_body), 420)) as post_body_excerpt, "
                 "char_length(coalesce(post_body, '')) > 420 as post_body_truncated "
                 f"from source_post where post_id = any($1::uuid[]) and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
