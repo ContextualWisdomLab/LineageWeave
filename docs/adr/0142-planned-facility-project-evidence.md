@@ -1,7 +1,7 @@
 # ADR 0142 — A planned facility becomes project/entity evidence only through the existing semantic-relationship channel, with an explicit "planned" predicate
 
-**Decision status:** Proposed
-**Date:** 2026-08-22
+**Decision status:** Accepted
+**Date:** 2026-08-24
 
 ## Context
 
@@ -23,9 +23,9 @@ context risks the same class of mistake — asserting a fact ("Org X operates
 Facility Y") that the source text does not actually state ("Org X plans to
 build Facility Y").
 
-This ADR is scoped to the decision only. **No inference code is written as
-part of this ADR** — implementing it is separately reviewed follow-up work,
-per the gap doc's own instruction and AGENTS.md's ADR-first rule.
+The initial proposed revision was decision-only. The separately reviewed
+follow-up now implements the accepted admission rule without adding a second
+relationship table or catalog-creation path.
 
 ### What already exists that this can reuse
 
@@ -122,12 +122,11 @@ governs when the extractor may emit it.
 
 ## Consequences
 
-- The next implementation step (separately reviewed, not part of this ADR)
-  is: bump `POST_SUMMARY_CONTRACT_VERSION`, extend the extraction prompt
-  with the admission rule above, add `lw_plans_to_operate` to the ontology
-  TTL and `SEMANTIC_RELATION_PREDICATES`, and add fixture-backed tests
-  proving a *plan* phrase emits the new predicate while an *existing
-  operation* phrase does not.
+- The implementation bumps `POST_SUMMARY_CONTRACT_VERSION`, extends the
+  extraction prompt and ontology registry, and independently rechecks the
+  R&R actor, project backing, facility type, and literal evidence span before
+  retaining a model-emitted `lw_plans_to_operate` row. Missing evidence drops
+  only that relationship; other supported semantic relationships remain.
 - Because the predicate is additive to an existing closed vocabulary and
   channel, no migration is needed beyond the ontology TTL update and the
   Python frozenset — `post_summary_semantic_relationship`'s schema already
@@ -143,3 +142,15 @@ governs when the extractor may emit it.
   purpose (`lw_has_goal`, `lw_has_next_step`, etc. are the same kind of
   LineageWeave-specific narrative-structure predicate already in the
   vocabulary), not a new category of exception.
+
+## References (APA 7th)
+
+Lebo, T., Sahoo, S., & McGuinness, D. (Eds.). (2013). *PROV-O: The PROV
+ontology*. World Wide Web Consortium. https://www.w3.org/TR/prov-o/
+
+Miles, A., & Bechhofer, S. (Eds.). (2009). *SKOS simple knowledge organization
+system reference*. World Wide Web Consortium.
+https://www.w3.org/TR/skos-reference/
+
+W3C OWL Working Group. (2012). *OWL 2 Web Ontology Language document overview
+(2nd ed.)*. World Wide Web Consortium. https://www.w3.org/TR/owl2-overview/

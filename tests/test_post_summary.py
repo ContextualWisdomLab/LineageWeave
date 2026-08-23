@@ -28,11 +28,14 @@ from lineageweave.fixtures import (
     sample_records,
 )
 from lineageweave.post_summary import (
+    ACTOR_TYPE_ORGANIZATION,
     ContextualOrchestratorPostSummaryClient,
     NullPostSummaryClient,
+    ProjectMention,
     RoleResponsibility,
     SemanticRelationship,
     _SUMMARY_REQUEST_PROMPT_TEMPLATE,
+    _admit_planned_facility_relationships,
     _formalize_korean_summary,
     _parse_optional_project_key,
     _parse_plain_quantitative_observations,
@@ -584,6 +587,11 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
     assert "different product family in a nearby list is not a substitute" in " ".join(
         relations_prompt.split()
     )
+    assert "lw_plans_to_operate" in relations_prompt
+    assert "same supporting phrase must name both" in relations_prompt
+    assert "matching PROJECTS row" in relations_prompt
+    assert "separate extraction pass" in relations_prompt
+    assert "Do not suppress an explicit source relation" in relations_prompt
     assert summary.roles_and_responsibilities[0].actor_name == "Jordan Hale"
     assert summary.project_mentions[0].canonical_name == "hvdc-pilot"
     assert summary.semantic_relationships == (
@@ -597,6 +605,128 @@ def test_summary_request_uses_plain_route_evidence_contract(monkeypatch) -> None
             confidence=0.98,
         ),
     )
+
+
+def _planned_facility_details(
+    *,
+    actor_type: str = "organization",
+    roles: str | None = None,
+    projects: str = (
+        "Aurora Charging Hub | Aurora Charging Hub | Aurora Charging Hub plan | 0.95"
+    ),
+    object_type: str = "industrial_asset",
+    evidence: str = "Synthetic Utility plans to operate Aurora Charging Hub",
+) -> str:
+    roles = roles or f"Synthetic Utility | 운영 계획 담당 | {actor_type} | NONE"
+    return (
+        f"ROLES:\n{roles}\nPROJECTS:\n{projects}\nRELATIONS:\n"
+        f"Synthetic Utility | {actor_type} | lw_plans_to_operate | "
+        f"Aurora Charging Hub | {object_type} | {evidence} | 0.93"
+    )
+
+
+def _summarize_with_details(monkeypatch, details: str):
+    responses = iter(
+        (
+            {"choices": [{"message": {"content": "합성 요약\nKEY EVENTS: 운영 계획"}}]},
+            {"choices": [{"message": {"content": details}}]},
+            {"choices": [{"message": {"content": details}}]},
+        )
+    )
+    monkeypatch.setattr(
+        "lineageweave.post_summary.post_json",
+        lambda *args, **kwargs: next(responses),
+    )
+
+    return ContextualOrchestratorPostSummaryClient(
+        "https://orchestrator.test", "token"
+    ).summarize("Synthetic plan", "Synthetic Utility plans to operate Aurora Charging Hub")
+
+
+@pytest.mark.parametrize("object_type", ("industrial_asset", "place"))
+@pytest.mark.parametrize("actor_type", ("organization", "team"))
+def test_summary_admits_explicit_planned_facility_relation_with_project_backing(
+    monkeypatch, actor_type: str, object_type: str
+) -> None:
+    summary = _summarize_with_details(
+        monkeypatch,
+        _planned_facility_details(actor_type=actor_type, object_type=object_type),
+    )
+
+    assert len(summary.semantic_relationships) == 1
+    relation = summary.semantic_relationships[0]
+    assert relation.subject_name == "Synthetic Utility"
+    assert relation.subject_type == actor_type
+    assert relation.predicate_code == "lw_plans_to_operate"
+    assert relation.object_name == "Aurora Charging Hub"
+    assert relation.object_type == object_type
+    assert relation.evidence_text == "Synthetic Utility plans to operate Aurora Charging Hub"
+    assert relation.confidence == 0.93
+
+
+@pytest.mark.parametrize(
+    "details",
+    (
+        pytest.param(
+            _planned_facility_details(projects="NONE"),
+            id="missing-project-backing",
+        ),
+        pytest.param(
+            _planned_facility_details(roles="NONE"),
+            id="missing-role-actor",
+        ),
+        pytest.param(
+            _planned_facility_details(evidence="Aurora Charging Hub plan"),
+            id="evidence-missing-actor",
+        ),
+        pytest.param(
+            _planned_facility_details(
+                evidence="Synthetic Utility will manage Aurora Charging Hub"
+            ),
+            id="evidence-not-in-source",
+        ),
+        pytest.param(
+            _planned_facility_details(object_type="project"),
+            id="wrong-facility-type",
+        ),
+    ),
+)
+def test_summary_drops_planned_facility_relation_when_admission_evidence_is_missing(
+    monkeypatch, details: str
+) -> None:
+    assert _summarize_with_details(monkeypatch, details).semantic_relationships == ()
+
+
+def test_planned_facility_admission_normalizes_unicode_equivalent_actor_names() -> None:
+    relationship = SemanticRelationship(
+        subject_name="Synthetic Utility",
+        subject_type="organization",
+        predicate_code="lw_plans_to_operate",
+        object_name="Aurora Charging Hub",
+        object_type="industrial_asset",
+        evidence_text="Synthetic Utility plans to operate Aurora Charging Hub",
+        confidence=0.93,
+    )
+
+    assert _admit_planned_facility_relationships(
+        (relationship,),
+        (
+            RoleResponsibility(
+                "Ｓｙｎｔｈｅｔｉｃ Ｕｔｉｌｉｔｙ",
+                "운영 계획 담당",
+                ACTOR_TYPE_ORGANIZATION,
+            ),
+        ),
+        (
+            ProjectMention(
+                "Aurora Charging Hub",
+                "Aurora Charging Hub",
+                "Aurora Charging Hub plan",
+                0.95,
+            ),
+        ),
+        relationship.evidence_text,
+    ) == (relationship,)
 
 
 def test_summary_details_parse_failure_does_not_expose_provider_response(monkeypatch) -> None:

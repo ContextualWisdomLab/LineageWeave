@@ -729,6 +729,11 @@
     rdfs:label "supports"@en ;
     rdfs:comment "LineageWeave profile relation for an explicit source statement that an agent supports an entity such as a named project. It is not inferred from co-occurrence or role evidence."@en .
 
+:plansToOperate a owl:ObjectProperty ;
+    rdfs:domain prov:Agent ;
+    rdfs:label "plans to operate"@en ;
+    rdfs:comment "An explicit source-backed intention to operate a planned facility, not evidence that the facility is already operating."@en .
+
 :subjectName a owl:DatatypeProperty ;
     rdfs:domain :SemanticRelationship ;
     rdfs:range xsd:string .
@@ -1376,6 +1381,7 @@
         [ a :SemanticPredicateMapping ; :predicateCode "lw_has_result" ; :predicateIri :hasResultClue ; rdfs:label "Has result clue"@en ],
         [ a :SemanticPredicateMapping ; :predicateCode "lw_has_condition" ; :predicateIri :hasConditionClue ; rdfs:label "Has condition clue"@en ],
         [ a :SemanticPredicateMapping ; :predicateCode "lw_inferred_from" ; :predicateIri :inferredFrom ; rdfs:label "Inferred from"@en ],
+        [ a :SemanticPredicateMapping ; :predicateCode "lw_plans_to_operate" ; :predicateIri :plansToOperate ; rdfs:label "Plans to operate"@en ],
         [ a :SemanticPredicateMapping ; :predicateCode "lw_responsible_for" ; :predicateIri :responsibleFor ; rdfs:label "Responsible for"@en ],
         [ a :SemanticPredicateMapping ; :predicateCode "lw_supports" ; :predicateIri :supports ; rdfs:label "Supports"@en ] .
 
