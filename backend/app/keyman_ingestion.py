@@ -49,7 +49,7 @@ ambiguity into an apparent miss and manufacture a third `AUTO-` row.
 from __future__ import annotations
 
 import asyncio
-from dataclasses import replace
+from dataclasses import dataclass, replace
 
 import asyncpg
 
@@ -67,11 +67,22 @@ from lineageweave.organization_name_resolution import (
     NullOrganizationNameResolutionClient,
     OrganizationNameResolutionClient,
 )
-from lineageweave.relation_verification import NullRelationVerificationClient, RelationVerificationClient
+from lineageweave.relation_verification import (
+    NullRelationVerificationClient,
+    RelationVerificationClient,
+)
 
-from .corporate_entity_ingestion import get_or_create_corporate_entity
+from .corporate_entity_ingestion import (
+    PreparedCorporateEntityResolution,
+    apply_prepared_corporate_entity_resolution,
+    prepare_corporate_entity_resolution,
+)
 from .knowledge_graph import persist_edges_for_post
-from .organization_name_resolution_ingestion import resolve_organization_name
+from .organization_name_resolution_ingestion import (
+    PreparedOrganizationNameResolution,
+    apply_prepared_organization_name_resolution,
+    prepare_organization_name_resolution,
+)
 
 
 async def _load_corporate_entity_candidates(conn: asyncpg.Connection) -> list[CorporateEntityCandidate]:
@@ -174,6 +185,91 @@ async def _upsert_affiliation(
     )
 
 
+@dataclass(frozen=True)
+class PreparedAffiliatedOrganization:
+    """No-write name and hierarchy plan for one affiliation mention."""
+
+    raw_name: str
+    resolved_name: str
+    name_resolution: PreparedOrganizationNameResolution | None
+    entity_resolution: PreparedCorporateEntityResolution | None
+    unresolved_reason: str | None
+
+
+async def prepare_affiliated_organization(
+    conn: asyncpg.Connection,
+    organization_name: str,
+    context_text: str,
+    resolution_client: OrganizationNameResolutionClient,
+    verification_client: RelationVerificationClient,
+    hierarchy_inference_client: CorporateHierarchyInferenceClient,
+    candidates: list[CorporateEntityCandidate],
+) -> PreparedAffiliatedOrganization:
+    """Prepare one affiliation without rewriting a known raw-name tie.
+
+    Provider work completes here, while cache/catalog writes are deferred to
+    :func:`apply_prepared_affiliated_organization`.
+    """
+    raw_outcome = score_corporate_entity(organization_name, candidates)
+    if raw_outcome.kind == RESOLUTION_TIE:
+        return PreparedAffiliatedOrganization(
+            organization_name,
+            organization_name,
+            None,
+            None,
+            "reason_tied_candidates",
+        )
+
+    name_resolution = await prepare_organization_name_resolution(
+        conn,
+        resolution_client,
+        verification_client,
+        organization_name,
+        context_text,
+    )
+    entity_resolution = await prepare_corporate_entity_resolution(
+        name_resolution.resolved_name,
+        context_text,
+        hierarchy_inference_client,
+        verification_client,
+        candidates,
+    )
+    return PreparedAffiliatedOrganization(
+        organization_name,
+        name_resolution.resolved_name,
+        name_resolution,
+        entity_resolution,
+        None,
+    )
+
+
+async def apply_prepared_affiliated_organization(
+    conn: asyncpg.Connection,
+    prepared: PreparedAffiliatedOrganization,
+    candidates: list[CorporateEntityCandidate],
+) -> tuple[str, str, str | None, str | None]:
+    """Apply prepared cache/catalog writes without calling providers."""
+    if prepared.name_resolution is None or prepared.entity_resolution is None:
+        return (
+            prepared.raw_name,
+            prepared.resolved_name,
+            None,
+            prepared.unresolved_reason,
+        )
+    resolved_name = await apply_prepared_organization_name_resolution(
+        conn,
+        prepared.name_resolution,
+    )
+    corporate_entity_id, unresolved_reason = (
+        await apply_prepared_corporate_entity_resolution(
+            conn,
+            prepared.entity_resolution,
+            candidates,
+        )
+    )
+    return prepared.raw_name, resolved_name, corporate_entity_id, unresolved_reason
+
+
 async def _resolve_affiliated_organization(
     conn: asyncpg.Connection,
     organization_name: str,
@@ -182,28 +278,18 @@ async def _resolve_affiliated_organization(
     verification_client: RelationVerificationClient,
     hierarchy_inference_client: CorporateHierarchyInferenceClient,
     candidates: list[CorporateEntityCandidate],
-) -> tuple[str, str, str | None]:
-    """Resolve one affiliation without rewriting a known raw-name tie."""
-    raw_outcome = score_corporate_entity(organization_name, candidates)
-    if raw_outcome.kind == RESOLUTION_TIE:
-        return organization_name, organization_name, None
-
-    resolved_name = await resolve_organization_name(
+) -> tuple[str, str, str | None, str | None]:
+    """Prepare provider evidence, then persist affiliation catalog changes."""
+    prepared = await prepare_affiliated_organization(
         conn,
-        resolution_client,
-        verification_client,
         organization_name,
         context_text,
-    )
-    corporate_entity_id = await get_or_create_corporate_entity(
-        conn,
-        resolved_name,
-        context_text,
-        hierarchy_inference_client,
+        resolution_client,
         verification_client,
+        hierarchy_inference_client,
         candidates,
     )
-    return organization_name, resolved_name, corporate_entity_id
+    return await apply_prepared_affiliated_organization(conn, prepared, candidates)
 
 
 async def ingest_post_keymen(
@@ -249,9 +335,11 @@ async def ingest_post_keymen(
     else:
         mentions = await asyncio.to_thread(client.extract, post_title, post_body)
     candidates = await _load_corporate_entity_candidates(conn)
-    resolved_by_mention: list[tuple[PersonMention, list[tuple[str, str, str | None]]]] = []
+    resolved_by_mention: list[
+        tuple[PersonMention, list[tuple[str, str, str | None, str | None]]]
+    ] = []
     for mention in mentions:
-        resolved_orgs: list[tuple[str, str, str | None]] = []
+        resolved_orgs: list[tuple[str, str, str | None, str | None]] = []
         for organization_name in mention.affiliated_organization_names:
             resolved_orgs.append(
                 await _resolve_affiliated_organization(
@@ -279,7 +367,7 @@ async def ingest_post_keymen(
                 person_id,
             )
             resolved_names: list[str] = []
-            for organization_name, resolved_name, corporate_entity_id in resolved_orgs:
+            for organization_name, resolved_name, corporate_entity_id, _reason in resolved_orgs:
                 await _upsert_affiliation(
                     conn,
                     person_id,

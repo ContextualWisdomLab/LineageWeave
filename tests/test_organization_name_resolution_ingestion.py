@@ -6,7 +6,10 @@ from types import SimpleNamespace
 import pytest
 
 import backend.app.organization_name_resolution_ingestion as ingestion
-from lineageweave.relation_verification import STATUS_CORROBORATED, STATUS_UNCORROBORATED
+from lineageweave.relation_verification import (
+    STATUS_CORROBORATED,
+    STATUS_UNCORROBORATED,
+)
 
 
 class _Connection:
@@ -73,3 +76,34 @@ def test_new_resolution_is_persisted_but_only_verified_name_is_returned(
     assert result == expected
     assert len(conn.executed) == 1
     assert "organization_name_resolution" in conn.executed[0][0]
+
+
+def test_prepared_name_resolution_defers_cache_write_until_apply(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        ingestion,
+        "resolve_and_verify_organization_name",
+        lambda *_args: _resolution(STATUS_CORROBORATED),
+    )
+    conn = _Connection()
+
+    prepared = asyncio.run(
+        ingestion.prepare_organization_name_resolution(
+            conn,
+            _Client(),
+            _Client(),
+            "AGP",
+            "context",
+        )
+    )
+
+    assert prepared.resolved_name == "Aurora Grid Power"
+    assert conn.executed == []
+    assert (
+        asyncio.run(
+            ingestion.apply_prepared_organization_name_resolution(conn, prepared)
+        )
+        == "Aurora Grid Power"
+    )
+    assert len(conn.executed) == 1

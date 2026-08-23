@@ -18,10 +18,10 @@ module expects.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from collections import defaultdict
 from dataclasses import dataclass
 from itertools import combinations
-from typing import Sequence
 
 Adjacency = dict[str, dict[str, float]]
 
@@ -142,6 +142,7 @@ EDGE_CO_MENTION = "edge_co_mention"
 EDGE_MENTION_TEAM = "edge_mention_team"
 EDGE_TEAM_AFFILIATION = "edge_team_affiliation"
 EDGE_MENTION_ORGANIZATION = "edge_mention_organization"
+EDGE_CUSTOMER_IDENTITY_OBSERVATION = "edge_customer_identity_observation"
 
 
 @dataclass(frozen=True)
@@ -179,6 +180,7 @@ def knowledge_graph_edges_for_post(
     team_ids: Sequence[str] = (),
     team_corporate_entity_ids: Sequence[tuple[str, str]] = (),
     organization_corporate_entity_ids: Sequence[str] = (),
+    customer_corporate_entity_ids: Sequence[str] = (),
 ) -> list[KnowledgeGraphEdgeSpec]:
     """Populate this post's Phase 2 + ADR 0009 edge kinds.
 
@@ -195,6 +197,8 @@ def knowledge_graph_edges_for_post(
     - corporate_entity <-> post (``edge_mention_organization``) for
       every R&R organization actor that resolved to a real
       ``corporate_entity`` row (ADR 0009)
+    - corporate_entity <-> post (``edge_customer_identity_observation``)
+      for every Customer Master binding supported by this post (ADR 0137)
 
     Affiliation/organization names that did not resolve to a
     ``corporate_entity`` are stored on the relevant table but do not
@@ -206,6 +210,7 @@ def knowledge_graph_edges_for_post(
     unique_person_ids = list(dict.fromkeys(person_ids))
     unique_team_ids = list(dict.fromkeys(team_ids))
     unique_organization_ids = list(dict.fromkeys(organization_corporate_entity_ids))
+    unique_customer_ids = list(dict.fromkeys(customer_corporate_entity_ids))
     edges: list[KnowledgeGraphEdgeSpec] = []
 
     for person_id in unique_person_ids:
@@ -282,6 +287,17 @@ def knowledge_graph_edges_for_post(
                 target_node_type_code=NODE_POST,
                 target_node_id=post_id,
                 edge_type_code=EDGE_MENTION_ORGANIZATION,
+            )
+        )
+
+    for corporate_entity_id in unique_customer_ids:
+        edges.append(
+            KnowledgeGraphEdgeSpec(
+                source_node_type_code=NODE_CORPORATE_ENTITY,
+                source_node_id=corporate_entity_id,
+                target_node_type_code=NODE_POST,
+                target_node_id=post_id,
+                edge_type_code=EDGE_CUSTOMER_IDENTITY_OBSERVATION,
             )
         )
 

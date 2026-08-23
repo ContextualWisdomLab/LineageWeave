@@ -6,6 +6,11 @@
 create table if not exists post_summary_result (
     post_id uuid primary key references source_post (post_id) on delete cascade,
     korean_summary text not null,
+    summary_input_sha256 text
+        constraint post_summary_result_summary_input_sha256_check check (
+            summary_input_sha256 is null
+            or summary_input_sha256 ~ '^[0-9a-f]{64}$'
+        ),
     computed_at timestamptz not null default now()
 );
 

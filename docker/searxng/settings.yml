@@ -24,3 +24,14 @@ server:
   secret_key: "18d2532b5b9d0d16a5987bb3f203f9814c693df7056252bd5eb1273e7b5c578f"
   limiter: false
   image_proxy: false
+
+# The inherited general engines currently exhaust their anonymous anti-bot
+# allowance in this long-running local stack. Bing's built-in SearXNG adapter
+# remains responsive and gives the research/verification clients at least one
+# real external channel; SearXNG still owns engine selection, not application
+# code.
+engines:
+  - name: bing
+    engine: bing
+    shortcut: bi
+    disabled: false

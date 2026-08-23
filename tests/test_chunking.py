@@ -104,6 +104,15 @@ def test_chunk_by_dom_keeps_nested_table_cell_blocks_in_their_row() -> None:
     assert [(chunk.label, chunk.text) for chunk in chunks] == [("tr", "No. | Company")]
 
 
+def test_chunk_by_dom_preserves_boundary_before_first_cell_after_row_text() -> None:
+    """Malformed editor markup must not merge row text into the first cell."""
+    chunks = chunk_by_dom(
+        "<table><tr><p>caption</p><td>A</td><td>B</td></tr></table>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [("tr", "caption | A | B")]
+
+
 def test_chunk_by_dom_labels_markerless_footnotes() -> None:
     chunks = chunk_by_dom("<p>Body text</p><p>*Tier 2: follow-up note</p>")
     assert [(chunk.label, chunk.text) for chunk in chunks] == [
@@ -142,6 +151,88 @@ def test_chunk_by_dom_does_not_label_body_footnote_citation_as_footnote() -> Non
     ]
 
 
+def test_chunk_by_dom_labels_numbered_html_footnote_ids() -> None:
+    """Common Markdown HTML footnote ids identify the definition block."""
+    html = '<ol><li id="fn1"><a href="#fnref1">1</a> Definition.</li></ol>'
+
+    chunks = chunk_by_dom(html)
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("footnote", "1 Definition."),
+    ]
+
+
+def test_chunk_by_dom_does_not_label_short_non_footnote_ids() -> None:
+    """Short application ids must not be mistaken for numbered footnotes."""
+    chunks = chunk_by_dom('<p id="en1">Engagement summary.</p>')
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Engagement summary."),
+    ]
+
+
+def test_chunk_by_dom_keeps_numbered_footnote_backlinks_in_body_paragraphs() -> None:
+    html = (
+        '<p>Body cites <a href="#fn1" id="fnref1">[1]</a>.</p>'
+        '<p id="fn1">Definition.</p>'
+    )
+
+    chunks = chunk_by_dom(html)
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Body cites [1]."),
+        ("footnote", "Definition."),
+    ]
+
+
+def test_chunk_by_dom_labels_colon_separated_footnote_ids() -> None:
+    html = (
+        '<p>Body cites <a href="#fn:1" id="fnref:1">[1]</a>.</p>'
+        '<p><a href="#_ftnref1_body" name="_ftn1_body">[1]</a> Definition.</p>'
+    )
+
+    chunks = chunk_by_dom(html)
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Body cites [1]."),
+        ("footnote", "[1] Definition."),
+    ]
+
+
+def test_chunk_by_dom_labels_bare_word_footnote_backlinks() -> None:
+    html = '<p><a href="#_ftnref" name="_ftn1_body">[1]</a> Definition.</p>'
+
+    chunks = chunk_by_dom(html)
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("footnote", "[1] Definition."),
+    ]
+
+
+def test_chunk_by_dom_preserves_empty_table_cells_as_columns() -> None:
+    html = "<table><tr><td></td><td>Company</td><td></td><td>Result</td></tr></table>"
+
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.text for chunk in chunks] == ["|  | Company |  | Result"]
+
+
+def test_chunk_by_dom_does_not_add_phantom_column_for_multiple_leading_empty_cells() -> None:
+    html = "<table><tr><td></td><td></td><td>X</td></tr></table>"
+
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.text for chunk in chunks] == ["|  | X"]
+
+
+def test_chunk_by_dom_skips_rows_with_only_empty_table_cells() -> None:
+    html = "<table><tr><td></td><td></td></tr><tr><td>Value</td></tr></table>"
+
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.text for chunk in chunks] == ["Value"]
+
+
 def test_chunk_by_dom_labels_ooxml_footnote_containers() -> None:
     chunks = chunk_by_dom(
         "<w:footnote w:id='1'><w:p>OOXML footnote body</w:p></w:footnote>"
@@ -151,6 +242,24 @@ def test_chunk_by_dom_labels_ooxml_footnote_containers() -> None:
     assert [(chunk.label, chunk.text) for chunk in chunks] == [
         ("footnote", "OOXML footnote body"),
         ("footnote", "OOXML endnote body"),
+    ]
+
+
+def test_chunk_by_dom_preserves_explicit_metric_superscripts() -> None:
+    """A metric exponent remains searchable mathematical evidence."""
+    chunks = chunk_by_dom("<p>Volume: 5m<sup>3</sup>.</p>")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Volume: 5m³.")
+    ]
+
+
+def test_chunk_by_dom_preserves_explicit_metric_subscripts() -> None:
+    """A metric subscript is retained without changing ordinary footnotes."""
+    chunks = chunk_by_dom("<p>Index m<sub>3</sub> is measured.</p>")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("p", "Index m₃ is measured.")
     ]
 
 
