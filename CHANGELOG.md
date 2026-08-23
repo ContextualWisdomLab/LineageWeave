@@ -12,6 +12,15 @@ All notable changes to this project are documented here. Format follows
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 
+## [2.12.10] - 2026-08-23
+
+### Added
+
+- Pair-member leftover-map criterion nodes now open the leftover-pair
+  post (closest preferred, then farthest). Non-pair criteria stay
+  non-interactive. Click does not set leftover focus on Post quality
+  (ADR 0126).
+
 ## [2.12.7] - 2026-08-23
 
 ### Added

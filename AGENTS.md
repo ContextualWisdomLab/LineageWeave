@@ -191,7 +191,9 @@ Period leftover pairs (ADR 0048 / 0049) are computed in
 GRM/GPCM score, never invented. Missing cells stay out of the
 Gabriel factorization. Closest and farthest post–criterion pairs
 persist to `report_leftover_pair` and sit above the member list so
-a click opens that post.
+a click opens that post. Pair-member leftover-map criterion nodes
+(ADR 0126) also open that leftover-pair post; non-pair criteria stay
+non-interactive.
 
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a

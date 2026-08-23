@@ -40,7 +40,8 @@ fabricated interaction.
 Closest and farthest pairs remain ADR 0048 / ADR 0049. The map sits
 **above** that pair list on the period-report group. Clicking a
 person node opens that post with the same handler as a leftover
-pair. Hidden posts stay hidden: leftover-map persons join
+pair. Pair-member criterion nodes open that leftover-pair post
+([ADR 0126](0126-leftover-map-criterion-node.md)). Hidden posts stay hidden: leftover-map persons join
 `source_post` and use the same ABAC gate as members and leftover
 pairs. Missing map rows render nothing.
 

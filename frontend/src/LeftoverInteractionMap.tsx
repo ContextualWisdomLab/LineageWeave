@@ -1,4 +1,5 @@
 import type { LeftoverMapItem, LeftoverMapPerson, LeftoverPair } from "./api";
+import { t, tf } from "./i18n";
 
 const MAP_WIDTH = 360;
 const MAP_HEIGHT = 240;
@@ -27,6 +28,20 @@ function pairKindsFor(
     }
   }
   return [...kinds];
+}
+
+export function leftoverPairForCriterion(
+  pairs: LeftoverPair[],
+  criterionCode: string,
+): LeftoverPair | null {
+  let closest: LeftoverPair | null = null;
+  let farthest: LeftoverPair | null = null;
+  for (const pair of pairs) {
+    if (pair.criterion_code !== criterionCode) continue;
+    if (pair.pair_kind === "closest" && closest === null) closest = pair;
+    if (pair.pair_kind === "farthest" && farthest === null) farthest = pair;
+  }
+  return closest ?? farthest;
 }
 
 export function projectLeftoverMap(
@@ -100,6 +115,17 @@ function truncateLabel(label: string): string {
   return label.length > 22 ? `${label.slice(0, 21)}…` : label;
 }
 
+function activateLeftoverMapNode(
+  event: { key: string; preventDefault: () => void },
+  postId: string,
+  onSelectPost: (postId: string) => void,
+) {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    onSelectPost(postId);
+  }
+}
+
 export function LeftoverInteractionMap({
   persons,
   items,
@@ -121,13 +147,13 @@ export function LeftoverInteractionMap({
   const itemById = Object.fromEntries(projected.items.map((point) => [point.id, point]));
   return (
     <figure className="leftover-interaction-map">
-      <figcaption>Leftover interaction map after main effects</figcaption>
+      <figcaption>{t("Leftover interaction map after main effects")}</figcaption>
       <svg
         viewBox={`0 0 ${MAP_WIDTH} ${MAP_HEIGHT}`}
         width="100%"
         height={MAP_HEIGHT}
         role="group"
-        aria-label="Leftover interaction map"
+        aria-label={t("Leftover interaction map")}
       >
         {pairs.map((pair) => {
           const person = personById[pair.post_id];
@@ -151,19 +177,47 @@ export function LeftoverInteractionMap({
             </line>
           );
         })}
-        {projected.items.map((point) => (
-          <g
-            key={`item:${point.id}`}
-            className={`leftover-map-item${point.pairKinds.map((kind) => ` leftover-map-${kind}`).join("")}`}
-            transform={`translate(${point.x}, ${point.y})`}
-          >
-            <rect x={-6} y={-6} width={12} height={12} transform="rotate(45)" />
-            <text x={10} y={4}>
-              {truncateLabel(point.label)}
-            </text>
-            <title>{`Criterion: ${point.label}`}</title>
-          </g>
-        ))}
+        {projected.items.map((point) => {
+          const pair = leftoverPairForCriterion(pairs, point.id);
+          const pairClass = point.pairKinds.map((kind) => ` leftover-map-${kind}`).join("");
+          if (pair) {
+            return (
+              <g
+                key={`item:${point.id}`}
+                className={`leftover-map-item${pairClass}`}
+                transform={`translate(${point.x}, ${point.y})`}
+                role="button"
+                tabIndex={0}
+                aria-label={tf("Open leftover map criterion: {label}", { label: point.label })}
+                onClick={() => onSelectPost(pair.post_id)}
+                onKeyDown={(event) => activateLeftoverMapNode(event, pair.post_id, onSelectPost)}
+              >
+                <rect x={-6} y={-6} width={12} height={12} transform="rotate(45)" />
+                <text x={10} y={4}>
+                  {truncateLabel(point.label)}
+                </text>
+                <title>
+                  {tf("Open this leftover map criterion to read the leftover pair post: {label}", {
+                    label: point.label,
+                  })}
+                </title>
+              </g>
+            );
+          }
+          return (
+            <g
+              key={`item:${point.id}`}
+              className={`leftover-map-item${pairClass}`}
+              transform={`translate(${point.x}, ${point.y})`}
+            >
+              <rect x={-6} y={-6} width={12} height={12} transform="rotate(45)" />
+              <text x={10} y={4}>
+                {truncateLabel(point.label)}
+              </text>
+              <title>{tf("Criterion: {label}", { label: point.label })}</title>
+            </g>
+          );
+        })}
         {projected.persons.map((point) => (
           <g
             key={`person:${point.id}`}
@@ -171,20 +225,15 @@ export function LeftoverInteractionMap({
             transform={`translate(${point.x}, ${point.y})`}
             role="button"
             tabIndex={0}
-            aria-label={`Open leftover map post: ${point.label}`}
+            aria-label={tf("Open leftover map post: {label}", { label: point.label })}
             onClick={() => onSelectPost(point.id)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onSelectPost(point.id);
-              }
-            }}
+            onKeyDown={(event) => activateLeftoverMapNode(event, point.id, onSelectPost)}
           >
             <circle r={7} />
             <text x={10} y={4}>
               {truncateLabel(point.label)}
             </text>
-            <title>{`Open this post on the leftover map: ${point.label}`}</title>
+            <title>{tf("Open this post on the leftover map: {label}", { label: point.label })}</title>
           </g>
         ))}
       </svg>

@@ -567,6 +567,10 @@
   stroke-width: 1.5;
 }
 
+.leftover-map-item[role="button"] {
+  cursor: pointer;
+}
+
 .leftover-map-item rect {
   fill: var(--badge-actor-organization-bg);
   stroke: var(--badge-actor-organization-text);
@@ -597,6 +601,15 @@
 
 .leftover-map-person:focus circle,
 .leftover-map-person:hover circle {
+  stroke-width: 2.5;
+}
+
+.leftover-map-item[role="button"]:focus {
+  outline: none;
+}
+
+.leftover-map-item[role="button"]:focus rect,
+.leftover-map-item[role="button"]:hover rect {
   stroke-width: 2.5;
 }
 

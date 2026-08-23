@@ -313,6 +313,14 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Related next action": "관련 대상 다음 작업",
     "Ask next action": "Ask 다음 작업",
     "Keyman next action": "Keyman 다음 작업",
+    "Leftover interaction map": "잔여 상호작용 맵",
+    "Leftover interaction map after main effects": "주효과 이후 잔여 상호작용 맵",
+    "Open leftover map post: {label}": "잔여 맵 글 열기: {label}",
+    "Open leftover map criterion: {label}": "잔여 맵 평가 항목 열기: {label}",
+    "Open this leftover map criterion to read the leftover pair post: {label}":
+      "이 잔여 맵 평가 항목을 열어 잔여 쌍 글을 읽으세요: {label}",
+    "Open this post on the leftover map: {label}": "잔여 맵에서 이 글을 여세요: {label}",
+    "Criterion: {label}": "평가 항목: {label}",
     "Ask seeded question: {question}": "시드 질문: {question}",
     "{post} is current in Event Lineage. Read Keyman and evaluation next.":
       "{post}은(는) 이벤트 계보의 현재 항목입니다. 다음으로 Keyman과 평가를 읽으세요.",
@@ -651,6 +659,14 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Related next action": "相关节点操作",
     "Ask next action": "Ask 操作",
     "Keyman next action": "关键联系人操作",
+    "Leftover interaction map": "残差交互图",
+    "Leftover interaction map after main effects": "主效应后的残差交互图",
+    "Open leftover map post: {label}": "打开残差图帖子：{label}",
+    "Open leftover map criterion: {label}": "打开残差图评估项：{label}",
+    "Open this leftover map criterion to read the leftover pair post: {label}":
+      "打开此残差图评估项以阅读残差配对帖子：{label}",
+    "Open this post on the leftover map: {label}": "在残差图上打开这篇帖子：{label}",
+    "Criterion: {label}": "评估项：{label}",
     "Ask seeded question: {question}": "种子问题：{question}",
     "{post} is current in Event Lineage. Read Keyman and evaluation next.":
       "{post} 是事件谱系中的当前记录。接下来查看关键联系人和评估。",
@@ -989,6 +1005,14 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Related next action": "関連ノードの操作",
     "Ask next action": "Askの操作",
     "Keyman next action": "キーパーソンの操作",
+    "Leftover interaction map": "残差インタラクションマップ",
+    "Leftover interaction map after main effects": "主効果後の残差インタラクションマップ",
+    "Open leftover map post: {label}": "残差マップの投稿を開く: {label}",
+    "Open leftover map criterion: {label}": "残差マップの評価項目を開く: {label}",
+    "Open this leftover map criterion to read the leftover pair post: {label}":
+      "この残差マップ評価項目を開いて残差ペアの投稿を読む: {label}",
+    "Open this post on the leftover map: {label}": "残差マップでこの投稿を開く: {label}",
+    "Criterion: {label}": "評価項目: {label}",
     "Ask seeded question: {question}": "シードされた質問: {question}",
     "{post} is current in Event Lineage. Read Keyman and evaluation next.":
       "{post}はイベント系譜の現在の記録です。次にキーパーソンと評価を確認してください。",
@@ -1327,6 +1351,14 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Related next action": "Thao tác nút liên quan",
     "Ask next action": "Thao tác Ask",
     "Keyman next action": "Thao tác người liên hệ chính",
+    "Leftover interaction map": "Bản đồ tương tác phần dư",
+    "Leftover interaction map after main effects": "Bản đồ tương tác phần dư sau hiệu ứng chính",
+    "Open leftover map post: {label}": "Mở bài viết bản đồ phần dư: {label}",
+    "Open leftover map criterion: {label}": "Mở tiêu chí bản đồ phần dư: {label}",
+    "Open this leftover map criterion to read the leftover pair post: {label}":
+      "Mở tiêu chí bản đồ phần dư này để đọc bài viết cặp phần dư: {label}",
+    "Open this post on the leftover map: {label}": "Mở bài viết này trên bản đồ phần dư: {label}",
+    "Criterion: {label}": "Tiêu chí: {label}",
     "Ask seeded question: {question}": "Câu hỏi mồi: {question}",
     "{post} is current in Event Lineage. Read Keyman and evaluation next.":
       "{post} là bản ghi hiện tại trong Dòng sự kiện. Hãy xem người liên hệ chính và đánh giá tiếp theo.",
