@@ -70,8 +70,9 @@ Current active-PR evidence remains outside protected `main`:
   thread or exact-head approval.
 - PR #426 at `60efee9b9a97fa433f1d8a83f396c7f8d55df39e` is the current
   prerequisite carrier for ontology publication and the merged ADR 0157 stack.
-  It had two unresolved review threads, no exact-head approval, and a pending
-  Strix rerun. The provider-unavailable Strix result on its prior
+  Its two informational review threads were resolved against the accepted ADR;
+  it had no exact-head approval and a pending Strix rerun. The provider-
+  unavailable Strix result on its prior
   `4828b3a5e4eb180bb3cb9c5a06d1327e1003065a` head is stale evidence.
 - PR #355 at `de7f78c5afe1a9e7f50303da9b5ee81a6f767633` carries ADR 0145's
   Naruon calendar projection boundary. Its checks were pending, with no
