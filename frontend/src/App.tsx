@@ -352,6 +352,7 @@ function ChatPanel({
             onChange={(event) => setQuestion(event.target.value)}
             onKeyDown={(event) => event.key === "Enter" && handleAsk()}
             placeholder={t("What happened between these events?")}
+            aria-label={t("What happened between these events?")}
           />
           <button onClick={() => handleAsk()} disabled={loading || !question.trim()}>
             {loading ? t("Asking...") : t("Ask")}
@@ -386,7 +387,7 @@ function ChatPanel({
           ))}
         </div>
       )}
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
       {exchanges
         .filter(
           (exchange) =>
@@ -1167,7 +1168,7 @@ function KeymanPanel({
           </details>
         )}
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
       {sourceAuthorContext ? (
         <details className="keyman-source-context">
           <summary>{t("Source author evidence")} · {t("Hint only")}</summary>
@@ -1339,7 +1340,7 @@ function EvaluationPanel({
           </details>
         )}
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
       {responses === null ? (
         <p>{t("Loading evaluation...")}</p>
       ) : responses.length === 0 ? (
@@ -1413,7 +1414,7 @@ function CounterpartyPanel({
           </details>
         )}
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
       <ul>
         {counterparties.map((c) => (
           <li key={c.counterparty_entity_name}>
@@ -1556,7 +1557,7 @@ function IssueTicketPanel({
           </details>
         )}
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
       {tickets === null ? (
         <p>{t("Loading tickets...")}</p>
       ) : tickets.length === 0 ? (
@@ -1591,6 +1592,7 @@ function IssueTicketPanel({
           onChange={(event) => setNewTitle(event.target.value)}
           onKeyDown={(event) => event.key === "Enter" && handleCreate()}
           placeholder={t("New ticket title")}
+          aria-label={t("New ticket title")}
         />
         <input
           type="date"
@@ -1644,7 +1646,7 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
         <h3>{t("Activity")}</h3>
         <button onClick={reload}>{t("Refresh")}</button>
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
       {events === null ? (
         <p>{t("Loading activity...")}</p>
       ) : events.length === 0 ? (
@@ -1885,7 +1887,7 @@ function PostDetailPopup({
     <div className="popup-backdrop" onClick={onClose}>
       <div className="popup-panel" onClick={(event) => event.stopPropagation()}>
         <PopupCloseButton onClose={onClose} label={t("Close")} />
-        {error && <p className="error">{error}</p>}
+        {error && <p className="error" role="alert">{error}</p>}
         {!post && !error && <p>{t("Loading...")}</p>}
         {post && (
           <>
@@ -2263,7 +2265,7 @@ function PostDetailPopup({
                   )}
                 </>
               ) : summaryError ? (
-                <p className="error">{summaryError}</p>
+                <p className="error" role="alert">{summaryError}</p>
               ) : (
                 <p className="popup-placeholder">{t("No summary is available for this record yet.")}</p>
               )}
@@ -2835,7 +2837,7 @@ function AnalysisRunsPanel({
     }
   }
 
-  if (error && runs === null) return <p className="error">{error}</p>;
+  if (error && runs === null) return <p className="error" role="alert">{error}</p>;
   if (runs === null) return <p>Loading analysis runs...</p>;
 
   const corpusHint = selected ? analysisRunCorpusHint(selected) : null;
@@ -2864,7 +2866,7 @@ function AnalysisRunsPanel({
           {requestLabel}
         </button>
       </div>
-      {(error || entitiesLoadError) && <p className="error">{error ?? entitiesLoadError}</p>}
+      {(error || entitiesLoadError) && <p className="error" role="alert">{error ?? entitiesLoadError}</p>}
       {runs.length === 0 ? (
         <p className="popup-placeholder">
           No analysis runs visible to this account yet. Request a lineage
@@ -3086,7 +3088,7 @@ function RankingsPanel({
           </span>
         )}
       </div>
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
       {ranking === null && !error && <p>Loading rankings...</p>}
       {ranking && ranking.status === "unavailable" && (
         <p className="popup-placeholder">Rankings · RankWeave not available</p>
@@ -3131,7 +3133,7 @@ function CalendarPanel({
       .catch((err) => setError(String(err)));
   }, [accessToken]);
 
-  if (error) return <p className="error">{error}</p>;
+  if (error) return <p className="error" role="alert">{error}</p>;
   if (calendar === null) return <p>{t("Loading calendar...")}</p>;
 
   const events = calendar.events ?? [];
@@ -3560,7 +3562,7 @@ function ReportsPanel({
           ))}
         </ul>
       )}
-      {error && <p className="error">{error}</p>}
+      {error && <p className="error" role="alert">{error}</p>}
       {!openedGroupingLabel && reportList}
     </section>
   );
@@ -4025,7 +4027,7 @@ function PostList({
                   {rebuilding ? t("Rebuilding...") : t("Rebuild lineage")}
                 </button>
               </div>
-              {rebuildError && <p className="error">{rebuildError}</p>}
+              {rebuildError && <p className="error" role="alert">{rebuildError}</p>}
             </section>
           )}
           <CalendarPanel accessToken={accessToken} onSelectPost={selectPost} />
@@ -4297,7 +4299,7 @@ function CustomerMasterPanel({
       <p className="section-eyebrow">{t("Authorized customer scope")}</p>
       <h2 id="customer-master-heading">{t("Customer master")}</h2>
       <p className="buyer-destination-intro">{t("Customer entities available to this account.")}</p>
-      {error ? <p className="error">{error}</p> : null}
+      {error ? <p className="error" role="alert">{error}</p> : null}
       {master === null && !error ? <p>{t("Loading customer master...")}</p> : null}
       {master?.corporate_entities.length === 0 ? (
         <p className="popup-placeholder">{t("No customer entities are connected to this account.")}</p>
@@ -4355,7 +4357,7 @@ function CustomerMasterPanel({
               })}
             </p>
           )}
-          {resolveError ? <p className="error">{resolveError}</p> : null}
+          {resolveError ? <p className="error" role="alert">{resolveError}</p> : null}
           <ul className="customer-master-list">
             {master.source_customer_hints.slice(0, HINT_RENDER_LIMIT).map((hint) => (
               <li key={`${hint.customer_code ?? "name"}:${hint.customer_name ?? "unknown"}`}>
@@ -4498,7 +4500,7 @@ function AskAgentPanel({
       <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
       <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
       <p className="buyer-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
-      {error ? <p className="error">{error}</p> : null}
+      {error ? <p className="error" role="alert">{error}</p> : null}
       <label className="ask-agent-source">
         <span>{t("Ask a question")}</span>
         <textarea
@@ -4677,7 +4679,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   }
 
   if (!accessToken) {
-    return <p className="error">{t("Authenticated, but no access token was returned.")}</p>;
+    return <p className="error" role="alert">{t("Authenticated, but no access token was returned.")}</p>;
   }
 
   return (

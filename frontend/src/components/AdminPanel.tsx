@@ -54,8 +54,16 @@ export function AdminPanel({ currentBrandName, onBrandNameChange, accessToken }:
           <button type="submit" className="btn-primary" disabled={saving || !draftName.trim() || draftName === currentBrandName}>
             {saving ? t("Saving...") : t("Save settings")}
           </button>
-          {saved && <span style={{ marginLeft: "1rem", color: "green" }}>{t("Settings saved!")}</span>}
-          {error && <span style={{ marginLeft: "1rem", color: "red" }}>{t(error)}</span>}
+          {saved && (
+            <span role="status" style={{ marginLeft: "1rem", color: "green" }}>
+              {t("Settings saved!")}
+            </span>
+          )}
+          {error && (
+            <span role="alert" style={{ marginLeft: "1rem", color: "red" }}>
+              {t(error)}
+            </span>
+          )}
         </div>
       </form>
     </div>

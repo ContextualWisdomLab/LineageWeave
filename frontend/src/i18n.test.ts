@@ -3,6 +3,7 @@ import {
   LOCALE_LABELS,
   SUPPORTED_LOCALES,
   getLocale,
+  localeKeys,
   setLocale,
   t,
   tf,
@@ -73,6 +74,22 @@ describe("i18n", () => {
   ] as const)("formats dynamic buyer guidance in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("{post} is current in Event Lineage. Read Keyman and evaluation next.", { post: "DEMO" })).toBe(expected);
+  });
+});
+
+describe("locale key parity", () => {
+  it("registers the same translation keys in every non-English locale block", () => {
+    // A key present in one locale but silently missing from another falls
+    // back to the raw English key text (or an untranslated aria-label) at
+    // runtime with no build-time signal -- this caught exactly that for
+    // "Affiliates of {name}" (2026-08-23).
+    const locales = ["ko", "zh", "ja", "vi"] as const;
+    const keySets = locales.map((locale) => new Set(localeKeys(locale)));
+    const union = new Set(keySets.flatMap((set) => [...set]));
+    for (const [index, locale] of locales.entries()) {
+      const missing = [...union].filter((key) => !keySets[index].has(key));
+      expect(missing, `${locale} is missing keys: ${missing.join(", ")}`).toEqual([]);
+    }
   });
 });
 

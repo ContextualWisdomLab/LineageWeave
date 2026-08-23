@@ -245,6 +245,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No tickets yet.": "아직 티켓이 없습니다.",
     "New ticket title": "새 티켓 제목",
     "Due date": "기한",
+    "Affiliates of {name}": "{name}의 계열사",
     "Create ticket": "티켓 작성",
     "Loading activity...": "활동을 불러오는 중...",
     "No activity yet.": "아직 활동이 없습니다.",
@@ -588,6 +589,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No tickets yet.": "暂时没有工单。",
     "New ticket title": "新工单标题",
     "Due date": "截止日期",
+    "Affiliates of {name}": "{name}的关联公司",
     "Create ticket": "创建工单",
     "Loading activity...": "正在加载活动...",
     "No activity yet.": "暂时没有活动。",
@@ -945,6 +947,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No tickets yet.": "チケットはまだありません。",
     "New ticket title": "新しいチケットのタイトル",
     "Due date": "期限",
+    "Affiliates of {name}": "{name}の関連会社",
     "Create ticket": "チケットを作成",
     "Loading activity...": "アクティビティを読み込んでいます...",
     "No activity yet.": "アクティビティはまだありません。",
@@ -1287,6 +1290,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No tickets yet.": "Chưa có phiếu công việc.",
     "New ticket title": "Tiêu đề phiếu mới",
     "Due date": "Hạn hoàn thành",
+    "Affiliates of {name}": "Công ty liên kết của {name}",
     "Create ticket": "Tạo phiếu công việc",
     "Loading activity...": "Đang tải hoạt động...",
     "No activity yet.": "Chưa có hoạt động.",
@@ -1418,6 +1422,11 @@ syncDocumentLocale(currentLocale);
 
 export function getLocale(): Locale {
   return currentLocale;
+}
+
+/** Registered translation keys for one locale block -- for cross-locale parity checks. */
+export function localeKeys(locale: Locale): string[] {
+  return Object.keys(TRANSLATIONS[locale] ?? {});
 }
 
 export function setLocale(locale: Locale): void {
