@@ -195,7 +195,9 @@ it fetches a genuine access token from a live Keycloak, verifies the
 allow/deny ABAC boundary against a throwaway migrated Postgres database
 (a private post scoped to a *different* corporate entity is proven
 excluded from the list and 403s on direct fetch), and proves a forged
-token is rejected. `scripts/seed_demo_data.py` populates the docker-compose
+token is rejected. Its dev-only FastAPI `TestClient` uses Starlette with the
+project's official `httpx` dev dependency; no alternate transport package is
+introduced. `scripts/seed_demo_data.py` populates the docker-compose
 stack itself with the same shape of synthetic data for manual/frontend use.
 `CORSMiddleware` (`backend/app/main.py`) allows exactly the frontend's
 origin(s) (`FRONTEND_ORIGINS`), `GET` and `POST` (the extract-keymen
