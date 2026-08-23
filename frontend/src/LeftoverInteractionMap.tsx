@@ -171,7 +171,7 @@ export function LeftoverInteractionMap({
               y2={item.y}
             >
               <title>
-                {pair.pair_kind === "farthest" ? "Farthest leftover" : "Closest leftover"}:{" "}
+                {t(pair.pair_kind === "farthest" ? "Farthest leftover" : "Closest leftover")}:{" "}
                 {person.label} · {item.label}
               </title>
             </line>
