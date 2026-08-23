@@ -1573,33 +1573,10 @@ async def list_posts(
                 list(account.corporate_entity_ids),
             )
             body_search_ids = [str(row["post_id"]) for row in body_rows]
-        # Safe SQL: page SQL is a closed schema query; every request value is an asyncpg parameter.
-        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-            f"""
-            with page as (
-                select post.post_id, post.post_title, post.voc_type_code, post.visibility_code,
-                       post.source_stage_code, post.source_detail_state_code,
-                       post.source_draft_code, post.source_deleted_flag,
-                       post.source_author_code, post.source_author_name,
-                       post.source_company_code, post.source_company_name,
-                       post.source_process_unit_code, post.source_process_unit_name,
-                       post.source_sales_pool_code, post.source_sales_pool_name,
-                       post.source_order_pool_code, post.source_sales_order_code,
-                       post.source_sales_order_item_number, post.source_inspection_point_code,
-                       post.source_customer_code, post.source_customer_name,
-                       post.source_project_code, post.source_project_name,
-                       post.source_system_code,
-                       post.source_record_key,
-                       post.corporate_entity_id, post.author_account_id, post.created_at,
-                       case
-                           when $1::text is null then 0
-                           when lower(coalesce(post.post_title, '')) like '%' || lower($1) || '%' then 0
-                           when post.post_id = any($6::uuid[]) then 1
-                           else 2
-                       end as search_priority,
-                       count(*) over() as total_count
-                  from source_post post
-             where {source_post_state_visibility_sql("post", corporate_param=2, account_param=10, admin_param=11)}
+        # Extracted once so the pagination-overshoot fallback below can
+        # reuse the identical predicate without duplicating ~170 lines of SQL.
+        _list_posts_predicate_sql = f"""
+             {source_post_state_visibility_sql("post", corporate_param=2, account_param=10, admin_param=11)}
                and {SOURCE_POST_READER_ELIGIBILITY_SQL.format(alias="post")}
                and (
                     $1::text is null
@@ -1777,6 +1754,34 @@ async def list_posts(
                and ($3::text[] is null or post.voc_type_code = any($3::text[]))
                and ($4::text[] is null or coalesce(upper(btrim(post.source_detail_state_code)), '') = any($4::text[]))
                and ($5::text is null or post.visibility_code = $5)
+        """
+        # Safe SQL: page SQL is a closed schema query; every request value is an asyncpg parameter.
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            f"""
+            with page as (
+                select post.post_id, post.post_title, post.voc_type_code, post.visibility_code,
+                       post.source_stage_code, post.source_detail_state_code,
+                       post.source_draft_code, post.source_deleted_flag,
+                       post.source_author_code, post.source_author_name,
+                       post.source_company_code, post.source_company_name,
+                       post.source_process_unit_code, post.source_process_unit_name,
+                       post.source_sales_pool_code, post.source_sales_pool_name,
+                       post.source_order_pool_code, post.source_sales_order_code,
+                       post.source_sales_order_item_number, post.source_inspection_point_code,
+                       post.source_customer_code, post.source_customer_name,
+                       post.source_project_code, post.source_project_name,
+                       post.source_system_code,
+                       post.source_record_key,
+                       post.corporate_entity_id, post.author_account_id, post.created_at,
+                       case
+                           when $1::text is null then 0
+                           when lower(coalesce(post.post_title, '')) like '%' || lower($1) || '%' then 0
+                           when post.post_id = any($6::uuid[]) then 1
+                           else 2
+                       end as search_priority,
+                       count(*) over() as total_count
+                  from source_post post
+             where {_list_posts_predicate_sql}
                  order by
                     search_priority asc,
                     case
@@ -1856,7 +1861,30 @@ async def list_posts(
         )
         visible = [row for row in rows if _can_see_post(account, row)]
         labels = await _lookup_post_labels(conn, visible)
-    total_count = int(rows[0]["total_count"]) if rows else 0
+        if rows:
+            total_count = int(rows[0]["total_count"])
+        else:
+            # count(*) over() only rides along on rows that survive this
+            # page's own OFFSET/LIMIT -- an offset past the last matching
+            # row returns zero rows and would otherwise silently report
+            # total_count=0 even though matches exist (a paginator relying
+            # on total_count to detect it overshot would see "no results"
+            # instead). $10/$11 in the shared predicate become $7/$8 here
+            # since this query has no offset/limit/sort parameters of its own.
+            fallback_predicate = _list_posts_predicate_sql.replace("$10", "$7").replace("$11", "$8")
+            # Safe SQL: identical predicate as the page query above, just renumbered; every value is still an asyncpg parameter.
+            fallback_total_count = await conn.fetchval(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+                f"select count(*) as total_count from source_post post where {fallback_predicate}",
+                search_term,
+                list(account.corporate_entity_ids),
+                voc_type_codes,
+                source_detail_state_codes,
+                visibility.strip() if visibility and visibility.strip() else None,
+                body_search_ids,
+                account.user_account_id,
+                account.has_permission(_POST_ADMIN),
+            )
+            total_count = int(fallback_total_count or 0)
     return {
         "posts": [_serialize_post(row, labels) for row in visible],
         "total_count": total_count,
@@ -2829,7 +2857,9 @@ async def read_post_lineage(
     """
     await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
-        linked = await find_linked_post_ids(conn, post_id)
+        linked = await find_linked_post_ids(
+            conn, post_id, lambda row: _can_use_post_for_analysis(account, row)
+        )
         candidate_ids = linked.direct | linked.indirect
         rows = {}
         if candidate_ids:

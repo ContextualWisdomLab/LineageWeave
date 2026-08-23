@@ -126,10 +126,10 @@ coverage across `8,071` statements and `2,506` branches, with `790` missed
 statements and `397` partial branches. The current composition then passed
 `90` focused Python tests with one optional integration skip. The temporal Python delta itself has
 `7/7` changed executable statements and `2/2` changed branches covered.
-The full frontend suite passed `293` tests, and frontend lint/build plus
+The full frontend suite passed `354` tests, and frontend lint/build plus
 `git diff --check` passed. The new official Vitest V8 production-source
-measurement reports `91.09%` statements, `80.45%` branches, `88.33%`
-functions, and `93.43%` lines; tests, Storybook scenes, and test setup are the
+measurement reports `95.73%` statements, `87.04%` branches, `94.57%`
+functions, and `97.37%` lines; tests, Storybook scenes, and test setup are the
 only excluded non-production files. Repository-wide 100% coverage and visual
 browser acceptance remain separate open gates.
 
@@ -542,7 +542,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | External email/project lineage package boundary | PR #343 merged at `125a8069a1554874d8067a15047e19d780ea6b7b` with strict v1.0.0 bounded request/result types, available-time cutoff handling, observed/inferred/proposed truth states, pair-budget enforcement, and no source/provider access | source + focused unit; immutable release open |
 | Naruon calendar projection boundary | PR #337 is closed as superseded; PR #355 carries the strict read projection contract without making LineageWeave a CalDAV provider | source + focused unit; Naruon endpoint, runtime wiring, and provider conformance remain open |
 | Hourly PR review/repair/merge loop | Central protected `main` owns generic `*/30 * * * *` and `*/15 * * * *` sweeps; the LineageWeave-specific minute-4 hourly repair caller remains open in `ContextualWisdomLab/.github#1086` at `aeb096a52c5f`, so no duplicate repo-local scheduler is required | source + exact-head local gate; protected merge and first scheduled run open |
-| 100% coverage/docstrings/edge-case/release gates | the public Python docstring AST contract is current-head green; the two source-research modules and PROV-O have exact focused 100% branch results; the latest complete coverage-instrumented full Python suite at `e4ce49d1` is green at `987` passed / `17` skipped but measures only `87%` across production Python source, while the subsequent exact composition passes `90` focused tests / `1` optional integration skip; official Vitest V8 measurement keeps all production TypeScript/TSX in scope and reports `91.09%` statements / `80.45%` branches / `88.33%` functions / `93.43%` lines with `293` tests green | open: current-head hosted full suite, 790 measured Python statements, 397 measured partial Python branches, 255 frontend statements, 519 frontend branches, 101 frontend functions, 172 frontend lines, independent review, and release evidence |
+| 100% coverage/docstrings/edge-case/release gates | the public Python docstring AST contract is current-head green; the two source-research modules and PROV-O have exact focused 100% branch results; the latest complete coverage-instrumented full Python suite at `e4ce49d1` is green at `987` passed / `17` skipped but measures only `87%` across production Python source, while the subsequent exact composition passes `90` focused tests / `1` optional integration skip; official Vitest V8 measurement keeps all production TypeScript/TSX in scope and reports `95.73%` statements / `87.04%` branches / `94.57%` functions / `97.37%` lines with `354` tests green | open: current-head hosted full suite, 790 measured Python statements, 397 measured partial Python branches, 122 frontend statements, 337 frontend branches, 47 frontend functions, 69 frontend lines, independent review, and release evidence |
 
 ## 4. Supplied parsing and semantic cases
 
@@ -618,7 +618,7 @@ or an explicit unavailable result.
   Ask UI regression pass; exact-source authenticated browser evidence remains
   required.
 - **Frontend delivery and scene QA — partial:** production build succeeds but
-  the single JavaScript chunk is 574.32 kB minified (158.60 kB gzip) and exceeds
+  the single JavaScript chunk is 574.31 kB minified (158.54 kB gzip) and exceeds
   Vite's 500 kB warning threshold. Storybook now covers unanchored, anchored,
   saved-history, unavailable, and phone Ask states, and its static build passes.
   Add route- or workspace-level native code splitting only after measuring the
@@ -626,9 +626,9 @@ or an explicit unavailable result.
 - **Repository-wide gate stability — partial:** the latest complete
   coverage-instrumented Python run at `e4ce49d1` passes `987` tests with `17` skips and
   measures `87%` branch-aware production-source coverage; pinned Corepack Vitest
-  passes all `293` tests, and the reproducible `test:coverage` command reports
-  `91.09%` statements / `80.45%` branches / `88.33%` functions /
-  `93.43%` lines. CI now provisions pinned Valkey and a synthetic
+  passes all `354` tests, and the reproducible `test:coverage` command reports
+  `95.73%` statements / `87.04%` branches / `94.57%` functions /
+  `97.37%` lines. CI now provisions pinned Valkey and a synthetic
   imported Keycloak realm, removing the infrastructure
   reason that made all `115` live-stack API tests self-skip; `actionlint` passes,
   but the hosted run is not yet evidence. The subsequent current composition
@@ -857,6 +857,35 @@ or an explicit unavailable result.
   `PostAskEvidenceChanged` -> 503 pattern already proven for Global Ask.
   Regression test confirmed RED (a revoked citation's facts served with
   a 200) before GREEN.
+- **Indirect-relationship hidden-sibling bridge — closed (2026-08-25):**
+  `find_linked_post_ids` (ADR 0018, used by `read_post_lineage`,
+  `gather_chat_sources`, and `load_five_w1h_slots`) expands to every
+  post mentioning the same person as the focus post before walking their
+  shared org/team/customer entities via `load_visible_subgraph` -- but
+  that sibling-post expansion was never ABAC-filtered. A hidden sibling's
+  own entity mention could bridge to an unrelated visible post through
+  shared entity membership, fabricating an "indirect" relationship (and
+  a chat-source citation slot) whose only real basis was content the
+  account cannot see; the hidden sibling itself was always correctly
+  excluded from output, only its influence on other results leaked.
+  Found by an Explore agent hunting for the "unfiltered-then-filtered"
+  pattern after two earlier fixes this session had the same shape.
+  Filtered siblings by `can_see_post` before they can seed the entity
+  graph, at all three call sites. Regression test confirmed RED before
+  GREEN.
+- **Board pagination total_count overshoot — closed (2026-08-25):**
+  `GET /api/posts`'s `total_count` came from `count(*) over()`, a window
+  function that only rides along on rows surviving the query's own
+  `OFFSET`/`LIMIT` -- an offset past the last matching row returned zero
+  rows and silently reported `total_count=0` even though matches
+  existed (a routine "user paged past the end" or "a filter change
+  shrank the result set" scenario). Found by an Explore agent hunting
+  for a different bug class after the ABAC-leak well ran dry.
+  Extracted the query's predicate into a shared variable so a small
+  fallback `count(*)` query (used only when the main page comes back
+  empty) can reuse it without duplicating ~170 lines of SQL. Regression
+  test confirmed RED (reported 0 instead of the real count) before
+  GREEN.
 - **Cross-repository email/project lineage — provider boundary implemented,
   consumer open:** PR #343 merged at
   `125a8069a1554874d8067a15047e19d780ea6b7b`, but the contract remains

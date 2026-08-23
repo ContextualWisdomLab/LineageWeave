@@ -68,7 +68,6 @@ function layoutGroup(nodes: LineageGraphNode[], edges: LineageGraphEdge[]): {
   let nextRow = 0;
 
   const walk = (id: string, depth: number) => {
-    if (positions.has(id) || visiting.has(id)) return;
     visiting.add(id);
     const kids = (children.get(id) ?? []).filter(
       (childId) => byId.has(childId) && !positions.has(childId) && !visiting.has(childId),
@@ -95,8 +94,8 @@ function layoutGroup(nodes: LineageGraphNode[], edges: LineageGraphEdge[]): {
   }
 
   const positioned = nodes.map((node) => {
-    const pos = positions.get(node.id) ?? { x: PAD, y: GROUP_HEADING_H + PAD };
-    const box = metrics.get(node.id) ?? lineageLabelMetrics(node.label);
+    const pos = positions.get(node.id)!;
+    const box = metrics.get(node.id)!;
     return { ...node, ...pos, ...box };
   });
   const maxRight = Math.max(PAD, ...positioned.map((node) => node.x + node.labelWidth));

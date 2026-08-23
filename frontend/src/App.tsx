@@ -748,20 +748,23 @@ function lineageIsolationMessage(
 
 function EventLineageSection({
   lineage,
+  lineageUnavailable = false,
   graph,
   postId,
   onSelectPost,
   currentNextAction,
 }: {
   lineage: PostLineage | null;
+  lineageUnavailable?: boolean;
   graph: LineageGraph | null;
   postId: string;
-  onSelectPost?: (postId: string) => void;
+  onSelectPost: (postId: string) => void;
   currentNextAction?: string | null;
 }) {
+  if (lineageUnavailable) return null;
   if (!lineage) return <p>{t("Loading lineage...")}</p>;
   if (!graph) return <p>{t("Loading lineage...")}</p>;
-  const scoped = graph ? subgraphForPost(graph, postId) : { nodes: [], edges: [] };
+  const scoped = subgraphForPost(graph, postId);
   const hasLinks = lineage.direct.length > 0 || lineage.indirect.length > 0;
   if (scoped.nodes.length === 0) {
     return (
@@ -774,7 +777,7 @@ function EventLineageSection({
   }
   return (
     <>
-      {scoped.nodes.length > 0 && onSelectPost && (
+      {scoped.nodes.length > 0 && (
         <LineageDag graph={scoped} onSelectPost={onSelectPost} currentPostId={postId} />
       )}
       {scoped.nodes.length > 0 && currentNextAction ? (
@@ -792,11 +795,21 @@ function summaryFetchError(err: unknown): string {
 
 function RelatedPostsSection({
   lineage,
+  error,
   onSelectPost,
 }: {
   lineage: PostLineage | null;
-  onSelectPost?: (postId: string) => void;
+  error?: string | null;
+  onSelectPost: (postId: string) => void;
 }) {
+  if (error) {
+    return (
+      <section className="popup-section related-posts-section" aria-labelledby="related-posts-heading">
+        <h3 id="related-posts-heading">{t("Related posts")}</h3>
+        <ExceptionAlert title={error} />
+      </section>
+    );
+  }
   if (!lineage) {
     return (
       <section className="popup-section related-posts-section" aria-labelledby="related-posts-heading">
@@ -844,7 +857,7 @@ function RelatedPostsSection({
                     </span>
                   </>
                 );
-                return onSelectPost ? (
+                return (
                   <button
                     type="button"
                     className="related-post-card"
@@ -854,10 +867,6 @@ function RelatedPostsSection({
                     {cardContent}
                     <span className="related-post-cta">{t("Open record")}</span>
                   </button>
-                ) : (
-                  <div className="related-post-card related-post-card-static">
-                    {cardContent}
-                  </div>
                 );
               })()}
             </li>
@@ -874,19 +883,17 @@ function AffiliateTreeNode({
   onSelectEntity,
 }: {
   node: AffiliateNode;
-  onSelectPerson?: (personId: string, personName: string) => void;
-  onSelectEntity?: (entityId: string, entityName: string) => void;
+  onSelectPerson: (personId: string, personName: string) => void;
+  onSelectEntity: (entityId: string, entityName: string) => void;
 }) {
   return (
     <li>
       <span className={node.resolved ? "affiliate-resolved" : "affiliate-unresolved"}>
-        {node.resolved && node.entity_id && onSelectEntity ? (
+        {node.resolved && node.entity_id ? (
           <button
             className="keyman-select"
             aria-label={tf("Affiliate org: {name}", { name: node.entity_name })}
-            onClick={() => {
-              if (node.entity_id) onSelectEntity(node.entity_id, node.entity_name);
-            }}
+            onClick={() => onSelectEntity(node.entity_id!, node.entity_name)}
           >
             {node.entity_name}
           </button>
@@ -904,17 +911,13 @@ function AffiliateTreeNode({
           {node.people.map((person, index) => (
             <span key={person.person_id}>
               {index > 0 ? ", " : null}
-              {onSelectPerson ? (
-                <button
-                  className="keyman-select"
-                  aria-label={tf("Affiliate Keyman: {name}", { name: person.person_name })}
-                  onClick={() => onSelectPerson(person.person_id, person.person_name)}
-                >
-                  {person.person_name} ({person.person_side_label ?? person.person_side_code})
-                </button>
-              ) : (
-                `${person.person_name} (${person.person_side_label ?? person.person_side_code})`
-              )}
+              <button
+                className="keyman-select"
+                aria-label={tf("Affiliate Keyman: {name}", { name: person.person_name })}
+                onClick={() => onSelectPerson(person.person_id, person.person_name)}
+              >
+                {person.person_name} ({person.person_side_label ?? person.person_side_code})
+              </button>
             </span>
           ))}
         </span>
@@ -1147,7 +1150,7 @@ function KeymanPanel({
   sourceAuthorContext?: SourceAuthorContext | null;
   canExtract: boolean;
   onExtracted: () => void;
-  onSelectPost?: (postId: string) => void;
+  onSelectPost: (postId: string) => void;
   focusPerson?: { personId: string; personName: string } | null;
   focusEntity?: { entityId: string; entityName: string } | null;
   focusTeam?: { teamId: string; teamName: string } | null;
@@ -1361,7 +1364,7 @@ function KeymanPanel({
         <p className="popup-placeholder">{t("No related nodes in the visible graph.")}</p>
       ) : (
         <>
-          {relatedPosts.length > 0 && onSelectPost ? (
+          {relatedPosts.length > 0 ? (
             <div className="related-posts-context">
               <p className="section-eyebrow">{t("Evidence trail")}</p>
               <h5>{t("Related posts")}</h5>
@@ -1706,8 +1709,8 @@ function CounterpartyPanel({
   counterparties: Counterparty[];
   canExtract: boolean;
   onVerified: () => void;
-  onSelectEntity?: (entityId: string, entityName: string) => void;
-  onSelectPost?: (postId: string) => void;
+  onSelectEntity: (entityId: string, entityName: string) => void;
+  onSelectPost: (postId: string) => void;
 }) {
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1752,13 +1755,11 @@ function CounterpartyPanel({
       <ul>
         {counterparties.map((c) => (
           <li key={c.counterparty_entity_name}>
-            {c.corporate_entity_id && onSelectEntity ? (
+            {c.corporate_entity_id ? (
               <button
                 className="keyman-select"
                 aria-label={tf("Counterparty org: {name}", { name: c.counterparty_entity_name })}
-                onClick={() => {
-                  if (c.corporate_entity_id) onSelectEntity(c.corporate_entity_id, c.counterparty_entity_name);
-                }}
+                onClick={() => onSelectEntity(c.corporate_entity_id!, c.counterparty_entity_name)}
               >
                 {c.counterparty_entity_name}
               </button>
@@ -1772,7 +1773,7 @@ function CounterpartyPanel({
               evidenceUrl={c.verification_evidence_url}
               ariaLabel={tf("Counterparty verification: {name}", { name: c.counterparty_entity_name })}
             />
-            {c.verification_evidence_post_id && onSelectPost ? (
+            {c.verification_evidence_post_id ? (
               <button
                 type="button"
                 className="keyman-select"
@@ -2169,9 +2170,9 @@ function PostDetailPopup({
   focusEventLineage?: boolean;
   focusCriterionCode?: string;
   onClose: () => void;
-  onAskPost?: (postId: string, postTitle: string) => void;
-  onSelectPost?: (postId: string) => void;
-  onSearch?: (query: string) => void;
+  onAskPost: (postId: string, postTitle: string) => void;
+  onSelectPost: (postId: string) => void;
+  onSearch: (query: string) => void;
 }) {
   const [post, setPost] = useState<PostDetail | null>(null);
   const [imageContent, setImageContent] = useState<PostImageContent[]>([]);
@@ -2191,6 +2192,7 @@ function PostDetailPopup({
   const [sourceAuthorContext, setSourceAuthorContext] = useState<SourceAuthorContext | null>(null);
   const [counterparties, setCounterparties] = useState<Counterparty[] | null>(null);
   const [lineage, setLineage] = useState<PostLineage | null>(null);
+  const [lineageError, setLineageError] = useState<string | null>(null);
   const [knowledgeGraph, setKnowledgeGraph] = useState<KnowledgeGraph | null>(null);
   const [affiliateTrees, setAffiliateTrees] = useState<AffiliateNode[] | null>(null);
   const [vocEvidence, setVocEvidence] = useState<VocEvidence | null>(null);
@@ -2294,6 +2296,7 @@ function PostDetailPopup({
     setSourceAuthorContext(null);
     setCounterparties(null);
     setLineage(null);
+    setLineageError(null);
     setKnowledgeGraph(null);
     setAffiliateTrees(null);
     setVocEvidence(null);
@@ -2331,7 +2334,15 @@ function PostDetailPopup({
       fetchPostCounterparties(accessToken, postId)
         .then((r) => setCounterparties(r.counterparties))
         .catch(() => setCounterparties([]));
-      fetchPostLineage(accessToken, postId).then(setLineage).catch(() => setLineage(null));
+      fetchPostLineage(accessToken, postId)
+        .then((value) => {
+          setLineage(value);
+          setLineageError(null);
+        })
+        .catch((err) => {
+          setLineage(null);
+          setLineageError(productExceptionCopy(err, t("Related posts")).title);
+        });
       fetchPostKnowledgeGraph(accessToken, postId)
         .then(setKnowledgeGraph)
         .catch(() => setKnowledgeGraph(null));
@@ -2510,7 +2521,7 @@ function PostDetailPopup({
               >
                 {bookmarked ? t("Bookmarked") : t("Bookmark")}
               </button>
-              {!isWritingSourceDetailState(post.source_detail_state_code) && onAskPost ? (
+              {!isWritingSourceDetailState(post.source_detail_state_code) ? (
                 <button type="button" onClick={() => onAskPost(postId, post.post_title)}>
                   {t("Ask about this lineage")}
                 </button>
@@ -2932,8 +2943,7 @@ function PostDetailPopup({
                         type="button"
                         className="related-post-card"
                         aria-label={tf("Search related posts for: {name}", { name: project.project_name })}
-                        onClick={() => onSearch?.(project.project_name)}
-                        disabled={!onSearch}
+                        onClick={() => onSearch(project.project_name)}
                       >
                         <strong>{project.project_name}</strong>
                         <span>{t("Search related posts")}</span>
@@ -3213,7 +3223,7 @@ function PostDetailPopup({
               }}
             />
 
-            <RelatedPostsSection lineage={lineage} onSelectPost={onSelectPost} />
+            <RelatedPostsSection lineage={lineage} error={lineageError} onSelectPost={onSelectPost} />
 
             <section className="popup-section">
                 <h3 id="post-event-lineage" tabIndex={-1}>
@@ -3221,6 +3231,7 @@ function PostDetailPopup({
               </h3>
               <EventLineageSection
                 lineage={lineage}
+                lineageUnavailable={Boolean(lineageError)}
                 graph={graph}
                 postId={postId}
                 onSelectPost={onSelectPost}
@@ -3481,9 +3492,9 @@ function AnalysisRunsPanel({
   entitiesLoadError,
 }: {
   accessToken: string;
-  currentReportPeriod?: string;
+  currentReportPeriod: string;
   onSelectPost: (postId: string, options?: SelectPostOptions) => void;
-  onSelectReportPeriod?: (
+  onSelectReportPeriod: (
     periodCode: string,
     groupingKind?: string,
     groupingKey?: string,
@@ -3692,7 +3703,7 @@ function AnalysisRunsPanel({
               reconstruction does not invent a measurement.
             </p>
           )}
-          {analysisRunReportPeriod(selected) && onSelectReportPeriod && (
+          {analysisRunReportPeriod(selected) && (
             <button
               className="keyman-select"
               aria-label={`Open period report ${analysisRunReportPeriod(selected)}`}
@@ -4390,28 +4401,28 @@ function presentSourceDetailState(code: string): {
 
 function PostList({
   accessToken,
-  showLabPanels = false,
-  postIdToOpen = null,
+  showLabPanels,
+  postIdToOpen,
   onPostOpened,
   onAskPost,
-  focusSearchRequest = 0,
+  focusSearchRequest,
   onSearchFocusHandled,
-  globalSearchRequest = null,
+  globalSearchRequest,
   onGlobalSearchHandled,
-  adminTool = null,
+  adminTool,
   onAdminToolHandled,
 }: {
   accessToken: string;
-  showLabPanels?: boolean;
-  postIdToOpen?: string | null;
-  onPostOpened?: () => void;
-  onAskPost?: (postId: string, postTitle: string) => void;
-  focusSearchRequest?: number;
-  onSearchFocusHandled?: () => void;
-  globalSearchRequest?: { id: number; query: string } | null;
-  onGlobalSearchHandled?: () => void;
-  adminTool?: AdminBoardTool | null;
-  onAdminToolHandled?: () => void;
+  showLabPanels: boolean;
+  postIdToOpen: string | null;
+  onPostOpened: () => void;
+  onAskPost: (postId: string, postTitle: string) => void;
+  focusSearchRequest: number;
+  onSearchFocusHandled: () => void;
+  globalSearchRequest: { id: number; query: string } | null;
+  onGlobalSearchHandled: () => void;
+  adminTool: AdminBoardTool | null;
+  onAdminToolHandled: () => void;
 }) {
   const [posts, setPosts] = useState<PostSummary[] | null>(null);
   const [graph, setGraph] = useState<LineageGraph | null>(null);
@@ -4463,7 +4474,7 @@ function PostList({
     if (!input) return;
     lastFocusedSearchRequest.current = focusSearchRequest;
     input.focus();
-    onSearchFocusHandled?.();
+    onSearchFocusHandled();
   }, [focusSearchRequest, onSearchFocusHandled, posts]);
 
   useEffect(() => {
@@ -4474,7 +4485,7 @@ function PostList({
     if (globalSearchRequest.id <= lastGlobalSearchRequest.current) return;
     lastGlobalSearchRequest.current = globalSearchRequest.id;
     searchBoard(globalSearchRequest.query);
-    onGlobalSearchHandled?.();
+    onGlobalSearchHandled();
   }, [globalSearchRequest, onGlobalSearchHandled]);
 
   useEffect(() => {
@@ -4484,8 +4495,8 @@ function PostList({
     const target = adminTool === "advanced" || adminTool === "lineage"
       ? details
       : details.querySelector<HTMLElement>(`[data-admin-surface="${adminTool}"]`) ?? details;
-    window.requestAnimationFrame(() => target.scrollIntoView({ behavior: "smooth", block: "start" }));
-    onAdminToolHandled?.();
+    window.requestAnimationFrame(() => target.scrollIntoView?.({ behavior: "smooth", block: "start" }));
+    onAdminToolHandled();
   }, [adminTool, onAdminToolHandled, posts]);
 
   function openReportFromAnalysisRun(
@@ -4539,7 +4550,7 @@ function PostList({
   useEffect(() => {
     if (!postIdToOpen) return;
     selectPost(postIdToOpen);
-    onPostOpened?.();
+    onPostOpened();
   }, [onPostOpened, postIdToOpen]);
 
   useEffect(() => {
@@ -5274,7 +5285,7 @@ function customerMasterScopeBuckets(entity: CustomerMasterEntity): CustomerMaste
   const buckets: CustomerMasterScopeFilter[] = [];
   if (facets.includes("authorized_own")) buckets.push("own");
   if (facets.includes("authorized_granted")) buckets.push("granted");
-  if (facets.includes("observed_organization")) buckets.push("observed");
+  if (facets.includes("observed_organization") || facets.includes("observed_hierarchy")) buckets.push("observed");
   if (buckets.length === 0) buckets.push("unclassified");
   return buckets;
 }

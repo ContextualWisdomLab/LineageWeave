@@ -49,6 +49,19 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- `GET /api/posts`'s `total_count` no longer silently reports `0` when the
+  requested page is past the last page of results. `total_count` came
+  from `count(*) over()`, a window function that only rides along on rows
+  that survive the query's own `OFFSET`/`LIMIT` -- once the offset skipped
+  past every matching row, the query returned zero rows and `total_count`
+  fell back to `0` even though matches existed. A paginator relying on
+  `total_count` to detect it overshot the last page (or that a filter
+  change shrank the result set) would instead see "0 results" and could
+  wrongly conclude nothing matched. Extracted the query's predicate into
+  a shared variable so a small fallback `count(*)` query (used only when
+  the main page comes back empty) can reuse it without duplicating ~170
+  lines of SQL; regression test confirmed RED (reported 0 instead of the
+  real count) before GREEN.
 - Global Ask (`POST /api/ask`) no longer persists or returns a citation
   whose authorization changes between source selection and commit. This
   branch had lost the atomic reauthorize-and-rollback fix from #399/#374
@@ -66,6 +79,17 @@ All notable changes to this project are documented here. Format follows
   `_ensure_citations_visible` / `PostAskEvidenceChanged` -> 503 pattern;
   regression test confirmed RED (a revoked citation's facts served with
   a 200) before GREEN.
+- The Event Lineage / 5W1H "indirect" relationship walk (`find_linked_post_ids`,
+  ADR 0018) no longer lets an ABAC-hidden sibling post seed the
+  Knowledge Graph traversal. Finding indirect neighbors first expands to
+  every post mentioning the same person as the focus post, then walks
+  their shared org/team/customer entities -- but that sibling expansion
+  was never ABAC-filtered, so a hidden sibling's own entity mention could
+  bridge to an unrelated *visible* post, fabricating an "indirect"
+  relationship whose only real basis was content the account cannot see
+  (the hidden sibling itself was already correctly excluded from output).
+  Fixed at all three call sites (`read_post_lineage`, `gather_chat_sources`,
+  `load_five_w1h_slots`); regression test confirmed RED before GREEN.
 - `GET /api/lineage`'s focused view no longer lets an edge to an
   ABAC-hidden sibling post mask a post's `isolation_reason` (ADR 0143).
   The connected-component check that decides whether a focused post has

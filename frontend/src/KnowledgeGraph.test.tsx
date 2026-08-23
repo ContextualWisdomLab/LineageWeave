@@ -99,6 +99,13 @@ describe("KnowledgeGraphView", () => {
           evidence_text: "The site visit came first.",
           evidence_post_ids: ["synthetic-post"],
         },
+        {
+          source: "focus",
+          target: "later",
+          edge_type_code: "synthetic_relation",
+          confidence: 0.75,
+          evidence_post_ids: ["synthetic-post"],
+        },
       ],
     };
 
@@ -126,6 +133,8 @@ describe("KnowledgeGraphView", () => {
     rerender(<KnowledgeGraphView graph={{ post_id: "synthetic-post", nodes: [], edges: [] }} />);
     expect(screen.getByText("No Knowledge Graph evidence is available.")).toBeInTheDocument();
     expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Zoom in" }));
+    expect(screen.getByText("120%")).toBeInTheDocument();
   });
 
   it("opens post nodes with keyboard activation", async () => {
@@ -170,11 +179,20 @@ describe("KnowledgeGraphView", () => {
               label: "Synthetic target",
               is_focus: true,
             },
+            {
+              id: "evidence",
+              node_type_code: "evidence_text",
+              node_id: "evidence",
+              label: "Synthetic evidence",
+              ontology_label: null,
+              is_focus: false,
+              is_evidence_text_node: true,
+            },
           ],
           edges: [
             {
               source: "missing-source",
-              target: "target",
+              target: "missing-target",
               edge_type_code: "related_to",
               confidence: 0.5,
               evidence_post_ids: [],
@@ -190,7 +208,7 @@ describe("KnowledgeGraphView", () => {
     expect(cells.map((cell) => cell.textContent)).toEqual([
       "missing-source",
       "related_to",
-      "Synthetic target",
+      "missing-target",
       "—",
       "50%",
     ]);
@@ -227,9 +245,10 @@ describe("KnowledgeGraphView", () => {
       height: 260,
       toJSON: () => ({}),
     });
+    const hasPointerCapture = vi.fn().mockReturnValueOnce(true).mockReturnValueOnce(false);
     Object.assign(viewport, {
       setPointerCapture: vi.fn(),
-      hasPointerCapture: vi.fn(() => true),
+      hasPointerCapture,
       releasePointerCapture: vi.fn(),
     });
 
@@ -248,11 +267,17 @@ describe("KnowledgeGraphView", () => {
     const node = screen.getByRole("button", { name: "Open post: Synthetic linked post" });
     fireEvent.click(node);
     expect(onSelectPost).toHaveBeenCalledOnce();
+    fireEvent.pointerMove(viewport, { pointerId: 7, clientX: 20, clientY: 20 });
+    fireEvent.pointerDown(viewport, { button: 1, pointerId: 7, clientX: 10, clientY: 10 });
     fireEvent.pointerDown(viewport, { button: 0, pointerId: 7, clientX: 10, clientY: 10 });
+    fireEvent.pointerMove(viewport, { pointerId: 7, clientX: 10, clientY: 10 });
     fireEvent.pointerMove(viewport, { pointerId: 8, clientX: 30, clientY: 30 });
     fireEvent.pointerMove(viewport, { pointerId: 7, clientX: 30, clientY: 30 });
     fireEvent.pointerUp(viewport, { pointerId: 8 });
     fireEvent.pointerUp(viewport, { pointerId: 7 });
+    fireEvent.pointerUp(viewport, { pointerId: 7 });
+    fireEvent.pointerDown(viewport, { button: 0, pointerId: 9, clientX: 10, clientY: 10 });
+    fireEvent.pointerUp(viewport, { pointerId: 9 });
     fireEvent.click(node);
     expect(onSelectPost).toHaveBeenCalledOnce();
     expect(viewport.releasePointerCapture).toHaveBeenCalledWith(7);

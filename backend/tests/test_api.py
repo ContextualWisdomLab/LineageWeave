@@ -136,7 +136,7 @@ _IDENTIFIER_MIGRATION = (
 _TENANT_IDENTITY_METADATA_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
-    / "0132_tenant_identity_metadata.sql"
+    / "0176_tenant_identity_metadata.sql"
 )
 _AFFILIATION_SCOPE_FACET_MIGRATION = (
     Path(__file__).resolve().parents[2]
@@ -2103,6 +2103,22 @@ def test_post_list_supports_bounded_offset_pages(client, demo_analyst_token, see
         headers={"Authorization": f"Bearer {demo_analyst_token}"},
     )
     assert invalid_sort.status_code == 422
+
+
+def test_post_list_reports_total_count_when_offset_overshoots_the_last_page(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """count(*) over() only rides along on rows that survive OFFSET/LIMIT --
+    an offset past the last match must still report the real total_count,
+    not silently fall back to 0 as if nothing matched."""
+    overshoot = client.get(
+        "/api/posts?limit=1&offset=4",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert overshoot.status_code == 200, overshoot.text
+    assert overshoot.json()["posts"] == []
+    assert overshoot.json()["total_count"] == 4
 
 
 def test_post_detail_uses_lookup_labels_not_raw_codes(client, demo_analyst_token, seeded_db) -> None:

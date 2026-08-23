@@ -73,8 +73,8 @@ function layoutKnowledgeGraph(graph: KnowledgeGraph): {
     }),
   );
   const rowPitch = Math.max(80, ...[...boxes.values()].map((box) => box.height + 16));
-  const maxOtherWidth = Math.max(MIN_NODE_W, ...others.map((node) => boxes.get(node.id)?.width ?? MIN_NODE_W));
-  const focusWidth = focus ? (boxes.get(focus.id)?.width ?? MIN_NODE_W) : MIN_NODE_W;
+  const maxOtherWidth = Math.max(MIN_NODE_W, ...others.map((node) => boxes.get(node.id)!.width));
+  const focusWidth = focus ? boxes.get(focus.id)!.width : MIN_NODE_W;
   const width = Math.max(760, maxOtherWidth * 2 + focusWidth + 80);
   const height = Math.max(260, (others.length + 1) * rowPitch);
   const positions = new Map<string, LaidOutNode>();
@@ -163,8 +163,8 @@ export function KnowledgeGraphView({
   };
 
   const beginPan = (event: PointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0 || !svgRef.current) return;
-    const rect = svgRef.current.getBoundingClientRect();
+    if (event.button !== 0) return;
+    const rect = svgRef.current!.getBoundingClientRect();
     dragRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,
@@ -275,8 +275,8 @@ export function KnowledgeGraphView({
                   const from = positions.get(edge.source);
                   const to = positions.get(edge.target);
                   if (!from || !to) return null;
-                  const source = nodesById.get(edge.source);
-                  const target = nodesById.get(edge.target);
+                  const source = nodesById.get(edge.source)!;
+                  const target = nodesById.get(edge.target)!;
                   const relationLabel = t(edge.ontology_label ?? edge.edge_type_code);
                   const relationLines = wrapLabel(relationLabel, KNOWLEDGE_LABEL_CHARS);
                   const midX = (from.x + to.x) / 2;
@@ -293,15 +293,14 @@ export function KnowledgeGraphView({
                         {wrapTspans(relationLines, midX, 12)}
                       </text>
                       <title>
-                        {`${source?.label ?? edge.source} → ${target?.label ?? edge.target} · ${relationLabel}`}
+                        {`${source.label} → ${target.label} · ${relationLabel}`}
                         {edge.evidence_text ? ` · ${edge.evidence_text}` : ""}
                       </title>
                     </g>
                   );
                 })}
                 {graph.nodes.map((node) => {
-                  const position = positions.get(node.id);
-                  if (!position) return null;
+                  const position = positions.get(node.id)!;
                   const isPost = node.node_type_code === "node_post";
                   const nodeClass = node.is_focus ? "focus" : node.is_evidence_text_node ? "evidence" : "catalog";
                   const label = nodeCaption(node);

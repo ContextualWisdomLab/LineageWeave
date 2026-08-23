@@ -47,6 +47,27 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("handles unitless, shorthand, invalid, and non-finite indentation declarations", () => {
+    const huge = "9".repeat(400);
+    expect(
+      splitPostBody(
+        '<p style="margin-left: 16">Unitless</p>' +
+          '<p style="padding: 0 16px">Two value shorthand</p>' +
+          '<p style="margin: 8px">One value shorthand</p>' +
+          '<p style="margin-left: auto">Invalid</p>' +
+          '<p style="margin-left: -4px">Negative</p>' +
+          `<p style="margin-left: ${huge}px">Non-finite</p>`,
+      ),
+    ).toEqual([
+      { kind: "text", text: "Unitless", indentLevel: 2 },
+      { kind: "text", text: "Two value shorthand", indentLevel: 2 },
+      { kind: "text", text: "One value shorthand", indentLevel: 1 },
+      { kind: "text", text: "Invalid" },
+      { kind: "text", text: "Negative" },
+      { kind: "text", text: "Non-finite" },
+    ]);
+  });
+
   it("reads CSS box shorthand indentation and markerless footnotes", () => {
     expect(
       splitPostBody(
@@ -65,6 +86,14 @@ describe("splitPostBody", () => {
     expect(splitPostBody("The full body text.")).toEqual([
       { kind: "text", text: "The full body text." },
     ]);
+  });
+
+  it("counts tab indentation and keeps an explicit empty source body", () => {
+    expect(splitPostBody("\tTabbed\n\n\t\tNested")).toEqual([
+      { kind: "text", text: "Tabbed", indentLevel: 1 },
+      { kind: "text", text: "Nested", indentLevel: 2 },
+    ]);
+    expect(splitPostBody("")).toEqual([{ kind: "text", text: "" }]);
   });
 
   it("preserves explicit metric superscripts and subscripts", () => {
