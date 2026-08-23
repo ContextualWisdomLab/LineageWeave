@@ -43,3 +43,15 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
     # Base-10 forced so a leading-zero migration number (e.g. 0103) isn't
     # misread as octal.
     assert "10#${migration_name%%_*}" in script
+
+
+def test_tenant_settings_migration_is_safe_to_replay() -> None:
+    """The newest migration must survive migrate.sh's every-start replay."""
+    sql = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0103_tenant_settings.sql"
+    ).read_text(encoding="utf-8").casefold()
+
+    assert "create table if not exists tenant_settings" in sql
+    assert "on conflict (id) do nothing" in sql
