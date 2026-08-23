@@ -11,13 +11,3 @@ export function formatLeftoverMapRank(rank: number | null | undefined): string |
   }
   return `rank ${rank}`;
 }
-
-export function leftoverMapRankNextAction(rank: number | null | undefined): string | null {
-  if (rank == null || !Number.isInteger(rank) || rank < 0) {
-    return null;
-  }
-  if (rank === 0) {
-    return LEFTOVER_RANK_ZERO_ACTION;
-  }
-  return LEFTOVER_RANK_STRUCTURE_ACTION.replace("{rank}", String(rank));
-}
