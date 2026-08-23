@@ -328,6 +328,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "The linked records are listed above. The graph is not available for this view.":
       "연결된 기록은 위 목록에 있습니다. 이 화면에서는 그래프를 사용할 수 없습니다.",
     "No linked posts yet.": "아직 연결된 글이 없습니다.",
+    "Compared against other posts in its group; none were found related.":
+      "같은 그룹의 다른 게시물과 비교했지만 연관된 항목을 찾지 못했습니다.",
+    "No other posts share this record's group yet, so nothing was available to compare it against.":
+      "이 기록의 그룹을 공유하는 다른 게시물이 아직 없어 비교할 대상이 없었습니다.",
     "VOC evidence": "VOC 근거",
     "Affiliate tree": "소속 트리",
     Keymen: "핵심 담당자",
@@ -809,6 +813,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "The linked records are listed above. The graph is not available for this view.":
       "关联记录列在上方。此视图暂时无法显示图谱。",
     "No linked posts yet.": "暂时没有关联文章。",
+    "Compared against other posts in its group; none were found related.":
+      "已与同组的其他文章比对，未发现相关项。",
+    "No other posts share this record's group yet, so nothing was available to compare it against.":
+      "目前没有其他文章与该记录同组，因此没有可比对的对象。",
     "VOC evidence": "客户之声证据",
     "Affiliate tree": "关联组织树",
     Keymen: "关键联系人",
@@ -1257,6 +1265,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "The linked records are listed above. The graph is not available for this view.":
       "関連記録は上に表示されています。この表示ではグラフを利用できません。",
     "No linked posts yet.": "関連する投稿はまだありません。",
+    "Compared against other posts in its group; none were found related.":
+      "同じグループの他の投稿と比較しましたが、関連は見つかりませんでした。",
+    "No other posts share this record's group yet, so nothing was available to compare it against.":
+      "このレコードのグループを共有する投稿が他にまだないため、比較対象がありませんでした。",
     "VOC evidence": "VOCの証拠",
     "Affiliate tree": "所属ツリー",
     Keymen: "キーパーソン",
@@ -1678,6 +1690,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "The linked records are listed above. The graph is not available for this view.":
       "Các bản ghi liên quan nằm ở trên. Đồ thị không khả dụng trong chế độ xem này.",
     "No linked posts yet.": "Chưa có bài viết liên quan.",
+    "Compared against other posts in its group; none were found related.":
+      "Đã so sánh với các bài viết khác trong cùng nhóm; không tìm thấy bài nào liên quan.",
+    "No other posts share this record's group yet, so nothing was available to compare it against.":
+      "Chưa có bài viết nào khác cùng nhóm với bản ghi này, nên không có gì để so sánh.",
     "VOC evidence": "Bằng chứng VOC",
     "Affiliate tree": "Cây liên kết",
     Keymen: "Người liên hệ chính",

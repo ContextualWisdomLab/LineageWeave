@@ -108,6 +108,7 @@ describe("App, authenticated", () => {
     contentAfterSummary?: boolean;
     summaryPending?: boolean;
     summaryUnavailable?: boolean;
+    lineageIsolationReason?: "no_relation_found" | "no_comparison_group";
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePosts: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -1053,6 +1054,16 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ group_count: 1 }));
       }
       if (url.includes("/api/lineage") && method === "GET") {
+        if (options?.lineageIsolationReason && url.includes("post_id=")) {
+          return Promise.resolve(
+            jsonResponse({
+              nodes: [],
+              edges: [],
+              truncated: false,
+              isolation_reason: options.lineageIsolationReason,
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             nodes: [
@@ -1655,7 +1666,9 @@ describe("App, authenticated", () => {
           jsonResponse({
             post_id: "post-1",
             direct: [],
-            indirect: [{ post_id: "post-2", post_title: "Linked post" }],
+            indirect: options?.lineageIsolationReason
+              ? []
+              : [{ post_id: "post-2", post_title: "Linked post" }],
           }),
         );
       }
@@ -2618,6 +2631,29 @@ describe("App, authenticated", () => {
     const ask = within(popup as HTMLElement).getByRole("heading", { name: "Ask about this lineage" });
     expect(keyman.compareDocumentPosition(ask) & Node.DOCUMENT_POSITION_FOLLOWING).not.toBe(0);
   });
+
+  it.each([
+    [
+      "no_relation_found" as const,
+      "Compared against other posts in its group; none were found related.",
+    ],
+    [
+      "no_comparison_group" as const,
+      "No other posts share this record's group yet, so nothing was available to compare it against.",
+    ],
+  ])(
+    "shows the specific isolation reason %s instead of the generic empty-lineage message",
+    async (isolationReason, expectedMessage) => {
+      stubBackend({ lineageIsolationReason: isolationReason });
+      render(<App showLabPanels />);
+
+      await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+      const popup = await screen.findByRole("dialog", { name: "Public post" });
+      await waitFor(() => expect(within(popup).getByText(expectedMessage)).toBeInTheDocument());
+      expect(within(popup).queryByText("No linked posts yet.")).not.toBeInTheDocument();
+    },
+  );
 
   it("keeps the post popup keyboard-contained and restores the opener after Escape", async () => {
     const user = userEvent.setup();

@@ -561,6 +561,22 @@ function landedEvidenceNextAction(postTitle: string): string {
   });
 }
 
+// ADR 0143: distinguish "reconstruct compared this post against real
+// candidates and found no relation" from "there was nothing to compare it
+// against" -- both used to render as one flat "No linked posts yet."
+function lineageIsolationMessage(
+  isolationReason: LineageGraph["isolation_reason"],
+): string {
+  switch (isolationReason) {
+    case "no_relation_found":
+      return t("Compared against other posts in its group; none were found related.");
+    case "no_comparison_group":
+      return t("No other posts share this record's group yet, so nothing was available to compare it against.");
+    default:
+      return t("No linked posts yet.");
+  }
+}
+
 function EventLineageSection({
   lineage,
   graph,
@@ -583,7 +599,7 @@ function EventLineageSection({
       <p className="lineage-empty">
         {hasLinks
           ? t("The linked records are listed above. The graph is not available for this view.")
-          : t("No linked posts yet.")}
+          : lineageIsolationMessage(graph.isolation_reason)}
       </p>
     );
   }

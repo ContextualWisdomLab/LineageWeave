@@ -4444,6 +4444,17 @@ def test_rebuild_lineage_recovers_the_a100_fork(client, demo_analyst_token, seed
     assert nodes["Unrelated: annual account review"]["group"] == "A-100"
     assert nodes["Technical specification review meeting"]["group"] == "B-200"
 
+    # ADR 0143: "Unrelated: annual account review" shares group A-100 with
+    # five other fixture posts but reconstruct gives it zero edges -- a
+    # checked-and-unrelated fact, not a missing-comparison-group one.
+    unrelated_id = nodes["Unrelated: annual account review"]["id"]
+    unrelated_focused = client.get(
+        f"/api/lineage?post_id={unrelated_id}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert unrelated_focused.status_code == 200
+    assert unrelated_focused.json()["isolation_reason"] == "no_relation_found"
+
     per_post = client.get(
         f"/api/posts/{fork['id']}/lineage",
         headers={"Authorization": f"Bearer {demo_analyst_token}"},

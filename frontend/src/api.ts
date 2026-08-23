@@ -543,6 +543,8 @@ export interface LineageGraph {
   nodes: LineageGraphNode[];
   edges: LineageGraphEdge[];
   truncated?: boolean;
+  /** ADR 0143: only set on a focused (post_id-scoped), empty-graph result. */
+  isolation_reason?: "no_relation_found" | "no_comparison_group" | null;
 }
 
 export interface KnowledgeGraphNode {
