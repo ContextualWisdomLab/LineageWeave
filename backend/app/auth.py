@@ -48,11 +48,15 @@ def _jwks(settings: Settings, *, force_refresh: bool = False) -> dict:
             if settings.oidc_jwks_uri_override:
                 jwks_uri = settings.oidc_jwks_uri_override
             else:
-                metadata = get_json(settings.oidc_discovery_uri, timeout=10)
+                metadata = get_json(
+                    settings.oidc_discovery_uri,
+                    timeout=10,
+                    service_peer_name="oidc",
+                )
                 jwks_uri = metadata.get("jwks_uri")
                 if not isinstance(jwks_uri, str) or not jwks_uri.strip():
                     raise ValueError("OIDC discovery document has no jwks_uri")
-            cached = get_json(jwks_uri, timeout=10)
+            cached = get_json(jwks_uri, timeout=10, service_peer_name="oidc")
         except (HttpClientError, OSError, ValueError) as exc:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,

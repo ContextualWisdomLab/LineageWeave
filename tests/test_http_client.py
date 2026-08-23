@@ -27,6 +27,7 @@ class _JsonHandler(BaseHTTPRequestHandler):
             "method": "GET",
             "authorization": self.headers.get("authorization"),
             "traceparent": self.headers.get("traceparent"),
+            "session": self.headers.get("x-lineageweave-session-id"),
         }
         if "/users" in self.path:
             payload: object = [{"id": "sub-1", "username": "demo.analyst"}]
@@ -179,6 +180,29 @@ def test_post_json_and_get_json_inject_parent_traceparent(monkeypatch) -> None:
     assert _traceparent_trace_id(captured["post"]) == parent_trace_id
     assert _traceparent_trace_id(captured["get"]) == parent_trace_id
     assert _traceparent_trace_id(captured["list"]) == parent_trace_id
+
+
+def test_get_json_session_header_stays_on_orchestrator_peers(monkeypatch) -> None:
+    """Searxng/CalDAV/OIDC GETs keep W3C context without the post session header."""
+    from lineageweave.llm_context import use_llm_metadata
+
+    attach_inmemory_tracer(monkeypatch)
+    server, base = _serve(_JsonHandler)
+    try:
+        with use_llm_metadata({"lineageweave_post_session_id": "post-session-1"}):
+            _JsonHandler.received = {}
+            get_json(f"{base}/search", timeout=2.0, service_peer_name="searxng")
+            searxng = dict(_JsonHandler.received)
+            _JsonHandler.received = {}
+            get_json(f"{base}/v1/models", timeout=2.0)
+            orchestrator = dict(_JsonHandler.received)
+    finally:
+        server.shutdown()
+
+    assert searxng.get("session") is None
+    assert searxng.get("traceparent")
+    assert orchestrator.get("session") == "post-session-1"
+    assert orchestrator.get("traceparent")
 
 
 def test_post_form_posts_urlencoded_fields() -> None:

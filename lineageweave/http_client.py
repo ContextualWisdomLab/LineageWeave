@@ -27,6 +27,7 @@ from .observability import current_session_id, inject_trace_context, traced
 # Pointing at certifi keeps full chain validation without weakening TLS.
 _SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 _ALLOWED_SCHEMES = frozenset({"http", "https"})
+_SESSION_HEADER_PEERS = frozenset({"contextual-orchestrator", "tepp"})
 
 
 class HttpClientError(RuntimeError):
@@ -207,9 +208,10 @@ def _traced_get_json(
     """GET ``url`` under one HTTP span and inject the active W3C context."""
     hostname = urlparse(url).hostname or url
     request_headers = dict(headers or {})
-    session_id = current_session_id()
-    if session_id:
-        request_headers["x-lineageweave-session-id"] = session_id
+    if service_peer_name in _SESSION_HEADER_PEERS:
+        session_id = current_session_id()
+        if session_id:
+            request_headers["x-lineageweave-session-id"] = session_id
     with traced(
         span_name,
         {

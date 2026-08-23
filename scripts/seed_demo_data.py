@@ -89,6 +89,7 @@ def _fetch_demo_user_subjects(base_url: str, admin_user: str, admin_password: st
             f"{base_url}/admin/realms/{REALM}/users?{query}",
             headers={"Authorization": f"Bearer {admin_token}"},
             timeout=10,
+            service_peer_name="oidc",
         )
         if not users:
             raise SystemExit(f"Keycloak user '{username}' not found in realm '{REALM}' -- did the realm import run?")
