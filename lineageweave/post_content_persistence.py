@@ -17,8 +17,10 @@ from typing import Any, TypeVar
 from .chunking import Chunk, chunk_by_source_body
 from .embedding_client import EmbeddingClient
 from .image_content import ImageContentClient, ImageDescription
+from .http_client import HttpClientError, json_request_body
 from .post_content_normalization import ImageContentResult, normalize_post_body
 from .post_structure import (
+    ContextualOrchestratorPostStructureClient,
     NullPostStructureClient,
     PostStructureClient,
     StructureDecision,
@@ -54,6 +56,32 @@ def _bounded_unit_batches(  # noqa: UP047 - retain Python 3.10 compatibility.
             batch_chars = 0
         batch.append(unit)
         batch_chars += unit_chars
+    if batch:
+        batches.append(batch)
+    return batches
+
+
+def _bounded_structure_batches(
+    units: list[tuple[int, dict[str, object]]], post_title: str
+) -> list[list[tuple[int, dict[str, object]]]]:
+    """Bound structure batches by their exact serialized HTTP request body."""
+    batches: list[list[tuple[int, dict[str, object]]]] = []
+    batch: list[tuple[int, dict[str, object]]] = []
+    for unit in units:
+        candidate = [*batch, unit]
+        candidate_body = json_request_body(
+            ContextualOrchestratorPostStructureClient.request_payload(
+                post_title, [payload for _index, payload in candidate]
+            )
+        )
+        if batch and (
+            len(batch) >= _LLM_BATCH_MAX_UNITS
+            or len(candidate_body) > _LLM_BATCH_MAX_CHARS
+        ):
+            batches.append(batch)
+            batch = [unit]
+        else:
+            batch = candidate
     if batch:
         batches.append(batch)
     return batches
@@ -176,8 +204,15 @@ async def persist_post_content(
             )
             for chunk in unresolved
         ]
-        for batch in _bounded_unit_batches(structure_units):
+        for batch in _bounded_structure_batches(structure_units, post_title):
             try:
+                request_body = json_request_body(
+                    ContextualOrchestratorPostStructureClient.request_payload(
+                        post_title, [payload for _index, payload in batch]
+                    )
+                )
+                if len(request_body) > _LLM_BATCH_MAX_CHARS:
+                    raise HttpClientError("structure adjudication request exceeds size limit")
                 decisions = await asyncio.to_thread(
                     client.infer,
                     post_title,

@@ -15,6 +15,7 @@ from lineageweave.post_content_normalization import (
     NormalizedPostContent,
 )
 from lineageweave.post_content_persistence import (
+    _bounded_structure_batches,
     _bounded_unit_batches,
     _render_image_text,
     persist_post_content,
@@ -89,6 +90,17 @@ class _FailingStructure:
     ) -> tuple[StructureDecision, ...]:
         """Raise the response-validation error handled by persistence."""
         raise ValueError("synthetic invalid structure response")
+
+
+class _NeverCalledStructure:
+    """Reject provider calls when the serialized request is already oversized."""
+
+    available = True
+
+    def infer(
+        self, _post_title: str, _units: list[dict[str, object]]
+    ) -> tuple[StructureDecision, ...]:
+        raise AssertionError("oversized structure request must not be sent")
 
 
 class _UnexpectedChannelFailure:
@@ -322,6 +334,47 @@ def test_bounded_batches_cover_empty_count_and_character_limits() -> None:
         [(str(i), {"text": "x" * 11_900, "label": "y" * 200}) for i in range(2)]
     )
     assert [len(batch) for batch in metadata_bounded] == [1, 1]
+
+
+def test_structure_batches_measure_the_complete_serialized_request() -> None:
+    """Envelope, schema, JSON escaping, and UTF-8 bytes all count toward the limit."""
+    units = [
+        (
+            index,
+            {
+                "unit_index": index,
+                "text": "가" * 4_000,
+                "label": "p",
+                "style": None,
+                "source_indent_width": 0,
+                "declared_indent_width": 0,
+            },
+        )
+        for index in range(2)
+    ]
+
+    assert [len(batch) for batch in _bounded_structure_batches(units, "Synthetic title")] == [1, 1]
+
+
+def test_oversized_structure_request_remains_unresolved_without_transport() -> None:
+    """An oversized title fails closed before the provider call and preserves source units."""
+    conn = _Connection()
+
+    assert (
+        _persist(
+            conn,
+            "post-oversized",
+            "plain text",
+            structure_client=_NeverCalledStructure(),
+            post_title="x" * 24_000,
+        )
+        == 1
+    )
+    assert any(
+        args[2] == "unresolved"
+        for query, args in conn.executed
+        if "insert into post_content_unit_structure" in query
+    )
 
 
 def test_explicit_and_adjudicated_structure_are_persisted_by_unit() -> None:

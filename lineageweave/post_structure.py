@@ -68,6 +68,50 @@ class ContextualOrchestratorPostStructureClient:
         self.api_key = api_key
         self.timeout = timeout
 
+    @classmethod
+    def request_payload(
+        cls, post_title: str, units: list[dict[str, object]]
+    ) -> dict[str, object]:
+        """Return the canonical orchestrator request for structure inference."""
+        return {
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "Adjudicate the indentation level of every supplied document unit. "
+                        "Return one JSON object with a decisions array, with one decision for "
+                        "each unit_index. Determine indentation from ordering, numbering, "
+                        "bullets, paragraph semantics, and visible explicit formatting. The "
+                        "input also reports source_indent_width from leading spaces or NBSP "
+                        "and declared_indent_width from HTML/CSS/OOXML. Treat declared "
+                        "formatting as explicit evidence and source whitespace as supporting "
+                        "evidence only. Do not mistake continuation-line alignment after a "
+                        "bullet or number for a new hierarchy level. Do not invent nesting. "
+                        "If evidence conflicts or is insufficient, use level 0 and low "
+                        "confidence."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps(
+                        {"post_title": post_title, "ordered_units": units},
+                        ensure_ascii=False,
+                    ),
+                },
+            ],
+            "response_format": {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "post_structure_decisions",
+                    "strict": True,
+                    "schema": cls._DECISION_SCHEMA,
+                },
+            },
+            "mode": "auto",
+            "reasoning_effort": "auto",
+            "max_tokens": 4096,
+        }
+
     def infer(
         self, post_title: str, units: list[dict[str, object]]
     ) -> tuple[StructureDecision, ...]:
@@ -87,44 +131,7 @@ class ContextualOrchestratorPostStructureClient:
             expected_indexes.add(unit_index)
         response = post_json(
             f"{self.base_url}/v1/chat/completions",
-            {
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": (
-                            "Adjudicate the indentation level of every supplied document unit. "
-                            "Return one JSON object with a decisions array, with one decision for "
-                            "each unit_index. Determine indentation from ordering, numbering, "
-                            "bullets, paragraph semantics, and visible explicit formatting. The "
-                            "input also reports source_indent_width from leading spaces or NBSP "
-                            "and declared_indent_width from HTML/CSS/OOXML. Treat declared "
-                            "formatting as explicit evidence and source whitespace as supporting "
-                            "evidence only. Do not mistake continuation-line alignment after a "
-                            "bullet or number for a new hierarchy level. Do not invent nesting. "
-                            "If evidence conflicts or is insufficient, use level 0 and low "
-                            "confidence."
-                        ),
-                    },
-                    {
-                        "role": "user",
-                        "content": json.dumps(
-                            {"post_title": post_title, "ordered_units": units},
-                            ensure_ascii=False,
-                        ),
-                    },
-                ],
-                "response_format": {
-                    "type": "json_schema",
-                    "json_schema": {
-                        "name": "post_structure_decisions",
-                        "strict": True,
-                        "schema": self._DECISION_SCHEMA,
-                    },
-                },
-                "mode": "auto",
-                "reasoning_effort": "auto",
-                "max_tokens": 4096,
-            },
+            self.request_payload(post_title, units),
             headers={"authorization": f"Bearer {self.api_key}"},
             timeout=self.timeout,
         )

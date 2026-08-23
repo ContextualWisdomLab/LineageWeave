@@ -31,6 +31,22 @@ class HttpClientError(RuntimeError):
     """The remote endpoint returned a non-success status or invalid JSON."""
 
 
+def json_request_body(payload: dict) -> bytes:
+    """Serialize the exact JSON body sent by :func:`post_json`."""
+    request_payload = payload
+    request_metadata = current_llm_metadata()
+    if request_metadata:
+        request_payload = dict(payload)
+        existing_metadata = request_payload.get("metadata")
+        if existing_metadata is None:
+            request_payload["metadata"] = request_metadata
+        elif isinstance(existing_metadata, dict):
+            request_payload["metadata"] = {**existing_metadata, **request_metadata}
+        else:
+            raise ValueError("metadata must be an object")
+    return json.dumps(request_payload).encode("utf-8")
+
+
 def _request(
     method: str,
     url: str,
@@ -112,21 +128,10 @@ def post_json(
         ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
         HttpClientError: the server responded with HTTP >= 400 or non-JSON.
     """
-    request_payload = payload
-    request_metadata = current_llm_metadata()
-    if request_metadata:
-        request_payload = dict(payload)
-        existing_metadata = request_payload.get("metadata")
-        if existing_metadata is None:
-            request_payload["metadata"] = request_metadata
-        elif isinstance(existing_metadata, dict):
-            request_payload["metadata"] = {**existing_metadata, **request_metadata}
-        else:
-            raise ValueError("metadata must be an object")
     status, raw = _request(
         "POST",
         url,
-        body=json.dumps(request_payload).encode("utf-8"),
+        body=json_request_body(payload),
         headers={"content-type": "application/json", **headers},
         timeout=timeout,
     )
