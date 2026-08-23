@@ -591,8 +591,9 @@ on those same fixed parameters (Kim, 2006 FIPC). After scoring,
 information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
 residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021;
-ADR 0048 / 0119 / 0163 / 0164) persist to `report_leftover_pair` with observed
-`Y`, expected `E[Y|θ, item]`, and full leftover-map rank. Results persist to
+ADR 0048 / 0119 / 0162 / 0163 / 0164) persist to `report_leftover_pair` with
+signed residual `R`, observed `Y`, expected `E[Y|θ, item]`, and full
+leftover-map rank. Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
