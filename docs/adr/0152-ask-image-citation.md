@@ -1,4 +1,4 @@
-# ADR 0121: Global Ask cites persisted image evidence, never raw bytes
+# ADR 0152: Global Ask cites persisted image evidence, never raw bytes
 
 - Status: Accepted
 - Date: 2026-08-22

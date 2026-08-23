@@ -24,26 +24,26 @@
 - **LLM Orchestration**: Ensure ALL LLM calls route through `contextual-orchestrator` utilizing API keys (BYTEZ, NVIDIA, OPENROUTER, OPENAI) with auto model discovery and optimal reasoning effort allocation (Fugu/Conductor/TRINITY research).
 
 ## 4. Ask Agent Gaps
-- **Korean relative-time understanding**: (Resolved, PR #415 / ADR 0119)
+- **Korean relative-time understanding**: (Resolved, PR #415 / ADR 0150)
   Global Ask could not answer "어제", "오늘", "그제", "작년 이맘때쯤",
   "재작년에", "언젠가", or the general "N일/주/개월/년 전" pattern -- the
   expression only ever became a literal keyword search term. Resolved by
   `lineageweave.temporal_expressions.resolve_korean_relative_time`, wired
   into `gather_global_chat_sources` as a `created_at` retrieval bound.
-- **Multi-thread Event Lineage in answers**: (Resolved, PR #418 / ADR 0120)
+- **Multi-thread Event Lineage in answers**: (Resolved, PR #418 / ADR 0151)
   An Ask answer could speak to at most one connected Event Lineage
   timeline (ADR 0090's single-top-match expansion), shown as prose only.
   Resolved by `lineage_graphs_for_posts` merging every cited post's full
   thread into one `lineage_graph` response field, rendered as N
   independent git-branch-style figures by the existing `LineageDag`
   component.
-- **Image citation in answers**: (Resolved, PR #419 / ADR 0121) A citation
+- **Image citation in answers**: (Resolved, PR #419 / ADR 0152) A citation
   whose evidence came from an embedded picture read as an unmarked text
   claim. Resolved by `cited_post_images`, surfacing the same persisted
   caption/OCR/tags `GET /api/posts/{id}/content` already renders, scoped
   to cited posts -- no new image-serving mechanism, consistent with this
   codebase's existing never-raw-bytes boundary.
-- **Evidence Layer Popup**: (Resolved, PR #420 / ADR 0122) Inspecting one
+- **Evidence Layer Popup**: (Resolved, PR #420 / ADR 0153) Inspecting one
   citation's evidence meant either scanning every citation's facts inline
   at once or leaving the answer for the full post detail popup. Resolved
   by `AskEvidenceLayerPopup`, a focused modal opened per citation.

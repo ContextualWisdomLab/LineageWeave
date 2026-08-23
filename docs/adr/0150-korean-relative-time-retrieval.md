@@ -1,4 +1,4 @@
-# ADR 0119: Global Ask resolves Korean relative-time expressions
+# ADR 0150: Global Ask resolves Korean relative-time expressions
 
 - Status: Accepted
 - Date: 2026-08-22

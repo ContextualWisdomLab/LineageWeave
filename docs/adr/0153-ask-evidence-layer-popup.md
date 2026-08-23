@@ -1,8 +1,8 @@
-# ADR 0122: Ask citations open a focused evidence Layer Popup
+# ADR 0153: Ask citations open a focused evidence Layer Popup
 
 - Status: Accepted
 - Date: 2026-08-22
-- Related: [0121](0121-ask-image-citation.md), [0120](0120-ask-multi-lineage-graph.md)
+- Related: [0152](0152-ask-image-citation.md), [0151](0151-ask-multi-lineage-graph.md)
 
 ## Context
 
@@ -18,7 +18,7 @@ at the same time.
 `AskEvidenceLayerPopup` (`frontend/src/components/`) is a new, focused
 modal opened by a "View evidence" button on each citation. It shows only
 that one cited post's text evidence facts (ADR 0047's evidence chips) and
-image evidence (ADR 0121) without navigating away from the answer or
+image evidence (ADR 0152) without navigating away from the answer or
 displaying any other citation's evidence. It reuses the app's existing
 `.popup-backdrop`/`.popup-panel` visual language (`PostDetailPopup`'s own
 classes) rather than introducing a new modal style.

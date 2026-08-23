@@ -1,4 +1,4 @@
-# ADR 0120: Global Ask renders every cited thread as its own branch graph
+# ADR 0151: Global Ask renders every cited thread as its own branch graph
 
 - Status: Accepted
 - Date: 2026-08-22
