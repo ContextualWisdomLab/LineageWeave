@@ -105,12 +105,22 @@ normalized PostgreSQL ledger is scanned and queued/stale rows are republished
 after the cursor is established. This prevents a restart from replaying an
 unbounded historical stream before processing current work.
 
-Lease recovery also fences completion by `attempt_count`. A worker whose
-15-minute lease was reclaimed may finish after the replacement worker has
-started; its success, retry, or terminal failure transition is accepted only
-when the PostgreSQL row is still `running` for that exact attempt. A stale
-worker therefore cannot overwrite the newer attempt or append a false status
-event.
+Lease recovery fences persistence and completion with the claimed source-body
+SHA-256 plus `attempt_count` as a monotonic claim identity. `attempt_count` is
+incremented on every claim and is never reset by a changed digest or explicit
+retry, so an A-to-B-to-A body sequence cannot recreate an old claim identity.
+The bounded automatic-retry count is derived from the existing status-event
+ledger after the latest non-failure queued boundary. Before replacing artifacts
+or completing/failing work, the worker locks the job and source row and
+requires the job to remain `running` for that exact attempt and digest and the
+source body to still hash to that digest. A stale worker therefore cannot
+overwrite newer artifacts, complete a requeued attempt, or append a false
+status event.
+
+A missing ledger row is always inserted as `queued`, even if pre-ledger
+artifacts happen to satisfy the structural completeness predicate. Those
+artifacts have no binding to the current raw-body digest; only a fenced worker
+or the explicit ADR 0115 backfill finalization may register success.
 
 ## Corpus backfill (2026-08-20)
 

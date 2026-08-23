@@ -13,19 +13,19 @@ from backend.app.post_content_queue import (
     FAILED,
     POST_CONTENT_RETRY_INTERVAL,
     POST_CONTENT_STREAM_KEY,
-    STALE_RUNNING_INTERVAL,
     QUEUED,
     RUNNING,
+    STALE_RUNNING_INTERVAL,
     SUCCEEDED,
     fetch_post_summary_source,
-    record_post_content_backfill_success,
-    requeue_failed_post_content_job,
+    post_body_has_images,
     post_content_api_status,
     post_content_is_complete,
-    post_content_summary_status_message,
-    post_content_summary_is_ready,
-    post_body_has_images,
     post_content_stream_fields,
+    post_content_summary_is_ready,
+    post_content_summary_status_message,
+    record_post_content_backfill_success,
+    requeue_failed_post_content_job,
     source_body_sha256,
 )
 
@@ -318,7 +318,7 @@ def test_existing_units_are_requeued_when_the_source_digest_changes() -> None:
     assert any("set source_body_sha256" in query for query, _args in conn.executed)
 
 
-def test_existing_units_register_as_succeeded_without_a_wakeup() -> None:
+def test_preledger_units_cannot_register_current_digest_as_succeeded() -> None:
     from backend.app.post_content_queue import ensure_post_content_job
 
     class FakeConnection:
@@ -344,8 +344,8 @@ def test_existing_units_register_as_succeeded_without_a_wakeup() -> None:
         )
     )
 
-    assert job.status_code == SUCCEEDED
-    assert job.should_publish is False
+    assert job.status_code == QUEUED
+    assert job.should_publish is True
     assert any("insert into post_content_ingestion_job" in query for query, _args in conn.executed)
 
 
@@ -378,7 +378,7 @@ def test_failed_same_body_is_not_requeued_by_a_read_poll() -> None:
     assert job.should_publish is False
 
 
-def test_changed_body_resets_a_terminal_job_and_republishes() -> None:
+def test_changed_body_starts_a_retry_cycle_without_reusing_claim_identity() -> None:
     from backend.app.post_content_queue import ensure_post_content_job
 
     class FakeConnection:
@@ -409,7 +409,7 @@ def test_changed_body_resets_a_terminal_job_and_republishes() -> None:
 
     assert job.status_code == QUEUED
     assert job.should_publish is True
-    assert any("attempt_count = 0" in query for query, _args in conn.executed)
+    assert not any("attempt_count = 0" in query for query, _args in conn.executed)
 
 
 def test_recovery_query_carries_one_bounded_retry_interval() -> None:
@@ -418,7 +418,7 @@ def test_recovery_query_carries_one_bounded_retry_interval() -> None:
     assert "queued_at timestamptz not null" in migration
 
 
-def test_explicit_retry_resets_only_one_failed_job() -> None:
+def test_explicit_retry_requeues_only_one_failed_job_without_reusing_claim_identity() -> None:
     executed: list[tuple[str, tuple[object, ...]]] = []
 
     class FakeConnection:
@@ -446,7 +446,7 @@ def test_explicit_retry_resets_only_one_failed_job() -> None:
     assert request.should_publish is True
     assert request.source_body_sha256 == source_body_sha256("current body")
     assert len(executed) == 2
-    assert "attempt_count = 0" in executed[0][0]
+    assert "attempt_count = 0" not in executed[0][0]
     assert executed[1][1][-1] == "operator requested an explicit post-content retry"
 
 
@@ -572,3 +572,9 @@ def test_migration_contains_normalized_job_and_status_event_tables() -> None:
 def test_migration_replay_window_includes_post_content_queue() -> None:
     migrate = (_ROOT / "docker/postgres-init/migrate.sh").read_text()
     assert "0050_*)" in migrate
+
+
+def test_claim_identity_is_never_reset_by_queue_transitions() -> None:
+    source = (_ROOT / "backend/app/post_content_queue.py").read_text()
+    assert "attempt_count = 0" not in source
+    assert "attempt_count = attempt_count + 1" not in source

@@ -14,10 +14,12 @@ would silently weaken the retry limit and could create an endless loop.
 ## Decision
 
 Keep automatic retry and read-time behavior unchanged. Provide an explicit,
-single-post operator command that may requeue only a `failed` job, resets its
-attempt counter, recomputes the current source-body digest, appends an audit
+single-post operator command that may requeue only a `failed` job, starts a new
+bounded retry cycle, recomputes the current source-body digest, appends an audit
 status event, and publishes one Valkey wake-up. The command is not exposed as
-a public HTTP route and does not reset a queued, running, or succeeded job.
+a public HTTP route and does not reset a queued, running, or succeeded job. It
+never resets the monotonic `attempt_count` claim identity; a later claim must
+remain distinguishable from every worker that ran before the operator retry.
 
 The command must use the existing queue function and must not call a provider
 directly. It is an operational recovery action, not a buyer-visible status

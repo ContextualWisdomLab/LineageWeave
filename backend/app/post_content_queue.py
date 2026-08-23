@@ -309,12 +309,14 @@ async def transition_post_content_job(
     failure_code: str | None = None,
     detail_text: str | None = None,
     expected_attempt_count: int | None = None,
+    expected_source_body_sha256: str | None = None,
+    expected_status_code: str | None = None,
 ) -> bool:
     """Update one job attempt and append its lifecycle event atomically.
 
-    ``expected_attempt_count`` fences stale workers after lease recovery.  A
-    late completion from an older attempt must not overwrite the newer
-    attempt's status or append a misleading lifecycle event.
+    The optional claim fields fence stale workers after lease recovery. A late
+    completion from an older attempt must not overwrite the newer attempt's
+    status or append a misleading lifecycle event.
     """
     updated = await conn.execute(
         """
@@ -332,6 +334,8 @@ async def transition_post_content_job(
             last_error_detail = $8
         where post_id = $1
           and ($9::integer is null or attempt_count = $9)
+          and ($10::text is null or source_body_sha256 = $10)
+          and ($11::text is null or status_code = $11)
         """,
         post_id,
         status_code,
@@ -342,6 +346,8 @@ async def transition_post_content_job(
         failure_code,
         detail_text,
         expected_attempt_count,
+        expected_source_body_sha256,
+        expected_status_code,
     )
     if not updated.endswith(" 1"):
         return False
@@ -374,7 +380,7 @@ async def ensure_post_content_job(
         post_id,
     )
     if row is None:
-        initial_status = SUCCEEDED if content_complete else QUEUED
+        initial_status = QUEUED
         await conn.execute(
             """
             insert into post_content_ingestion_job
@@ -404,7 +410,6 @@ async def ensure_post_content_job(
             update post_content_ingestion_job
             set source_body_sha256 = $2,
                 status_code = $3,
-                attempt_count = 0,
                 queued_at = now(),
                 started_at = null,
                 completed_at = null,
@@ -452,7 +457,6 @@ async def requeue_failed_post_content_job(
         update post_content_ingestion_job
         set source_body_sha256 = $2,
             status_code = $3,
-            attempt_count = 0,
             queued_at = now(),
             started_at = null,
             completed_at = null,
@@ -550,7 +554,7 @@ async def republish_queued_post_content_jobs(
                     (
                         post_content_ingestion_job.status_code = $1
                         and (
-                            post_content_ingestion_job.attempt_count = 0
+                            post_content_ingestion_job.last_error_code is null
                             or post_content_ingestion_job.queued_at <= now() - $2::interval
                         )
                     )
