@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-23 23:40 KST. This repository records synthetic
+> Audit snapshot: 2026-08-23 23:49 KST. This repository records synthetic
 > fixtures and aggregate, non-identifying runtime evidence only. Open PRs and
 > local checks are not protected-default-branch release evidence.
 > Identifying post identifiers, organization names, and production record keys
@@ -10,7 +10,7 @@
 
 The protected default branch was
 `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` when this baseline was refreshed.
-The live queue contained 52 open PRs and 19 open issues. No independently
+The live queue contained 55 open PRs and 19 open issues. No independently
 approved current head was available for a protected squash-merge. Branch
 protection / rulesets continue to require independent exact-head review;
 the authenticated GitHub identity that authors these PRs cannot self-approve.
@@ -18,11 +18,13 @@ the authenticated GitHub identity that authors these PRs cannot self-approve.
 Protected `main` currently has two defects that poison downstream work:
 
 1. Unauthenticated login rendered `AdminPanel` with an undefined access token,
-   so `tsc -b` failed on `main`. LineageWeave#494 is the minimal login repair
-   (OIDC return-URL helpers; no admin settings before authentication).
+   so `tsc -b` failed on `main`. LineageWeave#426 owns the shared login repair
+   (OIDC return-URL helpers; no admin settings before authentication) and the
+   ontology Pages stack. #494 overlaps this contract and must preserve only
+   demonstrably unique value rather than becoming a second dependency.
 2. This file on `main` listed identifying post identifiers, which ADR 0001
    forbids. This head restores the non-identifying contract and binds gaps to
-   the current PR/issue inventory. It does not duplicate #494's login patch.
+   the current PR/issue inventory. It does not duplicate #426's login patch.
 
 Recent protected-default-branch and org-control-plane evidence:
 
@@ -30,9 +32,10 @@ Recent protected-default-branch and org-control-plane evidence:
 | ---: | --- | --- |
 | #347 | merged as `ef6f5a5ffcb467bd935dc1e53acc0029669b0bd7` | Korean UI standards on the current protected head |
 | ContextualWisdomLab/.github #1248 | merged | central Strix scope repair is available to subsequent reruns |
-| ContextualWisdomLab/.github #1258 | open; auto-merge armed | pnpm `--trust-lockfile` only on major >= 11; Jest keeps native `--coverage`; no invented Vitest instrumenter |
-| ContextualWisdomLab/.github #1259 | open; auto-merge armed | thin LineageWeave hourly review-repair caller at minute 4; supersedes #1086 stack driver |
-| LineageWeave #494 | open; auto-merge armed | login `tsc` repair only |
+| ContextualWisdomLab/.github #1258 | open; blocked; no auto-merge | pnpm `--trust-lockfile` only on major >= 11; Jest keeps native `--coverage`; no invented Vitest instrumenter |
+| ContextualWisdomLab/.github #1259 | open; blocked; no auto-merge | thin LineageWeave hourly review-repair caller at minute 4; supersedes #1086 stack driver |
+| LineageWeave #426 | open; blocked; auto-merge armed | shared login `tsc` repair and ontology Pages stack; exact-head approval still required |
+| LineageWeave #494 | open; blocked; no auto-merge | overlapping login repair; retain only value not already owned by #426 |
 
 The Grok durable hourly loop and the central thin GitHub Actions caller
 ContextualWisdomLab/.github#1259 (minute 4, `pr-review-fix-scheduler.yml`)
@@ -70,9 +73,10 @@ Substantially present on protected `main`:
 These statements describe source capability, not authenticated production
 corpus acceptance or protected release.
 
-## 3. Current open PR inventory (bind gaps to heads)
+## 3. Snapshot open PR inventory (bind gaps to exact heads)
 
-Heads below are queue evidence, not protected-main release evidence. Recheck
+Heads below were open at the snapshot time and are queue evidence, not
+protected-main release evidence. Recheck
 SHA, checks, unresolved threads, and independent approval immediately before
 any merge claim. Do not self-approve, force-push, or transfer stale review
 evidence across heads.
@@ -81,8 +85,8 @@ evidence across heads.
 
 | PR | Intent | Gap it closes when merged |
 | ---: | --- | --- |
-| #494 | Login `tsc` (no Admin settings before auth; OIDC return URL) | Shared frontend typecheck on protected `main` |
-| #426 | Frontend build repair + published ontology Pages | Public ontology publication; overlaps login repair |
+| #426 | Login `tsc`, ontology Pages, and the stacked namespace map formerly reviewed as #492 | Shared frontend typecheck and public ontology publication on protected `main` |
+| #494 | Overlapping login repair | Audit for unique value after #426; do not create a second shared dependency |
 | this head | Non-identifying gap baseline (ADR 0001) | Stops identifying post identifiers from remaining on `main` |
 | #429 | `/healthz` routes to the liveness probe | Operability: liveness vs settings mix-up |
 | #428 | `migrate.sh` whitelist catch-up | Deploy: migrations silently skipped |
@@ -103,13 +107,11 @@ evidence across heads.
 | #484 | Allen interval relations on Event Lineage edges | Temporal modeling; Allen (1983) |
 | #480 | Bind corroborated SKOS org aliases to one catalog row | SKOS exact-match / altLabel |
 | #482 | SKOS companion caption on organization chips | Same SKOS catalog |
-| #492 | Ontology namespace compatibility map | Issue #372 |
 | #405 | Persisted image-region locations | VISION region provenance |
 | #427 | Quantity superscripts in post bodies | Formula / unit display |
 | #481 | Persist leftover LSIRM interaction-map coordinates | fast-mlsirm leftover pairs |
 | #485 | Land leftover pair clicks on the named Post quality criterion | Same leftover surface |
 | #490 | Wire remaining ADR 0133–0137 surfaces | Consolidated product stack |
-| #392 | Source context and project-safe summary hints | Board source-detail state |
 | #434 | Wire adjudication client into corpus-wide rebuild | Issue #289 |
 
 ### 3.3 Ask Agent stack (issues #358–#363, #269–#272)
@@ -139,7 +141,9 @@ PRs #368, #440–#450, #455, #463, #479 rewrite slices of this baseline.
 Once this non-identifying inventory lands on protected `main`, those
 docs-only heads should be closed as superseded rather than merged as
 conflicting rewrites. Do not merge an identifying baseline over this file.
-Do not fold this rewrite back into #494; that head is the login typecheck.
+Do not fold this rewrite back into #426 or #494; #426 owns the shared login
+typecheck and #494 must remain limited to any independently verified unique
+value.
 
 ## 4. Open issues (product acceptance remaining on `main`)
 
@@ -152,8 +156,8 @@ Do not fold this rewrite back into #494; that head is the login typecheck.
 | #272 | Verify Global Ask KG/ontology/semantic claims with public SearXNG evidence | Ask stack |
 | #274 | Persist and explain Event Lineage channel evidence | #387 |
 | #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #468, #417 |
-| #280 | Full project-lifecycle history and handover intervals | #284 |
-| #284 | Authoritative lifecycle ingestion and idempotent reconciliation | #284 |
+| #280 | Full project-lifecycle history and handover intervals | Tracked with issue #284; no active delivery PR confirmed |
+| #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
 | #289 | Activate the optional lineage LLM channel through a bounded asynchronous rebuild | #434 |
 | #336 | Replace pseudo-CalDAV feed with a Naruon-owned calendar projection | #355 |
 | #338 | Evidence-bounded email/project lineage contract for Naruon consumption | #355 |
@@ -163,14 +167,14 @@ Do not fold this rewrite back into #494; that head is the login typecheck.
 | #361 | Preserve server diagnostics behind generic orchestrator 503 responses | #383 |
 | #362 | Roll back rejected Global Ask turn atomically instead of poisoning the session | Ask stack |
 | #363 | Continue ontology neighborhoods beyond the bounded source window | Ask / ontology |
-| #372 | Reconcile lowercase and repository-case public namespace IRIs | #492, #426 Pages |
+| #372 | Reconcile lowercase and repository-case public namespace IRIs | #426 Pages stack; #492 is merged into that branch, not protected `main` |
 
 ## 5. Open product and technical gaps
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 52 PRs open; no independent current-head approval; frontend `tsc` broken on `main` until #494 or #426 merges | Terminal exact-head checks, no unresolved threads, independent OpenCode/Strix/Noema approval, protected squash-merge SHA |
-| Shared frontend gate | Unauthenticated `AdminPanel` + unused OIDC helpers failed `tsc -b` on `main` | #494 or #426 on protected `main`; subsequent PRs rebase and stay green without duplicating the login patch |
+| Protected release | 55 PRs open; no independent current-head approval; frontend `tsc` broken on `main` until #426 merges | Terminal exact-head checks, no unresolved threads, independent OpenCode/Strix/Noema approval, protected squash-merge SHA |
+| Shared frontend gate | Unauthenticated `AdminPanel` + unused OIDC helpers failed `tsc -b` on `main` | #426 on protected `main`; revalidate #494 for unique value, then subsequent PRs rebase and stay green without duplicating the login patch |
 | Identifying baseline regression | `main` gap file listed real post identifiers | This non-identifying rewrite on protected `main` (ADR 0001) |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419) | Orchestrator-backed rendered workflow, original/derived asset provenance, and honest unsupported states |
@@ -202,7 +206,7 @@ before a commercial release claim. Figma File ID `1Su3lDRmiZdcUs47t1QwIX`.
 | Typography & Color | Badge tokens extracted | Contrast on badges, links, error/status; no raw hex in components |
 | Animation | Minimal | Reduced-motion; no blocking animation on evidence open |
 | Forms & Feedback | Login, Ask, tickets, admin brand | Inline validation, next-action copy, unavailable vs failed distinction |
-| Navigation Patterns | Board / customers / calendar / Ask / admin | Deep-link post + OIDC return URL (#494); bookmarkable Ask |
+| Navigation Patterns | Board / customers / calendar / Ask / admin | Deep-link post + OIDC return URL (#426); bookmarkable Ask |
 | Charts & Data | Period reports, leftover pairs, Rankings, DAG | Honest empty/unavailable; no invented theta; Storybook chart states |
 
 ## 7. Ecosystem leverage order
@@ -241,8 +245,8 @@ of leverage; open connector PRs there when the defect is upstream:
 
 1. Land ContextualWisdomLab/.github#1258 so OpenCode coverage-evidence can
    complete LineageWeave JavaScript tests on pnpm 9.15.9.
-2. Land LineageWeave#494 (or #426) so the shared frontend typecheck is green
-   on protected `main`.
+2. Land LineageWeave#426 so the shared frontend typecheck and ontology Pages
+   stack are on protected `main`; then audit #494 and retain only unique value.
 3. Land this head so ADR 0001 holds on protected `main`.
 4. Request independent exact-head review; squash-merge only after that review
    and current checks. Enable auto-merge rather than waiting as a blocker.
