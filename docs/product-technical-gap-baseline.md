@@ -261,7 +261,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Keyman on both sides, titles, affiliations, related KG nodes | Keyman/affiliate-tree/related-node routes and popup | source + unit; live extraction open |
 | Ontology, semantic layer, provenance, W3C PROV-O projection | normalized schema, SKOS operational vocabulary concepts, `ontology_annotations` label fallback, ADR 0124, provenance modules, ADRs, evidence UI | source + unit; corpus verification open |
 | Branching Event Lineage DAG with evidence trail | `LineageDag.tsx`, Storybook story, Figma frames, accessible node-kind names for screen readers/tooltips, frontend tests; runtime cases include both a rendered DAG and honest empty states, while current corpus coverage remains sparse | source + unit + local-integration partial |
-| Customer master and hierarchy tree | `/api/customer-master`, `scope_facets`, visible `post_organization_mention` enrichment, affiliate tree, migration `0105`, scope filter | source + unit + local-integration partial; authorized own/granted/unclassified facets, visible observed organizations, and admitted observed hierarchy facets are implemented, while authoritative scope backfill and broader hierarchy traversal remain open |
+| Customer master and hierarchy tree | `/api/customer-master`, `scope_facets`, visible `post_organization_mention` enrichment, affiliate tree, migration `0105`, scope filter, in-place related-post popup, hierarchy-aware `resolve_customer_hint`, `scripts/backfill_customer_hints.py`, Storybook coverage | source + unit + local-integration partial; authorized own/granted/unclassified facets, visible observed organizations, admitted observed hierarchy facets, in-place post viewing, and hierarchy-aware customer-hint resolution are implemented, while authoritative scope backfill and broader `account_affiliation` hierarchy traversal for auto-created counterparty entities remain open |
 | VOC/VOM/VOP/VOCC/VOCO/VOS role classification | common lookup values and relationship APIs | source + unit; live classification open |
 | Evidence-grounded chat and source navigation | `/chat`, `/ask`, citation/evidence UI | source + unit; synthetic orchestrator judge route verified, corpus chat/runtime evidence open |
 | OpenTelemetry across LineageWeave, contextual-orchestrator, Valkey, and GRC | LineageWeave PR #383 adds API/Valkey/session spans; contextual-orchestrator PR #765 carries session/provider telemetry; governance-risk-compliance PR #50 adds request telemetry, W3C trace context, OTLP export, and ADR 0009 | source + PR; protected merge and end-to-end collector evidence open |
@@ -401,6 +401,43 @@ or an explicit unavailable result.
   `account_affiliation`/`corporate_entity` scope flag, or a customer-tree
   query redesign: guessing at either without a reviewed decision risks an
   ABAC-adjacent regression.
+  **Update (2026-08-23, PRs #458/#461/#462):** three related, user-reported
+  Customer Master defects fixed and merged into this branch, narrowing but
+  not closing the standing gap above. (a) Clicking a customer's related
+  post called `changeDestination("board")`, unmounting Customer Master
+  entirely instead of showing the post in the existing right-docked
+  `PostDetailPopup` -- fixed by giving `CustomerMasterPanel` its own
+  `selectedPostId` state; the popup now opens in place. (b)
+  `resolve_customer_hint` (`backend/app/customer_hint_ingestion.py`)
+  previously created every newly resolved SAP customer code as a flat,
+  unparented `corporate_entity` via a bare INSERT; it now routes through
+  `get_or_create_corporate_entity` first (ADR 0010's hierarchy-inference
+  pipeline, same one `keyman_ingestion.py` already used), respecting ADR
+  0026's tie-must-stay-unbound rule, so a configured hierarchy channel
+  gives the entity a real parent chain at resolution time. (c) Hint
+  resolution was reachable only one `source_customer_code` at a time via
+  the admin "Resolve" button in the UI; `scripts/backfill_customer_hints.py`
+  now resolves a bounded batch through the same pipeline, closing the "no
+  bulk/automatic backfill" gap for a SAP export whose only customer field
+  (`zcrht811_export_rows.kunnr_field`) is an opaque number with no name at
+  all. **What remains open:** (b)/(c) only improve the *creation* path for
+  entities this pipeline resolves -- the standing gap this bullet describes
+  (a counterparty `corporate_entity` ADR 0010 auto-creates is never linked
+  via `account_affiliation`, so it cannot reach `/api/customer-master`
+  regardless of how well-populated the corpus becomes) is unchanged and
+  still needs the ADR named above. Storybook coverage for
+  `CustomerEntityTreeRow`/`CustomerRelatedPostCard` (default/loading/empty/
+  interactive states, reviewed against this repo's `ui-ux-pro-max` +
+  `Anti-Slop-UI` skills) and two accessibility fixes (WCAG 2.5.5 touch
+  target size on `.customer-entity-button`/`.related-post-card`; a
+  per-hint `aria-label` on the "Resolve" button so screen-reader users can
+  distinguish it from others in the same list) shipped in the same PR
+  series. A Playwright e2e spec (`frontend/e2e/customer-master.spec.ts`)
+  covers the (a) fix end-to-end -- same "runs only against a live
+  authenticated stack, not CI" convention as the existing
+  `knowledge-graph.spec.ts` -- but was not executed in this environment (no
+  local stack was up at the time; the operator should run it against
+  `make up && make seed` or a real import to confirm).
 - **Event Lineage thread grouping — systemic mismapping, evidence-backed
   (2026-08-22):** `reconstruct_group_key` (`backend/app/lineage_ingestion.py`)
   uses `source_post.thread_group_key` first when non-empty, falling back to
@@ -617,6 +654,48 @@ excluded per this repo's de-identification discipline.
   These are local checks at PR-branch heads, not independent-review or
   hosted-protected-gate evidence at the current merged head -- rerun after
   merge before treating this exact head as release-ready.
+
+## 6b. 2026-08-23 update: Customer Master post-panel checkpoint (`docs/customer-master-scope-adr`)
+
+Exact head after this update: `5458151f8702fe0444a45b38715216de7c29fa61`
+(squash merge of PR #462 on top of #461, #458, all merged this session).
+Detailed evidence for each item lives in section 5's "Customer master
+'customer tree'" bullet, updated in this same checkpoint.
+
+- **Closed this checkpoint:** clicking a customer's related post in
+  Customer Master navigated the whole workspace to Board instead of
+  showing the post in place (PR #458); `resolve_customer_hint` created
+  every newly resolved SAP customer code as a flat, unparented entity
+  instead of routing through the existing ADR 0010 hierarchy-inference
+  pipeline (PR #458); hint resolution was reachable only one code at a
+  time via the admin UI with no bulk path (`scripts/backfill_customer_hints.py`,
+  PR #458, CLI-safety fix in PR #461); `CustomerEntityTreeRow`/
+  `CustomerRelatedPostCard` had no Storybook coverage and two real
+  accessibility gaps (WCAG 2.5.5 touch target size, screen-reader
+  disambiguation of the "Resolve" button) went unreviewed against this
+  repo's `ui-ux-pro-max`/`Anti-Slop-UI` skills (PR #462).
+- **Learned this checkpoint, process-level:** this repository's
+  stacked-branch workflow lets a PR merge into a branch another PR has
+  already forward-merged past, orphaning the new commits even though
+  GitHub reports `state: MERGED` -- happened twice in this checkpoint
+  (PR #414's predecessor attempt, and the final commit of PR #458 itself).
+  Verify a merge by reading the actual file content at the merge commit,
+  not by trusting `state`/`mergeStateStatus`/commit-ancestry alone (a
+  squash merge also makes `git merge-base --is-ancestor` an unreliable
+  check on its own).
+- **Not closed this checkpoint:** the standing gap section 5's bullet
+  describes -- a counterparty `corporate_entity` ADR 0010 auto-creates is
+  never linked via `account_affiliation`, so it cannot reach
+  `/api/customer-master` regardless of corpus size -- remains open and
+  still needs its own ADR before implementation.
+- **Local quality evidence at this exact head:** frontend `pnpm exec tsc -b`
+  clean, `pnpm run lint` clean, `pnpm test -- --run` 204/204 passed,
+  `pnpm run build-storybook` succeeds; backend `pytest tests/ backend/tests/`
+  860 passed / 17 skipped (one pre-existing, unrelated failure --
+  `resolved_date_text` column missing -- confirmed absent from every file
+  this checkpoint's diffs touch). The new Playwright e2e spec
+  (`frontend/e2e/customer-master.spec.ts`) was not executed: no local
+  stack was running in this environment at the time.
 
 ## 7. References (APA 7th)
 
