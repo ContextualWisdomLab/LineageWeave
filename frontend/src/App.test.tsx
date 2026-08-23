@@ -38,12 +38,12 @@ describe("App, unauthenticated", () => {
     expect(signinRedirect).toHaveBeenCalledTimes(1);
     expect(signinRedirect).toHaveBeenCalledWith(
       expect.objectContaining({
-        state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
+        state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\/(?!\/)/) }),
       }),
     );
     // Persisted as a fallback in case the OIDC state round-trip is dropped
     // (see oidcReturnUrl.ts's restoreOidcReturnUrl, consumed in main.tsx).
-    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toMatch(/^\//);
+    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toMatch(/^\/(?!\/)/);
   });
 });
 

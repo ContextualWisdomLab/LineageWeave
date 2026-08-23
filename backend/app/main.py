@@ -165,7 +165,11 @@ from backend.app.knowledge_graph import (
     visible_mention_post_ids,
     visible_team_mention_post_ids,
 )
-from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
+from backend.app.lineage_ingestion import (
+    LineageSourceChangedError,
+    rebuild_lineage,
+    visible_lineage_graph,
+)
 from backend.app.post_chat_ingestion import (
     fetch_persisted_chat,
     fetch_persisted_chats,
@@ -1120,6 +1124,12 @@ async def rebuild_lineage_graph(
             edges = await rebuild_lineage(
                 conn, adjudication_client=_adjudication_client()
             )
+    except LineageSourceChangedError as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Source posts kept changing while lineage was rebuilt. "
+            "Retry after the current ingestion finishes.",
+        ) from exc
     except (HttpClientError, OSError) as exc:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -3054,6 +3064,12 @@ async def start_analysis_run(
                 )
             except AnalysisRunStartError as exc:
                 raise HTTPException(exc.status_code, exc.detail) from exc
+            except (HttpClientError, OSError) as exc:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Analysis-run adjudication is temporarily unavailable. "
+                    "Retry this run after the orchestrator is available.",
+                ) from exc
     return started
 
 

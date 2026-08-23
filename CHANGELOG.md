@@ -12,7 +12,9 @@ All notable changes to this project are documented here. Format follows
   off the API event-loop thread and before the short atomic projection-write
   transaction. A temporary adjudication failure leaves the existing graph
   intact and tells the operator when to retry instead of returning an opaque
-  server error.
+  server error. Rebuilds are serialized, and their source snapshot is rechecked
+  under a short PostgreSQL lock before publication, so a slow result cannot
+  erase edges for posts committed while adjudication was running.
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.

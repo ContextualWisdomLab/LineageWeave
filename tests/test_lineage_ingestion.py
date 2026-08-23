@@ -8,10 +8,11 @@ from datetime import datetime, timezone
 
 import pytest
 
+from backend.app import lineage_ingestion
 from backend.app.lineage_ingestion import (
+    rebuild_lineage,
     reconstruct_group_key,
     records_from_source_posts,
-    rebuild_lineage,
     visible_lineage_graph,
 )
 from lineageweave.adjudication_client import ContextualOrchestratorAdjudicationClient
@@ -42,9 +43,16 @@ class _Transaction:
 class _RebuildConnection:
     """Minimal asyncpg-shaped connection for corpus rebuild tests."""
 
-    def __init__(self, rows: list[dict[str, object]] | None = None) -> None:
+    def __init__(
+        self,
+        rows: list[dict[str, object]] | None = None,
+        *,
+        snapshots: list[list[dict[str, object]]] | None = None,
+    ) -> None:
         """Initialize synthetic rows and an observable operation sequence."""
         self.rows = rows or []
+        self.snapshots = snapshots or []
+        self.fetch_count = 0
         self.events: list[str] = []
         self.executed: list[str] = []
 
@@ -52,12 +60,24 @@ class _RebuildConnection:
         """Return synthetic source rows while recording the read."""
         del query, args
         self.events.append("fetch")
+        if self.snapshots:
+            index = min(self.fetch_count, len(self.snapshots) - 1)
+            self.fetch_count += 1
+            return self.snapshots[index]
         return self.rows
 
     async def execute(self, query: str, *args: object) -> str:
         """Record a synthetic projection write."""
         del args
-        self.events.append("execute")
+        compact = " ".join(query.split())
+        if "pg_advisory_unlock" in compact:
+            self.events.append("rebuild_lock_release")
+        elif "pg_advisory_lock" in compact:
+            self.events.append("rebuild_lock_acquire")
+        elif compact == "lock table source_post in share mode":
+            self.events.append("source_lock")
+        else:
+            self.events.append("execute")
         self.executed.append(query)
         return "OK"
 
@@ -309,7 +329,7 @@ def test_rebuild_lineage_keeps_blocking_adjudication_outside_event_loop_and_tran
         assert provider_release.wait(timeout=2), (
             "event loop could not release provider work"
         )
-        return [Edge("parent-post", "child-post", {}, 0.8)]
+        return [Edge("parent-post", "child-post", 0.8, {})]
 
     monkeypatch.setattr(
         "backend.app.lineage_ingestion.lineage_edge_specs", blocking_lineage_edge_specs
@@ -333,19 +353,103 @@ def test_rebuild_lineage_keeps_blocking_adjudication_outside_event_loop_and_tran
         ("parent-post", "child-post")
     ]
     assert connection.events == [
+        "rebuild_lock_acquire",
         "fetch",
         "reconstruct",
         "transaction_enter",
+        "source_lock",
+        "fetch",
         "execute",
         "execute",
         "transaction_exit",
+        "rebuild_lock_release",
     ]
 
 
-def test_rebuild_endpoint_reports_retryable_adjudication_unavailability(
+def _synthetic_source_row(title: str) -> dict[str, object]:
+    """Build one non-identifying source row for rebuild concurrency tests."""
+    return {
+        "post_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "process_unit_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "corporate_entity_id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+        "post_title": title,
+        "voc_type_code": "voc",
+        "thread_group_key": "synthetic-thread",
+        "secondary_grouping_key": "synthetic-project",
+        "created_at": datetime(2026, 1, 6, tzinfo=timezone.utc),
+    }
+
+
+def test_rebuild_lineage_recomputes_a_source_snapshot_changed_during_adjudication(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """An unavailable orchestrator is a retryable 503, not an opaque 500."""
+    """Only edges calculated from the locked current source may be published."""
+    before = [_synthetic_source_row("Synthetic schedule draft")]
+    after = [_synthetic_source_row("Synthetic schedule approved")]
+    connection = _RebuildConnection(
+        snapshots=[before, after, after, after]
+    )
+    reconstructed_titles: list[list[str]] = []
+
+    def record_reconstruction(records, *, llm=None):
+        """Record which synthetic source version reached reconstruction."""
+        del llm
+        reconstructed_titles.append([record.label for record in records])
+        return []
+
+    monkeypatch.setattr(lineage_ingestion, "lineage_edge_specs", record_reconstruction)
+
+    assert asyncio.run(rebuild_lineage(connection)) == []
+    assert reconstructed_titles == [
+        ["Synthetic schedule draft"],
+        ["Synthetic schedule approved"],
+    ]
+    assert sum("delete from post_lineage_edge" in query for query in connection.executed) == 1
+    assert connection.events[0] == "rebuild_lock_acquire"
+    assert connection.events[-1] == "rebuild_lock_release"
+
+
+def test_rebuild_lineage_keeps_prior_projection_after_bounded_snapshot_retries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Continuous source changes fail retryably without deleting stored edges."""
+    snapshots = [
+        [_synthetic_source_row(f"Synthetic source version {version}")]
+        for version in range(1, 7)
+    ]
+    connection = _RebuildConnection(snapshots=snapshots)
+    monkeypatch.setattr(lineage_ingestion, "lineage_edge_specs", lambda *_args, **_kwargs: [])
+
+    with pytest.raises(
+        lineage_ingestion.LineageSourceChangedError,
+        match="changed during three reconstruction attempts",
+    ):
+        asyncio.run(rebuild_lineage(connection))
+
+    assert all("delete from post_lineage_edge" not in query for query in connection.executed)
+    assert connection.events[0] == "rebuild_lock_acquire"
+    assert connection.events[-1] == "rebuild_lock_release"
+
+
+@pytest.mark.parametrize(
+    ("failure", "expected_next_action"),
+    [
+        (
+            HttpClientError("synthetic adjudication response was malformed"),
+            "Retry after the orchestrator is available.",
+        ),
+        (
+            lineage_ingestion.LineageSourceChangedError("synthetic source changed"),
+            "Retry after the current ingestion finishes.",
+        ),
+    ],
+)
+def test_rebuild_endpoint_reports_retryable_unavailability(
+    monkeypatch: pytest.MonkeyPatch,
+    failure: Exception,
+    expected_next_action: str,
+) -> None:
+    """A temporary rebuild boundary failure is a retryable actionable 503."""
     from fastapi import HTTPException
 
     from backend.app import main as api
@@ -376,8 +480,8 @@ def test_rebuild_endpoint_reports_retryable_adjudication_unavailability(
             return Acquire()
 
     async def unavailable_rebuild(*_args: object, **_kwargs: object) -> list[Edge]:
-        """Model a gateway response-contract failure."""
-        raise HttpClientError("synthetic adjudication response was malformed")
+        """Model a temporary provider or source-snapshot failure."""
+        raise failure
 
     monkeypatch.setattr(api, "rebuild_lineage", unavailable_rebuild)
     monkeypatch.setattr(api, "_adjudication_client", object)
@@ -386,7 +490,79 @@ def test_rebuild_endpoint_reports_retryable_adjudication_unavailability(
         asyncio.run(api.rebuild_lineage_graph(account=Account(), pool=Pool()))
 
     assert caught.value.status_code == 503
-    assert caught.value.detail.endswith("Retry after the orchestrator is available.")
+    assert caught.value.detail.endswith(expected_next_action)
+
+
+def test_analysis_run_start_reports_retryable_adjudication_unavailability(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The run-start API maps an invalid provider reply to an actionable 503."""
+    from fastapi import HTTPException
+
+    from backend.app import main as api
+
+    class Account:
+        """Synthetic reader with one authorized corporate scope."""
+
+        user_account_id = "synthetic-account"
+        corporate_entity_ids = ("synthetic-corporate-entity",)
+
+        @staticmethod
+        def has_permission(_permission: str) -> bool:
+            """Grant the permission required by the analysis-run route."""
+            return True
+
+    class Acquire:
+        """Yield a synthetic connection through the pool contract."""
+
+        async def __aenter__(self) -> _RebuildConnection:
+            """Return one connection for either route transaction."""
+            return _RebuildConnection()
+
+        async def __aexit__(self, *_args: object) -> bool:
+            """Leave acquisition without suppressing the provider error."""
+            return False
+
+    class Pool:
+        """Expose a fresh synthetic acquisition context per transaction."""
+
+        @staticmethod
+        def acquire() -> Acquire:
+            """Create an acquisition context for the route."""
+            return Acquire()
+
+    async def enqueue(*_args: object, **_kwargs: object) -> dict[str, object]:
+        """Return a durable synthetic queued run with no stream delivery."""
+        return {
+            "status_code": "analysis_status_running",
+            "run_kind_code": "analysis_kind_lineage",
+            "outbox_request_sha256": None,
+        }
+
+    async def unavailable_delivery(
+        *_args: object, **_kwargs: object
+    ) -> dict[str, object]:
+        """Model an adjudication response that violates the score contract."""
+        raise HttpClientError("synthetic adjudication response was malformed")
+
+    monkeypatch.setattr(api, "enqueue_pending_analysis_run", enqueue)
+    monkeypatch.setattr(api, "deliver_queued_analysis_run", unavailable_delivery)
+    monkeypatch.setattr(api, "_adjudication_client", object)
+
+    with pytest.raises(HTTPException) as caught:
+        asyncio.run(
+            api.start_analysis_run(
+                "synthetic-analysis-run",
+                account=Account(),
+                pool=Pool(),
+                valkey=object(),  # type: ignore[arg-type]
+            )
+        )
+
+    assert caught.value.status_code == 503
+    assert caught.value.detail.endswith(
+        "Retry this run after the orchestrator is available."
+    )
 
 
 def test_rebuild_lineage_fails_closed_when_adjudication_cannot_be_parsed(
@@ -436,4 +612,6 @@ def test_rebuild_lineage_fails_closed_when_adjudication_cannot_be_parsed(
 
     # No delete-then-insert of post_lineage_edge happened: the failure was
     # raised while computing edges, strictly before persist_lineage_edges runs.
-    assert connection.executed == []
+    assert all(
+        "post_lineage_edge" not in query for query in connection.executed
+    )

@@ -11,8 +11,9 @@ not derived from process unit or voc type.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, Mapping
+from typing import Any
 
 import asyncpg
 
@@ -20,6 +21,19 @@ from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.adjudication_client import AdjudicationClient
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge, Record
+
+_REBUILD_LOCK_NAME = "lineageweave:lineage_projection_rebuild"
+_MAX_SOURCE_SNAPSHOT_ATTEMPTS = 3
+_SOURCE_RECORDS_SQL = (
+    "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
+    "process_unit_id, thread_group_key, secondary_grouping_key "
+    f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')} "
+    "order by source_post.post_id"
+)
+
+
+class LineageSourceChangedError(RuntimeError):
+    """The source corpus changed throughout every bounded rebuild attempt."""
 
 
 def _occurred_at(value: datetime) -> datetime:
@@ -91,23 +105,37 @@ async def rebuild_lineage(
     (``DEFAULT_CHANNEL_WEIGHTS``, the only channel that reasons about
     content instead of approximating it, ADR 0064).
 
-    Reconstruction runs in a worker thread because the published
-    adjudication adapter is synchronous. Only the successful projection
-    replacement is transactional, so provider latency does not block the
-    event loop or hold a PostgreSQL write transaction open.
+    Reconstruction runs in a worker thread because the published adjudication
+    adapter is synchronous. A session advisory lock serializes rebuilds without
+    holding a transaction across provider latency. Before publication, a short
+    transaction locks ``source_post`` against writers and rechecks the exact
+    ordered input. A stale result is discarded and recomputed up to three times.
     """
-    rows = await conn.fetch(
-        "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
-        "process_unit_id, thread_group_key, secondary_grouping_key "
-        f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
+    await conn.execute(
+        "select pg_advisory_lock(hashtextextended($1, 0))", _REBUILD_LOCK_NAME
     )
-    records = records_from_source_posts(rows)
-    edges = await asyncio.to_thread(
-        lineage_edge_specs, records, llm=adjudication_client
-    )
-    async with conn.transaction():
-        await persist_lineage_edges(conn, edges)
-    return edges
+    try:
+        for _attempt in range(_MAX_SOURCE_SNAPSHOT_ATTEMPTS):
+            rows = await conn.fetch(_SOURCE_RECORDS_SQL)
+            records = records_from_source_posts(rows)
+            edges = await asyncio.to_thread(
+                lineage_edge_specs, records, llm=adjudication_client
+            )
+            async with conn.transaction():
+                await conn.execute("lock table source_post in share mode")
+                current_rows = await conn.fetch(_SOURCE_RECORDS_SQL)
+                if records_from_source_posts(current_rows) != records:
+                    continue
+                await persist_lineage_edges(conn, edges)
+                return edges
+        raise LineageSourceChangedError(
+            "source_post changed during three reconstruction attempts; retry the rebuild"
+        )
+    finally:
+        await conn.execute(
+            "select pg_advisory_unlock(hashtextextended($1, 0))",
+            _REBUILD_LOCK_NAME,
+        )
 
 
 async def visible_lineage_graph(

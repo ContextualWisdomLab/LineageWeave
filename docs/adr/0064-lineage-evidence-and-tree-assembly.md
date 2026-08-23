@@ -31,9 +31,20 @@ or promoting an inferred relation to fact.
   asyncio event-loop thread, and propagates the request context into that
   worker thread. A provider or response-contract failure aborts before the
   stored lineage projection is changed.
+- Serialize corpus-wide rebuilds with one session-scoped PostgreSQL advisory
+  lock acquired before the source read and released in ``finally``. This keeps
+  a later-started rebuild from publishing before, and then being overwritten
+  by, an older slow rebuild without holding a database transaction across
+  provider latency.
 - Replace the stored lineage projection in one short PostgreSQL transaction
-  after reconstruction succeeds. The delete-and-insert replacement remains
-  atomic, while provider latency does not hold that write transaction open.
+  after reconstruction succeeds. In that transaction, take ``SHARE`` on
+  ``source_post``, re-read the deterministic reconstruction input, and publish
+  only when it still equals the input used for adjudication. Discard and
+  recompute a stale result up to three times; exhaustion is retryable
+  unavailability and leaves the prior projection unchanged. ``SHARE`` blocks
+  the ``ROW EXCLUSIVE`` lock used by source writers only for this short
+  validation-and-publication window. The delete-and-insert replacement remains
+  atomic, while provider latency does not hold a transaction or table lock.
 
 ## Consequences
 
@@ -46,11 +57,18 @@ or promoting an inferred relation to fact.
 - Other API work remains responsive during a corpus-wide adjudication, and a
   failed adjudication leaves the previously stored projection intact. The API
   reports that temporary dependency failure as retryable unavailability.
+- Concurrent rebuild requests are serialized, and a source write committed
+  during adjudication causes recomputation rather than publication of a stale
+  whole-corpus projection. Source ingestion pauses only during the bounded
+  validation-and-replacement transaction.
 
 ## References — APA 7th
 
 PostgreSQL Global Development Group. (2026). *Transactions* (PostgreSQL 18
 documentation). https://www.postgresql.org/docs/current/tutorial-transactions.html
+
+PostgreSQL Global Development Group. (2026). *Explicit locking* (PostgreSQL 18
+documentation). https://www.postgresql.org/docs/current/explicit-locking.html
 
 Python Software Foundation. (2026). *Coroutines and tasks* (Python 3.14.6
 documentation). https://docs.python.org/3/library/asyncio-task.html#running-in-threads
