@@ -9,7 +9,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "./e2e",
   // The default 30s budget covers the whole authenticated-page fixture
-  // (goto, OIDC redirect, Keycloak form submit, callback, networkidle) --
+  // (goto, OIDC redirect, Keycloak form submit, callback, authenticated shell) --
   // fine on a quiet machine, but the full flow's several sequential
   // network round trips can exceed it under real load. 90s gives headroom
   // without masking a genuinely hung flow.

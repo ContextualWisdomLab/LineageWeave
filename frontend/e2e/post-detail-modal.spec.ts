@@ -16,7 +16,6 @@ test("post detail modal exposes dialog semantics, traps focus, and restores it o
 
   const trigger = page.locator("button.post-list-item").first();
   await expect(trigger).toBeVisible({ timeout: 15000 });
-  const triggerLabel = await trigger.getAttribute("aria-label");
   await trigger.focus();
   await trigger.click();
 
@@ -49,6 +48,5 @@ test("post detail modal exposes dialog semantics, traps focus, and restores it o
   // opened it.
   await page.keyboard.press("Escape");
   await expect(dialog).not.toBeVisible({ timeout: 5000 });
-  const restoredLabel = await page.evaluate(() => document.activeElement?.getAttribute("aria-label"));
-  expect(restoredLabel).toBe(triggerLabel);
+  await expect(trigger).toBeFocused();
 });

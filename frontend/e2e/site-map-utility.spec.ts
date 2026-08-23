@@ -37,8 +37,9 @@ test("selecting a destination from the site map closes it", async ({ page }) => 
   const menu = page.locator("#site-map-menu");
   await expect(menu).toBeVisible();
 
-  const destinationItem = menu.locator(".workspace-gnb-item").filter({ hasNotText: /^$/ }).first();
-  const destinationLabel = await destinationItem.textContent();
+  const destinationItem = menu.locator('.workspace-gnb-item:not([aria-current="page"])').first();
+  const destinationLabel = (await destinationItem.innerText()).trim();
+  expect(destinationLabel).not.toBe("");
   await destinationItem.click();
 
   await expect(menu).not.toBeVisible({ timeout: 5000 });
@@ -47,11 +48,9 @@ test("selecting a destination from the site map closes it", async ({ page }) => 
   // The header's persistent WorkspaceNav (not the site-map's own copy)
   // reflects the same selection, confirming the click actually navigated
   // rather than just closing the menu.
-  if (destinationLabel) {
-    const headerNav = page.locator("nav.workspace-gnb").first();
-    await expect(headerNav.getByRole("button", { name: destinationLabel, exact: true })).toHaveAttribute(
-      "aria-current",
-      "page",
-    );
-  }
+  const headerNav = page.locator("nav.workspace-gnb").first();
+  await expect(headerNav.getByRole("button", { name: destinationLabel, exact: true })).toHaveAttribute(
+    "aria-current",
+    "page",
+  );
 });
