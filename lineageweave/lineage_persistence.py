@@ -16,7 +16,12 @@ from .models import Edge, Record
 from .reconstruct import reconstruct
 
 
-def lineage_edge_specs(records: Sequence[Record], *, llm: AdjudicationClient | None = None) -> list[Edge]:
+def lineage_edge_specs(
+    records: Sequence[Record],
+    *,
+    llm: AdjudicationClient | None = None,
+    weights: dict[str, float] | None = None,
+) -> list[Edge]:
     """Run reconstruct and return every resulting parent→child edge.
 
     Callers persist these as ``post_lineage_edge`` rows. Record ids must
@@ -29,6 +34,13 @@ def lineage_edge_specs(records: Sequence[Record], *, llm: AdjudicationClient | N
     (the llm channel is then dropped and the rest renormalized, not
     faked) -- callers that want the highest-weighted reasoning channel
     actually contributing to real reconstructions must pass a real one.
+
+    ``weights`` defaults to ``None``, keeping ``reconstruct()``'s
+    documented fallback constants; callers with a persisted
+    psychometric estimate (ADR 0145) pass it here.
     """
-    trees = reconstruct(list(records), llm=llm)
+    if weights is None:
+        trees = reconstruct(list(records), llm=llm)
+    else:
+        trees = reconstruct(list(records), llm=llm, weights=weights)
     return [edge for tree in trees for edge in tree.edges]

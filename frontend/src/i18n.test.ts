@@ -38,6 +38,8 @@ describe("i18n", () => {
     "Leftover pairs",
     "Closest leftover",
     "Farthest leftover",
+    "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.",
+    "Open leftover {kind} pair: {title} · {criterion}",
     "Open this post to read the criterion it sat closest to after main effects.",
     "Open this post to read the criterion it sat farthest from after main effects.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
@@ -86,6 +88,21 @@ describe("i18n", () => {
   ] as const)("formats dynamic buyer guidance in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("{post} is current in Event Lineage. Read Keyman and evaluation next.", { post: "DEMO" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "IRT 주효과 이후 잔여 R +0.40. sales-lead 기준을 읽으려면 이 글을 여세요."],
+    ["zh", "IRT 主效应后的残余 R +0.40。打开这篇帖子阅读 sales-lead。"],
+    ["ja", "IRT主効果後の残差 R +0.40。この投稿を開いて sales-lead を読んでください。"],
+    ["vi", "Phần dư R +0.40 sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead."],
+  ] as const)("formats leftover residual next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.",
+        { residual: "+0.40", criterion: "sales-lead" },
+      ),
+    ).toBe(expected);
   });
 
   it.each([

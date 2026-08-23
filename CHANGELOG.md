@@ -18,6 +18,9 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- The product-gap baseline now records private-runtime findings only as
+  aggregate synthetic-fixture contracts and identifies the existing
+  post-scoped lineage DAG without retaining post or organization identifiers.
 - The public ontology now states its OWL 2 Full/RDF-Based semantics for the
   ADR 0036 RDF-reified project evidence, and the PROV-O support profile uses
   its canonical lowercase deployed IRI.
@@ -33,6 +36,15 @@ All notable changes to this project are documented here. Format follows
   RankWeave fused, with each channel's Cormack RRF contribution.
   Missing channels stay omitted. This is ranking evidence, not a
   calibrated score. Click still opens that post.
+
+## [2.12.16] - 2026-08-24
+
+### Added
+
+- Period leftover pair rows now name signed residual `R` beside observed
+  `Y`, expected `E`, leftover-map rank, and distance `d`, then open that
+  post from the reusable `LeftoverPairList` Storybook component
+  (Jeon et al., 2021, eq. 3; ADR 0162).
 
 ## [2.12.15] - 2026-08-24
 
