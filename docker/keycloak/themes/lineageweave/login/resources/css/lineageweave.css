@@ -1,0 +1,77 @@
+/*
+ * LineageWeave brand overrides for the stock keycloak.v2 login theme.
+ * Loaded after the parent's css/styles.css (see theme.properties), so
+ * these rules win the cascade without needing !important.
+ * Values mirror frontend/src/styles/tokens.css so the OIDC redirect stays
+ * visually continuous with the app's own pre-redirect login card
+ * (UI/UX Standard Guide Ver.3.0 SS3.2).
+ */
+
+.login-pf body {
+  background: #fff;
+  font-family:
+    "Noto Sans KR",
+    "Noto Sans",
+    "Nanum Gothic",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+}
+
+.pf-v5-c-login,
+.pf-v5-c-login__main {
+  font-family: inherit;
+}
+
+/*
+ * Parent styles.css sets #kc-header-wrapper's color with !important
+ * (a light/white token meant to sit on the dark polygon background we
+ * just removed). Match it with !important so the brand text is legible
+ * on our white background instead of rendering white-on-white.
+ */
+#kc-header-wrapper {
+  color: #034ea2 !important;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.pf-v5-c-login__main-body,
+.card-pf {
+  background: #fff;
+  border: 1px solid #e5e4e7;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.pf-v5-c-button.pf-m-primary {
+  background-color: #034ea2;
+  border-color: #034ea2;
+}
+
+.pf-v5-c-button.pf-m-primary:hover,
+.pf-v5-c-button.pf-m-primary:focus {
+  background-color: #0047bb;
+  border-color: #0047bb;
+}
+
+a,
+a:visited {
+  color: #034ea2;
+}
+
+div.kc-logo-text {
+  background-image: none;
+  height: auto;
+  width: auto;
+}
+
+div.kc-logo-text span {
+  display: inline;
+  color: #034ea2;
+  font-weight: 700;
+  font-size: 1.5rem;
+}

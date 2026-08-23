@@ -1,17 +1,22 @@
+import hashlib
 import uuid
-from types import SimpleNamespace
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from scripts.import_postgresql_posts import (
-    _parser,
     _normalize_voc_type,
-    _source_post_id,
+    _parser,
+    _source_body_resolver,
     _source_code_matches,
+    _source_item_number,
+    _source_post_id,
+    _validate_corporate_entity_scope,
     _validate_source_mapping,
     _validate_source_rows,
-    _validate_corporate_entity_scope,
 )
 
 
@@ -48,6 +53,13 @@ def test_source_state_exclusion_does_not_guess_when_mapping_is_absent() -> None:
 def test_importer_rejects_mapping_the_pu_column_as_sales_pool() -> None:
     with pytest.raises(ValueError, match="PU is source_process_unit_code"):
         _validate_source_mapping("pu_code", "pu_code")
+
+
+def test_importer_requires_one_verified_body_mapping() -> None:
+    with pytest.raises(ValueError, match="exactly one source body"):
+        _validate_source_mapping(None, None)
+    with pytest.raises(ValueError, match="requires path column"):
+        _validate_source_mapping(None, None, None, "artifact_path", "artifact_sha256")
 
 
 def test_importer_preflights_identity_and_body_before_target_mutation() -> None:
@@ -140,6 +152,11 @@ def test_source_record_key_index_is_a_lookup_not_a_uniqueness_constraint() -> No
     assert "create index if not exists source_post_source_identity_idx" in migration
 
 
+def test_importer_preserves_numeric_source_item_zero() -> None:
+    assert _source_item_number({"item": 0}, "item") == 0
+    assert _source_item_number({"item": ""}, "item") is None
+
+
 def test_importer_always_requires_verified_publication_state() -> None:
     mapping = SimpleNamespace(record_key="record_key", body="body", draft="draft_state", deleted=None)
 
@@ -221,3 +238,55 @@ def test_importer_accepts_explicit_source_name_mappings() -> None:
     assert args.source_project_name_column == "project_name"
     assert args.source_company_name_column == "company_name"
     assert args.source_business_unit_name_column == "process_unit_name"
+
+
+def test_importer_accepts_governed_mhtml_body_mapping(tmp_path: Path) -> None:
+    args = _parser().parse_args(
+        [
+            "--source-dsn", "postgresql://source",
+            "--target-dsn", "postgresql://target",
+            "--query-file", "query.sql",
+            "--source-system-code", "source",
+            "--record-key-column", "record_key",
+            "--title-column", "title",
+            "--body-artifact-path-column", "artifact_path",
+            "--body-artifact-sha256-column", "artifact_sha256",
+            "--artifact-root", str(tmp_path),
+            "--created-at-column", "created_at",
+            "--author-subject-id", "subject",
+            "--corporate-entity-code", "corp",
+            "--process-unit-code", "pu",
+        ]
+    )
+
+    _validate_source_mapping(
+        None,
+        None,
+        args.body_column,
+        args.body_artifact_path_column,
+        args.body_artifact_sha256_column,
+        args.artifact_root,
+    )
+    assert args.body_column is None
+    assert args.body_artifact_path_column == "artifact_path"
+
+
+def test_importer_resolves_the_mapped_mhtml_body_before_target_writes(tmp_path: Path) -> None:
+    message = MIMEMultipart("related")
+    message.attach(MIMEText("<p>synthetic artifact body</p>", "html", "utf-8"))
+    payload = message.as_bytes()
+    (tmp_path / "message.mhtml").write_bytes(payload)
+    mapping = SimpleNamespace(
+        body=None,
+        body_artifact_path="artifact_path",
+        body_artifact_sha256="artifact_sha256",
+    )
+    resolver = _source_body_resolver(mapping, tmp_path)
+
+    assert resolver(
+        {
+            "artifact_path": "message.mhtml",
+            "artifact_sha256": hashlib.sha256(payload).hexdigest(),
+        },
+        1,
+    ) == "<p>synthetic artifact body</p>"

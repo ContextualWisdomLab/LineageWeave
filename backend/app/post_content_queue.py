@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import hashlib
-from datetime import timedelta
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
 
 import asyncpg
 import redis.asyncio as redis
+
+from lineageweave.chunking import chunk_by_source_body
 
 POST_CONTENT_STREAM_KEY = "post-content-ingestion"
 QUEUED = "post_content_ingestion_queued"
@@ -23,6 +25,8 @@ POST_CONTENT_RETRY_INTERVAL = timedelta(minutes=5)
 
 @dataclass(frozen=True)
 class PostContentJobRequest:
+    """One queued or running post-content ingestion job."""
+
     post_id: str
     source_body_sha256: str
     status_code: str
@@ -35,6 +39,7 @@ def source_body_sha256(body: str) -> str:
 
 
 def post_content_api_status(status_code: str | None, *, content_present: bool) -> str:
+    """Map an internal ingestion state to the reader-facing API status."""
     if status_code in _ACTIVE:
         return "processing"
     if status_code == FAILED:
@@ -42,6 +47,18 @@ def post_content_api_status(status_code: str | None, *, content_present: bool) -
     if content_present:
         return "ready"
     return "unavailable"
+
+
+def post_content_summary_status_message(status_code: str | None) -> str:
+    """Return an honest reader-facing image-evidence status message.
+
+    A terminal ingestion failure is not still processing. Keeping those two
+    states distinct lets the popup tell the operator to retry the durable
+    job instead of implying that waiting will resolve a terminal failure.
+    """
+    if status_code == FAILED:
+        return "Post summary is unavailable: image evidence ingestion failed; contact an administrator to retry the content job"
+    return "Post summary is unavailable: image evidence is still being processed"
 
 
 async def post_content_is_complete(
@@ -88,6 +105,24 @@ async def post_content_is_complete(
                            )
                        )
                    )
+               and not exists(
+                   select 1
+                     from post_content_unit unit
+                     left join post_content_image image
+                       on image.post_content_unit_id = unit.post_content_unit_id
+                    where unit.post_id = $1
+                      and unit.unit_kind_code = 'image'
+                      and (
+                          image.post_content_image_id is null
+                          or image.description_status_code <> 'described'
+                          or exists(
+                              select 1
+                                from post_content_image_region region
+                               where region.post_content_image_id = image.post_content_image_id
+                                 and region.description_status_code <> 'described'
+                          )
+                      )
+               )
                and (
                        not $3::boolean
                        or not exists(
@@ -109,6 +144,102 @@ async def post_content_is_complete(
             require_structure,
         )
     )
+
+
+async def post_content_summary_is_ready(
+    conn: asyncpg.Connection,
+    post_id: str,
+    source_body_digest: str,
+) -> bool:
+    """Require current-body success and complete persisted VISION evidence."""
+    return bool(
+        await conn.fetchval(
+            """
+            select exists(
+                       select 1
+                         from post_content_ingestion_job job
+                        where job.post_id = $1
+                          and job.source_body_sha256 = $2
+                          and job.status_code = $3
+                   )
+               and exists(
+                       select 1
+                         from post_content_unit unit
+                        where unit.post_id = $1
+                   )
+               and not exists(
+                   select 1
+                     from post_content_unit unit
+                     left join post_content_image image
+                       on image.post_content_unit_id = unit.post_content_unit_id
+                    where unit.post_id = $1
+                      and unit.unit_kind_code = 'image'
+                      and (
+                          image.post_content_image_id is null
+                          or image.description_status_code <> 'described'
+                          or exists(
+                              select 1
+                                from post_content_image_region region
+                               where region.post_content_image_id = image.post_content_image_id
+                                 and region.description_status_code <> 'described'
+                          )
+                      )
+               )
+            """,
+            post_id,
+            source_body_digest,
+            SUCCEEDED,
+        )
+    )
+
+
+async def fetch_post_summary_source(
+    conn: asyncpg.Connection,
+    post_id: str,
+) -> str | None:
+    """Return ordered semantic units plus persisted region VISION evidence."""
+    rows = await conn.fetch(
+        """
+        select unit.unit_index, unit.unit_text,
+               region.region_index, region.extracted_text, region.image_caption
+          from post_content_unit unit
+          left join post_content_image image
+            on image.post_content_unit_id = unit.post_content_unit_id
+          left join post_content_image_region region
+            on region.post_content_image_id = image.post_content_image_id
+         where unit.post_id = $1
+         order by unit.unit_index, region.region_index
+        """,
+        post_id,
+    )
+    source_parts: list[str] = []
+    previous_unit_index: int | None = None
+    for row in rows:
+        unit_index = int(row["unit_index"])
+        if unit_index != previous_unit_index:
+            unit_text = row["unit_text"]
+            if isinstance(unit_text, str) and unit_text.strip():
+                source_parts.append(unit_text.strip())
+            previous_unit_index = unit_index
+        region_index = row["region_index"]
+        if region_index is None:
+            continue
+        region_evidence = [
+            value.strip()
+            for value in (row["image_caption"], row["extracted_text"])
+            if isinstance(value, str) and value.strip()
+        ]
+        if region_evidence:
+            source_parts.append(
+                f"[image region {int(region_index)}]\n" + "\n".join(region_evidence)
+            )
+    source = "\n\n".join(source_parts)
+    return source or None
+
+
+def post_body_has_images(body: str) -> bool:
+    """Detect image units without exposing or copying the raw body."""
+    return any(chunk.unit_type == "image" for chunk in chunk_by_source_body(body))
 
 
 def post_content_stream_fields(*, post_id: str, source_body_digest: str) -> dict[str, str]:
@@ -178,12 +309,14 @@ async def transition_post_content_job(
     failure_code: str | None = None,
     detail_text: str | None = None,
     expected_attempt_count: int | None = None,
+    expected_source_body_sha256: str | None = None,
+    expected_status_code: str | None = None,
 ) -> bool:
     """Update one job attempt and append its lifecycle event atomically.
 
-    ``expected_attempt_count`` fences stale workers after lease recovery.  A
-    late completion from an older attempt must not overwrite the newer
-    attempt's status or append a misleading lifecycle event.
+    The optional claim fields fence stale workers after lease recovery. A late
+    completion from an older attempt must not overwrite the newer attempt's
+    status or append a misleading lifecycle event.
     """
     updated = await conn.execute(
         """
@@ -201,6 +334,8 @@ async def transition_post_content_job(
             last_error_detail = $8
         where post_id = $1
           and ($9::integer is null or attempt_count = $9)
+          and ($10::text is null or source_body_sha256 = $10)
+          and ($11::text is null or status_code = $11)
         """,
         post_id,
         status_code,
@@ -211,6 +346,8 @@ async def transition_post_content_job(
         failure_code,
         detail_text,
         expected_attempt_count,
+        expected_source_body_sha256,
+        expected_status_code,
     )
     if not updated.endswith(" 1"):
         return False
@@ -243,7 +380,7 @@ async def ensure_post_content_job(
         post_id,
     )
     if row is None:
-        initial_status = SUCCEEDED if content_complete else QUEUED
+        initial_status = QUEUED
         await conn.execute(
             """
             insert into post_content_ingestion_job
@@ -273,7 +410,6 @@ async def ensure_post_content_job(
             update post_content_ingestion_job
             set source_body_sha256 = $2,
                 status_code = $3,
-                attempt_count = 0,
                 queued_at = now(),
                 started_at = null,
                 completed_at = null,
@@ -321,7 +457,6 @@ async def requeue_failed_post_content_job(
         update post_content_ingestion_job
         set source_body_sha256 = $2,
             status_code = $3,
-            attempt_count = 0,
             queued_at = now(),
             started_at = null,
             completed_at = null,
@@ -352,6 +487,13 @@ async def record_post_content_backfill_success(
 ) -> PostContentJobRequest:
     """Synchronize a completed operator backfill with the durable job ledger."""
     digest = source_body_sha256(body)
+    source_row = await conn.fetchrow(
+        "select post_body from source_post where post_id = $1 for update",
+        post_id,
+    )
+    current_body = None if source_row is None else source_row["post_body"]
+    if not isinstance(current_body, str) or source_body_sha256(current_body) != digest:
+        raise ValueError("source body changed during post-content backfill")
     row = await conn.fetchrow(
         """
         select status_code
@@ -410,21 +552,26 @@ async def republish_queued_post_content_jobs(
     async with pool.acquire() as conn:
         rows = await conn.fetch(
             """
-            select post_id, source_body_sha256
+            select post_content_ingestion_job.post_id,
+                   post_content_ingestion_job.source_body_sha256
             from post_content_ingestion_job
-            where (
-                status_code = $1
-                and (
-                    attempt_count = 0
-                    or queued_at <= now() - $2::interval
+            join source_post post on post.post_id = post_content_ingestion_job.post_id
+            where coalesce(upper(btrim(post.source_detail_state_code)), '') <> 'W'
+              and (
+                    (
+                        post_content_ingestion_job.status_code = $1
+                        and (
+                            post_content_ingestion_job.last_error_code is null
+                            or post_content_ingestion_job.queued_at <= now() - $2::interval
+                        )
+                    )
+                    or (
+                        post_content_ingestion_job.status_code = $3
+                        and post_content_ingestion_job.started_at is not null
+                        and post_content_ingestion_job.started_at < now() - $4::interval
+                    )
                 )
-            )
-               or (
-                    status_code = $3
-                    and started_at is not null
-                    and started_at < now() - $4::interval
-               )
-            order by queued_at
+            order by post_content_ingestion_job.queued_at
             limit $5
             """,
             QUEUED,

@@ -39,7 +39,7 @@ translations = {
 for eng, trans in translations.items():
     content = content.replace(f'    Refresh: "새로 고침",', f'    Refresh: "새로 고침",\n    "{eng}": "{trans["ko"]}",')
     content = content.replace(f'    Refresh: "조회",', f'    Refresh: "조회",\n    "{eng}": "{trans["ko"]}",')
-    
+
     content = content.replace(f'    Refresh: "刷新",', f'    Refresh: "刷新",\n    "{eng}": "{trans["zh"]}",')
     content = content.replace(f'    Refresh: "更新",', f'    Refresh: "更新",\n    "{eng}": "{trans["ja"]}",')
     content = content.replace(f'    Refresh: "Làm mới",', f'    Refresh: "Làm mới",\n    "{eng}": "{trans["vi"]}",')

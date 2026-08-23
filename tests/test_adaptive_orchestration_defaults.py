@@ -88,11 +88,11 @@ def test_structured_consumers_request_auto_mode(
         observed["timeout"] = timeout
         response_content = content
         if module_name == "lineageweave.post_summary":
-            response_content = (
-                "요약\nKEY EVENTS: NONE"
-                if call_count == 1
-                else "ROLES:\nNONE\nPROJECTS:\nNONE"
-            )
+            response_content = {
+                1: "요약\nKEY EVENTS: NONE",
+                2: "ROLES:\nNONE\nPROJECTS:\nNONE",
+                3: "RELATIONS:\nNONE",
+            }[call_count]
         return {"choices": [{"message": {"content": response_content}}]}
 
     module = __import__(module_name, fromlist=["post_json"])
@@ -103,7 +103,7 @@ def test_structured_consumers_request_auto_mode(
     assert observed["payload"]["mode"] == "auto"
     assert observed["payload"]["reasoning_effort"] == "auto"
     if module_name == "lineageweave.post_summary":
-        assert call_count == 2
+        assert call_count == 3
 
 
 def test_post_evaluation_judge_defaults_to_auto(monkeypatch) -> None:
