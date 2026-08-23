@@ -45,7 +45,7 @@ Identical or empty labels are ignored.
 
 Under the creation lock, reload both the catalog and corroborated aliases.
 First repeat ADR 0026's normal-threshold raw classification, excluding only
-the parent resolved by the current recursion; then run the alias-expanded
+the ancestor path resolved by the current recursion; then run the alias-expanded
 exact check (`min_similarity=1.0`). A concurrent catalog row stored under the
 other label is therefore reused instead of inserting a duplicate.
 

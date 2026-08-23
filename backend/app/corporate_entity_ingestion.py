@@ -237,8 +237,8 @@ async def get_or_create_corporate_entity(
             "select pg_advisory_xact_lock(hashtext($1))",
             _CREATION_LOCK_KEY,
         )
-        # ponytail: exclude the resolved parent before repeating normal raw
-        # scoring, or a parent created by this recursion can absorb its child.
+        # ponytail: exclude the resolved ancestor path before repeating normal
+        # raw scoring, or an ancestor created by this recursion can absorb its child.
         fresh_candidates = await _reload_candidates(conn)
         if ancestor_entity_ids:
             fresh_candidates = [
