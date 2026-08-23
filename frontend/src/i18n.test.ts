@@ -36,6 +36,11 @@ describe("i18n", () => {
     "Page",
     "Answer",
     "Showing the first {shown} of {total} posts known at this cutoff.",
+    "Leftover pairs",
+    "Closest leftover",
+    "Farthest leftover",
+    "Leftover-map cosine {value} names leftover-map alignment independent of distance. Open this post to read {criterion}.",
+    "Open leftover {kind} pair: {title} · {criterion}",
   ] as const;
 
   it("supports the five product locales", () => {
@@ -63,6 +68,33 @@ describe("i18n", () => {
     expect(getLocale()).toBe(locale);
     expect(t("Related posts")).toBe(expected);
     expect(document.documentElement.lang).toBe(locale);
+  });
+
+  it.each([
+    [
+      "ko",
+      "잔여 지도 코사인 +0.95이(가) 거리와 무관한 잔여 지도 정렬을 이름합니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
+    ],
+    [
+      "zh",
+      "残差图余弦 +0.95 命名与距离无关的残差图对齐。打开这篇帖子阅读 sales-lead。",
+    ],
+    [
+      "ja",
+      "残差マップ余弦 +0.95 は距離に依存しない残差マップの向きを示します。この投稿を開いて sales-lead を読んでください。",
+    ],
+    [
+      "vi",
+      "Cosin bản đồ phần dư +0.95 đặt tên sự thẳng hàng độc lập với khoảng cách. Mở bài viết này để đọc sales-lead.",
+    ],
+  ] as const)("formats leftover-map cosine next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Leftover-map cosine {value} names leftover-map alignment independent of distance. Open this post to read {criterion}.",
+        { value: "+0.95", criterion: "sales-lead" },
+      ),
+    ).toBe(expected);
   });
 
   it.each([

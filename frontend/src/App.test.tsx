@@ -932,6 +932,7 @@ describe("App, authenticated", () => {
                     criterion_code: "sales_lead_specificity",
                     leftover_distance: 0.12,
                     leftover_residual: 0.4,
+                    leftover_map_cosine: 0.95,
                   },
                   {
                     pair_kind: "farthest",
@@ -940,6 +941,7 @@ describe("App, authenticated", () => {
                     criterion_code: "general_sentiment_negative",
                     leftover_distance: 1.84,
                     leftover_residual: -1.1,
+                    leftover_map_cosine: -0.91,
                   },
                 ],
                 members: [
@@ -3357,13 +3359,15 @@ describe("App, authenticated", () => {
     });
     expect(closestPair).toHaveTextContent("Closest leftover: Public post · sales-lead");
     expect(closestPair).toHaveTextContent(
-      "Open this post to read the criterion it sat closest to after main effects.",
+      "Leftover-map cosine +0.95 names leftover-map alignment independent of distance. Open this post to read sales-lead.",
     );
+    expect(closestPair).toHaveTextContent("cos +0.95");
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
-      "Open this post to read the criterion it sat farthest from after main effects.",
+      "Leftover-map cosine −0.91 names leftover-map alignment independent of distance. Open this post to read negative.",
     );
+    expect(farthestPair).toHaveTextContent("cos −0.91");
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
     expect(closestPair.compareDocumentPosition(memberButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

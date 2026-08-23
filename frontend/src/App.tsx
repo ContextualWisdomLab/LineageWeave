@@ -102,6 +102,11 @@ import {
   useLocale,
 } from "./i18n";
 import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
+import {
+  formatLeftoverMapCosine,
+  formatSignedLeftoverValue,
+  LEFTOVER_MAP_COSINE_ACTION,
+} from "./leftoverMapCosine";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -3390,15 +3395,21 @@ function ReportsPanel({
               </span>
             )}
             {report.leftover_pairs && report.leftover_pairs.length > 0 && (
-              <ul className="ticket-list" aria-label="Leftover pairs">
+              <ul className="ticket-list" aria-label={t("Leftover pairs")}>
                 {report.leftover_pairs.map((pair) => {
                   const kindLabel =
-                    pair.pair_kind === "farthest" ? "Farthest leftover" : "Closest leftover";
-                  const nextAction =
-                    pair.pair_kind === "farthest"
-                      ? "Open this post to read the criterion it sat farthest from after main effects."
-                      : "Open this post to read the criterion it sat closest to after main effects.";
+                    pair.pair_kind === "farthest" ? t("Farthest leftover") : t("Closest leftover");
                   const criterion = criterionShortLabel(pair.criterion_code);
+                  const mapCosine = formatLeftoverMapCosine(pair.leftover_map_cosine);
+                  const nextAction =
+                    mapCosine === null
+                      ? pair.pair_kind === "farthest"
+                        ? t("Open this post to read the criterion it sat farthest from after main effects.")
+                        : t("Open this post to read the criterion it sat closest to after main effects.")
+                      : tf(LEFTOVER_MAP_COSINE_ACTION, {
+                          value: formatSignedLeftoverValue(pair.leftover_map_cosine ?? Number.NaN) ?? "—",
+                          criterion,
+                        });
                   return (
                     <li
                       key={`${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
@@ -3406,13 +3417,20 @@ function ReportsPanel({
                     >
                       <button
                         className="post-list-item"
-                        aria-label={`Open leftover ${pair.pair_kind} pair: ${pair.post_title} · ${criterion}`}
+                        aria-label={tf("Open leftover {kind} pair: {title} · {criterion}", {
+                          kind: pair.pair_kind,
+                          title: pair.post_title,
+                          criterion,
+                        })}
                         onClick={() => onSelectPost(pair.post_id)}
                       >
                         <span className="ticket-title">
                           {kindLabel}: {pair.post_title} · {criterion}
                         </span>
                         <span className="post-badge">{nextAction}</span>
+                        {mapCosine ? (
+                          <span className="post-badge">{mapCosine}</span>
+                        ) : null}
                         <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
                       </button>
                     </li>

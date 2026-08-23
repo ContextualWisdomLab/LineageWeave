@@ -23,7 +23,9 @@ farthest from after main effects.”). Clicking the button opens that
 post with the same handler as a member row.
 
 After `make seed`, closest and farthest leftover pairs sit above the
-member list. Click a pair to open that post.
+member list with leftover-map cosine next to leftover-map distance
+`d` when the complete-case map supplies non-origin coordinates
+([ADR 0180](0180-leftover-map-cosine.md)). Click a pair to open that post.
 
 Missing leftover rows render nothing — never a placeholder pair.
 A hidden post never appears as a leftover pair.

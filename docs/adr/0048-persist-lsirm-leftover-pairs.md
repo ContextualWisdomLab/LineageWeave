@@ -40,7 +40,8 @@ the IRT matrix is unusable. A rank-0 residual still emits a
 stable pair so `make seed` is not empty; the stored distance is
 then zero, not a fabricated interaction.
 
-The UI contract is ADR 0049.
+The UI contract is ADR 0049. Leftover-map cosine on those pair rows
+is [ADR 0180](0180-leftover-map-cosine.md).
 
 ## Consequences
 

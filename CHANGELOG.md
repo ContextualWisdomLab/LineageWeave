@@ -12,6 +12,15 @@ All notable changes to this project are documented here. Format follows
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 
+## [2.12.24] - 2026-08-24
+
+### Added
+
+- Period leftover pair rows now name leftover-map cosine next to
+  leftover-map distance `d`, then open that post (Gabriel, 1971;
+  Jeon et al., 2021, eq. 3; ADR 0180). A missing cosine omits the
+  badge rather than inventing leftover-map alignment.
+
 ## [2.12.6] - 2026-08-20
 
 ### Added
