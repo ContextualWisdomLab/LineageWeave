@@ -34,6 +34,7 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
 
     assert "0012_*" in script
     assert "0163_*" in script
+    assert "0164_*" in script
 
 
 def test_tenant_settings_migration_is_safe_to_replay() -> None:

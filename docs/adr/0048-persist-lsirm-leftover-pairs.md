@@ -3,7 +3,8 @@
 **Decision status:** Accepted
 **Date:** 2026-08-17
 **Amended by:** [ADR 0119](0119-leftover-map-two-dimensional-distance.md) (two leftover-map axes);
-[ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E)
+[ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E);
+[ADR 0164](0164-leftover-map-rank.md) (full map rank)
 
 ## Context
 
@@ -35,7 +36,8 @@ The biplot lives in `lineageweave/leftover_pairs.py` so leftover
 tests do not import `period_report` or `fast_mlsirm`. Distances are
 Euclidean on the two leftover-map axes (ADR 0119). Each leftover row
 also names observed `Y` and expected `E[Y|θ, item]` so residual
-reconciles to `Y − E` (ADR 0163).
+reconciles to `Y − E` (ADR 0163), and names the full singular-value
+rank while distance remains on the first two axes (ADR 0164).
 
 Cascade the rows with `report_period_score`. A leftover post must
 also be a `report_member_score` row, and the leftover criterion

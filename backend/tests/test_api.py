@@ -124,6 +124,11 @@ _LEFTOVER_OBSERVED_EXPECTED_MIGRATION = (
     / "migrations"
     / "0163_report_leftover_observed_expected.sql"
 )
+_LEFTOVER_MAP_RANK_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0164_report_leftover_map_rank.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -239,6 +244,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
             cur.execute(_CHANNEL_WEIGHT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
+            cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -4678,6 +4684,7 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert all(pair["post_title"] for pair in high_report.get("leftover_pairs", []))
     assert all(pair["leftover_distance"] >= 0 for pair in high_report.get("leftover_pairs", []))
     for pair in high_report.get("leftover_pairs", []):
+        assert pair["leftover_map_rank"] >= 0
         observed = pair.get("observed_response")
         expected = pair.get("expected_response")
         if observed is None or expected is None:
