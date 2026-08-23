@@ -47,7 +47,7 @@ def post_content_api_status(status_code: str | None, *, content_present: bool) -
 
 
 def post_content_summary_status_message(status_code: str | None) -> str:
-    """Return an honest buyer-facing image-evidence status message.
+    """Return an honest reader-facing image-evidence status message.
 
     A terminal ingestion failure is not still processing. Keeping those two
     states distinct lets the popup tell the operator to retry the durable
