@@ -34,18 +34,19 @@ afterEach(() => {
 
 describe("App, unauthenticated", () => {
   it("shows a login button that starts the real OIDC redirect", async () => {
+    window.history.replaceState({}, "", "/?post=abc#details");
     render(<App showLabPanels />);
     const button = screen.getByRole("button", { name: /log in/i });
     await userEvent.click(button);
     expect(signinRedirect).toHaveBeenCalledTimes(1);
     expect(signinRedirect).toHaveBeenCalledWith(
       expect.objectContaining({
-        state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
+        state: expect.objectContaining({ returnUrl: "/?post=abc#details" }),
       }),
     );
     // Persisted as a fallback in case the OIDC state round-trip is dropped
     // (see oidcReturnUrl.ts's restoreOidcReturnUrl, consumed in main.tsx).
-    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toMatch(/^\//);
+    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toBe("/?post=abc#details");
   });
 });
 
