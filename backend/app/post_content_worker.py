@@ -105,6 +105,14 @@ async def _claim_job(
             cycle_attempt_count = int(row["job_cycle_attempt_count"])
             if status_code == FAILED:
                 return None
+            if status_code == RUNNING and row["job_started_at"] is not None:
+                stale = await conn.fetchval(
+                    "select now() - $1::timestamptz > $2::interval",
+                    row["job_started_at"],
+                    STALE_RUNNING_INTERVAL,
+                )
+                if not stale:
+                    return None
             if status_code == RUNNING and cycle_attempt_count >= POST_CONTENT_MAX_ATTEMPTS:
                 await transition_post_content_job(
                     conn,
@@ -139,14 +147,6 @@ async def _claim_job(
                     require_structure=require_structure,
                 )
                 if content_complete:
-                    return None
-            if status_code == RUNNING and row["job_started_at"] is not None:
-                stale = await conn.fetchval(
-                    "select now() - $1::timestamptz > $2::interval",
-                    row["job_started_at"],
-                    STALE_RUNNING_INTERVAL,
-                )
-                if not stale:
                     return None
             claimed_attempt_count = int(
                 await conn.fetchval(

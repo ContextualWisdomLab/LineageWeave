@@ -9,6 +9,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
+
 from backend.app import corporate_entity_ingestion as corporate_ingestion
 from backend.app import keyman_ingestion
 from backend.app import post_summary_ingestion as summary_ingestion
@@ -19,8 +21,8 @@ from lineageweave.post_summary import (
     ACTOR_TYPE_ORGANIZATION,
     ACTOR_TYPE_PERSON,
     ACTOR_TYPE_TEAM,
-    PostSummary,
     POST_SUMMARY_CONTRACT_VERSION,
+    PostSummary,
     RoleResponsibility,
 )
 from lineageweave.relation_verification import STATUS_CORROBORATED
@@ -206,7 +208,7 @@ class _SummaryConnection:
             "select korean_summary, summary_contract_version, summary_input_sha256 "
             "from post_summary_result"
         ):
-            assert not self.in_transaction
+            assert self.in_transaction
             return {
                 "korean_summary": "합성 요약",
                 "summary_contract_version": POST_SUMMARY_CONTRACT_VERSION,
@@ -231,7 +233,7 @@ class _SummaryConnection:
     async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
         compact = " ".join(query.split())
         self._events.append(("fetch", compact))
-        assert not self.in_transaction
+        assert self.in_transaction
         if "from post_summary_action" in compact:
             return []
         if "from post_summary_quantitative_observation" in compact:
@@ -290,6 +292,11 @@ def test_post_summary_replacement_mentions_and_edges_share_one_transaction(monke
     monkeypatch.setattr(summary_ingestion, "upsert_team", upsert_team)
     monkeypatch.setattr(summary_ingestion, "persist_edges_for_post", persist_edges)
 
+    async def current_input(*_args, **_kwargs) -> bool:
+        return True
+
+    monkeypatch.setattr(summary_ingestion, "_lock_current_summary_input", current_input)
+
     summary = PostSummary(
         korean_summary="합성 요약",
         key_events=("검토 완료",),
@@ -309,6 +316,9 @@ def test_post_summary_replacement_mentions_and_edges_share_one_transaction(monke
             str(uuid.uuid4()),
             summary,
             post_body="Synthetic normalized summary input.",
+            expected_source_body_sha256=hashlib.sha256(
+                b"Synthetic normalized summary input."
+            ).hexdigest(),
         )
     )
 
@@ -342,6 +352,43 @@ def test_post_summary_replacement_mentions_and_edges_share_one_transaction(monke
     ).hexdigest()
 
 
+def test_summary_source_revision_after_provider_work_preserves_prior_projection(
+    monkeypatch,
+) -> None:
+    events: list[Any] = []
+    connection = _SummaryConnection(events)
+
+    async def stale_input(*_args, **_kwargs) -> bool:
+        return False
+
+    async def must_not_replace(*_args, **_kwargs) -> None:
+        raise AssertionError("stale provider output must not replace summary projections")
+
+    monkeypatch.setattr(summary_ingestion, "_lock_current_summary_input", stale_input)
+    monkeypatch.setattr(summary_ingestion, "_replace_summary_projection", must_not_replace)
+
+    with pytest.raises(RuntimeError, match="no longer current"):
+        asyncio.run(
+            summary_ingestion.persist_post_summary(
+                connection,
+                str(uuid.uuid4()),
+                PostSummary(korean_summary="합성 요약이다."),
+                post_body="Synthetic provider input.",
+                expected_source_body_sha256=hashlib.sha256(
+                    b"Synthetic original source."
+                ).hexdigest(),
+                require_image_evidence=False,
+            )
+        )
+
+    assert not any(
+        isinstance(event, tuple)
+        and event[0] == "execute"
+        and "delete from post_summary_result" in event[1]
+        for event in events
+    )
+
+
 def test_organization_enrichment_finishes_before_summary_transaction(monkeypatch) -> None:
     """LLM verification and the advisory-lock transaction precede summary writes."""
     events: list[Any] = []
@@ -373,6 +420,11 @@ def test_organization_enrichment_finishes_before_summary_transaction(monkeypatch
     monkeypatch.setattr(summary_ingestion, "get_or_create_corporate_entity", resolve_organization)
     monkeypatch.setattr(summary_ingestion, "persist_edges_for_post", persist_edges)
 
+    async def current_input(*_args, **_kwargs) -> bool:
+        return True
+
+    monkeypatch.setattr(summary_ingestion, "_lock_current_summary_input", current_input)
+
     summary = PostSummary(
         korean_summary="합성 요약",
         roles_and_responsibilities=(
@@ -390,6 +442,9 @@ def test_organization_enrichment_finishes_before_summary_transaction(monkeypatch
             str(uuid.uuid4()),
             summary,
             post_body="Synthetic organization evidence.",
+            expected_source_body_sha256=hashlib.sha256(
+                b"Synthetic organization evidence."
+            ).hexdigest(),
         )
     )
 
@@ -658,6 +713,11 @@ def test_persist_stores_earliest_person_catalog_id(monkeypatch) -> None:
     monkeypatch.setattr(summary_ingestion, "_load_corporate_entity_candidates", load_candidates)
     monkeypatch.setattr(summary_ingestion, "persist_edges_for_post", persist_edges)
 
+    async def current_input(*_args, **_kwargs) -> bool:
+        return True
+
+    monkeypatch.setattr(summary_ingestion, "_lock_current_summary_input", current_input)
+
     payload = asyncio.run(
         summary_ingestion.persist_post_summary(
             connection,
@@ -671,8 +731,11 @@ def test_persist_stores_earliest_person_catalog_id(monkeypatch) -> None:
                         actor_type_code=ACTOR_TYPE_PERSON,
                     ),
                 ),
-            ),
-            post_body="Synthetic person evidence.",
+                ),
+                post_body="Synthetic person evidence.",
+                expected_source_body_sha256=hashlib.sha256(
+                    b"Synthetic person evidence."
+                ).hexdigest(),
         )
     )
     role_insert = next(
@@ -709,6 +772,11 @@ def test_persist_leaves_uncataloged_person_unbound(monkeypatch) -> None:
     monkeypatch.setattr(summary_ingestion, "_load_corporate_entity_candidates", load_candidates)
     monkeypatch.setattr(summary_ingestion, "persist_edges_for_post", persist_edges)
 
+    async def current_input(*_args, **_kwargs) -> bool:
+        return True
+
+    monkeypatch.setattr(summary_ingestion, "_lock_current_summary_input", current_input)
+
     asyncio.run(
         summary_ingestion.persist_post_summary(
             connection,
@@ -722,8 +790,11 @@ def test_persist_leaves_uncataloged_person_unbound(monkeypatch) -> None:
                         actor_type_code=ACTOR_TYPE_PERSON,
                     ),
                 ),
-            ),
-            post_body="Synthetic uncataloged person evidence.",
+                ),
+                post_body="Synthetic uncataloged person evidence.",
+                expected_source_body_sha256=hashlib.sha256(
+                    b"Synthetic uncataloged person evidence."
+                ).hexdigest(),
         )
     )
     mention_inserts = [

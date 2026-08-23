@@ -7,10 +7,15 @@ from lineageweave.post_content_persistence import persist_post_content
 
 
 class _Transaction:
+    def __init__(self, owner: _Connection) -> None:
+        self.owner = owner
+
     async def __aenter__(self):
+        self.owner.in_transaction = True
         return self
 
     async def __aexit__(self, exc_type, exc, traceback):
+        self.owner.in_transaction = False
         return False
 
 
@@ -19,9 +24,10 @@ class _Connection:
         self.executed: list[tuple[str, tuple[object, ...]]] = []
         self.fetched: list[str] = []
         self.claim_row = claim_row
+        self.in_transaction = False
 
     def transaction(self) -> _Transaction:
-        return _Transaction()
+        return _Transaction(self)
 
     async def execute(self, query: str, *args: object) -> str:
         self.executed.append((query, args))
@@ -126,3 +132,26 @@ def test_claim_with_changed_source_body_cannot_replace_artifacts() -> None:
 
     assert unit_count is None
     assert not any("delete from post_content_unit" in query for query, _args in conn.executed)
+
+
+def test_operator_fence_and_artifact_replacement_share_one_transaction() -> None:
+    conn = _Connection()
+    events: list[str] = []
+
+    async def fence(inner_conn: _Connection) -> None:
+        assert inner_conn is conn
+        assert inner_conn.in_transaction
+        events.append("fence")
+
+    unit_count = asyncio.run(
+        persist_post_content(
+            conn,
+            "post-1",
+            "A synthetic backfill body.",
+            transaction_fence=fence,
+        )
+    )
+
+    assert unit_count == 1
+    assert events == ["fence"]
+    assert any("delete from post_content_unit" in query for query, _args in conn.executed)

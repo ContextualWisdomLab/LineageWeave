@@ -498,6 +498,13 @@ async def record_post_content_backfill_success(
     )
     if row is not None and str(row["status_code"]) in {QUEUED, RUNNING}:
         raise ValueError("cannot finalize a backfill while the job is active")
+    source_row = await conn.fetchrow(
+        "select post_body from source_post where post_id = $1 for update",
+        post_id,
+    )
+    current_body = None if source_row is None else source_row["post_body"]
+    if not isinstance(current_body, str) or source_body_sha256(current_body) != digest:
+        raise ValueError("source body changed during post-content backfill")
     if row is None:
         await conn.execute(
             """

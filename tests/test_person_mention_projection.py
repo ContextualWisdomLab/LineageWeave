@@ -370,6 +370,9 @@ async def _exercise_projection_contract(
                 ),
             ),
             post_body="Synthetic body",
+            expected_source_body_sha256=summary_ingestion.source_body_sha256(
+                "Synthetic body"
+            ),
         )
         summary_payload = await fetch_persisted_summary(
             connection,
@@ -408,6 +411,9 @@ async def _exercise_projection_contract(
             post_id,
             PostSummary(korean_summary="역할이 제거된 합성 요약"),
             post_body="Synthetic body",
+            expected_source_body_sha256=summary_ingestion.source_body_sha256(
+                "Synthetic body"
+            ),
         )
         assert await visible_mention_post_ids(
             connection, summary_person_id, lambda row: True
@@ -686,6 +692,9 @@ async def _exercise_homonym_organization_role_binding(
                     ),
                 ),
                 post_body="Synthetic body",
+                expected_source_body_sha256=summary_ingestion.source_body_sha256(
+                    "Synthetic body"
+                ),
             )
         finally:
             summary_ingestion.get_or_create_corporate_entity = original
@@ -769,6 +778,9 @@ async def _exercise_same_name_person_catalog_order(
                 ),
             ),
             post_body="Synthetic body",
+            expected_source_body_sha256=summary_ingestion.source_body_sha256(
+                "Synthetic body"
+            ),
         )
         payload = await fetch_persisted_summary(
             connection,
@@ -852,6 +864,9 @@ async def _exercise_two_project_event_streams_stay_separate(
                 ),
             ),
             post_body="Synthetic body",
+            expected_source_body_sha256=summary_ingestion.source_body_sha256(
+                "Synthetic body"
+            ),
         )
 
         events_by_text = {

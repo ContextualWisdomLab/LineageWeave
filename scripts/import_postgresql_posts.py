@@ -32,6 +32,7 @@ if str(REPOSITORY_ROOT) not in sys.path:
 from backend.app.analysis_run_start import configured_tepp_client
 from backend.app.customer_hint_ingestion import reconcile_customer_hints
 from backend.app.lineage_ingestion import rebuild_lineage
+from backend.app.post_content_queue import record_post_content_backfill_success
 from lineageweave.corporate_hierarchy_inference import (
     ContextualOrchestratorHierarchyInferenceClient,
     NullCorporateHierarchyInferenceClient,
@@ -660,6 +661,20 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 },
             )
             with use_llm_metadata(metadata):
+                imported_post_id = str(post_id)
+                imported_body = body
+
+                async def finalize_import(
+                    inner_conn: asyncpg.Connection,
+                    current_post_id: str = imported_post_id,
+                    current_body: str = imported_body,
+                ) -> None:
+                    await record_post_content_backfill_success(
+                        inner_conn,
+                        current_post_id,
+                        current_body,
+                    )
+
                 await persist_post_content(
                     target,
                     str(post_id),
@@ -669,6 +684,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                     embedding_model_code=args.embedding_model or None,
                     structure_client=structure_client,
                     post_title=title,
+                    transaction_fence=finalize_import,
                 )
             imported += 1
         cleanup = await cleanup_synthetic_seed(target, apply=True)

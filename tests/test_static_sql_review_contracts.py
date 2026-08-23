@@ -113,6 +113,18 @@ def test_content_recovery_backfill_uses_all_source_commercial_context_fields() -
         assert f"real_post.{field_name}" in source
 
 
+def test_content_recovery_backfill_finalizes_inside_artifact_transaction() -> None:
+    source = (ROOT / "scripts/backfill_post_content.py").read_text(encoding="utf-8")
+    assert "transaction_fence=finalize_backfill" in source
+    assert "await record_post_content_backfill_success" in source
+
+
+def test_source_import_finalizes_inside_artifact_transaction() -> None:
+    source = (ROOT / "scripts/import_postgresql_posts.py").read_text(encoding="utf-8")
+    assert "transaction_fence=finalize_import" in source
+    assert "await record_post_content_backfill_success" in source
+
+
 def test_keymen_backfill_uses_all_source_commercial_context_fields() -> None:
     """Keyman backfill's own eligibility matches the reader's complete contract.
 

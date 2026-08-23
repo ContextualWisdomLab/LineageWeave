@@ -45,7 +45,10 @@ placed in a stream message.
    unresolved structure decisions when structure adjudication is configured.
    Incomplete provider output is retried with an explicit failure code rather
    than being reported as succeeded. The frontend polls that status while
-   continuing to show the source post.
+   continuing to show the source post. Persisted units, images, and regions are
+   exposed only when the job is `succeeded` for the exact current raw-body
+   SHA-256. Otherwise those derived arrays are withheld and the independently
+   loaded current raw source body remains the rendering fallback.
 
 ## Consequences
 
@@ -98,6 +101,9 @@ existing `(post_id, source_body_sha256)` wake-up to Valkey, and `_claim_job`
 reclaims it under the same lease predicate. This keeps a process restart or
 lost consumer from leaving a job permanently running while retaining
 at-least-once persistence semantics.
+Duplicate wake-ups for a fresh `running` lease are ignored before applying the
+attempt-limit rule. A final permitted attempt becomes terminal only when that
+lease is stale; a duplicate wake-up cannot fail work that is still active.
 
 On worker startup, the stream cursor begins at the current Valkey stream tail,
 not at `0-0`. Historical wake-ups are not authoritative work state; the
@@ -121,6 +127,14 @@ A missing ledger row is always inserted as `queued`, even if pre-ledger
 artifacts happen to satisfy the structural completeness predicate. Those
 artifacts have no binding to the current raw-body digest; only a fenced worker
 or the explicit ADR 0115 backfill finalization may register success.
+
+The synchronous operator backfill performs provider work before its short
+database transaction. Inside that transaction it locks and rechecks the
+current source body and non-active ledger row, records the bound ledger
+success, and replaces all derived artifacts atomically. It cannot overwrite an
+active worker's artifacts or commit success for a body that changed during
+provider work. The synchronous source-import adapter uses the same finalization
+fence so every production artifact writer participates in that serialization.
 
 ## Corpus backfill (2026-08-20)
 

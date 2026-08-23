@@ -366,6 +366,30 @@ def test_worker_retry_clock_queries_cast_database_timestamps() -> None:
     assert any("$1::timestamptz + $2::interval" in query for query in connection.queries)
 
 
+def test_duplicate_wakeup_cannot_fail_a_fresh_running_final_attempt() -> None:
+    connection = _Connection(
+        _row(
+            RUNNING,
+            POST_CONTENT_MAX_ATTEMPTS,
+            cycle_attempt_count=POST_CONTENT_MAX_ATTEMPTS,
+            started_at="fresh-start",
+        ),
+        values=[False],
+    )
+
+    claimed = asyncio.run(
+        post_content_worker._claim_job(
+            _Pool(connection),
+            "00000000-0000-0000-0000-000000000001",
+            _DIGEST,
+            embedding_model_code="",
+        )
+    )
+
+    assert claimed is None
+    assert not any("set status_code" in query for query, _args in connection.executed)
+
+
 def test_supervised_worker_restarts_after_unexpected_error(monkeypatch) -> None:
     calls = 0
 

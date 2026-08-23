@@ -7,8 +7,8 @@ from typing import Self
 
 import pytest
 
-from backend.app import main
-from backend.app.post_content_queue import FAILED, QUEUED, SUCCEEDED
+from backend.app import main, post_summary_ingestion
+from backend.app.post_content_queue import FAILED, QUEUED, SUCCEEDED, source_body_sha256
 from backend.app.post_summary_ingestion import fetch_persisted_summary
 from lineageweave.post_summary import POST_SUMMARY_CONTRACT_VERSION
 
@@ -91,6 +91,55 @@ def test_current_summary_requires_exact_normalized_input_binding() -> None:
     assert mismatch is None
     assert revised_stale is not None
     assert revised_stale["summary_status"] == "stale"
+
+
+def test_summary_persistence_lock_rejects_a_changed_current_source() -> None:
+    class ChangedSourceConnection:
+        async def fetchrow(self, *_args, **_kwargs):
+            return {"post_body": "A newer synthetic body."}
+
+    result = asyncio.run(
+        post_summary_ingestion._lock_current_summary_input(
+            ChangedSourceConnection(),
+            "post-id",
+            expected_source_body_sha256=source_body_sha256("An older synthetic body."),
+            expected_summary_input="An older synthetic body.",
+            require_image_evidence=False,
+        )
+    )
+
+    assert result is False
+
+
+def test_summary_persistence_lock_rejects_changed_ordered_image_evidence() -> None:
+    body = '<img src="data:image/png;base64,AA==">'
+
+    class ChangedEvidenceConnection:
+        async def fetchrow(self, *_args, **_kwargs):
+            return {"post_body": body}
+
+        async def fetch(self, *_args, **_kwargs):
+            return [
+                {
+                    "unit_index": 0,
+                    "unit_text": "[image: current]",
+                    "region_index": 0,
+                    "extracted_text": "New evidence",
+                    "image_caption": "Current panel",
+                }
+            ]
+
+    result = asyncio.run(
+        post_summary_ingestion._lock_current_summary_input(
+            ChangedEvidenceConnection(),
+            "post-id",
+            expected_source_body_sha256=source_body_sha256(body),
+            expected_summary_input="Earlier evidence",
+            require_image_evidence=True,
+        )
+    )
+
+    assert result is False
 
 
 def test_legacy_unbound_summary_is_only_explicit_stale_continuity() -> None:

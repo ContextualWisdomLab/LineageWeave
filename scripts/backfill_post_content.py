@@ -243,6 +243,20 @@ async def backfill_post_content(
                 if described_images == 0 and not normalized.text.strip():
                     result["skipped_posts"] += 1
                     continue
+                backfill_post_id = str(row["post_id"])
+                backfill_body = str(row["post_body"] or "")
+
+                async def finalize_backfill(
+                    inner_conn: asyncpg.Connection,
+                    current_post_id: str = backfill_post_id,
+                    current_body: str = backfill_body,
+                ) -> None:
+                    await record_post_content_backfill_success(
+                        inner_conn,
+                        current_post_id,
+                        current_body,
+                    )
+
                 await persist_post_content(
                     conn,
                     str(row["post_id"]),
@@ -253,13 +267,8 @@ async def backfill_post_content(
                     normalized_result=normalized,
                     structure_client=structure_client,
                     post_title=row["post_title"],
+                    transaction_fence=finalize_backfill,
                 )
-                async with conn.transaction():
-                    await record_post_content_backfill_success(
-                        conn,
-                        str(row["post_id"]),
-                        str(row["post_body"] or ""),
-                    )
             result["processed_posts"] += 1
             if described_images:
                 result["described_posts"] += 1

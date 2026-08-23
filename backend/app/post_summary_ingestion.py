@@ -75,6 +75,7 @@ from .keyman_ingestion import (
     _resolve_affiliated_organization,
 )
 from .knowledge_graph import persist_edges_for_post
+from .post_content_queue import SUCCEEDED, fetch_post_summary_source, source_body_sha256
 from .post_eligibility import normalize_source_detail_state_code
 from .team_ingestion import upsert_team
 
@@ -105,6 +106,47 @@ async def require_summary_target(conn: asyncpg.Connection, post_id: str) -> None
     )
     if normalize_source_detail_state_code(state_code) == "W":
         raise ValueError(SUMMARY_TARGET_UNAVAILABLE)
+
+
+async def _lock_current_summary_input(
+    conn: asyncpg.Connection,
+    post_id: str,
+    *,
+    expected_source_body_sha256: str,
+    expected_summary_input: str,
+    require_image_evidence: bool,
+) -> bool:
+    """Lock and recheck the exact source and persisted summary evidence."""
+    if require_image_evidence:
+        row = await conn.fetchrow(
+            """
+            select post.post_body
+            from source_post post
+            join post_content_ingestion_job job on job.post_id = post.post_id
+            where post.post_id = $1
+              and job.source_body_sha256 = $2
+              and job.status_code = $3
+            for update of job, post
+            """,
+            post_id,
+            expected_source_body_sha256,
+            SUCCEEDED,
+        )
+    else:
+        row = await conn.fetchrow(
+            "select post_body from source_post where post_id = $1 for update",
+            post_id,
+        )
+    if row is None:
+        return False
+    current_body = row["post_body"]
+    if not isinstance(current_body, str):
+        return False
+    if source_body_sha256(current_body) != expected_source_body_sha256:
+        return False
+    if not require_image_evidence:
+        return True
+    return await fetch_post_summary_source(conn, post_id) == expected_summary_input
 
 
 async def fetch_persisted_summary(
@@ -414,6 +456,8 @@ async def persist_post_summary(
     summary: PostSummary,
     *,
     post_body: str,
+    expected_source_body_sha256: str,
+    require_image_evidence: bool = False,
     resolution_client: OrganizationNameResolutionClient | None = None,
     hierarchy_inference_client: CorporateHierarchyInferenceClient | None = None,
     verification_client: RelationVerificationClient | None = None,
@@ -499,6 +543,15 @@ async def persist_post_summary(
             resolved_organization_reasons[role_index] = unresolved_reason
 
     async with conn.transaction():
+        input_is_current = await _lock_current_summary_input(
+            conn,
+            post_id,
+            expected_source_body_sha256=expected_source_body_sha256,
+            expected_summary_input=normalized_summary_input,
+            require_image_evidence=require_image_evidence,
+        )
+        if not input_is_current:
+            raise RuntimeError("post summary input is no longer current")
         await _replace_summary_projection(
             conn,
             post_id,
@@ -511,15 +564,14 @@ async def persist_post_summary(
             resolved_organization_reasons,
             resolved_affiliation_reasons,
         )
-
-    payload = await fetch_persisted_summary(
-        conn,
-        post_id,
-        summary_input=normalized_summary_input,
-    )
-    if payload is None:
-        raise RuntimeError("persist_post_summary wrote no row")
-    return payload
+        payload = await fetch_persisted_summary(
+            conn,
+            post_id,
+            summary_input=normalized_summary_input,
+        )
+        if payload is None:
+            raise RuntimeError("persist_post_summary wrote no row")
+        return payload
 
 
 async def _resolve_existing_cataloged_person_id(

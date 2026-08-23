@@ -424,6 +424,8 @@ def test_explicit_retry_requeues_only_one_failed_job_without_reusing_claim_ident
     class FakeConnection:
         async def fetchrow(self, query: str, *_args: object):
             assert "for update" in query
+            if "from source_post" in query:
+                return {"post_body": "current body"}
             return {"status_code": FAILED}
 
         async def fetchval(self, query: str, *_args: object) -> int:
@@ -486,6 +488,8 @@ def test_backfill_success_clears_terminal_error_and_records_succeeded() -> None:
     class FakeConnection:
         async def fetchrow(self, query: str, *_args: object):
             assert "for update" in query
+            if "from source_post" in query:
+                return {"post_body": "current body"}
             return {"status_code": FAILED}
 
         async def fetchval(self, query: str, *_args: object) -> int:
@@ -509,6 +513,26 @@ def test_backfill_success_clears_terminal_error_and_records_succeeded() -> None:
     assert len(executed) == 2
     assert "last_error_code = null" in executed[0][0]
     assert executed[1][1][-1] == "operator backfill persisted post-content evidence"
+
+
+def test_backfill_success_rejects_a_source_revision_after_provider_work() -> None:
+    class FakeConnection:
+        async def fetchrow(self, query: str, *_args: object):
+            if "from source_post" in query:
+                return {"post_body": "newer body"}
+            return {"status_code": FAILED}
+
+        async def execute(self, *_args: object) -> None:
+            raise AssertionError("a stale backfill must not update the ledger")
+
+    with pytest.raises(ValueError, match="source body changed"):
+        asyncio.run(
+            record_post_content_backfill_success(
+                FakeConnection(),
+                "00000000-0000-0000-0000-000000000001",
+                "older body",
+            )
+        )
 
 
 def test_recovery_republishes_due_rows_in_queued_at_order() -> None:

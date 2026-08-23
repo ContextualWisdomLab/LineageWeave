@@ -33,6 +33,14 @@ though the source post remains authorized and available.
 4. A successful contextual-orchestrator refresh remains the only path that
    atomically replaces the stale projection. Failed refreshes never delete the
    prior summary or source body.
+5. After provider work and before replacing any summary-owned semantic or
+   catalog projection, persistence locks and rechecks the current source-body
+   SHA-256. For image-bearing input it also requires the exact current
+   succeeded content job and re-reads the ordered persisted image evidence;
+   that evidence must match the normalized summary input byte for byte. The
+   current payload is fetched in the same transaction. A source or evidence
+   change during provider work therefore leaves the prior projection intact
+   and cannot return the superseded result as current.
 
 ## Consequences
 

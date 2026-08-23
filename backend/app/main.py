@@ -115,6 +115,7 @@ from backend.app.analysis_run_start import (
 )
 from backend.app.analysis_run_worker import run_analysis_run_worker
 from backend.app.post_content_queue import (
+    SUCCEEDED,
     ensure_post_content_job,
     fetch_post_summary_source,
     post_content_api_status,
@@ -123,6 +124,7 @@ from backend.app.post_content_queue import (
     post_content_summary_status_message,
     post_body_has_images,
     publish_post_content_event,
+    source_body_sha256,
 )
 from backend.app.post_content_worker import run_post_content_worker_supervised
 from backend.app.source_research_ingestion import (
@@ -1944,97 +1946,129 @@ async def read_post_content(
     """Return persisted content evidence; never derive or invent reader-facing copy."""
     await _load_visible_post(post_id, account, pool)
     queue_event: tuple[str, str] | None = None
+    derived_content_is_current = False
     async with pool.acquire() as conn:
-        unit_rows = await conn.fetch(
-            """
-            select unit.unit_index, unit.unit_kind_code, unit.unit_label, unit.unit_text,
-                   coalesce(structure.indent_level, 0) as indent_level,
-                   structure.decision_source_code, structure.structure_confidence,
-                   structure.evidence_text
-              from post_content_unit unit
-              left join post_content_unit_structure structure
-                on structure.post_content_unit_id = unit.post_content_unit_id
-             where unit.post_id = $1
-             order by unit.unit_index
-            """,
-            post_id,
-        )
-        content_status = post_content_api_status(
-            None,
-            content_present=bool(unit_rows),
-        )
-        body_row = await conn.fetchrow(
-            "select post_body from source_post where post_id = $1", post_id
-        )
-        raw_body = None if body_row is None else body_row["post_body"]
-        if isinstance(raw_body, str) and raw_body.strip():
-            content_present = bool(unit_rows)
-            content_complete = await post_content_is_complete(
-                conn,
+        unit_rows: list[asyncpg.Record] = []
+        rows: list[asyncpg.Record] = []
+        region_rows: list[asyncpg.Record] = []
+        content_status = post_content_api_status(None, content_present=False)
+        job = None
+        async with conn.transaction():
+            body_row = await conn.fetchrow(
+                "select post_body from source_post where post_id = $1 for update",
                 post_id,
-                embedding_model_code=load_settings().embedding_model,
-                require_structure=bool(
-                    load_settings().orchestrator_base_url
-                    and load_settings().orchestrator_api_key
-                ),
             )
-            async with conn.transaction():
+            raw_body = None if body_row is None else body_row["post_body"]
+            if isinstance(raw_body, str) and raw_body.strip():
+                content_complete = await post_content_is_complete(
+                    conn,
+                    post_id,
+                    embedding_model_code=load_settings().embedding_model,
+                    require_structure=bool(
+                        load_settings().orchestrator_base_url
+                        and load_settings().orchestrator_api_key
+                    ),
+                )
                 job = await ensure_post_content_job(
                     conn,
                     post_id,
                     raw_body,
                     content_complete=content_complete,
                 )
+        if job is not None:
             content_status = post_content_api_status(
                 job.status_code,
-                content_present=content_present,
+                content_present=False,
             )
             if job.should_publish:
                 queue_event = (job.post_id, job.source_body_sha256)
-        rows = await conn.fetch(
-            """
-            select image.post_content_image_id, unit.unit_index, image.mime_type, image.description_status_code,
-                   image.extracted_text, image.image_caption,
-                   coalesce(
-                       array_agg(tag.tag_text order by tag.tag_text)
-                           filter (where tag.tag_text is not null),
-                       '{}'::text[]
-                   ) as tags
-              from post_content_unit unit
-              join post_content_image image
-                on image.post_content_unit_id = unit.post_content_unit_id
-              left join post_content_image_tag tag
-                on tag.post_content_image_id = image.post_content_image_id
-             where unit.post_id = $1
-             group by image.post_content_image_id, unit.unit_index, image.mime_type, image.description_status_code,
-                      image.extracted_text, image.image_caption
-             order by unit.unit_index
-            """,
-            post_id,
-        )
-        region_rows = await conn.fetch(
-            """
-            select image.post_content_image_id, region.region_index,
-                   region.x_ratio, region.y_ratio, region.width_ratio, region.height_ratio,
-                   region.description_status_code, region.extracted_text, region.image_caption,
-                   coalesce(
-                       array_agg(tag.tag_text order by tag.tag_text)
-                           filter (where tag.tag_text is not null),
-                       '{}'::text[]
-                   ) as tags
-              from post_content_image image
-              join post_content_image_region region
-                on region.post_content_image_id = image.post_content_image_id
-              left join post_content_image_region_tag tag
-                on tag.post_content_image_region_id = region.post_content_image_region_id
-             where image.post_content_image_id = any($1::uuid[])
-             group by image.post_content_image_id, region.region_index,
-                      region.x_ratio, region.y_ratio, region.width_ratio, region.height_ratio,
-                      region.description_status_code, region.extracted_text, region.image_caption
-             order by image.post_content_image_id, region.region_index
-            """,
-            [row["post_content_image_id"] for row in rows],
-        ) if rows else []
+            async with conn.transaction():
+                binding = await conn.fetchrow(
+                    """
+                    select post.post_body, job.source_body_sha256, job.status_code
+                    from source_post post
+                    join post_content_ingestion_job job on job.post_id = post.post_id
+                    where post.post_id = $1
+                    for share of job, post
+                    """,
+                    post_id,
+                )
+                bound_body = None if binding is None else binding["post_body"]
+                derived_content_is_current = bool(
+                    isinstance(bound_body, str)
+                    and binding["status_code"] == SUCCEEDED
+                    and binding["source_body_sha256"] == source_body_sha256(bound_body)
+                )
+                if derived_content_is_current:
+                    unit_rows = await conn.fetch(
+                        """
+                        select unit.unit_index, unit.unit_kind_code, unit.unit_label,
+                               unit.unit_text,
+                               coalesce(structure.indent_level, 0) as indent_level,
+                               structure.decision_source_code,
+                               structure.structure_confidence, structure.evidence_text
+                          from post_content_unit unit
+                          left join post_content_unit_structure structure
+                            on structure.post_content_unit_id = unit.post_content_unit_id
+                         where unit.post_id = $1
+                         order by unit.unit_index
+                        """,
+                        post_id,
+                    )
+                    content_status = post_content_api_status(
+                        str(binding["status_code"]),
+                        content_present=bool(unit_rows),
+                    )
+                elif job.status_code == SUCCEEDED:
+                    content_status = "processing"
+                rows = await conn.fetch(
+                    """
+                    select image.post_content_image_id, unit.unit_index, image.mime_type,
+                           image.description_status_code, image.extracted_text,
+                           image.image_caption,
+                           coalesce(
+                               array_agg(tag.tag_text order by tag.tag_text)
+                                   filter (where tag.tag_text is not null),
+                               '{}'::text[]
+                           ) as tags
+                      from post_content_unit unit
+                      join post_content_image image
+                        on image.post_content_unit_id = unit.post_content_unit_id
+                      left join post_content_image_tag tag
+                        on tag.post_content_image_id = image.post_content_image_id
+                     where unit.post_id = $1
+                     group by image.post_content_image_id, unit.unit_index,
+                              image.mime_type, image.description_status_code,
+                              image.extracted_text, image.image_caption
+                     order by unit.unit_index
+                    """,
+                    post_id,
+                ) if derived_content_is_current else []
+                region_rows = await conn.fetch(
+                    """
+                    select image.post_content_image_id, region.region_index,
+                           region.x_ratio, region.y_ratio, region.width_ratio,
+                           region.height_ratio, region.description_status_code,
+                           region.extracted_text, region.image_caption,
+                           coalesce(
+                               array_agg(tag.tag_text order by tag.tag_text)
+                                   filter (where tag.tag_text is not null),
+                               '{}'::text[]
+                           ) as tags
+                      from post_content_image image
+                      join post_content_image_region region
+                        on region.post_content_image_id = image.post_content_image_id
+                      left join post_content_image_region_tag tag
+                        on tag.post_content_image_region_id = region.post_content_image_region_id
+                     where image.post_content_image_id = any($1::uuid[])
+                     group by image.post_content_image_id, region.region_index,
+                              region.x_ratio, region.y_ratio, region.width_ratio,
+                              region.height_ratio, region.description_status_code,
+                              region.extracted_text, region.image_caption
+                     order by image.post_content_image_id, region.region_index
+                    """,
+                    [row["post_content_image_id"] for row in rows],
+                ) if rows else []
     if queue_event is not None:
         await publish_post_content_event(
             valkey,
@@ -3223,6 +3257,8 @@ async def read_post_summary(
                     post_id,
                     summary,
                     post_body=normalized_body,
+                    expected_source_body_sha256=source_body_sha256(raw_body),
+                    require_image_evidence=image_body,
                     resolution_client=_organization_name_resolution_client(),
                     hierarchy_inference_client=_corporate_hierarchy_inference_client(),
                     verification_client=_relation_verification_client(),
