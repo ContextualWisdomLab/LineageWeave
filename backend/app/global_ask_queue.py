@@ -184,14 +184,20 @@ def _temporally_grounded_question(question_text: str) -> str:
     resolved window, and that every source falls inside it, lets the
     model answer from the evidence it was given.
     """
-    window = resolve_korean_relative_time(question_text, today=_seoul_today())
+    today = _seoul_today()
+    window = resolve_korean_relative_time(question_text, today=today)
     if window is None:
         return question_text
     start_date, end_date = window
+    # Phrasing matters: an earlier clause that only named the window was
+    # read by the model as the reference point ("now"), which re-subtracted
+    # the offset and looked for events seven further months back. Anchor
+    # today's date and equate the expression to the window outright.
     return (
-        f"{question_text}\n(시점 해석: 이 질문의 상대 시점은 "
-        f"{start_date.isoformat()} ~ {end_date.isoformat()} 기간을 뜻하며, "
-        "제공된 소스 게시물은 모두 이 기간에 작성된 것입니다.)"
+        f"{question_text}\n(오늘은 {today.isoformat()}입니다. 질문의 상대 시점 표현은 "
+        f"{start_date.isoformat()}부터 {end_date.isoformat()}까지의 기간을 가리킵니다. "
+        "제공된 소스 게시물은 모두 이 기간에 작성된 것이므로, 이 기간의 일을 "
+        "이 소스들로 답하십시오.)"
     )
 
 
