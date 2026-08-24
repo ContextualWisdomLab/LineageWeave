@@ -140,60 +140,71 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
             )
         llm_client = ContextualOrchestratorAdjudicationClient(base_url, api_key)
 
-    pool = await asyncpg.create_pool(settings.database_url, min_size=1, max_size=1)
+    # Hold NO database connection across the scoring phase: an
+    # llm-inclusive run spends hours in sequential judge calls, and an
+    # idle-reaped connection killed a full run mid-operation
+    # (ConnectionDoesNotExistError). Fetch rows on one short-lived
+    # connection, score with none, and persist on a fresh one -- no
+    # pool, so no reaped idle connection can be handed back either.
+    conn = await asyncpg.connect(settings.database_url)
     try:
-        async with pool.acquire() as conn:
-            rows = await conn.fetch(
-                "select post_id, post_title, voc_type_code, created_at, "
-                "corporate_entity_id, process_unit_id, thread_group_key, "
-                "secondary_grouping_key "
-                f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')} "
-                "order by created_at, post_id limit $1::bigint",
-                args.post_limit,
-            )
-            records = records_from_source_posts(rows)
-            pair_scores, group_ids, pair_labels = sample_pair_scores(records)
-
-            if llm_client is None:
-                estimate = estimate_channel_weights(pair_scores, group_ids)
-                channel_set_code = DETERMINISTIC_SET_CODE
-                llm_scored_pairs = 0
-            else:
-                chosen = subsample_stride(len(pair_scores), args.llm_pair_limit)
-                llm_pairs: list[dict[str, float]] = []
-                llm_group_ids: list[int] = []
-                for index in chosen:
-                    candidate_label, record_label = pair_labels[index]
-                    llm_pairs.append(
-                        {
-                            **pair_scores[index],
-                            "llm": llm_client.judge(candidate_label, record_label),
-                        }
-                    )
-                    llm_group_ids.append(group_ids[index])
-                estimate = estimate_channel_weights(llm_pairs, llm_group_ids)
-                channel_set_code = WITH_LLM_SET_CODE
-                llm_scored_pairs = len(chosen)
-
-            if estimate is None:
-                raise RuntimeError(
-                    "no grounded estimate was produced (fast_mlsirm unavailable, "
-                    "sample too small, or a channel was degenerate) -- nothing "
-                    "was written; product reconstruction stays fail-closed until "
-                    "an estimate is persisted"
-                )
-            if not args.dry_run:
-                await persist_estimate(conn, estimate, channel_set_code)
-            return {
-                "weights": estimate.weights,
-                "channel_set_code": channel_set_code,
-                "sample_pair_count": estimate.sample_pair_count,
-                "llm_scored_pairs": llm_scored_pairs,
-                "estimation_method_code": estimate.estimation_method_code,
-                "persisted": not args.dry_run,
-            }
+        rows = await conn.fetch(
+            "select post_id, post_title, voc_type_code, created_at, "
+            "corporate_entity_id, process_unit_id, thread_group_key, "
+            "secondary_grouping_key "
+            f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')} "
+            "order by created_at, post_id limit $1::bigint",
+            args.post_limit,
+        )
     finally:
-        await pool.close()
+        await conn.close()
+    records = records_from_source_posts(rows)
+    pair_scores, group_ids, pair_labels = sample_pair_scores(records)
+
+    if llm_client is None:
+        estimate = estimate_channel_weights(pair_scores, group_ids)
+        channel_set_code = DETERMINISTIC_SET_CODE
+        llm_scored_pairs = 0
+    else:
+        chosen = subsample_stride(len(pair_scores), args.llm_pair_limit)
+        llm_pairs: list[dict[str, float]] = []
+        llm_group_ids: list[int] = []
+        for index in chosen:
+            candidate_label, record_label = pair_labels[index]
+            llm_pairs.append(
+                {
+                    **pair_scores[index],
+                    "llm": llm_client.judge(candidate_label, record_label),
+                }
+            )
+            llm_group_ids.append(group_ids[index])
+        estimate = estimate_channel_weights(llm_pairs, llm_group_ids)
+        channel_set_code = WITH_LLM_SET_CODE
+        llm_scored_pairs = len(chosen)
+
+    if estimate is None:
+        raise RuntimeError(
+            "no grounded estimate was produced (fast_mlsirm unavailable, "
+            "sample too small, or a channel was degenerate) -- nothing "
+            "was written; product reconstruction stays fail-closed until "
+            "an estimate is persisted"
+        )
+    if not args.dry_run:
+        # Fresh, short-lived connection for the write: the scoring phase
+        # above may have taken hours.
+        conn = await asyncpg.connect(settings.database_url)
+        try:
+            await persist_estimate(conn, estimate, channel_set_code)
+        finally:
+            await conn.close()
+    return {
+        "weights": estimate.weights,
+        "channel_set_code": channel_set_code,
+        "sample_pair_count": estimate.sample_pair_count,
+        "llm_scored_pairs": llm_scored_pairs,
+        "estimation_method_code": estimate.estimation_method_code,
+        "persisted": not args.dry_run,
+    }
 
 
 def main() -> None:
