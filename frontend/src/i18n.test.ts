@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  ANALYST_GNB_LABELS,
+  CALENDAR_CONSUME_UNAVAILABLE,
+} from "./gnbChrome";
+import {
   LOCALE_LABELS,
   SUPPORTED_LOCALES,
   getLocale,
@@ -13,7 +17,7 @@ afterEach(() => {
 });
 
 describe("i18n", () => {
-  const requiredBuyerLabels = [
+  const requiredSharedLabels = [
     "Language",
     "Evidence",
     "Ask",
@@ -23,6 +27,8 @@ describe("i18n", () => {
     "Keymen",
     "Unknown",
     "Image tags",
+    "Image regions",
+    "Region location",
     "Counterparties",
     "due",
     "Activity",
@@ -60,6 +66,7 @@ describe("i18n", () => {
     "Rankings",
     "Title overlap",
     "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+    "Workspace navigation",
   ] as const;
 
   it("supports the five product locales", () => {
@@ -67,15 +74,34 @@ describe("i18n", () => {
     expect(Object.keys(LOCALE_LABELS)).toHaveLength(5);
   });
 
+  it.each([
+    ["en", "Workspace navigation"],
+    ["ko", "워크스페이스 메뉴"],
+    ["zh", "工作区导航"],
+    ["ja", "ワークスペースナビゲーション"],
+    ["vi", "Điều hướng không gian làm việc"],
+  ] as const)("drops Buyer from the GNB accessible name in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Workspace navigation")).toBe(expected);
+    expect(t("Workspace navigation")).not.toMatch(/Buyer|Cubee/i);
+    expect(t("Buyer navigation")).toBe("Buyer navigation");
+  });
+
   it.each(["ko", "zh", "ja", "vi"] as const)(
-    "translates all shared Buyer labels in %s",
+    "translates all shared product labels in %s",
     (locale) => {
       setLocale(locale);
-      for (const key of requiredBuyerLabels) {
+      for (const key of requiredSharedLabels) {
         expect(t(key), `${locale}:${key}`).not.toBe(key);
       }
     },
   );
+
+  it("keeps analyst GNB chrome on the four Korean labels", () => {
+    expect(ANALYST_GNB_LABELS).toEqual(["게시판", "고객 마스터", "달력", "Ask Agent"]);
+    expect(ANALYST_GNB_LABELS.join(" ")).not.toMatch(/Buyer|Cubee|Board|Customer master/);
+    expect(CALENDAR_CONSUME_UNAVAILABLE).toBe("이 범위의 일정을 아직 받을 수 없습니다");
+  });
 
   it.each([
     ["ko", "관련 글"],
@@ -104,9 +130,19 @@ describe("i18n", () => {
     ["zh", "DEMO 是事件谱系中的当前记录。接下来查看关键联系人和评估。"],
     ["ja", "DEMOはイベント系譜の現在の記録です。次にキーパーソンと評価を確認してください。"],
     ["vi", "DEMO là bản ghi hiện tại trong Dòng sự kiện. Hãy xem người liên hệ chính và đánh giá tiếp theo."],
-  ] as const)("formats dynamic buyer guidance in %s", (locale, expected) => {
+  ] as const)("formats dynamic reader guidance in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("{post} is current in Event Lineage. Read Keyman and evaluation next.", { post: "DEMO" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "영역 위치"],
+    ["zh", "区域位置"],
+    ["ja", "領域の位置"],
+    ["vi", "Vị trí vùng"],
+  ] as const)("translates image region location in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Region location")).toBe(expected);
   });
 
   it.each([
