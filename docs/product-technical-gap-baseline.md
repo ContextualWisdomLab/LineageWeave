@@ -964,6 +964,37 @@ or an explicit unavailable result.
   fold into PR #538 -- **remains open**, tracked here for whoever picks up
   the reconstruction-fusion tuning work next.
 
+  **Measured against the live corpus (2026-08-24), evidence for the
+  calibration decision above:** of 41,257 persisted `post_lineage_edge`
+  rows, 148 (0.36%) sit at `fused_score < 0.35`, i.e. within one difflib
+  coincidence of the 0.3 floor. A spot sample of the lowest-scoring edges
+  (case labels, not real source content) confirms the same failure shape
+  as the originally reported bug -- pairs of business posts about clearly
+  unrelated subjects (a sales-visit note paired with an unrelated dealer
+  visit; a market-trend summary paired with an unrelated internal lecture
+  summary; a quality-inspection note paired with an unrelated audit note)
+  -- clustering at a 38-46 hour parent-child gap, not the ~1 hour used in
+  PR #538's synthetic regression test. These 41,257 edges predate PR
+  #538/#549's embedding channel (built under difflib-only or
+  difflib-plus-clamped-embedding-not-yet-rebuilt); re-running
+  `POST /api/lineage/rebuild` under the current code and re-measuring this
+  148-edge population is the natural verification step for whoever picks
+  up the calibration work, before deciding whether `temporal_score` or
+  `DEFAULT_MIN_FUSED_SCORE` actually need to change.
+
+  **Related, smaller diagnosability gap found while measuring this:**
+  `post_lineage_edge` (`migrations/0001_initial_schema.sql`) persists only
+  `parent_post_id`, `child_post_id`, `fused_score`, `created_at` --
+  `Edge.channel_scores` (the per-channel breakdown `reconstruct()` already
+  computes) is dropped at `persist_lineage_edges`
+  (`backend/app/lineage_ingestion.py`) and never written. Once an edge is
+  persisted, nothing -- not even an operator with database access -- can
+  tell *why* it formed (which channel(s) contributed, and how much)
+  without re-running reconstruction offline against a source snapshot.
+  Adding a `channel_scores jsonb` column would let future post-hoc
+  investigations (like this one) query the breakdown directly instead of
+  reconstructing it by hand from `source_post` timestamps and titles.
+
   **Process note (2026-08-24): a stranded-fix incident, recovered.** PR
   #538 merged into PR #434's branch at `23:39:36Z`; the cosine-clamp fix
   above was pushed to #538's branch at `23:42:28Z`, three minutes after
