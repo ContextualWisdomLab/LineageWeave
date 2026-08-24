@@ -149,10 +149,15 @@ def test_rank_is_contribution_then_controlled_signal_order() -> None:
 
 
 def test_migrate_sh_replays_channel_evidence_and_tenant_settings() -> None:
+    """ADR 0166's portable filename boundary must still cover 0103 and 0174
+    on existing volumes -- no individual allowlist entry is needed for
+    either, since the general four-digit pattern already replays both.
+    """
     migrate = (_ROOT / "docker/postgres-init/migrate.sh").read_text()
-    assert "0103_*" in migrate
-    assert "0104_*" not in migrate
-    assert "0174_*" in migrate
+    assert "[0-9][0-9][0-9][0-9]_*" in migrate
+    assert "000[0-9]_*|001[01]_*" in migrate
+    assert "0103_*" not in migrate
+    assert "0174_*" not in migrate
 
 
 def test_channel_evidence_migration_has_no_jsonb() -> None:

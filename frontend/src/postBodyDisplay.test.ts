@@ -98,7 +98,7 @@ describe("splitPostBody", () => {
     ).toEqual([
       { kind: "text", text: "Body text" },
       { kind: "text", text: "HTML footnote body", role: "footnote" },
-      { kind: "text", text: "^1 Word footnote body", role: "footnote" },
+      { kind: "text", text: "¹ Word footnote body", role: "footnote" },
       { kind: "text", text: "OOXML footnote body", role: "footnote" },
     ]);
   });

@@ -196,6 +196,7 @@ def rank_channel_evidence(rows: Sequence[Mapping[str, object]]) -> list[dict[str
     """
 
     def sort_key(row: Mapping[str, object]) -> tuple[float, int]:
+        """Contribution descending, ties broken by the canonical channel order."""
         channel = _channel_name(row)
         order = LINEAGE_SIGNAL_ORDER.index(channel) if channel in LINEAGE_SIGNAL_ORDER else len(LINEAGE_SIGNAL_ORDER)
         return (-float(row["signal_contribution"]), order)

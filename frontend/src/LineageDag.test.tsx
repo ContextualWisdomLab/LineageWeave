@@ -146,7 +146,7 @@ describe("LineageDag", () => {
   it("shows an empty-state message instead of an empty graph", () => {
     render(<LineageDag graph={{ nodes: [], edges: [] }} onSelectPost={vi.fn()} />);
     expect(screen.getByText("No reconstructed lineage yet. Rebuild after seeding posts.")).toBeInTheDocument();
-    expect(screen.queryByRole("img")).not.toBeInTheDocument();
+    expect(document.querySelector("svg")).not.toBeInTheDocument();
   });
 
   it("renders one branch figure per lineage group, git-branch style", () => {
@@ -162,7 +162,7 @@ describe("LineageDag", () => {
 
     expect(screen.getByText("Project Alpha (2 records, 1 lineage edges)")).toBeInTheDocument();
     expect(screen.getByText("Project Beta (1 records, 0 lineage edges)")).toBeInTheDocument();
-    expect(screen.getAllByRole("img")).toHaveLength(2);
+    expect(container.querySelectorAll('svg[role="group"]')).toHaveLength(2);
     expect(container.querySelectorAll(".lineage-dag-edge")).toHaveLength(1);
     expect(container.querySelector(".lineage-dag-branch")).toBeInTheDocument();
     expect(container.querySelector(".lineage-dag-root")).toBeInTheDocument();
@@ -177,9 +177,11 @@ describe("LineageDag", () => {
       ],
       edges: [],
     };
-    render(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
+    const { container } = render(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
 
-    const headings = screen.getAllByRole("img").map((img) => img.getAttribute("aria-label"));
+    const headings = [...container.querySelectorAll('svg[role="group"]')].map((svg) =>
+      svg.getAttribute("aria-label"),
+    );
     expect(headings).toEqual(["Zeta Corp lineage", "Ungrouped lineage"]);
   });
 
