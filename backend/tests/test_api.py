@@ -137,6 +137,11 @@ _LEFTOVER_MAP_RANK_MIGRATION = (
     / "migrations"
     / "0164_report_leftover_map_rank.sql"
 )
+_LEFTOVER_MAP_AXIS_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0169_report_leftover_map_axis.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -255,6 +260,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_INTERVAL_RELATION_MIGRATION.read_text())
             cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
+            cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -4849,6 +4855,10 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
         if observed is None or expected is None:
             continue
         assert abs(pair["leftover_residual"] - (observed - expected)) < 1e-6
+    leftover_axes = high_report.get("leftover_map_axes", [])
+    assert [axis["axis_index"] for axis in leftover_axes] == [1, 2]
+    assert all(axis["leftover_singular_value"] >= 0 for axis in leftover_axes)
+    assert all(0.0 <= axis["leftover_share"] <= 1.0 for axis in leftover_axes)
 
     week3 = client.get(
         "/api/reports/process_unit/2026-W03",
