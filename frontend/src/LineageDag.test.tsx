@@ -142,7 +142,7 @@ describe("LineageDag channel evidence", () => {
   });
 });
 
-const graph = {
+const nodeHitTargetGraph = {
   nodes: [
     {
       id: "rec-001",
@@ -166,7 +166,7 @@ const graph = {
 
 describe("LineageDag", () => {
   it("gives every node mark a 24x24px-minimum transparent hit target ahead of the visible mark", () => {
-    render(<LineageDag graph={graph} onSelectPost={() => undefined} />);
+    render(<LineageDag graph={nodeHitTargetGraph} onSelectPost={() => undefined} />);
     const button = screen.getByRole("button", { name: "Open post: Initial site visit and project scope discussion" });
     const circles = button.querySelectorAll("circle");
     expect(circles).toHaveLength(2);
@@ -183,7 +183,7 @@ describe("LineageDag", () => {
 
   it("still opens the post when the enlarged hit target is clicked", async () => {
     const onSelectPost = vi.fn();
-    render(<LineageDag graph={graph} onSelectPost={onSelectPost} />);
+    render(<LineageDag graph={nodeHitTargetGraph} onSelectPost={onSelectPost} />);
     await userEvent.click(screen.getByRole("button", { name: "Open post: Pricing renegotiation follow-up" }));
     expect(onSelectPost).toHaveBeenCalledWith("rec-002");
   });

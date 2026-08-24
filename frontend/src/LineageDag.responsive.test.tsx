@@ -27,7 +27,7 @@ describe("LineageDag responsive viewport", () => {
     expect(viewport).toHaveAttribute("tabindex", "0");
     expect(viewport).toHaveClass("lineage-dag-viewport");
 
-    const svg = screen.getByRole("img", { name: "A-100 lineage" });
+    const svg = screen.getByRole("group", { name: "A-100 lineage" });
     expect(viewport).toContainElement(svg);
     expect(Number(svg.getAttribute("width"))).toBeGreaterThan(320);
   });
