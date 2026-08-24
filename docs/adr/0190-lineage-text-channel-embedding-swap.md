@@ -73,6 +73,35 @@ ADR wires was staged capability, not new infrastructure.
   `scripts/import_postgresql_posts.py` passes the `embedding_client` it
   already builds for post-content embedding into `rebuild_lineage` too.
 
+## Amendment (2026-08-24): clamp, don't remap, the raw cosine
+
+Post-review finding (Devin Review on this PR): the initial implementation
+mapped `cosine_similarity`'s output via `(cosine + 1) / 2`, the textbook
+transform for a similarity measure that spans the full `[-1, 1]` range. Real
+sentence embeddings do not: they occupy an anisotropic cone (Ethayarajh,
+2019), so two genuinely unrelated short texts from an actual provider score
+a modestly *positive* raw cosine in practice, essentially never near -1. The
+remap inflated that unrelated baseline to roughly 0.5-0.65 -- a "weak
+positive" channel score that, combined with any temporal proximity, could
+still clear `DEFAULT_MIN_FUSED_SCORE` and reproduce the exact false-positive
+edge this ADR set out to close, just through the embedding channel instead
+of difflib. Fixed by clamping the raw cosine into `[0, 1]`
+(`max(0.0, min(1.0, cosine))`) instead of remapping it, matching how cosine
+similarity is used unremapped in the STS evaluation convention (Reimers &
+Gurevych, 2019) already cited above.
+
+This also surfaced a distinct, still-open observation worth flagging rather
+than silently absorbing into this fix: for two records roughly an hour
+apart, `temporal_score` alone (`1 / (1 + gap_days)`) already contributes
+close to `DEFAULT_MIN_FUSED_SCORE` on its own once weights renormalize
+without an `llm` channel, so *any* weakly-positive text score -- clamped
+cosine included -- can still tip a temporally-close, topically-unrelated
+pair over the floor. Flagged here rather than in
+`docs/product-technical-gap-baseline.md` -- this branch predates that
+document's current structure; carry this observation forward on the next
+rebase against `main`. Changing `temporal_score`'s steepness or
+`DEFAULT_MIN_FUSED_SCORE` is a calibration decision outside this PR's scope.
+
 ## Consequences
 
 - When an embedding provider is configured (already true in this
@@ -101,6 +130,13 @@ ADR wires was staged capability, not new infrastructure.
   compose without conflict.
 
 ## References — APA 7th
+
+Ethayarajh, K. (2019). How contextual are contextualized word
+representations? Comparing the geometry of BERT, ELMo, and GPT-2 embeddings.
+In *Proceedings of the 2019 Conference on Empirical Methods in Natural
+Language Processing and the 9th International Joint Conference on Natural
+Language Processing (EMNLP-IJCNLP)* (pp. 55-65). Association for
+Computational Linguistics. https://doi.org/10.18653/v1/D19-1006
 
 Reimers, N., & Gurevych, I. (2019). Sentence-BERT: Sentence embeddings using
 Siamese BERT-networks. In *Proceedings of the 2019 Conference on Empirical

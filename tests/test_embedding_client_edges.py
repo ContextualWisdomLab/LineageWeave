@@ -100,3 +100,20 @@ def test_legacy_client_name_delegates(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_cosine_similarity_returns_zero_for_zero_vector() -> None:
     assert embedding_client.cosine_similarity([0.0], [1.0]) == 0.0
+
+
+def test_cosine_similarity_returns_raw_value_not_a_remap() -> None:
+    """Regression: cosine_similarity must clamp, not remap (cosine+1)/2.
+
+    A remap turns a genuinely unrelated pair's near-zero raw cosine into a
+    false "weak positive" ~0.5 that clears reconstruct's fusion floor (see
+    lineageweave/embedding_client.py::cosine_similarity docstring). Orthogonal
+    vectors (cosine 0.0) must stay at 0.0, not become 0.5.
+    """
+    assert embedding_client.cosine_similarity([1.0, 0.0], [0.0, 1.0]) == 0.0
+    assert embedding_client.cosine_similarity([1.0, 0.0], [1.0, 0.0]) == 1.0
+
+
+def test_cosine_similarity_clamps_a_negative_cosine_to_zero() -> None:
+    """Opposite vectors (cosine -1.0) must clamp to 0.0, not go negative."""
+    assert embedding_client.cosine_similarity([1.0, 0.0], [-1.0, 0.0]) == 0.0
