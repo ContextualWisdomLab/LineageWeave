@@ -6,7 +6,7 @@
 [ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E);
 [ADR 0164](0164-leftover-map-rank.md) (full map rank);
 [ADR 0182](0182-leftover-map-unexplained.md) (unexplained leftover U);
-[ADR 0183](0183-leftover-map-unexplained-share.md) (unexplained leftover share s)
+[ADR 0202](0202-leftover-map-unexplained-share.md) (unexplained leftover share s)
 
 ## Context
 
@@ -43,7 +43,7 @@ leftover row also names unexplained leftover `U = R − R̂` when
 Gabriel coordinates exist so the leftover cell the two-axis map does
 not reconstruct is not read as leftover residual `R` or leftover-map
 distance `d` (ADR 0182), and names unexplained leftover share
-`s = U_c² / R̃²` of centered leftover the same way (ADR 0183).
+`s = U_c² / R̃²` of centered leftover the same way (ADR 0202).
 Two-axis reconstruction `R̂` / `R̂_c` and centered leftover `U_c` are
 computed internally and are not persisted.
 
@@ -55,7 +55,7 @@ the IRT matrix is unusable. A rank-0 residual still emits a
 stable pair so `make seed` is not empty; the stored distance is
 then zero, not a fabricated interaction.
 
-The UI contract is ADR 0049.
+The UI contract is ADR 0049. Complete-case coverage is ADR 0168.
 
 ## Consequences
 

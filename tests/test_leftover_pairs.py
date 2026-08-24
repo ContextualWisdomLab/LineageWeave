@@ -1,7 +1,7 @@
 """Leftover post–criterion pairs after the main-effect IRT.
 
 Covers ADR 0048 as amended by ADR 0119, ADR 0148, ADR 0163, ADR 0164,
-ADR 0182, and ADR 0183.
+ADR 0168, ADR 0182, and ADR 0202.
 
 Uses a constructed residual matrix so the closest and farthest pair
 are known without calling ``fit_polytomous``. Loads
@@ -49,6 +49,7 @@ PAIR_KIND_FARTHEST = leftover.PAIR_KIND_FARTHEST
 leftover_pairs_from_residual = leftover.leftover_pairs_from_residual
 leftover_map_from_residual = leftover.leftover_map_from_residual
 leftover_map_axes_from_singular = leftover.leftover_map_axes_from_singular
+leftover_map_coverage_from_residual = leftover.leftover_map_coverage_from_residual
 
 
 def _assert_residual_reconciles(pair) -> None:
@@ -108,6 +109,12 @@ def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
     for pair in pairs:
         _assert_residual_reconciles(pair)
         assert pair.leftover_map_rank == 1
+    coverage = leftover_map_coverage_from_residual(post_ids, item_codes, matrix, expected)
+    assert coverage.map_post_count == 3
+    assert coverage.scored_post_count == 3
+    assert coverage.incomplete_post_count == 0
+    assert coverage.map_item_count == 3
+    assert coverage.scored_item_count == 3
 
 
 def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
@@ -133,6 +140,10 @@ def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
     for pair in pairs:
         _assert_residual_reconciles(pair)
         assert pair.leftover_map_rank == 0
+    coverage = leftover_map_coverage_from_residual(post_ids, item_codes, matrix, expected)
+    assert coverage.map_post_count == 2
+    assert coverage.scored_post_count == 2
+    assert coverage.incomplete_post_count == 0
 
 
 def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
@@ -164,6 +175,13 @@ def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
         _assert_residual_reconciles(pair)
         assert pair.leftover_map_rank == 1
         assert pair.leftover_map_unexplained == pytest.approx(0.0, abs=1e-6)
+    coverage = leftover_map_coverage_from_residual(post_ids, item_codes, matrix, expected)
+    assert coverage.map_post_count == 2
+    assert coverage.scored_post_count == 3
+    assert coverage.incomplete_post_count == 1
+    assert coverage.map_item_count == 2
+    assert coverage.scored_item_count == 2
+    assert coverage.incomplete_item_count == 0
 
 
 def test_leftover_is_empty_without_observed_cells() -> None:
@@ -173,10 +191,17 @@ def test_leftover_is_empty_without_observed_cells() -> None:
     matrix = np.array([[np.nan]], dtype=np.float64)
     expected = np.array([[0.0]], dtype=np.float64)
     assert leftover_pairs_from_residual(post_ids, item_codes, matrix, expected) == ()
+    coverage = leftover_map_coverage_from_residual(post_ids, item_codes, matrix, expected)
+    assert coverage.map_post_count == 0
+    assert coverage.scored_post_count == 0
+    assert coverage.incomplete_post_count == 0
+    assert coverage.map_item_count == 0
+    assert coverage.scored_item_count == 0
+    assert coverage.incomplete_item_count == 0
 
 
-def test_leftover_fallback_omits_unexplained_share_without_complete_case_map() -> None:
-    """No complete-case rectangle: persist distance from |R − center|, omit share."""
+def test_leftover_pairs_unavailable_without_complete_case_map_omit_share() -> None:
+    """No complete-case rectangle (ADR 0168): no pair, so no unexplained-share badge either."""
     post_ids = ["sparse-a", "sparse-b"]
     item_codes = ("item_near", "item_far")
     matrix = np.array(
@@ -187,21 +212,14 @@ def test_leftover_fallback_omits_unexplained_share_without_complete_case_map() -
         dtype=np.float64,
     )
     expected = np.zeros_like(matrix)
-    pairs = leftover_pairs_from_residual(post_ids, item_codes, matrix, expected)
-    assert [pair.pair_kind for pair in pairs] == [PAIR_KIND_CLOSEST, PAIR_KIND_FARTHEST]
-    assert {pair.post_id for pair in pairs} == {"sparse-a", "sparse-b"}
-    for pair in pairs:
-        assert pair.leftover_map_unexplained_share is None
-        assert pair.leftover_distance >= 0.0
-        assert pair.leftover_map_unexplained is None
-        assert not hasattr(pair, "leftover_map_reconstruction")
+    assert leftover_pairs_from_residual(post_ids, item_codes, matrix, expected) == ()
 
 
 def test_rank_one_nonzero_center_still_has_zero_unexplained_share() -> None:
     """Share uses centered leftover, so a reconstructed rank-1 cell stays s=0 when mean(R) ≠ 0.
 
     Uncentered unexplained ``U = R − R̂`` still equals the grand mean in
-    this same cell (ADR 0183 context): that is exactly why share, not U,
+    this same cell (ADR 0202 context): that is exactly why share, not U,
     is the honest "fully reconstructed" signal when ``center ≠ 0``.
     """
     post_ids = ["post-a", "post-b", "post-c"]
@@ -494,45 +512,7 @@ def test_rejects_response_and_expectation_shape_mismatches() -> None:
         )
 
 
-def test_sparse_residual_uses_only_observed_cells_for_fallback_distance() -> None:
-    """No complete rectangle still yields finite observed-cell distances."""
-    matrix = np.array([[1.0, np.nan], [np.nan, -1.0]], dtype=np.float64)
-    pairs = leftover_pairs_from_residual(
-        ["post-a", "post-b"],
-        ("item-a", "item-b"),
-        matrix,
-        np.zeros_like(matrix),
-    )
-    assert [(pair.post_id, pair.criterion_code) for pair in pairs] == [
-        ("post-a", "item-a"),
-        ("post-b", "item-b"),
-    ]
-    assert [pair.leftover_distance for pair in pairs] == pytest.approx([1.0, 1.0])
-    assert [pair.leftover_map_rank for pair in pairs] == [0, 0]
-
-
-def test_leftover_fallback_omits_unexplained_without_complete_case_map() -> None:
-    """No complete-case rectangle: persist distance from |R − center|, omit U."""
-    post_ids = ["sparse-a", "sparse-b"]
-    item_codes = ("item_near", "item_far")
-    matrix = np.array(
-        [
-            [2.0, np.nan],
-            [np.nan, -2.0],
-        ],
-        dtype=np.float64,
-    )
-    expected = np.zeros_like(matrix)
-    pairs = leftover_pairs_from_residual(post_ids, item_codes, matrix, expected)
-    assert [pair.pair_kind for pair in pairs] == [PAIR_KIND_CLOSEST, PAIR_KIND_FARTHEST]
-    assert {pair.post_id for pair in pairs} == {"sparse-a", "sparse-b"}
-    for pair in pairs:
-        assert pair.leftover_map_unexplained is None
-        assert pair.leftover_distance >= 0.0
-        assert not hasattr(pair, "leftover_map_reconstruction")
-
-
-def test_nonfinite_map_distance_falls_back_to_centered_residual(
+def test_nonfinite_map_distance_emits_no_pair(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """An unusable factorization coordinate cannot become persisted distance."""
@@ -551,8 +531,7 @@ def test_nonfinite_map_distance_falls_back_to_centered_residual(
         np.array([[1.0]], dtype=np.float64),
         np.array([[0.0]], dtype=np.float64),
     )
-    assert [pair.leftover_distance for pair in pairs] == [0.0, 0.0]
-    assert [pair.leftover_map_rank for pair in pairs] == [0, 0]
+    assert pairs == ()
 
 
 def test_empty_observation_mask_has_no_complete_case_axes() -> None:
@@ -580,3 +559,20 @@ def test_leftover_map_rank_rejects_negative_rank() -> None:
             (0.0, "public-post", "sales_lead_specificity", 0.0, 1.0, 1.0, None),
             -1,
         )
+
+
+def test_leftover_is_unavailable_without_a_complete_case_rectangle() -> None:
+    """Observed cells alone cannot invent Gabriel positions or map coverage."""
+    post_ids = ["post-a", "post-b"]
+    item_codes = ("item-one", "item-two")
+    matrix = np.array([[1.0, np.nan], [np.nan, 1.0]], dtype=np.float64)
+    expected = np.zeros_like(matrix)
+
+    assert leftover_pairs_from_residual(post_ids, item_codes, matrix, expected) == ()
+    coverage = leftover_map_coverage_from_residual(post_ids, item_codes, matrix, expected)
+    assert coverage.map_post_count == 0
+    assert coverage.scored_post_count == 2
+    assert coverage.map_item_count == 0
+    assert coverage.scored_item_count == 2
+    assert coverage.incomplete_post_count == 2
+    assert coverage.incomplete_item_count == 2

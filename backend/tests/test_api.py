@@ -142,6 +142,11 @@ _LEFTOVER_MAP_AXIS_MIGRATION = (
     / "migrations"
     / "0169_report_leftover_map_axis.sql"
 )
+_LEFTOVER_MAP_COVERAGE_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0168_report_leftover_map_coverage.sql"
+)
 _LEFTOVER_MAP_UNEXPLAINED_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -150,7 +155,7 @@ _LEFTOVER_MAP_UNEXPLAINED_MIGRATION = (
 _LEFTOVER_MAP_UNEXPLAINED_SHARE_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
-    / "0183_report_leftover_map_unexplained_share.sql"
+    / "0202_report_leftover_map_unexplained_share.sql"
 )
 
 
@@ -269,6 +274,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_CHANNEL_WEIGHT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
+            cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
@@ -5028,6 +5034,13 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert [axis["axis_index"] for axis in leftover_axes] == [1, 2]
     assert all(axis["leftover_singular_value"] >= 0 for axis in leftover_axes)
     assert all(0.0 <= axis["leftover_share"] <= 1.0 for axis in leftover_axes)
+    leftover_coverage = high_report.get("leftover_map_coverage")
+    assert leftover_coverage is not None
+    assert leftover_coverage["map_post_count"] <= leftover_coverage["scored_post_count"]
+    assert leftover_coverage["incomplete_post_count"] == (
+        leftover_coverage["scored_post_count"] - leftover_coverage["map_post_count"]
+    )
+    assert leftover_coverage["scored_post_count"] >= 2
 
     week3 = client.get(
         "/api/reports/process_unit/2026-W03",

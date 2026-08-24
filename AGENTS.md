@@ -12,7 +12,7 @@ normative research-grounding policy, and
 [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md) for
 supporting literature and aggregate evidence. Event Lineage (reconstructed
 post-to-post parents) is distinct from the typed ontology neighborhood
-(ADR 0168); source-window continuation is ADR 0124. Do not mix those graphs.
+(ADR 0184); source-window continuation is ADR 0124. Do not mix those graphs.
 
 ## Hard rule: no real data in repository artifacts
 
@@ -196,7 +196,7 @@ against a live local stack (`make up`) and self-skip without one -- see
 [README.md](README.md#local-product-stack-docker-compose).
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0162 / 0163 /
-0164 / 0182 / 0183) are computed in `lineageweave/leftover_pairs.py` from the
+0164 / 0168 / 0182 / 0202) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
@@ -211,6 +211,9 @@ the member list so a click opens that post. Leftover-map axis share
 (ADR 0148) is Gabriel inertia of residual SVD axes 1 and 2 and persists
 to `report_leftover_map_axis`. Rank-0 residuals emit two zero-share
 axes; the shares are report-level and are not a leftover score.
+Complete-case coverage (ADR 0168) persists to
+`report_leftover_map_coverage` and captions the pair list with how
+many scored posts entered the map.
 
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a

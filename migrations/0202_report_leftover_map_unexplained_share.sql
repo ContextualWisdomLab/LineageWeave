@@ -1,4 +1,4 @@
--- ADR 0183: persist unexplained leftover share s = U_c² / R̃² of the
+-- ADR 0202: persist unexplained leftover share s = U_c² / R̃² of the
 -- centered leftover the two-axis leftover map factorizes
 -- (R̃ = R − center, R̂_c = ξ_{1:2} · ζ_{1:2}, U_c = R̃ − R̂_c).
 -- Distance stays Euclidean leftover-map d. Centered leftover U_c and

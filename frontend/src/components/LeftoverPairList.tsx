@@ -28,7 +28,7 @@ export type LeftoverPairListProps = {
  *
  * Distance is the two-axis leftover-map Euclidean gap. Residual is
  * ``R = Y − E[Y|θ, item]`` (Jeon et al., 2021, eq. 3 input). Unexplained
- * leftover share ``s = U_c² / R̃²`` of centered leftover (ADR 0183) takes
+ * leftover share ``s = U_c² / R̃²`` of centered leftover (ADR 0202) takes
  * priority over unexplained leftover ``U = R − R̂`` (ADR 0182), which in
  * turn takes priority over the residual/observed-expected/rank next
  * action, whenever finite; every badge still renders together before

@@ -1,4 +1,4 @@
-# ADR 0183 — Name unexplained leftover share on period-report pair rows
+# ADR 0202 — Name unexplained leftover share on period-report pair rows
 
 **Decision status:** Accepted
 **Date:** 2026-08-24
@@ -36,8 +36,12 @@ Euclidean. Centered leftover `U_c` and reconstruction `R̂_c` are
 computed internally so `s` is honest, then discarded.
 
 The unprotected-stack reconstructions for neighbouring leftover facts
-use 0162–0182. This protected-main increment uses **0183** so it does
-not collide with leftover-map unexplained leftover (0182), leftover-map
+use 0162–0182. This increment originally claimed **0183**, but that
+number collided with an unrelated, already-merged GNB navigation ADR
+(`0183-gnb-four-korean-chrome.md`) by the time this branch reached
+`main`, so it renumbers to **0202** at merge -- above every ADR number
+in use on `main` (≤ 0201) so it cannot collide again. It does not
+collide with leftover-map unexplained leftover (0182), leftover-map
 reconstruction (0181), leftover-map length (0181 on the length stack),
 leftover-map cosine (0180), leftover-map inner product (0179), leftover
 residual disclosure (0178), leftover observed `Y` / expected `E`
@@ -49,13 +53,14 @@ residual disclosure (0178), leftover observed `Y` / expected `E`
 
 Each leftover pair names `leftover_map_unexplained_share` — unexplained
 leftover share `s = U_c² / R̃²` of centered leftover after two-axis
-Gabriel reconstruction `R̂_c = ξ_{1:2} · ζ_{1:2}`. Migration `0183`
+Gabriel reconstruction `R̂_c = ξ_{1:2} · ζ_{1:2}`. Migration `0202`
 is the single source of the column on every install path, fresh or
 existing -- shipped migrations (`0001` / `0012`) are never edited after
 the fact. The column is nullable so older leftover rows keep distance
-and residual without fabricating a share. Fallback pairs that have no
-complete-case leftover map omit the value rather than inventing one.
-A rank-0 origin map stores `0.0` (`R̃ = 0` and `U_c = 0`), not a
+and residual without fabricating a share. A leftover map with no
+complete-case rectangle names no pair at all (ADR 0168), so there is
+no row to fabricate a share on. A rank-0 origin map that still has a
+complete-case rectangle stores `0.0` (`R̃ = 0` and `U_c = 0`), not a
 missing value. A fully reconstructed rank-1 cell stores `0.0` even when
 the grand mean of `R` is nonzero. A non-finite or negative share stores
 null rather than inventing a leftover score. Named check

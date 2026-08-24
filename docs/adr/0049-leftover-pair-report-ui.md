@@ -6,7 +6,7 @@
 [ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E);
 [ADR 0164](0164-leftover-map-rank.md) (full map rank);
 [ADR 0182](0182-leftover-map-unexplained.md) (unexplained leftover U);
-[ADR 0183](0183-leftover-map-unexplained-share.md) (unexplained leftover share s)
+[ADR 0202](0202-leftover-map-unexplained-share.md) (unexplained leftover share s)
 
 ## Context
 
@@ -39,7 +39,7 @@ observed/expected naming is [ADR 0163](0163-leftover-observed-expected.md),
 rank naming is [ADR 0164](0164-leftover-map-rank.md), unexplained
 leftover naming is [ADR 0182](0182-leftover-map-unexplained.md), and
 unexplained leftover share naming is
-[ADR 0183](0183-leftover-map-unexplained-share.md).
+[ADR 0202](0202-leftover-map-unexplained-share.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post.
@@ -58,4 +58,5 @@ next action, not only the distance.
 ## Related
 
 Depends on [ADR 0048](0048-persist-lsirm-leftover-pairs.md) and
-[ADR 0003](0003-fast-mlsirm-report-integration.md).
+[ADR 0003](0003-fast-mlsirm-report-integration.md). Complete-case
+coverage of the leftover map is [ADR 0168](0168-leftover-map-complete-case-coverage.md).
