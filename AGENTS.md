@@ -10,7 +10,9 @@ scattered short records. See [ARCHITECTURE.md](ARCHITECTURE.md) for the
 design, [ADR 0084](docs/adr/0084-lineage-research-grounding.md) for the
 normative research-grounding policy, and
 [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md) for
-supporting literature and aggregate evidence.
+supporting literature and aggregate evidence. Event Lineage (reconstructed
+post-to-post parents) is distinct from the typed ontology neighborhood
+(ADR 0168); source-window continuation is ADR 0124. Do not mix those graphs.
 
 ## Hard rule: no real data in repository artifacts
 
@@ -128,7 +130,8 @@ contextual-orchestrator owns model discovery and selection.
   flatten transparent pixels onto white for the derived analysis image while
   retaining the original asset and provenance. Recognize image DOM/visual
   regions before OCR, descriptions, Keyman extraction, or embeddings. Store
-  region-level evidence; never show an internal LLM instruction such as
+  region-level evidence and show each region's bounding range beside its
+  caption and OCR (ADR 0155); never show an internal LLM instruction such as
   `This post is an image` to a buyer.
 
 ## Source parsing and semantic units
@@ -206,9 +209,11 @@ list so a click opens that post. Two-axis reconstruction `R̂` is not
 persisted. Leftover-map axis share (ADR 0148) is Gabriel inertia of
 residual SVD axes 1 and 2 and persists to `report_leftover_map_axis`.
 Rank-0 residuals emit two zero-share axes; the shares are report-level
-and are not a leftover score.
+and are not a leftover score. Complete-case coverage (ADR 0168) persists to
+`report_leftover_map_coverage` and captions the pair list with how
+many scored posts entered the map.
 
-Global Ask relative-time filters (ADR 0150 / 0168) bind to
+Global Ask relative-time filters (ADR 0150 / 0183) bind to
 `source_post.event_occurred_at` and fall back to `created_at` only
 when the event instant is missing. Cited evidence names **Time
 axis** so the reader can open that post and see which clock

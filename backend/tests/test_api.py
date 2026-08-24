@@ -142,15 +142,20 @@ _LEFTOVER_MAP_AXIS_MIGRATION = (
     / "migrations"
     / "0169_report_leftover_map_axis.sql"
 )
-_EVENT_OCCURRED_AT_MIGRATION = (
+_LEFTOVER_MAP_COVERAGE_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
-    / "0168_source_post_event_occurred_at.sql"
+    / "0168_report_leftover_map_coverage.sql"
 )
 _LEFTOVER_MAP_UNEXPLAINED_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
     / "0182_report_leftover_map_unexplained.sql"
+)
+_EVENT_OCCURRED_AT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0183_source_post_event_occurred_at.sql"
 )
 
 
@@ -269,6 +274,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_CHANNEL_WEIGHT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
+            cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
@@ -1724,7 +1730,7 @@ def test_persisted_summary_is_returned_without_an_llm(client, demo_analyst_token
 
 
 def test_stale_summary_is_returned_labeled_when_orchestrator_is_unavailable(
-    client, demo_analyst_token, seeded_db
+    client, demo_analyst_token, seeded_db, caplog
 ) -> None:
     """A legacy saved summary preserves buyer continuity with an explicit label."""
     os.environ.pop("ORCHESTRATOR_BASE_URL", None)
@@ -1754,6 +1760,8 @@ def test_stale_summary_is_returned_labeled_when_orchestrator_is_unavailable(
     assert body["summary_status"] == "stale"
     assert body["summary_contract_version"] == POST_SUMMARY_CONTRACT_VERSION - 1
     assert body["korean_summary"] == "보관된 이전 계약 요약입니다."
+    assert "post_summary_stale_fallback" in caplog.text
+    assert "reason=orchestrator_unavailable" in caplog.text
 
 
 def test_seed_demo_summary_surfaces_on_get_summary(client, demo_analyst_token, seeded_db) -> None:
@@ -3545,6 +3553,170 @@ def test_live_chat_answer_publishes_an_activity_event(
     assert "What happened here that no seed already answers?" in events[0]["summary"]
 
 
+def test_live_chat_provider_error_does_not_leak_raw_error(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """A provider exception becomes a stable 503 without its raw message."""
+    class _FailingChatClient:
+        available = True
+
+        def answer(self, question: str, sources) -> object:
+            raise Exception("raw-provider-secret")
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _FailingChatClient())
+
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/chat",
+        json={"question": "What happened in this provider failure case?"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert response.status_code == 503
+    assert "raw-provider-secret" not in response.text
+
+
+def test_global_ask_provider_error_does_not_leak_raw_error(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """The cross-post Ask boundary settles a provider failure with a
+    stable message, not the worker's raw exception text (ADR 0123).
+
+    Submission is fire-and-forget (202): the failure surfaces once the
+    background worker settles the job, so this polls GET
+    /api/ask/jobs/{id} the same way the queued-success test does.
+    """
+    import time as _time
+
+    class _FailingAskClient:
+        available = True
+
+        def answer(self, question: str, sources) -> object:
+            raise Exception("raw-global-provider-secret")
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FailingAskClient())
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+
+    submitted = client.post(
+        "/api/ask",
+        json={"question": "What happened in this global failure case?"},
+        headers=headers,
+    )
+    assert submitted.status_code == 202
+    job_id = submitted.json()["ask_job_id"]
+
+    deadline = _time.monotonic() + 30
+    body: dict = {}
+    while _time.monotonic() < deadline:
+        polled = client.get(f"/api/ask/jobs/{job_id}", headers=headers)
+        assert polled.status_code == 200
+        body = polled.json()
+        if body["job_status_code"] in ("succeeded", "failed"):
+            break
+        _time.sleep(0.25)
+    assert body.get("job_status_code") == "failed", body
+    assert "raw-global-provider-secret" not in str(body)
+
+
+def test_keymen_provider_error_does_not_leak_raw_error(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Keymen provider failures become a stable 503 at the API boundary."""
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FailingKeymanClient:
+        available = True
+
+        def extract(self, post_title: str, post_body: str) -> object:
+            raise Exception("raw-keyman-provider-secret")
+
+    monkeypatch.setattr("backend.app.main._keyman_extraction_client", lambda: _FailingKeymanClient())
+
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/extract-keymen",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert response.status_code == 503
+    assert "raw-keyman-provider-secret" not in response.text
+
+
+def test_evaluation_provider_error_does_not_leak_raw_error(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Evaluation provider failures become a stable 503 at the API boundary."""
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FailingEvaluationClient:
+        available = True
+
+        def evaluate(self, post_title: str, post_body: str) -> object:
+            raise Exception("raw-evaluation-provider-secret")
+
+    monkeypatch.setattr(
+        "backend.app.main._post_evaluation_client", lambda: _FailingEvaluationClient()
+    )
+
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/evaluate",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert response.status_code == 503
+    assert "raw-evaluation-provider-secret" not in response.text
+
+
+def test_commitment_provider_error_does_not_leak_raw_error(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Commitment provider failures become a stable 503 at the API boundary."""
+    _grant_post_admin(seeded_db["dsn"])
+
+    class _FailingCommitmentClient:
+        available = True
+
+        def extract(self, post_title: str, post_body: str, reference_date: str) -> object:
+            raise Exception("raw-commitment-provider-secret")
+
+    monkeypatch.setattr(
+        "backend.app.main._commitment_extraction_client", lambda: _FailingCommitmentClient()
+    )
+
+    response = client.post(
+        f"/api/posts/{seeded_db['own_private_post_id']}/derive-commitment",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert response.status_code == 503
+    assert "raw-commitment-provider-secret" not in response.text
+
+
+def test_summary_enrichment_provider_error_does_not_leak_raw_error(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Summary enrichment failures stay a stable 503 at the API boundary."""
+    from lineageweave.post_summary import PostSummary
+
+    class _FakeSummaryClient:
+        available = True
+
+        def summarize(self, post_title: str, post_body: str) -> PostSummary:
+            return PostSummary(korean_summary="합성 요약")
+
+    async def _fail_persist(*args, **kwargs):
+        raise Exception("raw-summary-provider-secret")
+
+    monkeypatch.setattr("backend.app.main._post_summary_client", lambda: _FakeSummaryClient())
+    monkeypatch.setattr("backend.app.main.persist_post_summary", _fail_persist)
+
+    response = client.get(
+        f"/api/posts/{seeded_db['own_private_post_id']}/summary",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert response.status_code == 503
+    assert "raw-summary-provider-secret" not in response.text
+
+
 def test_evaluate_is_unavailable_without_orchestrator(client, demo_analyst_token, seeded_db) -> None:
     os.environ.pop("ORCHESTRATOR_BASE_URL", None)
     os.environ.pop("ORCHESTRATOR_API_KEY", None)
@@ -4858,6 +5030,13 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert [axis["axis_index"] for axis in leftover_axes] == [1, 2]
     assert all(axis["leftover_singular_value"] >= 0 for axis in leftover_axes)
     assert all(0.0 <= axis["leftover_share"] <= 1.0 for axis in leftover_axes)
+    leftover_coverage = high_report.get("leftover_map_coverage")
+    assert leftover_coverage is not None
+    assert leftover_coverage["map_post_count"] <= leftover_coverage["scored_post_count"]
+    assert leftover_coverage["incomplete_post_count"] == (
+        leftover_coverage["scored_post_count"] - leftover_coverage["map_post_count"]
+    )
+    assert leftover_coverage["scored_post_count"] >= 2
 
     week3 = client.get(
         "/api/reports/process_unit/2026-W03",

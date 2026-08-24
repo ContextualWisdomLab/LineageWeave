@@ -120,6 +120,8 @@ def seed(
             cur.execute((migrations / "0012_report_leftover_pair.sql").read_text())
             cur.execute((migrations / "0163_report_leftover_observed_expected.sql").read_text())
             cur.execute((migrations / "0164_report_leftover_map_rank.sql").read_text())
+            cur.execute((migrations / "0168_report_leftover_map_coverage.sql").read_text())
+            cur.execute((migrations / "0169_report_leftover_map_axis.sql").read_text())
             cur.execute((migrations / "0182_report_leftover_map_unexplained.sql").read_text())
             cur.execute((migrations / "0060_role_responsibility_agent_type.sql").read_text())
             cur.execute((migrations / "0013_person_job_title.sql").read_text())
@@ -450,7 +452,7 @@ def seed(
             )
             # Fixture occurred_at was stored as created_at. Name that instant
             # as the event clock so Global Ask can disclose the event axis
-            # without inventing a second date (ADR 0168).
+            # without inventing a second date (ADR 0183).
             cur.execute(
                 "update source_post set event_occurred_at = created_at "
                 "where event_occurred_at is null"
@@ -468,7 +470,7 @@ def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, pro
     ``created_at = occurred_at``, and ``event_occurred_at = occurred_at``
     so a later ``POST /api/lineage/rebuild`` sees the same grouping and
     timeline reconstruct() was designed on, and Global Ask relative-time
-    filters can name the event clock (ADR 0168).
+    filters can name the event clock (ADR 0183).
     Returns persisted ``Record``s whose ids are the new post UUIDs.
     """
     from datetime import timezone
@@ -1244,6 +1246,27 @@ def _persist_seed_period_report(
                 axis.axis_index,
                 axis.leftover_singular_value,
                 axis.leftover_share,
+            ),
+        )
+    if report.leftover_map_coverage is not None:
+        coverage = report.leftover_map_coverage
+        cur.execute(
+            "insert into report_leftover_map_coverage ("
+            "grouping_kind, grouping_key, period_code, rubric_version, "
+            "map_post_count, scored_post_count, map_item_count, scored_item_count, "
+            "incomplete_post_count, incomplete_item_count"
+            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            (
+                grouping_kind,
+                grouping_key,
+                period_code,
+                RUBRIC_VERSION,
+                coverage.map_post_count,
+                coverage.scored_post_count,
+                coverage.map_item_count,
+                coverage.scored_item_count,
+                coverage.incomplete_post_count,
+                coverage.incomplete_item_count,
             ),
         )
 

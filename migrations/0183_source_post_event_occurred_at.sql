@@ -1,4 +1,4 @@
--- ADR 0168: persist the source-system event instant separately from
+-- ADR 0183: persist the source-system event instant separately from
 -- record ingestion time. Nullable so bulk imports without an event
 -- clock keep the created_at fallback instead of inventing a date.
 
