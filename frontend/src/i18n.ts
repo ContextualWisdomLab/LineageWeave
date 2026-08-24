@@ -374,6 +374,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "관측된 원본 작성자 {total}명 중 게시물 수 기준 상위 {shown}명을 표시합니다.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "대화형 질문을 지금 사용할 수 없습니다. 저장된 근거는 계속 확인할 수 있습니다.",
+    "leftover axis {axis} {share}%": "잔차 축 {axis} {share}%",
+    "Leftover-map axis share": "잔차 지도 축 비율",
+    "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
+      "잔차 지도 축 비율은 잔차 SVD 축 1과 2의 Gabriel 관성입니다. 글–기준 셀을 읽으려면 잔차 쌍을 여세요. 이 비율은 잔차 점수를 만들어내지 않습니다.",
     "Leftover pairs": "잔여 쌍",
     "Closest leftover": "가장 가까운 잔여",
     "Farthest leftover": "가장 먼 잔여",
@@ -385,6 +389,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "주효과 이후 가장 가깝게 앉은 기준을 읽으려면 이 글을 여세요.",
     "Open this post to read the criterion it sat farthest from after main effects.":
       "주효과 이후 가장 멀리 앉은 기준을 읽으려면 이 글을 여세요.",
+    "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.":
+      "잔여 지도가 IRT 주효과 이후 설명되지 않은 U {value}을(를) 남깁니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "IRT 주효과 이후 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -751,6 +757,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "显示按文章数排序的 {total} 位已观察来源作者中的前 {shown} 位。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "交互式提问暂不可用；已保存的证据仍可查看。",
+    "leftover axis {axis} {share}%": "残差轴 {axis} {share}%",
+    "Leftover-map axis share": "残差图轴占比",
+    "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
+      "残差图轴占比是残差 SVD 第 1、2 轴的 Gabriel 惯量。打开一个残差配对可查看文章–准则单元格。这些占比不会虚构残差分数。",
     "Leftover pairs": "残余配对",
     "Closest leftover": "最近残余",
     "Farthest leftover": "最远残余",
@@ -762,6 +772,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "打开这篇帖子，阅读主效应后距离最近的准则。",
     "Open this post to read the criterion it sat farthest from after main effects.":
       "打开这篇帖子，阅读主效应后距离最远的准则。",
+    "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.":
+      "残差图在 IRT 主效应后留下未解释的 U {value}。打开这篇帖子阅读 {criterion}。",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "阅读 IRT 主效应后的观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -1128,6 +1140,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "投稿数順に、観測された{total}名の元投稿者のうち上位{shown}名を表示しています。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "対話形式の質問は現在利用できません。保存された証拠は確認できます。",
+    "leftover axis {axis} {share}%": "残差軸 {axis} {share}%",
+    "Leftover-map axis share": "残差マップ軸の比率",
+    "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
+      "残差マップ軸の比率は、残差 SVD の第1軸と第2軸の Gabriel 慣性です。投稿–基準セルを読むには残差ペアを開いてください。この比率から残差スコアを作りません。",
     "Leftover pairs": "残差ペア",
     "Closest leftover": "最も近い残差",
     "Farthest leftover": "最も遠い残差",
@@ -1139,6 +1155,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "主効果後に最も近くなった基準を読むには、この投稿を開いてください。",
     "Open this post to read the criterion it sat farthest from after main effects.":
       "主効果後に最も遠くなった基準を読むには、この投稿を開いてください。",
+    "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.":
+      "残差マップはIRT主効果後の未説明 U {value} を残します。この投稿を開いて {criterion} を読んでください。",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "IRT主効果後の観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -1505,6 +1523,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Đang hiển thị {shown} tác giả nguồn hàng đầu trong số {total} tác giả đã quan sát, xếp theo số bài viết.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "Câu hỏi tương tác hiện không khả dụng; bằng chứng đã lưu vẫn có thể xem.",
+    "leftover axis {axis} {share}%": "trục phần dư {axis} {share}%",
+    "Leftover-map axis share": "Tỷ trọng trục bản đồ phần dư",
+    "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
+      "Tỷ trọng trục bản đồ phần dư là quán tính Gabriel của các trục SVD phần dư 1 và 2. Mở một cặp phần dư để đọc ô bài viết–tiêu chí. Các tỷ trọng này không tạo ra điểm phần dư.",
     "Leftover pairs": "Cặp phần dư",
     "Closest leftover": "Phần dư gần nhất",
     "Farthest leftover": "Phần dư xa nhất",
@@ -1516,6 +1538,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Mở bài viết này để đọc tiêu chí nằm gần nhất sau hiệu ứng chính.",
     "Open this post to read the criterion it sat farthest from after main effects.":
       "Mở bài viết này để đọc tiêu chí nằm xa nhất sau hiệu ứng chính.",
+    "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.":
+      "Bản đồ phần dư để lại U {value} chưa giải thích sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "Đọc Y quan sát {observed} và E kỳ vọng {expected} sau hiệu ứng chính IRT, rồi mở bài viết này.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
