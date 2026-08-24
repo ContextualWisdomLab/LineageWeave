@@ -29,12 +29,14 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  window.history.replaceState({}, "", "/");
   window.sessionStorage.clear();
   window.localStorage.clear();
 });
 
 describe("App, unauthenticated", () => {
   it("shows a login button that starts the real OIDC redirect", async () => {
+    window.history.replaceState({}, "", "/?post=abc#evidence");
     render(<App showLabPanels />);
     expect(screen.queryByRole("heading", { name: /admin settings/i })).toBeNull();
     const button = screen.getByRole("button", { name: /log in/i });
@@ -42,7 +44,7 @@ describe("App, unauthenticated", () => {
     expect(signinRedirect).toHaveBeenCalledTimes(1);
     expect(signinRedirect).toHaveBeenCalledWith(
       expect.objectContaining({
-        state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
+        state: { returnUrl: "/?post=abc#evidence" },
       }),
     );
     // Persisted as a fallback in case the OIDC state round-trip is dropped
@@ -995,6 +997,14 @@ describe("App, authenticated", () => {
                     leftover_share: 0.18,
                   },
                 ],
+                leftover_map_coverage: {
+                  map_post_count: 2,
+                  scored_post_count: 3,
+                  map_item_count: 2,
+                  scored_item_count: 2,
+                  incomplete_post_count: 1,
+                  incomplete_item_count: 0,
+                },
                 members: [
                   {
                     post_id: "post-1",
@@ -1409,6 +1419,34 @@ describe("App, authenticated", () => {
                 relevance: 0.6,
               },
             ],
+          }),
+        );
+      }
+      if (url.includes("/api/ontology/neighborhood")) {
+        return Promise.resolve(
+          jsonResponse({
+            focus_node_id: "post-1",
+            focus_node_type_code: "node_post",
+            truncated: false,
+            next_cursor: null,
+            limitation_code: "neighborhood_empty",
+            nodes: [
+              {
+                node_id: "post-1",
+                node_type_code: "node_post",
+                ontology_class_iri: "https://contextualwisdomlab.github.io/lineageweave/ontology#Post",
+                display_label: "Public post",
+                truth_status_code: "truth_observed",
+                valid_from: null,
+                valid_to: null,
+                recorded_at: "2026-01-10T12:00:00+00:00",
+                evidence_count: 0,
+                shape_code: "rectangle",
+              },
+            ],
+            edges: [],
+            exact_value_rows: [],
+            jsonld: { "@graph": [] },
           }),
         );
       }
@@ -1906,7 +1944,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
 
     expect(await screen.findByText("Demo Corp")).toBeInTheDocument();
     expect(screen.getByText("DEMO-CORP-01 · Company")).toBeInTheDocument();
@@ -1926,7 +1964,7 @@ describe("App, authenticated", () => {
     stubBackend({ customerEntityHierarchy: true });
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
 
     expect(await screen.findByText("Demo Group")).toBeInTheDocument();
     const subsidiaryRow = screen.getByText("Demo Corp").closest("li");
@@ -1946,7 +1984,7 @@ describe("App, authenticated", () => {
     stubBackend();
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
 
     expect(await screen.findByText("Northridge Grid")).toBeInTheDocument();
     expect(screen.getByText("Voice of Customer (1), Voice of Competitor (1)")).toBeInTheDocument();
@@ -1968,7 +2006,7 @@ describe("App, authenticated", () => {
     stubBackend({ admin: true, manyCustomerHints: 1 });
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
 
     expect(await screen.findByText("CUST-0")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Resolve" }));
@@ -1980,7 +2018,7 @@ describe("App, authenticated", () => {
     stubBackend({ manyCustomerHints: 1 });
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
 
     expect(await screen.findByText("CUST-0")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Resolve" })).not.toBeInTheDocument();
@@ -1996,7 +2034,7 @@ describe("App, authenticated", () => {
     stubBackend({ hintRelatedPosts: true });
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
 
     const customerSection = await screen.findByRole("region", { name: "Observed customer evidence" });
     expect(within(customerSection).getByText("Related posts (1)").closest("details")).toHaveClass(
@@ -2022,7 +2060,7 @@ describe("App, authenticated", () => {
     stubBackend({ manyCustomerHints: 45 });
     render(<App />);
     expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+    await userEvent.click(screen.getByRole("button", { name: "고객 마스터" }));
 
     expect(await screen.findByText("CUST-0")).toBeInTheDocument();
     expect(screen.getByText(/Showing the first 30 of 45 observed customer identifiers/)).toBeInTheDocument();
@@ -3667,6 +3705,10 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("Open");
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
     expect(screen.getByLabelText("Leftover pairs")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map coverage")).toHaveTextContent(
+      "Leftover map used 2 of 3 scored posts (complete-case)",
+    );
+    const coverageCaption = screen.getByLabelText("Leftover map coverage");
     const closestPair = screen.getByRole("button", { name: /open leftover closest pair: public post/i });
     const farthestPair = screen.getByRole("button", {
       name: /open leftover farthest pair: specification revision requested/i,
@@ -3690,6 +3732,7 @@ describe("App, authenticated", () => {
     expect(farthestPair).toHaveTextContent("U −0.25");
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
+    expect(coverageCaption.compareDocumentPosition(closestPair) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(closestPair.compareDocumentPosition(memberButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(
       screen.getByRole("button", { name: /open report post: specification revision requested/i }),
@@ -3825,12 +3868,31 @@ describe("App, authenticated", () => {
     );
   });
 
-  it("keeps advanced review tools out of the buyer board", async () => {
+  it("keeps advanced review tools out of the analyst board", async () => {
     stubBackend();
     render(<App />);
 
-    expect(await screen.findByRole("navigation", { name: "Buyer navigation" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Board" })).toHaveAttribute("aria-current", "page");
+    const nav = await screen.findByRole("navigation", { name: "Workspace navigation" });
+    expect(nav).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "게시판" })).toHaveAttribute("aria-current", "page");
+    expect(within(nav).getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "게시판",
+      "고객 마스터",
+      "달력",
+      "Ask Agent",
+    ]);
+    expect(nav.textContent).not.toMatch(/Buyer|Cubee|Board|Customer master/i);
+    expect(within(nav).queryByRole("button", { name: /Admin|관리자/i })).not.toBeInTheDocument();
     expect(screen.queryByText("Advanced review tools")).not.toBeInTheDocument();
+  });
+
+  it("fails closed on the calendar destination when CalendarWeave consume is unwired", async () => {
+    stubBackend();
+    render(<App />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "달력" }));
+    expect(screen.getByRole("heading", { name: "달력" })).toBeInTheDocument();
+    expect(screen.getByText("이 범위의 일정을 아직 받을 수 없습니다")).toBeInTheDocument();
+    expect(screen.queryByText(/Buyer|Cubee/i)).not.toBeInTheDocument();
   });
 });
