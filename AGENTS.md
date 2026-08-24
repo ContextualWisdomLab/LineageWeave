@@ -202,6 +202,12 @@ persist to `report_leftover_pair` with signed residual `R`, observed
 plus leftover-map rank so rank 0 is not read as structure. They sit
 above the member list so a click opens that post.
 
+Global Ask merged Event Lineage (ADR 0151 / 0169) loads visible posts
+and lineage edges once for every cited post, keeps cited posts first
+when the graph is larger than the landing bound, and names
+**truncated** so the reader can open a cited post for the full
+thread. Do not refetch the edge table per citation.
+
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a
 floating Node version):

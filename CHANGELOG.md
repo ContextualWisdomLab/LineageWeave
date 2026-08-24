@@ -40,6 +40,16 @@ All notable changes to this project are documented here. Format follows
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 
+## [2.14.0] - 2026-08-24
+
+### Changed
+
+- Global Ask now builds the merged cited Event Lineage graph from one
+  `source_post` scan and one `post_lineage_edge` read, keeps cited posts
+  first when the graph exceeds the landing node bound, and names
+  **truncated** so a click still opens that cited post (ADR 0169 / #568).
+  Do not invent a theta.
+
 ## [2.12.18] - 2026-08-24
 
 ### Fixed

@@ -218,9 +218,12 @@ lives in `lineageweave/keyman_extraction.py` and talks to
 contextual-orchestrator; persist is `backend/app/keyman_ingestion.py`.
 
 `GET /api/lineage` returns the ABAC-filtered reconstruct graph
-(`{nodes, edges}`) from persisted `post_lineage_edge` rows. Each node
+(`{nodes, edges, truncated}`) from persisted `post_lineage_edge` rows. Each node
 includes `group` from the same `reconstruct_group_key()` rebuild uses
 (persisted `thread_group_key`, else process unit, else corp).
+Global Ask merges cited threads from one post/edge fetch pair and
+caps the payload at the landing node bound, keeping cited posts first
+(ADR 0169). Open a cited post to read the focused thread.
 `POST /api/lineage/rebuild` (`post_admin`) re-runs `reconstruct()` over
 every `source_post` and rewrites those edges. Reconstruct grouping is
 stored on the post as `thread_group_key` / `secondary_grouping_key`
