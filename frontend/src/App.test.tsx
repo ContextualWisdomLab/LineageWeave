@@ -1571,7 +1571,15 @@ describe("App, authenticated", () => {
       }
       if (url.endsWith("/api/ask") && method === "POST") {
         return Promise.resolve(
+          jsonResponse({ ask_job_id: "ask-job-1", job_status_code: "queued" }),
+        );
+      }
+      if (url.includes("/api/ask/jobs/") && method === "GET") {
+        return Promise.resolve(
           jsonResponse({
+            ask_job_id: "ask-job-1",
+            job_status_code: "succeeded",
+            answer: {
             answer_text: "The cited project is supported by the stored semantic evidence.",
             cited_post_ids: ["post-2"],
             cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
@@ -1630,6 +1638,7 @@ describe("App, authenticated", () => {
                   truncated: false,
                 }
               : { nodes: [], edges: [], truncated: false },
+            },
           }),
         );
       }

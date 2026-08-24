@@ -15,23 +15,32 @@ import { loginAsDemoAnalyst } from "./support/auth.ts";
  * pass against arbitrary deployments, since the Keycloak-hosted login form
  * is shared across every branch.
  */
+// A live Ask answer is an asynchronous queued job whose LLM round-trip can
+// take minutes under shared-gateway load (158 s measured); the frontend
+// polls until the job settles, so every "answer arrived" expectation gets a
+// deadline sized to that reality rather than to a local mock.
+const ASK_ANSWER_TIMEOUT_MS = 240_000;
+
 test.beforeEach(async ({ page }) => {
+  test.setTimeout(ASK_ANSWER_TIMEOUT_MS + 60_000);
   await loginAsDemoAnalyst(page);
   await page.locator(".language-switcher select").selectOption("en");
   await page.getByRole("button", { name: "Ask Agent" }).click();
 });
 
 test("answers a relative-time-scoped question and cites at least one post", async ({ page }) => {
-  await page.getByRole("textbox", { name: "Ask a question" }).fill("어제 무슨 일이 있었나요?");
+  // The seeded posts are dated 2026-01; "7개월 전" (seven months ago) from a
+  // 2026-08 clock resolves to that month, so the temporal filter keeps them.
+  await page.getByRole("textbox", { name: "Ask a question" }).fill("7개월 전에 무슨 일이 있었나요?");
   await page.getByRole("button", { name: "Ask", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Answer" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Cited posts" })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole("heading", { name: "Cited posts" })).toBeVisible({ timeout: ASK_ANSWER_TIMEOUT_MS });
 });
 
 test("renders a cited lineage thread as a git-branch-style graph", async ({ page }) => {
   await page.getByRole("textbox", { name: "Ask a question" }).fill("What happened between these events?");
   await page.getByRole("button", { name: "Ask", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Cited posts" })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole("heading", { name: "Cited posts" })).toBeVisible({ timeout: ASK_ANSWER_TIMEOUT_MS });
   const lineage = page.getByLabel("Reconstructed lineage");
   // Fail loudly (not silently skip) if the answer stops citing a
   // multi-post lineage -- the whole point of this test.
@@ -43,7 +52,7 @@ test("renders a cited lineage thread as a git-branch-style graph", async ({ page
 test("cites persisted image evidence when a cited post has an embedded image", async ({ page }) => {
   await page.getByRole("textbox", { name: "Ask a question" }).fill("Which project?");
   await page.getByRole("button", { name: "Ask", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Cited posts" })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole("heading", { name: "Cited posts" })).toBeVisible({ timeout: ASK_ANSWER_TIMEOUT_MS });
   const imageEvidence = page.getByText(/^Image evidence:/);
   // Fail loudly (not silently skip) if the answer stops citing image
   // evidence -- the whole point of this test.
@@ -54,7 +63,7 @@ test("cites persisted image evidence when a cited post has an embedded image", a
 test("opens cited-post evidence in a Layer Popup without leaving the answer", async ({ page }) => {
   await page.getByRole("textbox", { name: "Ask a question" }).fill("Which project?");
   await page.getByRole("button", { name: "Ask", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Cited posts" })).toBeVisible({ timeout: 15000 });
+  await expect(page.getByRole("heading", { name: "Cited posts" })).toBeVisible({ timeout: ASK_ANSWER_TIMEOUT_MS });
 
   const viewEvidence = page.getByRole("button", { name: "View evidence" }).first();
   await viewEvidence.click();

@@ -108,6 +108,10 @@ from backend.app.post_content_queue import (
     post_content_is_complete,
     publish_post_content_event,
 )
+from backend.app.global_ask_queue import (
+    enqueue_global_ask_job,
+    run_global_ask_worker,
+)
 from backend.app.post_content_worker import run_post_content_worker
 from backend.app.source_post_revision import fetch_known_at_revision, parse_as_of_clock
 from backend.app.activity_stream import (
@@ -176,7 +180,6 @@ from backend.app.post_chat_ingestion import (
     fetch_persisted_chats,
     find_linked_post_ids,
     gather_chat_sources,
-    gather_global_chat_sources,
     persist_post_chat,
 )
 from backend.app.post_summary_ingestion import (
@@ -223,14 +226,25 @@ async def lifespan(app: FastAPI):
             structure_factory=_post_structure_client,
         )
     )
+    # Late-bound lambda so tests that monkeypatch _post_chat_client reach
+    # the worker too (the name resolves in module globals at call time).
+    app.state.global_ask_worker = asyncio.create_task(
+        run_global_ask_worker(
+            app.state.valkey,
+            app.state.pool,
+            chat_factory=lambda: _post_chat_client(),
+        )
+    )
     try:
         yield
     finally:
         app.state.analysis_run_worker.cancel()
         app.state.post_content_worker.cancel()
+        app.state.global_ask_worker.cancel()
         await asyncio.gather(
             app.state.analysis_run_worker,
             app.state.post_content_worker,
+            app.state.global_ask_worker,
             return_exceptions=True,
         )
         await app.state.pool.close()
@@ -2622,65 +2636,71 @@ async def chat_about_post(
     }
 
 
-@app.post("/api/ask")
+@app.post("/api/ask", status_code=status.HTTP_202_ACCEPTED)
 async def ask_agent(
     request: GlobalAskRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
-    """Answer a reader question from authorized post and graph evidence."""
+    """Queue a reader question for asynchronous answering.
+
+    A live answer is a multi-minute orchestrator LLM round-trip under
+    load, so it never runs inside this request: the question becomes a
+    durable ``global_ask_job`` row plus a Valkey wake-up, and the reader
+    polls ``GET /api/ask/jobs/{id}`` for the settled answer. Submission
+    still fails fast on the states that cannot ever succeed (blank
+    question, missing permission, unconfigured orchestrator).
+    """
     question = request.question.strip()
     if not question:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "question is required")
     _require_post_read(account)
-    client = _post_chat_client()
-    if not client.available:
+    if not _post_chat_client().available:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
         )
     async with pool.acquire() as conn:
-        sources = await gather_global_chat_sources(
+        job_id = await enqueue_global_ask_job(
             conn,
-            lambda row: _can_see_post(account, row),
-            account.corporate_entity_ids,
-            question=question,
+            valkey,
+            requesting_account_id=account.user_account_id,
+            question_text=question,
         )
-    if not sources:
-        return {
-            "answer_text": "",
-            "cited_post_ids": [],
-            "cited_posts": [],
-            "source_post_ids": [],
-            "cited_post_evidence": [],
-            "lineage_graph": {"nodes": [], "edges": [], "truncated": False},
-            "cited_post_images": [],
-            "next_action": "No authorized source posts are available for this question.",
-        }
-    try:
-        answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, ValueError) as exc:
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            f"Ask Agent is unavailable: {exc}",
-        ) from exc
-    cited_ids = list(answer.cited_post_ids)
+    return {"ask_job_id": job_id, "job_status_code": "queued"}
+
+
+@app.get("/api/ask/jobs/{ask_job_id}")
+async def read_ask_job(
+    ask_job_id: UUID,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Report one Ask job's status, and its answer once it has settled.
+
+    Owner-scoped: another account's job id reads as absent (404, not
+    403) so job ids do not leak their existence across accounts.
+    """
+    _require_post_read(account)
     async with pool.acquire() as conn:
-        lineage_graph = await lineage_graphs_for_posts(
-            conn,
-            lambda row: _can_see_post(account, row),
-            cited_ids,
+        row = await conn.fetchrow(
+            "select requesting_account_id, job_status_code, answer_payload,"
+            " failure_detail from global_ask_job where global_ask_job_id = $1",
+            ask_job_id,
         )
-        images = await cited_post_images(conn, cited_ids)
-    return {
-        "answer_text": answer.answer_text,
-        "cited_post_ids": cited_ids,
-        "cited_posts": cited_post_summaries(sources, cited_ids),
-        "cited_post_evidence": cited_post_evidence(sources, cited_ids),
-        "cited_post_images": images,
-        "source_post_ids": [source.post_id for source in sources],
-        "lineage_graph": lineage_graph,
+    if row is None or str(row["requesting_account_id"]) != account.user_account_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "ask job not found")
+    body: dict[str, Any] = {
+        "ask_job_id": str(ask_job_id),
+        "job_status_code": row["job_status_code"],
     }
+    if row["job_status_code"] == "succeeded" and row["answer_payload"] is not None:
+        payload = row["answer_payload"]
+        body["answer"] = json.loads(payload) if isinstance(payload, str) else payload
+    if row["job_status_code"] == "failed":
+        body["failure_detail"] = row["failure_detail"]
+    return body
 
 
 class PostBookmarkRequest(BaseModel):

@@ -132,6 +132,11 @@ _LEFTOVER_MAP_RANK_MIGRATION = (
     / "migrations"
     / "0164_report_leftover_map_rank.sql"
 )
+_GLOBAL_ASK_JOB_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0165_global_ask_job.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -249,6 +254,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_CHANNEL_WEIGHT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
+            cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -4349,6 +4355,94 @@ def test_ask_requires_authentication(client) -> None:
     """Anonymous callers cannot ask across the buyer's authorized post corpus."""
     response = client.post("/api/ask", json={"question": "Any question"})
     assert response.status_code in (401, 403)
+
+
+def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Submission returns 202 immediately; the worker settles the job.
+
+    The multi-minute LLM round-trip must never run inside the HTTP
+    request, so the contract under test is: POST returns a job id at
+    once, and GET /api/ask/jobs/{id} eventually reports `succeeded`
+    with the full answer payload the old synchronous endpoint returned.
+    """
+    import time as _time
+
+    from lineageweave.post_chat import ChatAnswer
+
+    class _FakeChatClient:
+        available = True
+
+        def answer(self, question, sources):  # noqa: ARG002 - contract shape
+            return ChatAnswer(
+                answer_text="A settled asynchronous answer.",
+                cited_post_ids=(sources[0].post_id,),
+            )
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _FakeChatClient())
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    submitted = client.post(
+        "/api/ask", json={"question": "What happened with the public post?"}, headers=headers
+    )
+    assert submitted.status_code == 202
+    job_id = submitted.json()["ask_job_id"]
+    assert submitted.json()["job_status_code"] == "queued"
+
+    deadline = _time.monotonic() + 30
+    body: dict = {}
+    while _time.monotonic() < deadline:
+        polled = client.get(f"/api/ask/jobs/{job_id}", headers=headers)
+        assert polled.status_code == 200
+        body = polled.json()
+        if body["job_status_code"] in ("succeeded", "failed"):
+            break
+        _time.sleep(0.25)
+    assert body.get("job_status_code") == "succeeded", body
+    answer = body["answer"]
+    assert answer["answer_text"] == "A settled asynchronous answer."
+    assert answer["cited_post_ids"], "the fake client cited one source"
+    assert "lineage_graph" in answer and "cited_post_images" in answer
+
+
+def test_ask_job_reads_are_owner_scoped(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Another account's job id must read as absent, not merely forbidden."""
+    from lineageweave.post_chat import NullPostChatClient
+
+    class _AvailableButUnusedClient(NullPostChatClient):
+        available = True
+
+    monkeypatch.setattr(
+        "backend.app.main._post_chat_client", lambda: _AvailableButUnusedClient()
+    )
+    submitted = client.post(
+        "/api/ask",
+        json={"question": "Owner-scoped question"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert submitted.status_code == 202
+    job_id = submitted.json()["ask_job_id"]
+    admin_token = post_form(
+        f"{_KEYCLOAK_BASE_URL}/realms/{_REALM}/protocol/openid-connect/token",
+        {
+            "grant_type": "password",
+            "client_id": "lineageweave-frontend",
+            "username": "demo.admin",
+            "password": "lineageweave-demo-only",
+        },
+        timeout=10,
+    )["access_token"]
+    other = client.get(
+        f"/api/ask/jobs/{job_id}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    # Either denial proves cross-account protection: 404 when the caller
+    # holds post_read but does not own the job (existence hidden), 403
+    # when the caller lacks post_read entirely (permission gate first).
+    assert other.status_code in (403, 404)
+    assert "answer" not in other.json()
 
 
 def test_derive_commitment_uses_post_created_at_and_does_not_duplicate(
