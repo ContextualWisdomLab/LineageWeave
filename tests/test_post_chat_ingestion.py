@@ -8,6 +8,7 @@ import pytest
 
 from backend.app.post_chat_ingestion import (
     LinkedPostIds,
+    cited_post_images,
     fetch_persisted_chat,
     fetch_persisted_chats,
     gather_chat_sources,
@@ -293,3 +294,67 @@ def test_contextual_chat_client_rejects_malformed_provider_response(monkeypatch:
     client = ContextualOrchestratorPostChatClient("https://orchestrator", "secret")
     with pytest.raises(ValueError, match="required format"):
         client.answer("Question", [ChatSourceDocument("post-a", "Evidence A", "body")])
+
+
+class _ImageFakeConnection:
+    def __init__(self, rows: list[dict[str, object]]) -> None:
+        self.rows = rows
+        self.queries: list[tuple[str, tuple[object, ...]]] = []
+
+    async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+        self.queries.append((query, args))
+        cited_ids = set(args[0]) if args else set()
+        return [row for row in self.rows if row["post_id"] in cited_ids]
+
+
+def test_cited_post_images_returns_persisted_captions_for_cited_posts_only() -> None:
+    connection = _ImageFakeConnection(
+        [
+            {
+                "post_id": "post-a",
+                "unit_index": 2,
+                "mime_type": "image/png",
+                "description_status_code": "described",
+                "extracted_text": "Error code 500 on checkout",
+                "caption": "Screenshot of the checkout error",
+                "tags": ["screenshot", "error"],
+            },
+            {
+                "post_id": "post-not-cited",
+                "unit_index": 0,
+                "mime_type": "image/png",
+                "description_status_code": "described",
+                "extracted_text": "irrelevant",
+                "caption": "irrelevant",
+                "tags": [],
+            },
+            {
+                "post_id": "post-a",
+                "unit_index": 3,
+                "mime_type": "image/png",
+                "description_status_code": "unavailable",
+                "extracted_text": None,
+                "caption": None,
+                "tags": [],
+            },
+        ]
+    )
+    images = asyncio.run(cited_post_images(connection, ["post-a"]))
+    assert images == [
+        {
+            "post_id": "post-a",
+            "unit_index": 2,
+            "mime_type": "image/png",
+            "status_code": "described",
+            "extracted_text": "Error code 500 on checkout",
+            "caption": "Screenshot of the checkout error",
+            "tags": ["screenshot", "error"],
+        }
+    ]
+
+
+def test_cited_post_images_with_no_citations_skips_the_query() -> None:
+    connection = _ImageFakeConnection([])
+    images = asyncio.run(cited_post_images(connection, []))
+    assert images == []
+    assert connection.queries == []
