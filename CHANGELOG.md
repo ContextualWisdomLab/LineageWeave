@@ -35,6 +35,16 @@ All notable changes to this project are documented here. Format follows
   coverage (`Analysis/EvidenceStatusMark`) are available now; it is
   presentational only and never infers a status itself.
 
+- Persisted Global Ask conversation history (ADR 0126, superseding the
+  non-persistence consequence in ADR 0090): migration
+  `0105_global_ask_conversation_history.sql` and
+  `backend/app/global_ask_history.py` store each account's questions,
+  answers, next actions, retrieved source posts, cited posts, and
+  reader-safe evidence facts, and re-apply current post visibility on
+  read so a revoked post drops from history while the stored answer
+  stays. Ask history now survives navigation and a new browser session
+  instead of living only in the client.
+
 ### Changed
 
 - Renamed "Buyer" terminology to reader/workspace naming across the frontend
@@ -67,9 +77,10 @@ All notable changes to this project are documented here. Format follows
 - All OpenAI-compatible chat-completion consumers now validate the shared
   response envelope before parsing it, preventing malformed provider bodies
   from escaping as raw `KeyError` or response-shape details.
-- Customer Master integration fixtures no longer reference an unshipped
-  Global Ask history migration; Global Ask remains stateless as documented by
-  ADR 0090, while the shipped scope-facet migration is applied directly.
+- Customer Master integration fixtures no longer reference the Global Ask
+  history migration for their own setup; they apply only the shipped
+  scope-facet migration directly, since Global Ask's persisted history
+  (see Added, ADR 0126) is unrelated to Customer Master scope fixtures.
 - The static SQL review contract now counts the Customer Master evidence query
   that uses closed schema fragments and bound entity ids.
 
