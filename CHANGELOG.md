@@ -69,7 +69,12 @@ All notable changes to this project are documented here. Format follows
   et al. (2009)'s real RRF citation stands, and the weight split is now
   described honestly as an engineering default informed by Efron &
   Golovchinsky (2011), not a value taken from any paper's reported
-  optimum. `tests/test_adr_citation_integrity.py` pins the correction.
+  optimum. A follow-up sweep of all 44 ADRs with References sections (149
+  citations) found no further fabrications; ADR 0025 and ADR 0137 both
+  misattributed the real W3C PROV-O document to "Moreau, L., & Missier, P."
+  (the real editors of sibling spec PROV-DM, not PROV-O) -- corrected to
+  PROV-O's actual editors (Lebo, Sahoo, & McGuinness, 2013).
+  `tests/test_adr_citation_integrity.py` pins all three corrections.
 - `_parse_plain_summary_response` (`lineageweave/post_summary.py`) now
   returns the declared 3-tuple (`summary, key_events, key_event_details`)
   on its no-`KEY EVENTS:`-marker branch, instead of a 2-tuple. A
