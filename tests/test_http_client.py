@@ -8,10 +8,31 @@ import pytest
 
 from lineageweave.http_client import (
     HttpClientError,
+    chat_completion_content,
     get_json,
     post_form,
     post_json,
 )
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"error": "raw-provider-secret"},
+        {"choices": []},
+        {"choices": [{"message": {"content": 123}}]},
+        {"choices": [{"message": {"content": ["raw-provider-secret"]}}]},
+    ],
+)
+def test_chat_completion_content_rejects_unsafe_or_malformed_envelopes(body: object) -> None:
+    with pytest.raises((TypeError, ValueError)) as error:
+        chat_completion_content(body)
+
+    assert "raw-provider-secret" not in str(error.value)
+
+
+def test_chat_completion_content_returns_text_without_rewriting_it() -> None:
+    assert chat_completion_content({"choices": [{"message": {"content": "  []  "}}]}) == "  []  "
 
 
 class _JsonHandler(BaseHTTPRequestHandler):

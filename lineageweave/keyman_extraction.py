@@ -142,9 +142,9 @@ def parse_keyman_response(content: str) -> list[PersonMention]:
     try:
         parsed = json.loads(_strip_code_fence(content).strip())
     except json.JSONDecodeError:
-        return []
+        raise ValueError("Keyman response must be a valid JSON array") from None
     if not isinstance(parsed, list):
-        return []
+        raise ValueError("Keyman response must be a JSON array")
 
     mentions: list[PersonMention] = []
     for entry in parsed:

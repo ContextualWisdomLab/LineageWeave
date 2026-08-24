@@ -4,10 +4,10 @@
 
 | Source | Product decision | Evidence |
 |---|---|---|
-| RFC 4791 | Do not call the legacy JSON `/events` feed CalDAV; provider DAV behavior belongs to Naruon. | ADR 0038; ADR 0168; issue #336 |
-| RFC 6578 | Sync tokens and collection reconciliation are provider-authority concerns, not LineageWeave read-model fields. | ADR 0168; Naruon #978/#998 |
+| RFC 4791 | Do not call the legacy JSON `/events` feed CalDAV; provider DAV behavior belongs to Naruon. | ADR 0038; ADR 0183; issue #336 |
+| RFC 6578 | Sync tokens and collection reconciliation are provider-authority concerns, not LineageWeave read-model fields. | ADR 0183; Naruon #978/#998 |
 | RFC 5545 | Recurrence occurrence identity, timezone, and all-day semantics must survive the Naruon projection. | Projection v1 schema and parser tests |
-| PROV-O | External rows remain `observed`; LineageWeave commitments retain separate authoritative post provenance. | `truth_status_code`; ADR 0168 |
+| PROV-O | External rows remain `observed`; LineageWeave commitments retain separate authoritative post provenance. | `truth_status_code`; ADR 0183 |
 | OWASP API4:2023 | Limit page size, date window, timeout, and response bytes before parsing to constrain resource consumption. | Client bounds; bounded HTTP response tests |
 
 ## APA 7th references

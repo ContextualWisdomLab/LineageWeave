@@ -261,7 +261,7 @@ def _parse_description(content: str) -> ImageDescription:
             fields["TEXT"].append(_strip_outer_markdown_emphasis(line))
 
     if not fields["TEXT"] and not fields["CAPTION"]:
-        raise ImageDescriptionParseError("vision response had neither TEXT nor CAPTION content")
+        raise ImageDescriptionParseError("vision response had no usable TEXT or CAPTION content")
 
     extracted_text = "\n".join(fields["TEXT"]).strip()
     if extracted_text.upper() == "NONE":
@@ -377,7 +377,7 @@ class OpenAiCompatibleVisionClient:
         fenced = re.sub(r"^\s*```(?:json)?\s*|\s*```\s*$", "", content, flags=re.IGNORECASE)
         document = json.loads(fenced)
         if not isinstance(document, dict):
-            raise ValueError("vision region response had no regions list")
+            raise TypeError("vision region response had no regions list")
         regions = document.get("regions")
         if not isinstance(regions, list):
             single_region = tuple(document.get(name) for name in ("x", "y", "width", "height"))

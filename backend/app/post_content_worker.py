@@ -281,7 +281,7 @@ async def process_post_content_job(
                     expected_attempt_count=attempt_count,
                 )
                 return
-    except Exception as exc:  # noqa: BLE001 - durable failure is recorded for retry.
+    except Exception:  # noqa: BLE001 - durable failure is recorded for retry.
         _logger.exception("post content ingestion failed for post_id=%s", post_id)
         await _finish_failed_job(
             pool,
