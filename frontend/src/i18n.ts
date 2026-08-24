@@ -633,6 +633,17 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "IRT 주효과 이후 잔여 맵에 잔여 구조가 없습니다. 이 글을 여세요.",
     "Leftover map rank {rank} after IRT main effects. Open this post.":
       "IRT 주효과 이후 잔여 맵 랭크 {rank}. 이 글을 여세요.",
+    "Leftover pairs": "잔여 쌍",
+    "Closest leftover": "가장 가까운 잔여",
+    "Farthest leftover": "가장 먼 잔여",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "주효과 이후 가장 가까웠던 기준을 읽으려면 이 글을 여세요.",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "주효과 이후 가장 멀었던 기준을 읽으려면 이 글을 여세요.",
+    "Leftover-map inner product ξ·ζ {value} reconstructs leftover residual after IRT main effects. Open this post to read {criterion}.":
+      "잔여 맵 내적 ξ·ζ {value}가 IRT 주효과 이후 잔여를 재구성합니다. {criterion}을(를) 읽으려면 이 글을 여세요.",
+    "Open leftover {kind} pair: {title} · {criterion}":
+      "잔여 {kind} 쌍 열기: {title} · {criterion}",
   },
   zh: {
     "Unknown": "未知",
@@ -1176,6 +1187,17 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "IRT 主效应后残余图没有残余结构。打开这篇帖子。",
     "Leftover map rank {rank} after IRT main effects. Open this post.":
       "IRT 主效应后的残余图秩 {rank}。打开这篇帖子。",
+    "Leftover pairs": "残余对",
+    "Closest leftover": "最近的残余",
+    "Farthest leftover": "最远的残余",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "打开这篇帖子，阅读主效应后它最接近的标准。",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "打开这篇帖子，阅读主效应后它最远离的标准。",
+    "Leftover-map inner product ξ·ζ {value} reconstructs leftover residual after IRT main effects. Open this post to read {criterion}.":
+      "残余图内积 ξ·ζ {value} 重建了 IRT 主效应后的残余。打开这篇帖子以阅读 {criterion}。",
+    "Open leftover {kind} pair: {title} · {criterion}":
+      "打开残余{kind}对：{title} · {criterion}",
   },
   ja: {
     "Unknown": "不明",
@@ -1719,6 +1741,17 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "IRT主効果後の残差マップに残差構造はありません。この投稿を開いてください。",
     "Leftover map rank {rank} after IRT main effects. Open this post.":
       "IRT主効果後の残差マップランク {rank}。この投稿を開いてください。",
+    "Leftover pairs": "残差ペア",
+    "Closest leftover": "最も近い残差",
+    "Farthest leftover": "最も遠い残差",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "主効果後に最も近かった基準を読むには、この投稿を開いてください。",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "主効果後に最も遠かった基準を読むには、この投稿を開いてください。",
+    "Leftover-map inner product ξ·ζ {value} reconstructs leftover residual after IRT main effects. Open this post to read {criterion}.":
+      "残差マップ内積 ξ·ζ {value} が IRT 主効果後の残差を再構成します。{criterion} を読むにはこの投稿を開いてください。",
+    "Open leftover {kind} pair: {title} · {criterion}":
+      "残差{kind}ペアを開く: {title} · {criterion}",
   },
   vi: {
     "Unknown": "Không rõ",
@@ -2262,6 +2295,17 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Bản đồ phần dư không có cấu trúc phần dư sau hiệu ứng chính IRT. Mở bài viết này.",
     "Leftover map rank {rank} after IRT main effects. Open this post.":
       "Hạng bản đồ phần dư {rank} sau hiệu ứng chính IRT. Mở bài viết này.",
+    "Leftover pairs": "Cặp phần dư",
+    "Closest leftover": "Phần dư gần nhất",
+    "Farthest leftover": "Phần dư xa nhất",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "Mở bài viết này để đọc tiêu chí mà nó gần nhất sau hiệu ứng chính.",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "Mở bài viết này để đọc tiêu chí mà nó xa nhất sau hiệu ứng chính.",
+    "Leftover-map inner product ξ·ζ {value} reconstructs leftover residual after IRT main effects. Open this post to read {criterion}.":
+      "Tích trong bản đồ phần dư ξ·ζ {value} tái tạo phần dư sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
+    "Open leftover {kind} pair: {title} · {criterion}":
+      "Mở cặp phần dư {kind}: {title} · {criterion}",
   },
 };
 
