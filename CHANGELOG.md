@@ -20,7 +20,7 @@ All notable changes to this project are documented here. Format follows
 - Bounded ontology/provenance neighborhood (`GET /api/ontology/neighborhood`)
   with typed Post/Person/CorporateEntity/Team nodes, SKOS broader distinct
   from OWL subclass, truth-status vocabulary, knowledge-cutoff binding, and
-  a Keyman-panel explorer that is not Event Lineage (ADR 0184 / #341).
+  a Keyman-panel explorer that is not Event Lineage (ADR 0185 / #341).
 - Corroborated SKOS `altLabel` / `prefLabel` pairs now expand corporate
   catalog candidates so a synthetic short form (`AGP`) and full form
   (`Aurora Grid Power`) bind one `corporate_entity` row instead of
@@ -107,7 +107,7 @@ All notable changes to this project are documented here. Format follows
 - Period leftover pair rows now name explained leftover share
   `e = R̂_c² / R̃²` of centered leftover next to leftover-map distance
   `d`, then open that post (Gabriel, 1971; Jeon et al., 2021, eq. 3;
-  ADR 0184). A missing share omits the badge rather than inventing a
+  ADR 0185). A missing share omits the badge rather than inventing a
   leftover score. Two-axis reconstruction `R̂_c` stays internal and is
   not persisted. Unexplained leftover share `s` is not persisted here.
 

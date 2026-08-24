@@ -6,7 +6,7 @@
 [ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E);
 [ADR 0164](0164-leftover-map-rank.md) (full map rank);
 [ADR 0182](0182-leftover-map-unexplained.md) (unexplained leftover U);
-[ADR 0184](0184-leftover-map-explained-share.md) (explained leftover share)
+[ADR 0185](0185-leftover-map-explained-share.md) (explained leftover share)
 
 ## Context
 
@@ -45,7 +45,7 @@ not reconstruct is not read as leftover residual `R` or leftover-map
 distance `d` (ADR 0182), and names explained leftover share
 `e = R̂_c² / R̃²` of centered leftover so the leftover cell the
 two-axis map reconstructs is likewise not read as leftover residual
-`R` or leftover-map distance `d` (ADR 0184). Two-axis reconstruction
+`R` or leftover-map distance `d` (ADR 0185). Two-axis reconstruction
 `R̂` / `R̂_c` is computed internally and is not persisted.
 
 Cascade the rows with `report_period_score`. A leftover post must

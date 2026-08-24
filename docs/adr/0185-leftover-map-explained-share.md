@@ -1,4 +1,4 @@
-# ADR 0184 — Name explained leftover share on period-report pair rows
+# ADR 0185 — Name explained leftover share on period-report pair rows
 
 **Decision status:** Accepted
 **Date:** 2026-08-24

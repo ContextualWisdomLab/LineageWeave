@@ -28,7 +28,7 @@ export type LeftoverPairListProps = {
  *
  * Distance is the two-axis leftover-map Euclidean gap. Residual is
  * ``R = Y − E[Y|θ, item]`` (Jeon et al., 2021, eq. 3 input). Explained
- * leftover share ``e = R̂_c² / R̃²`` of centered leftover (ADR 0184)
+ * leftover share ``e = R̂_c² / R̃²`` of centered leftover (ADR 0185)
  * takes priority over unexplained leftover ``U = R − R̂`` (ADR 0182),
  * which takes priority over the residual/observed-expected/rank next
  * action, when finite; every badge still renders together before
@@ -58,7 +58,7 @@ export function LeftoverPairList({
         const unexplained = formatLeftoverMapUnexplained(pair.leftover_map_unexplained);
         let nextAction: string;
         if (shareBadge !== null) {
-          // Explained share (ADR 0184) is the newest, most specific
+          // Explained share (ADR 0185) is the newest, most specific
           // leftover-map amendment, so it leads the next-action cascade.
           // Unexplained leftover (ADR 0182) still renders as its own
           // badge below -- no amendment hides another.

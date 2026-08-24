@@ -1,7 +1,7 @@
 """Leftover post–criterion pairs after the main-effect IRT.
 
 Covers ADR 0048 as amended by ADR 0119, ADR 0148, ADR 0163, ADR 0164,
-ADR 0182, and ADR 0184.
+ADR 0182, and ADR 0185.
 
 Uses a constructed residual matrix so the closest and farthest pair
 are known without calling ``fit_polytomous``. Loads
