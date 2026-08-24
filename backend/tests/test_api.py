@@ -12,6 +12,7 @@ HTTP to Keycloak goes through ``lineageweave.http_client``.
 
 from __future__ import annotations
 
+import math
 import os
 import uuid
 from pathlib import Path
@@ -4529,8 +4530,8 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
         assert share is None or isinstance(share, (int, float))
         if share is not None:
             assert isinstance(share, (int, float))
-            assert share == share
-            assert abs(share) != float("inf")
+            assert not math.isnan(share)
+            assert not math.isinf(share)
         assert "leftover_map_explained_share" not in pair
         assert "leftover_map_unexplained_share" not in pair
         assert "leftover_map_unexplained" not in pair
