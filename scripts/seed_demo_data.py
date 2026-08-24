@@ -120,6 +120,8 @@ def seed(
             cur.execute((migrations / "0012_report_leftover_pair.sql").read_text())
             cur.execute((migrations / "0163_report_leftover_observed_expected.sql").read_text())
             cur.execute((migrations / "0164_report_leftover_map_rank.sql").read_text())
+            cur.execute((migrations / "0168_report_leftover_map_coverage.sql").read_text())
+            cur.execute((migrations / "0169_report_leftover_map_axis.sql").read_text())
             cur.execute((migrations / "0172_report_leftover_interaction_map.sql").read_text())
             cur.execute((migrations / "0182_report_leftover_map_unexplained.sql").read_text())
             cur.execute((migrations / "0060_role_responsibility_agent_type.sql").read_text())
@@ -1266,6 +1268,27 @@ def _persist_seed_period_report(
                 axis.axis_index,
                 axis.leftover_singular_value,
                 axis.leftover_share,
+            ),
+        )
+    if report.leftover_map_coverage is not None:
+        coverage = report.leftover_map_coverage
+        cur.execute(
+            "insert into report_leftover_map_coverage ("
+            "grouping_kind, grouping_key, period_code, rubric_version, "
+            "map_post_count, scored_post_count, map_item_count, scored_item_count, "
+            "incomplete_post_count, incomplete_item_count"
+            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            (
+                grouping_kind,
+                grouping_key,
+                period_code,
+                RUBRIC_VERSION,
+                coverage.map_post_count,
+                coverage.scored_post_count,
+                coverage.map_item_count,
+                coverage.scored_item_count,
+                coverage.incomplete_post_count,
+                coverage.incomplete_item_count,
             ),
         )
 

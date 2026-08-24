@@ -79,6 +79,8 @@ flowchart LR
 | `post_chat.py` | Pluggable in-popup chat's reason-and-cite step (retrieve step lives in `backend/app/post_chat_ingestion.py`) |
 | `commitment_extraction.py` | Pluggable LLM derivation of a customer commitment (promise + deadline) from a post; `Null` default, `ContextualOrchestrator` real impl |
 | `ontology.py` | Loads `docs/ontology/lineageweave-kg.ttl`, the formal OWL 2/RDFS/SKOS vocabulary for the Knowledge Graph's node/edge types (ADR 0004) |
+| `ontology_neighborhood.py` | Bounded typed ontology/provenance neighborhood (ADR 0168); PostgreSQL stays authoritative, OWL subclass is not an instance edge |
+| `ontology_source_cursor.py` | Opaque HMAC source-window continuation (ADR 0124); keyset pagination, never OFFSET |
 | `period_report.py` | Fit GRM/GPCM on persisted IRT rows, FIPC-select, EAP-score a period (ADR 0003 slice 3; Bock & Mislevy, 1982) |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |
 | `server.py` | Legacy stdlib HTTP server for the library-level synthetic fixture demo; production uses FastAPI/PostgreSQL |
@@ -594,14 +596,18 @@ on those same fixed parameters (Kim, 2006 FIPC). After scoring,
 information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
 residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021;
-ADR 0017 / 0048 / 0119 / 0121 / 0126 / 0148 / 0162 / 0163 / 0164 / 0182)
-persist to `report_leftover_pair` with signed residual `R`, observed
-`Y`, expected `E[Y|θ, item]`, full leftover-map rank, and unexplained
-leftover `U = R − R̂` named on the pair row. Complete-case leftover-map
-coordinates persist to `report_leftover_map_person` /
+ADR 0017 / 0048 / 0119 / 0121 / 0126 / 0148 / 0162 / 0163 / 0164 / 0182 /
+0183) persist to `report_leftover_pair` with signed residual `R`,
+observed `Y`, expected `E[Y|θ, item]`, full leftover-map rank, and
+unexplained leftover `U = R − R̂` named on the pair row. Complete-case
+leftover-map coordinates persist to `report_leftover_map_person` /
 `report_leftover_map_item`. Leftover-map axis share (Gabriel inertia of
 residual SVD axes 1 and 2; ADR 0148) persists to
-`report_leftover_map_axis`. Results persist to
+`report_leftover_map_axis`. Complete-case leftover-map coverage (ADR
+0183) persists to `report_leftover_map_coverage` so readers see how
+many scored posts entered the factorization -- without a complete-case
+rectangle neither a pair nor a coordinate is persisted either. Results
+persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
@@ -616,7 +622,8 @@ the actual mean θ, the FIPC delta, the CAT-selected item, leftover
 closest/farthest pairs (signed residual `R`, observed `Y`, expected
 `E`, full rank, and two-axis leftover-map distance `d` after IRT main
 effects) above the member list, the leftover interaction map,
-leftover-map axis share for residual SVD axes 1 and 2, and the
+leftover-map axis share for residual SVD axes 1 and 2, complete-case
+coverage captions (map used N of M scored posts), plus the
 PU / corp / thread comparison -- never a placeholder. TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer

@@ -10,7 +10,9 @@ scattered short records. See [ARCHITECTURE.md](ARCHITECTURE.md) for the
 design, [ADR 0084](docs/adr/0084-lineage-research-grounding.md) for the
 normative research-grounding policy, and
 [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md) for
-supporting literature and aggregate evidence.
+supporting literature and aggregate evidence. Event Lineage (reconstructed
+post-to-post parents) is distinct from the typed ontology neighborhood
+(ADR 0168); source-window continuation is ADR 0124. Do not mix those graphs.
 
 ## Hard rule: no real data in repository artifacts
 
@@ -128,7 +130,8 @@ contextual-orchestrator owns model discovery and selection.
   flatten transparent pixels onto white for the derived analysis image while
   retaining the original asset and provenance. Recognize image DOM/visual
   regions before OCR, descriptions, Keyman extraction, or embeddings. Store
-  region-level evidence; never show an internal LLM instruction such as
+  region-level evidence and show each region's bounding range beside its
+  caption and OCR (ADR 0155); never show an internal LLM instruction such as
   `This post is an image` to a buyer.
 
 ## Source parsing and semantic units
@@ -193,7 +196,7 @@ against a live local stack (`make up`) and self-skip without one -- see
 [README.md](README.md#local-product-stack-docker-compose).
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0121 / 0126 /
-0148 / 0162 / 0163 / 0164 / 0182) are computed in
+0148 / 0162 / 0163 / 0164 / 0182 / 0183) are computed in
 `lineageweave/leftover_pairs.py` from the residual after a real GRM/GPCM
 score, never invented. Distances are Euclidean on the two-dimensional
 Gabriel leftover map; missing cells stay out of the factorization.
@@ -210,7 +213,12 @@ that post. Two-axis reconstruction `R̂` is not persisted -- only the ξ /
 ζ coordinates are. Leftover-map axis share (ADR 0148) is Gabriel
 inertia of residual SVD axes 1 and 2 and persists to
 `report_leftover_map_axis`. Rank-0 residuals emit two zero-share axes;
-the shares are report-level and are not a leftover score.
+the shares are report-level and are not a leftover score. Complete-case
+coverage (ADR 0183) persists to `report_leftover_map_coverage` and
+captions the pair list with how many scored posts entered the map;
+without a complete-case rectangle no pair or coordinate is persisted
+either, so the coverage caption -- not a center-distance stand-in
+pair -- tells the buyer why.
 
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a

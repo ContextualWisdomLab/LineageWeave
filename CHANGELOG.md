@@ -8,6 +8,19 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Opening a post with persisted image-region evidence now shows each region's
+  bounding range beside its caption, OCR, and tags (ADR 0155). After
+  `make seed`, a synthetic process-diagram region reads **Region location:
+  0%, 0% – 100%, 100%**. Internal LLM instructions stay hidden. Click the
+  region list to compare that box with the caption, then read the source
+  image.
+- Ontology neighborhoods can continue beyond the bounded SQL source window
+  with a versioned opaque HMAC cursor and keyset pagination (ADR 0124 / #363).
+  A missing process secret keeps the truncated-without-cursor contract.
+- Bounded ontology/provenance neighborhood (`GET /api/ontology/neighborhood`)
+  with typed Post/Person/CorporateEntity/Team nodes, SKOS broader distinct
+  from OWL subclass, truth-status vocabulary, knowledge-cutoff binding, and
+  a Keyman-panel explorer that is not Event Lineage (ADR 0168 / #341).
 - Corroborated SKOS `altLabel` / `prefLabel` pairs now expand corporate
   catalog candidates so a synthetic short form (`AGP`) and full form
   (`Aurora Grid Power`) bind one `corporate_entity` row instead of
@@ -24,9 +37,20 @@ All notable changes to this project are documented here. Format follows
   compatibility vocabulary after validating every mapping's term kind.
 - The PROV-O support profile now mints its product class mappings only in the
   canonical lowercase namespace while importing the legacy compatibility map.
+- Period leftover maps now persist how many scored posts entered the
+  complete-case Gabriel factorization (ADR 0183). The leftover pair
+  list is captioned “Leftover map used N of M scored posts
+  (complete-case)”; incomplete rows stay excluded, never filled with
+  zero.
 
 ### Fixed
 
+- Event Lineage's DAG no longer leaves a linear (no-branch) reconstruct
+  chain unexplained. `is_branch_point` is only `true` when a post has 2+
+  children -- correct reconstruct behavior, not a bug -- but the graph
+  gave no indication why the "Branch point" legend entry never lit up.
+  Added an explicit note whenever a group has edges but no branch point,
+  translated across all five product locales.
 - `GET /healthz`: a stray decorator had stacked this route onto
   `read_tenant_settings`, so the liveness probe silently required auth and
   hit Postgres instead of returning `{"status": "ok"}`, and the real
@@ -48,6 +72,17 @@ All notable changes to this project are documented here. Format follows
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
+- Ontology neighborhoods now enforce request bounds before database access,
+  apply node-level ABAC, omit unlabeled endpoints, preserve catalog-owned node
+  metadata, and keep typed endpoint IDs unambiguous. Workspace CSV and JSON-LD
+  exports now represent the same filtered graph.
+- All OpenAI-compatible chat-completion consumers now validate the shared
+  response envelope before parsing it, preventing malformed provider bodies
+  from escaping as raw `KeyError` or response-shape details.
+- Ontology Explorer now clears a previously loaded neighborhood when the
+  session token is removed, hides live refocus on static catalog snapshots,
+  and looks up corporate-parent visibility independently of the child. OWL-Time
+  is cited as a W3C Candidate Recommendation Draft.
 
 ## [2.12.26] - 2026-08-24
 

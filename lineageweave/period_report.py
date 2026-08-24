@@ -23,7 +23,9 @@ A Gabriel biplot of ``R`` supplies person and item leftover-map
 positions. Closest / farthest pairs are the min / max Euclidean
 distances on that map (Jeon et al., 2021, eq. 3). Leftover-map axis
 share is Gabriel inertia ``σ_k² / Σ_j σ_j²`` of residual SVD axes 1
-and 2 (ADR 0148). ``fast-mlsirm`` has no leftover-pair API; this
+and 2 (ADR 0148). Complete-case coverage (ADR 0183) names how many
+scored posts entered the factorization; incomplete rows are excluded,
+never filled with zero. ``fast-mlsirm`` has no leftover-pair API; this
 module does not invent a second IRT fit and does not fork LSIRM.
 
 This module is pure compute. Persistence lives in
@@ -48,9 +50,11 @@ from fast_mlsirm import (
 from .leftover_pairs import (
     LeftoverInteractionMap,
     LeftoverMapAxis,
+    LeftoverMapCoverage,
     LeftoverMapItem,
     LeftoverMapPerson,
     LeftoverPair,
+    leftover_map_coverage_from_residual,
     leftover_map_from_residual,
 )
 from .leftover_pairs import leftover_pairs_from_residual as leftover_pairs_from_residual
@@ -124,6 +128,7 @@ class PeriodReport:
     leftover_map_persons: tuple[LeftoverMapPerson, ...] = ()
     leftover_map_items: tuple[LeftoverMapItem, ...] = ()
     leftover_map_axes: tuple[LeftoverMapAxis, ...] = ()
+    leftover_map_coverage: LeftoverMapCoverage | None = None
 
 
 def _sigmoid(value: np.ndarray) -> np.ndarray:
@@ -256,20 +261,6 @@ def expected_category_matrix(matrix: np.ndarray, probs: np.ndarray) -> np.ndarra
     return np.where(np.isnan(matrix), np.nan, expected)
 
 
-def leftover_map_for_fit(
-    post_ids: list[str],
-    item_codes: tuple[str, ...],
-    matrix: np.ndarray,
-    model: str,
-    theta: np.ndarray,
-    fit: PolytomousFit,
-) -> tuple[tuple[LeftoverPair, ...], tuple[LeftoverMapAxis, ...]]:
-    """Leftover pairs and leftover-map axis share from fitted GRM/GPCM."""
-    probs = _category_probabilities(model, theta, fit)
-    expected = expected_category_matrix(matrix, probs)
-    return leftover_map_from_residual(post_ids, item_codes, matrix, expected)
-
-
 def leftover_pairs_for_fit(
     post_ids: list[str],
     item_codes: tuple[str, ...],
@@ -294,6 +285,20 @@ def leftover_map_for_fit(
     probs = _category_probabilities(model, theta, fit)
     expected = expected_category_matrix(matrix, probs)
     return leftover_map_from_residual(post_ids, item_codes, matrix, expected)
+
+
+def leftover_map_coverage_for_fit(
+    post_ids: list[str],
+    item_codes: tuple[str, ...],
+    matrix: np.ndarray,
+    model: str,
+    theta: np.ndarray,
+    fit: PolytomousFit,
+) -> LeftoverMapCoverage:
+    """Complete-case leftover-map coverage from the fitted main effects."""
+    probs = _category_probabilities(model, theta, fit)
+    expected = expected_category_matrix(matrix, probs)
+    return leftover_map_coverage_from_residual(post_ids, item_codes, matrix, expected)
 
 
 def _member_scores(post_ids: list[str], scores: dict[str, np.ndarray]) -> tuple[MemberScore, ...]:
@@ -346,6 +351,9 @@ def calibrate_period_report(
     mean_theta = float(theta.mean())
     item_bank = item_bank_from_fit(fit, item_codes, source_period_code)
     leftover_map = leftover_map_for_fit(post_ids, item_codes, matrix, selected, theta, fit)
+    leftover_map_coverage = leftover_map_coverage_for_fit(
+        post_ids, item_codes, matrix, selected, theta, fit
+    )
     return PeriodReport(
         selected_model=selected,
         mean_theta=mean_theta,
@@ -363,6 +371,7 @@ def calibrate_period_report(
         leftover_map_persons=leftover_map.persons,
         leftover_map_items=leftover_map.items,
         leftover_map_axes=leftover_map.axes,
+        leftover_map_coverage=leftover_map_coverage,
     )
 
 
@@ -394,6 +403,9 @@ def score_period_on_bank(
     leftover_map = leftover_map_for_fit(
         post_ids, item_bank.item_codes, matrix, item_bank.model, theta, fit
     )
+    leftover_map_coverage = leftover_map_coverage_for_fit(
+        post_ids, item_bank.item_codes, matrix, item_bank.model, theta, fit
+    )
     return PeriodReport(
         selected_model=item_bank.model,
         mean_theta=mean_theta,
@@ -417,6 +429,7 @@ def score_period_on_bank(
         leftover_map_persons=leftover_map.persons,
         leftover_map_items=leftover_map.items,
         leftover_map_axes=leftover_map.axes,
+        leftover_map_coverage=leftover_map_coverage,
     )
 
 
