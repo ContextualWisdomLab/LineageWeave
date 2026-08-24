@@ -1,6 +1,6 @@
 """Leftover post–criterion pairs after the main-effect IRT.
 
-Covers ADR 0048 as amended by ADR 0119, ADR 0163, and ADR 0164.
+Covers ADR 0048 as amended by ADR 0119, ADR 0148, ADR 0163, and ADR 0164.
 
 Uses a constructed residual matrix so the closest and farthest pair
 are known without calling ``fit_polytomous``. Loads
@@ -46,6 +46,8 @@ leftover = _load_leftover()
 PAIR_KIND_CLOSEST = leftover.PAIR_KIND_CLOSEST
 PAIR_KIND_FARTHEST = leftover.PAIR_KIND_FARTHEST
 leftover_pairs_from_residual = leftover.leftover_pairs_from_residual
+leftover_map_from_residual = leftover.leftover_map_from_residual
+leftover_map_axes_from_singular = leftover.leftover_map_axes_from_singular
 
 
 def _assert_residual_reconciles(pair) -> None:
@@ -209,6 +211,62 @@ def test_leftover_residual_rejects_database_tolerance_boundary() -> None:
         )
 
 
+def test_rank_one_leftover_map_puts_all_inertia_on_axis_one() -> None:
+    """A rank-1 residual must report leftover-map share 1 on axis 1, 0 on axis 2."""
+    post_ids = ["post-a", "post-b", "post-c"]
+    item_codes = ("item_near", "item_mid", "item_far")
+    matrix = np.array(
+        [
+            [2.0, 0.0, -2.0],
+            [0.0, 0.0, 0.0],
+            [-2.0, 0.0, 2.0],
+        ],
+        dtype=np.float64,
+    )
+    expected = np.zeros_like(matrix)
+    pairs, axes = leftover_map_from_residual(post_ids, item_codes, matrix, expected)
+    assert [pair.pair_kind for pair in pairs] == [PAIR_KIND_CLOSEST, PAIR_KIND_FARTHEST]
+    assert [axis.axis_index for axis in axes] == [1, 2]
+    assert axes[0].leftover_share == pytest.approx(1.0)
+    assert axes[1].leftover_share == pytest.approx(0.0)
+    assert axes[0].leftover_singular_value > 0.0
+    assert axes[1].leftover_singular_value == pytest.approx(0.0)
+    assert leftover_pairs_from_residual(post_ids, item_codes, matrix, expected) == pairs
+
+
+def test_zero_residual_emits_two_zero_share_leftover_map_axes() -> None:
+    post_ids = ["alpha-post", "beta-post"]
+    item_codes = ("item_one", "item_two")
+    matrix = np.ones((2, 2), dtype=np.float64)
+    expected = np.ones((2, 2), dtype=np.float64)
+    pairs, axes = leftover_map_from_residual(post_ids, item_codes, matrix, expected)
+    assert [pair.pair_kind for pair in pairs] == [PAIR_KIND_CLOSEST, PAIR_KIND_FARTHEST]
+    assert [axis.axis_index for axis in axes] == [1, 2]
+    assert axes[0].leftover_share == pytest.approx(0.0)
+    assert axes[1].leftover_share == pytest.approx(0.0)
+    assert axes[0].leftover_singular_value == pytest.approx(0.0)
+    assert axes[1].leftover_singular_value == pytest.approx(0.0)
+
+
+def test_leftover_map_axes_from_singular_use_gabriel_inertia() -> None:
+    """Share is σ_k² / Σ_j σ_j² from the actual singular values, never a leftover score."""
+    singular = np.array([3.0, 1.0, 0.5], dtype=np.float64)
+    total = float(np.sum(singular * singular))
+    axes = leftover_map_axes_from_singular(singular)
+    assert [axis.axis_index for axis in axes] == [1, 2]
+    assert axes[0].leftover_singular_value == pytest.approx(3.0)
+    assert axes[1].leftover_singular_value == pytest.approx(1.0)
+    assert axes[0].leftover_share == pytest.approx(9.0 / total)
+    assert axes[1].leftover_share == pytest.approx(1.0 / total)
+    assert leftover_map_axes_from_singular(np.zeros(0))[0].leftover_share == pytest.approx(0.0)
+    assert leftover_map_from_residual(
+        ["post-empty"],
+        ("item_one",),
+        np.array([[np.nan]], dtype=np.float64),
+        np.array([[0.0]], dtype=np.float64),
+    ) == ((), ())
+
+
 def test_rank_four_pair_distances_match_two_dimensional_gabriel_coords() -> None:
     """Jeon leftover_distance is Euclidean on the 2D map, not the full SVD rank."""
     post_ids = ["post-a", "post-b", "post-c", "post-d"]
@@ -295,7 +353,7 @@ def test_nonfinite_map_distance_falls_back_to_centered_residual(
         lambda *_args: (
             np.array([[np.inf]], dtype=np.float64),
             np.array([[-np.inf]], dtype=np.float64),
-            1,
+            np.array([1.0], dtype=np.float64),
         ),
     )
     pairs = leftover_pairs_from_residual(
@@ -314,7 +372,7 @@ def test_empty_observation_mask_has_no_complete_case_axes() -> None:
     keep_person, keep_item = leftover._complete_case_masks(observed)
     assert not keep_person.any()
     assert not keep_item.any()
-    person_pos, item_pos, rank = leftover._complete_case_positions(
+    person_pos, item_pos, singular = leftover._complete_case_positions(
         np.zeros((1, 1), dtype=np.float64),
         0.0,
         keep_person,
@@ -322,7 +380,7 @@ def test_empty_observation_mask_has_no_complete_case_axes() -> None:
     )
     assert person_pos is None
     assert item_pos is None
-    assert rank == 0
+    assert singular.size == 0
 
 
 def test_leftover_map_rank_rejects_negative_rank() -> None:

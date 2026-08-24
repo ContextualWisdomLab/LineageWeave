@@ -1226,6 +1226,22 @@ def _persist_seed_period_report(
                 pair.leftover_map_rank,
             ),
         )
+    for axis in report.leftover_map_axes:
+        cur.execute(
+            "insert into report_leftover_map_axis ("
+            "grouping_kind, grouping_key, period_code, rubric_version, "
+            "axis_index, leftover_singular_value, leftover_share"
+            ") values (%s,%s,%s,%s,%s,%s,%s)",
+            (
+                grouping_kind,
+                grouping_key,
+                period_code,
+                RUBRIC_VERSION,
+                axis.axis_index,
+                axis.leftover_singular_value,
+                axis.leftover_share,
+            ),
+        )
 
 
 def _seed_demo_period_report(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:
