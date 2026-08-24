@@ -1,4 +1,4 @@
-"""Bounded ontology/provenance neighborhood (ADR 0168 / issue #341).
+"""Bounded ontology/provenance neighborhood (ADR 0184 / issue #341).
 
 PostgreSQL remains authoritative. This module only assembles a typed,
 authorization-already-applied graph for GET /api/ontology/neighborhood.

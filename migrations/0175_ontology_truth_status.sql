@@ -1,4 +1,4 @@
--- Migration 0175: ontology neighborhood truth-status vocabulary (ADR 0168 / issue #341).
+-- Migration 0175: ontology neighborhood truth-status vocabulary (ADR 0184 / issue #341).
 -- Instance graph edges stay on knowledge_graph_edge; SKOS broader stays
 -- on corporate_entity.parent_entity_id. These lookup rows name the
 -- buyer-visible truth status without promoting inference.
