@@ -232,6 +232,14 @@ describe("i18n", () => {
     "Sales order",
     "Sales-order item",
   ] as const;
+  const knowledgeGraphRelationLabels = [
+    "Legend",
+    "Category",
+    "Time order",
+    "Hierarchy",
+    "Cause and effect",
+    "Other relation",
+  ] as const;
   const roleEvidenceAndCustomerIdentitySearchLabels = [
     "Quantitative evidence",
     "Quantity",
@@ -328,6 +336,16 @@ describe("i18n", () => {
     (locale) => {
       setLocale(locale);
       for (const key of sourceLineageHintLabels) {
+        expect(t(key), `${locale}:${key}`).not.toBe(key);
+      }
+    },
+  );
+
+  it.each(["ko", "zh", "ja", "vi"] as const)(
+    "translates Knowledge Graph relation category labels in %s",
+    (locale) => {
+      setLocale(locale);
+      for (const key of knowledgeGraphRelationLabels) {
         expect(t(key), `${locale}:${key}`).not.toBe(key);
       }
     },

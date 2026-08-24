@@ -170,3 +170,100 @@ export const LongLabels: Story = {
     onSelectPost: () => undefined,
   },
 };
+
+// Nodes are declared in scrambled order (site visit, then the org that owns
+// it, then the earlier milestone, then the later one) to demonstrate that
+// the legend and layout -- not the payload's array order -- are what make
+// precedence (temporal, blue) and hierarchy (orange) legible. A causal
+// (magenta, dotted) edge is included so all three ordering categories plus
+// "other" (mention, gray) appear together in one scene.
+const mixedRelationCategoryGraph: KnowledgeGraph = {
+  post_id: "synthetic-post",
+  nodes: [
+    {
+      id: "site-visit",
+      node_type_code: "semantic_event",
+      node_id: "site-visit",
+      label: "Initial site visit",
+      ontology_label: "event",
+      is_focus: false,
+      is_evidence_text_node: true,
+    },
+    {
+      id: "contractor",
+      node_type_code: "node_corporate_entity",
+      node_id: "contractor",
+      label: "Regional Site Team",
+      ontology_label: "organization",
+      is_focus: false,
+    },
+    {
+      id: "parent-org",
+      node_type_code: "node_corporate_entity",
+      node_id: "parent-org",
+      label: "Main Contractor Group",
+      ontology_label: "organization",
+      is_focus: false,
+    },
+    {
+      id: "delay",
+      node_type_code: "semantic_event",
+      node_id: "delay",
+      label: "Permit delay",
+      ontology_label: "event",
+      is_focus: false,
+      is_evidence_text_node: true,
+    },
+    {
+      id: "schedule-slip",
+      node_type_code: "semantic_event",
+      node_id: "schedule-slip",
+      label: "Revised completion date",
+      ontology_label: "event",
+      is_focus: false,
+      is_evidence_text_node: true,
+    },
+  ],
+  edges: [
+    {
+      source: "contractor",
+      target: "parent-org",
+      edge_type_code: "org_suborganization_of",
+      ontology_label: "Sub-organization of",
+      confidence: 0.95,
+      evidence_post_ids: ["synthetic-post"],
+    },
+    {
+      source: "site-visit",
+      target: "delay",
+      edge_type_code: "time_before",
+      ontology_label: "Before",
+      confidence: 0.9,
+      evidence_text: "The site visit happened before the permit delay was reported.",
+      evidence_post_ids: ["synthetic-post"],
+    },
+    {
+      source: "delay",
+      target: "schedule-slip",
+      edge_type_code: "lw_has_consequence",
+      ontology_label: "Has consequence",
+      confidence: 0.87,
+      evidence_text: "The permit delay caused the completion date to move.",
+      evidence_post_ids: ["synthetic-post"],
+    },
+    {
+      source: "contractor",
+      target: "site-visit",
+      edge_type_code: "edge_mention_organization",
+      ontology_label: "mentioned in post",
+      confidence: 0.7,
+      evidence_post_ids: ["synthetic-post"],
+    },
+  ],
+};
+
+export const MixedRelationCategories: Story = {
+  args: {
+    graph: mixedRelationCategoryGraph,
+  },
+};

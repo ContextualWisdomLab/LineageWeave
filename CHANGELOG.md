@@ -8,6 +8,14 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- The Knowledge Graph panel now classifies every relation into Time order,
+  Hierarchy, Cause and effect, or Other relation, drawn from
+  `docs/ontology/lineageweave-kg.ttl`'s predicate registry, and shows a
+  legend plus a Category column in the evidence table. Node layout now
+  follows a topological sort over temporal/hierarchical/causal edges
+  (earlier, broader, or causing nodes render above later, narrower, or
+  caused ones) instead of the API payload's raw array order, so precedence
+  and hierarchy are visible without hovering every arrow.
 - R&R catalog links now record why they are unresolved (ADR 0141): tied
   candidates, no live enrichment client, checked-but-not-corroborated, or no
   matching catalog entry. The reader sees the specific reason next to an

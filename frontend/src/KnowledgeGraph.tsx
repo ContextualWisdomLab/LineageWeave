@@ -2,6 +2,7 @@ import { useId, useRef, useState, type KeyboardEvent, type PointerEvent } from "
 import type { KnowledgeGraph, KnowledgeGraphNode } from "./api";
 import { CHAR_W, KNOWLEDGE_LABEL_CHARS, LINE_H, wrapLabel } from "./graphLabel";
 import { t, tf } from "./i18n";
+import { precedenceFromEdges, relationCategory, topologicalOrder, type RelationCategory } from "./relationCategory";
 import "./KnowledgeGraph.css";
 
 const MIN_NODE_W = 200;
@@ -42,6 +43,19 @@ function nodeCaption(node: KnowledgeGraphNode): string {
   return node.is_evidence_text_node ? `${node.label} (${node.ontology_label ?? node.node_type_code})` : node.label;
 }
 
+function relationCategoryLabel(category: RelationCategory): string {
+  switch (category) {
+    case "temporal":
+      return t("Time order");
+    case "hierarchical":
+      return t("Hierarchy");
+    case "causal":
+      return t("Cause and effect");
+    default:
+      return t("Other relation");
+  }
+}
+
 function nodeBox(label: string, typeLabel: string): Omit<LaidOutNode, "x" | "y"> {
   const lines = wrapLabel(label, KNOWLEDGE_LABEL_CHARS);
   const typeLines = wrapLabel(typeLabel, KNOWLEDGE_LABEL_CHARS);
@@ -64,7 +78,18 @@ function layoutKnowledgeGraph(graph: KnowledgeGraph): {
   height: number;
 } {
   const focus = graph.nodes.find((node) => node.is_focus);
-  const others = graph.nodes.filter((node) => !node.is_focus);
+  const nodesById = new Map(graph.nodes.map((node) => [node.id, node]));
+  const otherIds = graph.nodes.filter((node) => !node.is_focus).map((node) => node.id);
+  const otherIdSet = new Set(otherIds);
+  // Only precedence edges strictly between two "other" nodes are meaningful to
+  // topologicalOrder, which never sees the focus id -- an edge touching focus
+  // would seed an indegree that can never be released, stranding its other
+  // endpoint in the cycle-fallback drain instead of keeping its original order.
+  const precedenceEdges = graph.edges.filter(
+    (edge) => otherIdSet.has(edge.source) && otherIdSet.has(edge.target),
+  );
+  const orderedOtherIds = topologicalOrder(otherIds, precedenceFromEdges(precedenceEdges));
+  const others = orderedOtherIds.map((id) => nodesById.get(id)!);
   const boxes = new Map(
     graph.nodes.map((node) => {
       const caption = nodeCaption(node);
@@ -236,6 +261,12 @@ export function KnowledgeGraphView({
           <p id={instructionsId} className="knowledge-graph-instructions">
             {t("Arrows show source → target; use arrow keys to pan and controls to zoom.")}
           </p>
+          <ul className="knowledge-graph-legend" aria-label={t("Legend")}>
+            <li className="knowledge-graph-legend-item temporal">{relationCategoryLabel("temporal")}</li>
+            <li className="knowledge-graph-legend-item hierarchical">{relationCategoryLabel("hierarchical")}</li>
+            <li className="knowledge-graph-legend-item causal">{relationCategoryLabel("causal")}</li>
+            <li className="knowledge-graph-legend-item other">{relationCategoryLabel("other")}</li>
+          </ul>
           <div
             className="knowledge-graph-viewport"
             role="region"
@@ -279,10 +310,14 @@ export function KnowledgeGraphView({
                   const target = nodesById.get(edge.target)!;
                   const relationLabel = t(edge.ontology_label ?? edge.edge_type_code);
                   const relationLines = wrapLabel(relationLabel, KNOWLEDGE_LABEL_CHARS);
+                  const category = relationCategory(edge.edge_type_code);
                   const midX = (from.x + to.x) / 2;
                   const midY = (from.y + to.y) / 2 - 6;
                   return (
-                    <g key={`${edge.source}-${edge.target}-${index}`} className="knowledge-graph-edge">
+                    <g
+                      key={`${edge.source}-${edge.target}-${index}`}
+                      className={`knowledge-graph-edge ${category}`}
+                    >
                       <path d={edgePath(from, to)} markerEnd={`url(#${markerId})`} />
                       <text
                         className="knowledge-graph-edge-label"
@@ -368,6 +403,7 @@ export function KnowledgeGraphView({
                     <tr>
                       <th scope="col">{t("Source")}</th>
                       <th scope="col">{t("Relation")}</th>
+                      <th scope="col">{t("Category")}</th>
                       <th scope="col">{t("Target")}</th>
                       <th scope="col">{t("Evidence")}</th>
                       <th scope="col">{t("Confidence")}</th>
@@ -381,6 +417,7 @@ export function KnowledgeGraphView({
                         <tr key={`${edge.edge_type_code}-${index}`}>
                           <td>{source?.label ?? edge.source}</td>
                           <td>{t(edge.ontology_label ?? edge.edge_type_code)}</td>
+                          <td>{relationCategoryLabel(relationCategory(edge.edge_type_code))}</td>
                           <td>{target?.label ?? edge.target}</td>
                           <td>{edge.evidence_text ?? "—"}</td>
                           <td>{Math.round(edge.confidence * 100)}%</td>
