@@ -374,6 +374,65 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "관측된 원본 작성자 {total}명 중 게시물 수 기준 상위 {shown}명을 표시합니다.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "대화형 질문을 지금 사용할 수 없습니다. 저장된 근거는 계속 확인할 수 있습니다.",
+    "Inspect ontology neighborhood": "온톨로지 이웃 검사",
+    "Ontology neighborhood": "온톨로지 이웃",
+    Post: "글",
+    "Typed relations, not Event Lineage": "유형 관계이며 이벤트 계보가 아닙니다",
+    "This is an ontology neighborhood, not Event Lineage.":
+      "이벤트 계보가 아니라 온톨로지 이웃입니다.",
+    "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, and posts.":
+      "이벤트 계보는 복원된 글-글 부모 링크입니다. 이 그래프는 유형이 있는 사람, 조직, 팀, 글을 보여 줍니다.",
+    "Loading ontology neighborhood...": "온톨로지 이웃을 불러오는 중...",
+    "No visible ontology relations for this focus. Open a Keyman or affiliated organization next.":
+      "이 초점에 표시할 온톨로지 관계가 없습니다. 다음으로 Keyman이나 소속 조직을 여세요.",
+    "Neighborhood truncated. Page visible relations, then inspect one edge.":
+      "이웃이 잘렸습니다. 표시된 관계를 넘긴 다음 간선을 검사하세요.",
+    "Access denied for this ontology neighborhood. Open a visible post next.":
+      "이 온톨로지 이웃을 볼 권한이 없습니다. 다음으로 볼 수 있는 글을 여세요.",
+    "This neighborhood is bound to a knowledge cutoff. Compare with live evidence next.":
+      "이 이웃은 지식 기준 시각에 묶여 있습니다. 다음으로 현재 근거와 비교하세요.",
+    "Rejected proposal. Open the evidence and do not treat it as authoritative.":
+      "거절된 제안입니다. 근거를 열고 권위 있는 사실로 다루지 마세요.",
+    "Ontology neighborhood is unavailable. Open a visible post next.":
+      "온톨로지 이웃을 사용할 수 없습니다. 다음으로 볼 수 있는 글을 여세요.",
+    "Search within this neighborhood": "이 이웃에서 검색",
+    "Reset focus": "초점 재설정",
+    "Export CSV": "CSV 내보내기",
+    "Export JSON-LD": "JSON-LD 내보내기",
+    "Print this neighborhood": "이 이웃 인쇄",
+    Legend: "범례",
+    "Node types use shape plus text, never color alone. Truth status is labeled on every edge.":
+      "노드 유형은 색만으로 구분하지 않고 모양과 텍스트를 함께 씁니다. 모든 간선에 진리 상태가 표시됩니다.",
+    rectangle: "사각형",
+    ellipse: "타원",
+    hexagon: "육각형",
+    "rounded rectangle": "둥근 사각형",
+    Authoritative: "권위",
+    Observed: "관측",
+    Inferred: "추론",
+    Proposed: "제안",
+    Superseded: "대체됨",
+    Rejected: "거절",
+    "Hidden evidence was removed. No omitted count is shown.":
+      "숨긴 근거는 제거되었습니다. 생략 개수는 표시하지 않습니다.",
+    "Select node: {label}": "노드 선택: {label}",
+    "Select edge: {property} from {source} to {target}":
+      "간선 선택: {source}에서 {target}(으)로 {property}",
+    "Exact values": "정확한 값",
+    Source: "출발",
+    Property: "속성",
+    Target: "도착",
+    "Truth status": "진리 상태",
+    "Recorded at": "기록 시각",
+    "Node evidence": "노드 근거",
+    "Focus this node next": "다음으로 이 노드에 초점",
+    "Open evidence post": "근거 글 열기",
+    "Close ontology details": "온톨로지 상세 닫기",
+    "Edge provenance": "간선 출처",
+    "Property IRI": "속성 IRI",
+    Provenance: "출처",
+    "Valid from": "유효 시작",
+    "Valid to": "유효 종료",
     "leftover axis {axis} {share}%": "잔차 축 {axis} {share}%",
     "Leftover-map axis share": "잔차 지도 축 비율",
     "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
@@ -757,6 +816,64 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "显示按文章数排序的 {total} 位已观察来源作者中的前 {shown} 位。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "交互式提问暂不可用；已保存的证据仍可查看。",
+    "Inspect ontology neighborhood": "检查本体邻域",
+    "Ontology neighborhood": "本体邻域",
+    Post: "文章",
+    "Typed relations, not Event Lineage": "这是类型化关系，不是事件谱系",
+    "This is an ontology neighborhood, not Event Lineage.": "这是本体邻域，不是事件谱系。",
+    "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, and posts.":
+      "事件谱系显示重建的文章父子链接。此图显示带类型的人员、组织、团队和文章。",
+    "Loading ontology neighborhood...": "正在加载本体邻域...",
+    "No visible ontology relations for this focus. Open a Keyman or affiliated organization next.":
+      "此焦点没有可见的本体关系。接下来打开关键联系人或所属组织。",
+    "Neighborhood truncated. Page visible relations, then inspect one edge.":
+      "邻域已截断。翻看可见关系，然后检查一条边。",
+    "Access denied for this ontology neighborhood. Open a visible post next.":
+      "无权查看此本体邻域。接下来打开一篇可见文章。",
+    "This neighborhood is bound to a knowledge cutoff. Compare with live evidence next.":
+      "此邻域绑定到知识截止时间。接下来与当前证据比较。",
+    "Rejected proposal. Open the evidence and do not treat it as authoritative.":
+      "提案已被拒绝。打开证据，不要将其视为权威事实。",
+    "Ontology neighborhood is unavailable. Open a visible post next.":
+      "无法使用本体邻域。接下来打开一篇可见文章。",
+    "Search within this neighborhood": "在此邻域中搜索",
+    "Reset focus": "重置焦点",
+    "Export CSV": "导出 CSV",
+    "Export JSON-LD": "导出 JSON-LD",
+    "Print this neighborhood": "打印此邻域",
+    Legend: "图例",
+    "Node types use shape plus text, never color alone. Truth status is labeled on every edge.":
+      "节点类型同时使用形状和文字，从不只靠颜色。每条边都标有真值状态。",
+    rectangle: "矩形",
+    ellipse: "椭圆",
+    hexagon: "六边形",
+    "rounded rectangle": "圆角矩形",
+    Authoritative: "权威",
+    Observed: "观测",
+    Inferred: "推断",
+    Proposed: "提议",
+    Superseded: "已取代",
+    Rejected: "已拒绝",
+    "Hidden evidence was removed. No omitted count is shown.":
+      "隐藏证据已移除。不显示省略数量。",
+    "Select node: {label}": "选择节点：{label}",
+    "Select edge: {property} from {source} to {target}":
+      "选择边：从 {source} 到 {target} 的 {property}",
+    "Exact values": "精确值",
+    Source: "起点",
+    Property: "属性",
+    Target: "终点",
+    "Truth status": "真值状态",
+    "Recorded at": "记录时间",
+    "Node evidence": "节点证据",
+    "Focus this node next": "接下来聚焦此节点",
+    "Open evidence post": "打开证据文章",
+    "Close ontology details": "关闭本体详情",
+    "Edge provenance": "边来源",
+    "Property IRI": "属性 IRI",
+    Provenance: "来源",
+    "Valid from": "有效起始",
+    "Valid to": "有效结束",
     "leftover axis {axis} {share}%": "残差轴 {axis} {share}%",
     "Leftover-map axis share": "残差图轴占比",
     "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
@@ -1140,6 +1257,65 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "投稿数順に、観測された{total}名の元投稿者のうち上位{shown}名を表示しています。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "対話形式の質問は現在利用できません。保存された証拠は確認できます。",
+    "Inspect ontology neighborhood": "オントロジー近傍を調べる",
+    "Ontology neighborhood": "オントロジー近傍",
+    Post: "投稿",
+    "Typed relations, not Event Lineage": "型付き関係であり、イベント系譜ではありません",
+    "This is an ontology neighborhood, not Event Lineage.":
+      "これはイベント系譜ではなく、オントロジー近傍です。",
+    "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, and posts.":
+      "イベント系譜は復元された投稿間の親子リンクです。このグラフは型付きの人・組織・チーム・投稿を示します。",
+    "Loading ontology neighborhood...": "オントロジー近傍を読み込んでいます...",
+    "No visible ontology relations for this focus. Open a Keyman or affiliated organization next.":
+      "この焦点に表示できるオントロジー関係はありません。次にキーパーソンまたは所属組織を開いてください。",
+    "Neighborhood truncated. Page visible relations, then inspect one edge.":
+      "近傍が切り詰められました。表示中の関係をページ送りし、辺を調べてください。",
+    "Access denied for this ontology neighborhood. Open a visible post next.":
+      "このオントロジー近傍を見る権限がありません。次に表示可能な投稿を開いてください。",
+    "This neighborhood is bound to a knowledge cutoff. Compare with live evidence next.":
+      "この近傍は知識カットオフに束縛されています。次に現行の証拠と比較してください。",
+    "Rejected proposal. Open the evidence and do not treat it as authoritative.":
+      "却下された提案です。証拠を開き、権威ある事実として扱わないでください。",
+    "Ontology neighborhood is unavailable. Open a visible post next.":
+      "オントロジー近傍を利用できません。次に表示可能な投稿を開いてください。",
+    "Search within this neighborhood": "この近傍内を検索",
+    "Reset focus": "焦点をリセット",
+    "Export CSV": "CSV を書き出す",
+    "Export JSON-LD": "JSON-LD を書き出す",
+    "Print this neighborhood": "この近傍を印刷",
+    Legend: "凡例",
+    "Node types use shape plus text, never color alone. Truth status is labeled on every edge.":
+      "ノード種別は色だけでなく形と文字で示します。すべての辺に真偽状態が付きます。",
+    rectangle: "長方形",
+    ellipse: "楕円",
+    hexagon: "六角形",
+    "rounded rectangle": "角丸長方形",
+    Authoritative: "権威",
+    Observed: "観測",
+    Inferred: "推論",
+    Proposed: "提案",
+    Superseded: "置き換え済み",
+    Rejected: "却下",
+    "Hidden evidence was removed. No omitted count is shown.":
+      "非表示の証拠は除かれました。省略件数は示しません。",
+    "Select node: {label}": "ノードを選択: {label}",
+    "Select edge: {property} from {source} to {target}":
+      "辺を選択: {source} から {target} への {property}",
+    "Exact values": "正確な値",
+    Source: "始点",
+    Property: "プロパティ",
+    Target: "終点",
+    "Truth status": "真偽状態",
+    "Recorded at": "記録時刻",
+    "Node evidence": "ノードの証拠",
+    "Focus this node next": "次にこのノードへ焦点",
+    "Open evidence post": "証拠の投稿を開く",
+    "Close ontology details": "オントロジー詳細を閉じる",
+    "Edge provenance": "辺の来歴",
+    "Property IRI": "プロパティ IRI",
+    Provenance: "来歴",
+    "Valid from": "有効開始",
+    "Valid to": "有効終了",
     "leftover axis {axis} {share}%": "残差軸 {axis} {share}%",
     "Leftover-map axis share": "残差マップ軸の比率",
     "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
@@ -1523,6 +1699,65 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Đang hiển thị {shown} tác giả nguồn hàng đầu trong số {total} tác giả đã quan sát, xếp theo số bài viết.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "Câu hỏi tương tác hiện không khả dụng; bằng chứng đã lưu vẫn có thể xem.",
+    "Inspect ontology neighborhood": "Kiểm tra lân cận bản thể",
+    "Ontology neighborhood": "Lân cận bản thể",
+    Post: "Bài viết",
+    "Typed relations, not Event Lineage": "Quan hệ có kiểu, không phải Dòng sự kiện",
+    "This is an ontology neighborhood, not Event Lineage.":
+      "Đây là lân cận bản thể, không phải Dòng sự kiện.",
+    "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, and posts.":
+      "Dòng sự kiện hiện liên kết cha-con đã tái tạo giữa các bài viết. Đồ thị này hiện người, tổ chức, nhóm và bài viết có kiểu.",
+    "Loading ontology neighborhood...": "Đang tải lân cận bản thể...",
+    "No visible ontology relations for this focus. Open a Keyman or affiliated organization next.":
+      "Không có quan hệ bản thể hiển thị cho tiêu điểm này. Hãy mở Keyman hoặc tổ chức liên kết tiếp theo.",
+    "Neighborhood truncated. Page visible relations, then inspect one edge.":
+      "Lân cận bị cắt. Lật các quan hệ hiển thị rồi kiểm tra một cạnh.",
+    "Access denied for this ontology neighborhood. Open a visible post next.":
+      "Không có quyền xem lân cận bản thể này. Hãy mở một bài viết hiển thị tiếp theo.",
+    "This neighborhood is bound to a knowledge cutoff. Compare with live evidence next.":
+      "Lân cận này bị ràng bởi mốc kiến thức. Hãy so với bằng chứng hiện tại tiếp theo.",
+    "Rejected proposal. Open the evidence and do not treat it as authoritative.":
+      "Đề xuất đã bị từ chối. Mở bằng chứng và đừng coi đó là sự thật có thẩm quyền.",
+    "Ontology neighborhood is unavailable. Open a visible post next.":
+      "Không dùng được lân cận bản thể. Hãy mở một bài viết hiển thị tiếp theo.",
+    "Search within this neighborhood": "Tìm trong lân cận này",
+    "Reset focus": "Đặt lại tiêu điểm",
+    "Export CSV": "Xuất CSV",
+    "Export JSON-LD": "Xuất JSON-LD",
+    "Print this neighborhood": "In lân cận này",
+    Legend: "Chú giải",
+    "Node types use shape plus text, never color alone. Truth status is labeled on every edge.":
+      "Kiểu nút dùng hình dạng kèm chữ, không chỉ màu. Mọi cạnh đều có nhãn trạng thái sự thật.",
+    rectangle: "hình chữ nhật",
+    ellipse: "hình elip",
+    hexagon: "hình lục giác",
+    "rounded rectangle": "hình chữ nhật bo góc",
+    Authoritative: "Có thẩm quyền",
+    Observed: "Quan sát",
+    Inferred: "Suy luận",
+    Proposed: "Đề xuất",
+    Superseded: "Đã thay thế",
+    Rejected: "Từ chối",
+    "Hidden evidence was removed. No omitted count is shown.":
+      "Bằng chứng ẩn đã bị gỡ. Không hiện số lượng bị bỏ.",
+    "Select node: {label}": "Chọn nút: {label}",
+    "Select edge: {property} from {source} to {target}":
+      "Chọn cạnh: {property} từ {source} đến {target}",
+    "Exact values": "Giá trị chính xác",
+    Source: "Nguồn",
+    Property: "Thuộc tính",
+    Target: "Đích",
+    "Truth status": "Trạng thái sự thật",
+    "Recorded at": "Ghi lúc",
+    "Node evidence": "Bằng chứng nút",
+    "Focus this node next": "Tiêu điểm nút này tiếp theo",
+    "Open evidence post": "Mở bài viết bằng chứng",
+    "Close ontology details": "Đóng chi tiết bản thể",
+    "Edge provenance": "Nguồn gốc cạnh",
+    "Property IRI": "IRI thuộc tính",
+    Provenance: "Nguồn gốc",
+    "Valid from": "Hiệu lực từ",
+    "Valid to": "Hiệu lực đến",
     "leftover axis {axis} {share}%": "trục phần dư {axis} {share}%",
     "Leftover-map axis share": "Tỷ trọng trục bản đồ phần dư",
     "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":

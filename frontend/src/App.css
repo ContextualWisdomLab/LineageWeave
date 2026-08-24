@@ -905,3 +905,132 @@
     gap: 0.5rem;
   }
 }
+
+.ontology-explorer {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel, 8px);
+  background: var(--surface, #fff);
+}
+
+.ontology-explorer-header,
+.ontology-explorer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.ontology-search {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.75rem 0;
+}
+
+.ontology-graph {
+  max-width: 100%;
+  overflow: visible;
+}
+
+.ontology-node {
+  cursor: pointer;
+  fill: var(--color-background);
+  stroke: var(--color-text-heading);
+  stroke-width: 1.5;
+}
+
+.ontology-node text {
+  fill: var(--color-text-heading);
+  stroke: none;
+  font-size: 0.8rem;
+}
+
+.ontology-node-type {
+  font-size: 0.7rem;
+  fill: var(--color-text);
+}
+
+.ontology-node-selected {
+  stroke: var(--color-primary);
+  stroke-width: 2.5;
+}
+
+.ontology-node:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.ontology-edge {
+  fill: none;
+  stroke: var(--color-accent-silver);
+  stroke-width: 1.5;
+}
+
+.ontology-edge-selected {
+  stroke: var(--color-primary);
+  stroke-width: 2.5;
+}
+
+.ontology-edge-label {
+  fill: var(--color-text);
+  font-size: 0.7rem;
+}
+
+.ontology-edge-hit {
+  fill: transparent;
+  stroke: transparent;
+  cursor: pointer;
+}
+
+.ontology-edge-hit:focus-visible {
+  stroke: var(--color-primary);
+  stroke-width: 3;
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.ontology-exact-values {
+  margin-top: 1rem;
+  overflow-x: auto;
+}
+
+.ontology-exact-values table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.ontology-exact-values th,
+.ontology-exact-values td {
+  border-bottom: 1px solid var(--color-table-border);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+}
+
+.ontology-exact-values .is-selected {
+  background: var(--color-table-row-hover);
+}
+
+.ontology-drawer {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-panel, 8px);
+  background: var(--surface-muted, var(--color-palette-gray-100));
+}
+
+.ontology-legend {
+  margin: 0.75rem 0;
+}
+
+.ontology-status {
+  margin: 0.5rem 0;
+}
+
+@media (max-width: 768px) {
+  .ontology-graph-desktop {
+    display: none;
+  }
+}

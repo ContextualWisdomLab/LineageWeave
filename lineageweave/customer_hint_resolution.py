@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from .http_client import post_json
+from .http_client import chat_completion_content, post_json
 from .organization_name_resolution import parse_resolution_response
 
 _RESOLUTION_PROMPT_TEMPLATE = """\
@@ -93,5 +93,5 @@ class ContextualOrchestratorCustomerHintResolutionClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = body["choices"][0]["message"]["content"]
+        content = chat_completion_content(body)
         return parse_resolution_response(content)

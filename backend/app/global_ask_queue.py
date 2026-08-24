@@ -309,7 +309,21 @@ async def process_global_ask_job(
         # the task silently and strand the row `running` until orphan
         # recovery (observed live) — every failure settles the job.
         _logger.exception("global ask job failed for job_id=%s", job_id)
-        detail = str(exc) or f"job exceeded the {JOB_DEADLINE_SECONDS}s deadline"
+        if isinstance(exc, (PermissionError, ConnectionError)):
+            # Raised locally with a pre-authored, safe message (permission
+            # state / missing config) — never a provider-boundary leak.
+            detail = str(exc)
+        elif isinstance(exc, asyncio.TimeoutError):
+            detail = f"job exceeded the {JOB_DEADLINE_SECONDS}s deadline"
+        else:
+            # Provider responses/exceptions can carry credentials, gateway
+            # diagnostics, or model output (ADR 0123): never persist the
+            # raw exception text as a durable `failure_detail`. The
+            # traceback just logged keeps it for operator debugging only.
+            detail = (
+                "Ask Agent is unavailable: contextual-orchestrator returned "
+                "no complete evidence object"
+            )
         async with pool.acquire() as conn:
             await conn.execute(
                 """
