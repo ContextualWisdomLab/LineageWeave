@@ -118,6 +118,7 @@ async def compute_global_ask_answer(
     """
 
     def can_see(row: asyncpg.Record) -> bool:
+        """Apply the requester's ABAC rule: public, or an affiliated entity's post."""
         if row["visibility_code"] == "public":
             return True
         return str(row["corporate_entity_id"]) in corporate_entity_ids
