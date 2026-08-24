@@ -6,7 +6,7 @@ function truncateLabel(label: string): string {
   return label.length > 34 ? `${label.slice(0, 33)}…` : label;
 }
 
-/** Render the authorized lineage projection and let the buyer open a post. */
+/** Render the authorized lineage projection and let the reader open a post. */
 export function LineageDag({
   graph,
   onSelectPost,
@@ -25,6 +25,7 @@ export function LineageDag({
     <div className="lineage-dag" aria-label={t("Reconstructed lineage")}>
       {groups.map((group) => {
         const byId = Object.fromEntries(group.nodes.map((node) => [node.id, node]));
+        const hasBranchPoint = group.nodes.some((node) => node.is_branch_point);
         return (
           <figure key={group.group} className="lineage-dag-group">
             <figcaption>
@@ -34,6 +35,13 @@ export function LineageDag({
                 edges: group.edges.length,
               })}
             </figcaption>
+            {group.edges.length > 0 && !hasBranchPoint ? (
+              <p className="lineage-dag-linear-note" role="note">
+                {t(
+                  "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.",
+                )}
+              </p>
+            ) : null}
             <svg
               viewBox={`0 0 ${group.width} ${group.height}`}
               width="100%"

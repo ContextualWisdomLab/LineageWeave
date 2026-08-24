@@ -301,6 +301,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No reconstructed lineage yet. Rebuild after seeding posts.":
       "아직 재구성된 계보가 없습니다. 글을 시드한 뒤 다시 만드세요.",
     "Reconstructed lineage": "재구성된 계보",
+    "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.":
+      "이 사슬에는 분기점이 없습니다: 각 기록이 가장 유력한 선행 기록을 정확히 하나씩 찾았기 때문입니다. 아래 근거 내역에서 각 연결의 이유를 확인하세요.",
     "{group} ({records} records, {edges} lineage edges)":
       "{group} ({records}개 기록, 계보 연결 {edges}개)",
     "{group} lineage": "{group} 계보",
@@ -678,6 +680,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No reconstructed lineage yet. Rebuild after seeding posts.":
       "尚未重建事件谱系。生成文章种子后再重建。",
     "Reconstructed lineage": "已重建的事件谱系",
+    "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.":
+      "此链没有分支点：每条记录都恰好匹配到一个最可能的前序记录。请查看下方的证据记录，了解每条连接的原因。",
     "{group} ({records} records, {edges} lineage edges)":
       "{group}（{records} 条记录，{edges} 条谱系边）",
     "{group} lineage": "{group} 谱系",
@@ -1070,6 +1074,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No reconstructed lineage yet. Rebuild after seeding posts.":
       "再構成された系譜はまだありません。投稿をシードしてから再構成してください。",
     "Reconstructed lineage": "再構成された系譜",
+    "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.":
+      "この鎖に分岐点はありません。各記録がそれぞれ最も可能性の高い先行記録を1件だけ見つけたためです。各リンクの理由は下の証跡でご確認ください。",
     "{group} ({records} records, {edges} lineage edges)":
       "{group}（{records}件の記録、系譜エッジ{edges}件）",
     "{group} lineage": "{group}の系譜",
@@ -1447,6 +1453,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No reconstructed lineage yet. Rebuild after seeding posts.":
       "Chưa có dòng sự kiện được tái dựng. Hãy tạo dữ liệu mồi rồi tái dựng lại.",
     "Reconstructed lineage": "Dòng sự kiện đã tái dựng",
+    "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.":
+      "Chuỗi này không có điểm phân nhánh: mỗi bản ghi chỉ khớp với đúng một bản ghi tiền nhiệm khả dĩ nhất. Xem bằng chứng bên dưới để biết lý do của từng liên kết.",
     "{group} ({records} records, {edges} lineage edges)":
       "{group} ({records} bản ghi, {edges} liên kết dòng sự kiện)",
     "{group} lineage": "Dòng sự kiện {group}",
