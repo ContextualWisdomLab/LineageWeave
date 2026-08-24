@@ -1,12 +1,9 @@
-# ADR 0166 — Measure leftover-map distances on two Gabriel axes
+# ADR 0119 — Measure leftover-map distances on two Gabriel axes
 
 **Decision status:** Accepted
 **Date:** 2026-08-24
 
-Amends [ADR 0048](0048-persist-lsirm-leftover-pairs.md). Independent of
-leftover-map coordinates, leftover-map coverage, leftover-map axis
-share, leftover residual-row disclosure, and leftover comparison-strip
-reuse.
+Amends [ADR 0048](0048-persist-lsirm-leftover-pairs.md).
 
 ## Context
 

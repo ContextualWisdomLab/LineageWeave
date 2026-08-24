@@ -1,4 +1,6 @@
-"""Leftover post–criterion pairs after the main-effect IRT (ADR 0048 / 0166).
+"""Leftover post–criterion pairs after the main-effect IRT.
+
+Covers ADR 0048 as amended by ADR 0119, ADR 0163, and ADR 0164.
 
 Uses a constructed residual matrix so the closest and farthest pair
 are known without calling ``fit_polytomous``. Loads
@@ -46,6 +48,13 @@ PAIR_KIND_FARTHEST = leftover.PAIR_KIND_FARTHEST
 leftover_pairs_from_residual = leftover.leftover_pairs_from_residual
 
 
+def _assert_residual_reconciles(pair) -> None:
+    """Assert the persisted residual is exactly grounded in named Y and E."""
+    assert pair.leftover_residual == pytest.approx(
+        pair.observed_response - pair.expected_response, abs=1e-6
+    )
+
+
 def _gabriel_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Independent Gabriel coordinates used to prove leftover_distance axes."""
     left, singular, right = np.linalg.svd(filled, full_matrices=False)
@@ -85,7 +94,12 @@ def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
         ("post-c", "item_near"),
     }
     assert farthest.leftover_residual == pytest.approx(-2.0)
+    assert farthest.observed_response == pytest.approx(-2.0)
+    assert farthest.expected_response == pytest.approx(0.0)
     assert farthest.leftover_distance == pytest.approx(2.0 * np.sqrt(2.0), rel=1e-6)
+    for pair in pairs:
+        _assert_residual_reconciles(pair)
+        assert pair.leftover_map_rank == 1
 
 
 def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
@@ -100,8 +114,13 @@ def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
     assert pairs[1].leftover_distance == pytest.approx(0.0)
     assert pairs[0].post_id == "alpha-post"
     assert pairs[0].criterion_code == "item_one"
+    assert pairs[0].observed_response == pytest.approx(1.0)
+    assert pairs[0].expected_response == pytest.approx(1.0)
     assert pairs[1].post_id == "beta-post"
     assert pairs[1].criterion_code == "item_two"
+    for pair in pairs:
+        _assert_residual_reconciles(pair)
+        assert pair.leftover_map_rank == 0
 
 
 def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
@@ -128,6 +147,9 @@ def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
         ("aligned-post", "item_far"),
         ("opposed-post", "item_near"),
     }
+    for pair in pairs:
+        _assert_residual_reconciles(pair)
+        assert pair.leftover_map_rank == 1
 
 
 def test_leftover_is_empty_without_observed_cells() -> None:
@@ -139,7 +161,55 @@ def test_leftover_is_empty_without_observed_cells() -> None:
     assert leftover_pairs_from_residual(post_ids, item_codes, matrix, expected) == ()
 
 
-def test_rank_three_pair_distances_match_two_dimensional_gabriel_coords() -> None:
+def test_leftover_residual_equals_observed_minus_expected() -> None:
+    """Named Y and E on leftover pairs must reconcile to R = Y − E."""
+    post_ids = ["public-post", "spec-post"]
+    item_codes = ("sales_lead_specificity", "general_sentiment_negative")
+    matrix = np.array(
+        [
+            [2.4, 0.0],
+            [0.0, 0.9],
+        ],
+        dtype=np.float64,
+    )
+    expected = np.array(
+        [
+            [2.0, 0.0],
+            [0.0, 2.0],
+        ],
+        dtype=np.float64,
+    )
+    pairs = leftover_pairs_from_residual(post_ids, item_codes, matrix, expected)
+    assert [pair.pair_kind for pair in pairs] == [PAIR_KIND_CLOSEST, PAIR_KIND_FARTHEST]
+    by_cell = {(pair.post_id, pair.criterion_code): pair for pair in pairs}
+    closest_cell = by_cell[("public-post", "sales_lead_specificity")]
+    farthest_cell = by_cell[("spec-post", "general_sentiment_negative")]
+    assert closest_cell.observed_response == pytest.approx(2.4)
+    assert closest_cell.expected_response == pytest.approx(2.0)
+    assert closest_cell.leftover_residual == pytest.approx(0.4)
+    assert farthest_cell.observed_response == pytest.approx(0.9)
+    assert farthest_cell.expected_response == pytest.approx(2.0)
+    assert farthest_cell.leftover_residual == pytest.approx(-1.1)
+    for pair in pairs:
+        _assert_residual_reconciles(pair)
+
+
+def test_leftover_residual_rejects_database_tolerance_boundary() -> None:
+    """Python must reject the exact boundary excluded by the DB check."""
+    with pytest.raises(ValueError, match="observed Y minus expected E"):
+        leftover._candidate_row(
+            ["public-post"],
+            ("sales_lead_specificity",),
+            np.array([[0.0]]),
+            np.array([[0.0]]),
+            np.array([[1e-6]]),
+            0,
+            0,
+            0.0,
+        )
+
+
+def test_rank_four_pair_distances_match_two_dimensional_gabriel_coords() -> None:
     """Jeon leftover_distance is Euclidean on the 2D map, not the full SVD rank."""
     post_ids = ["post-a", "post-b", "post-c", "post-d"]
     item_codes = ("item-a", "item-b", "item-c", "item-d")
@@ -155,7 +225,7 @@ def test_rank_three_pair_distances_match_two_dimensional_gabriel_coords() -> Non
     expected = np.zeros_like(matrix)
     filled = matrix - float(np.mean(matrix))
     person_full, item_full = _gabriel_positions(filled)
-    assert person_full.shape[1] >= 3
+    assert person_full.shape[1] == 4
     person_map = _pad_map_axes(person_full)
     item_map = _pad_map_axes(item_full)
     full_distances = np.linalg.norm(person_full[:, None, :] - item_full[None, :, :], axis=2)
@@ -167,6 +237,7 @@ def test_rank_three_pair_distances_match_two_dimensional_gabriel_coords() -> Non
     post_index = {post_id: index for index, post_id in enumerate(post_ids)}
     item_index = {code: index for index, code in enumerate(item_codes)}
     for pair in pairs:
+        assert pair.leftover_map_rank == 4
         person = post_index[pair.post_id]
         item = item_index[pair.criterion_code]
         assert pair.leftover_distance == pytest.approx(float(map_distances[person, item]))
@@ -211,6 +282,7 @@ def test_sparse_residual_uses_only_observed_cells_for_fallback_distance() -> Non
         ("post-b", "item-b"),
     ]
     assert [pair.leftover_distance for pair in pairs] == pytest.approx([1.0, 1.0])
+    assert [pair.leftover_map_rank for pair in pairs] == [0, 0]
 
 
 def test_nonfinite_map_distance_falls_back_to_centered_residual(
@@ -223,6 +295,7 @@ def test_nonfinite_map_distance_falls_back_to_centered_residual(
         lambda *_args: (
             np.array([[np.inf]], dtype=np.float64),
             np.array([[-np.inf]], dtype=np.float64),
+            1,
         ),
     )
     pairs = leftover_pairs_from_residual(
@@ -232,6 +305,7 @@ def test_nonfinite_map_distance_falls_back_to_centered_residual(
         np.array([[0.0]], dtype=np.float64),
     )
     assert [pair.leftover_distance for pair in pairs] == [0.0, 0.0]
+    assert [pair.leftover_map_rank for pair in pairs] == [0, 0]
 
 
 def test_empty_observation_mask_has_no_complete_case_axes() -> None:
@@ -240,7 +314,7 @@ def test_empty_observation_mask_has_no_complete_case_axes() -> None:
     keep_person, keep_item = leftover._complete_case_masks(observed)
     assert not keep_person.any()
     assert not keep_item.any()
-    person_pos, item_pos = leftover._complete_case_positions(
+    person_pos, item_pos, rank = leftover._complete_case_positions(
         np.zeros((1, 1), dtype=np.float64),
         0.0,
         keep_person,
@@ -248,10 +322,14 @@ def test_empty_observation_mask_has_no_complete_case_axes() -> None:
     )
     assert person_pos is None
     assert item_pos is None
+    assert rank == 0
 
 
-def test_pad_map_axes_truncates_hidden_svd_components() -> None:
-    """Axes after the second leftover-map axis do not enter distance."""
-    padded = leftover._pad_map_axes(np.array([[1.0, 2.0, 9.0]], dtype=np.float64))
-    assert padded.shape == (1, 2)
-    assert padded[0].tolist() == pytest.approx([1.0, 2.0])
+def test_leftover_map_rank_rejects_negative_rank() -> None:
+    """Python must reject a leftover-map rank excluded by the DB check."""
+    with pytest.raises(ValueError, match="non-negative integer"):
+        leftover._pair_from_candidate(
+            PAIR_KIND_CLOSEST,
+            (0.0, "public-post", "sales_lead_specificity", 0.0, 1.0, 1.0),
+            -1,
+        )
