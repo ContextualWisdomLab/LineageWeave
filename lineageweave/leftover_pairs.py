@@ -1,6 +1,7 @@
 """Jeon leftover post–criterion pairs after a main-effect IRT.
 
-Implements ADR 0048 as amended by ADR 0119, ADR 0163, ADR 0164, and ADR 0182.
+Implements ADR 0048 as amended by ADR 0119, ADR 0163, ADR 0164, ADR 0168,
+ADR 0182, and ADR 0183.
 
 Does not import ``fast_mlsirm`` or ``period_report``. A Gabriel biplot
 of the residual ``R = Y − E[Y|θ, item]`` supplies person and item
@@ -14,11 +15,12 @@ after the second are dropped. Each pair also names the full leftover-map
 rank so a rank-0 collapse is not read as leftover structure. Axis share
 is the Gabriel inertia of the first two leftover-map axes (ADR 0148).
 Complete-case coverage (ADR 0168) names how many scored posts entered
-that rectangle. Each pair also names unexplained leftover ``U = R − R̂``
-after two-axis Gabriel reconstruction ``R̂ = ξ_{1:2} · ζ_{1:2}`` so the
-leftover cell the map does not reconstruct is not confused with
-leftover residual ``R`` or leftover-map distance ``d``. Reconstruction
-is computed internally and is not persisted.
+that rectangle. Each pair names two-axis Gabriel reconstruction
+``R̂ = ξ_{1:2} · ζ_{1:2}`` and unexplained leftover ``U = R − R̂`` so
+the leftover cell the map reconstructs is not confused with leftover
+residual ``R`` or leftover-map distance ``d``. Identity ``U + R̂ = R``
+stays auditable. Do not persist leftover-map coordinates or leftover-map
+shares on the pair row.
 """
 
 from __future__ import annotations
@@ -47,6 +49,7 @@ class LeftoverPair:
     expected_response: float
     leftover_map_rank: int
     leftover_map_unexplained: float | None = None
+    leftover_map_reconstruction: float | None = None
 
 
 @dataclass(frozen=True)
@@ -86,10 +89,11 @@ def leftover_pairs_from_residual(
     invent a leftover score. Stored residual equals observed ``Y`` minus
     expected ``E[Y|θ, item]``. Stored leftover-map rank is the number
     of Gabriel singular values above the floor. When Gabriel coordinates
-    exist, unexplained leftover ``U = R − R̂`` names the leftover cell
-    the two-axis map does not reconstruct; ``R̂`` stays internal and is
-    never persisted. Fallback pairs (no complete-case map) omit
-    unexplained leftover rather than fabricating one.
+    exist, reconstruction ``R̂ = ξ_{1:2} · ζ_{1:2}`` and unexplained
+    leftover ``U = R − R̂`` name the leftover cell the two-axis map
+    reconstructs and the leftover it leaves. Identity ``U + R̂ = R``
+    stays auditable. Without a complete-case map there is no pair
+    (ADR 0168); reconstruction is omitted rather than fabricated.
     """
     pairs, _axes = leftover_map_from_residual(post_ids, item_codes, matrix, expected)
     return pairs
@@ -137,7 +141,7 @@ def leftover_map_from_residual(
     )
     axes = leftover_map_axes_from_singular(singular)
     leftover_map_rank = int(singular.size)
-    candidates: list[tuple[float, str, str, float, float, float, float | None]] = []
+    candidates: list[tuple[float, str, str, float, float, float, float | None, float | None]] = []
     if person_pos is not None and item_pos is not None:
         person_index = np.flatnonzero(keep_person)
         item_index = np.flatnonzero(keep_item)
@@ -153,10 +157,13 @@ def leftover_map_from_residual(
             )
             if not np.isfinite(distance):
                 continue
-            reconstruction = float(
-                np.dot(person_xy[local_person[person]], item_xy[local_item[item]])
+            reconstruction = _finite_reconstruction(
+                float(np.dot(person_xy[local_person[person]], item_xy[local_item[item]]))
             )
-            unexplained = _unexplained_leftover(float(residual[person, item]), reconstruction)
+            unexplained = _unexplained_leftover(
+                float(residual[person, item]),
+                reconstruction if reconstruction is not None else float("nan"),
+            )
             candidates.append(
                 _candidate_row(
                     post_ids,
@@ -168,6 +175,7 @@ def leftover_map_from_residual(
                     item,
                     distance,
                     unexplained,
+                    reconstruction,
                 )
             )
     if not candidates:
@@ -182,6 +190,13 @@ def leftover_map_from_residual(
         _pair_from_candidate(PAIR_KIND_FARTHEST, farthest, leftover_map_rank),
     )
     return pairs, axes
+
+
+def _finite_reconstruction(reconstruction: float) -> float | None:
+    """Return two-axis reconstruction ``R̂`` when finite; otherwise omit."""
+    if not np.isfinite(reconstruction):
+        return None
+    return float(reconstruction)
 
 
 def _unexplained_leftover(residual: float, reconstruction: float) -> float | None:
@@ -204,8 +219,9 @@ def _candidate_row(
     item: int,
     distance: float,
     leftover_map_unexplained: float | None,
-) -> tuple[float, str, str, float, float, float, float | None]:
-    """One observed leftover cell: distance, ids, residual, Y, E, unexplained U."""
+    leftover_map_reconstruction: float | None,
+) -> tuple[float, str, str, float, float, float, float | None, float | None]:
+    """One observed leftover cell: distance, ids, residual, Y, E, U, R̂."""
     leftover_residual = float(residual[person, item])
     observed_response = float(matrix[person, item])
     expected_response = float(expected[person, item])
@@ -219,12 +235,13 @@ def _candidate_row(
         observed_response,
         expected_response,
         leftover_map_unexplained,
+        leftover_map_reconstruction,
     )
 
 
 def _pair_from_candidate(
     pair_kind: str,
-    row: tuple[float, str, str, float, float, float, float | None],
+    row: tuple[float, str, str, float, float, float, float | None, float | None],
     leftover_map_rank: int,
 ) -> LeftoverPair:
     """Build a leftover pair from a candidate row."""
@@ -240,6 +257,7 @@ def _pair_from_candidate(
         expected_response=row[5],
         leftover_map_rank=leftover_map_rank,
         leftover_map_unexplained=row[6],
+        leftover_map_reconstruction=row[7],
     )
 
 
@@ -376,7 +394,7 @@ def _pad_map_axes(positions: np.ndarray) -> np.ndarray:
     Unused axes pad with zero rather than inventing a second component.
     Hidden SVD axes after the second are dropped so reconstruction is
     ``ξ_{1:2} · ζ_{1:2}``, not the full-rank inner product. That
-    reconstruction stays internal; only unexplained leftover is named.
+    reconstruction is persisted so ``U + R̂ = R`` stays auditable.
     """
     padded = np.zeros((positions.shape[0], _LEFTOVER_MAP_AXES), dtype=np.float64)
     width = min(_LEFTOVER_MAP_AXES, positions.shape[1])

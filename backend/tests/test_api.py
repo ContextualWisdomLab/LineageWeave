@@ -152,6 +152,11 @@ _LEFTOVER_MAP_UNEXPLAINED_MIGRATION = (
     / "migrations"
     / "0182_report_leftover_map_unexplained.sql"
 )
+_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0183_report_leftover_map_reconstruction.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -273,6 +278,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
+            cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -5014,7 +5020,10 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
         assert pair["leftover_map_rank"] >= 0
         unexplained = pair.get("leftover_map_unexplained")
         assert unexplained is None or isinstance(unexplained, (int, float))
-        assert "leftover_map_reconstruction" not in pair
+        reconstruction = pair.get("leftover_map_reconstruction")
+        assert reconstruction is None or isinstance(reconstruction, (int, float))
+        if unexplained is not None and reconstruction is not None:
+            assert abs(unexplained + reconstruction - pair["leftover_residual"]) < 1e-6
         observed = pair.get("observed_response")
         expected = pair.get("expected_response")
         if observed is None or expected is None:

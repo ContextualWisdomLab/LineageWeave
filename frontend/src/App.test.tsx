@@ -968,6 +968,7 @@ describe("App, authenticated", () => {
                     leftover_distance: 0.12,
                     leftover_residual: 0.4,
                     leftover_map_unexplained: 0.05,
+                    leftover_map_reconstruction: 0.35,
                     observed_response: 2.4,
                     expected_response: 2.0,
                     leftover_map_rank: 1,
@@ -980,6 +981,7 @@ describe("App, authenticated", () => {
                     leftover_distance: 1.84,
                     leftover_residual: -1.1,
                     leftover_map_unexplained: -0.25,
+                    leftover_map_reconstruction: -0.85,
                     observed_response: 0.9,
                     expected_response: 2.0,
                     leftover_map_rank: 1,
@@ -3715,21 +3717,23 @@ describe("App, authenticated", () => {
     });
     expect(closestPair).toHaveTextContent("Closest leftover: Public post · sales-lead");
     expect(closestPair).toHaveTextContent(
-      "Leftover map leaves unexplained U +0.05 after IRT main effects. Open this post to read sales-lead.",
+      "Leftover map reconstructs R̂ +0.35 after IRT main effects. Open this post to read sales-lead.",
     );
     expect(closestPair).toHaveTextContent("R +0.40");
     expect(closestPair).toHaveTextContent("Y 2.40 · E 2.00");
     expect(closestPair).toHaveTextContent("rank 1");
     expect(closestPair).toHaveTextContent("U +0.05");
+    expect(closestPair).toHaveTextContent("R̂ +0.35");
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
-      "Leftover map leaves unexplained U −0.25 after IRT main effects. Open this post to read negative.",
+      "Leftover map reconstructs R̂ −0.85 after IRT main effects. Open this post to read negative.",
     );
     expect(farthestPair).toHaveTextContent("R −1.10");
     expect(farthestPair).toHaveTextContent("Y 0.90 · E 2.00");
     expect(farthestPair).toHaveTextContent("rank 1");
     expect(farthestPair).toHaveTextContent("U −0.25");
+    expect(farthestPair).toHaveTextContent("R̂ −0.85");
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
     expect(coverageCaption.compareDocumentPosition(closestPair) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

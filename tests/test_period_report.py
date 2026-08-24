@@ -272,7 +272,15 @@ def test_calibrated_report_attaches_leftover_pairs() -> None:
         assert pair.leftover_map_rank >= 0
         if pair.leftover_map_unexplained is not None:
             assert np.isfinite(pair.leftover_map_unexplained)
-        assert not hasattr(pair, "leftover_map_reconstruction")
+        if pair.leftover_map_reconstruction is not None:
+            assert np.isfinite(pair.leftover_map_reconstruction)
+        if (
+            pair.leftover_map_unexplained is not None
+            and pair.leftover_map_reconstruction is not None
+        ):
+            assert pair.leftover_map_unexplained + pair.leftover_map_reconstruction == pytest.approx(
+                pair.leftover_residual, abs=1e-6
+            )
     assert [axis.axis_index for axis in report.leftover_map_axes] == [1, 2]
     for axis in report.leftover_map_axes:
         assert axis.leftover_singular_value >= 0.0

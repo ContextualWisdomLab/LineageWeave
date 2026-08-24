@@ -19,6 +19,8 @@ const meta = {
         observed_response: 2.4,
         expected_response: 2.0,
         leftover_map_rank: 1,
+        leftover_map_unexplained: 0.05,
+        leftover_map_reconstruction: 0.35,
       },
       {
         pair_kind: "farthest",
@@ -30,6 +32,8 @@ const meta = {
         observed_response: 0.9,
         expected_response: 2.0,
         leftover_map_rank: 1,
+        leftover_map_unexplained: -0.25,
+        leftover_map_reconstruction: -0.85,
       },
     ],
   },
