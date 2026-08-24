@@ -78,6 +78,11 @@ canonical name is returned to the caller as part of the normalized
 `PersonMention`, so the same request's relationship classifier uses the
 canonical form too rather than reintroducing the raw abbreviation.
 
+[ADR 0160](0160-skos-organization-alias-catalog-binding.md) extends this
+decision: a corroborated pair also expands catalog candidates so both
+labels bind one `corporate_entity` row, including when the catalog was
+first stored under the short form.
+
 ## Consequences
 
 - The raw abbreviated form is not duplicated onto every row that
