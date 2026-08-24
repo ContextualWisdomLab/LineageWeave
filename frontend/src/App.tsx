@@ -3409,6 +3409,21 @@ function ReportsPanel({
                 {report.selected_items[0].information.toFixed(2)}
               </span>
             )}
+            {report.leftover_map_axes?.map((axis) => (
+              <span key={axis.axis_index} className="post-badge">
+                {tf("leftover axis {axis} {share}%", {
+                  axis: axis.axis_index,
+                  share: (axis.leftover_share * 100).toFixed(0),
+                })}
+              </span>
+            ))}
+            {report.leftover_map_axes && report.leftover_map_axes.length > 0 && (
+              <p aria-label={t("Leftover-map axis share")}>
+                {t(
+                  "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.",
+                )}
+              </p>
+            )}
             {report.leftover_pairs && report.leftover_pairs.length > 0 && (
               <LeftoverPairList
                 pairs={report.leftover_pairs}
