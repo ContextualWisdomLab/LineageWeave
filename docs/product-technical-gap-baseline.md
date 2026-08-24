@@ -1315,18 +1315,27 @@ or an explicit unavailable result.
 - **Release/quality gates — open:** current PR checks and required reviews must
   complete on the exact current head; frontend, backend, browser, accessibility,
   Storybook, security, and coverage evidence must be collected before release.
-- **`main`'s frontend build was broken — fixed, PR #550 (2026-08-24):**
-  `frontend/src/App.tsx` failed `tsc -b` at `main`'s head (a dead import plus
-  an unguarded `AdminPanel` render passing a `string | undefined` OIDC
-  `accessToken` into a `string`-typed prop), so every PR branched from `main`
-  inherited a spurious "Frontend lint, test, build" failure regardless of its
-  own diff -- confirmed against PR #547 (a `docker-compose.yml`-only change).
-  Fixed on `main` directly rather than on each affected PR, since it's the
-  shared root cause. One flaky `App.test.tsx` timeout ("comparison strip",
-  5000ms) reproduces identically on unmodified `main`; pre-existing, not
-  fixed here. Any PR still failing "Frontend lint, test, build" with the
-  same `TS6192`/`TS2322` errors after PR #550 merges just needs a rebase
-  onto the new `main`, not a code change.
+- **`main`'s frontend build was broken — fix in flight on PR #426
+  (2026-08-24):** `frontend/src/App.tsx` fails `tsc -b` at `main`'s head (a
+  dead import plus an unguarded `AdminPanel` render passing a
+  `string | undefined` OIDC `accessToken` into a `string`-typed prop), so
+  every PR branched from `main` inherits a spurious "Frontend lint, test,
+  build" failure regardless of its own diff -- confirmed against PR #547
+  (a `docker-compose.yml`-only change). Opened a fix as PR #550, then
+  closed it: a peer session flagged that this exact root cause already had
+  two prior fixes, PR #456 (closed as duplicate) and PR #426 (open,
+  auto-merge armed). Comparing diffs, #426's fix is the correct one, not
+  merely an earlier one -- it root-causes rather than symptom-patches:
+  the dead import wasn't dead code to delete, it was the login button
+  computing `window.location.pathname + window.location.search` inline
+  instead of calling the already-imported `returnUrlFromLocation()` (which
+  also preserves the URL fragment) and persisting it via
+  `rememberOidcReturnUrl()` for the OIDC redirect round-trip -- #550's fix
+  silenced the compiler error but left that return-URL-preservation
+  feature broken. #426 also correctly deletes the `AdminPanel` render as
+  unreachable dead code rather than merely guarding it. Any PR still
+  failing "Frontend lint, test, build" with the same `TS6192`/`TS2322`
+  errors needs a rebase onto `main` after #426 merges, not a code change.
 
 ## 6. Next acceptance loop
 
