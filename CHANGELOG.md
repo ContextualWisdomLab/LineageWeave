@@ -70,6 +70,20 @@ All notable changes to this project are documented here. Format follows
   described honestly as an engineering default informed by Efron &
   Golovchinsky (2011), not a value taken from any paper's reported
   optimum. `tests/test_adr_citation_integrity.py` pins the correction.
+- `_parse_plain_summary_response` (`lineageweave/post_summary.py`) now
+  returns the declared 3-tuple (`summary, key_events, key_event_details`)
+  on its no-`KEY EVENTS:`-marker branch, instead of a 2-tuple. A
+  provider response with real summary prose but no `KEY EVENTS:` line
+  passed the `parsed is None` guard in `summarize_with_hints` but then
+  raised a generic `ValueError: not enough values to unpack` at the
+  destructuring line, instead of the caller's own descriptive
+  `ValueError("summary response did not match the required format")`.
+  No externally-visible behavior change today (the caller already
+  blanket-catches `ValueError`), but the function's own return
+  contract was violated and its intended error message never fired.
+  Found by a `lineageweave-bug-sweep` Workflow finder; regression test
+  confirmed RED (`not enough values to unpack (expected 3, got 2)`)
+  before GREEN.
 - Four post-detail and dashboard fetch effects had no stale-response guard,
   so a slow response for a previous `postId`/period/grouping/search could
   overwrite the currently displayed state after the user had already moved
