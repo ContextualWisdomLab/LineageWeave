@@ -149,11 +149,6 @@ import {
   useLocale,
 } from "./i18n";
 import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
-import {
-  formatLeftoverMapReconstruction,
-  formatSignedLeftoverValue,
-  LEFTOVER_MAP_RECONSTRUCTION_ACTION,
-} from "./leftoverMapReconstruction";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
