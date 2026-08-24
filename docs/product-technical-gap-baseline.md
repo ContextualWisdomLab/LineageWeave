@@ -1186,6 +1186,18 @@ or an explicit unavailable result.
   `LeftoverPairButton.tsx`'s missing test are left open -- both files
   were mid-edit by concurrent sessions on this branch at the time of
   this checkpoint.
+  **`SourceResearchPanel.tsx` closed (2026-08-24):** the peer session
+  editing it finished and confirmed clear. The component fetches from
+  `../api`'s module-level `fetch` on mount, not a prop, and this repo
+  has no MSW addon -- rather than skip coverage or add MSW just for one
+  story, stubbed `window.fetch` per story via Storybook `loaders`
+  (restored after each story), which exercises the real component code
+  path instead of faking it. Covers populated results (supported +
+  not-enough-information leads), the empty "no persisted research yet"
+  state, the read-only variant with the Research-sources button hidden,
+  and the fail-closed 503 path rendering `role="alert"` with a Retry
+  action. `LeftoverPairButton.tsx`'s missing test remains open -- still
+  the leftover-map PR stack's territory, not touched here.
 - **Leftover pair next-action jargon — closed (2026-08-24, PR #490
   `154a13ef`):** ADR 0049 already names `Open {post}, then read Post quality
   criterion {criterion}.` Origin leftover copy still appended `This pair sat
