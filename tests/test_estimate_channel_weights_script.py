@@ -38,20 +38,36 @@ def test_sampling_stays_within_groups_and_window() -> None:
         _record("a2", "g-a", 1),
         _record("b1", "g-b", 2),
     ]
-    pair_scores, group_ids = script.sample_pair_scores(records, window=50)
+    pair_scores, group_ids, pair_labels = script.sample_pair_scores(records, window=50)
     # Only a1->a2 pairs up; b1 is alone in its group and never crosses.
     assert len(pair_scores) == 1
     assert group_ids == [0]
     assert set(pair_scores[0]) == {"temporal", "secondary_key", "text"}
+    # Labels align with the scored pair so the queued llm judging pass can
+    # score the same candidate geometry without re-deriving it.
+    assert pair_labels == [("title a1", "title a2")]
 
 
 def test_sampling_window_bounds_candidates_like_reconstruct() -> None:
     records = [_record(f"r{index}", "g", index) for index in range(5)]
-    _, unbounded_ids = script.sample_pair_scores(records, window=50)
+    _, unbounded_ids, _ = script.sample_pair_scores(records, window=50)
     assert len(unbounded_ids) == 4 + 3 + 2 + 1
-    pair_scores, _ = script.sample_pair_scores(records, window=2)
+    pair_scores, _, _ = script.sample_pair_scores(records, window=2)
     # Each record sees at most its two immediate predecessors.
     assert len(pair_scores) == 1 + 2 + 2 + 2
+
+
+def test_llm_subsample_stride_is_deterministic_and_spread() -> None:
+    # Small totals pass through untouched; larger ones are evenly strided
+    # (first index 0, no index past the end, exactly the limit chosen)
+    # with no randomness, so re-runs stay comparable.
+    assert script.subsample_stride(3, 10) == [0, 1, 2]
+    chosen = script.subsample_stride(1000, 40)
+    assert len(chosen) == 40
+    assert chosen[0] == 0
+    assert chosen == sorted(chosen)
+    assert chosen[-1] <= 999
+    assert script.subsample_stride(1000, 40) == chosen
 
 
 def test_snapshot_digest_is_reproducible_and_order_sensitive() -> None:
