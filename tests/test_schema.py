@@ -53,6 +53,11 @@ _LEFTOVER_MAP_RANK_MIGRATION = (
     / "migrations"
     / "0164_report_leftover_map_rank.sql"
 )
+_LEFTOVER_MAP_AXIS_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0169_report_leftover_map_axis.sql"
+)
 _LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
@@ -96,6 +101,7 @@ def schema_db():
                 cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION.read_text())
             conn.commit()
             yield conn
@@ -140,6 +146,7 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "report_item_parameter",
         "report_item_information",
         "report_leftover_pair",
+        "report_leftover_map_axis",
         "post_summary_result",
         "post_summary_event",
         "post_summary_role",
@@ -253,6 +260,20 @@ def test_leftover_pair_names_nullable_explained_share_column(schema_db) -> None:
             """
         )
         assert cur.fetchone() is not None
+
+
+def test_leftover_map_axis_references_period_score(schema_db) -> None:
+    """Axis share is report-level; it must cascade with the period score."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select confrelid::regclass::text
+            from pg_constraint
+            where conrelid = 'report_leftover_map_axis'::regclass and contype = 'f'
+            """
+        )
+        targets = {row[0] for row in cur.fetchall()}
+    assert "report_period_score" in targets
 
 
 def test_corporate_hierarchy_recursive_query_returns_correct_shape(schema_db) -> None:
