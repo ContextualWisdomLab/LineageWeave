@@ -50,6 +50,12 @@ All notable changes to this project are documented here. Format follows
   0%, 0% – 100%, 100%**. Internal LLM instructions stay hidden. Click the
   region list to compare that box with the caption, then read the source
   image.
+- Period reports now persist leftover-map axis share (Gabriel inertia of
+  residual SVD axes 1 and 2) next to leftover pairs (ADR 0148). Rank-0
+  residuals emit two zero-share axes. After `make seed`, leftover-axis
+  badges sit with the leftover pairs; the caption tells the buyer to open
+  a leftover pair. Axis share is report-level 3NF and is not hidden when
+  leftover pairs are ABAC-filtered.
 
 ## [2.12.18] - 2026-08-24
 
