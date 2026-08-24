@@ -13,6 +13,7 @@ export function AdminPanel({ currentBrandName, onBrandNameChange, accessToken }:
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const normalizedName = draftName.trim();
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -20,19 +21,18 @@ export function AdminPanel({ currentBrandName, onBrandNameChange, accessToken }:
       setError("Log in");
       return;
     }
-    if (draftName.trim()) {
-      setSaving(true);
-      setError(null);
-      try {
-        const config = await updateTenantConfig(accessToken, draftName.trim());
-        onBrandNameChange(config.brandName);
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
-      } catch (err: any) {
-        setError(err.message || "Failed to update settings");
-      } finally {
-        setSaving(false);
-      }
+    if (!normalizedName || normalizedName === currentBrandName) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const config = await updateTenantConfig(accessToken, normalizedName);
+      onBrandNameChange(config.brandName);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err: any) {
+      setError(err.message || "Failed to update settings");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -55,11 +55,11 @@ export function AdminPanel({ currentBrandName, onBrandNameChange, accessToken }:
           disabled={saving}
         />
         <div>
-          <button type="submit" className="btn-primary" disabled={saving || !draftName.trim() || draftName === currentBrandName}>
+          <button type="submit" className="btn-primary" disabled={saving || !normalizedName || normalizedName === currentBrandName}>
             {saving ? t("Saving...") : t("Save settings")}
           </button>
-          {saved && <span style={{ marginLeft: "1rem", color: "green" }}>{t("Settings saved!")}</span>}
-          {error && <span style={{ marginLeft: "1rem", color: "red" }}>{t(error)}</span>}
+          {saved && <span role="status" style={{ marginLeft: "1rem", color: "green" }}>{t("Settings saved!")}</span>}
+          {error && <span role="alert" style={{ marginLeft: "1rem", color: "red" }}>{t(error)}</span>}
         </div>
       </form>
     </div>

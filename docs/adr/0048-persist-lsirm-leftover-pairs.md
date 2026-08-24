@@ -2,6 +2,10 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-17
+**Amended by:** [ADR 0119](0119-leftover-map-two-dimensional-distance.md) (two leftover-map axes);
+[ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E);
+[ADR 0164](0164-leftover-map-rank.md) (full map rank);
+[ADR 0184](0184-leftover-map-explained-share.md) (explained leftover share)
 
 ## Context
 
@@ -30,9 +34,13 @@ and one `farthest` observed cell per period report in
 `report_leftover_pair` (3NF, two-or-more-word `snake_case`).
 
 The biplot lives in `lineageweave/leftover_pairs.py` so leftover
-tests do not import `period_report` or `fast_mlsirm`. Each leftover
-row also names explained leftover share `e = R̂_c² / R̃²` of
-centered leftover when Gabriel coordinates exist so the leftover
+tests do not import `period_report` or `fast_mlsirm`. Distances are
+Euclidean on the two leftover-map axes (ADR 0119). Each leftover row
+also names observed `Y` and expected `E[Y|θ, item]` so residual
+reconciles to `Y − E` (ADR 0163), and names the full singular-value
+rank while distance remains on the first two axes (ADR 0164). Each
+leftover row also names explained leftover share `e = R̂_c² / R̃²`
+of centered leftover when Gabriel coordinates exist so the leftover
 cell the two-axis map reconstructs is not read as leftover residual
 `R` or leftover-map distance `d` (ADR 0184). Two-axis reconstruction
 `R̂_c` is computed internally and is not persisted.

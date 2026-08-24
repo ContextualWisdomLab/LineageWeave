@@ -1,16 +1,22 @@
 """Jeon leftover post–criterion pairs after a main-effect IRT.
 
-Implements ADR 0048 as amended by ADR 0184.
+Implements ADR 0048 as amended by ADR 0119, ADR 0163, ADR 0164, and ADR 0184.
 
 Does not import ``fast_mlsirm`` or ``period_report``. A Gabriel biplot
 of the residual ``R = Y − E[Y|θ, item]`` supplies person and item
 positions. Missing response cells are excluded from the factorization;
-they are never treated as zero residuals. Each map pair names explained
-leftover share ``e = R̂_c² / R̃²`` of the *centered* leftover the
-two-axis map reconstructs, so that share is not confused with leftover
-residual ``R``, leftover-map distance ``d``, or unexplained leftover
-share ``s = U_c² / R̃²``. Reconstruction ``R̂_c`` and centered leftover
-``U_c`` stay internal and are not persisted.
+they are never treated as zero residuals. Each pair names observed
+``Y`` and expected ``E`` so residual always reconciles to ``Y − E``.
+Pair distances are Euclidean
+on the two leftover-map axes (Jeon et al., 2021); unused axes pad with
+zero rather than inventing a second component, and hidden SVD axes
+after the second are dropped. Each pair also names the full leftover-map
+rank so a rank-0 collapse is not read as leftover structure. Each map
+pair also names explained leftover share ``e = R̂_c² / R̃²`` of the
+*centered* leftover the two-axis map reconstructs, so that share is not
+confused with leftover residual ``R``, leftover-map distance ``d``, or
+unexplained leftover share ``s = U_c² / R̃²``. Reconstruction ``R̂_c``
+and centered leftover ``U_c`` stay internal and are not persisted.
 """
 
 from __future__ import annotations
@@ -22,6 +28,7 @@ import numpy as np
 PAIR_KIND_CLOSEST = "closest"
 PAIR_KIND_FARTHEST = "farthest"
 _LEFTOVER_SINGULAR_FLOOR = 1e-12
+_RESIDUAL_RECONCILE_TOLERANCE = 1e-6
 _LEFTOVER_MAP_AXES = 2
 
 
@@ -34,6 +41,9 @@ class LeftoverPair:
     criterion_code: str
     leftover_distance: float
     leftover_residual: float
+    observed_response: float
+    expected_response: float
+    leftover_map_rank: int
     leftover_map_explained_share: float | None = None
 
 
@@ -47,15 +57,17 @@ def leftover_pairs_from_residual(
 
     Jeon et al. (2021) leftover interaction is ``−γ‖ξ_p − ζ_i‖``. This
     estimator places persons and items from the residual after IRT main
-    effects (Gabriel, 1971). Only observed cells become pairs. A rank-0
-    residual still emits a stable closest/farthest pair so seed is not
-    empty; it does not invent a leftover score. When Gabriel coordinates
+    effects (Gabriel, 1971). Only observed cells become pairs. Distances
+    use the two leftover-map axes; a rank-0 residual still emits a
+    stable closest/farthest pair so seed is not empty and does not
+    invent a leftover score. Stored residual equals observed ``Y`` minus
+    expected ``E[Y|θ, item]``. Stored leftover-map rank is the number
+    of Gabriel singular values above the floor. When Gabriel coordinates
     exist, explained leftover share ``e = R̂_c² / R̃²`` names the
     fraction of *centered* leftover ``R̃ = R − center`` that two-axis
     reconstruction ``R̂_c = ξ_{1:2} · ζ_{1:2}`` recovers. ``R̂_c`` stays
     internal and is never persisted. Fallback pairs (no complete-case
-    map) omit the share rather than fabricating one. Leftover-map
-    distance stays full-rank Euclidean.
+    map) omit the share rather than fabricating one.
     """
     if matrix.shape != (len(post_ids), len(item_codes)):
         raise ValueError(
@@ -65,7 +77,7 @@ def leftover_pairs_from_residual(
         raise ValueError(f"expected shape {expected.shape} does not match matrix {matrix.shape}")
 
     residual = matrix.astype(np.float64) - expected.astype(np.float64)
-    observed_mask = (~np.isnan(matrix)) & np.isfinite(residual)
+    observed_mask = (~np.isnan(matrix)) & np.isfinite(residual) & np.isfinite(expected)
     observed: list[tuple[int, int]] = [
         (person, item)
         for person in range(matrix.shape[0])
@@ -82,8 +94,10 @@ def leftover_pairs_from_residual(
         center = float(np.mean(residual[np.ix_(person_index, item_index)]))
     else:
         center = float(np.mean([residual[person, item] for person, item in observed]))
-    person_pos, item_pos = _complete_case_positions(residual, center, keep_person, keep_item)
-    candidates: list[tuple[float, str, str, float, float | None]] = []
+    person_pos, item_pos, leftover_map_rank = _complete_case_positions(
+        residual, center, keep_person, keep_item
+    )
+    candidates: list[tuple[float, str, str, float, float, float, float | None]] = []
     if person_pos is not None and item_pos is not None:
         person_index = np.flatnonzero(keep_person)
         item_index = np.flatnonzero(keep_item)
@@ -94,9 +108,9 @@ def leftover_pairs_from_residual(
         for person, item in observed:
             if person not in local_person or item not in local_item:
                 continue
-            person_coord = person_pos[local_person[person]]
-            item_coord = item_pos[local_item[item]]
-            distance = float(np.linalg.norm(person_coord - item_coord))
+            distance = float(
+                np.linalg.norm(person_xy[local_person[person]] - item_xy[local_item[item]])
+            )
             if not np.isfinite(distance):
                 continue
             reconstruction = float(
@@ -106,34 +120,31 @@ def leftover_pairs_from_residual(
             share = _explained_leftover_share(filled, reconstruction)
             candidates.append(
                 _candidate_row(
-                    post_ids,
-                    item_codes,
-                    residual,
-                    person,
-                    item,
-                    distance,
-                    share,
+                    post_ids, item_codes, matrix, expected, residual, person, item, distance, share
                 )
             )
     if not candidates:
+        leftover_map_rank = 0
         for person, item in observed:
             distance = abs(float(residual[person, item]) - center)
             candidates.append(
                 _candidate_row(
                     post_ids,
                     item_codes,
+                    matrix,
+                    expected,
                     residual,
                     person,
                     item,
-                    distance,
+                    max(distance, 0.0),
                     None,
                 )
             )
     closest = min(candidates, key=lambda row: (row[0], row[1], row[2]))
     farthest = max(candidates, key=lambda row: (row[0], row[1], row[2]))
     return (
-        _pair_from_candidate(PAIR_KIND_CLOSEST, closest),
-        _pair_from_candidate(PAIR_KIND_FARTHEST, farthest),
+        _pair_from_candidate(PAIR_KIND_CLOSEST, closest, leftover_map_rank),
+        _pair_from_candidate(PAIR_KIND_FARTHEST, farthest, leftover_map_rank),
     )
 
 
@@ -164,33 +175,49 @@ def _explained_leftover_share(filled: float, reconstruction: float) -> float | N
 def _candidate_row(
     post_ids: list[str],
     item_codes: tuple[str, ...],
+    matrix: np.ndarray,
+    expected: np.ndarray,
     residual: np.ndarray,
     person: int,
     item: int,
     distance: float,
     leftover_map_explained_share: float | None,
-) -> tuple[float, str, str, float, float | None]:
-    """One observed leftover cell: distance, ids, residual, explained share."""
+) -> tuple[float, str, str, float, float, float, float | None]:
+    """One observed leftover cell: distance, ids, residual, Y, E, explained share."""
+    leftover_residual = float(residual[person, item])
+    observed_response = float(matrix[person, item])
+    expected_response = float(expected[person, item])
+    if abs(leftover_residual - (observed_response - expected_response)) >= _RESIDUAL_RECONCILE_TOLERANCE:
+        raise ValueError("leftover residual must equal observed Y minus expected E")
     return (
         max(distance, 0.0),
         post_ids[person],
         item_codes[item],
-        float(residual[person, item]),
+        leftover_residual,
+        observed_response,
+        expected_response,
         leftover_map_explained_share,
     )
 
 
 def _pair_from_candidate(
-    pair_kind: str, row: tuple[float, str, str, float, float | None]
+    pair_kind: str,
+    row: tuple[float, str, str, float, float, float, float | None],
+    leftover_map_rank: int,
 ) -> LeftoverPair:
     """Build a leftover pair from a candidate row."""
+    if leftover_map_rank < 0:
+        raise ValueError("leftover map rank must be a non-negative integer")
     return LeftoverPair(
         pair_kind=pair_kind,
         post_id=row[1],
         criterion_code=row[2],
         leftover_distance=row[0],
         leftover_residual=row[3],
-        leftover_map_explained_share=row[4],
+        observed_response=row[4],
+        expected_response=row[5],
+        leftover_map_rank=leftover_map_rank,
+        leftover_map_explained_share=row[6],
     )
 
 
@@ -210,35 +237,37 @@ def _complete_case_positions(
     center: float,
     keep_person: np.ndarray,
     keep_item: np.ndarray,
-) -> tuple[np.ndarray | None, np.ndarray | None]:
+) -> tuple[np.ndarray | None, np.ndarray | None, int]:
     """Gabriel coordinates on the complete-case residual rectangle only."""
     person_index = np.flatnonzero(keep_person)
     item_index = np.flatnonzero(keep_item)
     if person_index.size == 0 or item_index.size == 0:
-        return None, None
+        return None, None, 0
     filled = residual[np.ix_(person_index, item_index)] - center
     return _leftover_map_positions(filled)
 
 
-def _leftover_map_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    """Gabriel biplot coordinates; rank-0 residuals collapse to the origin."""
+def _leftover_map_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray, int]:
+    """Gabriel coordinates ordered by descending singular value.
+
+    NumPy's SVD contract returns singular values largest-first, so filtering
+    by the numerical floor preserves a prefix and the first two columns remain
+    the two leading leftover-map axes. Rank-0 residuals collapse to the origin.
+    """
     n_persons, n_items = filled.shape
     if n_persons == 0 or n_items == 0 or not np.any(np.abs(filled) > _LEFTOVER_SINGULAR_FLOOR):
         return (
             np.zeros((n_persons, 1), dtype=np.float64),
             np.zeros((n_items, 1), dtype=np.float64),
+            0,
         )
     left, singular, right = np.linalg.svd(filled, full_matrices=False)
     keep = singular > _LEFTOVER_SINGULAR_FLOOR
-    if not np.any(keep):
-        return (
-            np.zeros((n_persons, 1), dtype=np.float64),
-            np.zeros((n_items, 1), dtype=np.float64),
-        )
+    leftover_map_rank = int(np.count_nonzero(keep))
     scale = np.sqrt(singular[keep])
     person_pos = left[:, keep] * scale
     item_pos = right[keep, :].T * scale
-    return person_pos, item_pos
+    return person_pos, item_pos, leftover_map_rank
 
 
 def _pad_map_axes(positions: np.ndarray) -> np.ndarray:
