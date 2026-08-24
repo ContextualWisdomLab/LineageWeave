@@ -19,6 +19,9 @@ _INITIAL_MIGRATION = _ROOT / "migrations" / "0001_initial_schema.sql"
 _REGISTRY_MIGRATION = _ROOT / "migrations" / "0018_analysis_run_registry.sql"
 _REGISTRY_ROLLBACK = _ROOT / "migrations" / "rollback" / "0018_analysis_run_registry.sql"
 _RETENTION_MIGRATION = _ROOT / "migrations" / "0020_analysis_run_retention_purge.sql"
+_SAME_CLOCK_MIGRATION = (
+    _ROOT / "migrations" / "0173_analysis_run_status_same_clock.sql"
+)
 _RETENTION_ROLLBACK = (
     _ROOT / "migrations" / "rollback" / "0020_analysis_run_retention_purge.sql"
 )
@@ -104,6 +107,7 @@ def registry_db():
                 cursor.execute(_INITIAL_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_REGISTRY_MIGRATION.read_text(encoding="utf-8"))
                 cursor.execute(_RETENTION_MIGRATION.read_text(encoding="utf-8"))
+                cursor.execute(_SAME_CLOCK_MIGRATION.read_text(encoding="utf-8"))
             yield connection
         finally:
             connection.close()
@@ -753,6 +757,53 @@ def test_status_requires_scope_and_cannot_predate_request(registry_db) -> None:
         )
         recorded_at = cursor.fetchone()[0]
     assert recorded_at.year < 2099
+
+
+def test_status_same_clock_migration_is_idempotent_and_allowlisted() -> None:
+    """0173 replaces the trigger in place; the shipped 0018 stays untouched."""
+    migration = (_ROOT / "migrations" / "0173_analysis_run_status_same_clock.sql").read_text(
+        encoding="utf-8"
+    )
+    registry = _REGISTRY_MIGRATION.read_text(encoding="utf-8")
+    migrate = (_ROOT / "docker/postgres-init/migrate.sh").read_text(encoding="utf-8")
+    assert "create or replace function enforce_analysis_run_status_transition" in migration
+    assert "if new.recorded_at < new.occurred_at then" in migration
+    assert "new.recorded_at := new.occurred_at" in migration
+    # 0018 is already shipped -- migration-immutability means it never gains
+    # this fix directly; 0173's CREATE OR REPLACE is the only source of it,
+    # on both fresh installs and existing volumes.
+    assert "if new.recorded_at < new.occurred_at then" not in registry
+    assert "0173_*" in migrate
+    assert "Do not invent a theta" in migration or "invent a theta" in migration
+
+
+def test_status_accepts_occurrence_ahead_of_the_write_clock(registry_db) -> None:
+    """A 50ms-ahead occurrence must persist; recorded_at cannot precede it."""
+    with registry_db.cursor() as cursor:
+        snapshot_id = _insert_snapshot(cursor)
+        account_id = _insert_account(cursor)
+        run_id = _insert_run(
+            cursor,
+            snapshot_id=snapshot_id,
+            account_id=account_id,
+            idempotency_key="ahead-clock",
+        )
+        cursor.execute(
+            "insert into analysis_run_scope "
+            "(analysis_run_id, scope_kind_code) "
+            "values (%s, 'analysis_scope_all_visible')",
+            (run_id,),
+        )
+        cursor.execute(
+            "insert into analysis_run_status_event "
+            "(analysis_run_id, status_ordinal, status_code, occurred_at) "
+            "values (%s, 1, 'analysis_status_pending', "
+            "clock_timestamp() + interval '50 milliseconds') "
+            "returning occurred_at, recorded_at",
+            (run_id,),
+        )
+        occurred_at, recorded_at = cursor.fetchone()
+    assert recorded_at >= occurred_at
 
 
 def test_machine_codes_and_canonical_idempotency_are_fail_closed(registry_db) -> None:
