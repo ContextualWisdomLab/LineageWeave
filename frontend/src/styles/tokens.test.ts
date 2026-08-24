@@ -83,6 +83,16 @@ describe("design tokens", () => {
       expect(appCss, `App.css never references var(${token})`).toContain(`var(${token})`);
     }
   });
+
+  it("gives .citation-chip a real 24px minimum touch target", () => {
+    const citationChipBlock = appCss.match(/\.citation-chip\s*\{[^}]*\}/)?.[0] ?? "";
+    expect(citationChipBlock, ".citation-chip rule not found in App.css").not.toBe("");
+    expect(citationChipBlock).toContain("min-height: var(--size-control-min)");
+    // The chip is a bare <button>; without flex centering its text sits at
+    // the top of the box once min-height grows past the line height.
+    expect(citationChipBlock).toContain("display: inline-flex");
+    expect(citationChipBlock).toContain("align-items: center");
+  });
 });
 
 describe("secondary disclosure toggle touch targets", () => {
