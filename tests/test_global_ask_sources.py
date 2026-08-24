@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from datetime import date
 
 from backend.app.post_chat_ingestion import gather_global_chat_sources
 
@@ -358,3 +359,64 @@ def test_global_sources_do_not_leak_lineage_anchor_id_when_anchor_is_invisible()
 
     assert [source.post_id for source in sources] == ["visible-neighbor"]
     assert sources[0].evidence_facts == ()
+
+
+def test_global_sources_resolve_relative_time_against_seoul_calendar_day(
+    monkeypatch,
+) -> None:
+    """Live bug: the resolver's `today` and the SQL day-boundary cast must
+    agree on the same calendar -- otherwise a question asked during
+    KST 00:00-09:00 (still "yesterday" by a UTC clock) resolves "어제" one
+    day off from the day `created_at::date` is compared against.
+    """
+    monkeypatch.setattr(
+        "backend.app.post_chat_ingestion._seoul_today", lambda: date(2026, 8, 22)
+    )
+    calls: list[tuple[str, tuple[object, ...]]] = []
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            calls.append((query, args))
+            return []
+
+    asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(), lambda _row: True, question="어제 있었던 일 알려줘", limit=4
+        )
+    )
+
+    source_query, source_args = next(
+        (query, args) for query, args in calls if "array_position($2::uuid[], post_id)" in query
+    )
+    # Both sides of the day-boundary comparison must read the same zone --
+    # asserting the SQL cast pins that the created_at side is never left on
+    # the connection's plain UTC/session default while `today` moves to KST.
+    assert "at time zone 'Asia/Seoul'" in source_query
+    assert source_args[3] == date(2026, 8, 21)
+    assert source_args[4] == date(2026, 8, 21)
+
+
+def test_global_sources_drop_particle_attached_temporal_words_from_search_terms() -> None:
+    """Live bug: the temporal-stopword filter used exact match, so a Korean
+    particle attached directly to a time word ("어제는") tokenized as one
+    token and survived into keyword search, even though this is the
+    ordinary way to phrase the question (not an edge case).
+    """
+    calls: list[tuple[str, tuple[object, ...]]] = []
+
+    class FakeConnection:
+        async def fetch(self, query: str, *args):
+            calls.append((query, args))
+            return []
+
+    asyncio.run(
+        gather_global_chat_sources(
+            FakeConnection(),
+            lambda _row: True,
+            question="어제는 무슨 일이 있었나요?",
+            limit=4,
+        )
+    )
+
+    candidate_terms = [args[0] for query, args in calls if "matched_in" in query]
+    assert candidate_terms == ["무슨", "일이", "있었나요"]
