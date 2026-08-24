@@ -72,7 +72,41 @@ def test_unexpected_job_failure_settles_with_a_generic_detail_not_the_raw_except
     assert "failure_detail" in settle_query
     failure_detail = settle_args[-1]
     assert secret_bearing_message not in failure_detail
-    assert failure_detail == "Ask Agent job failed"
+    assert failure_detail == (
+        "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object"
+    )
+
+
+def test_permission_and_connection_errors_keep_their_pre_authored_safe_message(
+    monkeypatch,
+) -> None:
+    """`PermissionError`/`ConnectionError` are raised locally with a
+    pre-authored, safe message (permission state / missing config) -- unlike
+    an arbitrary provider exception, `str(exc)` here is never a leak."""
+    connection = _Connection(_queued_row())
+    pool = _Pool(connection)
+
+    async def _fake_load_account_visibility(_conn, _account_id):
+        return {"corp-1"}, True
+
+    async def _fake_compute_global_ask_answer(*_args, **_kwargs):
+        raise PermissionError("account lacks the post_read permission")
+
+    monkeypatch.setattr(global_ask_queue, "load_account_visibility", _fake_load_account_visibility)
+    monkeypatch.setattr(
+        global_ask_queue, "compute_global_ask_answer", _fake_compute_global_ask_answer
+    )
+
+    asyncio.run(
+        global_ask_queue.process_global_ask_job(
+            pool,
+            job_id="job-1",
+            chat_factory=lambda: type("Client", (), {"available": True})(),
+        )
+    )
+
+    _settle_query, settle_args = connection.executed[-1]
+    assert settle_args[-1] == "account lacks the post_read permission"
 
 
 def test_job_deadline_timeout_settles_with_a_specific_but_still_generic_detail(
@@ -103,4 +137,4 @@ def test_job_deadline_timeout_settles_with_a_specific_but_still_generic_detail(
     )
 
     _settle_query, settle_args = connection.executed[-1]
-    assert settle_args[-1] == "job exceeded its deadline"
+    assert settle_args[-1] == f"job exceeded the {global_ask_queue.JOB_DEADLINE_SECONDS}s deadline"

@@ -33,4 +33,5 @@ placeholder and is not buyer content.
 
 Buyers see useful image evidence without seeing instructions intended for an
 LLM. Search and embedding artifacts remain backed by the existing normalized
-parent/region tables and contextual-orchestrator boundary.
+parent/region tables and contextual-orchestrator boundary. Buyer-visible
+region bounding ranges are specified in [0155](0155-buyer-image-region-locations.md).
