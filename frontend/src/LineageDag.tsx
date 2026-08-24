@@ -38,7 +38,7 @@ export function LineageDag({
             {group.edges.length > 0 && !hasBranchPoint ? (
               <p className="lineage-dag-linear-note" role="note">
                 {t(
-                  "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.",
+                  "This chain has no branch point: each non-root record matched exactly one likely predecessor. See the evidence trail below for why each link was made.",
                 )}
               </p>
             ) : null}

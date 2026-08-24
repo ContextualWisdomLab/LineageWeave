@@ -122,7 +122,7 @@ describe("LineageDag", () => {
 
     expect(
       screen.getByText(
-        "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.",
+        "This chain has no branch point: each non-root record matched exactly one likely predecessor. See the evidence trail below for why each link was made.",
       ),
     ).toBeInTheDocument();
   });
