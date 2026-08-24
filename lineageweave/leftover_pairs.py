@@ -15,7 +15,8 @@ after the second are dropped. Each pair also names the full leftover-map
 rank so a rank-0 collapse is not read as leftover structure, and names
 two-axis leftover-map reconstruction ``R̂_c = ξ_{1:2} · ζ_{1:2}`` of
 centered leftover so truncated reconstruction is not confused with
-residual ``R`` or leftover-map distance ``d``.
+residual ``R`` or leftover-map distance ``d``. Axis share is the
+Gabriel inertia of the first two leftover-map axes (ADR 0148).
 """
 
 from __future__ import annotations
@@ -46,6 +47,15 @@ class LeftoverPair:
     leftover_map_reconstruction: float | None = None
 
 
+@dataclass(frozen=True)
+class LeftoverMapAxis:
+    """Gabriel inertia for one leftover-map axis on a period report."""
+
+    axis_index: int
+    leftover_singular_value: float
+    leftover_share: float
+
+
 def leftover_pairs_from_residual(
     post_ids: list[str],
     item_codes: tuple[str, ...],
@@ -67,6 +77,22 @@ def leftover_pairs_from_residual(
     ``R̃ = R − center``. Fallback pairs (no complete-case map) omit the
     reconstruction rather than fabricating one.
     """
+    pairs, _axes = leftover_map_from_residual(post_ids, item_codes, matrix, expected)
+    return pairs
+
+
+def leftover_map_from_residual(
+    post_ids: list[str],
+    item_codes: tuple[str, ...],
+    matrix: np.ndarray,
+    expected: np.ndarray,
+) -> tuple[tuple[LeftoverPair, ...], tuple[LeftoverMapAxis, ...]]:
+    """Leftover pairs plus the first two Gabriel leftover-map axis shares.
+
+    Axis share is ``σ_k² / Σ_j σ_j²`` for leftover-map axes 1 and 2.
+    Rank-0 residuals emit two zero-share axes so seed can name leftover-map
+    structure without inventing a leftover score.
+    """
     if matrix.shape != (len(post_ids), len(item_codes)):
         raise ValueError(
             f"matrix shape {matrix.shape} does not match {len(post_ids)} posts × {len(item_codes)} items"
@@ -83,7 +109,7 @@ def leftover_pairs_from_residual(
         if observed_mask[person, item]
     ]
     if not observed:
-        return ()
+        return (), ()
 
     keep_person, keep_item = _complete_case_masks(observed_mask)
     person_index = np.flatnonzero(keep_person)
@@ -92,9 +118,11 @@ def leftover_pairs_from_residual(
         center = float(np.mean(residual[np.ix_(person_index, item_index)]))
     else:
         center = float(np.mean([residual[person, item] for person, item in observed]))
-    person_pos, item_pos, leftover_map_rank = _complete_case_positions(
+    person_pos, item_pos, singular = _complete_case_positions(
         residual, center, keep_person, keep_item
     )
+    axes = leftover_map_axes_from_singular(singular)
+    leftover_map_rank = int(singular.size)
     candidates: list[tuple[float, str, str, float, float, float, float | None]] = []
     if person_pos is not None and item_pos is not None:
         person_index = np.flatnonzero(keep_person)
@@ -146,10 +174,11 @@ def leftover_pairs_from_residual(
             )
     closest = min(candidates, key=lambda row: (row[0], row[1], row[2]))
     farthest = max(candidates, key=lambda row: (row[0], row[1], row[2]))
-    return (
+    pairs = (
         _pair_from_candidate(PAIR_KIND_CLOSEST, closest, leftover_map_rank),
         _pair_from_candidate(PAIR_KIND_FARTHEST, farthest, leftover_map_rank),
     )
+    return pairs, axes
 
 
 def _leftover_map_reconstruction(
@@ -216,6 +245,32 @@ def _pair_from_candidate(
     )
 
 
+def leftover_map_axes_from_singular(singular: np.ndarray) -> tuple[LeftoverMapAxis, ...]:
+    """Gabriel axis inertia for leftover-map axes 1 and 2.
+
+    Share is ``σ_k² / Σ_j σ_j²``. Values at or below the leftover
+    singular floor do not enter the denominator. Rank-0 residuals emit
+    two zero-share axes.
+    """
+    values = np.asarray(singular, dtype=np.float64).reshape(-1)
+    kept = values[np.isfinite(values) & (values > _LEFTOVER_SINGULAR_FLOOR)]
+    total = float(np.sum(kept * kept)) if kept.size else 0.0
+    axes: list[LeftoverMapAxis] = []
+    for index in (1, 2):
+        value = float(kept[index - 1]) if kept.size >= index else 0.0
+        if not np.isfinite(value) or value < 0.0:
+            value = 0.0
+        share = (value * value / total) if total > 0.0 else 0.0
+        axes.append(
+            LeftoverMapAxis(
+                axis_index=index,
+                leftover_singular_value=value,
+                leftover_share=max(share, 0.0),
+            )
+        )
+    return tuple(axes)
+
+
 def _complete_case_masks(observed: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Drop incomplete rows, then incomplete columns among remaining rows."""
     keep_person = observed.any(axis=1)
@@ -232,17 +287,20 @@ def _complete_case_positions(
     center: float,
     keep_person: np.ndarray,
     keep_item: np.ndarray,
-) -> tuple[np.ndarray | None, np.ndarray | None, int]:
+) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray]:
     """Gabriel coordinates on the complete-case residual rectangle only."""
     person_index = np.flatnonzero(keep_person)
     item_index = np.flatnonzero(keep_item)
+    empty_singular = np.zeros(0, dtype=np.float64)
     if person_index.size == 0 or item_index.size == 0:
-        return None, None, 0
+        return None, None, empty_singular
     filled = residual[np.ix_(person_index, item_index)] - center
     return _leftover_map_positions(filled)
 
 
-def _leftover_map_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray, int]:
+def _leftover_map_positions(
+    filled: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Gabriel coordinates ordered by descending singular value.
 
     NumPy's SVD contract returns singular values largest-first, so filtering
@@ -250,19 +308,25 @@ def _leftover_map_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray,
     the two leading leftover-map axes. Rank-0 residuals collapse to the origin.
     """
     n_persons, n_items = filled.shape
+    empty_singular = np.zeros(0, dtype=np.float64)
     if n_persons == 0 or n_items == 0 or not np.any(np.abs(filled) > _LEFTOVER_SINGULAR_FLOOR):
         return (
             np.zeros((n_persons, 1), dtype=np.float64),
             np.zeros((n_items, 1), dtype=np.float64),
-            0,
+            empty_singular,
         )
     left, singular, right = np.linalg.svd(filled, full_matrices=False)
     keep = singular > _LEFTOVER_SINGULAR_FLOOR
-    leftover_map_rank = int(np.count_nonzero(keep))
+    if not np.any(keep):
+        return (
+            np.zeros((n_persons, 1), dtype=np.float64),
+            np.zeros((n_items, 1), dtype=np.float64),
+            empty_singular,
+        )
     scale = np.sqrt(singular[keep])
     person_pos = left[:, keep] * scale
     item_pos = right[keep, :].T * scale
-    return person_pos, item_pos, leftover_map_rank
+    return person_pos, item_pos, singular[keep]
 
 
 def _pad_map_axes(positions: np.ndarray) -> np.ndarray:
