@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { setLocale } from "./i18n";
+import { OIDC_RETURN_URL_STORAGE_KEY } from "./oidcReturnUrl";
 
 const signinRedirect = vi.fn();
 const signoutRedirect = vi.fn();
@@ -28,11 +29,14 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  window.sessionStorage.clear();
+  window.localStorage.clear();
 });
 
 describe("App, unauthenticated", () => {
   it("shows a login button that starts the real OIDC redirect", async () => {
     render(<App showLabPanels />);
+    expect(screen.queryByRole("heading", { name: /admin settings/i })).toBeNull();
     const button = screen.getByRole("button", { name: /log in/i });
     await userEvent.click(button);
     expect(signinRedirect).toHaveBeenCalledTimes(1);
@@ -41,7 +45,10 @@ describe("App, unauthenticated", () => {
         state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
       }),
     );
-    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toMatch(/^\//);
+    // Persisted as a fallback in case the OIDC state round-trip is dropped
+    // (see oidcReturnUrl.ts's restoreOidcReturnUrl, consumed in main.tsx).
+    expect(window.sessionStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toMatch(/^\//);
+    expect(window.localStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toMatch(/^\//);
   });
 });
 
@@ -71,6 +78,14 @@ describe("App, authenticated", () => {
         post_id: string;
         post_title: string;
         fused_rank: number;
+        channel_evidence?: {
+          signal_code: string;
+          signal_label: string;
+          channel_rank: number;
+          weight: number;
+          contribution: number;
+          rank: number;
+        }[];
       }[];
     };
     chatUnavailable?: boolean;
@@ -91,6 +106,8 @@ describe("App, authenticated", () => {
     customerEntityHierarchy?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
+    askLineageGraph?: boolean;
+    askImageCitation?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -933,6 +950,9 @@ describe("App, authenticated", () => {
                     criterion_code: "sales_lead_specificity",
                     leftover_distance: 0.12,
                     leftover_residual: 0.4,
+                    observed_response: 2.4,
+                    expected_response: 2.0,
+                    leftover_map_rank: 1,
                   },
                   {
                     pair_kind: "farthest",
@@ -941,6 +961,9 @@ describe("App, authenticated", () => {
                     criterion_code: "general_sentiment_negative",
                     leftover_distance: 1.84,
                     leftover_residual: -1.1,
+                    observed_response: 0.9,
+                    expected_response: 2.0,
+                    leftover_map_rank: 1,
                   },
                 ],
                 members: [
@@ -1561,7 +1584,52 @@ describe("App, authenticated", () => {
                 ],
               },
             ],
+            cited_post_images: options?.askImageCitation
+              ? [
+                  {
+                    post_id: "post-2",
+                    unit_index: 1,
+                    mime_type: "image/png",
+                    status_code: "described",
+                    extracted_text: "Error code 500 on checkout",
+                    caption: "Screenshot of the checkout error",
+                    tags: ["screenshot", "error"],
+                  },
+                ]
+              : [],
             source_post_ids: ["post-1", "post-2"],
+            lineage_graph: options?.askLineageGraph
+              ? {
+                  nodes: [
+                    {
+                      id: "post-2",
+                      group: "thread-alpha",
+                      label: "Linked post",
+                      occurred_at: "2026-08-01T00:00:00Z",
+                      is_root: true,
+                      is_branch_point: false,
+                    },
+                    {
+                      id: "post-3",
+                      group: "thread-alpha",
+                      label: "Follow-up post",
+                      occurred_at: "2026-08-02T00:00:00Z",
+                      is_root: false,
+                      is_branch_point: false,
+                    },
+                    {
+                      id: "post-4",
+                      group: "thread-beta",
+                      label: "Unrelated thread post",
+                      occurred_at: "2026-08-03T00:00:00Z",
+                      is_root: true,
+                      is_branch_point: false,
+                    },
+                  ],
+                  edges: [{ source: "post-2", target: "post-3", fused_score: 0.7 }],
+                  truncated: false,
+                }
+              : { nodes: [], edges: [], truncated: false },
           }),
         );
       }
@@ -1673,6 +1741,81 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
+
+  it("renders every cited lineage thread as its own git-branch-style graph", async () => {
+    stubBackend({ askLineageGraph: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByLabelText("Reconstructed lineage")).toBeInTheDocument();
+    // Two distinct reconstruct threads (thread-alpha, thread-beta) must
+    // render as two independent branch-tree figures, not merged into one.
+    expect(screen.getByRole("img", { name: "thread-alpha lineage" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "thread-beta lineage" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open post: Follow-up post" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open post: Unrelated thread post" })).toBeInTheDocument();
+  });
+
+  it("shows no lineage graph section when the answer cites no reconstructed thread", async () => {
+    stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByRole("list", { name: "Evidence facts" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Reconstructed lineage")).not.toBeInTheDocument();
+  });
+
+  it("cites a cited post's persisted image evidence under that post", async () => {
+    stubBackend({ askImageCitation: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByText(/Image evidence: Screenshot of the checkout error/)).toBeInTheDocument();
+    expect(screen.getByText(/Error code 500 on checkout/)).toBeInTheDocument();
+    expect(screen.getByText(/Image tags: screenshot, error/)).toBeInTheDocument();
+  });
+
+  it("shows no image evidence line when the answer cites no image", async () => {
+    stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByRole("list", { name: "Evidence facts" })).toBeInTheDocument();
+    expect(screen.queryByText(/Image evidence:/)).not.toBeInTheDocument();
+  });
+
+  it("opens a cited post's evidence in a Layer Popup without leaving the answer", async () => {
+    stubBackend({ askImageCitation: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    await userEvent.click(await screen.findByRole("button", { name: "View evidence" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Linked post" });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText(/project: Semantic project/)).toBeInTheDocument();
+    expect(within(dialog).getByText("Screenshot of the checkout error")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Close evidence panel" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    // The answer itself is still on screen -- the layer never navigated away.
+    expect(screen.getByRole("button", { name: "View evidence" })).toBeInTheDocument();
   });
 
   it("labels the Customer Master entity level and Keymen side, never the raw lookup code", async () => {
@@ -2579,11 +2722,47 @@ describe("App, authenticated", () => {
             post_id: "post-1",
             post_title: "Public post",
             fused_rank: 1,
+            channel_evidence: [
+              {
+                signal_code: "lexical",
+                signal_label: "Title overlap",
+                channel_rank: 2,
+                weight: 0.75,
+                contribution: 0.75 / 62,
+                rank: 1,
+              },
+              {
+                signal_code: "temporal",
+                signal_label: "Newest first",
+                channel_rank: 2,
+                weight: 0.25,
+                contribution: 0.25 / 62,
+                rank: 2,
+              },
+            ],
           },
           {
             post_id: "post-2",
             post_title: "Pricing renegotiation: revised quote sent",
             fused_rank: 2,
+            channel_evidence: [
+              {
+                signal_code: "lexical",
+                signal_label: "Title overlap",
+                channel_rank: 1,
+                weight: 0.75,
+                contribution: 0.75 / 61,
+                rank: 1,
+              },
+              {
+                signal_code: "temporal",
+                signal_label: "Newest first",
+                channel_rank: 1,
+                weight: 0.25,
+                contribution: 0.25 / 61,
+                rank: 2,
+              },
+            ],
           },
         ],
       },
@@ -2596,6 +2775,17 @@ describe("App, authenticated", () => {
     expect(rankingButton).toHaveTextContent("Public post");
     expect(rankingButton).toHaveTextContent("Rankings · rankweave");
     expect(rankingButton).toHaveTextContent("rank 1");
+    expect(
+      screen.getByText(
+        "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("list", { name: "Ranking evidence for Public post" }),
+    ).toHaveTextContent("Title overlap rank 2, contribution 0.012097");
+    expect(
+      screen.getByRole("list", { name: "Ranking evidence for Public post" }),
+    ).toHaveTextContent("Newest first rank 2, contribution 0.004032");
     expect(screen.queryByRole("button", { name: /open ranking: private parent/i })).not.toBeInTheDocument();
 
     await userEvent.click(rankingButton);
@@ -3358,13 +3548,19 @@ describe("App, authenticated", () => {
     });
     expect(closestPair).toHaveTextContent("Closest leftover: Public post · sales-lead");
     expect(closestPair).toHaveTextContent(
-      "Open this post to read the criterion it sat closest to after main effects.",
+      "Read leftover map rank 1, observed Y 2.40, and expected E 2.00 after IRT main effects, then open this post.",
     );
+    expect(closestPair).toHaveTextContent("R +0.40");
+    expect(closestPair).toHaveTextContent("Y 2.40 · E 2.00");
+    expect(closestPair).toHaveTextContent("rank 1");
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
-      "Open this post to read the criterion it sat farthest from after main effects.",
+      "Read leftover map rank 1, observed Y 0.90, and expected E 2.00 after IRT main effects, then open this post.",
     );
+    expect(farthestPair).toHaveTextContent("R −1.10");
+    expect(farthestPair).toHaveTextContent("Y 0.90 · E 2.00");
+    expect(farthestPair).toHaveTextContent("rank 1");
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
     expect(closestPair.compareDocumentPosition(memberButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
