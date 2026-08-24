@@ -25,6 +25,10 @@ const meta = {
   },
 } satisfies Meta<typeof AskEvidenceLayerPopup>;
 
+export default meta;
+
+type Story = StoryObj<typeof meta>;
+
 export const EventTimeAxis: Story = {
   args: {
     facts: [{ kind: "time_axis", text: "time axis: event occurred at" }],
@@ -38,9 +42,6 @@ export const IngestionTimeAxisFallback: Story = {
     images: [],
   },
 };
-
-
-type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
