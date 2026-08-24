@@ -20,7 +20,7 @@ All notable changes to this project are documented here. Format follows
 - Bounded ontology/provenance neighborhood (`GET /api/ontology/neighborhood`)
   with typed Post/Person/CorporateEntity/Team nodes, SKOS broader distinct
   from OWL subclass, truth-status vocabulary, knowledge-cutoff binding, and
-  a Keyman-panel explorer that is not Event Lineage (ADR 0185 / #341).
+  a Keyman-panel explorer that is not Event Lineage (ADR 0184 / #341).
 - Corroborated SKOS `altLabel` / `prefLabel` pairs now expand corporate
   catalog candidates so a synthetic short form (`AGP`) and full form
   (`Aurora Grid Power`) bind one `corporate_entity` row instead of

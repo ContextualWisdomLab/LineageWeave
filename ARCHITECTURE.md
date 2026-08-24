@@ -79,7 +79,7 @@ flowchart LR
 | `post_chat.py` | Pluggable in-popup chat's reason-and-cite step (retrieve step lives in `backend/app/post_chat_ingestion.py`) |
 | `commitment_extraction.py` | Pluggable LLM derivation of a customer commitment (promise + deadline) from a post; `Null` default, `ContextualOrchestrator` real impl |
 | `ontology.py` | Loads `docs/ontology/lineageweave-kg.ttl`, the formal OWL 2/RDFS/SKOS vocabulary for the Knowledge Graph's node/edge types (ADR 0004) |
-| `ontology_neighborhood.py` | Bounded typed ontology/provenance neighborhood (ADR 0185); PostgreSQL stays authoritative, OWL subclass is not an instance edge |
+| `ontology_neighborhood.py` | Bounded typed ontology/provenance neighborhood (ADR 0184); PostgreSQL stays authoritative, OWL subclass is not an instance edge |
 | `ontology_source_cursor.py` | Opaque HMAC source-window continuation (ADR 0124); keyset pagination, never OFFSET |
 | `period_report.py` | Fit GRM/GPCM on persisted IRT rows, FIPC-select, EAP-score a period (ADR 0003 slice 3; Bock & Mislevy, 1982) |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |
@@ -596,7 +596,7 @@ on those same fixed parameters (Kim, 2006 FIPC). After scoring,
 information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
 residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021;
-ADR 0017 / 0048 / 0119 / 0162 / 0163 / 0164 / 0182 / 0184) persist to
+ADR 0017 / 0048 / 0119 / 0162 / 0163 / 0164 / 0182 / 0185) persist to
 `report_leftover_pair` with signed residual `R`, observed `Y`, expected
 `E[Y|θ, item]`, full leftover-map rank, unexplained leftover
 `U = R − R̂` named on the pair row, and explained leftover share

@@ -1,4 +1,4 @@
--- ADR 0184: persist explained leftover share e = R̂_c² / R̃² of the
+-- ADR 0185: persist explained leftover share e = R̂_c² / R̃² of the
 -- centered leftover the two-axis leftover map reconstructs
 -- (R̃ = R − center, R̂_c = ξ_{1:2} · ζ_{1:2}).
 -- Distance stays Euclidean leftover-map d. Centered leftover U_c and

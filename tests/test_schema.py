@@ -71,7 +71,7 @@ _LEFTOVER_MAP_UNEXPLAINED_MIGRATION = (
 _LEFTOVER_MAP_EXPLAINED_SHARE_MIGRATION = (
     Path(__file__).resolve().parents[1]
     / "migrations"
-    / "0184_report_leftover_map_explained_share.sql"
+    / "0185_report_leftover_map_explained_share.sql"
 )
 
 

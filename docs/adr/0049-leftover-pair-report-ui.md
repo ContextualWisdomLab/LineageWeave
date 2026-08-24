@@ -6,7 +6,7 @@
 [ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E);
 [ADR 0164](0164-leftover-map-rank.md) (full map rank);
 [ADR 0182](0182-leftover-map-unexplained.md) (unexplained leftover U);
-[ADR 0184](0184-leftover-map-explained-share.md) (explained leftover share)
+[ADR 0185](0185-leftover-map-explained-share.md) (explained leftover share)
 
 ## Context
 
@@ -41,7 +41,7 @@ row. Residual naming is [ADR 0162](0162-leftover-residual-disclosure.md),
 observed/expected naming is [ADR 0163](0163-leftover-observed-expected.md),
 rank naming is [ADR 0164](0164-leftover-map-rank.md), unexplained
 leftover naming is [ADR 0182](0182-leftover-map-unexplained.md),
-explained-share naming is [ADR 0184](0184-leftover-map-explained-share.md).
+explained-share naming is [ADR 0185](0185-leftover-map-explained-share.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post.

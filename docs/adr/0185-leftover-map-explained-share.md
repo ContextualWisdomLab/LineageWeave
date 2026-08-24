@@ -38,7 +38,7 @@ Euclidean. Reconstruction `R̂_c` is computed internally so `e` is
 honest, then discarded.
 
 The unprotected-stack reconstructions for neighbouring leftover facts
-use 0162–0183. This protected-main increment uses **0184** so it does
+use 0162–0184. This protected-main increment uses **0185** so it does
 not collide with leftover-map unexplained leftover share (0183),
 leftover-map unexplained leftover (0182), leftover-map reconstruction
 (0181), leftover-map length (0181 on the length stack), leftover-map
@@ -52,7 +52,7 @@ leftover interaction-map persistence (0121).
 
 Each leftover pair names `leftover_map_explained_share` — explained
 leftover share `e = R̂_c² / R̃²` of centered leftover after two-axis
-Gabriel reconstruction `R̂_c = ξ_{1:2} · ζ_{1:2}`. Migration `0184`
+Gabriel reconstruction `R̂_c = ξ_{1:2} · ζ_{1:2}`. Migration `0185`
 is the single source of the column on every install path, fresh or
 existing -- shipped migrations (`0001` / `0012`) are never edited after
 the fact. The column is nullable so older leftover rows keep distance
