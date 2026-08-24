@@ -12,7 +12,7 @@ function truncateLabel(label: string): string {
 // visible 7px node mark a 24x24px minimum hit area without CSS scale-up.
 const NODE_HIT_RADIUS = 12;
 
-/** Render the authorized lineage projection and let the buyer open a post. */
+/** Render the authorized lineage projection and let the reader open a post. */
 export function LineageDag({
   graph,
   onSelectPost,
@@ -31,6 +31,7 @@ export function LineageDag({
     <div className="lineage-dag" aria-label={t("Reconstructed lineage")}>
       {groups.map((group) => {
         const byId = Object.fromEntries(group.nodes.map((node) => [node.id, node]));
+        const hasBranchPoint = group.nodes.some((node) => node.is_branch_point);
         return (
           <figure key={group.group} className="lineage-dag-group">
             <figcaption>
@@ -40,6 +41,13 @@ export function LineageDag({
                 edges: group.edges.length,
               })}
             </figcaption>
+            {group.edges.length > 0 && !hasBranchPoint ? (
+              <p className="lineage-dag-linear-note" role="note">
+                {t(
+                  "This chain has no branch point: each non-root record matched exactly one likely predecessor. See the evidence trail below for why each link was made.",
+                )}
+              </p>
+            ) : null}
             <p className="lineage-dag-scroll-hint">
               {t("Swipe or use arrow keys to inspect the full lineage.")}
             </p>

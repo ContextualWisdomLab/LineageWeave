@@ -150,7 +150,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No posts match the current filters.": "현재 필터에 맞는 글이 없습니다.",
     "Customer master": "고객 마스터",
     "Ask Agent": "Ask Agent",
-    "Buyer navigation": "구매자 메뉴",
+    "Workspace navigation": "워크스페이스 메뉴",
     "Authorized customer scope": "권한이 있는 고객 범위",
     "Customer entities available to this account.": "이 계정에서 사용할 수 있는 고객 엔터티입니다.",
     "Loading customer master...": "고객 마스터를 불러오는 중...",
@@ -197,6 +197,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Choose a post": "글을 선택하세요",
     "Analysis runs": "분석 실행",
     "Period reports": "기간 리포트",
+    "Leftover map coverage": "잔여 지도 포함 범위",
+    "Leftover map used {used} of {scored} scored posts (complete-case)":
+      "잔여 지도는 채점된 글 {scored}개 중 {used}개를 사용했습니다(완전사례)",
     "Event Lineage": "이벤트 계보",
     "Related posts": "관련 글",
     "Related to": "관련 대상:",
@@ -302,6 +305,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No reconstructed lineage yet. Rebuild after seeding posts.":
       "아직 재구성된 계보가 없습니다. 글을 시드한 뒤 다시 만드세요.",
     "Reconstructed lineage": "재구성된 계보",
+    "This chain has no branch point: each non-root record matched exactly one likely predecessor. See the evidence trail below for why each link was made.":
+      "이 사슬에는 분기점이 없습니다: 시작 기록을 제외한 각 기록이 가장 유력한 선행 기록을 정확히 하나씩 찾았기 때문입니다. 아래 근거 내역에서 각 연결의 이유를 확인하세요.",
     "{group} ({records} records, {edges} lineage edges)":
       "{group} ({records}개 기록, 계보 연결 {edges}개)",
     "{group} lineage": "{group} 계보",
@@ -594,7 +599,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No posts match the current filters.": "没有文章符合当前筛选条件。",
     "Customer master": "客户主数据",
     "Ask Agent": "Ask Agent",
-    "Buyer navigation": "买家导航",
+    "Workspace navigation": "工作区导航",
     "Authorized customer scope": "已授权的客户范围",
     "Customer entities available to this account.": "此账户可用的客户实体。",
     "Loading customer master...": "正在加载客户主数据...",
@@ -641,6 +646,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Choose a post": "选择文章",
     "Analysis runs": "分析运行",
     "Period reports": "周期报告",
+    "Leftover map coverage": "残差地图覆盖范围",
+    "Leftover map used {used} of {scored} scored posts (complete-case)":
+      "残差地图使用了 {scored} 篇已评分帖文中的 {used} 篇（完全案例）",
     "Event Lineage": "事件谱系",
     "Related posts": "相关文章",
     "Related to": "相关对象：",
@@ -745,6 +753,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No reconstructed lineage yet. Rebuild after seeding posts.":
       "尚未重建事件谱系。生成文章种子后再重建。",
     "Reconstructed lineage": "已重建的事件谱系",
+    "This chain has no branch point: each non-root record matched exactly one likely predecessor. See the evidence trail below for why each link was made.":
+      "此链没有分支点：除起始记录外，每条记录都恰好匹配到一个最可能的前序记录。请查看下方的证据记录，了解每条连接的原因。",
     "{group} ({records} records, {edges} lineage edges)":
       "{group}（{records} 条记录，{edges} 条谱系边）",
     "{group} lineage": "{group} 谱系",
@@ -1060,7 +1070,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No posts match the current filters.": "現在の絞り込みに一致する投稿はありません。",
     "Customer master": "顧客マスター",
     "Ask Agent": "Ask Agent",
-    "Buyer navigation": "購入者ナビゲーション",
+    "Workspace navigation": "ワークスペースナビゲーション",
     "Authorized customer scope": "許可された顧客範囲",
     "Customer entities available to this account.": "このアカウントで利用できる顧客エンティティです。",
     "Loading customer master...": "顧客マスターを読み込んでいます...",
@@ -1107,6 +1117,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Choose a post": "投稿を選択",
     "Analysis runs": "分析実行",
     "Period reports": "期間レポート",
+    "Leftover map coverage": "残差マップの対象範囲",
+    "Leftover map used {used} of {scored} scored posts (complete-case)":
+      "残差マップは採点済み投稿 {scored} 件のうち {used} 件を使いました（完全ケース）",
     "Event Lineage": "イベント系譜",
     "Related posts": "関連する投稿",
     "Related to": "関連対象：",
@@ -1202,6 +1215,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No reconstructed lineage yet. Rebuild after seeding posts.":
       "再構成された系譜はまだありません。投稿をシードしてから再構成してください。",
     "Reconstructed lineage": "再構成された系譜",
+    "This chain has no branch point: each non-root record matched exactly one likely predecessor. See the evidence trail below for why each link was made.":
+      "この鎖に分岐点はありません。起点の記録を除き、各記録がそれぞれ最も可能性の高い先行記録を1件だけ見つけたためです。各リンクの理由は下の証跡でご確認ください。",
     "{group} ({records} records, {edges} lineage edges)":
       "{group}（{records}件の記録、系譜エッジ{edges}件）",
     "{group} lineage": "{group}の系譜",
@@ -1503,7 +1518,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No posts match the current filters.": "Không có bài viết nào khớp với bộ lọc hiện tại.",
     "Customer master": "Danh mục khách hàng",
     "Ask Agent": "Ask Agent",
-    "Buyer navigation": "Điều hướng người mua",
+    "Workspace navigation": "Điều hướng không gian làm việc",
     "Authorized customer scope": "Phạm vi khách hàng được cấp quyền",
     "Customer entities available to this account.": "Các thực thể khách hàng mà tài khoản này được phép sử dụng.",
     "Loading customer master...": "Đang tải danh mục khách hàng...",
@@ -1550,6 +1565,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Choose a post": "Chọn bài viết",
     "Analysis runs": "Lần chạy phân tích",
     "Period reports": "Báo cáo theo kỳ",
+    "Leftover map coverage": "Phạm vi bản đồ phần dư",
+    "Leftover map used {used} of {scored} scored posts (complete-case)":
+      "Bản đồ phần dư dùng {used} trên {scored} bài đã chấm (trường hợp đầy đủ)",
     "Event Lineage": "Dòng sự kiện",
     "Related posts": "Bài viết liên quan",
     "Related to": "Liên quan đến:",
@@ -1645,6 +1663,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No reconstructed lineage yet. Rebuild after seeding posts.":
       "Chưa có dòng sự kiện được tái dựng. Hãy tạo dữ liệu mồi rồi tái dựng lại.",
     "Reconstructed lineage": "Dòng sự kiện đã tái dựng",
+    "This chain has no branch point: each non-root record matched exactly one likely predecessor. See the evidence trail below for why each link was made.":
+      "Chuỗi này không có điểm phân nhánh: ngoại trừ bản ghi gốc, mỗi bản ghi chỉ khớp với đúng một bản ghi tiền nhiệm khả dĩ nhất. Xem bằng chứng bên dưới để biết lý do của từng liên kết.",
     "{group} ({records} records, {edges} lineage edges)":
       "{group} ({records} bản ghi, {edges} liên kết dòng sự kiện)",
     "{group} lineage": "Dòng sự kiện {group}",

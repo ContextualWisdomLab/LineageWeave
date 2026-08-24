@@ -12,7 +12,7 @@ normative research-grounding policy, and
 [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md) for
 supporting literature and aggregate evidence. Event Lineage (reconstructed
 post-to-post parents) is distinct from the typed ontology neighborhood
-(ADR 0168); source-window continuation is ADR 0124. Do not mix those graphs.
+(ADR 0184); source-window continuation is ADR 0124. Do not mix those graphs.
 
 ## Hard rule: no real data in repository artifacts
 
@@ -221,7 +221,9 @@ list so a click opens that post. Two-axis reconstruction `R̂` is not
 persisted. Leftover-map axis share (ADR 0148) is Gabriel inertia of
 residual SVD axes 1 and 2 and persists to `report_leftover_map_axis`.
 Rank-0 residuals emit two zero-share axes; the shares are report-level
-and are not a leftover score.
+and are not a leftover score. Complete-case coverage (ADR 0168) persists to
+`report_leftover_map_coverage` and captions the pair list with how
+many scored posts entered the map.
 
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a

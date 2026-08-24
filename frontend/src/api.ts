@@ -886,6 +886,15 @@ export interface LeftoverMapAxis {
   leftover_share: number;
 }
 
+export interface LeftoverMapCoverage {
+  map_post_count: number;
+  scored_post_count: number;
+  map_item_count: number;
+  scored_item_count: number;
+  incomplete_post_count: number;
+  incomplete_item_count: number;
+}
+
 export interface PeriodGroupReport {
   grouping_key: string;
   grouping_label?: string;
@@ -902,6 +911,7 @@ export interface PeriodGroupReport {
   selected_items: SelectedReportItem[];
   leftover_pairs: LeftoverPair[];
   leftover_map_axes?: LeftoverMapAxis[];
+  leftover_map_coverage?: LeftoverMapCoverage | null;
 }
 
 export interface PeriodReports {
