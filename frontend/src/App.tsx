@@ -4189,7 +4189,7 @@ function ReportsPanel({
               </span>
             )}
             {report.leftover_pairs && report.leftover_pairs.length > 0 && (
-              <ul className="ticket-list" aria-label="Leftover pairs">
+              <ul className="ticket-list" aria-label={t("Leftover pairs")}>
                 {report.leftover_pairs.map((pair) => (
                   <li
                     key={`${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}

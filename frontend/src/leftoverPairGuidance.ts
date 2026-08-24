@@ -5,6 +5,8 @@
  * criterion. Clicking a pair opens that post and lands on that criterion.
  */
 
+import { t, tf } from "./i18n";
+
 export const LEFTOVER_CRITERION_SHORT_LABEL: Record<string, string> = {
   general_sentiment_positive: "constructive",
   general_sentiment_negative: "negative",
@@ -35,7 +37,7 @@ export function leftoverPairOpenOptions(pair: LeftoverPairOpen): LeftoverPairOpe
 }
 
 export function leftoverPairKindLabel(pairKind: string): string {
-  return pairKind === "farthest" ? "Farthest leftover" : "Closest leftover";
+  return pairKind === "farthest" ? t("Farthest leftover") : t("Closest leftover");
 }
 
 export function leftoverPairTitle(pair: LeftoverPairOpen): string {
@@ -43,7 +45,11 @@ export function leftoverPairTitle(pair: LeftoverPairOpen): string {
 }
 
 export function leftoverPairAriaLabel(pair: LeftoverPairOpen): string {
-  return `Open leftover ${pair.pair_kind} pair: ${pair.post_title} · ${leftoverCriterionLabel(pair.criterion_code)}`;
+  return tf("Open leftover {kind} pair: {title} · {criterion}", {
+    kind: pair.pair_kind,
+    title: pair.post_title,
+    criterion: leftoverCriterionLabel(pair.criterion_code),
+  });
 }
 
 export function leftoverPairNextAction(pair: LeftoverPairOpen): string {
