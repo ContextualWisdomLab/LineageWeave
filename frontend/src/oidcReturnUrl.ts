@@ -1,6 +1,18 @@
 export const OIDC_RETURN_URL_STORAGE_KEY = "lineageweave.oidc.returnUrl";
 const MAX_OIDC_RETURN_URL_LENGTH = 4096;
 
+/** Authorization-code response params Keycloak appends to the redirect URI
+ * (RFC 6749 sec. 4.1.2; `session_state` per OIDC Session Management). Any
+ * link built from `window.location` must strip these -- they're a one-time
+ * auth exchange, never part of a shareable URL. */
+const OIDC_CALLBACK_PARAMS = ["code", "state", "session_state", "iss"] as const;
+
+/** Removes OIDC callback artifacts from `url` in place -- call before turning
+ * `window.location` into a link a user can copy or share. */
+export function stripOidcCallbackParams(url: URL): void {
+  OIDC_CALLBACK_PARAMS.forEach((param) => url.searchParams.delete(param));
+}
+
 type UrlLike = Pick<Location, "pathname" | "search" | "hash">;
 
 function isSafeReturnUrl(value: string): boolean {
@@ -12,7 +24,14 @@ function isSafeReturnUrl(value: string): boolean {
 }
 
 export function returnUrlFromLocation(location: UrlLike = window.location): string {
-  const value = `${location.pathname}${location.search}${location.hash}`;
+  // A restored return URL can itself be a post-redirect URL still carrying
+  // Keycloak callback artifacts (devin review thread on PR #576): strip
+  // them here too, so no consumer of this module re-mints a URL with a
+  // one-time authorization code in it.
+  const params = new URLSearchParams(location.search);
+  OIDC_CALLBACK_PARAMS.forEach((param) => params.delete(param));
+  const cleanedSearch = params.toString();
+  const value = `${location.pathname}${cleanedSearch ? `?${cleanedSearch}` : ""}${location.hash}`;
   return isSafeReturnUrl(value) ? value : "/";
 }
 

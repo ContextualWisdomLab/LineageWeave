@@ -31,7 +31,7 @@ export function FiveW1H({ slots }: { slots: FiveW1HSlot[] | null }) {
     <section className="popup-section five-w1h" aria-label={t("5W1H") }>
       <h3>{t("5W1H")}</h3>
       {slots === null ? (
-        <p>{t("Loading 5W1H...")}</p>
+        <p role="status">{t("Loading 5W1H...")}</p>
       ) : (
         <dl>
           {slots.map((slot) => (

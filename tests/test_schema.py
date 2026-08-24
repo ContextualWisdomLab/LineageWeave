@@ -53,6 +53,21 @@ _LEFTOVER_MAP_RANK_MIGRATION = (
     / "migrations"
     / "0164_report_leftover_map_rank.sql"
 )
+_LEFTOVER_MAP_AXIS_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0169_report_leftover_map_axis.sql"
+)
+_LEFTOVER_MAP_COVERAGE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0168_report_leftover_map_coverage.sql"
+)
+_LEFTOVER_MAP_UNEXPLAINED_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0182_report_leftover_map_unexplained.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -91,6 +106,9 @@ def schema_db():
                 cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -134,6 +152,8 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "report_item_parameter",
         "report_item_information",
         "report_leftover_pair",
+        "report_leftover_map_axis",
+        "report_leftover_map_coverage",
         "post_summary_result",
         "post_summary_event",
         "post_summary_role",
@@ -220,6 +240,49 @@ def test_leftover_pair_names_leftover_map_rank_column(schema_db) -> None:
     assert columns["leftover_map_rank"] == "YES"
 
 
+def test_leftover_pair_names_nullable_unexplained_column(schema_db) -> None:
+    """Every install path preserves legacy pairs while naming unexplained leftover."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select column_name, is_nullable
+            from information_schema.columns
+            where table_name = 'report_leftover_pair'
+            """
+        )
+        columns = dict(cur.fetchall())
+    assert columns["leftover_map_unexplained"] == "YES"
+    assert columns["leftover_residual"] == "NO"
+    assert columns["leftover_distance"] == "NO"
+    assert "leftover_map_reconstruction" not in columns
+
+
+def test_leftover_map_axis_references_period_score(schema_db) -> None:
+    """Axis share is report-level; it must cascade with the period score."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select confrelid::regclass::text
+            from pg_constraint
+            where conrelid = 'report_leftover_map_axis'::regclass and contype = 'f'
+            """
+        )
+        targets = {row[0] for row in cur.fetchall()}
+    assert "report_period_score" in targets
+
+
+def test_leftover_map_coverage_references_period_score(schema_db) -> None:
+    """Complete-case leftover coverage is 1:1 with the period report."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select confrelid::regclass::text
+            from pg_constraint
+            where conrelid = 'report_leftover_map_coverage'::regclass and contype = 'f'
+            """
+        )
+        targets = {row[0] for row in cur.fetchall()}
+    assert "report_period_score" in targets
 
 
 def test_corporate_hierarchy_recursive_query_returns_correct_shape(schema_db) -> None:
