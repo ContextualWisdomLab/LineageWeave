@@ -3,7 +3,7 @@ concrete `(start_date, end_date)` retrieval bound.
 
 A question like "어제 무슨 일이 있었나요?" ("what happened yesterday?") names a
 time window the account already has in mind, but `source_post.created_at` is
-the record ingestion clock -- bulk imports cluster it. ADR 0183 binds the
+the record ingestion clock -- bulk imports cluster it. ADR 0201 binds the
 resolved window to `event_occurred_at` with a `created_at` fallback.
 Without resolving the expression, Global Ask's keyword retrieval (ADR 0047)
 treats "어제" as a literal, near-meaningless search token instead of a date

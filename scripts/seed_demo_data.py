@@ -452,7 +452,7 @@ def seed(
             )
             # Fixture occurred_at was stored as created_at. Name that instant
             # as the event clock so Global Ask can disclose the event axis
-            # without inventing a second date (ADR 0183).
+            # without inventing a second date (ADR 0201).
             cur.execute(
                 "update source_post set event_occurred_at = created_at "
                 "where event_occurred_at is null"
@@ -470,7 +470,7 @@ def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, pro
     ``created_at = occurred_at``, and ``event_occurred_at = occurred_at``
     so a later ``POST /api/lineage/rebuild`` sees the same grouping and
     timeline reconstruct() was designed on, and Global Ask relative-time
-    filters can name the event clock (ADR 0183).
+    filters can name the event clock (ADR 0201).
     Returns persisted ``Record``s whose ids are the new post UUIDs.
     """
     from datetime import timezone

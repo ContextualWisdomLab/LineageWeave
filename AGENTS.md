@@ -12,7 +12,7 @@ normative research-grounding policy, and
 [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md) for
 supporting literature and aggregate evidence. Event Lineage (reconstructed
 post-to-post parents) is distinct from the typed ontology neighborhood
-(ADR 0168); source-window continuation is ADR 0124. Do not mix those graphs.
+(ADR 0184); source-window continuation is ADR 0124. Do not mix those graphs.
 
 ## Hard rule: no real data in repository artifacts
 
@@ -213,7 +213,7 @@ and are not a leftover score. Complete-case coverage (ADR 0168) persists to
 `report_leftover_map_coverage` and captions the pair list with how
 many scored posts entered the map.
 
-Global Ask relative-time filters (ADR 0150 / 0183) bind to
+Global Ask relative-time filters (ADR 0150 / 0201) bind to
 `source_post.event_occurred_at` and fall back to `created_at` only
 when the event instant is missing. Cited evidence names **Time
 axis** so the reader can open that post and see which clock
