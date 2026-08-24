@@ -548,12 +548,15 @@ or an explicit unavailable result.
   HTTP>=400 never retried). **Still open from this finding:** (a) the
   llm adjudication channel joining the weight estimate (ADR 0145 SS5 —
   re-run the `--include-llm` estimation with the transport retry in
-  place, then persist `channel_set_with_llm`); (b)
-  `rankweave_client.DEFAULT_CHANNEL_WEIGHTS` (Rankings RRF,
-  temporal 0.25/lexical 0.75) is the last hand-picked fusion-weight
-  surface — apply the same estimate-or-fail-closed discipline there;
-  (c) re-verifying the named 3-post family's chain under the new
-  corpus-wide graph.
+  place, then persist `channel_set_with_llm`); (b) re-verifying the
+  named 3-post family's chain under the new corpus-wide graph. The
+  formerly-open Rankings surface is resolved differently:
+  `rankweave_client.DEFAULT_CHANNEL_WEIGHTS` (temporal 0.25/lexical
+  0.75) is deleted in favor of Cormack et al.'s (2009) parameter-free
+  classic RRF (every channel 1.0) — a two-item 2PL is weakly
+  identified, so a psychometric estimate there would be dishonest,
+  and RRF's published finding is precisely that the unweighted form
+  needs no trained weights.
 - **Entity and abbreviation resolution — source-stated case fixed
   (2026-08-22), inferred case open:** an organization's former/alternate
   name (e.g. "X(구 Y)") the post text itself states was dropped entirely
