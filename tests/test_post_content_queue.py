@@ -424,4 +424,7 @@ def test_migration_contains_normalized_job_and_status_event_tables() -> None:
 
 def test_migration_replay_window_includes_post_content_queue() -> None:
     migrate = (_ROOT / "docker/postgres-init/migrate.sh").read_text()
-    assert "0050_*)" in migrate
+    # ADR 0166 replays every four-digit migration except bootstrap 0000-0011;
+    # 0050 therefore clears the fixed lower-bound filename gate.
+    assert "000[0-9]_*|001[01]_*) continue" in migrate
+    assert "[0-9][0-9][0-9][0-9]_*)" in migrate

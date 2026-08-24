@@ -36,6 +36,8 @@ reimplementing them:
   multi-channel score fusion (`weighted_convex_fuse` in
   `reconstruct.py`) and the buyer-facing Rankings port
   (`rankweave_client.py`) -- never invent a fused score or a theta.
+  Rankings disclose Cormack RRF channel contributions from owned
+  rank lists (ADR 0167).
 - [TEPP](https://github.com/ContextualWisdomLab/TEPP)'s published wire
   contract for calibrated measurement (`tepp_client.py`) -- never
   reimplement TEPP's model here.
@@ -148,6 +150,10 @@ contextual-orchestrator owns model discovery and selection.
   from derived semantic text, while retaining the source body and meaningful
   list/heading nesting. A buyer-facing post view must render semantic
   paragraphs, not the authoring application's spacing workaround.
+- Quantity HTML `<sup>`/`<sub>` and caret exponents such as `m^3` become
+  Unicode in derived units and React `<sup>`/`<sub>` in the post view
+  (ADR 0165). Never assign the body to `innerHTML`. Do not treat
+  `qty < 50` or a leading footnote `^1` as an exponent.
 - Image descriptions, OCR text, and region evidence are analysis artifacts,
   not buyer-facing prompt instructions. Buyer UI shows the source content and
   useful captions/evidence only, with provenance where appropriate.
@@ -186,15 +192,18 @@ in the same spirit) -- never against real data, per the hard rule above.
 against a live local stack (`make up`) and self-skip without one -- see
 [README.md](README.md#local-product-stack-docker-compose).
 
-Period leftover pairs (ADR 0048 / 0049 / 0185) are computed in
-`lineageweave/leftover_pairs.py` from the residual after a real
-GRM/GPCM score, never invented. Missing cells stay out of the
-Gabriel factorization. Closest and farthest post–criterion pairs
-persist to `report_leftover_pair` and sit above the member list with
-leftover-map cross share `x = 2 R̂_c U_c / R̃²` of centered leftover
-next to leftover-map distance `d` so a click opens that post.
-Two-axis reconstruction `R̂_c` and unexplained leftover `U_c` are
-not persisted.
+Period leftover pairs (ADR 0048 / 0049 / 0119 / 0162 / 0163 / 0164 / 0185)
+are computed in `lineageweave/leftover_pairs.py` from the residual
+after a real GRM/GPCM score, never invented. Distances are Euclidean
+on the two-dimensional Gabriel leftover map; missing cells stay out of
+the factorization. Closest and farthest post–criterion pairs persist
+to `report_leftover_pair` with signed residual `R`, observed `Y`, and
+expected `E[Y|θ, item]` so `R = Y − E` remains auditable, plus
+leftover-map rank so rank 0 is not read as structure, plus
+leftover-map cross share `x = 2 R̂_c U_c / R̃²` of centered leftover.
+They sit above the member list next to leftover-map distance `d` so a
+click opens that post. Two-axis reconstruction `R̂_c` and unexplained
+leftover `U_c` are not persisted.
 
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a
