@@ -35,10 +35,25 @@ describe("i18n", () => {
     "Search",
     "Page",
     "Answer",
+    "Leftover pairs",
+    "Closest leftover",
+    "Farthest leftover",
+    "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.",
+    "Open leftover {kind} pair: {title} · {criterion}",
+    "Open this post to read the criterion it sat closest to after main effects.",
+    "Open this post to read the criterion it sat farthest from after main effects.",
+    "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.",
+    "Leftover map rank {rank} after IRT main effects. Open this post.",
+    "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.",
+    "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.",
     "Showing the first {shown} of {total} posts known at this cutoff.",
     "Contains",
     "Overlaps",
     "Interval relations",
+    "Rankings",
+    "Title overlap",
+    "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
   ] as const;
 
   it("supports the five product locales", () => {
@@ -92,6 +107,63 @@ describe("i18n", () => {
         relation: t("Contains"),
         label: from,
       }),
+    ).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "IRT 주효과 이후 잔여 R +0.40. sales-lead 기준을 읽으려면 이 글을 여세요."],
+    ["zh", "IRT 主效应后的残余 R +0.40。打开这篇帖子阅读 sales-lead。"],
+    ["ja", "IRT主効果後の残差 R +0.40。この投稿を開いて sales-lead を読んでください。"],
+    ["vi", "Phần dư R +0.40 sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead."],
+  ] as const)("formats leftover residual next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.",
+        { residual: "+0.40", criterion: "sales-lead" },
+      ),
+    ).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "IRT 주효과 이후 관측 Y 2.40와 기대 E 2.00를 읽은 다음, 이 글을 여세요."],
+    ["zh", "阅读 IRT 主效应后的观测 Y 2.40 与期望 E 2.00，然后打开这篇帖子。"],
+    ["ja", "IRT主効果後の観測 Y 2.40 と期待 E 2.00 を読んでから、この投稿を開いてください。"],
+    ["vi", "Đọc Y quan sát 2.40 và E kỳ vọng 2.00 sau hiệu ứng chính IRT, rồi mở bài viết này."],
+  ] as const)("formats leftover observed and expected next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
+        { observed: "2.40", expected: "2.00" },
+      ),
+    ).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "IRT 주효과 이후 잔여 맵 랭크 1. 이 글을 여세요."],
+    ["zh", "IRT 主效应后的残余图秩 1。打开这篇帖子。"],
+    ["ja", "IRT主効果後の残差マップランク 1。この投稿を開いてください。"],
+    ["vi", "Hạng bản đồ phần dư 1 sau hiệu ứng chính IRT. Mở bài viết này."],
+  ] as const)("formats leftover-map rank next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf("Leftover map rank {rank} after IRT main effects. Open this post.", { rank: "1" }),
+    ).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "IRT 주효과 이후 잔여 맵 랭크 1, 관측 Y 2.40, 기대 E 2.00를 읽은 다음, 이 글을 여세요."],
+    ["zh", "阅读 IRT 主效应后的残余图秩 1、观测 Y 2.40 与期望 E 2.00，然后打开这篇帖子。"],
+    ["ja", "IRT主効果後の残差マップランク 1、観測 Y 2.40、期待 E 2.00 を読んでから、この投稿を開いてください。"],
+    ["vi", "Đọc hạng bản đồ phần dư 1, Y quan sát 2.40 và E kỳ vọng 2.00 sau hiệu ứng chính IRT, rồi mở bài viết này."],
+  ] as const)("formats combined leftover evidence next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.",
+        { rank: "1", observed: "2.40", expected: "2.00" },
+      ),
     ).toBe(expected);
   });
 });

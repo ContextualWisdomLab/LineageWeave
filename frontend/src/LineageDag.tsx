@@ -17,6 +17,7 @@ function otherPostId(edge: LineageGraphEdge, currentPostId?: string): string {
   return edge.target;
 }
 
+/** Render the authorized lineage projection and let the buyer open a post. */
 export function LineageDag({
   graph,
   onSelectPost,
@@ -55,7 +56,6 @@ export function LineageDag({
               {group.edges.map((edge) => {
                 const from = byId[edge.source];
                 const to = byId[edge.target];
-                if (!from || !to) return null;
                 const midX = (from.x + to.x) / 2;
                 const midY = (from.y + to.y) / 2;
                 const relation = intervalLabel(edge);
