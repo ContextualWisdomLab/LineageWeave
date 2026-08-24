@@ -32,6 +32,9 @@ criterion.
 
 Missing leftover rows render nothing — never a placeholder pair.
 A hidden post never appears as a leftover pair.
+A missing leftover-map length omits the `‖ξ‖` / `‖ζ‖` badges and
+keeps the closest/farthest next action. See
+[ADR 0181](0181-leftover-map-length.md).
 
 ## Consequences
 

@@ -225,6 +225,10 @@ def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
     }
     assert farthest.leftover_residual == pytest.approx(-2.0)
     assert farthest.leftover_distance == pytest.approx(2.0 * np.sqrt(2.0), rel=1e-6)
+    assert closest.leftover_map_person_length == pytest.approx(0.0, abs=1e-9)
+    assert closest.leftover_map_item_length == pytest.approx(0.0, abs=1e-9)
+    assert farthest.leftover_map_person_length == pytest.approx(np.sqrt(2.0), rel=1e-6)
+    assert farthest.leftover_map_item_length == pytest.approx(np.sqrt(2.0), rel=1e-6)
 
 
 def test_leftover_missing_cells_are_not_treated_as_zero() -> None:
