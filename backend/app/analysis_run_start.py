@@ -100,6 +100,7 @@ def configured_tepp_client(transport_url: str = "", api_key: str = "") -> TeppCl
         return TeppClient()
 
     def transport(payload: dict[str, Any]) -> dict[str, Any]:
+        """POST the TEPP wire payload to `url`, raising TeppNotAvailable on any transport failure."""
         try:
             headers = {"authorization": f"Bearer {api_key}"} if api_key.strip() else {}
             return post_json(
@@ -110,7 +111,9 @@ def configured_tepp_client(transport_url: str = "", api_key: str = "") -> TeppCl
                 service_peer_name="tepp",
             )
         except (HttpClientError, OSError, ValueError, TypeError) as exc:
-            raise TeppNotAvailable(str(exc)) from exc
+            # Chain internally for operator logging; the exposed
+            # message stays generic, never the raw provider exception text.
+            raise TeppNotAvailable("TEPP transport unavailable") from exc
 
     return TeppClient(transport=transport)
 

@@ -1,4 +1,4 @@
-"""Small independent CalDAV event-consumption port for the buyer calendar."""
+"""Small independent CalDAV event-consumption port for the organization calendar."""
 
 from __future__ import annotations
 
@@ -14,19 +14,26 @@ CALDAV_UNAVAILABLE_NEXT_ACTION = (
 
 @dataclass(frozen=True)
 class CalDavEvent:
+    """One calendar event read from the configured CalDAV source."""
+
     event_id: str
     summary: str
     starts_at: str
 
 
 class NullCalDavClient:
+    """Fail-closed CalDAV client used when CALDAV_BASE_URL is unset; never fabricates events."""
+
     available = False
 
     def list_events(self) -> list[CalDavEvent]:
+        """Always return no events; there is no CalDAV source to query."""
         return []
 
 
 class HttpCalDavClient:
+    """CalDAV client backed by a real HTTP events endpoint."""
+
     available = True
 
     def __init__(self, base_url: str) -> None:
@@ -36,6 +43,7 @@ class HttpCalDavClient:
         self._events_url = f"{base_url.rstrip('/')}/events"
 
     def list_events(self) -> list[CalDavEvent]:
+        """Fetch and parse events from the configured CalDAV endpoint."""
         payload = get_json(
             self._events_url, timeout=10, service_peer_name="caldav"
         )
