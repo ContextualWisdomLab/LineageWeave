@@ -41,7 +41,7 @@ export function LineageDag({
             </figcaption>
             <svg
               viewBox={`0 0 ${group.width} ${group.height}`}
-              width="100%"
+              width={group.width}
               height={Math.max(120, group.height)}
               role="img"
               aria-label={tf("{group} lineage", { group: group.heading })}
