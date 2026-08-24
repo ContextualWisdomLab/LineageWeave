@@ -963,6 +963,18 @@ or an explicit unavailable result.
   `DEFAULT_MIN_FUSED_SCORE` is a calibration decision, not something to
   fold into PR #538 -- **remains open**, tracked here for whoever picks up
   the reconstruction-fusion tuning work next.
+
+  **Process note (2026-08-24): a stranded-fix incident, recovered.** PR
+  #538 merged into PR #434's branch at `23:39:36Z`; the cosine-clamp fix
+  above was pushed to #538's branch at `23:42:28Z`, three minutes after
+  close, so it never reached #434's branch and looked like GitHub API lag
+  for a time. Root cause: merges into a *non-default-branch* PR (a stacked
+  PR merging into another PR's branch, not into `main`) are not gated by
+  the org's 2-approving-review ruleset -- only `main` is -- so a fast
+  merge-on-green-checks pass can land before a reviewer's last-minute fix
+  commit arrives. Recovered by cherry-picking the stranded commit onto
+  #434's post-merge tip as PR #549. No data or code was lost; flagging the
+  pattern here since it can recur on any stacked PR in this repo.
 - **Provider-boundary exception diagnosability — partially closed
   (2026-08-25, issue #361):** the 10 fail-closed `except Exception`
   catch-alls across `backend/app/main.py` (Global Ask, per-post chat,
