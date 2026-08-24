@@ -1,6 +1,7 @@
 """Jeon leftover post–criterion pairs after a main-effect IRT.
 
-Implements ADR 0048 as amended by ADR 0119, ADR 0163, ADR 0164, and ADR 0185.
+Implements ADR 0048 as amended by ADR 0119, ADR 0163, ADR 0164, ADR 0182,
+and ADR 0185.
 
 Does not import ``fast_mlsirm`` or ``period_report``. A Gabriel biplot
 of the residual ``R = Y − E[Y|θ, item]`` supplies person and item
@@ -11,16 +12,21 @@ Pair distances are Euclidean on the two leftover-map axes (Jeon et al.,
 2021); unused axes pad with zero rather than inventing a second
 component, and hidden SVD axes after the second are dropped. Each pair
 also names the full leftover-map rank so a rank-0 collapse is not read
-as leftover structure. Each pair further names leftover-map cross
-share ``x = 2 R̂_c U_c / R̃²`` of the *centered* leftover after
-truncated two-axis Gabriel reconstruction, so the identity remainder
-left by that truncation is not confused with leftover residual ``R``,
-leftover-map distance ``d``, explained leftover share
-``e = R̂_c² / R̃²``, or unexplained leftover share ``s = U_c² / R̃²``.
-Reconstruction ``R̂_c`` and unexplained leftover ``U_c`` stay internal
-and are not persisted. ``x`` may be negative when reconstruction and
-unexplained leftover have opposite signs. Axis share is the Gabriel
-inertia of the first two leftover-map axes (ADR 0148).
+as leftover structure. Axis share is the Gabriel inertia of the first
+two leftover-map axes (ADR 0148). Each pair also names unexplained
+leftover ``U = R − R̂`` after two-axis Gabriel reconstruction
+``R̂ = ξ_{1:2} · ζ_{1:2}`` so the leftover cell the map does not
+reconstruct is not confused with leftover residual ``R`` or
+leftover-map distance ``d``. Each pair further names leftover-map cross
+share ``x = 2 R̂_c U_c / R̃²`` of the *centered* leftover after that
+same truncated two-axis reconstruction, so the identity remainder left
+by the truncation is not confused with leftover residual ``R``,
+leftover-map distance ``d``, or unexplained leftover ``U``. Explained
+leftover share ``e = R̂_c² / R̃²`` and unexplained leftover share
+``s = U_c² / R̃²`` are not persisted. Reconstruction ``R̂`` / ``R̂_c``
+and centered unexplained leftover ``U_c`` stay internal and are not
+persisted. ``x`` may be negative when reconstruction and unexplained
+leftover have opposite signs.
 """
 
 from __future__ import annotations
@@ -48,6 +54,7 @@ class LeftoverPair:
     observed_response: float
     expected_response: float
     leftover_map_rank: int
+    leftover_map_unexplained: float | None = None
     leftover_map_cross_share: float | None = None
 
 
@@ -76,12 +83,14 @@ def leftover_pairs_from_residual(
     invent a leftover score. Stored residual equals observed ``Y`` minus
     expected ``E[Y|θ, item]``. Stored leftover-map rank is the number
     of Gabriel singular values above the floor. When Gabriel coordinates
-    exist, leftover-map cross share ``x = 2 R̂_c U_c / R̃²`` names the
-    identity remainder of *centered* leftover ``R̃ = R − center`` after
-    two-axis reconstruction ``R̂_c = ξ_{1:2} · ζ_{1:2}`` and unexplained
-    leftover ``U_c = R̃ − R̂_c``. ``R̂_c`` and ``U_c`` stay internal
-    and are never persisted. Fallback pairs (no complete-case map) omit
-    the share rather than fabricating one.
+    exist, unexplained leftover ``U = R − R̂`` names the leftover cell
+    the two-axis map does not reconstruct, and leftover-map cross share
+    ``x = 2 R̂_c U_c / R̃²`` names the identity remainder of *centered*
+    leftover ``R̃ = R − center`` after two-axis reconstruction
+    ``R̂_c = ξ_{1:2} · ζ_{1:2}`` and centered unexplained leftover
+    ``U_c = R̃ − R̂_c``. ``R̂``, ``R̂_c``, and ``U_c`` stay internal and
+    are never persisted. Fallback pairs (no complete-case map) omit
+    both values rather than fabricating one.
     """
     pairs, _axes = leftover_map_from_residual(post_ids, item_codes, matrix, expected)
     return pairs
@@ -129,7 +138,9 @@ def leftover_map_from_residual(
     )
     axes = leftover_map_axes_from_singular(singular)
     leftover_map_rank = int(singular.size)
-    candidates: list[tuple[float, str, str, float, float, float, float | None]] = []
+    candidates: list[
+        tuple[float, str, str, float, float, float, float | None, float | None]
+    ] = []
     if person_pos is not None and item_pos is not None:
         person_index = np.flatnonzero(keep_person)
         item_index = np.flatnonzero(keep_item)
@@ -149,10 +160,20 @@ def leftover_map_from_residual(
                 np.dot(person_xy[local_person[person]], item_xy[local_item[item]])
             )
             filled = float(residual[person, item]) - center
+            unexplained = _unexplained_leftover(float(residual[person, item]), reconstruction)
             share = _leftover_map_cross_share(filled, reconstruction)
             candidates.append(
                 _candidate_row(
-                    post_ids, item_codes, matrix, expected, residual, person, item, distance, share
+                    post_ids,
+                    item_codes,
+                    matrix,
+                    expected,
+                    residual,
+                    person,
+                    item,
+                    distance,
+                    unexplained,
+                    share,
                 )
             )
     if not candidates:
@@ -170,6 +191,7 @@ def leftover_map_from_residual(
                     item,
                     max(distance, 0.0),
                     None,
+                    None,
                 )
             )
     closest = min(candidates, key=lambda row: (row[0], row[1], row[2]))
@@ -181,16 +203,27 @@ def leftover_map_from_residual(
     return pairs, axes
 
 
+def _unexplained_leftover(residual: float, reconstruction: float) -> float | None:
+    """Return ``U = R − R̂`` when both terms are finite; otherwise omit."""
+    if not np.isfinite(reconstruction):
+        return None
+    unexplained = residual - reconstruction
+    if not np.isfinite(unexplained):
+        return None
+    return float(unexplained)
+
+
 def _leftover_map_cross_share(filled: float, reconstruction: float) -> float | None:
     """Return ``x = 2 R̂_c U_c / R̃²`` when both terms are finite; otherwise omit.
 
-    ``filled`` is centered leftover ``R̃ = R − center``. Unexplained
-    leftover ``U_c = R̃ − R̂_c`` is computed internally. Truncated
-    two-axis reconstruction of a higher-rank cell keeps a cross term
-    ``2 R̂_c U_c``, so per-cell ``e + s ≠ 1``. The identity remainder
-    ``x`` names that cross term as a share of centered leftover.
-    ``x`` may be negative when reconstruction and unexplained leftover
-    have opposite signs; a negative finite share is stored, not omitted.
+    ``filled`` is centered leftover ``R̃ = R − center``. Centered
+    unexplained leftover ``U_c = R̃ − R̂_c`` is computed internally.
+    Truncated two-axis reconstruction of a higher-rank cell keeps a
+    cross term ``2 R̂_c U_c``, so per-cell ``e + s ≠ 1``. The identity
+    remainder ``x`` names that cross term as a share of centered
+    leftover. ``x`` may be negative when reconstruction and unexplained
+    leftover have opposite signs; a negative finite share is stored,
+    not omitted.
     """
     if not np.isfinite(filled) or not np.isfinite(reconstruction):
         return None
@@ -215,9 +248,10 @@ def _candidate_row(
     person: int,
     item: int,
     distance: float,
+    leftover_map_unexplained: float | None,
     leftover_map_cross_share: float | None,
-) -> tuple[float, str, str, float, float, float, float | None]:
-    """One observed leftover cell: distance, ids, residual, Y, E, cross share."""
+) -> tuple[float, str, str, float, float, float, float | None, float | None]:
+    """One observed leftover cell: distance, ids, residual, Y, E, U, cross share."""
     leftover_residual = float(residual[person, item])
     observed_response = float(matrix[person, item])
     expected_response = float(expected[person, item])
@@ -230,13 +264,14 @@ def _candidate_row(
         leftover_residual,
         observed_response,
         expected_response,
+        leftover_map_unexplained,
         leftover_map_cross_share,
     )
 
 
 def _pair_from_candidate(
     pair_kind: str,
-    row: tuple[float, str, str, float, float, float, float | None],
+    row: tuple[float, str, str, float, float, float, float | None, float | None],
     leftover_map_rank: int,
 ) -> LeftoverPair:
     """Build a leftover pair from a candidate row."""
@@ -251,7 +286,8 @@ def _pair_from_candidate(
         observed_response=row[4],
         expected_response=row[5],
         leftover_map_rank=leftover_map_rank,
-        leftover_map_cross_share=row[6],
+        leftover_map_unexplained=row[6],
+        leftover_map_cross_share=row[7],
     )
 
 
@@ -345,8 +381,8 @@ def _pad_map_axes(positions: np.ndarray) -> np.ndarray:
     Unused axes pad with zero rather than inventing a second component.
     Hidden SVD axes after the second are dropped so reconstruction is
     ``ξ_{1:2} · ζ_{1:2}``, not the full-rank inner product. That
-    reconstruction stays internal; only leftover-map cross share is
-    named.
+    reconstruction stays internal; only unexplained leftover and
+    leftover-map cross share are named.
     """
     padded = np.zeros((positions.shape[0], _LEFTOVER_MAP_AXES), dtype=np.float64)
     width = min(_LEFTOVER_MAP_AXES, positions.shape[1])

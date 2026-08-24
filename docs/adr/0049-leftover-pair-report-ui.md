@@ -5,6 +5,7 @@
 **Amended by:** [ADR 0162](0162-leftover-residual-disclosure.md) (signed residual R);
 [ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E);
 [ADR 0164](0164-leftover-map-rank.md) (full map rank);
+[ADR 0182](0182-leftover-map-unexplained.md) (unexplained leftover U);
 [ADR 0185](0185-leftover-map-cross-share.md) (leftover-map cross share)
 
 ## Context
@@ -22,19 +23,24 @@ second navigation surface.
 On each period-report group, render leftover pairs **above** the
 member list. Each pair is a button: closest or farthest label, post
 title, criterion short label, signed residual `R`, two-axis leftover-map
-distance, full map rank, observed `Y`, and expected `E` when finite,
-plus leftover-map cross share next to distance when finite. The next
-action names every available measurement before opening the post; no
-amendment hides another, and rank 0 explicitly names no leftover
-structure. When leftover-map cross share is present, the next action
-instead names the identity remainder `x` two leftover-map axes leave
-of centered leftover after IRT main effects; a missing or non-finite
-share keeps the existing closest/farthest next action. Clicking the
-button opens that post with the same handler as a member row.
-Residual naming is [ADR 0162](0162-leftover-residual-disclosure.md),
-observed/expected naming is [ADR 0163](0163-leftover-observed-expected.md),
-rank naming is [ADR 0164](0164-leftover-map-rank.md), leftover-map
-cross share naming is [ADR 0185](0185-leftover-map-cross-share.md).
+distance, full map rank, observed `Y`, expected `E` when finite,
+unexplained leftover `U` when finite, and leftover-map cross share next
+to distance when finite. The next action names every available
+measurement before opening the post; no amendment hides another, rank 0
+explicitly names no leftover structure, and unexplained leftover names
+"leftover map leaves unexplained `U` after IRT main effects; open this
+post to read the named criterion" when present. When leftover-map cross
+share is also present, the next action instead names the identity
+remainder `x` two leftover-map axes leave of centered leftover after
+IRT main effects. A missing or non-finite value falls back in order —
+cross share, then unexplained leftover, then the existing
+closest/farthest next action. Clicking the button opens that post with
+the same handler as a member row. Residual naming is
+[ADR 0162](0162-leftover-residual-disclosure.md), observed/expected
+naming is [ADR 0163](0163-leftover-observed-expected.md), rank naming
+is [ADR 0164](0164-leftover-map-rank.md), unexplained leftover naming
+is [ADR 0182](0182-leftover-map-unexplained.md), leftover-map cross
+share naming is [ADR 0185](0185-leftover-map-cross-share.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post.

@@ -11,6 +11,11 @@ import {
 } from "../leftoverMapRank";
 import { formatLeftoverObservedExpected } from "../leftoverObservedExpected";
 import { formatLeftoverResidual } from "../leftoverResidual";
+import {
+  formatLeftoverMapUnexplained,
+  formatSignedLeftoverValue,
+  LEFTOVER_MAP_UNEXPLAINED_ACTION,
+} from "../leftoverMapUnexplained";
 
 export type LeftoverPairListProps = {
   pairs: LeftoverPair[];
@@ -22,12 +27,15 @@ export type LeftoverPairListProps = {
  * Closest and farthest leftover post–criterion pairs after IRT main effects.
  *
  * Distance is the two-axis leftover-map Euclidean gap. Residual is
- * ``R = Y − E[Y|θ, item]`` (Jeon et al., 2021, eq. 3 input). The action
- * preserves residual, observed/expected, and full-rank amendments together
- * before opening the named post. When leftover-map cross share
- * ``x = 2 R̂_c U_c / R̃²`` of centered leftover is present (ADR 0185), it
- * names the next action instead; a missing or non-finite share keeps the
- * existing residual/rank/observed-expected next action.
+ * ``R = Y − E[Y|θ, item]`` (Jeon et al., 2021, eq. 3 input). Unexplained
+ * leftover ``U = R − R̂`` after two-axis Gabriel reconstruction (ADR 0182)
+ * takes priority over the residual/observed-expected/rank next action
+ * when finite. When leftover-map cross share ``x = 2 R̂_c U_c / R̃²`` of
+ * centered leftover is also present (ADR 0185), it names the next action
+ * instead of unexplained leftover; a missing or non-finite value falls
+ * back in order — cross share, then unexplained leftover, then the
+ * existing residual/rank/observed-expected next action. Every badge
+ * still renders together before opening the named post.
  */
 export function LeftoverPairList({
   pairs,
@@ -49,6 +57,7 @@ export function LeftoverPairList({
           pair.expected_response,
         );
         const rankBadge = formatLeftoverMapRank(pair.leftover_map_rank);
+        const unexplained = formatLeftoverMapUnexplained(pair.leftover_map_unexplained);
         const crossShareBadge = formatLeftoverMapCrossShare(pair.leftover_map_cross_share);
         const crossShareValue =
           pair.leftover_map_cross_share != null && Number.isFinite(pair.leftover_map_cross_share)
@@ -58,6 +67,13 @@ export function LeftoverPairList({
         if (crossShareBadge !== null) {
           nextAction = tf(LEFTOVER_MAP_CROSS_SHARE_ACTION, {
             value: crossShareValue,
+            criterion,
+          });
+        } else if (unexplained !== null) {
+          const signedUnexplained =
+            formatSignedLeftoverValue(pair.leftover_map_unexplained ?? Number.NaN) ?? "—";
+          nextAction = tf(LEFTOVER_MAP_UNEXPLAINED_ACTION, {
+            value: signedUnexplained,
             criterion,
           });
         } else if (rankBadge !== null && observedExpected !== null) {
@@ -121,6 +137,7 @@ export function LeftoverPairList({
               <span className="post-badge">R {residual}</span>
               {observedExpected ? <span className="post-badge">{observedExpected}</span> : null}
               {rankBadge ? <span className="post-badge">{rankBadge}</span> : null}
+              {unexplained ? <span className="post-badge">{unexplained}</span> : null}
               {crossShareBadge ? <span className="post-badge">{crossShareBadge}</span> : null}
               <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
             </button>

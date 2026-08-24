@@ -1,7 +1,7 @@
 """Leftover post–criterion pairs after the main-effect IRT.
 
-Covers ADR 0048 as amended by ADR 0119, ADR 0148, ADR 0163, ADR 0164, and
-ADR 0185.
+Covers ADR 0048 as amended by ADR 0119, ADR 0148, ADR 0163, ADR 0164,
+ADR 0182, and ADR 0185.
 
 Uses a constructed residual matrix so the closest and farthest pair
 are known without calling ``fit_polytomous``. Loads
@@ -62,7 +62,6 @@ def _assert_never_persists_hidden_shares(pair) -> None:
     """The cross-share increment never persists these adjacent facts (ADR 0185)."""
     assert not hasattr(pair, "leftover_map_explained_share")
     assert not hasattr(pair, "leftover_map_unexplained_share")
-    assert not hasattr(pair, "leftover_map_unexplained")
     assert not hasattr(pair, "leftover_map_reconstruction")
 
 
@@ -108,10 +107,13 @@ def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
     assert farthest.observed_response == pytest.approx(-2.0)
     assert farthest.expected_response == pytest.approx(0.0)
     assert farthest.leftover_distance == pytest.approx(2.0 * np.sqrt(2.0), rel=1e-6)
+    assert closest.leftover_map_unexplained == pytest.approx(0.0, abs=1e-6)
+    assert farthest.leftover_map_unexplained == pytest.approx(0.0, abs=1e-6)
     # Closest is the origin cell (R̃ = 0, R̂_c = 0, U_c = 0): 0/0 stores 0.
     assert closest.leftover_map_cross_share == pytest.approx(0.0, abs=1e-6)
     # Rank-1 reconstructed opposed cell: U_c = 0 so x = 0.
     assert farthest.leftover_map_cross_share == pytest.approx(0.0, abs=1e-6)
+    assert not hasattr(closest, "leftover_map_reconstruction")
     for pair in pairs:
         _assert_residual_reconciles(pair)
         _assert_never_persists_hidden_shares(pair)
@@ -134,6 +136,8 @@ def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
     assert pairs[0].expected_response == pytest.approx(1.0)
     assert pairs[1].post_id == "beta-post"
     assert pairs[1].criterion_code == "item_two"
+    assert pairs[0].leftover_map_unexplained == pytest.approx(0.0)
+    assert pairs[1].leftover_map_unexplained == pytest.approx(0.0)
     assert pairs[0].leftover_map_cross_share == pytest.approx(0.0)
     assert pairs[1].leftover_map_cross_share == pytest.approx(0.0)
     for pair in pairs:
@@ -168,6 +172,7 @@ def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
     for pair in pairs:
         _assert_residual_reconciles(pair)
         assert pair.leftover_map_rank == 1
+        assert pair.leftover_map_unexplained == pytest.approx(0.0, abs=1e-6)
         assert pair.leftover_map_cross_share == pytest.approx(0.0, abs=1e-6)
 
 
@@ -376,8 +381,13 @@ def test_rank_four_pair_distances_match_two_dimensional_gabriel_coords() -> None
     assert (post_index[farthest.post_id], item_index[farthest.criterion_code]) == farthest_map
 
 
-def test_rank_three_cross_share_is_identity_remainder() -> None:
-    """Cross share is 2 R̂_c U_c / R̃², not leftover residual R, not leftover-map distance d."""
+def test_unexplained_and_cross_share_are_identity_remainder_terms() -> None:
+    """Unexplained U is R − R̂; cross share is 2 R̂_c U_c / R̃². Neither is R or d.
+
+    Uses the same rank-4 matrix as the two-axis distance proof above: R̂ is
+    the two-axis Gabriel reconstruction ``person_map @ item_map.T``, built
+    from the same padded coordinates ``leftover_distance`` already uses.
+    """
     post_ids = ["post-a", "post-b", "post-c", "post-d"]
     item_codes = ("item-a", "item-b", "item-c", "item-d")
     matrix = np.array(
@@ -412,12 +422,19 @@ def test_rank_three_cross_share_is_identity_remainder() -> None:
     for pair in pairs:
         person = post_index[pair.post_id]
         item = item_index[pair.criterion_code]
-        centered = float(pair.leftover_residual) - center
         recon = float(reconstruction[person, item])
-        unexplained = centered - recon
-        expected_share = (2.0 * recon * unexplained) / (centered * centered)
+        # Raw unexplained leftover U = R − R̂ (ADR 0182).
+        expected_unexplained = float(pair.leftover_residual) - recon
+        assert pair.leftover_map_unexplained == pytest.approx(expected_unexplained)
+        assert pair.leftover_map_unexplained != pytest.approx(pair.leftover_residual)
+        assert pair.leftover_map_unexplained != pytest.approx(pair.leftover_distance)
+        assert not hasattr(pair, "leftover_map_reconstruction")
+        # Centered leftover-map cross share x = 2 R̂_c U_c / R̃² (ADR 0185).
+        centered = float(pair.leftover_residual) - center
+        unexplained_centered = centered - recon
+        expected_share = (2.0 * recon * unexplained_centered) / (centered * centered)
         explained_share = (recon * recon) / (centered * centered)
-        unexplained_share = (unexplained * unexplained) / (centered * centered)
+        unexplained_share = (unexplained_centered * unexplained_centered) / (centered * centered)
         assert pair.leftover_map_cross_share == pytest.approx(expected_share)
         assert explained_share + unexplained_share + expected_share == pytest.approx(1.0)
         if abs(expected_share) > 1e-6:
@@ -425,8 +442,8 @@ def test_rank_three_cross_share_is_identity_remainder() -> None:
         assert pair.leftover_map_cross_share != pytest.approx(pair.leftover_residual)
         assert pair.leftover_map_cross_share != pytest.approx(pair.leftover_distance)
         # Distance is Euclidean on the two leftover-map axes (ADR 0119), the
-        # same basis the cross-share reconstruction above uses -- not the
-        # full-rank Gabriel inner product.
+        # same basis the reconstruction above uses -- not the full-rank
+        # Gabriel inner product.
         assert pair.leftover_distance == pytest.approx(float(map_distances[person, item]))
         assert pair.leftover_map_rank == rank
         _assert_never_persists_hidden_shares(pair)
@@ -482,6 +499,27 @@ def test_sparse_residual_uses_only_observed_cells_for_fallback_distance() -> Non
     ]
     assert [pair.leftover_distance for pair in pairs] == pytest.approx([1.0, 1.0])
     assert [pair.leftover_map_rank for pair in pairs] == [0, 0]
+
+
+def test_leftover_fallback_omits_unexplained_without_complete_case_map() -> None:
+    """No complete-case rectangle: persist distance from |R − center|, omit U."""
+    post_ids = ["sparse-a", "sparse-b"]
+    item_codes = ("item_near", "item_far")
+    matrix = np.array(
+        [
+            [2.0, np.nan],
+            [np.nan, -2.0],
+        ],
+        dtype=np.float64,
+    )
+    expected = np.zeros_like(matrix)
+    pairs = leftover_pairs_from_residual(post_ids, item_codes, matrix, expected)
+    assert [pair.pair_kind for pair in pairs] == [PAIR_KIND_CLOSEST, PAIR_KIND_FARTHEST]
+    assert {pair.post_id for pair in pairs} == {"sparse-a", "sparse-b"}
+    for pair in pairs:
+        assert pair.leftover_map_unexplained is None
+        assert pair.leftover_distance >= 0.0
+        assert not hasattr(pair, "leftover_map_reconstruction")
 
 
 def test_nonfinite_map_distance_falls_back_to_centered_residual(
