@@ -392,7 +392,8 @@ def test_rank_three_cross_share_is_identity_remainder() -> None:
     expected = np.zeros_like(matrix)
     center = float(np.mean(matrix))
     filled = matrix - center
-    person_full, item_full, rank = leftover._leftover_map_positions(filled)
+    person_full, item_full, singular = leftover._leftover_map_positions(filled)
+    rank = int(singular.size)
     assert person_full.shape[1] >= 3
     person_map = leftover._pad_map_axes(person_full)
     item_map = leftover._pad_map_axes(item_full)
