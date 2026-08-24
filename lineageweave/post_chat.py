@@ -94,6 +94,8 @@ def cited_post_summaries(
 
 
 def _buyer_evidence_kind(fact: str) -> str:
+    if fact.startswith("time axis:"):
+        return "time_axis"
     if fact.startswith("project:"):
         return "semantic_project"
     if fact.startswith("actor:"):

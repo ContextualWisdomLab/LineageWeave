@@ -40,6 +40,20 @@ All notable changes to this project are documented here. Format follows
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 
+## [2.13.0] - 2026-08-24
+
+### Added
+
+- Global Ask relative-time filters bind to `event_occurred_at` (the
+  source-system event instant) and fall back to `created_at` only when
+  that event clock is missing (ADR 0168 / #569). After `make seed`,
+  leftover closest/farthest pairs still sit above the member list; a
+  click still opens that post. Ask **어제 무슨 일이 있었나요?** on
+  bulk-imported fixtures that share one ingest day keeps the post whose
+  event fell yesterday, drops last week's event, and names **Time axis**
+  on the cited evidence. Open that cited post to read which clock
+  matched. Never invent a theta or an event date.
+
 ## [2.12.18] - 2026-08-24
 
 ### Fixed

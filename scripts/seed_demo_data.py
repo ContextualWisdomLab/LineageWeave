@@ -446,6 +446,13 @@ def seed(
                 account_ids["demo.analyst"],
                 corporate_entity_id,
             )
+            # Fixture occurred_at was stored as created_at. Name that instant
+            # as the event clock so Global Ask can disclose the event axis
+            # without inventing a second date (ADR 0168).
+            cur.execute(
+                "update source_post set event_occurred_at = created_at "
+                "where event_occurred_at is null"
+            )
 
         conn.commit()
     finally:
@@ -455,9 +462,11 @@ def seed(
 def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, process_unit_id):
     """Insert ``sample_records()`` as ``source_post`` rows seed and rebuild share.
 
-    Writes ``thread_group_key``, ``secondary_grouping_key``, and
-    ``created_at = occurred_at`` so a later ``POST /api/lineage/rebuild``
-    sees the same grouping and timeline reconstruct() was designed on.
+    Writes ``thread_group_key``, ``secondary_grouping_key``,
+    ``created_at = occurred_at``, and ``event_occurred_at = occurred_at``
+    so a later ``POST /api/lineage/rebuild`` sees the same grouping and
+    timeline reconstruct() was designed on, and Global Ask relative-time
+    filters can name the event clock (ADR 0168).
     Returns persisted ``Record``s whose ids are the new post UUIDs.
     """
     from datetime import timezone
@@ -475,8 +484,9 @@ def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, pro
             "insert into source_post "
             "(author_account_id, corporate_entity_id, process_unit_id, "
             " post_title, post_body, voc_type_code, visibility_code, "
-            " thread_group_key, secondary_grouping_key, created_at, updated_at) "
-            "values (%s, %s, %s, %s, %s, %s, 'public', %s, %s, %s, %s) returning post_id",
+            " thread_group_key, secondary_grouping_key, created_at, updated_at, "
+            " event_occurred_at) "
+            "values (%s, %s, %s, %s, %s, %s, 'public', %s, %s, %s, %s, %s) returning post_id",
             (
                 author_account_id,
                 corporate_entity_id,
@@ -486,6 +496,7 @@ def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, pro
                 voc_type,
                 rec.group_key,
                 rec.secondary_key,
+                occurred,
                 occurred,
                 occurred,
             ),

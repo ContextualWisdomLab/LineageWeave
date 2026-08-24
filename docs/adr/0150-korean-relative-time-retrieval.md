@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-22
-- Related: [0047](0047-global-ask-semantic-retrieval.md), [0090](0090-global-ask-lineage-timeline-expansion.md)
+- Related: [0047](0047-global-ask-semantic-retrieval.md), [0090](0090-global-ask-lineage-timeline-expansion.md), [0168](0168-ask-event-time-filter.md)
 
 ## Context
 
@@ -27,12 +27,13 @@ bound -- the reader has explicitly declined to name one, which is the same
 retrieval behavior as finding no expression at all.
 
 `gather_global_chat_sources` applies the resolved window as an additional
-`created_at` bound on its final ABAC-filtered candidate query, additive to
-the existing keyword-match ranking -- it narrows the already-ranked
-candidate set, it does not replace ranking with a date filter. Matched
-temporal literals are excluded from keyword-term extraction
-(`TEMPORAL_STOPWORDS`) so a resolved expression does not also become a
-near-meaningless literal search term.
+event-time bound on its final ABAC-filtered candidate query (ADR 0168:
+`coalesce(event_occurred_at, created_at)`), additive to the existing
+keyword-match ranking -- it narrows the already-ranked candidate set, it
+does not replace ranking with a date filter. Cited sources name which
+clock matched. Matched temporal literals are excluded from keyword-term
+extraction (`TEMPORAL_STOPWORDS`) so a resolved expression does not also
+become a near-meaningless literal search term.
 
 ## Considered alternatives
 

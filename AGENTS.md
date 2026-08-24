@@ -202,6 +202,12 @@ persist to `report_leftover_pair` with signed residual `R`, observed
 plus leftover-map rank so rank 0 is not read as structure. They sit
 above the member list so a click opens that post.
 
+Global Ask relative-time filters (ADR 0150 / 0168) bind to
+`source_post.event_occurred_at` and fall back to `created_at` only
+when the event instant is missing. Cited evidence names **Time
+axis** so the reader can open that post and see which clock
+matched. Do not invent an event date or a theta.
+
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a
 floating Node version):
