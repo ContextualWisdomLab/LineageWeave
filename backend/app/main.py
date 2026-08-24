@@ -21,6 +21,8 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
+import uuid
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import datetime
@@ -52,6 +54,10 @@ from lineageweave.entity_relationship_classification import (
 from lineageweave.image_content import orchestrator_vision_client
 from lineageweave.embedding_client import orchestrator_embedding_client
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
+from .orchestrator_boundary import (
+    new_correlation_id,
+    orchestrator_boundary,
+)
 from lineageweave.corporate_hierarchy_inference import (
     ContextualOrchestratorHierarchyInferenceClient,
     NullCorporateHierarchyInferenceClient,
@@ -238,6 +244,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="LineageWeave API", lifespan=lifespan)
+_logger = logging.getLogger(__name__)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=load_settings().frontend_origins,
@@ -2657,13 +2664,15 @@ async def ask_agent(
             "cited_post_images": [],
             "next_action": "No authorized source posts are available for this question.",
         }
+    correlation_id = new_correlation_id(uuid.uuid4().hex)
     try:
-        answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, ValueError) as exc:
-        raise HTTPException(
-            status.HTTP_503_SERVICE_UNAVAILABLE,
-            f"Ask Agent is unavailable: {exc}",
-        ) from exc
+        with orchestrator_boundary(
+            "global_ask",
+            "Ask Agent is unavailable: the orchestrator returned no complete evidence object",
+        ):
+            answer = await asyncio.to_thread(client.answer, question, sources)
+    except HTTPException:
+        raise
     cited_ids = list(answer.cited_post_ids)
     async with pool.acquire() as conn:
         lineage_graph = await lineage_graphs_for_posts(
