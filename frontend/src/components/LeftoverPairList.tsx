@@ -110,6 +110,7 @@ export function LeftoverPairList({
                 title: pair.post_title,
                 criterion,
               })}
+              title={t("Open this post so the leftover criterion is current in Post quality.")}
               onClick={() => onSelectPost(pair)}
             >
               <span className="ticket-title">
