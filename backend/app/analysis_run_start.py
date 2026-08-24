@@ -108,8 +108,10 @@ def configured_tepp_client(transport_url: str = "") -> TeppClient:
                 "tepp-contract-version": str(payload["contract_version"]),
             }
             return post_json(url, payload, headers=headers, timeout=30.0)
-        except (HttpClientError, KeyError, OSError, ValueError, TypeError) as exc:
-            raise TeppNotAvailable(str(exc)) from exc
+        except (HttpClientError, OSError, ValueError, TypeError) as exc:
+            # Chain internally for operator logging; the exposed
+            # message stays generic, never the raw provider exception text.
+            raise TeppNotAvailable("TEPP transport unavailable") from exc
 
     return TeppClient(transport=transport)
 
