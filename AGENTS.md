@@ -255,15 +255,18 @@ Each accepted file runs with `psql -X -v ON_ERROR_STOP=1`, so a failure
 stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
-Period leftover pairs (ADR 0048 / 0049 / 0119 / 0162 / 0163 / 0164) are computed in
-`lineageweave/leftover_pairs.py` from the residual after a real
-GRM/GPCM score, never invented. Distances are Euclidean on the
-two-dimensional Gabriel leftover map; missing cells stay out of
-the factorization. Closest and farthest post–criterion pairs
-persist to `report_leftover_pair` with signed residual `R`, observed
-`Y`, and expected `E[Y|θ, item]` so `R = Y − E` remains auditable,
-plus leftover-map rank so rank 0 is not read as structure. They sit
-above the member list so a click opens that post.
+Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0162 / 0163 /
+0164) are computed in `lineageweave/leftover_pairs.py` from the residual
+after a real GRM/GPCM score, never invented. Distances are Euclidean on
+the two-dimensional Gabriel leftover map; missing cells stay out of the
+factorization. Closest and farthest post–criterion pairs persist to
+`report_leftover_pair` with signed residual `R`, observed `Y`, and
+expected `E[Y|θ, item]` so `R = Y − E` remains auditable, plus
+leftover-map rank so rank 0 is not read as structure. They sit above the
+member list so a click opens that post. Leftover-map axis share
+(ADR 0148) is Gabriel inertia of residual SVD axes 1 and 2 and persists
+to `report_leftover_map_axis`. Rank-0 residuals emit two zero-share
+axes; the shares are report-level and are not a leftover score.
 
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a
