@@ -212,6 +212,13 @@ async def process_post_content_job(
     embedding_factory: Callable[[], EmbeddingClient],
     structure_factory: Callable[[], PostStructureClient],
 ) -> None:
+    """Claim, run, and record the outcome of one post-content ingestion job.
+
+    Claims the job for `post_id`/`source_body_digest` (a no-op if it is
+    already claimed, stale, or superseded), normalizes and persists the
+    post body through the given provider clients, then marks the job
+    succeeded or durably failed for retry.
+    """
     settings = load_settings()
     row = await _claim_job(
         pool,
@@ -296,6 +303,12 @@ async def consume_post_content_stream_once(
     embedding_factory: Callable[[], EmbeddingClient],
     structure_factory: Callable[[], PostStructureClient],
 ) -> str:
+    """Process one batch of the Valkey wake-up stream and return the new cursor.
+
+    Reads up to 10 entries after `last_id`, runs `process_post_content_job`
+    for each, and returns the last-seen entry id so the caller can resume
+    from there on the next poll.
+    """
     batches = await client.xread({POST_CONTENT_STREAM_KEY: last_id}, count=10, block=1000)
     for _stream_name, entries in batches:
         for entry_id, fields in entries:

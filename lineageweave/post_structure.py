@@ -12,6 +12,8 @@ from .http_client import post_json
 
 @dataclass(frozen=True)
 class StructureDecision:
+    """One unit's adjudicated indent level, with the evidence behind it."""
+
     unit_index: int
     indent_level: int
     confidence: float
@@ -20,24 +22,32 @@ class StructureDecision:
 
 
 class PostStructureClient(Protocol):
+    """Port for adjudicating a post's document structure (indent levels per unit)."""
+
     available: bool
 
     def infer(
         self, post_title: str, units: list[dict[str, object]]
     ) -> tuple[StructureDecision, ...]:
+        """Return one StructureDecision per unit, or raise if unavailable."""
         raise NotImplementedError
 
 
 class NullPostStructureClient:
+    """Fail-closed structure client used when no orchestrator is configured."""
+
     available = False
 
     def infer(
         self, post_title: str, units: list[dict[str, object]]
     ) -> tuple[StructureDecision, ...]:
+        """Always raise; there is no structure-adjudication backend to call."""
         raise RuntimeError("post structure adjudication is not available")
 
 
 class ContextualOrchestratorPostStructureClient:
+    """Structure client backed by a real contextual-orchestrator deployment."""
+
     available = True
 
     _DECISION_ITEM_SCHEMA = {
@@ -71,6 +81,7 @@ class ContextualOrchestratorPostStructureClient:
     def infer(
         self, post_title: str, units: list[dict[str, object]]
     ) -> tuple[StructureDecision, ...]:
+        """Ask the orchestrator to adjudicate an indent level for each unit."""
         if not units:
             return ()
         response = post_json(
