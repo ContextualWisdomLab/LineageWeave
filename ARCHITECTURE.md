@@ -598,7 +598,9 @@ ADR 0017 / 0048 / 0119 / 0162 / 0163 / 0164) persist to
 `report_leftover_pair` with signed residual `R`, observed `Y`, expected
 `E[Y|θ, item]`, and full leftover-map rank. Leftover-map axis share
 (Gabriel inertia of residual SVD axes 1 and 2; ADR 0148) persists to
-`report_leftover_map_axis`. Results persist to
+`report_leftover_map_axis`. Complete-case leftover-map coverage (ADR
+0168) persists to `report_leftover_map_coverage` so readers see how
+many scored posts entered the factorization. Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
@@ -613,7 +615,8 @@ the actual mean θ, the FIPC delta, the CAT-selected item, leftover
 closest/farthest pairs (signed residual `R`, observed `Y`, expected
 `E`, full rank, and two-axis leftover-map distance `d` after IRT main
 effects) above the member list, leftover-map axis share for residual
-SVD axes 1 and 2, and the
+SVD axes 1 and 2, and complete-case coverage captions (map used N of M
+scored posts), plus the
 PU / corp / thread comparison -- never a placeholder. TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer

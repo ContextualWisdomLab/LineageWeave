@@ -58,6 +58,11 @@ _LEFTOVER_MAP_AXIS_MIGRATION = (
     / "migrations"
     / "0169_report_leftover_map_axis.sql"
 )
+_LEFTOVER_MAP_COVERAGE_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0168_report_leftover_map_coverage.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -96,6 +101,7 @@ def schema_db():
                 cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             conn.commit()
             yield conn
@@ -141,6 +147,7 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "report_item_information",
         "report_leftover_pair",
         "report_leftover_map_axis",
+        "report_leftover_map_coverage",
         "post_summary_result",
         "post_summary_event",
         "post_summary_role",
@@ -235,6 +242,20 @@ def test_leftover_map_axis_references_period_score(schema_db) -> None:
             select confrelid::regclass::text
             from pg_constraint
             where conrelid = 'report_leftover_map_axis'::regclass and contype = 'f'
+            """
+        )
+        targets = {row[0] for row in cur.fetchall()}
+    assert "report_period_score" in targets
+
+
+def test_leftover_map_coverage_references_period_score(schema_db) -> None:
+    """Complete-case leftover coverage is 1:1 with the period report."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select confrelid::regclass::text
+            from pg_constraint
+            where conrelid = 'report_leftover_map_coverage'::regclass and contype = 'f'
             """
         )
         targets = {row[0] for row in cur.fetchall()}

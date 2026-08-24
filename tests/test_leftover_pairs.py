@@ -48,6 +48,7 @@ PAIR_KIND_FARTHEST = leftover.PAIR_KIND_FARTHEST
 leftover_pairs_from_residual = leftover.leftover_pairs_from_residual
 leftover_map_from_residual = leftover.leftover_map_from_residual
 leftover_map_axes_from_singular = leftover.leftover_map_axes_from_singular
+leftover_map_coverage_from_residual = leftover.leftover_map_coverage_from_residual
 
 
 def _assert_residual_reconciles(pair) -> None:
@@ -102,6 +103,12 @@ def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
     for pair in pairs:
         _assert_residual_reconciles(pair)
         assert pair.leftover_map_rank == 1
+    coverage = leftover_map_coverage_from_residual(post_ids, item_codes, matrix, expected)
+    assert coverage.map_post_count == 3
+    assert coverage.scored_post_count == 3
+    assert coverage.incomplete_post_count == 0
+    assert coverage.map_item_count == 3
+    assert coverage.scored_item_count == 3
 
 
 def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
@@ -123,6 +130,10 @@ def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
     for pair in pairs:
         _assert_residual_reconciles(pair)
         assert pair.leftover_map_rank == 0
+    coverage = leftover_map_coverage_from_residual(post_ids, item_codes, matrix, expected)
+    assert coverage.map_post_count == 2
+    assert coverage.scored_post_count == 2
+    assert coverage.incomplete_post_count == 0
 
 
 def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
@@ -152,6 +163,13 @@ def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
     for pair in pairs:
         _assert_residual_reconciles(pair)
         assert pair.leftover_map_rank == 1
+    coverage = leftover_map_coverage_from_residual(post_ids, item_codes, matrix, expected)
+    assert coverage.map_post_count == 2
+    assert coverage.scored_post_count == 3
+    assert coverage.incomplete_post_count == 1
+    assert coverage.map_item_count == 2
+    assert coverage.scored_item_count == 2
+    assert coverage.incomplete_item_count == 0
 
 
 def test_leftover_is_empty_without_observed_cells() -> None:
@@ -161,6 +179,13 @@ def test_leftover_is_empty_without_observed_cells() -> None:
     matrix = np.array([[np.nan]], dtype=np.float64)
     expected = np.array([[0.0]], dtype=np.float64)
     assert leftover_pairs_from_residual(post_ids, item_codes, matrix, expected) == ()
+    coverage = leftover_map_coverage_from_residual(post_ids, item_codes, matrix, expected)
+    assert coverage.map_post_count == 0
+    assert coverage.scored_post_count == 0
+    assert coverage.incomplete_post_count == 0
+    assert coverage.map_item_count == 0
+    assert coverage.scored_item_count == 0
+    assert coverage.incomplete_item_count == 0
 
 
 def test_leftover_residual_equals_observed_minus_expected() -> None:
@@ -326,24 +351,7 @@ def test_rejects_response_and_expectation_shape_mismatches() -> None:
         )
 
 
-def test_sparse_residual_uses_only_observed_cells_for_fallback_distance() -> None:
-    """No complete rectangle still yields finite observed-cell distances."""
-    matrix = np.array([[1.0, np.nan], [np.nan, -1.0]], dtype=np.float64)
-    pairs = leftover_pairs_from_residual(
-        ["post-a", "post-b"],
-        ("item-a", "item-b"),
-        matrix,
-        np.zeros_like(matrix),
-    )
-    assert [(pair.post_id, pair.criterion_code) for pair in pairs] == [
-        ("post-a", "item-a"),
-        ("post-b", "item-b"),
-    ]
-    assert [pair.leftover_distance for pair in pairs] == pytest.approx([1.0, 1.0])
-    assert [pair.leftover_map_rank for pair in pairs] == [0, 0]
-
-
-def test_nonfinite_map_distance_falls_back_to_centered_residual(
+def test_nonfinite_map_distance_emits_no_pair(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """An unusable factorization coordinate cannot become persisted distance."""
@@ -362,8 +370,7 @@ def test_nonfinite_map_distance_falls_back_to_centered_residual(
         np.array([[1.0]], dtype=np.float64),
         np.array([[0.0]], dtype=np.float64),
     )
-    assert [pair.leftover_distance for pair in pairs] == [0.0, 0.0]
-    assert [pair.leftover_map_rank for pair in pairs] == [0, 0]
+    assert pairs == ()
 
 
 def test_empty_observation_mask_has_no_complete_case_axes() -> None:
@@ -391,3 +398,20 @@ def test_leftover_map_rank_rejects_negative_rank() -> None:
             (0.0, "public-post", "sales_lead_specificity", 0.0, 1.0, 1.0),
             -1,
         )
+
+
+def test_leftover_is_unavailable_without_a_complete_case_rectangle() -> None:
+    """Observed cells alone cannot invent Gabriel positions or map coverage."""
+    post_ids = ["post-a", "post-b"]
+    item_codes = ("item-one", "item-two")
+    matrix = np.array([[1.0, np.nan], [np.nan, 1.0]], dtype=np.float64)
+    expected = np.zeros_like(matrix)
+
+    assert leftover_pairs_from_residual(post_ids, item_codes, matrix, expected) == ()
+    coverage = leftover_map_coverage_from_residual(post_ids, item_codes, matrix, expected)
+    assert coverage.map_post_count == 0
+    assert coverage.scored_post_count == 2
+    assert coverage.map_item_count == 0
+    assert coverage.scored_item_count == 2
+    assert coverage.incomplete_post_count == 2
+    assert coverage.incomplete_item_count == 2

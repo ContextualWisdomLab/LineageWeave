@@ -197,6 +197,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Choose a post": "글을 선택하세요",
     "Analysis runs": "분석 실행",
     "Period reports": "기간 리포트",
+    "Leftover map coverage": "잔여 지도 포함 범위",
+    "Leftover map used {used} of {scored} scored posts (complete-case)":
+      "잔여 지도는 채점된 글 {scored}개 중 {used}개를 사용했습니다(완전사례)",
     "Event Lineage": "이벤트 계보",
     "Related posts": "관련 글",
     "Related to": "관련 대상:",
@@ -579,6 +582,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Choose a post": "选择文章",
     "Analysis runs": "分析运行",
     "Period reports": "周期报告",
+    "Leftover map coverage": "残差地图覆盖范围",
+    "Leftover map used {used} of {scored} scored posts (complete-case)":
+      "残差地图使用了 {scored} 篇已评分帖文中的 {used} 篇（完全案例）",
     "Event Lineage": "事件谱系",
     "Related posts": "相关文章",
     "Related to": "相关对象：",
@@ -984,6 +990,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Choose a post": "投稿を選択",
     "Analysis runs": "分析実行",
     "Period reports": "期間レポート",
+    "Leftover map coverage": "残差マップの対象範囲",
+    "Leftover map used {used} of {scored} scored posts (complete-case)":
+      "残差マップは採点済み投稿 {scored} 件のうち {used} 件を使いました（完全ケース）",
     "Event Lineage": "イベント系譜",
     "Related posts": "関連する投稿",
     "Related to": "関連対象：",
@@ -1365,6 +1374,9 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Choose a post": "Chọn bài viết",
     "Analysis runs": "Lần chạy phân tích",
     "Period reports": "Báo cáo theo kỳ",
+    "Leftover map coverage": "Phạm vi bản đồ phần dư",
+    "Leftover map used {used} of {scored} scored posts (complete-case)":
+      "Bản đồ phần dư dùng {used} trên {scored} bài đã chấm (trường hợp đầy đủ)",
     "Event Lineage": "Dòng sự kiện",
     "Related posts": "Bài viết liên quan",
     "Related to": "Liên quan đến:",
