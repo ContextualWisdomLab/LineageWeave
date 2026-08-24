@@ -105,9 +105,30 @@ it("normalizes the legacy post-list payload without inventing pagination", async
 });
 
 it("preserves conversation cursors and identifiers on both Ask boundaries", async () => {
-  const fetchMock = vi.fn().mockImplementation(() =>
-    Promise.resolve(new Response("{}", { headers: { "Content-Type": "application/json" } })),
-  );
+  const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.endsWith("/api/ask") ) {
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({ ask_job_id: "ask-job-cursor-test", job_status_code: "queued" }),
+          { headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    }
+    if (url.includes("/api/ask/jobs/")) {
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            ask_job_id: "ask-job-cursor-test",
+            job_status_code: "succeeded",
+            answer: { answer_text: "", cited_post_ids: [], cited_posts: [], source_post_ids: [] },
+          }),
+          { headers: { "Content-Type": "application/json" } },
+        ),
+      );
+    }
+    return Promise.resolve(new Response("{}", { headers: { "Content-Type": "application/json" } }));
+  });
   vi.stubGlobal("fetch", fetchMock);
   const cursor = { updated_at: "2026-01-01T00:00:00Z", conversation_id: "conversation synthetic" };
 
@@ -125,6 +146,7 @@ it("preserves conversation cursors and identifiers on both Ask boundaries", asyn
     expect.stringContaining("/api/ask/conversations?before_updated_at=2026-01-01T00%3A00%3A00Z&before_conversation_id=conversation%20synthetic"),
     expect.stringMatching(/\/api\/ask\/conversations\/global-conversation\?before_turn=3$/),
     expect.stringMatching(/\/api\/ask$/),
+    expect.stringMatching(/\/api\/ask\/jobs\/ask-job-cursor-test$/),
   ]);
   expect(JSON.parse(String(fetchMock.mock.calls[0][1]?.body))).toEqual({
     question: "Question",

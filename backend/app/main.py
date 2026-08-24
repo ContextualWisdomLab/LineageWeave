@@ -80,7 +80,6 @@ from lineageweave.organization_name_resolution import (
 from lineageweave.post_chat import (
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
-    cited_post_evidence,
     cited_post_summaries,
 )
 from lineageweave.post_content_normalization import normalize_post_body
@@ -132,6 +131,10 @@ from backend.app.source_research_ingestion import (
     decode_research_retrievals,
     research_post_sources,
 )
+from backend.app.global_ask_queue import (
+    enqueue_global_ask_job,
+    run_global_ask_worker,
+)
 from backend.app.source_post_revision import fetch_known_at_revision, parse_as_of_clock
 from backend.app.activity_stream import (
     create_valkey_client,
@@ -153,12 +156,9 @@ from backend.app.entity_relationship_ingestion import (
 )
 from backend.app.five_w1h_ingestion import load_five_w1h_slots
 from backend.app.global_ask_history import (
-    GlobalAskConversationNotFound,
-    GlobalAskEvidenceChanged,
     conversation_exists,
     fetch_conversation,
     list_conversations,
-    persist_turn,
 )
 from backend.app.post_ask_history import (
     PostAskConversationNotFound,
@@ -206,17 +206,14 @@ from backend.app.knowledge_graph import (
     visible_team_mention_post_ids,
 )
 from backend.app.lineage_ingestion import (
-    lineage_graphs_for_posts,
     rebuild_lineage,
     visible_lineage_graph,
 )
 from backend.app.post_chat_ingestion import (
-    cited_post_images,
     fetch_persisted_chat,
     fetch_persisted_chats,
     find_linked_post_ids,
     gather_chat_sources,
-    gather_global_chat_sources,
     persist_post_chat,
 )
 from backend.app.post_summary_ingestion import (
@@ -269,14 +266,29 @@ async def lifespan(app: FastAPI):
             structure_factory=_post_structure_client,
         )
     )
+    # Late-bound lambda so tests that monkeypatch _post_chat_client reach
+    # the worker too (the name resolves in module globals at call time).
+    # Only this worker gets the long answer timeout; the per-post chat
+    # endpoint keeps the client's interactive default.
+    app.state.global_ask_worker = asyncio.create_task(
+        run_global_ask_worker(
+            app.state.valkey,
+            app.state.pool,
+            chat_factory=lambda: _post_chat_client(
+                timeout=load_settings().orchestrator_answer_timeout_seconds
+            ),
+        )
+    )
     try:
         yield
     finally:
         app.state.analysis_run_worker.cancel()
         app.state.post_content_worker.cancel()
+        app.state.global_ask_worker.cancel()
         await asyncio.gather(
             app.state.analysis_run_worker,
             app.state.post_content_worker,
+            app.state.global_ask_worker,
             return_exceptions=True,
         )
         await app.state.pool.close()
@@ -478,13 +490,22 @@ def _source_research_clients():
     )
 
 
-def _post_chat_client():
-    """Live orchestrator client when configured; otherwise the unavailable null."""
+def _post_chat_client(timeout: float | None = None):
+    """Live orchestrator client when configured; otherwise the unavailable null.
+
+    ``timeout`` overrides the client's socket timeout. Only the Ask worker
+    passes the long answer timeout — the synchronous per-post chat endpoint
+    keeps the client default so an interactive request never hangs a reader
+    for the worker's full budget.
+    """
     settings = load_settings()
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullPostChatClient()
+    kwargs = {} if timeout is None else {"timeout": timeout}
     return ContextualOrchestratorPostChatClient(
-        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+        base_url=settings.orchestrator_base_url,
+        api_key=settings.orchestrator_api_key,
+        **kwargs,
     )
 
 
@@ -3689,13 +3710,22 @@ async def read_ask_conversation(
     return conversation
 
 
-@app.post("/api/ask")
+@app.post("/api/ask", status_code=status.HTTP_202_ACCEPTED)
 async def ask_agent(
     request: GlobalAskRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
-    """Answer a reader question from authorized post and graph evidence."""
+    """Queue a reader question for asynchronous answering.
+
+    A live answer is a multi-minute orchestrator LLM round-trip under
+    load, so it never runs inside this request: the question becomes a
+    durable ``global_ask_job`` row plus a Valkey wake-up, and the reader
+    polls ``GET /api/ask/jobs/{id}`` for the settled answer. Submission
+    still fails fast on the states that cannot ever succeed (blank
+    question, missing permission, unconfigured orchestrator).
+    """
     question = request.question.strip()
     if not question:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "question is required")
@@ -3707,89 +3737,53 @@ async def ask_agent(
             conn, account.user_account_id, request.conversation_id
         ):
             raise HTTPException(status.HTTP_404_NOT_FOUND, "conversation not found")
-    client = _post_chat_client()
-    if not client.available:
+    if not _post_chat_client().available:
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
         )
-    settings = load_settings()
     async with pool.acquire() as conn:
-        sources = await gather_global_chat_sources(
+        job_id = await enqueue_global_ask_job(
             conn,
-            lambda row: _can_use_post_for_analysis(account, row),
-            account.corporate_entity_ids,
-            question=question,
-            anchor_post_id=str(request.anchor_post_id) if request.anchor_post_id else None,
-            tepp_client=configured_tepp_client(
-                settings.tepp_transport_url,
-                settings.tepp_api_key,
-                settings.tepp_temporal_context_url,
-            ),
+            valkey,
+            requesting_account_id=account.user_account_id,
+            question_text=question,
+            conversation_id=request.conversation_id,
+            anchor_post_id=request.anchor_post_id,
         )
-    if not sources:
-        response: dict[str, Any] = {
-            "answer_text": "",
-            "cited_post_ids": [],
-            "cited_posts": [],
-            "source_post_ids": [],
-            "cited_post_evidence": [],
-            "lineage_graph": {"nodes": [], "edges": [], "truncated": False},
-            "cited_post_images": [],
-            "next_action": "No authorized source posts are available for this question.",
-        }
-    else:
-        try:
-            answer = await asyncio.to_thread(client.answer, question, sources)
-        except (HttpClientError, KeyError, OSError, RuntimeError, ValueError) as exc:
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
-            ) from exc
-        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
-            _logger.exception("ask_agent failed unexpectedly")
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Ask Agent is unavailable: contextual-orchestrator returned no complete evidence object",
-            ) from exc
-        cited_ids = list(answer.cited_post_ids)
-        response = {
-            "answer_text": answer.answer_text,
-            "cited_post_ids": cited_ids,
-            "cited_posts": cited_post_summaries(sources, cited_ids),
-            "cited_post_evidence": cited_post_evidence(sources, cited_ids),
-            "source_post_ids": [source.post_id for source in sources],
-        }
+    return {"ask_job_id": job_id, "job_status_code": "queued"}
+
+
+@app.get("/api/ask/jobs/{ask_job_id}")
+async def read_ask_job(
+    ask_job_id: UUID,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Report one Ask job's status, and its answer once it has settled.
+
+    Owner-scoped: another account's job id reads as absent (404, not
+    403) so job ids do not leak their existence across accounts.
+    """
+    _require_post_read(account)
     async with pool.acquire() as conn:
-        if sources:
-            response["cited_post_images"] = await cited_post_images(conn, response["cited_post_ids"])
-            response["lineage_graph"] = await lineage_graphs_for_posts(
-                conn,
-                lambda row: _can_see_post(account, row),
-                response["cited_post_ids"],
-            )
-        try:
-            persisted_conversation_id = await persist_turn(
-                conn,
-                account.user_account_id,
-                request.conversation_id,
-                question,
-                response["answer_text"],
-                response.get("next_action"),
-                response["source_post_ids"],
-                response["cited_post_ids"],
-                response["cited_post_evidence"],
-                can_see_post=lambda row: _can_use_post_for_analysis(account, row),
-            )
-        except GlobalAskEvidenceChanged as exc:
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Ask Agent is unavailable: authorized evidence changed; retry the question",
-            ) from exc
-        except GlobalAskConversationNotFound as exc:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, "conversation not found") from exc
-    response["conversation_id"] = str(persisted_conversation_id)
-    return response
+        row = await conn.fetchrow(
+            "select requesting_account_id, job_status_code, answer_payload,"
+            " failure_detail from global_ask_job where global_ask_job_id = $1",
+            ask_job_id,
+        )
+    if row is None or str(row["requesting_account_id"]) != account.user_account_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "ask job not found")
+    body: dict[str, Any] = {
+        "ask_job_id": str(ask_job_id),
+        "job_status_code": row["job_status_code"],
+    }
+    if row["job_status_code"] == "succeeded" and row["answer_payload"] is not None:
+        payload = row["answer_payload"]
+        body["answer"] = json.loads(payload) if isinstance(payload, str) else payload
+    if row["job_status_code"] == "failed":
+        body["failure_detail"] = row["failure_detail"]
+    return body
 
 
 class PostBookmarkRequest(BaseModel):

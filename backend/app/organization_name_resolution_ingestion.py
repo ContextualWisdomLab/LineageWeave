@@ -13,10 +13,42 @@ from lineageweave.organization_name_resolution import (
     OrganizationNameResolutionClient,
     resolve_and_verify_organization_name,
 )
+from lineageweave.corporate_hierarchy_resolution import OrganizationNameAlias
 from lineageweave.relation_verification import (
     STATUS_CORROBORATED,
     RelationVerificationClient,
 )
+
+_CORROBORATED_ALIAS_SQL = (
+    "select raw_organization_name, resolved_organization_name "
+    "from organization_name_resolution "
+    "where verification_status_code = $1"
+)
+
+
+async def load_corroborated_organization_name_aliases(
+    conn: asyncpg.Connection,
+) -> list[OrganizationNameAlias]:
+    """Return search-corroborated SKOS alt/pref pairs, or an empty list.
+
+    Callers with a stub connection that has no ``fetch`` (the early-return
+    tie tests) get no aliases rather than raising. Only
+    ``verify_corroborated`` rows are returned; pending or uncorroborated
+    guesses must not bind catalog identities (ADR 0008).
+    """
+    fetch = getattr(conn, "fetch", None)
+    if not callable(fetch):
+        return []
+    rows = await fetch(_CORROBORATED_ALIAS_SQL, STATUS_CORROBORATED)
+    aliases: list[OrganizationNameAlias] = []
+    for row in rows:
+        aliases.append(
+            OrganizationNameAlias(
+                alt_label=row["raw_organization_name"],
+                pref_label=row["resolved_organization_name"],
+            )
+        )
+    return aliases
 
 
 @dataclass(frozen=True)

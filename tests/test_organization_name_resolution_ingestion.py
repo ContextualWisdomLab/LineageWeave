@@ -10,15 +10,21 @@ from lineageweave.relation_verification import (
     STATUS_CORROBORATED,
     STATUS_UNCORROBORATED,
 )
+from lineageweave.corporate_hierarchy_resolution import OrganizationNameAlias
 
 
 class _Connection:
     def __init__(self, cached: dict[str, str] | None = None) -> None:
         self.cached = cached
         self.executed: list[tuple[str, tuple[object, ...]]] = []
+        self.alias_rows: list[dict[str, str]] = []
 
     async def fetchrow(self, _query: str, _raw_name: str):
         return self.cached
+
+    async def fetch(self, query: str, *_args: object):
+        assert "organization_name_resolution" in query
+        return list(self.alias_rows)
 
     async def execute(self, query: str, *args: object) -> str:
         self.executed.append((query, args))
@@ -107,3 +113,21 @@ def test_prepared_name_resolution_defers_cache_write_until_apply(
         == "Aurora Grid Power"
     )
     assert len(conn.executed) == 1
+
+
+def test_load_corroborated_aliases_skips_stub_connections() -> None:
+    assert asyncio.run(ingestion.load_corroborated_organization_name_aliases(object())) == []
+
+
+def test_load_corroborated_aliases_returns_search_verified_pairs() -> None:
+    conn = _Connection()
+    conn.alias_rows = [
+        {
+            "raw_organization_name": "AGP",
+            "resolved_organization_name": "Aurora Grid Power",
+        }
+    ]
+    aliases = asyncio.run(ingestion.load_corroborated_organization_name_aliases(conn))
+    assert aliases == [
+        OrganizationNameAlias(alt_label="AGP", pref_label="Aurora Grid Power")
+    ]

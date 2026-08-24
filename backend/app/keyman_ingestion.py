@@ -60,6 +60,7 @@ from lineageweave.corporate_hierarchy_inference import (
 from lineageweave.corporate_hierarchy_resolution import (
     RESOLUTION_TIE,
     CorporateEntityCandidate,
+    OrganizationNameAlias,
     score_corporate_entity,
 )
 from lineageweave.keyman_extraction import KeymanExtractionClient, PersonMention
@@ -81,6 +82,7 @@ from .knowledge_graph import persist_edges_for_post
 from .organization_name_resolution_ingestion import (
     PreparedOrganizationNameResolution,
     apply_prepared_organization_name_resolution,
+    load_corroborated_organization_name_aliases,
     prepare_organization_name_resolution,
 )
 
@@ -204,11 +206,16 @@ async def prepare_affiliated_organization(
     verification_client: RelationVerificationClient,
     hierarchy_inference_client: CorporateHierarchyInferenceClient,
     candidates: list[CorporateEntityCandidate],
+    *,
+    aliases: list[OrganizationNameAlias] | None = None,
 ) -> PreparedAffiliatedOrganization:
     """Prepare one affiliation without rewriting a known raw-name tie.
 
     Provider work completes here, while cache/catalog writes are deferred to
-    :func:`apply_prepared_affiliated_organization`.
+    :func:`apply_prepared_affiliated_organization`. The raw-name tie check
+    below runs before any alias expansion, so a known ambiguous raw mention
+    stays unbound even when a corroborated alias would otherwise uniquely
+    resolve one of the tied candidates (ADR 0026 stays the outer boundary).
     """
     raw_outcome = score_corporate_entity(organization_name, candidates)
     if raw_outcome.kind == RESOLUTION_TIE:
@@ -233,6 +240,7 @@ async def prepare_affiliated_organization(
         hierarchy_inference_client,
         verification_client,
         candidates,
+        aliases=aliases,
     )
     return PreparedAffiliatedOrganization(
         organization_name,
@@ -278,6 +286,7 @@ async def _resolve_affiliated_organization(
     verification_client: RelationVerificationClient,
     hierarchy_inference_client: CorporateHierarchyInferenceClient,
     candidates: list[CorporateEntityCandidate],
+    aliases: list[OrganizationNameAlias] | None = None,
 ) -> tuple[str, str, str | None, str | None]:
     """Prepare provider evidence, then persist affiliation catalog changes."""
     prepared = await prepare_affiliated_organization(
@@ -288,6 +297,7 @@ async def _resolve_affiliated_organization(
         verification_client,
         hierarchy_inference_client,
         candidates,
+        aliases=aliases,
     )
     return await apply_prepared_affiliated_organization(conn, prepared, candidates)
 
@@ -335,6 +345,7 @@ async def ingest_post_keymen(
     else:
         mentions = await asyncio.to_thread(client.extract, post_title, post_body)
     candidates = await _load_corporate_entity_candidates(conn)
+    aliases = await load_corroborated_organization_name_aliases(conn)
     resolved_by_mention: list[
         tuple[PersonMention, list[tuple[str, str, str | None, str | None]]]
     ] = []
@@ -350,6 +361,7 @@ async def ingest_post_keymen(
                     verification_client,
                     hierarchy_inference_client,
                     candidates,
+                    aliases,
                 )
             )
         resolved_by_mention.append((mention, resolved_orgs))

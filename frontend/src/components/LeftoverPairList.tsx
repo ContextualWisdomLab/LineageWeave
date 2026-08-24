@@ -7,6 +7,11 @@ import {
 } from "../leftoverMapRank";
 import { formatLeftoverObservedExpected } from "../leftoverObservedExpected";
 import { formatLeftoverResidual } from "../leftoverResidual";
+import {
+  formatLeftoverMapUnexplained,
+  formatSignedLeftoverValue,
+  LEFTOVER_MAP_UNEXPLAINED_ACTION,
+} from "../leftoverMapUnexplained";
 
 export type LeftoverPairListProps = {
   pairs: LeftoverPair[];
@@ -18,9 +23,11 @@ export type LeftoverPairListProps = {
  * Closest and farthest leftover post–criterion pairs after IRT main effects.
  *
  * Distance is the two-axis leftover-map Euclidean gap. Residual is
- * ``R = Y − E[Y|θ, item]`` (Jeon et al., 2021, eq. 3 input).
- * The action preserves residual, observed/expected, and full-rank
- * amendments together before opening the named post.
+ * ``R = Y − E[Y|θ, item]`` (Jeon et al., 2021, eq. 3 input). Unexplained
+ * leftover ``U = R − R̂`` after two-axis Gabriel reconstruction (ADR 0182)
+ * takes priority over the residual/observed-expected/rank next action
+ * when finite; every badge still renders together before opening the
+ * named post.
  */
 export function LeftoverPairList({
   pairs,
@@ -42,8 +49,16 @@ export function LeftoverPairList({
           pair.expected_response,
         );
         const rankBadge = formatLeftoverMapRank(pair.leftover_map_rank);
+        const unexplained = formatLeftoverMapUnexplained(pair.leftover_map_unexplained);
         let nextAction: string;
-        if (rankBadge !== null && observedExpected !== null) {
+        if (unexplained !== null) {
+          const signedUnexplained =
+            formatSignedLeftoverValue(pair.leftover_map_unexplained ?? Number.NaN) ?? "—";
+          nextAction = tf(LEFTOVER_MAP_UNEXPLAINED_ACTION, {
+            value: signedUnexplained,
+            criterion,
+          });
+        } else if (rankBadge !== null && observedExpected !== null) {
           nextAction =
             pair.leftover_map_rank === 0
               ? tf(
@@ -104,6 +119,7 @@ export function LeftoverPairList({
               <span className="post-badge">R {residual}</span>
               {observedExpected ? <span className="post-badge">{observedExpected}</span> : null}
               {rankBadge ? <span className="post-badge">{rankBadge}</span> : null}
+              {unexplained ? <span className="post-badge">{unexplained}</span> : null}
               <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
             </button>
           </li>

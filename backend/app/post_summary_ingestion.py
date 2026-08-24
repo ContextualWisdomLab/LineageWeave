@@ -80,6 +80,9 @@ from .keyman_ingestion import (
     apply_prepared_affiliated_organization,
     prepare_affiliated_organization,
 )
+from .organization_name_resolution_ingestion import (
+    load_corroborated_organization_name_aliases,
+)
 from .knowledge_graph import persist_edges_for_post
 from .post_content_queue import SUCCEEDED, fetch_post_summary_source, source_body_sha256
 from .post_eligibility import normalize_source_detail_state_code
@@ -492,6 +495,11 @@ async def persist_post_summary(
     verification_client = verification_client or NullRelationVerificationClient()
 
     context_text = normalized_summary_input
+    aliases = (
+        await load_corroborated_organization_name_aliases(conn)
+        if summary.roles_and_responsibilities
+        else []
+    )
     candidates = (
         await _load_corporate_entity_candidates(conn)
         if summary.roles_and_responsibilities
@@ -513,6 +521,7 @@ async def persist_post_summary(
                     hierarchy_inference_client,
                     verification_client,
                     candidates,
+                    aliases=aliases,
                 )
             )
             continue
@@ -530,6 +539,7 @@ async def persist_post_summary(
                         verification_client,
                         hierarchy_inference_client,
                         candidates,
+                        aliases=aliases,
                     )
                 )
             except (HttpClientError, OSError, TimeoutError, ValueError):

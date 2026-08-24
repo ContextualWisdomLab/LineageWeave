@@ -18,6 +18,8 @@ import asyncio
 import hashlib
 from dataclasses import dataclass
 
+from collections.abc import Sequence
+
 import asyncpg
 
 from lineageweave.corporate_hierarchy_inference import (
@@ -28,12 +30,18 @@ from lineageweave.corporate_hierarchy_resolution import (
     RESOLUTION_TIE,
     RESOLUTION_UNIQUE,
     CorporateEntityCandidate,
+    OrganizationNameAlias,
+    expand_candidates_with_skos_aliases,
     score_corporate_entity,
 )
 from lineageweave.http_client import HttpClientError
 from lineageweave.relation_verification import (
     STATUS_CORROBORATED,
     RelationVerificationClient,
+)
+
+from .organization_name_resolution_ingestion import (
+    load_corroborated_organization_name_aliases,
 )
 
 _AUTO_CODE_PREFIX = "AUTO-"
@@ -122,14 +130,19 @@ async def prepare_corporate_entity_resolution(
     verification_client: RelationVerificationClient,
     candidates: list[CorporateEntityCandidate],
     *,
+    aliases: Sequence[OrganizationNameAlias] | None = None,
     _depth: int = 0,
     _visited_names: frozenset[str] = frozenset(),
 ) -> PreparedCorporateEntityResolution:
     """Run scoring and provider checks without mutating the catalog.
 
     The frozen result can be applied only after a caller's own current-input
-    fence. A tie remains terminal and parent chains remain bounded exactly as
-    in ADR 0010/0026.
+    fence. A unique similarity match is reused. A tied top score stays
+    unbound and does not create a third same-named row (ADR 0026). After a
+    raw miss, SKOS alt/pref pairs expand the candidate labels so a
+    synthetic short form and full form bind the same row (ADR 0160); only
+    an alias-expanded miss may enter ADR 0010 inference. A tie remains
+    terminal and parent chains remain bounded exactly as in ADR 0010/0026.
     """
     normalized_name = organization_name.strip()
     if not normalized_name:
@@ -141,6 +154,25 @@ async def prepare_corporate_entity_resolution(
         )
 
     existing = score_corporate_entity(normalized_name, candidates)
+    if existing.kind == RESOLUTION_UNIQUE and existing.catalog_id is not None:
+        return PreparedCorporateEntityResolution(
+            normalized_name, existing.catalog_id, None, None, None
+        )
+    if existing.kind == RESOLUTION_TIE:
+        return PreparedCorporateEntityResolution(
+            normalized_name, None, "reason_tied_candidates", None, None
+        )
+
+    # No conn here by design (provider-only phase) -- a caller with a real
+    # connection loads corroborated aliases once and passes them down; an
+    # absent aliases argument means "expand with nothing" rather than a
+    # lazy per-call database read from a phase that must not write or read.
+    resolved_aliases: Sequence[OrganizationNameAlias] = aliases if aliases is not None else []
+    existing = score_corporate_entity(
+        normalized_name,
+        expand_candidates_with_skos_aliases(candidates, resolved_aliases),
+        min_similarity=1.0,
+    )
     if existing.kind == RESOLUTION_UNIQUE and existing.catalog_id is not None:
         return PreparedCorporateEntityResolution(
             normalized_name, existing.catalog_id, None, None, None
@@ -229,6 +261,7 @@ async def prepare_corporate_entity_resolution(
             inference_client,
             verification_client,
             candidates,
+            aliases=resolved_aliases,
             _depth=_depth + 1,
             _visited_names=visited_names,
         )
@@ -297,13 +330,32 @@ async def apply_prepared_corporate_entity_resolution(
             "select pg_advisory_xact_lock(hashtext($1))",
             _CREATION_LOCK_KEY,
         )
-        # ponytail: the lock recheck is exact-only; fuzzy matching here can
-        # mistake an inferred child for the parent just created above. The
-        # initial lookup remains fuzzy, while this check only prevents a
-        # concurrent insert of the same normalized name.
+        # ponytail: exclude the resolved ancestor path before repeating normal
+        # raw scoring, or an ancestor created by this recursion can absorb its
+        # own child. The recheck stays fuzzy (matching the initial lookup) so
+        # a tie only discovered after reload still blocks a duplicate AUTO
+        # row instead of silently falling through to creation.
+        fresh_candidates = await _reload_candidates(conn)
+        if resolved_parent_ids:
+            fresh_candidates = [
+                candidate
+                for candidate in fresh_candidates
+                if candidate.corporate_entity_id not in resolved_parent_ids
+            ]
         fresh = score_corporate_entity(
             prepared.normalized_name,
-            await _reload_candidates(conn),
+            fresh_candidates,
+        )
+        if fresh.kind == RESOLUTION_UNIQUE and fresh.catalog_id is not None:
+            _remember_candidate(candidates, fresh.catalog_id, prepared.normalized_name)
+            resolved_parent_ids.add(fresh.catalog_id)
+            return fresh.catalog_id, None
+        if fresh.kind == RESOLUTION_TIE:
+            return None, "reason_tied_candidates"
+        fresh_aliases = await load_corroborated_organization_name_aliases(conn)
+        fresh = score_corporate_entity(
+            prepared.normalized_name,
+            expand_candidates_with_skos_aliases(fresh_candidates, fresh_aliases),
             min_similarity=1.0,
         )
         if fresh.kind == RESOLUTION_UNIQUE and fresh.catalog_id is not None:
@@ -331,16 +383,27 @@ async def get_or_create_corporate_entity(
     verification_client: RelationVerificationClient,
     candidates: list[CorporateEntityCandidate],
     *,
+    aliases: Sequence[OrganizationNameAlias] | None = None,
     _depth: int = 0,
     _visited_names: frozenset[str] = frozenset(),
 ) -> tuple[str | None, str | None]:
-    """Prepare provider evidence, then resolve or create the catalog row."""
+    """Prepare provider evidence, then resolve or create the catalog row.
+
+    ``aliases`` defaults to a fresh load from the shared corroborated-alias
+    cache -- unlike the no-conn preparation phase, this wrapper has a real
+    connection, so callers that don't already have a loaded alias list get
+    the same SKOS alt/pref expansion without an extra round trip of their own.
+    """
+    resolved_aliases = (
+        aliases if aliases is not None else await load_corroborated_organization_name_aliases(conn)
+    )
     prepared = await prepare_corporate_entity_resolution(
         organization_name,
         context_text,
         inference_client,
         verification_client,
         candidates,
+        aliases=resolved_aliases,
         _depth=_depth,
         _visited_names=_visited_names,
     )

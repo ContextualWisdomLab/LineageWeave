@@ -596,10 +596,11 @@ on those same fixed parameters (Kim, 2006 FIPC). After scoring,
 information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
 residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021;
-ADR 0017 / 0048 / 0119 / 0162 / 0163 / 0164) persist to
+ADR 0017 / 0048 / 0119 / 0162 / 0163 / 0164 / 0182) persist to
 `report_leftover_pair` with signed residual `R`, observed `Y`, expected
-`E[Y|θ, item]`, and full leftover-map rank. Leftover-map axis share
-(Gabriel inertia of residual SVD axes 1 and 2; ADR 0148) persists to
+`E[Y|θ, item]`, full leftover-map rank, and unexplained leftover
+`U = R − R̂` named on the pair row. Leftover-map axis share (Gabriel
+inertia of residual SVD axes 1 and 2; ADR 0148) persists to
 `report_leftover_map_axis`. Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
@@ -869,7 +870,11 @@ still flows through unchanged. Cached in a new
 (`migrations/0015_organization_name_resolution.sql`) keyed by the raw
 name, so the same abbreviation across many posts is resolved once.
 Grounded in SKOS `skos:altLabel`/`skos:prefLabel` (Miles & Bechhofer,
-2009). Wired into `backend/app/keyman_ingestion.py`'s affiliation loop
+2009). After a pair is search-corroborated, both labels compete as
+virtual candidates for the **same** `corporate_entity_id`, so a later
+mention of `AGP` or `Aurora Grid Power` reuses one catalog row instead
+of inserting a second `AUTO-` identity (ADR 0160). Wired into
+`backend/app/keyman_ingestion.py`'s affiliation loop
 and the offline synthetic-batch script's paced re-implementation of it
 (the batch script's own copy was also missing `role_title` persistence
 entirely -- fixed alongside this).

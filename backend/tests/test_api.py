@@ -208,10 +208,25 @@ _LEFTOVER_MAP_RANK_MIGRATION = (
     / "migrations"
     / "0164_report_leftover_map_rank.sql"
 )
+_GLOBAL_ASK_JOB_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0165_global_ask_job.sql"
+)
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
     / "0169_report_leftover_map_axis.sql"
+)
+_LEFTOVER_MAP_UNEXPLAINED_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0182_report_leftover_map_unexplained.sql"
+)
+_GLOBAL_ASK_JOB_CONVERSATION_CONTEXT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0183_global_ask_job_conversation_context.sql"
 )
 
 
@@ -345,7 +360,10 @@ def seeded_db(demo_analyst_token):
             cur.execute(_CHANNEL_WEIGHT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
+            cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
+            cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
+            cur.execute(_GLOBAL_ASK_JOB_CONVERSATION_CONTEXT_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -4305,7 +4323,7 @@ def test_live_chat_answer_publishes_an_activity_event(
         def answer(self, question: str, sources) -> ChatAnswer:
             return ChatAnswer(answer_text="a live answer", cited_post_ids=())
 
-    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _FakeChatClient())
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FakeChatClient())
 
     post_id = seeded_db["own_private_post_id"]
     response = client.post(
@@ -4350,22 +4368,37 @@ def test_global_ask_provider_error_does_not_leak_raw_error(
     client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:
     """The cross-post Ask boundary also returns a stable provider failure."""
+    import time as _time
+
     class _FailingAskClient:
         available = True
 
         def answer(self, question: str, sources) -> object:
             raise Exception("raw-global-provider-secret")
 
-    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _FailingAskClient())
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FailingAskClient())
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
 
-    response = client.post(
+    submitted = client.post(
         "/api/ask",
         json={"question": "What happened in this global failure case?"},
-        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+        headers=headers,
     )
+    assert submitted.status_code == 202
+    job_id = submitted.json()["ask_job_id"]
 
-    assert response.status_code == 503
-    assert "raw-global-provider-secret" not in response.text
+    deadline = _time.monotonic() + 30
+    body: dict = {}
+    while _time.monotonic() < deadline:
+        polled = client.get(f"/api/ask/jobs/{job_id}", headers=headers)
+        assert polled.status_code == 200
+        body = polled.json()
+        if body["job_status_code"] in ("succeeded", "failed"):
+            break
+        _time.sleep(0.25)
+
+    assert body.get("job_status_code") == "failed", body
+    assert "raw-global-provider-secret" not in body.get("failure_detail", "")
 
 
 def test_global_ask_unexpected_defect_reaches_server_logs(
@@ -4373,7 +4406,9 @@ def test_global_ask_unexpected_defect_reaches_server_logs(
 ) -> None:
     """An unexpected programming defect (not a classified provider error)
     must still leave a traceback in server-side logs, even though the
-    customer-facing response stays the same stable 503 (issue #361)."""
+    customer-facing response stays the same stable failure (issue #361)."""
+    import time as _time
+
     from lineageweave.post_chat import ChatSourceDocument
 
     async def _one_source(*_args, **_kwargs) -> list[ChatSourceDocument]:
@@ -4385,20 +4420,33 @@ def test_global_ask_unexpected_defect_reaches_server_logs(
         def answer(self, question: str, sources) -> object:
             raise AttributeError("simulated unexpected defect")
 
-    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _BrokenAskClient())
-    monkeypatch.setattr("backend.app.main.gather_global_chat_sources", _one_source)
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _BrokenAskClient())
+    monkeypatch.setattr("backend.app.global_ask_queue.gather_global_chat_sources", _one_source)
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
 
-    with caplog.at_level(logging.ERROR, logger="backend.app.main"):
-        response = client.post(
+    with caplog.at_level(logging.ERROR, logger="backend.app.global_ask_queue"):
+        submitted = client.post(
             "/api/ask",
             json={"question": "What triggers the unexpected defect path?"},
-            headers={"Authorization": f"Bearer {demo_analyst_token}"},
+            headers=headers,
         )
+        assert submitted.status_code == 202
+        job_id = submitted.json()["ask_job_id"]
 
-    assert response.status_code == 503
-    assert "simulated unexpected defect" not in response.text
+        deadline = _time.monotonic() + 30
+        body: dict = {}
+        while _time.monotonic() < deadline:
+            polled = client.get(f"/api/ask/jobs/{job_id}", headers=headers)
+            assert polled.status_code == 200
+            body = polled.json()
+            if body["job_status_code"] in ("succeeded", "failed"):
+                break
+            _time.sleep(0.25)
 
-    matching = [record for record in caplog.records if "ask_agent" in record.message]
+    assert body.get("job_status_code") == "failed", body
+    assert "simulated unexpected defect" not in body.get("failure_detail", "")
+
+    matching = [record for record in caplog.records if "global ask job failed" in record.message]
     assert matching, "unexpected defect must be logged server-side"
     assert matching[0].levelno == logging.ERROR
     assert matching[0].exc_info is not None
@@ -4432,12 +4480,29 @@ def test_global_ask_rolls_back_when_cited_evidence_is_revoked_mid_flight(
         available = True
         answer = staticmethod(_revoke_and_answer)
 
-    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _RaceConditionAskClient())
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _RaceConditionAskClient())
+
+    import time as _time
 
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
     raced = client.post("/api/ask", json={"question": "What does the public post say?"}, headers=headers)
-    assert raced.status_code == 503, raced.text
-    assert raced.json()["detail"] == "Ask Agent is unavailable: authorized evidence changed; retry the question"
+    assert raced.status_code == 202, raced.text
+    raced_job_id = raced.json()["ask_job_id"]
+
+    deadline = _time.monotonic() + 30
+    raced_body: dict = {}
+    while _time.monotonic() < deadline:
+        polled = client.get(f"/api/ask/jobs/{raced_job_id}", headers=headers)
+        assert polled.status_code == 200
+        raced_body = polled.json()
+        if raced_body["job_status_code"] in ("succeeded", "failed"):
+            break
+        _time.sleep(0.25)
+    assert raced_body.get("job_status_code") == "failed", raced_body
+    assert (
+        raced_body.get("failure_detail")
+        == "Ask Agent is unavailable: authorized evidence changed; retry the question"
+    )
 
     conn = psycopg2.connect(seeded_db["dsn"])
     try:
@@ -4459,11 +4524,23 @@ def test_global_ask_rolls_back_when_cited_evidence_is_revoked_mid_flight(
         def answer(self, question: str, sources) -> ChatAnswer:
             return ChatAnswer(answer_text="a safe follow-up answer", cited_post_ids=())
 
-    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _FakeChatClient())
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FakeChatClient())
     follow_up = client.post(
         "/api/ask", json={"question": "Ask something safe as a follow-up"}, headers=headers
     )
-    assert follow_up.status_code == 200, follow_up.text
+    assert follow_up.status_code == 202, follow_up.text
+    follow_up_job_id = follow_up.json()["ask_job_id"]
+
+    deadline = _time.monotonic() + 30
+    follow_up_body: dict = {}
+    while _time.monotonic() < deadline:
+        polled = client.get(f"/api/ask/jobs/{follow_up_job_id}", headers=headers)
+        assert polled.status_code == 200
+        follow_up_body = polled.json()
+        if follow_up_body["job_status_code"] in ("succeeded", "failed"):
+            break
+        _time.sleep(0.25)
+    assert follow_up_body.get("job_status_code") == "succeeded", follow_up_body
 
 
 def test_post_chat_rolls_back_when_cited_evidence_is_revoked_mid_flight(
@@ -4525,6 +4602,8 @@ def test_global_ask_conversation_reauthorizes_each_turn_independently(
     """Batched per-conversation reauthorization (issue #358) must not leak a
     citation across turns or under/over-filter when one turn's post is
     revoked mid-conversation."""
+    import time as _time
+
     from lineageweave.post_chat import ChatAnswer, ChatSourceDocument
 
     public_post_id = seeded_db["public_post_id"]
@@ -4537,17 +4616,37 @@ def test_global_ask_conversation_reauthorizes_each_turn_independently(
 
         return _gather
 
+    def _submit_and_await(question: str, ask_conversation_id: str | None = None) -> dict:
+        payload = {"question": question}
+        if ask_conversation_id is not None:
+            payload["conversation_id"] = ask_conversation_id
+        submitted = client.post("/api/ask", json=payload, headers=headers)
+        assert submitted.status_code == 202, submitted.text
+        job_id = submitted.json()["ask_job_id"]
+        deadline = _time.monotonic() + 30
+        body: dict = {}
+        while _time.monotonic() < deadline:
+            polled = client.get(f"/api/ask/jobs/{job_id}", headers=headers)
+            assert polled.status_code == 200
+            body = polled.json()
+            if body["job_status_code"] in ("succeeded", "failed"):
+                break
+            _time.sleep(0.25)
+        assert body.get("job_status_code") == "succeeded", body
+        return body["answer"]
+
     class _CitesPublicPost:
         available = True
 
         def answer(self, question: str, sources) -> ChatAnswer:
             return ChatAnswer(answer_text="cites the public post", cited_post_ids=(public_post_id,))
 
-    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _CitesPublicPost())
-    monkeypatch.setattr("backend.app.main.gather_global_chat_sources", _one_source_gatherer(public_post_id))
-    first = client.post("/api/ask", json={"question": "What does the public post say?"}, headers=headers)
-    assert first.status_code == 200, first.text
-    conversation_id = first.json()["conversation_id"]
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _CitesPublicPost())
+    monkeypatch.setattr(
+        "backend.app.global_ask_queue.gather_global_chat_sources", _one_source_gatherer(public_post_id)
+    )
+    first_answer = _submit_and_await("What does the public post say?")
+    conversation_id = first_answer["conversation_id"]
 
     class _CitesOwnPost:
         available = True
@@ -4555,14 +4654,11 @@ def test_global_ask_conversation_reauthorizes_each_turn_independently(
         def answer(self, question: str, sources) -> ChatAnswer:
             return ChatAnswer(answer_text="cites the own post", cited_post_ids=(own_post_id,))
 
-    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _CitesOwnPost())
-    monkeypatch.setattr("backend.app.main.gather_global_chat_sources", _one_source_gatherer(own_post_id))
-    second = client.post(
-        "/api/ask",
-        json={"question": "What does the own post say?", "conversation_id": conversation_id},
-        headers=headers,
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _CitesOwnPost())
+    monkeypatch.setattr(
+        "backend.app.global_ask_queue.gather_global_chat_sources", _one_source_gatherer(own_post_id)
     )
-    assert second.status_code == 200, second.text
+    _submit_and_await("What does the own post say?", conversation_id)
 
     before = client.get(f"/api/ask/conversations/{conversation_id}", headers=headers)
     assert before.status_code == 200, before.text
@@ -5586,7 +5682,7 @@ def test_ask_is_unavailable_without_orchestrator_credentials(
     """Null chat client must 503, not invent an answer."""
     from lineageweave.post_chat import NullPostChatClient
 
-    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: NullPostChatClient())
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: NullPostChatClient())
     response = client.post(
         "/api/ask",
         json={"question": "What happened with the public post?"},
@@ -5599,6 +5695,94 @@ def test_ask_requires_authentication(client) -> None:
     """Anonymous callers cannot ask across the buyer's authorized post corpus."""
     response = client.post("/api/ask", json={"question": "Any question"})
     assert response.status_code in (401, 403)
+
+
+def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Submission returns 202 immediately; the worker settles the job.
+
+    The multi-minute LLM round-trip must never run inside the HTTP
+    request, so the contract under test is: POST returns a job id at
+    once, and GET /api/ask/jobs/{id} eventually reports `succeeded`
+    with the full answer payload the old synchronous endpoint returned.
+    """
+    import time as _time
+
+    from lineageweave.post_chat import ChatAnswer
+
+    class _FakeChatClient:
+        available = True
+
+        def answer(self, question, sources):  # noqa: ARG002 - contract shape
+            return ChatAnswer(
+                answer_text="A settled asynchronous answer.",
+                cited_post_ids=(sources[0].post_id,),
+            )
+
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FakeChatClient())
+    headers = {"Authorization": f"Bearer {demo_analyst_token}"}
+    submitted = client.post(
+        "/api/ask", json={"question": "What happened with the public post?"}, headers=headers
+    )
+    assert submitted.status_code == 202
+    job_id = submitted.json()["ask_job_id"]
+    assert submitted.json()["job_status_code"] == "queued"
+
+    deadline = _time.monotonic() + 30
+    body: dict = {}
+    while _time.monotonic() < deadline:
+        polled = client.get(f"/api/ask/jobs/{job_id}", headers=headers)
+        assert polled.status_code == 200
+        body = polled.json()
+        if body["job_status_code"] in ("succeeded", "failed"):
+            break
+        _time.sleep(0.25)
+    assert body.get("job_status_code") == "succeeded", body
+    answer = body["answer"]
+    assert answer["answer_text"] == "A settled asynchronous answer."
+    assert answer["cited_post_ids"], "the fake client cited one source"
+    assert "lineage_graph" in answer and "cited_post_images" in answer
+
+
+def test_ask_job_reads_are_owner_scoped(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    """Another account's job id must read as absent, not merely forbidden."""
+    from lineageweave.post_chat import NullPostChatClient
+
+    class _AvailableButUnusedClient(NullPostChatClient):
+        available = True
+
+    monkeypatch.setattr(
+        "backend.app.main._post_chat_client", lambda **_kwargs: _AvailableButUnusedClient()
+    )
+    submitted = client.post(
+        "/api/ask",
+        json={"question": "Owner-scoped question"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert submitted.status_code == 202
+    job_id = submitted.json()["ask_job_id"]
+    admin_token = post_form(
+        f"{_KEYCLOAK_BASE_URL}/realms/{_REALM}/protocol/openid-connect/token",
+        {
+            "grant_type": "password",
+            "client_id": "lineageweave-frontend",
+            "username": "demo.admin",
+            "password": "lineageweave-demo-only",
+        },
+        timeout=10,
+    )["access_token"]
+    other = client.get(
+        f"/api/ask/jobs/{job_id}",
+        headers={"Authorization": f"Bearer {admin_token}"},
+    )
+    # Either denial proves cross-account protection: 404 when the caller
+    # holds post_read but does not own the job (existence hidden), 403
+    # when the caller lacks post_read entirely (permission gate first).
+    assert other.status_code in (403, 404)
+    assert "answer" not in other.json()
 
 
 def test_derive_commitment_uses_post_created_at_and_does_not_duplicate(
@@ -5984,6 +6168,9 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert all(pair["leftover_distance"] >= 0 for pair in high_report.get("leftover_pairs", []))
     for pair in high_report.get("leftover_pairs", []):
         assert pair["leftover_map_rank"] >= 0
+        unexplained = pair.get("leftover_map_unexplained")
+        assert unexplained is None or isinstance(unexplained, (int, float))
+        assert "leftover_map_reconstruction" not in pair
         observed = pair.get("observed_response")
         expected = pair.get("expected_response")
         if observed is None or expected is None:

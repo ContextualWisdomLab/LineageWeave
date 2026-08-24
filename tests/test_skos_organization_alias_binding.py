@@ -1,0 +1,315 @@
+"""SKOS alt/pref round-trip binds two synthetic names to one catalog row."""
+
+from __future__ import annotations
+
+import asyncio
+import uuid
+from types import SimpleNamespace
+from typing import Any
+
+from backend.app import corporate_entity_ingestion
+from lineageweave.corporate_hierarchy_inference import HierarchyProposal
+from lineageweave.corporate_hierarchy_resolution import (
+    CorporateEntityCandidate,
+    OrganizationNameAlias,
+)
+from lineageweave.relation_verification import STATUS_CORROBORATED
+
+
+_AGP_ALIAS = OrganizationNameAlias(alt_label="AGP", pref_label="Aurora Grid Power")
+_SYNTHETIC_CONTEXT = "AGP (Aurora Grid Power) joined the synthetic grid forum."
+
+
+class _RejectInferenceClient:
+    available = False
+
+    def infer(self, organization_name: str, context_text: str) -> HierarchyProposal:
+        raise AssertionError(f"alias binding must not create {organization_name!r}")
+
+
+class _RejectVerificationClient:
+    available = False
+
+    def verify(self, subject: str, relation: str) -> SimpleNamespace:
+        raise AssertionError("alias binding must not call live search")
+
+
+class _CreateIfReachedInferenceClient:
+    available = True
+
+    def infer(self, organization_name: str, context_text: str) -> HierarchyProposal:
+        return HierarchyProposal(level_code="company", parent_name=None)
+
+
+class _CreateIfReachedVerificationClient:
+    available = True
+
+    def verify(self, subject: str, relation: str) -> SimpleNamespace:
+        return SimpleNamespace(status_code=STATUS_CORROBORATED)
+
+
+class _RejectLiveInferenceClient:
+    available = True
+
+    def infer(self, organization_name: str, context_text: str) -> HierarchyProposal:
+        raise AssertionError("an alias tie must not enter hierarchy inference")
+
+
+class _AliasLockConnection:
+    """Serve corroborated aliases and a catalog row stored under the altLabel."""
+
+    def __init__(self, catalog_id: str, entity_name: str) -> None:
+        self.catalog_id = catalog_id
+        self.entity_name = entity_name
+        self.insert_attempted = False
+
+    class _Transaction:
+        async def __aenter__(self) -> "_AliasLockConnection._Transaction":
+            return self
+
+        async def __aexit__(self, exc_type: Any, exc: Any, traceback: Any) -> bool:
+            return False
+
+    def transaction(self) -> "_AliasLockConnection._Transaction":
+        return self._Transaction()
+
+    async def execute(self, query: str, *args: Any) -> str:
+        assert "pg_advisory_xact_lock" in query
+        return "SELECT 1"
+
+    async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
+        if "organization_name_resolution" in query:
+            assert args == (STATUS_CORROBORATED,)
+            return [
+                {
+                    "raw_organization_name": "AGP",
+                    "resolved_organization_name": "Aurora Grid Power",
+                }
+            ]
+        assert "from corporate_entity" in query
+        return [
+            {
+                "corporate_entity_id": self.catalog_id,
+                "entity_name": self.entity_name,
+            }
+        ]
+
+    async def fetchrow(self, query: str, *args: Any) -> dict[str, Any]:
+        self.insert_attempted = True
+        raise AssertionError("alias round-trip must reuse the existing catalog row")
+
+
+class _AliasTieLockConnection(_AliasLockConnection):
+    """Expose two rows that tie only after their shared alias is expanded."""
+
+    async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
+        if "organization_name_resolution" in query:
+            return [
+                {
+                    "raw_organization_name": "AGP",
+                    "resolved_organization_name": "Aurora Grid Power",
+                },
+                {
+                    "raw_organization_name": "AGP",
+                    "resolved_organization_name": "Alpine Grid Power",
+                },
+            ]
+        assert "from corporate_entity" in query
+        return [
+            {"corporate_entity_id": "alias-a", "entity_name": "Aurora Grid Power"},
+            {"corporate_entity_id": "alias-b", "entity_name": "Alpine Grid Power"},
+        ]
+
+
+class _LateAliasLockConnection(_AliasLockConnection):
+    """Publish one corroborated alias while hierarchy inference is running."""
+
+    def __init__(self) -> None:
+        super().__init__("short-row", "AGP")
+        self.alias_reads = 0
+
+    async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
+        if "organization_name_resolution" in query:
+            self.alias_reads += 1
+            if self.alias_reads == 1:
+                return []
+            return [
+                {
+                    "raw_organization_name": "AGP",
+                    "resolved_organization_name": "Aurora Grid Power",
+                }
+            ]
+        assert "from corporate_entity" in query
+        return [
+            {"corporate_entity_id": self.catalog_id, "entity_name": self.entity_name}
+        ]
+
+
+def test_short_form_mention_reuses_pref_label_catalog_row() -> None:
+    catalog_id = str(uuid.uuid4())
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            object(),
+            "AGP",
+            _SYNTHETIC_CONTEXT,
+            _RejectInferenceClient(),
+            _RejectVerificationClient(),
+            [CorporateEntityCandidate(catalog_id, "Aurora Grid Power")],
+            aliases=[_AGP_ALIAS],
+        )
+    )
+    assert result == (catalog_id, None)
+
+
+def test_raw_unique_match_does_not_load_aliases() -> None:
+    catalog_id = str(uuid.uuid4())
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            object(),
+            "Aurora Grid Power",
+            _SYNTHETIC_CONTEXT,
+            _RejectInferenceClient(),
+            _RejectVerificationClient(),
+            [CorporateEntityCandidate(catalog_id, "Aurora Grid Power")],
+        )
+    )
+    assert result == (catalog_id, None)
+
+
+def test_pref_label_mention_reuses_alt_label_catalog_row_under_creation_lock() -> None:
+    catalog_id = str(uuid.uuid4())
+    connection = _AliasLockConnection(catalog_id, "AGP")
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            connection,
+            "Aurora Grid Power",
+            _SYNTHETIC_CONTEXT,
+            _CreateIfReachedInferenceClient(),
+            _CreateIfReachedVerificationClient(),
+            [],
+        )
+    )
+    assert result == (catalog_id, None)
+    assert connection.insert_attempted is False
+
+
+def test_uncorroborated_alias_does_not_bind() -> None:
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            object(),
+            "AGP",
+            _SYNTHETIC_CONTEXT,
+            _RejectInferenceClient(),
+            _RejectVerificationClient(),
+            [CorporateEntityCandidate(str(uuid.uuid4()), "Aurora Grid Power")],
+            aliases=(),
+        )
+    )
+    assert result == (None, "reason_no_live_client")
+
+
+def test_short_near_match_does_not_fuzzy_bind_a_corroborated_alias() -> None:
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            object(),
+            "AGB",
+            _SYNTHETIC_CONTEXT,
+            _RejectInferenceClient(),
+            _RejectVerificationClient(),
+            [CorporateEntityCandidate(str(uuid.uuid4()), "Aurora Grid Power")],
+            aliases=[_AGP_ALIAS],
+        )
+    )
+
+    assert result == (None, "reason_no_live_client")
+
+
+def test_raw_catalog_tie_precedes_unique_alias_match() -> None:
+    candidates = [
+        CorporateEntityCandidate("tied-north", "Tied Energy North"),
+        CorporateEntityCandidate("tied-south", "Tied Energy South"),
+        CorporateEntityCandidate("alias-target", "Aurora Grid Power"),
+    ]
+
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            object(),
+            "Tied Energy",
+            _SYNTHETIC_CONTEXT,
+            _CreateIfReachedInferenceClient(),
+            _CreateIfReachedVerificationClient(),
+            candidates,
+            aliases=[
+                OrganizationNameAlias(
+                    alt_label="Tied Energy",
+                    pref_label="Aurora Grid Power",
+                )
+            ],
+        )
+    )
+
+    assert result == (None, "reason_tied_candidates")
+
+
+def test_alias_expansion_tie_does_not_enter_inference() -> None:
+    candidates = [
+        CorporateEntityCandidate("alias-a", "Aurora Grid Power"),
+        CorporateEntityCandidate("alias-b", "Alpine Grid Power"),
+    ]
+    aliases = [
+        OrganizationNameAlias("AGP", "Aurora Grid Power"),
+        OrganizationNameAlias("AGP", "Alpine Grid Power"),
+    ]
+
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            object(),
+            "AGP",
+            _SYNTHETIC_CONTEXT,
+            _RejectLiveInferenceClient(),
+            _RejectVerificationClient(),
+            candidates,
+            aliases=aliases,
+        )
+    )
+
+    assert result == (None, "reason_tied_candidates")
+
+
+def test_post_lock_alias_tie_does_not_insert() -> None:
+    connection = _AliasTieLockConnection("unused", "unused")
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            connection,
+            "AGP",
+            _SYNTHETIC_CONTEXT,
+            _CreateIfReachedInferenceClient(),
+            _CreateIfReachedVerificationClient(),
+            [],
+            aliases=[
+                OrganizationNameAlias("AGP", "Aurora Grid Power"),
+                OrganizationNameAlias("AGP", "Alpine Grid Power"),
+            ],
+        )
+    )
+
+    assert result == (None, "reason_tied_candidates")
+    assert connection.insert_attempted is False
+
+
+def test_post_lock_reloads_aliases_before_inserting() -> None:
+    connection = _LateAliasLockConnection()
+    result = asyncio.run(
+        corporate_entity_ingestion.get_or_create_corporate_entity(
+            connection,
+            "Aurora Grid Power",
+            _SYNTHETIC_CONTEXT,
+            _CreateIfReachedInferenceClient(),
+            _CreateIfReachedVerificationClient(),
+            [],
+        )
+    )
+
+    assert result == ("short-row", None)
+    assert connection.alias_reads == 2
+    assert connection.insert_attempted is False

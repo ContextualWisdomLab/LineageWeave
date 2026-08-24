@@ -104,6 +104,8 @@ class _CorporateConnection:
 
     async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
         compact = " ".join(query.split())
+        if "organization_name_resolution" in compact:
+            return []
         assert compact == "select corporate_entity_id, entity_name from corporate_entity"
         self._events.append("candidate_reload")
         return list(self._reloaded_rows)
@@ -256,6 +258,8 @@ def test_prepared_child_excludes_resolved_parent_from_alias_reuse() -> None:
             return "SELECT 1"
 
         async def fetch(self, _query: str, *_args: Any) -> list[dict[str, Any]]:
+            if "organization_name_resolution" in _query:
+                return []
             return list(inserted_rows)
 
         async def fetchrow(self, query: str, *args: Any) -> dict[str, uuid.UUID]:
@@ -448,6 +452,9 @@ class _SummaryConnection:
     async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
         compact = " ".join(query.split())
         self._events.append(("fetch", compact))
+        if "from organization_name_resolution" in compact:
+            assert not self.in_transaction
+            return []
         assert self.in_transaction
         if "from post_summary_action" in compact:
             return []
@@ -480,6 +487,8 @@ class _SummaryConnection:
                     "affiliation_catalog_unresolved_reason_code": None,
                 }
             ]
+        if "organization_name_resolution" in compact:
+            return []
         raise AssertionError(f"unexpected fetch query: {compact}")
 
 
@@ -801,6 +810,9 @@ class _KeymanConnection:
         compact = " ".join(query.split())
         self._events.append(("fetch", compact))
         if compact == "select corporate_entity_id, entity_name from corporate_entity":
+            assert not self.in_transaction
+            return []
+        if "organization_name_resolution" in compact:
             assert not self.in_transaction
             return []
         if compact.startswith("select person_id, last_known_job_title"):
