@@ -14,7 +14,7 @@ All notable changes to this project are documented here. Format follows
 - Bounded ontology/provenance neighborhood (`GET /api/ontology/neighborhood`)
   with typed Post/Person/CorporateEntity/Team nodes, SKOS broader distinct
   from OWL subclass, truth-status vocabulary, knowledge-cutoff binding, and
-  a Keyman-panel explorer that is not Event Lineage (ADR 0119 / #341).
+  a Keyman-panel explorer that is not Event Lineage (ADR 0168 / #341).
 - ADRs 0150-0153 define the accepted boundaries for Korean relative-time
   retrieval, multi-thread Event Lineage answers, persisted image-evidence
   citations, and the focused evidence popup. Their implementations remain

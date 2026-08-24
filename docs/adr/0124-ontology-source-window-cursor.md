@@ -3,7 +3,7 @@
 **Status:** Accepted
 **Date:** 2026-08-21
 **Issue:** [#363](https://github.com/ContextualWisdomLab/LineageWeave/issues/363)
-**Predecessor:** [ADR 0119](0119-ontology-provenance-explorer.md)
+**Predecessor:** [ADR 0168](0168-ontology-provenance-explorer.md)
 
 **Context:** PR #349 withholds a continuation token when the authorization-safe recursive SQL window is exhausted. The in-memory `after:` cursor can only page facts already loaded, so a buyer cannot inspect every authorized relation in a large neighborhood without fabricating completeness. Issue #363 requires a real database continuation contract that keeps bounds, ABAC, cutoff, and deterministic ordering.
 

@@ -1,6 +1,6 @@
 # Ontology explorer — doctoring
 
-These are the standards that ground ADR 0119 / issue #341. Cite them in
+These are the standards that ground ADR 0168 / issue #341. Cite them in
 APA 7th when you extend the neighborhood, projection, or Buyer graph.
 
 Cyganiak, R., Wood, D., & Lanthaler, M. (Eds.). (2014). *RDF 1.1 concepts
