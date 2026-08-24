@@ -2,6 +2,9 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-17
+**Amended by:** [ADR 0162](0162-leftover-residual-disclosure.md) (signed residual R);
+[ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E);
+[ADR 0164](0164-leftover-map-rank.md) (full map rank)
 
 ## Context
 
@@ -17,10 +20,16 @@ second navigation surface.
 
 On each period-report group, render leftover pairs **above** the
 member list. Each pair is a button: closest or farthest label, post
-title, criterion short label, leftover-map distance, and the next
-action (“Open this post so the leftover criterion is current in Post
-quality.”). Clicking the button opens that post with leftover focus
-so Post quality marks the named criterion current (ADR 0158).
+title, criterion short label, signed residual `R`, two-axis leftover-map
+distance, full map rank, observed `Y`, and expected `E` when finite.
+The next action names every available measurement before opening the
+post; no amendment hides another, and rank 0 explicitly names no
+leftover structure.
+Clicking the button opens that post with leftover focus so Post
+quality marks the named criterion current (ADR 0158). Residual naming
+is [ADR 0162](0162-leftover-residual-disclosure.md), observed/expected
+naming is [ADR 0163](0163-leftover-observed-expected.md), rank naming
+is [ADR 0164](0164-leftover-map-rank.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post with the leftover
