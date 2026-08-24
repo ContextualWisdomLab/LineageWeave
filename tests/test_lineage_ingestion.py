@@ -37,6 +37,7 @@ def test_unapproved_weight_provenance_is_never_activated() -> None:
 
         async def fetch(self, _query: str):
             provenance = {
+                "channel_set_code": "channel_set_deterministic",
                 "estimation_run_id": "00000000-0000-0000-0000-000000000001",
                 "estimation_method_code": "mls2plm_discrimination",
                 "estimator_version": "5006c382",
@@ -66,7 +67,13 @@ def test_incomplete_persisted_weight_vector_is_unavailable() -> None:
             return True
 
         async def fetch(self, _query: str):
-            return [{"channel_code": "temporal", "weight_value": 1.0}]
+            return [
+                {
+                    "channel_set_code": "channel_set_deterministic",
+                    "channel_code": "temporal",
+                    "weight_value": 1.0,
+                }
+            ]
 
     assert asyncio.run(
         ingestion.load_estimated_channel_weights(
@@ -85,6 +92,7 @@ def test_mixed_weight_provenance_is_never_activated(monkeypatch) -> None:
 
         async def fetch(self, _query: str):
             base = {
+                "channel_set_code": "channel_set_deterministic",
                 "estimation_method_code": "test_method",
                 "estimator_version": "1.0.0",
                 "anchor_method_code": "test_anchor",
@@ -126,6 +134,7 @@ def test_supported_vectors_still_require_numeric_and_provenance_integrity(
 
         async def fetch(self, _query: str):
             provenance = {
+                "channel_set_code": "channel_set_deterministic",
                 "estimation_run_id": "00000000-0000-0000-0000-000000000001",
                 "estimation_method_code": "test_method",
                 "estimator_version": "1.0.0",
@@ -156,6 +165,125 @@ def test_supported_vectors_still_require_numeric_and_provenance_integrity(
             )
             is None
         )
+
+
+def test_weight_loader_picks_the_set_matching_the_active_channels(
+    monkeypatch,
+) -> None:
+    """Migration 0200: one persisted set per active-channel combination.
+
+    A 3-channel rebuild and a 4-channel (llm-inclusive) run each get
+    exactly their own set; an active combination with no matching set
+    returns ``None`` -- never a partial mix of estimation runs.
+    """
+    monkeypatch.setattr(ingestion, "_SUPPORTED_ANCHOR_METHOD_CODES", {"test_anchor"})
+
+    class TwoSetConnection:
+        async def fetchval(self, _query: str):
+            return True
+
+        async def fetch(self, _query: str):
+            def rows(set_code, run_id, channel_weights):
+                return [
+                    {
+                        "channel_set_code": set_code,
+                        "channel_code": channel,
+                        "weight_value": weight,
+                        "estimation_run_id": run_id,
+                        "estimation_method_code": "test_method",
+                        "estimator_version": "1.0.0",
+                        "anchor_method_code": "test_anchor",
+                        "source_snapshot_sha256": "a" * 64,
+                        "sample_pair_count": 600,
+                        "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
+                    }
+                    for channel, weight in channel_weights
+                ]
+
+            return rows(
+                "channel_set_deterministic",
+                "00000000-0000-0000-0000-000000000001",
+                (("temporal", 0.6), ("secondary_key", 0.3), ("text", 0.1)),
+            ) + rows(
+                "channel_set_with_llm",
+                "00000000-0000-0000-0000-000000000002",
+                (
+                    ("temporal", 0.4),
+                    ("secondary_key", 0.2),
+                    ("text", 0.1),
+                    ("llm", 0.3),
+                ),
+            )
+
+    deterministic = asyncio.run(
+        ingestion.load_estimated_channel_weights(
+            TwoSetConnection(), {"temporal", "secondary_key", "text"}
+        )
+    )
+    assert deterministic == {"temporal": 0.6, "secondary_key": 0.3, "text": 0.1}
+    with_llm = asyncio.run(
+        ingestion.load_estimated_channel_weights(
+            TwoSetConnection(), {"temporal", "secondary_key", "text", "llm"}
+        )
+    )
+    assert with_llm is not None and with_llm["llm"] == 0.3
+    assert asyncio.run(
+        ingestion.load_estimated_channel_weights(
+            TwoSetConnection(), {"temporal", "text"}
+        )
+    ) is None
+
+
+def test_weight_loader_reads_a_pre_0200_schema_as_one_deterministic_set(
+    monkeypatch,
+) -> None:
+    """Before migration 0200 no channel_set_code column exists; the loader
+    must probe the catalog (never a failing statement) and treat the rows
+    as the single implicit deterministic set.
+    """
+    monkeypatch.setattr(ingestion, "_SUPPORTED_ANCHOR_METHOD_CODES", {"test_anchor"})
+
+    class Pre0200Connection:
+        def __init__(self) -> None:
+            self.fetch_queries: list[str] = []
+
+        async def fetchval(self, query: str):
+            if "information_schema.columns" in query:
+                return False
+            return True
+
+        async def fetch(self, query: str):
+            self.fetch_queries.append(query)
+            provenance = {
+                "channel_set_code": "channel_set_deterministic",
+                "estimation_run_id": "00000000-0000-0000-0000-000000000001",
+                "estimation_method_code": "test_method",
+                "estimator_version": "1.0.0",
+                "anchor_method_code": "test_anchor",
+                "source_snapshot_sha256": "a" * 64,
+                "sample_pair_count": 600,
+                "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
+            }
+            return [
+                {**provenance, "channel_code": channel, "weight_value": weight}
+                for channel, weight in (
+                    ("temporal", 0.6),
+                    ("secondary_key", 0.3),
+                    ("text", 0.1),
+                )
+            ]
+
+    connection = Pre0200Connection()
+    loaded = asyncio.run(
+        ingestion.load_estimated_channel_weights(
+            connection, {"temporal", "secondary_key", "text"}
+        )
+    )
+    assert loaded == {"temporal": 0.6, "secondary_key": 0.3, "text": 0.1}
+    assert all(
+        "select channel_set_code" not in query
+        for query in connection.fetch_queries
+    ), "a pre-0200 schema must never be queried for the missing column"
 
 
 def test_records_use_persisted_thread_keys_not_process_unit_or_voc_type() -> None:

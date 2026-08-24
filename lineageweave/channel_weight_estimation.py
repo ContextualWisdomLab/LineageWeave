@@ -70,6 +70,7 @@ def simulate_fixture_pair_scores() -> tuple[list[dict[str, float]], list[int]]:
     generator = random.Random(_FIXTURE_SIMULATION_SEED)
 
     def channel_score(related: bool, follow_probability: float) -> float:
+        """One channel's noisy report of the pair's latent related state."""
         follows = generator.random() < follow_probability
         high = related if follows else not related
         return (0.8 if high else 0.05) + generator.uniform(-0.04, 0.04)
