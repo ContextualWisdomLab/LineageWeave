@@ -8,6 +8,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Opening a post with persisted image-region evidence now shows each region's
+  bounding range beside its caption, OCR, and tags (ADR 0155). After
+  `make seed`, a synthetic process-diagram region reads **Region location:
+  0%, 0% – 100%, 100%**. Internal LLM instructions stay hidden. Click the
+  region list to compare that box with the caption, then read the source
+  image.
 - Ontology neighborhoods can continue beyond the bounded SQL source window
   with a versioned opaque HMAC cursor and keyset pagination (ADR 0124 / #363).
   A missing process secret keeps the truncated-without-cursor contract.
@@ -81,12 +87,6 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
-- Opening a post with persisted image-region evidence now shows each region's
-  bounding range beside its caption, OCR, and tags (ADR 0155). After
-  `make seed`, a synthetic process-diagram region reads **Region location:
-  0%, 0% – 100%, 100%**. Internal LLM instructions stay hidden. Click the
-  region list to compare that box with the caption, then read the source
-  image.
 - Period reports now persist leftover-map axis share (Gabriel inertia of
   residual SVD axes 1 and 2) next to leftover pairs (ADR 0148). Rank-0
   residuals emit two zero-share axes. After `make seed`, leftover-axis
