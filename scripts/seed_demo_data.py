@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
 import os
 import sys
 from pathlib import Path
@@ -515,9 +516,14 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
     )
     for edge in lineage_edge_specs(persisted):
         cur.execute(
-            "insert into post_lineage_edge (parent_post_id, child_post_id, fused_score) "
-            "values (%s, %s, %s) on conflict do nothing",
-            (edge.parent_id, edge.child_id, edge.fused_score),
+            "insert into post_lineage_edge (parent_post_id, child_post_id, fused_score, channel_scores) "
+            "values (%s, %s, %s, %s::jsonb) on conflict do nothing",
+            (
+                edge.parent_id,
+                edge.child_id,
+                edge.fused_score,
+                json.dumps(edge.channel_scores, separators=(",", ":"), sort_keys=True),
+            ),
         )
 
 

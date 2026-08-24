@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import threading
 from datetime import datetime, timezone
 
@@ -10,6 +11,7 @@ import pytest
 
 from backend.app import lineage_ingestion
 from backend.app.lineage_ingestion import (
+    persist_lineage_edges,
     rebuild_lineage,
     reconstruct_group_key,
     records_from_source_posts,
@@ -55,6 +57,7 @@ class _RebuildConnection:
         self.fetch_count = 0
         self.events: list[str] = []
         self.executed: list[str] = []
+        self.executed_with_args: list[tuple[str, tuple[object, ...]]] = []
 
     async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
         """Return synthetic source rows while recording the read."""
@@ -68,7 +71,7 @@ class _RebuildConnection:
 
     async def execute(self, query: str, *args: object) -> str:
         """Record a synthetic projection write."""
-        del args
+        self.executed_with_args.append((query, args))
         compact = " ".join(query.split())
         if "pg_advisory_unlock" in compact:
             self.events.append("rebuild_lock_release")
@@ -165,6 +168,46 @@ def test_seed_shaped_rows_rebuild_to_the_designed_a100_fork() -> None:
     assert ("rec-002", "rec-003") in pairs
     assert ("rec-002", "rec-004") in pairs
     assert "rec-006" not in {edge.child_id for edge in edges}
+
+
+def test_persist_lineage_edges_writes_the_channel_score_breakdown() -> None:
+    """ADR 0195: an edge's channel_scores must reach the insert, JSON-encoded.
+
+    Before this column existed, Edge.channel_scores was computed by
+    reconstruct() and then silently dropped -- no persisted edge could be
+    root-caused after the fact without re-running reconstruction offline.
+    """
+    connection = _RebuildConnection()
+    edge = Edge("parent-post", "child-post", 0.42, {"temporal": 0.9, "text": 0.1})
+
+    asyncio.run(persist_lineage_edges(connection, [edge]))
+
+    insert_calls = [
+        (query, args)
+        for query, args in connection.executed_with_args
+        if "insert into post_lineage_edge" in query
+    ]
+    assert len(insert_calls) == 1
+    _query, args = insert_calls[0]
+    assert args[:3] == ("parent-post", "child-post", 0.42)
+    assert json.loads(args[3]) == {"temporal": 0.9, "text": 0.1}
+
+
+def test_persist_lineage_edges_writes_an_empty_object_for_no_channels() -> None:
+    """A record with no contributing channel still gets a well-formed, empty
+    ``{}`` -- never a NULL that a JSON-parsing reader would have to special-case.
+    """
+    connection = _RebuildConnection()
+    edge = Edge("parent-post", "child-post", 0.0, {})
+
+    asyncio.run(persist_lineage_edges(connection, [edge]))
+
+    _query, args = next(
+        (query, args)
+        for query, args in connection.executed_with_args
+        if "insert into post_lineage_edge" in query
+    )
+    assert json.loads(args[3]) == {}
 
 
 def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:

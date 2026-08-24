@@ -11,6 +11,7 @@ not derived from process unit or voc type.
 from __future__ import annotations
 
 import asyncio
+import json
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Any
@@ -77,15 +78,21 @@ def records_from_source_posts(rows: list[Mapping[str, Any]]) -> list[Record]:
 
 
 async def persist_lineage_edges(conn: asyncpg.Connection, edges: list[Edge]) -> None:
-    """Replace ``post_lineage_edge`` with ``edges`` (reconstruct is source of truth)."""
+    """Replace ``post_lineage_edge`` with ``edges`` (reconstruct is source of truth).
+
+    ``channel_scores`` (ADR 0195) is stored alongside ``fused_score`` so a
+    later operator can see *why* an edge formed -- which channel(s)
+    contributed and how much -- without re-running reconstruction offline.
+    """
     await conn.execute("delete from post_lineage_edge")
     for edge in edges:
         await conn.execute(
-            "insert into post_lineage_edge (parent_post_id, child_post_id, fused_score) "
-            "values ($1::uuid, $2::uuid, $3)",
+            "insert into post_lineage_edge (parent_post_id, child_post_id, fused_score, channel_scores) "
+            "values ($1::uuid, $2::uuid, $3, $4::jsonb)",
             edge.parent_id,
             edge.child_id,
             edge.fused_score,
+            json.dumps(edge.channel_scores, separators=(",", ":"), sort_keys=True),
         )
 
 
