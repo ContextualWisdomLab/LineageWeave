@@ -171,3 +171,91 @@ def test_running_restart_conflicts_and_succeeded_replay_is_documented() -> None:
     )
     assert running.status_code == 409
     assert "Pending" in running.detail
+
+
+def test_provider_failure_mid_reconstruction_fails_closed_without_partial_graph() -> None:
+    """Issue #289 RED 4/6: an adjudication provider error during an
+    llm-inclusive delivery becomes an actionable 503 -- never a fabricated
+    score, never a partially persisted graph (no insert runs).
+    """
+    import asyncio
+
+    from backend.app.analysis_run_start import _deliver_lineage_reconstruction
+    from lineageweave.http_client import HttpClientError
+
+    class _FailingJudge:
+        available = True
+
+        def judge(self, candidate_label: str, record_label: str) -> float:
+            raise HttpClientError("HTTP 500 from orchestrator")
+
+    class _Conn:
+        def __init__(self) -> None:
+            self.executed: list[str] = []
+
+        def transaction(self):
+            class _Tx:
+                async def __aenter__(self):
+                    return self
+
+                async def __aexit__(self, exc_type, exc, traceback) -> bool:
+                    return False
+
+            return _Tx()
+
+        async def fetch(self, query: str, *args: object):
+            if "lineage_channel_weight" in query:
+                return [
+                    {"channel_set_code": "channel_set_with_llm", "channel_code": "temporal", "weight_value": 0.4},
+                    {"channel_set_code": "channel_set_with_llm", "channel_code": "secondary_key", "weight_value": 0.1},
+                    {"channel_set_code": "channel_set_with_llm", "channel_code": "text", "weight_value": 0.1},
+                    {"channel_set_code": "channel_set_with_llm", "channel_code": "llm", "weight_value": 0.4},
+                ]
+            if "analysis_source_snapshot_member" in query:
+                return [
+                    {
+                        "post_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+                        "post_title": "First post in thread",
+                        "created_at": datetime(2026, 1, 1),
+                        "visibility_code": "public",
+                        "corporate_entity_id": "corp",
+                        "process_unit_id": "pu",
+                        "thread_group_key": "T-100",
+                        "secondary_grouping_key": "",
+                    },
+                    {
+                        "post_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+                        "post_title": "Second post in thread",
+                        "created_at": datetime(2026, 1, 2),
+                        "visibility_code": "public",
+                        "corporate_entity_id": "corp",
+                        "process_unit_id": "pu",
+                        "thread_group_key": "T-100",
+                        "secondary_grouping_key": "",
+                    },
+                ]
+            raise AssertionError(f"unexpected query: {query[:80]}")
+
+        async def execute(self, query: str, *args: object) -> str:
+            self.executed.append(query)
+            return "OK"
+
+    conn = _Conn()
+    locked = {
+        "analysis_source_snapshot_id": "snapshot-1",
+        "corporate_entity_id": "corp",
+        "knowledge_cutoff": datetime(2026, 2, 1, tzinfo=timezone.utc),
+    }
+    with pytest.raises(AnalysisRunStartError) as raised:
+        asyncio.run(
+            _deliver_lineage_reconstruction(
+                conn,
+                analysis_run_id="00000000-0000-0000-0000-000000000009",
+                locked=locked,
+                affiliated_entity_ids=[],
+                adjudication_client=_FailingJudge(),
+            )
+        )
+    assert raised.value.status_code == 503
+    assert "start this run again" in raised.value.detail
+    assert conn.executed == []

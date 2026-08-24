@@ -733,9 +733,24 @@ async def _deliver_lineage_reconstruction(
             f"channels ({', '.join(sorted(active_channels))}). Run "
             "scripts/estimate_channel_weights.py, then start this run again.",
         )
-    edges = lineage_edge_specs(
-        records_from_source_posts(rows), llm=adjudication_client, weights=weights
-    )
+    try:
+        edges = lineage_edge_specs(
+            records_from_source_posts(rows), llm=adjudication_client, weights=weights
+        )
+    except (HttpClientError, OSError, ValueError, TypeError) as exc:
+        # Only the llm channel talks to a provider mid-reconstruction; a
+        # deterministic run hitting this would be a code bug worth the
+        # crash. The enclosing transaction rolls back, so no partial
+        # graph persists (issue #289 RED 4/6) and the run stays
+        # startable once the provider recovers.
+        if "llm" not in active_channels:
+            raise
+        raise AnalysisRunStartError(
+            503,
+            "The adjudication provider failed mid-reconstruction; nothing "
+            "was persisted. Check the contextual-orchestrator transport, "
+            "then start this run again.",
+        ) from exc
     digest = reconstruction_result_digest(edges)
     finished = datetime.now(timezone.utc)
     if finished < now:
