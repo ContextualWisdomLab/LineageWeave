@@ -100,6 +100,7 @@ def configured_tepp_client(transport_url: str = "") -> TeppClient:
         return TeppClient()
 
     def transport(payload: dict[str, Any]) -> dict[str, Any]:
+        """POST the TEPP wire payload to `url`, raising TeppNotAvailable on any transport failure."""
         try:
             headers = {
                 "idempotency-key": str(payload["idempotency_key"]),

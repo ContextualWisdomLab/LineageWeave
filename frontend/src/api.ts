@@ -301,13 +301,25 @@ export interface ChatHistory {
   exchanges: ChatExchange[];
 }
 
+export interface CitedPostImage {
+  post_id: string;
+  unit_index: number;
+  mime_type: string;
+  status_code: string;
+  extracted_text: string | null;
+  caption: string | null;
+  tags: string[];
+}
+
 export interface AskAgentResponse {
   answer_text: string;
   cited_post_ids: string[];
   cited_posts?: CitedPostRef[];
   cited_post_evidence?: CitedPostEvidence[];
+  cited_post_images?: CitedPostImage[];
   source_post_ids: string[];
   next_action?: string;
+  lineage_graph?: LineageGraph;
 }
 
 export interface IssueTicket {
@@ -759,6 +771,9 @@ export interface LeftoverPair {
   criterion_code: string;
   leftover_distance: number;
   leftover_residual: number;
+  observed_response?: number | null;
+  expected_response?: number | null;
+  leftover_map_rank?: number | null;
 }
 
 export interface PeriodGroupReport {
@@ -1034,10 +1049,20 @@ export function startAnalysisRun(
   });
 }
 
+export interface RankingChannelEvidence {
+  signal_code: string;
+  signal_label: string;
+  channel_rank: number;
+  weight: number;
+  contribution: number;
+  rank: number;
+}
+
 export interface RankedPost {
   post_id: string;
   post_title: string;
   fused_rank: number;
+  channel_evidence?: RankingChannelEvidence[];
 }
 
 export interface RankingList {

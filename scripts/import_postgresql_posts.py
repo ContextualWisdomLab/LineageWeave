@@ -93,6 +93,7 @@ class ColumnMapping:
 
 
 def _parser() -> argparse.ArgumentParser:
+    """Build the explicit caller-mapped import command contract."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-dsn", required=True)
     parser.add_argument("--target-dsn", required=True)
@@ -214,6 +215,32 @@ def _source_code_matches(
         return False
     normalized = str(value).strip().casefold()
     return normalized in {item.strip().casefold() for item in excluded_values}
+
+
+def _lineage_grouping_values(
+    row: Any,
+    mapping: ColumnMapping,
+    *,
+    record_key: str,
+    default_group: str,
+) -> tuple[str | None, str | None, str, str]:
+    """Return raw source grouping followed by reconstruction grouping.
+
+    A source thread key equal to its own record key is row identity, not
+    grouping evidence. Preserve both raw fields for provenance while deriving
+    the documented empty-thread/project-key reconstruction inputs.
+    """
+    source_thread = str(_value(row, mapping.thread_group) or "").strip() or None
+    source_secondary = str(_value(row, mapping.secondary_group) or "").strip() or None
+    if source_thread == record_key:
+        project = str(_value(row, mapping.project_code) or "").strip()
+        return source_thread, source_secondary, "", project
+    return (
+        source_thread,
+        source_secondary,
+        source_thread or default_group,
+        source_secondary or "",
+    )
 
 
 def _validate_source_mapping(
@@ -414,6 +441,17 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 _value(row, mapping.voc_type, "voc"),
                 mapped=mapping.voc_type is not None,
             )
+            (
+                source_thread_group_key,
+                source_secondary_grouping_key,
+                thread_group_key,
+                secondary_grouping_key,
+            ) = _lineage_grouping_values(
+                row,
+                mapping,
+                record_key=record_key,
+                default_group=args.process_unit_code,
+            )
             await target.execute(
                 """
                 insert into source_post
@@ -427,8 +465,9 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                      source_customer_code, source_customer_name,
                      source_project_code, source_project_name,
                      source_system_code, source_record_key,
+                     source_thread_group_key, source_secondary_grouping_key,
                      thread_group_key, secondary_grouping_key, created_at, updated_at)
-                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30)
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32)
                 on conflict (post_id) do update set
                     author_account_id = excluded.author_account_id,
                     corporate_entity_id = excluded.corporate_entity_id,
@@ -455,6 +494,9 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                     source_project_name = excluded.source_project_name,
                     source_system_code = excluded.source_system_code,
                     source_record_key = excluded.source_record_key,
+                    source_thread_group_key = excluded.source_thread_group_key,
+                    source_secondary_grouping_key =
+                        excluded.source_secondary_grouping_key,
                     thread_group_key = excluded.thread_group_key,
                     secondary_grouping_key = excluded.secondary_grouping_key,
                     created_at = excluded.created_at,
@@ -486,8 +528,10 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 str(_value(row, mapping.project_name) or "").strip() or None,
                 args.source_system_code,
                 record_key,
-                str(_value(row, mapping.thread_group, args.process_unit_code) or args.process_unit_code),
-                str(_value(row, mapping.secondary_group, "") or ""),
+                source_thread_group_key,
+                source_secondary_grouping_key,
+                thread_group_key,
+                secondary_grouping_key,
                 created_at,
                 updated_at,
             )

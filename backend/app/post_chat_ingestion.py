@@ -20,7 +20,9 @@ from __future__ import annotations
 import asyncio
 import re
 from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Any, Callable, Iterable
+from zoneinfo import ZoneInfo
 
 import asyncpg
 
@@ -41,6 +43,10 @@ from lineageweave.post_chat import (
     normalize_chat_question,
 )
 from lineageweave.post_content_normalization import normalize_post_body
+from lineageweave.temporal_expressions import (
+    TEMPORAL_STOPWORDS,
+    resolve_korean_relative_time,
+)
 
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
 from lineageweave.ontology import ontology_annotations
@@ -163,6 +169,20 @@ _SOURCE_HINT_FIELDS = (
 
 _GLOBAL_ASK_TERM_PATTERN = re.compile(r"[^\W_]+(?:-[^\W_]+)*", re.UNICODE)
 _POST_CHAT_SOURCE_LIMIT = 8
+
+# Korean relative-time words ("어제", "오늘", ...) name a KST calendar day,
+# not the server process's local/UTC day -- the whole repo otherwise runs on
+# UTC (no per-account timezone exists to ask instead). Both the resolver's
+# `today` and the SQL day-boundary cast below must use this same zone, or a
+# question asked between KST 00:00-09:00 (UTC still "yesterday") resolves
+# and filters against two different calendar days.
+_ASK_TIME_ZONE = ZoneInfo("Asia/Seoul")
+
+
+def _seoul_today() -> date:
+    return datetime.now(_ASK_TIME_ZONE).date()
+
+
 _POST_CHAT_CANDIDATE_LIMIT = 32
 
 
@@ -379,6 +399,12 @@ async def gather_global_chat_sources(
 ) -> list[ChatSourceDocument]:
     """Assemble a bounded, ABAC-filtered source set for Global Ask.
 
+    When `question` contains a Korean relative-time expression ("어제",
+    "작년 이맘때쯤", "3일 전", ...; see `lineageweave.temporal_expressions`),
+    the final candidate set is also bounded to posts whose `created_at`
+    falls in the resolved date range -- an unbounded expression ("언젠가")
+    or no expression at all applies no date filter.
+
     The source set is intentionally bounded until retrieval/reranking is
     needed for a much larger corpus; every selected body still uses the same
     image normalization and persisted graph evidence as post-scoped chat.
@@ -387,6 +413,10 @@ async def gather_global_chat_sources(
         return []
     if vision_client is None:
         vision_client = NullImageContentClient()
+    # A relative-time expression ("어제", "작년 이맘때쯤", ...) narrows the
+    # candidate window by created_at below; it must not also become a
+    # near-meaningless literal keyword search term (see TEMPORAL_STOPWORDS).
+    resolved_time_range = resolve_korean_relative_time(question or "", today=_seoul_today())
     search_terms = tuple(
         dict.fromkeys(
             token.casefold()
@@ -417,6 +447,11 @@ async def gather_global_chat_sources(
                 "무엇인가요",
                 "인가요",
             }
+            # A Korean particle (은/는/이/가/에/의/도/쯤/...) attaches directly
+            # to a time word with no space ("어제는", "지난주에"), so the
+            # tokenizer above yields one token that a bare `in` check against
+            # TEMPORAL_STOPWORDS never matches -- check by prefix instead.
+            and not any(token.startswith(stopword) for stopword in TEMPORAL_STOPWORDS)
         )
     )[:8]
     # A post whose title names the exact thing asked about is a far more
@@ -510,11 +545,13 @@ async def gather_global_chat_sources(
                source_process_unit_name, source_sales_pool_code, source_sales_pool_name,
                source_customer_code, source_customer_name,
                source_project_code, source_project_name
-         from source_post
-         where visibility_code = 'public'
+          from source_post
+         where (visibility_code = 'public'
             or (corporate_entity_id::text = any($1::text[])
                 and (cardinality($2::text[]) = 0
-                     or process_unit_id::text = any($2::text[])))
+                     or process_unit_id::text = any($2::text[]))))
+           and ($5::date is null or (created_at at time zone 'Asia/Seoul')::date >= $5)
+           and ($6::date is null or (created_at at time zone 'Asia/Seoul')::date <= $6)
          order by array_position($3::uuid[], post_id) nulls last,
                   created_at desc, post_id desc
          limit $4
@@ -523,6 +560,8 @@ async def gather_global_chat_sources(
         list(authorized_process_unit_ids),
         candidate_ids,
         limit,
+        resolved_time_range[0] if resolved_time_range else None,
+        resolved_time_range[1] if resolved_time_range else None,
     )
     visible_rows = [row for row in rows if can_see_post(row)][:limit]
     visible_ids = [str(row["post_id"]) for row in visible_rows]
@@ -555,6 +594,63 @@ async def gather_global_chat_sources(
             )
         )
     return sources
+
+
+async def cited_post_images(
+    conn: asyncpg.Connection,
+    cited_post_ids: list[str],
+) -> list[dict[str, Any]]:
+    """Persisted image evidence (caption/OCR/tags) for already-cited posts.
+
+    Global Ask cites a post's *text*; when that post's evidence actually
+    came from an embedded picture (a screenshot, a diagram), the reader has
+    no way to tell the difference -- the answer just reads as a text claim.
+    This surfaces the same persisted, never-raw-bytes image description
+    `GET /api/posts/{id}/content` already renders (`post_content_image`,
+    ADR-tracked alongside its region locations), scoped to the posts this
+    answer already cited.
+
+    No ABAC re-check here: `cited_post_ids` only ever contains ids drawn
+    from `gather_global_chat_sources`'s already-authorized source set, the
+    same trust boundary `cited_post_evidence`/`cited_post_summaries` rely
+    on (`lineageweave.post_chat`).
+    """
+    if not cited_post_ids:
+        return []
+    rows = await conn.fetch(
+        """
+        select unit.post_id, unit.unit_index, image.mime_type,
+               image.description_status_code, image.extracted_text, image.caption,
+               coalesce(
+                   array_agg(tag.tag_text order by tag.tag_text)
+                       filter (where tag.tag_text is not null),
+                   '{}'::text[]
+               ) as tags
+          from post_content_unit unit
+          join post_content_image image
+            on image.post_content_unit_id = unit.post_content_unit_id
+          left join post_content_image_tag tag
+            on tag.post_content_image_id = image.post_content_image_id
+         where unit.post_id = any($1::uuid[])
+         group by unit.post_id, unit.unit_index, image.mime_type,
+                  image.description_status_code, image.extracted_text, image.caption
+         order by unit.post_id, unit.unit_index
+        """,
+        cited_post_ids,
+    )
+    return [
+        {
+            "post_id": str(row["post_id"]),
+            "unit_index": row["unit_index"],
+            "mime_type": row["mime_type"],
+            "status_code": row["description_status_code"],
+            "extracted_text": row["extracted_text"],
+            "caption": row["caption"],
+            "tags": list(row["tags"] or []),
+        }
+        for row in rows
+        if row["caption"] or row["extracted_text"] or row["tags"]
+    ]
 
 
 @dataclass(frozen=True)
