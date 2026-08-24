@@ -86,7 +86,9 @@ import {
 import { CitationChip } from "./components/CitationChip";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
+import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
 import { PopupCloseButton } from "./components/PopupCloseButton";
+import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
@@ -778,16 +780,6 @@ function projectProvenanceLabel(provenance: string): string {
   return t(PROJECT_PROVENANCE_LABELS[provenance] ?? "Recorded evidence");
 }
 
-const CHAT_EVIDENCE_KIND_LABELS: Record<string, string> = {
-  source_field: "Source field hint",
-  semantic_project: "Semantic project",
-  semantic_role: "Semantic role",
-  semantic_keyman: "Semantic Keyman",
-};
-
-function chatEvidenceKindLabel(kind: string): string {
-  return t(CHAT_EVIDENCE_KIND_LABELS[kind] ?? "Evidence");
-}
 
 const VERIFICATION_BADGE: Record<string, string> = {
   verify_pending: "Not yet checked",
@@ -4481,6 +4473,7 @@ function AskAgentPanel({
   const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [evidenceLayerPostId, setEvidenceLayerPostId] = useState<string | null>(null);
 
   async function handleAsk() {
     const normalized = question.trim();
@@ -4529,6 +4522,13 @@ function AskAgentPanel({
                     <button className="post-list-item" onClick={() => onOpenPost(post.post_id)}>
                       <strong>{post.post_title}</strong>
                     </button>
+                    <button
+                      type="button"
+                      className="citation-chip"
+                      onClick={() => setEvidenceLayerPostId(post.post_id)}
+                    >
+                      {t("View evidence")}
+                    </button>
                     {answer.cited_post_evidence?.find((item) => item.post_id === post.post_id)?.facts.length ? (
                       <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
                         {answer.cited_post_evidence
@@ -4541,6 +4541,18 @@ function AskAgentPanel({
                           ))}
                       </ul>
                     ) : null}
+                    {answer.cited_post_images
+                      ?.filter((image) => image.post_id === post.post_id)
+                      .map((image) => (
+                        <p
+                          key={`${image.post_id}:${image.unit_index}`}
+                          className="post-meta ask-agent-image-citation"
+                        >
+                          {t("Image evidence")}: {image.caption?.trim() ? image.caption : t("Untitled image")}
+                          {image.extracted_text ? ` — ${image.extracted_text}` : ""}
+                          {image.tags.length ? ` — ${t("Image tags")}: ${image.tags.join(", ")}` : ""}
+                        </p>
+                      ))}
                   </li>
                 ))}
               </ul>
@@ -4548,6 +4560,23 @@ function AskAgentPanel({
           )}
         </section>
       )}
+      {evidenceLayerPostId && answer ? (
+        <AskEvidenceLayerPopup
+          postId={evidenceLayerPostId}
+          postTitle={
+            answer.cited_posts?.find((post) => post.post_id === evidenceLayerPostId)?.post_title ??
+            evidenceLayerPostId
+          }
+          facts={
+            answer.cited_post_evidence?.find((item) => item.post_id === evidenceLayerPostId)?.facts ?? []
+          }
+          images={
+            answer.cited_post_images?.filter((image) => image.post_id === evidenceLayerPostId) ?? []
+          }
+          onClose={() => setEvidenceLayerPostId(null)}
+          onOpenPost={onOpenPost}
+        />
+      ) : null}
     </section>
   );
 }
