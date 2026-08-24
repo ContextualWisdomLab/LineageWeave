@@ -1,7 +1,7 @@
 """Jeon leftover post–criterion pairs after a main-effect IRT.
 
 Implements ADR 0048 as amended by ADR 0119, ADR 0121, ADR 0148, ADR 0163,
-and ADR 0164.
+ADR 0164, and ADR 0182.
 
 Does not import ``fast_mlsirm`` or ``period_report``. A Gabriel biplot
 of the residual ``R = Y − E[Y|θ, item]`` supplies person and item
@@ -16,7 +16,12 @@ rank so a rank-0 collapse is not read as leftover structure. Person and
 item leftover-map coordinates ξ / ζ are exposed on
 ``LeftoverInteractionMap`` for callers that persist the full biplot
 (ADR 0121). Axis share is the Gabriel inertia of the first two
-leftover-map axes (ADR 0148).
+leftover-map axes (ADR 0148). Each pair also names unexplained leftover
+``U = R − R̂`` after two-axis Gabriel reconstruction
+``R̂ = ξ_{1:2} · ζ_{1:2}`` (ADR 0182) so the leftover cell the map does
+not reconstruct is not confused with leftover residual ``R`` or
+leftover-map distance ``d``. Reconstruction ``R̂`` itself is computed
+internally and is not persisted; only the ξ / ζ coordinates are.
 """
 
 from __future__ import annotations
@@ -44,6 +49,7 @@ class LeftoverPair:
     observed_response: float
     expected_response: float
     leftover_map_rank: int
+    leftover_map_unexplained: float | None = None
 
 
 @dataclass(frozen=True)
@@ -89,7 +95,21 @@ def leftover_pairs_from_residual(
     matrix: np.ndarray,
     expected: np.ndarray,
 ) -> tuple[LeftoverPair, ...]:
-    """Closest and farthest leftover-map pairs from residual SVD biplot."""
+    """Closest and farthest leftover-map pairs from residual SVD biplot.
+
+    Jeon et al. (2021) leftover interaction is ``−γ‖ξ_p − ζ_i‖``. This
+    estimator places persons and items from the residual after IRT main
+    effects (Gabriel, 1971). Only observed cells become pairs. Distances
+    use the two leftover-map axes; a rank-0 residual still emits a
+    stable closest/farthest pair so seed is not empty and does not
+    invent a leftover score. Stored residual equals observed ``Y`` minus
+    expected ``E[Y|θ, item]``. Stored leftover-map rank is the number
+    of Gabriel singular values above the floor. When Gabriel coordinates
+    exist, unexplained leftover ``U = R − R̂`` names the leftover cell
+    the two-axis map does not reconstruct; ``R̂`` stays internal and is
+    never persisted. Fallback pairs (no complete-case map) omit
+    unexplained leftover rather than fabricating one.
+    """
     return leftover_map_from_residual(post_ids, item_codes, matrix, expected).pairs
 
 
@@ -146,7 +166,7 @@ def leftover_map_from_residual(
     leftover_map_rank = int(singular.size)
     persons: tuple[LeftoverMapPerson, ...] = ()
     items: tuple[LeftoverMapItem, ...] = ()
-    candidates: list[tuple[float, str, str, float, float, float]] = []
+    candidates: list[tuple[float, str, str, float, float, float, float | None]] = []
     if person_pos is not None and item_pos is not None:
         person_index = np.flatnonzero(keep_person)
         item_index = np.flatnonzero(keep_item)
@@ -178,8 +198,22 @@ def leftover_map_from_residual(
             )
             if not np.isfinite(distance):
                 continue
+            reconstruction = float(
+                np.dot(person_xy[local_person[person]], item_xy[local_item[item]])
+            )
+            unexplained = _unexplained_leftover(float(residual[person, item]), reconstruction)
             candidates.append(
-                _candidate_row(post_ids, item_codes, matrix, expected, residual, person, item, distance)
+                _candidate_row(
+                    post_ids,
+                    item_codes,
+                    matrix,
+                    expected,
+                    residual,
+                    person,
+                    item,
+                    distance,
+                    unexplained,
+                )
             )
     if not candidates:
         leftover_map_rank = 0
@@ -195,6 +229,7 @@ def leftover_map_from_residual(
                     person,
                     item,
                     max(distance, 0.0),
+                    None,
                 )
             )
     closest = min(candidates, key=lambda row: (row[0], row[1], row[2]))
@@ -210,6 +245,16 @@ def leftover_map_from_residual(
     )
 
 
+def _unexplained_leftover(residual: float, reconstruction: float) -> float | None:
+    """Return ``U = R − R̂`` when both terms are finite; otherwise omit."""
+    if not np.isfinite(reconstruction):
+        return None
+    unexplained = residual - reconstruction
+    if not np.isfinite(unexplained):
+        return None
+    return float(unexplained)
+
+
 def _candidate_row(
     post_ids: list[str],
     item_codes: tuple[str, ...],
@@ -219,8 +264,9 @@ def _candidate_row(
     person: int,
     item: int,
     distance: float,
-) -> tuple[float, str, str, float, float, float]:
-    """One observed leftover cell: distance, ids, residual, Y, E."""
+    leftover_map_unexplained: float | None,
+) -> tuple[float, str, str, float, float, float, float | None]:
+    """One observed leftover cell: distance, ids, residual, Y, E, unexplained U."""
     leftover_residual = float(residual[person, item])
     observed_response = float(matrix[person, item])
     expected_response = float(expected[person, item])
@@ -233,12 +279,13 @@ def _candidate_row(
         leftover_residual,
         observed_response,
         expected_response,
+        leftover_map_unexplained,
     )
 
 
 def _pair_from_candidate(
     pair_kind: str,
-    row: tuple[float, str, str, float, float, float],
+    row: tuple[float, str, str, float, float, float, float | None],
     leftover_map_rank: int,
 ) -> LeftoverPair:
     """Build a leftover pair from a candidate row."""
@@ -253,6 +300,7 @@ def _pair_from_candidate(
         observed_response=row[4],
         expected_response=row[5],
         leftover_map_rank=leftover_map_rank,
+        leftover_map_unexplained=row[6],
     )
 
 
@@ -341,7 +389,13 @@ def _leftover_map_positions(
 
 
 def _pad_map_axes(positions: np.ndarray) -> np.ndarray:
-    """Pad or truncate Gabriel coordinates to two leftover-map axes."""
+    """Pad or truncate Gabriel coordinates to two leftover-map axes.
+
+    Unused axes pad with zero rather than inventing a second component.
+    Hidden SVD axes after the second are dropped so reconstruction is
+    ``ξ_{1:2} · ζ_{1:2}``, not the full-rank inner product. That
+    reconstruction stays internal; only unexplained leftover is named.
+    """
     padded = np.zeros((positions.shape[0], _LEFTOVER_MAP_AXES), dtype=np.float64)
     width = min(_LEFTOVER_MAP_AXES, positions.shape[1])
     padded[:, :width] = positions[:, :width]

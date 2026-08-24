@@ -50,6 +50,12 @@ describe("App, unauthenticated", () => {
     expect(window.sessionStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toMatch(/^\//);
     expect(window.localStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toMatch(/^\//);
   });
+
+  it("announces the app-root auth loading gate as a live region", () => {
+    mockAuth = { ...mockAuth, isLoading: true };
+    render(<App showLabPanels />);
+    expect(screen.getByRole("status")).toHaveTextContent("Loading authentication state...");
+  });
 });
 
 function jsonResponse(body: unknown): Response {
@@ -100,15 +106,17 @@ describe("App, authenticated", () => {
     pendingTeppRun?: boolean;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
+    deferPostOne?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
+    hintRelatedPosts?: boolean;
     customerEntityHierarchy?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
-  }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
+  }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -138,6 +146,13 @@ describe("App, authenticated", () => {
     const meReady = options?.deferMe
       ? new Promise<void>((resolve) => {
           releaseMe = resolve;
+        })
+      : Promise.resolve();
+
+    let releasePostOne = () => {};
+    const postOneReady = options?.deferPostOne
+      ? new Promise<void>((resolve) => {
+          releasePostOne = resolve;
         })
       : Promise.resolve();
 
@@ -950,6 +965,7 @@ describe("App, authenticated", () => {
                     criterion_code: "sales_lead_specificity",
                     leftover_distance: 0.12,
                     leftover_residual: 0.4,
+                    leftover_map_unexplained: 0.05,
                     observed_response: 2.4,
                     expected_response: 2.0,
                     leftover_map_rank: 1,
@@ -961,6 +977,7 @@ describe("App, authenticated", () => {
                     criterion_code: "general_sentiment_negative",
                     leftover_distance: 1.84,
                     leftover_residual: -1.1,
+                    leftover_map_unexplained: -0.25,
                     observed_response: 0.9,
                     expected_response: 2.0,
                     leftover_map_rank: 1,
@@ -1115,7 +1132,7 @@ describe("App, authenticated", () => {
       const postOneUrl = new URL(url, "https://backend.test");
       if (postOneUrl.pathname === "/api/posts/post-1") {
         const asOf = postOneUrl.searchParams.get("as_of");
-        return Promise.resolve(
+        return postOneReady.then(() =>
           jsonResponse({
             post_id: "post-1",
             post_title: "Public post",
@@ -1596,7 +1613,15 @@ describe("App, authenticated", () => {
       }
       if (url.endsWith("/api/ask") && method === "POST") {
         return Promise.resolve(
+          jsonResponse({ ask_job_id: "ask-job-1", job_status_code: "queued" }),
+        );
+      }
+      if (url.includes("/api/ask/jobs/") && method === "GET") {
+        return Promise.resolve(
           jsonResponse({
+            ask_job_id: "ask-job-1",
+            job_status_code: "succeeded",
+            answer: {
             answer_text: "The cited project is supported by the stored semantic evidence.",
             cited_post_ids: ["post-2"],
             cited_posts: [{ post_id: "post-2", post_title: "Linked post" }],
@@ -1655,6 +1680,7 @@ describe("App, authenticated", () => {
                   truncated: false,
                 }
               : { nodes: [], edges: [], truncated: false },
+            },
           }),
         );
       }
@@ -1700,18 +1726,59 @@ describe("App, authenticated", () => {
                 affiliations: [],
               },
             ],
-            source_customer_hints: options?.manyCustomerHints
-              ? Array.from({ length: options.manyCustomerHints }, (_, index) => ({
-                  customer_code: `CUST-${index}`,
-                  customer_name: resolvedHintCode === `CUST-${index}` ? "Southfield Utilities" : null,
-                  post_count: options.manyCustomerHints! - index,
-                  related_posts: [],
-                  resolution_status: resolvedHintCode === `CUST-${index}` ? "resolved" : "hint_only",
-                  hint_trust: "normal",
-                  provenance: "source_post.source_customer_code",
-                }))
+            source_customer_hints: options?.hintRelatedPosts
+              ? [
+                  {
+                    customer_code: "CUST-HINT",
+                    customer_name: null,
+                    post_count: 1,
+                    related_posts: [
+                      {
+                        post_id: "hint-post-customer",
+                        post_title: "Hinted customer post",
+                        post_body_excerpt: "Excerpt from a hinted customer post.",
+                        post_body_truncated: false,
+                      },
+                    ],
+                    resolution_status: "hint_only",
+                    hint_trust: "normal",
+                    provenance: "source_post.source_customer_code",
+                  },
+                ]
+              : options?.manyCustomerHints
+                ? Array.from({ length: options.manyCustomerHints }, (_, index) => ({
+                    customer_code: `CUST-${index}`,
+                    customer_name: resolvedHintCode === `CUST-${index}` ? "Southfield Utilities" : null,
+                    post_count: options.manyCustomerHints! - index,
+                    related_posts: [],
+                    resolution_status: resolvedHintCode === `CUST-${index}` ? "resolved" : "hint_only",
+                    hint_trust: "normal",
+                    provenance: "source_post.source_customer_code",
+                  }))
+                : [],
+            source_author_hints: options?.hintRelatedPosts
+              ? [
+                  {
+                    author_code: "AUTH-HINT",
+                    author_name: null,
+                    author_account_id: "acct-hint",
+                    account_display_name: "Guest account",
+                    account_affiliations: [],
+                    post_count: 1,
+                    keyman_hints: [],
+                    related_posts: [
+                      {
+                        post_id: "hint-post-author",
+                        post_title: "Hinted author post",
+                        post_body_excerpt: "Excerpt from a hinted author post.",
+                        post_body_truncated: false,
+                      },
+                    ],
+                    resolution_status: "hint_only",
+                    provenance: "source_post.source_author_code",
+                  },
+                ]
               : [],
-            source_author_hints: [],
             relationship_network: [
               {
                 counterparty_entity_name: "Northridge Grid",
@@ -1751,7 +1818,7 @@ describe("App, authenticated", () => {
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
-    return Object.assign(fetchMock, { releaseMe });
+    return Object.assign(fetchMock, { releaseMe, releasePostOne });
   }
 
   it("renders safe Ask Agent evidence under each cited post", async () => {
@@ -1932,6 +1999,32 @@ describe("App, authenticated", () => {
     expect(screen.queryByRole("button", { name: "Resolve" })).not.toBeInTheDocument();
   });
 
+  it("gives the customer-master hint disclosures a CSS hook for the shared touch target", async () => {
+    // Regression test (touch_interaction gap): these three <details> used
+    // to render with no className at all, so App.css had no selector able
+    // to size them -- the browser-default disclosure marker falls well
+    // under --size-control-min. They now share .hint-disclosure with the
+    // other secondary toggles (advanced-review-tools, semantic-provenance,
+    // operator-action-tools, keyman-source-context).
+    stubBackend({ hintRelatedPosts: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    const customerSection = await screen.findByRole("region", { name: "Observed customer evidence" });
+    expect(within(customerSection).getByText("Related posts (1)").closest("details")).toHaveClass(
+      "hint-disclosure",
+    );
+
+    const authorSection = screen.getByRole("region", { name: "Source author evidence" });
+    expect(within(authorSection).getByText("AUTH-HINT · Hint only").closest("details")).toHaveClass(
+      "hint-disclosure",
+    );
+    expect(within(authorSection).getByText("Related posts (1)").closest("details")).toHaveClass(
+      "hint-disclosure",
+    );
+  });
+
   it("caps the observed customer identifier list instead of rendering all of them", async () => {
     // Live UI finding (2026-08-19): real imported data routinely hits the
     // backend's 100-row cap on source_customer_hints; rendering all of
@@ -2055,6 +2148,21 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("heading", { name: "Related posts" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open related post: Linked post" })).toBeInTheDocument();
     expect(screen.queryByText("Not yet evaluated.")).not.toBeInTheDocument();
+  });
+
+  it("announces the post-detail popup loading state as a live region before the post resolves", async () => {
+    const fetchMock = stubBackend({ deferPostOne: true });
+
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const popup = document.querySelector(".popup-panel") as HTMLElement;
+    expect(within(popup).getByRole("status")).toHaveTextContent("Loading...");
+
+    fetchMock.releasePostOne();
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(within(popup).queryByText("Loading...")).not.toBeInTheDocument();
   });
 
   it("switches the product surface between supported languages", async () => {
@@ -3580,19 +3688,21 @@ describe("App, authenticated", () => {
     });
     expect(closestPair).toHaveTextContent("Closest leftover: Public post · sales-lead");
     expect(closestPair).toHaveTextContent(
-      "Read leftover map rank 1, observed Y 2.40, and expected E 2.00 after IRT main effects, then open this post.",
+      "Leftover map leaves unexplained U +0.05 after IRT main effects. Open this post to read sales-lead.",
     );
     expect(closestPair).toHaveTextContent("R +0.40");
     expect(closestPair).toHaveTextContent("Y 2.40 · E 2.00");
     expect(closestPair).toHaveTextContent("rank 1");
+    expect(closestPair).toHaveTextContent("U +0.05");
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
-      "Read leftover map rank 1, observed Y 0.90, and expected E 2.00 after IRT main effects, then open this post.",
+      "Leftover map leaves unexplained U −0.25 after IRT main effects. Open this post to read negative.",
     );
     expect(farthestPair).toHaveTextContent("R −1.10");
     expect(farthestPair).toHaveTextContent("Y 0.90 · E 2.00");
     expect(farthestPair).toHaveTextContent("rank 1");
+    expect(farthestPair).toHaveTextContent("U −0.25");
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
     expect(mapPost.compareDocumentPosition(closestPair) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
