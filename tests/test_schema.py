@@ -511,6 +511,17 @@ def test_leftover_pair_names_leftover_map_rank_column(schema_db) -> None:
     assert columns["leftover_map_rank"] == "YES"
 
 
+def test_leftover_pair_names_leftover_map_reconstruction_column(schema_db) -> None:
+    """Fresh leftover rows name a nullable two-axis reconstruction column."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            "select column_name, is_nullable from information_schema.columns "
+            "where table_name = 'report_leftover_pair'"
+        )
+        columns = dict(cur.fetchall())
+    assert columns["leftover_map_reconstruction"] == "YES"
+
+
 def test_corporate_hierarchy_recursive_query_returns_correct_shape(schema_db) -> None:
     """The real product requirement: 'Acme Group -> Acme Electronics Korea
     -> Acme Electronics Gwangju Plant' must be walkable with one query,

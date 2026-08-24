@@ -997,6 +997,7 @@ export interface LeftoverPair {
   observed_response?: number | null;
   expected_response?: number | null;
   leftover_map_rank?: number | null;
+  leftover_map_reconstruction?: number | null;
 }
 
 export interface PeriodGroupReport {

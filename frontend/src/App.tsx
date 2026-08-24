@@ -149,11 +149,6 @@ import {
   useLocale,
 } from "./i18n";
 import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
-import {
-  formatLeftoverMapReconstruction,
-  formatSignedLeftoverValue,
-  LEFTOVER_MAP_RECONSTRUCTION_ACTION,
-} from "./leftoverMapReconstruction";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -4206,6 +4201,7 @@ function ReportsPanel({
                       observedResponse={pair.observed_response}
                       expectedResponse={pair.expected_response}
                       leftoverMapRank={pair.leftover_map_rank}
+                      leftoverMapReconstruction={pair.leftover_map_reconstruction}
                       onOpen={onSelectPost}
                     />
                   </li>

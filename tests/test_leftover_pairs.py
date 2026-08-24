@@ -78,6 +78,12 @@ def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
     assert farthest.observed_response == pytest.approx(-2.0)
     assert farthest.expected_response == pytest.approx(0.0)
     assert farthest.leftover_distance == pytest.approx(2.0 * np.sqrt(2.0), rel=1e-6)
+    # A rank-1 residual is exactly recovered by a (up to) two-axis
+    # reconstruction -- SVD reconstruction is exact once enough axes are
+    # kept to cover the true rank, so R̂ must equal the original residual
+    # cell, not merely correlate with it.
+    assert farthest.leftover_map_reconstruction == pytest.approx(farthest.leftover_residual, rel=1e-6)
+    assert closest.leftover_map_reconstruction == pytest.approx(closest.leftover_residual, abs=1e-9)
     for pair in pairs:
         _assert_residual_reconciles(pair)
         assert pair.leftover_map_rank == 1
@@ -97,6 +103,10 @@ def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
     assert pairs[0].observed_response == pytest.approx(1.0)
     assert pairs[0].expected_response == pytest.approx(1.0)
     assert pairs[0].leftover_map_rank == 0
+    # No leftover structure to reconstruct from -- must omit the badge
+    # (None) rather than reporting a fabricated 0.0 reconstruction.
+    assert pairs[0].leftover_map_reconstruction is None
+    assert pairs[1].leftover_map_reconstruction is None
     assert pairs[1].post_id == "beta-post"
     assert pairs[1].criterion_code == "item_two"
     for pair in pairs:
@@ -184,4 +194,5 @@ def test_leftover_residual_rejects_database_tolerance_boundary() -> None:
             0,
             0,
             0.0,
+            None,
         )

@@ -148,6 +148,18 @@ def test_migrate_sh_replays_leftover_observed_expected_on_existing_volumes() -> 
     assert "leftover_pair_observed_expected_reconcile_chk" in migration
 
 
+def test_migrate_sh_replays_leftover_map_reconstruction_on_existing_volumes() -> None:
+    """Existing leftover pair rows must receive the nullable two-axis reconstruction."""
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(encoding="utf-8")
+    migration = (
+        root / "migrations" / "0182_report_leftover_map_reconstruction.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "0182_*" in script
+    assert "add column if not exists leftover_map_reconstruction" in migration
+
+
 def test_migrate_sh_replays_catalog_unresolved_reason_migration_on_existing_volumes() -> None:
     """Existing Compose volumes must receive the new unresolved-reason column."""
     root = Path(__file__).resolve().parents[1]
