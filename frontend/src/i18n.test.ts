@@ -45,6 +45,7 @@ describe("i18n", () => {
     "Open leftover {kind} pair: {title} · {criterion}",
     "Open this post to read the criterion it sat closest to after main effects.",
     "Open this post to read the criterion it sat farthest from after main effects.",
+    "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.",
     "Leftover map rank {rank} after IRT main effects. Open this post.",
@@ -146,6 +147,33 @@ describe("i18n", () => {
       tf(
         "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.",
         { rank: "1", observed: "2.40", expected: "2.00" },
+      ),
+    ).toBe(expected);
+  });
+
+  it.each([
+    [
+      "ko",
+      "잔여 지도가 IRT 주효과 이후 설명되지 않은 U +0.05을(를) 남깁니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
+    ],
+    [
+      "zh",
+      "残差图在 IRT 主效应后留下未解释的 U +0.05。打开这篇帖子阅读 sales-lead。",
+    ],
+    [
+      "ja",
+      "残差マップはIRT主効果後の未説明 U +0.05 を残します。この投稿を開いて sales-lead を読んでください。",
+    ],
+    [
+      "vi",
+      "Bản đồ phần dư để lại U +0.05 chưa giải thích sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead.",
+    ],
+  ] as const)("formats leftover-map unexplained next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.",
+        { value: "+0.05", criterion: "sales-lead" },
       ),
     ).toBe(expected);
   });
