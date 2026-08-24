@@ -132,6 +132,11 @@ _LEFTOVER_MAP_RANK_MIGRATION = (
     / "migrations"
     / "0164_report_leftover_map_rank.sql"
 )
+_LEFTOVER_MAP_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0172_report_leftover_interaction_map.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -249,6 +254,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_CHANNEL_WEIGHT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
+            cur.execute(_LEFTOVER_MAP_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -4732,6 +4738,18 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert leftover_kinds <= {"closest", "farthest"}
     assert all(pair["post_title"] for pair in high_report.get("leftover_pairs", []))
     assert all(pair["leftover_distance"] >= 0 for pair in high_report.get("leftover_pairs", []))
+    leftover_map_persons = high_report.get("leftover_map_persons", [])
+    leftover_map_items = high_report.get("leftover_map_items", [])
+    member_ids = {member["post_id"] for member in high_report["members"]}
+    item_codes = {item["item_code"] for item in high_report.get("selected_items", [])}
+    assert leftover_map_persons
+    assert leftover_map_items
+    assert all(person["post_title"] for person in leftover_map_persons)
+    assert {person["post_id"] for person in leftover_map_persons} <= member_ids
+    assert {item["criterion_code"] for item in leftover_map_items} <= item_codes
+    for point in leftover_map_persons + leftover_map_items:
+        assert isinstance(point["axis_one"], (int, float))
+        assert isinstance(point["axis_two"], (int, float))
     for pair in high_report.get("leftover_pairs", []):
         assert pair["leftover_map_rank"] >= 0
         observed = pair.get("observed_response")

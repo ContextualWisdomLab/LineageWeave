@@ -351,7 +351,7 @@ async def persist_period_report(
     period_code: str,
     report: PeriodReport,
 ) -> None:
-    """Replace the stored report, member scores, leftover pairs, and item bank."""
+    """Replace the stored report, member scores, leftover pairs, leftover map, and item bank."""
     await conn.execute(
         """
         delete from report_period_score
@@ -459,6 +459,38 @@ async def persist_period_report(
             pair.observed_response,
             pair.expected_response,
             pair.leftover_map_rank,
+        )
+    for person in report.leftover_map_persons:
+        await conn.execute(
+            """
+            insert into report_leftover_map_person (
+                grouping_kind, grouping_key, period_code, rubric_version,
+                post_id, axis_one, axis_two
+            ) values ($1,$2,$3,$4,$5,$6,$7)
+            """,
+            grouping_kind,
+            grouping_key,
+            period_code,
+            RUBRIC_VERSION,
+            person.post_id,
+            person.axis_one,
+            person.axis_two,
+        )
+    for item in report.leftover_map_items:
+        await conn.execute(
+            """
+            insert into report_leftover_map_item (
+                grouping_kind, grouping_key, period_code, rubric_version,
+                criterion_code, axis_one, axis_two
+            ) values ($1,$2,$3,$4,$5,$6,$7)
+            """,
+            grouping_kind,
+            grouping_key,
+            period_code,
+            RUBRIC_VERSION,
+            item.criterion_code,
+            item.axis_one,
+            item.axis_two,
         )
 
 
@@ -620,6 +652,32 @@ async def fetch_period_reports(
         period_code,
         RUBRIC_VERSION,
     )
+    # Safe SQL: the source-context expression is an immutable schema fragment; report keys are bound.
+    leftover_map_persons = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+        f"""
+        select lp.grouping_key, lp.post_id, lp.axis_one, lp.axis_two, p.post_title,
+               p.visibility_code, p.corporate_entity_id,
+               ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
+        from report_leftover_map_person lp
+        join source_post p on p.post_id = lp.post_id
+        where lp.grouping_kind = $1 and lp.period_code = $2 and lp.rubric_version = $3
+        order by lp.grouping_key, p.post_title
+        """,
+        grouping_kind,
+        period_code,
+        RUBRIC_VERSION,
+    )
+    leftover_map_items = await conn.fetch(
+        """
+        select grouping_key, criterion_code, axis_one, axis_two
+        from report_leftover_map_item
+        where grouping_kind = $1 and period_code = $2 and rubric_version = $3
+        order by grouping_key, criterion_code
+        """,
+        grouping_kind,
+        period_code,
+        RUBRIC_VERSION,
+    )
     status_labels = await labels_for_codes(
         conn,
         [row["ticket_status_code"] for row in members if row["ticket_status_code"]],
@@ -633,6 +691,12 @@ async def fetch_period_reports(
     leftover_by_group: dict[str, list[asyncpg.Record]] = defaultdict(list)
     for row in leftover:
         leftover_by_group[row["grouping_key"]].append(row)
+    leftover_persons_by_group: dict[str, list[asyncpg.Record]] = defaultdict(list)
+    for row in leftover_map_persons:
+        leftover_persons_by_group[row["grouping_key"]].append(row)
+    leftover_items_by_group: dict[str, list[asyncpg.Record]] = defaultdict(list)
+    for row in leftover_map_items:
+        leftover_items_by_group[row["grouping_key"]].append(row)
     payload: list[dict[str, Any]] = []
     for header in headers:
         grouping_key = header["grouping_key"]
@@ -723,6 +787,26 @@ async def fetch_period_reports(
                         "has_real_source_context": bool(row["has_real_source_context"]),
                     }
                     for row in leftover_by_group.get(header["grouping_key"], [])
+                ],
+                "leftover_map_persons": [
+                    {
+                        "post_id": str(row["post_id"]),
+                        "post_title": row["post_title"],
+                        "axis_one": float(row["axis_one"]),
+                        "axis_two": float(row["axis_two"]),
+                        "visibility_code": row["visibility_code"],
+                        "corporate_entity_id": str(row["corporate_entity_id"]),
+                        "has_real_source_context": bool(row["has_real_source_context"]),
+                    }
+                    for row in leftover_persons_by_group.get(header["grouping_key"], [])
+                ],
+                "leftover_map_items": [
+                    {
+                        "criterion_code": str(row["criterion_code"]),
+                        "axis_one": float(row["axis_one"]),
+                        "axis_two": float(row["axis_two"]),
+                    }
+                    for row in leftover_items_by_group.get(header["grouping_key"], [])
                 ],
             }
         )

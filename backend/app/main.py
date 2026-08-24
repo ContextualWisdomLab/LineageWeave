@@ -2371,6 +2371,12 @@ async def read_period_reports(
             if _can_see_post(account, pair)
             and not _is_synthetic_demo_member(pair, demo_entity_ids)
         ]
+        leftover_map_persons = [
+            person
+            for person in report.get("leftover_map_persons", [])
+            if _can_see_post(account, person)
+            and not _is_synthetic_demo_member(person, demo_entity_ids)
+        ]
         members = [
             {key: value for key, value in member.items() if key != "has_real_source_context"}
             for member in members
@@ -2379,8 +2385,20 @@ async def read_period_reports(
             {key: value for key, value in pair.items() if key != "has_real_source_context"}
             for pair in leftover_pairs
         ]
+        leftover_map_persons = [
+            {key: value for key, value in person.items() if key != "has_real_source_context"}
+            for person in leftover_map_persons
+        ]
+        leftover_map_items = list(report.get("leftover_map_items", []))
         visible.append(
-            {**report, "members": members, "leftover_pairs": leftover_pairs, "post_count": len(members)}
+            {
+                **report,
+                "members": members,
+                "leftover_pairs": leftover_pairs,
+                "leftover_map_persons": leftover_map_persons,
+                "leftover_map_items": leftover_map_items,
+                "post_count": len(members),
+            }
         )
     return {"grouping_kind": grouping_kind, "period_code": period_code, "reports": visible}
 

@@ -966,6 +966,19 @@ describe("App, authenticated", () => {
                     leftover_map_rank: 1,
                   },
                 ],
+                leftover_map_persons: [
+                  { post_id: "post-1", post_title: "Public post", axis_one: -0.5, axis_two: 0.1 },
+                  {
+                    post_id: "post-2",
+                    post_title: "Specification revision requested",
+                    axis_one: 0.8,
+                    axis_two: -0.4,
+                  },
+                ],
+                leftover_map_items: [
+                  { criterion_code: "sales_lead_specificity", axis_one: -0.4, axis_two: 0.05 },
+                  { criterion_code: "general_sentiment_negative", axis_one: 1.2, axis_two: -0.9 },
+                ],
                 members: [
                   {
                     post_id: "post-1",
@@ -3542,6 +3555,8 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("Open");
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
     expect(screen.getByLabelText("Leftover pairs")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover interaction map")).toBeInTheDocument();
+    const mapPost = screen.getByRole("button", { name: "Open leftover map post: Public post" });
     const closestPair = screen.getByRole("button", { name: /open leftover closest pair: public post/i });
     const farthestPair = screen.getByRole("button", {
       name: /open leftover farthest pair: specification revision requested/i,
@@ -3563,6 +3578,7 @@ describe("App, authenticated", () => {
     expect(farthestPair).toHaveTextContent("rank 1");
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
+    expect(mapPost.compareDocumentPosition(closestPair) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(closestPair.compareDocumentPosition(memberButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(
       screen.getByRole("button", { name: /open report post: specification revision requested/i }),
@@ -3618,6 +3634,26 @@ describe("App, authenticated", () => {
 
     await userEvent.click(
       await screen.findByRole("button", { name: /open leftover closest pair: public post/i }),
+    );
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
+  it("opens a leftover-map post from the report panel", async () => {
+    stubBackend();
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Open leftover map post: Public post" }),
+    );
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+  });
+
+  it("opens a leftover-map criterion post from the report panel", async () => {
+    stubBackend();
+    render(<App showLabPanels />);
+
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Open leftover map criterion: sales-lead" }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
   });

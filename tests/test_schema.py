@@ -53,6 +53,11 @@ _LEFTOVER_MAP_RANK_MIGRATION = (
     / "migrations"
     / "0164_report_leftover_map_rank.sql"
 )
+_LEFTOVER_INTERACTION_MAP_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0172_report_leftover_interaction_map.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -91,6 +96,7 @@ def schema_db():
                 cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_INTERACTION_MAP_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -134,6 +140,8 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "report_item_parameter",
         "report_item_information",
         "report_leftover_pair",
+        "report_leftover_map_person",
+        "report_leftover_map_item",
         "post_summary_result",
         "post_summary_event",
         "post_summary_role",
@@ -182,6 +190,28 @@ def test_leftover_pair_references_member_and_item_rows(schema_db) -> None:
     assert "report_member_score" in targets
     assert "report_item_information" in targets
     assert "report_period_score" in targets
+
+
+def test_leftover_map_references_member_and_item_rows(schema_db) -> None:
+    """A leftover-map point cannot name a post or item from another report."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select conrelid::regclass::text, confrelid::regclass::text
+            from pg_constraint
+            where conrelid in (
+                'report_leftover_map_person'::regclass,
+                'report_leftover_map_item'::regclass
+            ) and contype = 'f'
+            """
+        )
+        by_table: dict[str, set[str]] = {}
+        for table_name, target in cur.fetchall():
+            by_table.setdefault(table_name, set()).add(target)
+    assert "report_member_score" in by_table["report_leftover_map_person"]
+    assert "report_period_score" in by_table["report_leftover_map_person"]
+    assert "report_item_information" in by_table["report_leftover_map_item"]
+    assert "report_period_score" in by_table["report_leftover_map_item"]
 
 
 def test_leftover_pair_names_nullable_observed_and_expected_columns(schema_db) -> None:

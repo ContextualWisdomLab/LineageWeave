@@ -13,6 +13,7 @@ buyer-facing control you can click before changing product CSS.
 | `Lineage/LineageDag` | Open the current branch node; compare empty, grouped/forked, ungrouped, and long-title states before changing graph CSS. | `--surface`, `--border`, `LineageDag` |
 | `Chrome/PopupCloseButton` | Close the evidence panel or post popup. | `--space-close-inset`, `--font-size-close`, `PopupCloseButton` |
 | `Reports/LeftoverPairList` | Read residual R, observed Y, expected E, map rank, and distance after IRT main effects, then open the named post. | `--color-chip-border`, `LeftoverPairList` |
+| `Reports/LeftoverInteractionMap` | Read leftover-map post and criterion positions after IRT main effects, then open the named leftover-pair post. | leftover-map tokens, `LeftoverInteractionMap` |
 
 Repeated web objects must use `frontend/src/styles/tokens.css` and a module
 under `frontend/src/components/`. Do not add a second Node package manager;

@@ -1,6 +1,6 @@
 """Jeon leftover post–criterion pairs after a main-effect IRT.
 
-Implements ADR 0048 as amended by ADR 0119, ADR 0163, and ADR 0164.
+Implements ADR 0048 as amended by ADR 0119, ADR 0121, ADR 0163, and ADR 0164.
 
 Does not import ``fast_mlsirm`` or ``period_report``. A Gabriel biplot
 of the residual ``R = Y − E[Y|θ, item]`` supplies person and item
@@ -11,7 +11,10 @@ Pair distances are Euclidean
 on the two leftover-map axes (Jeon et al., 2021); unused axes pad with
 zero rather than inventing a second component, and hidden SVD axes
 after the second are dropped. Each pair also names the full leftover-map
-rank so a rank-0 collapse is not read as leftover structure.
+rank so a rank-0 collapse is not read as leftover structure. Person and
+item leftover-map coordinates ξ / ζ are exposed on
+``LeftoverInteractionMap`` for callers that persist the full biplot
+(ADR 0121).
 """
 
 from __future__ import annotations
@@ -41,22 +44,60 @@ class LeftoverPair:
     leftover_map_rank: int
 
 
+@dataclass(frozen=True)
+class LeftoverMapPerson:
+    """One post's leftover-map coordinates ξ after IRT main effects."""
+
+    post_id: str
+    axis_one: float
+    axis_two: float
+
+
+@dataclass(frozen=True)
+class LeftoverMapItem:
+    """One criterion's leftover-map coordinates ζ after IRT main effects."""
+
+    criterion_code: str
+    axis_one: float
+    axis_two: float
+
+
+@dataclass(frozen=True)
+class LeftoverInteractionMap:
+    """Gabriel leftover-map points plus the closest and farthest observed pairs."""
+
+    pairs: tuple[LeftoverPair, ...]
+    persons: tuple[LeftoverMapPerson, ...]
+    items: tuple[LeftoverMapItem, ...]
+
+
 def leftover_pairs_from_residual(
     post_ids: list[str],
     item_codes: tuple[str, ...],
     matrix: np.ndarray,
     expected: np.ndarray,
 ) -> tuple[LeftoverPair, ...]:
-    """Closest and farthest leftover-map pairs from residual SVD biplot.
+    """Closest and farthest leftover-map pairs from residual SVD biplot."""
+    return leftover_map_from_residual(post_ids, item_codes, matrix, expected).pairs
+
+
+def leftover_map_from_residual(
+    post_ids: list[str],
+    item_codes: tuple[str, ...],
+    matrix: np.ndarray,
+    expected: np.ndarray,
+) -> LeftoverInteractionMap:
+    """Person and item leftover-map coordinates plus closest/farthest pairs.
 
     Jeon et al. (2021) leftover interaction is ``−γ‖ξ_p − ζ_i‖``. This
     estimator places persons and items from the residual after IRT main
     effects (Gabriel, 1971). Only observed cells become pairs. Distances
     use the two leftover-map axes; a rank-0 residual still emits a
     stable closest/farthest pair so seed is not empty and does not
-    invent a leftover score. Stored residual equals observed ``Y`` minus
-    expected ``E[Y|θ, item]``. Stored leftover-map rank is the number
-    of Gabriel singular values above the floor.
+    invent a leftover score. Unused map axes stay zero when the
+    residual rank is below two. Stored residual equals observed ``Y``
+    minus expected ``E[Y|θ, item]``. Stored leftover-map rank is the
+    number of Gabriel singular values above the floor.
     """
     if matrix.shape != (len(post_ids), len(item_codes)):
         raise ValueError(
@@ -74,7 +115,7 @@ def leftover_pairs_from_residual(
         if observed_mask[person, item]
     ]
     if not observed:
-        return ()
+        return LeftoverInteractionMap(pairs=(), persons=(), items=())
 
     keep_person, keep_item = _complete_case_masks(observed_mask)
     person_index = np.flatnonzero(keep_person)
@@ -86,12 +127,30 @@ def leftover_pairs_from_residual(
     person_pos, item_pos, leftover_map_rank = _complete_case_positions(
         residual, center, keep_person, keep_item
     )
+    persons: tuple[LeftoverMapPerson, ...] = ()
+    items: tuple[LeftoverMapItem, ...] = ()
     candidates: list[tuple[float, str, str, float, float, float]] = []
     if person_pos is not None and item_pos is not None:
         person_index = np.flatnonzero(keep_person)
         item_index = np.flatnonzero(keep_item)
         person_xy = _pad_map_axes(person_pos)
         item_xy = _pad_map_axes(item_pos)
+        persons = tuple(
+            LeftoverMapPerson(
+                post_id=post_ids[int(person)],
+                axis_one=float(person_xy[local, 0]),
+                axis_two=float(person_xy[local, 1]),
+            )
+            for local, person in enumerate(person_index)
+        )
+        items = tuple(
+            LeftoverMapItem(
+                criterion_code=item_codes[int(item)],
+                axis_one=float(item_xy[local, 0]),
+                axis_two=float(item_xy[local, 1]),
+            )
+            for local, item in enumerate(item_index)
+        )
         local_person = {int(person): local for local, person in enumerate(person_index)}
         local_item = {int(item): local for local, item in enumerate(item_index)}
         for person, item in observed:
@@ -123,9 +182,13 @@ def leftover_pairs_from_residual(
             )
     closest = min(candidates, key=lambda row: (row[0], row[1], row[2]))
     farthest = max(candidates, key=lambda row: (row[0], row[1], row[2]))
-    return (
-        _pair_from_candidate(PAIR_KIND_CLOSEST, closest, leftover_map_rank),
-        _pair_from_candidate(PAIR_KIND_FARTHEST, farthest, leftover_map_rank),
+    return LeftoverInteractionMap(
+        pairs=(
+            _pair_from_candidate(PAIR_KIND_CLOSEST, closest, leftover_map_rank),
+            _pair_from_candidate(PAIR_KIND_FARTHEST, farthest, leftover_map_rank),
+        ),
+        persons=persons,
+        items=items,
     )
 
 

@@ -49,6 +49,17 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
     subprocess.run(["sh", "-n", str(migration_script)], check=True)
 
 
+def test_migrate_sh_generic_pattern_covers_leftover_interaction_map_migration() -> None:
+    """ADR 0166's four-digit pattern must replay 0172 without a new allowlist entry."""
+    import fnmatch
+
+    name = "0172_report_leftover_interaction_map.sql"
+    assert (Path(__file__).resolve().parents[1] / "migrations" / name).exists()
+    assert fnmatch.fnmatchcase(name, "[0-9][0-9][0-9][0-9]_*")
+    assert not fnmatch.fnmatchcase(name, "000[0-9]_*")
+    assert not fnmatch.fnmatchcase(name, "001[01]_*")
+
+
 def test_tenant_settings_migration_is_safe_to_replay() -> None:
     """The newest migration must survive migrate.sh's every-start replay."""
     sql = (

@@ -91,6 +91,19 @@ describe("i18n", () => {
   });
 
   it.each([
+    ["ko", "잔여 맵 평가 항목 열기: sales-lead", "가장 가까운 잔여", "가장 먼 잔여"],
+    ["zh", "打开残差图评估项：sales-lead", "最近残余", "最远残余"],
+    ["ja", "残差マップの評価項目を開く: sales-lead", "最も近い残差", "最も遠い残差"],
+    ["vi", "Mở tiêu chí bản đồ phần dư: sales-lead", "Phần dư gần nhất", "Phần dư xa nhất"],
+  ] as const)("translates leftover-map criterion next action in %s", (locale, expected, closest, farthest) => {
+    setLocale(locale);
+    expect(tf("Open leftover map criterion: {label}", { label: "sales-lead" })).toBe(expected);
+    expect(t("Leftover interaction map")).not.toBe("Leftover interaction map");
+    expect(t("Closest leftover")).toBe(closest);
+    expect(t("Farthest leftover")).toBe(farthest);
+  });
+
+  it.each([
     ["ko", "IRT 주효과 이후 잔여 R +0.40. sales-lead 기준을 읽으려면 이 글을 여세요."],
     ["zh", "IRT 主效应后的残余 R +0.40。打开这篇帖子阅读 sales-lead。"],
     ["ja", "IRT主効果後の残差 R +0.40。この投稿を開いて sales-lead を読んでください。"],

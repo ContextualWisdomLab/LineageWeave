@@ -40,6 +40,16 @@ All notable changes to this project are documented here. Format follows
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 
+## [2.12.19] - 2026-08-24
+
+### Added
+
+- Period reports now persist leftover interaction-map coordinates ξ / ζ
+  after IRT main effects and render a 2D Jeon / Gabriel map above leftover
+  pairs (ADR 0121 / 0126). Click a post node or a leftover-pair criterion
+  node to open that post. Rank-0 and rank-1 maps pad unused axes with
+  zero. Hidden posts stay hidden. Never invent a leftover score or a theta.
+
 ## [2.12.18] - 2026-08-24
 
 ### Fixed

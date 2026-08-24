@@ -776,6 +776,19 @@ export interface LeftoverPair {
   leftover_map_rank?: number | null;
 }
 
+export interface LeftoverMapPerson {
+  post_id: string;
+  post_title: string;
+  axis_one: number;
+  axis_two: number;
+}
+
+export interface LeftoverMapItem {
+  criterion_code: string;
+  axis_one: number;
+  axis_two: number;
+}
+
 export interface PeriodGroupReport {
   grouping_key: string;
   grouping_label?: string;
@@ -791,6 +804,8 @@ export interface PeriodGroupReport {
   members: ReportMember[];
   selected_items: SelectedReportItem[];
   leftover_pairs: LeftoverPair[];
+  leftover_map_persons?: LeftoverMapPerson[];
+  leftover_map_items?: LeftoverMapItem[];
 }
 
 export interface PeriodReports {

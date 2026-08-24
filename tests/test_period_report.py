@@ -270,6 +270,14 @@ def test_calibrated_report_attaches_leftover_pairs() -> None:
             pair.observed_response - pair.expected_response, abs=1e-6
         )
         assert pair.leftover_map_rank >= 0
+    assert {person.post_id for person in report.leftover_map_persons} <= member_ids
+    assert {item.criterion_code for item in report.leftover_map_items} <= set(items)
+    for person in report.leftover_map_persons:
+        assert np.isfinite(person.axis_one)
+        assert np.isfinite(person.axis_two)
+    for item in report.leftover_map_items:
+        assert np.isfinite(item.axis_one)
+        assert np.isfinite(item.axis_two)
 
 
 

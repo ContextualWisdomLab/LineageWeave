@@ -56,7 +56,8 @@ and to read its mean θ and member posts, then open a post. Those
 members land immediately under that next action, ahead of Other Corp
 and the week strip. After `make seed`, leftover closest/farthest pairs
 sit above the member list with leftover-map rank; rank 0 names no
-leftover structure. Opening Public post names the next action: read
+leftover structure. The leftover interaction map sits above those
+pairs; click a post node or leftover-pair criterion to open that post. Opening Public post names the next action: read
 Event Lineage, Keyman, and evaluation on that post. The popup Event
 Lineage DAG marks that post current. After that current node, the
 popup names Keyman and evaluation as the next read. After landed

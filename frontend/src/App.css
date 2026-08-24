@@ -548,6 +548,90 @@
   fill: var(--text-h);
 }
 
+.leftover-interaction-map {
+  margin: 0.5rem 0 0.75rem;
+}
+
+.leftover-interaction-map figcaption {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.leftover-interaction-map svg {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.leftover-map-pair {
+  stroke-width: 1.5;
+}
+
+.leftover-map-pair.leftover-map-closest {
+  stroke: var(--badge-status-success-text);
+}
+
+.leftover-map-pair.leftover-map-farthest {
+  stroke: var(--badge-status-danger-text);
+}
+
+.leftover-map-person {
+  cursor: pointer;
+}
+
+.leftover-map-person circle {
+  fill: var(--badge-actor-person-bg);
+  stroke: var(--badge-actor-person-text);
+  stroke-width: 1.5;
+}
+
+.leftover-map-item[role="button"] {
+  cursor: pointer;
+}
+
+.leftover-map-item rect {
+  fill: var(--badge-actor-organization-bg);
+  stroke: var(--badge-actor-organization-text);
+  stroke-width: 1.5;
+}
+
+.leftover-map-person.leftover-map-closest circle,
+.leftover-map-item.leftover-map-closest rect {
+  stroke: var(--badge-status-success-text);
+  stroke-width: 2;
+}
+
+.leftover-map-person.leftover-map-farthest circle,
+.leftover-map-item.leftover-map-farthest rect {
+  stroke: var(--badge-status-danger-text);
+  stroke-width: 2;
+}
+
+.leftover-map-person text,
+.leftover-map-item text {
+  font-size: 0.7rem;
+  fill: var(--color-text-heading);
+}
+
+.leftover-map-person:focus,
+.leftover-map-item[role="button"]:focus {
+  outline: none;
+}
+
+.leftover-map-person:focus-visible circle,
+.leftover-map-person:hover circle,
+.leftover-map-item[role="button"]:focus-visible rect,
+.leftover-map-item[role="button"]:hover rect {
+  stroke-width: 2.5;
+}
+
+.leftover-map-person:focus-visible,
+.leftover-map-item[role="button"]:focus-visible {
+  outline: 2px solid var(--color-primary, var(--color-accent-info));
+  outline-offset: 2px;
+}
+
 .lineage-dag-node:focus {
   outline: none;
 }

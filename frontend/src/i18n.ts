@@ -375,6 +375,14 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "대화형 질문을 지금 사용할 수 없습니다. 저장된 근거는 계속 확인할 수 있습니다.",
     "Leftover pairs": "잔여 쌍",
+    "Leftover interaction map": "잔여 상호작용 맵",
+    "Leftover interaction map after main effects": "주효과 이후 잔여 상호작용 맵",
+    "Open leftover map post: {label}": "잔여 맵 글 열기: {label}",
+    "Open leftover map criterion: {label}": "잔여 맵 평가 항목 열기: {label}",
+    "Open this leftover map criterion to read the leftover pair post: {label}":
+      "이 잔여 맵 평가 항목을 열어 잔여 쌍 글을 읽으세요: {label}",
+    "Open this post on the leftover map: {label}": "잔여 맵에서 이 글을 여세요: {label}",
+    "Criterion: {label}": "평가 항목: {label}",
     "Closest leftover": "가장 가까운 잔여",
     "Farthest leftover": "가장 먼 잔여",
     "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.":
@@ -752,6 +760,14 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "交互式提问暂不可用；已保存的证据仍可查看。",
     "Leftover pairs": "残余配对",
+    "Leftover interaction map": "残差交互图",
+    "Leftover interaction map after main effects": "主效应后的残差交互图",
+    "Open leftover map post: {label}": "打开残差图帖子：{label}",
+    "Open leftover map criterion: {label}": "打开残差图评估项：{label}",
+    "Open this leftover map criterion to read the leftover pair post: {label}":
+      "打开此残差图评估项以阅读残差配对帖子：{label}",
+    "Open this post on the leftover map: {label}": "在残差图上打开这篇帖子：{label}",
+    "Criterion: {label}": "评估项：{label}",
     "Closest leftover": "最近残余",
     "Farthest leftover": "最远残余",
     "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.":
@@ -1129,6 +1145,14 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "対話形式の質問は現在利用できません。保存された証拠は確認できます。",
     "Leftover pairs": "残差ペア",
+    "Leftover interaction map": "残差インタラクションマップ",
+    "Leftover interaction map after main effects": "主効果後の残差インタラクションマップ",
+    "Open leftover map post: {label}": "残差マップの投稿を開く: {label}",
+    "Open leftover map criterion: {label}": "残差マップの評価項目を開く: {label}",
+    "Open this leftover map criterion to read the leftover pair post: {label}":
+      "この残差マップ評価項目を開いて残差ペアの投稿を読む: {label}",
+    "Open this post on the leftover map: {label}": "残差マップでこの投稿を開く: {label}",
+    "Criterion: {label}": "評価項目: {label}",
     "Closest leftover": "最も近い残差",
     "Farthest leftover": "最も遠い残差",
     "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.":
@@ -1506,6 +1530,14 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "Câu hỏi tương tác hiện không khả dụng; bằng chứng đã lưu vẫn có thể xem.",
     "Leftover pairs": "Cặp phần dư",
+    "Leftover interaction map": "Bản đồ tương tác phần dư",
+    "Leftover interaction map after main effects": "Bản đồ tương tác phần dư sau hiệu ứng chính",
+    "Open leftover map post: {label}": "Mở bài viết bản đồ phần dư: {label}",
+    "Open leftover map criterion: {label}": "Mở tiêu chí bản đồ phần dư: {label}",
+    "Open this leftover map criterion to read the leftover pair post: {label}":
+      "Mở tiêu chí bản đồ phần dư này để đọc bài viết cặp phần dư: {label}",
+    "Open this post on the leftover map: {label}": "Mở bài viết này trên bản đồ phần dư: {label}",
+    "Criterion: {label}": "Tiêu chí: {label}",
     "Closest leftover": "Phần dư gần nhất",
     "Farthest leftover": "Phần dư xa nhất",
     "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.":

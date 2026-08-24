@@ -1,6 +1,6 @@
 """Leftover post–criterion pairs after the main-effect IRT.
 
-Covers ADR 0048 as amended by ADR 0119, ADR 0163, and ADR 0164.
+Covers ADR 0048 as amended by ADR 0119, ADR 0121, ADR 0163, and ADR 0164.
 
 Uses a constructed residual matrix so the closest and farthest pair
 are known without calling ``fit_polytomous``. Loads
@@ -46,6 +46,7 @@ leftover = _load_leftover()
 PAIR_KIND_CLOSEST = leftover.PAIR_KIND_CLOSEST
 PAIR_KIND_FARTHEST = leftover.PAIR_KIND_FARTHEST
 leftover_pairs_from_residual = leftover.leftover_pairs_from_residual
+leftover_map_from_residual = leftover.leftover_map_from_residual
 
 
 def _assert_residual_reconciles(pair) -> None:
@@ -159,6 +160,127 @@ def test_leftover_is_empty_without_observed_cells() -> None:
     matrix = np.array([[np.nan]], dtype=np.float64)
     expected = np.array([[0.0]], dtype=np.float64)
     assert leftover_pairs_from_residual(post_ids, item_codes, matrix, expected) == ()
+    empty_map = leftover_map_from_residual(post_ids, item_codes, matrix, expected)
+    assert empty_map.pairs == ()
+    assert empty_map.persons == ()
+    assert empty_map.items == ()
+
+
+def test_leftover_map_rejects_mismatched_shapes() -> None:
+    """Post/item and expected shapes must agree before factorization."""
+    with pytest.raises(ValueError, match="matrix shape"):
+        leftover_map_from_residual(["post-a"], ("item-a",), np.zeros((2, 1)), np.zeros((2, 1)))
+    with pytest.raises(ValueError, match="expected shape"):
+        leftover_map_from_residual(["post-a"], ("item-a",), np.zeros((1, 1)), np.zeros((1, 2)))
+
+
+def test_disconnected_observations_emit_pairs_without_invented_coordinates() -> None:
+    """A sparse pattern with no complete rectangle retains only observed-cell evidence."""
+    matrix = np.array([[1.0, np.nan], [np.nan, 3.0]], dtype=np.float64)
+    leftover_map = leftover_map_from_residual(
+        ["post-a", "post-b"],
+        ("item-a", "item-b"),
+        matrix,
+        np.zeros_like(matrix),
+    )
+
+    assert leftover_map.persons == ()
+    assert leftover_map.items == ()
+    assert [(pair.post_id, pair.criterion_code) for pair in leftover_map.pairs] == [
+        ("post-a", "item-a"),
+        ("post-b", "item-b"),
+    ]
+    assert [pair.leftover_distance for pair in leftover_map.pairs] == pytest.approx([1.0, 1.0])
+
+
+def test_leftover_map_pads_rank_one_axis_two_to_zero() -> None:
+    """A rank-1 residual still emits two map axes; the unused axis is zero."""
+    post_ids = ["post-a", "post-b", "post-c"]
+    item_codes = ("item_near", "item_mid", "item_far")
+    matrix = np.array(
+        [
+            [2.0, 0.0, -2.0],
+            [0.0, 0.0, 0.0],
+            [-2.0, 0.0, 2.0],
+        ],
+        dtype=np.float64,
+    )
+    leftover_map = leftover_map_from_residual(post_ids, item_codes, matrix, np.zeros_like(matrix))
+    assert leftover_map.pairs == leftover_pairs_from_residual(
+        post_ids, item_codes, matrix, np.zeros_like(matrix)
+    )
+    assert {person.post_id for person in leftover_map.persons} == set(post_ids)
+    assert {item.criterion_code for item in leftover_map.items} == set(item_codes)
+    for person in leftover_map.persons:
+        assert person.axis_two == pytest.approx(0.0)
+        assert np.isfinite(person.axis_one)
+    for item in leftover_map.items:
+        assert item.axis_two == pytest.approx(0.0)
+        assert np.isfinite(item.axis_one)
+    by_post = {person.post_id: person for person in leftover_map.persons}
+    by_item = {item.criterion_code: item for item in leftover_map.items}
+    closest = leftover_map.pairs[0]
+    person = by_post[closest.post_id]
+    item = by_item[closest.criterion_code]
+    distance = np.hypot(person.axis_one - item.axis_one, person.axis_two - item.axis_two)
+    assert distance == pytest.approx(closest.leftover_distance, abs=1e-9)
+
+
+def test_rank_three_pair_distances_match_the_persisted_two_axis_map() -> None:
+    """Hidden higher components must not change buyer-visible pair distances."""
+    post_ids = ["post-a", "post-b", "post-c", "post-d"]
+    item_codes = ("item-a", "item-b", "item-c", "item-d")
+    matrix = np.array(
+        [
+            [4.0, 1.0, 0.0, -1.0],
+            [0.0, 3.0, 1.0, -2.0],
+            [-2.0, 0.0, 2.0, 1.0],
+            [1.0, -1.0, 0.0, 4.0],
+        ],
+        dtype=np.float64,
+    )
+    leftover_map = leftover_map_from_residual(post_ids, item_codes, matrix, np.zeros_like(matrix))
+    by_post = {person.post_id: person for person in leftover_map.persons}
+    by_item = {item.criterion_code: item for item in leftover_map.items}
+
+    for pair in leftover_map.pairs:
+        person = by_post[pair.post_id]
+        item = by_item[pair.criterion_code]
+        distance = np.hypot(person.axis_one - item.axis_one, person.axis_two - item.axis_two)
+        assert pair.leftover_distance == pytest.approx(distance)
+
+
+def test_zero_residual_map_places_every_complete_case_at_the_origin() -> None:
+    post_ids = ["alpha-post", "beta-post"]
+    item_codes = ("item_one", "item_two")
+    matrix = np.ones((2, 2), dtype=np.float64)
+    leftover_map = leftover_map_from_residual(post_ids, item_codes, matrix, matrix)
+    assert leftover_map.pairs[0].leftover_distance == pytest.approx(0.0)
+    assert {person.post_id for person in leftover_map.persons} == set(post_ids)
+    assert {item.criterion_code for item in leftover_map.items} == set(item_codes)
+    for person in leftover_map.persons:
+        assert person.axis_one == pytest.approx(0.0)
+        assert person.axis_two == pytest.approx(0.0)
+    for item in leftover_map.items:
+        assert item.axis_one == pytest.approx(0.0)
+        assert item.axis_two == pytest.approx(0.0)
+
+
+def test_sparse_person_does_not_receive_invented_map_coordinates() -> None:
+    """Incomplete rows are dropped from the Gabriel rectangle, not filled with zero."""
+    post_ids = ["aligned-post", "opposed-post", "sparse-post"]
+    item_codes = ("item_near", "item_far")
+    matrix = np.array(
+        [
+            [2.0, -2.0],
+            [-2.0, 2.0],
+            [2.0, np.nan],
+        ],
+        dtype=np.float64,
+    )
+    leftover_map = leftover_map_from_residual(post_ids, item_codes, matrix, np.zeros_like(matrix))
+    assert {person.post_id for person in leftover_map.persons} == {"aligned-post", "opposed-post"}
+    assert "sparse-post" not in {person.post_id for person in leftover_map.persons}
 
 
 def test_leftover_residual_equals_observed_minus_expected() -> None:

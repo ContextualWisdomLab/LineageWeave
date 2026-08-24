@@ -1,5 +1,6 @@
 import { AdminPanel } from "./components/AdminPanel";
 import { LeftoverPairList } from "./components/LeftoverPairList";
+import { LeftoverInteractionMap } from "./LeftoverInteractionMap";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
@@ -3408,6 +3409,16 @@ function ReportsPanel({
                 CAT: {criterionShortLabel(report.selected_items[0].item_code)} I=
                 {report.selected_items[0].information.toFixed(2)}
               </span>
+            )}
+            {((report.leftover_map_persons && report.leftover_map_persons.length > 0) ||
+              (report.leftover_map_items && report.leftover_map_items.length > 0)) && (
+              <LeftoverInteractionMap
+                persons={report.leftover_map_persons ?? []}
+                items={report.leftover_map_items ?? []}
+                pairs={report.leftover_pairs ?? []}
+                itemLabel={criterionShortLabel}
+                onSelectPost={onSelectPost}
+              />
             )}
             {report.leftover_pairs && report.leftover_pairs.length > 0 && (
               <LeftoverPairList
