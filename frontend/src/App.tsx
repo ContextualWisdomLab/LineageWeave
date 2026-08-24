@@ -195,7 +195,7 @@ function EvidencePanel({
     <div className="evidence-panel" role="complementary" aria-label={t("Evidence")}>
       {onClose ? <PopupCloseButton onClose={onClose} label={t("Close evidence panel")} /> : null}
       <h3>{t("Evidence")}</h3>
-      {!post && !postError && <p>{t("Loading source post...")}</p>}
+      {!post && !postError && <p role="status">{t("Loading source post...")}</p>}
       {postError && (
         <p className="error" role="alert">
           {t("Source evidence is unavailable. Continue with the saved answer.")}
@@ -474,8 +474,8 @@ function EventLineageSection({
   onSelectPost?: (postId: string) => void;
   currentNextAction?: string | null;
 }) {
-  if (!lineage) return <p>{t("Loading lineage...")}</p>;
-  if (!graph) return <p>{t("Loading lineage...")}</p>;
+  if (!lineage) return <p role="status">{t("Loading lineage...")}</p>;
+  if (!graph) return <p role="status">{t("Loading lineage...")}</p>;
   const scoped = graph ? subgraphForPost(graph, postId) : { nodes: [], edges: [] };
   const hasLinks = lineage.direct.length > 0 || lineage.indirect.length > 0;
   if (scoped.nodes.length === 0) {
@@ -521,7 +521,7 @@ function RelatedPostsSection({
             <h3 id="related-posts-heading">{t("Related posts")}</h3>
           </div>
         </div>
-        <p>{t("Loading related posts...")}</p>
+        <p role="status">{t("Loading related posts...")}</p>
       </section>
     );
   }
@@ -679,7 +679,7 @@ function VocEvidenceSection({
   affiliateTrees: AffiliateNode[] | null;
   onSelectPerson: (personId: string, personName: string) => void;
 }) {
-  if (!evidence) return <p>{t("Loading VOC evidence...")}</p>;
+  if (!evidence) return <p role="status">{t("Loading VOC evidence...")}</p>;
   const assignedExcerpts = new Set(
     evidence.counterparties
       .map((row) => row.evidence_excerpt)
@@ -1056,7 +1056,7 @@ function KeymanPanel({
         </div>
       ) : null}
       {related === null ? (
-        <p>{t("Loading related nodes...")}</p>
+        <p role="status">{t("Loading related nodes...")}</p>
       ) : related.length === 0 ? (
         <p className="popup-placeholder">{t("No related nodes in the visible graph.")}</p>
       ) : (
@@ -1255,7 +1255,7 @@ function KeymanPanel({
         <div className="related-keymen">
           <h4>{t("Related to")} {landedRelatedName}</h4>
           {landedRelated === null ? (
-            <p>{t("Loading related nodes...")}</p>
+            <p role="status">{t("Loading related nodes...")}</p>
           ) : landedRelated.length === 0 ? (
             <p className="popup-placeholder">{t("No related nodes in the visible graph.")}</p>
           ) : (
@@ -1362,7 +1362,7 @@ function EvaluationPanel({
       ) : null}
       {error && <p className="error">{error}</p>}
       {responses === null ? (
-        <p>{t("Loading evaluation...")}</p>
+        <p role="status">{t("Loading evaluation...")}</p>
       ) : responses.length === 0 ? (
         <p className="popup-placeholder">{t("Not yet evaluated.")}</p>
       ) : (
@@ -1585,7 +1585,7 @@ function IssueTicketPanel({
       </div>
       {error && <p className="error">{error}</p>}
       {tickets === null ? (
-        <p>{t("Loading tickets...")}</p>
+        <p role="status">{t("Loading tickets...")}</p>
       ) : tickets.length === 0 ? (
         <p className="popup-placeholder">{t("No tickets yet.")}</p>
       ) : (
@@ -1673,7 +1673,7 @@ function ActivityPanel({ postId, accessToken }: { postId: string; accessToken: s
       </div>
       {error && <p className="error">{error}</p>}
       {events === null ? (
-        <p>{t("Loading activity...")}</p>
+        <p role="status">{t("Loading activity...")}</p>
       ) : events.length === 0 ? (
         <p className="popup-placeholder">{t("No activity yet.")}</p>
       ) : (
@@ -1924,7 +1924,7 @@ function PostDetailPopup({
       <div className="popup-panel" onClick={(event) => event.stopPropagation()}>
         <PopupCloseButton onClose={onClose} label={t("Close")} />
         {error && <p className="error">{error}</p>}
-        {!post && !error && <p>{t("Loading...")}</p>}
+        {!post && !error && <p role="status">{t("Loading...")}</p>}
         {post && (
           <>
             <h2>{post.post_title}</h2>
@@ -2382,7 +2382,7 @@ function PostDetailPopup({
             <section className="popup-section">
               <h3>{t("Affiliate tree")}</h3>
               {affiliateTrees === null ? (
-                <p>{t("Loading affiliate tree...")}</p>
+                <p role="status">{t("Loading affiliate tree...")}</p>
               ) : affiliateTrees.length === 0 ? (
                 <p className="popup-placeholder">{t("No affiliations on this post yet.")}</p>
               ) : (
@@ -2882,7 +2882,7 @@ function AnalysisRunsPanel({
   }
 
   if (error && runs === null) return <p className="error">{error}</p>;
-  if (runs === null) return <p>Loading analysis runs...</p>;
+  if (runs === null) return <p role="status">Loading analysis runs...</p>;
 
   const corpusHint = selected ? analysisRunCorpusHint(selected) : null;
   const selectedNextAction = selected ? analysisRunNextAction(selected) : null;
@@ -3137,7 +3137,7 @@ function RankingsPanel({
         )}
       </div>
       {error && <p className="error">{error}</p>}
-      {ranking === null && !error && <p>{t("Loading rankings...")}</p>}
+      {ranking === null && !error && <p role="status">{t("Loading rankings...")}</p>}
       {ranking && ranking.status === "unavailable" && (
         <p className="popup-placeholder">{t("Rankings · RankWeave not available")}</p>
       )}
@@ -3205,7 +3205,7 @@ function CalendarPanel({
   }, [accessToken]);
 
   if (error) return <p className="error">{error}</p>;
-  if (calendar === null) return <p>{t("Loading calendar...")}</p>;
+  if (calendar === null) return <p role="status">{t("Loading calendar...")}</p>;
 
   const events = calendar.events ?? [];
   const commitments = calendar.commitments ?? [];
@@ -3422,7 +3422,7 @@ function ReportsPanel({
     : undefined;
   const reportList =
     payload === null && !error ? (
-      <p>Loading reports...</p>
+      <p role="status">Loading reports...</p>
     ) : payload && payload.reports.length === 0 ? (
       <p className="popup-placeholder">
         No calibrated report for this grouping and period. Evaluate posts, then rebuild.
@@ -4218,7 +4218,7 @@ function CustomerEntityTreeRow({
       </button>
       {expandedEntityId === entity.corporate_entity_id ? (
         <div className="customer-related-posts">
-          {relatedLoading === entity.corporate_entity_id ? <p>{t("Loading related posts...")}</p> : null}
+          {relatedLoading === entity.corporate_entity_id ? <p role="status">{t("Loading related posts...")}</p> : null}
           {relatedLoading !== entity.corporate_entity_id && relatedPosts.length === 0 ? (
             <p className="popup-placeholder">{t("No linked posts yet.")}</p>
           ) : null}
@@ -4373,7 +4373,7 @@ function CustomerMasterPanel({
       <h2 id="customer-master-heading">{t("Customer master")}</h2>
       <p className="buyer-destination-intro">{t("Customer entities available to this account.")}</p>
       {error ? <p className="error">{error}</p> : null}
-      {master === null && !error ? <p>{t("Loading customer master...")}</p> : null}
+      {master === null && !error ? <p role="status">{t("Loading customer master...")}</p> : null}
       {master?.corporate_entities.length === 0 ? (
         <p className="popup-placeholder">{t("No customer entities are connected to this account.")}</p>
       ) : null}
@@ -4448,7 +4448,7 @@ function CustomerMasterPanel({
                   </button>
                 ) : null}
                 {hint.related_posts.length > 0 ? (
-                  <details>
+                  <details className="hint-disclosure">
                     <summary>{t("Related posts")} ({hint.related_posts.length})</summary>
                     <ul aria-label={`${t("Related posts")}: ${hint.customer_name ?? hint.customer_code ?? t("Unresolved source identifier")}`}>
                       {hint.related_posts.map((post) => (
@@ -4485,7 +4485,7 @@ function CustomerMasterPanel({
             {master.source_author_hints.slice(0, HINT_RENDER_LIMIT).map((hint) => (
               <li key={`${hint.author_code}:${hint.author_account_id}`}>
                 <strong>{hint.author_name ?? hint.author_code}</strong>
-                <details>
+                <details className="hint-disclosure">
                   <summary>{hint.author_code} · {t("Hint only")}</summary>
                   <span>{t("Authorization context")}: {hint.account_display_name}</span>
                   {hint.account_affiliations.length > 0 ? (
@@ -4501,7 +4501,7 @@ function CustomerMasterPanel({
                 </details>
                 <span>{hint.post_count} {t("posts")}</span>
                 {hint.related_posts.length > 0 ? (
-                  <details>
+                  <details className="hint-disclosure">
                     <summary>{t("Related posts")} ({hint.related_posts.length})</summary>
                     <ul className="related-post-list">
                       {hint.related_posts.map((post) => (
@@ -4707,7 +4707,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   }, [accessToken]);
 
   if (auth.isLoading) {
-    return <p>{t("Loading authentication state...")}</p>;
+    return <p role="status">{t("Loading authentication state...")}</p>;
   }
 
   if (auth.error) {

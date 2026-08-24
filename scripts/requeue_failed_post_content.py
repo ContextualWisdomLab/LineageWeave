@@ -4,9 +4,15 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import sys
+from pathlib import Path
 
 import asyncpg
 import redis.asyncio as redis
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
+if str(REPOSITORY_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPOSITORY_ROOT))
 
 from backend.app.config import load_settings
 from backend.app.post_content_queue import (

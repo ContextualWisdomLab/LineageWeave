@@ -826,6 +826,9 @@
 }
 
 .citation-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--size-control-min);
   border: 1px solid var(--color-chip-border);
   border-radius: var(--radius-chip);
   padding: var(--space-chip-block) var(--space-chip-inline);
@@ -858,6 +861,22 @@
   to {
     transform: translateX(0);
   }
+}
+
+/* Secondary disclosure toggles (advanced tools, evidence-extraction actions,
+   hint expanders) must still meet the --size-control-min touch target, same
+   as primary controls like .language-switcher select above. */
+/* Keep the default display so the built-in disclosure marker still renders
+   (devin review thread); min-height plus padding alone reaches the target. */
+.advanced-review-tools summary,
+.semantic-provenance summary,
+.operator-action-tools summary,
+.keyman-source-context summary,
+.hint-disclosure summary {
+  box-sizing: border-box;
+  min-height: var(--size-control-min);
+  padding: 0.2rem 0.5rem;
+  cursor: pointer;
 }
 
 /* Responsive Overrides */
