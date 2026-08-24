@@ -557,13 +557,16 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
     from lineageweave.fixtures import sample_records
     from lineageweave.lineage_persistence import lineage_edge_specs
 
-    estimate = demo_channel_weight_estimate()
-    _persist_demo_channel_weights(cur, estimate)
-
+    # Idempotency first: a re-seed of an already-seeded database (whose
+    # estimate was persisted on the first pass) must not abort just
+    # because fast-mlsirm is absent in this environment.
     records = sample_records()
     cur.execute("select 1 from source_post where post_title = %s", (records[0].label,))
     if cur.fetchone() is not None:
         return
+
+    estimate = demo_channel_weight_estimate()
+    _persist_demo_channel_weights(cur, estimate)
 
     persisted = insert_fixture_source_posts(
         cur, author_account_id, corporate_entity_id, process_unit_id
