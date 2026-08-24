@@ -61,8 +61,16 @@ function contrastRatio(hexA: string, hexB: string): number {
   return (lighter + 0.05) / (darker + 0.05);
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function readToken(block: string, token: string): string {
-  const match = block.match(new RegExp(`${token}:\\s*(#[0-9a-fA-F]{6})`));
+  // Safe regex: `token` is always a hardcoded CSS custom-property name
+  // literal passed by the call sites below (e.g. "--color-footer-bg"), and
+  // escapeRegExp() neutralizes any regex metacharacters before
+  // interpolation, so no caller-controlled input reaches RegExp unescaped.
+  const match = block.match(new RegExp(`${escapeRegExp(token)}:\\s*(#[0-9a-fA-F]{6})`)); // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
   if (!match) throw new Error(`${token} not found as a hex value`);
   return match[1];
 }
