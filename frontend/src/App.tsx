@@ -86,6 +86,7 @@ import {
 import { CitationChip } from "./components/CitationChip";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
+import { OntologyExplorer } from "./components/OntologyExplorer";
 import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
@@ -95,7 +96,7 @@ import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
-import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
+import { rememberOidcReturnUrl, returnUrlFromLocation, stripOidcCallbackParams } from "./oidcReturnUrl";
 import {
   isSupportedLocale,
   LOCALE_LABELS,
@@ -858,6 +859,12 @@ function KeymanPanel({
   const [related, setRelated] = useState<RelatedNode[] | null>(null);
   const [roleHistory, setRoleHistory] = useState<PersonRoleHistoryEntry[]>([]);
   const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [selectedFocus, setSelectedFocus] = useState<{
+    nodeTypeCode: string;
+    nodeId: string;
+    label: string;
+  } | null>(null);
+  const [ontologyOpen, setOntologyOpen] = useState(false);
   const [landedRelated, setLandedRelated] = useState<RelatedNode[] | null>(null);
   const [landedRelatedName, setLandedRelatedName] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
@@ -873,6 +880,7 @@ function KeymanPanel({
   async function handleSelect(personId: string, personName: string) {
     const requestId = ++relatedRequest.current;
     setSelectedName(personName);
+    setSelectedFocus({ nodeTypeCode: NODE_PERSON, nodeId: personId, label: personName });
     setRelated(null);
     setRoleHistory([]);
     try {
@@ -889,6 +897,7 @@ function KeymanPanel({
   async function handleSelectEntity(entityId: string, entityName: string) {
     const requestId = ++relatedRequest.current;
     setSelectedName(entityName);
+    setSelectedFocus({ nodeTypeCode: NODE_CORPORATE_ENTITY, nodeId: entityId, label: entityName });
     setRelated(null);
     setRoleHistory([]);
     try {
@@ -902,6 +911,7 @@ function KeymanPanel({
   async function handleSelectTeam(teamId: string, teamName: string) {
     const requestId = ++relatedRequest.current;
     setSelectedName(teamName);
+    setSelectedFocus({ nodeTypeCode: NODE_TEAM, nodeId: teamId, label: teamName });
     setRelated(null);
     setRoleHistory([]);
     try {
@@ -919,6 +929,11 @@ function KeymanPanel({
     const first = keymen[0];
     const requestId = ++relatedRequest.current;
     setSelectedName(first.person_name);
+    setSelectedFocus({
+      nodeTypeCode: NODE_PERSON,
+      nodeId: first.person_id,
+      label: first.person_name,
+    });
     setRelated(null);
     setRoleHistory([]);
     fetchRelatedKeymen(accessToken, first.person_id)
@@ -972,6 +987,11 @@ function KeymanPanel({
     if (!focusPerson) return;
     const requestId = ++relatedRequest.current;
     setSelectedName(focusPerson.personName);
+    setSelectedFocus({
+      nodeTypeCode: NODE_PERSON,
+      nodeId: focusPerson.personId,
+      label: focusPerson.personName,
+    });
     setRelated(null);
     setRoleHistory([]);
     fetchRelatedKeymen(accessToken, focusPerson.personId)
@@ -990,6 +1010,11 @@ function KeymanPanel({
     if (!focusEntity) return;
     const requestId = ++relatedRequest.current;
     setSelectedName(focusEntity.entityName);
+    setSelectedFocus({
+      nodeTypeCode: NODE_CORPORATE_ENTITY,
+      nodeId: focusEntity.entityId,
+      label: focusEntity.entityName,
+    });
     setRelated(null);
     setRoleHistory([]);
     fetchRelatedEntity(accessToken, focusEntity.entityId)
@@ -1005,6 +1030,11 @@ function KeymanPanel({
     if (!focusTeam) return;
     const requestId = ++relatedRequest.current;
     setSelectedName(focusTeam.teamName);
+    setSelectedFocus({
+      nodeTypeCode: NODE_TEAM,
+      nodeId: focusTeam.teamId,
+      label: focusTeam.teamName,
+    });
     setRelated(null);
     fetchRelatedTeam(accessToken, focusTeam.teamId)
       .then((result) => {
@@ -1151,6 +1181,14 @@ function KeymanPanel({
     <section className="popup-section">
       <div className="lineage-home-header">
         <h3>{t("Keymen")}</h3>
+        <button
+          type="button"
+          className="keyman-select"
+          onClick={() => setOntologyOpen((open) => !open)}
+          aria-expanded={ontologyOpen}
+        >
+          {t("Inspect ontology neighborhood")}
+        </button>
         {canExtract && !orchestratorOff && (
           <details className="operator-action-tools">
             <summary>{t("Evidence operations")}</summary>
@@ -1276,6 +1314,15 @@ function KeymanPanel({
       ) : null}
       {afterList && landFirstRelated && landedRelatedName && landedRelated !== null ? (
         <ChatPanel postId={postId} accessToken={accessToken} nameFirstAsk />
+      ) : null}
+      {ontologyOpen ? (
+        <OntologyExplorer
+          accessToken={accessToken}
+          focusNodeType={selectedFocus?.nodeTypeCode ?? NODE_POST}
+          focusNodeId={selectedFocus?.nodeId ?? postId}
+          onSelectPost={onSelectPost}
+          onOpenEvidence={onSelectPost}
+        />
       ) : null}
     </>
   );
@@ -1829,6 +1876,7 @@ function PostDetailPopup({
 
   const permanentLink = (() => {
     const url = new URL(window.location.href);
+    stripOidcCallbackParams(url);
     url.searchParams.set("post", postId);
     url.hash = "";
     return url.toString();

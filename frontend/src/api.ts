@@ -371,7 +371,15 @@ export class BackendError extends Error {
   readonly status: number;
 
   constructor(path: string, status: number, detail?: string) {
-    super(detail && detail.trim() ? detail : `${path} -> HTTP ${status}`);
+    const message =
+      status === 0
+        ? "The service is unreachable. Try again later."
+        : status >= 500
+          ? "The service could not complete this request. Try again later."
+          : detail && detail.trim()
+            ? detail
+            : `${path} -> HTTP ${status}`;
+    super(message);
     this.name = "BackendError";
     this.status = status;
   }
@@ -382,14 +390,19 @@ async function backendFetch<T>(
   accessToken: string,
   init?: RequestInit,
 ): Promise<T> {
-  const response = await fetch(`${config.backendBaseUrl}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-      ...init?.headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${config.backendBaseUrl}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        ...(init?.body ? { "Content-Type": "application/json" } : {}),
+        ...init?.headers,
+      },
+    });
+  } catch {
+    throw new BackendError(path, 0);
+  }
   if (!response.ok) {
     let detail: string | undefined;
     try {
@@ -703,6 +716,96 @@ export function fetchRelatedTeam(
   teamId: string,
 ): Promise<{ team_id: string; team_name: string; related: RelatedNode[] }> {
   return backendFetch(`/api/teams/${teamId}/related`, accessToken);
+}
+
+export interface OntologyGraphNodePayload {
+  node_id: string;
+  node_type_code: string;
+  ontology_class_iri: string;
+  display_label: string;
+  truth_status_code: string | null;
+  valid_from: string | null;
+  valid_to: string | null;
+  recorded_at: string | null;
+  evidence_count: number;
+  shape_code: string;
+}
+
+export interface OntologyGraphEdgePayload {
+  edge_id: string;
+  source_node_type_code: string;
+  source_node_id: string;
+  target_node_type_code: string;
+  target_node_id: string;
+  property_code: string;
+  ontology_property_iri: string;
+  property_label: string;
+  truth_status_code: string;
+  valid_from: string | null;
+  valid_to: string | null;
+  recorded_at: string;
+  provenance_reference: string | null;
+  evidence_references: string[];
+}
+
+export interface OntologyExactValueRow {
+  edge_id: string;
+  source_node_id: string;
+  source_label: string;
+  source_type_code: string;
+  property_code: string;
+  property_label: string;
+  ontology_property_iri: string;
+  target_node_id: string;
+  target_label: string;
+  target_type_code: string;
+  truth_status_code: string;
+  recorded_at: string;
+  valid_from: string;
+  valid_to: string;
+  evidence_count: string;
+}
+
+export interface OntologyNeighborhoodPayload {
+  focus_node_id: string;
+  focus_node_type_code: string;
+  truncated: boolean;
+  next_cursor: string | null;
+  limitation_code: string | null;
+  nodes: OntologyGraphNodePayload[];
+  edges: OntologyGraphEdgePayload[];
+  exact_value_rows: OntologyExactValueRow[];
+  jsonld: Record<string, unknown>;
+}
+
+export interface OntologyNeighborhoodQuery {
+  focusNodeType: string;
+  focusNodeId: string;
+  maximumDepth?: number;
+  maximumNodes?: number;
+  maximumEdges?: number;
+  allowedPropertyCodes?: string[];
+  knowledgeCutoff?: string;
+  cursor?: string;
+}
+
+export function fetchOntologyNeighborhood(
+  accessToken: string,
+  query: OntologyNeighborhoodQuery,
+): Promise<OntologyNeighborhoodPayload> {
+  const params = new URLSearchParams({
+    focus_node_type: query.focusNodeType,
+    focus_node_id: query.focusNodeId,
+  });
+  if (query.maximumDepth != null) params.set("maximum_depth", String(query.maximumDepth));
+  if (query.maximumNodes != null) params.set("maximum_nodes", String(query.maximumNodes));
+  if (query.maximumEdges != null) params.set("maximum_edges", String(query.maximumEdges));
+  if (query.knowledgeCutoff) params.set("knowledge_cutoff", query.knowledgeCutoff);
+  if (query.cursor) params.set("cursor", query.cursor);
+  for (const code of query.allowedPropertyCodes ?? []) {
+    params.append("allowed_property_codes", code);
+  }
+  return backendFetch(`/api/ontology/neighborhood?${params.toString()}`, accessToken);
 }
 
 export function extractPostKeymen(
@@ -1132,27 +1235,16 @@ export function fetchRankings(accessToken: string): Promise<RankingList> {
   return backendFetch("/api/rankings", accessToken);
 }
 
-export async function fetchTenantConfig(accessToken: string): Promise<{ brandName: string }> {
-  const response = await fetch(`${config.backendBaseUrl}/api/settings`, {
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch tenant config: ${response.status}`);
-  }
-  return response.json();
+export function fetchTenantConfig(accessToken: string): Promise<{ brandName: string }> {
+  return backendFetch("/api/settings", accessToken);
 }
 
-export async function updateTenantConfig(accessToken: string, brandName: string): Promise<{ brandName: string }> {
-  const response = await fetch(`${config.backendBaseUrl}/api/settings`, {
+export function updateTenantConfig(
+  accessToken: string,
+  brandName: string,
+): Promise<{ brandName: string }> {
+  return backendFetch("/api/settings", accessToken, {
     method: "PATCH",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
-    },
     body: JSON.stringify({ brandName }),
   });
-  if (!response.ok) {
-    throw new Error(`Failed to update tenant config: ${response.status}`);
-  }
-  return response.json();
 }
