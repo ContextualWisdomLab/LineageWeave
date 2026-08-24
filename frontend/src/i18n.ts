@@ -644,6 +644,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "잔여 맵 내적 ξ·ζ {value}가 IRT 주효과 이후 잔여를 재구성합니다. {criterion}을(를) 읽으려면 이 글을 여세요.",
     "Open leftover {kind} pair: {title} · {criterion}":
       "잔여 {kind} 쌍 열기: {title} · {criterion}",
+    "Leftover-map cosine {value} names leftover-map alignment independent of distance. Open this post to read {criterion}.":
+      "잔여 지도 코사인 {value}이(가) 거리와 무관한 잔여 지도 정렬을 이름합니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
   },
   zh: {
     "Unknown": "未知",
@@ -1198,6 +1200,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残余图内积 ξ·ζ {value} 重建了 IRT 主效应后的残余。打开这篇帖子以阅读 {criterion}。",
     "Open leftover {kind} pair: {title} · {criterion}":
       "打开残余{kind}对：{title} · {criterion}",
+    "Leftover-map cosine {value} names leftover-map alignment independent of distance. Open this post to read {criterion}.":
+      "残差图余弦 {value} 命名与距离无关的残差图对齐。打开这篇帖子阅读 {criterion}。",
   },
   ja: {
     "Unknown": "不明",
@@ -1752,6 +1756,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "残差マップ内積 ξ·ζ {value} が IRT 主効果後の残差を再構成します。{criterion} を読むにはこの投稿を開いてください。",
     "Open leftover {kind} pair: {title} · {criterion}":
       "残差{kind}ペアを開く: {title} · {criterion}",
+    "Leftover-map cosine {value} names leftover-map alignment independent of distance. Open this post to read {criterion}.":
+      "残差マップ余弦 {value} は距離に依存しない残差マップの向きを示します。この投稿を開いて {criterion} を読んでください。",
   },
   vi: {
     "Unknown": "Không rõ",
@@ -2306,6 +2312,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Tích trong bản đồ phần dư ξ·ζ {value} tái tạo phần dư sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
     "Open leftover {kind} pair: {title} · {criterion}":
       "Mở cặp phần dư {kind}: {title} · {criterion}",
+    "Leftover-map cosine {value} names leftover-map alignment independent of distance. Open this post to read {criterion}.":
+      "Cosin bản đồ phần dư {value} đặt tên sự thẳng hàng độc lập với khoảng cách. Mở bài viết này để đọc {criterion}.",
   },
 };
 
