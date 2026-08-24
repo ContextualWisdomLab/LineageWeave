@@ -306,7 +306,10 @@ async def republish_queued_global_ask_jobs(
     delivery.
     """
     async with pool.acquire() as conn:
-        await conn.execute(
+        # Fully parameterized ($1..$3 with module constants); the rule
+        # misreads the literal-plus-arguments shape, same as the existing
+        # suppressions in report_ingestion.py.
+        await conn.execute(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             """
             update global_ask_job set job_status_code = $1, updated_at = now()
             where job_status_code = $2
@@ -316,7 +319,7 @@ async def republish_queued_global_ask_jobs(
             RUNNING,
             _ORPHAN_RUNNING_AFTER_SECONDS,
         )
-        rows = await conn.fetch(
+        rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             """
             select global_ask_job_id from global_ask_job
             where job_status_code = $1
