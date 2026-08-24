@@ -107,6 +107,7 @@ describe("App, authenticated", () => {
     customerEntityHierarchy?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
+    askLineageGraph?: boolean;
     askImageCitation?: boolean;
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
     const statusLabel: Record<string, string> = {
@@ -1598,6 +1599,38 @@ describe("App, authenticated", () => {
                 ]
               : [],
             source_post_ids: ["post-1", "post-2"],
+            lineage_graph: options?.askLineageGraph
+              ? {
+                  nodes: [
+                    {
+                      id: "post-2",
+                      group: "thread-alpha",
+                      label: "Linked post",
+                      occurred_at: "2026-08-01T00:00:00Z",
+                      is_root: true,
+                      is_branch_point: false,
+                    },
+                    {
+                      id: "post-3",
+                      group: "thread-alpha",
+                      label: "Follow-up post",
+                      occurred_at: "2026-08-02T00:00:00Z",
+                      is_root: false,
+                      is_branch_point: false,
+                    },
+                    {
+                      id: "post-4",
+                      group: "thread-beta",
+                      label: "Unrelated thread post",
+                      occurred_at: "2026-08-03T00:00:00Z",
+                      is_root: true,
+                      is_branch_point: false,
+                    },
+                  ],
+                  edges: [{ source: "post-2", target: "post-3", fused_score: 0.7 }],
+                  truncated: false,
+                }
+              : { nodes: [], edges: [], truncated: false },
           }),
         );
       }
@@ -1750,6 +1783,35 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
+
+  it("renders every cited lineage thread as its own git-branch-style graph", async () => {
+    stubBackend({ askLineageGraph: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByLabelText("Reconstructed lineage")).toBeInTheDocument();
+    // Two distinct reconstruct threads (thread-alpha, thread-beta) must
+    // render as two independent branch-tree figures, not merged into one.
+    expect(screen.getByRole("img", { name: "thread-alpha lineage" })).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "thread-beta lineage" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open post: Follow-up post" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open post: Unrelated thread post" })).toBeInTheDocument();
+  });
+
+  it("shows no lineage graph section when the answer cites no reconstructed thread", async () => {
+    stubBackend();
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByRole("list", { name: "Evidence facts" })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Reconstructed lineage")).not.toBeInTheDocument();
   });
 
   it("cites a cited post's persisted image evidence under that post", async () => {
