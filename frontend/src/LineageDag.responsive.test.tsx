@@ -21,6 +21,8 @@ describe("LineageDag responsive viewport", () => {
   it("keeps an intrinsically wide DAG inside a named keyboard-focusable viewport", () => {
     render(<LineageDag graph={wideGraph} onSelectPost={vi.fn()} />);
 
+    expect(screen.getByText("Swipe or use arrow keys to inspect the full lineage.")).toBeInTheDocument();
+
     const viewport = screen.getByRole("region", { name: "A-100 lineage viewport" });
     expect(viewport).toHaveAttribute("tabindex", "0");
     expect(viewport).toHaveClass("lineage-dag-viewport");
