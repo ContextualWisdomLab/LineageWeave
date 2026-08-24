@@ -50,6 +50,12 @@ describe("App, unauthenticated", () => {
     expect(window.sessionStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toMatch(/^\//);
     expect(window.localStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toMatch(/^\//);
   });
+
+  it("announces the app-root auth loading gate as a live region", () => {
+    mockAuth = { ...mockAuth, isLoading: true };
+    render(<App showLabPanels />);
+    expect(screen.getByRole("status")).toHaveTextContent("Loading authentication state...");
+  });
 });
 
 function jsonResponse(body: unknown): Response {
@@ -100,6 +106,7 @@ describe("App, authenticated", () => {
     pendingTeppRun?: boolean;
     pluralAffiliations?: boolean;
     deferMe?: boolean;
+    deferPostOne?: boolean;
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
@@ -109,7 +116,7 @@ describe("App, authenticated", () => {
     contentAfterSummary?: boolean;
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
-  }): ReturnType<typeof vi.fn> & { releaseMe: () => void } {
+  }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -139,6 +146,13 @@ describe("App, authenticated", () => {
     const meReady = options?.deferMe
       ? new Promise<void>((resolve) => {
           releaseMe = resolve;
+        })
+      : Promise.resolve();
+
+    let releasePostOne = () => {};
+    const postOneReady = options?.deferPostOne
+      ? new Promise<void>((resolve) => {
+          releasePostOne = resolve;
         })
       : Promise.resolve();
 
@@ -1103,7 +1117,7 @@ describe("App, authenticated", () => {
       const postOneUrl = new URL(url, "https://backend.test");
       if (postOneUrl.pathname === "/api/posts/post-1") {
         const asOf = postOneUrl.searchParams.get("as_of");
-        return Promise.resolve(
+        return postOneReady.then(() =>
           jsonResponse({
             post_id: "post-1",
             post_title: "Public post",
@@ -1789,7 +1803,7 @@ describe("App, authenticated", () => {
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
-    return Object.assign(fetchMock, { releaseMe });
+    return Object.assign(fetchMock, { releaseMe, releasePostOne });
   }
 
   it("renders safe Ask Agent evidence under each cited post", async () => {
@@ -2119,6 +2133,21 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("heading", { name: "Related posts" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open related post: Linked post" })).toBeInTheDocument();
     expect(screen.queryByText("Not yet evaluated.")).not.toBeInTheDocument();
+  });
+
+  it("announces the post-detail popup loading state as a live region before the post resolves", async () => {
+    const fetchMock = stubBackend({ deferPostOne: true });
+
+    render(<App showLabPanels />);
+
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+
+    const popup = document.querySelector(".popup-panel") as HTMLElement;
+    expect(within(popup).getByRole("status")).toHaveTextContent("Loading...");
+
+    fetchMock.releasePostOne();
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(within(popup).queryByText("Loading...")).not.toBeInTheDocument();
   });
 
   it("switches the product surface between supported languages", async () => {
