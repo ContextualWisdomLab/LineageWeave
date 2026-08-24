@@ -42,6 +42,7 @@ from .image_content import (
 _HTML_OPEN_TAG = re.compile(
     r"<\s*/?\s*(?:article|section|nav|aside|header|footer|div|p|li|td|th|tr|"
     r"table|blockquote|h[1-6]|img|br|hr|ul|ol|span|strong|em|b|i|u|a|"
+    r"sup|sub|"
     r"html|body|head|style|script|font|center|pre)\b",
     re.IGNORECASE,
 )
