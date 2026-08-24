@@ -351,7 +351,7 @@ async def persist_period_report(
     period_code: str,
     report: PeriodReport,
 ) -> None:
-    """Replace the stored report, member scores, leftover pairs, leftover-map axes, and item bank."""
+    """Replace the stored report, member scores, leftover pairs, leftover-map axes, leftover coverage, and item bank."""
     await conn.execute(
         """
         delete from report_period_score
@@ -477,6 +477,27 @@ async def persist_period_report(
             axis.axis_index,
             axis.leftover_singular_value,
             axis.leftover_share,
+        )
+    if report.leftover_map_coverage is not None:
+        coverage = report.leftover_map_coverage
+        await conn.execute(
+            """
+            insert into report_leftover_map_coverage (
+                grouping_kind, grouping_key, period_code, rubric_version,
+                map_post_count, scored_post_count, map_item_count, scored_item_count,
+                incomplete_post_count, incomplete_item_count
+            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+            """,
+            grouping_kind,
+            grouping_key,
+            period_code,
+            RUBRIC_VERSION,
+            coverage.map_post_count,
+            coverage.scored_post_count,
+            coverage.map_item_count,
+            coverage.scored_item_count,
+            coverage.incomplete_post_count,
+            coverage.incomplete_item_count,
         )
 
 
@@ -650,6 +671,18 @@ async def fetch_period_reports(
         period_code,
         RUBRIC_VERSION,
     )
+    leftover_coverage = await conn.fetch(
+        """
+        select grouping_key, map_post_count, scored_post_count,
+               map_item_count, scored_item_count,
+               incomplete_post_count, incomplete_item_count
+        from report_leftover_map_coverage
+        where grouping_kind = $1 and period_code = $2 and rubric_version = $3
+        """,
+        grouping_kind,
+        period_code,
+        RUBRIC_VERSION,
+    )
     status_labels = await labels_for_codes(
         conn,
         [row["ticket_status_code"] for row in members if row["ticket_status_code"]],
@@ -666,6 +699,7 @@ async def fetch_period_reports(
     leftover_axes_by_group: dict[str, list[asyncpg.Record]] = defaultdict(list)
     for row in leftover_axes:
         leftover_axes_by_group[row["grouping_key"]].append(row)
+    leftover_coverage_by_group = {row["grouping_key"]: row for row in leftover_coverage}
     payload: list[dict[str, Any]] = []
     for header in headers:
         grouping_key = header["grouping_key"]
@@ -770,9 +804,26 @@ async def fetch_period_reports(
                     }
                     for row in leftover_axes_by_group.get(header["grouping_key"], [])
                 ],
+                "leftover_map_coverage": _leftover_map_coverage_payload(
+                    leftover_coverage_by_group.get(header["grouping_key"])
+                ),
             }
         )
     return payload
+
+
+def _leftover_map_coverage_payload(row: asyncpg.Record | None) -> dict[str, int] | None:
+    """One complete-case leftover-map coverage row, or None when unpersisted."""
+    if row is None:
+        return None
+    return {
+        "map_post_count": int(row["map_post_count"]),
+        "scored_post_count": int(row["scored_post_count"]),
+        "map_item_count": int(row["map_item_count"]),
+        "scored_item_count": int(row["scored_item_count"]),
+        "incomplete_post_count": int(row["incomplete_post_count"]),
+        "incomplete_item_count": int(row["incomplete_item_count"]),
+    }
 
 
 async def list_period_report_summaries(

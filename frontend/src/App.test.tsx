@@ -997,6 +997,14 @@ describe("App, authenticated", () => {
                     leftover_share: 0.18,
                   },
                 ],
+                leftover_map_coverage: {
+                  map_post_count: 2,
+                  scored_post_count: 3,
+                  map_item_count: 2,
+                  scored_item_count: 2,
+                  incomplete_post_count: 1,
+                  incomplete_item_count: 0,
+                },
                 members: [
                   {
                     post_id: "post-1",
@@ -3697,6 +3705,10 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("Open");
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
     expect(screen.getByLabelText("Leftover pairs")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover map coverage")).toHaveTextContent(
+      "Leftover map used 2 of 3 scored posts (complete-case)",
+    );
+    const coverageCaption = screen.getByLabelText("Leftover map coverage");
     const closestPair = screen.getByRole("button", { name: /open leftover closest pair: public post/i });
     const farthestPair = screen.getByRole("button", {
       name: /open leftover farthest pair: specification revision requested/i,
@@ -3720,6 +3732,7 @@ describe("App, authenticated", () => {
     expect(farthestPair).toHaveTextContent("U −0.25");
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
+    expect(coverageCaption.compareDocumentPosition(closestPair) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(closestPair.compareDocumentPosition(memberButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(
       screen.getByRole("button", { name: /open report post: specification revision requested/i }),

@@ -3458,6 +3458,14 @@ function ReportsPanel({
                 {report.selected_items[0].information.toFixed(2)}
               </span>
             )}
+            {report.leftover_map_coverage && report.leftover_map_coverage.scored_post_count > 0 && (
+              <p className="post-meta" role="note" aria-label={t("Leftover map coverage")}>
+                {tf("Leftover map used {used} of {scored} scored posts (complete-case)", {
+                  used: report.leftover_map_coverage.map_post_count,
+                  scored: report.leftover_map_coverage.scored_post_count,
+                })}
+              </p>
+            )}
             {report.leftover_map_axes?.map((axis) => (
               <span key={axis.axis_index} className="post-badge">
                 {tf("leftover axis {axis} {share}%", {
