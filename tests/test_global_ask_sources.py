@@ -405,14 +405,14 @@ def test_global_sources_resolve_relative_time_against_seoul_calendar_day(
     )
 
     source_query, source_args = next(
-        (query, args) for query, args in calls if "array_position($2::uuid[], post_id)" in query
+        (query, args) for query, args in calls if "array_position($3::uuid[], post_id)" in query
     )
     # Both sides of the day-boundary comparison must read the same zone --
     # asserting the SQL cast pins that the created_at side is never left on
     # the connection's plain UTC/session default while `today` moves to KST.
     assert "at time zone 'Asia/Seoul'" in source_query
-    assert source_args[3] == date(2026, 8, 21)
     assert source_args[4] == date(2026, 8, 21)
+    assert source_args[5] == date(2026, 8, 21)
 
 
 def test_global_sources_drop_particle_attached_temporal_words_from_search_terms() -> None:

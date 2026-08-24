@@ -56,6 +56,7 @@ class OpenAiCompatibleEmbeddingClient:
 
     @property
     def resolved_model(self) -> str | None:
+        """Return the provider-neutral model identity selected upstream."""
         return self._delegate.resolved_model
 
 
