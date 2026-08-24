@@ -78,28 +78,73 @@ async def load_estimated_channel_weights(
     """Persisted psychometric weights, only on an exact channel-set match.
 
     ADR 0145: a partial overlap would mix estimated and hand-picked
-    weights into a vector that is neither grounded nor the documented
-    fallback -- so anything other than an exact match falls back
-    entirely (return ``None``). A database that has not applied
-    migration 0135 yet (rollout ordering, rollback) is the same "no
-    estimate persisted" state, not an error -- rebuilds keep working on
-    the fallback constants.
+    weights into a vector that grounds nothing -- so anything other
+    than an exact match returns ``None``, and product callers fail
+    closed on ``None`` (:class:`ChannelWeightsNotEstimated`) instead
+    of reconstructing on constants. Since migration 0136, one weight
+    set is persisted per active channel combination
+    (`channel_set_code`): the corpus-wide rebuild's three
+    deterministic channels and a scoped analysis run's four (with the
+    llm adjudication channel) each match their own set without
+    regressing the other. A database that has not applied migration
+    0135 yet (rollout ordering, rollback) is the same "no estimate
+    persisted" state; pre-0136 rows form a single implicit set, which
+    the same exact-match rule already handles.
     """
     try:
         async with conn.transaction():
             rows = await conn.fetch(
-                "select channel_code, weight_value from lineage_channel_weight"
+                "select coalesce(channel_set_code, 'channel_set_deterministic') "
+                "  as channel_set_code, channel_code, weight_value "
+                "  from lineage_channel_weight"
             )
     except asyncpg.UndefinedTableError:
         return None
-    persisted = {row["channel_code"]: float(row["weight_value"]) for row in rows}
-    if not persisted or set(persisted) != active_channels:
-        return None
-    return persisted
+    except asyncpg.UndefinedColumnError:
+        # Pre-0136 schema: one flat set. Re-read without the set column.
+        async with conn.transaction():
+            rows = await conn.fetch(
+                "select 'channel_set_deterministic' as channel_set_code, "
+                "  channel_code, weight_value from lineage_channel_weight"
+            )
+    sets: dict[str, dict[str, float]] = {}
+    for row in rows:
+        sets.setdefault(row["channel_set_code"], {})[row["channel_code"]] = float(
+            row["weight_value"]
+        )
+    for persisted in sets.values():
+        if set(persisted) == active_channels:
+            return persisted
+    return None
+
+
+class ChannelWeightsNotEstimated(RuntimeError):
+    """No fast-mlsirm-estimated weight set exists for the active channels.
+
+    Product reconstruction treats fusion weights as measurement output
+    only -- estimated by fast-mlsirm (or, in the future, TEPP), never
+    hand-picked constants (ADR 0145, amended per the 2026-08-24 operator
+    directive). The library-level ``DEFAULT_CHANNEL_WEIGHTS`` remain for
+    synthetic library demos and unit fixtures exclusively.
+    """
+
+    def __init__(self, active_channels: set[str]) -> None:
+        super().__init__(
+            "no fast-mlsirm-estimated channel weight set is persisted for "
+            f"active channels {sorted(active_channels)}; run "
+            "scripts/estimate_channel_weights.py first -- product "
+            "reconstruction never falls back to hand-picked weights"
+        )
+        self.active_channels = active_channels
 
 
 async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
-    """Reconstruct lineage for every ``source_post`` and persist the edges."""
+    """Reconstruct lineage for every ``source_post`` and persist the edges.
+
+    Raises :class:`ChannelWeightsNotEstimated` when no estimated weight
+    set matches this path's active channels -- run
+    ``scripts/estimate_channel_weights.py`` first.
+    """
     rows = await conn.fetch(
         "select post_id, post_title, voc_type_code, created_at, corporate_entity_id, "
         "process_unit_id, thread_group_key, secondary_grouping_key "
@@ -108,9 +153,10 @@ async def rebuild_lineage(conn: asyncpg.Connection) -> list[Edge]:
     # No adjudication client is wired on this path, so the active channel
     # set is the three deterministic channels (reconstruct drops llm when
     # unavailable rather than faking it).
-    weights = await load_estimated_channel_weights(
-        conn, {"temporal", "secondary_key", "text"}
-    )
+    active_channels = {"temporal", "secondary_key", "text"}
+    weights = await load_estimated_channel_weights(conn, active_channels)
+    if weights is None:
+        raise ChannelWeightsNotEstimated(active_channels)
     edges = lineage_edge_specs(records_from_source_posts(rows), weights=weights)
     await persist_lineage_edges(conn, edges)
     return edges

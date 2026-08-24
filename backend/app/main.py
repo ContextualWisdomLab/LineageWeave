@@ -179,7 +179,7 @@ from backend.app.knowledge_graph import (
     visible_mention_post_ids,
     visible_team_mention_post_ids,
 )
-from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
+from backend.app.lineage_ingestion import ChannelWeightsNotEstimated, rebuild_lineage, visible_lineage_graph
 from backend.app.post_chat_ingestion import (
     fetch_persisted_chat,
     fetch_persisted_chats,
@@ -1352,7 +1352,16 @@ async def rebuild_lineage_graph(
     _require_post_admin(account)
     async with pool.acquire() as conn:
         async with conn.transaction():
-            edges = await rebuild_lineage(conn)
+            try:
+                edges = await rebuild_lineage(conn)
+            except ChannelWeightsNotEstimated:
+                raise HTTPException(
+                    status_code=503,
+                    detail=(
+                        "Channel weights are not estimated yet. Run "
+                        "scripts/estimate_channel_weights.py, then rebuild again."
+                    ),
+                )
     return {"edge_count": len(edges)}
 
 

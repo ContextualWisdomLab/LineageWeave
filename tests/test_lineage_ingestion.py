@@ -7,8 +7,12 @@ from datetime import datetime, timezone
 
 import asyncpg
 
+import pytest
+
 from backend.app.lineage_ingestion import (
+    ChannelWeightsNotEstimated,
     load_estimated_channel_weights,
+    rebuild_lineage,
     reconstruct_group_key,
     records_from_source_posts,
     visible_lineage_graph,
@@ -52,6 +56,81 @@ def test_missing_weight_table_rolls_back_before_fallback() -> None:
     asyncio.run(connection.fetch("select 1"))
 
     assert weights is None
+
+
+def test_weight_loader_picks_the_set_matching_the_active_channels() -> None:
+    """Migration 0136: one persisted set per active channel combination.
+
+    A 3-channel rebuild and a 4-channel (llm-inclusive) analysis run each
+    get exactly their own estimated set; an active combination with no
+    matching set falls back (None), never a partial mix.
+    """
+
+    class _SetsConnection:
+        def transaction(self):
+            class _Tx:
+                async def __aenter__(self):
+                    return self
+
+                async def __aexit__(self, exc_type, exc, traceback) -> bool:
+                    return False
+
+            return _Tx()
+
+        async def fetch(self, query: str):
+            return [
+                {"channel_set_code": "channel_set_deterministic", "channel_code": "temporal", "weight_value": 0.8},
+                {"channel_set_code": "channel_set_deterministic", "channel_code": "secondary_key", "weight_value": 0.15},
+                {"channel_set_code": "channel_set_deterministic", "channel_code": "text", "weight_value": 0.05},
+                {"channel_set_code": "channel_set_with_llm", "channel_code": "temporal", "weight_value": 0.5},
+                {"channel_set_code": "channel_set_with_llm", "channel_code": "secondary_key", "weight_value": 0.1},
+                {"channel_set_code": "channel_set_with_llm", "channel_code": "text", "weight_value": 0.05},
+                {"channel_set_code": "channel_set_with_llm", "channel_code": "llm", "weight_value": 0.35},
+            ]
+
+    connection = _SetsConnection()
+    deterministic = asyncio.run(
+        load_estimated_channel_weights(connection, {"temporal", "secondary_key", "text"})
+    )
+    assert deterministic == {"temporal": 0.8, "secondary_key": 0.15, "text": 0.05}
+    with_llm = asyncio.run(
+        load_estimated_channel_weights(
+            connection, {"temporal", "secondary_key", "text", "llm"}
+        )
+    )
+    assert with_llm is not None and with_llm["llm"] == 0.35
+    unmatched = asyncio.run(
+        load_estimated_channel_weights(connection, {"temporal", "text"})
+    )
+    assert unmatched is None
+
+
+def test_rebuild_fails_closed_without_an_estimated_weight_set() -> None:
+    """ADR 0145 (amended): no estimate -> no reconstruction on constants.
+
+    The raised message must name the next action (run the estimation
+    script) so the operator is never left guessing.
+    """
+
+    class _NoWeightsConnection:
+        def transaction(self):
+            class _Tx:
+                async def __aenter__(self):
+                    return self
+
+                async def __aexit__(self, exc_type, exc, traceback) -> bool:
+                    return False
+
+            return _Tx()
+
+        async def fetch(self, query: str):
+            if "lineage_channel_weight" in query:
+                raise asyncpg.UndefinedTableError("synthetic missing table")
+            return []
+
+    with pytest.raises(ChannelWeightsNotEstimated) as raised:
+        asyncio.run(rebuild_lineage(_NoWeightsConnection()))
+    assert "estimate_channel_weights" in str(raised.value)
 
 
 def test_records_use_persisted_thread_keys_not_process_unit_or_voc_type() -> None:

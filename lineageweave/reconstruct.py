@@ -20,9 +20,11 @@ from .adjudication_client import AdjudicationClient, NullAdjudicationClient
 from .channels import secondary_key_match_score, temporal_score, text_similarity_score
 from .models import Edge, Record, Tree
 
-# Channel weights when every channel is available. llm gets the most weight
-# because it is the only channel that actually reasons about the content
-# instead of approximating it; the rest renormalize when llm is unavailable
+# Library-demo/test-only weights (ADR 0145, amended): product callers
+# always pass fast-mlsirm-estimated weights and fail closed when none
+# are persisted -- these constants never reach product reconstruction.
+# They keep the library runnable standalone (fixtures, `make seed`,
+# unit tests); the rest renormalize when llm is unavailable
 # (see active_weights()).
 DEFAULT_CHANNEL_WEIGHTS = {"temporal": 0.15, "secondary_key": 0.15, "text": 0.30, "llm": 0.40}
 

@@ -523,10 +523,21 @@ or an explicit unavailable result.
   The import-script fix also landed: `_validate_thread_group_mapping`
   preflight rejects a mapped thread-group column that is >=95% distinct
   (per-row identity, not a thread key) unless
-  `--allow-unique-thread-group` is passed explicitly. **Still open from
-  this finding:** the llm adjudication channel joining the weight
-  estimate (ADR 0145 SS5), and re-verifying the named 3-post family's
-  chain under the new corpus-wide graph.
+  `--allow-unique-thread-group` is passed explicitly. **Update
+  (2026-08-24, fail-closed amendment):** per the operator directive that
+  weights are treated only via TEPP/fast-mlsirm, the hand-picked
+  constant fallback was removed from every product reconstruction path:
+  `rebuild_lineage`, `POST /api/lineage/rebuild` (503 with the
+  estimate-first next action), and the analysis-run start delivery all
+  fail closed until a persisted set exactly matching the active
+  channels exists (migration 0136 keys sets by `channel_set_code`, so
+  the 3-channel deterministic and 4-channel llm-inclusive combinations
+  never regress each other). `DEFAULT_CHANNEL_WEIGHTS` is relabeled
+  library-demo/test-only. **Still open from this finding:** the llm
+  adjudication channel joining the weight estimate (ADR 0145 SS5 —
+  4-channel estimation run in progress against the dev corpus), and
+  re-verifying the named 3-post family's chain under the new
+  corpus-wide graph.
 - **Entity and abbreviation resolution — source-stated case fixed
   (2026-08-22), inferred case open:** an organization's former/alternate
   name (e.g. "X(구 Y)") the post text itself states was dropped entirely
