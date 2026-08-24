@@ -5,9 +5,17 @@ import {
   LEFTOVER_RANK_STRUCTURE_ACTION,
   LEFTOVER_RANK_ZERO_ACTION,
 } from "../leftoverMapRank";
-import { formatLeftoverMapUnexplainedShare } from "../leftoverMapUnexplainedShare";
+import {
+  formatLeftoverMapUnexplainedShare,
+  LEFTOVER_MAP_UNEXPLAINED_SHARE_ACTION,
+} from "../leftoverMapUnexplainedShare";
 import { formatLeftoverObservedExpected } from "../leftoverObservedExpected";
 import { formatLeftoverResidual } from "../leftoverResidual";
+import {
+  formatLeftoverMapUnexplained,
+  formatSignedLeftoverValue,
+  LEFTOVER_MAP_UNEXPLAINED_ACTION,
+} from "../leftoverMapUnexplained";
 
 export type LeftoverPairListProps = {
   pairs: LeftoverPair[];
@@ -19,11 +27,13 @@ export type LeftoverPairListProps = {
  * Closest and farthest leftover post–criterion pairs after IRT main effects.
  *
  * Distance is the two-axis leftover-map Euclidean gap. Residual is
- * ``R = Y − E[Y|θ, item]`` (Jeon et al., 2021, eq. 3 input).
- * The action preserves residual, observed/expected, full-rank, and
- * unexplained leftover share amendments together before opening the
- * named post. A missing share (no complete-case map) omits the badge
- * rather than inventing one.
+ * ``R = Y − E[Y|θ, item]`` (Jeon et al., 2021, eq. 3 input). Unexplained
+ * leftover share ``s = U_c² / R̃²`` of centered leftover (ADR 0183) takes
+ * priority over unexplained leftover ``U = R − R̂`` (ADR 0182), which in
+ * turn takes priority over the residual/observed-expected/rank next
+ * action, whenever finite; every badge still renders together before
+ * opening the named post. A missing share or unexplained value (no
+ * complete-case map) omits that badge rather than inventing one.
  */
 export function LeftoverPairList({
   pairs,
@@ -48,27 +58,20 @@ export function LeftoverPairList({
         const shareBadge = formatLeftoverMapUnexplainedShare(
           pair.leftover_map_unexplained_share,
         );
+        const unexplained = formatLeftoverMapUnexplained(pair.leftover_map_unexplained);
         let nextAction: string;
-        if (rankBadge !== null && observedExpected !== null && shareBadge !== null) {
-          nextAction =
-            pair.leftover_map_rank === 0
-              ? tf(
-                  "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed}, expected E {expected}, and unexplained share {value}, then open this post.",
-                  {
-                    observed: Number(pair.observed_response).toFixed(2),
-                    expected: Number(pair.expected_response).toFixed(2),
-                    value: Number(pair.leftover_map_unexplained_share).toFixed(2),
-                  },
-                )
-              : tf(
-                  "Read leftover map rank {rank}, observed Y {observed}, expected E {expected}, and unexplained share {value} after IRT main effects, then open this post.",
-                  {
-                    rank: String(pair.leftover_map_rank),
-                    observed: Number(pair.observed_response).toFixed(2),
-                    expected: Number(pair.expected_response).toFixed(2),
-                    value: Number(pair.leftover_map_unexplained_share).toFixed(2),
-                  },
-                );
+        if (shareBadge !== null) {
+          nextAction = tf(LEFTOVER_MAP_UNEXPLAINED_SHARE_ACTION, {
+            value: Number(pair.leftover_map_unexplained_share).toFixed(2),
+            criterion,
+          });
+        } else if (unexplained !== null) {
+          const signedUnexplained =
+            formatSignedLeftoverValue(pair.leftover_map_unexplained ?? Number.NaN) ?? "—";
+          nextAction = tf(LEFTOVER_MAP_UNEXPLAINED_ACTION, {
+            value: signedUnexplained,
+            criterion,
+          });
         } else if (rankBadge !== null && observedExpected !== null) {
           nextAction =
             pair.leftover_map_rank === 0
@@ -130,6 +133,7 @@ export function LeftoverPairList({
               <span className="post-badge">R {residual}</span>
               {observedExpected ? <span className="post-badge">{observedExpected}</span> : null}
               {rankBadge ? <span className="post-badge">{rankBadge}</span> : null}
+              {unexplained ? <span className="post-badge">{unexplained}</span> : null}
               {shareBadge ? <span className="post-badge">{shareBadge}</span> : null}
               <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
             </button>

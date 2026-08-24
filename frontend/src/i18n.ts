@@ -389,6 +389,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "주효과 이후 가장 가깝게 앉은 기준을 읽으려면 이 글을 여세요.",
     "Open this post to read the criterion it sat farthest from after main effects.":
       "주효과 이후 가장 멀리 앉은 기준을 읽으려면 이 글을 여세요.",
+    "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.":
+      "잔여 지도가 IRT 주효과 이후 설명되지 않은 U {value}을(를) 남깁니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
     "Leftover map leaves unexplained share {value} of centered leftover after IRT main effects. Open this post to read {criterion}.":
       "잔여 지도가 IRT 주효과 이후 중심화 잔여의 설명되지 않은 몫 {value}을(를) 남깁니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
@@ -776,6 +778,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "打开这篇帖子，阅读主效应后距离最近的准则。",
     "Open this post to read the criterion it sat farthest from after main effects.":
       "打开这篇帖子，阅读主效应后距离最远的准则。",
+    "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.":
+      "残差图在 IRT 主效应后留下未解释的 U {value}。打开这篇帖子阅读 {criterion}。",
     "Leftover map leaves unexplained share {value} of centered leftover after IRT main effects. Open this post to read {criterion}.":
       "残差图在 IRT 主效应后留下中心化残差中未解释的份额 {value}。打开这篇帖子阅读 {criterion}。",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
@@ -1163,6 +1167,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "主効果後に最も近くなった基準を読むには、この投稿を開いてください。",
     "Open this post to read the criterion it sat farthest from after main effects.":
       "主効果後に最も遠くなった基準を読むには、この投稿を開いてください。",
+    "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.":
+      "残差マップはIRT主効果後の未説明 U {value} を残します。この投稿を開いて {criterion} を読んでください。",
     "Leftover map leaves unexplained share {value} of centered leftover after IRT main effects. Open this post to read {criterion}.":
       "残差マップはIRT主効果後の中心化残差のうち未説明の割合 {value} を残します。この投稿を開いて {criterion} を読んでください。",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
@@ -1550,6 +1556,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Mở bài viết này để đọc tiêu chí nằm gần nhất sau hiệu ứng chính.",
     "Open this post to read the criterion it sat farthest from after main effects.":
       "Mở bài viết này để đọc tiêu chí nằm xa nhất sau hiệu ứng chính.",
+    "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.":
+      "Bản đồ phần dư để lại U {value} chưa giải thích sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
     "Leftover map leaves unexplained share {value} of centered leftover after IRT main effects. Open this post to read {criterion}.":
       "Bản đồ phần dư để lại phần chưa giải thích {value} của phần dư đã căn giữa sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":

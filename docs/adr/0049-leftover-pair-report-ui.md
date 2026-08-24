@@ -4,7 +4,9 @@
 **Date:** 2026-08-17
 **Amended by:** [ADR 0162](0162-leftover-residual-disclosure.md) (signed residual R);
 [ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E);
-[ADR 0164](0164-leftover-map-rank.md) (full map rank)
+[ADR 0164](0164-leftover-map-rank.md) (full map rank);
+[ADR 0182](0182-leftover-map-unexplained.md) (unexplained leftover U);
+[ADR 0183](0183-leftover-map-unexplained-share.md) (unexplained leftover share s)
 
 ## Context
 
@@ -22,16 +24,21 @@ On each period-report group, render leftover pairs **above** the
 member list. Each pair is a button: closest or farthest label, post
 title, criterion short label, signed residual `R`, two-axis leftover-map
 distance, full map rank, observed `Y`, expected `E` when finite, and
-unexplained leftover share `s` of centered leftover after IRT main
-effects when Gabriel coordinates exist. The next action names every
-available measurement before opening the post; no amendment hides
-another, rank 0 explicitly names no leftover structure, and a missing
-share keeps the existing closest/farthest next action.
+unexplained leftover `U` when finite, and unexplained leftover share
+`s` of centered leftover after IRT main effects when Gabriel
+coordinates exist.
+The next action names every available measurement before opening the
+post; no amendment hides another, rank 0 explicitly names no
+leftover structure, and unexplained leftover names "leftover map leaves
+unexplained `U` after IRT main effects; open this post to read the
+named criterion" when present. A missing unexplained leftover or a
+missing share keeps the existing next action.
 Clicking the button opens that post with the same handler as a member
 row. Residual naming is [ADR 0162](0162-leftover-residual-disclosure.md),
 observed/expected naming is [ADR 0163](0163-leftover-observed-expected.md),
-rank naming is [ADR 0164](0164-leftover-map-rank.md), and unexplained
-leftover share naming is
+rank naming is [ADR 0164](0164-leftover-map-rank.md), unexplained
+leftover naming is [ADR 0182](0182-leftover-map-unexplained.md), and
+unexplained leftover share naming is
 [ADR 0183](0183-leftover-map-unexplained-share.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
