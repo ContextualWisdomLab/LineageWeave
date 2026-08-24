@@ -121,7 +121,7 @@ describe("i18n", () => {
     ],
     [
       "vi",
-      "Hai trục của bản đồ phần dư để lại phần dư đồng nhất -0.24 của phần dư đã căn giữa sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead.",
+      "Hai trục của bản đồ phần dư để lại phần giao -0.24 của phần dư đã căn giữa sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead.",
     ],
   ] as const)("formats leftover-map cross share next action in %s", (locale, expected) => {
     setLocale(locale);

@@ -166,12 +166,12 @@ def _leftover_map_cross_share(filled: float, reconstruction: float) -> float | N
     if not np.isfinite(filled) or not np.isfinite(reconstruction):
         return None
     unexplained = float(filled - reconstruction)
-    filled_sq = float(filled * filled)
-    if filled_sq > _LEFTOVER_SINGULAR_FLOOR:
-        share = float(2.0 * reconstruction * unexplained / filled_sq)
-        if np.isfinite(share):
-            return share
-        return None
+    # Threshold on absolute magnitudes, not squares: squaring first makes the
+    # effective floor sqrt(1e-12) = 1e-6 and collapses small-but-finite cells
+    # (e.g. R-tilde = 1e-7 with a valid cross term) to an omitted badge.
+    if abs(filled) > _LEFTOVER_SINGULAR_FLOOR:
+        share = float(2.0 * reconstruction * unexplained / (filled * filled))
+        return share if np.isfinite(share) else None
     if abs(reconstruction) <= _LEFTOVER_SINGULAR_FLOOR and abs(unexplained) <= _LEFTOVER_SINGULAR_FLOOR:
         return 0.0
     return None

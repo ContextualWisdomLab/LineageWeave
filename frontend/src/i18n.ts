@@ -1523,7 +1523,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Open this post to read the criterion it sat farthest from after main effects.":
       "Mở bài viết này để đọc tiêu chí nằm xa nhất sau hiệu ứng chính.",
     "Two leftover-map axes leave identity remainder {value} of centered leftover after IRT main effects. Open this post to read {criterion}.":
-      "Hai trục của bản đồ phần dư để lại phần dư đồng nhất {value} của phần dư đã căn giữa sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
+      "Hai trục của bản đồ phần dư để lại phần giao {value} của phần dư đã căn giữa sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "Đọc Y quan sát {observed} và E kỳ vọng {expected} sau hiệu ứng chính IRT, rồi mở bài viết này.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":

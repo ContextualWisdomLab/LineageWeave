@@ -472,3 +472,14 @@ def test_leftover_map_rank_rejects_negative_rank() -> None:
             (0.0, "public-post", "sales_lead_specificity", 0.0, 1.0, 1.0, None),
             -1,
         )
+
+
+def test_small_finite_centered_leftover_keeps_cross_share() -> None:
+    """A tiny-but-finite centered leftover keeps its cross share.
+
+    Squaring before the floor made the effective threshold 1e-6, so
+    R-tilde = 1e-7 with reconstruction 5e-8 collapsed to an omitted badge
+    even though x = 0.5 is well-defined (coderabbit review thread).
+    """
+    share = leftover._leftover_map_cross_share(1e-7, 5e-8)
+    assert share == pytest.approx(0.5)
