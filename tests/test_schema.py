@@ -117,6 +117,16 @@ _POST_CONTENT_QUEUE_MIGRATION = (
     / "migrations"
     / "0050_post_content_ingestion_queue.sql"
 )
+_LEFTOVER_OBSERVED_EXPECTED_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0177_report_leftover_observed_expected.sql"
+)
+_LEFTOVER_MAP_RANK_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0172_report_leftover_map_rank.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -179,6 +189,8 @@ def schema_db():
                 cur.execute(summary_input_migration)
                 cur.execute(summary_input_migration)
                 cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -497,8 +509,6 @@ def test_leftover_pair_names_leftover_map_rank_column(schema_db) -> None:
         )
         columns = dict(cur.fetchall())
     assert columns["leftover_map_rank"] == "YES"
-
-
 
 def test_corporate_hierarchy_recursive_query_returns_correct_shape(schema_db) -> None:
     """The real product requirement: 'Acme Group -> Acme Electronics Korea
