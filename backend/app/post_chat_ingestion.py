@@ -20,7 +20,9 @@ from __future__ import annotations
 import asyncio
 import re
 from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Any, Callable, Iterable
+from zoneinfo import ZoneInfo
 
 import asyncpg
 
@@ -41,6 +43,10 @@ from lineageweave.post_chat import (
     normalize_chat_question,
 )
 from lineageweave.post_content_normalization import normalize_post_body
+from lineageweave.temporal_expressions import (
+    TEMPORAL_STOPWORDS,
+    resolve_korean_relative_time,
+)
 
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
 from lineageweave.ontology import ontology_annotations
@@ -163,6 +169,20 @@ _SOURCE_HINT_FIELDS = (
 
 _GLOBAL_ASK_TERM_PATTERN = re.compile(r"[^\W_]+(?:-[^\W_]+)*", re.UNICODE)
 _POST_CHAT_SOURCE_LIMIT = 8
+
+# Korean relative-time words ("어제", "오늘", ...) name a KST calendar day,
+# not the server process's local/UTC day -- the whole repo otherwise runs on
+# UTC (no per-account timezone exists to ask instead). Both the resolver's
+# `today` and the SQL day-boundary cast below must use this same zone, or a
+# question asked between KST 00:00-09:00 (UTC still "yesterday") resolves
+# and filters against two different calendar days.
+_ASK_TIME_ZONE = ZoneInfo("Asia/Seoul")
+
+
+def _seoul_today() -> date:
+    return datetime.now(_ASK_TIME_ZONE).date()
+
+
 _POST_CHAT_CANDIDATE_LIMIT = 32
 
 
@@ -378,6 +398,12 @@ async def gather_global_chat_sources(
 ) -> list[ChatSourceDocument]:
     """Assemble a bounded, ABAC-filtered source set for Global Ask.
 
+    When `question` contains a Korean relative-time expression ("어제",
+    "작년 이맘때쯤", "3일 전", ...; see `lineageweave.temporal_expressions`),
+    the final candidate set is also bounded to posts whose `created_at`
+    falls in the resolved date range -- an unbounded expression ("언젠가")
+    or no expression at all applies no date filter.
+
     The source set is intentionally bounded until retrieval/reranking is
     needed for a much larger corpus; every selected body still uses the same
     image normalization and persisted graph evidence as post-scoped chat.
@@ -386,6 +412,10 @@ async def gather_global_chat_sources(
         return []
     if vision_client is None:
         vision_client = NullImageContentClient()
+    # A relative-time expression ("어제", "작년 이맘때쯤", ...) narrows the
+    # candidate window by created_at below; it must not also become a
+    # near-meaningless literal keyword search term (see TEMPORAL_STOPWORDS).
+    resolved_time_range = resolve_korean_relative_time(question or "", today=_seoul_today())
     search_terms = tuple(
         dict.fromkeys(
             token.casefold()
@@ -416,6 +446,11 @@ async def gather_global_chat_sources(
                 "무엇인가요",
                 "인가요",
             }
+            # A Korean particle (은/는/이/가/에/의/도/쯤/...) attaches directly
+            # to a time word with no space ("어제는", "지난주에"), so the
+            # tokenizer above yields one token that a bare `in` check against
+            # TEMPORAL_STOPWORDS never matches -- check by prefix instead.
+            and not any(token.startswith(stopword) for stopword in TEMPORAL_STOPWORDS)
         )
     )[:8]
     # A post whose title names the exact thing asked about is a far more
@@ -510,8 +545,10 @@ async def gather_global_chat_sources(
                source_customer_code, source_customer_name,
                source_project_code, source_project_name
           from source_post
-         where visibility_code = 'public'
-            or corporate_entity_id::text = any($1::text[])
+         where (visibility_code = 'public'
+            or corporate_entity_id::text = any($1::text[]))
+           and ($4::date is null or (created_at at time zone 'Asia/Seoul')::date >= $4)
+           and ($5::date is null or (created_at at time zone 'Asia/Seoul')::date <= $5)
          order by array_position($2::uuid[], post_id) nulls last,
                   created_at desc, post_id desc
          limit $3
@@ -519,6 +556,8 @@ async def gather_global_chat_sources(
         list(authorized_corporate_entity_ids),
         candidate_ids,
         limit,
+        resolved_time_range[0] if resolved_time_range else None,
+        resolved_time_range[1] if resolved_time_range else None,
     )
     visible_rows = [row for row in rows if can_see_post(row)][:limit]
     visible_ids = [str(row["post_id"]) for row in visible_rows]
