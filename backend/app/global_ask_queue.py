@@ -32,8 +32,10 @@ from lineageweave.post_chat import (
     cited_post_summaries,
 )
 
+from lineageweave.temporal_expressions import resolve_korean_relative_time
+
 from .lineage_ingestion import lineage_graphs_for_posts
-from .post_chat_ingestion import cited_post_images, gather_global_chat_sources
+from .post_chat_ingestion import _seoul_today, cited_post_images, gather_global_chat_sources
 
 GLOBAL_ASK_STREAM_KEY = "global_ask_request_stream"
 
@@ -154,7 +156,9 @@ async def compute_global_ask_answer(
             "cited_post_images": [],
             "next_action": "No authorized source posts are available for this question.",
         }
-    answer = await asyncio.to_thread(chat_client.answer, question_text, sources)
+    answer = await asyncio.to_thread(
+        chat_client.answer, _temporally_grounded_question(question_text), sources
+    )
     cited_ids = list(answer.cited_post_ids)
     async with pool.acquire() as conn:
         lineage_graph = await lineage_graphs_for_posts(conn, can_see, cited_ids)
@@ -168,6 +172,27 @@ async def compute_global_ask_answer(
         "source_post_ids": [source.post_id for source in sources],
         "lineage_graph": lineage_graph,
     }
+
+
+def _temporally_grounded_question(question_text: str) -> str:
+    """Restate a resolved relative-time window inside the question.
+
+    Retrieval already scopes sources to the resolved window, but the
+    prompt's numbered sources carry no dates — so without this clause the
+    model answers a question like "7개월 전에 무슨 일이 있었나요?" with
+    "no date information" and cites nothing (observed live). Naming the
+    resolved window, and that every source falls inside it, lets the
+    model answer from the evidence it was given.
+    """
+    window = resolve_korean_relative_time(question_text, today=_seoul_today())
+    if window is None:
+        return question_text
+    start_date, end_date = window
+    return (
+        f"{question_text}\n(시점 해석: 이 질문의 상대 시점은 "
+        f"{start_date.isoformat()} ~ {end_date.isoformat()} 기간을 뜻하며, "
+        "제공된 소스 게시물은 모두 이 기간에 작성된 것입니다.)"
+    )
 
 
 async def process_global_ask_job(
