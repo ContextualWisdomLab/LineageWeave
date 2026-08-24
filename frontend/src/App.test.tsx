@@ -29,12 +29,14 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  window.history.replaceState({}, "", "/");
   window.sessionStorage.clear();
   window.localStorage.clear();
 });
 
 describe("App, unauthenticated", () => {
   it("shows a login button that starts the real OIDC redirect", async () => {
+    window.history.replaceState({}, "", "/?post=abc#evidence");
     render(<App showLabPanels />);
     expect(screen.queryByRole("heading", { name: /admin settings/i })).toBeNull();
     const button = screen.getByRole("button", { name: /log in/i });
@@ -42,7 +44,7 @@ describe("App, unauthenticated", () => {
     expect(signinRedirect).toHaveBeenCalledTimes(1);
     expect(signinRedirect).toHaveBeenCalledWith(
       expect.objectContaining({
-        state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
+        state: { returnUrl: "/?post=abc#evidence" },
       }),
     );
     // Persisted as a fallback in case the OIDC state round-trip is dropped

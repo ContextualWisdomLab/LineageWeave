@@ -23,6 +23,8 @@ describe("i18n", () => {
     "Keymen",
     "Unknown",
     "Image tags",
+    "Image regions",
+    "Region location",
     "Counterparties",
     "due",
     "Activity",
@@ -106,6 +108,16 @@ describe("i18n", () => {
   ] as const)("formats dynamic buyer guidance in %s", (locale, expected) => {
     setLocale(locale);
     expect(tf("{post} is current in Event Lineage. Read Keyman and evaluation next.", { post: "DEMO" })).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "영역 위치"],
+    ["zh", "区域位置"],
+    ["ja", "領域の位置"],
+    ["vi", "Vị trí vùng"],
+  ] as const)("translates image region location in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Region location")).toBe(expected);
   });
 
   it.each([
