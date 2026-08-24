@@ -41,6 +41,25 @@ class NullAdjudicationClient:
 _CONFIDENCE_PATTERN = re.compile(r"([01](?:\.\d+)?)")
 
 
+def judge_prompt(candidate_label: str, record_label: str) -> str:
+    """The one adjudication prompt, shared by the live client and the
+    queued batch scorer so both channels ask the identical question."""
+    return (
+        "On a scale from 0.0 (definitely unrelated) to 1.0 (definitely the same "
+        "thread, B directly follows from A), how confident are you that record B "
+        "is a direct continuation of record A? Reply with only the number.\n\n"
+        f"Record A: {candidate_label}\nRecord B: {record_label}"
+    )
+
+
+def parse_confidence(content: str) -> float:
+    """Clamp the judge's numeric reply into [0, 1]; no number reads as 0."""
+    match = _CONFIDENCE_PATTERN.search(content)
+    if match is None:
+        return 0.0
+    return max(0.0, min(1.0, float(match.group(1))))
+
+
 class ContextualOrchestratorAdjudicationClient:
     """Calls ``POST {base_url}/v1/chat/completions`` with ``mode="auto"``.
 
@@ -60,24 +79,16 @@ class ContextualOrchestratorAdjudicationClient:
 
     def judge(self, candidate_label: str, record_label: str) -> float:
         """Score the candidate and record labels for semantic adjudication."""
-        prompt = (
-            "On a scale from 0.0 (definitely unrelated) to 1.0 (definitely the same "
-            "thread, B directly follows from A), how confident are you that record B "
-            "is a direct continuation of record A? Reply with only the number.\n\n"
-            f"Record A: {candidate_label}\nRecord B: {record_label}"
-        )
         body = post_json(
             f"{self._base_url}/v1/chat/completions",
             {
-                "messages": [{"role": "user", "content": prompt}],
+                "messages": [
+                    {"role": "user", "content": judge_prompt(candidate_label, record_label)}
+                ],
                 "mode": "auto",
                 "reasoning_effort": self._reasoning_effort,
             },
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = body["choices"][0]["message"]["content"]
-        match = _CONFIDENCE_PATTERN.search(content)
-        if match is None:
-            return 0.0
-        return max(0.0, min(1.0, float(match.group(1))))
+        return parse_confidence(body["choices"][0]["message"]["content"])
