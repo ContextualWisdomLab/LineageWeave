@@ -4,8 +4,14 @@ safe local-dev default or must be set explicitly."""
 
 from __future__ import annotations
 
+import math
 import os
 from dataclasses import dataclass
+
+# Hard ceiling on one Global Ask job's answer computation, shared with the
+# worker in global_ask_queue.py so config validation and execution can never
+# disagree about the bound.
+GLOBAL_ASK_JOB_DEADLINE_SECONDS = 600
 
 
 @dataclass(frozen=True)
@@ -44,6 +50,11 @@ class Settings:
     frontend_origins: list[str]
     orchestrator_base_url: str
     orchestrator_api_key: str
+    # Socket timeout for one Ask answer round-trip. Must stay below the Ask
+    # worker's job deadline so the client, not the job reaper, ends a slow
+    # call — hanging up earlier discards an answer the orchestrator has
+    # already paid to generate (observed live as a BrokenPipe on its side).
+    orchestrator_answer_timeout_seconds: float
     embedding_model: str
     valkey_url: str
     searxng_base_url: str
@@ -57,6 +68,26 @@ class Settings:
     def keycloak_jwks_uri(self) -> str:
         """JWKS URL the backend process itself can reach (internal DNS in compose)."""
         return f"{self.keycloak_base_url}/realms/{self.keycloak_realm}/protocol/openid-connect/certs"
+
+
+def _validated_answer_timeout(raw: str) -> float:
+    """Parse the Ask answer timeout and hold it under the job deadline.
+
+    The client must hang up before the worker's deadline reaper so a slow
+    answer settles as a clean client timeout, never a reaped job — values
+    at or above the deadline (or non-finite/non-positive ones) silently
+    break that ordering, so they are configuration errors.
+    """
+    try:
+        value = float(raw)
+    except ValueError as exc:
+        raise ValueError("ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS must be a number") from exc
+    if not math.isfinite(value) or not 0 < value < GLOBAL_ASK_JOB_DEADLINE_SECONDS:
+        raise ValueError(
+            "ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS must be a finite number greater"
+            f" than 0 and less than {GLOBAL_ASK_JOB_DEADLINE_SECONDS}"
+        )
+    return value
 
 
 def load_settings() -> Settings:
@@ -132,6 +163,9 @@ def load_settings() -> Settings:
         ],
         orchestrator_base_url=os.environ.get("ORCHESTRATOR_BASE_URL", ""),
         orchestrator_api_key=os.environ.get("ORCHESTRATOR_API_KEY", ""),
+        orchestrator_answer_timeout_seconds=_validated_answer_timeout(
+            os.environ.get("ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS", "570")
+        ),
         embedding_model=os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip(),
         valkey_url=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
         searxng_base_url=os.environ.get("SEARXNG_BASE_URL", ""),
