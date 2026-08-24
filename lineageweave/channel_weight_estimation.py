@@ -17,8 +17,9 @@ Fail-closed like every optional capability in this codebase: when
 `fast_mlsirm` is not importable, the sample is too small, any channel is
 degenerate (fewer than two distinct dichotomized responses), or the fit
 produces a non-finite estimate, :func:`estimate_channel_weights` returns
-``None`` and the caller keeps the documented fallback constants -- it
-never fabricates a "grounded" weight.
+``None`` and the caller fails closed -- product paths refuse to
+reconstruct, the demo refuses to fuse (ADR 0145, second amendment: no
+fallback constants exist) -- it never fabricates a "grounded" weight.
 """
 
 from __future__ import annotations
