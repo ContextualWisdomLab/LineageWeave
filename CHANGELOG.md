@@ -40,6 +40,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Event Lineage's DAG no longer leaves a linear (no-branch) reconstruct
+  chain unexplained. `is_branch_point` is only `true` when a post has 2+
+  children -- correct reconstruct behavior, not a bug -- but the graph
+  gave no indication why the "Branch point" legend entry never lit up.
+  Added an explicit note whenever a group has edges but no branch point,
+  translated across all five product locales.
 - `GET /healthz`: a stray decorator had stacked this route onto
   `read_tenant_settings`, so the liveness probe silently required auth and
   hit Postgres instead of returning `{"status": "ok"}`, and the real

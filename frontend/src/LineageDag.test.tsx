@@ -156,6 +156,41 @@ describe("LineageDag", () => {
     expect(screen.getByRole("button", { name: `Open post: ${longLabel}` })).toBeInTheDocument();
   });
 
+  it("explains a linear chain that has no branch point", () => {
+    const graph: LineageGraph = {
+      nodes: [
+        { id: "a1", group: "Project Alpha", label: "Kickoff note", occurred_at: "2026-01-01T00:00:00Z", is_root: true, is_branch_point: false },
+        { id: "a2", group: "Project Alpha", label: "Follow-up note", occurred_at: "2026-01-02T00:00:00Z", is_root: false, is_branch_point: false },
+      ],
+      edges: [{ source: "a1", target: "a2", fused_score: 0.82 }],
+    };
+    render(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
+
+    expect(
+      screen.getByText(
+        "This chain has no branch point: each non-root record matched exactly one likely predecessor. See the evidence trail below for why each link was made.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("does not show the no-branch-point note when a group has a real branch or no edges", () => {
+    const graph: LineageGraph = {
+      nodes: [
+        { id: "a1", group: "Project Alpha", label: "Kickoff note", occurred_at: "2026-01-01T00:00:00Z", is_root: true, is_branch_point: true },
+        { id: "a2", group: "Project Alpha", label: "Follow-up note", occurred_at: "2026-01-02T00:00:00Z", is_root: false, is_branch_point: false },
+        { id: "a3", group: "Project Alpha", label: "Another follow-up", occurred_at: "2026-01-03T00:00:00Z", is_root: false, is_branch_point: false },
+        { id: "b1", group: "Project Beta", label: "Beta kickoff", occurred_at: "2026-01-03T00:00:00Z", is_root: true, is_branch_point: false },
+      ],
+      edges: [
+        { source: "a1", target: "a2", fused_score: 0.8 },
+        { source: "a1", target: "a3", fused_score: 0.7 },
+      ],
+    };
+    render(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
+
+    expect(screen.queryByText(/has no branch point/)).not.toBeInTheDocument();
+  });
+
   it("does not count or render a relationship whose other endpoint is not visible", () => {
     const graph: LineageGraph = {
       nodes: [
