@@ -1439,6 +1439,33 @@ or an explicit unavailable result.
   failing "Frontend lint, test, build" with the same `TS6192`/`TS2322`
   errors needs a rebase onto `main` after #426 merges, not a code change.
 
+### 5.z PR #463 audit port (2026-08-24) — items re-verified open on this branch
+
+PR #463's 2026-08-23 audit targeted the pre-restructure version of this
+document and could not merge; most of its findings are already fixed or
+tracked above. These six were re-verified against this branch's current
+head (`aab4a6eb`) and remain true and previously untracked here:
+
+- **DAG keyboard focus ring is very weak**: `.lineage-dag-node:focus`
+  strips the native outline (`App.css:2201-2203`, `outline: none`) and
+  relies on a same-color stroke bump — insufficient focus indication
+  (WCAG 2.4.7). Open.
+- **Rendered post-body tables have no header semantics**: `PostBody.tsx`
+  emits only `<td>` (zero `<th scope>` / `<caption>`); the `<th>` support
+  merged in PR #303 was silently dropped by the `ef6f5a5f` whole-file
+  rewrite. Open (regression).
+- **Unregistered i18n aria-label key**: `tf("Affiliates of {name}")`
+  (`App.tsx:5274`) has no entry in any ko/zh/ja/vi block of `i18n.ts`, so
+  the customer-entity-tree label always renders in English. Open.
+- **Drafted `CHANGELOG.d/` fragments (2.12.7 through 2.21.1) were never
+  compiled** into `CHANGELOG.md` — the release prose exists; the compile
+  step never ran. Open (mechanical).
+- **The durable post-content ingestion queue (ADR 0098) shipped with no
+  CHANGELOG entry** (no `CHANGELOG.md` line, no `CHANGELOG.d/` fragment) —
+  dropped in the `ef6f5a5f` squash of PR #347. Open.
+- **PR #460's fix is missing from `CHANGELOG.md` `[Unreleased]`.** Open;
+  belongs with the fragment-compilation pass above.
+
 ## 6. Next acceptance loop
 
 1. Isolate the dirty continuation on a current-main branch without overwriting
