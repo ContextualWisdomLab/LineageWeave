@@ -125,6 +125,10 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+      # Warm-up window: failures inside start_period do not consume the retry
+      # budget, so a cold boot keeps its former ~100s grace while a genuinely
+      # dead service still fails backend's depends_on gate after ~50s.
+      start_period: 50s
 
   backend:
     build:
