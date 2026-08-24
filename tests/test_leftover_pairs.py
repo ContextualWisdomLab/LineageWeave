@@ -241,3 +241,32 @@ def test_pad_map_axes_truncates_hidden_svd_components() -> None:
     padded = leftover._pad_map_axes(np.array([[1.0, 2.0, 9.0]], dtype=np.float64))
     assert padded.shape == (1, 2)
     assert padded[0].tolist() == pytest.approx([1.0, 2.0])
+
+
+def test_small_rank1_cell_keeps_nonzero_explained_share() -> None:
+    """A tiny-but-valid rank-1 cell keeps its share instead of collapsing to 0.
+
+    The singular floor applies to absolute magnitudes, not squared values, so
+    a 1e-7-scale residual pair is still measured rather than floored to zero.
+    """
+    post_ids = ["post-a", "post-b"]
+    item_codes = ("item-a", "item-b")
+    matrix = np.array(
+        [
+            [1e-7 + 3.0, 3.0],
+            [3.0, 3.0 - 1e-7],
+        ],
+        dtype=np.float64,
+    )
+    expected = np.zeros_like(matrix)
+    pairs = leftover_pairs_from_residual(post_ids, item_codes, matrix, expected)
+    for pair in pairs:
+        if abs(pair.leftover_residual) > 0.0:
+            assert pair.leftover_map_explained_share is not None
+            assert pair.leftover_map_explained_share == pytest.approx(1.0, abs=1e-6)
+
+
+def test_large_finite_cell_returns_none_instead_of_inf() -> None:
+    """Squaring large finite values must not leak inf into the persisted share."""
+    share = leftover._explained_leftover_share(1e200, 2e200)
+    assert share is None or np.isfinite(share)

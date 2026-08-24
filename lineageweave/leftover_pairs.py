@@ -150,11 +150,13 @@ def _explained_leftover_share(filled: float, reconstruction: float) -> float | N
     """
     if not np.isfinite(filled) or not np.isfinite(reconstruction):
         return None
-    filled_sq = float(filled * filled)
-    reconstruction_sq = float(reconstruction * reconstruction)
-    if filled_sq > _LEFTOVER_SINGULAR_FLOOR:
-        return float(reconstruction_sq / filled_sq)
-    if reconstruction_sq <= _LEFTOVER_SINGULAR_FLOOR:
+    # Compare the absolute magnitudes against the singular floor before
+    # squaring: squaring first makes the effective threshold sqrt(1e-12)
+    # and can overflow large finite inputs to inf.
+    if abs(filled) > _LEFTOVER_SINGULAR_FLOOR:
+        share = float((reconstruction / filled) ** 2)
+        return share if np.isfinite(share) and share >= 0.0 else None
+    if abs(reconstruction) <= _LEFTOVER_SINGULAR_FLOOR:
         return 0.0
     return None
 
