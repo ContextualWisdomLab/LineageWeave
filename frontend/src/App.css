@@ -350,6 +350,25 @@
   white-space: pre-wrap;
 }
 
+.post-body-text sup,
+.post-body-text sub,
+.post-body-table sup,
+.post-body-table sub {
+  font-size: 0.75em;
+  line-height: 0;
+  font-weight: 600;
+}
+
+.post-body-text sup,
+.post-body-table sup {
+  vertical-align: super;
+}
+
+.post-body-text sub,
+.post-body-table sub {
+  vertical-align: sub;
+}
+
 .post-embedded-image {
   margin: 0;
   padding: var(--post-image-padding);
@@ -720,6 +739,27 @@
   align-items: center;
   padding: 0.4rem 0;
   gap: 0.5rem;
+}
+
+.ranking-hit {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.ranking-channel-evidence-copy {
+  margin: 0 0 0.75rem;
+}
+
+.ranking-channel-evidence {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 0.5rem;
+  font-size: 0.85rem;
+}
+
+.ranking-channel-evidence li {
+  margin: 0.15rem 0;
 }
 
 .ticket-title {

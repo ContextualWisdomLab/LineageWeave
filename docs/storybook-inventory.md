@@ -7,9 +7,13 @@ buyer-facing control you can click before changing product CSS.
 |---|---|---|
 | `Evidence/CitationChip` | Click a cited title to open that source post. | `--color-chip-border`, `--radius-chip`, `CitationChip` |
 | `Evidence/PostBody` | Open Image regions and read each bounding range beside its caption; inspect the whitespace-caption state to confirm the image keeps a usable fallback name. | `--text-muted`, `PostBody` |
+| `Evidence/AskEvidenceLayerPopup` | Inspect one citation without leaving the answer; close to continue the answer or open the complete source post. Stories cover text/image evidence, no-evidence, missing OCR, null caption, and blank-caption fallback states. | shared popup tokens through `App.css`, `PopupCloseButton`, `AskEvidenceLayerPopup` |
 | `AnalysisRun/CutoffKnownBody` | Read the cutoff-known sentence, then compare it with the live body below. | `--color-accent-border`, `--space-panel-block`, `--radius-panel`, `CutoffKnownBody` |
 | `Analysis/LineageEntityPicker` | Choose which corp to reconstruct, then click Request a lineage reconstruction. | `--space-control-gap`, `--size-control-min`, `--radius-control`, `LineageEntityPicker` |
+| `Admin/AdminPanel` | Change the tenant brand name, then verify the saved or failed state before leaving settings. | `--surface`, `--border`, `--space-panel-block`, `AdminPanel` |
+| `Lineage/LineageDag` | Open the current branch node; compare empty, grouped/forked, ungrouped, and long-title states before changing graph CSS. | `--surface`, `--border`, `LineageDag` |
 | `Chrome/PopupCloseButton` | Close the evidence panel or post popup. | `--space-close-inset`, `--font-size-close`, `PopupCloseButton` |
+| `Reports/LeftoverPairList` | Read residual R, observed Y, expected E, map rank, and distance after IRT main effects, then open the named post. | `--color-chip-border`, `LeftoverPairList` |
 
 Repeated web objects must use `frontend/src/styles/tokens.css` and a module
 under `frontend/src/components/`. Do not add a second Node package manager;

@@ -207,6 +207,8 @@ Anagnostopoulos, E., Batsakis, S., & Petrakis, E. G. M. (2013). CHRONOS: A reaso
 
 Browne, W. J., Goldstein, H., & Rasbash, J. (2001). Multiple membership multiple classification (MMMC) models. *Statistical Modelling*, *1*(2), 103-124. https://doi.org/10.1177/1471082X0100100202
 
+Cai, D., Yu, S., Wen, J.-R., & Ma, W.-Y. (2003). *VIPS: A vision-based page segmentation algorithm* (Microsoft Research Technical Report MSR-TR-2003-79). Microsoft Research.
+
 Chang, J., & Blei, D. M. (2009). Relational topic models for document networks. In D. van Dyk & M. Welling (Eds.), *Proceedings of the 12th International Conference on Artificial Intelligence and Statistics* (pp. 81-88). PMLR.
 
 Christen, P. (2012). *Data matching: Concepts and techniques for record linkage, entity resolution, and duplicate detection*. Springer. https://doi.org/10.1007/978-3-642-31164-2
@@ -225,6 +227,8 @@ Gildea, D., & Jurafsky, D. (2002). Automatic labeling of semantic roles. *Comput
 
 Hearst, M. A. (1997). TextTiling: Segmenting text into multi-paragraph subtopic passages. *Computational Linguistics*, *23*(1), 33-64.
 
+International Organization for Standardization. (2022). *Quantities and units — Part 1: General* (ISO 80000-1:2022).
+
 Lewis, P., Perez, E., Piktus, A., Petroni, F., Karpukhin, V., Goyal, N., Küttler, H., Lewis, M., Yih, W., Rocktäschel, T., Riedel, S., & Kiela, D. (2020). Retrieval-augmented generation for knowledge-intensive NLP tasks. In H. Larochelle, M. Ranzato, R. Hadsell, M. F. Balcan, & H. Lin (Eds.), *Advances in Neural Information Processing Systems* (Vol. 33, pp. 9459-9474). Curran Associates.
 
 Li, M., Lv, T., Chen, J., Cui, L., Lu, Y., Florencio, D., Zhang, C., Li, Z., & Wei, F. (2023). TrOCR: Transformer-based optical character recognition with pre-trained models. *Proceedings of the AAAI Conference on Artificial Intelligence*, *37*(11), 13094-13102. https://doi.org/10.1609/aaai.v37i11.26538
@@ -240,6 +244,8 @@ See, A., Liu, P. J., & Manning, C. D. (2017). Get to the point: Summarization wi
 Sun, Q., Yuan, J., He, S., Guan, X., Yuan, H., Fu, X., Li, J., & Yu, P. S. (2025). *DyG-RAG: Dynamic graph retrieval-augmented generation with event-centric reasoning*. arXiv. https://arxiv.org/abs/2507.13396
 
 Tong, H., Faloutsos, C., & Pan, J.-Y. (2006). Fast random walk with restart and its applications. *Proceedings of the Sixth International Conference on Data Mining (ICDM'06)*, 613-622. https://doi.org/10.1109/ICDM.2006.70
+
+The Unicode Consortium. (2024). *The Unicode Standard* (Version 16.0.0). https://www.unicode.org/versions/Unicode16.0.0/
 
 Wang, Q., Fu, Y., Cao, Y., Wang, S., Tian, Z., & Ding, L. (2023). *Recursively summarizing enables long-term dialogue memory in large language models*. arXiv. https://arxiv.org/abs/2308.15022
 
@@ -379,3 +385,15 @@ summarize-and-replace older turns instead of an unbounded transcript or a
 hard truncation that silently drops earlier decisions. This is recorded
 here as the citation this feature would build on, not as a claim that
 conversation-level compression is implemented today.
+
+## Quantity scripts in source units (ADR 0165)
+
+Board exports write cubic metres as HTML `<sup>` or as `m^3`. Flattening
+those tags concatenates `m3`, which is a different quantity, and leaving
+the caret in the buyer view hides the exponent. Derived units map a short
+HTML/caret exponent onto Unicode Super/Subscript characters (The Unicode
+Consortium, 2024, §22.4) so embeddings keep the unit (Cai, Yu, Wen, & Ma,
+2003) while the post view renders React `<sup>`/`<sub>` instead of
+`innerHTML`. ISO 80000-1 treats the exponent on a unit symbol as part of
+the quantity, not decoration. Comparison operators and a leading footnote
+caret stay literal. Full formula ontology is still open.
