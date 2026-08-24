@@ -63,4 +63,4 @@ __all__ = [
     "sentence_excerpts",
 ]
 
-__version__ = "2.12.18"
+__version__ = "2.12.19"

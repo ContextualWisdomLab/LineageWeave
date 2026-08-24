@@ -148,6 +148,15 @@ _RUN_DETAIL_SQL = f"""
     order by run.requested_at desc
 """
 
+_COUNTS_BY_RUN_SQL = """
+    select run.analysis_run_id, counts.count_type_code, counts.count_value
+    from analysis_run run
+    join analysis_source_count counts
+      on counts.analysis_source_snapshot_id = run.analysis_source_snapshot_id
+    where run.analysis_run_id = any($1::uuid[])
+    order by counts.count_type_code
+"""
+
 
 def scope_grouping_key(row: Any) -> str | None:
     """Persist the reconstruct grouping key for the run's authorized scope.
@@ -195,16 +204,9 @@ async def _counts_by_run(
     """Load aggregate snapshot counts for the given runs."""
     if not run_ids:
         return {}
-    # Safe SQL: this immutable aggregate query has closed schema text; run ids are bound below.
+    # Safe SQL: this immutable aggregate query has closed schema text; run ids remain bound below.
     rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        f"""
-        select run.analysis_run_id, counts.count_type_code, counts.count_value
-        from analysis_run run
-        join analysis_source_count counts
-          on counts.analysis_source_snapshot_id = run.analysis_source_snapshot_id
-        where run.analysis_run_id = any($1::uuid[])
-        order by counts.count_type_code
-        """,
+        _COUNTS_BY_RUN_SQL,
         run_ids,
     )
     grouped: dict[str, list[asyncpg.Record]] = {}
