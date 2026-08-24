@@ -25,7 +25,9 @@ from typing import Any, Callable
 
 import asyncpg
 import redis.asyncio as redis
+from fastapi import HTTPException, status
 
+from lineageweave.http_client import HttpClientError
 from lineageweave.post_chat import (
     PostChatClient,
     cited_post_evidence,
@@ -36,6 +38,7 @@ from lineageweave.temporal_expressions import resolve_korean_relative_time
 
 from .config import GLOBAL_ASK_JOB_DEADLINE_SECONDS
 from .lineage_ingestion import lineage_graphs_for_posts
+from .operability import log_internal_fault, log_provider_unavailable
 from .post_chat_ingestion import _seoul_today, cited_post_images, gather_global_chat_sources
 
 GLOBAL_ASK_STREAM_KEY = "global_ask_request_stream"
@@ -179,9 +182,35 @@ async def compute_global_ask_answer(
             "cited_post_images": [],
             "next_action": "No authorized source posts are available for this question.",
         }
-    answer = await asyncio.to_thread(
-        chat_client.answer, _temporally_grounded_question(question_text, today=today), sources
-    )
+    try:
+        answer = await asyncio.to_thread(
+            chat_client.answer, _temporally_grounded_question(question_text, today=today), sources
+        )
+    except (HttpClientError, OSError) as exc:
+        # Known transport/provider failure. Same generic 503 text on every
+        # failure path so callers cannot probe which internal classifier
+        # fired; the event_type distinction lives only in server logs.
+        log_provider_unavailable("global_ask", exc)
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
+        ) from exc
+    except (KeyError, ValueError) as exc:
+        # Contract/schema fault: the orchestrator responded but its payload
+        # did not match the evidence-object contract.
+        log_internal_fault("global_ask", exc)
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
+        ) from exc
+    except Exception as exc:
+        # Unexpected defect. Keep the customer boundary and emit a full
+        # structured internal-fault diagnostic (message-redacted).
+        log_internal_fault("global_ask", exc)
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
+        ) from exc
     cited_ids = list(answer.cited_post_ids)
     async with pool.acquire() as conn:
         lineage_graph = await lineage_graphs_for_posts(conn, can_see, cited_ids)
@@ -280,7 +309,21 @@ async def process_global_ask_job(
         # the task silently and strand the row `running` until orphan
         # recovery (observed live) — every failure settles the job.
         _logger.exception("global ask job failed for job_id=%s", job_id)
-        detail = str(exc) or f"job exceeded the {JOB_DEADLINE_SECONDS}s deadline"
+        if isinstance(exc, (PermissionError, ConnectionError)):
+            # Raised locally with a pre-authored, safe message (permission
+            # state / missing config) — never a provider-boundary leak.
+            detail = str(exc)
+        elif isinstance(exc, asyncio.TimeoutError):
+            detail = f"job exceeded the {JOB_DEADLINE_SECONDS}s deadline"
+        else:
+            # Provider responses/exceptions can carry credentials, gateway
+            # diagnostics, or model output (ADR 0123): never persist the
+            # raw exception text as a durable `failure_detail`. The
+            # traceback just logged keeps it for operator debugging only.
+            detail = (
+                "Ask Agent is unavailable: contextual-orchestrator returned "
+                "no complete evidence object"
+            )
         async with pool.acquire() as conn:
             await conn.execute(
                 """
