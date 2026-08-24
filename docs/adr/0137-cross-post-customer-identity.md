@@ -114,6 +114,21 @@ sequenceDiagram
   ambiguous labels without losing the current preferred name; former and
   alternate names are visible when the Customer Master entity is expanded.
 
+### Correction (2026-08-24)
+
+This ADR's References section previously attributed the real W3C document
+"PROV-O: The PROV ontology" (https://www.w3.org/TR/prov-o/) to "Moreau, L.,
+& Missier, P. (Eds.)." The document itself is real and item 8's "not a new
+PROV-O predicate" language correctly names the right ontology, but Luc
+Moreau and Paolo Missier are not its editors. They are the real editors of
+a sibling W3C PROV-family document published the same day, *PROV-DM: The
+PROV data model* (https://www.w3.org/TR/prov-dm/) -- the citation paired a
+real title and URL with the wrong sibling document's real editors. It is
+corrected below to PROV-O's actual editors, Timothy Lebo, Satya Sahoo, and
+Deborah McGuinness, as named in the W3C Recommendation itself. The
+technical claim in item 8 is unaffected: PROV-O remains the correct
+ontology being distinguished from the judgment-to-post audit table.
+
 ## References (APA 7th)
 
 Bhattacharya, I., & Getoor, L. (2007). Collective entity resolution in
@@ -124,8 +139,8 @@ Miles, A., & Bechhofer, S. (Eds.). (2009). *SKOS simple knowledge
 organization system reference*. World Wide Web Consortium.
 https://www.w3.org/TR/skos-reference/
 
-Moreau, L., & Missier, P. (Eds.). (2013). *PROV-O: The PROV ontology*.
-World Wide Web Consortium. https://www.w3.org/TR/prov-o/
+Lebo, T., Sahoo, S., & McGuinness, D. (Eds.). (2013). *PROV-O: The PROV
+ontology*. World Wide Web Consortium. https://www.w3.org/TR/prov-o/
 
 Reynolds, D. (Ed.). (2014). *The organization ontology*. World Wide Web
 Consortium. https://www.w3.org/TR/vocab-org/

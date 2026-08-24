@@ -631,9 +631,21 @@ or an explicit unavailable result.
   for audit-trail transparency (relevant given this project's SOC 2/CSAP
   posture). `tests/test_adr_citation_integrity.py` pins the correction so
   the fabricated string cannot silently reappear. A dedicated citation-
-  integrity sweep across all 44 ADRs with a References section is running
-  to check whether this is an isolated incident or a systemic pattern;
-  its findings and fixes land as separate follow-up work.
+  integrity sweep across all 44 ADRs with a References section (149
+  citations total) then ran to check whether this was an isolated
+  incident or a systemic pattern: it was isolated -- 147 of 149
+  citations verified real (W3C/IETF standards, ACM/IEEE/arXiv papers,
+  and software-documentation links all checked out). Two more, lower-
+  severity issues surfaced: ADR 0025 and ADR 0137 both cited the real
+  W3C PROV-O document (correct title and URL) but attributed it to
+  "Moreau, L., & Missier, P. (Eds.)" -- the real editors of the sibling
+  same-day PROV-DM spec, not PROV-O itself (PROV-O's real editors are
+  Lebo, Sahoo, & McGuinness, 2013). Both are corrected in place with the
+  same visible-correction-note pattern; `tests/test_adr_citation_integrity.py`
+  now pins all three fixes (ADR 0024, 0025, 0137). No further fabricated
+  or misattributed citations remain in the ADR corpus as of this sweep;
+  a future ADR should be checked the same way before its citations are
+  trusted, since this sweep only covers ADRs that existed when it ran.
 - **Technology-benefit relation (which partner technology, who adopted it,
   where it is applied) — locally implemented, acceptance open (2026-08-24):**
   source research (ADR 0133/0145) can resolve a partner organization a post
