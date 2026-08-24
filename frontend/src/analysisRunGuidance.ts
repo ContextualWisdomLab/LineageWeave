@@ -48,6 +48,9 @@ export function analysisRunNextAction(run: AnalysisRun): string | null {
         case "analysis_run_lineage":
           return "Refresh this run. Reconstruction is already queued on the durable outbox.";
         case "analysis_run_tepp":
+          if (run.tepp_accepted_receipt) {
+            return "TEPP accepted this measurement. Check its status to retrieve the completed result. This receipt is not a calibrated score.";
+          }
           return "Refresh this run. Measurement is already queued on the durable outbox.";
         case "analysis_run_report":
           return "Refresh this run. The period report is already queued on the durable outbox.";
@@ -114,8 +117,15 @@ export function analysisRunCorpusHint(run: AnalysisRun): string | null {
   }
 }
 
-/** Start is only for a Pending lineage or TEPP row. Running work is already queued. */
+/** Start is for Pending lineage/TEPP, or a Running TEPP receipt re-check. */
 export function analysisRunCanStart(run: AnalysisRun): boolean {
+  if (
+    run.run_kind_code === "analysis_run_tepp" &&
+    run.status_code === "analysis_status_running" &&
+    run.tepp_accepted_receipt
+  ) {
+    return true;
+  }
   return (
     (run.run_kind_code === "analysis_run_lineage" || run.run_kind_code === "analysis_run_tepp") &&
     run.status_code === "analysis_status_pending"
@@ -123,13 +133,17 @@ export function analysisRunCanStart(run: AnalysisRun): boolean {
 }
 
 export function analysisRunCanRefresh(run: AnalysisRun): boolean {
+  if (run.run_kind_code === "analysis_run_tepp" && run.tepp_accepted_receipt) {
+    return false;
+  }
   return run.status_code === "analysis_status_running";
 }
 
 export function analysisRunStartLabel(run: AnalysisRun): string {
-  return run.run_kind_code === "analysis_run_tepp"
-    ? "Start TEPP measurement"
-    : "Start reconstruction";
+  if (run.run_kind_code !== "analysis_run_tepp") return "Start reconstruction";
+  return run.status_code === "analysis_status_running"
+    ? "Check TEPP measurement status"
+    : "Start TEPP measurement";
 }
 
 export function analysisRunRefreshLabel(): string {

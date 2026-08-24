@@ -43,7 +43,9 @@ export function AnalysisRunNextAction({
         >
           {starting
             ? run.run_kind_code === "analysis_run_tepp"
-              ? "Submitting the TEPP request..."
+              ? run.status_code === "analysis_status_running"
+                ? "Checking TEPP measurement status..."
+                : "Submitting the TEPP request..."
               : "Reconstructing the cutoff bag..."
             : startLabel}
         </button>

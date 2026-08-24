@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { setLocale } from "./i18n";
+import { OIDC_RETURN_URL_STORAGE_KEY } from "./oidcReturnUrl";
 
 const signinRedirect = vi.fn();
 const signoutRedirect = vi.fn();
@@ -48,6 +49,7 @@ describe("App, unauthenticated", () => {
   it("shows a login button that starts the real OIDC redirect", async () => {
     window.sessionStorage.clear();
     render(<App showLabPanels />);
+    expect(screen.queryByRole("heading", { name: /admin settings/i })).toBeNull();
     const button = screen.getByRole("button", { name: /log in/i });
     await userEvent.click(button);
     expect(signinRedirect).toHaveBeenCalledTimes(1);
@@ -56,7 +58,8 @@ describe("App, unauthenticated", () => {
         state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
       }),
     );
-    expect(window.sessionStorage.getItem("lineageweave.oidc.returnUrl")).toBe("/");
+    expect(window.sessionStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toMatch(/^\//);
+    expect(window.localStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toMatch(/^\//);
   });
 
   it("remembers a same-origin post deep link before the OIDC redirect", async () => {
@@ -174,6 +177,7 @@ describe("App, authenticated", () => {
     succeededReportRun?: boolean;
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
+    acceptedTeppRun?: boolean;
     pluralAffiliations?: boolean;
     manyAffiliations?: boolean;
     noAffiliations?: boolean;
@@ -300,6 +304,28 @@ describe("App, authenticated", () => {
             process_unit_name: "Demo PU",
           },
         ];
+
+    const teppStatus = options?.acceptedTeppRun
+      ? "analysis_status_running"
+      : options?.succeededTeppRun
+        ? "analysis_status_succeeded"
+        : options?.pendingTeppRun
+          ? "analysis_status_pending"
+          : "analysis_status_failed";
+    const teppLabel = options?.acceptedTeppRun
+      ? "Running"
+      : options?.succeededTeppRun
+        ? "Succeeded"
+        : options?.pendingTeppRun
+          ? "Pending"
+          : "Failed";
+    const teppAcceptedReceipt = options?.acceptedTeppRun
+      ? {
+          remote_run_id: "tepp-run-accepted-1",
+          accepted_status_code: "accepted" as const,
+          received_at: "2026-01-12T12:36:30Z",
+        }
+      : undefined;
 
     let releaseMe = () => {};
     let releasePosts = () => {};
@@ -552,16 +578,6 @@ describe("App, authenticated", () => {
         );
       }
       if (url.endsWith("/api/analysis-runs/run-demo-tepp")) {
-        const teppStatus = options?.succeededTeppRun
-          ? "analysis_status_succeeded"
-          : options?.pendingTeppRun
-            ? "analysis_status_pending"
-            : "analysis_status_failed";
-        const teppLabel = options?.succeededTeppRun
-          ? "Succeeded"
-          : options?.pendingTeppRun
-            ? "Pending"
-            : "Failed";
         return Promise.resolve(
           jsonResponse({
             analysis_run_id: "run-demo-tepp",
@@ -582,6 +598,7 @@ describe("App, authenticated", () => {
               },
             ],
             visible_posts: [{ post_id: "post-1", post_title: "Public post" }],
+            ...(teppAcceptedReceipt ? { tepp_accepted_receipt: teppAcceptedReceipt } : {}),
             status_history: options?.pendingTeppRun
               ? [
                   {
@@ -591,31 +608,46 @@ describe("App, authenticated", () => {
                     occurred_at: "2026-01-12T12:35:00Z",
                   },
                 ]
-              : [
-                  {
-                    status_ordinal: 1,
-                    status_code: "analysis_status_pending",
-                    status_label: "Pending",
-                    occurred_at: "2026-01-12T12:35:00Z",
-                  },
-                  {
-                    status_ordinal: 2,
-                    status_code: "analysis_status_running",
-                    status_label: "Running",
-                    occurred_at: "2026-01-12T12:36:00Z",
-                  },
-                  {
-                    status_ordinal: 3,
-                    status_code: options?.succeededTeppRun
-                      ? "analysis_status_succeeded"
-                      : "analysis_status_failed",
-                    status_label: options?.succeededTeppRun ? "Succeeded" : "Failed",
-                    occurred_at: "2026-01-12T12:37:00Z",
-                    ...(options?.succeededTeppRun
-                      ? {}
-                      : { failure_code: "tepp_not_available" }),
-                  },
-                ],
+              : options?.acceptedTeppRun
+                ? [
+                    {
+                      status_ordinal: 1,
+                      status_code: "analysis_status_pending",
+                      status_label: "Pending",
+                      occurred_at: "2026-01-12T12:35:00Z",
+                    },
+                    {
+                      status_ordinal: 2,
+                      status_code: "analysis_status_running",
+                      status_label: "Running",
+                      occurred_at: "2026-01-12T12:36:00Z",
+                    },
+                  ]
+                : [
+                    {
+                      status_ordinal: 1,
+                      status_code: "analysis_status_pending",
+                      status_label: "Pending",
+                      occurred_at: "2026-01-12T12:35:00Z",
+                    },
+                    {
+                      status_ordinal: 2,
+                      status_code: "analysis_status_running",
+                      status_label: "Running",
+                      occurred_at: "2026-01-12T12:36:00Z",
+                    },
+                    {
+                      status_ordinal: 3,
+                      status_code: options?.succeededTeppRun
+                        ? "analysis_status_succeeded"
+                        : "analysis_status_failed",
+                      status_label: options?.succeededTeppRun ? "Succeeded" : "Failed",
+                      occurred_at: "2026-01-12T12:37:00Z",
+                      ...(options?.succeededTeppRun
+                        ? {}
+                        : { failure_code: "tepp_not_available" }),
+                    },
+                  ],
           }),
         );
       }
@@ -926,16 +958,8 @@ describe("App, authenticated", () => {
                 scope_kind_code: "analysis_scope_corporate_entity",
                 scope_kind_label: "Corporate entity",
                 scope_entity_name: "Demo Corp",
-                status_code: options?.succeededTeppRun
-                  ? "analysis_status_succeeded"
-                  : options?.pendingTeppRun
-                    ? "analysis_status_pending"
-                    : "analysis_status_failed",
-                status_label: options?.succeededTeppRun
-                  ? "Succeeded"
-                  : options?.pendingTeppRun
-                    ? "Pending"
-                    : "Failed",
+                status_code: teppStatus,
+                status_label: teppLabel,
                 knowledge_cutoff: "2026-01-12T12:00:00Z",
                 requested_at: "2026-01-12T12:34:00Z",
                 source_counts: [
@@ -945,6 +969,7 @@ describe("App, authenticated", () => {
                     count_value: 3,
                   },
                 ],
+                ...(teppAcceptedReceipt ? { tepp_accepted_receipt: teppAcceptedReceipt } : {}),
               },
               {
                 analysis_run_id: "run-demo-report",
@@ -5095,6 +5120,40 @@ describe("App, authenticated", () => {
       await screen.findByText("These posts are the cutoff corpus this TEPP run measured."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/replace Failed/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps an accepted TEPP receipt Running and does not invent a theta", async () => {
+    stubBackend({ acceptedTeppRun: true });
+    render(<App showLabPanels />);
+
+    const listButton = await screen.findByRole("button", {
+      name: "Open analysis run: TEPP measurement · Running · Demo Corp",
+    });
+    expect(listButton).toHaveTextContent(
+      "TEPP accepted this measurement. Check its status to retrieve the completed result. This receipt is not a calibrated score.",
+    );
+    expect(listButton).not.toHaveTextContent("theta");
+    expect(listButton).not.toHaveTextContent("calibrated result");
+
+    await userEvent.click(listButton);
+    expect(
+      await screen.findByRole("heading", { name: "TEPP measurement · Running · Demo Corp" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByText(
+        "TEPP accepted this measurement. Check its status to retrieve the completed result. This receipt is not a calibrated score.",
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("button", { name: "Check TEPP measurement status" }),
+    ).toBeInTheDocument();
+    const history = screen.getByRole("list", { name: "Analysis run status history" });
+    expect(history).toHaveTextContent("Running 2026-01-12 12:36");
+    expect(history).not.toHaveTextContent("Succeeded");
+    expect(history).not.toHaveTextContent("Failed");
+    expect(history).not.toHaveTextContent("tepp_not_available");
+    expect(screen.queryByText(/theta/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/tepp-run-accepted-1/)).not.toBeInTheDocument();
   });
 
   it("records a pending lineage run and opens the authorized detail", async () => {

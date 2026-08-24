@@ -121,6 +121,18 @@ def test_migrate_sh_replays_tenant_identity_metadata_migration_on_existing_volum
     assert "tenant_settings_copyright_year_range_check" in migration
 
 
+def test_migrate_sh_replays_tepp_accepted_receipt_on_existing_volumes() -> None:
+    """Existing volumes must receive the TEPP accepted-receipt table."""
+    root = Path(__file__).resolve().parents[1]
+    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(encoding="utf-8")
+    migration = (root / "migrations" / "0171_analysis_run_tepp_accepted_receipt.sql").read_text(
+        encoding="utf-8"
+    )
+
+    assert "0171_*" in script
+    assert "create table if not exists analysis_run_tepp_accepted_receipt" in migration
+
+
 def test_migrate_sh_replays_analysis_run_status_same_clock_on_existing_volumes() -> None:
     """Existing volumes must replace the analysis-run status trigger from one clock."""
     root = Path(__file__).resolve().parents[1]

@@ -1275,6 +1275,13 @@ export interface AnalysisRunReconstructedEdge {
   fused_score: number;
 }
 
+/** Transport receipt from TEPP AnalysisRunAccepted. Not a measurement. */
+export interface AnalysisRunTeppAcceptedReceipt {
+  remote_run_id: string;
+  accepted_status_code: "accepted" | "queued" | "running";
+  received_at: string;
+}
+
 export interface AnalysisRunVisiblePost {
   post_id: string;
   post_title: string;
@@ -1302,6 +1309,7 @@ export interface AnalysisRun {
   visible_posts?: AnalysisRunVisiblePost[];
   reconstructed_edges?: AnalysisRunReconstructedEdge[];
   reconstruction_result_sha256?: string;
+  tepp_accepted_receipt?: AnalysisRunTeppAcceptedReceipt;
   code_revision_sha?: string;
   configuration_sha256?: string;
 }

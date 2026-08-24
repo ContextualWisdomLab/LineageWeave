@@ -244,6 +244,24 @@ All notable changes to this project are documented here. Format follows
   lineage run and Start still recovers the designed A-100 fork.
   Never invent a theta.
 
+## [2.12.11] - 2026-08-23
+
+### Added
+
+- A live TEPP `accepted` / `queued` / `running` envelope that carries a
+  remote run id is stored as transport evidence
+  (`analysis_run_tepp_accepted_receipt`). The local analysis run stays
+  Running. The receipt is not a calibrated measurement and does not
+  invent a theta. Empty accepted envelopes and a missing transport stay
+  Failed. Completed envelopes still persist `analysis_run_tepp_result`.
+  Completed-result polling remains blocked on TEPP#156.
+
+### Fixed
+
+- Unauthenticated login no longer mounts Admin settings with an
+  undefined access token, and login persists a validated OIDC return
+  URL before the redirect.
+
 ## [2.12.6] - 2026-08-20
 
 ### Added

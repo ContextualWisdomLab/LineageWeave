@@ -2,15 +2,17 @@
 
 ADR 0021 reconstructs lineage. ADR 0022 starts TEPP through
 ``tepp_client`` only. ADR 0023 enqueues that work on a durable outbox
-so a crash after Running does not lose the item. Period-report stays
-another path. Neither start invents a theta or a calibrated report
-score.
+so a crash after Running does not lose the item. ADR 0162 persists a
+TEPP accepted envelope as transport evidence and keeps the local run
+Running. Period-report stays another path. Neither start invents a
+theta or a calibrated report score.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 from urllib.parse import urlparse
@@ -20,6 +22,7 @@ import asyncpg
 
 from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
+    fetch_tepp_accepted_receipt,
     fetch_visible_analysis_run,
 )
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
@@ -44,10 +47,29 @@ _SUCCEEDED = "analysis_status_succeeded"
 _FAILED = "analysis_status_failed"
 _TEPP_MODEL_CONTRACT = "tepp-analysis-run-v1"
 _TEPP_OUTPUT_PROFILE = "calibrated_event_measurement"
+_TEPP_TRANSPORT_STATES = frozenset({"accepted", "queued", "running"})
+_TEPP_COMPLETED_STATES = frozenset({"completed", "succeeded"})
+_PERSIST_RESULT = "result"
+_PERSIST_RECEIPT = "receipt"
 
 
 class AnalysisRunStartError(AnalysisRunCreateError):
     """Fail-closed start: HTTP status plus a next-action detail string."""
+
+
+@dataclass(frozen=True)
+class TeppSubmissionOutcome:
+    """Classified TEPP envelope: local status, optional persist kind.
+
+    ``persist_kind`` is ``result`` (completed measurement), ``receipt``
+    (accepted transport evidence), or empty when nothing may be stored.
+    A receipt is never a measurement and never invents a theta.
+    """
+
+    status_code: str
+    failure_code: str
+    envelope: dict[str, Any] | None
+    persist_kind: str
 
 
 def reconstruction_result_digest(edges: list[Edge]) -> str:
@@ -172,30 +194,96 @@ def tepp_run_request(
     )
 
 
-def _tepp_submission(
+def tepp_envelope_status(envelope: dict[str, Any]) -> str:
+    """Normalize TEPP ``status`` or ``run_state``. Empty when neither is a string."""
+    raw = envelope.get("status")
+    if not isinstance(raw, str) or not raw.strip():
+        raw = envelope.get("run_state")
+    if isinstance(raw, str):
+        return raw.strip().casefold()
+    return ""
+
+
+def tepp_remote_run_id(envelope: dict[str, Any]) -> str:
+    """Remote run identity from TEPP's published envelope keys."""
+    for key in ("analysis_run_id", "run_id", "remote_run_id"):
+        value = envelope.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return ""
+
+
+def tepp_accepted_status_code(envelope: dict[str, Any]) -> str:
+    """Transport state when the envelope is accepted/queued/running."""
+    status = tepp_envelope_status(envelope)
+    return status if status in _TEPP_TRANSPORT_STATES else ""
+
+
+def tepp_request_digest(request: AnalysisRunRequest) -> str:
+    """SHA-256 of the published seven-field request. Never hashes a theta."""
+    material = json.dumps(request.to_json(), separators=(",", ":"), sort_keys=True)
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+
+def tepp_receipt_digest(
+    *,
+    remote_run_id: str,
+    accepted_status_code: str,
+    model_contract_version: str,
+    snapshot_id: str,
+    knowledge_cutoff: str,
+) -> str:
+    """SHA-256 of persisted receipt columns. Never hashes a result body."""
+    material = json.dumps(
+        {
+            "accepted_status_code": accepted_status_code,
+            "knowledge_cutoff": knowledge_cutoff,
+            "model_contract_version": model_contract_version,
+            "remote_run_id": remote_run_id,
+            "snapshot_id": snapshot_id,
+        },
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()
+
+
+def classify_tepp_submission(
     client: TeppClient,
     request: AnalysisRunRequest,
-) -> tuple[str, str, dict[str, Any] | None]:
-    """Submit through ``tepp_client`` and require a completed result envelope.
+) -> TeppSubmissionOutcome:
+    """Classify a TEPP envelope without inventing a measurement.
 
-    TEPP's target HTTP contract is asynchronous. An ``accepted`` response is
-    therefore not a measurement and remains ``tepp_result_not_persisted``.
-    Only a provider-authoritative completed envelope can enter the database.
+    Accepted/queued/running with a remote run id is transport evidence.
+    Only a completed envelope with a result dict may persist a
+    measurement. An empty accepted envelope stays unpersistable.
     """
     try:
         response = client.submit_analysis_run(request)
     except TeppNotAvailable:
-        return _FAILED, "tepp_not_available", None
+        return TeppSubmissionOutcome(_FAILED, "tepp_not_available", None, "")
     if not isinstance(response, dict):
-        return _FAILED, "tepp_result_not_persisted", None
-    if response.get("status") not in {"completed", "succeeded"}:
-        return _FAILED, "tepp_result_not_persisted", None
-    if not isinstance(response.get("result"), dict):
-        return _FAILED, "tepp_result_not_persisted", None
-    remote_run_id = response.get("analysis_run_id") or response.get("run_id")
-    if not isinstance(remote_run_id, str) or not remote_run_id.strip():
-        return _FAILED, "tepp_result_not_persisted", None
-    return _SUCCEEDED, "", response
+        return TeppSubmissionOutcome(_FAILED, "tepp_result_not_persisted", None, "")
+    status = tepp_envelope_status(response)
+    remote_run_id = tepp_remote_run_id(response)
+    if status in _TEPP_COMPLETED_STATES:
+        if isinstance(response.get("result"), dict) and remote_run_id:
+            return TeppSubmissionOutcome(_SUCCEEDED, "", response, _PERSIST_RESULT)
+        return TeppSubmissionOutcome(_FAILED, "tepp_result_not_persisted", None, "")
+    if status in _TEPP_TRANSPORT_STATES:
+        if remote_run_id:
+            return TeppSubmissionOutcome(_RUNNING, "", response, _PERSIST_RECEIPT)
+        return TeppSubmissionOutcome(_FAILED, "tepp_result_not_persisted", None, "")
+    return TeppSubmissionOutcome(_FAILED, "tepp_result_not_persisted", None, "")
+
+
+def _tepp_submission(
+    client: TeppClient,
+    request: AnalysisRunRequest,
+) -> tuple[str, str, dict[str, Any] | None]:
+    """Compatibility projection used by older start tests."""
+    outcome = classify_tepp_submission(client, request)
+    return outcome.status_code, outcome.failure_code, outcome.envelope
 
 
 def tepp_submit_outcome(
@@ -203,8 +291,8 @@ def tepp_submit_outcome(
     request: AnalysisRunRequest,
 ) -> tuple[str, str]:
     """Compatibility projection of the TEPP submission outcome."""
-    status_code, failure_code, _ = _tepp_submission(client, request)
-    return status_code, failure_code
+    outcome = classify_tepp_submission(client, request)
+    return outcome.status_code, outcome.failure_code
 
 
 async def _persist_tepp_result(
@@ -214,8 +302,8 @@ async def _persist_tepp_result(
     envelope: dict[str, Any],
 ) -> bool:
     """Persist only a validated, remote-completed TEPP envelope."""
-    remote_run_id = envelope.get("analysis_run_id") or envelope.get("run_id")
-    if not isinstance(remote_run_id, str) or not remote_run_id.strip():
+    remote_run_id = tepp_remote_run_id(envelope)
+    if not remote_run_id:
         return False
     result_json = json.dumps(envelope, separators=(",", ":"), sort_keys=True)
     result_sha256 = hashlib.sha256(result_json.encode("utf-8")).hexdigest()
@@ -233,6 +321,71 @@ async def _persist_tepp_result(
                 result_json,
                 result_sha256,
             )
+    except (asyncpg.PostgresError, TypeError, ValueError):
+        return False
+    return True
+
+
+async def _persist_tepp_accepted_receipt(
+    conn: asyncpg.Connection,
+    *,
+    analysis_run_id: str,
+    envelope: dict[str, Any],
+    request: AnalysisRunRequest,
+    knowledge_cutoff: datetime,
+) -> bool:
+    """Persist transport evidence. Never writes a result or a theta."""
+    remote_run_id = tepp_remote_run_id(envelope)
+    accepted_status_code = tepp_accepted_status_code(envelope)
+    if not remote_run_id or not accepted_status_code:
+        return False
+    cutoff = knowledge_cutoff
+    if cutoff.tzinfo is None:
+        cutoff = cutoff.replace(tzinfo=timezone.utc)
+    cutoff_iso = cutoff.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    request_sha256 = tepp_request_digest(request)
+    receipt_sha256 = tepp_receipt_digest(
+        remote_run_id=remote_run_id,
+        accepted_status_code=accepted_status_code,
+        model_contract_version=request.model_contract_version,
+        snapshot_id=request.snapshot_id,
+        knowledge_cutoff=cutoff_iso,
+    )
+    try:
+        async with conn.transaction():
+            existing = await conn.fetchrow(
+                """
+                select remote_run_id, request_sha256
+                from analysis_run_tepp_accepted_receipt
+                where analysis_run_id = $1
+                """,
+                analysis_run_id,
+            )
+            if existing is not None:
+                return (
+                    str(existing["remote_run_id"]) == remote_run_id
+                    and str(existing["request_sha256"]) == request_sha256
+                )
+            # Safe SQL: fixed insert text; every external value is bound as $1 through $8.
+            await conn.execute(  # nosemgrep: python.django.security.injection.sql.sql-injection-using-db-cursor-execute.sql-injection-db-cursor-execute, python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli -- code-scanning alert 226
+                """
+                insert into analysis_run_tepp_accepted_receipt
+                    (analysis_run_id, remote_run_id, request_sha256, receipt_sha256,
+                     accepted_status_code, model_contract_version, snapshot_id,
+                     knowledge_cutoff)
+                values ($1, $2, $3, $4, $5, $6, $7, $8)
+                """,
+                analysis_run_id,
+                remote_run_id,
+                request_sha256,
+                receipt_sha256,
+                accepted_status_code,
+                request.model_contract_version,
+                request.snapshot_id,
+                cutoff,
+            )
+    except asyncpg.UndefinedTableError:
+        return False
     except (asyncpg.PostgresError, TypeError, ValueError):
         return False
     return True
@@ -612,7 +765,8 @@ async def deliver_queued_analysis_run(
 
     A delivered row replays the stored result. Missing work is 409.
     TEPP stays Failed when the transport is missing or the envelope is
-    not persistable. No theta is invented.
+    not persistable. An accepted receipt keeps the run Running and
+    leaves the outbox claimed. No theta is invented.
     """
     try:
         UUID(analysis_run_id)
@@ -669,7 +823,7 @@ async def deliver_queued_analysis_run(
                 valkey_stream_entry_id,
             )
         if outbox["work_kind_code"] == _TEPP_KIND:
-            await _deliver_tepp_measurement(
+            terminal = await _deliver_tepp_measurement(
                 conn,
                 analysis_run_id=analysis_run_id,
                 locked=outbox,
@@ -683,17 +837,19 @@ async def deliver_queued_analysis_run(
                 affiliated_entity_ids=affiliated_entity_ids,
                 adjudication_client=adjudication_client,
             )
-        finished = datetime.now(timezone.utc)
-        if finished < now:
-            finished = now
-        await _append_outbox_delivery(
-            conn,
-            analysis_run_id,
-            await _next_outbox_delivery_ordinal(conn, analysis_run_id),
-            "analysis_outbox_delivered",
-            finished,
-            valkey_stream_entry_id,
-        )
+            terminal = True
+        if terminal:
+            finished = datetime.now(timezone.utc)
+            if finished < now:
+                finished = now
+            await _append_outbox_delivery(
+                conn,
+                analysis_run_id,
+                await _next_outbox_delivery_ordinal(conn, analysis_run_id),
+                "analysis_outbox_delivered",
+                finished,
+                valkey_stream_entry_id,
+            )
     except asyncpg.UniqueViolationError as exc:
         raise start_write_conflict_error() from exc
     return await _visible_or_404(
@@ -803,27 +959,51 @@ async def _deliver_tepp_measurement(
     analysis_run_id: str,
     locked: asyncpg.Record,
     tepp_client: TeppClient,
-) -> None:
-    """Submit the frozen snapshot through ``tepp_client``. Never persist a theta."""
+) -> bool:
+    """Submit the frozen snapshot through ``tepp_client``. Never persist a theta.
+
+    Returns True when a terminal status was appended. An accepted
+    receipt leaves the run Running and returns False so the outbox
+    stays claimed until a completed result (TEPP#156) or a typed
+    failure arrives.
+    """
     request = tepp_run_request(
         idempotency_key=str(locked["idempotency_key"]),
         snapshot_sha256=str(locked["snapshot_sha256"]),
         knowledge_cutoff=locked["knowledge_cutoff"],
         corporate_entity_id=str(locked["corporate_entity_id"]),
     )
-    status_code, failure_code, envelope = _tepp_submission(tepp_client, request)
-    if status_code == _SUCCEEDED and envelope is not None:
+    outcome = classify_tepp_submission(tepp_client, request)
+    if not outcome.persist_kind and await fetch_tepp_accepted_receipt(
+        conn, analysis_run_id
+    ) is not None:
+        return False
+    status_code = outcome.status_code
+    failure_code = outcome.failure_code
+    if outcome.persist_kind == _PERSIST_RESULT and outcome.envelope is not None:
         if not await _persist_tepp_result(
             conn,
             analysis_run_id=analysis_run_id,
-            envelope=envelope,
+            envelope=outcome.envelope,
         ):
             status_code = _FAILED
             failure_code = "tepp_result_not_persisted"
+    elif outcome.persist_kind == _PERSIST_RECEIPT and outcome.envelope is not None:
+        if await _persist_tepp_accepted_receipt(
+            conn,
+            analysis_run_id=analysis_run_id,
+            envelope=outcome.envelope,
+            request=request,
+            knowledge_cutoff=locked["knowledge_cutoff"],
+        ):
+            return False
+        status_code = _FAILED
+        failure_code = "tepp_receipt_not_persisted"
     await _append_status(
         conn,
         analysis_run_id,
         await _next_status_ordinal(conn, analysis_run_id),
         status_code,
-        failure_code,
+        failure_code or None,
     )
+    return True
