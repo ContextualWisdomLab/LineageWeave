@@ -1315,6 +1315,18 @@ or an explicit unavailable result.
 - **Release/quality gates — open:** current PR checks and required reviews must
   complete on the exact current head; frontend, backend, browser, accessibility,
   Storybook, security, and coverage evidence must be collected before release.
+- **`main`'s frontend build was broken — fixed, PR #550 (2026-08-24):**
+  `frontend/src/App.tsx` failed `tsc -b` at `main`'s head (a dead import plus
+  an unguarded `AdminPanel` render passing a `string | undefined` OIDC
+  `accessToken` into a `string`-typed prop), so every PR branched from `main`
+  inherited a spurious "Frontend lint, test, build" failure regardless of its
+  own diff -- confirmed against PR #547 (a `docker-compose.yml`-only change).
+  Fixed on `main` directly rather than on each affected PR, since it's the
+  shared root cause. One flaky `App.test.tsx` timeout ("comparison strip",
+  5000ms) reproduces identically on unmodified `main`; pre-existing, not
+  fixed here. Any PR still failing "Frontend lint, test, build" with the
+  same `TS6192`/`TS2322` errors after PR #550 merges just needs a rebase
+  onto the new `main`, not a code change.
 
 ## 6. Next acceptance loop
 
