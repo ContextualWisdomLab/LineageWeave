@@ -100,11 +100,12 @@ than one large PR:
    `information_polytomous` (Lord, 1980 max-info). Persist the ranking
    (`report_item_information`) and show the rank-1 item on the Period
    reports panel. Do not reimplement an information function here.
-7. **Leftover-pair slice** (shipped in 0.71.2; ADR 0017 / 0018 / 0048 / 0049 / 0184): after
+7. **Leftover-pair slice** (shipped in 0.71.2; ADR 0017 / 0018 / 0048 / 0049 / 0182 / 0184): after
    IRT main effects, persist closest and farthest post–criterion pairs
-   from the residual leftover map, and name explained leftover share
-   `e = R̂_c² / R̃²` of centered leftover when Gabriel coordinates exist
-   so the leftover cell the two-axis map reconstructs is not read as
+   from the residual leftover map, and name unexplained leftover
+   `U = R − R̂` and explained leftover share `e = R̂_c² / R̃²` of
+   centered leftover when Gabriel coordinates exist so the leftover
+   cell the two-axis map does and does not reconstruct is not read as
    leftover residual or leftover-map distance. Do not persist
    leftover-map unexplained leftover share `s` or two-axis reconstruction
    `R̂`. Do not fork LSIRM; do not invent a

@@ -5,6 +5,7 @@
 **Amended by:** [ADR 0162](0162-leftover-residual-disclosure.md) (signed residual R);
 [ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E);
 [ADR 0164](0164-leftover-map-rank.md) (full map rank);
+[ADR 0182](0182-leftover-map-unexplained.md) (unexplained leftover U);
 [ADR 0184](0184-leftover-map-explained-share.md) (explained leftover share)
 
 ## Context
@@ -22,17 +23,25 @@ second navigation surface.
 On each period-report group, render leftover pairs **above** the
 member list. Each pair is a button: closest or farthest label, post
 title, criterion short label, signed residual `R`, two-axis leftover-map
-distance, full map rank, observed `Y`, expected `E` when finite, and
-explained leftover share `e` when Gabriel coordinates exist. The next
-action names every available measurement before opening the post; no
-amendment hides another, a missing share keeps the existing
-closest/farthest next action, and rank 0 explicitly names no leftover
-structure.
+distance, full map rank, observed `Y`, expected `E` when finite,
+unexplained leftover `U` when finite, and explained leftover share `e`
+when Gabriel coordinates exist. Every available measurement renders as
+its own badge before opening the post; no amendment hides another, a
+missing share or a missing unexplained leftover keeps its badge off
+without removing the others, and rank 0 explicitly names no leftover
+structure. The single next-action sentence follows a priority order
+among the amendments: explained share (the newest, most specific
+measurement) leads when present, then unexplained leftover names
+"leftover map leaves unexplained `U` after IRT main effects; open this
+post to read the named criterion", then the residual/observed-expected/
+rank fallbacks. A missing share or missing unexplained leftover falls
+through to the next entry in that order.
 Clicking the button opens that post with the same handler as a member
 row. Residual naming is [ADR 0162](0162-leftover-residual-disclosure.md),
 observed/expected naming is [ADR 0163](0163-leftover-observed-expected.md),
-rank naming is [ADR 0164](0164-leftover-map-rank.md), explained-share
-naming is [ADR 0184](0184-leftover-map-explained-share.md).
+rank naming is [ADR 0164](0164-leftover-map-rank.md), unexplained
+leftover naming is [ADR 0182](0182-leftover-map-unexplained.md),
+explained-share naming is [ADR 0184](0184-leftover-map-explained-share.md).
 
 After `make seed`, closest and farthest leftover pairs sit above the
 member list. Click a pair to open that post.
