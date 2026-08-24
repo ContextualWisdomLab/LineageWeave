@@ -40,6 +40,15 @@ All notable changes to this project are documented here. Format follows
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 
+## [2.13.2] - 2026-08-24
+
+### Added
+
+- Reader-safe Global Ask and post-chat failures now carry bounded
+  OpenTelemetry metrics, traces, and structured server diagnostics for
+  GRC consumption. Failure logs carry the active TraceId and SpanId so
+  another agent can join the Error span to the audit record.
+
 ## [2.12.18] - 2026-08-24
 
 ### Fixed
