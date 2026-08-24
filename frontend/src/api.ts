@@ -432,6 +432,7 @@ export interface AskAgentResponse {
   cited_post_images?: CitedPostImage[];
   source_post_ids: string[];
   next_action?: string;
+  lineage_graph?: LineageGraph;
 }
 
 export interface AskConversationSummary {

@@ -205,7 +205,11 @@ from backend.app.knowledge_graph import (
     visible_mention_post_ids,
     visible_team_mention_post_ids,
 )
-from backend.app.lineage_ingestion import rebuild_lineage, visible_lineage_graph
+from backend.app.lineage_ingestion import (
+    lineage_graphs_for_posts,
+    rebuild_lineage,
+    visible_lineage_graph,
+)
 from backend.app.post_chat_ingestion import (
     cited_post_images,
     fetch_persisted_chat,
@@ -3723,6 +3727,7 @@ async def ask_agent(
             "cited_posts": [],
             "source_post_ids": [],
             "cited_post_evidence": [],
+            "lineage_graph": {"nodes": [], "edges": [], "truncated": False},
             "cited_post_images": [],
             "next_action": "No authorized source posts are available for this question.",
         }
@@ -3751,6 +3756,11 @@ async def ask_agent(
     async with pool.acquire() as conn:
         if sources:
             response["cited_post_images"] = await cited_post_images(conn, response["cited_post_ids"])
+            response["lineage_graph"] = await lineage_graphs_for_posts(
+                conn,
+                lambda row: _can_see_post(account, row),
+                response["cited_post_ids"],
+            )
         try:
             persisted_conversation_id = await persist_turn(
                 conn,

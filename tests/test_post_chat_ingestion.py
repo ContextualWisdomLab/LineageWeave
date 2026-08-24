@@ -373,7 +373,7 @@ def test_cited_post_images_returns_persisted_captions_for_cited_posts_only() -> 
                 "mime_type": "image/png",
                 "description_status_code": "described",
                 "extracted_text": "Error code 500 on checkout",
-                "caption": "Screenshot of the checkout error",
+                "image_caption": "Screenshot of the checkout error",
                 "tags": ["screenshot", "error"],
             },
             {
@@ -382,7 +382,7 @@ def test_cited_post_images_returns_persisted_captions_for_cited_posts_only() -> 
                 "mime_type": "image/png",
                 "description_status_code": "described",
                 "extracted_text": "irrelevant",
-                "caption": "irrelevant",
+                "image_caption": "irrelevant",
                 "tags": [],
             },
             {
@@ -391,7 +391,7 @@ def test_cited_post_images_returns_persisted_captions_for_cited_posts_only() -> 
                 "mime_type": "image/png",
                 "description_status_code": "unavailable",
                 "extracted_text": None,
-                "caption": None,
+                "image_caption": None,
                 "tags": [],
             },
         ]

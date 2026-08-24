@@ -138,6 +138,7 @@ import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
+import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import {
   SOURCE_LINEAGE_FIELDS,
   sourceLineageContextLabel,
@@ -153,7 +154,6 @@ import {
   tf,
   useLocale,
 } from "./i18n";
-import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -6162,6 +6162,9 @@ export function AskAgentPanel({
                         })}
                       </ul>
                     </section>
+                  ) : null}
+                  {response?.lineage_graph && response.lineage_graph.nodes.length > 0 ? (
+                    <LineageDag graph={response.lineage_graph} onSelectPost={onOpenPost} />
                   ) : null}
                 </div>
               </div>
