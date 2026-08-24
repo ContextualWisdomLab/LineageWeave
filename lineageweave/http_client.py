@@ -28,7 +28,7 @@ _ALLOWED_SCHEMES = frozenset({"http", "https"})
 
 
 class HttpClientError(RuntimeError):
-    """The remote endpoint returned a non-success status or invalid JSON."""
+    """The remote endpoint failed, returned a non-success status, or invalid JSON."""
 
 
 def json_request_body(payload: dict) -> bytes:
@@ -55,7 +55,7 @@ def _request(
     headers: dict[str, str],
     timeout: float,
 ) -> tuple[int, bytes]:
-    """Implement the _request operation for this channel."""
+    """Perform one exchange without exposing provider transport exception details."""
     parsed = urlparse(url)
     if parsed.scheme not in _ALLOWED_SCHEMES:
         raise ValueError(f"refusing non-http(s) URL scheme: {parsed.scheme!r}")
@@ -75,18 +75,23 @@ def _request(
     connection = http.client.HTTPConnection(parsed.hostname, port, timeout=timeout)
 
     try:
-        if parsed.scheme == "https":
-            connection.connect()
-            if connection.sock is None:
-                raise HttpClientError(f"no socket after connect to {parsed.hostname}")
-            connection.sock = _SSL_CONTEXT.wrap_socket(
-                connection.sock, server_hostname=parsed.hostname
-            )
-        connection.request(method, path, body=body, headers=headers)
-        response = connection.getresponse()
-        length_header = response.getheader("Content-Length")
-        raw = response.read(int(length_header)) if length_header is not None else response.read()
-        return response.status, raw
+        try:
+            if parsed.scheme == "https":
+                connection.connect()
+                if connection.sock is None:
+                    raise HttpClientError(f"no socket after connect to {parsed.hostname}")
+                connection.sock = _SSL_CONTEXT.wrap_socket(
+                    connection.sock, server_hostname=parsed.hostname
+                )
+            connection.request(method, path, body=body, headers=headers)
+            response = connection.getresponse()
+            length_header = response.getheader("Content-Length")
+            raw = response.read(int(length_header)) if length_header is not None else response.read()
+            return response.status, raw
+        except (OSError, ValueError, http.client.HTTPException) as exc:
+            # Chain internally for operator logging; the exposed
+            # message stays generic/hostname-only, never the raw exception text.
+            raise HttpClientError("provider transport unavailable") from exc
     finally:
         connection.close()
 
