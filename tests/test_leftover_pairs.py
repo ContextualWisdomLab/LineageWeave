@@ -1,6 +1,7 @@
 """Leftover post–criterion pairs after the main-effect IRT.
 
-Covers ADR 0048 as amended by ADR 0119, ADR 0163, and ADR 0164.
+Covers ADR 0048 as amended by ADR 0119, ADR 0148, ADR 0163, ADR 0164,
+and ADR 0182.
 
 Uses a constructed residual matrix so the closest and farthest pair
 are known without calling ``fit_polytomous``. Loads
@@ -46,6 +47,8 @@ leftover = _load_leftover()
 PAIR_KIND_CLOSEST = leftover.PAIR_KIND_CLOSEST
 PAIR_KIND_FARTHEST = leftover.PAIR_KIND_FARTHEST
 leftover_pairs_from_residual = leftover.leftover_pairs_from_residual
+leftover_map_from_residual = leftover.leftover_map_from_residual
+leftover_map_axes_from_singular = leftover.leftover_map_axes_from_singular
 
 
 def _assert_residual_reconciles(pair) -> None:
@@ -97,6 +100,9 @@ def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
     assert farthest.observed_response == pytest.approx(-2.0)
     assert farthest.expected_response == pytest.approx(0.0)
     assert farthest.leftover_distance == pytest.approx(2.0 * np.sqrt(2.0), rel=1e-6)
+    assert closest.leftover_map_unexplained == pytest.approx(0.0, abs=1e-6)
+    assert farthest.leftover_map_unexplained == pytest.approx(0.0, abs=1e-6)
+    assert not hasattr(closest, "leftover_map_reconstruction")
     for pair in pairs:
         _assert_residual_reconciles(pair)
         assert pair.leftover_map_rank == 1
@@ -118,6 +124,8 @@ def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
     assert pairs[0].expected_response == pytest.approx(1.0)
     assert pairs[1].post_id == "beta-post"
     assert pairs[1].criterion_code == "item_two"
+    assert pairs[0].leftover_map_unexplained == pytest.approx(0.0)
+    assert pairs[1].leftover_map_unexplained == pytest.approx(0.0)
     for pair in pairs:
         _assert_residual_reconciles(pair)
         assert pair.leftover_map_rank == 0
@@ -150,6 +158,7 @@ def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
     for pair in pairs:
         _assert_residual_reconciles(pair)
         assert pair.leftover_map_rank == 1
+        assert pair.leftover_map_unexplained == pytest.approx(0.0, abs=1e-6)
 
 
 def test_leftover_is_empty_without_observed_cells() -> None:
@@ -206,7 +215,64 @@ def test_leftover_residual_rejects_database_tolerance_boundary() -> None:
             0,
             0,
             0.0,
+            None,
         )
+
+
+def test_rank_one_leftover_map_puts_all_inertia_on_axis_one() -> None:
+    """A rank-1 residual must report leftover-map share 1 on axis 1, 0 on axis 2."""
+    post_ids = ["post-a", "post-b", "post-c"]
+    item_codes = ("item_near", "item_mid", "item_far")
+    matrix = np.array(
+        [
+            [2.0, 0.0, -2.0],
+            [0.0, 0.0, 0.0],
+            [-2.0, 0.0, 2.0],
+        ],
+        dtype=np.float64,
+    )
+    expected = np.zeros_like(matrix)
+    pairs, axes = leftover_map_from_residual(post_ids, item_codes, matrix, expected)
+    assert [pair.pair_kind for pair in pairs] == [PAIR_KIND_CLOSEST, PAIR_KIND_FARTHEST]
+    assert [axis.axis_index for axis in axes] == [1, 2]
+    assert axes[0].leftover_share == pytest.approx(1.0)
+    assert axes[1].leftover_share == pytest.approx(0.0)
+    assert axes[0].leftover_singular_value > 0.0
+    assert axes[1].leftover_singular_value == pytest.approx(0.0)
+    assert leftover_pairs_from_residual(post_ids, item_codes, matrix, expected) == pairs
+
+
+def test_zero_residual_emits_two_zero_share_leftover_map_axes() -> None:
+    post_ids = ["alpha-post", "beta-post"]
+    item_codes = ("item_one", "item_two")
+    matrix = np.ones((2, 2), dtype=np.float64)
+    expected = np.ones((2, 2), dtype=np.float64)
+    pairs, axes = leftover_map_from_residual(post_ids, item_codes, matrix, expected)
+    assert [pair.pair_kind for pair in pairs] == [PAIR_KIND_CLOSEST, PAIR_KIND_FARTHEST]
+    assert [axis.axis_index for axis in axes] == [1, 2]
+    assert axes[0].leftover_share == pytest.approx(0.0)
+    assert axes[1].leftover_share == pytest.approx(0.0)
+    assert axes[0].leftover_singular_value == pytest.approx(0.0)
+    assert axes[1].leftover_singular_value == pytest.approx(0.0)
+
+
+def test_leftover_map_axes_from_singular_use_gabriel_inertia() -> None:
+    """Share is σ_k² / Σ_j σ_j² from the actual singular values, never a leftover score."""
+    singular = np.array([3.0, 1.0, 0.5], dtype=np.float64)
+    total = float(np.sum(singular * singular))
+    axes = leftover_map_axes_from_singular(singular)
+    assert [axis.axis_index for axis in axes] == [1, 2]
+    assert axes[0].leftover_singular_value == pytest.approx(3.0)
+    assert axes[1].leftover_singular_value == pytest.approx(1.0)
+    assert axes[0].leftover_share == pytest.approx(9.0 / total)
+    assert axes[1].leftover_share == pytest.approx(1.0 / total)
+    assert leftover_map_axes_from_singular(np.zeros(0))[0].leftover_share == pytest.approx(0.0)
+    assert leftover_map_from_residual(
+        ["post-empty"],
+        ("item_one",),
+        np.array([[np.nan]], dtype=np.float64),
+        np.array([[0.0]], dtype=np.float64),
+    ) == ((), ())
 
 
 def test_rank_four_pair_distances_match_two_dimensional_gabriel_coords() -> None:
@@ -250,6 +316,56 @@ def test_rank_four_pair_distances_match_two_dimensional_gabriel_coords() -> None
     assert (post_index[farthest.post_id], item_index[farthest.criterion_code]) == farthest_map
 
 
+def test_unexplained_equals_residual_minus_two_axis_reconstruction() -> None:
+    """Unexplained leftover U is R − R̂, not leftover residual R, not leftover-map distance d.
+
+    Uses the same rank-4 matrix as the two-axis distance proof above: R̂ is
+    the two-axis Gabriel reconstruction ``person_map @ item_map.T``, built
+    from the same padded coordinates ``leftover_distance`` already uses.
+    """
+    post_ids = ["post-a", "post-b", "post-c", "post-d"]
+    item_codes = ("item-a", "item-b", "item-c", "item-d")
+    matrix = np.array(
+        [
+            [4.0, 1.0, 0.0, -1.0],
+            [0.0, 3.0, 1.0, -2.0],
+            [-2.0, 0.0, 2.0, 1.0],
+            [1.0, -1.0, 0.0, 4.0],
+        ],
+        dtype=np.float64,
+    )
+    expected = np.zeros_like(matrix)
+    filled = matrix - float(np.mean(matrix))
+    person_full, item_full = _gabriel_positions(filled)
+    assert person_full.shape[1] == 4
+    person_map = _pad_map_axes(person_full)
+    item_map = _pad_map_axes(item_full)
+    reconstruction = person_map @ item_map.T
+    full_inner = person_full @ item_full.T
+    assert float(np.max(np.abs(reconstruction - filled))) > 1e-6
+    assert float(np.max(np.abs(reconstruction - full_inner))) > 1e-6
+
+    pairs = leftover_pairs_from_residual(post_ids, item_codes, matrix, expected)
+    assert [pair.pair_kind for pair in pairs] == [PAIR_KIND_CLOSEST, PAIR_KIND_FARTHEST]
+    post_index = {post_id: index for index, post_id in enumerate(post_ids)}
+    item_index = {code: index for index, code in enumerate(item_codes)}
+    for pair in pairs:
+        person = post_index[pair.post_id]
+        item = item_index[pair.criterion_code]
+        expected_unexplained = float(pair.leftover_residual) - float(reconstruction[person, item])
+        assert pair.leftover_map_unexplained == pytest.approx(expected_unexplained)
+        assert pair.leftover_map_unexplained != pytest.approx(pair.leftover_residual)
+        assert pair.leftover_map_unexplained != pytest.approx(pair.leftover_distance)
+        assert not hasattr(pair, "leftover_map_reconstruction")
+
+
+def test_pad_map_axes_truncates_hidden_svd_components() -> None:
+    """Axes after the second leftover-map axis do not enter reconstruction."""
+    padded = leftover._pad_map_axes(np.array([[1.0, 2.0, 9.0]], dtype=np.float64))
+    assert padded.shape == (1, 2)
+    assert padded[0].tolist() == pytest.approx([1.0, 2.0])
+
+
 def test_rejects_response_and_expectation_shape_mismatches() -> None:
     """Scientific inputs must match their declared post and criterion axes."""
     with pytest.raises(ValueError, match="matrix shape"):
@@ -285,6 +401,27 @@ def test_sparse_residual_uses_only_observed_cells_for_fallback_distance() -> Non
     assert [pair.leftover_map_rank for pair in pairs] == [0, 0]
 
 
+def test_leftover_fallback_omits_unexplained_without_complete_case_map() -> None:
+    """No complete-case rectangle: persist distance from |R − center|, omit U."""
+    post_ids = ["sparse-a", "sparse-b"]
+    item_codes = ("item_near", "item_far")
+    matrix = np.array(
+        [
+            [2.0, np.nan],
+            [np.nan, -2.0],
+        ],
+        dtype=np.float64,
+    )
+    expected = np.zeros_like(matrix)
+    pairs = leftover_pairs_from_residual(post_ids, item_codes, matrix, expected)
+    assert [pair.pair_kind for pair in pairs] == [PAIR_KIND_CLOSEST, PAIR_KIND_FARTHEST]
+    assert {pair.post_id for pair in pairs} == {"sparse-a", "sparse-b"}
+    for pair in pairs:
+        assert pair.leftover_map_unexplained is None
+        assert pair.leftover_distance >= 0.0
+        assert not hasattr(pair, "leftover_map_reconstruction")
+
+
 def test_nonfinite_map_distance_falls_back_to_centered_residual(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -295,7 +432,7 @@ def test_nonfinite_map_distance_falls_back_to_centered_residual(
         lambda *_args: (
             np.array([[np.inf]], dtype=np.float64),
             np.array([[-np.inf]], dtype=np.float64),
-            1,
+            np.array([1.0], dtype=np.float64),
         ),
     )
     pairs = leftover_pairs_from_residual(
@@ -314,7 +451,7 @@ def test_empty_observation_mask_has_no_complete_case_axes() -> None:
     keep_person, keep_item = leftover._complete_case_masks(observed)
     assert not keep_person.any()
     assert not keep_item.any()
-    person_pos, item_pos, rank = leftover._complete_case_positions(
+    person_pos, item_pos, singular = leftover._complete_case_positions(
         np.zeros((1, 1), dtype=np.float64),
         0.0,
         keep_person,
@@ -322,7 +459,7 @@ def test_empty_observation_mask_has_no_complete_case_axes() -> None:
     )
     assert person_pos is None
     assert item_pos is None
-    assert rank == 0
+    assert singular.size == 0
 
 
 def test_leftover_map_rank_rejects_negative_rank() -> None:
@@ -330,6 +467,6 @@ def test_leftover_map_rank_rejects_negative_rank() -> None:
     with pytest.raises(ValueError, match="non-negative integer"):
         leftover._pair_from_candidate(
             PAIR_KIND_CLOSEST,
-            (0.0, "public-post", "sales_lead_specificity", 0.0, 1.0, 1.0),
+            (0.0, "public-post", "sales_lead_specificity", 0.0, 1.0, 1.0, None),
             -1,
         )
