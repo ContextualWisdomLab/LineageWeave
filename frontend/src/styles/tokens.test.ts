@@ -70,4 +70,10 @@ describe("design tokens", () => {
       expect(appCss, `App.css never references var(${token})`).toContain(`var(${token})`);
     }
   });
+
+  it("does not dim .post-meta with opacity -- it fails WCAG AA in both themes and carries role=\"status\" next-action text", () => {
+    const match = appCss.match(/\.post-meta\s*\{([^}]*)\}/);
+    expect(match, ".post-meta rule not found in App.css").not.toBeNull();
+    expect(match?.[1] ?? "").not.toMatch(/opacity\s*:/);
+  });
 });
