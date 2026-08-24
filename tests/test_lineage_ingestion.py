@@ -7,6 +7,7 @@ import math
 from datetime import UTC, datetime, timezone
 
 import backend.app.lineage_ingestion as ingestion
+from backend.app.lineage_ingestion import lineage_graphs_for_posts
 from lineageweave.fixtures import sample_records
 from lineageweave.lineage_persistence import lineage_edge_specs
 
@@ -339,3 +340,106 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
     assert len(focused["edges"]) == 1
     assert focused["truncated"] is False
     assert isolated == {"nodes": [], "edges": [], "truncated": False}
+
+
+def test_lineage_graphs_for_posts_merges_distinct_threads_without_duplicates() -> None:
+    """Global Ask can cite posts from unrelated threads; the merged graph
+    must carry every cited thread (for LineageDag's per-thread git-branch
+    rendering) without duplicating a node/edge shared by two focus posts.
+    """
+
+    class FakeConnection:
+        posts = [
+            {
+                "post_id": "post-a",
+                "post_title": "A",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-a",
+                "created_at": datetime(2026, 1, 1),
+            },
+            {
+                "post_id": "post-b",
+                "post_title": "B",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-a",
+                "created_at": datetime(2026, 1, 2),
+            },
+            {
+                "post_id": "post-c",
+                "post_title": "C",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-c",
+                "created_at": datetime(2026, 1, 3),
+            },
+            {
+                "post_id": "post-d",
+                "post_title": "D",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-c",
+                "created_at": datetime(2026, 1, 4),
+            },
+            {
+                "post_id": "post-isolated",
+                "post_title": "Isolated",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-isolated",
+                "created_at": datetime(2026, 1, 5),
+            },
+        ]
+        edges = [
+            {"parent_post_id": "post-a", "child_post_id": "post-b", "fused_score": 0.8},
+            {"parent_post_id": "post-c", "child_post_id": "post-d", "fused_score": 0.6},
+        ]
+
+        async def fetch(self, query: str):
+            return self.edges if "post_lineage_edge" in query else self.posts
+
+    connection = FakeConnection()
+    merged = asyncio.run(
+        lineage_graphs_for_posts(
+            connection,
+            lambda row: True,
+            # "post-b" is cited alongside its own thread's root -- must not
+            # duplicate post-a/post-b/their edge in the merged output.
+            ["post-a", "post-b", "post-d", "post-isolated"],
+        )
+    )
+
+    assert {node["id"] for node in merged["nodes"]} == {
+        "post-a",
+        "post-b",
+        "post-c",
+        "post-d",
+        "post-isolated",
+    }
+    assert {node["group"] for node in merged["nodes"]} == {
+        "thread-a",
+        "thread-c",
+        "thread-isolated",
+    }
+    assert len(merged["edges"]) == 2
+    assert merged["truncated"] is False
+
+
+def test_lineage_graphs_for_posts_with_no_citations_is_empty() -> None:
+    class FakeConnection:
+        async def fetch(self, query: str):
+            return []
+
+    merged = asyncio.run(lineage_graphs_for_posts(FakeConnection(), lambda row: True, []))
+    assert merged == {"nodes": [], "edges": [], "truncated": False}
