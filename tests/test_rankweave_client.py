@@ -166,7 +166,9 @@ def test_library_transport_projects_monkeypatched_rrf(
     )
 
     assert captured["eta"] == 60
-    assert captured["weights"]["lexical"] == 0.75
+    # Parameter-free classic RRF (Cormack et al., 2009): every channel
+    # weighs 1.0 -- no hand-picked weight exists (ADR 0145, 2nd amendment).
+    assert set(captured["weights"].values()) == {1.0}
     assert payload["rankings"][0]["post_title"] == (
         "Pricing renegotiation: revised quote sent"
     )

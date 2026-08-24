@@ -23,7 +23,6 @@ from typing import Any, Callable, Mapping, Sequence
 # Cormack et al. (2009) reciprocal-rank fusion constant.
 DEFAULT_RANK_CONSTANT_ETA = 60
 DEFAULT_RANKING_LIMIT = 20
-DEFAULT_CHANNEL_WEIGHTS = {"temporal": 0.25, "lexical": 0.75}
 # Seeded A-100 titles mention pricing, quote, and delivery. This is a
 # synthetic demo query, not a customer string.
 DEFAULT_RANKING_QUERY = "pricing quote delivery"
@@ -262,8 +261,21 @@ class RankWeaveClient:
         titles_by_id: Mapping[str, str],
         weights: dict[str, float] | None = None,
     ) -> RankingList:
+        """Fuse the channels; parameter-free classic RRF by default.
+
+        No hand-picked weight exists (ADR 0145, second amendment):
+        without an explicit ``weights`` argument every channel gets
+        weight 1.0, which reduces weighted RRF to Cormack et al.'s
+        (2009) parameter-free reciprocal rank fusion -- the paper's own
+        finding is that the unweighted form outperforms trained
+        alternatives, so there is no arbitrary number to justify.
+        Callers holding a psychometrically estimated set may still pass
+        it explicitly.
+        """
         try:
-            raw = self._transport(channels, weights or DEFAULT_CHANNEL_WEIGHTS)
+            raw = self._transport(
+                channels, weights or {name: 1.0 for name in channels}
+            )
         except RankWeaveNotAvailable:
             raise
         except Exception as exc:

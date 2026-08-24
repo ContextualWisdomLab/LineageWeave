@@ -21,10 +21,16 @@ also persists this estimate (with provenance) so a freshly seeded
 database satisfies the fail-closed loader. With fast-mlsirm absent the
 demo refuses to fuse and names the install as the next action. Unit
 tests inject synthetic weights explicitly (permitted for unit tests by
-org policy). Known remaining arbitrary-weight surface, tracked as its
-own gap: `rankweave_client.DEFAULT_CHANNEL_WEIGHTS` (Rankings RRF,
-temporal/lexical) — the same estimation discipline must be applied
-there next.
+org policy). The last arbitrary-weight surface,
+`rankweave_client.DEFAULT_CHANNEL_WEIGHTS` (Rankings RRF,
+temporal 0.25/lexical 0.75), is also deleted: a two-item 2PL leaves
+discriminations weakly identified (see the recovery test's own note),
+so estimating two rank channels psychometrically would be dishonest —
+instead the Rankings surface now runs Cormack et al.'s (2009)
+*parameter-free* classic RRF (every channel weight 1.0), whose paper's
+central finding is that the unweighted form outperforms trained
+alternatives. No hand-picked number remains; callers holding a future
+grounded estimate may still pass weights explicitly.
 
 > Numbering note: parallel branches are assigning ADR numbers concurrently
 > (0143 exists on an unmerged branch). `0145` was the next free number on
