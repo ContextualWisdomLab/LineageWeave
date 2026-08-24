@@ -1,6 +1,7 @@
 """Jeon leftover post–criterion pairs after a main-effect IRT.
 
-Implements ADR 0048 as amended by ADR 0119, ADR 0163, and ADR 0164.
+Implements ADR 0048 as amended by ADR 0119, ADR 0163, ADR 0164, and
+ADR 0186.
 
 Does not import ``fast_mlsirm`` or ``period_report``. A Gabriel biplot
 of the residual ``R = Y − E[Y|θ, item]`` supplies person and item
@@ -11,7 +12,10 @@ Pair distances are Euclidean
 on the two leftover-map axes (Jeon et al., 2021); unused axes pad with
 zero rather than inventing a second component, and hidden SVD axes
 after the second are dropped. Each pair also names the full leftover-map
-rank so a rank-0 collapse is not read as leftover structure.
+rank so a rank-0 collapse is not read as leftover structure, and names
+two-axis leftover-map reconstruction ``R̂_c = ξ_{1:2} · ζ_{1:2}`` of
+centered leftover so truncated reconstruction is not confused with
+residual ``R`` or leftover-map distance ``d``.
 """
 
 from __future__ import annotations
@@ -39,6 +43,7 @@ class LeftoverPair:
     observed_response: float
     expected_response: float
     leftover_map_rank: int
+    leftover_map_reconstruction: float | None = None
 
 
 def leftover_pairs_from_residual(
@@ -56,7 +61,11 @@ def leftover_pairs_from_residual(
     stable closest/farthest pair so seed is not empty and does not
     invent a leftover score. Stored residual equals observed ``Y`` minus
     expected ``E[Y|θ, item]``. Stored leftover-map rank is the number
-    of Gabriel singular values above the floor.
+    of Gabriel singular values above the floor. When Gabriel coordinates
+    exist, leftover-map reconstruction ``R̂_c = ξ_{1:2} · ζ_{1:2}``
+    names the two-axis reconstruction of centered leftover
+    ``R̃ = R − center``. Fallback pairs (no complete-case map) omit the
+    reconstruction rather than fabricating one.
     """
     if matrix.shape != (len(post_ids), len(item_codes)):
         raise ValueError(
@@ -86,7 +95,7 @@ def leftover_pairs_from_residual(
     person_pos, item_pos, leftover_map_rank = _complete_case_positions(
         residual, center, keep_person, keep_item
     )
-    candidates: list[tuple[float, str, str, float, float, float]] = []
+    candidates: list[tuple[float, str, str, float, float, float, float | None]] = []
     if person_pos is not None and item_pos is not None:
         person_index = np.flatnonzero(keep_person)
         item_index = np.flatnonzero(keep_item)
@@ -102,8 +111,21 @@ def leftover_pairs_from_residual(
             )
             if not np.isfinite(distance):
                 continue
+            reconstruction = _leftover_map_reconstruction(
+                person_xy[local_person[person]], item_xy[local_item[item]]
+            )
             candidates.append(
-                _candidate_row(post_ids, item_codes, matrix, expected, residual, person, item, distance)
+                _candidate_row(
+                    post_ids,
+                    item_codes,
+                    matrix,
+                    expected,
+                    residual,
+                    person,
+                    item,
+                    distance,
+                    reconstruction,
+                )
             )
     if not candidates:
         leftover_map_rank = 0
@@ -119,6 +141,7 @@ def leftover_pairs_from_residual(
                     person,
                     item,
                     max(distance, 0.0),
+                    None,
                 )
             )
     closest = min(candidates, key=lambda row: (row[0], row[1], row[2]))
@@ -127,6 +150,21 @@ def leftover_pairs_from_residual(
         _pair_from_candidate(PAIR_KIND_CLOSEST, closest, leftover_map_rank),
         _pair_from_candidate(PAIR_KIND_FARTHEST, farthest, leftover_map_rank),
     )
+
+
+def _leftover_map_reconstruction(
+    person_xy: np.ndarray, item_xy: np.ndarray
+) -> float | None:
+    """Return two-axis reconstruction ``R̂_c = ξ_{1:2} · ζ_{1:2}`` when finite.
+
+    Rank-0 origin coordinates store ``0.0``. A non-finite inner product
+    is omitted rather than invented. Negative finite reconstruction is
+    stored; do not clamp or take an absolute value.
+    """
+    reconstruction = float(np.dot(person_xy, item_xy))
+    if np.isfinite(reconstruction):
+        return reconstruction
+    return None
 
 
 def _candidate_row(
@@ -138,8 +176,9 @@ def _candidate_row(
     person: int,
     item: int,
     distance: float,
-) -> tuple[float, str, str, float, float, float]:
-    """One observed leftover cell: distance, ids, residual, Y, E."""
+    leftover_map_reconstruction: float | None = None,
+) -> tuple[float, str, str, float, float, float, float | None]:
+    """One observed leftover cell: distance, ids, residual, Y, E, reconstruction."""
     leftover_residual = float(residual[person, item])
     observed_response = float(matrix[person, item])
     expected_response = float(expected[person, item])
@@ -152,12 +191,13 @@ def _candidate_row(
         leftover_residual,
         observed_response,
         expected_response,
+        leftover_map_reconstruction,
     )
 
 
 def _pair_from_candidate(
     pair_kind: str,
-    row: tuple[float, str, str, float, float, float],
+    row: tuple[float, str, str, float, float, float, float | None],
     leftover_map_rank: int,
 ) -> LeftoverPair:
     """Build a leftover pair from a candidate row."""
@@ -172,6 +212,7 @@ def _pair_from_candidate(
         observed_response=row[4],
         expected_response=row[5],
         leftover_map_rank=leftover_map_rank,
+        leftover_map_reconstruction=row[6],
     )
 
 
@@ -225,7 +266,12 @@ def _leftover_map_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray,
 
 
 def _pad_map_axes(positions: np.ndarray) -> np.ndarray:
-    """Pad or truncate Gabriel coordinates to two leftover-map axes."""
+    """Pad or truncate Gabriel coordinates to two leftover-map axes.
+
+    Unused axes pad with zero rather than inventing a second component.
+    Hidden SVD axes after the second are dropped so reconstruction is
+    ``ξ_{1:2} · ζ_{1:2}``, not the full-rank inner product.
+    """
     padded = np.zeros((positions.shape[0], _LEFTOVER_MAP_AXES), dtype=np.float64)
     width = min(_LEFTOVER_MAP_AXES, positions.shape[1])
     padded[:, :width] = positions[:, :width]

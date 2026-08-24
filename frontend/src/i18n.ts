@@ -395,6 +395,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "IRT 주효과 이후 잔여 맵 랭크 {rank}, 관측 Y {observed}, 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
     "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.":
       "IRT 주효과 이후 잔여 맵 랭크 0은 잔여 구조가 없음을 뜻합니다. 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
+    "Two leftover-map axes reconstruct centered leftover R̂ {reconstruction} after IRT main effects. Open this post.":
+      "IRT 주효과 이후 두 잔여 맵 축이 중심화된 잔여 R̂ {reconstruction}을 재구성합니다. 이 글을 여세요.",
   },
   zh: {
     "Unknown": "未知",
@@ -772,6 +774,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "阅读 IRT 主效应后的残余图秩 {rank}、观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
     "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.":
       "残余图秩 0 表示 IRT 主效应后没有残余结构。阅读观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
+    "Two leftover-map axes reconstruct centered leftover R̂ {reconstruction} after IRT main effects. Open this post.":
+      "IRT 主效应后，两个残余图轴重构中心化残余 R̂ {reconstruction}。打开这篇帖子。",
   },
   ja: {
     "Unknown": "不明",
@@ -1149,6 +1153,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "IRT主効果後の残差マップランク {rank}、観測 Y {observed}、期待 E {expected} を読んでから、この投稿を開いてください。",
     "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.":
       "残差マップランク 0 は IRT 主効果後に残差構造がないことを示します。観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
+    "Two leftover-map axes reconstruct centered leftover R̂ {reconstruction} after IRT main effects. Open this post.":
+      "IRT主効果後、残差マップの2軸が中心化残差 R̂ {reconstruction} を再構成します。この投稿を開いてください。",
   },
   vi: {
     "Unknown": "Không rõ",
@@ -1526,6 +1532,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Đọc hạng bản đồ phần dư {rank}, Y quan sát {observed} và E kỳ vọng {expected} sau hiệu ứng chính IRT, rồi mở bài viết này.",
     "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.":
       "Hạng bản đồ phần dư 0 nghĩa là không có cấu trúc phần dư sau hiệu ứng chính IRT. Đọc Y quan sát {observed} và E kỳ vọng {expected}, rồi mở bài viết này.",
+    "Two leftover-map axes reconstruct centered leftover R̂ {reconstruction} after IRT main effects. Open this post.":
+      "Hai trục bản đồ phần dư tái tạo phần dư đã tâm R̂ {reconstruction} sau hiệu ứng chính IRT. Mở bài viết này.",
   },
 };
 

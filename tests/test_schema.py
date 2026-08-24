@@ -53,6 +53,11 @@ _LEFTOVER_MAP_RANK_MIGRATION = (
     / "migrations"
     / "0164_report_leftover_map_rank.sql"
 )
+_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0186_report_leftover_map_reconstruction.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -91,6 +96,7 @@ def schema_db():
                 cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -220,6 +226,15 @@ def test_leftover_pair_names_leftover_map_rank_column(schema_db) -> None:
     assert columns["leftover_map_rank"] == "YES"
 
 
+def test_leftover_pair_names_leftover_map_reconstruction_column(schema_db) -> None:
+    """Fresh leftover rows name reconstruction without backfilling legacy evidence."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            "select column_name, is_nullable from information_schema.columns "
+            "where table_name = 'report_leftover_pair'"
+        )
+        columns = dict(cur.fetchall())
+    assert columns["leftover_map_reconstruction"] == "YES"
 
 
 def test_corporate_hierarchy_recursive_query_returns_correct_shape(schema_db) -> None:

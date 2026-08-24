@@ -952,6 +952,7 @@ describe("App, authenticated", () => {
                     observed_response: 2.4,
                     expected_response: 2.0,
                     leftover_map_rank: 1,
+                    leftover_map_reconstruction: 0.4,
                   },
                   {
                     pair_kind: "farthest",
@@ -963,6 +964,7 @@ describe("App, authenticated", () => {
                     observed_response: 0.9,
                     expected_response: 2.0,
                     leftover_map_rank: 1,
+                    leftover_map_reconstruction: -1.1,
                   },
                 ],
                 members: [
@@ -3486,19 +3488,21 @@ describe("App, authenticated", () => {
     });
     expect(closestPair).toHaveTextContent("Closest leftover: Public post · sales-lead");
     expect(closestPair).toHaveTextContent(
-      "Read leftover map rank 1, observed Y 2.40, and expected E 2.00 after IRT main effects, then open this post.",
+      "Two leftover-map axes reconstruct centered leftover R̂ +0.40 after IRT main effects. Open this post.",
     );
     expect(closestPair).toHaveTextContent("R +0.40");
     expect(closestPair).toHaveTextContent("Y 2.40 · E 2.00");
     expect(closestPair).toHaveTextContent("rank 1");
+    expect(closestPair).toHaveTextContent("R̂ +0.40");
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
-      "Read leftover map rank 1, observed Y 0.90, and expected E 2.00 after IRT main effects, then open this post.",
+      "Two leftover-map axes reconstruct centered leftover R̂ −1.10 after IRT main effects. Open this post.",
     );
     expect(farthestPair).toHaveTextContent("R −1.10");
     expect(farthestPair).toHaveTextContent("Y 0.90 · E 2.00");
     expect(farthestPair).toHaveTextContent("rank 1");
+    expect(farthestPair).toHaveTextContent("R̂ −1.10");
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
     expect(closestPair.compareDocumentPosition(memberButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

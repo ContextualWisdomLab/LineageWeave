@@ -5,6 +5,10 @@ import {
   LEFTOVER_RANK_STRUCTURE_ACTION,
   LEFTOVER_RANK_ZERO_ACTION,
 } from "../leftoverMapRank";
+import {
+  formatLeftoverMapReconstruction,
+  LEFTOVER_RECONSTRUCTION_ACTION,
+} from "../leftoverMapReconstruction";
 import { formatLeftoverObservedExpected } from "../leftoverObservedExpected";
 import { formatLeftoverResidual } from "../leftoverResidual";
 
@@ -19,8 +23,10 @@ export type LeftoverPairListProps = {
  *
  * Distance is the two-axis leftover-map Euclidean gap. Residual is
  * ``R = Y − E[Y|θ, item]`` (Jeon et al., 2021, eq. 3 input).
- * The action preserves residual, observed/expected, and full-rank
- * amendments together before opening the named post.
+ * Reconstruction is two-axis ``R̂_c = ξ_{1:2} · ζ_{1:2}`` of centered
+ * leftover (Gabriel, 1971). The action preserves residual,
+ * observed/expected, full-rank, and reconstruction amendments together
+ * before opening the named post.
  */
 export function LeftoverPairList({
   pairs,
@@ -42,8 +48,15 @@ export function LeftoverPairList({
           pair.expected_response,
         );
         const rankBadge = formatLeftoverMapRank(pair.leftover_map_rank);
+        const reconstructionBadge = formatLeftoverMapReconstruction(
+          pair.leftover_map_reconstruction,
+        );
         let nextAction: string;
-        if (rankBadge !== null && observedExpected !== null) {
+        if (reconstructionBadge !== null) {
+          nextAction = tf(LEFTOVER_RECONSTRUCTION_ACTION, {
+            reconstruction: reconstructionBadge.replace(/^R̂\s+/, ""),
+          });
+        } else if (rankBadge !== null && observedExpected !== null) {
           nextAction =
             pair.leftover_map_rank === 0
               ? tf(
@@ -104,6 +117,7 @@ export function LeftoverPairList({
               <span className="post-badge">R {residual}</span>
               {observedExpected ? <span className="post-badge">{observedExpected}</span> : null}
               {rankBadge ? <span className="post-badge">{rankBadge}</span> : null}
+              {reconstructionBadge ? <span className="post-badge">{reconstructionBadge}</span> : null}
               <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
             </button>
           </li>

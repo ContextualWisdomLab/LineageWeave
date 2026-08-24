@@ -12,6 +12,7 @@ HTTP to Keycloak goes through ``lineageweave.http_client``.
 
 from __future__ import annotations
 
+import math
 import os
 import uuid
 from contextlib import closing
@@ -132,6 +133,11 @@ _LEFTOVER_MAP_RANK_MIGRATION = (
     / "migrations"
     / "0164_report_leftover_map_rank.sql"
 )
+_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0186_report_leftover_map_reconstruction.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -249,6 +255,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_CHANNEL_WEIGHT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
+            cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -4734,6 +4741,9 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert all(pair["leftover_distance"] >= 0 for pair in high_report.get("leftover_pairs", []))
     for pair in high_report.get("leftover_pairs", []):
         assert pair["leftover_map_rank"] >= 0
+        reconstruction = pair.get("leftover_map_reconstruction")
+        if reconstruction is not None:
+            assert math.isfinite(reconstruction)
         observed = pair.get("observed_response")
         expected = pair.get("expected_response")
         if observed is None or expected is None:

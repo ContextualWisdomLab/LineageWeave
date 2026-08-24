@@ -36,6 +36,16 @@ All notable changes to this project are documented here. Format follows
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
 
+## [2.12.30] - 2026-08-24
+
+### Added
+
+- Period leftover pair rows now name two-axis leftover-map reconstruction
+  `R̂` of centered leftover next to leftover-map distance `d`, then open
+  that post (Gabriel, 1971; Jeon et al., 2021, eq. 3; ADR 0186). Fallback
+  pairs omit the reconstruction rather than inventing one. Rank-0 origin
+  maps store `R̂ = 0`. Never invent a leftover score or a theta.
+
 ## [2.12.18] - 2026-08-24
 
 ### Fixed

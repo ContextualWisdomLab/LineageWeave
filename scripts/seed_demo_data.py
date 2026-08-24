@@ -119,6 +119,7 @@ def seed(
             cur.execute((migrations / "0012_report_leftover_pair.sql").read_text())
             cur.execute((migrations / "0163_report_leftover_observed_expected.sql").read_text())
             cur.execute((migrations / "0164_report_leftover_map_rank.sql").read_text())
+            cur.execute((migrations / "0186_report_leftover_map_reconstruction.sql").read_text())
             cur.execute((migrations / "0060_role_responsibility_agent_type.sql").read_text())
             cur.execute((migrations / "0013_person_job_title.sql").read_text())
             cur.execute((migrations / "0014_role_responsibility_team_actor_type.sql").read_text())
@@ -1198,8 +1199,8 @@ def _persist_seed_period_report(
             "insert into report_leftover_pair ("
             "grouping_kind, grouping_key, period_code, rubric_version, "
             "pair_kind, post_id, criterion_code, leftover_distance, leftover_residual, "
-            "observed_response, expected_response, leftover_map_rank"
-            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            "observed_response, expected_response, leftover_map_rank, leftover_map_reconstruction"
+            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
             (
                 grouping_kind,
                 grouping_key,
@@ -1213,6 +1214,7 @@ def _persist_seed_period_report(
                 pair.observed_response,
                 pair.expected_response,
                 pair.leftover_map_rank,
+                pair.leftover_map_reconstruction,
             ),
         )
 

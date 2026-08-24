@@ -270,6 +270,9 @@ def test_calibrated_report_attaches_leftover_pairs() -> None:
             pair.observed_response - pair.expected_response, abs=1e-6
         )
         assert pair.leftover_map_rank >= 0
+        reconstruction = pair.leftover_map_reconstruction
+        if reconstruction is not None:
+            assert np.isfinite(reconstruction)
 
 
 

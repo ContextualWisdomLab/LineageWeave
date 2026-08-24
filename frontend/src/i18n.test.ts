@@ -47,6 +47,7 @@ describe("i18n", () => {
     "Leftover map rank {rank} after IRT main effects. Open this post.",
     "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.",
+    "Two leftover-map axes reconstruct centered leftover R̂ {reconstruction} after IRT main effects. Open this post.",
     "Showing the first {shown} of {total} posts known at this cutoff.",
     "Rankings",
     "Title overlap",
@@ -129,6 +130,21 @@ describe("i18n", () => {
     setLocale(locale);
     expect(
       tf("Leftover map rank {rank} after IRT main effects. Open this post.", { rank: "1" }),
+    ).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "IRT 주효과 이후 두 잔여 맵 축이 중심화된 잔여 R̂ +0.40을 재구성합니다. 이 글을 여세요."],
+    ["zh", "IRT 主效应后，两个残余图轴重构中心化残余 R̂ +0.40。打开这篇帖子。"],
+    ["ja", "IRT主効果後、残差マップの2軸が中心化残差 R̂ +0.40 を再構成します。この投稿を開いてください。"],
+    ["vi", "Hai trục bản đồ phần dư tái tạo phần dư đã tâm R̂ +0.40 sau hiệu ứng chính IRT. Mở bài viết này."],
+  ] as const)("formats leftover-map reconstruction next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Two leftover-map axes reconstruct centered leftover R̂ {reconstruction} after IRT main effects. Open this post.",
+        { reconstruction: "+0.40" },
+      ),
     ).toBe(expected);
   });
 
