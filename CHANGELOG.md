@@ -11,6 +11,14 @@ All notable changes to this project are documented here. Format follows
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
+- `frontend/src/App.tsx` failed `tsc -b` on this branch: a dead import
+  (`rememberOidcReturnUrl`, `returnUrlFromLocation` -- unused since a prior
+  refactor) and an unguarded `AdminPanel` render passing the OIDC
+  `accessToken` (typed `string | undefined`) into a prop that requires
+  `string`. Every PR branched from here inherited both failures
+  regardless of its own diff. Fixed by dropping the dead import and
+  gating the render on `accessToken` being present, matching every other
+  `accessToken`-dependent effect in the file.
 
 ## [2.12.6] - 2026-08-20
 
