@@ -500,6 +500,9 @@ def assemble_ontology_neighborhood(
         def source_page_sort_key(
             fact: NeighborhoodFact,
         ) -> tuple[int, tuple[int, str, str, str, str, str]]:
+            """Order source-window facts by their opaque cursor key, falling
+            back to a deterministic hop/property/node tuple for facts the
+            cursor page did not carry a position for."""
             if fact.source_order_key is not None:
                 return (0, fact.source_order_key)
             return (
