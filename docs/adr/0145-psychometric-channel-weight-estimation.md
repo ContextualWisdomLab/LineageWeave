@@ -2,6 +2,12 @@
 
 **Decision status:** Proposed
 **Date:** 2026-08-23
+**Amended:** 2026-08-24 — product reconstruction paths no longer fall
+back to the hand-picked constants at all; they fail closed until an
+estimated set exists (operator directive: weights are treated only via
+TEPP/fast-mlsirm). Points 3–5 below reflect the amended contract.
+Migration 0136 adds `channel_set_code` so the deterministic and
+llm-inclusive channel combinations each persist their own estimated set.
 
 > Numbering note: parallel branches are assigning ADR numbers concurrently
 > (0143 exists on an unmerged branch). `0145` was the next free number on
@@ -62,27 +68,33 @@ unconfigured, never a fabricated result); the same pattern applies here.
    binary event the fusion decision acts on.
 3. **Fail closed, never fabricate.** When `fast-mlsirm` is not
    importable, the sample is too small, or the fit degenerates (any
-   non-finite alpha), estimation returns nothing and callers keep the
-   documented fallback constants — now explicitly labeled as
-   *ungrounded fallback* in `reconstruct.py`'s docstring, not as a
-   justified default.
+   non-finite alpha), estimation returns nothing and *no product
+   reconstruction runs*: `rebuild_lineage` raises
+   `ChannelWeightsNotEstimated` (API surface: 503 with the
+   estimate-first next action) and an analysis-run start fails with the
+   same instruction. `DEFAULT_CHANNEL_WEIGHTS` in `reconstruct.py` is
+   relabeled library-demo/test-only — it keeps the library runnable
+   standalone (fixtures, `make seed`, unit tests) and never reaches a
+   product path.
 4. **Persisted, provenance-bearing weights.** An operator script
    (`scripts/estimate_channel_weights.py`) runs the estimation against
    the real corpus and upserts one row per channel into a new
-   `lineage_channel_weight` table (migration 0135) carrying the weight,
-   the estimation method code, the sample size, and the estimation
-   timestamp. `rebuild_lineage` loads these rows and passes them to
-   `reconstruct`; it uses them **only when the persisted channel set
-   exactly matches the active channel set** (no partial mixing of
-   estimated and hand-picked weights — a mixed vector is neither
-   grounded nor the documented fallback), otherwise it falls back
-   entirely.
+   `lineage_channel_weight` table (migration 0135; migration 0136 adds
+   `channel_set_code` so each active-channel combination persists its
+   own set) carrying the weight, the estimation method code, the sample
+   size, and the estimation timestamp. `rebuild_lineage` loads these
+   rows and passes them to `reconstruct`; it uses a persisted set
+   **only when its channel set exactly matches the active channel set**
+   (no partial mixing — a mixed vector grounds nothing), and fails
+   closed otherwise.
 5. **The llm channel is estimated only when adjudication is
    configured.** Scoring sampled pairs through the adjudication client
    costs provider calls; the script includes the llm channel when a
-   client is available and skips it otherwise (the exact-match rule in
-   (4) then keeps rebuilds on the fallback until a full estimate
-   exists). Accuracy over speed, per the standing mandate.
+   client is available (`--include-llm`, persisting the
+   `channel_set_with_llm` set) and skips it otherwise. Until the
+   4-channel set is estimated, an llm-inclusive run fails closed with
+   the estimate-first instruction. Accuracy over speed, per the
+   standing mandate.
 
 ## Consequences
 
@@ -128,8 +140,10 @@ remains non-production (see the standing `tepp_readiness_watch`).
 2. `estimate_channel_weights()` returns `None` on: import failure,
    fewer than `_MIN_SAMPLE_PAIRS` pairs, any channel with fewer than two
    distinct dichotomized responses, or any non-finite estimated alpha.
-3. `lineage_edge_specs` and `rebuild_lineage` gain an optional
-   `weights` pass-through; `None` keeps today's behavior exactly.
+3. `lineage_edge_specs` gains an optional `weights` pass-through
+   (`None` keeps the library defaults for standalone use);
+   `rebuild_lineage` and the analysis-run start path require a loaded
+   estimate and fail closed on `None` (2026-08-24 amendment).
 4. Tests: fail-closed paths run everywhere; a parameter-recovery test
    (planted discriminations recovered within tolerance, the
    organization's RMSE standard) runs when `fast_mlsirm` is importable

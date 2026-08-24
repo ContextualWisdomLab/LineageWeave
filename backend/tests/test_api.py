@@ -174,6 +174,11 @@ _CHANNEL_WEIGHT_MIGRATION = (
     / "migrations"
     / "0135_lineage_channel_weight.sql"
 )
+_CHANNEL_WEIGHT_SET_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0136_channel_weight_set.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -300,6 +305,18 @@ def seeded_db(demo_analyst_token):
             cur.execute(_SEMANTIC_RELATIONSHIP_MIGRATION.read_text())
             cur.execute(_SEMANTIC_RELATIONSHIP_PREDICATES_MIGRATION.read_text())
             cur.execute(_CHANNEL_WEIGHT_MIGRATION.read_text())
+            cur.execute(_CHANNEL_WEIGHT_SET_MIGRATION.read_text())
+            # Product reconstruction fails closed without an estimated
+            # weight set (ADR 0145, amended); this synthetic fixture set
+            # stands in for a fast-mlsirm estimate in unit tests.
+            cur.execute(
+                "insert into lineage_channel_weight "
+                "(channel_set_code, channel_code, weight_value, "
+                " estimation_method_code, sample_pair_count) values "
+                "('channel_set_deterministic', 'temporal', 0.25, 'test_fixture', 1), "
+                "('channel_set_deterministic', 'secondary_key', 0.25, 'test_fixture', 1), "
+                "('channel_set_deterministic', 'text', 0.50, 'test_fixture', 1)"
+            )
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
                 "('corporate_entity_level', 'group', 'Group'), "
@@ -4365,6 +4382,10 @@ def test_rebuild_lineage_requires_post_admin(client, demo_analyst_token) -> None
 def test_rebuild_lineage_recovers_the_a100_fork(client, demo_analyst_token, seeded_db) -> None:
     """Rebuild on the same A-100+B-200 rows seed writes (grouping keys +
     occurred_at), not a hand-picked A-100-only insert that hides mapping bugs.
+
+    Also proves the fail-closed contract (ADR 0145, amended): with no
+    estimated weight set persisted, rebuild is 503 with the estimate-first
+    next action; it only runs against the seeded fixture estimate.
     """
     from scripts.seed_demo_data import insert_fixture_source_posts
 
@@ -4385,6 +4406,25 @@ def test_rebuild_lineage_recovers_the_a100_fork(client, demo_analyst_token, seed
                 "on conflict do nothing",
                 (role_id,),
             )
+
+            # Withdraw the fixture estimate to prove the fail-closed 503
+            # (ADR 0145, amended), then restore it for the real rebuild.
+            cur.execute("select * from lineage_channel_weight")
+            saved_rows = cur.fetchall()
+            saved_columns = [column.name for column in cur.description]
+            cur.execute("delete from lineage_channel_weight")
+            blocked = client.post(
+                "/api/lineage/rebuild",
+                headers={"Authorization": f"Bearer {demo_analyst_token}"},
+            )
+            assert blocked.status_code == 503, blocked.text
+            assert "estimate_channel_weights" in blocked.json()["detail"]
+            for saved in saved_rows:
+                cur.execute(
+                    f"insert into lineage_channel_weight ({', '.join(saved_columns)}) "
+                    f"values ({', '.join(['%s'] * len(saved_columns))})",
+                    saved,
+                )
             cur.execute(
                 "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
                 "select corporate_entity_id, 'TEST-PU-LINEAGE', 'Lineage thread' "

@@ -120,6 +120,15 @@ services:
     command: ["python", "/app/start.py"]
     ports:
       - "${ORCHESTRATOR_PORT:-18000}:8000"
+      # Second host port for operator scripts: on at least one dev machine,
+      # host port 18000 is shadowed by an unrelated locally-launched
+      # orchestrator bound to 127.0.0.1:18000 (plus an ssh remote-forward on
+      # *:18000), so host-side requests silently reach a different server
+      # with a different token. Everything inside the compose network keeps
+      # using orchestrator:8000; this alternate mapping exists only so
+      # host-run scripts (backfills, weight estimation) reliably reach THIS
+      # instance.
+      - "${ORCHESTRATOR_ALT_PORT:-18001}:8000"
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2)"]
       interval: 5s

@@ -27,7 +27,10 @@ from backend.app.analysis_run_outbox import (
     latest_outbox_delivery_is_delivered,
     outbox_request_digest,
 )
-from backend.app.lineage_ingestion import records_from_source_posts
+from backend.app.lineage_ingestion import (
+    load_estimated_channel_weights,
+    records_from_source_posts,
+)
 from lineageweave.adjudication_client import AdjudicationClient
 from lineageweave.http_client import HttpClientError, post_json
 from lineageweave.lineage_persistence import lineage_edge_specs
@@ -713,7 +716,26 @@ async def _deliver_lineage_reconstruction(
             knowledge_cutoff=locked["knowledge_cutoff"],
             affiliated_entity_ids=affiliated_entity_ids,
         )
-    edges = lineage_edge_specs(records_from_source_posts(rows), llm=adjudication_client)
+    # ADR 0145 (amended 2026-08-24): weights are measurement output only
+    # -- the persisted fast-mlsirm set matching this run's active
+    # channels (four when the adjudication client is available, three
+    # deterministic otherwise). A missing set fails the start with a
+    # next-action message instead of reconstructing on hand-picked
+    # constants.
+    active_channels = {"temporal", "secondary_key", "text"}
+    if adjudication_client is not None and getattr(adjudication_client, "available", False):
+        active_channels = active_channels | {"llm"}
+    weights = await load_estimated_channel_weights(conn, active_channels)
+    if weights is None:
+        raise AnalysisRunStartError(
+            503,
+            "Channel weights are not estimated yet for this run's active "
+            f"channels ({', '.join(sorted(active_channels))}). Run "
+            "scripts/estimate_channel_weights.py, then start this run again.",
+        )
+    edges = lineage_edge_specs(
+        records_from_source_posts(rows), llm=adjudication_client, weights=weights
+    )
     digest = reconstruction_result_digest(edges)
     finished = datetime.now(timezone.utc)
     if finished < now:
