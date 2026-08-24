@@ -1,13 +1,38 @@
 from __future__ import annotations
 
 import json
-import ssl
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 
-from lineageweave.http_client import HttpClientError, get_json, get_json_list, post_form, post_json
+from lineageweave.http_client import (
+    HttpClientError,
+    chat_completion_content,
+    get_json,
+    post_form,
+    post_json,
+)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"error": "raw-provider-secret"},
+        {"choices": []},
+        {"choices": [{"message": {"content": 123}}]},
+        {"choices": [{"message": {"content": ["raw-provider-secret"]}}]},
+    ],
+)
+def test_chat_completion_content_rejects_unsafe_or_malformed_envelopes(body: object) -> None:
+    with pytest.raises((TypeError, ValueError)) as error:
+        chat_completion_content(body)
+
+    assert "raw-provider-secret" not in str(error.value)
+
+
+def test_chat_completion_content_returns_text_without_rewriting_it() -> None:
+    assert chat_completion_content({"choices": [{"message": {"content": "  []  "}}]}) == "  []  "
 
 
 class _JsonHandler(BaseHTTPRequestHandler):
@@ -180,8 +205,9 @@ def test_post_json_https_negotiates_tls_instead_of_plaintext() -> None:
     server, base = _serve(_JsonHandler)
     try:
         https_url = base.replace("http://", "https://", 1) + "/v1/embeddings"
-        with pytest.raises(ssl.SSLError):
+        with pytest.raises(HttpClientError, match="provider transport unavailable") as error:
             post_json(https_url, {"model": "demo"}, headers={}, timeout=2.0)
+        assert error.value.__cause__ is not None
     finally:
         server.shutdown()
 

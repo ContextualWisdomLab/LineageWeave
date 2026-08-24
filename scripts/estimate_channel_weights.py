@@ -83,13 +83,15 @@ def source_snapshot_digest(rows: list) -> str:
 
 def sample_pair_scores(
     records: list, *, window: int = DEFAULT_CANDIDATE_WINDOW
-) -> tuple[list[dict[str, float]], list[int]]:
+) -> tuple[list[dict[str, float]], list[int], list[tuple[str, str]]]:
     """Score every in-window candidate pair, grouped as reconstruct groups.
 
     Pure so the sampling geometry itself is unit-testable: pairs come
     only from within one group, only from the trailing ``window`` of
     temporally prior records -- the exact candidate set
-    ``reconstruct`` would consider.
+    ``reconstruct`` would consider. Also returns each pair's
+    (candidate_label, record_label) so the queued llm judging pass can
+    score the same candidate geometry without re-deriving it.
     """
     groups: dict[str, list] = {}
     for record in records:
@@ -97,6 +99,7 @@ def sample_pair_scores(
 
     pair_scores: list[dict[str, float]] = []
     group_ids: list[int] = []
+    pair_labels: list[tuple[str, str]] = []
     for group_index, group_records in enumerate(groups.values()):
         ordered = sorted(group_records, key=lambda r: r.occurred_at)
         for index, record in enumerate(ordered):
@@ -109,7 +112,21 @@ def sample_pair_scores(
                     }
                 )
                 group_ids.append(group_index)
-    return pair_scores, group_ids
+                pair_labels.append((candidate.label, record.label))
+    return pair_scores, group_ids, pair_labels
+
+
+def subsample_stride(total: int, limit: int) -> list[int]:
+    """Deterministic, evenly-spread pair indices for the bounded llm pass.
+
+    A stride subsample keeps every reconstruction group represented in
+    proportion (pairs are ordered group-by-group) without any randomness
+    that would make re-runs incomparable.
+    """
+    if total <= limit:
+        return list(range(total))
+    stride = total / limit
+    return [min(int(index * stride), total - 1) for index in range(limit)]
 
 
 async def persist_estimate(
@@ -178,7 +195,7 @@ async def _run(args: argparse.Namespace) -> dict[str, object]:
     snapshot_sha256 = source_snapshot_digest(rows)
     knowledge_cutoff = max(row["created_at"] for row in rows)
     records = records_from_source_posts(rows)
-    pair_scores, group_ids = sample_pair_scores(records)
+    pair_scores, group_ids, _pair_labels = sample_pair_scores(records)
 
     estimate = estimate_channel_weights(pair_scores, group_ids)
     if estimate is None:
