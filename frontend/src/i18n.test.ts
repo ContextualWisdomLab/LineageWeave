@@ -29,12 +29,16 @@ describe("i18n", () => {
     "Refresh",
     "Close",
     "Post body",
+    "Post",
     "Summary",
     "Calendar",
     "Board",
     "Search",
     "Page",
     "Answer",
+    "leftover axis {axis} {share}%",
+    "Leftover-map axis share",
+    "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.",
     "Leftover pairs",
     "Closest leftover",
     "Farthest leftover",
@@ -42,12 +46,16 @@ describe("i18n", () => {
     "Open leftover {kind} pair: {title} · {criterion}",
     "Open this post to read the criterion it sat closest to after main effects.",
     "Open this post to read the criterion it sat farthest from after main effects.",
+    "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.",
     "Leftover map rank {rank} after IRT main effects. Open this post.",
     "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.",
     "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.",
     "Showing the first {shown} of {total} posts known at this cutoff.",
+    "Inspect ontology neighborhood",
+    "Ontology neighborhood",
+    "This is an ontology neighborhood, not Event Lineage.",
     "Rankings",
     "Title overlap",
     "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
@@ -78,6 +86,16 @@ describe("i18n", () => {
     expect(getLocale()).toBe(locale);
     expect(t("Related posts")).toBe(expected);
     expect(document.documentElement.lang).toBe(locale);
+  });
+
+  it.each([
+    ["ko", "글"],
+    ["zh", "文章"],
+    ["ja", "投稿"],
+    ["vi", "Bài viết"],
+  ] as const)("translates the ontology Post node label in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Post")).toBe(expected);
   });
 
   it.each([
@@ -143,6 +161,33 @@ describe("i18n", () => {
       tf(
         "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.",
         { rank: "1", observed: "2.40", expected: "2.00" },
+      ),
+    ).toBe(expected);
+  });
+
+  it.each([
+    [
+      "ko",
+      "잔여 지도가 IRT 주효과 이후 설명되지 않은 U +0.05을(를) 남깁니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
+    ],
+    [
+      "zh",
+      "残差图在 IRT 主效应后留下未解释的 U +0.05。打开这篇帖子阅读 sales-lead。",
+    ],
+    [
+      "ja",
+      "残差マップはIRT主効果後の未説明 U +0.05 を残します。この投稿を開いて sales-lead を読んでください。",
+    ],
+    [
+      "vi",
+      "Bản đồ phần dư để lại U +0.05 chưa giải thích sau hiệu ứng chính IRT. Mở bài viết này để đọc sales-lead.",
+    ],
+  ] as const)("formats leftover-map unexplained next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.",
+        { value: "+0.05", criterion: "sales-lead" },
       ),
     ).toBe(expected);
   });

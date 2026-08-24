@@ -17,6 +17,8 @@ from __future__ import annotations
 import asyncio
 import hashlib
 
+from collections.abc import Sequence
+
 import asyncpg
 
 from lineageweave.corporate_hierarchy_inference import (
@@ -27,12 +29,18 @@ from lineageweave.corporate_hierarchy_resolution import (
     RESOLUTION_TIE,
     RESOLUTION_UNIQUE,
     CorporateEntityCandidate,
+    OrganizationNameAlias,
+    expand_candidates_with_skos_aliases,
     score_corporate_entity,
 )
 from lineageweave.http_client import HttpClientError
 from lineageweave.relation_verification import (
     STATUS_CORROBORATED,
     RelationVerificationClient,
+)
+
+from .organization_name_resolution_ingestion import (
+    load_corroborated_organization_name_aliases,
 )
 
 _AUTO_CODE_PREFIX = "AUTO-"
@@ -111,18 +119,21 @@ async def get_or_create_corporate_entity(
     verification_client: RelationVerificationClient,
     candidates: list[CorporateEntityCandidate],
     *,
+    aliases: Sequence[OrganizationNameAlias] | None = None,
     _depth: int = 0,
     _visited_names: frozenset[str] = frozenset(),
+    _ancestor_entity_ids: set[str] | None = None,
 ) -> str | None:
     """Return a verified catalog id, otherwise ``None``.
 
     A unique similarity match is reused. A tied top score stays unbound
-    and does not create a third same-named row (ADR 0026). Only a genuine
-    miss -- no candidate at or above ``min_similarity`` -- may enter ADR
-    0010 inference. A proposed parent must independently corroborate and
-    resolve before the child can be inserted. Repeated names in the
-    recursion path are cycles, including multi-node cycles such as
-    A -> B -> A.
+    and does not create a third same-named row (ADR 0026). After a raw
+    miss, SKOS alt/pref pairs expand the candidate labels so a
+    synthetic short form and full form bind the same row (ADR 0160). Only
+    an alias-expanded miss may enter ADR 0010 inference. A proposed parent
+    must independently corroborate and resolve before the child can be
+    inserted. Repeated names in the recursion path are cycles, including
+    multi-node cycles such as A -> B -> A.
     """
     normalized_name = organization_name.strip()
     if not normalized_name:
@@ -130,8 +141,26 @@ async def get_or_create_corporate_entity(
     visit_key = normalized_name.casefold()
     if visit_key in _visited_names:
         return None
+    ancestor_entity_ids = (
+        _ancestor_entity_ids if _ancestor_entity_ids is not None else set()
+    )
 
     existing = score_corporate_entity(normalized_name, candidates)
+    if existing.kind == RESOLUTION_UNIQUE and existing.catalog_id is not None:
+        return existing.catalog_id
+    if existing.kind == RESOLUTION_TIE:
+        return None
+
+    resolved_aliases: Sequence[OrganizationNameAlias]
+    if aliases is None:
+        resolved_aliases = await load_corroborated_organization_name_aliases(conn)
+    else:
+        resolved_aliases = aliases
+    existing = score_corporate_entity(
+        normalized_name,
+        expand_candidates_with_skos_aliases(candidates, resolved_aliases),
+        min_similarity=1.0,
+    )
     if existing.kind == RESOLUTION_UNIQUE and existing.catalog_id is not None:
         return existing.catalog_id
     if existing.kind == RESOLUTION_TIE:
@@ -194,24 +223,42 @@ async def get_or_create_corporate_entity(
             inference_client,
             verification_client,
             candidates,
+            aliases=resolved_aliases,
             _depth=_depth + 1,
             _visited_names=visited_names,
+            _ancestor_entity_ids=ancestor_entity_ids,
         )
         if parent_entity_id is None:
             return None
+        ancestor_entity_ids.add(parent_entity_id)
 
     async with conn.transaction():
         await conn.execute(
             "select pg_advisory_xact_lock(hashtext($1))",
             _CREATION_LOCK_KEY,
         )
-        # ponytail: the lock recheck is exact-only; fuzzy matching here can
-        # mistake an inferred child for the parent just created above. The
-        # initial lookup remains fuzzy, while this check only prevents a
-        # concurrent insert of the same normalized name.
+        # ponytail: exclude the resolved ancestor path before repeating normal
+        # raw scoring, or an ancestor created by this recursion can absorb its child.
+        fresh_candidates = await _reload_candidates(conn)
+        if ancestor_entity_ids:
+            fresh_candidates = [
+                candidate
+                for candidate in fresh_candidates
+                if candidate.corporate_entity_id not in ancestor_entity_ids
+            ]
         fresh = score_corporate_entity(
             normalized_name,
-            await _reload_candidates(conn),
+            fresh_candidates,
+        )
+        if fresh.kind == RESOLUTION_UNIQUE and fresh.catalog_id is not None:
+            _remember_candidate(candidates, fresh.catalog_id, normalized_name)
+            return fresh.catalog_id
+        if fresh.kind == RESOLUTION_TIE:
+            return None
+        fresh_aliases = await load_corroborated_organization_name_aliases(conn)
+        fresh = score_corporate_entity(
+            normalized_name,
+            expand_candidates_with_skos_aliases(fresh_candidates, fresh_aliases),
             min_similarity=1.0,
         )
         if fresh.kind == RESOLUTION_UNIQUE and fresh.catalog_id is not None:

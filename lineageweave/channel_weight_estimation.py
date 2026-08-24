@@ -184,7 +184,13 @@ def estimate_channel_weights(
         responses=numpy.asarray(responses, dtype=float),
         factor_id=factor_id,
         cluster_id=numpy.asarray(group_ids, dtype=numpy.int64),
-        config=FitConfig(model="MLS2PLM", latent_dim=1, estimator="mmle"),
+        # fast-mlsirm's default max_iter=1000 is tuned against its GPU/f32
+        # path; the f64 CPU fallback (no wgpu adapter -- every CI runner)
+        # needs materially more EM iterations to reach the same optimum at
+        # full precision, observed up to ~1850 on this module's own fixture.
+        # Raising the budget only slows an already-non-converged path; a
+        # fit that would converge sooner still stops the moment it does.
+        config=FitConfig(model="MLS2PLM", latent_dim=1, estimator="mmle", max_iter=3000),
     )
     # ADR 0200: a non-converged fit is rejected outright -- its point
     # estimates are not measurement evidence.
