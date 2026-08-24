@@ -2379,8 +2379,15 @@ async def read_period_reports(
             {key: value for key, value in pair.items() if key != "has_real_source_context"}
             for pair in leftover_pairs
         ]
+        leftover_map_axes = list(report.get("leftover_map_axes", []))
         visible.append(
-            {**report, "members": members, "leftover_pairs": leftover_pairs, "post_count": len(members)}
+            {
+                **report,
+                "members": members,
+                "leftover_pairs": leftover_pairs,
+                "leftover_map_axes": leftover_map_axes,
+                "post_count": len(members),
+            }
         )
     return {"grouping_kind": grouping_kind, "period_code": period_code, "reports": visible}
 
