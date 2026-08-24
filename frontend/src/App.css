@@ -515,6 +515,15 @@
   stroke-width: 1.5;
 }
 
+/* The enlarged hit target sits under the visible mark. Author CSS beats the
+   fill="transparent" presentation attribute, so keep it invisible here or it
+   paints as a second opaque disc (WCAG 2.5.8 touch-target sizing must not
+   change what the reader sees). */
+.lineage-dag-node .lineage-dag-hit {
+  fill: transparent;
+  stroke: none;
+}
+
 .lineage-dag-branch circle {
   fill: var(--badge-actor-organization-bg);
   stroke: var(--color-accent-orange);
