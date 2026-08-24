@@ -1822,20 +1822,31 @@ function IssueTicketPanel({
   const [creating, setCreating] = useState(false);
   const [deriving, setDeriving] = useState(false);
   const [orchestratorOff, setOrchestratorOff] = useState(false);
+  const requestIdRef = useRef(0);
 
   function reload() {
+    const requestId = ++requestIdRef.current;
     fetchPostTickets(accessToken, postId)
-      .then((r) => setTickets(r.tickets))
-      .catch(() => setTickets([]));
+      .then((r) => {
+        if (requestId === requestIdRef.current) setTickets(r.tickets);
+      })
+      .catch(() => {
+        if (requestId === requestIdRef.current) setTickets([]);
+      });
   }
 
   useEffect(() => {
+    const requestId = ++requestIdRef.current;
     setTickets(null);
     setOrchestratorOff(false);
     setError(null);
     fetchPostTickets(accessToken, postId)
-      .then((r) => setTickets(r.tickets))
-      .catch(() => setTickets([]));
+      .then((r) => {
+        if (requestId === requestIdRef.current) setTickets(r.tickets);
+      })
+      .catch(() => {
+        if (requestId === requestIdRef.current) setTickets([]);
+      });
   }, [postId, accessToken]);
 
   async function handleCreate() {
@@ -2319,44 +2330,72 @@ function PostDetailPopup({
       if (isWritingSourceDetailState(loadedPost.source_detail_state_code)) return;
       fetchPostEvaluation(accessToken, postId)
         .then((r) => {
+          if (disposed) return;
           setEvaluation(r.responses);
           setEvaluationDropped(false);
         })
         .catch((err) => {
+          if (disposed) return;
           setEvaluation([]);
           setEvaluationDropped(err instanceof BackendError && err.status === 503);
         });
       fetchPostFiveW1H(accessToken, postId)
-        .then(setFiveW1H)
-        .catch(() => setFiveW1H(null));
+        .then((value) => {
+          if (!disposed) setFiveW1H(value);
+        })
+        .catch(() => {
+          if (!disposed) setFiveW1H(null);
+        });
       fetchPostKeymen(accessToken, postId)
         .then((r) => {
+          if (disposed) return;
           setKeymen(r.keymen);
           setSourceAuthorContext(r.source_author_context ?? null);
         })
         .catch(() => {
+          if (disposed) return;
           setKeymen([]);
           setSourceAuthorContext(null);
         });
       fetchPostCounterparties(accessToken, postId)
-        .then((r) => setCounterparties(r.counterparties))
-        .catch(() => setCounterparties([]));
+        .then((r) => {
+          if (!disposed) setCounterparties(r.counterparties);
+        })
+        .catch(() => {
+          if (!disposed) setCounterparties([]);
+        });
       fetchPostLineage(accessToken, postId)
         .then((value) => {
+          if (disposed) return;
           setLineage(value);
           setLineageError(null);
         })
         .catch((err) => {
+          if (disposed) return;
           setLineage(null);
           setLineageError(productExceptionCopy(err, t("Related posts")).title);
         });
       fetchPostKnowledgeGraph(accessToken, postId)
-        .then(setKnowledgeGraph)
-        .catch(() => setKnowledgeGraph(null));
+        .then((value) => {
+          if (!disposed) setKnowledgeGraph(value);
+        })
+        .catch(() => {
+          if (!disposed) setKnowledgeGraph(null);
+        });
       fetchPostAffiliateTree(accessToken, postId)
-        .then((r) => setAffiliateTrees(r.trees))
-        .catch(() => setAffiliateTrees([]));
-      fetchPostVocEvidence(accessToken, postId).then(setVocEvidence).catch(() => setVocEvidence(null));
+        .then((r) => {
+          if (!disposed) setAffiliateTrees(r.trees);
+        })
+        .catch(() => {
+          if (!disposed) setAffiliateTrees([]);
+        });
+      fetchPostVocEvidence(accessToken, postId)
+        .then((value) => {
+          if (!disposed) setVocEvidence(value);
+        })
+        .catch(() => {
+          if (!disposed) setVocEvidence(null);
+        });
     };
     fetchPost(accessToken, postId, asOf)
       .then((loadedPost) => {
@@ -2394,9 +2433,11 @@ function PostDetailPopup({
         });
     contentReloadRef.current = reloadContent;
     fetchPostBookmark(accessToken, postId)
-      .then((r) => setBookmarked(r.bookmarked))
+      .then((r) => {
+        if (!disposed) setBookmarked(r.bookmarked);
+      })
       .catch(() => {
-        setBookmarked(null);
+        if (!disposed) setBookmarked(null);
       });
     return () => {
       disposed = true;
@@ -4078,6 +4119,7 @@ function ReportsPanel({
   const [error, setError] = useState<string | null>(null);
   const [rebuilding, setRebuilding] = useState(false);
   const openedComparisonRef = useRef<HTMLButtonElement | null>(null);
+  const requestIdRef = useRef(0);
 
   function groupingIsOpened(groupingKind: string, groupingKey: string, groupingLabel?: string) {
     if (groupingKind !== grouping) {
@@ -4090,6 +4132,7 @@ function ReportsPanel({
   }
 
   useEffect(() => {
+    const requestId = ++requestIdRef.current;
     setError(null);
     Promise.all([
       fetchPeriodReports(accessToken, grouping, period),
@@ -4097,11 +4140,14 @@ function ReportsPanel({
       fetchPeriodComparison(accessToken, period),
     ])
       .then(([reports, periods, compared]) => {
+        if (requestId !== requestIdRef.current) return;
         setPayload(reports);
         setIndex(periods);
         setComparison(compared);
       })
-      .catch((err) => setError(productExceptionCopy(err, t("Period reports")).title));
+      .catch((err) => {
+        if (requestId === requestIdRef.current) setError(productExceptionCopy(err, t("Period reports")).title);
+      });
   }, [accessToken, grouping, period]);
 
   useEffect(() => {
@@ -4117,6 +4163,7 @@ function ReportsPanel({
   }, [landOnComparison, grouping, openedGroupingKey, openedGroupingLabel, comparison]);
 
   async function handleRebuild() {
+    const requestId = ++requestIdRef.current;
     setRebuilding(true);
     setError(null);
     try {
@@ -4126,13 +4173,15 @@ function ReportsPanel({
         fetchPeriodReportIndex(accessToken, grouping),
         fetchPeriodComparison(accessToken, period),
       ]);
-      setPayload(reports);
-      setIndex(periods);
-      setComparison(compared);
+      if (requestId === requestIdRef.current) {
+        setPayload(reports);
+        setIndex(periods);
+        setComparison(compared);
+      }
     } catch (err) {
-      setError(productExceptionCopy(err, t("Period reports")).title);
+      if (requestId === requestIdRef.current) setError(productExceptionCopy(err, t("Period reports")).title);
     } finally {
-      setRebuilding(false);
+      if (requestId === requestIdRef.current) setRebuilding(false);
     }
   }
 
@@ -5320,6 +5369,7 @@ function CustomerMasterPanel({
   // CustomerMasterPanel is a sibling of PostList under App, not a child,
   // so it cannot read PostList's local post_admin check.
   const [canResolveHints, setCanResolveHints] = useState(false);
+  const masterRequestIdRef = useRef(0);
 
   useEffect(() => {
     let active = true;
@@ -5336,10 +5386,15 @@ function CustomerMasterPanel({
   }, [accessToken]);
 
   const loadMaster = useCallback(() => {
+    const requestId = ++masterRequestIdRef.current;
     setError(null);
     return fetchCustomerMaster(accessToken, searchedHintCode)
-      .then(setMaster)
-      .catch(() => setError(t("Customer master could not be loaded.")));
+      .then((value) => {
+        if (requestId === masterRequestIdRef.current) setMaster(value);
+      })
+      .catch(() => {
+        if (requestId === masterRequestIdRef.current) setError(t("Customer master could not be loaded."));
+      });
   }, [accessToken, searchedHintCode]);
 
   useEffect(() => {

@@ -63,6 +63,23 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Four post-detail and dashboard fetch effects had no stale-response guard,
+  so a slow response for a previous `postId`/period/grouping/search could
+  overwrite the currently displayed state after the user had already moved
+  on: the post detail popup's evaluation/5W1H/keymen/counterparties/lineage/
+  knowledge-graph/affiliate-tree/VOC-evidence/bookmark fan-out fetch, the
+  period-report panel's period/grouping fetch and rebuild action, the issue
+  ticket panel's per-post ticket list, and the Customer Master hint-code
+  search. Added the same `disposed`/`requestIdRef` guard patterns already
+  used elsewhere in this file (`historyRequestIdRef`, `relatedRequest`,
+  `postsRequest`, and this session's `SourceResearchPanel` fix) to all four.
+  Found by a `lineageweave-bug-sweep` Workflow finder pointed at frontend
+  subsystems not yet audited this session. Regression test (Customer Master
+  search) confirmed RED -- an earlier search's late response could not be
+  distinguished from a later one using only the raw `fetch()` promise; a
+  deterministic delay was needed before asserting to reliably observe the
+  stale overwrite -- before GREEN. Full frontend suite: 374 passed, lint
+  clean, tsc clean.
 - Admin Panel labels (control center, endpoint catalog, tenant settings,
   authorized-entity/board/calendar navigation, and related copy -- 20
   strings) were only translated into Korean; zh/ja/vi silently fell back
