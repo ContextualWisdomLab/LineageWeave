@@ -1,3 +1,4 @@
+import subprocess
 from pathlib import Path
 
 
@@ -20,10 +21,13 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
     The Dockerfile only bakes migrations into a brand-new Postgres data
     directory via docker-entrypoint-initdb.d; any volume created before a
     migration existed never gets it unless migrate.sh replays it on every
-    `docker compose up`. A window starting above 0012 silently leaves
+    `docker compose up`. A boundary above 12 silently leaves
     report_leftover_pair missing on such volumes -- GET
     /api/reports/{grouping}/{period} then 500s on undefined_table the
     first time a period actually has leftover pairs.
+
+    ADR 0166 replaces the stale per-file allowlist with one portable filename
+    boundary. Assert on that mechanism instead of individual migration names.
     """
     script = (
         Path(__file__).resolve().parents[1]
@@ -32,19 +36,17 @@ def test_migrate_sh_replays_leftover_pair_migration_on_existing_volumes() -> Non
         / "migrate.sh"
     ).read_text(encoding="utf-8")
 
-    assert "0012_*" in script
-
-
-def test_migrate_sh_replays_tenant_settings_migration_on_existing_volumes() -> None:
-    """Existing Compose volumes must receive the tenant-settings table."""
-    script = (
+    assert "000[0-9]_*|001[01]_*) continue" in script
+    assert "[0-9][0-9][0-9][0-9]_*)" in script
+    assert '[ -f "$migration" ] || continue' in script
+    assert "10#" not in script
+    migration_script = (
         Path(__file__).resolve().parents[1]
         / "docker"
         / "postgres-init"
         / "migrate.sh"
-    ).read_text(encoding="utf-8")
-
-    assert "0103_*" in script
+    )
+    subprocess.run(["sh", "-n", str(migration_script)], check=True)
 
 
 def test_superseded_body_search_indexes_are_skipped_on_replay() -> None:
@@ -72,51 +74,35 @@ def test_tenant_settings_migration_is_idempotent_for_replay() -> None:
     assert "ON CONFLICT (id) DO NOTHING" in migration
 
 
-def test_migrate_sh_replays_database_identifier_migration_on_existing_volumes() -> None:
-    """Existing Compose volumes must receive the canonical identifier names."""
-    script = (
+def test_tenant_settings_migration_is_safe_to_replay() -> None:
+    """The newest migration must survive migrate.sh's every-start replay."""
+    sql = (
         Path(__file__).resolve().parents[1]
-        / "docker"
-        / "postgres-init"
-        / "migrate.sh"
-    ).read_text(encoding="utf-8")
+        / "migrations"
+        / "0103_tenant_settings.sql"
+    ).read_text(encoding="utf-8").casefold()
 
-    assert "0104_*" in script
+    assert "create table if not exists tenant_settings" in sql
+    assert "on conflict (id) do nothing" in sql
 
 
 def test_migrate_sh_replays_global_ask_history_migration_on_existing_volumes() -> None:
     """Compose must create Global Ask history tables on every volume."""
     root = Path(__file__).resolve().parents[1]
-    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(encoding="utf-8")
     migration = (root / "migrations" / "0105_global_ask_conversation_history.sql").read_text(
         encoding="utf-8"
     )
 
-    assert "0105_*" in script
     assert "create table if not exists global_ask_session" in migration
-
-
-def test_migrate_sh_replays_source_commercial_context_migration_on_existing_volumes() -> None:
-    """Existing Compose volumes must receive the source context columns."""
-    script = (
-        Path(__file__).resolve().parents[1]
-        / "docker"
-        / "postgres-init"
-        / "migrate.sh"
-    ).read_text(encoding="utf-8")
-
-    assert "0130_*" in script
 
 
 def test_migrate_sh_replays_tenant_identity_metadata_migration_on_existing_volumes() -> None:
     """Existing Compose volumes must receive explicit shell identity metadata."""
     root = Path(__file__).resolve().parents[1]
-    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(encoding="utf-8")
     migration = (root / "migrations" / "0176_tenant_identity_metadata.sql").read_text(
         encoding="utf-8"
     )
 
-    assert "0176_*" in script
     assert "add column if not exists system_name" in migration
     assert "tenant_settings_copyright_year_range_check" in migration
 
@@ -124,12 +110,10 @@ def test_migrate_sh_replays_tenant_identity_metadata_migration_on_existing_volum
 def test_migrate_sh_replays_catalog_unresolved_reason_migration_on_existing_volumes() -> None:
     """Existing Compose volumes must receive the new unresolved-reason column."""
     root = Path(__file__).resolve().parents[1]
-    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(encoding="utf-8")
     migration = (root / "migrations" / "0134_catalog_unresolved_reason.sql").read_text(
         encoding="utf-8"
     )
 
-    assert "0134_*" in script
     assert "add column if not exists catalog_unresolved_reason_code" in migration
     assert "add column if not exists affiliation_catalog_unresolved_reason_code" in migration
     assert "reason_tied_candidates" in migration
@@ -141,26 +125,20 @@ def test_migrate_sh_replays_catalog_unresolved_reason_migration_on_existing_volu
 def test_migrate_sh_replays_source_reference_research_on_existing_volumes() -> None:
     """Existing Compose volumes must receive source-research evidence tables."""
     root = Path(__file__).resolve().parents[1]
-    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(
-        encoding="utf-8"
-    )
     migration = (root / "migrations" / "0133_source_reference_research.sql").read_text(
         encoding="utf-8"
     )
 
-    assert "0133_*" in script
     assert "post_source_research_lead" in migration
 
 
 def test_migrate_sh_replays_post_ask_history_on_existing_volumes() -> None:
     """Compose must create per-post Ask history tables on every volume."""
     root = Path(__file__).resolve().parents[1]
-    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(encoding="utf-8")
     migration = (root / "migrations" / "0136_post_ask_conversation_history.sql").read_text(
         encoding="utf-8"
     )
 
-    assert "0136_*" in script
     assert "create table if not exists post_ask_session" in migration
     assert "post_ask_session_account_post_idx" in migration
 
@@ -168,14 +146,10 @@ def test_migrate_sh_replays_post_ask_history_on_existing_volumes() -> None:
 def test_migrate_sh_replays_cross_post_customer_identity_on_existing_volumes() -> None:
     """Existing Compose volumes must receive governed Customer Master tables."""
     root = Path(__file__).resolve().parents[1]
-    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(
-        encoding="utf-8"
-    )
     migration = (root / "migrations" / "0137_cross_post_customer_identity.sql").read_text(
         encoding="utf-8"
     )
 
-    assert "0137_*" in script
     assert "customer_identity_judgment_response" in migration
     assert "UNIQUE NULLS NOT DISTINCT (source_system_code, source_customer_code)" in migration
 
@@ -183,9 +157,6 @@ def test_migrate_sh_replays_cross_post_customer_identity_on_existing_volumes() -
 def test_migrate_sh_replays_planned_facility_predicate_on_existing_volumes() -> None:
     """Existing relationship tables must accept the ADR 0142 predicate."""
     root = Path(__file__).resolve().parents[1]
-    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(
-        encoding="utf-8"
-    )
     migration = (
         root / "migrations" / "0138_planned_facility_relation_predicate.sql"
     ).read_text(encoding="utf-8")
@@ -196,7 +167,6 @@ def test_migrate_sh_replays_planned_facility_predicate_on_existing_volumes() -> 
         / "0138_planned_facility_relation_predicate.sql"
     ).read_text(encoding="utf-8")
 
-    assert "0138_*" in script
     assert "'lw_plans_to_operate'" in migration
     assert "'lw_plans_to_operate'" not in rollback
 
@@ -204,9 +174,6 @@ def test_migrate_sh_replays_planned_facility_predicate_on_existing_volumes() -> 
 def test_migrate_sh_replays_technology_benefit_predicates_on_existing_volumes() -> None:
     """Existing relationship tables must accept the ADR 0146 technology predicates."""
     root = Path(__file__).resolve().parents[1]
-    script = (root / "docker" / "postgres-init" / "migrate.sh").read_text(
-        encoding="utf-8"
-    )
     migration = (
         root / "migrations" / "0177_technology_benefit_relation_predicates.sql"
     ).read_text(encoding="utf-8")
@@ -217,7 +184,6 @@ def test_migrate_sh_replays_technology_benefit_predicates_on_existing_volumes() 
         / "0177_technology_benefit_relation_predicates.sql"
     ).read_text(encoding="utf-8")
 
-    assert "0177_*" in script
     assert "'technology'" in migration
     assert "'lw_technology_provided_by'" in migration
     assert "'lw_technology_adopted_by'" in migration
@@ -242,3 +208,35 @@ def test_tenant_identity_migration_repairs_legacy_values_before_constraints() ->
     assert "nullif(btrim(brand_name), '') is null then 'LineageWeave'" in migration
     assert "copyright_year not between 1900 and 2100" in migration
     assert "nullif(btrim(copyright_holder), '') is null then 'LineageWeave'" in migration
+
+
+def test_channel_weight_migration_preserves_raw_source_grouping() -> None:
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0135_lineage_channel_weight.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "source_thread_group_key" in migration
+    assert "source_secondary_grouping_key" in migration
+
+
+def test_channel_weight_migration_enforces_integrity_and_provenance() -> None:
+    migration = (
+        Path(__file__).resolve().parents[1]
+        / "migrations"
+        / "0135_lineage_channel_weight.sql"
+    ).read_text(encoding="utf-8").casefold()
+
+    for field in (
+        "estimation_run_id",
+        "estimator_version",
+        "anchor_method_code",
+        "source_snapshot_sha256",
+        "knowledge_cutoff",
+    ):
+        assert field in migration
+    assert "channel_code in ('temporal', 'secondary_key', 'text', 'llm')" in migration
+    assert "weight_value > 0 and weight_value <= 1" in migration
+    assert "sample_pair_count >= 200" in migration
+    assert "source_snapshot_sha256 ~ '^[0-9a-f]{64}$'" in migration

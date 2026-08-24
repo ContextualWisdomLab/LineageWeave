@@ -375,6 +375,13 @@ def test_comparison_operators_in_plain_text_are_not_treated_as_html() -> None:
     assert result.formatting_hints == ()
 
 
+def test_quantity_superscripts_normalize_to_unicode_for_embeddings() -> None:
+    html = normalize_post_body("<p>Tank volume is 12 m<sup>3</sup>.</p>")
+    assert html.text == "Tank volume is 12 m³."
+    caret = normalize_post_body("Tank volume is 12 m^3.")
+    assert caret.text == "Tank volume is 12 m³."
+
+
 def test_image_gets_an_explicit_placeholder_when_no_vision_client_is_available() -> None:
     b64 = base64.b64encode(_PNG_1X1).decode("ascii")
     html = f'<img src="data:image/png;base64,{b64}"/>'

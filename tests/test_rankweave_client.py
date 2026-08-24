@@ -2,21 +2,25 @@
 
 RankWeave is an in-process weighted-RRF library. LineageWeave fuses
 only visible posts. A hidden post is omitted from every channel. The
-client never invents a fused score or a theta.
+client never invents a fused score or a theta. Channel evidence is
+computed from owned rank lists (Cormack 2009), not RankWeave extras.
 """
 
 from __future__ import annotations
 
+import json
 from types import SimpleNamespace
 
 import pytest
 
 from lineageweave.rankweave_client import (
+    DEFAULT_CHANNEL_WEIGHTS,
     LibraryRankWeaveTransport,
     RankWeaveClient,
     RankWeaveNotAvailable,
     build_rankweave_client,
     project_ranking_list,
+    ranking_channel_evidence,
     ranking_channels_from_rows,
 )
 
@@ -36,6 +40,29 @@ HIDDEN = {
     "post_title": "Private parent",
     "created_at": "2026-01-10T00:00:00Z",
 }
+
+
+def _lexical_then_temporal(post_id: str, channel_rank: int) -> list[dict[str, object]]:
+    lexical = 0.75 / (60 + channel_rank)
+    temporal = 0.25 / (60 + channel_rank)
+    return [
+        {
+            "signal_code": "lexical",
+            "signal_label": "Title overlap",
+            "channel_rank": channel_rank,
+            "weight": 0.75,
+            "contribution": lexical,
+            "rank": 1,
+        },
+        {
+            "signal_code": "temporal",
+            "signal_label": "Newest first",
+            "channel_rank": channel_rank,
+            "weight": 0.25,
+            "contribution": temporal,
+            "rank": 2,
+        },
+    ]
 
 
 def test_default_transport_fails_closed() -> None:
@@ -59,6 +86,7 @@ def test_default_payload_never_invents_a_fused_score() -> None:
         "status_reason": "rankweave_not_available",
         "rankings": [],
     }
+    assert "theta" not in json.dumps(payload)
 
 
 def test_disabled_factory_fails_closed() -> None:
@@ -126,13 +154,18 @@ def test_injected_transport_returns_accepted_hits() -> None:
             "post_id": "post-2",
             "post_title": "Pricing renegotiation: revised quote sent",
             "fused_rank": 1,
+            "channel_evidence": _lexical_then_temporal("post-2", 1),
         },
         {
             "post_id": "post-1",
             "post_title": "Public post",
             "fused_rank": 2,
+            "channel_evidence": _lexical_then_temporal("post-1", 2),
         },
     ]
+    serialized = json.dumps(payload)
+    assert "theta" not in serialized
+    assert "fused_score" not in serialized
 
 
 def test_library_transport_projects_monkeypatched_rrf(
@@ -153,7 +186,7 @@ def test_library_transport_projects_monkeypatched_rrf(
             captured["limit"] = limit
             captured["eta"] = rank_constant_eta
             return [
-                SimpleNamespace(item_id="post-2"),
+                SimpleNamespace(item_id="post-2", fused_score=0.99, theta=1.2),
                 SimpleNamespace(item_id="post-1"),
             ]
 
@@ -171,6 +204,12 @@ def test_library_transport_projects_monkeypatched_rrf(
         "Pricing renegotiation: revised quote sent"
     )
     assert payload["rankings"][0]["fused_rank"] == 1
+    assert payload["rankings"][0]["channel_evidence"] == _lexical_then_temporal(
+        "post-2", 1
+    )
+    serialized = json.dumps(payload)
+    assert "theta" not in serialized
+    assert "fused_score" not in serialized
 
 
 def test_hidden_post_is_omitted_from_every_channel() -> None:
@@ -207,3 +246,71 @@ def test_unknown_hit_id_is_dropped_not_repaired() -> None:
     assert [item.post_id for item in ranking.items] == ["post-2"]
     assert all(item.post_id != "invented" for item in ranking.items)
     assert ranking.items[0].fused_rank == 1
+    assert ranking.items[0].channel_evidence == ()
+
+
+def test_ranking_channel_evidence_uses_cormack_weighted_rrf() -> None:
+    evidence = ranking_channel_evidence(
+        "post-1",
+        {"temporal": ["post-1"], "lexical": ["post-1"]},
+        DEFAULT_CHANNEL_WEIGHTS,
+        eta=60,
+    )
+    by_code = {item.signal_code: item for item in evidence}
+    assert by_code["lexical"].contribution == 0.75 / 61
+    assert by_code["temporal"].contribution == 0.25 / 61
+    assert by_code["lexical"].channel_rank == 1
+    assert by_code["temporal"].channel_rank == 1
+    assert by_code["lexical"].rank == 1
+    assert by_code["temporal"].rank == 2
+    assert [item.signal_code for item in evidence] == ["lexical", "temporal"]
+
+
+def test_ranking_channel_evidence_skips_missing_and_zero_weight_channels() -> None:
+    evidence = ranking_channel_evidence(
+        "post-1",
+        {"temporal": ["post-1"], "lexical": ["post-2"], "unused": ["post-1"]},
+        {"temporal": 0.25, "lexical": 0.75, "unused": 0.0},
+    )
+    assert [item.signal_code for item in evidence] == ["temporal"]
+    assert evidence[0].contribution == 0.25 / 61
+    assert evidence[0].channel_rank == 1
+
+
+def test_ranking_channel_evidence_tie_breaks_by_signal_code() -> None:
+    evidence = ranking_channel_evidence(
+        "post-1",
+        {"temporal": ["post-1"], "lexical": ["post-1"]},
+        {"temporal": 0.5, "lexical": 0.5},
+    )
+    assert [item.signal_code for item in evidence] == ["lexical", "temporal"]
+    assert evidence[0].contribution == evidence[1].contribution == 0.5 / 61
+
+
+def test_project_ranking_list_ignores_transport_extra_fields() -> None:
+    ranking = project_ranking_list(
+        [
+            {
+                "item_id": "post-1",
+                "theta": 1.7,
+                "channel_evidence": [{"signal_code": "invented", "rank": 1}],
+            }
+        ],
+        {"post-1": "Public post"},
+        channels={"temporal": ["post-1"], "lexical": ["post-2"]},
+        weights=DEFAULT_CHANNEL_WEIGHTS,
+    )
+    payload = ranking.to_json()
+    assert payload[0]["channel_evidence"] == [
+        {
+            "signal_code": "temporal",
+            "signal_label": "Newest first",
+            "channel_rank": 1,
+            "weight": 0.25,
+            "contribution": 0.25 / 61,
+            "rank": 1,
+        }
+    ]
+    serialized = json.dumps(payload)
+    assert "theta" not in serialized
+    assert "invented" not in serialized

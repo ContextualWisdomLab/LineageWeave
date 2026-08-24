@@ -54,6 +54,7 @@ function NodeMark({ kind, isCurrent }: { kind: "root" | "branch" | "node"; isCur
   );
 }
 
+/** Render the authorized lineage projection and let the buyer open a post. */
 export function LineageDag({
   graph,
   onSelectPost,

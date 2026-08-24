@@ -122,7 +122,10 @@ flowchart LR
   `rankweave_client.py`'s default transport raises
   `RankWeaveNotAvailable`. `GET /api/rankings` then returns
   `rankweave_not_available` and an empty ranking list. Hidden posts
-  are omitted from every channel. See ADR 0024.
+  are omitted from every channel. Accepted hits include
+  `channel_evidence` computed from owned temporal/lexical ranks
+  (Cormack weighted RRF contribution); RankWeave extra fields are
+  ignored and no theta is invented. See ADR 0024 and ADR 0167.
 
 ## Standards and citations
 
@@ -195,7 +198,9 @@ it fetches a genuine access token from a live Keycloak, verifies the
 allow/deny ABAC boundary against a throwaway migrated Postgres database
 (a private post scoped to a *different* corporate entity is proven
 excluded from the list and 403s on direct fetch), and proves a forged
-token is rejected. `scripts/seed_demo_data.py` populates the docker-compose
+token is rejected. Its dev-only FastAPI `TestClient` uses Starlette with the
+project's official `httpx` dev dependency; no alternate transport package is
+introduced. `scripts/seed_demo_data.py` populates the docker-compose
 stack itself with the same shape of synthetic data for manual/frontend use.
 `CORSMiddleware` (`backend/app/main.py`) allows exactly the frontend's
 origin(s) (`FRONTEND_ORIGINS`), `GET` and `POST` (the extract-keymen
@@ -590,8 +595,10 @@ on those same fixed parameters (Kim, 2006 FIPC). After scoring,
 `information_polytomous` ranks the shared-bank items by Fisher
 information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
-residual SVD leftover pairs (Jeon et al., 2021; ADR 0017) persist to
-`report_leftover_pair`. Results persist to
+residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021;
+ADR 0048 / 0119 / 0162 / 0163 / 0164) persist to `report_leftover_pair` with
+signed residual `R`, observed `Y`, expected `E[Y|θ, item]`, and full
+leftover-map rank. Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
@@ -603,7 +610,9 @@ bank as the dummy high/low band rows, so comparison-strip click
 through opens those DAG posts. Report members include the earliest
 open ticket title, status lookup label, and due date when one exists. The home page renders
 the actual mean θ, the FIPC delta, the CAT-selected item, leftover
-closest/farthest pairs above the member list, and the
+closest/farthest pairs (signed residual `R`, observed `Y`, expected
+`E`, full rank, and two-axis leftover-map distance `d` after IRT main
+effects) above the member list, and the
 PU / corp / thread comparison -- never a placeholder. TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer

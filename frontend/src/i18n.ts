@@ -36,6 +36,20 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Log in": "로그인",
     "Log out": "로그아웃",
     Calendar: "캘린더",
+    Rankings: "순위",
+    "Rankings · RankWeave not available": "순위 · RankWeave를 사용할 수 없음",
+    "Rankings · rankweave": "순위 · rankweave",
+    "Loading rankings...": "순위를 불러오는 중...",
+    "No fused rankings from RankWeave.": "RankWeave가 융합한 순위가 없습니다.",
+    "Fused rankings": "융합 순위",
+    "Open ranking: {title}": "순위 열기: {title}",
+    "rank {rank}": "순위 {rank}",
+    "Title overlap": "제목 겹침",
+    "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.":
+      "RankWeave가 최신순과 제목 겹침 순위를 융합했습니다. 보정된 점수가 아닙니다.",
+    "Ranking evidence for {title}": "{title}의 순위 근거",
+    "{label} rank {rank}, contribution {contribution}":
+      "{label} 순위 {rank}, 기여 {contribution}",
     "CalDAV events": "CalDAV 이벤트",
     "No CalDAV events are available.": "사용할 수 있는 CalDAV 이벤트가 없습니다.",
     "CalDAV is not connected.": "CalDAV가 연결되지 않았습니다.",
@@ -282,6 +296,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Search related posts": "관련 글 검색",
     "Search related posts for: {name}": "{name} 관련 글 검색",
     "Evidence facts": "근거 사실",
+    "View evidence": "근거 보기",
+    "Image evidence": "이미지 근거",
+    "Untitled image": "제목 없는 이미지",
+    "No persisted evidence is available for this citation.": "이 인용에 사용할 수 있는 저장된 근거가 없습니다.",
     "Source field hint": "원천 필드 힌트",
     "Semantic project": "의미 기반 프로젝트",
     "Semantic role": "의미 기반 역할",
@@ -471,6 +489,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Text detected in image": "이미지에서 인식된 텍스트",
     "Image regions": "이미지 영역",
     "Image tags": "이미지 태그",
+    "Image evidence: {caption}": "이미지 근거: {caption}",
+    "Image tags: {tags}": "이미지 태그: {tags}",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
       "첨부 이미지를 해독할 수 없습니다. 원문을 다시 내보내고 다시 여세요.",
     "What happened between these events?": "이 사건들 사이에 무슨 일이 있었나요?",
@@ -553,7 +573,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Lineage & analysis": "계보·분석",
     "Lineage rebuild": "계보 재구축",
     "Reconstruct authorized lineage": "권한 범위의 계보 재구성",
-    Rankings: "랭킹",
     "Reader-facing ranking evidence": "독자용 랭킹 근거",
     "Cutoff, start, and run evidence": "기준 시각·시작·실행 근거",
     "Compare and rebuild period reports": "기간 리포트 비교·재구축",
@@ -635,6 +654,27 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "원문 문장을 읽은 다음 계속하세요. 측정된 부정이며, 채널 불가가 아닙니다.",
     "This R&R row is one source phrase. Do not treat it as a catalog relationship until job title and relationship type are stored separately.":
       "이 R&R 행은 원문 구절 하나입니다. 직함과 관계 유형이 따로 저장되기 전에는 카탈로그 관계로 보지 마세요.",
+    "Leftover pairs": "잔여 쌍",
+    "Closest leftover": "가장 가까운 잔여",
+    "Farthest leftover": "가장 먼 잔여",
+    "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.":
+      "IRT 주효과 이후 잔여 R {residual}. {criterion} 기준을 읽으려면 이 글을 여세요.",
+    "Open leftover {kind} pair: {title} · {criterion}":
+      "잔여 {kind} 쌍 열기: {title} · {criterion}",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "주효과 이후 가장 가깝게 앉은 기준을 읽으려면 이 글을 여세요.",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "주효과 이후 가장 멀리 앉은 기준을 읽으려면 이 글을 여세요.",
+    "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
+      "IRT 주효과 이후 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "IRT 주효과 이후 잔여 맵에 잔여 구조가 없습니다. 이 글을 여세요.",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "IRT 주효과 이후 잔여 맵 랭크 {rank}. 이 글을 여세요.",
+    "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.":
+      "IRT 주효과 이후 잔여 맵 랭크 {rank}, 관측 Y {observed}, 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
+    "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.":
+      "IRT 주효과 이후 잔여 맵 랭크 0은 잔여 구조가 없음을 뜻합니다. 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
   },
   zh: {
     "Unknown": "未知",
@@ -654,6 +694,20 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Log in": "登录",
     "Log out": "退出登录",
     Calendar: "日历",
+    Rankings: "排名",
+    "Rankings · RankWeave not available": "排名 · RankWeave 不可用",
+    "Rankings · rankweave": "排名 · rankweave",
+    "Loading rankings...": "正在加载排名...",
+    "No fused rankings from RankWeave.": "RankWeave 未返回融合排名。",
+    "Fused rankings": "融合排名",
+    "Open ranking: {title}": "打开排名：{title}",
+    "rank {rank}": "排名 {rank}",
+    "Title overlap": "标题重叠",
+    "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.":
+      "RankWeave 融合了最新优先和标题重叠排名。这不是校准分数。",
+    "Ranking evidence for {title}": "{title} 的排名证据",
+    "{label} rank {rank}, contribution {contribution}":
+      "{label} 排名 {rank}，贡献 {contribution}",
     "CalDAV events": "CalDAV 事件",
     "No CalDAV events are available.": "没有可用的 CalDAV 事件。",
     "CalDAV is not connected.": "CalDAV 尚未连接。",
@@ -869,6 +923,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Search related posts": "搜索相关文章",
     "Search related posts for: {name}": "搜索与{name}相关的文章",
     "Evidence facts": "证据事实",
+    "View evidence": "查看证据",
+    "Image evidence": "图像证据",
+    "Untitled image": "无标题图像",
+    "No persisted evidence is available for this citation.": "此引用没有可用的已保存证据。",
     "Source field hint": "来源字段提示",
     "Semantic project": "语义项目",
     "Semantic role": "语义角色",
@@ -1040,6 +1098,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Text detected in image": "图像中识别的文字",
     "Image regions": "图像区域",
     "Image tags": "图像标签",
+    "Image evidence: {caption}": "图像证据：{caption}",
+    "Image tags: {tags}": "图像标签：{tags}",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
       "无法解码嵌入图像。请重新导出原始文章后再打开。",
     "What happened between these events?": "这些事件之间发生了什么？",
@@ -1145,7 +1205,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Manage tickets": "工单管理",
     "Permission and authorized entity scope": "权限与已授权法人范围",
     "Post evidence operations": "文章证据操作",
-    "Rankings": "排名",
     "Reader-facing ranking evidence": "面向读者的排名证据",
     "Rebuild a period report from the persisted report inputs.": "使用已保存的报告输入重建期间报告。",
     "Rebuild period report": "重建期间报告",
@@ -1250,6 +1309,27 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No source customer evidence matches {code}.": "没有与 {code} 匹配的来源客户证据。",
     "The source is still being written; analysis starts after approval.":
       "来源仍在编写中；分析将在批准后开始。",
+    "Leftover pairs": "残余配对",
+    "Closest leftover": "最近残余",
+    "Farthest leftover": "最远残余",
+    "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.":
+      "IRT 主效应后的残余 R {residual}。打开这篇帖子阅读 {criterion}。",
+    "Open leftover {kind} pair: {title} · {criterion}":
+      "打开残余 {kind} 配对：{title} · {criterion}",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "打开这篇帖子，阅读主效应后距离最近的准则。",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "打开这篇帖子，阅读主效应后距离最远的准则。",
+    "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
+      "阅读 IRT 主效应后的观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "IRT 主效应后残余图没有残余结构。打开这篇帖子。",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "IRT 主效应后的残余图秩 {rank}。打开这篇帖子。",
+    "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.":
+      "阅读 IRT 主效应后的残余图秩 {rank}、观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
+    "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.":
+      "残余图秩 0 表示 IRT 主效应后没有残余结构。阅读观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
   },
   ja: {
     "Unknown": "不明",
@@ -1296,6 +1376,20 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Log in": "ログイン",
     "Log out": "ログアウト",
     Calendar: "カレンダー",
+    Rankings: "ランキング",
+    "Rankings · RankWeave not available": "ランキング · RankWeave を利用できません",
+    "Rankings · rankweave": "ランキング · rankweave",
+    "Loading rankings...": "ランキングを読み込み中...",
+    "No fused rankings from RankWeave.": "RankWeave の融合ランキングはありません。",
+    "Fused rankings": "融合ランキング",
+    "Open ranking: {title}": "ランキングを開く: {title}",
+    "rank {rank}": "順位 {rank}",
+    "Title overlap": "タイトル一致",
+    "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.":
+      "RankWeave が新しい順とタイトル一致の順位を融合しました。校正されたスコアではありません。",
+    "Ranking evidence for {title}": "{title} の順位根拠",
+    "{label} rank {rank}, contribution {contribution}":
+      "{label} 順位 {rank}、寄与 {contribution}",
     "CalDAV events": "CalDAV イベント",
     "No CalDAV events are available.": "利用できる CalDAV イベントはありません。",
     "CalDAV is not connected.": "CalDAV が接続されていません。",
@@ -1511,6 +1605,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Search related posts": "関連投稿を検索",
     "Search related posts for: {name}": "{name}の関連投稿を検索",
     "Evidence facts": "証拠の事実",
+    "View evidence": "証拠を見る",
+    "Image evidence": "画像証拠",
+    "Untitled image": "無題の画像",
+    "No persisted evidence is available for this citation.": "この引用に使用できる保存済みの証拠はありません。",
     "Source field hint": "原典フィールドのヒント",
     "Semantic project": "意味的なプロジェクト",
     "Semantic role": "意味的な役割",
@@ -1670,6 +1768,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Text detected in image": "画像から認識されたテキスト",
     "Image regions": "画像領域",
     "Image tags": "画像タグ",
+    "Image evidence: {caption}": "画像証拠：{caption}",
+    "Image tags: {tags}": "画像タグ：{tags}",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
       "埋め込み画像をデコードできませんでした。原文を再エクスポートして、もう一度開いてください。",
     "What happened between these events?": "これらのイベントの間に何が起きましたか？",
@@ -1760,7 +1860,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Manage tickets": "チケット管理",
     "Permission and authorized entity scope": "権限と許可された法人の範囲",
     "Post evidence operations": "投稿根拠の操作",
-    "Rankings": "ランキング",
     "Reader-facing ranking evidence": "読者向けランキング根拠",
     "Rebuild a period report from the persisted report inputs.": "保存済みのレポート入力から期間レポートを再構築します。",
     "Rebuild period report": "期間レポートを再構築",
@@ -1865,6 +1964,27 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No source customer evidence matches {code}.": "{code} に一致する原典の顧客証拠がありません。",
     "The source is still being written; analysis starts after approval.":
       "原典はまだ作成中です。分析は承認後に開始します。",
+    "Leftover pairs": "残差ペア",
+    "Closest leftover": "最も近い残差",
+    "Farthest leftover": "最も遠い残差",
+    "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.":
+      "IRT主効果後の残差 R {residual}。この投稿を開いて {criterion} を読んでください。",
+    "Open leftover {kind} pair: {title} · {criterion}":
+      "残差 {kind} ペアを開く: {title} · {criterion}",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "主効果後に最も近くなった基準を読むには、この投稿を開いてください。",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "主効果後に最も遠くなった基準を読むには、この投稿を開いてください。",
+    "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
+      "IRT主効果後の観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "IRT主効果後の残差マップに残差構造はありません。この投稿を開いてください。",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "IRT主効果後の残差マップランク {rank}。この投稿を開いてください。",
+    "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.":
+      "IRT主効果後の残差マップランク {rank}、観測 Y {observed}、期待 E {expected} を読んでから、この投稿を開いてください。",
+    "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.":
+      "残差マップランク 0 は IRT 主効果後に残差構造がないことを示します。観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
   },
   vi: {
     "Unknown": "Không rõ",
@@ -1911,6 +2031,20 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Log in": "Đăng nhập",
     "Log out": "Đăng xuất",
     Calendar: "Lịch",
+    Rankings: "Xếp hạng",
+    "Rankings · RankWeave not available": "Xếp hạng · RankWeave không khả dụng",
+    "Rankings · rankweave": "Xếp hạng · rankweave",
+    "Loading rankings...": "Đang tải xếp hạng...",
+    "No fused rankings from RankWeave.": "Không có xếp hạng hợp nhất từ RankWeave.",
+    "Fused rankings": "Xếp hạng hợp nhất",
+    "Open ranking: {title}": "Mở xếp hạng: {title}",
+    "rank {rank}": "hạng {rank}",
+    "Title overlap": "Trùng tiêu đề",
+    "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.":
+      "RankWeave đã hợp nhất hạng mới nhất trước và trùng tiêu đề. Đây không phải điểm đã hiệu chỉnh.",
+    "Ranking evidence for {title}": "Bằng chứng xếp hạng cho {title}",
+    "{label} rank {rank}, contribution {contribution}":
+      "{label} hạng {rank}, đóng góp {contribution}",
     "CalDAV events": "Sự kiện CalDAV",
     "No CalDAV events are available.": "Không có sự kiện CalDAV nào khả dụng.",
     "CalDAV is not connected.": "CalDAV chưa được kết nối.",
@@ -2126,6 +2260,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Search related posts": "Tìm bài viết liên quan",
     "Search related posts for: {name}": "Tìm bài viết liên quan đến {name}",
     "Evidence facts": "Sự kiện bằng chứng",
+    "View evidence": "Xem bằng chứng",
+    "Image evidence": "Bằng chứng hình ảnh",
+    "Untitled image": "Hình ảnh chưa đặt tên",
+    "No persisted evidence is available for this citation.": "Không có bằng chứng đã lưu cho trích dẫn này.",
     "Source field hint": "Gợi ý trường nguồn",
     "Semantic project": "Dự án ngữ nghĩa",
     "Semantic role": "Vai trò ngữ nghĩa",
@@ -2285,6 +2423,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Text detected in image": "Văn bản nhận dạng trong hình ảnh",
     "Image regions": "Các vùng trong hình ảnh",
     "Image tags": "Thẻ hình ảnh",
+    "Image evidence: {caption}": "Bằng chứng hình ảnh: {caption}",
+    "Image tags: {tags}": "Thẻ hình ảnh: {tags}",
     "Embedded image could not be decoded. Re-export the source post and open it again.":
       "Không thể giải mã hình ảnh nhúng. Hãy xuất lại bài viết gốc rồi mở lại.",
     "What happened between these events?": "Điều gì đã xảy ra giữa các sự kiện này?",
@@ -2375,7 +2515,6 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Manage tickets": "Quản lý phiếu",
     "Permission and authorized entity scope": "Quyền hạn và phạm vi pháp nhân được cấp quyền",
     "Post evidence operations": "Thao tác bằng chứng bài viết",
-    "Rankings": "Xếp hạng",
     "Reader-facing ranking evidence": "Bằng chứng xếp hạng dành cho người đọc",
     "Rebuild a period report from the persisted report inputs.": "Tái tạo báo cáo theo kỳ từ dữ liệu đầu vào đã lưu.",
     "Rebuild period report": "Tái tạo báo cáo theo kỳ",
@@ -2480,6 +2619,27 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No source customer evidence matches {code}.": "Không có bằng chứng khách hàng nguồn khớp với {code}.",
     "The source is still being written; analysis starts after approval.":
       "Nguồn vẫn đang được soạn thảo; phân tích sẽ bắt đầu sau khi được phê duyệt.",
+    "Leftover pairs": "Cặp phần dư",
+    "Closest leftover": "Phần dư gần nhất",
+    "Farthest leftover": "Phần dư xa nhất",
+    "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.":
+      "Phần dư R {residual} sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
+    "Open leftover {kind} pair: {title} · {criterion}":
+      "Mở cặp phần dư {kind}: {title} · {criterion}",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "Mở bài viết này để đọc tiêu chí nằm gần nhất sau hiệu ứng chính.",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "Mở bài viết này để đọc tiêu chí nằm xa nhất sau hiệu ứng chính.",
+    "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
+      "Đọc Y quan sát {observed} và E kỳ vọng {expected} sau hiệu ứng chính IRT, rồi mở bài viết này.",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "Bản đồ phần dư không có cấu trúc phần dư sau hiệu ứng chính IRT. Mở bài viết này.",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "Hạng bản đồ phần dư {rank} sau hiệu ứng chính IRT. Mở bài viết này.",
+    "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.":
+      "Đọc hạng bản đồ phần dư {rank}, Y quan sát {observed} và E kỳ vọng {expected} sau hiệu ứng chính IRT, rồi mở bài viết này.",
+    "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.":
+      "Hạng bản đồ phần dư 0 nghĩa là không có cấu trúc phần dư sau hiệu ứng chính IRT. Đọc Y quan sát {observed} và E kỳ vọng {expected}, rồi mở bài viết này.",
   },
 };
 

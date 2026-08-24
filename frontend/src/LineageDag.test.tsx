@@ -135,7 +135,10 @@ describe("LineageDag", () => {
     );
 
     expect(document.querySelector(".lineage-dag-edge")).not.toBeInTheDocument();
-    expect(screen.getByRole("table")).not.toHaveTextContent("missing-post");
+    // The only edge referenced a node absent from the graph, so it was
+    // dropped before layout -- zero evidence edges means no evidence
+    // trail table renders at all, not an empty one.
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
   });
 
   it("keeps long titles, Topic partitions, hierarchy, and predecessor/successor on the graph", () => {

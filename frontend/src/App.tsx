@@ -1,4 +1,5 @@
 import { AdminPanel, type AdminBoardTool } from "./components/AdminPanel";
+import { LeftoverPairList } from "./components/LeftoverPairList";
 
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
@@ -98,13 +99,17 @@ import {
   type VocEvidence,
   fetchTenantConfig,
 } from "./api";
+import {
+  AskEvidenceLayerPopup,
+  type AskEvidenceLayerFact,
+  type AskEvidenceLayerImage,
+} from "./components/AskEvidenceLayerPopup";
 import { CitationChip } from "./components/CitationChip";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { GlobalSearch } from "./components/GlobalSearch";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { RoleEvidence } from "./components/RoleEvidence";
-import { LeftoverPairButton } from "./components/LeftoverPairButton";
 import { AnalysisRunNextAction } from "./components/AnalysisRunNextAction";
 import { ExceptionAlert, SummaryStatus } from "./components/SummaryStatus";
 import {
@@ -3876,6 +3881,10 @@ function AnalysisRunsPanel({
   );
 }
 
+function formatRankingContribution(value: number): string {
+  return value.toFixed(6);
+}
+
 function RankingsPanel({
   accessToken,
   onSelectPost,
@@ -3894,9 +3903,9 @@ function RankingsPanel({
   }, [accessToken]);
 
   return (
-    <section className="popup-section lineage-home" aria-label="Rankings">
+    <section className="popup-section lineage-home" aria-label={t("Rankings")}>
       <div className="lineage-home-header">
-        <h2>Rankings</h2>
+        <h2>{t("Rankings")}</h2>
         {ranking && (
           <span className="post-badge">
             {ranking.status === "accepted"
@@ -3917,30 +3926,53 @@ function RankingsPanel({
           }}
         />
       )}
-      {ranking === null && !error && <p>Loading rankings...</p>}
+      {ranking === null && !error && <p>{t("Loading rankings...")}</p>}
       {ranking && ranking.status === "unavailable" && (
-        <p className="popup-placeholder">Rankings · RankWeave not available</p>
+        <p className="popup-placeholder">{t("Rankings · RankWeave not available")}</p>
       )}
       {ranking && ranking.status === "accepted" && ranking.rankings.length === 0 && (
-        <p className="popup-placeholder">No fused rankings from RankWeave.</p>
+        <p className="popup-placeholder">{t("No fused rankings from RankWeave.")}</p>
       )}
       {ranking && ranking.rankings.length > 0 && (
-        <ul className="ticket-list" aria-label="Fused rankings">
-          {ranking.rankings.map((hit) => (
-            <li key={hit.post_id} className="ticket-list-item">
-              <button
-                className="post-list-item"
-                aria-label={`Open ranking: ${hit.post_title}`}
-                onClick={() => onSelectPost(hit.post_id)}
-              >
-                <span className="ticket-title">{hit.post_title}</span>
-                <span className="post-badge">Rankings · rankweave</span>
-                <span className="post-badge">rank {hit.fused_rank}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-        )}
+        <>
+          <p className="ranking-channel-evidence-copy">
+            {t(
+              "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+            )}
+          </p>
+          <ul className="ticket-list" aria-label={t("Fused rankings")}>
+            {ranking.rankings.map((hit) => (
+              <li key={hit.post_id} className="ticket-list-item ranking-hit">
+                <button
+                  className="post-list-item"
+                  aria-label={tf("Open ranking: {title}", { title: hit.post_title })}
+                  onClick={() => onSelectPost(hit.post_id)}
+                >
+                  <span className="ticket-title">{hit.post_title}</span>
+                  <span className="post-badge">{t("Rankings · rankweave")}</span>
+                  <span className="post-badge">{tf("rank {rank}", { rank: String(hit.fused_rank) })}</span>
+                </button>
+                {(hit.channel_evidence ?? []).length > 0 ? (
+                  <ul
+                    className="ranking-channel-evidence"
+                    aria-label={tf("Ranking evidence for {title}", { title: hit.post_title })}
+                  >
+                    {(hit.channel_evidence ?? []).map((item) => (
+                      <li key={item.signal_code}>
+                        {tf("{label} rank {rank}, contribution {contribution}", {
+                          label: t(item.signal_label),
+                          rank: String(item.channel_rank),
+                          contribution: formatRankingContribution(item.contribution),
+                        })}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </section>
   );
 }
@@ -4241,20 +4273,13 @@ function ReportsPanel({
               </span>
             )}
             {report.leftover_pairs && report.leftover_pairs.length > 0 && (
-              <ul className="ticket-list" aria-label="Leftover pairs">
-                {report.leftover_pairs.map((pair) => (
-                  <li
-                    key={`${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
-                    className="ticket-list-item"
-                  >
-                    <LeftoverPairButton
-                      pair={pair}
-                      leftoverDistance={pair.leftover_distance}
-                      onOpen={onSelectPost}
-                    />
-                  </li>
-                ))}
-              </ul>
+              <LeftoverPairList
+                pairs={report.leftover_pairs}
+                criterionLabel={criterionShortLabel}
+                onSelectPost={(postId, criterionCode) =>
+                  onSelectPost(postId, { focusCriterionCode: criterionCode })
+                }
+              />
             )}
             {report.members.length > 0 && (
               <ul className="ticket-list">
@@ -5714,6 +5739,12 @@ export function AskAgentPanel({
   const [olderTurnCursor, setOlderTurnCursor] = useState<number | null>(null);
   const [olderTurnsLoading, setOlderTurnsLoading] = useState(false);
   const [olderTurnsError, setOlderTurnsError] = useState(false);
+  const [evidenceLayer, setEvidenceLayer] = useState<{
+    postId: string;
+    postTitle: string;
+    facts: AskEvidenceLayerFact[];
+    images: AskEvidenceLayerImage[];
+  } | null>(null);
   const exchangeIdRef = useRef(0);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const historyRequestIdRef = useRef(0);
@@ -5906,6 +5937,7 @@ export function AskAgentPanel({
   const showEmptyState = !historyLoading && !historyError && exchanges.length === 0;
 
   return (
+    <>
     <section className={`workspace-destination ask-agent-workspace${showEmptyState ? " ask-agent-workspace-empty" : ""}`} aria-labelledby="ask-agent-heading">
       <div className="ask-agent-layout">
         <aside className="ask-agent-history" aria-label={t("Conversation history")}>
@@ -6068,26 +6100,66 @@ export function AskAgentPanel({
                     <section className="ask-agent-citations" aria-label={t("Cited posts")}>
                       <h4>{t("Cited posts")}</h4>
                       <ul className="ask-agent-citation-list">
-                        {response.cited_posts.map((post) => (
-                          <li key={post.post_id}>
-                            <button className="ask-agent-citation" onClick={() => onOpenPost(post.post_id)}>
-                              <strong>{post.post_title}</strong>
-                              <span>{t("Open source")}</span>
-                            </button>
-                            {response.cited_post_evidence?.find((item) => item.post_id === post.post_id)?.facts.length ? (
-                              <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
-                                {response.cited_post_evidence
-                                  .find((item) => item.post_id === post.post_id)
-                                  ?.facts.map((fact, index) => (
+                        {response.cited_posts.map((post) => {
+                          const facts =
+                            response.cited_post_evidence?.find((item) => item.post_id === post.post_id)
+                              ?.facts ?? [];
+                          const images =
+                            response.cited_post_images?.filter(
+                              (image) => image.post_id === post.post_id,
+                            ) ?? [];
+                          return (
+                            <li key={post.post_id}>
+                              <button className="ask-agent-citation" onClick={() => onOpenPost(post.post_id)}>
+                                <strong>{post.post_title}</strong>
+                                <span>{t("Open source")}</span>
+                              </button>
+                              {facts.length > 0 ? (
+                                <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
+                                  {facts.map((fact, index) => (
                                     <li key={fact.kind + ":" + fact.text + ":" + index}>
                                       <span>{chatEvidenceKindLabel(fact.kind)}</span>
                                       <span>{fact.text}</span>
                                     </li>
                                   ))}
-                              </ul>
-                            ) : null}
-                          </li>
-                        ))}
+                                </ul>
+                              ) : null}
+                              {images.length > 0 ? (
+                                <ul className="post-evidence-list" aria-label={t("Image evidence")}>
+                                  {images.map((image) => (
+                                    <li key={`image:${image.unit_index}`}>
+                                      <span>
+                                        {tf("Image evidence: {caption}", {
+                                          caption: image.caption?.trim() ? image.caption : t("Untitled image"),
+                                        })}
+                                      </span>
+                                      {image.extracted_text ? <span>{image.extracted_text}</span> : null}
+                                      {image.tags.length ? (
+                                        <span>{tf("Image tags: {tags}", { tags: image.tags.join(", ") })}</span>
+                                      ) : null}
+                                    </li>
+                                  ))}
+                                </ul>
+                              ) : null}
+                              {facts.length > 0 || images.length > 0 ? (
+                                <button
+                                  type="button"
+                                  className="ask-agent-view-evidence"
+                                  onClick={() =>
+                                    setEvidenceLayer({
+                                      postId: post.post_id,
+                                      postTitle: post.post_title,
+                                      facts,
+                                      images,
+                                    })
+                                  }
+                                >
+                                  {t("View evidence")}
+                                </button>
+                              ) : null}
+                            </li>
+                          );
+                        })}
                       </ul>
                     </section>
                   ) : null}
@@ -6136,6 +6208,17 @@ export function AskAgentPanel({
         </div>
       </div>
     </section>
+    {evidenceLayer ? (
+      <AskEvidenceLayerPopup
+        postId={evidenceLayer.postId}
+        postTitle={evidenceLayer.postTitle}
+        facts={evidenceLayer.facts}
+        images={evidenceLayer.images}
+        onClose={() => setEvidenceLayer(null)}
+        onOpenPost={onOpenPost}
+      />
+    ) : null}
+    </>
   );
 }
 

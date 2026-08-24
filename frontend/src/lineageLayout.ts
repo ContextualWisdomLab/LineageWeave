@@ -68,6 +68,7 @@ function layoutGroup(nodes: LineageGraphNode[], edges: LineageGraphEdge[]): {
   let nextRow = 0;
 
   const walk = (id: string, depth: number) => {
+    if (positions.has(id)) return;
     visiting.add(id);
     const kids = (children.get(id) ?? []).filter(
       (childId) => byId.has(childId) && !positions.has(childId) && !visiting.has(childId),
@@ -121,8 +122,10 @@ export function subgraphForPost(graph: LineageGraph, postId: string): LineageGra
   };
 }
 
+/** Lay out only relationships whose two endpoints share one visible group. */
 export function layoutLineageDag(graph: LineageGraph): LaidOutGroup[] {
   const buckets = new Map<string, { nodes: LineageGraphNode[]; edges: LineageGraphEdge[] }>();
+  const nodesById = new Map(graph.nodes.map((node) => [node.id, node]));
   for (const node of graph.nodes) {
     const group = node.group || "Ungrouped";
     const bucket = buckets.get(group) ?? { nodes: [], edges: [] };
@@ -130,11 +133,19 @@ export function layoutLineageDag(graph: LineageGraph): LaidOutGroup[] {
     buckets.set(group, bucket);
   }
   for (const edge of graph.edges) {
-    const source = graph.nodes.find((node) => node.id === edge.source);
-    const group = source?.group || "Ungrouped";
-    const bucket = buckets.get(group) ?? { nodes: [], edges: [] };
-    bucket.edges.push(edge);
-    buckets.set(group, bucket);
+    const source = nodesById.get(edge.source);
+    const target = nodesById.get(edge.target);
+    // A node this edge references isn't in the visible/authorized node
+    // list -- drop the edge rather than surface it, since a hidden
+    // (unauthorized) node and a genuinely broken reference are
+    // indistinguishable at this layer, and only the fail-closed choice
+    // is safe: exposing an edge to a node the caller cannot see would
+    // leak that node's existence.
+    if (!source || !target) continue;
+    const sourceGroup = source.group || "Ungrouped";
+    const targetGroup = target.group || "Ungrouped";
+    if (sourceGroup !== targetGroup) continue;
+    buckets.get(sourceGroup)!.edges.push(edge);
   }
 
   const groups = [...buckets.entries()].map(([group, { nodes, edges }]) => {

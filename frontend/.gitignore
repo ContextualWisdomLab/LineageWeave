@@ -12,6 +12,10 @@ coverage
 dist
 dist-ssr
 storybook-static
+test-results
+playwright-report
+blob-report
+playwright/.cache
 *.local
 
 # Editor directories and files

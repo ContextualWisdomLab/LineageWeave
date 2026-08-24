@@ -131,6 +131,177 @@ describe("layoutLineageDag", () => {
     expect(groupHeading("A-100")).toBe("A-100");
     expect(groupHeading("")).toBe("Ungrouped");
     expect(groupHeading("cccccccc-cccc-cccc-cccc-cccccccccccc")).toBe("Ungrouped");
+    expect(
+      layoutLineageDag({
+        nodes: [
+          {
+            id: "named",
+            group: "Named thread",
+            label: "Named note",
+            occurred_at: "2026-01-01T00:00:00Z",
+            is_root: true,
+            is_branch_point: false,
+          },
+          {
+            id: "loose",
+            group: "",
+            label: "Loose note",
+            occurred_at: "2026-01-02T00:00:00Z",
+            is_root: true,
+            is_branch_point: false,
+          },
+        ],
+        edges: [],
+      }).map((group) => group.heading),
+    ).toEqual(["Named thread", "Ungrouped"]);
+  });
+
+  it("places every node in a cyclic visible component without inventing a root", () => {
+    const [group] = layoutLineageDag({
+      nodes: [
+        {
+          id: "cycle-a",
+          group: "Cyclic import",
+          label: "First imported note",
+          occurred_at: "2026-01-01T00:00:00Z",
+          is_root: false,
+          is_branch_point: false,
+        },
+        {
+          id: "cycle-b",
+          group: "Cyclic import",
+          label: "Second imported note",
+          occurred_at: "2026-01-02T00:00:00Z",
+          is_root: false,
+          is_branch_point: false,
+        },
+      ],
+      edges: [
+        { source: "cycle-a", target: "cycle-b", fused_score: 0.8 },
+        { source: "cycle-b", target: "cycle-a", fused_score: 0.79 },
+      ],
+    });
+
+    expect(group.nodes).toHaveLength(2);
+    const byId = Object.fromEntries(
+      group.nodes.map(({ id, x, y }) => [id, { x, y }]),
+    );
+    expect(byId["cycle-a"].x).toBe(byId["cycle-b"].x);
+    expect(byId["cycle-b"].y).toBeGreaterThan(byId["cycle-a"].y);
+  });
+
+  it("terminates when a visible root feeds a cycle", () => {
+    const [group] = layoutLineageDag({
+      nodes: ["root", "cycle-a", "cycle-b"].map((id) => ({
+        id,
+        group: "Cyclic import",
+        label: id,
+        occurred_at: "2026-01-01T00:00:00Z",
+        is_root: id === "root",
+        is_branch_point: false,
+      })),
+      edges: [
+        { source: "root", target: "cycle-a", fused_score: 0.9 },
+        { source: "cycle-a", target: "cycle-b", fused_score: 0.8 },
+        { source: "cycle-b", target: "cycle-a", fused_score: 0.7 },
+      ],
+    });
+
+    expect(group.nodes).toHaveLength(3);
+    expect(group.nodes.every(({ x, y }) => Number.isFinite(x) && Number.isFinite(y))).toBe(true);
+  });
+
+  it("positions a shared child once while retaining both visible parent edges", () => {
+    const [group] = layoutLineageDag({
+      nodes: ["root", "branch-a", "branch-b", "shared-child"].map((id) => ({
+        id,
+        group: "Converging import",
+        label: id,
+        occurred_at: "2026-01-01T00:00:00Z",
+        is_root: id === "root",
+        is_branch_point: id === "root",
+      })),
+      edges: [
+        { source: "root", target: "branch-a", fused_score: 0.9 },
+        { source: "root", target: "branch-b", fused_score: 0.88 },
+        { source: "branch-a", target: "shared-child", fused_score: 0.82 },
+        { source: "branch-b", target: "shared-child", fused_score: 0.8 },
+        { source: "root", target: "shared-child", fused_score: 0.78 },
+      ],
+    });
+
+    expect(group.edges).toHaveLength(5);
+    const positioned = group.nodes.map(({ id, x, y }) => ({ id, x, y }));
+    // shared-child must appear exactly once (the DAG revisit guard dedupes a
+    // node reachable through more than one parent) at a deeper column than
+    // both its parents, not duplicated or re-positioned per incoming edge.
+    expect(positioned).toHaveLength(4);
+    expect(positioned.filter((node) => node.id === "shared-child")).toHaveLength(1);
+    const byId = Object.fromEntries(positioned.map((node) => [node.id, node]));
+    expect(byId["root"].x).toBeLessThan(byId["branch-a"].x);
+    expect(byId["branch-a"].x).toBe(byId["branch-b"].x);
+    expect(byId["branch-a"].x).toBeLessThan(byId["shared-child"].x);
+    expect(byId["branch-a"].y).not.toBe(byId["branch-b"].y);
+  });
+
+  it("keeps a valid relationship between two ungrouped visible nodes", () => {
+    const [group] = layoutLineageDag({
+      nodes: [
+        {
+          id: "ungrouped-a",
+          group: "",
+          label: "First loose note",
+          occurred_at: "2026-01-01T00:00:00Z",
+          is_root: true,
+          is_branch_point: false,
+        },
+        {
+          id: "ungrouped-b",
+          group: "",
+          label: "Second loose note",
+          occurred_at: "2026-01-02T00:00:00Z",
+          is_root: false,
+          is_branch_point: false,
+        },
+      ],
+      edges: [{ source: "ungrouped-a", target: "ungrouped-b", fused_score: 0.88 }],
+    });
+
+    expect(group.heading).toBe("Ungrouped");
+    expect(group.edges).toHaveLength(1);
+  });
+
+  it("omits dangling and cross-group edges from visible layout evidence", () => {
+    const groups = layoutLineageDag({
+      nodes: [
+        {
+          id: "visible-a",
+          group: "Project Alpha",
+          label: "Visible Alpha note",
+          occurred_at: "2026-01-01T00:00:00Z",
+          is_root: true,
+          is_branch_point: false,
+        },
+        {
+          id: "visible-b",
+          group: "Project Beta",
+          label: "Visible Beta note",
+          occurred_at: "2026-01-02T00:00:00Z",
+          is_root: true,
+          is_branch_point: false,
+        },
+      ],
+      edges: [
+        { source: "visible-a", target: "hidden-note", fused_score: 0.91 },
+        { source: "visible-a", target: "visible-b", fused_score: 0.84 },
+        { source: "hidden-note", target: "visible-a", fused_score: 0.77 },
+      ],
+    });
+
+    expect(groups.map((group) => [group.heading, group.edges])).toEqual([
+      ["Project Alpha", []],
+      ["Project Beta", []],
+    ]);
   });
 
   it("sorts ungrouped nodes last regardless of source order", () => {
@@ -146,14 +317,21 @@ describe("layoutLineageDag", () => {
     ]);
   });
 
-  it("keeps a dangling edge in an ungrouped fallback bucket", () => {
+  it("drops an edge referencing a node absent from the visible node list", () => {
+    // A node this edge names could be a genuinely broken reference, or it
+    // could be a node the caller isn't authorized to see -- those two
+    // cases are indistinguishable at this layer (see "omits dangling and
+    // cross-group edges from visible layout evidence" above), so the only
+    // safe behavior is to drop the edge rather than surface it in an
+    // Ungrouped fallback, which would otherwise leak that a hidden node
+    // exists and who it's connected to.
     const groups = layoutLineageDag({
       nodes: [{ ...a100Graph.nodes[0], id: "named", group: "A-100" }],
       edges: [{ source: "missing", target: "named", fused_score: 0.5 }],
     });
 
-    expect(groups.map((group) => group.heading)).toEqual(["A-100", "Ungrouped"]);
-    expect(groups[1].edges).toHaveLength(1);
+    expect(groups.map((group) => group.heading)).toEqual(["A-100"]);
+    expect(groups[0].edges).toHaveLength(0);
   });
 
   it("lays out a malformed cyclic component attached to a root without recursing forever", () => {

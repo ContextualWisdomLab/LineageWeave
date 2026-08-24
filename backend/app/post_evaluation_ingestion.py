@@ -15,7 +15,7 @@ from lineageweave.post_evaluation import (
 
 @dataclass(frozen=True)
 class PersistedEvaluation:
-    """One persisted per-criterion evaluation response for a post."""
+    """One persisted per-criterion LLM-as-a-Judge response for a post."""
 
     criterion_code: str
     criterion_label: str | None
@@ -52,7 +52,7 @@ async def ingest_post_evaluation(
 
 
 async def fetch_post_evaluation(conn: asyncpg.Connection, post_id: str) -> list[PersistedEvaluation]:
-    """Load a post's persisted evaluations ordered by criterion code."""
+    """Load this post's persisted per-criterion evaluation responses, ordered by criterion code."""
     rows = await conn.fetch(
         """
         select e.criterion_code, v.lookup_label as criterion_label,

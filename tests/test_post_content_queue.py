@@ -130,7 +130,10 @@ def test_summary_input_binding_migration_is_wired_for_every_database_path() -> N
     assert "drop column if exists summary_input_sha256" in rollback
     assert "summary_input_sha256 text" in initial
     assert "summary_input_sha256 text" in standalone
-    assert "0139_*" in replay
+    # migrate.sh replays any four-digit-numbered migration via one fixed
+    # lower-bound pattern (ADR 0166) rather than a per-migration allowlist
+    # entry, so 0139 is wired in through that generic case, not its own line.
+    assert "[0-9][0-9][0-9][0-9]_*" in replay
     assert "0139_post_summary_input_binding.sql" in seed
 
 
@@ -600,7 +603,10 @@ def test_migration_contains_normalized_job_and_status_event_tables() -> None:
 
 def test_migration_replay_window_includes_post_content_queue() -> None:
     migrate = (_ROOT / "docker/postgres-init/migrate.sh").read_text()
-    assert "0050_*)" in migrate
+    # ADR 0166 replays every four-digit migration except bootstrap 0000-0011;
+    # 0050 therefore clears the fixed lower-bound filename gate.
+    assert "000[0-9]_*|001[01]_*) continue" in migrate
+    assert "[0-9][0-9][0-9][0-9]_*)" in migrate
 
 
 def test_claim_identity_is_never_reset_by_queue_transitions() -> None:

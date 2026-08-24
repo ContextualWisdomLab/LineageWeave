@@ -95,3 +95,28 @@ export const EvidenceProvenanceExpandable: Story = {
     await expect(details).not.toHaveAttribute("open");
   },
 };
+
+// Edge case: an evidence source with no human-label mapping yet must still
+// render something readable instead of disappearing.
+export const UnmappedEvidenceSource: Story = {
+  args: {
+    slots: [
+      {
+        slot_code: "how",
+        empty_next_action_code: "none",
+        values: [
+          {
+            text: "Filed via the vendor portal",
+            source: "some_future_source",
+            ontology_codes: [],
+            ontology_annotations: {},
+          },
+        ],
+      },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("some_future_source")).toBeInTheDocument();
+  },
+};
