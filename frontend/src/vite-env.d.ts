@@ -1,5 +1,10 @@
 /// <reference types="vite/client" />
 
+declare module "*.png?inline" {
+  const src: string;
+  export default src;
+}
+
 interface ImportMetaEnv {
   readonly VITE_KEYVERSE_ISSUER?: string;
   readonly VITE_KEYVERSE_CLIENT_ID?: string;

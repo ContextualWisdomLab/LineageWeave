@@ -19,7 +19,7 @@ from fast_mlsirm import (
     LLMJudgeResult,
 )
 
-from .http_client import post_json
+from .http_client import chat_completion_content, post_json
 
 RUBRIC_VERSION = "2026-08-13"
 IRT_CATEGORY_COUNT = 5
@@ -107,7 +107,7 @@ class _OrchestratorCompleteAdapter:
             timeout=self._timeout,
         )
         return {
-            "answer": body["choices"][0]["message"]["content"],
+            "answer": chat_completion_content(body),
             "mode": mode,
             "trace": [],
         }

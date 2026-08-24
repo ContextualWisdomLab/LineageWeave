@@ -22,7 +22,9 @@ A Gabriel biplot of ``R`` supplies person and item leftover-map
 positions. Closest / farthest pairs are the min / max Euclidean
 distances on that map (Jeon et al., 2021, eq. 3). Leftover-map axis
 share is Gabriel inertia ``σ_k² / Σ_j σ_j²`` of residual SVD axes 1
-and 2 (ADR 0148). ``fast-mlsirm`` has no leftover-pair API; this
+and 2 (ADR 0148). Complete-case coverage (ADR 0168) names how many
+scored posts entered the factorization; incomplete rows are excluded,
+never filled with zero. ``fast-mlsirm`` has no leftover-pair API; this
 module does not invent a second IRT fit and does not fork LSIRM.
 
 This module is pure compute. Persistence lives in
@@ -45,7 +47,13 @@ from fast_mlsirm import (
     validate_irt_response_matrix,
 )
 
-from .leftover_pairs import LeftoverMapAxis, LeftoverPair, leftover_map_from_residual
+from .leftover_pairs import (
+    LeftoverMapAxis,
+    LeftoverMapCoverage,
+    LeftoverPair,
+    leftover_map_coverage_from_residual,
+    leftover_map_from_residual,
+)
 from .leftover_pairs import leftover_pairs_from_residual as leftover_pairs_from_residual
 from .leftover_pairs import PAIR_KIND_CLOSEST as PAIR_KIND_CLOSEST
 from .leftover_pairs import PAIR_KIND_FARTHEST as PAIR_KIND_FARTHEST
@@ -115,6 +123,7 @@ class PeriodReport:
     selected_items: tuple[SelectedItem, ...] = ()
     leftover_pairs: tuple[LeftoverPair, ...] = ()
     leftover_map_axes: tuple[LeftoverMapAxis, ...] = ()
+    leftover_map_coverage: LeftoverMapCoverage | None = None
 
 
 def assemble_response_matrix(
@@ -225,6 +234,20 @@ def leftover_pairs_for_fit(
     return pairs
 
 
+def leftover_map_coverage_for_fit(
+    post_ids: list[str],
+    item_codes: tuple[str, ...],
+    matrix: np.ndarray,
+    model: str,
+    theta: np.ndarray,
+    fit: PolytomousFit,
+) -> LeftoverMapCoverage:
+    """Complete-case leftover-map coverage from the fitted main effects."""
+    probs = _category_probabilities(model, theta, fit)
+    expected = expected_category_matrix(matrix, probs)
+    return leftover_map_coverage_from_residual(post_ids, item_codes, matrix, expected)
+
+
 def _member_scores(post_ids: list[str], scores: dict[str, np.ndarray]) -> tuple[MemberScore, ...]:
     """Implement the _member_scores operation for this channel."""
     theta = np.asarray(scores["theta_eap"], dtype=np.float64)
@@ -277,6 +300,9 @@ def calibrate_period_report(
     leftover_pairs, leftover_map_axes = leftover_map_for_fit(
         post_ids, item_codes, matrix, selected, theta, fit
     )
+    leftover_map_coverage = leftover_map_coverage_for_fit(
+        post_ids, item_codes, matrix, selected, theta, fit
+    )
     return PeriodReport(
         selected_model=selected,
         mean_theta=mean_theta,
@@ -292,6 +318,7 @@ def calibrate_period_report(
         selected_items=rank_items_by_information(item_bank, mean_theta),
         leftover_pairs=leftover_pairs,
         leftover_map_axes=leftover_map_axes,
+        leftover_map_coverage=leftover_map_coverage,
     )
 
 
@@ -323,6 +350,9 @@ def score_period_on_bank(
     leftover_pairs, leftover_map_axes = leftover_map_for_fit(
         post_ids, item_bank.item_codes, matrix, item_bank.model, theta, fit
     )
+    leftover_map_coverage = leftover_map_coverage_for_fit(
+        post_ids, item_bank.item_codes, matrix, item_bank.model, theta, fit
+    )
     return PeriodReport(
         selected_model=item_bank.model,
         mean_theta=mean_theta,
@@ -344,6 +374,7 @@ def score_period_on_bank(
         selected_items=rank_items_by_information(item_bank, mean_theta),
         leftover_pairs=leftover_pairs,
         leftover_map_axes=leftover_map_axes,
+        leftover_map_coverage=leftover_map_coverage,
     )
 
 

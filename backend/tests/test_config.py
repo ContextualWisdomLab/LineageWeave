@@ -92,3 +92,18 @@ def test_rankweave_disabled_defaults_off(monkeypatch) -> None:
 def test_rankweave_disabled_flag_is_opt_in(monkeypatch) -> None:
     monkeypatch.setenv("RANKWEAVE_DISABLED", "1")
     assert load_settings().rankweave_disabled is True
+
+
+def test_ontology_source_cursor_secret_is_process_env_not_oidc(monkeypatch) -> None:
+    """Source continuation must not reuse an OIDC or orchestrator credential."""
+    monkeypatch.delenv("ONTOLOGY_SOURCE_CURSOR_SECRET", raising=False)
+    monkeypatch.delenv("KEYVERSE_ISSUER", raising=False)
+    monkeypatch.delenv("OIDC_ISSUER", raising=False)
+    monkeypatch.setenv("OIDC_AUDIENCE", "lineageweave-api")
+    monkeypatch.setenv("ORCHESTRATOR_API_KEY", "orchestrator-secret-must-not-leak")
+    assert load_settings().ontology_source_cursor_secret == ""
+    monkeypatch.setenv("ONTOLOGY_SOURCE_CURSOR_SECRET", "ontology-source-cursor-secret-32b")
+    settings = load_settings()
+    assert settings.ontology_source_cursor_secret == "ontology-source-cursor-secret-32b"
+    assert settings.ontology_source_cursor_secret != settings.orchestrator_api_key
+    assert settings.ontology_source_cursor_secret != settings.oidc_audience
