@@ -7,6 +7,7 @@ from lineageweave.chunking import (
     chunk_by_paragraph,
     chunk_by_sentence,
     chunk_by_source_body,
+    normalize_script_text,
     normalize_semantic_text,
 )
 
@@ -104,11 +105,88 @@ def test_chunk_by_dom_keeps_nested_table_cell_blocks_in_their_row() -> None:
     assert [(chunk.label, chunk.text) for chunk in chunks] == [("tr", "No. | Company")]
 
 
-def test_chunk_by_dom_labels_markerless_footnotes() -> None:
-    chunks = chunk_by_dom("<p>Body text</p><p>*Tier 2: follow-up note</p>")
+def test_chunk_by_dom_preserves_empty_table_cells() -> None:
+    chunks = chunk_by_dom(
+        "<table><tr><td></td><td>Synthetic item</td><td></td></tr></table>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "| Synthetic item |")
+    ]
+
+
+def test_chunk_by_dom_preserves_self_closing_empty_table_cells() -> None:
+    html_chunks = chunk_by_dom(
+        "<table><tr><td>Left</td><td/><td>Right</td></tr></table>"
+    )
+    word_chunks = chunk_by_dom(
+        "<w:tbl><w:tr><w:tc>Left</w:tc><w:tc/><w:tc>Right</w:tc></w:tr></w:tbl>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in html_chunks] == [
+        ("tr", "Left |  | Right")
+    ]
+    assert [(chunk.label, chunk.text) for chunk in word_chunks] == [
+        ("w:tr", "Left |  | Right")
+    ]
+
+
+def test_chunk_by_dom_scopes_cell_positions_to_nested_table_rows() -> None:
+    chunks = chunk_by_dom(
+        "<table><tr><td>Outer left"
+        "<table><tr><td>Inner left</td><td>Inner right</td></tr></table>"
+        "</td><td>Outer right</td></tr></table>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "Inner left | Inner right"),
+        ("tr", "Outer left | Outer right"),
+    ]
+
+
+def test_chunk_by_dom_implicitly_closes_sibling_rows_at_the_same_table_depth() -> None:
+    chunks = chunk_by_dom(
+        "<table><tr><td>First left</td><td>First right</td>"
+        "<tr><td>Second left</td><td>Second right</td></tr></table>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "First left | First right"),
+        ("tr", "Second left | Second right"),
+    ]
+
+
+def test_chunk_by_dom_closes_an_unclosed_row_at_the_table_boundary() -> None:
+    """A malformed final row still emits before its table closes."""
+
+    chunks = chunk_by_dom(
+        "<table><tr><td>Only left</td><td>Only right</td></table>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "Only left | Only right")
+    ]
+
+
+def test_chunk_by_dom_closes_sibling_rows_past_an_unclosed_cell_block() -> None:
+    """Malformed inline cell markup cannot displace its owning row."""
+
+    chunks = chunk_by_dom(
+        "<table><tr><td><div>First left</td><td>First right</td>"
+        "<tr><td>Second left</td><td>Second right</td></tr></table>"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "First left | First right"),
+        ("tr", "Second left | Second right"),
+    ]
+
+
+def test_chunk_by_dom_does_not_infer_a_footnote_from_a_bare_marker() -> None:
+    chunks = chunk_by_dom("<p>Body text</p><p>*Synthetic list item</p>")
     assert [(chunk.label, chunk.text) for chunk in chunks] == [
         ("p", "Body text"),
-        ("footnote", "*Tier 2: follow-up note"),
+        ("p", "*Synthetic list item"),
     ]
 
 
@@ -124,7 +202,7 @@ def test_chunk_by_dom_labels_html_and_word_footnote_markup() -> None:
     assert [(chunk.label, chunk.text) for chunk in chunks] == [
         ("p", "Body text"),
         ("footnote", "HTML footnote body"),
-        ("footnote", "1 Word footnote body"),
+        ("footnote", "¹ Word footnote body"),
     ]
 
 
@@ -219,7 +297,7 @@ def test_chunk_by_source_body_splits_plain_lists_and_markdown_tables() -> None:
 
 | Field | Value |
 | --- | --- |
-| Owner | Buyer |
+| Volume | 12 m^3 |
 """
 
     chunks = chunk_by_source_body(body)
@@ -228,8 +306,72 @@ def test_chunk_by_source_body_splits_plain_lists_and_markdown_tables() -> None:
         ("", "1. Background continuation stays with the first item."),
         ("", "2. Decision"),
         ("tr", "Field | Value"),
-        ("tr", "Owner | Buyer"),
+        ("tr", "Volume | 12 m³"),
     ]
+
+
+def test_chunk_by_source_body_normalizes_entity_encoded_quantity_scripts() -> None:
+    chunks = chunk_by_source_body(
+        "Reserve 12 m&#94;3, x&lt;sup&gt;2&lt;/sup&gt;, and H&lt;sub&gt;2&lt;/sub&gt;O."
+    )
+
+    assert [chunk.text for chunk in chunks] == ["Reserve 12 m³, x², and H₂O."]
+
+
+def test_chunk_by_source_body_keeps_invalid_encoded_script_pairs_literal() -> None:
+    bodies = (
+        "Keep x&lt;sup&gt;2 unmatched.",
+        "Keep x&lt;sup/&gt;2 self-closing.",
+        "Keep x&lt;sup class=&quot;unit&quot;&gt;2&lt;/sup&gt; attributed.",
+        "Keep x&lt;sup&gt;2&lt;/sub&gt; mismatched.",
+    )
+
+    assert [chunk_by_source_body(body)[0].text for body in bodies] == list(bodies)
+    combined = " ".join(bodies)
+    assert chunk_by_source_body(combined)[0].text == combined
+
+
+def test_chunk_by_source_body_keeps_encoded_non_script_markup_inert() -> None:
+    body = (
+        "Keep &lt;b&gt;bold&lt;/b&gt;, &lt;sup-note&gt;2&lt;/sup-note&gt;, "
+        "and &lt;script&gt;alert(1)&lt;/script&gt; literal."
+    )
+
+    chunks = chunk_by_source_body(body)
+
+    assert [(chunk.unit_type, chunk.text) for chunk in chunks] == [("plain_text", body)]
+
+
+def test_chunk_by_source_body_preserves_empty_markdown_table_cells() -> None:
+    chunks = chunk_by_source_body(
+        "| Key | Value | State |\n"
+        "| --- | --- | --- |\n"
+        "| A | | Open |"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "Key | Value | State"),
+        ("tr", "A |  | Open"),
+    ]
+
+
+def test_chunk_by_source_body_keeps_contextual_all_empty_markdown_rows() -> None:
+    chunks = chunk_by_source_body(
+        "| Key | Value | State |\n"
+        "| --- | --- | --- |\n"
+        "| | | |"
+    )
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [
+        ("tr", "Key | Value | State"),
+        ("tr", "|  |"),
+    ]
+
+
+def test_chunk_by_source_body_does_not_promote_a_standalone_empty_pipe_line() -> None:
+    chunks = chunk_by_source_body("| | |")
+
+    assert [(chunk.label, chunk.text) for chunk in chunks] == [("", "| | |")]
 
 
 def test_chunk_by_dom_joins_visual_continuation_lines_but_keeps_list_items() -> None:
@@ -410,3 +552,63 @@ def test_chunk_by_dom_preserves_style_per_block_independently() -> None:
 
     assert chunks[0].style == "color:blue"
     assert chunks[1].style is None
+
+
+def test_normalize_script_text_maps_quantity_exponents_and_leaves_comparisons() -> None:
+    assert normalize_script_text("Tank volume is 12 m<sup>3</sup>.") == "Tank volume is 12 m³."
+    assert normalize_script_text("Tank volume is 12 m^3.") == "Tank volume is 12 m³."
+    assert normalize_script_text("Coolant is H<sub>2</sub>O.") == "Coolant is H₂O."
+    assert normalize_script_text("x<sup> </sup>") == "x "
+    assert normalize_script_text("qty < 50 and price > 10") == "qty < 50 and price > 10"
+    assert normalize_script_text("^1 See the tank note.") == "^1 See the tank note."
+
+
+def test_normalize_script_text_keeps_mixed_script_content_as_a_visible_fallback() -> None:
+    assert normalize_script_text("x<sup>3a</sup>") == "x^3a"
+
+
+def test_normalize_script_text_decodes_nested_inline_markup_before_stripping() -> None:
+    assert normalize_script_text("x<sup>&lt;span&gt;2&lt;/span&gt;</sup>") == "x²"
+
+
+def test_chunk_by_dom_keeps_html_quantity_scripts_as_unicode() -> None:
+    chunks = chunk_by_dom("<p>Tank volume is 12 m<sup>3</sup> of H<sub>2</sub>O.</p>")
+
+    assert [chunk.text for chunk in chunks] == ["Tank volume is 12 m³ of H₂O."]
+
+
+def test_chunk_by_dom_normalizes_entity_encoded_quantity_scripts() -> None:
+    chunks = chunk_by_dom(
+        "<p>Reserve 12 m&#94;3 and x&lt;sup&gt;2&lt;/sup&gt; units.</p>"
+    )
+
+    assert [chunk.text for chunk in chunks] == ["Reserve 12 m³ and x² units."]
+
+
+def test_chunk_by_dom_unclosed_sup_does_not_cross_table_cells() -> None:
+    chunks = chunk_by_dom("<table><tr><td>m<sup>3</td><td>Acme Corp</td></tr></table>")
+
+    assert [chunk.text for chunk in chunks] == ["m³ | Acme Corp"]
+
+
+def test_chunk_by_dom_unclosed_sup_does_not_corrupt_later_paragraphs() -> None:
+    """A malformed, never-closed <sup> must not leak its script context into
+    every later block. HTMLParser (unlike a browser) does not implicitly
+    close an unclosed inline tag at a block boundary, so a naive
+    _script_stack would otherwise stay "open" for the rest of the document."""
+    html = (
+        "<p>Tank volume is 12 m<sup>3</p>"
+        "<p>Unrelated paragraph mentions n2 and o2 plainly.</p>"
+    )
+    chunks = chunk_by_dom(html)
+
+    assert [chunk.text for chunk in chunks] == [
+        "Tank volume is 12 m³",
+        "Unrelated paragraph mentions n2 and o2 plainly.",
+    ]
+
+
+def test_chunk_by_source_body_maps_plain_caret_quantities() -> None:
+    chunks = chunk_by_source_body("Reserve 12 m^3 and 10^{-3} M stock.")
+
+    assert chunks[0].text == "Reserve 12 m³ and 10⁻³ M stock."
