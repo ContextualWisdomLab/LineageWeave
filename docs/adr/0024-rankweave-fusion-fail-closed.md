@@ -35,6 +35,11 @@ tables, and does not bind the demo IdP to production Keyverse.
 4. After login, Rankings sits above Calendar. Unavailable copy is
    **Rankings · RankWeave not available**. An accepted hit lists the
    title; click opens that `source_post`.
+5. Accepted hits also disclose owned-channel evidence (ADR 0167):
+   1-based `channel_rank` and Cormack contribution
+   `weight / (η + rank)` for each channel the post actually appears
+   in. Missing channels are omitted. RankWeave extra fields are
+   ignored. Copy states this is not a calibrated score.
 
 ## Consequences
 
