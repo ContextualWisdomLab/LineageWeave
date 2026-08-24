@@ -42,7 +42,7 @@ test("answers a relative-time-scoped question and cites at least one post", asyn
 });
 
 test("renders a cited lineage thread as a git-branch-style graph", async ({ page }) => {
-  await page.getByRole("textbox", { name: "Ask a question" }).fill("What happened between these events?");
+  await page.getByRole("textbox", { name: "Ask a question" }).fill("What happened with the Westfield Power specification?");
   await page.getByRole("button", { name: "Ask", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Cited posts" })).toBeVisible({ timeout: ASK_ANSWER_TIMEOUT_MS });
   const lineage = page.getByLabel("Reconstructed lineage");
@@ -54,7 +54,7 @@ test("renders a cited lineage thread as a git-branch-style graph", async ({ page
 });
 
 test("cites persisted image evidence when a cited post has an embedded image", async ({ page }) => {
-  await page.getByRole("textbox", { name: "Ask a question" }).fill("Which project?");
+  await page.getByRole("textbox", { name: "Ask a question" }).fill("What synthetic raster evidence was posted?");
   await page.getByRole("button", { name: "Ask", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Cited posts" })).toBeVisible({ timeout: ASK_ANSWER_TIMEOUT_MS });
   const imageEvidence = page.getByText(/^Image evidence:/);
@@ -65,7 +65,7 @@ test("cites persisted image evidence when a cited post has an embedded image", a
 });
 
 test("opens cited-post evidence in a Layer Popup without leaving the answer", async ({ page }) => {
-  await page.getByRole("textbox", { name: "Ask a question" }).fill("Which project?");
+  await page.getByRole("textbox", { name: "Ask a question" }).fill("Which project did Ada West discuss during the initial site visit?");
   await page.getByRole("button", { name: "Ask", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Cited posts" })).toBeVisible({ timeout: ASK_ANSWER_TIMEOUT_MS });
 
