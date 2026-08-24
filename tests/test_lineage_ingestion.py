@@ -281,41 +281,42 @@ def test_rebuild_persists_the_synthetic_fork_without_estimated_weights() -> None
 
 def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
     class FakeConnection:
-        posts = [
-            {
-                "post_id": "post-a",
-                "post_title": "A",
-                "voc_type_code": "voc",
-                "visibility_code": "public",
-                "corporate_entity_id": "corp",
-                "process_unit_id": "pu",
-                "thread_group_key": "thread-a",
-                "created_at": datetime(2026, 1, 1),
-            },
-            {
-                "post_id": "post-b",
-                "post_title": "B",
-                "voc_type_code": "voc",
-                "visibility_code": "public",
-                "corporate_entity_id": "corp",
-                "process_unit_id": "pu",
-                "thread_group_key": "thread-a",
-                "created_at": datetime(2026, 1, 2),
-            },
-            {
-                "post_id": "post-c",
-                "post_title": "C",
-                "voc_type_code": "voc",
-                "visibility_code": "public",
-                "corporate_entity_id": "corp",
-                "process_unit_id": "pu",
-                "thread_group_key": "thread-c",
-                "created_at": datetime(2026, 1, 3),
-            },
-        ]
-        edges = [
-            {"parent_post_id": "post-a", "child_post_id": "post-b", "fused_score": 0.8}
-        ]
+        def __init__(self) -> None:
+                self.posts = [
+                    {
+                        "post_id": "post-a",
+                        "post_title": "A",
+                        "voc_type_code": "voc",
+                        "visibility_code": "public",
+                        "corporate_entity_id": "corp",
+                        "process_unit_id": "pu",
+                        "thread_group_key": "thread-a",
+                        "created_at": datetime(2026, 1, 1),
+                    },
+                    {
+                        "post_id": "post-b",
+                        "post_title": "B",
+                        "voc_type_code": "voc",
+                        "visibility_code": "public",
+                        "corporate_entity_id": "corp",
+                        "process_unit_id": "pu",
+                        "thread_group_key": "thread-a",
+                        "created_at": datetime(2026, 1, 2),
+                    },
+                    {
+                        "post_id": "post-c",
+                        "post_title": "C",
+                        "voc_type_code": "voc",
+                        "visibility_code": "public",
+                        "corporate_entity_id": "corp",
+                        "process_unit_id": "pu",
+                        "thread_group_key": "thread-c",
+                        "created_at": datetime(2026, 1, 3),
+                    },
+                ]
+                self.edges = [
+                    {"parent_post_id": "post-a", "child_post_id": "post-b", "fused_score": 0.8}
+                ]
 
         async def fetch(self, query: str):
             return self.edges if "post_lineage_edge" in query else self.posts
@@ -349,62 +350,63 @@ def test_lineage_graphs_for_posts_merges_distinct_threads_without_duplicates() -
     """
 
     class FakeConnection:
-        posts = [
-            {
-                "post_id": "post-a",
-                "post_title": "A",
-                "voc_type_code": "voc",
-                "visibility_code": "public",
-                "corporate_entity_id": "corp",
-                "process_unit_id": "pu",
-                "thread_group_key": "thread-a",
-                "created_at": datetime(2026, 1, 1),
-            },
-            {
-                "post_id": "post-b",
-                "post_title": "B",
-                "voc_type_code": "voc",
-                "visibility_code": "public",
-                "corporate_entity_id": "corp",
-                "process_unit_id": "pu",
-                "thread_group_key": "thread-a",
-                "created_at": datetime(2026, 1, 2),
-            },
-            {
-                "post_id": "post-c",
-                "post_title": "C",
-                "voc_type_code": "voc",
-                "visibility_code": "public",
-                "corporate_entity_id": "corp",
-                "process_unit_id": "pu",
-                "thread_group_key": "thread-c",
-                "created_at": datetime(2026, 1, 3),
-            },
-            {
-                "post_id": "post-d",
-                "post_title": "D",
-                "voc_type_code": "voc",
-                "visibility_code": "public",
-                "corporate_entity_id": "corp",
-                "process_unit_id": "pu",
-                "thread_group_key": "thread-c",
-                "created_at": datetime(2026, 1, 4),
-            },
-            {
-                "post_id": "post-isolated",
-                "post_title": "Isolated",
-                "voc_type_code": "voc",
-                "visibility_code": "public",
-                "corporate_entity_id": "corp",
-                "process_unit_id": "pu",
-                "thread_group_key": "thread-isolated",
-                "created_at": datetime(2026, 1, 5),
-            },
-        ]
-        edges = [
-            {"parent_post_id": "post-a", "child_post_id": "post-b", "fused_score": 0.8},
-            {"parent_post_id": "post-c", "child_post_id": "post-d", "fused_score": 0.6},
-        ]
+        def __init__(self) -> None:
+            self.posts = [
+                {
+                    "post_id": "post-a",
+                    "post_title": "A",
+                    "voc_type_code": "voc",
+                    "visibility_code": "public",
+                    "corporate_entity_id": "corp",
+                    "process_unit_id": "pu",
+                    "thread_group_key": "thread-a",
+                    "created_at": datetime(2026, 1, 1),
+                },
+                {
+                    "post_id": "post-b",
+                    "post_title": "B",
+                    "voc_type_code": "voc",
+                    "visibility_code": "public",
+                    "corporate_entity_id": "corp",
+                    "process_unit_id": "pu",
+                    "thread_group_key": "thread-a",
+                    "created_at": datetime(2026, 1, 2),
+                },
+                {
+                    "post_id": "post-c",
+                    "post_title": "C",
+                    "voc_type_code": "voc",
+                    "visibility_code": "public",
+                    "corporate_entity_id": "corp",
+                    "process_unit_id": "pu",
+                    "thread_group_key": "thread-c",
+                    "created_at": datetime(2026, 1, 3),
+                },
+                {
+                    "post_id": "post-d",
+                    "post_title": "D",
+                    "voc_type_code": "voc",
+                    "visibility_code": "public",
+                    "corporate_entity_id": "corp",
+                    "process_unit_id": "pu",
+                    "thread_group_key": "thread-c",
+                    "created_at": datetime(2026, 1, 4),
+                },
+                {
+                    "post_id": "post-isolated",
+                    "post_title": "Isolated",
+                    "voc_type_code": "voc",
+                    "visibility_code": "public",
+                    "corporate_entity_id": "corp",
+                    "process_unit_id": "pu",
+                    "thread_group_key": "thread-isolated",
+                    "created_at": datetime(2026, 1, 5),
+                },
+            ]
+            self.edges = [
+                {"parent_post_id": "post-a", "child_post_id": "post-b", "fused_score": 0.8},
+                {"parent_post_id": "post-c", "child_post_id": "post-d", "fused_score": 0.6},
+            ]
 
         async def fetch(self, query: str):
             return self.edges if "post_lineage_edge" in query else self.posts
