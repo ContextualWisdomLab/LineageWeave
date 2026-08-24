@@ -538,7 +538,7 @@
    fill="transparent" presentation attribute, so keep it invisible here or it
    paints as a second opaque disc (WCAG 2.5.8 touch-target sizing must not
    change what the reader sees). */
-.lineage-dag-node .lineage-dag-hit {
+.lineage-dag-node circle.lineage-dag-hit {
   fill: transparent;
   stroke: none;
 }
