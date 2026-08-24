@@ -10,7 +10,9 @@ scattered short records. See [ARCHITECTURE.md](ARCHITECTURE.md) for the
 design, [ADR 0084](docs/adr/0084-lineage-research-grounding.md) for the
 normative research-grounding policy, and
 [`docs/lineage-bi-research-notes.md`](docs/lineage-bi-research-notes.md) for
-supporting literature and aggregate evidence.
+supporting literature and aggregate evidence. Event Lineage (reconstructed
+post-to-post parents) is distinct from the typed ontology neighborhood
+(ADR 0168); source-window continuation is ADR 0124. Do not mix those graphs.
 
 ## Hard rule: no real data in repository artifacts
 
@@ -192,15 +194,21 @@ in the same spirit) -- never against real data, per the hard rule above.
 against a live local stack (`make up`) and self-skip without one -- see
 [README.md](README.md#local-product-stack-docker-compose).
 
-Period leftover pairs (ADR 0048 / 0049 / 0119 / 0162 / 0163 / 0164) are computed in
-`lineageweave/leftover_pairs.py` from the residual after a real
-GRM/GPCM score, never invented. Distances are Euclidean on the
-two-dimensional Gabriel leftover map; missing cells stay out of
-the factorization. Closest and farthest post–criterion pairs
+Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0162 / 0163 /
+0164 / 0182) are computed in `lineageweave/leftover_pairs.py` from the
+residual after a real GRM/GPCM score, never invented. Distances are
+Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
+out of the factorization. Closest and farthest post–criterion pairs
 persist to `report_leftover_pair` with signed residual `R`, observed
 `Y`, and expected `E[Y|θ, item]` so `R = Y − E` remains auditable,
-plus leftover-map rank so rank 0 is not read as structure. They sit
-above the member list so a click opens that post.
+plus leftover-map rank so rank 0 is not read as structure, and
+unexplained leftover `U = R − R̂` next to leftover-map distance `d`
+after two-axis Gabriel reconstruction. They sit above the member
+list so a click opens that post. Two-axis reconstruction `R̂` is not
+persisted. Leftover-map axis share (ADR 0148) is Gabriel inertia of
+residual SVD axes 1 and 2 and persists to `report_leftover_map_axis`.
+Rank-0 residuals emit two zero-share axes; the shares are report-level
+and are not a leftover score.
 
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a

@@ -79,6 +79,8 @@ flowchart LR
 | `post_chat.py` | Pluggable in-popup chat's reason-and-cite step (retrieve step lives in `backend/app/post_chat_ingestion.py`) |
 | `commitment_extraction.py` | Pluggable LLM derivation of a customer commitment (promise + deadline) from a post; `Null` default, `ContextualOrchestrator` real impl |
 | `ontology.py` | Loads `docs/ontology/lineageweave-kg.ttl`, the formal OWL 2/RDFS/SKOS vocabulary for the Knowledge Graph's node/edge types (ADR 0004) |
+| `ontology_neighborhood.py` | Bounded typed ontology/provenance neighborhood (ADR 0168); PostgreSQL stays authoritative, OWL subclass is not an instance edge |
+| `ontology_source_cursor.py` | Opaque HMAC source-window continuation (ADR 0124); keyset pagination, never OFFSET |
 | `period_report.py` | Fit GRM/GPCM on persisted IRT rows, FIPC-select, EAP-score a period (ADR 0003 slice 3; Bock & Mislevy, 1982) |
 | `fixtures.py` | Synthetic demo dataset -- no real data ships in this repo |
 | `server.py` | Legacy stdlib HTTP server for the library-level synthetic fixture demo; production uses FastAPI/PostgreSQL |
@@ -594,9 +596,12 @@ on those same fixed parameters (Kim, 2006 FIPC). After scoring,
 information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
 residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021;
-ADR 0048 / 0119 / 0162 / 0163 / 0164) persist to `report_leftover_pair` with
-signed residual `R`, observed `Y`, expected `E[Y|θ, item]`, and full
-leftover-map rank. Results persist to
+ADR 0017 / 0048 / 0119 / 0162 / 0163 / 0164 / 0182) persist to
+`report_leftover_pair` with signed residual `R`, observed `Y`, expected
+`E[Y|θ, item]`, full leftover-map rank, and unexplained leftover
+`U = R − R̂` named on the pair row. Leftover-map axis share (Gabriel
+inertia of residual SVD axes 1 and 2; ADR 0148) persists to
+`report_leftover_map_axis`. Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
@@ -610,7 +615,8 @@ open ticket title, status lookup label, and due date when one exists. The home p
 the actual mean θ, the FIPC delta, the CAT-selected item, leftover
 closest/farthest pairs (signed residual `R`, observed `Y`, expected
 `E`, full rank, and two-axis leftover-map distance `d` after IRT main
-effects) above the member list, and the
+effects) above the member list, leftover-map axis share for residual
+SVD axes 1 and 2, and the
 PU / corp / thread comparison -- never a placeholder. TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer
@@ -864,7 +870,11 @@ still flows through unchanged. Cached in a new
 (`migrations/0015_organization_name_resolution.sql`) keyed by the raw
 name, so the same abbreviation across many posts is resolved once.
 Grounded in SKOS `skos:altLabel`/`skos:prefLabel` (Miles & Bechhofer,
-2009). Wired into `backend/app/keyman_ingestion.py`'s affiliation loop
+2009). After a pair is search-corroborated, both labels compete as
+virtual candidates for the **same** `corporate_entity_id`, so a later
+mention of `AGP` or `Aurora Grid Power` reuses one catalog row instead
+of inserting a second `AUTO-` identity (ADR 0160). Wired into
+`backend/app/keyman_ingestion.py`'s affiliation loop
 and the offline synthetic-batch script's paced re-implementation of it
 (the batch script's own copy was also missing `role_title` persistence
 entirely -- fixed alongside this).
