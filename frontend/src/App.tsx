@@ -1,4 +1,5 @@
 import { AdminPanel } from "./components/AdminPanel";
+import { LeftoverPairList } from "./components/LeftoverPairList";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
@@ -85,7 +86,9 @@ import {
 import { CitationChip } from "./components/CitationChip";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
+import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
 import { PopupCloseButton } from "./components/PopupCloseButton";
+import { chatEvidenceKindLabel } from "./evidenceKindLabels";
 import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
@@ -101,10 +104,7 @@ import {
   tf,
   useLocale,
 } from "./i18n";
-import {
-  formatLeftoverMapUnexplainedShare,
-  LEFTOVER_MAP_UNEXPLAINED_SHARE_ACTION,
-} from "./leftoverMapUnexplainedShare";
+import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -780,16 +780,6 @@ function projectProvenanceLabel(provenance: string): string {
   return t(PROJECT_PROVENANCE_LABELS[provenance] ?? "Recorded evidence");
 }
 
-const CHAT_EVIDENCE_KIND_LABELS: Record<string, string> = {
-  source_field: "Source field hint",
-  semantic_project: "Semantic project",
-  semantic_role: "Semantic role",
-  semantic_keyman: "Semantic Keyman",
-};
-
-function chatEvidenceKindLabel(kind: string): string {
-  return t(CHAT_EVIDENCE_KIND_LABELS[kind] ?? "Evidence");
-}
 
 const VERIFICATION_BADGE: Record<string, string> = {
   verify_pending: "Not yet checked",
@@ -3060,6 +3050,10 @@ function AnalysisRunsPanel({
   );
 }
 
+function formatRankingContribution(value: number): string {
+  return value.toFixed(6);
+}
+
 function RankingsPanel({
   accessToken,
   onSelectPost,
@@ -3078,9 +3072,9 @@ function RankingsPanel({
   }, [accessToken]);
 
   return (
-    <section className="popup-section lineage-home" aria-label="Rankings">
+    <section className="popup-section lineage-home" aria-label={t("Rankings")}>
       <div className="lineage-home-header">
-        <h2>Rankings</h2>
+        <h2>{t("Rankings")}</h2>
         {ranking && (
           <span className="post-badge">
             {ranking.status === "accepted"
@@ -3090,30 +3084,53 @@ function RankingsPanel({
         )}
       </div>
       {error && <p className="error">{error}</p>}
-      {ranking === null && !error && <p>Loading rankings...</p>}
+      {ranking === null && !error && <p>{t("Loading rankings...")}</p>}
       {ranking && ranking.status === "unavailable" && (
-        <p className="popup-placeholder">Rankings · RankWeave not available</p>
+        <p className="popup-placeholder">{t("Rankings · RankWeave not available")}</p>
       )}
       {ranking && ranking.status === "accepted" && ranking.rankings.length === 0 && (
-        <p className="popup-placeholder">No fused rankings from RankWeave.</p>
+        <p className="popup-placeholder">{t("No fused rankings from RankWeave.")}</p>
       )}
       {ranking && ranking.rankings.length > 0 && (
-        <ul className="ticket-list" aria-label="Fused rankings">
-          {ranking.rankings.map((hit) => (
-            <li key={hit.post_id} className="ticket-list-item">
-              <button
-                className="post-list-item"
-                aria-label={`Open ranking: ${hit.post_title}`}
-                onClick={() => onSelectPost(hit.post_id)}
-              >
-                <span className="ticket-title">{hit.post_title}</span>
-                <span className="post-badge">Rankings · rankweave</span>
-                <span className="post-badge">rank {hit.fused_rank}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-        )}
+        <>
+          <p className="ranking-channel-evidence-copy">
+            {t(
+              "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+            )}
+          </p>
+          <ul className="ticket-list" aria-label={t("Fused rankings")}>
+            {ranking.rankings.map((hit) => (
+              <li key={hit.post_id} className="ticket-list-item ranking-hit">
+                <button
+                  className="post-list-item"
+                  aria-label={tf("Open ranking: {title}", { title: hit.post_title })}
+                  onClick={() => onSelectPost(hit.post_id)}
+                >
+                  <span className="ticket-title">{hit.post_title}</span>
+                  <span className="post-badge">{t("Rankings · rankweave")}</span>
+                  <span className="post-badge">{tf("rank {rank}", { rank: String(hit.fused_rank) })}</span>
+                </button>
+                {(hit.channel_evidence ?? []).length > 0 ? (
+                  <ul
+                    className="ranking-channel-evidence"
+                    aria-label={tf("Ranking evidence for {title}", { title: hit.post_title })}
+                  >
+                    {(hit.channel_evidence ?? []).map((item) => (
+                      <li key={item.signal_code}>
+                        {tf("{label} rank {rank}, contribution {contribution}", {
+                          label: t(item.signal_label),
+                          rank: String(item.channel_rank),
+                          contribution: formatRankingContribution(item.contribution),
+                        })}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </section>
   );
 }
@@ -3393,53 +3410,11 @@ function ReportsPanel({
               </span>
             )}
             {report.leftover_pairs && report.leftover_pairs.length > 0 && (
-              <ul className="ticket-list" aria-label={t("Leftover pairs")}>
-                {report.leftover_pairs.map((pair) => {
-                  const kindLabel =
-                    pair.pair_kind === "farthest" ? t("Farthest leftover") : t("Closest leftover");
-                  const criterion = criterionShortLabel(pair.criterion_code);
-                  const share = formatLeftoverMapUnexplainedShare(
-                    pair.leftover_map_unexplained_share,
-                  );
-                  const shareValue =
-                    pair.leftover_map_unexplained_share != null &&
-                    Number.isFinite(pair.leftover_map_unexplained_share)
-                      ? pair.leftover_map_unexplained_share.toFixed(2)
-                      : "—";
-                  const nextAction =
-                    share === null
-                      ? pair.pair_kind === "farthest"
-                        ? t("Open this post to read the criterion it sat farthest from after main effects.")
-                        : t("Open this post to read the criterion it sat closest to after main effects.")
-                      : tf(LEFTOVER_MAP_UNEXPLAINED_SHARE_ACTION, {
-                          value: shareValue,
-                          criterion,
-                        });
-                  return (
-                    <li
-                      key={`${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
-                      className="ticket-list-item"
-                    >
-                      <button
-                        className="post-list-item"
-                        aria-label={tf("Open leftover {kind} pair: {title} · {criterion}", {
-                          kind: pair.pair_kind,
-                          title: pair.post_title,
-                          criterion,
-                        })}
-                        onClick={() => onSelectPost(pair.post_id)}
-                      >
-                        <span className="ticket-title">
-                          {kindLabel}: {pair.post_title} · {criterion}
-                        </span>
-                        <span className="post-badge">{nextAction}</span>
-                        {share ? <span className="post-badge">{share}</span> : null}
-                        <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+              <LeftoverPairList
+                pairs={report.leftover_pairs}
+                criterionLabel={criterionShortLabel}
+                onSelectPost={(postId) => onSelectPost(postId)}
+              />
             )}
             {report.members.length > 0 && (
               <ul className="ticket-list">
@@ -4498,6 +4473,7 @@ function AskAgentPanel({
   const [answer, setAnswer] = useState<AskAgentResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
+  const [evidenceLayerPostId, setEvidenceLayerPostId] = useState<string | null>(null);
 
   async function handleAsk() {
     const normalized = question.trim();
@@ -4546,6 +4522,13 @@ function AskAgentPanel({
                     <button className="post-list-item" onClick={() => onOpenPost(post.post_id)}>
                       <strong>{post.post_title}</strong>
                     </button>
+                    <button
+                      type="button"
+                      className="citation-chip"
+                      onClick={() => setEvidenceLayerPostId(post.post_id)}
+                    >
+                      {t("View evidence")}
+                    </button>
                     {answer.cited_post_evidence?.find((item) => item.post_id === post.post_id)?.facts.length ? (
                       <ul className="post-evidence-list" aria-label={t("Evidence facts")}>
                         {answer.cited_post_evidence
@@ -4558,6 +4541,18 @@ function AskAgentPanel({
                           ))}
                       </ul>
                     ) : null}
+                    {answer.cited_post_images
+                      ?.filter((image) => image.post_id === post.post_id)
+                      .map((image) => (
+                        <p
+                          key={`${image.post_id}:${image.unit_index}`}
+                          className="post-meta ask-agent-image-citation"
+                        >
+                          {t("Image evidence")}: {image.caption?.trim() ? image.caption : t("Untitled image")}
+                          {image.extracted_text ? ` — ${image.extracted_text}` : ""}
+                          {image.tags.length ? ` — ${t("Image tags")}: ${image.tags.join(", ")}` : ""}
+                        </p>
+                      ))}
                   </li>
                 ))}
               </ul>
@@ -4565,6 +4560,23 @@ function AskAgentPanel({
           )}
         </section>
       )}
+      {evidenceLayerPostId && answer ? (
+        <AskEvidenceLayerPopup
+          postId={evidenceLayerPostId}
+          postTitle={
+            answer.cited_posts?.find((post) => post.post_id === evidenceLayerPostId)?.post_title ??
+            evidenceLayerPostId
+          }
+          facts={
+            answer.cited_post_evidence?.find((item) => item.post_id === evidenceLayerPostId)?.facts ?? []
+          }
+          images={
+            answer.cited_post_images?.filter((image) => image.post_id === evidenceLayerPostId) ?? []
+          }
+          onClose={() => setEvidenceLayerPostId(null)}
+          onOpenPost={onOpenPost}
+        />
+      ) : null}
     </section>
   );
 }
@@ -4631,7 +4643,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             </div>
             <div className="login-controls">
               <button className="btn-primary" onClick={() => {
-                const returnUrl = window.location.pathname + window.location.search;
+                const returnUrl = returnUrlFromLocation();
+                rememberOidcReturnUrl(returnUrl);
                 void auth.signinRedirect({ state: { returnUrl } });
               }}>
                 {t("Log in")}
@@ -4641,7 +4654,6 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               <small>Enterprise SSO Authentication</small>
             </div>
           </div>
-          {destination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
       </main>
         <footer className="app-footer" role="contentinfo">
           <div className="app-footer-title">

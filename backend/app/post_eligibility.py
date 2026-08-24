@@ -1,4 +1,4 @@
-"""Shared source-post eligibility SQL for buyer evidence reads."""
+"""Shared source-post eligibility SQL for analysis-facing evidence reads."""
 
 SOURCE_CONTEXT_COLUMNS = (
     "source_author_code",
@@ -17,12 +17,14 @@ SOURCE_CONTEXT_COLUMNS = (
 
 
 def source_context_present_sql(alias: str) -> str:
+    """SQL fragment: true if any source-context column on `alias` is non-blank."""
     return " or ".join(
         f"nullif(btrim({alias}.{column}), '') is not null" for column in SOURCE_CONTEXT_COLUMNS
     )
 
 
 def source_context_missing_sql(alias: str) -> str:
+    """SQL fragment: true if every source-context column on `alias` is blank."""
     return " and ".join(
         f"nullif(btrim({alias}.{column}), '') is null" for column in SOURCE_CONTEXT_COLUMNS
     )

@@ -1,6 +1,6 @@
 """Leftover post–criterion pairs after the main-effect IRT.
 
-Covers ADR 0048 as amended by ADR 0183.
+Covers ADR 0048 as amended by ADR 0119, ADR 0163, ADR 0164, and ADR 0183.
 
 Uses a constructed residual matrix so the closest and farthest pair
 are known without calling ``fit_polytomous``. Loads
@@ -19,9 +19,12 @@ import numpy as np
 import pytest
 
 _LEFTOVER_PATH = Path(__file__).resolve().parents[1] / "lineageweave" / "leftover_pairs.py"
+_LEFTOVER_SINGULAR_FLOOR = 1e-12
+_LEFTOVER_MAP_AXES = 2
 
 
 def _load_leftover():
+    """Load only the dependency-light leftover module under test."""
     source = _LEFTOVER_PATH.read_text(encoding="utf-8")
     imported = []
     for node in ast.parse(source).body:
@@ -43,6 +46,29 @@ leftover = _load_leftover()
 PAIR_KIND_CLOSEST = leftover.PAIR_KIND_CLOSEST
 PAIR_KIND_FARTHEST = leftover.PAIR_KIND_FARTHEST
 leftover_pairs_from_residual = leftover.leftover_pairs_from_residual
+
+
+def _assert_residual_reconciles(pair) -> None:
+    """Assert the persisted residual is exactly grounded in named Y and E."""
+    assert pair.leftover_residual == pytest.approx(
+        pair.observed_response - pair.expected_response, abs=1e-6
+    )
+
+
+def _gabriel_positions(filled: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Independent Gabriel coordinates used to prove leftover_distance axes."""
+    left, singular, right = np.linalg.svd(filled, full_matrices=False)
+    keep = singular > _LEFTOVER_SINGULAR_FLOOR
+    scale = np.sqrt(singular[keep])
+    return left[:, keep] * scale, right[keep, :].T * scale
+
+
+def _pad_map_axes(positions: np.ndarray) -> np.ndarray:
+    """Independently pad or truncate coordinates to two map axes."""
+    padded = np.zeros((positions.shape[0], _LEFTOVER_MAP_AXES), dtype=np.float64)
+    width = min(_LEFTOVER_MAP_AXES, positions.shape[1])
+    padded[:, :width] = positions[:, :width]
+    return padded
 
 
 def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
@@ -68,11 +94,16 @@ def test_leftover_residual_biplot_separates_aligned_and_opposed_cells() -> None:
         ("post-c", "item_near"),
     }
     assert farthest.leftover_residual == pytest.approx(-2.0)
+    assert farthest.observed_response == pytest.approx(-2.0)
+    assert farthest.expected_response == pytest.approx(0.0)
     assert farthest.leftover_distance == pytest.approx(2.0 * np.sqrt(2.0), rel=1e-6)
     assert closest.leftover_map_unexplained_share == pytest.approx(0.0, abs=1e-6)
     assert farthest.leftover_map_unexplained_share == pytest.approx(0.0, abs=1e-6)
     assert not hasattr(closest, "leftover_map_unexplained")
     assert not hasattr(closest, "leftover_map_reconstruction")
+    for pair in pairs:
+        _assert_residual_reconciles(pair)
+        assert pair.leftover_map_rank == 1
 
 
 def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
@@ -87,10 +118,15 @@ def test_zero_residual_still_emits_stable_leftover_pairs() -> None:
     assert pairs[1].leftover_distance == pytest.approx(0.0)
     assert pairs[0].post_id == "alpha-post"
     assert pairs[0].criterion_code == "item_one"
+    assert pairs[0].observed_response == pytest.approx(1.0)
+    assert pairs[0].expected_response == pytest.approx(1.0)
     assert pairs[1].post_id == "beta-post"
     assert pairs[1].criterion_code == "item_two"
     assert pairs[0].leftover_map_unexplained_share == pytest.approx(0.0)
     assert pairs[1].leftover_map_unexplained_share == pytest.approx(0.0)
+    for pair in pairs:
+        _assert_residual_reconciles(pair)
+        assert pair.leftover_map_rank == 0
 
 
 def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
@@ -119,6 +155,8 @@ def test_partial_observation_does_not_treat_missing_as_zero_residual() -> None:
     }
     for pair in pairs:
         assert pair.leftover_map_unexplained_share == pytest.approx(0.0, abs=1e-6)
+        _assert_residual_reconciles(pair)
+        assert pair.leftover_map_rank == 1
 
 
 def test_leftover_is_empty_without_observed_cells() -> None:
@@ -174,6 +212,55 @@ def test_rank_one_nonzero_center_still_has_zero_unexplained_share() -> None:
         assert not hasattr(pair, "leftover_map_unexplained")
 
 
+def test_leftover_residual_equals_observed_minus_expected() -> None:
+    """Named Y and E on leftover pairs must reconcile to R = Y − E."""
+    post_ids = ["public-post", "spec-post"]
+    item_codes = ("sales_lead_specificity", "general_sentiment_negative")
+    matrix = np.array(
+        [
+            [2.4, 0.0],
+            [0.0, 0.9],
+        ],
+        dtype=np.float64,
+    )
+    expected = np.array(
+        [
+            [2.0, 0.0],
+            [0.0, 2.0],
+        ],
+        dtype=np.float64,
+    )
+    pairs = leftover_pairs_from_residual(post_ids, item_codes, matrix, expected)
+    assert [pair.pair_kind for pair in pairs] == [PAIR_KIND_CLOSEST, PAIR_KIND_FARTHEST]
+    by_cell = {(pair.post_id, pair.criterion_code): pair for pair in pairs}
+    closest_cell = by_cell[("public-post", "sales_lead_specificity")]
+    farthest_cell = by_cell[("spec-post", "general_sentiment_negative")]
+    assert closest_cell.observed_response == pytest.approx(2.4)
+    assert closest_cell.expected_response == pytest.approx(2.0)
+    assert closest_cell.leftover_residual == pytest.approx(0.4)
+    assert farthest_cell.observed_response == pytest.approx(0.9)
+    assert farthest_cell.expected_response == pytest.approx(2.0)
+    assert farthest_cell.leftover_residual == pytest.approx(-1.1)
+    for pair in pairs:
+        _assert_residual_reconciles(pair)
+
+
+def test_leftover_residual_rejects_database_tolerance_boundary() -> None:
+    """Python must reject the exact boundary excluded by the DB check."""
+    with pytest.raises(ValueError, match="observed Y minus expected E"):
+        leftover._candidate_row(
+            ["public-post"],
+            ("sales_lead_specificity",),
+            np.array([[0.0]]),
+            np.array([[0.0]]),
+            np.array([[1e-6]]),
+            0,
+            0,
+            0.0,
+            None,
+        )
+
+
 def test_rank_three_unexplained_share_equals_centered_leftover_fraction() -> None:
     """Unexplained leftover share is U_c²/R̃², not leftover residual R, not leftover-map distance d."""
     post_ids = ["post-a", "post-b", "post-c", "post-d"]
@@ -190,13 +277,13 @@ def test_rank_three_unexplained_share_equals_centered_leftover_fraction() -> Non
     expected = np.zeros_like(matrix)
     center = float(np.mean(matrix))
     filled = matrix - center
-    person_full, item_full = leftover._leftover_map_positions(filled)
+    person_full, item_full, _rank = leftover._leftover_map_positions(filled)
     assert person_full.shape[1] >= 3
     person_map = leftover._pad_map_axes(person_full)
     item_map = leftover._pad_map_axes(item_full)
     reconstruction = person_map @ item_map.T
     full_inner = person_full @ item_full.T
-    full_distances = np.linalg.norm(person_full[:, None, :] - item_full[None, :, :], axis=2)
+    map_distances = np.linalg.norm(person_map[:, None, :] - item_map[None, :, :], axis=2)
     assert float(np.max(np.abs(reconstruction - filled))) > 1e-6
     assert float(np.max(np.abs(reconstruction - full_inner))) > 1e-6
     assert abs(center) > 1e-6
@@ -216,7 +303,7 @@ def test_rank_three_unexplained_share_equals_centered_leftover_fraction() -> Non
         assert pair.leftover_map_unexplained_share != pytest.approx(uncentered_u)
         assert pair.leftover_map_unexplained_share != pytest.approx(pair.leftover_residual)
         assert pair.leftover_map_unexplained_share != pytest.approx(pair.leftover_distance)
-        assert pair.leftover_distance == pytest.approx(float(full_distances[person, item]))
+        assert pair.leftover_distance == pytest.approx(float(map_distances[person, item]))
         assert pair.leftover_map_unexplained_share >= 0.0
         assert not hasattr(pair, "leftover_map_unexplained")
         assert not hasattr(pair, "leftover_map_reconstruction")
@@ -227,3 +314,129 @@ def test_pad_map_axes_truncates_hidden_svd_components() -> None:
     padded = leftover._pad_map_axes(np.array([[1.0, 2.0, 9.0]], dtype=np.float64))
     assert padded.shape == (1, 2)
     assert padded[0].tolist() == pytest.approx([1.0, 2.0])
+
+
+def test_rank_four_pair_distances_match_two_dimensional_gabriel_coords() -> None:
+    """Jeon leftover_distance is Euclidean on the 2D map, not the full SVD rank."""
+    post_ids = ["post-a", "post-b", "post-c", "post-d"]
+    item_codes = ("item-a", "item-b", "item-c", "item-d")
+    matrix = np.array(
+        [
+            [4.0, 1.0, 0.0, -1.0],
+            [0.0, 3.0, 1.0, -2.0],
+            [-2.0, 0.0, 2.0, 1.0],
+            [1.0, -1.0, 0.0, 4.0],
+        ],
+        dtype=np.float64,
+    )
+    expected = np.zeros_like(matrix)
+    filled = matrix - float(np.mean(matrix))
+    person_full, item_full = _gabriel_positions(filled)
+    assert person_full.shape[1] == 4
+    person_map = _pad_map_axes(person_full)
+    item_map = _pad_map_axes(item_full)
+    full_distances = np.linalg.norm(person_full[:, None, :] - item_full[None, :, :], axis=2)
+    map_distances = np.linalg.norm(person_map[:, None, :] - item_map[None, :, :], axis=2)
+    assert float(np.max(np.abs(full_distances - map_distances))) > 1e-6
+
+    pairs = leftover_pairs_from_residual(post_ids, item_codes, matrix, expected)
+    assert [pair.pair_kind for pair in pairs] == [PAIR_KIND_CLOSEST, PAIR_KIND_FARTHEST]
+    post_index = {post_id: index for index, post_id in enumerate(post_ids)}
+    item_index = {code: index for index, code in enumerate(item_codes)}
+    for pair in pairs:
+        assert pair.leftover_map_rank == 4
+        person = post_index[pair.post_id]
+        item = item_index[pair.criterion_code]
+        assert pair.leftover_distance == pytest.approx(float(map_distances[person, item]))
+        assert pair.leftover_distance != pytest.approx(
+            float(full_distances[person, item]), abs=1e-9
+        )
+
+    farthest_map = np.unravel_index(int(np.argmax(map_distances)), map_distances.shape)
+    farthest = pairs[1]
+    assert (post_index[farthest.post_id], item_index[farthest.criterion_code]) == farthest_map
+
+
+def test_rejects_response_and_expectation_shape_mismatches() -> None:
+    """Scientific inputs must match their declared post and criterion axes."""
+    with pytest.raises(ValueError, match="matrix shape"):
+        leftover_pairs_from_residual(
+            ["post-a"],
+            ("item-a",),
+            np.zeros((2, 1), dtype=np.float64),
+            np.zeros((2, 1), dtype=np.float64),
+        )
+    with pytest.raises(ValueError, match="expected shape"):
+        leftover_pairs_from_residual(
+            ["post-a"],
+            ("item-a",),
+            np.zeros((1, 1), dtype=np.float64),
+            np.zeros((1, 2), dtype=np.float64),
+        )
+
+
+def test_sparse_residual_uses_only_observed_cells_for_fallback_distance() -> None:
+    """No complete rectangle still yields finite observed-cell distances."""
+    matrix = np.array([[1.0, np.nan], [np.nan, -1.0]], dtype=np.float64)
+    pairs = leftover_pairs_from_residual(
+        ["post-a", "post-b"],
+        ("item-a", "item-b"),
+        matrix,
+        np.zeros_like(matrix),
+    )
+    assert [(pair.post_id, pair.criterion_code) for pair in pairs] == [
+        ("post-a", "item-a"),
+        ("post-b", "item-b"),
+    ]
+    assert [pair.leftover_distance for pair in pairs] == pytest.approx([1.0, 1.0])
+    assert [pair.leftover_map_rank for pair in pairs] == [0, 0]
+
+
+def test_nonfinite_map_distance_falls_back_to_centered_residual(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """An unusable factorization coordinate cannot become persisted distance."""
+    monkeypatch.setattr(
+        leftover,
+        "_complete_case_positions",
+        lambda *_args: (
+            np.array([[np.inf]], dtype=np.float64),
+            np.array([[-np.inf]], dtype=np.float64),
+            1,
+        ),
+    )
+    pairs = leftover_pairs_from_residual(
+        ["post-a"],
+        ("item-a",),
+        np.array([[1.0]], dtype=np.float64),
+        np.array([[0.0]], dtype=np.float64),
+    )
+    assert [pair.leftover_distance for pair in pairs] == [0.0, 0.0]
+    assert [pair.leftover_map_rank for pair in pairs] == [0, 0]
+
+
+def test_empty_observation_mask_has_no_complete_case_axes() -> None:
+    """The complete-case helpers preserve an empty scientific boundary."""
+    observed = np.zeros((1, 1), dtype=bool)
+    keep_person, keep_item = leftover._complete_case_masks(observed)
+    assert not keep_person.any()
+    assert not keep_item.any()
+    person_pos, item_pos, rank = leftover._complete_case_positions(
+        np.zeros((1, 1), dtype=np.float64),
+        0.0,
+        keep_person,
+        keep_item,
+    )
+    assert person_pos is None
+    assert item_pos is None
+    assert rank == 0
+
+
+def test_leftover_map_rank_rejects_negative_rank() -> None:
+    """Python must reject a leftover-map rank excluded by the DB check."""
+    with pytest.raises(ValueError, match="non-negative integer"):
+        leftover._pair_from_candidate(
+            PAIR_KIND_CLOSEST,
+            (0.0, "public-post", "sales_lead_specificity", 0.0, 1.0, 1.0, None),
+            -1,
+        )
