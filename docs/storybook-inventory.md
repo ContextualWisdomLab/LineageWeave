@@ -6,12 +6,14 @@ buyer-facing control you can click before changing product CSS.
 | Story | Buyer next action | Token / module |
 |---|---|---|
 | `Evidence/CitationChip` | Click a cited title to open that source post. | `--color-chip-border`, `--radius-chip`, `CitationChip` |
+| `Evidence/PostBody` | Open Image regions and read each bounding range beside its caption; inspect the whitespace-caption state to confirm the image keeps a usable fallback name. | `--text-muted`, `PostBody` |
 | `Evidence/AskEvidenceLayerPopup` | Inspect one citation without leaving the answer; close to continue the answer or open the complete source post. Stories cover text/image evidence, no-evidence, missing OCR, null caption, and blank-caption fallback states. | shared popup tokens through `App.css`, `PopupCloseButton`, `AskEvidenceLayerPopup` |
 | `AnalysisRun/CutoffKnownBody` | Read the cutoff-known sentence, then compare it with the live body below. | `--color-accent-border`, `--space-panel-block`, `--radius-panel`, `CutoffKnownBody` |
 | `Analysis/LineageEntityPicker` | Choose which corp to reconstruct, then click Request a lineage reconstruction. | `--space-control-gap`, `--size-control-min`, `--radius-control`, `LineageEntityPicker` |
 | `Admin/AdminPanel` | Change the tenant brand name, then verify the saved or failed state before leaving settings. | `--surface`, `--border`, `--space-panel-block`, `AdminPanel` |
-| `Lineage/LineageDag` | Read Before on the A-100 fork, then click the revised-quote row to open that post; compare empty, single-branch, grouped/forked, ungrouped, and long-title states before changing graph CSS. | `--color-accent-background`, `--radius-control`, `--surface`, `--border`, `LineageDag` |
+| `Lineage/LineageDag` | Read Before on the A-100 fork, then click the revised-quote row to open that post; compare empty, single-branch, grouped/forked, mobile-scroll, ungrouped, and long-title states before changing graph CSS. On narrow viewports, swipe the named viewport or focus it and use arrow keys to inspect the full lineage. | `--color-accent-background`, `--radius-control`, `--surface`, `--border`, `--color-focus-border`, `--size-control-min`, `LineageDag` |
 | `Chrome/PopupCloseButton` | Close the evidence panel or post popup. | `--space-close-inset`, `--font-size-close`, `PopupCloseButton` |
+| `Evidence/OntologyExplorer` | Inspect typed people/orgs/posts, then open authorized evidence. Distinct from Event Lineage. | `--color-primary`, `--color-table-border`, `OntologyExplorer` |
 | `Reports/LeftoverPairList` | Read residual R, observed Y, expected E, map rank, and distance after IRT main effects, then open the named post. | `--color-chip-border`, `LeftoverPairList` |
 
 Repeated web objects must use `frontend/src/styles/tokens.css` and a module

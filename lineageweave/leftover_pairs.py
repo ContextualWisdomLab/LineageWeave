@@ -13,11 +13,12 @@ zero rather than inventing a second component, and hidden SVD axes
 after the second are dropped. Each pair also names the full leftover-map
 rank so a rank-0 collapse is not read as leftover structure. Axis share
 is the Gabriel inertia of the first two leftover-map axes (ADR 0148).
-Each pair also names unexplained leftover ``U = R − R̂`` after two-axis
-Gabriel reconstruction ``R̂ = ξ_{1:2} · ζ_{1:2}`` so the leftover cell
-the map does not reconstruct is not confused with leftover residual
-``R`` or leftover-map distance ``d``. Reconstruction is computed
-internally and is not persisted.
+Complete-case coverage (ADR 0169) names how many scored posts entered
+that rectangle. Each pair also names unexplained leftover ``U = R − R̂``
+after two-axis Gabriel reconstruction ``R̂ = ξ_{1:2} · ζ_{1:2}`` so the
+leftover cell the map does not reconstruct is not confused with
+leftover residual ``R`` or leftover-map distance ``d``. Reconstruction
+is computed internally and is not persisted.
 """
 
 from __future__ import annotations
@@ -55,6 +56,18 @@ class LeftoverMapAxis:
     axis_index: int
     leftover_singular_value: float
     leftover_share: float
+
+
+@dataclass(frozen=True)
+class LeftoverMapCoverage:
+    """Complete-case counts for the leftover interaction map."""
+
+    map_post_count: int
+    scored_post_count: int
+    map_item_count: int
+    scored_item_count: int
+    incomplete_post_count: int
+    incomplete_item_count: int
 
 
 def leftover_pairs_from_residual(
@@ -158,22 +171,10 @@ def leftover_map_from_residual(
                 )
             )
     if not candidates:
-        leftover_map_rank = 0
-        for person, item in observed:
-            distance = abs(float(residual[person, item]) - center)
-            candidates.append(
-                _candidate_row(
-                    post_ids,
-                    item_codes,
-                    matrix,
-                    expected,
-                    residual,
-                    person,
-                    item,
-                    max(distance, 0.0),
-                    None,
-                )
-            )
+        # ADR 0169: without a complete-case Gabriel map there is no
+        # leftover pair to name. The report carries coverage counts
+        # instead of a center-distance stand-in pair.
+        return (), ()
     closest = min(candidates, key=lambda row: (row[0], row[1], row[2]))
     farthest = max(candidates, key=lambda row: (row[0], row[1], row[2]))
     pairs = (
@@ -268,6 +269,47 @@ def leftover_map_axes_from_singular(singular: np.ndarray) -> tuple[LeftoverMapAx
     return tuple(axes)
 
 
+def leftover_map_coverage_from_residual(
+    post_ids: list[str],
+    item_codes: tuple[str, ...],
+    matrix: np.ndarray,
+    expected: np.ndarray,
+) -> LeftoverMapCoverage:
+    """Name how many scored posts entered the complete-case leftover map.
+
+    Gabriel (1971) factorizes the complete-case residual rectangle.
+    Missing cells stay out of that rectangle; they are never filled
+    with zero. ``map_post_count`` is the number of posts that entered
+    the factorization. ``scored_post_count`` is posts with at least
+    one observed cell. Incomplete rows are excluded, never zeroed.
+    """
+    if matrix.shape != (len(post_ids), len(item_codes)):
+        raise ValueError(
+            f"matrix shape {matrix.shape} does not match {len(post_ids)} posts × {len(item_codes)} items"
+        )
+    if expected.shape != matrix.shape:
+        raise ValueError(f"expected shape {expected.shape} does not match matrix {matrix.shape}")
+
+    residual = matrix.astype(np.float64) - expected.astype(np.float64)
+    # Identical mask to leftover_map_from_residual's: a cell the pair map
+    # scores must be exactly a cell coverage counts, so map_post_count and
+    # the caption can never drift apart if expected ever goes non-finite.
+    observed_mask = (~np.isnan(matrix)) & np.isfinite(residual) & np.isfinite(expected)
+    scored_post_count = int(observed_mask.any(axis=1).sum())
+    scored_item_count = int(observed_mask.any(axis=0).sum())
+    keep_person, keep_item = _complete_case_masks(observed_mask)
+    map_post_count = int(keep_person.sum())
+    map_item_count = int(keep_item.sum())
+    return LeftoverMapCoverage(
+        map_post_count=map_post_count,
+        scored_post_count=scored_post_count,
+        map_item_count=map_item_count,
+        scored_item_count=scored_item_count,
+        incomplete_post_count=scored_post_count - map_post_count,
+        incomplete_item_count=scored_item_count - map_item_count,
+    )
+
+
 def _complete_case_masks(observed: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     """Drop incomplete rows, then incomplete columns among remaining rows."""
     keep_person = observed.any(axis=1)
@@ -276,6 +318,8 @@ def _complete_case_masks(observed: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         keep_person = keep_person & observed[:, keep_item].all(axis=1)
     if np.any(keep_person):
         keep_item = keep_item & observed[keep_person, :].all(axis=0)
+    else:
+        keep_item = np.zeros_like(keep_item)
     return keep_person, keep_item
 
 

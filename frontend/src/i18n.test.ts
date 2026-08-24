@@ -23,12 +23,15 @@ describe("i18n", () => {
     "Keymen",
     "Unknown",
     "Image tags",
+    "Image regions",
+    "Region location",
     "Counterparties",
     "due",
     "Activity",
     "Refresh",
     "Close",
     "Post body",
+    "Post",
     "Summary",
     "Calendar",
     "Board",
@@ -55,6 +58,9 @@ describe("i18n", () => {
     "Contains",
     "Overlaps",
     "Interval relations",
+    "Inspect ontology neighborhood",
+    "Ontology neighborhood",
+    "This is an ontology neighborhood, not Event Lineage.",
     "Rankings",
     "Title overlap",
     "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
@@ -88,6 +94,16 @@ describe("i18n", () => {
   });
 
   it.each([
+    ["ko", "글"],
+    ["zh", "文章"],
+    ["ja", "投稿"],
+    ["vi", "Bài viết"],
+  ] as const)("translates the ontology Post node label in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Post")).toBe(expected);
+  });
+
+  it.each([
     ["ko", "DEMO은(는) 이벤트 계보의 현재 항목입니다. 다음으로 Keyman과 평가를 읽으세요."],
     ["zh", "DEMO 是事件谱系中的当前记录。接下来查看关键联系人和评估。"],
     ["ja", "DEMOはイベント系譜の現在の記録です。次にキーパーソンと評価を確認してください。"],
@@ -112,6 +128,16 @@ describe("i18n", () => {
         label: from,
       }),
     ).toBe(expected);
+  });
+
+  it.each([
+    ["ko", "영역 위치"],
+    ["zh", "区域位置"],
+    ["ja", "領域の位置"],
+    ["vi", "Vị trí vùng"],
+  ] as const)("translates image region location in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(t("Region location")).toBe(expected);
   });
 
   it.each([
