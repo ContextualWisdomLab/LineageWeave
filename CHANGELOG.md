@@ -213,6 +213,15 @@ All notable changes to this project are documented here. Format follows
   shell. The production frontend build type-checks again.
 
 
+## [2.12.22] - 2026-08-24
+
+### Added
+
+- Period leftover pair rows now name signed leftover residual
+  `R = Y − E[Y|θ, item]` next to leftover-map distance `d`, then open
+  that post (Jeon et al., 2021, eq. 3; ADR 0178). A non-finite residual
+  is an em dash rather than a fabricated leftover score.
+
 ## [2.12.21] - 2026-08-24
 
 ### Added

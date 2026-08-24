@@ -510,6 +510,7 @@ def test_leftover_pair_names_leftover_map_rank_column(schema_db) -> None:
         columns = dict(cur.fetchall())
     assert columns["leftover_map_rank"] == "YES"
 
+
 def test_corporate_hierarchy_recursive_query_returns_correct_shape(schema_db) -> None:
     """The real product requirement: 'Acme Group -> Acme Electronics Korea
     -> Acme Electronics Gwangju Plant' must be walkable with one query,
