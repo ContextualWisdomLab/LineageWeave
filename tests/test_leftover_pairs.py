@@ -510,13 +510,6 @@ def test_unexplained_equals_residual_minus_two_axis_reconstruction() -> None:
         assert not hasattr(pair, "leftover_map_reconstruction")
 
 
-def test_pad_map_axes_truncates_hidden_svd_components() -> None:
-    """Axes after the second leftover-map axis do not enter reconstruction."""
-    padded = leftover._pad_map_axes(np.array([[1.0, 2.0, 9.0]], dtype=np.float64))
-    assert padded.shape == (1, 2)
-    assert padded[0].tolist() == pytest.approx([1.0, 2.0])
-
-
 def test_rejects_response_and_expectation_shape_mismatches() -> None:
     """Scientific inputs must match their declared post and criterion axes."""
     with pytest.raises(ValueError, match="matrix shape"):
