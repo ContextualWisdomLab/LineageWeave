@@ -266,6 +266,10 @@ def test_calibrated_report_attaches_leftover_pairs() -> None:
         assert pair.criterion_code in items
         assert pair.leftover_distance >= 0.0
         assert np.isfinite(pair.leftover_residual)
+        assert pair.leftover_residual == pytest.approx(
+            pair.observed_response - pair.expected_response, abs=1e-6
+        )
+        assert pair.leftover_map_rank >= 0
         if pair.leftover_map_unexplained is not None:
             assert np.isfinite(pair.leftover_map_unexplained)
         assert not hasattr(pair, "leftover_map_reconstruction")
