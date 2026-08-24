@@ -6,6 +6,11 @@ function truncateLabel(label: string): string {
   return label.length > 34 ? `${label.slice(0, 33)}…` : label;
 }
 
+// Mirrors --size-control-min (24px, styles/tokens.css). One SVG user unit is
+// ~1px here (see lineageLayout ROW_H/COL_W/PAD), so this radius gives the
+// visible 7px node mark a 24x24px minimum hit area without CSS scale-up.
+const NODE_HIT_RADIUS = 12;
+
 export function LineageDag({
   graph,
   onSelectPost,
@@ -81,6 +86,12 @@ export function LineageDag({
                       }
                     }}
                   >
+                    <circle
+                      className="lineage-dag-hit"
+                      r={NODE_HIT_RADIUS}
+                      fill="transparent"
+                      style={{ pointerEvents: "all" }}
+                    />
                     <circle r={7} />
                     <text x={12} y={4}>
                       {truncateLabel(node.label)}
