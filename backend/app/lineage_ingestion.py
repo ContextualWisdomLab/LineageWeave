@@ -22,9 +22,15 @@ from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge, Record
 
-# ADR 0145 rejected the unanchored estimator. A future accepted ADR must add
-# its independently validated method code here before persisted weights can run.
-_SUPPORTED_ANCHOR_METHOD_CODES: frozenset[str] = frozenset()
+# Accepted ADR 0200 (points 2-3) authorizes exactly one anchor method:
+# expected-information estimates honestly labeled as validated by the
+# channels' internal response structure only, pending the TEPP
+# criterion-validity gate. When that gate exists, a set that fails it is
+# retired and this stays the only place an anchor method is ever added
+# -- ADR-first, per ADR 0145's original condition.
+_SUPPORTED_ANCHOR_METHOD_CODES: frozenset[str] = frozenset(
+    {"unanchored_internal_structure"}
+)
 
 
 def _occurred_at(value: datetime) -> datetime:

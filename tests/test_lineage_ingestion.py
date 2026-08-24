@@ -59,6 +59,42 @@ def test_unapproved_weight_provenance_is_never_activated() -> None:
     ) is None
 
 
+def test_adr_0200_authorized_anchor_activates_a_complete_vector() -> None:
+    """Accepted ADR 0200: 'unanchored_internal_structure' is the one
+    authorized anchor method -- a complete, single-run,
+    integrity-passing vector under it activates, with no monkeypatching
+    of the authorized set. The rejected estimator's code
+    ('unanchored_channel_covariance', previous test) stays refused.
+    """
+
+    class StoredWeightConnection:
+        async def fetchval(self, _query: str):
+            return True
+
+        async def fetch(self, _query: str):
+            provenance = {
+                "channel_set_code": "channel_set_deterministic",
+                "estimation_run_id": "00000000-0000-0000-0000-000000000001",
+                "estimation_method_code": "mls2plm_expected_information",
+                "estimator_version": "1.0.0",
+                "anchor_method_code": "unanchored_internal_structure",
+                "source_snapshot_sha256": "a" * 64,
+                "sample_pair_count": 600,
+                "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
+            }
+            return [
+                {**provenance, "channel_code": "temporal", "weight_value": 0.5},
+                {**provenance, "channel_code": "secondary_key", "weight_value": 0.3},
+                {**provenance, "channel_code": "text", "weight_value": 0.2},
+            ]
+
+    assert asyncio.run(
+        ingestion.load_estimated_channel_weights(
+            StoredWeightConnection(), {"temporal", "secondary_key", "text"}
+        )
+    ) == {"temporal": 0.5, "secondary_key": 0.3, "text": 0.2}
+
+
 def test_incomplete_persisted_weight_vector_is_unavailable() -> None:
     """A partial vector must not silently reweight only some channels."""
 
