@@ -193,7 +193,7 @@ def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch)
     assert any(args[1] == QUEUED and args[6] == "post_content_ingestion_incomplete" for args in updates)
 
 
-def test_missing_source_body_is_not_reported_as_a_provider_failure(monkeypatch) -> None:
+def test_missing_source_body_is_not_reported_as_a_provider_failure(monkeypatch, caplog) -> None:
     connection = _Connection(values=[2])
     pool = _Pool(connection)
 
@@ -212,16 +212,17 @@ def test_missing_source_body_is_not_reported_as_a_provider_failure(monkeypatch) 
     )
     client = SimpleNamespace(available=True)
 
-    asyncio.run(
-        post_content_worker.process_post_content_job(
-            pool,
-            post_id="00000000-0000-0000-0000-000000000001",
-            source_body_digest="a" * 64,
-            vision_factory=lambda: client,
-            embedding_factory=lambda: client,
-            structure_factory=lambda: client,
+    with caplog.at_level("WARNING", logger=post_content_worker._logger.name):
+        asyncio.run(
+            post_content_worker.process_post_content_job(
+                pool,
+                post_id="00000000-0000-0000-0000-000000000001",
+                source_body_digest="a" * 64,
+                vision_factory=lambda: client,
+                embedding_factory=lambda: client,
+                structure_factory=lambda: client,
+            )
         )
-    )
 
     updates = [args for query, args in connection.executed if "set status_code" in query]
     assert any(
@@ -230,6 +231,9 @@ def test_missing_source_body_is_not_reported_as_a_provider_failure(monkeypatch) 
         and args[7] == "source post has no body"
         for args in updates
     )
+    assert any(
+        "source post has no body" in record.message for record in caplog.records
+    ), "empty-body skip must still emit a diagnostic log line"
 
 
 def test_transient_provider_error_is_requeued_before_attempt_limit(monkeypatch) -> None:

@@ -225,6 +225,10 @@ async def process_post_content_job(
     attempt_count = int(row["job_attempt_count"]) + 1
     raw_body = row["post_body"]
     if not isinstance(raw_body, str) or not raw_body.strip():
+        _logger.warning(
+            "post content ingestion skipped: source post has no body",
+            extra={"post_id": post_id},
+        )
         await _finish_failed_job(
             pool,
             post_id,
