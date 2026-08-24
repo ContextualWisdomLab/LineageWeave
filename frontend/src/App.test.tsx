@@ -3353,21 +3353,21 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("Open");
     expect(screen.getByRole("button", { name: /open report post: public post/i })).toHaveTextContent("due 2026-01-12");
     expect(screen.getByLabelText("Leftover pairs")).toBeInTheDocument();
-    const closestPair = screen.getByRole("button", { name: /open leftover closest pair: public post/i });
+    const closestPair = screen.getByRole("button", { name: /closest leftover: public post/i });
     const farthestPair = screen.getByRole("button", {
-      name: /open leftover farthest pair: specification revision requested/i,
+      name: /farthest leftover: specification revision requested/i,
     });
     expect(closestPair).toHaveTextContent("Closest leftover: Public post · sales-lead");
     expect(closestPair).toHaveTextContent(
       "Two leftover-map axes explain 0.88 of centered leftover after IRT main effects. Open this post to read sales-lead.",
     );
-    expect(closestPair).toHaveTextContent("R̂²/R̃² 0.88");
+    expect(closestPair).toHaveTextContent("R̂c²/R̃² 0.88");
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
       "Two leftover-map axes explain 0.55 of centered leftover after IRT main effects. Open this post to read negative.",
     );
-    expect(farthestPair).toHaveTextContent("R̂²/R̃² 0.55");
+    expect(farthestPair).toHaveTextContent("R̂c²/R̃² 0.55");
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
     expect(closestPair.compareDocumentPosition(memberButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -3424,7 +3424,7 @@ describe("App, authenticated", () => {
     render(<App showLabPanels />);
 
     await userEvent.click(
-      await screen.findByRole("button", { name: /open leftover closest pair: public post/i }),
+      await screen.findByRole("button", { name: /closest leftover: public post/i }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
   });

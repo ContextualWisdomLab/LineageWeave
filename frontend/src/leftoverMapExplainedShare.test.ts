@@ -3,9 +3,9 @@ import { formatLeftoverMapExplainedShare } from "./leftoverMapExplainedShare";
 
 describe("formatLeftoverMapExplainedShare", () => {
   it("names explained leftover share without inventing a leftover score", () => {
-    expect(formatLeftoverMapExplainedShare(0.88)).toBe("R\u0302\u00b2/R\u0303\u00b2 0.88");
-    expect(formatLeftoverMapExplainedShare(0)).toBe("R\u0302\u00b2/R\u0303\u00b2 0.00");
-    expect(formatLeftoverMapExplainedShare(1)).toBe("R\u0302\u00b2/R\u0303\u00b2 1.00");
+    expect(formatLeftoverMapExplainedShare(0.88)).toBe("R\u0302c\u00b2/R\u0303\u00b2 0.88");
+    expect(formatLeftoverMapExplainedShare(0)).toBe("R\u0302c\u00b2/R\u0303\u00b2 0.00");
+    expect(formatLeftoverMapExplainedShare(1)).toBe("R\u0302c\u00b2/R\u0303\u00b2 1.00");
   });
 
   it("omits the badge when explained leftover share is missing, negative, or non-finite", () => {

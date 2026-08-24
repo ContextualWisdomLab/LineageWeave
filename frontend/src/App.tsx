@@ -3422,11 +3422,7 @@ function ReportsPanel({
                     >
                       <button
                         className="post-list-item"
-                        aria-label={tf("Open leftover {kind} pair: {title} · {criterion}", {
-                          kind: pair.pair_kind,
-                          title: pair.post_title,
-                          criterion,
-                        })}
+                        aria-label={`${kindLabel}: ${pair.post_title} · ${criterion}`}
                         onClick={() => onSelectPost(pair.post_id)}
                       >
                         <span className="ticket-title">

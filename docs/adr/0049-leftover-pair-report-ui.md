@@ -37,9 +37,12 @@ A hidden post never appears as a leftover pair.
 
 The authorized report payload carries `leftover_pairs` next to
 `members` and `selected_items`. Screen-reader names are
-`Open leftover closest pair: {title}` and
-`Open leftover farthest pair: {title}` so the control announces the
-next action, not only the distance.
+The visible pair label `{kind}: {title} · {criterion}` (for example
+`Closest leftover: Public post · sales-lead`) doubles as the
+screen-reader name so the announced text matches what the reader sees
+and names the criterion, not only the distance. Earlier increments
+documented an `Open leftover closest pair: {title}` shape; the
+criterion-bearing label supersedes it.
 
 ## Related
 

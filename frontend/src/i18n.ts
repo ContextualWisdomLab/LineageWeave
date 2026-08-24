@@ -360,12 +360,12 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Closest leftover": "가장 가까운 잔여",
     "Farthest leftover": "가장 먼 잔여",
     "Open this post to read the criterion it sat closest to after main effects.":
-      "주효과 이후 가장 가깝게 앉은 기준을 읽으려면 이 글을 여세요.",
+      "주효과 이후 가장 가까운 기준을 읽으려면 이 글을 여세요.",
     "Open this post to read the criterion it sat farthest from after main effects.":
-      "주효과 이후 가장 멀리 앉은 기준을 읽으려면 이 글을 여세요.",
+      "주효과 이후 가장 먼 기준을 읽으려면 이 글을 여세요.",
     "Two leftover-map axes explain {value} of centered leftover after IRT main effects. Open this post to read {criterion}.":
-      "잔여 지도의 두 축이 IRT 주효과 이후 중심화 잔여의 {value}을(를) 설명합니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
-    "Open leftover {kind} pair: {title} · {criterion}":
+      "잔여 지도의 두 축이 IRT 주효과 이후 중심화 잔여의 {value}만큼을 설명합니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
+    "{kind}: {title} · {criterion}":
       "잔여 {kind} 쌍 열기: {title} · {criterion}",
   },
   zh: {
@@ -714,7 +714,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "打开这篇帖子，阅读主效应后距离最远的准则。",
     "Two leftover-map axes explain {value} of centered leftover after IRT main effects. Open this post to read {criterion}.":
       "残差图的两个轴解释 IRT 主效应后中心化残差的 {value}。打开这篇帖子阅读 {criterion}。",
-    "Open leftover {kind} pair: {title} · {criterion}":
+    "{kind}: {title} · {criterion}":
       "打开残余 {kind} 配对：{title} · {criterion}",
   },
   ja: {
@@ -1063,7 +1063,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "主効果後に最も遠くなった基準を読むには、この投稿を開いてください。",
     "Two leftover-map axes explain {value} of centered leftover after IRT main effects. Open this post to read {criterion}.":
       "残差マップの2軸はIRT主効果後の中心化残差の {value} を説明します。この投稿を開いて {criterion} を読んでください。",
-    "Open leftover {kind} pair: {title} · {criterion}":
+    "{kind}: {title} · {criterion}":
       "残差 {kind} ペアを開く: {title} · {criterion}",
   },
   vi: {
@@ -1412,8 +1412,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Mở bài viết này để đọc tiêu chí nằm xa nhất sau hiệu ứng chính.",
     "Two leftover-map axes explain {value} of centered leftover after IRT main effects. Open this post to read {criterion}.":
       "Hai trục của bản đồ phần dư giải thích {value} phần dư đã căn giữa sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
-    "Open leftover {kind} pair: {title} · {criterion}":
-      "Mở cặp phần dư {kind}: {title} · {criterion}",
+    "{kind}: {title} · {criterion}":
+      "Mở {kind}: {title} · {criterion}",
   },
 };
 

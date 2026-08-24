@@ -9,5 +9,5 @@ export function formatLeftoverMapExplainedShare(
   if (value == null || !Number.isFinite(value) || value < 0) {
     return null;
   }
-  return `R\u0302\u00b2/R\u0303\u00b2 ${value.toFixed(2)}`;
+  return `R\u0302c\u00b2/R\u0303\u00b2 ${value.toFixed(2)}`;
 }

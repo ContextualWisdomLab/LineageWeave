@@ -41,7 +41,7 @@ describe("i18n", () => {
     "Open this post to read the criterion it sat closest to after main effects.",
     "Open this post to read the criterion it sat farthest from after main effects.",
     "Two leftover-map axes explain {value} of centered leftover after IRT main effects. Open this post to read {criterion}.",
-    "Open leftover {kind} pair: {title} · {criterion}",
+    "{kind}: {title} · {criterion}",
     "Showing the first {shown} of {total} posts known at this cutoff.",
   ] as const;
 
@@ -85,7 +85,7 @@ describe("i18n", () => {
   it.each([
     [
       "ko",
-      "잔여 지도의 두 축이 IRT 주효과 이후 중심화 잔여의 0.88을(를) 설명합니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
+      "잔여 지도의 두 축이 IRT 주효과 이후 중심화 잔여의 0.88만큼을 설명합니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
     ],
     [
       "zh",
