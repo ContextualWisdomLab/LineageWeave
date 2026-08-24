@@ -10,7 +10,7 @@ buyer-facing control you can click before changing product CSS.
 | `AnalysisRun/CutoffKnownBody` | Read the cutoff-known sentence, then compare it with the live body below. | `--color-accent-border`, `--space-panel-block`, `--radius-panel`, `CutoffKnownBody` |
 | `Analysis/LineageEntityPicker` | Choose which corp to reconstruct, then click Request a lineage reconstruction. | `--space-control-gap`, `--size-control-min`, `--radius-control`, `LineageEntityPicker` |
 | `Admin/AdminPanel` | Change the tenant brand name, then verify the saved or failed state before leaving settings. | `--surface`, `--border`, `--space-panel-block`, `AdminPanel` |
-| `Lineage/LineageDag` | Open the current branch node; compare empty, grouped/forked, ungrouped, and long-title states before changing graph CSS. | `--surface`, `--border`, `LineageDag` |
+| `Lineage/LineageDag` | Open the current branch node; compare empty, grouped/forked, mobile-scroll, ungrouped, and long-title states before changing graph CSS. On narrow viewports, swipe the named viewport or focus it and use arrow keys to inspect the full lineage. | `--surface`, `--border`, `--color-focus-border`, `--size-control-min`, `LineageDag` |
 | `Chrome/PopupCloseButton` | Close the evidence panel or post popup. | `--space-close-inset`, `--font-size-close`, `PopupCloseButton` |
 | `Evidence/OntologyExplorer` | Inspect typed people/orgs/posts, then open authorized evidence. Distinct from Event Lineage. | `--color-primary`, `--color-table-border`, `OntologyExplorer` |
 | `Reports/LeftoverPairList` | Read residual R, observed Y, expected E, map rank, and distance after IRT main effects, then open the named post. | `--color-chip-border`, `LeftoverPairList` |

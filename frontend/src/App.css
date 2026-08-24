@@ -534,6 +534,15 @@
   stroke-width: 1.5;
 }
 
+/* The enlarged hit target sits under the visible mark. Author CSS beats the
+   fill="transparent" presentation attribute, so keep it invisible here or it
+   paints as a second opaque disc (WCAG 2.5.8 touch-target sizing must not
+   change what the reader sees). */
+.lineage-dag-node circle.lineage-dag-hit {
+  fill: transparent;
+  stroke: none;
+}
+
 .lineage-dag-branch circle {
   fill: var(--badge-actor-organization-bg);
   stroke: var(--color-accent-orange);
@@ -552,12 +561,14 @@
   outline: none;
 }
 
-.lineage-dag-node:focus circle,
-.lineage-dag-node:hover circle {
+.lineage-dag-node:focus circle:not(.lineage-dag-hit),
+.lineage-dag-node:hover circle:not(.lineage-dag-hit) {
   stroke-width: 2.5;
 }
 
-.lineage-dag-node[aria-current="true"] circle {
+/* :not(.lineage-dag-hit) never matches the hit target, so the current
+   ring cannot paint a hollow disc around it regardless of source order. */
+.lineage-dag-node[aria-current="true"] circle:not(.lineage-dag-hit) {
   stroke-width: 3;
   stroke: var(--text-h);
 }
