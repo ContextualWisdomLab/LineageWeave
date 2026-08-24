@@ -654,6 +654,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "원문 문장을 읽은 다음 계속하세요. 측정된 부정이며, 채널 불가가 아닙니다.",
     "This R&R row is one source phrase. Do not treat it as a catalog relationship until job title and relationship type are stored separately.":
       "이 R&R 행은 원문 구절 하나입니다. 직함과 관계 유형이 따로 저장되기 전에는 카탈로그 관계로 보지 마세요.",
+    "leftover axis {axis} {share}%": "잔차 축 {axis} {share}%",
+    "Leftover-map axis share": "잔차 지도 축 비율",
+    "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
+      "잔차 지도 축 비율은 잔차 SVD 축 1과 2의 Gabriel 관성입니다. 글–기준 셀을 읽으려면 잔차 쌍을 여세요. 이 비율은 잔차 점수를 만들어내지 않습니다.",
     "Leftover pairs": "잔여 쌍",
     "Closest leftover": "가장 가까운 잔여",
     "Farthest leftover": "가장 먼 잔여",
@@ -1309,6 +1313,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No source customer evidence matches {code}.": "没有与 {code} 匹配的来源客户证据。",
     "The source is still being written; analysis starts after approval.":
       "来源仍在编写中；分析将在批准后开始。",
+    "leftover axis {axis} {share}%": "残差轴 {axis} {share}%",
+    "Leftover-map axis share": "残差图轴占比",
+    "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
+      "残差图轴占比是残差 SVD 第 1、2 轴的 Gabriel 惯量。打开一个残差配对可查看文章–准则单元格。这些占比不会虚构残差分数。",
     "Leftover pairs": "残余配对",
     "Closest leftover": "最近残余",
     "Farthest leftover": "最远残余",
@@ -1964,6 +1972,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No source customer evidence matches {code}.": "{code} に一致する原典の顧客証拠がありません。",
     "The source is still being written; analysis starts after approval.":
       "原典はまだ作成中です。分析は承認後に開始します。",
+    "leftover axis {axis} {share}%": "残差軸 {axis} {share}%",
+    "Leftover-map axis share": "残差マップ軸の比率",
+    "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
+      "残差マップ軸の比率は、残差 SVD の第1軸と第2軸の Gabriel 慣性です。投稿–基準セルを読むには残差ペアを開いてください。この比率から残差スコアを作りません。",
     "Leftover pairs": "残差ペア",
     "Closest leftover": "最も近い残差",
     "Farthest leftover": "最も遠い残差",
@@ -2619,6 +2631,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No source customer evidence matches {code}.": "Không có bằng chứng khách hàng nguồn khớp với {code}.",
     "The source is still being written; analysis starts after approval.":
       "Nguồn vẫn đang được soạn thảo; phân tích sẽ bắt đầu sau khi được phê duyệt.",
+    "leftover axis {axis} {share}%": "trục phần dư {axis} {share}%",
+    "Leftover-map axis share": "Tỷ trọng trục bản đồ phần dư",
+    "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
+      "Tỷ trọng trục bản đồ phần dư là quán tính Gabriel của các trục SVD phần dư 1 và 2. Mở một cặp phần dư để đọc ô bài viết–tiêu chí. Các tỷ trọng này không tạo ra điểm phần dư.",
     "Leftover pairs": "Cặp phần dư",
     "Closest leftover": "Phần dư gần nhất",
     "Farthest leftover": "Phần dư xa nhất",

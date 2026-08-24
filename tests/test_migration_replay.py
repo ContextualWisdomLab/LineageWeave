@@ -1,3 +1,4 @@
+import re
 import subprocess
 from pathlib import Path
 
@@ -72,6 +73,27 @@ def test_tenant_settings_migration_is_idempotent_for_replay() -> None:
 
     assert "CREATE TABLE IF NOT EXISTS tenant_settings" in migration
     assert "ON CONFLICT (id) DO NOTHING" in migration
+
+
+def test_migrate_sh_replays_leftover_map_axis_migration_on_existing_volumes() -> None:
+    """migrate.sh's replay window must cover 0169 (report_leftover_map_axis).
+
+    Volumes created before leftover-map axis share shipped never get
+    report_leftover_map_axis unless migrate.sh replays 0169 on every
+    `docker compose up`. GET /api/reports/{grouping}/{period} then 500s
+    on undefined_table the first time a period actually has leftover-map
+    axes.
+
+    ADR 0166's general four-digit filename boundary covers 0169 without a
+    per-migration allowlist entry, so this asserts the migration file's
+    own name still matches that boundary shape rather than a stale
+    literal `migrate.sh` no longer contains.
+    """
+    migration_name = "0169_report_leftover_map_axis.sql"
+    migration_path = Path(__file__).resolve().parents[1] / "migrations" / migration_name
+    assert migration_path.exists()
+    assert re.fullmatch(r"[0-9]{4}_.+\.sql", migration_name)
+    assert int(migration_name[:4]) >= 12
 
 
 def test_tenant_settings_migration_is_safe_to_replay() -> None:
