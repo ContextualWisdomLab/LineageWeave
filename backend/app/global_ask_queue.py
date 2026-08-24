@@ -25,7 +25,6 @@ from typing import Any, Callable
 import asyncpg
 import redis.asyncio as redis
 
-from lineageweave.http_client import HttpClientError
 from lineageweave.post_chat import (
     PostChatClient,
     cited_post_evidence,
@@ -246,15 +245,14 @@ async def process_global_ask_job(
             ),
             timeout=JOB_DEADLINE_SECONDS,
         )
-    except (
-        TimeoutError,
-        HttpClientError,
-        ConnectionError,
-        PermissionError,
-        KeyError,
-        OSError,
-        ValueError,
-    ) as exc:
+    except asyncio.CancelledError:
+        # Shutdown: leave the row `running`; the recovery sweep re-queues
+        # it after the orphan window on the next process start.
+        raise
+    except Exception as exc:  # noqa: BLE001 - settlement must be fail-closed
+        # A narrow exception tuple here once let an unexpected error kill
+        # the task silently and strand the row `running` until orphan
+        # recovery (observed live) — every failure settles the job.
         _logger.exception("global ask job failed for job_id=%s", job_id)
         detail = str(exc) or f"job exceeded the {JOB_DEADLINE_SECONDS}s deadline"
         async with pool.acquire() as conn:
