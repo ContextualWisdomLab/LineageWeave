@@ -279,8 +279,16 @@ async def process_global_ask_job(
         # A narrow exception tuple here once let an unexpected error kill
         # the task silently and strand the row `running` until orphan
         # recovery (observed live) — every failure settles the job.
+        # Full exception is logged internally for operators; the reader
+        # only ever sees a generic, bounded message, never the raw
+        # exception text (issue #361 -- a leaked orchestrator/provider
+        # exception once exposed internals straight to a client).
         _logger.exception("global ask job failed for job_id=%s", job_id)
-        detail = str(exc) or f"job exceeded the {JOB_DEADLINE_SECONDS}s deadline"
+        detail = (
+            "job exceeded its deadline"
+            if isinstance(exc, asyncio.TimeoutError)
+            else "Ask Agent job failed"
+        )
         async with pool.acquire() as conn:
             await conn.execute(
                 """
