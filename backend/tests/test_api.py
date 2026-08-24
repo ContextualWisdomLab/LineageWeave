@@ -137,6 +137,11 @@ _LEFTOVER_MAP_AXIS_MIGRATION = (
     / "migrations"
     / "0169_report_leftover_map_axis.sql"
 )
+_EVENT_OCCURRED_AT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0168_source_post_event_occurred_at.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -254,6 +259,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_CHANNEL_WEIGHT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
+            cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(
                 "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) values "
