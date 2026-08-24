@@ -19,6 +19,7 @@ from backend.app.analysis_run_start import (
 )
 from backend.app.lineage_ingestion import records_from_source_posts
 from lineageweave.fixtures import sample_records
+from lineageweave.http_client import HttpClientError
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 
@@ -244,6 +245,19 @@ def test_configured_tepp_client_stays_unavailable_without_http() -> None:
     client = configured_tepp_client("file:///tmp/tepp.json")
     with pytest.raises(TeppNotAvailable):
         client.submit_analysis_run(_tepp_request())
+
+
+def test_configured_tepp_client_does_not_expose_provider_error(monkeypatch) -> None:
+    """TEPP transport failures remain a stable unavailable product error."""
+    def fail(*_args, **_kwargs):
+        raise HttpClientError("raw-tepp-provider-secret")
+
+    monkeypatch.setattr("backend.app.analysis_run_start.post_json", fail)
+    client = configured_tepp_client("https://tepp.example.test/run")
+    with pytest.raises(TeppNotAvailable) as exc_info:
+        client.submit_analysis_run(_tepp_request())
+    assert str(exc_info.value) == "TEPP transport unavailable"
+    assert "raw-tepp-provider-secret" not in str(exc_info.value)
 
 
 def test_hidden_run_start_is_not_found() -> None:
