@@ -255,7 +255,10 @@ def leftover_map_coverage_from_residual(
         raise ValueError(f"expected shape {expected.shape} does not match matrix {matrix.shape}")
 
     residual = matrix.astype(np.float64) - expected.astype(np.float64)
-    observed_mask = (~np.isnan(matrix)) & np.isfinite(residual)
+    # Identical mask to leftover_map_from_residual's: a cell the pair map
+    # scores must be exactly a cell coverage counts, so map_post_count and
+    # the caption can never drift apart if expected ever goes non-finite.
+    observed_mask = (~np.isnan(matrix)) & np.isfinite(residual) & np.isfinite(expected)
     scored_post_count = int(observed_mask.any(axis=1).sum())
     scored_item_count = int(observed_mask.any(axis=0).sum())
     keep_person, keep_item = _complete_case_masks(observed_mask)
