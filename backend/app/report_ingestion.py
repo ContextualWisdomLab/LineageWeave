@@ -978,6 +978,7 @@ async def fetch_period_comparison(
     members_by_key: dict[tuple[str, str], list[asyncpg.Record]] = defaultdict(list)
     for row in members:
         members_by_key[(row["grouping_kind"], row["grouping_key"])].append(row)
+    # Safe SQL: the source-context expression is an immutable schema fragment; grouping filters are bound.
     leftover = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select lp.grouping_kind, lp.grouping_key, lp.pair_kind, lp.post_id,
