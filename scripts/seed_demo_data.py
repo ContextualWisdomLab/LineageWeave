@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import os
+import time
 import sys
 from pathlib import Path
 from urllib.parse import urlencode
@@ -1847,6 +1848,16 @@ def _warm_seeded_post_content(
     replays the exact production path with the demo reader account
     instead of duplicating the enqueue SQL here.
     """
+    for _ in range(60):
+        try:
+            get_json(f"{backend_base_url}/healthz", timeout=5.0)
+            break
+        except Exception:
+            time.sleep(2)
+    else:
+        raise RuntimeError(
+            f"backend at {backend_base_url} is not serving /healthz; run `make up` first"
+        )
     token = post_form(
         f"{keycloak_base_url}/realms/lineageweave-demo/protocol/openid-connect/token",
         {
@@ -1857,12 +1868,17 @@ def _warm_seeded_post_content(
         },
         timeout=30.0,
     )["access_token"]
-    with psycopg2.connect(postgres_dsn) as connection:
+    connection = psycopg2.connect(postgres_dsn)
+    try:
         with connection.cursor() as cur:
             cur.execute(
                 "select post_id from source_post where post_title like 'Demo %post'"
             )
             post_ids = [str(row[0]) for row in cur.fetchall()]
+    finally:
+        # psycopg2's context manager only manages the transaction; close
+        # explicitly so no idle connection outlives the HTTP warm-up.
+        connection.close()
     for post_id in post_ids:
         get_json(
             f"{backend_base_url}/api/posts/{post_id}/content",

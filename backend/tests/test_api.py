@@ -3514,7 +3514,7 @@ def test_live_chat_answer_publishes_an_activity_event(
         def answer(self, question: str, sources) -> ChatAnswer:
             return ChatAnswer(answer_text="a live answer", cited_post_ids=())
 
-    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _FakeChatClient())
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FakeChatClient())
 
     post_id = seeded_db["own_private_post_id"]
     response = client.post(
@@ -4348,7 +4348,7 @@ def test_ask_is_unavailable_without_orchestrator_credentials(
     """Null chat client must 503, not invent an answer."""
     from lineageweave.post_chat import NullPostChatClient
 
-    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: NullPostChatClient())
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: NullPostChatClient())
     response = client.post(
         "/api/ask",
         json={"question": "What happened with the public post?"},
@@ -4386,7 +4386,7 @@ def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
                 cited_post_ids=(sources[0].post_id,),
             )
 
-    monkeypatch.setattr("backend.app.main._post_chat_client", lambda: _FakeChatClient())
+    monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FakeChatClient())
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
     submitted = client.post(
         "/api/ask", json={"question": "What happened with the public post?"}, headers=headers
@@ -4421,7 +4421,7 @@ def test_ask_job_reads_are_owner_scoped(
         available = True
 
     monkeypatch.setattr(
-        "backend.app.main._post_chat_client", lambda: _AvailableButUnusedClient()
+        "backend.app.main._post_chat_client", lambda **_kwargs: _AvailableButUnusedClient()
     )
     submitted = client.post(
         "/api/ask",

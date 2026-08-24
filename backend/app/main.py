@@ -72,7 +72,6 @@ from lineageweave.organization_name_resolution import (
 from lineageweave.post_chat import (
     ContextualOrchestratorPostChatClient,
     NullPostChatClient,
-    cited_post_evidence,
     cited_post_summaries,
 )
 from lineageweave.post_content_normalization import normalize_post_body
@@ -170,12 +169,10 @@ from backend.app.knowledge_graph import (
     visible_team_mention_post_ids,
 )
 from backend.app.lineage_ingestion import (
-    lineage_graphs_for_posts,
     rebuild_lineage,
     visible_lineage_graph,
 )
 from backend.app.post_chat_ingestion import (
-    cited_post_images,
     fetch_persisted_chat,
     fetch_persisted_chats,
     find_linked_post_ids,
@@ -228,11 +225,15 @@ async def lifespan(app: FastAPI):
     )
     # Late-bound lambda so tests that monkeypatch _post_chat_client reach
     # the worker too (the name resolves in module globals at call time).
+    # Only this worker gets the long answer timeout; the per-post chat
+    # endpoint keeps the client's interactive default.
     app.state.global_ask_worker = asyncio.create_task(
         run_global_ask_worker(
             app.state.valkey,
             app.state.pool,
-            chat_factory=lambda: _post_chat_client(),
+            chat_factory=lambda: _post_chat_client(
+                timeout=load_settings().orchestrator_answer_timeout_seconds
+            ),
         )
     )
     try:
@@ -373,15 +374,22 @@ def _post_structure_client():
     )
 
 
-def _post_chat_client():
-    """Live orchestrator client when configured; otherwise the unavailable null."""
+def _post_chat_client(timeout: float | None = None):
+    """Live orchestrator client when configured; otherwise the unavailable null.
+
+    ``timeout`` overrides the client's socket timeout. Only the Ask worker
+    passes the long answer timeout — the synchronous per-post chat endpoint
+    keeps the client default so an interactive request never hangs a reader
+    for the worker's full budget.
+    """
     settings = load_settings()
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullPostChatClient()
+    kwargs = {} if timeout is None else {"timeout": timeout}
     return ContextualOrchestratorPostChatClient(
         base_url=settings.orchestrator_base_url,
         api_key=settings.orchestrator_api_key,
-        timeout=settings.orchestrator_answer_timeout_seconds,
+        **kwargs,
     )
 
 

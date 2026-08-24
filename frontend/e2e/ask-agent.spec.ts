@@ -33,9 +33,12 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("answers a relative-time-scoped question and cites at least one post", async ({ page }) => {
-  // The seeded posts are dated 2026-01; "7개월 전" (seven months ago) from a
-  // 2026-08 clock resolves to that month, so the temporal filter keeps them.
-  await page.getByRole("textbox", { name: "Ask a question" }).fill("7개월 전에 무슨 일이 있었나요?");
+  // The seeded posts are dated 2026-01. Compute how many months back that
+  // is from the real clock so the question keeps resolving onto the seeded
+  // window as time passes instead of failing every new month.
+  const now = new Date();
+  const monthsAgo = Math.max(1, (now.getFullYear() - 2026) * 12 + now.getMonth());
+  await page.getByRole("textbox", { name: "Ask a question" }).fill(`${monthsAgo}개월 전에 무슨 일이 있었나요?`);
   await page.getByRole("button", { name: "Ask", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Answer" })).toBeVisible({ timeout: ASK_ANSWER_TIMEOUT_MS });
   await expect(page.getByRole("heading", { name: "Cited posts" })).toBeVisible({ timeout: ASK_ANSWER_TIMEOUT_MS });

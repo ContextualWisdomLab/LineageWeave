@@ -898,7 +898,10 @@ export function askPostChat(accessToken: string, postId: string, question: strin
  * so the ceiling is generous; the poll interval keeps the reader's
  * "Thinking..." state honest without hammering the backend. */
 const ASK_POLL_INTERVAL_MS = 2000;
-const ASK_POLL_CEILING_MS = 10 * 60 * 1000;
+// Must exceed the backend's whole pipeline for one job — queue wait plus
+// the 600 s job deadline — and the e2e suite's own answer deadline, so a
+// stored answer is never abandoned by the client that asked for it.
+const ASK_POLL_CEILING_MS = 15 * 60 * 1000;
 
 interface AskJobStatus {
   ask_job_id: string;

@@ -20,6 +20,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
+from datetime import date
 from typing import Any, Callable
 
 import asyncpg
@@ -33,6 +34,7 @@ from lineageweave.post_chat import (
 
 from lineageweave.temporal_expressions import resolve_korean_relative_time
 
+from .config import GLOBAL_ASK_JOB_DEADLINE_SECONDS
 from .lineage_ingestion import lineage_graphs_for_posts
 from .post_chat_ingestion import _seoul_today, cited_post_images, gather_global_chat_sources
 
@@ -51,12 +53,17 @@ _RECOVERY_INTERVAL_SECONDS = 30.0
 # Hard ceiling on one job's answer computation. Without it a hung
 # orchestrator round-trip kept a job `running` indefinitely (observed:
 # 17+ minutes) and, before concurrent processing, stalled every job
-# behind it.
-JOB_DEADLINE_SECONDS = 600
-# A `running` row older than this is an orphan: either its process died
-# mid-job or the deadline logic predates it. With the deadline above, no
-# legitimate job stays running this long, so recovery re-queues it.
-_ORPHAN_RUNNING_AFTER_SECONDS = JOB_DEADLINE_SECONDS + 300
+# behind it. Shared through config so the client-timeout validation and
+# this reaper can never disagree.
+JOB_DEADLINE_SECONDS = GLOBAL_ASK_JOB_DEADLINE_SECONDS
+# A `running` row older than this is an orphan: a live worker's deadline
+# settles every job within JOB_DEADLINE_SECONDS, so one sweep interval of
+# slack past that is enough — recovering sooner shortens how long a
+# crashed worker's job stays invisible to a polling reader.
+_ORPHAN_RUNNING_AFTER_SECONDS = JOB_DEADLINE_SECONDS + 60
+# Wake-up stream cap, mirroring the post-content stream: the durable rows
+# are the source of truth, so trimming old wake-ups loses nothing.
+_STREAM_MAX_LENGTH = 1000
 # How many Ask jobs one worker answers at once. Answers are minutes-long
 # LLM round-trips, so serial consumption would head-of-line block every
 # later question behind the slowest one.
@@ -86,7 +93,18 @@ async def enqueue_global_ask_job(
         requesting_account_id,
         question_text,
     )
-    await client.xadd(GLOBAL_ASK_STREAM_KEY, {"global_ask_job_id": str(job_id)})
+    try:
+        await client.xadd(
+            GLOBAL_ASK_STREAM_KEY,
+            {"global_ask_job_id": str(job_id)},
+            maxlen=_STREAM_MAX_LENGTH,
+            approximate=True,
+        )
+    except redis.RedisError:
+        # The committed row is the source of truth; the recovery sweep
+        # republishes it within a minute, so the caller still gets a
+        # pollable job id instead of a 500 for a lost wake-up.
+        _logger.exception("global ask wake-up publish failed for job_id=%s", job_id)
     return str(job_id)
 
 
@@ -141,12 +159,14 @@ async def compute_global_ask_answer(
             return True
         return str(row["corporate_entity_id"]) in corporate_entity_ids
 
+    today = _seoul_today()
     async with pool.acquire() as conn:
         sources = await gather_global_chat_sources(
             conn,
             can_see,
             corporate_entity_ids,
             question=question_text,
+            today=today,
         )
     if not sources:
         return {
@@ -160,7 +180,7 @@ async def compute_global_ask_answer(
             "next_action": "No authorized source posts are available for this question.",
         }
     answer = await asyncio.to_thread(
-        chat_client.answer, _temporally_grounded_question(question_text), sources
+        chat_client.answer, _temporally_grounded_question(question_text, today=today), sources
     )
     cited_ids = list(answer.cited_post_ids)
     async with pool.acquire() as conn:
@@ -177,7 +197,7 @@ async def compute_global_ask_answer(
     }
 
 
-def _temporally_grounded_question(question_text: str) -> str:
+def _temporally_grounded_question(question_text: str, *, today: date | None = None) -> str:
     """Restate a resolved relative-time window inside the question.
 
     Retrieval already scopes sources to the resolved window, but the
@@ -187,7 +207,7 @@ def _temporally_grounded_question(question_text: str) -> str:
     resolved window, and that every source falls inside it, lets the
     model answer from the evidence it was given.
     """
-    today = _seoul_today()
+    today = today or _seoul_today()
     window = resolve_korean_relative_time(question_text, today=today)
     if window is None:
         return question_text
@@ -332,6 +352,8 @@ async def republish_queued_global_ask_jobs(
         await client.xadd(
             GLOBAL_ASK_STREAM_KEY,
             {"global_ask_job_id": str(row["global_ask_job_id"])},
+            maxlen=_STREAM_MAX_LENGTH,
+            approximate=True,
         )
 
 
@@ -412,18 +434,24 @@ async def run_global_ask_worker(
     tasks: set[asyncio.Task] = set()
     try:
         while True:
-            now = time.monotonic()
-            if now - last_recovery >= _RECOVERY_INTERVAL_SECONDS:
-                await republish_queued_global_ask_jobs(client, pool)
-                last_recovery = now
-            last_id = await consume_global_ask_stream_once(
-                client,
-                pool,
-                last_id=last_id,
-                chat_factory=chat_factory,
-                limiter=limiter,
-                tasks=tasks,
-            )
+            try:
+                now = time.monotonic()
+                if now - last_recovery >= _RECOVERY_INTERVAL_SECONDS:
+                    await republish_queued_global_ask_jobs(client, pool)
+                    last_recovery = now
+                last_id = await consume_global_ask_stream_once(
+                    client,
+                    pool,
+                    last_id=last_id,
+                    chat_factory=chat_factory,
+                    limiter=limiter,
+                    tasks=tasks,
+                )
+            except asyncio.CancelledError:
+                raise
+            except Exception:  # noqa: BLE001 - one bad round must not stop Ask
+                _logger.exception("global ask worker round failed; retrying")
+                await asyncio.sleep(5)
     finally:
         # Shutdown: cancel in-flight jobs; recovery re-queues their
         # orphaned `running` rows on the next process start.
