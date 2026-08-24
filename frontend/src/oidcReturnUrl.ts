@@ -24,7 +24,14 @@ function isSafeReturnUrl(value: string): boolean {
 }
 
 export function returnUrlFromLocation(location: UrlLike = window.location): string {
-  const value = `${location.pathname}${location.search}${location.hash}`;
+  // A restored return URL can itself be a post-redirect URL still carrying
+  // Keycloak callback artifacts (devin review thread on PR #576): strip
+  // them here too, so no consumer of this module re-mints a URL with a
+  // one-time authorization code in it.
+  const params = new URLSearchParams(location.search);
+  OIDC_CALLBACK_PARAMS.forEach((param) => params.delete(param));
+  const cleanedSearch = params.toString();
+  const value = `${location.pathname}${cleanedSearch ? `?${cleanedSearch}` : ""}${location.hash}`;
   return isSafeReturnUrl(value) ? value : "/";
 }
 

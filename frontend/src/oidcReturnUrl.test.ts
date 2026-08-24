@@ -19,6 +19,17 @@ describe("OIDC return URL handling", () => {
     expect(returnUrlFromLocation({ pathname: "//evil.example", search: "", hash: "" })).toBe("/");
   });
 
+  it("strips OIDC callback params from a restored post-redirect location", () => {
+    // After Keycloak redirects back, window.location still carries the
+    // one-time code/state; a return URL built from it must not.
+    const cleaned = returnUrlFromLocation({
+      pathname: "/",
+      search: "?post=abc&code=xyz&state=s&session_state=t&iss=i",
+      hash: "",
+    });
+    expect(cleaned).toBe("/?post=abc");
+  });
+
   it("restores an object or serialized OIDC state before storage fallback", () => {
     rememberOidcReturnUrl("/?post=stored-before-direct");
     expect(restoreOidcReturnUrl("/?post=from-direct-state")).toBe(
