@@ -793,6 +793,7 @@ export interface LeftoverPair {
   observed_response?: number | null;
   expected_response?: number | null;
   leftover_map_rank?: number | null;
+  leftover_map_unexplained?: number | null;
 }
 
 export interface LeftoverMapAxis {
@@ -912,11 +913,49 @@ export function askPostChat(accessToken: string, postId: string, question: strin
   });
 }
 
-export function askAgent(accessToken: string, question: string): Promise<AskAgentResponse> {
-  return backendFetch("/api/ask", accessToken, {
+/** How often the queued Ask job is polled, and for how long overall.
+ * A live orchestrator answer can take minutes under shared-gateway load,
+ * so the ceiling is generous; the poll interval keeps the reader's
+ * "Thinking..." state honest without hammering the backend. */
+const ASK_POLL_INTERVAL_MS = 2000;
+// Must exceed the backend's whole pipeline for one job — queue wait plus
+// the 600 s job deadline — and the e2e suite's own answer deadline, so a
+// stored answer is never abandoned by the client that asked for it.
+const ASK_POLL_CEILING_MS = 15 * 60 * 1000;
+
+interface AskJobStatus {
+  ask_job_id: string;
+  job_status_code: "queued" | "running" | "succeeded" | "failed";
+  answer?: AskAgentResponse;
+  failure_detail?: string | null;
+}
+
+/** Submit the question as an asynchronous job and poll it to completion.
+ * The signature and resolved value are unchanged from the old synchronous
+ * call, so callers (AskAgentPanel) keep their existing pending/complete
+ * states without modification. */
+export async function askAgent(accessToken: string, question: string): Promise<AskAgentResponse> {
+  const submitted = await backendFetch<AskJobStatus>("/api/ask", accessToken, {
     method: "POST",
     body: JSON.stringify({ question }),
   });
+  const deadline = Date.now() + ASK_POLL_CEILING_MS;
+  for (;;) {
+    const job = await backendFetch<AskJobStatus>(
+      `/api/ask/jobs/${submitted.ask_job_id}`,
+      accessToken,
+    );
+    if (job.job_status_code === "succeeded" && job.answer) {
+      return job.answer;
+    }
+    if (job.job_status_code === "failed") {
+      throw new Error(job.failure_detail || "Ask Agent could not answer this question.");
+    }
+    if (Date.now() > deadline) {
+      throw new Error("Ask Agent timed out waiting for an answer. Try again.");
+    }
+    await new Promise((resolve) => setTimeout(resolve, ASK_POLL_INTERVAL_MS));
+  }
 }
 
 export function fetchPostTickets(accessToken: string, postId: string): Promise<{ tickets: IssueTicket[] }> {
