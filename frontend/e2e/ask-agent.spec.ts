@@ -16,11 +16,10 @@ import { loginAsDemoAnalyst } from "./support/auth.ts";
  * is shared across every branch.
  */
 // A live Ask answer is an asynchronous queued job whose LLM round-trip can
-// take minutes under shared-gateway load; with this suite's own tests
-// polling concurrently against one orchestrator, a settle was measured at
-// 314 s. Every "answer arrived" expectation gets a deadline sized to that
-// contended reality rather than to a local mock.
-const ASK_ANSWER_TIMEOUT_MS = 480_000;
+// take minutes under shared-gateway load; the backend's answer client
+// allows a round-trip up to 570 s. Every "answer arrived" expectation gets
+// a deadline just past that, not one sized to a local mock.
+const ASK_ANSWER_TIMEOUT_MS = 620_000;
 
 test.beforeEach(async ({ page }) => {
   // The per-test budget covers login + navigation too, which on a loaded
