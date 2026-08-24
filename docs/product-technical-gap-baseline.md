@@ -1007,18 +1007,20 @@ or an explicit unavailable result.
   up the calibration work, before deciding whether `temporal_score` or
   `DEFAULT_MIN_FUSED_SCORE` actually need to change.
 
-  **Related, smaller diagnosability gap found while measuring this:**
-  `post_lineage_edge` (`migrations/0001_initial_schema.sql`) persists only
-  `parent_post_id`, `child_post_id`, `fused_score`, `created_at` --
+  **Related, smaller diagnosability gap found while measuring this --
+  closed (2026-08-24, ADR 0195, open PR):** `post_lineage_edge` persisted
+  only `parent_post_id`, `child_post_id`, `fused_score`, `created_at` --
   `Edge.channel_scores` (the per-channel breakdown `reconstruct()` already
-  computes) is dropped at `persist_lineage_edges`
-  (`backend/app/lineage_ingestion.py`) and never written. Once an edge is
-  persisted, nothing -- not even an operator with database access -- can
-  tell *why* it formed (which channel(s) contributed, and how much)
-  without re-running reconstruction offline against a source snapshot.
-  Adding a `channel_scores jsonb` column would let future post-hoc
-  investigations (like this one) query the breakdown directly instead of
-  reconstructing it by hand from `source_post` timestamps and titles.
+  computes) was dropped at `persist_lineage_edges`
+  (`backend/app/lineage_ingestion.py`) and never written, so nothing --
+  not even an operator with database access -- could tell *why* an edge
+  formed without re-running reconstruction offline. Fixed: migration 0195
+  adds a nullable `channel_scores jsonb` column;
+  `persist_lineage_edges` and `scripts/seed_demo_data.py`'s parallel
+  psycopg2 insert path both now write it. Covered by
+  `tests/test_lineage_ingestion.py::test_persist_lineage_edges_writes_the_channel_score_breakdown`
+  and its empty-object sibling. No API/UI surface added -- direct
+  database inspection only, matching the scope of this gap.
 
   **Process note (2026-08-24): a stranded-fix incident, recovered.** PR
   #538 merged into PR #434's branch at `23:39:36Z`; the cosine-clamp fix
