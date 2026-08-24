@@ -16,14 +16,15 @@ information at the group's mean θ (Lord, 1980 max-info CAT rule) via
 ``fast_mlsirm.information_polytomous`` -- Samejima (1969) GRM /
 Muraki (1993) GPCM, computed in Rust. A missing bank is not invented.
 
-Leftover post–criterion pairs (ADR 0048) and leftover-map coordinates
-(ADR 0121) come from the residual interaction after those IRT main
-effects: ``R = Y − E[Y|θ, item]``.
+Leftover post–criterion pairs (ADR 0017 / 0048) and leftover-map
+coordinates (ADR 0121) come from the residual interaction after those
+IRT main effects: ``R = Y − E[Y|θ, item]``.
 A Gabriel biplot of ``R`` supplies person and item leftover-map
 positions. Closest / farthest pairs are the min / max Euclidean
-distances on that map (Jeon et al., 2021, eq. 3). ``fast-mlsirm``
-has no leftover-pair API; this module does not invent a second IRT
-fit and does not fork LSIRM.
+distances on that map (Jeon et al., 2021, eq. 3). Leftover-map axis
+share is Gabriel inertia ``σ_k² / Σ_j σ_j²`` of residual SVD axes 1
+and 2 (ADR 0148). ``fast-mlsirm`` has no leftover-pair API; this
+module does not invent a second IRT fit and does not fork LSIRM.
 
 This module is pure compute. Persistence lives in
 ``backend/app/report_ingestion.py``. TEPP is not used here; temporal
@@ -44,8 +45,15 @@ from fast_mlsirm import (
     validate_irt_response_matrix,
 )
 
-from .leftover_pairs import LeftoverInteractionMap, LeftoverMapItem, LeftoverMapPerson, LeftoverPair
-from .leftover_pairs import leftover_map_from_residual
+from .leftover_pairs import (
+    LeftoverInteractionMap,
+    LeftoverMapAxis,
+    LeftoverMapItem,
+    LeftoverMapPerson,
+    LeftoverPair,
+    leftover_map_from_residual,
+)
+from .leftover_pairs import leftover_pairs_from_residual as leftover_pairs_from_residual
 from .leftover_pairs import PAIR_KIND_CLOSEST as PAIR_KIND_CLOSEST
 from .leftover_pairs import PAIR_KIND_FARTHEST as PAIR_KIND_FARTHEST
 from .post_evaluation import CRITERION_CODES, IRT_CATEGORY_COUNT
@@ -115,6 +123,7 @@ class PeriodReport:
     leftover_pairs: tuple[LeftoverPair, ...] = ()
     leftover_map_persons: tuple[LeftoverMapPerson, ...] = ()
     leftover_map_items: tuple[LeftoverMapItem, ...] = ()
+    leftover_map_axes: tuple[LeftoverMapAxis, ...] = ()
 
 
 def _sigmoid(value: np.ndarray) -> np.ndarray:
@@ -247,6 +256,20 @@ def expected_category_matrix(matrix: np.ndarray, probs: np.ndarray) -> np.ndarra
     return np.where(np.isnan(matrix), np.nan, expected)
 
 
+def leftover_map_for_fit(
+    post_ids: list[str],
+    item_codes: tuple[str, ...],
+    matrix: np.ndarray,
+    model: str,
+    theta: np.ndarray,
+    fit: PolytomousFit,
+) -> tuple[tuple[LeftoverPair, ...], tuple[LeftoverMapAxis, ...]]:
+    """Leftover pairs and leftover-map axis share from fitted GRM/GPCM."""
+    probs = _category_probabilities(model, theta, fit)
+    expected = expected_category_matrix(matrix, probs)
+    return leftover_map_from_residual(post_ids, item_codes, matrix, expected)
+
+
 def leftover_pairs_for_fit(
     post_ids: list[str],
     item_codes: tuple[str, ...],
@@ -339,6 +362,7 @@ def calibrate_period_report(
         leftover_pairs=leftover_map.pairs,
         leftover_map_persons=leftover_map.persons,
         leftover_map_items=leftover_map.items,
+        leftover_map_axes=leftover_map.axes,
     )
 
 
@@ -392,6 +416,7 @@ def score_period_on_bank(
         leftover_pairs=leftover_map.pairs,
         leftover_map_persons=leftover_map.persons,
         leftover_map_items=leftover_map.items,
+        leftover_map_axes=leftover_map.axes,
     )
 
 

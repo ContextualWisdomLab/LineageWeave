@@ -2390,6 +2390,7 @@ async def read_period_reports(
             for person in leftover_map_persons
         ]
         leftover_map_items = list(report.get("leftover_map_items", []))
+        leftover_map_axes = list(report.get("leftover_map_axes", []))
         visible.append(
             {
                 **report,
@@ -2397,6 +2398,7 @@ async def read_period_reports(
                 "leftover_pairs": leftover_pairs,
                 "leftover_map_persons": leftover_map_persons,
                 "leftover_map_items": leftover_map_items,
+                "leftover_map_axes": leftover_map_axes,
                 "post_count": len(members),
             }
         )

@@ -351,7 +351,7 @@ async def persist_period_report(
     period_code: str,
     report: PeriodReport,
 ) -> None:
-    """Replace the stored report, member scores, leftover pairs, leftover map, and item bank."""
+    """Replace the stored report, member scores, leftover pairs, leftover map, leftover-map axes, and item bank."""
     await conn.execute(
         """
         delete from report_period_score
@@ -491,6 +491,22 @@ async def persist_period_report(
             item.criterion_code,
             item.axis_one,
             item.axis_two,
+        )
+    for axis in report.leftover_map_axes:
+        await conn.execute(
+            """
+            insert into report_leftover_map_axis (
+                grouping_kind, grouping_key, period_code, rubric_version,
+                axis_index, leftover_singular_value, leftover_share
+            ) values ($1,$2,$3,$4,$5,$6,$7)
+            """,
+            grouping_kind,
+            grouping_key,
+            period_code,
+            RUBRIC_VERSION,
+            axis.axis_index,
+            axis.leftover_singular_value,
+            axis.leftover_share,
         )
 
 
@@ -678,6 +694,17 @@ async def fetch_period_reports(
         period_code,
         RUBRIC_VERSION,
     )
+    leftover_axes = await conn.fetch(
+        """
+        select grouping_key, axis_index, leftover_singular_value, leftover_share
+        from report_leftover_map_axis
+        where grouping_kind = $1 and period_code = $2 and rubric_version = $3
+        order by grouping_key, axis_index
+        """,
+        grouping_kind,
+        period_code,
+        RUBRIC_VERSION,
+    )
     status_labels = await labels_for_codes(
         conn,
         [row["ticket_status_code"] for row in members if row["ticket_status_code"]],
@@ -697,6 +724,9 @@ async def fetch_period_reports(
     leftover_items_by_group: dict[str, list[asyncpg.Record]] = defaultdict(list)
     for row in leftover_map_items:
         leftover_items_by_group[row["grouping_key"]].append(row)
+    leftover_axes_by_group: dict[str, list[asyncpg.Record]] = defaultdict(list)
+    for row in leftover_axes:
+        leftover_axes_by_group[row["grouping_key"]].append(row)
     payload: list[dict[str, Any]] = []
     for header in headers:
         grouping_key = header["grouping_key"]
@@ -807,6 +837,14 @@ async def fetch_period_reports(
                         "axis_two": float(row["axis_two"]),
                     }
                     for row in leftover_items_by_group.get(header["grouping_key"], [])
+                ],
+                "leftover_map_axes": [
+                    {
+                        "axis_index": int(row["axis_index"]),
+                        "leftover_singular_value": float(row["leftover_singular_value"]),
+                        "leftover_share": float(row["leftover_share"]),
+                    }
+                    for row in leftover_axes_by_group.get(header["grouping_key"], [])
                 ],
             }
         )

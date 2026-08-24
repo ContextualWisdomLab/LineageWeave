@@ -374,6 +374,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "관측된 원본 작성자 {total}명 중 게시물 수 기준 상위 {shown}명을 표시합니다.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "대화형 질문을 지금 사용할 수 없습니다. 저장된 근거는 계속 확인할 수 있습니다.",
+    "leftover axis {axis} {share}%": "잔차 축 {axis} {share}%",
+    "Leftover-map axis share": "잔차 지도 축 비율",
+    "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
+      "잔차 지도 축 비율은 잔차 SVD 축 1과 2의 Gabriel 관성입니다. 글–기준 셀을 읽으려면 잔차 쌍을 여세요. 이 비율은 잔차 점수를 만들어내지 않습니다.",
     "Leftover pairs": "잔여 쌍",
     "Leftover interaction map": "잔여 상호작용 맵",
     "Leftover interaction map after main effects": "주효과 이후 잔여 상호작용 맵",
@@ -759,6 +763,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "显示按文章数排序的 {total} 位已观察来源作者中的前 {shown} 位。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "交互式提问暂不可用；已保存的证据仍可查看。",
+    "leftover axis {axis} {share}%": "残差轴 {axis} {share}%",
+    "Leftover-map axis share": "残差图轴占比",
+    "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
+      "残差图轴占比是残差 SVD 第 1、2 轴的 Gabriel 惯量。打开一个残差配对可查看文章–准则单元格。这些占比不会虚构残差分数。",
     "Leftover pairs": "残余配对",
     "Leftover interaction map": "残差交互图",
     "Leftover interaction map after main effects": "主效应后的残差交互图",
@@ -1144,6 +1152,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "投稿数順に、観測された{total}名の元投稿者のうち上位{shown}名を表示しています。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "対話形式の質問は現在利用できません。保存された証拠は確認できます。",
+    "leftover axis {axis} {share}%": "残差軸 {axis} {share}%",
+    "Leftover-map axis share": "残差マップ軸の比率",
+    "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
+      "残差マップ軸の比率は、残差 SVD の第1軸と第2軸の Gabriel 慣性です。投稿–基準セルを読むには残差ペアを開いてください。この比率から残差スコアを作りません。",
     "Leftover pairs": "残差ペア",
     "Leftover interaction map": "残差インタラクションマップ",
     "Leftover interaction map after main effects": "主効果後の残差インタラクションマップ",
@@ -1529,6 +1541,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Đang hiển thị {shown} tác giả nguồn hàng đầu trong số {total} tác giả đã quan sát, xếp theo số bài viết.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "Câu hỏi tương tác hiện không khả dụng; bằng chứng đã lưu vẫn có thể xem.",
+    "leftover axis {axis} {share}%": "trục phần dư {axis} {share}%",
+    "Leftover-map axis share": "Tỷ trọng trục bản đồ phần dư",
+    "Leftover-map axis share is Gabriel inertia of residual SVD axes 1 and 2. Open a leftover pair to read the post–criterion cell. The shares do not invent a leftover score.":
+      "Tỷ trọng trục bản đồ phần dư là quán tính Gabriel của các trục SVD phần dư 1 và 2. Mở một cặp phần dư để đọc ô bài viết–tiêu chí. Các tỷ trọng này không tạo ra điểm phần dư.",
     "Leftover pairs": "Cặp phần dư",
     "Leftover interaction map": "Bản đồ tương tác phần dư",
     "Leftover interaction map after main effects": "Bản đồ tương tác phần dư sau hiệu ứng chính",
