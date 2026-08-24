@@ -30,8 +30,8 @@ const branchingGraph: LineageGraph = {
     },
   ],
   edges: [
-    { source: "record-root", target: "record-a", fused_score: 0.91 },
-    { source: "record-root", target: "record-b", fused_score: 0.78 },
+    { source: "record-root", target: "record-a", fused_score: 0.91, channel_scores: {} },
+    { source: "record-root", target: "record-b", fused_score: 0.78, channel_scores: {} },
   ],
 };
 
@@ -103,9 +103,9 @@ const longLabelMultiTopic: LineageGraph = {
     },
   ],
   edges: [
-    { source: "rec-001", target: "rec-002", fused_score: 0.8 },
-    { source: "rec-002", target: "rec-003", fused_score: 0.9 },
-    { source: "rec-002", target: "rec-004", fused_score: 0.85 },
+    { source: "rec-001", target: "rec-002", fused_score: 0.8, channel_scores: {} },
+    { source: "rec-002", target: "rec-003", fused_score: 0.9, channel_scores: {} },
+    { source: "rec-002", target: "rec-004", fused_score: 0.85, channel_scores: {} },
   ],
 };
 

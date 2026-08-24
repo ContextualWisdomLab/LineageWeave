@@ -41,6 +41,11 @@ describe("lineageDagText", () => {
       ).not.toBe(
         "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.",
       );
+      expect(lineageDagText("Channel breakdown")).not.toBe("Channel breakdown");
+      expect(lineageDagText("Temporal proximity")).not.toBe("Temporal proximity");
+      expect(lineageDagText("Secondary key match")).not.toBe("Secondary key match");
+      expect(lineageDagText("Text similarity")).not.toBe("Text similarity");
+      expect(lineageDagText("LLM judgment")).not.toBe("LLM judgment");
     },
   );
 });

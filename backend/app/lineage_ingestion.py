@@ -61,7 +61,14 @@ def records_from_source_posts(rows: list[Mapping[str, Any]]) -> list[Record]:
 
 
 async def persist_lineage_edges(conn: asyncpg.Connection, edges: list[Edge]) -> None:
-    """Replace ``post_lineage_edge`` with ``edges`` (reconstruct is source of truth)."""
+    """Replace ``post_lineage_edge`` with ``edges`` (reconstruct is source of truth).
+
+    Each edge's ``channel_scores`` (ADR 0191) are persisted alongside the
+    fused score so a reader can see WHY reconstruct linked two posts --
+    temporal proximity, a shared secondary key, text/embedding similarity,
+    an llm judgment -- not just the single opaque fused number. Deleting a
+    ``post_lineage_edge`` row cascades to its channel-score rows.
+    """
     await conn.execute("delete from post_lineage_edge")
     for edge in edges:
         await conn.execute(
@@ -71,6 +78,16 @@ async def persist_lineage_edges(conn: asyncpg.Connection, edges: list[Edge]) -> 
             edge.child_id,
             edge.fused_score,
         )
+        for channel_code, channel_score in edge.channel_scores.items():
+            await conn.execute(
+                "insert into post_lineage_edge_channel_score "
+                "(parent_post_id, child_post_id, channel_code, channel_score) "
+                "values ($1::uuid, $2::uuid, $3, $4)",
+                edge.parent_id,
+                edge.child_id,
+                channel_code,
+                channel_score,
+            )
 
 
 @dataclass(frozen=True)
@@ -164,6 +181,14 @@ async def visible_lineage_graph(
     edge_rows = await conn.fetch(
         "select parent_post_id, child_post_id, fused_score from post_lineage_edge"
     )
+    channel_score_rows = await conn.fetch(
+        "select parent_post_id, child_post_id, channel_code, channel_score "
+        "from post_lineage_edge_channel_score"
+    )
+    channel_scores_by_edge: dict[tuple[str, str], dict[str, float]] = {}
+    for row in channel_score_rows:
+        key = (str(row["parent_post_id"]), str(row["child_post_id"]))
+        channel_scores_by_edge.setdefault(key, {})[row["channel_code"]] = float(row["channel_score"])
 
     isolation_reason: str | None = None
     if focus_post_id is None:
@@ -259,6 +284,9 @@ async def visible_lineage_graph(
             "source": str(row["parent_post_id"]),
             "target": str(row["child_post_id"]),
             "fused_score": float(row["fused_score"]),
+            "channel_scores": channel_scores_by_edge.get(
+                (str(row["parent_post_id"]), str(row["child_post_id"])), {}
+            ),
         }
         for row in visible_edges
     ]

@@ -197,6 +197,24 @@ none to the high-volume, cheap ones (the `text`/`temporal`/`secondary_key`
 channels), rather than spending a fixed budget on every call regardless of
 how much judgment it actually needs.
 
+## Evidence transparency, not a causal claim
+
+`Edge.channel_scores` -- the per-channel breakdown behind every
+`fused_score` -- is persisted (`post_lineage_edge_channel_score`, ADR 0191)
+and returned to the reader alongside the fused number, instead of being
+discarded after fusion. This closes a specific credibility gap (a reader
+challenged why an edge should be trusted when only one opaque number was
+visible) without changing what the system claims: `reconstruct()` remains
+weak-signal record linkage (Christen, 2012), not causal or narrative
+inference. Discourse-causal parsing (Prasad et al., 2008; Mirza & Tonelli,
+2014) and narrative-coherence modeling (Chambers & Jurafsky, 2008, 2009)
+were evaluated and found less reliable than this approach for the reasons
+above (2.6% naive-linking agreement is exactly the failure mode causal/
+narrative methods do not solve either) -- see ADR 0191 for the full
+assessment. Showing the reasoning behind a weak-signal link is a UI
+transparency decision; it is not, and should not be read as, upgrading the
+link to a stronger evidentiary claim.
+
 ## References (APA 7th)
 
 Allan, J. (Ed.). (2002). *Topic detection and tracking: Event-based information organization*. Kluwer Academic Publishers.

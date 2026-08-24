@@ -1293,9 +1293,9 @@ describe("App, authenticated", () => {
               },
             ],
             edges: [
-              { source: "post-1", target: "post-2", fused_score: 0.8 },
-              { source: "rec-002", target: "rec-003", fused_score: 0.9 },
-              { source: "rec-002", target: "rec-004", fused_score: 0.85 },
+              { source: "post-1", target: "post-2", fused_score: 0.8, channel_scores: {} },
+              { source: "rec-002", target: "rec-003", fused_score: 0.9, channel_scores: {} },
+              { source: "rec-002", target: "rec-004", fused_score: 0.85, channel_scores: {} },
             ],
           }),
         );

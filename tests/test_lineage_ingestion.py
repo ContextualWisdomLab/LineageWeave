@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 
 from backend.app.lineage_ingestion import (
     lineage_coverage_summary,
+    persist_lineage_edges,
     reconstruct_group_key,
     records_from_source_posts,
     visible_lineage_graph,
@@ -136,6 +137,8 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
         ]
 
         async def fetch(self, query: str):
+            if "post_lineage_edge_channel_score" in query:
+                return []
             return self.edges if "post_lineage_edge" in query else self.posts
 
     connection = FakeConnection()
@@ -203,6 +206,8 @@ def test_isolation_reason_distinguishes_no_relation_from_no_comparison_group() -
         edges: list[dict] = []  # reconstruct found no relation between x and y either
 
         async def fetch(self, query: str):
+            if "post_lineage_edge_channel_score" in query:
+                return []
             return self.edges if "post_lineage_edge" in query else self.posts
 
     connection = FakeConnection()
@@ -258,6 +263,8 @@ def test_hidden_sibling_edge_does_not_mask_isolation_reason() -> None:
         ]
 
         async def fetch(self, query: str):
+            if "post_lineage_edge_channel_score" in query:
+                return []
             return self.edges if "post_lineage_edge" in query else self.posts
 
     connection = FakeConnection()
@@ -317,3 +324,107 @@ def test_lineage_coverage_summary_on_a_fully_disconnected_corpus() -> None:
         "posts_no_relation_found": 2,
         "posts_no_comparison_group": 1,
     }
+
+
+def test_persist_lineage_edges_writes_each_channel_score_alongside_the_fused_score() -> None:
+    """ADR 0191: a reader must be able to see WHY reconstruct linked two
+    posts, not just the single opaque fused_score -- persist every channel's
+    contribution, not only the fusion result."""
+
+    class RecordingConnection:
+        def __init__(self) -> None:
+            self.statements: list[tuple[str, tuple]] = []
+
+        async def execute(self, query: str, *args) -> None:
+            self.statements.append((query, args))
+
+    connection = RecordingConnection()
+    edges = [
+        Edge(
+            parent_id="post-a",
+            child_id="post-b",
+            fused_score=0.82,
+            channel_scores={"temporal": 0.95, "secondary_key": 0.0, "text": 0.05},
+        )
+    ]
+
+    asyncio.run(persist_lineage_edges(connection, edges))
+
+    channel_score_inserts = [
+        args for query, args in connection.statements if "post_lineage_edge_channel_score" in query
+    ]
+    assert len(channel_score_inserts) == 3
+    assert set(channel_score_inserts) == {
+        ("post-a", "post-b", "temporal", 0.95),
+        ("post-a", "post-b", "secondary_key", 0.0),
+        ("post-a", "post-b", "text", 0.05),
+    }
+    edge_inserts = [
+        args
+        for query, args in connection.statements
+        if "insert into post_lineage_edge " in query
+    ]
+    assert edge_inserts == [("post-a", "post-b", 0.82)]
+
+
+def test_visible_lineage_graph_attaches_channel_scores_to_each_edge() -> None:
+    """A reader opening the DAG must see the same per-channel breakdown
+    persist_lineage_edges wrote, not just the fused number."""
+
+    class FakeConnection:
+        posts = [
+            {
+                "post_id": "post-a",
+                "post_title": "A",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-a",
+                "created_at": datetime(2026, 1, 1),
+            },
+            {
+                "post_id": "post-b",
+                "post_title": "B",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-a",
+                "created_at": datetime(2026, 1, 2),
+            },
+        ]
+        edges = [
+            {"parent_post_id": "post-a", "child_post_id": "post-b", "fused_score": 0.82}
+        ]
+        channel_scores = [
+            {
+                "parent_post_id": "post-a",
+                "child_post_id": "post-b",
+                "channel_code": "temporal",
+                "channel_score": 0.95,
+            },
+            {
+                "parent_post_id": "post-a",
+                "child_post_id": "post-b",
+                "channel_code": "text",
+                "channel_score": 0.05,
+            },
+        ]
+
+        async def fetch(self, query: str):
+            if "post_lineage_edge_channel_score" in query:
+                return self.channel_scores
+            return self.edges if "post_lineage_edge" in query else self.posts
+
+    connection = FakeConnection()
+    result = asyncio.run(visible_lineage_graph(connection, lambda row: True))
+
+    assert result["edges"] == [
+        {
+            "source": "post-a",
+            "target": "post-b",
+            "fused_score": 0.82,
+            "channel_scores": {"temporal": 0.95, "text": 0.05},
+        }
+    ]

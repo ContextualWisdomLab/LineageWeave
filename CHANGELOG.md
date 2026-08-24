@@ -8,6 +8,13 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Event Lineage's evidence trail now shows the per-channel score breakdown
+  (temporal proximity, secondary-key match, text similarity, LLM judgment)
+  behind every edge's fused_score, not just the fused number (ADR 0191).
+  Persisted alongside `post_lineage_edge` in a new
+  `post_lineage_edge_channel_score` table (migration 0177) so a reader can
+  inspect why reconstruct linked two posts instead of trusting one opaque
+  score.
 - Event Lineage now tells the reader explicitly when a reconstructed chain
   has no branch point: every record in it matched exactly one likely
   predecessor, so the DAG renders as a single line rather than leaving the

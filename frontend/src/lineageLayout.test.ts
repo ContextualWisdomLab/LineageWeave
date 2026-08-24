@@ -61,10 +61,10 @@ const a100Graph = {
     },
   ],
   edges: [
-    { source: "rec-001", target: "rec-002", fused_score: 0.8 },
-    { source: "rec-002", target: "rec-003", fused_score: 0.9 },
-    { source: "rec-002", target: "rec-004", fused_score: 0.85 },
-    { source: "rec-004", target: "rec-005", fused_score: 0.8 },
+    { source: "rec-001", target: "rec-002", fused_score: 0.8, channel_scores: {} },
+    { source: "rec-002", target: "rec-003", fused_score: 0.9, channel_scores: {} },
+    { source: "rec-002", target: "rec-004", fused_score: 0.85, channel_scores: {} },
+    { source: "rec-004", target: "rec-005", fused_score: 0.8, channel_scores: {} },
   ],
 };
 
@@ -149,7 +149,7 @@ describe("layoutLineageDag", () => {
   it("keeps a dangling edge in an ungrouped fallback bucket", () => {
     const groups = layoutLineageDag({
       nodes: [{ ...a100Graph.nodes[0], id: "named", group: "A-100" }],
-      edges: [{ source: "missing", target: "named", fused_score: 0.5 }],
+      edges: [{ source: "missing", target: "named", fused_score: 0.5, channel_scores: {} }],
     });
 
     expect(groups.map((group) => group.heading)).toEqual(["A-100", "Ungrouped"]);
@@ -160,9 +160,9 @@ describe("layoutLineageDag", () => {
     const cyclicGraph = {
       nodes: a100Graph.nodes.slice(0, 3),
       edges: [
-        { source: "rec-001", target: "rec-002", fused_score: 0.8 },
-        { source: "rec-002", target: "rec-003", fused_score: 0.9 },
-        { source: "rec-003", target: "rec-002", fused_score: 0.7 },
+        { source: "rec-001", target: "rec-002", fused_score: 0.8, channel_scores: {} },
+        { source: "rec-002", target: "rec-003", fused_score: 0.9, channel_scores: {} },
+        { source: "rec-003", target: "rec-002", fused_score: 0.7, channel_scores: {} },
       ],
     };
 
@@ -175,8 +175,8 @@ describe("layoutLineageDag", () => {
     const cyclicGraph = {
       nodes: a100Graph.nodes.slice(0, 2),
       edges: [
-        { source: "rec-001", target: "rec-002", fused_score: 0.8 },
-        { source: "rec-002", target: "rec-001", fused_score: 0.7 },
+        { source: "rec-001", target: "rec-002", fused_score: 0.8, channel_scores: {} },
+        { source: "rec-002", target: "rec-001", fused_score: 0.7, channel_scores: {} },
       ],
     };
 

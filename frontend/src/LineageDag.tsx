@@ -19,6 +19,36 @@ function eventDate(occurredAt: string): string {
   return occurredAt.slice(0, 10);
 }
 
+/** Fixed display order matching reconstruct.DEFAULT_CHANNEL_WEIGHTS. */
+const CHANNEL_ORDER = ["temporal", "secondary_key", "text", "llm"] as const;
+
+function channelLabel(code: string): string {
+  switch (code) {
+    case "temporal":
+      return lineageDagText("Temporal proximity");
+    case "secondary_key":
+      return lineageDagText("Secondary key match");
+    case "text":
+      return lineageDagText("Text similarity");
+    case "llm":
+      return lineageDagText("LLM judgment");
+    default:
+      // A channel this UI doesn't yet know how to label: show the raw code
+      // rather than silently dropping evidence the backend actually sent.
+      return code;
+  }
+}
+
+/** ADR 0191: fused_score alone doesn't say WHY reconstruct linked two posts. */
+function channelBreakdown(scores: Record<string, number>): string {
+  const codes = Object.keys(scores);
+  const ordered = CHANNEL_ORDER.filter((code) => codes.includes(code));
+  const remaining = codes.filter((code) => !(CHANNEL_ORDER as readonly string[]).includes(code));
+  return [...ordered, ...remaining]
+    .map((code) => `${channelLabel(code)} ${scores[code].toFixed(2)}`)
+    .join(" · ");
+}
+
 function edgePath(from: Point, to: Point): string {
   const angle = Math.atan2(to.y - from.y, to.x - from.x);
   const offsetX = Math.cos(angle) * (MARK_EXTENT + EDGE_CLEARANCE);
@@ -122,6 +152,7 @@ export function LineageDag({
         const lineageLabel = tf("{group} lineage", { group: group.heading });
         const relationLabel = t("Graph relation");
         const whenLabel = t("When");
+        const breakdownLabel = lineageDagText("Channel breakdown");
         const evidenceLabel = `${t("Evidence")} (fused_score)`;
         return (
           <figure key={group.group} className="lineage-dag-group">
@@ -266,6 +297,7 @@ export function LineageDag({
                           <th scope="col">{relationLabel}</th>
                           <th scope="col">{whenLabel}</th>
                           <th scope="col">{evidenceLabel}</th>
+                          <th scope="col">{breakdownLabel}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -278,6 +310,7 @@ export function LineageDag({
                               <td data-label={relationLabel}>{`${from.label} → ${to.label}`}</td>
                               <td data-label={whenLabel}>{`${eventDate(from.occurred_at)} → ${eventDate(to.occurred_at)}`}</td>
                               <td data-label={evidenceLabel}>{edge.fused_score.toFixed(2)}</td>
+                              <td data-label={breakdownLabel}>{channelBreakdown(edge.channel_scores)}</td>
                             </tr>
                           );
                         })}

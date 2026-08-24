@@ -23,7 +23,14 @@ const graph: LineageGraph = {
       is_branch_point: false,
     },
   ],
-  edges: [{ source: "root-post", target: "child-post", fused_score: 0.91 }],
+  edges: [
+    {
+      source: "root-post",
+      target: "child-post",
+      fused_score: 0.91,
+      channel_scores: { temporal: 0.95, text: 0.6, llm: 0.8 },
+    },
+  ],
 };
 
 const isolatedGraph: LineageGraph = {
@@ -107,11 +114,59 @@ describe("LineageDag", () => {
     expect(within(evidenceTable).getByText("0.91")).toBeInTheDocument();
     expect(within(evidenceTable).getByText("2026-01-01 → 2026-01-02")).toBeInTheDocument();
     expect(within(evidenceTable).getByText("Evidence (fused_score)")).toBeInTheDocument();
+    expect(within(evidenceTable).getByText("Channel breakdown")).toBeInTheDocument();
+    expect(
+      within(evidenceTable).getByText("Temporal proximity 0.95 · Text similarity 0.60 · LLM judgment 0.80"),
+    ).toBeInTheDocument();
 
     const evidenceCells = within(evidenceTable).getAllByRole("cell");
     expect(evidenceCells[0]).toHaveAttribute("data-label", "Graph relation");
     expect(evidenceCells[1]).toHaveAttribute("data-label", "When");
     expect(evidenceCells[2]).toHaveAttribute("data-label", "Evidence (fused_score)");
+    expect(evidenceCells[3]).toHaveAttribute("data-label", "Channel breakdown");
+  });
+
+  it("shows the fixed channel order and falls back to the raw code for an unrecognized channel", () => {
+    render(
+      <LineageDag
+        graph={{
+          ...graph,
+          edges: [
+            {
+              source: "root-post",
+              target: "child-post",
+              fused_score: 0.5,
+              channel_scores: { llm: 0.4, unknown_future_channel: 0.3, temporal: 0.7 },
+            },
+          ],
+        }}
+        onSelectPost={vi.fn()}
+        currentPostId="root-post"
+      />,
+    );
+
+    expect(
+      screen.getByText("Temporal proximity 0.70 · LLM judgment 0.40 · unknown_future_channel 0.30"),
+    ).toBeInTheDocument();
+  });
+
+  it("renders an empty channel breakdown cell when no channel scores are available", () => {
+    render(
+      <LineageDag
+        graph={{
+          ...graph,
+          edges: [{ source: "root-post", target: "child-post", fused_score: 0.5, channel_scores: {} }],
+        }}
+        onSelectPost={vi.fn()}
+        currentPostId="root-post"
+      />,
+    );
+
+    const evidenceTable = screen.getByRole("table", {
+      name: "synthetic-project lineage — Evidence trail",
+    });
+    const breakdownCell = within(evidenceTable).getAllByRole("cell")[3];
+    expect(breakdownCell).toHaveTextContent("");
   });
 
   it("keeps an isolated root interactive without rendering an empty edge table", () => {
@@ -130,7 +185,7 @@ describe("LineageDag", () => {
       <LineageDag
         graph={{
           ...isolatedGraph,
-          edges: [{ source: "isolated-post", target: "missing-post", fused_score: 0.5 }],
+          edges: [{ source: "isolated-post", target: "missing-post", fused_score: 0.5, channel_scores: {} }],
         }}
         onSelectPost={vi.fn()}
       />,
@@ -185,9 +240,9 @@ describe("LineageDag", () => {
         },
       ],
       edges: [
-        { source: "rec-001", target: "rec-002", fused_score: 0.8 },
-        { source: "rec-002", target: "rec-003", fused_score: 0.9 },
-        { source: "rec-002", target: "rec-004", fused_score: 0.85 },
+        { source: "rec-001", target: "rec-002", fused_score: 0.8, channel_scores: {} },
+        { source: "rec-002", target: "rec-003", fused_score: 0.9, channel_scores: {} },
+        { source: "rec-002", target: "rec-004", fused_score: 0.85, channel_scores: {} },
       ],
     };
 

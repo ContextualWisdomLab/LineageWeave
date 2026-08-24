@@ -46,10 +46,10 @@ const branchingGraph: LineageGraph = {
     },
   ],
   edges: [
-    { source: "record-001", target: "record-002", fused_score: 0.83 },
-    { source: "record-002", target: "record-003", fused_score: 0.94 },
-    { source: "record-002", target: "record-004", fused_score: 0.87 },
-    { source: "record-004", target: "record-005", fused_score: 0.9 },
+    { source: "record-001", target: "record-002", fused_score: 0.83, channel_scores: {} },
+    { source: "record-002", target: "record-003", fused_score: 0.94, channel_scores: {} },
+    { source: "record-002", target: "record-004", fused_score: 0.87, channel_scores: {} },
+    { source: "record-004", target: "record-005", fused_score: 0.9, channel_scores: {} },
   ],
 };
 
@@ -150,9 +150,9 @@ const longLabelMultiTopic: LineageGraph = {
     },
   ],
   edges: [
-    { source: "rec-001", target: "rec-002", fused_score: 0.83 },
-    { source: "rec-002", target: "rec-003", fused_score: 0.94 },
-    { source: "rec-002", target: "rec-004", fused_score: 0.87 },
+    { source: "rec-001", target: "rec-002", fused_score: 0.83, channel_scores: {} },
+    { source: "rec-002", target: "rec-003", fused_score: 0.94, channel_scores: {} },
+    { source: "rec-002", target: "rec-004", fused_score: 0.87, channel_scores: {} },
   ],
 };
 

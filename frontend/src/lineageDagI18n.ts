@@ -17,6 +17,11 @@ const LINEAGE_DAG_COPY = {
       "No reconstructed lineage yet. Add eligible source records, then rebuild Event Lineage.",
     "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.":
       "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.",
+    "Channel breakdown": "Channel breakdown",
+    "Temporal proximity": "Temporal proximity",
+    "Secondary key match": "Secondary key match",
+    "Text similarity": "Text similarity",
+    "LLM judgment": "LLM judgment",
   },
   ko: {
     "Lineage legend": "계보 범례",
@@ -34,6 +39,11 @@ const LINEAGE_DAG_COPY = {
       "아직 재구성된 계보가 없습니다. 대상 원본 기록을 추가한 뒤 이벤트 계보를 다시 만드세요.",
     "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.":
       "이 사슬에는 분기점이 없습니다: 각 기록이 가장 유력한 선행 기록을 정확히 하나씩 찾았기 때문입니다. 아래 근거 내역에서 각 연결의 이유를 확인하세요.",
+    "Channel breakdown": "채널별 근거",
+    "Temporal proximity": "시간 근접도",
+    "Secondary key match": "보조 키 일치",
+    "Text similarity": "텍스트 유사도",
+    "LLM judgment": "LLM 판단",
   },
   zh: {
     "Lineage legend": "谱系图例",
@@ -51,6 +61,11 @@ const LINEAGE_DAG_COPY = {
       "尚无重建的谱系。请先添加符合条件的源记录，然后重建事件谱系。",
     "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.":
       "此链没有分支点：每条记录都恰好匹配到一个最可能的前序记录。请查看下方的证据记录，了解每条连接的原因。",
+    "Channel breakdown": "通道细分",
+    "Temporal proximity": "时间接近度",
+    "Secondary key match": "辅助键匹配",
+    "Text similarity": "文本相似度",
+    "LLM judgment": "LLM 判断",
   },
   ja: {
     "Lineage legend": "系譜の凡例",
@@ -68,6 +83,11 @@ const LINEAGE_DAG_COPY = {
       "再構成された系譜はまだありません。対象となる元記録を追加してから、イベント系譜を再構築してください。",
     "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.":
       "この鎖に分岐点はありません。各記録がそれぞれ最も可能性の高い先行記録を1件だけ見つけたためです。各リンクの理由は下の証跡でご確認ください。",
+    "Channel breakdown": "チャネル内訳",
+    "Temporal proximity": "時間的近接度",
+    "Secondary key match": "副次キー一致",
+    "Text similarity": "テキスト類似度",
+    "LLM judgment": "LLM判定",
   },
   vi: {
     "Lineage legend": "Chú giải dòng sự kiện",
@@ -85,6 +105,11 @@ const LINEAGE_DAG_COPY = {
       "Chưa có dòng sự kiện được tái dựng. Hãy thêm các bản ghi nguồn đủ điều kiện rồi tái dựng Dòng sự kiện.",
     "This chain has no branch point: each record matched exactly one likely predecessor. See the evidence trail below for why each link was made.":
       "Chuỗi này không có điểm phân nhánh: mỗi bản ghi chỉ khớp với đúng một bản ghi tiền nhiệm khả dĩ nhất. Xem bằng chứng bên dưới để biết lý do của từng liên kết.",
+    "Channel breakdown": "Phân tích theo kênh",
+    "Temporal proximity": "Độ gần thời gian",
+    "Secondary key match": "Khớp khóa phụ",
+    "Text similarity": "Độ tương đồng văn bản",
+    "LLM judgment": "Đánh giá LLM",
   },
 } as const satisfies Record<Locale, Record<string, string>>;
 

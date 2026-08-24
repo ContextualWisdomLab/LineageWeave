@@ -565,6 +565,8 @@ export interface LineageGraphEdge {
   source: string;
   target: string;
   fused_score: number;
+  /** ADR 0191: each channel's [0, 1] contribution to fused_score, e.g. temporal/secondary_key/text/llm. */
+  channel_scores: Record<string, number>;
 }
 
 export interface LineageGraph {
