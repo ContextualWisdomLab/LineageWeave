@@ -2661,32 +2661,29 @@ async def ask_agent(
     try:
         answer = await asyncio.to_thread(client.answer, question, sources)
     except (HttpClientError, OSError) as exc:
-        # Known transport/provider failure: generic 503, no exception text
-        # in the response (the message may embed provider URLs), and a
-        # structured provider-unavailable record for availability alerting
-        # (issue #361). The old f-string leaked {exc} to callers.
+        # Known transport/provider failure. Same generic 503 text on every
+        # failure path so callers cannot probe which internal classifier
+        # fired; the event_type distinction lives only in server logs.
         log_provider_unavailable("global_ask", exc)
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable: contextual-orchestrator did not respond",
+            "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
         ) from exc
     except (KeyError, ValueError) as exc:
         # Contract/schema fault: the orchestrator responded but its payload
-        # did not match the evidence-object contract. Same customer 503,
-        # but operators need the stack trace to fix the contract break.
+        # did not match the evidence-object contract.
         log_internal_fault("global_ask", exc)
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable: contextual-orchestrator returned an invalid evidence object",
+            "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
         ) from exc
     except Exception as exc:
-        # Unexpected defect. Keep the customer boundary (generic 503) and
-        # emit a full structured internal-fault diagnostic so this cannot
-        # degrade into an opaque availability incident.
+        # Unexpected defect. Keep the customer boundary and emit a full
+        # structured internal-fault diagnostic (message-redacted).
         log_internal_fault("global_ask", exc)
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            "Ask Agent is unavailable: an internal error prevented the answer",
+            "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
     async with pool.acquire() as conn:

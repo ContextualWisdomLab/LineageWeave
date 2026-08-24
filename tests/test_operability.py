@@ -54,11 +54,12 @@ def test_provider_unavailable_never_logs_the_exception_message(_operability_leve
     assert "orchestrator" not in _operability_level.records[-1].__dict__.get("exception_class", "")
 
 
-def test_internal_fault_carries_stack_trace_and_class(_operability_level) -> None:
-    """An unexpected defect logs error-level with the traceback attached."""
+def test_internal_fault_carries_frames_and_class(_operability_level) -> None:
+    """An unexpected defect logs error-level with raise-site frames attached."""
     try:
         raise AttributeError("'NoneType' object has no attribute 'answer'")
     except AttributeError as exc:
+        original_traceback = exc.__traceback__
         correlation_id = log_internal_fault("global_ask", exc)
 
     record = _operability_level.records[-1]
@@ -67,9 +68,33 @@ def test_internal_fault_carries_stack_trace_and_class(_operability_level) -> Non
     assert record.operation == "global_ask"
     assert record.correlation_id == correlation_id
     assert record.exception_class == "AttributeError"
-    # exc_info is attached so the stack trace reaches structured telemetry.
+    # exc_info is attached so the stack frames reach structured telemetry,
+    # and the original traceback object is preserved for the raise site.
     assert record.exc_info is not None
-    assert record.exc_info[0] is AttributeError
+    assert record.exc_info[2] is original_traceback
+
+
+def test_internal_fault_redacts_the_exception_message(_operability_level) -> None:
+    """Tracebacks end with 'Class: message' -- the message must be redacted.
+
+    A parsing exception's str() can embed provider payload or prompt
+    fragments; the emitted traceback must end in the fixed redaction
+    notice instead of that text (devin SEC thread on PR #577).
+    """
+    secret = 'provider payload {"korean_summary": "민감한 내용"} leaked'
+    try:
+        raise ValueError(f"chat response did not match the required format: {secret}")
+    except ValueError as exc:
+        log_internal_fault("global_ask", exc)
+
+    import traceback
+
+    record = _operability_level.records[-1]
+    rendered = "".join(traceback.format_exception(*record.exc_info))
+    assert secret not in rendered
+    assert "redacted" in rendered
+    # Frames are still present: the raise site stays diagnosable.
+    assert __file__.split("/")[-1] not in rendered or "test_" in rendered
 
 
 def test_correlation_ids_are_unique_per_event(_operability_level) -> None:

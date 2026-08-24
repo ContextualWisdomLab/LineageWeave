@@ -23,13 +23,13 @@ customer boundary:
 - **Forbidden fields.** Neither logger accepts prompt text, model output,
   bearer tokens, provider keys, tenant identifiers, or post bodies. Only
   the operation code, correlation id, and exception *class name* are
-  logged for provider faults; internal faults additionally carry the stack
-  trace because a programming defect cannot be diagnosed without it.
-  Stack frames can contain source lines but never runtime values beyond
-  what the exception's own repr carries, so callers must pass exceptions
-  whose ``str()`` they have already verified non-sensitive -- which is why
-  both helpers log the class name by default and treat the message as
-  forbidden unless the caller explicitly opts in with ``include_message``.
+  logged for provider faults. Internal faults carry the stack *frames*
+  (raise site) but not the original exception message: Python tracebacks
+  end with ``ExceptionType: message``, and parsing/transport messages can
+  embed provider payloads or prompt fragments, so both helpers re-emit
+  through a placeholder exception whose text is a fixed redaction notice.
+  Callers cannot opt back into raw messages -- the redaction is the
+  contract, not a default.
 
 References: issue #361; ADR 0123 (non-disclosure boundary).
 """
@@ -43,6 +43,14 @@ _LOGGER = logging.getLogger("lineageweave.operability")
 
 PROVIDER_UNAVAILABLE_EVENT = "orchestrator_provider_unavailable"
 INTERNAL_FAULT_EVENT = "orchestrator_internal_fault"
+
+_REDACTED_NOTICE = (
+    "[message redacted: operability records carry class and frames only]"
+)
+
+
+class _MessageRedacted(Exception):
+    """Traceback carrier whose text is a fixed redaction notice."""
 
 
 def _new_correlation_id() -> str:
@@ -87,11 +95,13 @@ def log_internal_fault(operation: str, exc: Exception) -> str:
 
     Emits one structured record keyed on :data:`INTERNAL_FAULT_EVENT` with
     the operation code, a fresh correlation id, the exception class name,
-    and the full stack trace (``exc_info=True``), preserving chaining. The
-    raw exception message is intentionally excluded: messages from deep
-    inside parsing or transport code have not been reviewed for sensitive
-    content, while the class plus traceback give an engineer everything
-    needed to locate the defect.
+    and the raise-site stack frames. The original exception *message* is
+    never emitted: Python renders a traceback's final line as
+    ``ExceptionType: message``, and parsing/transport messages can embed
+    provider payloads or prompt fragments, so the record re-raises through
+    :class:`_MessageRedacted` -- same ``__traceback__`` (the frames an
+    engineer needs), fixed redaction notice as text. Exception chaining is
+    preserved by the caller's ``raise ... from exc``.
 
     Args:
         operation: Stable operation code, e.g. ``"global_ask"``.
@@ -101,10 +111,12 @@ def log_internal_fault(operation: str, exc: Exception) -> str:
         The correlation id attached to the emitted record.
     """
     correlation_id = _new_correlation_id()
+    carrier = _MessageRedacted(_REDACTED_NOTICE)
+    carrier.__traceback__ = exc.__traceback__
     _LOGGER.error(
         "%s",
         INTERNAL_FAULT_EVENT,
-        exc_info=exc,
+        exc_info=(type(exc), carrier, exc.__traceback__),
         extra={
             "event_type": INTERNAL_FAULT_EVENT,
             "operation": operation,
