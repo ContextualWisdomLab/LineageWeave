@@ -122,6 +122,11 @@ _LEFTOVER_OBSERVED_EXPECTED_MIGRATION = (
     / "migrations"
     / "0177_report_leftover_observed_expected.sql"
 )
+_LEFTOVER_MAP_RANK_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0172_report_leftover_map_rank.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -184,6 +189,7 @@ def schema_db():
                 cur.execute(summary_input_migration)
                 cur.execute(summary_input_migration)
                 cur.execute(_POST_CONTENT_QUEUE_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
             conn.commit()
             yield conn
@@ -493,6 +499,16 @@ def test_leftover_pair_names_nullable_observed_and_expected_columns(schema_db) -
     assert reconcile_constraint_count == 1
 
 
+
+def test_leftover_pair_names_leftover_map_rank_column(schema_db) -> None:
+    """Fresh leftover rows name map rank without backfilling legacy evidence."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            "select column_name, is_nullable from information_schema.columns "
+            "where table_name = 'report_leftover_pair'"
+        )
+        columns = dict(cur.fetchall())
+    assert columns["leftover_map_rank"] == "YES"
 
 def test_corporate_hierarchy_recursive_query_returns_correct_shape(schema_db) -> None:
     """The real product requirement: 'Acme Group -> Acme Electronics Korea

@@ -1213,8 +1213,8 @@ def _persist_seed_period_report(
             "insert into report_leftover_pair ("
             "grouping_kind, grouping_key, period_code, rubric_version, "
             "pair_kind, post_id, criterion_code, leftover_distance, leftover_residual, "
-            "observed_response, expected_response"
-            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            "observed_response, expected_response, leftover_map_rank"
+            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
             (
                 grouping_kind,
                 grouping_key,
@@ -1227,6 +1227,7 @@ def _persist_seed_period_report(
                 pair.leftover_residual,
                 pair.observed_response,
                 pair.expected_response,
+                pair.leftover_map_rank,
             ),
         )
 

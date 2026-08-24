@@ -444,8 +444,8 @@ async def persist_period_report(
             insert into report_leftover_pair (
                 grouping_kind, grouping_key, period_code, rubric_version,
                 pair_kind, post_id, criterion_code, leftover_distance, leftover_residual,
-                observed_response, expected_response
-            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+                observed_response, expected_response, leftover_map_rank
+            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
             """,
             grouping_kind,
             grouping_key,
@@ -458,6 +458,7 @@ async def persist_period_report(
             pair.leftover_residual,
             pair.observed_response,
             pair.expected_response,
+            pair.leftover_map_rank,
         )
 
 
@@ -606,7 +607,7 @@ async def fetch_period_reports(
         f"""
         select lp.grouping_key, lp.pair_kind, lp.post_id, lp.criterion_code,
                lp.leftover_distance, lp.leftover_residual,
-               lp.observed_response, lp.expected_response, p.post_title,
+               lp.observed_response, lp.expected_response, lp.leftover_map_rank, p.post_title,
                p.visibility_code, p.corporate_entity_id,
                p.author_account_id, p.source_detail_state_code,
                ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
@@ -715,6 +716,11 @@ async def fetch_period_reports(
                             None
                             if row["expected_response"] is None
                             else float(row["expected_response"])
+                        ),
+                        "leftover_map_rank": (
+                            None
+                            if row["leftover_map_rank"] is None
+                            else int(row["leftover_map_rank"])
                         ),
                         "visibility_code": row["visibility_code"],
                         "corporate_entity_id": str(row["corporate_entity_id"]),

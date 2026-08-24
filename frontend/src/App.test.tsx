@@ -1188,6 +1188,7 @@ describe("App, authenticated", () => {
                     leftover_residual: 0.4,
                     observed_response: 2.4,
                     expected_response: 2.0,
+                    leftover_map_rank: 1,
                   },
                   {
                     pair_kind: "farthest",
@@ -1198,6 +1199,7 @@ describe("App, authenticated", () => {
                     leftover_residual: -1.1,
                     observed_response: 0.9,
                     expected_response: 2.0,
+                    leftover_map_rank: 1,
                   },
                 ],
                 members: [
@@ -5339,6 +5341,7 @@ describe("App, authenticated", () => {
     );
     expect(closestPair).not.toHaveTextContent(/sat closest to after main effects/);
     expect(closestPair).toHaveTextContent("Y 2.40 · E 2.00");
+    expect(closestPair).toHaveTextContent("rank 1");
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
