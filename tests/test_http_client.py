@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import json
-import ssl
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
@@ -239,13 +238,9 @@ def test_post_json_https_negotiates_tls_instead_of_plaintext() -> None:
     server, base = _serve(_JsonHandler)
     try:
         https_url = base.replace("http://", "https://", 1) + "/v1/embeddings"
-        with pytest.raises(ssl.SSLError):
-            post_json(
-                https_url,
-                {"model": "demo"},
-                headers={},
-                timeout=2.0,
-            )
+        with pytest.raises(HttpClientError, match="provider transport unavailable") as error:
+            post_json(https_url, {"model": "demo"}, headers={}, timeout=2.0)
+        assert error.value.__cause__ is not None
     finally:
         server.shutdown()
 

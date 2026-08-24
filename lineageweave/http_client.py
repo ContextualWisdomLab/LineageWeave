@@ -28,7 +28,7 @@ _ALLOWED_SCHEMES = frozenset({"http", "https"})
 
 
 class HttpClientError(RuntimeError):
-    """The remote endpoint returned a non-success status or invalid JSON."""
+    """The remote endpoint failed, returned a non-success status, or invalid JSON."""
 
 
 def _validated_response_limit(value: int | None) -> int | None:
@@ -133,7 +133,7 @@ def _request(
     maximum_response_bytes: int | None = None,
     expected_response_media_type: str | None = None,
 ) -> tuple[int, bytes]:
-    """Perform one bounded HTTP(S) request and return status plus raw bytes."""
+    """Perform one bounded HTTP(S) request without exposing provider transport exception details."""
 
     limit = _validated_response_limit(maximum_response_bytes)
     expected_media_type = _validated_expected_media_type(
@@ -164,30 +164,35 @@ def _request(
     )
 
     try:
-        if parsed.scheme == "https":
-            connection.connect()
-            if connection.sock is None:
-                raise HttpClientError(
-                    f"no socket after connect to {parsed.hostname}"
+        try:
+            if parsed.scheme == "https":
+                connection.connect()
+                if connection.sock is None:
+                    raise HttpClientError(
+                        f"no socket after connect to {parsed.hostname}"
+                    )
+                connection.sock = _SSL_CONTEXT.wrap_socket(
+                    connection.sock,
+                    server_hostname=parsed.hostname,
                 )
-            connection.sock = _SSL_CONTEXT.wrap_socket(
-                connection.sock,
-                server_hostname=parsed.hostname,
+            connection.request(method, path, body=body, headers=headers)
+            response = connection.getresponse()
+            if (
+                expected_media_type is not None
+                and _response_media_type(response) != expected_media_type
+            ):
+                raise HttpClientError(
+                    f"unexpected response media type from {parsed.hostname}"
+                )
+            raw = _read_response_body(
+                response,
+                maximum_response_bytes=limit,
             )
-        connection.request(method, path, body=body, headers=headers)
-        response = connection.getresponse()
-        if (
-            expected_media_type is not None
-            and _response_media_type(response) != expected_media_type
-        ):
-            raise HttpClientError(
-                f"unexpected response media type from {parsed.hostname}"
-            )
-        raw = _read_response_body(
-            response,
-            maximum_response_bytes=limit,
-        )
-        return response.status, raw
+            return response.status, raw
+        except (OSError, ValueError, http.client.HTTPException) as exc:
+            # Chain internally for operator logging; the exposed
+            # message stays generic/hostname-only, never the raw exception text.
+            raise HttpClientError("provider transport unavailable") from exc
     finally:
         connection.close()
 

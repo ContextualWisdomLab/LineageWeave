@@ -21,16 +21,14 @@ class _ResponseStub:
         return self._body[:amount]
 
 
+@pytest.mark.parametrize("raw", [b"not-json", b"\xff"])
 def test_json_helpers_reject_non_json_and_wrong_shapes(
-    monkeypatch: pytest.MonkeyPatch,
+    monkeypatch: pytest.MonkeyPatch, raw: bytes
 ) -> None:
-    monkeypatch.setattr(
-        http_client,
-        "_request",
-        lambda *_args, **_kwargs: (200, b"not-json"),
-    )
-    with pytest.raises(http_client.HttpClientError, match="non-JSON"):
+    monkeypatch.setattr(http_client, "_request", lambda *_args, **_kwargs: (200, raw))
+    with pytest.raises(http_client.HttpClientError, match="non-JSON") as error:
         http_client.get_json("https://gateway.example/health", timeout=1)
+    assert isinstance(error.value.__cause__, (UnicodeDecodeError, http_client.json.JSONDecodeError))
 
     monkeypatch.setattr(
         http_client,
@@ -327,3 +325,28 @@ def test_response_reader_rejects_invalid_content_length(header: str) -> None:
 def test_response_limit_rejects_ambiguous_or_invalid_values(value: object) -> None:
     with pytest.raises(ValueError, match="maximum_response_bytes"):
         http_client._validated_response_limit(value)  # type: ignore[arg-type]
+
+
+def test_request_hides_raw_provider_transport_errors(monkeypatch: pytest.MonkeyPatch) -> None:
+    class _BrokenConnection:
+        sock = None
+
+        def __init__(self, *args, **kwargs) -> None:
+            return None
+
+        def request(self, *args, **kwargs) -> None:
+            raise TimeoutError("provider secret must not escape")
+
+        def close(self) -> None:
+            return None
+
+    monkeypatch.setattr(http_client.http.client, "HTTPConnection", _BrokenConnection)
+    with pytest.raises(http_client.HttpClientError, match="provider transport unavailable") as error:
+        http_client.post_json(
+            "http://gateway.example/v1/chat/completions",
+            {"messages": []},
+            headers={},
+            timeout=1,
+        )
+    assert "provider secret" not in str(error.value)
+    assert isinstance(error.value.__cause__, TimeoutError)
