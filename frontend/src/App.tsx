@@ -3466,19 +3466,13 @@ function ReportsPanel({
               <LeftoverPairList
                 pairs={report.leftover_pairs}
                 criterionLabel={criterionShortLabel}
-                onSelectPost={(postId) => {
-                  const pair = report.leftover_pairs.find((p) => p.post_id === postId);
-                  onSelectPost(
-                    postId,
-                    pair
-                      ? {
-                          fromLeftoverPair: {
-                            pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
-                            criterionCode: pair.criterion_code,
-                          },
-                        }
-                      : undefined,
-                  );
+                onSelectPost={(pair) => {
+                  onSelectPost(pair.post_id, {
+                    fromLeftoverPair: {
+                      pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
+                      criterionCode: pair.criterion_code,
+                    },
+                  });
                 }}
               />
             )}
