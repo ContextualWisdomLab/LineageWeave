@@ -612,6 +612,75 @@ or an explicit unavailable result.
 
 ## 5. Product and technical gaps
 
+- **10-dimension UI/UX audit (Accessibility, Touch & Interaction,
+  Performance, Style Selection, Layout & Responsive, Typography & Color,
+  Animation, Forms & Feedback, Navigation Patterns, Charts & Data) —
+  26 verified real gaps found, 7 shipped as PRs, 1 investigated and
+  correctly declined, 18 logged below for follow-up (2026-08-24):** each
+  dimension was surveyed independently, every finding re-verified against
+  the live source by a second, skeptical pass before being trusted, and
+  the highest-severity 8 were implemented with tests and opened as their
+  own small PRs (this repo's established convention) rather than bundled
+  into one large change.
+  - **Shipped:** `.post-meta` text failed WCAG 1.4.3 contrast in both
+    themes (#553); footer text failed WCAG 1.4.3 in light theme (#552);
+    ~15 bare loading-state paragraphs had no `role="status"` live region,
+    including the app's first screen (#558); Event Lineage DAG node marks
+    were 14–18px, below the 24px minimum touch target (#554); the
+    analysis-run reproducibility digest was readable only via mouse-hover
+    tooltip, no touch/keyboard path (#557); several `<details>`/`<summary>`
+    disclosure toggles rendered under the 24px touch-target minimum, two
+    with no CSS hook at all (#560); Ask/Chat citation chips rendered
+    ~19px tall on mobile (#556). All 7 are open PRs against `main`,
+    pending review -- not yet merged.
+  - **Investigated, correctly declined:** a claimed AdminPanel breakpoint
+    mismatch (640px/900px vs. the shell's 768px/1024px) turned out to be
+    evidence from a large, unmerged admin-workspace feature branch --
+    the CSS/markup in question does not exist on `main` at all. No PR was
+    opened rather than importing an unrelated feature to align breakpoints
+    that don't exist yet; this is deferred until that admin-workspace
+    branch itself lands.
+  - **Logged for follow-up (verified real, not yet implemented):**
+    footer copyright/title text and the required-field asterisk both have
+    contrast gaps in at least one theme (Typography & Color, medium);
+    Ask/Chat composers have no client-side character limit and surface a
+    raw internal API path when the backend's 4,000-char cap is hit, and
+    AdminPanel's Tenant Settings form has zero inline per-field validation
+    feedback with no `aria-invalid`/`aria-describedby` wiring (Forms &
+    Feedback, medium); Board search/filter/sort/page state is invisible
+    to the URL and browser back/forward unlike the rest of the app's
+    navigation, and the Keymen related-node drill-down has no breadcrumb
+    or back path (Navigation Patterns, medium); the Knowledge Graph panel
+    silently renders nothing on fetch failure or while loading, and its
+    node styling (focus/evidence-only/catalog-linked) has no legend or
+    text/aria-label equivalent (Charts & Data, medium); Board list
+    filtering/dropdown derivation and the Lineage DAG's layout algorithm
+    both recompute on every unrelated App re-render with no memo boundary
+    (Performance, low); five separate hardcoded-value-instead-of-token
+    instances in App.css -- a dead `--accent-warning` reference, two
+    `border-radius: 6px` inputs instead of `--radius-control`, two
+    `*-chip` classes hardcoding `999px` instead of `--radius-chip`, a
+    third monospace font-stack spelling duplicating `--mono`, and one
+    44px icon button hardcoding its size instead of `--size-control-min`
+    (Style Selection, low); `.admin-section-heading` and
+    SourceResearchPanel's title row were left out of layout fixes applied
+    to their siblings (Layout & Responsive, low); an admin deep-link
+    smooth-scroll bypasses the app's own `prefers-reduced-motion` reset
+    (Animation, low).
+  - **Operational hazard surfaced during this audit, worth fixing
+    process-wide:** this repo's many concurrent-agent git worktrees share
+    one `.git` directory and therefore one shared `refs/stash` stack.
+    Multiple independent implementing agents in this same audit run hit
+    real collisions -- a blind `git stash pop` grabbing a *different*
+    session's unrelated uncommitted work into the wrong tree. Every
+    incident was caught and recovered without data loss (via `git stash
+    store`/`git log -g refs/stash` to restore the other session's entry,
+    then re-applying the agent's own intended diff from scratch), but
+    this is a real, repeatable footgun for this multi-agent-swarm working
+    style, not a one-off. Recommendation: avoid `git stash` in any shared
+    worktree checkout of this repo; use a scratch commit instead (`git
+    commit -m wip`, later `git reset HEAD~1` or amend), which is
+    per-worktree by construction and cannot collide.
 - **Fabricated citation in ADR 0024 — closed (2026-08-24):** ADR 0024
   attributed the RankWeave `temporal` 0.25 / `lexical` 0.75 channel-weight
   split to "Samuel, D., MacAvaney, S., Yates, A., Zhang, E., Zhang, S.,

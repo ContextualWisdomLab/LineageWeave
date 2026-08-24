@@ -241,6 +241,21 @@ exist on the post.
 Do not weaken, skip, or `continue-on-error` a failing check -- fix the
 underlying cause or, for a genuine false positive in a third-party scanner,
 add a narrow, documented suppression referencing the specific finding.
+
+## Never use `git stash` in this repo
+
+This repo is routinely checked out as many concurrent `git worktree`
+sessions at once, and all worktrees of one clone share a single `.git`
+directory -- and therefore a single `refs/stash` stack. A blind `git
+stash pop` in one worktree can silently apply a *different* session's
+unrelated uncommitted work into your tree (a 2026-08-24 audit run hit
+this collision multiple times independently; each was recoverable, but
+only because it was caught before committing). Use a scratch commit
+instead when you need to set work aside -- `git commit -m wip`, then
+later `git reset HEAD~1` (keeps changes staged) or amend -- since a
+commit lives on your own branch and cannot collide with another
+worktree's stash entry.
+
 ## W3C PROV-O boundary
 
 - Add standard provenance through `lineageweave.prov_o` and the

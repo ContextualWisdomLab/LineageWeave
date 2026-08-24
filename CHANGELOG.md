@@ -8,6 +8,17 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Ran a 10-dimension UI/UX audit (Accessibility, Touch & Interaction,
+  Performance, Style Selection, Layout & Responsive, Typography & Color,
+  Animation, Forms & Feedback, Navigation Patterns, Charts & Data), each
+  finding independently re-verified against live source before being
+  trusted. 26 verified real gaps found; the 7 highest-severity shipped as
+  their own small PRs (#552, #553, #554, #556, #557, #558, #560) with
+  tests, pending review; 1 investigated finding was correctly declined
+  (evidence belonged to an unmerged feature branch, not `main`); 18 more
+  logged in `docs/product-technical-gap-baseline.md` for follow-up. Also
+  surfaced and documented (`AGENTS.md`) a real shared-`git-stash`
+  collision hazard this repo's concurrent-worktree working style creates.
 - The Knowledge Graph panel now classifies every relation into Time order,
   Hierarchy, Cause and effect, or Other relation, drawn from
   `docs/ontology/lineageweave-kg.ttl`'s predicate registry, and shows a
