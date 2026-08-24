@@ -379,7 +379,9 @@ def _post_chat_client():
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullPostChatClient()
     return ContextualOrchestratorPostChatClient(
-        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+        base_url=settings.orchestrator_base_url,
+        api_key=settings.orchestrator_api_key,
+        timeout=settings.orchestrator_answer_timeout_seconds,
     )
 
 

@@ -44,6 +44,11 @@ class Settings:
     frontend_origins: list[str]
     orchestrator_base_url: str
     orchestrator_api_key: str
+    # Socket timeout for one Ask answer round-trip. Must stay below the Ask
+    # worker's 600 s job deadline so the client, not the job reaper, ends a
+    # slow call — hanging up earlier discards an answer the orchestrator has
+    # already paid to generate (observed live as a BrokenPipe on its side).
+    orchestrator_answer_timeout_seconds: float
     embedding_model: str
     valkey_url: str
     searxng_base_url: str
@@ -131,6 +136,9 @@ def load_settings() -> Settings:
         ],
         orchestrator_base_url=os.environ.get("ORCHESTRATOR_BASE_URL", ""),
         orchestrator_api_key=os.environ.get("ORCHESTRATOR_API_KEY", ""),
+        orchestrator_answer_timeout_seconds=float(
+            os.environ.get("ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS", "570")
+        ),
         embedding_model=os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip(),
         valkey_url=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
         searxng_base_url=os.environ.get("SEARXNG_BASE_URL", ""),
