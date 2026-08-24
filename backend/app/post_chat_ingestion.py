@@ -396,8 +396,14 @@ async def gather_global_chat_sources(
     *,
     question: str | None = None,
     limit: int = 4,
+    today: date | None = None,
 ) -> list[ChatSourceDocument]:
     """Assemble a bounded, ABAC-filtered source set for Global Ask.
+
+    ``today`` pins the reference date for relative-time resolution so a
+    caller that also restates the resolved window (the Ask worker's
+    grounded prompt) uses the same date as retrieval even across a
+    Seoul-midnight boundary.
 
     When `question` contains a Korean relative-time expression ("어제",
     "작년 이맘때쯤", "3일 전", ...; see `lineageweave.temporal_expressions`),
@@ -416,7 +422,9 @@ async def gather_global_chat_sources(
     # A relative-time expression ("어제", "작년 이맘때쯤", ...) narrows the
     # candidate window by created_at below; it must not also become a
     # near-meaningless literal keyword search term (see TEMPORAL_STOPWORDS).
-    resolved_time_range = resolve_korean_relative_time(question or "", today=_seoul_today())
+    resolved_time_range = resolve_korean_relative_time(
+        question or "", today=today or _seoul_today()
+    )
     search_terms = tuple(
         dict.fromkeys(
             token.casefold()

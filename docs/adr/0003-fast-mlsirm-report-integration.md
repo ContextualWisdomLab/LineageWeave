@@ -100,13 +100,18 @@ than one large PR:
    `information_polytomous` (Lord, 1980 max-info). Persist the ranking
    (`report_item_information`) and show the rank-1 item on the Period
    reports panel. Do not reimplement an information function here.
-7. **Leftover-pair slice** (shipped in 0.71.2; ADR 0017 / 0018 / 0048 / 0049): after
+7. **Leftover-pair slice** (shipped in 0.71.2; ADR 0017 / 0018 / 0048 / 0049 / 0182): after
    IRT main effects, persist closest and farthest post–criterion pairs
-   from the residual leftover map. Category probabilities and expected
-   responses must use `fast-mlsirm`'s public Rust-backed prediction API
-   (upstream PR #1279); LineageWeave must not reproduce GRM/GPCM parameter
-   conventions locally. The residual map remains LineageWeave's product
-   projection and does not fork LSIRM.
+   from the residual leftover map, and name unexplained leftover
+   `U = R − R̂` when Gabriel coordinates exist so the leftover cell the
+   two-axis map does not reconstruct is not read as leftover residual
+   or leftover-map distance. Do not persist two-axis reconstruction
+   `R̂`. Category probabilities and expected responses must use
+   `fast-mlsirm`'s public Rust-backed prediction API (upstream PR #1279);
+   LineageWeave must not reproduce GRM/GPCM parameter conventions locally.
+   The residual map remains LineageWeave's product projection: do not
+   fork LSIRM, and do not invent a leftover-pair API inside `fast-mlsirm`
+   in this slice.
 8. **Leftover-map axis-share slice** (ADR 0148): persist Gabriel inertia
    `σ_k² / Σ_j σ_j²` of leftover-map axes 1 and 2 on the same residual
    SVD. Rank-0 residuals emit two zero-share axes. Do not invent a

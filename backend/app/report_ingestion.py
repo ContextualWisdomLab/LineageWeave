@@ -444,8 +444,9 @@ async def persist_period_report(
             insert into report_leftover_pair (
                 grouping_kind, grouping_key, period_code, rubric_version,
                 pair_kind, post_id, criterion_code, leftover_distance, leftover_residual,
-                observed_response, expected_response, leftover_map_rank
-            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+                observed_response, expected_response, leftover_map_rank,
+                leftover_map_unexplained
+            ) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
             """,
             grouping_kind,
             grouping_key,
@@ -459,6 +460,7 @@ async def persist_period_report(
             pair.observed_response,
             pair.expected_response,
             pair.leftover_map_rank,
+            pair.leftover_map_unexplained,
         )
     for axis in report.leftover_map_axes:
         await conn.execute(
@@ -622,7 +624,8 @@ async def fetch_period_reports(
         f"""
         select lp.grouping_key, lp.pair_kind, lp.post_id, lp.criterion_code,
                lp.leftover_distance, lp.leftover_residual,
-               lp.observed_response, lp.expected_response, lp.leftover_map_rank, p.post_title,
+               lp.observed_response, lp.expected_response, lp.leftover_map_rank,
+               lp.leftover_map_unexplained, p.post_title,
                p.visibility_code, p.corporate_entity_id, p.process_unit_id,
                ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_leftover_pair lp
@@ -750,6 +753,11 @@ async def fetch_period_reports(
                             None
                             if row["leftover_map_rank"] is None
                             else int(row["leftover_map_rank"])
+                        ),
+                        "leftover_map_unexplained": (
+                            None
+                            if row["leftover_map_unexplained"] is None
+                            else float(row["leftover_map_unexplained"])
                         ),
                         "visibility_code": row["visibility_code"],
                         "corporate_entity_id": str(row["corporate_entity_id"]),
