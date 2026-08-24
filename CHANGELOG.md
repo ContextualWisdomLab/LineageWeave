@@ -244,6 +244,15 @@ All notable changes to this project are documented here. Format follows
   lineage run and Start still recovers the designed A-100 fork.
   Never invent a theta.
 
+## [2.12.23] - 2026-08-24
+
+### Added
+
+- Period leftover pair rows now name leftover-map inner product
+  `ξ·ζ` next to leftover-map distance `d`, then open that post
+  (Gabriel, 1971; Jeon et al., 2021, eq. 3; ADR 0179). A missing
+  inner product omits the badge rather than inventing a leftover score.
+
 ## [2.12.6] - 2026-08-20
 
 ### Added

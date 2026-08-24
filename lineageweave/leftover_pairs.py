@@ -87,11 +87,12 @@ def leftover_pairs_from_residual(
         for person, item in observed:
             if person not in local_person or item not in local_item:
                 continue
-            distance = float(
-                np.linalg.norm(person_pos[local_person[person]] - item_pos[local_item[item]])
-            )
+            person_coord = person_pos[local_person[person]]
+            item_coord = item_pos[local_item[item]]
+            distance = float(np.linalg.norm(person_coord - item_coord))
             if not np.isfinite(distance):
                 continue
+            inner_product = float(np.dot(person_coord, item_coord))
             candidates.append(
                 _candidate_row(post_ids, item_codes, matrix, expected, residual, person, item, distance)
             )
