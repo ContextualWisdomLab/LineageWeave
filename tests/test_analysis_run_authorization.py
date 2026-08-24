@@ -11,7 +11,11 @@ import psycopg2
 import pytest
 from psycopg2 import sql
 
-from backend.app.analysis_run_ingestion import _RUN_DETAIL_SQL, _RUN_LIST_SQL
+from backend.app.analysis_run_ingestion import (
+    _COUNTS_BY_RUN_SQL,
+    _RUN_DETAIL_SQL,
+    _RUN_LIST_SQL,
+)
 
 _ROOT = Path(__file__).resolve().parents[1]
 _INITIAL_MIGRATION = _ROOT / "migrations" / "0001_initial_schema.sql"
@@ -29,6 +33,8 @@ def test_visible_run_sql_is_parameterized_literals() -> None:
     assert "$3" in _RUN_DETAIL_SQL
     assert "{" not in _RUN_LIST_SQL
     assert "{" not in _RUN_DETAIL_SQL
+    assert "$1" in _COUNTS_BY_RUN_SQL
+    assert "{" not in _COUNTS_BY_RUN_SQL
 
 
 def _postgres_available() -> bool:

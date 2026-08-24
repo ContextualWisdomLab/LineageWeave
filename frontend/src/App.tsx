@@ -86,16 +86,18 @@ import {
 import { CitationChip } from "./components/CitationChip";
 import { CutoffKnownBody } from "./components/CutoffKnownBody";
 import { LineageEntityPicker } from "./components/LineageEntityPicker";
+import { OntologyExplorer } from "./components/OntologyExplorer";
 import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
-import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
+import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
+import { CALENDAR_CONSUME_UNAVAILABLE } from "./gnbChrome";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
-import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
+import { rememberOidcReturnUrl, returnUrlFromLocation, stripOidcCallbackParams } from "./oidcReturnUrl";
 import {
   isSupportedLocale,
   LOCALE_LABELS,
@@ -858,6 +860,12 @@ function KeymanPanel({
   const [related, setRelated] = useState<RelatedNode[] | null>(null);
   const [roleHistory, setRoleHistory] = useState<PersonRoleHistoryEntry[]>([]);
   const [selectedName, setSelectedName] = useState<string | null>(null);
+  const [selectedFocus, setSelectedFocus] = useState<{
+    nodeTypeCode: string;
+    nodeId: string;
+    label: string;
+  } | null>(null);
+  const [ontologyOpen, setOntologyOpen] = useState(false);
   const [landedRelated, setLandedRelated] = useState<RelatedNode[] | null>(null);
   const [landedRelatedName, setLandedRelatedName] = useState<string | null>(null);
   const [extracting, setExtracting] = useState(false);
@@ -873,6 +881,7 @@ function KeymanPanel({
   async function handleSelect(personId: string, personName: string) {
     const requestId = ++relatedRequest.current;
     setSelectedName(personName);
+    setSelectedFocus({ nodeTypeCode: NODE_PERSON, nodeId: personId, label: personName });
     setRelated(null);
     setRoleHistory([]);
     try {
@@ -889,6 +898,7 @@ function KeymanPanel({
   async function handleSelectEntity(entityId: string, entityName: string) {
     const requestId = ++relatedRequest.current;
     setSelectedName(entityName);
+    setSelectedFocus({ nodeTypeCode: NODE_CORPORATE_ENTITY, nodeId: entityId, label: entityName });
     setRelated(null);
     setRoleHistory([]);
     try {
@@ -902,6 +912,7 @@ function KeymanPanel({
   async function handleSelectTeam(teamId: string, teamName: string) {
     const requestId = ++relatedRequest.current;
     setSelectedName(teamName);
+    setSelectedFocus({ nodeTypeCode: NODE_TEAM, nodeId: teamId, label: teamName });
     setRelated(null);
     setRoleHistory([]);
     try {
@@ -919,6 +930,11 @@ function KeymanPanel({
     const first = keymen[0];
     const requestId = ++relatedRequest.current;
     setSelectedName(first.person_name);
+    setSelectedFocus({
+      nodeTypeCode: NODE_PERSON,
+      nodeId: first.person_id,
+      label: first.person_name,
+    });
     setRelated(null);
     setRoleHistory([]);
     fetchRelatedKeymen(accessToken, first.person_id)
@@ -972,6 +988,11 @@ function KeymanPanel({
     if (!focusPerson) return;
     const requestId = ++relatedRequest.current;
     setSelectedName(focusPerson.personName);
+    setSelectedFocus({
+      nodeTypeCode: NODE_PERSON,
+      nodeId: focusPerson.personId,
+      label: focusPerson.personName,
+    });
     setRelated(null);
     setRoleHistory([]);
     fetchRelatedKeymen(accessToken, focusPerson.personId)
@@ -990,6 +1011,11 @@ function KeymanPanel({
     if (!focusEntity) return;
     const requestId = ++relatedRequest.current;
     setSelectedName(focusEntity.entityName);
+    setSelectedFocus({
+      nodeTypeCode: NODE_CORPORATE_ENTITY,
+      nodeId: focusEntity.entityId,
+      label: focusEntity.entityName,
+    });
     setRelated(null);
     setRoleHistory([]);
     fetchRelatedEntity(accessToken, focusEntity.entityId)
@@ -1005,6 +1031,11 @@ function KeymanPanel({
     if (!focusTeam) return;
     const requestId = ++relatedRequest.current;
     setSelectedName(focusTeam.teamName);
+    setSelectedFocus({
+      nodeTypeCode: NODE_TEAM,
+      nodeId: focusTeam.teamId,
+      label: focusTeam.teamName,
+    });
     setRelated(null);
     fetchRelatedTeam(accessToken, focusTeam.teamId)
       .then((result) => {
@@ -1151,6 +1182,14 @@ function KeymanPanel({
     <section className="popup-section">
       <div className="lineage-home-header">
         <h3>{t("Keymen")}</h3>
+        <button
+          type="button"
+          className="keyman-select"
+          onClick={() => setOntologyOpen((open) => !open)}
+          aria-expanded={ontologyOpen}
+        >
+          {t("Inspect ontology neighborhood")}
+        </button>
         {canExtract && !orchestratorOff && (
           <details className="operator-action-tools">
             <summary>{t("Evidence operations")}</summary>
@@ -1276,6 +1315,15 @@ function KeymanPanel({
       ) : null}
       {afterList && landFirstRelated && landedRelatedName && landedRelated !== null ? (
         <ChatPanel postId={postId} accessToken={accessToken} nameFirstAsk />
+      ) : null}
+      {ontologyOpen ? (
+        <OntologyExplorer
+          accessToken={accessToken}
+          focusNodeType={selectedFocus?.nodeTypeCode ?? NODE_POST}
+          focusNodeId={selectedFocus?.nodeId ?? postId}
+          onSelectPost={onSelectPost}
+          onOpenEvidence={onSelectPost}
+        />
       ) : null}
     </>
   );
@@ -1829,6 +1877,7 @@ function PostDetailPopup({
 
   const permanentLink = (() => {
     const url = new URL(window.location.href);
+    stripOidcCallbackParams(url);
     url.searchParams.set("post", postId);
     url.hash = "";
     return url.toString();
@@ -3409,6 +3458,14 @@ function ReportsPanel({
                 {report.selected_items[0].information.toFixed(2)}
               </span>
             )}
+            {report.leftover_map_coverage && report.leftover_map_coverage.scored_post_count > 0 && (
+              <p className="post-meta" role="note" aria-label={t("Leftover map coverage")}>
+                {tf("Leftover map used {used} of {scored} scored posts (complete-case)", {
+                  used: report.leftover_map_coverage.map_post_count,
+                  scored: report.leftover_map_coverage.scored_post_count,
+                })}
+              </p>
+            )}
             {report.leftover_map_axes?.map((axis) => (
               <span key={axis.axis_index} className="post-badge">
                 {tf("leftover axis {axis} {share}%", {
@@ -4304,10 +4361,10 @@ function CustomerMasterPanel({
   }
 
   return (
-    <section className="buyer-destination" aria-labelledby="customer-master-heading">
+    <section className="workspace-destination" aria-labelledby="customer-master-heading">
       <p className="section-eyebrow">{t("Authorized customer scope")}</p>
       <h2 id="customer-master-heading">{t("Customer master")}</h2>
-      <p className="buyer-destination-intro">{t("Customer entities available to this account.")}</p>
+      <p className="workspace-destination-intro">{t("Customer entities available to this account.")}</p>
       {error ? <p className="error">{error}</p> : null}
       {master === null && !error ? <p role="status">{t("Loading customer master...")}</p> : null}
       {master?.corporate_entities.length === 0 ? (
@@ -4332,7 +4389,7 @@ function CustomerMasterPanel({
       {master && (master.relationship_network ?? []).length > 0 ? (
         <section className="customer-keymen" aria-labelledby="relationship-network-heading">
           <h3 id="relationship-network-heading">{t("Relationship network")}</h3>
-          <p className="buyer-destination-intro">
+          <p className="workspace-destination-intro">
             {t("A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.")}
           </p>
           <ul className="customer-master-list">
@@ -4355,7 +4412,7 @@ function CustomerMasterPanel({
       {master && master.source_customer_hints.length > 0 ? (
         <section className="customer-keymen" aria-labelledby="observed-customer-evidence-heading">
           <h3 id="observed-customer-evidence-heading">{t("Observed customer evidence")}</h3>
-          <p className="buyer-destination-intro">
+          <p className="workspace-destination-intro">
             {t("Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.")}
           </p>
           {master.source_customer_hints.length > HINT_RENDER_LIMIT && (
@@ -4506,10 +4563,10 @@ function AskAgentPanel({
   }
 
   return (
-    <section className="buyer-destination" aria-labelledby="ask-agent-heading">
+    <section className="workspace-destination" aria-labelledby="ask-agent-heading">
       <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
       <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
-      <p className="buyer-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
+      <p className="workspace-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
       {error ? <p className="error">{error}</p> : null}
       <label className="ask-agent-source">
         <span>{t("Ask a question")}</span>
@@ -4603,7 +4660,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   useLocale();
   const [brandName, setBrandName] = useState("LineageWeave");
   const auth = useAuth();
-  const [destination, setDestination] = useState<BuyerDestination>("board");
+  const [destination, setDestination] = useState<WorkspaceDestination>("board");
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("post");
@@ -4700,7 +4757,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           <button className="btn-secondary" onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
         </div>
       </header>
-      <BuyerNav
+      <WorkspaceNav
         destination={destination}
         onChange={setDestination}
         tools={<LanguageSwitcher accessToken={accessToken} />}
@@ -4724,13 +4781,10 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           />
         ) : null}
         {destination === "calendar" ? (
-          <CalendarPanel
-            accessToken={accessToken}
-            onSelectPost={(postId) => {
-              setPostToOpen(postId);
-              setDestination("board");
-            }}
-          />
+          <section className="workspace-destination" aria-labelledby="calendar-heading">
+            <h2 id="calendar-heading">달력</h2>
+            <p role="status">{CALENDAR_CONSUME_UNAVAILABLE}</p>
+          </section>
         ) : null}
         {destination === "ask" ? (
           <AskAgentPanel
