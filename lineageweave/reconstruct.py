@@ -20,10 +20,9 @@ from .adjudication_client import AdjudicationClient, NullAdjudicationClient
 from .channels import secondary_key_match_score, temporal_score, text_similarity_score
 from .models import Edge, Record, Tree
 
-# Channel weights when every channel is available. llm gets the most weight
-# because it is the only channel that actually reasons about the content
-# instead of approximating it; the rest renormalize when llm is unavailable
-# (see active_weights()).
+# Legacy compatibility weights when every channel is available. These constants
+# are not calibrated measurement evidence (ADR 0145); unavailable channels are
+# dropped and the remainder renormalized by active_weights().
 DEFAULT_CHANNEL_WEIGHTS = {"temporal": 0.15, "secondary_key": 0.15, "text": 0.30, "llm": 0.40}
 
 # ponytail: only the most recent WINDOW prior records in a group are

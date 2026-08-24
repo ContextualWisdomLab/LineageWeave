@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { splitPostBody } from "./postBodyDisplay";
+import { splitPostBody, splitScriptRuns, normalizeScriptText } from "./postBodyDisplay";
 
 /** 1x1 transparent PNG — the same synthetic fixture the Python vision tests use. */
 const TINY_PNG_B64 =
@@ -47,17 +47,21 @@ describe("splitPostBody", () => {
     ]);
   });
 
-  it("reads CSS box shorthand indentation and markerless footnotes", () => {
+  it("reads CSS box shorthand indentation", () => {
     expect(
       splitPostBody(
         '<ul><li style="margin: 0cm 0cm 0cm 56px">Outer</li></ul>' +
-          '<ul><li style="margin: 0cm 0cm 0cm 80px">Nested</li></ul>' +
-          "<p>*Tier 2: note</p>",
+          '<ul><li style="margin: 0cm 0cm 0cm 80px">Nested</li></ul>',
       ),
     ).toEqual([
       { kind: "text", text: "Outer", indentLevel: 7 },
       { kind: "text", text: "Nested", indentLevel: 10 },
-      { kind: "text", text: "*Tier 2: note", role: "footnote" },
+    ]);
+  });
+
+  it("does not infer a footnote from a bare marker", () => {
+    expect(splitPostBody("<p>*Synthetic list item</p>")).toEqual([
+      { kind: "text", text: "*Synthetic list item" },
     ]);
   });
 
@@ -131,5 +135,140 @@ describe("splitPostBody", () => {
       "See",
     );
     expect(JSON.stringify(segments)).not.toContain("https://example.test");
+  });
+
+  it("turns HTML and caret quantity exponents into unicode without flattening them", () => {
+    expect(splitPostBody("<p>Tank volume is 12 m<sup>3</sup>.</p>")).toEqual([
+      { kind: "text", text: "Tank volume is 12 m³." },
+    ]);
+    expect(splitPostBody("Tank volume is 12 m^3.")).toEqual([
+      { kind: "text", text: "Tank volume is 12 m³." },
+    ]);
+    expect(splitPostBody("Coolant is H<sub>2</sub>O at 10^{-3} M.")).toEqual([
+      { kind: "text", text: "Coolant is H₂O at 10⁻³ M." },
+    ]);
+  });
+
+  it("decodes HTML entities inside a sup/sub tag before mapping to unicode", () => {
+    // Office-tool HTML export pads <sup> content with &nbsp;. The raw,
+    // un-decoded "&nbsp;3" must not fail the all-convertible check and fall
+    // back to a literal caret (regression: entities weren't decoded before
+    // the convertibility check, matching the Python backend which unescapes
+    // first).
+    expect(splitPostBody("<p>Volume is 12 m<sup>&nbsp;3</sup>.</p>")).toEqual([
+      { kind: "text", text: "Volume is 12 m ³." },
+    ]);
+  });
+
+  it("normalizes entity-encoded quantity syntax without leaking raw markup", () => {
+    expect(
+      splitPostBody("<p>Reserve 12 m&#94;3 and x&lt;sup&gt;2&lt;/sup&gt; units.</p>"),
+    ).toEqual([{ kind: "text", text: "Reserve 12 m³ and x² units." }]);
+  });
+
+  it("keeps invalid encoded script pairs literal", () => {
+    expect(
+      splitPostBody(
+        "<p>Keep x&lt;sup&gt;2 unmatched; x&lt;sup/&gt;2 self-closing; " +
+          "x&lt;sup class=&quot;unit&quot;&gt;2&lt;/sup&gt; attributed; and " +
+          "x&lt;sup&gt;2&lt;/sub&gt; mismatched.</p>",
+      ),
+    ).toEqual([
+      {
+        kind: "text",
+        text:
+          'Keep x<sup>2 unmatched; x<sup/>2 self-closing; x<sup class="unit">2</sup> attributed; and x<sup>2</sub> mismatched.',
+      },
+    ]);
+  });
+
+  it("keeps encoded non-script inline markup literal", () => {
+    expect(splitPostBody("<p>Keep &lt;b&gt;bold&lt;/b&gt; literal.</p>")).toEqual([
+      { kind: "text", text: "Keep <b>bold</b> literal." },
+    ]);
+  });
+
+  it("keeps encoded non-script block markup literal", () => {
+    expect(
+      splitPostBody(
+        "<p>Keep &lt;table&gt;&lt;tr&gt;&lt;td&gt;grid&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt; literal.</p>",
+      ),
+    ).toEqual([
+      { kind: "text", text: "Keep <table><tr><td>grid</td></tr></table> literal." },
+    ]);
+  });
+
+  it("normalizes nested-encoded script tags and their inner entity", () => {
+    expect(
+      splitPostBody(
+        "<p>Volume is m&amp;lt;sup&amp;gt;&amp;nbsp;3&amp;lt;/sup&amp;gt;.</p>",
+      ),
+    ).toEqual([{ kind: "text", text: "Volume is m ³." }]);
+  });
+
+  it("normalizes encoded script content wrapped in encoded inline markup", () => {
+    expect(
+      splitPostBody("<p>x&lt;sup&gt;&lt;span&gt;2&lt;/span&gt;&lt;/sup&gt;</p>"),
+    ).toEqual([{ kind: "text", text: "x²" }]);
+  });
+
+  it("keeps encoded script-prefixed custom and namespaced tags literal", () => {
+    expect(
+      splitPostBody(
+        "<p>Keep &lt;sup-note&gt;2&lt;/sup-note&gt; and &lt;sub:item&gt;3&lt;/sub:item&gt; literal.</p>",
+      ),
+    ).toEqual([
+      {
+        kind: "text",
+        text: "Keep <sup-note>2</sup-note> and <sub:item>3</sub:item> literal.",
+      },
+    ]);
+  });
+
+  it("matches sup/sub content split across a newline", () => {
+    // Pretty-printed source HTML puts tag content on its own line
+    // (regression: the regex lacked the dotAll flag, so `.` could not cross
+    // the newline and the whole tag passed through unmatched, leaving a
+    // plain un-superscripted "3" instead of "³").
+    expect(splitPostBody("<p>Tank volume is 12 m<sup>\n3\n</sup>.</p>")).toEqual([
+      { kind: "text", text: "Tank volume is 12 m ³ ." },
+    ]);
+  });
+
+  it("does not treat a leading footnote caret or a comparison as an exponent", () => {
+    expect(splitPostBody("^1 See the tank note.")).toEqual([
+      { kind: "text", text: "^1 See the tank note." },
+    ]);
+    expect(normalizeScriptText("qty < 50 and price > 10")).toBe("qty < 50 and price > 10");
+    expect(splitScriptRuns("Tank volume is 12 m³.")).toEqual([
+      { text: "Tank volume is 12 m" },
+      { text: "3", script: "super" },
+      { text: "." },
+    ]);
+  });
+
+  it("keeps mixed script content as a visible fallback", () => {
+    expect(splitPostBody("x<sup>3a</sup>")).toEqual([{ kind: "text", text: "x^3a" }]);
+  });
+
+  it("decodes a stored superscript letter deterministically to lowercase", () => {
+    // "n" and "N" both encode to the same Unicode "ⁿ" (there is no distinct
+    // uppercase superscript N), so decoding must pick one case consistently
+    // rather than depending on object key iteration order (regression: used
+    // to always decode to uppercase because "N"/"I" were inserted after
+    // "n"/"i" in the forward table).
+    expect(splitScriptRuns("mⁿ")).toEqual([
+      { text: "m" },
+      { text: "n", script: "super" },
+    ]);
+    expect(splitScriptRuns("xⁱ")).toEqual([
+      { text: "x" },
+      { text: "i", script: "super" },
+    ]);
+    expect(splitPostBody("m<sup>N</sup>")).toEqual([{ kind: "text", text: "mⁿ" }]);
+    expect(splitScriptRuns(normalizeScriptText("m<sup>N</sup>"))).toEqual([
+      { text: "m" },
+      { text: "n", script: "super" },
+    ]);
   });
 });
