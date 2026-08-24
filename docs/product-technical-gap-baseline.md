@@ -1254,8 +1254,8 @@ or an explicit unavailable result.
   closes the entire i18n ko-only backlog opened by the Admin Panel
   fix earlier in this document -- `t()` now has no live English
   fallback across zh/ja/vi.
-- **Frontend stale-fetch-response races — 4 closed, 5 backend findings
-  tracked open (2026-08-24):** a second `lineageweave-bug-sweep`
+- **Frontend stale-fetch-response races — 4 closed, 1 of 5 backend
+  findings closed, 4 backend findings tracked open (2026-08-24):** a second `lineageweave-bug-sweep`
   Workflow run this hour (4 finders pointed at post_summary/keyman,
   evaluation/ticket, calendar/tenant-settings, and frontend
   AdminPanel/Board subsystems not yet audited) confirmed 9 real
@@ -1277,14 +1277,18 @@ or an explicit unavailable result.
   component's own `setState` + re-render unobserved) until an explicit
   short delay was added before the final assertion. Full frontend
   suite: 374 passed, lint clean, tsc clean. The other 5 confirmed
-  findings are backend, lower severity, and NOT fixed this checkpoint
-  -- tracked here for a future one: (1) `post_summary.py`'s
-  `_parse_plain_summary_response` returns a 2-tuple instead of its
-  declared 3-tuple when the LLM response has no "KEY EVENTS:" marker,
-  crashing the unpack in `summarize_with_hints` with a generic
-  `ValueError` instead of the intended descriptive one (externally
-  invisible today only because `read_post_summary` blanket-catches
-  `ValueError`); (2) `_formalize_korean_summary`'s hardcoded Korean
+  findings are backend and lower severity. **Closed at the next hourly
+  checkpoint (2026-08-24):** `post_summary.py`'s
+  `_parse_plain_summary_response` now returns the declared 3-tuple
+  (`summary, key_events, key_event_details`) instead of a 2-tuple on
+  its no-`KEY EVENTS:`-marker branch -- previously a provider response
+  with real summary prose but no marker line crashed
+  `summarize_with_hints`'s destructuring assignment with a generic
+  `ValueError: not enough values to unpack` instead of the caller's own
+  descriptive one (externally invisible today only because
+  `read_post_summary` blanket-catches `ValueError`). Regression test
+  confirmed RED (`not enough values to unpack (expected 3, got 2)`)
+  before GREEN. **Remaining 4, not yet attempted:** (2) `_formalize_korean_summary`'s hardcoded Korean
   verb-ending ladder misses common past/perfective forms
   (`-았음/-었음/-였음`, contracted `됐다`, nominalized `됨`), producing
   grammatically broken doubled endings like "체결되지 않았음입니다." in

@@ -1071,7 +1071,7 @@ def _parse_plain_summary_response(
     plain = _strip_code_fence(content).strip()
     match = re.search(r"(?im)^\s*KEY EVENTS\s*:\s*", plain)
     if match is None:
-        return (plain, ()) if plain else None
+        return (plain, (), ()) if plain else None
     summary = plain[: match.start()].strip()
     raw_events = plain[match.end() :].strip()
     events: list[str] = []

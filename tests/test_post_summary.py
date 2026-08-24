@@ -413,6 +413,23 @@ def test_parses_project_bound_plain_key_event() -> None:
     assert details[1].project_key is None
 
 
+def test_plain_summary_without_key_events_marker_returns_the_declared_3_tuple() -> None:
+    """The no-marker branch must still return the declared
+    ``tuple[str, tuple[str, ...], tuple[KeyEvent, ...]]`` shape, not a
+    2-tuple -- summarize_with_hints destructures all three positions
+    (``korean_summary, key_events, key_event_details = parsed``), and a
+    short 2-tuple raises a generic unpack ``ValueError`` instead of the
+    caller's own descriptive one, for realistic provider responses that
+    have real summary prose but no ``KEY EVENTS:`` line at all.
+    """
+    parsed = _parse_plain_summary_response("이것은 요약입니다. 두 번째 문장입니다.")
+    assert parsed is not None
+    summary, events, details = parsed
+    assert summary == "이것은 요약입니다. 두 번째 문장입니다."
+    assert events == ()
+    assert details == ()
+
+
 def test_optional_project_key_normalizes_unicode_and_rejects_sentinels() -> None:
     assert _parse_optional_project_key("  Project  Ω ") == "project-ω"
     for sentinel in (None, "", "  ", "None", "N/A", "unknown", 42):
