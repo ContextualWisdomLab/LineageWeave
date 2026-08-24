@@ -5,6 +5,7 @@
 **Amended by:** [ADR 0119](0119-leftover-map-two-dimensional-distance.md) (two leftover-map axes);
 [ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E);
 [ADR 0164](0164-leftover-map-rank.md) (full map rank);
+[ADR 0182](0182-leftover-map-unexplained.md) (unexplained leftover U);
 [ADR 0186](0186-leftover-map-reconstruction.md) (two-axis reconstruction R̂)
 
 ## Context
@@ -33,14 +34,16 @@ they are never filled with zero. Persist exactly one `closest`
 and one `farthest` observed cell per period report in
 `report_leftover_pair` (3NF, two-or-more-word `snake_case`).
 
-The biplot lives in `lineageweave/leftover_pairs.py` so leftover
 tests do not import `period_report` or `fast_mlsirm`. Distances are
 Euclidean on the two leftover-map axes (ADR 0119). Each leftover row
 also names observed `Y` and expected `E[Y|θ, item]` so residual
-reconciles to `Y − E` (ADR 0163), names the full singular-value
-rank while distance remains on the first two axes (ADR 0164), and
-names two-axis leftover-map reconstruction `R̂_c = ξ_{1:2} · ζ_{1:2}`
-of centered leftover (ADR 0186).
+reconciles to `Y − E` (ADR 0163), and names the full singular-value
+rank while distance remains on the first two axes (ADR 0164). Each
+leftover row also names two-axis leftover-map reconstruction
+`R̂_c = ξ_{1:2} · ζ_{1:2}` of centered leftover (ADR 0186) and
+unexplained leftover `U = R − R̂_c` when Gabriel coordinates exist so
+the leftover cell the two-axis map does not reconstruct is not read
+as leftover residual `R` or leftover-map distance `d` (ADR 0182).
 
 Cascade the rows with `report_period_score`. A leftover post must
 also be a `report_member_score` row, and the leftover criterion

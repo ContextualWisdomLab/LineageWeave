@@ -8,6 +8,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Corroborated SKOS `altLabel` / `prefLabel` pairs now expand corporate
+  catalog candidates so a synthetic short form (`AGP`) and full form
+  (`Aurora Grid Power`) bind one `corporate_entity` row instead of
+  creating a second `AUTO-` identity (ADR 0160). Tied scores still stay
+  unbound.
 - ADRs 0150-0153 define the accepted boundaries for Korean relative-time
   retrieval, multi-thread Event Lineage answers, persisted image-evidence
   citations, and the focused evidence popup. Their implementations remain
@@ -36,6 +41,10 @@ All notable changes to this project are documented here. Format follows
 - The public ontology now states its OWL 2 Full/RDF-Based semantics for the
   ADR 0036 RDF-reified project evidence, and the PROV-O support profile uses
   its canonical lowercase deployed IRI.
+- Corporate-entity creation repeats normal similarity classification after
+  its lock to catch concurrent ties, while excluding the full resolved
+  ancestor path so no inferred ancestor can absorb its child. The separate
+  corroborated-alias recheck remains exact-only (ADR 0012 / ADR 0160).
 - `make smoke` and `make seed` now run through the locked project `uv`
   environment, so local OIDC and synthetic-data workflows resolve the same
   pinned dependencies as CI.
@@ -49,6 +58,15 @@ All notable changes to this project are documented here. Format follows
   that post (Gabriel, 1971; Jeon et al., 2021, eq. 3; ADR 0186). Fallback
   pairs omit the reconstruction rather than inventing one. Rank-0 origin
   maps store `R̂ = 0`. Never invent a leftover score or a theta.
+
+## [2.12.26] - 2026-08-24
+
+### Added
+
+- Period leftover pair rows now name unexplained leftover `U = R − R̂`
+  next to leftover-map distance `d`, then open that post (Gabriel, 1971;
+  Jeon et al., 2021, eq. 3; ADR 0182). A missing unexplained leftover
+  omits the badge rather than inventing a leftover score.
 
 ## [2.12.19] - 2026-08-24
 

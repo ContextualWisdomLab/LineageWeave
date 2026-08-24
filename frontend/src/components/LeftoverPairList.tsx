@@ -11,6 +11,11 @@ import {
 } from "../leftoverMapReconstruction";
 import { formatLeftoverObservedExpected } from "../leftoverObservedExpected";
 import { formatLeftoverResidual } from "../leftoverResidual";
+import {
+  formatLeftoverMapUnexplained,
+  formatSignedLeftoverValue,
+  LEFTOVER_MAP_UNEXPLAINED_ACTION,
+} from "../leftoverMapUnexplained";
 
 export type LeftoverPairListProps = {
   pairs: LeftoverPair[];
@@ -24,9 +29,11 @@ export type LeftoverPairListProps = {
  * Distance is the two-axis leftover-map Euclidean gap. Residual is
  * ``R = Y − E[Y|θ, item]`` (Jeon et al., 2021, eq. 3 input).
  * Reconstruction is two-axis ``R̂_c = ξ_{1:2} · ζ_{1:2}`` of centered
- * leftover (Gabriel, 1971). The action preserves residual,
- * observed/expected, full-rank, and reconstruction amendments together
- * before opening the named post.
+ * leftover (Gabriel, 1971). Unexplained leftover ``U = R − R̂`` after
+ * that reconstruction (ADR 0182) takes priority over the
+ * reconstruction/residual/observed-expected/rank next action when
+ * finite; every badge still renders together before opening the
+ * named post.
  */
 export function LeftoverPairList({
   pairs,
@@ -51,8 +58,16 @@ export function LeftoverPairList({
         const reconstructionBadge = formatLeftoverMapReconstruction(
           pair.leftover_map_reconstruction,
         );
+        const unexplained = formatLeftoverMapUnexplained(pair.leftover_map_unexplained);
         let nextAction: string;
-        if (reconstructionBadge !== null) {
+        if (unexplained !== null) {
+          const signedUnexplained =
+            formatSignedLeftoverValue(pair.leftover_map_unexplained ?? Number.NaN) ?? "—";
+          nextAction = tf(LEFTOVER_MAP_UNEXPLAINED_ACTION, {
+            value: signedUnexplained,
+            criterion,
+          });
+        } else if (reconstructionBadge !== null) {
           nextAction = tf(LEFTOVER_RECONSTRUCTION_ACTION, {
             reconstruction: reconstructionBadge.replace(/^R̂\s+/, ""),
           });
@@ -118,6 +133,7 @@ export function LeftoverPairList({
               {observedExpected ? <span className="post-badge">{observedExpected}</span> : null}
               {rankBadge ? <span className="post-badge">{rankBadge}</span> : null}
               {reconstructionBadge ? <span className="post-badge">{reconstructionBadge}</span> : null}
+              {unexplained ? <span className="post-badge">{unexplained}</span> : null}
               <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
             </button>
           </li>

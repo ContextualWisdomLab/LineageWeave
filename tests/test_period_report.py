@@ -273,6 +273,8 @@ def test_calibrated_report_attaches_leftover_pairs() -> None:
         reconstruction = pair.leftover_map_reconstruction
         if reconstruction is not None:
             assert np.isfinite(reconstruction)
+        if pair.leftover_map_unexplained is not None:
+            assert np.isfinite(pair.leftover_map_unexplained)
     assert [axis.axis_index for axis in report.leftover_map_axes] == [1, 2]
     for axis in report.leftover_map_axes:
         assert axis.leftover_singular_value >= 0.0
