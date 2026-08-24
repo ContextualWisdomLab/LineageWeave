@@ -60,6 +60,9 @@ from lineageweave.relation_verification import (
 
 from .corporate_entity_ingestion import get_or_create_corporate_entity
 from .keyman_ingestion import _load_corporate_entity_candidates
+from .organization_name_resolution_ingestion import (
+    load_corroborated_organization_name_aliases,
+)
 from .knowledge_graph import persist_edges_for_post
 from .team_ingestion import upsert_team
 
@@ -249,6 +252,11 @@ async def persist_post_summary(
     verification_client = verification_client or NullRelationVerificationClient()
 
     context_text = post_body if post_body is not None else summary.korean_summary
+    aliases = (
+        await load_corroborated_organization_name_aliases(conn)
+        if summary.roles_and_responsibilities
+        else []
+    )
     candidates = (
         await _load_corporate_entity_candidates(conn)
         if summary.roles_and_responsibilities
@@ -265,6 +273,7 @@ async def persist_post_summary(
             hierarchy_inference_client,
             verification_client,
             candidates,
+            aliases=aliases,
         )
         if corporate_entity_id is not None:
             resolved_organization_ids[role_index] = corporate_entity_id

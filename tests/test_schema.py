@@ -63,6 +63,11 @@ _LEFTOVER_MAP_COVERAGE_MIGRATION = (
     / "migrations"
     / "0168_report_leftover_map_coverage.sql"
 )
+_LEFTOVER_MAP_UNEXPLAINED_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0182_report_leftover_map_unexplained.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -103,6 +108,7 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -232,6 +238,23 @@ def test_leftover_pair_names_leftover_map_rank_column(schema_db) -> None:
         )
         columns = dict(cur.fetchall())
     assert columns["leftover_map_rank"] == "YES"
+
+
+def test_leftover_pair_names_nullable_unexplained_column(schema_db) -> None:
+    """Every install path preserves legacy pairs while naming unexplained leftover."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select column_name, is_nullable
+            from information_schema.columns
+            where table_name = 'report_leftover_pair'
+            """
+        )
+        columns = dict(cur.fetchall())
+    assert columns["leftover_map_unexplained"] == "YES"
+    assert columns["leftover_residual"] == "NO"
+    assert columns["leftover_distance"] == "NO"
+    assert "leftover_map_reconstruction" not in columns
 
 
 def test_leftover_map_axis_references_period_score(schema_db) -> None:
