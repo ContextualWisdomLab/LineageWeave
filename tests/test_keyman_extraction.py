@@ -86,12 +86,14 @@ def test_entry_with_invalid_side_is_skipped() -> None:
     assert parse_keyman_response(content) == []
 
 
-def test_invalid_json_returns_empty_list() -> None:
-    assert parse_keyman_response("not json at all") == []
+def test_invalid_json_fails_closed_without_deleting_existing_mentions() -> None:
+    with pytest.raises(ValueError, match="valid JSON array"):
+        parse_keyman_response("not json at all")
 
 
-def test_non_list_top_level_returns_empty_list() -> None:
-    assert parse_keyman_response('{"name": "not a list"}') == []
+def test_non_list_top_level_fails_closed_without_deleting_existing_mentions() -> None:
+    with pytest.raises(ValueError, match="JSON array"):
+        parse_keyman_response('{"name": "not a list"}')
 
 
 _ORCHESTRATOR_BASE_URL = os.environ.get("LINEAGEWEAVE_TEST_ORCHESTRATOR_BASE_URL")

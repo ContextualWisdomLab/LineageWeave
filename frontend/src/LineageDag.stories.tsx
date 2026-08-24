@@ -37,6 +37,36 @@ export const SingleBranch: Story = {
   },
 };
 
+// Mirrors the live Figma mobile authority: a 322px viewport contains an
+// intrinsically wider lineage canvas and gives the buyer explicit scroll help.
+export const MobileScrollable: Story = {
+  decorators: [
+    (Story) => (
+      <div style={{ width: 322 }}>
+        <Story />
+      </div>
+    ),
+  ],
+  args: {
+    graph: {
+      nodes: [
+        { id: "m1", group: "DEMO-PROJECT", label: "Initial scope", occurred_at: "2026-01-01T00:00:00Z", is_root: true, is_branch_point: false },
+        { id: "m2", group: "DEMO-PROJECT", label: "Terms follow-up", occurred_at: "2026-01-05T00:00:00Z", is_root: false, is_branch_point: true },
+        { id: "m3", group: "DEMO-PROJECT", label: "Revised quotation", occurred_at: "2026-01-09T00:00:00Z", is_root: false, is_branch_point: false },
+        { id: "m4", group: "DEMO-PROJECT", label: "Delivery question", occurred_at: "2026-01-06T00:00:00Z", is_root: false, is_branch_point: false },
+        { id: "m5", group: "DEMO-PROJECT", label: "Delivery confirmed", occurred_at: "2026-01-11T00:00:00Z", is_root: false, is_branch_point: false },
+      ],
+      edges: [
+        { source: "m1", target: "m2", fused_score: 0.83 },
+        { source: "m2", target: "m3", fused_score: 0.94 },
+        { source: "m2", target: "m4", fused_score: 0.87 },
+        { source: "m4", target: "m5", fused_score: 0.9 },
+      ],
+    } satisfies LineageGraph,
+    currentPostId: "m5",
+  },
+};
+
 // The multi-branch, git-branch-style case the Ask Agent answer view relies on:
 // several independent lineage threads rendered as separate figures, plus one
 // thread with an actual fork (a branch point with two children).

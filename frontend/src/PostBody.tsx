@@ -6,7 +6,7 @@ import {
   type PostBodySegment,
 } from "./postBodyDisplay";
 import { t } from "./i18n";
-import type { PostContentUnit, PostImageContent } from "./api";
+import type { PostContentUnit, PostImageContent, PostImageRegion } from "./api";
 import { Fragment, type ReactNode } from "react";
 
 function renderStyledText(text: string): ReactNode {
@@ -58,6 +58,21 @@ function renderImageText(text: string) {
 const SAFE_EMBEDDED_IMAGE_SOURCE =
   /^data:image\/(?:png|jpe?g|gif|webp|avif|bmp|x-icon|vnd\.microsoft\.icon);base64,[A-Za-z0-9+/]+={0,2}$/i;
 
+function formatImageRegionLocation(region: PostImageRegion): string | null {
+  const values = [region.x_ratio, region.y_ratio, region.width_ratio, region.height_ratio];
+  const right = region.x_ratio + region.width_ratio;
+  const bottom = region.y_ratio + region.height_ratio;
+  if (
+    values.some((value) => !Number.isFinite(value) || value < 0 || value > 1) ||
+    right > 1 + Number.EPSILON * 4 ||
+    bottom > 1 + Number.EPSILON * 4
+  ) {
+    return null;
+  }
+  const percent = (value: number) => `${Math.round(value * 100)}%`;
+  return `${t("Region location")}: ${percent(region.x_ratio)}, ${percent(region.y_ratio)} – ${percent(right)}, ${percent(bottom)}`;
+}
+
 function renderImageEvidence(
   index: number,
   imageContent?: PostImageContent,
@@ -65,39 +80,53 @@ function renderImageEvidence(
 ) {
   const sourceImageSrc =
     sourceImage && SAFE_EMBEDDED_IMAGE_SOURCE.test(sourceImage.src) ? sourceImage.src : undefined;
+  const imageCaption = imageContent?.caption?.trim() || "";
+  const imageExtractedText = imageContent?.extracted_text?.trim() || "";
   return (
     <figure key={`post-body-image-${index}`} className="post-embedded-image">
       {sourceImageSrc ? (
-        <img src={sourceImageSrc} alt={imageContent?.caption || t("Embedded image")} />
+        <img src={sourceImageSrc} alt={imageCaption || t("Embedded image")} />
       ) : null}
-      {imageContent?.caption || !sourceImageSrc ? (
-        <figcaption>{imageContent?.caption || t("Embedded image")}</figcaption>
+      {imageCaption || !sourceImageSrc ? (
+        <figcaption>{imageCaption || t("Embedded image")}</figcaption>
       ) : null}
       {imageContent?.tags.length ? (
         <p className="post-image-tags">
           <strong>{t("Image tags")}:</strong> {imageContent.tags.join(", ")}
         </p>
       ) : null}
-      {imageContent?.extracted_text ? (
+      {imageExtractedText ? (
         <details className="post-image-text">
           <summary>{t("Text detected in image")}</summary>
-          {renderImageText(imageContent.extracted_text)}
+          {renderImageText(imageExtractedText)}
         </details>
       ) : null}
       {imageContent?.regions?.length ? (
-        <details className="post-image-regions">
+        <details className="post-image-regions" open>
           <summary>{t("Image regions")}</summary>
           <ol>
-            {imageContent.regions.map((region) => (
-              <li key={region.region_index}>
-                <span>{region.caption || region.extracted_text || t("Unknown")}</span>
-                {region.tags.length ? (
-                  <small>
-                    {t("Image tags")}: {region.tags.join(", ")}
-                  </small>
-                ) : null}
-              </li>
-            ))}
+            {imageContent.regions.map((region) => {
+              const location = formatImageRegionLocation(region);
+              const caption = region.caption?.trim() || "";
+              const extractedText = region.extracted_text?.trim() || "";
+              return (
+                <li key={region.region_index}>
+                  {caption ? <span>{caption}</span> : null}
+                  {extractedText && extractedText !== caption ? (
+                    <small>{t("Text detected in image")}: {extractedText}</small>
+                  ) : null}
+                  {!caption && !extractedText ? <span>{t("Unknown")}</span> : null}
+                  {region.tags.length ? (
+                    <small>
+                      {t("Image tags")}: {region.tags.join(", ")}
+                    </small>
+                  ) : null}
+                  {location ? (
+                    <small className="post-image-region-location">{location}</small>
+                  ) : null}
+                </li>
+              );
+            })}
           </ol>
         </details>
       ) : null}
