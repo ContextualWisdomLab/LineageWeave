@@ -973,6 +973,8 @@ def _formalize_korean_summary(summary: str) -> str:
         sentence = re.sub(r"있다$", "있습니다", sentence)
         sentence = re.sub(r"된다$", "됩니다", sentence)
         sentence = re.sub(r"한다$", "합니다", sentence)
+        sentence = re.sub(r"함$", "합니다", sentence)
+        sentence = re.sub(r"음$", "습니다", sentence)
         sentence = re.sub(r"임$", "입니다", sentence)
         if not sentence.endswith("니다"):
             sentence = f"{sentence}입니다"
@@ -1775,7 +1777,7 @@ def parse_summary_response(content: str) -> PostSummary | None:
                 continue
 
     return PostSummary(
-        korean_summary=korean_summary.strip(),
+        korean_summary=_formalize_korean_summary(korean_summary.strip()),
         key_events=tuple(key_events),
         key_event_details=tuple(key_event_details),
         event_clues=tuple(event_clues),

@@ -100,6 +100,16 @@ def test_summary_target_rejects_transport_padded_writing_state() -> None:
         asyncio.run(require_summary_target(_Connection(), "post-1"))
 
 
+def test_json_path_also_formalizes_korean_endings() -> None:
+    """The JSON parse path normalizes endings like the plain-text path."""
+    content = (
+        '{"korean_summary": "검사 일정을 확인함. 리드타임이 짧음.", "key_events": []}'
+    )
+    summary = parse_summary_response(content)
+    assert summary is not None
+    assert summary.korean_summary == "검사 일정을 확인합니다. 리드타임이 짧습니다."
+
+
 def test_parses_a_well_formed_json_object() -> None:
     content = (
         '{"korean_summary": "회의 후속 조치에 대한 요약입니다.", '
