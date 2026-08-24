@@ -532,11 +532,27 @@ or an explicit unavailable result.
   fail closed until a persisted set exactly matching the active
   channels exists (migration 0136 keys sets by `channel_set_code`, so
   the 3-channel deterministic and 4-channel llm-inclusive combinations
-  never regress each other). `DEFAULT_CHANNEL_WEIGHTS` is relabeled
-  library-demo/test-only. **Still open from this finding:** the llm
-  adjudication channel joining the weight estimate (ADR 0145 SS5 —
-  4-channel estimation run in progress against the dev corpus), and
-  re-verifying the named 3-post family's chain under the new
+  never regress each other). **Second amendment (2026-08-24, operator:
+  "임의 가중치 쓰지 않습니다"):** `DEFAULT_CHANNEL_WEIGHTS` is deleted
+  outright — `reconstruct()`/`lineage_edge_specs()` require `weights`,
+  and the demo (`make seed`, standalone server) fuses only with the
+  weights fast-mlsirm estimates from its declared generative design,
+  persisting that estimate so a fresh seed satisfies the fail-closed
+  loader; without fast-mlsirm the demo refuses and names the install as
+  the next action. The first 4-channel llm-inclusive estimation attempt
+  (400 bounded judge calls through the 18001 relay) died on a
+  `RemoteDisconnected` transport drop ~an hour in — root-caused to
+  long-silent inference requests being reaped as idle by an
+  intermediary port-forward — fixed in `lineageweave/http_client.py`
+  with a bounded dropped-before-response transport retry (3 attempts;
+  HTTP>=400 never retried). **Still open from this finding:** (a) the
+  llm adjudication channel joining the weight estimate (ADR 0145 SS5 —
+  re-run the `--include-llm` estimation with the transport retry in
+  place, then persist `channel_set_with_llm`); (b)
+  `rankweave_client.DEFAULT_CHANNEL_WEIGHTS` (Rankings RRF,
+  temporal 0.25/lexical 0.75) is the last hand-picked fusion-weight
+  surface — apply the same estimate-or-fail-closed discipline there;
+  (c) re-verifying the named 3-post family's chain under the new
   corpus-wide graph.
 - **Entity and abbreviation resolution — source-stated case fixed
   (2026-08-22), inferred case open:** an organization's former/alternate

@@ -349,12 +349,12 @@ def _post_summary_client():
 def _adjudication_client():
     """Live orchestrator client when configured; otherwise the unavailable null.
 
-    reconstruct.py's DEFAULT_CHANNEL_WEIGHTS gives this channel the most
-    weight (0.40) of the four -- it is the only one that reasons about
-    content instead of approximating it (ADR 0064) -- but nothing ever
-    passed a real client through lineage_edge_specs() to reconstruct(),
-    so every lineage reconstruction had silently run on the weaker
-    3-channel fallback since the feature was built.
+    The llm channel is the only one that reasons about content instead
+    of approximating it (ADR 0064). Its fusion weight -- like every
+    channel's -- is a fast-mlsirm estimate (ADR 0145, second
+    amendment): with this client available, delivery requires the
+    persisted 4-channel `channel_set_with_llm` estimate and fails
+    closed until one exists.
     """
     settings = load_settings()
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):

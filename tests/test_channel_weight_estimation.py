@@ -19,6 +19,8 @@ from lineageweave.channel_weight_estimation import (
     _MIN_SAMPLE_PAIRS,
     dichotomize,
     estimate_channel_weights,
+    estimate_fixture_channel_weights,
+    simulate_fixture_pair_scores,
 )
 from lineageweave.models import Record
 from lineageweave.reconstruct import DEFAULT_MIN_FUSED_SCORE
@@ -124,3 +126,41 @@ def test_recovery_a_more_discriminating_channel_earns_a_larger_weight() -> None:
     assert weights["strong"] > weights["mid"] > weights["weak"]
     assert estimate.sample_pair_count == 900
     assert estimate.estimation_method_code == "mls2plm_discrimination"
+
+
+def test_fixture_simulation_is_deterministic_and_carries_the_demo_design() -> None:
+    """Runs everywhere: the demo design must reproduce exactly so every
+    `make seed` and demo-server estimate lands on identical weights.
+    """
+    first_scores, first_groups = simulate_fixture_pair_scores()
+    second_scores, second_groups = simulate_fixture_pair_scores()
+    assert first_scores == second_scores
+    assert first_groups == second_groups
+    assert len(first_scores) == 900
+    assert set(first_scores[0]) == {"temporal", "secondary_key", "text"}
+    assert len(set(first_groups)) == 12
+
+
+@pytest.mark.skipif(
+    not _FAST_MLSIRM_AVAILABLE, reason="requires fast_mlsirm -- install from the org repo"
+)
+def test_fixture_estimate_recovers_the_demo_design_and_keeps_the_designed_tree() -> None:
+    """The demo fuses only with this estimate (ADR 0145, second
+    amendment: no hand-picked weight exists anywhere). It must recover
+    the declared follow-probability ordering AND still reconstruct the
+    designed A-100 fork the demo walkthroughs rely on.
+    """
+    from lineageweave.fixtures import sample_records
+    from lineageweave.lineage_persistence import lineage_edge_specs
+
+    estimate = estimate_fixture_channel_weights()
+    assert estimate is not None
+    weights = estimate.weights
+    assert weights["temporal"] > weights["secondary_key"] > weights["text"]
+    assert math.isclose(sum(weights.values()), 1.0, rel_tol=1e-9)
+
+    edges = lineage_edge_specs(sample_records(), weights=weights)
+    pairs = {(edge.parent_id, edge.child_id) for edge in edges}
+    assert ("rec-002", "rec-003") in pairs
+    assert ("rec-002", "rec-004") in pairs
+    assert "rec-006" not in {edge.child_id for edge in edges}

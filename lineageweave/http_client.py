@@ -15,6 +15,7 @@ from __future__ import annotations
 import http.client
 import json
 import ssl
+import time
 from urllib.parse import urlencode, urlparse
 
 import certifi
@@ -31,7 +32,47 @@ class HttpClientError(RuntimeError):
     """The remote endpoint returned a non-success status or invalid JSON."""
 
 
+# Transport failures where the server closed (or the path dropped) the
+# connection before ANY response arrived: no result was produced or
+# consumed, so one bounded retry round is safe even for provider calls.
+# Long-silent inference requests (a judge call can think for minutes)
+# are exactly what intermediary port-forwards reap as "idle", which
+# surfaced as RemoteDisconnected mid-estimation. HTTP >= 400 responses
+# are definitive and are never retried here.
+_RETRYABLE_TRANSPORT_ERRORS = (
+    http.client.RemoteDisconnected,
+    ConnectionResetError,
+    BrokenPipeError,
+    ConnectionRefusedError,
+)
+_TRANSPORT_ATTEMPTS = 3
+_TRANSPORT_BACKOFF_SECONDS = (1.0, 4.0)
+
+
 def _request(
+    method: str,
+    url: str,
+    *,
+    body: bytes | None,
+    headers: dict[str, str],
+    timeout: float,
+) -> tuple[int, bytes]:
+    """Implement the _request operation, retrying dropped-before-response transports."""
+    last_error: Exception | None = None
+    for attempt in range(_TRANSPORT_ATTEMPTS):
+        if attempt:
+            time.sleep(_TRANSPORT_BACKOFF_SECONDS[attempt - 1])
+        try:
+            return _request_once(
+                method, url, body=body, headers=headers, timeout=timeout
+            )
+        except _RETRYABLE_TRANSPORT_ERRORS as exc:
+            last_error = exc
+    assert last_error is not None
+    raise last_error
+
+
+def _request_once(
     method: str,
     url: str,
     *,
