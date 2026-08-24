@@ -102,6 +102,7 @@ from backend.app.analysis_run_start import (
     enqueue_pending_analysis_run,
 )
 from backend.app.analysis_run_worker import run_analysis_run_worker
+from backend.app.operability import log_internal_fault, log_provider_unavailable
 from backend.app.post_content_queue import (
     ensure_post_content_job,
     post_content_api_status,
@@ -2659,10 +2660,33 @@ async def ask_agent(
         }
     try:
         answer = await asyncio.to_thread(client.answer, question, sources)
-    except (HttpClientError, KeyError, OSError, ValueError) as exc:
+    except (HttpClientError, OSError) as exc:
+        # Known transport/provider failure: generic 503, no exception text
+        # in the response (the message may embed provider URLs), and a
+        # structured provider-unavailable record for availability alerting
+        # (issue #361). The old f-string leaked {exc} to callers.
+        log_provider_unavailable("global_ask", exc)
         raise HTTPException(
             status.HTTP_503_SERVICE_UNAVAILABLE,
-            f"Ask Agent is unavailable: {exc}",
+            "Ask Agent is unavailable: contextual-orchestrator did not respond",
+        ) from exc
+    except (KeyError, ValueError) as exc:
+        # Contract/schema fault: the orchestrator responded but its payload
+        # did not match the evidence-object contract. Same customer 503,
+        # but operators need the stack trace to fix the contract break.
+        log_internal_fault("global_ask", exc)
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Ask Agent is unavailable: contextual-orchestrator returned an invalid evidence object",
+        ) from exc
+    except Exception as exc:
+        # Unexpected defect. Keep the customer boundary (generic 503) and
+        # emit a full structured internal-fault diagnostic so this cannot
+        # degrade into an opaque availability incident.
+        log_internal_fault("global_ask", exc)
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Ask Agent is unavailable: an internal error prevented the answer",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
     async with pool.acquire() as conn:
