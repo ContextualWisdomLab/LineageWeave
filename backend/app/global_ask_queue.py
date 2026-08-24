@@ -47,6 +47,19 @@ FAILED = "failed"
 # trimmed stream) and are republished by the worker's recovery sweep.
 _REPUBLISH_AFTER_SECONDS = 60
 _RECOVERY_INTERVAL_SECONDS = 30.0
+# Hard ceiling on one job's answer computation. Without it a hung
+# orchestrator round-trip kept a job `running` indefinitely (observed:
+# 17+ minutes) and, before concurrent processing, stalled every job
+# behind it.
+JOB_DEADLINE_SECONDS = 600
+# A `running` row older than this is an orphan: either its process died
+# mid-job or the deadline logic predates it. With the deadline above, no
+# legitimate job stays running this long, so recovery re-queues it.
+_ORPHAN_RUNNING_AFTER_SECONDS = JOB_DEADLINE_SECONDS + 300
+# How many Ask jobs one worker answers at once. Answers are minutes-long
+# LLM round-trips, so serial consumption would head-of-line block every
+# later question behind the slowest one.
+_WORKER_CONCURRENCY = 4
 
 _logger = logging.getLogger(__name__)
 
@@ -193,13 +206,17 @@ async def process_global_ask_job(
             raise ConnectionError(
                 "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY"
             )
-        payload = await compute_global_ask_answer(
-            pool,
-            question_text=str(row["question_text"]),
-            corporate_entity_ids=entity_ids,
-            chat_client=chat_client,
+        payload = await asyncio.wait_for(
+            compute_global_ask_answer(
+                pool,
+                question_text=str(row["question_text"]),
+                corporate_entity_ids=entity_ids,
+                chat_client=chat_client,
+            ),
+            timeout=JOB_DEADLINE_SECONDS,
         )
     except (
+        TimeoutError,
         HttpClientError,
         ConnectionError,
         PermissionError,
@@ -208,6 +225,7 @@ async def process_global_ask_job(
         ValueError,
     ) as exc:
         _logger.exception("global ask job failed for job_id=%s", job_id)
+        detail = str(exc) or f"job exceeded the {JOB_DEADLINE_SECONDS}s deadline"
         async with pool.acquire() as conn:
             await conn.execute(
                 "update global_ask_job set job_status_code = $2,"
@@ -215,7 +233,7 @@ async def process_global_ask_job(
                 " where global_ask_job_id = $1",
                 job_id,
                 FAILED,
-                str(exc)[:1000],
+                detail[:1000],
             )
         return
     async with pool.acquire() as conn:
@@ -239,8 +257,24 @@ def _to_json(payload: dict[str, Any]) -> str:
 async def republish_queued_global_ask_jobs(
     client: redis.Redis, pool: asyncpg.Pool
 ) -> None:
-    """Re-wake jobs whose stream entry was lost (crash/trim between steps)."""
+    """Re-wake lost jobs: stale ``queued`` rows and orphaned ``running`` rows.
+
+    A ``queued`` row older than the republish window lost its stream
+    entry (crash or trim between insert and XADD). A ``running`` row
+    older than the orphan window belongs to a worker that died mid-job —
+    the per-job deadline guarantees a live worker settles sooner — so it
+    is flipped back to ``queued`` and re-woken for at-least-once
+    delivery.
+    """
     async with pool.acquire() as conn:
+        await conn.execute(
+            "update global_ask_job set job_status_code = $1, updated_at = now()"
+            " where job_status_code = $2"
+            "   and updated_at < now() - make_interval(secs => $3)",
+            QUEUED,
+            RUNNING,
+            _ORPHAN_RUNNING_AFTER_SECONDS,
+        )
         rows = await conn.fetch(
             "select global_ask_job_id from global_ask_job"
             " where job_status_code = $1"
@@ -261,16 +295,52 @@ async def consume_global_ask_stream_once(
     *,
     last_id: str,
     chat_factory: Callable[[], PostChatClient],
+    limiter: asyncio.Semaphore | None = None,
+    tasks: set[asyncio.Task] | None = None,
 ) -> str:
-    """Process one batch of Ask wake-ups and return the new stream cursor."""
+    """Dispatch one batch of Ask wake-ups and return the new stream cursor.
+
+    Jobs launch as bounded concurrent tasks rather than being awaited
+    inline: an answer is a minutes-long LLM round-trip, and serial
+    consumption head-of-line blocked every question behind the slowest
+    one (observed live). The queued->running claim inside
+    ``process_global_ask_job`` keeps duplicate wake-ups no-ops, so
+    concurrent dispatch preserves at-least-once semantics. Without a
+    ``limiter`` (direct test calls), jobs are processed inline.
+    """
     batches = await client.xread({GLOBAL_ASK_STREAM_KEY: last_id}, count=10, block=1000)
     for _stream_name, entries in batches:
         for entry_id, fields in entries:
             job_id = str(fields.get("global_ask_job_id", "")).strip()
             if job_id:
-                await process_global_ask_job(pool, job_id=job_id, chat_factory=chat_factory)
+                if limiter is None:
+                    await process_global_ask_job(pool, job_id=job_id, chat_factory=chat_factory)
+                else:
+                    await limiter.acquire()
+                    task = asyncio.create_task(
+                        _process_and_release(
+                            pool, job_id=job_id, chat_factory=chat_factory, limiter=limiter
+                        )
+                    )
+                    if tasks is not None:
+                        tasks.add(task)
+                        task.add_done_callback(tasks.discard)
             last_id = str(entry_id)
     return last_id
+
+
+async def _process_and_release(
+    pool: asyncpg.Pool,
+    *,
+    job_id: str,
+    chat_factory: Callable[[], PostChatClient],
+    limiter: asyncio.Semaphore,
+) -> None:
+    """Run one dispatched job and free its concurrency slot afterwards."""
+    try:
+        await process_global_ask_job(pool, job_id=job_id, chat_factory=chat_factory)
+    finally:
+        limiter.release()
 
 
 async def _stream_tail(client: redis.Redis) -> str:
@@ -292,14 +362,26 @@ async def run_global_ask_worker(
     """Run the at-least-once Ask consumer with periodic queued-row recovery."""
     last_id = await _stream_tail(client)
     last_recovery = 0.0
-    while True:
-        now = time.monotonic()
-        if now - last_recovery >= _RECOVERY_INTERVAL_SECONDS:
-            await republish_queued_global_ask_jobs(client, pool)
-            last_recovery = now
-        last_id = await consume_global_ask_stream_once(
-            client,
-            pool,
-            last_id=last_id,
-            chat_factory=chat_factory,
-        )
+    limiter = asyncio.Semaphore(_WORKER_CONCURRENCY)
+    tasks: set[asyncio.Task] = set()
+    try:
+        while True:
+            now = time.monotonic()
+            if now - last_recovery >= _RECOVERY_INTERVAL_SECONDS:
+                await republish_queued_global_ask_jobs(client, pool)
+                last_recovery = now
+            last_id = await consume_global_ask_stream_once(
+                client,
+                pool,
+                last_id=last_id,
+                chat_factory=chat_factory,
+                limiter=limiter,
+                tasks=tasks,
+            )
+    finally:
+        # Shutdown: cancel in-flight jobs; recovery re-queues their
+        # orphaned `running` rows on the next process start.
+        for task in tasks:
+            task.cancel()
+        if tasks:
+            await asyncio.gather(*tasks, return_exceptions=True)

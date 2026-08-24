@@ -16,13 +16,18 @@ import { loginAsDemoAnalyst } from "./support/auth.ts";
  * is shared across every branch.
  */
 // A live Ask answer is an asynchronous queued job whose LLM round-trip can
-// take minutes under shared-gateway load (158 s measured); the frontend
-// polls until the job settles, so every "answer arrived" expectation gets a
-// deadline sized to that reality rather than to a local mock.
-const ASK_ANSWER_TIMEOUT_MS = 240_000;
+// take minutes under shared-gateway load; with this suite's own tests
+// polling concurrently against one orchestrator, a settle was measured at
+// 314 s. Every "answer arrived" expectation gets a deadline sized to that
+// contended reality rather than to a local mock.
+const ASK_ANSWER_TIMEOUT_MS = 480_000;
 
 test.beforeEach(async ({ page }) => {
-  test.setTimeout(ASK_ANSWER_TIMEOUT_MS + 60_000);
+  // The per-test budget covers login + navigation too, which on a loaded
+  // host right after a container rebuild has taken minutes by itself —
+  // so it is the answer deadline plus generous setup slack, not a sum of
+  // ideal-case steps.
+  test.setTimeout(ASK_ANSWER_TIMEOUT_MS + 420_000);
   await loginAsDemoAnalyst(page);
   await page.locator(".language-switcher select").selectOption("en");
   await page.getByRole("button", { name: "Ask Agent" }).click();
@@ -33,7 +38,7 @@ test("answers a relative-time-scoped question and cites at least one post", asyn
   // 2026-08 clock resolves to that month, so the temporal filter keeps them.
   await page.getByRole("textbox", { name: "Ask a question" }).fill("7개월 전에 무슨 일이 있었나요?");
   await page.getByRole("button", { name: "Ask", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Answer" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Answer" })).toBeVisible({ timeout: ASK_ANSWER_TIMEOUT_MS });
   await expect(page.getByRole("heading", { name: "Cited posts" })).toBeVisible({ timeout: ASK_ANSWER_TIMEOUT_MS });
 });
 
