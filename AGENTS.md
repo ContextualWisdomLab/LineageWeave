@@ -201,7 +201,10 @@ persist to `report_leftover_pair` with signed residual `R`, observed
 `Y`, and expected `E[Y|θ, item]` so `R = Y − E` remains auditable,
 plus leftover-map rank so rank 0 is not read as structure. They sit
 above the member list so a click opens that post with the leftover
-criterion current in Post quality.
+criterion current in Post quality. Leftover-map axis share
+(ADR 0148) is Gabriel inertia of residual SVD axes 1 and 2 and persists
+to `report_leftover_map_axis`. Rank-0 residuals emit two zero-share
+axes; the shares are report-level and are not a leftover score.
 
 `frontend/` has its own toolchain (Node pinned via `frontend/mise.toml`,
 pnpm via Corepack -- do not add a second Node package manager or a

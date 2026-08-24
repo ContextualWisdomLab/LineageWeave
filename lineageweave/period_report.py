@@ -16,13 +16,14 @@ information at the group's mean θ (Lord, 1980 max-info CAT rule) via
 ``fast_mlsirm.information_polytomous`` -- Samejima (1969) GRM /
 Muraki (1993) GPCM, computed in Rust. A missing bank is not invented.
 
-Leftover post–criterion pairs (ADR 0017) come from the residual
+Leftover post–criterion pairs (ADR 0017 / 0048) come from the residual
 interaction after those IRT main effects: ``R = Y − E[Y|θ, item]``.
 A Gabriel biplot of ``R`` supplies person and item leftover-map
 positions. Closest / farthest pairs are the min / max Euclidean
-distances on that map (Jeon et al., 2021, eq. 3). ``fast-mlsirm``
-has no leftover-pair API; this module does not invent a second IRT
-fit and does not fork LSIRM.
+distances on that map (Jeon et al., 2021, eq. 3). Leftover-map axis
+share is Gabriel inertia ``σ_k² / Σ_j σ_j²`` of residual SVD axes 1
+and 2 (ADR 0148). ``fast-mlsirm`` has no leftover-pair API; this
+module does not invent a second IRT fit and does not fork LSIRM.
 
 This module is pure compute. Persistence lives in
 ``backend/app/report_ingestion.py``. TEPP is not used here; temporal
@@ -43,7 +44,8 @@ from fast_mlsirm import (
     validate_irt_response_matrix,
 )
 
-from .leftover_pairs import LeftoverPair, leftover_pairs_from_residual
+from .leftover_pairs import LeftoverMapAxis, LeftoverPair, leftover_map_from_residual
+from .leftover_pairs import leftover_pairs_from_residual as leftover_pairs_from_residual
 from .leftover_pairs import PAIR_KIND_CLOSEST as PAIR_KIND_CLOSEST
 from .leftover_pairs import PAIR_KIND_FARTHEST as PAIR_KIND_FARTHEST
 from .post_evaluation import CRITERION_CODES, IRT_CATEGORY_COUNT
@@ -111,6 +113,7 @@ class PeriodReport:
     delta_mean_theta: float | None = None
     selected_items: tuple[SelectedItem, ...] = ()
     leftover_pairs: tuple[LeftoverPair, ...] = ()
+    leftover_map_axes: tuple[LeftoverMapAxis, ...] = ()
 
 
 def _sigmoid(value: np.ndarray) -> np.ndarray:
@@ -243,6 +246,20 @@ def expected_category_matrix(matrix: np.ndarray, probs: np.ndarray) -> np.ndarra
     return np.where(np.isnan(matrix), np.nan, expected)
 
 
+def leftover_map_for_fit(
+    post_ids: list[str],
+    item_codes: tuple[str, ...],
+    matrix: np.ndarray,
+    model: str,
+    theta: np.ndarray,
+    fit: PolytomousFit,
+) -> tuple[tuple[LeftoverPair, ...], tuple[LeftoverMapAxis, ...]]:
+    """Leftover pairs and leftover-map axis share from fitted GRM/GPCM."""
+    probs = _category_probabilities(model, theta, fit)
+    expected = expected_category_matrix(matrix, probs)
+    return leftover_map_from_residual(post_ids, item_codes, matrix, expected)
+
+
 def leftover_pairs_for_fit(
     post_ids: list[str],
     item_codes: tuple[str, ...],
@@ -252,9 +269,8 @@ def leftover_pairs_for_fit(
     fit: PolytomousFit,
 ) -> tuple[LeftoverPair, ...]:
     """Leftover pairs from the already-fitted GRM/GPCM main effects."""
-    probs = _category_probabilities(model, theta, fit)
-    expected = expected_category_matrix(matrix, probs)
-    return leftover_pairs_from_residual(post_ids, item_codes, matrix, expected)
+    pairs, _axes = leftover_map_for_fit(post_ids, item_codes, matrix, model, theta, fit)
+    return pairs
 
 
 def _member_scores(post_ids: list[str], scores: dict[str, np.ndarray]) -> tuple[MemberScore, ...]:
@@ -306,6 +322,9 @@ def calibrate_period_report(
     theta = np.asarray(scores["theta_eap"], dtype=np.float64)
     mean_theta = float(theta.mean())
     item_bank = item_bank_from_fit(fit, item_codes, source_period_code)
+    leftover_pairs, leftover_map_axes = leftover_map_for_fit(
+        post_ids, item_codes, matrix, selected, theta, fit
+    )
     return PeriodReport(
         selected_model=selected,
         mean_theta=mean_theta,
@@ -319,7 +338,8 @@ def calibrate_period_report(
         item_bank=item_bank,
         link_method=LINK_METHOD_FREE,
         selected_items=rank_items_by_information(item_bank, mean_theta),
-        leftover_pairs=leftover_pairs_for_fit(post_ids, item_codes, matrix, selected, theta, fit),
+        leftover_pairs=leftover_pairs,
+        leftover_map_axes=leftover_map_axes,
     )
 
 
@@ -348,6 +368,9 @@ def score_period_on_bank(
         item_type="polytomous",
         response_process="cumulative",
     )
+    leftover_pairs, leftover_map_axes = leftover_map_for_fit(
+        post_ids, item_bank.item_codes, matrix, item_bank.model, theta, fit
+    )
     return PeriodReport(
         selected_model=item_bank.model,
         mean_theta=mean_theta,
@@ -367,9 +390,8 @@ def score_period_on_bank(
             else mean_theta - float(previous_mean_theta)
         ),
         selected_items=rank_items_by_information(item_bank, mean_theta),
-        leftover_pairs=leftover_pairs_for_fit(
-            post_ids, item_bank.item_codes, matrix, item_bank.model, theta, fit
-        ),
+        leftover_pairs=leftover_pairs,
+        leftover_map_axes=leftover_map_axes,
     )
 
 
