@@ -2527,7 +2527,7 @@ function analysisRunCorpusHint(run: AnalysisRun): string | null {
   }
 }
 
-/** Git-style prefix. The full digest stays on `title` for verification. */
+/** Git-style prefix. The full digest is behind a `<details>` disclosure for verification. */
 const ANALYSIS_RUN_DIGEST_PREFIX_LENGTH = 12;
 
 function analysisRunDigestPrefix(digest: string): string {
@@ -2606,17 +2606,20 @@ function AnalysisRunReproducibilityDigests({
   }
   return (
     <div role="group" aria-label="Analysis run reproducibility digests">
-      <p className="post-meta">
+      <div className="post-meta">
         <span className="visually-hidden">
-          Hover a prefix to read the full digest for verification.{" "}
+          Open a prefix to read the full digest for verification.{" "}
         </span>
         {parts.map((part, index) => (
           <span key={part.label}>
             {index > 0 ? " · " : null}
-            <span title={part.digest}>{`${part.label} ${analysisRunDigestPrefix(part.digest)}`}</span>
+            <details className="analysis-run-digest">
+              <summary>{`${part.label} ${analysisRunDigestPrefix(part.digest)}`}</summary>
+              {part.digest}
+            </details>
           </span>
         ))}
-      </p>
+      </div>
     </div>
   );
 }

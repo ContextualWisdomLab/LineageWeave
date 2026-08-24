@@ -2658,17 +2658,27 @@ describe("App, authenticated", () => {
     expect(screen.getByText(/Cutoff 2026-01-12/)).toBeInTheDocument();
     expect(screen.getByText(/Requested 2026-01-12/)).toBeInTheDocument();
     const digests = screen.getByLabelText("Analysis run reproducibility digests");
-    expect(digests).toHaveTextContent("Hover a prefix to read the full digest for verification.");
+    expect(digests).toHaveTextContent("Open a prefix to read the full digest for verification.");
     expect(digests).toHaveTextContent("Code abcdef012345");
     expect(digests).toHaveTextContent("Config 0123456789ab");
-    expect(digests).not.toHaveTextContent("abcdef0123456789deadbeefcafebabe");
-    expect(digests).not.toHaveTextContent(
+    // The disclosures are native <details>/<summary> -- no tabIndex/role/onClick hack --
+    // so they are keyboard- and touch-operable with zero JS, unlike a hover-only title tooltip.
+    const codeDisclosure = screen.getByText("Code abcdef012345").closest("details");
+    const configDisclosure = screen.getByText("Config 0123456789ab").closest("details");
+    expect(codeDisclosure).not.toHaveAttribute("open");
+    expect(configDisclosure).not.toHaveAttribute("open");
+    expect(screen.getByText("Code abcdef012345").tagName).toBe("SUMMARY");
+    expect(screen.getByText("Code abcdef012345")).not.toHaveAttribute("tabIndex");
+    expect(screen.getByText("Code abcdef012345")).not.toHaveAttribute("role");
+    await userEvent.click(screen.getByText("Code abcdef012345"));
+    expect(codeDisclosure).toHaveAttribute("open");
+    expect(codeDisclosure).toHaveTextContent("abcdef0123456789deadbeefcafebabe");
+    expect(configDisclosure).not.toHaveAttribute("open");
+    await userEvent.click(screen.getByText("Config 0123456789ab"));
+    expect(configDisclosure).toHaveAttribute("open");
+    expect(configDisclosure).toHaveTextContent(
       "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     );
-    expect(screen.getByTitle("abcdef0123456789deadbeefcafebabe")).toHaveTextContent("Code abcdef012345");
-    expect(
-      screen.getByTitle("0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"),
-    ).toHaveTextContent("Config 0123456789ab");
     const history = screen.getByRole("list", { name: "Analysis run status history" });
     expect(history).toHaveTextContent("Pending 2026-01-12 12:31");
     expect(history).toHaveTextContent("Running 2026-01-12 12:32");
@@ -3305,7 +3315,11 @@ describe("App, authenticated", () => {
     );
     const digests = screen.getByLabelText("Analysis run reproducibility digests");
     expect(digests).toHaveTextContent("Result aaaaaaaaaaaa");
-    expect(screen.getByTitle("aa".repeat(32))).toHaveTextContent("Result aaaaaaaaaaaa");
+    const resultDisclosure = screen.getByText("Result aaaaaaaaaaaa").closest("details");
+    expect(resultDisclosure).not.toHaveAttribute("open");
+    await userEvent.click(screen.getByText("Result aaaaaaaaaaaa"));
+    expect(resultDisclosure).toHaveAttribute("open");
+    expect(resultDisclosure).toHaveTextContent("aa".repeat(32));
     const startCall = fetchMock.mock.calls.find((call) =>
       String(call[0]).endsWith("/api/analysis-runs/run-demo-lineage-pending/start"),
     );

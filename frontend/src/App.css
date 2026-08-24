@@ -327,6 +327,21 @@
   font-size: 0.85rem;
 }
 
+/* Reproducibility digest prefixes read inline in the '·'-separated post-meta line. */
+.analysis-run-digest {
+  display: inline;
+}
+
+.analysis-run-digest > summary {
+  display: inline;
+  cursor: pointer;
+  list-style: none;
+}
+
+.analysis-run-digest > summary::-webkit-details-marker {
+  display: none;
+}
+
 .visually-hidden {
   position: absolute;
   width: 1px;
