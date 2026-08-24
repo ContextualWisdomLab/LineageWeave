@@ -979,9 +979,31 @@ or an explicit unavailable result.
   log-injection vector this design does not need to accept); a
   `logging.LoggerAdapter` subclass wraps the module's one `_logger` so
   every one of the 10 call sites above picks up the active request ID
-  automatically, without a per-site change. Not yet done: OpenTelemetry
-  metrics distinguishing known-provider-unavailable from internal-defect,
-  and bounded-cardinality alerting -- those still need the new-dependency
+  automatically, without a per-site change.
+
+  **Related finding, not fixed here (2026-08-24):** verifying the change
+  against the full suite surfaced a pre-existing flake in
+  `backend/tests/test_api.py`'s own token handling, unrelated to this
+  correlation-ID work. `demo_analyst_token` is a `scope="module"`
+  fixture (325 call sites across 378 tests in this one 6,228-line file)
+  that mints one real Keycloak access token for the whole module; the
+  realm's `accessTokenLifespan` (`docker/keycloak/realm-export.json`) is
+  900s. A full-module run that takes longer than that -- observed at
+  1435.9s (11 failures, all "invalid access token" or an auth-before-
+  permission 401) under today's heavy multi-session machine load, versus
+  43.5s for 4 of the same tests re-run in isolation with a fresh token --
+  fails every test that happens to execute after the 15-minute mark, not
+  because of what those tests exercise. Not fixed in this checkpoint:
+  the fixture is shared by nearly the entire file and any change (scope,
+  a lazy-refresh wrapper) needs its own careful design and coordination
+  given how many concurrent sessions touch this file; a quick reduction
+  to per-function scope would also add one Keycloak round trip per test.
+  Flagging so a future "test X is flaky" report against this file checks
+  elapsed wall-clock time before assuming a code regression.
+
+  Not yet done on the diagnosability gap itself: OpenTelemetry metrics
+  distinguishing known-provider-unavailable from internal-defect, and
+  bounded-cardinality alerting -- those still need the new-dependency
   decision this checkpoint didn't force through.
 - **Per-post Ask citation rollback — closed (2026-08-25, issue #362
   sibling gap):** `post_ask_history.py` (ADR 0136) was scaffolded from
