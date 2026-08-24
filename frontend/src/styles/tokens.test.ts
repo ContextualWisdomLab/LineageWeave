@@ -53,6 +53,19 @@ const RETIRED_LIGHT_ONLY_HEX = [
   "#721c24",
 ];
 
+// Secondary <details>/<summary> disclosure toggles (advanced tools,
+// evidence-extraction actions, related-post/hint expanders) must meet the
+// same --size-control-min touch target as primary controls like
+// .language-switcher select and .lineage-entity-picker select (ADR-less
+// touch_interaction gap fix).
+const DISCLOSURE_TOGGLE_SELECTORS = [
+  ".advanced-review-tools summary",
+  ".semantic-provenance summary",
+  ".operator-action-tools summary",
+  ".keyman-source-context summary",
+  ".hint-disclosure summary",
+];
+
 describe("design tokens", () => {
   it("defines every badge/accent token in both the light and dark blocks", () => {
     for (const token of BADGE_AND_ACCENT_TOKENS) {
@@ -75,5 +88,38 @@ describe("design tokens", () => {
     for (const token of BADGE_AND_ACCENT_TOKENS) {
       expect(appCss, `App.css never references var(${token})`).toContain(`var(${token})`);
     }
+  });
+
+  it("gives .citation-chip a real 24px minimum touch target", () => {
+    const citationChipBlock = appCss.match(/\.citation-chip\s*\{[^}]*\}/)?.[0] ?? "";
+    expect(citationChipBlock, ".citation-chip rule not found in App.css").not.toBe("");
+    expect(citationChipBlock).toContain("min-height: var(--size-control-min)");
+    // The chip is a bare <button>; without flex centering its text sits at
+    // the top of the box once min-height grows past the line height.
+    expect(citationChipBlock).toContain("display: inline-flex");
+    expect(citationChipBlock).toContain("align-items: center");
+  });
+});
+
+describe("secondary disclosure toggle touch targets", () => {
+  it("declares every hint/tools <summary> selector", () => {
+    for (const selector of DISCLOSURE_TOGGLE_SELECTORS) {
+      expect(appCss, `${selector} missing from App.css`).toContain(selector);
+    }
+  });
+
+  it("sizes those selectors with the shared --size-control-min token, not a bespoke value", () => {
+    const ruleStart = appCss.indexOf(DISCLOSURE_TOGGLE_SELECTORS[0]);
+    expect(ruleStart, `${DISCLOSURE_TOGGLE_SELECTORS[0]} not found in App.css`).toBeGreaterThanOrEqual(0);
+    const ruleEnd = appCss.indexOf("}", ruleStart);
+    const rule = appCss.slice(ruleStart, ruleEnd);
+
+    for (const selector of DISCLOSURE_TOGGLE_SELECTORS) {
+      expect(rule, `${selector} not part of the shared touch-target rule`).toContain(selector);
+    }
+    expect(rule).toContain("min-height: var(--size-control-min)");
+    // A hit target sized only by min-height is still text-width-only on the
+    // inline axis -- the rule needs horizontal padding too.
+    expect(rule).toMatch(/padding:\s*\S+\s+0\.\d+rem\s*;/);
   });
 });
