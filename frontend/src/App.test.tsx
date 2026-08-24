@@ -966,6 +966,18 @@ describe("App, authenticated", () => {
                     leftover_map_rank: 1,
                   },
                 ],
+                leftover_map_axes: [
+                  {
+                    axis_index: 1,
+                    leftover_singular_value: 1.84,
+                    leftover_share: 0.82,
+                  },
+                  {
+                    axis_index: 2,
+                    leftover_singular_value: 0.86,
+                    leftover_share: 0.18,
+                  },
+                ],
                 members: [
                   {
                     post_id: "post-1",
@@ -3559,6 +3571,11 @@ describe("App, authenticated", () => {
     expect(screen.getByText(/TEST-PU-REPORT/)).toBeInTheDocument();
     expect(screen.getAllByText("shared metric").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/CAT: sales-lead I=0\.70/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/leftover axis 1 82%/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/leftover axis 2 18%/).length).toBeGreaterThan(0);
+    expect(screen.getByLabelText("Leftover-map axis share")).toHaveTextContent(
+      "Open a leftover pair to read the post–criterion cell",
+    );
     expect(screen.getByRole("button", { name: /open report period 2026-W03/i })).toHaveTextContent(
       "vs 2026-W02: +0.92",
     );
