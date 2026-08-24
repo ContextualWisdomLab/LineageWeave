@@ -27,7 +27,10 @@ beforeEach(() => {
   // Post navigation now pushes real history entries (browser back should
   // close the popup); reset between tests so one test's opened post doesn't
   // leak into the next test's initial render via a stale `?post=` query.
-  window.history.replaceState({}, "", "/");
+  // This file exercises the authenticated Board workspace by default (`/`
+  // itself now lands on the Dashboard, ADR 0145) — tests that specifically
+  // cover the Dashboard live in Dashboard.test.tsx.
+  window.history.replaceState({}, "", "/?workspace=board");
 });
 
 afterEach(() => {
@@ -93,6 +96,7 @@ describe("App, unauthenticated", () => {
   });
 
   it("offers a new login when authentication returns no access token", async () => {
+    window.history.replaceState({}, "", "/");
     mockAuth = {
       ...mockAuth,
       isAuthenticated: true,
@@ -4415,7 +4419,7 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /open commitment for: public post/i }));
 
     expect(await screen.findByRole("dialog", { name: "Public post" })).toBeInTheDocument();
-    expect(new URL(window.location.href).searchParams.has("workspace")).toBe(false);
+    expect(new URL(window.location.href).searchParams.get("workspace")).toBe("board");
   });
 
   it("retries calendar loading failures", async () => {
@@ -5575,7 +5579,7 @@ describe("App, authenticated", () => {
     const board = await screen.findByRole("region", { name: "Board" });
     const advanced = await within(board).findByText("Advanced review tools");
     expect(advanced.closest("details")).toHaveAttribute("open");
-    expect(new URL(window.location.href).searchParams.has("workspace")).toBe(false);
+    expect(new URL(window.location.href).searchParams.get("workspace")).toBe("board");
   });
 
   it("discloses every authorized corporation and business unit code", async () => {
@@ -5688,7 +5692,7 @@ describe("App, authenticated", () => {
     window.history.replaceState({}, "", "/?workspace=admin");
     render(<App />);
 
-    expect(await screen.findByRole("region", { name: "Board" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Important posts and projects" })).toBeInTheDocument();
     await waitFor(() => expect(new URL(window.location.href).searchParams.has("workspace")).toBe(false));
     expect(screen.queryByText("Admin endpoint catalog")).not.toBeInTheDocument();
   });

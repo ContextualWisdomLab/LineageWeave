@@ -126,6 +126,7 @@ import { productExceptionCopy } from "./productExceptionCopy";
 import { SourceResearchPanel } from "./components/SourceResearchPanel";
 import { isGenericTeamActor } from "./components/roleEvidenceUtils";
 import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
+import { Dashboard } from "./components/Dashboard";
 import { MenuIcon, CloseIcon, SendIcon } from "./components/icons";
 import { LineageDag } from "./LineageDag";
 import { KnowledgeGraphView } from "./KnowledgeGraph";
@@ -6083,6 +6084,7 @@ export function AskAgentPanel({
 
 const WORKSPACE_QUERY_PARAM = "workspace";
 const WORKSPACE_DESTINATIONS: readonly WorkspaceDestination[] = [
+  "dashboard",
   "board",
   "customers",
   "calendar",
@@ -6096,7 +6098,7 @@ function workspaceDestinationFromLocation(
   const candidate = new URLSearchParams(location.search).get(WORKSPACE_QUERY_PARAM);
   return WORKSPACE_DESTINATIONS.includes(candidate as WorkspaceDestination)
     ? (candidate as WorkspaceDestination)
-    : "board";
+    : "dashboard";
 }
 
 function updateWorkspaceLocation(
@@ -6105,7 +6107,7 @@ function updateWorkspaceLocation(
 ): void {
   if (typeof window === "undefined") return;
   const url = new URL(window.location.href);
-  if (destination === "board") {
+  if (destination === "dashboard") {
     url.searchParams.delete(WORKSPACE_QUERY_PARAM);
   } else {
     url.searchParams.set(WORKSPACE_QUERY_PARAM, destination);
@@ -6159,7 +6161,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   const testOnlyLabPanels = import.meta.env.MODE === "test" && showLabPanels;
   const accessToken = auth.user?.access_token;
   const canAdmin = Boolean(currentUser?.permission_codes.includes("post_admin"));
-  const activeDestination = destination === "admin" && !canAdmin ? "board" : destination;
+  const activeDestination = destination === "admin" && !canAdmin ? "dashboard" : destination;
   const changeDestination = (nextDestination: WorkspaceDestination) => {
     if (nextDestination === "admin" && !canAdmin) return;
     setDestination(nextDestination);
@@ -6191,8 +6193,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
 
   useEffect(() => {
     if (currentUser && destination === "admin" && !canAdmin) {
-      setDestination("board");
-      updateWorkspaceLocation("board", "replace");
+      setDestination("dashboard");
+      updateWorkspaceLocation("dashboard", "replace");
     }
   }, [canAdmin, currentUser, destination]);
 
@@ -6457,6 +6459,15 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           </aside>
       </dialog>
       <main id="main-content" tabIndex={-1}>
+        {activeDestination === "dashboard" ? (
+          <Dashboard
+            accessToken={accessToken}
+            onSelectPost={(postId) => {
+              setPostToOpen(postId);
+              changeDestination("board");
+            }}
+          />
+        ) : null}
         {activeDestination === "board" ? (
           <PostList
             accessToken={accessToken}

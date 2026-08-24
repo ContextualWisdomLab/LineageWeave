@@ -19,6 +19,24 @@ const STORAGE_KEY = "lineageweave.locale";
 
 const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
   ko: {
+    Dashboard: "대시보드",
+    "Important posts and projects": "중요한 글과 프로젝트",
+    "Ranked by fast-mlsirm calibration for {period}. No score on this page is invented.":
+      "{period} 기준 fast-mlsirm 보정 점수로 정렬했습니다. 이 화면의 어떤 점수도 임의로 만들지 않습니다.",
+    "Ranking source: fast-mlsirm calibration where available, RankWeave fusion otherwise. No score on this page is invented.":
+      "정렬 기준: 가능한 경우 fast-mlsirm 보정 점수, 없으면 RankWeave 융합 순위. 이 화면의 어떤 점수도 임의로 만들지 않습니다.",
+    "Important projects": "중요한 프로젝트",
+    "Loading calibrated projects...": "보정된 프로젝트를 불러오는 중...",
+    "No calibrated project reports yet. Ask an administrator to run a period-report rebuild.":
+      "아직 보정된 프로젝트 리포트가 없습니다. 관리자에게 기간 리포트 재계산을 요청하세요.",
+    "Open project: {label}": "프로젝트 열기: {label}",
+    "fast-mlsirm θ {theta}": "fast-mlsirm θ {theta}",
+    "{count} posts": "글 {count}건",
+    "Important posts": "중요한 글",
+    "No posts have been evaluated yet. Evaluate a post to surface it here.":
+      "아직 평가된 글이 없습니다. 글을 평가하면 여기에 표시됩니다.",
+    "Open post: {title}": "글 열기: {title}",
+    "RankWeave fusion": "RankWeave 융합",
     "Unknown": "알 수 없음",
     Language: "언어",
     unresolved: "미해결",
@@ -631,6 +649,24 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "이 R&R 행은 원문 구절 하나입니다. 직함과 관계 유형이 따로 저장되기 전에는 카탈로그 관계로 보지 마세요.",
   },
   zh: {
+    Dashboard: "仪表盘",
+    "Important posts and projects": "重要文章与项目",
+    "Ranked by fast-mlsirm calibration for {period}. No score on this page is invented.":
+      "按 {period} 的 fast-mlsirm 校准分数排序。本页面的任何分数都不是凭空生成的。",
+    "Ranking source: fast-mlsirm calibration where available, RankWeave fusion otherwise. No score on this page is invented.":
+      "排序依据：有数据时使用 fast-mlsirm 校准分数,否则使用 RankWeave 融合排名。本页面的任何分数都不是凭空生成的。",
+    "Important projects": "重要项目",
+    "Loading calibrated projects...": "正在加载已校准的项目...",
+    "No calibrated project reports yet. Ask an administrator to run a period-report rebuild.":
+      "尚无已校准的项目报告。请管理员重新生成周期报告。",
+    "Open project: {label}": "打开项目：{label}",
+    "fast-mlsirm θ {theta}": "fast-mlsirm θ {theta}",
+    "{count} posts": "{count} 篇文章",
+    "Important posts": "重要文章",
+    "No posts have been evaluated yet. Evaluate a post to surface it here.":
+      "尚无已评估的文章。评估文章后将显示在此处。",
+    "Open post: {title}": "打开文章：{title}",
+    "RankWeave fusion": "RankWeave 融合",
     "Unknown": "未知",
     Language: "语言",
     unresolved: "未解决",
@@ -1221,6 +1257,24 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     routes: "个",
   },
   ja: {
+    Dashboard: "ダッシュボード",
+    "Important posts and projects": "重要な投稿とプロジェクト",
+    "Ranked by fast-mlsirm calibration for {period}. No score on this page is invented.":
+      "{period} の fast-mlsirm 較正スコアで並べ替えています。このページのスコアは一切考案されていません。",
+    "Ranking source: fast-mlsirm calibration where available, RankWeave fusion otherwise. No score on this page is invented.":
+      "並べ替え基準：可能な場合は fast-mlsirm 較正スコア、なければ RankWeave 融合ランキング。このページのスコアは一切考案されていません。",
+    "Important projects": "重要なプロジェクト",
+    "Loading calibrated projects...": "較正済みプロジェクトを読み込み中...",
+    "No calibrated project reports yet. Ask an administrator to run a period-report rebuild.":
+      "較正済みのプロジェクトレポートはまだありません。管理者に期間レポートの再計算を依頼してください。",
+    "Open project: {label}": "プロジェクトを開く: {label}",
+    "fast-mlsirm θ {theta}": "fast-mlsirm θ {theta}",
+    "{count} posts": "{count} 件の投稿",
+    "Important posts": "重要な投稿",
+    "No posts have been evaluated yet. Evaluate a post to surface it here.":
+      "評価済みの投稿はまだありません。投稿を評価するとここに表示されます。",
+    "Open post: {title}": "投稿を開く: {title}",
+    "RankWeave fusion": "RankWeave 融合",
     "Unknown": "不明",
     "5W1H": "5W1H",
     Who: "誰が",
@@ -1811,6 +1865,24 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     routes: "件",
   },
   vi: {
+    Dashboard: "Bảng điều khiển",
+    "Important posts and projects": "Bài viết và dự án quan trọng",
+    "Ranked by fast-mlsirm calibration for {period}. No score on this page is invented.":
+      "Xếp hạng theo điểm hiệu chuẩn fast-mlsirm cho {period}. Không có điểm nào trên trang này được bịa đặt.",
+    "Ranking source: fast-mlsirm calibration where available, RankWeave fusion otherwise. No score on this page is invented.":
+      "Nguồn xếp hạng: điểm hiệu chuẩn fast-mlsirm khi có sẵn, nếu không thì dùng xếp hạng hợp nhất RankWeave. Không có điểm nào trên trang này được bịa đặt.",
+    "Important projects": "Dự án quan trọng",
+    "Loading calibrated projects...": "Đang tải các dự án đã hiệu chuẩn...",
+    "No calibrated project reports yet. Ask an administrator to run a period-report rebuild.":
+      "Chưa có báo cáo dự án nào được hiệu chuẩn. Hãy yêu cầu quản trị viên chạy lại báo cáo theo kỳ.",
+    "Open project: {label}": "Mở dự án: {label}",
+    "fast-mlsirm θ {theta}": "fast-mlsirm θ {theta}",
+    "{count} posts": "{count} bài viết",
+    "Important posts": "Bài viết quan trọng",
+    "No posts have been evaluated yet. Evaluate a post to surface it here.":
+      "Chưa có bài viết nào được đánh giá. Đánh giá một bài viết để hiển thị tại đây.",
+    "Open post: {title}": "Mở bài viết: {title}",
+    "RankWeave fusion": "Hợp nhất RankWeave",
     "Unknown": "Không rõ",
     "5W1H": "5W1H",
     Who: "Ai",

@@ -3,10 +3,11 @@ import { describe, expect, it, vi } from "vitest";
 import { WorkspaceNav } from "./WorkspaceNav";
 
 describe("WorkspaceNav", () => {
-  it("renders the four workspace destinations and marks the current page", () => {
+  it("renders the workspace destinations and marks the current page", () => {
     render(<WorkspaceNav destination="board" onChange={vi.fn()} />);
 
     expect(screen.getByRole("navigation")).toHaveAccessibleName("Workspace navigation");
+    expect(screen.getByRole("button", { name: "Dashboard" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Board" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("button", { name: "Customer master" })).not.toHaveAttribute("aria-current");
     expect(screen.getByRole("button", { name: "Calendar" })).toBeInTheDocument();

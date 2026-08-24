@@ -1,6 +1,6 @@
 import { t } from "../i18n";
 
-export type WorkspaceDestination = "board" | "customers" | "calendar" | "ask" | "admin";
+export type WorkspaceDestination = "dashboard" | "board" | "customers" | "calendar" | "ask" | "admin";
 
 export type WorkspaceNavProps = {
   destination: WorkspaceDestination;
@@ -10,9 +10,10 @@ export type WorkspaceNavProps = {
   id?: string;
 };
 
-const ITEMS: WorkspaceDestination[] = ["board", "customers", "calendar", "ask", "admin"];
+const ITEMS: WorkspaceDestination[] = ["dashboard", "board", "customers", "calendar", "ask", "admin"];
 
 const LABELS: Record<WorkspaceDestination, string> = {
+  dashboard: "Dashboard",
   board: "Board",
   customers: "Customer master",
   calendar: "Calendar",
