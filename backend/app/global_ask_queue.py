@@ -310,7 +310,7 @@ async def republish_queued_global_ask_jobs(
             """
             update global_ask_job set job_status_code = $1, updated_at = now()
             where job_status_code = $2
-              and updated_at < now() - make_interval(secs => $3)
+              and updated_at < now() - interval '1 second' * $3
             """,
             QUEUED,
             RUNNING,
@@ -320,7 +320,7 @@ async def republish_queued_global_ask_jobs(
             """
             select global_ask_job_id from global_ask_job
             where job_status_code = $1
-              and created_at < now() - make_interval(secs => $2)
+              and created_at < now() - interval '1 second' * $2
             """,
             QUEUED,
             _REPUBLISH_AFTER_SECONDS,
