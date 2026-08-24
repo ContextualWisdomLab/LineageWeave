@@ -1,4 +1,5 @@
 import { AdminPanel } from "./components/AdminPanel";
+import { LeftoverPairList } from "./components/LeftoverPairList";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "react-oidc-context";
@@ -3057,6 +3058,10 @@ function AnalysisRunsPanel({
   );
 }
 
+function formatRankingContribution(value: number): string {
+  return value.toFixed(6);
+}
+
 function RankingsPanel({
   accessToken,
   onSelectPost,
@@ -3075,9 +3080,9 @@ function RankingsPanel({
   }, [accessToken]);
 
   return (
-    <section className="popup-section lineage-home" aria-label="Rankings">
+    <section className="popup-section lineage-home" aria-label={t("Rankings")}>
       <div className="lineage-home-header">
-        <h2>Rankings</h2>
+        <h2>{t("Rankings")}</h2>
         {ranking && (
           <span className="post-badge">
             {ranking.status === "accepted"
@@ -3087,30 +3092,53 @@ function RankingsPanel({
         )}
       </div>
       {error && <p className="error">{error}</p>}
-      {ranking === null && !error && <p>Loading rankings...</p>}
+      {ranking === null && !error && <p>{t("Loading rankings...")}</p>}
       {ranking && ranking.status === "unavailable" && (
-        <p className="popup-placeholder">Rankings · RankWeave not available</p>
+        <p className="popup-placeholder">{t("Rankings · RankWeave not available")}</p>
       )}
       {ranking && ranking.status === "accepted" && ranking.rankings.length === 0 && (
-        <p className="popup-placeholder">No fused rankings from RankWeave.</p>
+        <p className="popup-placeholder">{t("No fused rankings from RankWeave.")}</p>
       )}
       {ranking && ranking.rankings.length > 0 && (
-        <ul className="ticket-list" aria-label="Fused rankings">
-          {ranking.rankings.map((hit) => (
-            <li key={hit.post_id} className="ticket-list-item">
-              <button
-                className="post-list-item"
-                aria-label={`Open ranking: ${hit.post_title}`}
-                onClick={() => onSelectPost(hit.post_id)}
-              >
-                <span className="ticket-title">{hit.post_title}</span>
-                <span className="post-badge">Rankings · rankweave</span>
-                <span className="post-badge">rank {hit.fused_rank}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-        )}
+        <>
+          <p className="ranking-channel-evidence-copy">
+            {t(
+              "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+            )}
+          </p>
+          <ul className="ticket-list" aria-label={t("Fused rankings")}>
+            {ranking.rankings.map((hit) => (
+              <li key={hit.post_id} className="ticket-list-item ranking-hit">
+                <button
+                  className="post-list-item"
+                  aria-label={tf("Open ranking: {title}", { title: hit.post_title })}
+                  onClick={() => onSelectPost(hit.post_id)}
+                >
+                  <span className="ticket-title">{hit.post_title}</span>
+                  <span className="post-badge">{t("Rankings · rankweave")}</span>
+                  <span className="post-badge">{tf("rank {rank}", { rank: String(hit.fused_rank) })}</span>
+                </button>
+                {(hit.channel_evidence ?? []).length > 0 ? (
+                  <ul
+                    className="ranking-channel-evidence"
+                    aria-label={tf("Ranking evidence for {title}", { title: hit.post_title })}
+                  >
+                    {(hit.channel_evidence ?? []).map((item) => (
+                      <li key={item.signal_code}>
+                        {tf("{label} rank {rank}, contribution {contribution}", {
+                          label: t(item.signal_label),
+                          rank: String(item.channel_rank),
+                          contribution: formatRankingContribution(item.contribution),
+                        })}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </section>
   );
 }
@@ -3390,35 +3418,11 @@ function ReportsPanel({
               </span>
             )}
             {report.leftover_pairs && report.leftover_pairs.length > 0 && (
-              <ul className="ticket-list" aria-label="Leftover pairs">
-                {report.leftover_pairs.map((pair) => {
-                  const kindLabel =
-                    pair.pair_kind === "farthest" ? "Farthest leftover" : "Closest leftover";
-                  const nextAction =
-                    pair.pair_kind === "farthest"
-                      ? "Open this post to read the criterion it sat farthest from after main effects."
-                      : "Open this post to read the criterion it sat closest to after main effects.";
-                  const criterion = criterionShortLabel(pair.criterion_code);
-                  return (
-                    <li
-                      key={`${pair.pair_kind}:${pair.post_id}:${pair.criterion_code}`}
-                      className="ticket-list-item"
-                    >
-                      <button
-                        className="post-list-item"
-                        aria-label={`Open leftover ${pair.pair_kind} pair: ${pair.post_title} · ${criterion}`}
-                        onClick={() => onSelectPost(pair.post_id)}
-                      >
-                        <span className="ticket-title">
-                          {kindLabel}: {pair.post_title} · {criterion}
-                        </span>
-                        <span className="post-badge">{nextAction}</span>
-                        <span className="post-badge">d {pair.leftover_distance.toFixed(2)}</span>
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
+              <LeftoverPairList
+                pairs={report.leftover_pairs}
+                criterionLabel={criterionShortLabel}
+                onSelectPost={(postId) => onSelectPost(postId)}
+              />
             )}
             {report.members.length > 0 && (
               <ul className="ticket-list">
@@ -4610,7 +4614,8 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
             </div>
             <div className="login-controls">
               <button className="btn-primary" onClick={() => {
-                const returnUrl = window.location.pathname + window.location.search;
+                const returnUrl = returnUrlFromLocation();
+                rememberOidcReturnUrl(returnUrl);
                 void auth.signinRedirect({ state: { returnUrl } });
               }}>
                 {t("Log in")}
@@ -4620,7 +4625,6 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
               <small>Enterprise SSO Authentication</small>
             </div>
           </div>
-          {destination === "admin" ? <AdminPanel currentBrandName={brandName} onBrandNameChange={setBrandName} accessToken={accessToken} /> : null}
       </main>
         <footer className="app-footer" role="contentinfo">
           <div className="app-footer-title">

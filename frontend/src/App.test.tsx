@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
 import { setLocale } from "./i18n";
+import { OIDC_RETURN_URL_STORAGE_KEY } from "./oidcReturnUrl";
 
 const signinRedirect = vi.fn();
 const signoutRedirect = vi.fn();
@@ -28,11 +29,14 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  window.sessionStorage.clear();
+  window.localStorage.clear();
 });
 
 describe("App, unauthenticated", () => {
   it("shows a login button that starts the real OIDC redirect", async () => {
     render(<App showLabPanels />);
+    expect(screen.queryByRole("heading", { name: /admin settings/i })).toBeNull();
     const button = screen.getByRole("button", { name: /log in/i });
     await userEvent.click(button);
     expect(signinRedirect).toHaveBeenCalledTimes(1);
@@ -41,6 +45,10 @@ describe("App, unauthenticated", () => {
         state: expect.objectContaining({ returnUrl: expect.stringMatching(/^\//) }),
       }),
     );
+    // Persisted as a fallback in case the OIDC state round-trip is dropped
+    // (see oidcReturnUrl.ts's restoreOidcReturnUrl, consumed in main.tsx).
+    expect(window.sessionStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toMatch(/^\//);
+    expect(window.localStorage.getItem(OIDC_RETURN_URL_STORAGE_KEY)).toMatch(/^\//);
   });
 });
 
@@ -70,6 +78,14 @@ describe("App, authenticated", () => {
         post_id: string;
         post_title: string;
         fused_rank: number;
+        channel_evidence?: {
+          signal_code: string;
+          signal_label: string;
+          channel_rank: number;
+          weight: number;
+          contribution: number;
+          rank: number;
+        }[];
       }[];
     };
     chatUnavailable?: boolean;
@@ -932,6 +948,9 @@ describe("App, authenticated", () => {
                     criterion_code: "sales_lead_specificity",
                     leftover_distance: 0.12,
                     leftover_residual: 0.4,
+                    observed_response: 2.4,
+                    expected_response: 2.0,
+                    leftover_map_rank: 1,
                   },
                   {
                     pair_kind: "farthest",
@@ -940,6 +959,9 @@ describe("App, authenticated", () => {
                     criterion_code: "general_sentiment_negative",
                     leftover_distance: 1.84,
                     leftover_residual: -1.1,
+                    observed_response: 0.9,
+                    expected_response: 2.0,
+                    leftover_map_rank: 1,
                   },
                 ],
                 members: [
@@ -2578,11 +2600,47 @@ describe("App, authenticated", () => {
             post_id: "post-1",
             post_title: "Public post",
             fused_rank: 1,
+            channel_evidence: [
+              {
+                signal_code: "lexical",
+                signal_label: "Title overlap",
+                channel_rank: 2,
+                weight: 0.75,
+                contribution: 0.75 / 62,
+                rank: 1,
+              },
+              {
+                signal_code: "temporal",
+                signal_label: "Newest first",
+                channel_rank: 2,
+                weight: 0.25,
+                contribution: 0.25 / 62,
+                rank: 2,
+              },
+            ],
           },
           {
             post_id: "post-2",
             post_title: "Pricing renegotiation: revised quote sent",
             fused_rank: 2,
+            channel_evidence: [
+              {
+                signal_code: "lexical",
+                signal_label: "Title overlap",
+                channel_rank: 1,
+                weight: 0.75,
+                contribution: 0.75 / 61,
+                rank: 1,
+              },
+              {
+                signal_code: "temporal",
+                signal_label: "Newest first",
+                channel_rank: 1,
+                weight: 0.25,
+                contribution: 0.25 / 61,
+                rank: 2,
+              },
+            ],
           },
         ],
       },
@@ -2595,6 +2653,17 @@ describe("App, authenticated", () => {
     expect(rankingButton).toHaveTextContent("Public post");
     expect(rankingButton).toHaveTextContent("Rankings · rankweave");
     expect(rankingButton).toHaveTextContent("rank 1");
+    expect(
+      screen.getByText(
+        "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("list", { name: "Ranking evidence for Public post" }),
+    ).toHaveTextContent("Title overlap rank 2, contribution 0.012097");
+    expect(
+      screen.getByRole("list", { name: "Ranking evidence for Public post" }),
+    ).toHaveTextContent("Newest first rank 2, contribution 0.004032");
     expect(screen.queryByRole("button", { name: /open ranking: private parent/i })).not.toBeInTheDocument();
 
     await userEvent.click(rankingButton);
@@ -3357,13 +3426,19 @@ describe("App, authenticated", () => {
     });
     expect(closestPair).toHaveTextContent("Closest leftover: Public post · sales-lead");
     expect(closestPair).toHaveTextContent(
-      "Open this post to read the criterion it sat closest to after main effects.",
+      "Read leftover map rank 1, observed Y 2.40, and expected E 2.00 after IRT main effects, then open this post.",
     );
+    expect(closestPair).toHaveTextContent("R +0.40");
+    expect(closestPair).toHaveTextContent("Y 2.40 · E 2.00");
+    expect(closestPair).toHaveTextContent("rank 1");
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
-      "Open this post to read the criterion it sat farthest from after main effects.",
+      "Read leftover map rank 1, observed Y 0.90, and expected E 2.00 after IRT main effects, then open this post.",
     );
+    expect(farthestPair).toHaveTextContent("R −1.10");
+    expect(farthestPair).toHaveTextContent("Y 0.90 · E 2.00");
+    expect(farthestPair).toHaveTextContent("rank 1");
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
     expect(closestPair.compareDocumentPosition(memberButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

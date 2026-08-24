@@ -36,6 +36,20 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Log in": "로그인",
     "Log out": "로그아웃",
     Calendar: "캘린더",
+    Rankings: "순위",
+    "Rankings · RankWeave not available": "순위 · RankWeave를 사용할 수 없음",
+    "Rankings · rankweave": "순위 · rankweave",
+    "Loading rankings...": "순위를 불러오는 중...",
+    "No fused rankings from RankWeave.": "RankWeave가 융합한 순위가 없습니다.",
+    "Fused rankings": "융합 순위",
+    "Open ranking: {title}": "순위 열기: {title}",
+    "rank {rank}": "순위 {rank}",
+    "Title overlap": "제목 겹침",
+    "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.":
+      "RankWeave가 최신순과 제목 겹침 순위를 융합했습니다. 보정된 점수가 아닙니다.",
+    "Ranking evidence for {title}": "{title}의 순위 근거",
+    "{label} rank {rank}, contribution {contribution}":
+      "{label} 순위 {rank}, 기여 {contribution}",
     "CalDAV events": "CalDAV 이벤트",
     "No CalDAV events are available.": "사용할 수 있는 CalDAV 이벤트가 없습니다.",
     "CalDAV is not connected.": "CalDAV가 연결되지 않았습니다.",
@@ -356,6 +370,27 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "관측된 원본 작성자 {total}명 중 게시물 수 기준 상위 {shown}명을 표시합니다.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "대화형 질문을 지금 사용할 수 없습니다. 저장된 근거는 계속 확인할 수 있습니다.",
+    "Leftover pairs": "잔여 쌍",
+    "Closest leftover": "가장 가까운 잔여",
+    "Farthest leftover": "가장 먼 잔여",
+    "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.":
+      "IRT 주효과 이후 잔여 R {residual}. {criterion} 기준을 읽으려면 이 글을 여세요.",
+    "Open leftover {kind} pair: {title} · {criterion}":
+      "잔여 {kind} 쌍 열기: {title} · {criterion}",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "주효과 이후 가장 가깝게 앉은 기준을 읽으려면 이 글을 여세요.",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "주효과 이후 가장 멀리 앉은 기준을 읽으려면 이 글을 여세요.",
+    "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
+      "IRT 주효과 이후 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "IRT 주효과 이후 잔여 맵에 잔여 구조가 없습니다. 이 글을 여세요.",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "IRT 주효과 이후 잔여 맵 랭크 {rank}. 이 글을 여세요.",
+    "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.":
+      "IRT 주효과 이후 잔여 맵 랭크 {rank}, 관측 Y {observed}, 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
+    "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.":
+      "IRT 주효과 이후 잔여 맵 랭크 0은 잔여 구조가 없음을 뜻합니다. 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
   },
   zh: {
     "Unknown": "未知",
@@ -375,6 +410,20 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Log in": "登录",
     "Log out": "退出登录",
     Calendar: "日历",
+    Rankings: "排名",
+    "Rankings · RankWeave not available": "排名 · RankWeave 不可用",
+    "Rankings · rankweave": "排名 · rankweave",
+    "Loading rankings...": "正在加载排名...",
+    "No fused rankings from RankWeave.": "RankWeave 未返回融合排名。",
+    "Fused rankings": "融合排名",
+    "Open ranking: {title}": "打开排名：{title}",
+    "rank {rank}": "排名 {rank}",
+    "Title overlap": "标题重叠",
+    "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.":
+      "RankWeave 融合了最新优先和标题重叠排名。这不是校准分数。",
+    "Ranking evidence for {title}": "{title} 的排名证据",
+    "{label} rank {rank}, contribution {contribution}":
+      "{label} 排名 {rank}，贡献 {contribution}",
     "CalDAV events": "CalDAV 事件",
     "No CalDAV events are available.": "没有可用的 CalDAV 事件。",
     "CalDAV is not connected.": "CalDAV 尚未连接。",
@@ -694,6 +743,27 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "显示按文章数排序的 {total} 位已观察来源作者中的前 {shown} 位。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "交互式提问暂不可用；已保存的证据仍可查看。",
+    "Leftover pairs": "残余配对",
+    "Closest leftover": "最近残余",
+    "Farthest leftover": "最远残余",
+    "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.":
+      "IRT 主效应后的残余 R {residual}。打开这篇帖子阅读 {criterion}。",
+    "Open leftover {kind} pair: {title} · {criterion}":
+      "打开残余 {kind} 配对：{title} · {criterion}",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "打开这篇帖子，阅读主效应后距离最近的准则。",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "打开这篇帖子，阅读主效应后距离最远的准则。",
+    "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
+      "阅读 IRT 主效应后的观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "IRT 主效应后残余图没有残余结构。打开这篇帖子。",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "IRT 主效应后的残余图秩 {rank}。打开这篇帖子。",
+    "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.":
+      "阅读 IRT 主效应后的残余图秩 {rank}、观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
+    "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.":
+      "残余图秩 0 表示 IRT 主效应后没有残余结构。阅读观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
   },
   ja: {
     "Unknown": "不明",
@@ -737,6 +807,20 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Log in": "ログイン",
     "Log out": "ログアウト",
     Calendar: "カレンダー",
+    Rankings: "ランキング",
+    "Rankings · RankWeave not available": "ランキング · RankWeave を利用できません",
+    "Rankings · rankweave": "ランキング · rankweave",
+    "Loading rankings...": "ランキングを読み込み中...",
+    "No fused rankings from RankWeave.": "RankWeave の融合ランキングはありません。",
+    "Fused rankings": "融合ランキング",
+    "Open ranking: {title}": "ランキングを開く: {title}",
+    "rank {rank}": "順位 {rank}",
+    "Title overlap": "タイトル一致",
+    "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.":
+      "RankWeave が新しい順とタイトル一致の順位を融合しました。校正されたスコアではありません。",
+    "Ranking evidence for {title}": "{title} の順位根拠",
+    "{label} rank {rank}, contribution {contribution}":
+      "{label} 順位 {rank}、寄与 {contribution}",
     "CalDAV events": "CalDAV イベント",
     "No CalDAV events are available.": "利用できる CalDAV イベントはありません。",
     "CalDAV is not connected.": "CalDAV が接続されていません。",
@@ -1032,6 +1116,27 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "投稿数順に、観測された{total}名の元投稿者のうち上位{shown}名を表示しています。",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "対話形式の質問は現在利用できません。保存された証拠は確認できます。",
+    "Leftover pairs": "残差ペア",
+    "Closest leftover": "最も近い残差",
+    "Farthest leftover": "最も遠い残差",
+    "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.":
+      "IRT主効果後の残差 R {residual}。この投稿を開いて {criterion} を読んでください。",
+    "Open leftover {kind} pair: {title} · {criterion}":
+      "残差 {kind} ペアを開く: {title} · {criterion}",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "主効果後に最も近くなった基準を読むには、この投稿を開いてください。",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "主効果後に最も遠くなった基準を読むには、この投稿を開いてください。",
+    "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
+      "IRT主効果後の観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "IRT主効果後の残差マップに残差構造はありません。この投稿を開いてください。",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "IRT主効果後の残差マップランク {rank}。この投稿を開いてください。",
+    "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.":
+      "IRT主効果後の残差マップランク {rank}、観測 Y {observed}、期待 E {expected} を読んでから、この投稿を開いてください。",
+    "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.":
+      "残差マップランク 0 は IRT 主効果後に残差構造がないことを示します。観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
   },
   vi: {
     "Unknown": "Không rõ",
@@ -1075,6 +1180,20 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Log in": "Đăng nhập",
     "Log out": "Đăng xuất",
     Calendar: "Lịch",
+    Rankings: "Xếp hạng",
+    "Rankings · RankWeave not available": "Xếp hạng · RankWeave không khả dụng",
+    "Rankings · rankweave": "Xếp hạng · rankweave",
+    "Loading rankings...": "Đang tải xếp hạng...",
+    "No fused rankings from RankWeave.": "Không có xếp hạng hợp nhất từ RankWeave.",
+    "Fused rankings": "Xếp hạng hợp nhất",
+    "Open ranking: {title}": "Mở xếp hạng: {title}",
+    "rank {rank}": "hạng {rank}",
+    "Title overlap": "Trùng tiêu đề",
+    "RankWeave fused newest-first and title-overlap ranks. This is not a calibrated score.":
+      "RankWeave đã hợp nhất hạng mới nhất trước và trùng tiêu đề. Đây không phải điểm đã hiệu chỉnh.",
+    "Ranking evidence for {title}": "Bằng chứng xếp hạng cho {title}",
+    "{label} rank {rank}, contribution {contribution}":
+      "{label} hạng {rank}, đóng góp {contribution}",
     "CalDAV events": "Sự kiện CalDAV",
     "No CalDAV events are available.": "Không có sự kiện CalDAV nào khả dụng.",
     "CalDAV is not connected.": "CalDAV chưa được kết nối.",
@@ -1370,6 +1489,27 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Đang hiển thị {shown} tác giả nguồn hàng đầu trong số {total} tác giả đã quan sát, xếp theo số bài viết.",
     "Interactive questions are unavailable right now; saved evidence remains available.":
       "Câu hỏi tương tác hiện không khả dụng; bằng chứng đã lưu vẫn có thể xem.",
+    "Leftover pairs": "Cặp phần dư",
+    "Closest leftover": "Phần dư gần nhất",
+    "Farthest leftover": "Phần dư xa nhất",
+    "Leftover residual R {residual} after IRT main effects. Open this post to read {criterion}.":
+      "Phần dư R {residual} sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
+    "Open leftover {kind} pair: {title} · {criterion}":
+      "Mở cặp phần dư {kind}: {title} · {criterion}",
+    "Open this post to read the criterion it sat closest to after main effects.":
+      "Mở bài viết này để đọc tiêu chí nằm gần nhất sau hiệu ứng chính.",
+    "Open this post to read the criterion it sat farthest from after main effects.":
+      "Mở bài viết này để đọc tiêu chí nằm xa nhất sau hiệu ứng chính.",
+    "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
+      "Đọc Y quan sát {observed} và E kỳ vọng {expected} sau hiệu ứng chính IRT, rồi mở bài viết này.",
+    "Leftover map has no leftover structure after IRT main effects. Open this post.":
+      "Bản đồ phần dư không có cấu trúc phần dư sau hiệu ứng chính IRT. Mở bài viết này.",
+    "Leftover map rank {rank} after IRT main effects. Open this post.":
+      "Hạng bản đồ phần dư {rank} sau hiệu ứng chính IRT. Mở bài viết này.",
+    "Read leftover map rank {rank}, observed Y {observed}, and expected E {expected} after IRT main effects, then open this post.":
+      "Đọc hạng bản đồ phần dư {rank}, Y quan sát {observed} và E kỳ vọng {expected} sau hiệu ứng chính IRT, rồi mở bài viết này.",
+    "Leftover map rank 0 means no leftover structure after IRT main effects. Read observed Y {observed} and expected E {expected}, then open this post.":
+      "Hạng bản đồ phần dư 0 nghĩa là không có cấu trúc phần dư sau hiệu ứng chính IRT. Đọc Y quan sát {observed} và E kỳ vọng {expected}, rồi mở bài viết này.",
   },
 };
 

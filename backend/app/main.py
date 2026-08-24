@@ -583,13 +583,12 @@ async def _post_filter_options(
     )
 
 
-@app.get("/healthz")
-
 @app.get("/api/settings", response_model=dict)
 async def read_tenant_settings(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ):
+    """Return the tenant's current brand name, defaulting to "LineageWeave" if unset."""
     async with pool.acquire() as conn:
         row = await conn.fetchrow("SELECT brand_name FROM tenant_settings WHERE id = 1")
     if not row:
@@ -602,6 +601,7 @@ async def update_tenant_settings(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ):
+    """Admin-only: upsert the tenant's brand name and return the stored value."""
     # Only admins can change settings
     _require_post_admin(account)
     brand_name = payload.get("brandName", "LineageWeave")
@@ -614,6 +614,7 @@ async def update_tenant_settings(
     return {"brandName": brand_name}
 
 
+@app.get("/healthz")
 async def healthz() -> dict[str, str]:
     """Liveness probe: the process is up. Does not touch Postgres."""
     return {"status": "ok"}
@@ -658,10 +659,14 @@ async def read_me(
 
 
 class LocalePreferenceRequest(BaseModel):
+    """Body of a PATCH /api/me/preferences request."""
+
     preferred_locale: Literal["en", "ko", "zh", "ja", "vi"]
 
 
 class CustomerHintResolveRequest(BaseModel):
+    """Body of a POST /api/customer-master/resolve-hint request."""
+
     hint_code: str
 
 
@@ -2621,7 +2626,7 @@ async def ask_agent(
     """Answer a buyer question from authorized post and graph evidence."""
     question = request.question.strip()
     if not question:
-        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, "question is required")
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "question is required")
     _require_post_read(account)
     client = _post_chat_client()
     if not client.available:
@@ -2663,6 +2668,8 @@ async def ask_agent(
 
 
 class PostBookmarkRequest(BaseModel):
+    """Body of a POST /api/posts/{post_id}/bookmark request."""
+
     bookmarked: bool
 
 
@@ -2672,6 +2679,7 @@ async def read_post_bookmark(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
+    """Report whether the current account has bookmarked this post."""
     await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -2689,6 +2697,7 @@ async def write_post_bookmark(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
+    """Set or clear the current account's bookmark on this post."""
     await _load_visible_post(post_id, account, pool)
     async with pool.acquire() as conn:
         if request.bookmarked:
@@ -3123,11 +3132,12 @@ async def read_rankings(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """RankWeave fusion of ABAC-visible posts (ADR 0024).
+    """RankWeave fusion of ABAC-visible posts (ADR 0024 / ADR 0167).
 
     Hidden posts are omitted from every channel. Never invents a fused
-    score or a theta. Fail-closed when RankWeave is disabled or the
-    library is missing.
+    score or a theta. Channel evidence is computed from owned rank
+    lists. Fail-closed when RankWeave is disabled or the library is
+    missing.
     """
     _require_post_read(account)
     async with pool.acquire() as conn:

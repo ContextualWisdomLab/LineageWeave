@@ -759,6 +759,9 @@ export interface LeftoverPair {
   criterion_code: string;
   leftover_distance: number;
   leftover_residual: number;
+  observed_response?: number | null;
+  expected_response?: number | null;
+  leftover_map_rank?: number | null;
 }
 
 export interface PeriodGroupReport {
@@ -1034,10 +1037,20 @@ export function startAnalysisRun(
   });
 }
 
+export interface RankingChannelEvidence {
+  signal_code: string;
+  signal_label: string;
+  channel_rank: number;
+  weight: number;
+  contribution: number;
+  rank: number;
+}
+
 export interface RankedPost {
   post_id: string;
   post_title: string;
   fused_rank: number;
+  channel_evidence?: RankingChannelEvidence[];
 }
 
 export interface RankingList {
