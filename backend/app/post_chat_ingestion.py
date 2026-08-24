@@ -411,7 +411,7 @@ async def gather_global_chat_sources(
     (`event_occurred_at`, falling back to `created_at`) falls in the
     resolved Seoul date range -- an unbounded expression ("언젠가")
     or no expression at all applies no date filter. Cited sources name
-    which clock matched (ADR 0183).
+    which clock matched (ADR 0202).
 
     The source set is intentionally bounded until retrieval/reranking is
     needed for a much larger corpus; every selected body still uses the same

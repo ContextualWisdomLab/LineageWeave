@@ -84,21 +84,54 @@ async def load_estimated_channel_weights(
 ) -> dict[str, float] | None:
     """Load only a complete vector from an independently anchored method.
 
-    ADR 0145 currently authorizes no anchor method. A partial or invalid vector
-    returns ``None`` rather than being repaired. A database that has not applied
-    migration 0135 is likewise an unavailable state, detected without issuing a
-    statement that would abort the caller's outer PostgreSQL transaction.
+    No anchor method is currently authorized (ADR 0200 point 3 names the
+    conditions under which one becomes authorized). A partial or invalid
+    vector returns ``None`` rather than being repaired. A database that has
+    not applied migration 0135 is likewise an unavailable state, detected
+    without issuing a statement that would abort the caller's outer
+    PostgreSQL transaction.
+
+    Since migration 0200 one weight set is persisted per active-channel
+    combination (``channel_set_code``): the corpus-wide rebuild's three
+    deterministic channels and a scoped analysis run's four each match
+    their own set without regressing the other. Anything other than an
+    exact match of one set falls through to ``None`` -- a partial overlap
+    would mix estimation runs into a vector that grounds nothing.
     """
     table_exists = await conn.fetchval(
         "select to_regclass('public.lineage_channel_weight') is not null"
     )
     if not table_exists:
         return None
-    rows = await conn.fetch(
-        "select channel_code, weight_value, estimation_run_id, "
+    # Pre-0200 schemas lack channel_set_code; probe via the catalog (never
+    # a failing statement, which would abort the caller's transaction).
+    # Pre-0200 rows form one implicit deterministic set.
+    set_column_exists = await conn.fetchval(
+        "select exists (select from information_schema.columns "
+        "where table_schema = 'public' "
+        "  and table_name = 'lineage_channel_weight' "
+        "  and column_name = 'channel_set_code')"
+    )
+    set_column_sql = (
+        "channel_set_code" if set_column_exists else "'channel_set_deterministic'"
+    )
+    all_rows = await conn.fetch(
+        f"select {set_column_sql} as channel_set_code, "
+        "channel_code, weight_value, estimation_run_id, "
         "estimation_method_code, estimator_version, anchor_method_code, "
         "source_snapshot_sha256, sample_pair_count, knowledge_cutoff "
         "from lineage_channel_weight"
+    )
+    sets: dict[str, list] = {}
+    for row in all_rows:
+        sets.setdefault(row["channel_set_code"], []).append(row)
+    rows = next(
+        (
+            candidate
+            for candidate in sets.values()
+            if {row["channel_code"] for row in candidate} == active_channels
+        ),
+        [],
     )
     persisted = {row["channel_code"]: float(row["weight_value"]) for row in rows}
     if not persisted or set(persisted) != active_channels:
