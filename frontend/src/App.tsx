@@ -95,7 +95,7 @@ import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
-import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
+import { rememberOidcReturnUrl, returnUrlFromLocation, stripOidcCallbackParams } from "./oidcReturnUrl";
 import {
   isSupportedLocale,
   LOCALE_LABELS,
@@ -1829,6 +1829,7 @@ function PostDetailPopup({
 
   const permanentLink = (() => {
     const url = new URL(window.location.href);
+    stripOidcCallbackParams(url);
     url.searchParams.set("post", postId);
     url.hash = "";
     return url.toString();
