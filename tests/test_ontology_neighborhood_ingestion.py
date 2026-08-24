@@ -1,4 +1,4 @@
-"""Authorization-gated ontology neighborhood loader (ADR 0168)."""
+"""Authorization-gated ontology neighborhood loader (ADR 0184)."""
 
 from __future__ import annotations
 

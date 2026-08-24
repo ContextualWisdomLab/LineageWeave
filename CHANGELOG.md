@@ -20,7 +20,7 @@ All notable changes to this project are documented here. Format follows
 - Bounded ontology/provenance neighborhood (`GET /api/ontology/neighborhood`)
   with typed Post/Person/CorporateEntity/Team nodes, SKOS broader distinct
   from OWL subclass, truth-status vocabulary, knowledge-cutoff binding, and
-  a Keyman-panel explorer that is not Event Lineage (ADR 0168 / #341).
+  a Keyman-panel explorer that is not Event Lineage (ADR 0184 / #341).
 - Corroborated SKOS `altLabel` / `prefLabel` pairs now expand corporate
   catalog candidates so a synthetic short form (`AGP`) and full form
   (`Aurora Grid Power`) bind one `corporate_entity` row instead of
@@ -84,7 +84,7 @@ All notable changes to this project are documented here. Format follows
   and looks up corporate-parent visibility independently of the child. OWL-Time
   is cited as a W3C Candidate Recommendation Draft.
 
-## [2.15.0] - 2026-08-23
+## [2.15.1] - 2026-08-25
 
 ### Added
 
@@ -93,6 +93,22 @@ All notable changes to this project are documented here. Format follows
   rewrite Event Lineage evidence. After `make seed`, the A-100 pricing
   follow-up is **Before** the revised quote and delivery question. Directed
   relation rows open the other post; indirect Keyman links stay unlabeled.
+
+## [2.15.0] - 2026-08-25
+
+### Changed
+
+- Analyst Global Navigation is exactly four Korean destinations: 게시판,
+  고객 마스터, 달력, and Ask Agent. `BuyerNav` is now `WorkspaceNav`; Buyer
+  and Cubee are not product names on the chrome (ADR 0183).
+- Operator Admin remains available as a non-GNB destination and is not a
+  fifth analyst tab.
+
+### Fixed
+
+- The 달력 destination fail-closes when CalendarWeave / Naruon CalDAV consume
+  is unwired, with `이 범위의 일정을 아직 받을 수 없습니다`. Weekly VOC and
+  newspaper stay on the board.
 
 ## [2.12.26] - 2026-08-24
 
