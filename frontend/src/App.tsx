@@ -4373,7 +4373,7 @@ function CustomerMasterPanel({
                   </button>
                 ) : null}
                 {hint.related_posts.length > 0 ? (
-                  <details>
+                  <details className="hint-disclosure">
                     <summary>{t("Related posts")} ({hint.related_posts.length})</summary>
                     <ul aria-label={`${t("Related posts")}: ${hint.customer_name ?? hint.customer_code ?? t("Unresolved source identifier")}`}>
                       {hint.related_posts.map((post) => (
@@ -4410,7 +4410,7 @@ function CustomerMasterPanel({
             {master.source_author_hints.slice(0, HINT_RENDER_LIMIT).map((hint) => (
               <li key={`${hint.author_code}:${hint.author_account_id}`}>
                 <strong>{hint.author_name ?? hint.author_code}</strong>
-                <details>
+                <details className="hint-disclosure">
                   <summary>{hint.author_code} · {t("Hint only")}</summary>
                   <span>{t("Authorization context")}: {hint.account_display_name}</span>
                   {hint.account_affiliations.length > 0 ? (
@@ -4426,7 +4426,7 @@ function CustomerMasterPanel({
                 </details>
                 <span>{hint.post_count} {t("posts")}</span>
                 {hint.related_posts.length > 0 ? (
-                  <details>
+                  <details className="hint-disclosure">
                     <summary>{t("Related posts")} ({hint.related_posts.length})</summary>
                     <ul className="related-post-list">
                       {hint.related_posts.map((post) => (

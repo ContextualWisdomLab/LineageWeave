@@ -87,6 +87,7 @@ describe("App, authenticated", () => {
     meFailed?: boolean;
     postBody?: string;
     manyCustomerHints?: number;
+    hintRelatedPosts?: boolean;
     customerEntityHierarchy?: boolean;
     staleSummary?: boolean;
     contentAfterSummary?: boolean;
@@ -1606,18 +1607,59 @@ describe("App, authenticated", () => {
                 affiliations: [],
               },
             ],
-            source_customer_hints: options?.manyCustomerHints
-              ? Array.from({ length: options.manyCustomerHints }, (_, index) => ({
-                  customer_code: `CUST-${index}`,
-                  customer_name: resolvedHintCode === `CUST-${index}` ? "Southfield Utilities" : null,
-                  post_count: options.manyCustomerHints! - index,
-                  related_posts: [],
-                  resolution_status: resolvedHintCode === `CUST-${index}` ? "resolved" : "hint_only",
-                  hint_trust: "normal",
-                  provenance: "source_post.source_customer_code",
-                }))
+            source_customer_hints: options?.hintRelatedPosts
+              ? [
+                  {
+                    customer_code: "CUST-HINT",
+                    customer_name: null,
+                    post_count: 1,
+                    related_posts: [
+                      {
+                        post_id: "hint-post-customer",
+                        post_title: "Hinted customer post",
+                        post_body_excerpt: "Excerpt from a hinted customer post.",
+                        post_body_truncated: false,
+                      },
+                    ],
+                    resolution_status: "hint_only",
+                    hint_trust: "normal",
+                    provenance: "source_post.source_customer_code",
+                  },
+                ]
+              : options?.manyCustomerHints
+                ? Array.from({ length: options.manyCustomerHints }, (_, index) => ({
+                    customer_code: `CUST-${index}`,
+                    customer_name: resolvedHintCode === `CUST-${index}` ? "Southfield Utilities" : null,
+                    post_count: options.manyCustomerHints! - index,
+                    related_posts: [],
+                    resolution_status: resolvedHintCode === `CUST-${index}` ? "resolved" : "hint_only",
+                    hint_trust: "normal",
+                    provenance: "source_post.source_customer_code",
+                  }))
+                : [],
+            source_author_hints: options?.hintRelatedPosts
+              ? [
+                  {
+                    author_code: "AUTH-HINT",
+                    author_name: null,
+                    author_account_id: "acct-hint",
+                    account_display_name: "Guest account",
+                    account_affiliations: [],
+                    post_count: 1,
+                    keyman_hints: [],
+                    related_posts: [
+                      {
+                        post_id: "hint-post-author",
+                        post_title: "Hinted author post",
+                        post_body_excerpt: "Excerpt from a hinted author post.",
+                        post_body_truncated: false,
+                      },
+                    ],
+                    resolution_status: "hint_only",
+                    provenance: "source_post.source_author_code",
+                  },
+                ]
               : [],
-            source_author_hints: [],
             relationship_network: [
               {
                 counterparty_entity_name: "Northridge Grid",
@@ -1761,6 +1803,32 @@ describe("App, authenticated", () => {
 
     expect(await screen.findByText("CUST-0")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Resolve" })).not.toBeInTheDocument();
+  });
+
+  it("gives the customer-master hint disclosures a CSS hook for the shared touch target", async () => {
+    // Regression test (touch_interaction gap): these three <details> used
+    // to render with no className at all, so App.css had no selector able
+    // to size them -- the browser-default disclosure marker falls well
+    // under --size-control-min. They now share .hint-disclosure with the
+    // other secondary toggles (advanced-review-tools, semantic-provenance,
+    // operator-action-tools, keyman-source-context).
+    stubBackend({ hintRelatedPosts: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Customer master" }));
+
+    const customerSection = await screen.findByRole("region", { name: "Observed customer evidence" });
+    expect(within(customerSection).getByText("Related posts (1)").closest("details")).toHaveClass(
+      "hint-disclosure",
+    );
+
+    const authorSection = screen.getByRole("region", { name: "Source author evidence" });
+    expect(within(authorSection).getByText("AUTH-HINT · Hint only").closest("details")).toHaveClass(
+      "hint-disclosure",
+    );
+    expect(within(authorSection).getByText("Related posts (1)").closest("details")).toHaveClass(
+      "hint-disclosure",
+    );
   });
 
   it("caps the observed customer identifier list instead of rendering all of them", async () => {
