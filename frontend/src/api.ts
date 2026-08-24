@@ -777,6 +777,12 @@ export interface LeftoverPair {
   leftover_map_unexplained_share?: number | null;
 }
 
+export interface LeftoverMapAxis {
+  axis_index: number;
+  leftover_singular_value: number;
+  leftover_share: number;
+}
+
 export interface PeriodGroupReport {
   grouping_key: string;
   grouping_label?: string;
@@ -792,6 +798,7 @@ export interface PeriodGroupReport {
   members: ReportMember[];
   selected_items: SelectedReportItem[];
   leftover_pairs: LeftoverPair[];
+  leftover_map_axes?: LeftoverMapAxis[];
 }
 
 export interface PeriodReports {

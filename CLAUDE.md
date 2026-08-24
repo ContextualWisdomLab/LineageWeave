@@ -55,9 +55,12 @@ mean θ. The period-report panel says Demo Corp is the opened grouping
 and to read its mean θ and member posts, then open a post. Those
 members land immediately under that next action, ahead of Other Corp
 and the week strip. After `make seed`, leftover closest/farthest pairs
-sit above the member list with leftover-map rank (rank 0 names no
-leftover structure) and unexplained leftover share `U²/R̃²` next to
-leftover-map distance `d`. Opening Public post names the next action: read
+sit above the member list with leftover-map rank; rank 0 names no
+leftover structure, and unexplained leftover share `U²/R̃²` next to
+leftover-map distance `d`. Leftover-map axis share badges name Gabriel
+inertia of axes 1 and 2; open a leftover pair to read the
+post–criterion cell. The shares do not invent a leftover score.
+Opening Public post names the next action: read
 Event Lineage, Keyman, and evaluation on that post. The popup Event
 Lineage DAG marks that post current. After that current node, the
 popup names Keyman and evaluation as the next read. After landed
