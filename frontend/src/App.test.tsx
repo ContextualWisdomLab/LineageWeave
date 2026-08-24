@@ -184,6 +184,7 @@ describe("App, authenticated", () => {
     focusedLineageUnavailable?: boolean;
     deferMe?: boolean;
     deferPosts?: boolean;
+    deferCustomerMasterHintCode?: string;
     directLineage?: boolean;
     deriveNoCommitment?: boolean;
     emptyLineage?: boolean;
@@ -216,7 +217,11 @@ describe("App, authenticated", () => {
     ticketUpdateUnavailable?: boolean;
     lineageIsolationReason?: "no_relation_found" | "no_comparison_group";
     bookmarkUnavailable?: boolean;
-  }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePosts: () => void } {
+  }): ReturnType<typeof vi.fn> & {
+    releaseMe: () => void;
+    releasePosts: () => void;
+    releaseCustomerMasterHint: () => void;
+  } {
     const statusLabel: Record<string, string> = {
       open: "Open",
       in_progress: "In progress",
@@ -301,6 +306,7 @@ describe("App, authenticated", () => {
 
     let releaseMe = () => {};
     let releasePosts = () => {};
+    let releaseCustomerMasterHint = () => {};
     const meReady = options?.deferMe
       ? new Promise<void>((resolve) => {
           releaseMe = resolve;
@@ -309,6 +315,11 @@ describe("App, authenticated", () => {
     const postsReady = options?.deferPosts
       ? new Promise<void>((resolve) => {
           releasePosts = resolve;
+        })
+      : Promise.resolve();
+    const customerMasterHintReady = options?.deferCustomerMasterHintCode
+      ? new Promise<void>((resolve) => {
+          releaseCustomerMasterHint = resolve;
         })
       : Promise.resolve();
 
@@ -2190,7 +2201,11 @@ describe("App, authenticated", () => {
           return Promise.resolve(new Response(null, { status: 503 }));
         }
         const requestedCustomerHint = customerMasterUrl.searchParams.get("hint_code");
-        return Promise.resolve(
+        const gate =
+          requestedCustomerHint && requestedCustomerHint === options?.deferCustomerMasterHintCode
+            ? customerMasterHintReady
+            : Promise.resolve();
+        return gate.then(() =>
           jsonResponse({
             corporate_entities: options?.emptyCustomerMaster
               ? []
@@ -2361,7 +2376,7 @@ describe("App, authenticated", () => {
       return Promise.reject(new Error(`unexpected fetch: ${method} ${url}`));
     });
     vi.stubGlobal("fetch", fetchMock);
-    return Object.assign(fetchMock, { releaseMe, releasePosts });
+    return Object.assign(fetchMock, { releaseMe, releasePosts, releaseCustomerMasterHint });
   }
 
   it("renders safe Ask Agent evidence under each cited post", async () => {
@@ -3046,6 +3061,43 @@ describe("App, authenticated", () => {
     expect(await screen.findByText("CUST-44")).toBeInTheDocument();
     expect(screen.queryByText("CUST-0")).not.toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([url]) => String(url).includes("hint_code=CUST-44"))).toBe(true);
+  });
+
+  it("ignores a stale customer-master search response after a newer search supersedes it", async () => {
+    // Race condition (found by an Explore agent hunting the same
+    // "unfiltered-then-filtered" stale-fetch shape already fixed this
+    // session in SourceResearchPanel.tsx): loadMaster had no request-id
+    // guard, so a slow response for an earlier hint-code search could
+    // resolve after a faster, newer search and clobber its result.
+    const fetchMock = stubBackend({ manyCustomerHints: 2, deferCustomerMasterHintCode: "CUST-0" });
+    render(<App />);
+    await userEvent.click(await screen.findByRole("button", { name: "Customer master" }));
+    expect(await screen.findByText("CUST-0")).toBeInTheDocument();
+
+    const searchBox = screen.getByRole("searchbox", { name: "Find source customer code" });
+    await userEvent.type(searchBox, "CUST-0");
+    await userEvent.click(screen.getByRole("button", { name: "Find" }));
+    await userEvent.clear(searchBox);
+    await userEvent.type(searchBox, "CUST-1");
+    await userEvent.click(screen.getByRole("button", { name: "Find" }));
+
+    expect(await screen.findByText("CUST-1")).toBeInTheDocument();
+    expect(screen.queryByText("CUST-0")).not.toBeInTheDocument();
+
+    const staleCallIndex = fetchMock.mock.calls.findIndex(([url]) => String(url).includes("hint_code=CUST-0"));
+    fetchMock.releaseCustomerMasterHint();
+    await fetchMock.mock.results[staleCallIndex].value;
+    // Give the stale response's own response.json() + setMaster + re-render
+    // chain (all separate microtask/macrotask hops beyond the raw fetch()
+    // promise awaited above) a real chance to run before asserting -- a bare
+    // `waitFor` below would otherwise pass on its first (too-early) check and
+    // never observe a later, buggy state flip back to the stale result.
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    await waitFor(() => {
+      expect(screen.getByText("CUST-1")).toBeInTheDocument();
+      expect(screen.queryByText("CUST-0")).not.toBeInTheDocument();
+    });
   });
 
   it("shows a no-match state for an observed customer code", async () => {

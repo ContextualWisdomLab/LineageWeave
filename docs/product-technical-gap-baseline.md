@@ -1186,6 +1186,49 @@ or an explicit unavailable result.
   closes the entire i18n ko-only backlog opened by the Admin Panel
   fix earlier in this document -- `t()` now has no live English
   fallback across zh/ja/vi.
+- **Frontend stale-fetch-response races — 4 closed, 5 backend findings
+  tracked open (2026-08-24):** a second `lineageweave-bug-sweep`
+  Workflow run this hour (4 finders pointed at post_summary/keyman,
+  evaluation/ticket, calendar/tenant-settings, and frontend
+  AdminPanel/Board subsystems not yet audited) confirmed 9 real
+  findings and correctly rejected 1 false positive (an
+  ActivityPanel fetch the verifier traced back to already being
+  guarded). Closed the 4 frontend findings this checkpoint, all the
+  same "unfiltered-then-filtered"/stale-response shape already fixed
+  in `SourceResearchPanel.tsx` earlier this session: the post detail
+  popup's 8-fetch-plus-bookmark fan-out (`PostDetailPopup`, reused the
+  effect's existing but inconsistently-applied `disposed` flag),
+  `ReportsPanel`'s period/grouping fetch and rebuild action,
+  `IssueTicketPanel`'s per-post ticket list, and `CustomerMasterPanel`'s
+  hint-code search -- all via the same `disposed`/`requestIdRef` guard
+  pattern established earlier. A new deferred-response test harness
+  addition (`deferCustomerMasterHintCode`/`releaseCustomerMasterHint`
+  in `App.test.tsx`'s `stubBackend`) proved the Customer Master fix
+  RED-to-GREEN; RED initially passed for the wrong reason (awaiting
+  only the raw mocked `fetch()` promise left `response.json()` and the
+  component's own `setState` + re-render unobserved) until an explicit
+  short delay was added before the final assertion. Full frontend
+  suite: 374 passed, lint clean, tsc clean. The other 5 confirmed
+  findings are backend, lower severity, and NOT fixed this checkpoint
+  -- tracked here for a future one: (1) `post_summary.py`'s
+  `_parse_plain_summary_response` returns a 2-tuple instead of its
+  declared 3-tuple when the LLM response has no "KEY EVENTS:" marker,
+  crashing the unpack in `summarize_with_hints` with a generic
+  `ValueError` instead of the intended descriptive one (externally
+  invisible today only because `read_post_summary` blanket-catches
+  `ValueError`); (2) `_formalize_korean_summary`'s hardcoded Korean
+  verb-ending ladder misses common past/perfective forms
+  (`-았음/-었음/-였음`, contracted `됐다`, nominalized `됨`), producing
+  grammatically broken doubled endings like "체결되지 않았음입니다." in
+  persisted, reader-facing summaries; (3) `keyman_ingestion.py`'s
+  `_upsert_person` lookup has no `ORDER BY`, so an untitled mention can
+  bind to an arbitrary pre-existing same-name person when duplicates
+  exist; (4) concurrent re-evaluation writes in
+  `post_evaluation_ingestion.py` are not transactional, so
+  `GET /api/posts/{id}/evaluation` can serve a torn mix of two
+  different judge runs; (5) `issue_ticket_ingestion.py`'s
+  `upsert_commitment_ticket` has an unguarded check-then-act race that
+  can create duplicate open commitment tickets for the same post.
 - **Cross-repository email/project lineage — provider boundary implemented,
   consumer open:** PR #343 merged at
   `125a8069a1554874d8067a15047e19d780ea6b7b`, but the contract remains
