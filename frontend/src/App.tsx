@@ -148,7 +148,7 @@ import {
   tf,
   useLocale,
 } from "./i18n";
-import { rememberOidcReturnUrl, returnUrlFromLocation } from "./oidcReturnUrl";
+import { rememberOidcReturnUrl, returnUrlFromLocation, stripOidcCallbackParams } from "./oidcReturnUrl";
 import "./App.css";
 
 function orchestratorUnavailableMessage(err: unknown, action: string): string {
@@ -2445,6 +2445,7 @@ function PostDetailPopup({
 
   const permanentLink = (() => {
     const url = new URL(window.location.href);
+    stripOidcCallbackParams(url);
     url.searchParams.set("post", postId);
     url.hash = "";
     return url.toString();

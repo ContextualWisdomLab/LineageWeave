@@ -3,6 +3,7 @@ import {
   rememberOidcReturnUrl,
   restoreOidcReturnUrl,
   returnUrlFromLocation,
+  stripOidcCallbackParams,
 } from "./oidcReturnUrl";
 
 describe("OIDC return URL handling", () => {
@@ -74,5 +75,30 @@ describe("OIDC return URL handling", () => {
     window.history.replaceState({}, "", "/workspace");
     expect(restoreOidcReturnUrl(undefined)).toBe("/workspace");
     window.history.replaceState({}, "", "/");
+  });
+});
+
+describe("stripOidcCallbackParams", () => {
+  it("removes the Keycloak auth-exchange params but keeps app deep-link params", () => {
+    const url = new URL(
+      "http://localhost:15173/?state=abc&session_state=def&iss=http%3A%2F%2Fidp&code=xyz&post=post-1&workspace=board",
+    );
+
+    stripOidcCallbackParams(url);
+
+    expect(url.searchParams.get("state")).toBeNull();
+    expect(url.searchParams.get("session_state")).toBeNull();
+    expect(url.searchParams.get("iss")).toBeNull();
+    expect(url.searchParams.get("code")).toBeNull();
+    expect(url.searchParams.get("post")).toBe("post-1");
+    expect(url.searchParams.get("workspace")).toBe("board");
+  });
+
+  it("is a no-op when no OIDC params are present", () => {
+    const url = new URL("http://localhost:15173/?post=post-1");
+
+    stripOidcCallbackParams(url);
+
+    expect(url.toString()).toBe("http://localhost:15173/?post=post-1");
   });
 });
