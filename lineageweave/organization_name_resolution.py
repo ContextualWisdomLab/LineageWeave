@@ -27,7 +27,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol
 
-from .http_client import HttpClientError, post_json
+from .http_client import HttpClientError, chat_completion_content, post_json
 from .relation_verification import (
     STATUS_PENDING,
     RelationVerificationClient,
@@ -150,7 +150,7 @@ class ContextualOrchestratorOrganizationNameResolutionClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        content = body["choices"][0]["message"]["content"]
+        content = chat_completion_content(body)
         return parse_resolution_response(content)
 
 

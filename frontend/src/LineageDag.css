@@ -1,0 +1,27 @@
+.lineage-dag-scroll-hint {
+  display: none;
+  margin: 0 0 var(--space-control-gap);
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.lineage-dag-viewport {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+.lineage-dag-viewport:focus-visible {
+  outline: 2px solid var(--color-focus-border);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
+}
+
+@media (max-width: 768px) {
+  .lineage-dag-scroll-hint {
+    display: block;
+  }
+}
