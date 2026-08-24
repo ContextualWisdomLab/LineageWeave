@@ -100,6 +100,7 @@ def configured_tepp_client(transport_url: str = "", api_key: str = "") -> TeppCl
         return TeppClient()
 
     def transport(payload: dict[str, Any]) -> dict[str, Any]:
+        """POST the TEPP wire payload to `url`, raising TeppNotAvailable on any transport failure."""
         try:
             headers = {"authorization": f"Bearer {api_key}"} if api_key.strip() else {}
             return post_json(url, payload, headers=headers, timeout=30.0)
