@@ -223,6 +223,7 @@ async def visible_lineage_graph(
     can_see_post,
     limit: int = 500,
     focus_post_id: str | None = None,
+    include_isolated: bool = False,
 ) -> dict[str, Any]:
     """ABAC-filtered graph bounded for the browser's initial viewport.
 
@@ -267,14 +268,11 @@ async def visible_lineage_graph(
             component_ids.add(current_id)
             frontier.extend(neighbors.get(current_id, set()) - component_ids)
 
-        # An isolated post has no DAG to render; the post-lineage endpoint
-        # still reports its empty direct/indirect lists.
-        if len(component_ids) <= 1:
-            visible = []
-        else:
-            visible = [
-                row for row in visible_all if str(row["post_id"]) in component_ids
-            ]
+        visible = (
+            [row for row in visible_all if str(row["post_id"]) in component_ids]
+            if include_isolated or len(component_ids) > 1
+            else []
+        )
         truncated = False
 
     visible_ids = {str(row["post_id"]) for row in visible}
@@ -342,3 +340,42 @@ async def interval_relations_for_post(
             "interval_is_parent": current_is_parent,
         }
     return relations
+
+
+async def lineage_graphs_for_posts(
+    conn: asyncpg.Connection,
+    can_see_post,
+    post_ids: list[str],
+) -> dict[str, Any]:
+    """Merge each post's full reconstructed thread into one ``LineageGraph``.
+
+    An Ask Agent answer can cite several posts from unrelated reconstruct
+    threads -- e.g. two separate customer complaints that happen to share a
+    keyword. The frontend's ``LineageDag`` already renders one ``LineageGraph``
+    as several independent git-branch-style figures, one per
+    ``reconstruct_group_key`` (see ``lineageLayout.ts``'s ``layoutLineageDag``);
+    merging every cited post's thread into a single graph is enough to get
+    that multi-graph rendering for free, no new frontend layout needed.
+
+    ponytail: one ``visible_lineage_graph`` call per post (each a bounded
+    ``source_post`` + full ``post_lineage_edge`` scan) -- fine for the
+    existing citation cap (``_POST_CHAT_SOURCE_LIMIT`` = 8), revisit with a
+    single batched query if that cap grows materially.
+    """
+    nodes_by_id: dict[str, dict[str, Any]] = {}
+    edges_by_key: dict[tuple[str, str], dict[str, Any]] = {}
+    truncated = False
+    for post_id in dict.fromkeys(post_ids):
+        graph = await visible_lineage_graph(
+            conn, can_see_post, focus_post_id=post_id, include_isolated=True
+        )
+        truncated = truncated or graph["truncated"]
+        for node in graph["nodes"]:
+            nodes_by_id[node["id"]] = node
+        for edge in graph["edges"]:
+            edges_by_key[(edge["source"], edge["target"])] = edge
+    return {
+        "nodes": list(nodes_by_id.values()),
+        "edges": list(edges_by_key.values()),
+        "truncated": truncated,
+    }

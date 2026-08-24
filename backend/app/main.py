@@ -167,6 +167,7 @@ from backend.app.knowledge_graph import (
 )
 from backend.app.lineage_ingestion import (
     interval_relations_for_post,
+    lineage_graphs_for_posts,
     rebuild_lineage,
     visible_lineage_graph,
 )
@@ -2633,7 +2634,7 @@ async def ask_agent(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
-    """Answer a buyer question from authorized post and graph evidence."""
+    """Answer a reader question from authorized post and graph evidence."""
     question = request.question.strip()
     if not question:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "question is required")
@@ -2658,6 +2659,7 @@ async def ask_agent(
             "cited_posts": [],
             "source_post_ids": [],
             "cited_post_evidence": [],
+            "lineage_graph": {"nodes": [], "edges": [], "truncated": False},
             "cited_post_images": [],
             "next_action": "No authorized source posts are available for this question.",
         }
@@ -2670,6 +2672,11 @@ async def ask_agent(
         ) from exc
     cited_ids = list(answer.cited_post_ids)
     async with pool.acquire() as conn:
+        lineage_graph = await lineage_graphs_for_posts(
+            conn,
+            lambda row: _can_see_post(account, row),
+            cited_ids,
+        )
         images = await cited_post_images(conn, cited_ids)
     return {
         "answer_text": answer.answer_text,
@@ -2678,6 +2685,7 @@ async def ask_agent(
         "cited_post_evidence": cited_post_evidence(sources, cited_ids),
         "cited_post_images": images,
         "source_post_ids": [source.post_id for source in sources],
+        "lineage_graph": lineage_graph,
     }
 
 

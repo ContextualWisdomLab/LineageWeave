@@ -8,6 +8,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- ADRs 0150-0153 define the accepted boundaries for Korean relative-time
+  retrieval, multi-thread Event Lineage answers, persisted image-evidence
+  citations, and the focused evidence popup. Their implementations remain
+  active-PR evidence until protected merge.
 - ADR 0157 and its exact-head inventory choose the existing lowercase public
   ontology namespace as canonical and define the compatibility, publication,
   and migration evidence required by issue #372 without rewriting identifiers.
