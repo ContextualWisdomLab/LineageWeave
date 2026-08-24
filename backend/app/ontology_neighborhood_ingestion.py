@@ -1,4 +1,4 @@
-"""Load an ABAC-visible ontology neighborhood from PostgreSQL (ADR 0168)."""
+"""Load an ABAC-visible ontology neighborhood from PostgreSQL (ADR 0184)."""
 
 from __future__ import annotations
 
