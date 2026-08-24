@@ -271,6 +271,33 @@ describe("i18n", () => {
   });
 
   it.each([
+    [
+      "ko",
+      "잔여 지도 코사인 +0.95이(가) 거리와 무관한 잔여 지도 정렬을 이름합니다. sales-lead 기준을 읽으려면 이 글을 여세요.",
+    ],
+    [
+      "zh",
+      "残差图余弦 +0.95 命名与距离无关的残差图对齐。打开这篇帖子阅读 sales-lead。",
+    ],
+    [
+      "ja",
+      "残差マップ余弦 +0.95 は距離に依存しない残差マップの向きを示します。この投稿を開いて sales-lead を読んでください。",
+    ],
+    [
+      "vi",
+      "Cosin bản đồ phần dư +0.95 đặt tên sự thẳng hàng độc lập với khoảng cách. Mở bài viết này để đọc sales-lead.",
+    ],
+  ] as const)("formats leftover-map cosine next action in %s", (locale, expected) => {
+    setLocale(locale);
+    expect(
+      tf(
+        "Leftover-map cosine {value} names leftover-map alignment independent of distance. Open this post to read {criterion}.",
+        { value: "+0.95", criterion: "sales-lead" },
+      ),
+    ).toBe(expected);
+  });
+
+  it.each([
     ["ko", "DEMO은(는) 이벤트 계보의 현재 항목입니다. 다음으로 Keyman과 평가를 읽으세요."],
     ["zh", "DEMO 是事件谱系中的当前记录。接下来查看关键联系人和评估。"],
     ["ja", "DEMOはイベント系譜の現在の記録です。次にキーパーソンと評価を確認してください。"],

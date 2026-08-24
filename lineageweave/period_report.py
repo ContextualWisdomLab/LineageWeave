@@ -252,7 +252,7 @@ def leftover_pairs_for_fit(
     theta: np.ndarray,
     fit: PolytomousFit,
 ) -> tuple[LeftoverPair, ...]:
-    """Leftover pairs from the already-fitted GRM/GPCM main effects."""
+    """Leftover pairs from the already-fitted GRM/GPCM main effects, with cosine."""
     probs = _category_probabilities(model, theta, fit)
     expected = expected_category_matrix(matrix, probs)
     return leftover_pairs_from_residual(post_ids, item_codes, matrix, expected)
