@@ -29,7 +29,7 @@ _ALLOWED_SCHEMES = frozenset({"http", "https"})
 
 
 class HttpClientError(RuntimeError):
-    """The remote endpoint returned a non-success status or invalid JSON."""
+    """The remote endpoint failed, returned a non-success status, or invalid JSON."""
 
 
 def _request(
@@ -42,7 +42,7 @@ def _request(
     require_public_peer: bool = False,
     max_response_bytes: int | None = None,
 ) -> tuple[int, bytes]:
-    """Implement the _request operation for this channel."""
+    """Perform one exchange without exposing provider transport exception details."""
     parsed = urlparse(url)
     if parsed.scheme not in _ALLOWED_SCHEMES:
         raise ValueError(f"refusing non-http(s) URL scheme: {parsed.scheme!r}")
@@ -71,25 +71,30 @@ def _request(
                 and not ipaddress.ip_address(connection.sock.getpeername()[0]).is_global
             ):
                 raise ValueError("refusing a non-public network target")
-        if parsed.scheme == "https":
-            connection.sock = _SSL_CONTEXT.wrap_socket(
-                connection.sock, server_hostname=parsed.hostname
+        try:
+            if parsed.scheme == "https":
+                connection.sock = _SSL_CONTEXT.wrap_socket(
+                    connection.sock, server_hostname=parsed.hostname
+                )
+            connection.request(method, path, body=body, headers=headers)
+            response = connection.getresponse()
+            length_header = response.getheader("Content-Length")
+            if (
+                max_response_bytes is not None
+                and length_header is not None
+                and int(length_header) > max_response_bytes
+            ):
+                raise HttpClientError("HTTP response exceeded the configured byte limit")
+            raw = response.read(
+                None if max_response_bytes is None else max_response_bytes + 1
             )
-        connection.request(method, path, body=body, headers=headers)
-        response = connection.getresponse()
-        length_header = response.getheader("Content-Length")
-        if (
-            max_response_bytes is not None
-            and length_header is not None
-            and int(length_header) > max_response_bytes
-        ):
-            raise HttpClientError("HTTP response exceeded the configured byte limit")
-        raw = response.read(
-            None if max_response_bytes is None else max_response_bytes + 1
-        )
-        if max_response_bytes is not None and len(raw) > max_response_bytes:
-            raise HttpClientError("HTTP response exceeded the configured byte limit")
-        return response.status, raw
+            if max_response_bytes is not None and len(raw) > max_response_bytes:
+                raise HttpClientError("HTTP response exceeded the configured byte limit")
+            return response.status, raw
+        except (OSError, ValueError, http.client.HTTPException) as exc:
+            # Chain internally for operator logging; the exposed
+            # message stays generic/hostname-only, never the raw exception text.
+            raise HttpClientError("provider transport unavailable") from exc
     finally:
         connection.close()
 

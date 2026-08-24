@@ -172,3 +172,21 @@ def test_temporal_context_host_gateway_preserves_tepp_loopback_host(
         )
 
     assert received["headers"]["host"] == "127.0.0.1"
+
+
+def test_configured_transport_hides_raw_provider_exception_chain(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def failing_post_json(*args, **kwargs):
+        raise OSError("provider secret must not escape")
+
+    monkeypatch.setattr("backend.app.analysis_run_start.post_json", failing_post_json)
+    client = configured_tepp_client("https://tepp.example/v1/analysis-runs")
+
+    with pytest.raises(TeppNotAvailable) as error:
+        client.submit_analysis_run(_sample_request())
+
+    assert str(error.value) == "TEPP transport unavailable"
+    assert "provider secret" not in str(error.value)
+    assert isinstance(error.value.__cause__, OSError)
+    assert str(error.value.__cause__) == "provider secret must not escape"
