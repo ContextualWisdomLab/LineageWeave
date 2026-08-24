@@ -63,6 +63,13 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- ADR 0024 cited a fabricated paper ("Samuel et al., 2025, Weighted
+  reciprocal rank fusion for multi-channel retrieval") to justify
+  RankWeave's temporal/lexical channel-weight split. Removed; Cormack
+  et al. (2009)'s real RRF citation stands, and the weight split is now
+  described honestly as an engineering default informed by Efron &
+  Golovchinsky (2011), not a value taken from any paper's reported
+  optimum. `tests/test_adr_citation_integrity.py` pins the correction.
 - Four post-detail and dashboard fetch effects had no stale-response guard,
   so a slow response for a previous `postId`/period/grouping/search could
   overwrite the currently displayed state after the user had already moved

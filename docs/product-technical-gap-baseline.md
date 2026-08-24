@@ -609,6 +609,31 @@ or an explicit unavailable result.
 
 ## 5. Product and technical gaps
 
+- **Fabricated citation in ADR 0024 — closed (2026-08-24):** ADR 0024
+  attributed the RankWeave `temporal` 0.25 / `lexical` 0.75 channel-weight
+  split to "Samuel, D., MacAvaney, S., Yates, A., Zhang, E., Zhang, S.,
+  Macdonald, C., & Ounis, I. (2025). Weighted reciprocal rank fusion for
+  multi-channel retrieval [Preprint]" -- a paper that does not exist. It
+  combined real information-retrieval researchers' names into a title no
+  search or bibliography lookup could confirm; the lack of a DOI/URL on a
+  specific, multi-author, dated citation was the tell. This is precisely
+  the "arbitrary weight dressed as research" failure this project's own
+  standing instruction against unfounded weights exists to catch -- an
+  invented citation is worse than an admitted default, because it looks
+  verified when it is not. Corrected in place: the fabricated reference is
+  removed, Cormack et al. (2009) remains correctly cited for the RRF
+  mechanism and η = 60 (this part was always real), and the 0.25/0.75
+  split is now honestly described as an engineering default consistent
+  with Efron & Golovchinsky (2011)'s general finding that relevance should
+  usually dominate raw recency for a non-time-sensitive query -- not a
+  value taken from any paper's reported optimum. A visible
+  "### Correction (2026-08-24)" section documents the fabrication and fix
+  for audit-trail transparency (relevant given this project's SOC 2/CSAP
+  posture). `tests/test_adr_citation_integrity.py` pins the correction so
+  the fabricated string cannot silently reappear. A dedicated citation-
+  integrity sweep across all 44 ADRs with a References section is running
+  to check whether this is an isolated incident or a systemic pattern;
+  its findings and fixes land as separate follow-up work.
 - **Technology-benefit relation (which partner technology, who adopted it,
   where it is applied) — locally implemented, acceptance open (2026-08-24):**
   source research (ADR 0133/0145) can resolve a partner organization a post
