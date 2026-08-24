@@ -60,6 +60,7 @@ from lineageweave.corporate_hierarchy_inference import (
 from lineageweave.corporate_hierarchy_resolution import (
     RESOLUTION_TIE,
     CorporateEntityCandidate,
+    OrganizationNameAlias,
     score_corporate_entity,
 )
 from lineageweave.keyman_extraction import KeymanExtractionClient, PersonMention
@@ -71,7 +72,10 @@ from lineageweave.relation_verification import NullRelationVerificationClient, R
 
 from .corporate_entity_ingestion import get_or_create_corporate_entity
 from .knowledge_graph import persist_edges_for_post
-from .organization_name_resolution_ingestion import resolve_organization_name
+from .organization_name_resolution_ingestion import (
+    load_corroborated_organization_name_aliases,
+    resolve_organization_name,
+)
 
 
 async def _load_corporate_entity_candidates(conn: asyncpg.Connection) -> list[CorporateEntityCandidate]:
@@ -182,8 +186,10 @@ async def _resolve_affiliated_organization(
     verification_client: RelationVerificationClient,
     hierarchy_inference_client: CorporateHierarchyInferenceClient,
     candidates: list[CorporateEntityCandidate],
+    aliases: list[OrganizationNameAlias] | None = None,
 ) -> tuple[str, str, str | None]:
     """Resolve one affiliation without rewriting a known raw-name tie."""
+    resolved_aliases = aliases if aliases is not None else []
     raw_outcome = score_corporate_entity(organization_name, candidates)
     if raw_outcome.kind == RESOLUTION_TIE:
         return organization_name, organization_name, None
@@ -202,6 +208,7 @@ async def _resolve_affiliated_organization(
         hierarchy_inference_client,
         verification_client,
         candidates,
+        aliases=resolved_aliases,
     )
     return organization_name, resolved_name, corporate_entity_id
 
@@ -249,6 +256,7 @@ async def ingest_post_keymen(
     else:
         mentions = await asyncio.to_thread(client.extract, post_title, post_body)
     candidates = await _load_corporate_entity_candidates(conn)
+    aliases = await load_corroborated_organization_name_aliases(conn)
     resolved_by_mention: list[tuple[PersonMention, list[tuple[str, str, str | None]]]] = []
     for mention in mentions:
         resolved_orgs: list[tuple[str, str, str | None]] = []
@@ -262,6 +270,7 @@ async def ingest_post_keymen(
                     verification_client,
                     hierarchy_inference_client,
                     candidates,
+                    aliases,
                 )
             )
         resolved_by_mention.append((mention, resolved_orgs))

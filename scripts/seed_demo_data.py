@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import os
+import time
 import sys
 from pathlib import Path
 from urllib.parse import urlencode
@@ -30,7 +31,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import psycopg2
 
-from lineageweave.http_client import get_json_list, post_form
+from lineageweave.http_client import get_json, get_json_list, post_form
 from lineageweave.post_summary import ACTOR_TYPE_PERSON, POST_SUMMARY_CONTRACT_VERSION
 from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
 
@@ -120,6 +121,7 @@ def seed(
             cur.execute((migrations / "0012_report_leftover_pair.sql").read_text())
             cur.execute((migrations / "0163_report_leftover_observed_expected.sql").read_text())
             cur.execute((migrations / "0164_report_leftover_map_rank.sql").read_text())
+            cur.execute((migrations / "0182_report_leftover_map_unexplained.sql").read_text())
             cur.execute((migrations / "0060_role_responsibility_agent_type.sql").read_text())
             cur.execute((migrations / "0013_person_job_title.sql").read_text())
             cur.execute((migrations / "0014_role_responsibility_team_actor_type.sql").read_text())
@@ -1199,8 +1201,9 @@ def _persist_seed_period_report(
             "insert into report_leftover_pair ("
             "grouping_kind, grouping_key, period_code, rubric_version, "
             "pair_kind, post_id, criterion_code, leftover_distance, leftover_residual, "
-            "observed_response, expected_response, leftover_map_rank"
-            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+            "observed_response, expected_response, leftover_map_rank, "
+            "leftover_map_unexplained"
+            ") values (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
             (
                 grouping_kind,
                 grouping_key,
@@ -1214,6 +1217,7 @@ def _persist_seed_period_report(
                 pair.observed_response,
                 pair.expected_response,
                 pair.leftover_map_rank,
+                pair.leftover_map_unexplained,
             ),
         )
     for axis in report.leftover_map_axes:
@@ -1833,6 +1837,61 @@ def _seed_demo_run_outbox(cur, analysis_run_id) -> None:
         )
 
 
+DEFAULT_BACKEND_BASE_URL = "http://localhost:18420"
+
+
+def _warm_seeded_post_content(
+    postgres_dsn: str, keycloak_base_url: str, backend_base_url: str
+) -> None:
+    """Open each seeded post once through the API to start content ingestion.
+
+    Post-content extraction (units, embeddings, embedded images) is
+    enqueued lazily when a post detail is first served. Seeded posts are
+    inserted straight into Postgres, so until someone opens them the
+    pipeline stays empty and image citation has nothing to cite. This
+    replays the exact production path with the demo reader account
+    instead of duplicating the enqueue SQL here.
+    """
+    for _ in range(60):
+        try:
+            get_json(f"{backend_base_url}/healthz", timeout=5.0)
+            break
+        except Exception:
+            time.sleep(2)
+    else:
+        raise RuntimeError(
+            f"backend at {backend_base_url} is not serving /healthz; run `make up` first"
+        )
+    token = post_form(
+        f"{keycloak_base_url}/realms/lineageweave-demo/protocol/openid-connect/token",
+        {
+            "client_id": "lineageweave-frontend",
+            "grant_type": "password",
+            "username": "demo.analyst",
+            "password": "lineageweave-demo-only",
+        },
+        timeout=30.0,
+    )["access_token"]
+    connection = psycopg2.connect(postgres_dsn)
+    try:
+        with connection.cursor() as cur:
+            cur.execute(
+                "select post_id from source_post where post_title like 'Demo %post'"
+            )
+            post_ids = [str(row[0]) for row in cur.fetchall()]
+    finally:
+        # psycopg2's context manager only manages the transaction; close
+        # explicitly so no idle connection outlives the HTTP warm-up.
+        connection.close()
+    for post_id in post_ids:
+        get_json(
+            f"{backend_base_url}/api/posts/{post_id}/content",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=60.0,
+        )
+    print(f"Warmed post-content ingestion for {len(post_ids)} seeded posts")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--postgres-dsn", default=DEFAULT_POSTGRES_DSN)
@@ -1844,12 +1903,14 @@ def main() -> None:
         help="Keycloak master admin password (or KEYCLOAK_ADMIN_PASSWORD). Required.",
     )
     parser.add_argument("--valkey-url", default=DEFAULT_VALKEY_URL)
+    parser.add_argument("--backend-base-url", default=DEFAULT_BACKEND_BASE_URL)
     args = parser.parse_args()
     if not args.keycloak_admin_password:
         parser.error("set KEYCLOAK_ADMIN_PASSWORD or pass --keycloak-admin-password")
 
     subjects = _fetch_demo_user_subjects(args.keycloak_base_url, args.keycloak_admin_user, args.keycloak_admin_password)
     seed(args.postgres_dsn, subjects, args.valkey_url)
+    _warm_seeded_post_content(args.postgres_dsn, args.keycloak_base_url, args.backend_base_url)
     print(f"Seeded synthetic demo data for accounts: {subjects}")
 
 

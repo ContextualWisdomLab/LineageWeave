@@ -40,7 +40,7 @@ _RECOVERY_INTERVAL_SECONDS = 30.0
 _BROKER_RECOVERY_DELAY_SECONDS = 1.0
 _INCOMPLETE_FAILURE_CODE = "post_content_ingestion_incomplete"
 _ATTEMPT_LIMIT_FAILURE_CODE = "post_content_ingestion_attempt_limit"
-_UNEXPECTED_FAILURE_DETAIL = "post-content ingestion failed; inspect server telemetry"
+_UNEXPECTED_FAILURE_DETAIL = "post-content provider operation failed; retry the ingestion job"
 
 
 async def _stream_tail(client: redis.Redis) -> str:
@@ -281,6 +281,7 @@ async def process_post_content_job(
                 )
                 return
     except Exception as exc:  # noqa: BLE001 - durable failure is recorded for retry.
+        _logger.exception("post content ingestion failed for post_id=%s", post_id)
         outcome = (
             "provider_unavailable"
             if isinstance(

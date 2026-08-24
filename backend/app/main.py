@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from contextlib import asynccontextmanager
 from dataclasses import asdict
 from datetime import datetime
@@ -33,18 +34,66 @@ from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
-from backend.app.activity_stream import (
-    create_valkey_client,
-    get_valkey,
-    publish_activity_event,
-    read_activity_events,
-    ticket_created_summary,
-    ticket_status_changed_summary,
+from lineageweave.adjudication_client import (
+    ContextualOrchestratorAdjudicationClient,
+    NullAdjudicationClient,
 )
-from backend.app.affiliate_tree_ingestion import (
-    fetch_affiliate_forest,
-    fetch_voc_evidence,
+from lineageweave.commitment_extraction import (
+    ContextualOrchestratorCommitmentExtractionClient,
+    NullCommitmentExtractionClient,
 )
+from lineageweave.caldav_client import (
+    CALDAV_UNAVAILABLE_NEXT_ACTION,
+    build_caldav_client,
+)
+from lineageweave.entity_relationship_classification import (
+    ContextualOrchestratorEntityRelationshipClient,
+    NullEntityRelationshipClient,
+)
+from lineageweave.image_content import orchestrator_vision_client
+from lineageweave.embedding_client import orchestrator_embedding_client
+from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
+from lineageweave.observability import (
+    configure_telemetry,
+    record_server_failure,
+    shutdown_telemetry,
+    traced,
+)
+from lineageweave.corporate_hierarchy_inference import (
+    ContextualOrchestratorHierarchyInferenceClient,
+    NullCorporateHierarchyInferenceClient,
+)
+from lineageweave.keyman_extraction import (
+    COUNTERPARTY,
+    ContextualOrchestratorKeymanExtractionClient,
+    NullKeymanExtractionClient,
+)
+from lineageweave.customer_hint_resolution import (
+    ContextualOrchestratorCustomerHintResolutionClient,
+    NullCustomerHintResolutionClient,
+)
+from lineageweave.organization_name_resolution import (
+    ContextualOrchestratorOrganizationNameResolutionClient,
+    NullOrganizationNameResolutionClient,
+)
+from lineageweave.post_chat import (
+    ContextualOrchestratorPostChatClient,
+    NullPostChatClient,
+    cited_post_summaries,
+)
+from lineageweave.post_content_normalization import normalize_post_body
+from lineageweave.post_evaluation import (
+    ContextualOrchestratorPostEvaluationClient,
+    NullPostEvaluationClient,
+    RUBRIC_VERSION,
+)
+from lineageweave.post_structure import ContextualOrchestratorPostStructureClient, NullPostStructureClient
+from lineageweave.post_summary import ContextualOrchestratorPostSummaryClient, NullPostSummaryClient
+from lineageweave.relation_verification import NullRelationVerificationClient, SearxngRelationVerificationClient
+from lineageweave.semantic_hints import customer_hint_trust, format_semantic_hints
+from lineageweave.ontology import LW
+from lineageweave.rankweave_client import build_rankweave_client
+
 from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
     create_pending_analysis_run,
@@ -59,20 +108,49 @@ from backend.app.analysis_run_start import (
     enqueue_pending_analysis_run,
 )
 from backend.app.analysis_run_worker import run_analysis_run_worker
+from backend.app.post_content_queue import (
+    ensure_post_content_job,
+    post_content_api_status,
+    post_content_is_complete,
+    publish_post_content_event,
+)
+from backend.app.global_ask_queue import (
+    enqueue_global_ask_job,
+    run_global_ask_worker,
+)
+from backend.app.post_content_worker import run_post_content_worker
+from backend.app.source_post_revision import fetch_known_at_revision, parse_as_of_clock
+from backend.app.activity_stream import (
+    create_valkey_client,
+    get_valkey,
+    publish_activity_event,
+    read_activity_events,
+    ticket_created_summary,
+    ticket_status_changed_summary,
+)
+from backend.app.affiliate_tree_ingestion import fetch_affiliate_forest, fetch_voc_evidence
 from backend.app.auth import CurrentAccount, get_current_account
 from backend.app.config import load_settings
 from backend.app.customer_hint_ingestion import resolve_customer_hint
 from backend.app.db import create_pool, get_pool
-from backend.app.demo_scope import (
-    fetch_demo_corporate_entity_ids,
-    has_real_source_context,
-)
 from backend.app.entity_relationship_ingestion import (
     fetch_post_counterparties,
     fetch_relationship_network,
     ingest_post_entity_relationships,
 )
 from backend.app.five_w1h_ingestion import load_five_w1h_slots
+from backend.app.post_evaluation_ingestion import fetch_post_evaluation, ingest_post_evaluation
+from backend.app.ranking_ingestion import load_visible_ranking_posts
+from backend.app.report_ingestion import (
+    GROUPING_KINDS,
+    fetch_period_comparison,
+    fetch_period_reports,
+    iso_week_period,
+    list_period_report_summaries,
+    parse_period_code,
+    rebuild_period_reports,
+)
+from backend.app.relation_verification_ingestion import verify_post_relations
 from backend.app.issue_ticket_ingestion import (
     create_ticket,
     fetch_ticket_post_id,
@@ -87,8 +165,8 @@ from backend.app.knowledge_graph import (
     fetch_person_role_history,
     fetch_post_keymen,
     labels_for_codes,
-    persist_edges_for_post,
     person_exists,
+    persist_edges_for_post,
     related_for_entity,
     related_for_person,
     related_for_team,
@@ -98,118 +176,43 @@ from backend.app.knowledge_graph import (
     visible_team_mention_post_ids,
 )
 from backend.app.lineage_ingestion import (
-    lineage_graphs_for_posts,
     rebuild_lineage,
     visible_lineage_graph,
 )
+from backend.app.ontology_neighborhood_ingestion import (
+    neighborhood_error_detail,
+    neighborhood_error_http_status,
+    neighborhood_to_payload,
+    parse_allowed_property_query,
+    visible_ontology_neighborhood,
+)
+from lineageweave.ontology_neighborhood import (
+    DEFAULT_MAXIMUM_DEPTH,
+    DEFAULT_MAXIMUM_EDGES,
+    DEFAULT_MAXIMUM_NODES,
+    HARD_MAXIMUM_DEPTH,
+    HARD_MAXIMUM_EDGES,
+    HARD_MAXIMUM_NODES,
+    OntologyNeighborhoodError,
+)
 from backend.app.post_chat_ingestion import (
-    cited_post_images,
     fetch_persisted_chat,
     fetch_persisted_chats,
     find_linked_post_ids,
     gather_chat_sources,
-    gather_global_chat_sources,
     persist_post_chat,
-)
-from backend.app.post_content_queue import (
-    ensure_post_content_job,
-    post_content_api_status,
-    post_content_is_complete,
-    publish_post_content_event,
-)
-from backend.app.post_content_worker import run_post_content_worker
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
-from backend.app.post_evaluation_ingestion import (
-    fetch_post_evaluation,
-    ingest_post_evaluation,
 )
 from backend.app.post_summary_ingestion import (
     fetch_persisted_summary,
     persist_post_summary,
     require_summary_source_body,
 )
-from backend.app.ranking_ingestion import load_visible_ranking_posts
-from backend.app.relation_verification_ingestion import verify_post_relations
-from backend.app.report_ingestion import (
-    GROUPING_KINDS,
-    fetch_period_comparison,
-    fetch_period_reports,
-    iso_week_period,
-    list_period_report_summaries,
-    parse_period_code,
-    rebuild_period_reports,
-)
-from backend.app.source_post_revision import fetch_known_at_revision, parse_as_of_clock
-from lineageweave.adjudication_client import (
-    ContextualOrchestratorAdjudicationClient,
-    NullAdjudicationClient,
-)
-from lineageweave.caldav_client import (
-    CALDAV_UNAVAILABLE_NEXT_ACTION,
-    build_caldav_client,
-)
-from lineageweave.commitment_extraction import (
-    ContextualOrchestratorCommitmentExtractionClient,
-    NullCommitmentExtractionClient,
-)
-from lineageweave.corporate_hierarchy_inference import (
-    ContextualOrchestratorHierarchyInferenceClient,
-    NullCorporateHierarchyInferenceClient,
-)
-from lineageweave.customer_hint_resolution import (
-    ContextualOrchestratorCustomerHintResolutionClient,
-    NullCustomerHintResolutionClient,
-)
-from lineageweave.embedding_client import orchestrator_embedding_client
-from lineageweave.entity_relationship_classification import (
-    ContextualOrchestratorEntityRelationshipClient,
-    NullEntityRelationshipClient,
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.demo_scope import (
+    fetch_demo_corporate_entity_ids,
+    has_real_source_context,
 )
 from lineageweave.http_client import HttpClientError
-from lineageweave.image_content import orchestrator_vision_client
-from lineageweave.keyman_extraction import (
-    COUNTERPARTY,
-    ContextualOrchestratorKeymanExtractionClient,
-    NullKeymanExtractionClient,
-)
-from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
-from lineageweave.observability import (
-    configure_telemetry,
-    record_server_failure,
-    shutdown_telemetry,
-    traced,
-)
-from lineageweave.ontology import LW
-from lineageweave.organization_name_resolution import (
-    ContextualOrchestratorOrganizationNameResolutionClient,
-    NullOrganizationNameResolutionClient,
-)
-from lineageweave.post_chat import (
-    ContextualOrchestratorPostChatClient,
-    NullPostChatClient,
-    cited_post_evidence,
-    cited_post_summaries,
-)
-from lineageweave.post_content_normalization import normalize_post_body
-from lineageweave.post_evaluation import (
-    RUBRIC_VERSION,
-    ContextualOrchestratorPostEvaluationClient,
-    NullPostEvaluationClient,
-)
-from lineageweave.post_structure import (
-    ContextualOrchestratorPostStructureClient,
-    NullPostStructureClient,
-)
-from lineageweave.post_summary import (
-    ContextualOrchestratorPostSummaryClient,
-    NullPostSummaryClient,
-)
-from lineageweave.rankweave_client import build_rankweave_client
-from lineageweave.relation_verification import (
-    NullRelationVerificationClient,
-    SearxngRelationVerificationClient,
-)
-from lineageweave.semantic_hints import customer_hint_trust, format_semantic_hints
 
 _POST_READ = "post_read"
 _POST_ADMIN = "post_admin"
@@ -224,6 +227,7 @@ async def lifespan(app: FastAPI):
     valkey = None
     analysis_worker = None
     content_worker = None
+    global_ask_worker = None
     try:
         settings = load_settings()
         pool = await create_pool(settings.database_url)
@@ -252,9 +256,27 @@ async def lifespan(app: FastAPI):
             )
         )
         app.state.post_content_worker = content_worker
+        # Late-bound lambda so tests that monkeypatch _post_chat_client reach
+        # the worker too (the name resolves in module globals at call time).
+        # Only this worker gets the long answer timeout; the per-post chat
+        # endpoint keeps the client's interactive default.
+        global_ask_worker = asyncio.create_task(
+            run_global_ask_worker(
+                valkey,
+                pool,
+                chat_factory=lambda: _post_chat_client(
+                    timeout=load_settings().orchestrator_answer_timeout_seconds
+                ),
+            )
+        )
+        app.state.global_ask_worker = global_ask_worker
         yield
     finally:
-        workers = tuple(worker for worker in (analysis_worker, content_worker) if worker is not None)
+        workers = tuple(
+            worker
+            for worker in (analysis_worker, content_worker, global_ask_worker)
+            if worker is not None
+        )
         for worker in workers:
             worker.cancel()
         if workers:
@@ -269,6 +291,8 @@ async def lifespan(app: FastAPI):
             finally:
                 shutdown_telemetry()
 
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="LineageWeave API", lifespan=lifespan)
 app.add_middleware(
@@ -392,13 +416,22 @@ def _post_structure_client():
     )
 
 
-def _post_chat_client():
-    """Live orchestrator client when configured; otherwise the unavailable null."""
+def _post_chat_client(timeout: float | None = None):
+    """Live orchestrator client when configured; otherwise the unavailable null.
+
+    ``timeout`` overrides the client's socket timeout. Only the Ask worker
+    passes the long answer timeout — the synchronous per-post chat endpoint
+    keeps the client default so an interactive request never hangs a reader
+    for the worker's full budget.
+    """
     settings = load_settings()
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
         return NullPostChatClient()
+    kwargs = {} if timeout is None else {"timeout": timeout}
     return ContextualOrchestratorPostChatClient(
-        base_url=settings.orchestrator_base_url, api_key=settings.orchestrator_api_key
+        base_url=settings.orchestrator_base_url,
+        api_key=settings.orchestrator_api_key,
+        **kwargs,
     )
 
 
@@ -1113,6 +1146,11 @@ async def resolve_customer_master_hint(
             # "unresolved" -- a failed call is not the same claim as "the
             # model looked and found nothing" (same discipline as
             # verify-relations' identical try/except).
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Hint resolution is unavailable: the orchestrator or search provider did not respond",
+            ) from exc
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Hint resolution is unavailable: the orchestrator or search provider did not respond",
@@ -1970,6 +2008,49 @@ async def read_related_team(
     }
 
 
+@app.get("/api/ontology/neighborhood")
+async def read_ontology_neighborhood(
+    focus_node_type: str = Query(..., min_length=1),
+    focus_node_id: str = Query(..., min_length=1),
+    maximum_depth: int = Query(DEFAULT_MAXIMUM_DEPTH, ge=1, le=HARD_MAXIMUM_DEPTH),
+    maximum_nodes: int = Query(DEFAULT_MAXIMUM_NODES, ge=1, le=HARD_MAXIMUM_NODES),
+    maximum_edges: int = Query(DEFAULT_MAXIMUM_EDGES, ge=1, le=HARD_MAXIMUM_EDGES),
+    allowed_property_codes: list[str] | None = Query(None),
+    knowledge_cutoff: str | None = Query(None),
+    cursor: str | None = Query(None),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Typed ontology/KG neighborhood, distinct from Event Lineage."""
+    _require_post_read(account)
+    cutoff_clock = None
+    if knowledge_cutoff:
+        try:
+            cutoff_clock = parse_as_of_clock(knowledge_cutoff)
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    try:
+        async with pool.acquire() as conn:
+            neighborhood = await visible_ontology_neighborhood(
+                conn,
+                focus_node_type_code=focus_node_type,
+                focus_node_id=focus_node_id,
+                can_see_post=lambda row: _can_see_post(account, row),
+                maximum_depth=maximum_depth,
+                maximum_nodes=maximum_nodes,
+                maximum_edges=maximum_edges,
+                allowed_property_codes=parse_allowed_property_query(allowed_property_codes),
+                knowledge_cutoff=cutoff_clock,
+                cursor=cursor,
+                source_cursor_secret=load_settings().ontology_source_cursor_secret,
+                source_cursor_scope=account.user_account_id,
+            )
+            payload = neighborhood_to_payload(neighborhood)
+    except OntologyNeighborhoodError as exc:
+        raise HTTPException(neighborhood_error_http_status(exc), neighborhood_error_detail(exc)) from None
+    return payload
+
+
 @app.get("/api/posts/{post_id}/counterparties")
 async def read_post_counterparties(
     post_id: str,
@@ -2061,6 +2142,11 @@ async def verify_post_entity_relationships(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
                 "Relation verification is unavailable: the search provider did not respond",
             ) from exc
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Relation verification is unavailable: the search provider did not respond",
+            ) from exc
     await publish_activity_event(
         valkey,
         post_id,
@@ -2114,22 +2200,33 @@ async def extract_post_keymen(
             # tags dilute the model's attention and a base64 payload sent as
             # literal text either blows the token budget or is silently
             # ignored (see lineageweave/post_content_normalization.py).
-            post_body = (
-                await asyncio.to_thread(normalize_post_body, raw_body, _vision_client())
-            ).text
             context_hints = await _load_post_semantic_hints(conn, post_id)
-            mentions = await ingest_post_keymen(
-                conn,
-                keyman_client,
-                post_id,
-                post["post_title"],
-                post_body,
-                resolution_client=_organization_name_resolution_client(),
-                verification_client=_relation_verification_client(),
-                hierarchy_inference_client=_corporate_hierarchy_inference_client(),
-                context_hints=context_hints,
-                persist_graph=False,
-            )
+            try:
+                post_body = (
+                    await asyncio.to_thread(normalize_post_body, raw_body, _vision_client())
+                ).text
+                mentions = await ingest_post_keymen(
+                    conn,
+                    keyman_client,
+                    post_id,
+                    post["post_title"],
+                    post_body,
+                    resolution_client=_organization_name_resolution_client(),
+                    verification_client=_relation_verification_client(),
+                    hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+                    context_hints=context_hints,
+                    persist_graph=False,
+                )
+            except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
+            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
             # Live bug (2026-08-19): an organization affiliated ONLY with an
             # our_side person (our own factory, our own affiliate) got fed
             # into the counterparty-relationship classifier the same as any
@@ -2145,9 +2242,20 @@ async def extract_post_keymen(
                     for name in mention.affiliated_organization_names
                 }
             )
-            relationships = await ingest_post_entity_relationships(
-                conn, relationship_client, post_id, post["post_title"], post_body, organization_names
-            )
+            try:
+                relationships = await ingest_post_entity_relationships(
+                    conn, relationship_client, post_id, post["post_title"], post_body, organization_names
+                )
+            except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
+            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Keymen extraction is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
             async with conn.transaction():
                 await persist_edges_for_post(conn, post_id)
     await publish_activity_event(
@@ -2275,17 +2383,28 @@ async def evaluate_post(
             )
         async with pool.acquire() as conn:
             body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-        normalized_body = (
-            await asyncio.to_thread(
-                normalize_post_body,
-                "" if body_row is None else body_row["post_body"],
-                _vision_client(),
-            )
-        ).text
-        async with pool.acquire() as conn:
-            rows = await ingest_post_evaluation(
-                conn, client, post_id, post["post_title"], normalized_body
-            )
+        try:
+            normalized_body = (
+                await asyncio.to_thread(
+                    normalize_post_body,
+                    "" if body_row is None else body_row["post_body"],
+                    _vision_client(),
+                )
+            ).text
+            async with pool.acquire() as conn:
+                rows = await ingest_post_evaluation(
+                    conn, client, post_id, post["post_title"], normalized_body
+                )
+        except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Post evaluation is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Post evaluation is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
     await publish_activity_event(
         valkey,
         post_id,
@@ -2482,20 +2601,35 @@ async def read_post_summary(
         if stored is not None:
             return stored
         stale = await fetch_persisted_summary(conn, post_id, allow_stale=True)
+
+        def stale_fallback(
+            reason: str, error: BaseException | None = None
+        ) -> dict[str, Any]:
+            """Return explicitly stale evidence while preserving operator diagnostics."""
+            if stale is None:
+                raise RuntimeError("stale summary fallback called without a stale row")
+            logger.warning(
+                "post_summary_stale_fallback post_id=%s reason=%s error_type=%s",
+                post_id,
+                reason,
+                type(error).__name__ if error is not None else "unavailable",
+            )
+            return stale
+
         with use_llm_metadata(post_metadata):
             client = _post_summary_client()
             if not client.available:
                 if stale is not None:
-                    return stale
+                    return stale_fallback("orchestrator_unavailable")
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
                 )
-            normalized = await asyncio.to_thread(normalize_post_body, raw_body)
-            normalized_body = normalized.text
             context_hints = await _load_post_semantic_hints(conn, post_id)
             summarize_with_hints = getattr(client, "summarize_with_hints", None)
             try:
+                normalized = await asyncio.to_thread(normalize_post_body, raw_body)
+                normalized_body = normalized.text
                 if callable(summarize_with_hints):
                     summary = await asyncio.to_thread(
                         summarize_with_hints, post["post_title"], normalized_body, context_hints
@@ -2504,19 +2638,34 @@ async def read_post_summary(
                     summary = await asyncio.to_thread(client.summarize, post["post_title"], normalized_body)
             except (HttpClientError, KeyError, OSError, TypeError, ValueError) as exc:
                 if stale is not None:
-                    return stale
+                    return stale_fallback("orchestrator_failure", exc)
                 raise HTTPException(
                     status.HTTP_503_SERVICE_UNAVAILABLE,
                     "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
                 ) from exc
-            payload = await persist_post_summary(
-                conn,
-                post_id,
-                summary,
-                post_body=normalized_body,
-                hierarchy_inference_client=_corporate_hierarchy_inference_client(),
-                verification_client=_relation_verification_client(),
-            )
+            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                if stale is not None:
+                    return stale_fallback("orchestrator_unexpected_failure", exc)
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Post summary is unavailable: contextual-orchestrator returned no complete evidence object",
+                ) from exc
+            try:
+                payload = await persist_post_summary(
+                    conn,
+                    post_id,
+                    summary,
+                    post_body=normalized_body,
+                    hierarchy_inference_client=_corporate_hierarchy_inference_client(),
+                    verification_client=_relation_verification_client(),
+                )
+            except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+                if stale is not None:
+                    return stale_fallback("summary_persist_failure", exc)
+                raise HTTPException(
+                    status.HTTP_503_SERVICE_UNAVAILABLE,
+                    "Post summary is unavailable: contextual-orchestrator or corroboration provider returned no complete evidence object",
+                ) from exc
         content_complete = await post_content_is_complete(
             conn,
             post_id,
@@ -2694,98 +2843,71 @@ async def chat_about_post(
     }
 
 
-@app.post("/api/ask")
+@app.post("/api/ask", status_code=status.HTTP_202_ACCEPTED)
 async def ask_agent(
     request: GlobalAskRequest,
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    valkey: redis.Redis = Depends(get_valkey),
 ) -> dict[str, Any]:
-    """Answer a reader question from authorized post and graph evidence."""
+    """Queue a reader question for asynchronous answering.
+
+    A live answer is a multi-minute orchestrator LLM round-trip under
+    load, so it never runs inside this request: the question becomes a
+    durable ``global_ask_job`` row plus a Valkey wake-up, and the reader
+    polls ``GET /api/ask/jobs/{id}`` for the settled answer. Submission
+    still fails fast on the states that cannot ever succeed (blank
+    question, missing permission, unconfigured orchestrator).
+    """
     question = request.question.strip()
     if not question:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "question is required")
     _require_post_read(account)
-    # Diagnostics from this PR (traced span, classified operator logging,
-    # generic customer-facing 503s) grafted onto main's evolved response
-    # shape (lineage_graph / cited_post_images fields). The span scopes the
-    # provider interaction; graph assembly below runs outside it.
-    with traced(
-        "lineageweave.api.global_ask",
-        {"lineageweave.operation_code": "global_ask"},
-    ):
-        try:
-            client = _post_chat_client()
-            if not client.available:
-                record_server_failure(
-                    "global_ask",
-                    RuntimeError("orchestrator unavailable"),
-                    outcome="provider_unavailable",
-                )
-                raise HTTPException(
-                    status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Ask Agent is temporarily unavailable. "
-                    "Saved evidence is still available.",
-                )
-            async with pool.acquire() as conn:
-                sources = await gather_global_chat_sources(
-                    conn,
-                    lambda row: _can_see_post(account, row),
-                    account.corporate_entity_ids,
-                    question=question,
-                )
-            if not sources:
-                return {
-                    "answer_text": "",
-                    "cited_post_ids": [],
-                    "cited_posts": [],
-                    "source_post_ids": [],
-                    "cited_post_evidence": [],
-                    "lineage_graph": {"nodes": [], "edges": [], "truncated": False},
-                    "cited_post_images": [],
-                    "next_action": (
-                        "No authorized source posts are available for this question."
-                    ),
-                }
-            answer = await asyncio.to_thread(client.answer, question, sources)
-        except HTTPException:
-            raise
-        except (
-            HttpClientError,
-            TimeoutError,
-            KeyError,
-            OSError,
-            ValueError,
-        ) as exc:
-            record_server_failure("global_ask", exc, outcome="provider_unavailable")
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Ask Agent is temporarily unavailable. "
-                "Saved evidence is still available.",
-            ) from exc
-        except Exception as exc:
-            record_server_failure("global_ask", exc, outcome="internal_error")
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Ask Agent is temporarily unavailable. "
-                "Saved evidence is still available.",
-            ) from exc
-    cited_ids = list(answer.cited_post_ids)
-    async with pool.acquire() as conn:
-        lineage_graph = await lineage_graphs_for_posts(
-            conn,
-            lambda row: _can_see_post(account, row),
-            cited_ids,
+    if not _post_chat_client().available:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Ask Agent is unavailable: set ORCHESTRATOR_BASE_URL / ORCHESTRATOR_API_KEY",
         )
-        images = await cited_post_images(conn, cited_ids)
-    return {
-        "answer_text": answer.answer_text,
-        "cited_post_ids": cited_ids,
-        "cited_posts": cited_post_summaries(sources, cited_ids),
-        "cited_post_evidence": cited_post_evidence(sources, cited_ids),
-        "cited_post_images": images,
-        "source_post_ids": [source.post_id for source in sources],
-        "lineage_graph": lineage_graph,
+    async with pool.acquire() as conn:
+        job_id = await enqueue_global_ask_job(
+            conn,
+            valkey,
+            requesting_account_id=account.user_account_id,
+            question_text=question,
+        )
+    return {"ask_job_id": job_id, "job_status_code": "queued"}
+
+
+@app.get("/api/ask/jobs/{ask_job_id}")
+async def read_ask_job(
+    ask_job_id: UUID,
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Report one Ask job's status, and its answer once it has settled.
+
+    Owner-scoped: another account's job id reads as absent (404, not
+    403) so job ids do not leak their existence across accounts.
+    """
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "select requesting_account_id, job_status_code, answer_payload,"
+            " failure_detail from global_ask_job where global_ask_job_id = $1",
+            ask_job_id,
+        )
+    if row is None or str(row["requesting_account_id"]) != account.user_account_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "ask job not found")
+    body: dict[str, Any] = {
+        "ask_job_id": str(ask_job_id),
+        "job_status_code": row["job_status_code"],
     }
+    if row["job_status_code"] == "succeeded" and row["answer_payload"] is not None:
+        payload = row["answer_payload"]
+        body["answer"] = json.loads(payload) if isinstance(payload, str) else payload
+    if row["job_status_code"] == "failed":
+        body["failure_detail"] = row["failure_detail"]
+    return body
 
 
 class PostBookmarkRequest(BaseModel):
@@ -3011,14 +3133,25 @@ async def derive_post_commitment(
             )
         async with pool.acquire() as conn:
             body_row = await conn.fetchrow("select post_body from source_post where post_id = $1", post_id)
-        normalized_body = (
-            await asyncio.to_thread(normalize_post_body, body_row["post_body"], _vision_client())
-        ).text
-        # TimeML/TempEval document creation time, not wall-clock now: "by next
-        # Friday" in a January post must resolve to that January, not to the
-        # Friday after the operator clicked Derive.
-        reference_date = post["created_at"].date().isoformat()
-        commitment = client.extract(post["post_title"], normalized_body, reference_date)
+        try:
+            normalized_body = (
+                await asyncio.to_thread(normalize_post_body, body_row["post_body"], _vision_client())
+            ).text
+            # TimeML/TempEval document creation time, not wall-clock now: "by next
+            # Friday" in a January post must resolve to that January, not to the
+            # Friday after the operator clicked Derive.
+            reference_date = post["created_at"].date().isoformat()
+            commitment = client.extract(post["post_title"], normalized_body, reference_date)
+        except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Commitment derivation is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
+        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+            raise HTTPException(
+                status.HTTP_503_SERVICE_UNAVAILABLE,
+                "Commitment derivation is unavailable: contextual-orchestrator returned no complete evidence object",
+            ) from exc
     if not commitment.has_commitment:
         return {"post_id": str(post["post_id"]), "has_commitment": False, "ticket": None}
     async with pool.acquire() as conn:

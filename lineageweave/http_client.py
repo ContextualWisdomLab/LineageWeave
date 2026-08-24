@@ -107,6 +107,31 @@ def _decode_json_list(raw: bytes, hostname: str) -> list:
     return decoded
 
 
+def chat_completion_content(body: object) -> str:
+    """Extract text from a provider chat-completion envelope safely.
+
+    Provider error bodies and malformed success bodies must never be echoed by
+    a consumer through ``KeyError`` or a repr of the response.  The caller
+    receives only a stable validation error and can translate it at its own
+    product boundary.
+    """
+    if not isinstance(body, dict):
+        raise TypeError("provider response was not an object")
+    choices = body.get("choices")
+    if not isinstance(choices, list) or not choices:
+        raise ValueError("provider response did not contain a choice")
+    first_choice = choices[0]
+    if not isinstance(first_choice, dict):
+        raise TypeError("provider response choice was not an object")
+    message = first_choice.get("message")
+    if not isinstance(message, dict):
+        raise TypeError("provider response message was not an object")
+    content = message.get("content")
+    if not isinstance(content, str) or not content.strip():
+        raise TypeError("provider response did not contain text content")
+    return content
+
+
 def post_json(
     url: str,
     payload: dict,

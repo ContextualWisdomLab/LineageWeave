@@ -100,6 +100,8 @@ class _CorporateConnection:
 
     async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
         compact = " ".join(query.split())
+        if "organization_name_resolution" in compact:
+            return []
         assert compact == "select corporate_entity_id, entity_name from corporate_entity"
         self._events.append("candidate_reload")
         return list(self._reloaded_rows)
@@ -232,6 +234,8 @@ class _SummaryConnection:
                     "cataloged_person_id": None,
                 }
             ]
+        if "organization_name_resolution" in compact:
+            return []
         raise AssertionError(f"unexpected fetch query: {compact}")
 
 
@@ -324,6 +328,7 @@ def test_organization_enrichment_finishes_before_summary_transaction(monkeypatch
         inference_client,
         verification_client,
         candidates,
+        **_kwargs,
     ) -> str:
         events.append(("organization_resolve", conn.in_transaction))
         assert not conn.in_transaction
@@ -404,6 +409,9 @@ class _KeymanConnection:
         if compact == "select corporate_entity_id, entity_name from corporate_entity":
             assert not self.in_transaction
             return []
+        if "organization_name_resolution" in compact:
+            assert not self.in_transaction
+            return []
         if compact.startswith("select person_id, last_known_job_title"):
             assert self.in_transaction
             return []
@@ -438,6 +446,7 @@ def test_keyman_organization_enrichment_finishes_before_write_transaction(monkey
         inference_client,
         verification_client,
         candidates,
+        **_kwargs,
     ) -> str:
         events.append(("organization_create", conn.in_transaction))
         assert not conn.in_transaction
