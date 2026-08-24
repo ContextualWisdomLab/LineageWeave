@@ -79,8 +79,10 @@ async def enqueue_global_ask_job(
     pointing at nothing.
     """
     job_id = await conn.fetchval(
-        "insert into global_ask_job (requesting_account_id, question_text)"
-        " values ($1, $2) returning global_ask_job_id",
+        """
+        insert into global_ask_job (requesting_account_id, question_text)
+        values ($1, $2) returning global_ask_job_id
+        """,
         requesting_account_id,
         question_text,
     )
@@ -105,12 +107,14 @@ async def load_account_visibility(
     )
     has_post_read = bool(
         await conn.fetchval(
-            "select exists ("
-            " select 1 from account_role_assignment assignment"
-            " join role_permission permission"
-            "   on permission.access_role_id = assignment.access_role_id"
-            " where assignment.user_account_id = $1"
-            "   and permission.permission_code = 'post_read')",
+            """
+            select exists (
+                select 1 from account_role_assignment assignment
+                join role_permission permission
+                  on permission.access_role_id = assignment.access_role_id
+                where assignment.user_account_id = $1
+                  and permission.permission_code = 'post_read')
+            """,
             account_id,
         )
     )
@@ -215,9 +219,11 @@ async def process_global_ask_job(
     """
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
-            "update global_ask_job set job_status_code = $2, updated_at = now()"
-            " where global_ask_job_id = $1 and job_status_code = $3"
-            " returning requesting_account_id, question_text",
+            """
+            update global_ask_job set job_status_code = $2, updated_at = now()
+            where global_ask_job_id = $1 and job_status_code = $3
+            returning requesting_account_id, question_text
+            """,
             job_id,
             RUNNING,
             QUEUED,
@@ -257,9 +263,11 @@ async def process_global_ask_job(
         detail = str(exc) or f"job exceeded the {JOB_DEADLINE_SECONDS}s deadline"
         async with pool.acquire() as conn:
             await conn.execute(
-                "update global_ask_job set job_status_code = $2,"
-                " failure_detail = $3, updated_at = now()"
-                " where global_ask_job_id = $1",
+                """
+                update global_ask_job set job_status_code = $2,
+                    failure_detail = $3, updated_at = now()
+                where global_ask_job_id = $1
+                """,
                 job_id,
                 FAILED,
                 detail[:1000],
@@ -267,9 +275,11 @@ async def process_global_ask_job(
         return
     async with pool.acquire() as conn:
         await conn.execute(
-            "update global_ask_job set job_status_code = $2,"
-            " answer_payload = $3::jsonb, updated_at = now()"
-            " where global_ask_job_id = $1",
+            """
+            update global_ask_job set job_status_code = $2,
+                answer_payload = $3::jsonb, updated_at = now()
+            where global_ask_job_id = $1
+            """,
             job_id,
             SUCCEEDED,
             _to_json(payload),
@@ -297,17 +307,21 @@ async def republish_queued_global_ask_jobs(
     """
     async with pool.acquire() as conn:
         await conn.execute(
-            "update global_ask_job set job_status_code = $1, updated_at = now()"
-            " where job_status_code = $2"
-            "   and updated_at < now() - make_interval(secs => $3)",
+            """
+            update global_ask_job set job_status_code = $1, updated_at = now()
+            where job_status_code = $2
+              and updated_at < now() - make_interval(secs => $3)
+            """,
             QUEUED,
             RUNNING,
             _ORPHAN_RUNNING_AFTER_SECONDS,
         )
         rows = await conn.fetch(
-            "select global_ask_job_id from global_ask_job"
-            " where job_status_code = $1"
-            "   and created_at < now() - make_interval(secs => $2)",
+            """
+            select global_ask_job_id from global_ask_job
+            where job_status_code = $1
+              and created_at < now() - make_interval(secs => $2)
+            """,
             QUEUED,
             _REPUBLISH_AFTER_SECONDS,
         )
