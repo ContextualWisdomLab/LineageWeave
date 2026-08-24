@@ -994,6 +994,9 @@ export interface LeftoverPair {
   criterion_code: string;
   leftover_distance: number;
   leftover_residual: number;
+  observed_response?: number | null;
+  expected_response?: number | null;
+  leftover_map_rank?: number | null;
 }
 
 export interface PeriodGroupReport {

@@ -1211,6 +1211,9 @@ describe("App, authenticated", () => {
                     criterion_code: "sales_lead_specificity",
                     leftover_distance: 0.12,
                     leftover_residual: 0.4,
+                    observed_response: 2.4,
+                    expected_response: 2.0,
+                    leftover_map_rank: 1,
                   },
                   {
                     pair_kind: "farthest",
@@ -1219,6 +1222,9 @@ describe("App, authenticated", () => {
                     criterion_code: "general_sentiment_negative",
                     leftover_distance: 1.84,
                     leftover_residual: -1.1,
+                    observed_response: 0.9,
+                    expected_response: 2.0,
+                    leftover_map_rank: 1,
                   },
                 ],
                 members: [
@@ -5393,12 +5399,15 @@ describe("App, authenticated", () => {
       "Open Public post, then read Post quality criterion sales-lead.",
     );
     expect(closestPair).not.toHaveTextContent(/sat closest to after main effects/);
+    expect(closestPair).toHaveTextContent("Y 2.40 · E 2.00");
+    expect(closestPair).toHaveTextContent("rank 1");
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
       "Open Specification revision requested, then read Post quality criterion negative.",
     );
     expect(farthestPair).not.toHaveTextContent(/sat farthest from after main effects/);
+    expect(farthestPair).toHaveTextContent("Y 0.90 · E 2.00");
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
     expect(closestPair.compareDocumentPosition(memberButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

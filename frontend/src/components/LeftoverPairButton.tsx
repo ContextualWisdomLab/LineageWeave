@@ -1,3 +1,5 @@
+import { formatLeftoverObservedExpected } from "../leftoverObservedExpected";
+import { formatLeftoverMapRank } from "../leftoverMapRank";
 import {
   leftoverPairAriaLabel,
   leftoverPairNextAction,
@@ -10,12 +12,20 @@ import {
 export function LeftoverPairButton({
   pair,
   leftoverDistance,
+  observedResponse,
+  expectedResponse,
+  leftoverMapRank,
   onOpen,
 }: {
   pair: LeftoverPairOpen;
   leftoverDistance: number;
+  observedResponse?: number | null;
+  expectedResponse?: number | null;
+  leftoverMapRank?: number | null;
   onOpen: (postId: string, options: LeftoverPairOpenOptions) => void;
 }) {
+  const observedExpected = formatLeftoverObservedExpected(observedResponse, expectedResponse);
+  const mapRank = formatLeftoverMapRank(leftoverMapRank);
   return (
     <button
       type="button"
@@ -25,6 +35,8 @@ export function LeftoverPairButton({
     >
       <span className="ticket-title">{leftoverPairTitle(pair)}</span>
       <span className="post-badge">{leftoverPairNextAction(pair)}</span>
+      {observedExpected ? <span className="post-badge">{observedExpected}</span> : null}
+      {mapRank ? <span className="post-badge">{mapRank}</span> : null}
       <span className="post-badge">d {leftoverDistance.toFixed(2)}</span>
     </button>
   );

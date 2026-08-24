@@ -213,6 +213,15 @@ All notable changes to this project are documented here. Format follows
   shell. The production frontend build type-checks again.
 
 
+## [2.12.21] - 2026-08-24
+
+### Added
+
+- Period leftover pair rows now name leftover-map rank after IRT main
+  effects next to leftover-map distance `d`, then open that post
+  (Jeon et al., 2021, eq. 3; ADR 0172). Rank 0 names no leftover
+  structure rather than inventing a leftover score.
+
 ## [2.12.20] - 2026-08-24
 
 ### Fixed

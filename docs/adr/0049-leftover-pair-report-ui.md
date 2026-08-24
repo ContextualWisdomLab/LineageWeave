@@ -2,6 +2,7 @@
 
 **Decision status:** Accepted
 **Date:** 2026-08-17
+**Amended by:** [ADR 0177](0177-leftover-observed-expected.md) (observed Y and expected E)
 
 ## Context
 
