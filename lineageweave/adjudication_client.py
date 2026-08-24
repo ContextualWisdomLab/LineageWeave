@@ -54,9 +54,20 @@ def judge_prompt(candidate_label: str, record_label: str) -> str:
 
 def parse_confidence(content: str) -> float:
     """Clamp the judge's numeric reply into [0, 1]; no number reads as 0."""
+    parsed = parse_confidence_or_none(content)
+    return 0.0 if parsed is None else parsed
+
+
+def parse_confidence_or_none(content: str) -> float | None:
+    """Like :func:`parse_confidence`, but an unparseable reply is ``None``.
+
+    The queued batch scorer must distinguish "the judge said 0.0" from
+    "the judge failed to answer" -- persisting the latter as a confident
+    zero would fabricate an unrelated verdict for an errored request.
+    """
     match = _CONFIDENCE_PATTERN.search(content)
     if match is None:
-        return 0.0
+        return None
     return max(0.0, min(1.0, float(match.group(1))))
 
 

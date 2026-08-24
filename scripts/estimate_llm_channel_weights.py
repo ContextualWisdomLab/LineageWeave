@@ -38,7 +38,7 @@ import asyncpg
 from backend.app.config import load_settings
 from backend.app.lineage_ingestion import records_from_source_posts
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
-from lineageweave.adjudication_client import judge_prompt, parse_confidence
+from lineageweave.adjudication_client import judge_prompt, parse_confidence_or_none
 from lineageweave.channel_weight_estimation import estimate_channel_weights
 from lineageweave.http_client import get_json, post_json
 
@@ -202,53 +202,100 @@ def _is_complete(polled: dict[str, object]) -> bool:
     return str(polled.get("status", "")).lower() in {"completed", "succeeded"}
 
 
+def judgment_updates_from_results(
+    results: list[dict[str, object]],
+) -> list[tuple[int, float]]:
+    """Map batch results onto (pair_ordinal, llm_score) updates.
+
+    Mapping is by caller-supplied ``custom_id`` only -- never result
+    order. An unparseable or empty answer is OMITTED, not stored: an
+    errored request must stay unjudged rather than become a confident
+    0.0 ("definitely unrelated") verdict the judge never gave.
+    """
+    updates: list[tuple[int, float]] = []
+    for item in results:
+        custom_id = str(item.get("custom_id", ""))
+        if not custom_id.startswith("pair-"):
+            continue
+        try:
+            ordinal = int(custom_id.removeprefix("pair-"))
+        except ValueError:
+            continue
+        score = parse_confidence_or_none(str(item.get("answer", "")))
+        if score is None:
+            continue
+        updates.append((ordinal, score))
+    return updates
+
+
 async def _collect(args: argparse.Namespace) -> dict[str, object]:
-    """Collect one completed batch into the ledger; fit when the run is whole."""
+    """Collect one completed batch into the ledger; fit when the run is whole.
+
+    No database connection is held across the HTTP calls or the model
+    fit (an idle-reaped connection killed an earlier estimation run):
+    each phase opens its own short-lived connection.
+    """
     base_url, api_key = _orchestrator_config()
     settings = load_settings()
+
     conn = await asyncpg.connect(settings.database_url)
     try:
-        run = await conn.fetchrow(
-            """
-            select estimation_run_id, batch_job_id, run_status_code,
-                   source_snapshot_sha256, knowledge_cutoff, sampled_pair_count
-            from lineage_weight_estimation_run
-            where run_status_code in ('run_submitted', 'run_collecting')
-            order by requested_at desc
-            limit 1
-            """
-        )
-        if run is None:
-            raise RuntimeError(
-                "no submitted run awaits collection; run submit first"
+        if args.run_id:
+            run = await conn.fetchrow(
+                """
+                select estimation_run_id, batch_job_id, run_status_code,
+                       source_snapshot_sha256, knowledge_cutoff, sampled_pair_count
+                from lineage_weight_estimation_run
+                where estimation_run_id = $1::uuid
+                  and run_status_code in ('run_submitted', 'run_collecting')
+                """,
+                args.run_id,
             )
-
-        polled = get_json(
-            f"{base_url}/api/v1/batch_routing_jobs/{run['batch_job_id']}",
-            headers={"authorization": f"Bearer {api_key}"},
-            timeout=_BATCH_TIMEOUT_SECONDS,
+        else:
+            run = await conn.fetchrow(
+                """
+                select estimation_run_id, batch_job_id, run_status_code,
+                       source_snapshot_sha256, knowledge_cutoff, sampled_pair_count
+                from lineage_weight_estimation_run
+                where run_status_code in ('run_submitted', 'run_collecting')
+                order by requested_at desc
+                limit 1
+                """
+            )
+    finally:
+        await conn.close()
+    if run is None:
+        raise RuntimeError(
+            "no submitted run awaits collection; run submit first "
+            "(or pass --run-id for an older run)"
         )
-        if not _is_complete(polled):
-            return {
-                "estimation_run_id": str(run["estimation_run_id"]),
-                "batch_job_id": run["batch_job_id"],
-                "batch_status": polled.get("status"),
-                "next_action": "batch not complete yet; run collect again later",
-            }
 
-        retrieved = post_json(
-            f"{base_url}/api/v1/batch_routing_jobs/{run['batch_job_id']}/results",
-            {},
-            headers={"authorization": f"Bearer {api_key}"},
-            timeout=_BATCH_TIMEOUT_SECONDS,
-        )
-        judged_at = datetime.now(timezone.utc)
+    polled = get_json(
+        f"{base_url}/api/v1/batch_routing_jobs/{run['batch_job_id']}",
+        headers={"authorization": f"Bearer {api_key}"},
+        timeout=_BATCH_TIMEOUT_SECONDS,
+    )
+    if not _is_complete(polled):
+        return {
+            "estimation_run_id": str(run["estimation_run_id"]),
+            "batch_job_id": run["batch_job_id"],
+            "batch_status": polled.get("status"),
+            "next_action": "batch not complete yet; run collect again later",
+        }
+
+    retrieved = post_json(
+        f"{base_url}/api/v1/batch_routing_jobs/{run['batch_job_id']}/results",
+        {},
+        headers={"authorization": f"Bearer {api_key}"},
+        timeout=_BATCH_TIMEOUT_SECONDS,
+    )
+    updates = judgment_updates_from_results(retrieved.get("results", []))
+    judged_at = datetime.now(timezone.utc)
+
+    conn = await asyncpg.connect(settings.database_url)
+    try:
         async with conn.transaction():
-            for item in retrieved.get("results", []):
-                custom_id = str(item.get("custom_id", ""))
-                if not custom_id.startswith("pair-"):
-                    continue
-                ordinal = int(custom_id.removeprefix("pair-"))
+            for ordinal, score in updates:
                 await conn.execute(
                     """
                     update lineage_pair_judgment
@@ -257,7 +304,7 @@ async def _collect(args: argparse.Namespace) -> dict[str, object]:
                     """,
                     run["estimation_run_id"],
                     ordinal,
-                    parse_confidence(str(item.get("answer", ""))),
+                    score,
                     judged_at,
                 )
             await conn.execute(
@@ -272,7 +319,6 @@ async def _collect(args: argparse.Namespace) -> dict[str, object]:
                 """,
                 run["estimation_run_id"],
             )
-
         pairs = await conn.fetch(
             """
             select group_ordinal, temporal_score, secondary_key_score,
@@ -283,30 +329,38 @@ async def _collect(args: argparse.Namespace) -> dict[str, object]:
             """,
             run["estimation_run_id"],
         )
-        unjudged = sum(1 for row in pairs if row["llm_score"] is None)
-        if unjudged:
-            return {
-                "estimation_run_id": str(run["estimation_run_id"]),
-                "judged_pair_count": len(pairs) - unjudged,
-                "sampled_pair_count": len(pairs),
-                "next_action": (
-                    f"{unjudged} pairs returned no result yet; run collect "
-                    "again once the batch delivers them"
-                ),
-            }
+    finally:
+        await conn.close()
 
-        estimate = estimate_channel_weights(
-            [
-                {
-                    "temporal": row["temporal_score"],
-                    "secondary_key": row["secondary_key_score"],
-                    "text": row["text_score"],
-                    "llm": row["llm_score"],
-                }
-                for row in pairs
-            ],
-            [int(row["group_ordinal"]) for row in pairs],
-        )
+    unjudged = sum(1 for row in pairs if row["llm_score"] is None)
+    if unjudged:
+        return {
+            "estimation_run_id": str(run["estimation_run_id"]),
+            "judged_pair_count": len(pairs) - unjudged,
+            "sampled_pair_count": len(pairs),
+            "next_action": (
+                f"{unjudged} pairs have no parseable judgment yet; run "
+                "collect again once the batch delivers them, or re-submit "
+                "if the provider errored them permanently"
+            ),
+        }
+
+    # The fit can take minutes; no connection is open while it runs.
+    estimate = estimate_channel_weights(
+        [
+            {
+                "temporal": row["temporal_score"],
+                "secondary_key": row["secondary_key_score"],
+                "text": row["text_score"],
+                "llm": row["llm_score"],
+            }
+            for row in pairs
+        ],
+        [int(row["group_ordinal"]) for row in pairs],
+    )
+
+    conn = await asyncpg.connect(settings.database_url)
+    try:
         if estimate is None:
             await conn.execute(
                 "update lineage_weight_estimation_run "
@@ -333,19 +387,19 @@ async def _collect(args: argparse.Namespace) -> dict[str, object]:
             "where estimation_run_id = $1",
             run["estimation_run_id"],
         )
-        return {
-            "estimation_run_id": str(run["estimation_run_id"]),
-            "weights": estimate.weights,
-            "channel_set_code": WITH_LLM_SET_CODE,
-            "sample_pair_count": estimate.sample_pair_count,
-            "estimation_method_code": estimate.estimation_method_code,
-            "activation": (
-                "blocked_until_anchor_authorized (ADR 0200 point 3): the "
-                "product loader refuses every anchor method today"
-            ),
-        }
     finally:
         await conn.close()
+    return {
+        "estimation_run_id": str(run["estimation_run_id"]),
+        "weights": estimate.weights,
+        "channel_set_code": WITH_LLM_SET_CODE,
+        "sample_pair_count": estimate.sample_pair_count,
+        "estimation_method_code": estimate.estimation_method_code,
+        "activation": (
+            "blocked_until_anchor_authorized (ADR 0200 point 3): the "
+            "product loader refuses every anchor method today"
+        ),
+    }
 
 
 def main() -> None:
@@ -355,7 +409,14 @@ def main() -> None:
     submit = subcommands.add_parser("submit", help="sample pairs and submit one batch job")
     submit.add_argument("--post-limit", type=int, default=5000)
     submit.add_argument("--pair-limit", type=int, default=400)
-    subcommands.add_parser("collect", help="collect results; fit when the run is whole")
+    collect = subcommands.add_parser(
+        "collect", help="collect results; fit when the run is whole"
+    )
+    collect.add_argument(
+        "--run-id",
+        default="",
+        help="collect a specific estimation run (default: the newest awaiting one)",
+    )
     args = parser.parse_args()
     if args.phase == "submit":
         if args.post_limit < 1:

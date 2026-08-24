@@ -35,6 +35,24 @@ def test_shared_judge_prompt_and_confidence_parse_round_trip() -> None:
     assert parse_confidence("1.7") == 1.0
 
 
+def test_errored_judgments_stay_unjudged_instead_of_becoming_zero() -> None:
+    """An empty or non-numeric answer must never persist as a confident
+    0.0 -- the pair stays unjudged and the incomplete-run path reports it.
+    Mapping is by custom_id only; foreign or malformed ids are ignored.
+    """
+    updates = script.judgment_updates_from_results(
+        [
+            {"custom_id": "pair-3", "answer": "0.7"},
+            {"custom_id": "pair-4", "answer": ""},
+            {"custom_id": "pair-5", "answer": "provider error: upstream unavailable"},
+            {"custom_id": "pair-6", "answer": "0.0"},
+            {"custom_id": "req_generated9", "answer": "0.9"},
+            {"custom_id": "pair-not-a-number", "answer": "0.9"},
+        ]
+    )
+    assert updates == [(3, 0.7), (6, 0.0)]
+
+
 def test_batch_completion_is_detected_from_flag_or_status() -> None:
     assert script._is_complete({"is_complete": True})
     assert script._is_complete({"status": "completed"})
