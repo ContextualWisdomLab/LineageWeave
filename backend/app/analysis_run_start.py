@@ -52,6 +52,34 @@ class AnalysisRunStartError(AnalysisRunCreateError):
     """Fail-closed start: HTTP status plus a next-action detail string."""
 
 
+class _AdjudicationProviderError(RuntimeError):
+    """The adjudication provider (not our code) failed during a judge call."""
+
+
+class _ProviderBoundaryAdjudication:
+    """Convert judge-call provider failures into a typed boundary error.
+
+    ``post_json`` raises ``HttpClientError``/``OSError`` on transport and
+    HTTP failures and ``chat_completion_content`` raises
+    ``ValueError``/``TypeError`` on malformed provider envelopes; those
+    same builtin types raised by our reconstruction code would be real
+    bugs, so the conversion happens only inside ``judge`` -- the one
+    place a provider is actually on the line.
+    """
+
+    available = True
+
+    def __init__(self, inner) -> None:
+        self._inner = inner
+
+    def judge(self, candidate_label: str, record_label: str) -> float:
+        """Score one candidate pair, typing provider failures as such."""
+        try:
+            return self._inner.judge(candidate_label, record_label)
+        except (HttpClientError, OSError, ValueError, TypeError) as exc:
+            raise _AdjudicationProviderError(str(exc)) from exc
+
+
 def reconstruction_result_digest(edges: list[Edge]) -> str:
     """SHA-256 of the ordered parent choices. Never hashes a post body."""
     material = json.dumps(
@@ -733,18 +761,22 @@ async def _deliver_lineage_reconstruction(
             f"channels ({', '.join(sorted(active_channels))}). Run "
             "scripts/estimate_channel_weights.py, then start this run again.",
         )
+    # The provider boundary is exactly llm.judge() -- wrapping the whole
+    # pipeline would disguise a reconstruction code bug (a stray
+    # ValueError/TypeError of our own) as a retryable provider outage.
+    # Judge failures become _AdjudicationProviderError; everything else
+    # crashes loudly. The enclosing transaction rolls back either way,
+    # so no partial graph persists (issue #289 RED 4/6).
+    guarded_client = (
+        _ProviderBoundaryAdjudication(adjudication_client)
+        if "llm" in active_channels
+        else adjudication_client
+    )
     try:
         edges = lineage_edge_specs(
-            records_from_source_posts(rows), llm=adjudication_client, weights=weights
+            records_from_source_posts(rows), llm=guarded_client, weights=weights
         )
-    except (HttpClientError, OSError, ValueError, TypeError) as exc:
-        # Only the llm channel talks to a provider mid-reconstruction; a
-        # deterministic run hitting this would be a code bug worth the
-        # crash. The enclosing transaction rolls back, so no partial
-        # graph persists (issue #289 RED 4/6) and the run stays
-        # startable once the provider recovers.
-        if "llm" not in active_channels:
-            raise
+    except _AdjudicationProviderError as exc:
         raise AnalysisRunStartError(
             503,
             "The adjudication provider failed mid-reconstruction; nothing "

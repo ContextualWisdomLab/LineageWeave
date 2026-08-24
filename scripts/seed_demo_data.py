@@ -496,6 +496,57 @@ def insert_fixture_source_posts(cur, author_account_id, corporate_entity_id, pro
     return persisted
 
 
+_DEMO_ESTIMATE_CACHE: list = []
+
+
+def demo_channel_weight_estimate():
+    """The demo's fast-mlsirm-estimated fusion weights (ADR 0145, 2nd amendment).
+
+    No hand-picked fusion weight exists anywhere, the demo included: the
+    seed fits fast-mlsirm's multilevel 2PL over the demo scenario's
+    declared generative design and fuses with those estimates (fitted
+    once per process; the design is seeded, so the estimate is
+    deterministic). When no estimate can be produced the seed stops and
+    names the next action instead of inventing weights.
+    """
+    from lineageweave.channel_weight_estimation import estimate_fixture_channel_weights
+
+    if not _DEMO_ESTIMATE_CACHE:
+        _DEMO_ESTIMATE_CACHE.append(estimate_fixture_channel_weights())
+    estimate = _DEMO_ESTIMATE_CACHE[0]
+    if estimate is None:
+        raise SystemExit(
+            "make seed estimates its fusion weights with fast-mlsirm and none "
+            "could be produced; install fast-mlsirm from the organization "
+            "repository, then run make seed again"
+        )
+    return estimate
+
+
+def _persist_demo_channel_weights(cur, estimate) -> None:
+    """Persist the demo estimate so the seeded database supports rebuild.
+
+    Product reconstruction fails closed without a persisted estimate
+    (ADR 0145, amended); seeding the demo estimate with its provenance
+    keeps POST /api/lineage/rebuild and analysis-run start working on a
+    freshly seeded environment.
+    """
+    for channel, weight in estimate.weights.items():
+        cur.execute(
+            """
+            insert into lineage_channel_weight
+                (channel_set_code, channel_code, weight_value,
+                 estimation_method_code, sample_pair_count)
+            values ('channel_set_deterministic', %s, %s, %s, %s)
+            on conflict (channel_set_code, channel_code) do update
+            set weight_value = excluded.weight_value,
+                estimation_method_code = excluded.estimation_method_code,
+                sample_pair_count = excluded.sample_pair_count
+            """,
+            (channel, weight, estimate.estimation_method_code, estimate.sample_pair_count),
+        )
+
+
 def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, process_unit_id) -> None:
     """Persist fixtures.sample_records() as source_posts plus reconstruct edges.
 
@@ -506,6 +557,9 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
     from lineageweave.fixtures import sample_records
     from lineageweave.lineage_persistence import lineage_edge_specs
 
+    estimate = demo_channel_weight_estimate()
+    _persist_demo_channel_weights(cur, estimate)
+
     records = sample_records()
     cur.execute("select 1 from source_post where post_title = %s", (records[0].label,))
     if cur.fetchone() is not None:
@@ -514,7 +568,7 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
     persisted = insert_fixture_source_posts(
         cur, author_account_id, corporate_entity_id, process_unit_id
     )
-    for edge in lineage_edge_specs(persisted):
+    for edge in lineage_edge_specs(persisted, weights=estimate.weights):
         cur.execute(
             "insert into post_lineage_edge (parent_post_id, child_post_id, fused_score) "
             "values (%s, %s, %s) on conflict do nothing",
@@ -1503,13 +1557,18 @@ def _seed_demo_analysis_run(cur, requested_by_account_id, corporate_entity_id) -
     _seed_demo_run_outbox(cur, run_id)
 
 
-def seed_reconstruction_edges(rows: list[dict]) -> tuple:
-    """ThreadWeave parent choices and digest for seed and start. Never a theta."""
+def seed_reconstruction_edges(rows: list[dict], weights: dict[str, float]) -> tuple:
+    """ThreadWeave parent choices and digest for seed and start. Never a theta.
+
+    ``weights`` is required (ADR 0145, second amendment): the seed
+    passes its fast-mlsirm demo-design estimate; unit tests inject
+    synthetic weights.
+    """
     from backend.app.analysis_run_start import reconstruction_result_digest
     from backend.app.lineage_ingestion import records_from_source_posts
     from lineageweave.lineage_persistence import lineage_edge_specs
 
-    edges = lineage_edge_specs(records_from_source_posts(rows))
+    edges = lineage_edge_specs(records_from_source_posts(rows), weights=weights)
     return edges, reconstruction_result_digest(edges)
 
 
@@ -1544,7 +1603,9 @@ def _seed_demo_run_reconstruction(cur, analysis_run_id, corporate_entity_id) -> 
     rows = [dict(zip(columns, row)) for row in cur.fetchall()]
     if not rows:
         return
-    edges, digest = seed_reconstruction_edges(rows)
+    edges, digest = seed_reconstruction_edges(
+        rows, demo_channel_weight_estimate().weights
+    )
     finished = datetime(2026, 1, 12, 12, 33, tzinfo=timezone.utc)
     cur.execute(
         """

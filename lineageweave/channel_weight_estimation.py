@@ -24,6 +24,7 @@ never fabricates a "grounded" weight.
 from __future__ import annotations
 
 import math
+import random
 from dataclasses import dataclass
 
 from .reconstruct import DEFAULT_MIN_FUSED_SCORE
@@ -31,6 +32,68 @@ from .reconstruct import DEFAULT_MIN_FUSED_SCORE
 # Below this many scored pairs a 2PL discrimination estimate is noise,
 # not measurement -- refuse rather than persist an unstable weight.
 _MIN_SAMPLE_PAIRS = 200
+
+# The library demo's declared generative design (fixtures.sample_records,
+# `make seed`, the standalone demo server): per-channel follow
+# probabilities of the latent "genuinely related" trait, per-group
+# relatedness base rates, and a fixed simulation seed. These are the
+# demo scenario's TRUE parameters -- synthetic demo data, never fusion
+# weights. The weights the demo fuses with are ESTIMATED from this
+# design by fast-mlsirm, exactly like production weights are estimated
+# from the real corpus (ADR 0145, second amendment: no hand-picked
+# fusion weight exists anywhere, demo included).
+_FIXTURE_FOLLOW_PROBABILITY = {"temporal": 0.85, "secondary_key": 0.70, "text": 0.55}
+_FIXTURE_GROUP_COUNT = 12
+_FIXTURE_PAIR_COUNT = 900
+_FIXTURE_SIMULATION_SEED = 20260824
+
+
+def simulate_fixture_pair_scores() -> tuple[list[dict[str, float]], list[int]]:
+    """Simulate the demo design's channel responses, deterministically.
+
+    Each simulated pair carries a latent related/unrelated state drawn
+    from its group's base rate (genuine cluster intercept variance --
+    the structure MLS2PLM's multilevel random intercept models); each
+    channel then reports a high or low score according to its declared
+    follow probability. The fixed seed keeps every ``make seed`` and
+    demo-server estimate identical run to run.
+    """
+    generator = random.Random(_FIXTURE_SIMULATION_SEED)
+
+    def channel_score(related: bool, follow_probability: float) -> float:
+        follows = generator.random() < follow_probability
+        high = related if follows else not related
+        return (0.8 if high else 0.05) + generator.uniform(-0.04, 0.04)
+
+    group_base_rate = [
+        generator.uniform(0.25, 0.75) for _ in range(_FIXTURE_GROUP_COUNT)
+    ]
+    pair_scores: list[dict[str, float]] = []
+    group_ids: list[int] = []
+    for index in range(_FIXTURE_PAIR_COUNT):
+        group = index % _FIXTURE_GROUP_COUNT
+        related = generator.random() < group_base_rate[group]
+        pair_scores.append(
+            {
+                channel: channel_score(related, follow_probability)
+                for channel, follow_probability in _FIXTURE_FOLLOW_PROBABILITY.items()
+            }
+        )
+        group_ids.append(group)
+    return pair_scores, group_ids
+
+
+def estimate_fixture_channel_weights() -> ChannelWeightEstimate | None:
+    """Estimate the demo's deterministic-channel weights from its design.
+
+    Returns ``None`` when no grounded estimate can be produced (most
+    commonly: ``fast_mlsirm`` is not importable); demo callers then fail
+    closed -- the seed and the standalone server refuse to fuse with
+    invented weights and instead name the next action (install
+    fast-mlsirm from the organization repo).
+    """
+    pair_scores, group_ids = simulate_fixture_pair_scores()
+    return estimate_channel_weights(pair_scores, group_ids)
 
 
 @dataclass(frozen=True)

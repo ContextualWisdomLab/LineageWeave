@@ -124,8 +124,10 @@ class ChannelWeightsNotEstimated(RuntimeError):
     Product reconstruction treats fusion weights as measurement output
     only -- estimated by fast-mlsirm (or, in the future, TEPP), never
     hand-picked constants (ADR 0145, amended per the 2026-08-24 operator
-    directive). The library-level ``DEFAULT_CHANNEL_WEIGHTS`` remain for
-    synthetic library demos and unit fixtures exclusively.
+    directive). No hand-picked default exists anywhere: the library demo
+    estimates its weights from its declared design
+    (``estimate_fixture_channel_weights``), and unit tests inject
+    synthetic weights explicitly.
     """
 
     def __init__(self, active_channels: set[str]) -> None:

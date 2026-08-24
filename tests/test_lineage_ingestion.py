@@ -207,7 +207,12 @@ def test_seed_shaped_rows_rebuild_to_the_designed_a100_fork() -> None:
                 "created_at": rec.occurred_at,
             }
         )
-    edges = lineage_edge_specs(records_from_source_posts(rows))
+    edges = lineage_edge_specs(
+        records_from_source_posts(rows),
+        # Synthetic unit-test weights (ADR 0145, second amendment: no
+        # library default exists); product paths load persisted estimates.
+        weights={"temporal": 0.5, "secondary_key": 0.34, "text": 0.16},
+    )
     pairs = {(edge.parent_id, edge.child_id) for edge in edges}
     assert ("rec-002", "rec-003") in pairs
     assert ("rec-002", "rec-004") in pairs

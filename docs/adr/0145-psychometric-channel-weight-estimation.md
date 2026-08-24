@@ -8,6 +8,23 @@ estimated set exists (operator directive: weights are treated only via
 TEPP/fast-mlsirm). Points 3–5 below reflect the amended contract.
 Migration 0136 adds `channel_set_code` so the deterministic and
 llm-inclusive channel combinations each persist their own estimated set.
+**Second amendment (2026-08-24, operator: "임의 가중치 쓰지 않습니다"):**
+`DEFAULT_CHANNEL_WEIGHTS` is deleted outright — no hand-picked fusion
+weight exists anywhere, the library demo included. `reconstruct()` /
+`lineage_edge_specs()` take `weights` as a required argument. The demo
+(`make seed`, the standalone server) declares its scenario's generative
+design (per-channel follow probabilities, per-group base rates, fixed
+simulation seed) as synthetic TRUE parameters and fuses only with the
+weights fast-mlsirm ESTIMATES from that design — the same
+estimate-then-use loop production runs on the real corpus; `make seed`
+also persists this estimate (with provenance) so a freshly seeded
+database satisfies the fail-closed loader. With fast-mlsirm absent the
+demo refuses to fuse and names the install as the next action. Unit
+tests inject synthetic weights explicitly (permitted for unit tests by
+org policy). Known remaining arbitrary-weight surface, tracked as its
+own gap: `rankweave_client.DEFAULT_CHANNEL_WEIGHTS` (Rankings RRF,
+temporal/lexical) — the same estimation discipline must be applied
+there next.
 
 > Numbering note: parallel branches are assigning ADR numbers concurrently
 > (0143 exists on an unmerged branch). `0145` was the next free number on
@@ -72,10 +89,9 @@ unconfigured, never a fabricated result); the same pattern applies here.
    reconstruction runs*: `rebuild_lineage` raises
    `ChannelWeightsNotEstimated` (API surface: 503 with the
    estimate-first next action) and an analysis-run start fails with the
-   same instruction. `DEFAULT_CHANNEL_WEIGHTS` in `reconstruct.py` is
-   relabeled library-demo/test-only — it keeps the library runnable
-   standalone (fixtures, `make seed`, unit tests) and never reaches a
-   product path.
+   same instruction. `DEFAULT_CHANNEL_WEIGHTS` no longer exists at all
+   (second amendment): the demo estimates its own weights from its
+   declared design, and unit tests inject synthetic weights explicitly.
 4. **Persisted, provenance-bearing weights.** An operator script
    (`scripts/estimate_channel_weights.py`) runs the estimation against
    the real corpus and upserts one row per channel into a new
