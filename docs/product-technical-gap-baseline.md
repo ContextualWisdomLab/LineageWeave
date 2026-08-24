@@ -169,6 +169,17 @@ evidence across heads.
 | #421 | Playwright harness for Ask Agent capabilities |
 | #422 | ADRs for Ask Agent temporal / lineage / evidence goal |
 
+ADRs 0150-0153 (recorded by #422) define the accepted boundaries before this
+stack's implementation becomes protected-main evidence: #415 implements
+Korean relative-time retrieval under ADR 0150; #418 implements scoped
+multi-thread Event Lineage answers under ADR 0151; #419 implements persisted
+image-evidence citations under ADR 0152; #420 implements a focused citation
+evidence popup under ADR 0153; #421 adds the Playwright harness intended to
+verify the combined flow. These capabilities remain active-PR evidence until
+their exact heads pass all protected gates and merge; the combined browser
+scenario is not release evidence until it runs successfully against one
+merged release candidate.
+
 ### 3.4 Scientific measurement recovery (must remain true-parameter tests)
 
 | PR | Intent |
