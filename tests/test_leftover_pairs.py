@@ -231,6 +231,7 @@ def test_leftover_residual_rejects_database_tolerance_boundary() -> None:
             0,
             0.0,
             None,
+            None,
         )
 
 
