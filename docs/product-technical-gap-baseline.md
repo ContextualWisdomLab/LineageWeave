@@ -544,7 +544,7 @@ adapter, fixture, or HTTP-shaped test double never upgrades a row to
 | Two-word snake_case database identifiers | ADR 0120, idempotent migration `0104`, live public-schema audit, zero invalid indexes | source + unit + local-integration |
 | Post list/detail popup, Korean summary, 5W1H, R&R, tickets/calendar | API routes, popup panels, backend/frontend tests; W is raw-source-only for author/admin and is excluded from summary and derived analysis targets | source + unit |
 | Keyman on both sides, titles, affiliations, related KG nodes | Keyman/affiliate-tree/related-node routes and popup | source + unit; live extraction open |
-| Ontology, semantic layer, provenance, W3C PROV-O projection | normalized schema, SKOS operational vocabulary concepts, `ontology_annotations` label fallback, OWL-Time canonical earlier-to-later relations, ADR 0124/0129, provenance modules, directed evidence table, ADRs | source + unit; corpus verification open |
+| Ontology, semantic layer, provenance, W3C PROV-O projection | normalized schema, SKOS operational vocabulary concepts, `ontology_annotations` label fallback, OWL-Time canonical earlier-to-later relations, ADR 0124/0129, provenance modules, directed evidence table, ADRs; the Knowledge Graph view now classifies every rendered/tabulated relation into Time order, Hierarchy, Cause and effect, or Other (a legend plus an evidence-table Category column) and lays out nodes by a topological sort over temporal/hierarchical/causal edges instead of raw payload order, so precedence and hierarchy read without hovering each arrow (`frontend/src/relationCategory.ts`, `frontend/src/KnowledgeGraph.tsx`) | source + unit; corpus verification and authenticated browser confirmation remain open |
 | Branching Event Lineage DAG with evidence trail | `LineageDag.tsx`, Storybook story, Figma frames, accessible node-kind names for screen readers/tooltips, frontend tests; runtime cases include both a rendered DAG and honest empty states, while current corpus coverage remains sparse | source + unit + local-integration partial |
 | Customer master, cross-post identity, name history, and hierarchy tree | `/api/customer-master`, ADR 0125/0137, migrations `0105`/`0137`, source-system-qualified stable binding, fast-mlsirm Judge/IRT evidence, optional TEPP ordering, `edge_customer_identity_observation`, importer reconciliation, visible preferred/former/alternate names, scope filter | source + focused unit + local-integration partial; live external provider/import and broader authoritative hierarchy evidence remain open |
 | VOC/VOM/VOP/VOCC/VOCO/VOS role classification | common lookup values and relationship APIs | source + unit; live classification open |
@@ -599,9 +599,12 @@ The following user-reported cases remain tracked without storing real post IDs:
   now extracts the corresponding release/introduction milestones as one
   earlier-to-later OWL-Time relation and renders its direction and evidence in
   the Knowledge Graph. Authorized re-extraction now passes at summary contract
-  v19 with one requested pair; browser confirmation remains open. Chronology
-  alone does not assert revision, specialization, causation, or a private
-  product-succession predicate.
+  v19 with one requested pair; the earlier milestone now also renders above
+  the later one (topological layout, not array order) with a "Time order"
+  legend swatch and evidence-table category instead of an unlabeled arrow,
+  closing the readability half of this case; authenticated browser
+  confirmation remains open. Chronology alone does not assert revision,
+  specialization, causation, or a private product-succession predicate.
 
 These are not “resolved” merely because a prompt or heuristic was changed.
 Each requires synthetic unit coverage plus an authorized runtime reproduction
