@@ -5,7 +5,7 @@ import { updateTenantConfig } from "../api";
 export type AdminPanelProps = {
   currentBrandName: string;
   onBrandNameChange: (newName: string) => void;
-  accessToken: string;
+  accessToken?: string;
 };
 
 export function AdminPanel({ currentBrandName, onBrandNameChange, accessToken }: AdminPanelProps) {
@@ -16,6 +16,10 @@ export function AdminPanel({ currentBrandName, onBrandNameChange, accessToken }:
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    if (!accessToken) {
+      setError("Log in");
+      return;
+    }
     if (draftName.trim()) {
       setSaving(true);
       setError(null);
