@@ -19,6 +19,7 @@ function llmParticipated(evidence: LineageChannelEvidence[]): boolean {
   return evidence.some((item) => item.signal_code === "llm");
 }
 
+/** Render the authorized lineage projection and let the buyer open a post. */
 export function LineageDag({
   graph,
   onSelectPost,
@@ -62,7 +63,6 @@ export function LineageDag({
               {group.edges.map((edge) => {
                 const from = byId[edge.source];
                 const to = byId[edge.target];
-                if (!from || !to) return null;
                 const midX = (from.x + to.x) / 2;
                 const key = edgeKey(edge);
                 const selected = selectedEdge === key;

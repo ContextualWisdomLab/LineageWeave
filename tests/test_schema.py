@@ -43,6 +43,16 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
     / "migrations"
     / "0102_project_bound_summary_event.sql"
 )
+_LEFTOVER_OBSERVED_EXPECTED_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0163_report_leftover_observed_expected.sql"
+)
+_LEFTOVER_MAP_RANK_MIGRATION = (
+    Path(__file__).resolve().parents[1]
+    / "migrations"
+    / "0164_report_leftover_map_rank.sql"
+)
 _CHANNEL_EVIDENCE_MIGRATION = (
     Path(__file__).resolve().parents[1] / "migrations" / "0174_post_lineage_edge_signal.sql"
 )
@@ -82,6 +92,8 @@ def schema_db():
                 cur.execute(_MAJOR_EVENT_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
                 cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
+                cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
                 cur.execute(_CHANNEL_EVIDENCE_MIGRATION.read_text())
             conn.commit()
             yield conn
@@ -279,6 +291,42 @@ def test_lineage_channel_evidence_migration_upgrades_existing_tables(schema_db) 
             "post_lineage_edge_signal_code_check",
         ]
     schema_db.commit()
+
+
+def test_leftover_pair_names_nullable_observed_and_expected_columns(schema_db) -> None:
+    """Every install path preserves legacy pairs while naming new Y and E."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            """
+            select column_name, is_nullable
+            from information_schema.columns
+            where table_name = 'report_leftover_pair'
+            """
+        )
+        columns = dict(cur.fetchall())
+        cur.execute(
+            """
+            select count(*)
+            from pg_constraint
+            where conname = 'leftover_pair_observed_expected_reconcile_chk'
+            """
+        )
+        reconcile_constraint_count = cur.fetchone()[0]
+    assert columns["observed_response"] == "YES"
+    assert columns["expected_response"] == "YES"
+    assert columns["leftover_residual"] == "NO"
+    assert reconcile_constraint_count == 1
+
+
+def test_leftover_pair_names_leftover_map_rank_column(schema_db) -> None:
+    """Fresh leftover rows name map rank without backfilling legacy evidence."""
+    with schema_db.cursor() as cur:
+        cur.execute(
+            "select column_name, is_nullable from information_schema.columns "
+            "where table_name = 'report_leftover_pair'"
+        )
+        columns = dict(cur.fetchall())
+    assert columns["leftover_map_rank"] == "YES"
 
 
 def test_corporate_hierarchy_recursive_query_returns_correct_shape(schema_db) -> None:

@@ -11,6 +11,8 @@ not derived from process unit or voc type.
 from __future__ import annotations
 
 import asyncio
+import math
+import re
 from collections import defaultdict
 from collections.abc import Mapping
 from datetime import datetime
@@ -30,6 +32,10 @@ from lineageweave.models import Edge, Record
 from lineageweave.reconstruct import DEFAULT_CANDIDATE_WINDOW
 
 MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS = 5_000
+
+# ADR 0145 rejected the unanchored estimator. A future accepted ADR must add
+# its independently validated method code here before persisted weights can run.
+_SUPPORTED_ANCHOR_METHOD_CODES: frozenset[str] = frozenset()
 
 
 def _occurred_at(value: datetime) -> datetime:
@@ -119,6 +125,80 @@ async def persist_lineage_edges(conn: asyncpg.Connection, edges: list[Edge]) -> 
     )
 
 
+async def load_estimated_channel_weights(
+    conn: asyncpg.Connection, active_channels: set[str]
+) -> dict[str, float] | None:
+    """Load only a complete vector from an independently anchored method.
+
+    ADR 0145 currently authorizes no anchor method. A partial or invalid vector
+    returns ``None`` rather than being repaired. A database that has not applied
+    migration 0135 is likewise an unavailable state, detected without issuing a
+    statement that would abort the caller's outer PostgreSQL transaction.
+    """
+    table_exists = await conn.fetchval(
+        "select to_regclass('public.lineage_channel_weight') is not null"
+    )
+    if not table_exists:
+        return None
+    rows = await conn.fetch(
+        "select channel_code, weight_value, estimation_run_id, "
+        "estimation_method_code, estimator_version, anchor_method_code, "
+        "source_snapshot_sha256, sample_pair_count, knowledge_cutoff "
+        "from lineage_channel_weight"
+    )
+    persisted = {row["channel_code"]: float(row["weight_value"]) for row in rows}
+    if not persisted or set(persisted) != active_channels:
+        return None
+    if any(
+        not math.isfinite(weight) or weight <= 0 or weight > 1
+        for weight in persisted.values()
+    ):
+        return None
+    if not math.isclose(sum(persisted.values()), 1.0, rel_tol=0.0, abs_tol=1e-9):
+        return None
+    provenance = {
+        (
+            row["estimation_run_id"],
+            row["estimation_method_code"],
+            row["estimator_version"],
+            row["anchor_method_code"],
+            row["source_snapshot_sha256"],
+            row["sample_pair_count"],
+            row["knowledge_cutoff"],
+        )
+        for row in rows
+    }
+    if len(provenance) != 1:
+        return None
+    run = next(iter(provenance))
+    (
+        run_id,
+        estimation_method,
+        estimator_version,
+        anchor_method,
+        snapshot_digest,
+        sample_pair_count,
+        knowledge_cutoff,
+    ) = run
+    if (
+        run_id is None
+        or not isinstance(estimation_method, str)
+        or not estimation_method.strip()
+        or not isinstance(estimator_version, str)
+        or not estimator_version.strip()
+        or not isinstance(anchor_method, str)
+        or anchor_method not in _SUPPORTED_ANCHOR_METHOD_CODES
+        or not isinstance(snapshot_digest, str)
+        or re.fullmatch(r"[0-9a-f]{64}", snapshot_digest) is None
+        or not isinstance(sample_pair_count, int)
+        or isinstance(sample_pair_count, bool)
+        or sample_pair_count < 200
+        or not isinstance(knowledge_cutoff, datetime)
+    ):
+        return None
+    return persisted
+
+
 async def _load_lineage_records(conn: asyncpg.Connection) -> list[Record]:
     """Load the eligible source snapshot used by one reconstruction."""
     rows = await conn.fetch(
@@ -132,6 +212,7 @@ async def _load_lineage_records(conn: asyncpg.Connection) -> list[Record]:
 async def _reconstruct_lineage_records(
     records: list[Record],
     llm: AdjudicationClient | None,
+    weights: dict[str, float] | None = None,
 ) -> list[Edge]:
     """Run the CPU/provider reconstruction without blocking the event loop."""
     pair_count = 0
@@ -142,7 +223,9 @@ async def _reconstruct_lineage_records(
             llm = None
             break
         records_per_group[record.group_key] += 1
-    return await asyncio.to_thread(lineage_edge_specs, records, llm=llm)
+    if weights is None:
+        return await asyncio.to_thread(lineage_edge_specs, records, llm=llm)
+    return await asyncio.to_thread(lineage_edge_specs, records, llm=llm, weights=weights)
 
 
 async def rebuild_lineage(
@@ -155,10 +238,16 @@ async def rebuild_lineage(
     A configured contextual-orchestrator client is passed through only when
     the exact candidate-pair work fits the ADR 0172 budget. Larger snapshots
     drop the optional channel before any provider call and preserve one
-    fail-closed three-channel profile across the rebuild.
+    fail-closed three-channel profile across the rebuild. A persisted ADR
+    0145 weight vector is applied when an anchor method has been approved;
+    ``_SUPPORTED_ANCHOR_METHOD_CODES`` is empty today, so this always falls
+    back to the default channel weights until one is.
     """
     records = await _load_lineage_records(conn)
-    edges = await _reconstruct_lineage_records(records, llm)
+    weights = await load_estimated_channel_weights(
+        conn, {"temporal", "secondary_key", "text"}
+    )
+    edges = await _reconstruct_lineage_records(records, llm, weights)
     async with conn.transaction():
         await persist_lineage_edges(conn, edges)
     return edges
@@ -177,7 +266,10 @@ async def rebuild_lineage_from_pool(
     """
     async with pool.acquire() as conn:
         records = await _load_lineage_records(conn)
-    edges = await _reconstruct_lineage_records(records, llm)
+        weights = await load_estimated_channel_weights(
+            conn, {"temporal", "secondary_key", "text"}
+        )
+    edges = await _reconstruct_lineage_records(records, llm, weights)
     async with pool.acquire() as conn, conn.transaction():
         await persist_lineage_edges(conn, edges)
     return edges
@@ -188,6 +280,7 @@ async def visible_lineage_graph(
     can_see_post,
     limit: int = 500,
     focus_post_id: str | None = None,
+    include_isolated: bool = False,
 ) -> dict[str, Any]:
     """ABAC-filtered graph bounded for the browser's initial viewport.
 
@@ -245,14 +338,11 @@ async def visible_lineage_graph(
             component_ids.add(current_id)
             frontier.update(neighbors.get(current_id, set()) - component_ids)
 
-        # An isolated post has no DAG to render; the post-lineage endpoint
-        # still reports its empty direct/indirect lists.
-        if len(component_ids) <= 1:
-            visible = []
-        else:
-            visible = [
-                row for row in visible_all if str(row["post_id"]) in component_ids
-            ]
+        visible = (
+            [row for row in visible_all if str(row["post_id"]) in component_ids]
+            if include_isolated or len(component_ids) > 1
+            else []
+        )
         truncated = False
 
     visible_ids = {str(row["post_id"]) for row in visible}
@@ -330,4 +420,43 @@ async def visible_lineage_graph(
         "edges": edges,
         "truncated": truncated,
         "reconstruction": reconstruction,
+    }
+
+
+async def lineage_graphs_for_posts(
+    conn: asyncpg.Connection,
+    can_see_post,
+    post_ids: list[str],
+) -> dict[str, Any]:
+    """Merge each post's full reconstructed thread into one ``LineageGraph``.
+
+    An Ask Agent answer can cite several posts from unrelated reconstruct
+    threads -- e.g. two separate customer complaints that happen to share a
+    keyword. The frontend's ``LineageDag`` already renders one ``LineageGraph``
+    as several independent git-branch-style figures, one per
+    ``reconstruct_group_key`` (see ``lineageLayout.ts``'s ``layoutLineageDag``);
+    merging every cited post's thread into a single graph is enough to get
+    that multi-graph rendering for free, no new frontend layout needed.
+
+    ponytail: one ``visible_lineage_graph`` call per post (each a bounded
+    ``source_post`` + full ``post_lineage_edge`` scan) -- fine for the
+    existing citation cap (``_POST_CHAT_SOURCE_LIMIT`` = 8), revisit with a
+    single batched query if that cap grows materially.
+    """
+    nodes_by_id: dict[str, dict[str, Any]] = {}
+    edges_by_key: dict[tuple[str, str], dict[str, Any]] = {}
+    truncated = False
+    for post_id in dict.fromkeys(post_ids):
+        graph = await visible_lineage_graph(
+            conn, can_see_post, focus_post_id=post_id, include_isolated=True
+        )
+        truncated = truncated or graph["truncated"]
+        for node in graph["nodes"]:
+            nodes_by_id[node["id"]] = node
+        for edge in graph["edges"]:
+            edges_by_key[(edge["source"], edge["target"])] = edge
+    return {
+        "nodes": list(nodes_by_id.values()),
+        "edges": list(edges_by_key.values()),
+        "truncated": truncated,
     }

@@ -92,8 +92,10 @@ export function decodeHtmlEntities(text: string): string {
   const decoder = document.createElement("textarea");
   let decoded = text;
   for (let pass = 0; pass < 3; pass += 1) {
-    decoder.innerHTML = decoded;
-    const next = decoder.value;
+    const next = decoded.replace(/&(?:#[0-9]+|#x[0-9a-f]+|[a-z][a-z0-9]+);/gi, (entity) => {
+      decoder.innerHTML = entity;
+      return decoder.value;
+    });
     if (next === decoded) break;
     decoded = next;
   }
@@ -141,10 +143,181 @@ function indentMarker(width: number): string {
   return width > 0 ? `${INDENT_MARKER}${width}${INDENT_MARKER_END}` : "";
 }
 
+const SUPER_ASCII_TO_UNI: Record<string, string> = {
+  "0": "⁰",
+  "1": "¹",
+  "2": "²",
+  "3": "³",
+  "4": "⁴",
+  "5": "⁵",
+  "6": "⁶",
+  "7": "⁷",
+  "8": "⁸",
+  "9": "⁹",
+  "+": "⁺",
+  "-": "⁻",
+  "=": "⁼",
+  "(": "⁽",
+  ")": "⁾",
+  n: "ⁿ",
+  N: "ⁿ",
+  i: "ⁱ",
+  I: "ⁱ",
+};
+const SUB_ASCII_TO_UNI: Record<string, string> = {
+  "0": "₀",
+  "1": "₁",
+  "2": "₂",
+  "3": "₃",
+  "4": "₄",
+  "5": "₅",
+  "6": "₆",
+  "7": "₇",
+  "8": "₈",
+  "9": "₉",
+  "+": "₊",
+  "-": "₋",
+  "=": "₌",
+  "(": "₍",
+  ")": "₎",
+  a: "ₐ",
+  e: "ₑ",
+  h: "ₕ",
+  i: "ᵢ",
+  k: "ₖ",
+  l: "ₗ",
+  m: "ₘ",
+  n: "ₙ",
+  o: "ₒ",
+  p: "ₚ",
+  s: "ₛ",
+  t: "ₜ",
+  x: "ₓ",
+};
+// Two ASCII keys can map to the same Unicode character (e.g. "n" and "N"
+// both produce "ⁿ"). Building the reverse table naively lets the
+// last-inserted ASCII key win, so decoding always yields one fixed case
+// regardless of what was actually stored. Keep the first (lowercase, since
+// it is listed first above) mapping instead, so round-tripping preserves case.
+function buildUnicodeToAsciiTable(table: Record<string, string>): Record<string, string> {
+  const reverse: Record<string, string> = {};
+  for (const [ascii, uni] of Object.entries(table)) {
+    if (!(uni in reverse)) reverse[uni] = ascii;
+  }
+  return reverse;
+}
+const SUPER_UNI_TO_ASCII = buildUnicodeToAsciiTable(SUPER_ASCII_TO_UNI);
+const SUB_UNI_TO_ASCII = buildUnicodeToAsciiTable(SUB_ASCII_TO_UNI);
+const CARET_EXPONENT =
+  /(?<=[A-Za-z0-9µμ°ΩÅåÅ)])\^(?:\{([+-]?\d{1,3}|[nNiI])\}|([+-]?\d{1,3}|[nNiI]))/g;
+const ENCODED_CARET = /&(?:amp;)*(?:#0*94|#x0*5e);/gi;
+const ENCODED_LT = String.raw`&(?:amp;)*(?:lt|#0*60|#x0*3c);`;
+const ENCODED_GT = String.raw`&(?:amp;)*(?:gt|#0*62|#x0*3e);`;
+const ENCODED_SCRIPT_TOKEN =
+  `${ENCODED_LT}\\s*/?\\s*(?:sup|sub)(?=\\s|/|${ENCODED_GT})`;
+const ENCODED_SCRIPT_PAIR = new RegExp(
+  `${ENCODED_LT}(sup|sub)${ENCODED_GT}` +
+    `((?:(?!${ENCODED_SCRIPT_TOKEN}).)*?)${ENCODED_LT}/\\1${ENCODED_GT}`,
+  "gis",
+);
+
+function applyUnicodeScript(text: string, kind: "super" | "sub"): string {
+  const table = kind === "super" ? SUPER_ASCII_TO_UNI : SUB_ASCII_TO_UNI;
+  const values = new Set(Object.values(table));
+  const compact = text.trim();
+  if (!compact) return text;
+  if ([...compact].every((ch) => ch in table || values.has(ch) || /\s/.test(ch))) {
+    return [...text].map((ch) => table[ch] ?? ch).join("");
+  }
+  const prefix = kind === "super" ? "^" : "_";
+  const leading = text.match(/^\s*/)?.[0] ?? "";
+  const trailing = compact.length ? text.slice(leading.length + compact.length) : "";
+  return `${leading}${prefix}${compact}${trailing}`;
+}
+
+function replaceHtmlScripts(text: string): string {
+  return text
+    .replace(/<sup\b[^>]*>(.*?)<\/sup>/gis, (_match, inner: string) =>
+      applyUnicodeScript(decodeHtmlEntities(String(inner)).replace(/<[^>]+>/g, ""), "super"),
+    )
+    .replace(/<sub\b[^>]*>(.*?)<\/sub>/gis, (_match, inner: string) =>
+      applyUnicodeScript(decodeHtmlEntities(String(inner)).replace(/<[^>]+>/g, ""), "sub"),
+    );
+}
+
+function decodeScriptEntities(text: string): string {
+  return text
+    .replace(
+      ENCODED_SCRIPT_PAIR,
+      (_pair, kind: string, inner: string) =>
+        `<${kind.toLowerCase()}>${inner}</${kind.toLowerCase()}>`,
+    )
+    .replace(ENCODED_CARET, (caret) => decodeHtmlEntities(caret));
+}
+
+export function normalizeScriptText(text: string): string {
+  const withCarets = decodeScriptEntities(text).replace(
+    CARET_EXPONENT,
+    (_match, braced: string, bare: string) => applyUnicodeScript(braced || bare, "super"),
+  );
+  return replaceHtmlScripts(withCarets);
+}
+
+export type ScriptRun = { text: string; script?: "super" | "sub" };
+
+export function splitScriptRuns(text: string): ScriptRun[] {
+  const runs: ScriptRun[] = [];
+  const push = (chunk: string, script?: "super" | "sub") => {
+    if (!chunk) return;
+    const last = runs[runs.length - 1];
+    if (last && last.script === script) {
+      last.text += chunk;
+      return;
+    }
+    runs.push(script ? { text: chunk, script } : { text: chunk });
+  };
+  let index = 0;
+  while (index < text.length) {
+    const ch = text[index];
+    if (ch in SUPER_UNI_TO_ASCII) {
+      let ascii = SUPER_UNI_TO_ASCII[ch];
+      index += 1;
+      while (index < text.length && text[index] in SUPER_UNI_TO_ASCII) {
+        ascii += SUPER_UNI_TO_ASCII[text[index]];
+        index += 1;
+      }
+      push(ascii, "super");
+      continue;
+    }
+    if (ch in SUB_UNI_TO_ASCII) {
+      let ascii = SUB_UNI_TO_ASCII[ch];
+      index += 1;
+      while (index < text.length && text[index] in SUB_UNI_TO_ASCII) {
+        ascii += SUB_UNI_TO_ASCII[text[index]];
+        index += 1;
+      }
+      push(ascii, "sub");
+      continue;
+    }
+    if (ch === "^" && index > 0 && /[A-Za-z0-9µμ°ΩÅåÅ)]/.test(text[index - 1])) {
+      const rest = text.slice(index);
+      const match = rest.match(/^\^(?:\{([+-]?\d{1,3}|[nNiI])\}|([+-]?\d{1,3}|[nNiI]))/);
+      if (match) {
+        push(match[1] || match[2] || "", "super");
+        index += match[0].length;
+        continue;
+      }
+    }
+    push(ch);
+    index += 1;
+  }
+  return runs;
+}
+
 function stripHtmlTags(text: string): string {
-  text = markFootnoteTags(text).replace(/<sup[^>]*>(.*?)<\/sup>/gi, "^$1");
+  const withScripts = normalizeScriptText(markFootnoteTags(text));
   let listDepth = 0;
-  const withBoundaries = text
+  const withBoundaries = withScripts
     .replace(BREAK_TAG, "\n")
     .replace(BLOCK_TAG, (tag) => {
       const name = tag.match(/^<\/?\s*([a-z0-9:]+)/i)?.[1]?.toLowerCase() ?? "";
@@ -159,12 +332,10 @@ function stripHtmlTags(text: string): string {
       return `\n\n${indentMarker(declaredIndentWidth(tag) + nestedListIndent)}`;
     })
     .replace(WORD_INDENT_TAG, (tag) => indentMarker(declaredIndentWidth(tag)));
-  const withoutTags = withBoundaries.replace(HTML_TAG, (tag) => {
-    if (/^<\/?(?:a\b|w:)/i.test(tag)) return "";
-    return " ";
-  });
-  const decoded = decodeHtmlEntities(withoutTags);
-  return decoded
+  const withoutTags = withBoundaries.replace(HTML_TAG, (tag) =>
+    /^<\/?(?:a\b|w:)/i.test(tag) ? "" : " ",
+  );
+  return decodeHtmlEntities(withoutTags)
     .split("\n")
     .map((line) => {
       if (!line.trim()) return "";

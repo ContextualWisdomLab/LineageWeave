@@ -1,7 +1,25 @@
-import { splitPostBody, type PostBodySegment } from "./postBodyDisplay";
+import {
+  decodeHtmlEntities,
+  splitPostBody,
+  splitScriptRuns,
+  normalizeScriptText,
+  type PostBodySegment,
+} from "./postBodyDisplay";
 import { t } from "./i18n";
 import type { PostContentUnit, PostImageContent } from "./api";
-import type { ReactNode } from "react";
+import { Fragment, type ReactNode } from "react";
+
+function renderStyledText(text: string): ReactNode {
+  return splitScriptRuns(text).map((run, index) => {
+    if (run.script === "super") {
+      return <sup key={`post-body-sup-${index}`}>{run.text}</sup>;
+    }
+    if (run.script === "sub") {
+      return <sub key={`post-body-sub-${index}`}>{run.text}</sub>;
+    }
+    return <Fragment key={`post-body-text-run-${index}`}>{run.text}</Fragment>;
+  });
+}
 
 function parsePipeDelimitedTable(text: string, requireSeparator = true): string[][] | null {
   const rawRows = text
@@ -42,7 +60,7 @@ function renderPipeTable(
         {rows.map((row, rowIndex) => (
           <tr key={`${keyPrefix}-row-${rowIndex}`}>
             {row.map((cell, cellIndex) => (
-              <td key={`${keyPrefix}-cell-${rowIndex}-${cellIndex}`}>{cell}</td>
+              <td key={`${keyPrefix}-cell-${rowIndex}-${cellIndex}`}>{renderStyledText(cell)}</td>
             ))}
           </tr>
         ))}
@@ -54,7 +72,7 @@ function renderPipeTable(
 function renderImageText(text: string) {
   return (
     renderPipeTable(text, "post-body-table post-image-text-table", "post-image-text", false) ?? (
-      <p>{text}</p>
+      <p>{renderStyledText(text)}</p>
     )
   );
 }
@@ -124,7 +142,7 @@ function renderSegment(segment: PostBodySegment, index: number, imageContent?: P
               : undefined
           }
         >
-          {segment.text}
+          {renderStyledText(segment.text)}
         </p>
       );
     case "image":
@@ -157,8 +175,12 @@ function isStructuredTableRow(unit: PostContentUnit): boolean {
  * its source display is still one text segment, so ordinal matching shifts
  * indentation for every later unresolved unit.
  */
+function displayUnitText(value: string): string {
+  return decodeHtmlEntities(normalizeScriptText(value));
+}
+
 function normalizedUnitText(value: string): string {
-  return value.replace(/\s+/g, " ").trim();
+  return displayUnitText(value).replace(/\s+/g, " ").trim();
 }
 
 /**
@@ -249,7 +271,9 @@ function renderStructuredUnits(
             {rows.map((row, rowIndex) => (
               <tr key={`post-body-table-row-${row.unit_index}-${rowIndex}`}>
                 {row.unit_text.split(/\s*\|\s*/).map((cell, cellIndex) => (
-                  <td key={`post-body-table-cell-${row.unit_index}-${cellIndex}`}>{cell}</td>
+                  <td key={`post-body-table-cell-${row.unit_index}-${cellIndex}`}>
+                    {renderStyledText(displayUnitText(cell))}
+                  </td>
                 ))}
               </tr>
             ))}
@@ -268,7 +292,7 @@ function renderStructuredUnits(
       renderTextSegment(
         {
           kind: "text",
-          text: unit.unit_text,
+          text: displayUnitText(unit.unit_text),
           ...(unit.unit_label === "footnote" || sourceText?.role === "footnote"
             ? { role: "footnote" as const }
             : {}),
