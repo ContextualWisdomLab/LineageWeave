@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-24 13:40 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 09:19 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -9,9 +9,44 @@
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `63876eb7` ("docs: record ADRs for the Ask
-Agent temporal/lineage/evidence goal", #422) when this baseline was refreshed.
-The live queue contained 37 open PRs and 19 open issues.
+The protected default branch was `98e37fe08c347165448daa4c730bc6e92a2ea264`
+when this baseline was refreshed. The live queue contained 25 open PRs and 19
+open issues. The exact-head inventory below supersedes older per-PR snapshots
+elsewhere in this document; those older rows remain useful historical delivery
+context only.
+
+| PR | Exact observed head | Merge/check state at this snapshot |
+| ---: | --- | --- |
+| #590 | `2f033ba3` | blocked; required checks running |
+| #588 | `74ed95d8` | blocked; Full test suite failed |
+| #585 | `235cd6d7` | blocked; core suite green, review gates running |
+| #584 | `bd28a91b` | dirty; Full suite and Strix failed |
+| #582 | `f23c8eb3` | dirty; Strix failed |
+| #581 | `8f0158db` | dirty; Full suite and Strix failed |
+| #579 | `57b6ae83` | blocked; Full suite and Strix failed |
+| #565 | `870d0114` | blocked; completed checks green, approval absent |
+| #564 | `e69206bc` | dirty; Full suite and Strix failed |
+| #563 | `ae74349d` | dirty; Strix failed |
+| #553 | `04969132` | blocked; auto-merge armed, review/checks pending |
+| #539 | `3d8601df` | blocked; required checks pending |
+| #537 | `2b3bcfb8` | dirty; Strix failed |
+| #521 | `e0a4cc9f` | blocked; Full suite and Strix failed |
+| #493 | `38018908` | dirty; required checks running |
+| #490 | `a99a69c2` | dirty; Strix and Devin failed |
+| #485 | `66916c97` | blocked; Strix failed |
+| #484 | `586b1eb0` | blocked; required checks pending |
+| #482 | `daafc277` | dirty; Full suite and Strix failed |
+| #468 | `f7886575` | dirty; Strix failed |
+| #434 | `b8ad3863` | dirty; Strix failed |
+| #394 | `1f1667f2` | blocked; required checks pending |
+| #387 | `2a6c520a` | changes requested; Strix failed |
+| #383 | `823d1069` | dirty; Full suite failed |
+| #355 | `83145dd3` | current-main reconciliation pushed; auto-merge armed, exact-head checks and independent review pending |
+
+No row above is merge evidence. Immediately before any lifecycle action,
+re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
+check conclusions. In particular, queued checks are infrastructure state and
+do not transfer evidence from an earlier SHA.
 
 The former protected-`main` login defect (unauthenticated `AdminPanel` render
 plus unused OIDC return-url helpers failing `tsc -b`) is repaired on
