@@ -168,6 +168,7 @@ evidence across heads.
 | #419 | Cite persisted image evidence for cited posts |
 | #421 | Playwright harness for Ask Agent capabilities |
 | #422 | ADRs for Ask Agent temporal / lineage / evidence goal |
+| #420 (merged) | Focused citation evidence Layer Popup under ADR 0153 |
 
 ADRs 0150-0153 (recorded by #422) define the accepted boundaries before this
 stack's implementation becomes protected-main evidence: #415 implements
