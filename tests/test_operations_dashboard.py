@@ -1,6 +1,6 @@
 """Focused tests for the operational dashboard evidence projection."""
 
-from datetime import UTC, date, datetime, timezone
+from datetime import date, datetime, timezone
 
 import pytest
 

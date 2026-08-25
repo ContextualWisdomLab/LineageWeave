@@ -1,7 +1,6 @@
 """Operational case semantic-response contract tests."""
 
 import json
-from datetime import UTC, datetime
 
 from lineageweave.operations_case_analysis import (
     OperationsEvidenceSource,
