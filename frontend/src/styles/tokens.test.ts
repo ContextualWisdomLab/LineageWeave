@@ -36,6 +36,16 @@ const BADGE_AND_ACCENT_TOKENS = [
   "--badge-status-prediction-text",
 ];
 
+const ONTOLOGY_NODE_TOKENS = [
+  "--ontology-node-post-fill",
+  "--ontology-node-person-fill",
+  "--ontology-node-organization-fill",
+  "--ontology-node-team-fill",
+  "--ontology-node-generic-fill",
+];
+
+const ONTOLOGY_TYPED_NODE_TOKENS = ONTOLOGY_NODE_TOKENS.slice(0, 4);
+
 // Colors this file's dark-mode block replaced -- a regression here would
 // silently make dark mode as bright as light mode again (ADR 0099).
 const RETIRED_LIGHT_ONLY_HEX = [
@@ -122,6 +132,26 @@ describe("design tokens", () => {
   it("keeps App.css's badge/accent declarations pointed at var(), not literals", () => {
     for (const token of BADGE_AND_ACCENT_TOKENS) {
       expect(appCss, `App.css never references var(${token})`).toContain(`var(${token})`);
+    }
+  });
+
+  it("defines and consumes ontology node fills in both color schemes", () => {
+    for (const token of ONTOLOGY_NODE_TOKENS) {
+      expect(lightBlock, `${token} missing from the light :root block`).toContain(`${token}:`);
+      expect(darkBlock, `${token} missing from the dark prefers-color-scheme block`).toContain(
+        `${token}:`,
+      );
+      expect(appCss, `App.css never references var(${token})`).toContain(`var(${token})`);
+    }
+  });
+
+  it("keeps ontology node labels at WCAG AA text contrast in both color schemes", () => {
+    for (const block of [lightBlock, darkBlock]) {
+      const label = readToken(block, "--color-text-heading");
+      for (const token of ONTOLOGY_TYPED_NODE_TOKENS) {
+        expect(contrastRatio(label, readToken(block, token)), `${token} label contrast`)
+          .toBeGreaterThanOrEqual(4.5);
+      }
     }
   });
 

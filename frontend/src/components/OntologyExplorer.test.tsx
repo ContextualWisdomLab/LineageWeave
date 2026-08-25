@@ -248,6 +248,23 @@ describe("OntologyExplorer", () => {
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
 
+  it("maps known ontology node types to token-backed visual classes", () => {
+    render(
+      <OntologyExplorer
+        focusNodeType="node_post"
+        focusNodeId={POST_ID}
+        neighborhood={neighborhood()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Select node: Post Demo public post" }))
+      .toHaveClass("ontology-node-post");
+    expect(screen.getByRole("button", { name: "Select node: Person Test Person" }))
+      .toHaveClass("ontology-node-person");
+    expect(screen.getByRole("button", { name: "Select node: Organization Demo Corp" }))
+      .toHaveClass("ontology-node-organization");
+  });
+
   it("names empty, truncated, denied, and rejected next actions", () => {
     const { rerender } = render(
       <OntologyExplorer

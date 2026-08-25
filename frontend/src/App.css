@@ -1148,9 +1148,28 @@
 
 .ontology-node {
   cursor: pointer;
-  fill: var(--color-background);
   stroke: var(--color-text-heading);
   stroke-width: 1.5;
+}
+
+.ontology-node-post {
+  fill: var(--ontology-node-post-fill);
+}
+
+.ontology-node-person {
+  fill: var(--ontology-node-person-fill);
+}
+
+.ontology-node-organization {
+  fill: var(--ontology-node-organization-fill);
+}
+
+.ontology-node-team {
+  fill: var(--ontology-node-team-fill);
+}
+
+.ontology-node-generic {
+  fill: var(--ontology-node-generic-fill);
 }
 
 .ontology-node text {

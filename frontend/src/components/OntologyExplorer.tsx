@@ -38,6 +38,13 @@ const NODE_TYPE_LABEL: Record<string, string> = {
   node_team: "Team",
 };
 
+const NODE_TYPE_CLASS: Record<string, string> = {
+  node_post: "ontology-node-post",
+  node_person: "ontology-node-person",
+  node_corporate_entity: "ontology-node-organization",
+  node_team: "ontology-node-team",
+};
+
 const TRUTH_LABEL: Record<string, string> = {
   truth_authoritative: "Authoritative",
   truth_observed: "Observed",
@@ -418,7 +425,11 @@ function OntologyGraph({
       {layout.nodes.map((node) => (
         <g
           key={nodeKey(node)}
-          className={nodeKey(node) === selectedNodeKey ? "ontology-node ontology-node-selected" : "ontology-node"}
+          className={[
+            "ontology-node",
+            NODE_TYPE_CLASS[node.node_type_code] ?? "ontology-node-generic",
+            nodeKey(node) === selectedNodeKey ? "ontology-node-selected" : "",
+          ].filter(Boolean).join(" ")}
           transform={`translate(${node.x}, ${node.y})`}
           role="button"
           tabIndex={0}
