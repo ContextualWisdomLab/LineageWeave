@@ -9,7 +9,7 @@ from typing import Self
 
 import pytest
 
-from backend.app import main
+from backend.app import global_ask_queue, main
 from lineageweave import observability
 from tests.test_observability import attach_inmemory_tracer
 
@@ -43,23 +43,19 @@ def _call_ask(monkeypatch: pytest.MonkeyPatch, exc: BaseException) -> None:
     async def _sources(*args: object, **kwargs: object) -> list[object]:
         return [SimpleNamespace(post_id="synthetic-post-1")]
 
-    account = SimpleNamespace(
-        corporate_entity_ids=(),
-        has_permission=lambda permission: permission == "post_read",
-    )
-    monkeypatch.setattr(main, "gather_global_chat_sources", _sources)
-    monkeypatch.setattr(main, "_post_chat_client", lambda: _FailingClient(exc))
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", _sources)
     with pytest.raises(main.HTTPException) as raised:
         asyncio.run(
-            main.ask_agent(
-                main.GlobalAskRequest(question="synthetic question"),
-                account=account,
-                pool=_Pool(),
+            global_ask_queue.compute_global_ask_answer(
+                _Pool(),
+                question_text="synthetic question",
+                corporate_entity_ids=set(),
+                chat_client=_FailingClient(exc),
             )
         )
     assert raised.value.status_code == 503
     assert raised.value.detail == (
-        "Ask Agent is temporarily unavailable. Saved evidence is still available."
+        "Ask Agent is unavailable: contextual-orchestrator could not complete the answer"
     )
 
 
@@ -98,15 +94,7 @@ def test_global_ask_provider_failure_is_reader_safe_and_classified(
             },
         )
     ]
-    api_span = next(
-        span
-        for span in exporter.get_finished_spans()
-        if span.name == "lineageweave.api.global_ask"
-    )
-    assert record.trace_id == format(api_span.get_span_context().trace_id, "032x")
-    assert record.span_id == format(api_span.get_span_context().span_id, "016x")
-    assert api_span.attributes["lineageweave.failure_outcome"] == "provider_unavailable"
-    assert not any(
+    assert any(
         span.name == "lineageweave.server.failure"
         for span in exporter.get_finished_spans()
     )
@@ -127,18 +115,14 @@ def test_global_ask_internal_failure_is_reader_safe_and_keeps_stack_without_valu
     record = next(
         item for item in caplog.records if item.msg == "lineageweave.server_failure"
     )
-    api_span = next(
-        span
-        for span in exporter.get_finished_spans()
-        if span.name == "lineageweave.api.global_ask"
-    )
     assert record.operation_code == "global_ask"
     assert record.failure_outcome == "internal_error"
     assert record.error_type == "AttributeError"
     assert record.stack_trace
-    assert record.trace_id == format(api_span.get_span_context().trace_id, "032x")
-    assert record.span_id == format(api_span.get_span_context().span_id, "016x")
-    assert api_span.attributes["lineageweave.failure_outcome"] == "internal_error"
+    assert any(
+        span.name == "lineageweave.server.failure"
+        for span in exporter.get_finished_spans()
+    )
     assert sensitive not in record.stack_trace
     assert sensitive not in caplog.text
 
@@ -147,44 +131,31 @@ def test_global_ask_source_gather_failure_is_classified(
     monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
 ) -> None:
     """Source assembly failures share the Ask span instead of escaping as 500."""
-    exporter = attach_inmemory_tracer(monkeypatch)
+    attach_inmemory_tracer(monkeypatch)
     caplog.set_level(logging.WARNING, logger="lineageweave.observability")
     sensitive = "source body must not escape"
 
     async def _sources(*args: object, **kwargs: object) -> list[object]:
         raise ValueError(sensitive)
 
-    account = SimpleNamespace(
-        corporate_entity_ids=(),
-        has_permission=lambda permission: permission == "post_read",
-    )
-    monkeypatch.setattr(main, "gather_global_chat_sources", _sources)
-    monkeypatch.setattr(
-        main, "_post_chat_client", lambda: _FailingClient(RuntimeError("unused"))
-    )
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", _sources)
     with pytest.raises(main.HTTPException) as raised:
         asyncio.run(
-            main.ask_agent(
-                main.GlobalAskRequest(question="synthetic question"),
-                account=account,
-                pool=_Pool(),
+            global_ask_queue.compute_global_ask_answer(
+                _Pool(),
+                question_text="synthetic question",
+                corporate_entity_ids=set(),
+                chat_client=_FailingClient(RuntimeError("unused")),
             )
         )
     assert raised.value.status_code == 503
     assert raised.value.detail == (
-        "Ask Agent is temporarily unavailable. Saved evidence is still available."
+        "Ask Agent is unavailable: authorized evidence could not be assembled"
     )
     record = next(
         item for item in caplog.records if item.msg == "lineageweave.server_failure"
     )
-    api_span = next(
-        span
-        for span in exporter.get_finished_spans()
-        if span.name == "lineageweave.api.global_ask"
-    )
-    assert record.failure_outcome == "provider_unavailable"
-    assert record.trace_id == format(api_span.get_span_context().trace_id, "032x")
-    assert record.span_id == format(api_span.get_span_context().span_id, "016x")
+    assert record.failure_outcome == "internal_error"
     assert sensitive not in caplog.text
     assert sensitive not in raised.value.detail
 

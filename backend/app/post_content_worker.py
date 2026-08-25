@@ -11,15 +11,6 @@ from uuid import UUID
 import asyncpg
 import redis.asyncio as redis
 
-from lineageweave.embedding_client import EmbeddingClient
-from lineageweave.http_client import HttpClientError
-from lineageweave.image_content import ImageContentClient
-from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
-from lineageweave.post_content_normalization import normalize_post_body
-from lineageweave.post_content_persistence import persist_post_content
-from lineageweave.observability import record_server_failure, traced
-from lineageweave.post_structure import PostStructureClient
-
 from backend.app.config import load_settings
 from backend.app.post_content_queue import (
     FAILED,
@@ -31,9 +22,17 @@ from backend.app.post_content_queue import (
     STALE_RUNNING_INTERVAL,
     SUCCEEDED,
     post_content_is_complete,
-    transition_post_content_job,
     republish_queued_post_content_jobs,
+    transition_post_content_job,
 )
+from lineageweave.embedding_client import EmbeddingClient
+from lineageweave.http_client import HttpClientError
+from lineageweave.image_content import ImageContentClient
+from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
+from lineageweave.observability import record_server_failure, traced
+from lineageweave.post_content_normalization import normalize_post_body
+from lineageweave.post_content_persistence import persist_post_content
+from lineageweave.post_structure import PostStructureClient
 
 _logger = logging.getLogger(__name__)
 _RECOVERY_INTERVAL_SECONDS = 30.0
@@ -281,7 +280,7 @@ async def process_post_content_job(
                 )
                 return
     except Exception as exc:  # noqa: BLE001 - durable failure is recorded for retry.
-        _logger.exception("post content ingestion failed for post_id=%s", post_id)
+        _logger.error("post content ingestion failed for post_id=%s", post_id)
         outcome = (
             "provider_unavailable"
             if isinstance(
