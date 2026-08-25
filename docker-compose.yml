@@ -196,8 +196,6 @@ services:
         condition: service_started
       valkey:
         condition: service_healthy
-      backend:
-        condition: service_started
       searxng:
         condition: service_healthy
 
@@ -250,6 +248,8 @@ services:
         condition: service_started
       valkey:
         condition: service_healthy
+      backend:
+        condition: service_started
 
   frontend:
     build:
