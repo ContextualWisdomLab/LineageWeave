@@ -60,9 +60,9 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 14 open PRs and 10 open issues. Exact observed heads
-were `#663 e0aff6da`, `#660 24fda085`, `#659 e948bd27`, `#658 fe830b0a`, `#657 64f48679`, `#644 d9ff9980`, `#643 0a1f8ec1`, `#640 2d50fa01`,
-`#639 aee02dca`, `#636 f7b9a65f`, `#632 359c9c28`, `#631 c0022c97`,
+At this snapshot there were 13 open PRs and 10 open issues. Exact observed heads
+were `#663 d2133090`, `#660 24fda085`, `#659 e948bd27`, `#658 fe830b0a`, `#657 64f48679`, `#644 d9ff9980`, `#643 0a1f8ec1`, `#640 2d50fa01`,
+`#639 aee02dca`, `#632 995e4d8b`, `#631 c0022c97`,
 `#629 4b4d6707`, and `#579 689a21b6`. PR #654 merged its ontology-label
 readability slice into #632's provenance branch as `6c0c4370`; that stack
 merge is not protected-main delivery. The open heads remain
@@ -81,7 +81,7 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 14 open PRs and 10
+when this baseline was refreshed. The live queue contained 13 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
@@ -92,7 +92,7 @@ context only.
 | #661 | `6baaeb3d` (closed unmerged) | reconstruction fixture seam passed focused tests, but the final review found no independent `tepp_lineage_criterion_v1` anchor and an ungrounded candidate-pair weight fit, contrary to ADR 0145/0205; closed without protected-main delivery |
 | #662 | `92534118` (closed unmerged) | TEPP terminal status/read transport boundary remained blocked and was closed as superseded by #657's stronger request/snapshot/cutoff/output lifecycle contract; retain its ADR/client-test evidence as historical gap context, with no protected-main delivery |
 | #664 | `be3e28cc` (merged into #660 branch) | explicit semantic content-unit kinds for paragraph, list, table, formula, and caller-parsed conversation turns; ADR 0223 and migration 0221 are now part of the non-default #660 stack; protected-main delivery is not implied |
-| #663 | `e0aff6da` | evidence-backed Post → Project ontology neighborhood with canonical project keys, proposed truth status, project diamond/text labels, cutoff/snapshot-bounded project evidence, migration replay hardening, static-SQL scanner repair, ecosystem authority/ADR allocation reconciliation, ADR 0225 external arithmetic ownership, canonical `mentions project` relation labeling, and live ontology-publication evidence; documentation/docstring suite 7 passed; hosted checks and independent review remain required |
+| #663 | `d2133090` | evidence-backed Post → Project ontology neighborhood with canonical project keys, proposed truth status, project diamond/text labels, cutoff/snapshot-bounded project evidence, migration replay hardening, static-SQL scanner repair, ecosystem authority/ADR allocation reconciliation, ADR 0225 external arithmetic ownership, canonical `mentions project` relation labeling, live ontology-publication evidence, and the latest #636 race-branch stack merge; documentation/docstring suite 7 passed; hosted checks and independent review remain required |
 | #659 | `e948bd27` | ontology node-type readability, tokenized surfaces, contrast measurement, and resolved cross-PR allocation documentation; focused UI/token tests and lint passed; hosted checks and independent review remain required |
 | #658 | `fe830b0a` | optional Global Ask knowledge cutoff; empty-cutoff answers no longer overclaim grounding, live answers expose `live_only`, local cutoff input is converted to UTC, content-change evidence now comes from revision intervals rather than unrelated live-row touches, current-only lineage/images are gated off, ADR rollback instructions name the actual migration, and unused live-update selection was removed; cutoff/source-revision suites passed 20 tests; hosted checks and independent review remain required |
 | #657 | `64f48679` | TEPP asynchronous lifecycle evidence; terminal-status persistence, receipt-conflict isolation, migration reservation, and fail-closed schema handling repaired, with 57 focused tests passed; hosted checks and independent review remain required |
@@ -100,8 +100,8 @@ context only.
 | #643 | `0a1f8ec1` | shared token-backed status notice with reserved ADR identity; checks and independent review remain required |
 | #640 | `2d50fa01` | dashboard case metrics, project journeys, restored TEPP API-key setting, semantic-label spacing, topic-dashboard argument-boundary repair, async Ask queue settlement isolation, consistent empty-projection fast-mlsirm contract state, and Starlette/httpx2 test transport alignment; focused operations suite passed 27 tests; hosted checks and independent review remain required |
 | #639 | `aee02dca` | Running action and Compose contract repair; checks and independent review remain required |
-| #636 | `f7b9a65f` | calibrated external lineage contract; checks and independent review remain required |
-| #632 | `90c7f8f4` | Global Ask provenance, public verification, knowledge cutoff, evidence-constrained query rewriting, shared ABAC/rewrite-failure review repair, #654 ontology-label readability, Semgrep static-SQL repair, and #655 authenticated durable MCP stack with live Streamable HTTP lifecycle and k6 evidence; this baseline refresh records the current queue and stack movement; checks and independent review remain required |
+| #636 | `f7b9a65f` (closed unmerged) | closed because it reintroduced a Python lineage calculation path contrary to ADR 0225 and the external arithmetic ownership boundary; retain its review evidence for the replacement adapter gap, with no protected-main delivery |
+| #632 | `995e4d8b` | Global Ask provenance, public verification, knowledge cutoff, evidence-constrained query rewriting, shared ABAC/rewrite-failure review repair, #654 ontology-label readability, Semgrep static-SQL repair, and #655 authenticated durable MCP stack with live Streamable HTTP lifecycle and k6 evidence; this baseline refresh records the current queue and stack movement; checks and independent review remain required |
 | #631 | `c0022c97` | current-main ADR stack decomposition; checks and independent review remain required |
 | #629 | `4b4d6707` | provider pool release and bounded landing reads; checks and independent review remain required |
 | #579 | `689a21b6` | leftover interaction-map persistence; checks and independent review remain required |
@@ -392,7 +392,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 14 open PRs at snapshot: #579, #629, #631, #632, #636, #639, #640, #643, #644, #657, #658, #659, #660, and #663. #661 and #662 closed unmerged; #664 merged only into the non-default #660 stack. All protected delivery retains hosted and/or independent-review gates | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Protected release | 13 open PRs at snapshot: #579, #629, #631, #632, #639, #640, #643, #644, #657, #658, #659, #660, and #663. #636, #661, and #662 closed unmerged; #664 merged only into the non-default #660 stack. All protected delivery retains hosted and/or independent-review gates | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
