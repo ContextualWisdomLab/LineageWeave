@@ -34,8 +34,8 @@ removal or keyword extraction occurs.
 ## Considered alternatives
 
 - Send the raw question to an LLM to extract a date range: rejected because
-  ungrounded LLM inference at
-  the retrieval boundary -- a hallucinated date range would silently
+  ungrounded LLM inference at the retrieval boundary could hallucinate a
+  date range that would silently
   narrow (or widen) the candidate set with no way for the reader to verify
   it, and every extra provider round-trip is retrieval latency the reader
   pays before seeing an answer.

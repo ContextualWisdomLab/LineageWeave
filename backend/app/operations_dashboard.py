@@ -43,25 +43,28 @@ def _visible_period_sql(alias: str = "post") -> str:
     """Return the shared ABAC, eligibility, and event-clock predicate."""
     return f"""
         ({alias}.visibility_code = 'public'
-         or {alias}.corporate_entity_id::text = any($1::text[]))
+         or ({alias}.corporate_entity_id::text = any($1::text[])
+             and (cardinality($2::text[]) = 0
+                  or {alias}.process_unit_id::text = any($2::text[]))))
         and {SOURCE_POST_ELIGIBILITY_SQL.format(alias=alias)}
-        and ($2::date is null or (coalesce({alias}.event_occurred_at, {alias}.created_at)
-             at time zone 'Asia/Seoul')::date >= $2)
         and ($3::date is null or (coalesce({alias}.event_occurred_at, {alias}.created_at)
-             at time zone 'Asia/Seoul')::date <= $3)
+             at time zone 'Asia/Seoul')::date >= $3)
+        and ($4::date is null or (coalesce({alias}.event_occurred_at, {alias}.created_at)
+             at time zone 'Asia/Seoul')::date <= $4)
     """
 
 
 async def fetch_operations_dashboard(
     conn: _Connection,
     corporate_entity_ids: tuple[str, ...] | list[str],
+    process_unit_ids: tuple[str, ...] | list[str] = (),
     period_start: date | None = None,
     period_end: date | None = None,
 ) -> dict[str, Any]:
     """Return quantified cases and their persisted source evidence."""
     if period_start and period_end and period_start > period_end:
         raise ValueError("period_start must not be after period_end")
-    args = (list(corporate_entity_ids), period_start, period_end)
+    args = (list(corporate_entity_ids), list(process_unit_ids), period_start, period_end)
     visible = _visible_period_sql()
     metrics = await conn.fetchrow(
         f"""

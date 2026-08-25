@@ -24,4 +24,16 @@ describe("SimilarVocPanel", () => {
     render(<SimilarVocPanel items={[]} onOpenPost={() => undefined} />);
     expect(screen.getByRole("status")).toHaveTextContent("판정된 과거 VOC가 없습니다");
   });
+
+  it("keeps loaded evidence visible when loading the next page fails", () => {
+    render(<SimilarVocPanel items={[{
+      post_id: "post-2", post_title: "합성 과거 VOC", issue_summary: "동일 고장 유형",
+      focal_evidence_text: "현재 고장 근거", candidate_evidence_text: "과거 고장 근거",
+      customer_cohort_text: null, action_history: [], occurred_at: "2026-08-20T09:00:00Z",
+    }]} error="이전 VOC를 더 불러오지 못했습니다." loadingMore onOpenPost={() => undefined} onLoadMore={() => undefined} />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("더 불러오지 못했습니다");
+    expect(screen.getByText("합성 과거 VOC")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "이전 VOC를 불러오는 중..." })).toBeDisabled();
+  });
 });

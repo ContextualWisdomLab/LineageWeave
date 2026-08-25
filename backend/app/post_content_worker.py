@@ -305,7 +305,7 @@ async def process_post_content_job(
                 cases = await asyncio.to_thread(
                     case_client.analyze,
                     str(row["post_title"]),
-                    normalized.text,
+                    raw_body,
                     context,
                 )
                 async with pool.acquire() as conn:

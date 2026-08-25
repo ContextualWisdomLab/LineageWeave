@@ -179,10 +179,13 @@ def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch)
         "normalize_post_body",
         lambda *_args: SimpleNamespace(text="synthetic source body"),
     )
+    analyzed_bodies: list[str] = []
     monkeypatch.setattr(
         post_content_worker,
         "ContextualOrchestratorOperationsCaseAnalysisClient",
-        lambda *_args: SimpleNamespace(analyze=lambda *_values: ()),
+        lambda *_args: SimpleNamespace(
+            analyze=lambda _title, body, _context: analyzed_bodies.append(body) or ()
+        ),
     )
     monkeypatch.setattr(post_content_worker, "persist_operations_cases", persist)
     client = SimpleNamespace(available=True)
@@ -200,6 +203,7 @@ def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch)
 
     updates = [args for query, args in connection.executed if "set status_code" in query]
     assert any(args[1] == QUEUED and args[6] == "post_content_ingestion_incomplete" for args in updates)
+    assert analyzed_bodies == ["A synthetic post body with a retrieval unit."]
 
 
 def test_missing_source_body_is_not_reported_as_a_provider_failure(monkeypatch, caplog) -> None:

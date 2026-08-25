@@ -17,15 +17,14 @@ single known starting post.
 
 A relevance-correct top match is still one snapshot. A live reproduction
 asking about a specific real event got an accurate answer about that one
-post and nothing about what led up to it or what happened next, even after
-match-specificity ranking (title/body/source-field weighting) was already
-fixed to stop recency from crowding out the right post. The account asking
+post and nothing about what led up to it or what happened next. The account asking
 almost always wants the event's place in a sequence, not an isolated
 record.
 
 ## Decision
 
-After `gather_global_chat_sources` ranks candidates by match specificity,
+After `gather_global_chat_sources` ranks candidates by persisted semantic-unit
+embedding similarity,
 it expands only the single top-ranked match through its direct
 `post_lineage_edge` neighbors (parent and child), mirroring the `.direct`
 set `find_linked_post_ids` already computes for the post-scoped flow. The
@@ -37,10 +36,9 @@ expansion:
 - Never bypasses ABAC. Lineage-neighbor ids are merged into the same
   candidate set the existing visibility filter (`can_see_post`) already
   runs over; nothing lineage-adjacent is shown without passing that check.
-- Is additive to the existing bounded source `limit`, not a replacement
-  for it -- the limit grows by exactly the number of lineage neighbors
-  found, so lineage expansion cannot silently starve the semantically ranked
-  candidates of their own slots.
+- Shares the existing bounded source `limit`. The anchor and its direct
+  neighbors take the first slots and lower-ranked semantic candidates fill
+  any remaining slots; the returned source count never exceeds `limit`.
 - Tags each expanded source with an explicit `Event Lineage: reconstructed
   timeline neighbor of post_id=...` evidence fact, and only when the
   anchor post itself is visible -- an expanded neighbor must never cite an
@@ -66,9 +64,7 @@ sequence around it.
 
 - Global Ask answers can now speak to a connected sequence of records
   around its best match, not only that match's own content.
-- The source budget is no longer a fixed constant per request; callers
-  reading `limit` as an upper bound on retrieved posts must account for the
-  lineage-expansion addition.
+- `limit` remains the hard upper bound after lineage expansion.
 - Global Ask still has no persisted multi-turn conversation state, so
   there is no long-context-compression problem yet. Recursive dialogue
   summarization (Wang et al., 2023) is recorded in

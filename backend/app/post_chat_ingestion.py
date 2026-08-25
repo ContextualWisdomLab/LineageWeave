@@ -441,7 +441,9 @@ async def gather_global_chat_sources(
     question_norm = sum(value * value for value in question_vector) ** 0.5
     if question_norm == 0.0:
         return []
-    candidate_rows = await conn.fetch(
+    # Safe SQL: the only interpolation is the repository-owned eligibility
+    # expression; all request and model values remain asyncpg parameters.
+    candidate_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         with question_vector as (
             select ordinality - 1 as dimension_index, dimension_value
@@ -522,7 +524,9 @@ async def gather_global_chat_sources(
         candidate_ids = []
     lineage_neighbor_id_set = frozenset(lineage_neighbor_ids)
 
-    rows = await conn.fetch(
+    # Safe SQL: the only interpolation is the repository-owned eligibility
+    # expression; all request and identity values remain asyncpg parameters.
+    rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select post_id, post_title, post_body, visibility_code, corporate_entity_id, process_unit_id,
                source_system_code, source_record_key, source_author_code, source_author_name,

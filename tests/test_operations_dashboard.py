@@ -55,6 +55,7 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
     result = await fetch_operations_dashboard(
         conn,
         ["00000000-0000-0000-0000-000000000009"],
+        ["00000000-0000-0000-0000-000000000008"],
         date(2026, 8, 1),
         date(2026, 8, 31),
     )
@@ -84,8 +85,9 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
     for query, args in conn.queries:
         assert "visibility_code = 'public'" in query
         assert "corporate_entity_id::text = any($1::text[])" in query
+        assert "process_unit_id::text = any($2::text[])" in query
         assert "coalesce(post.event_occurred_at, post.created_at)" in query
-        assert args[1:] == (date(2026, 8, 1), date(2026, 8, 31))
+        assert args[1:] == (["00000000-0000-0000-0000-000000000008"], date(2026, 8, 1), date(2026, 8, 31))
 
 
 @pytest.mark.anyio
@@ -107,7 +109,7 @@ async def test_dashboard_zero_denominator_and_invalid_period() -> None:
     assert (await fetch_operations_dashboard(EmptyConnection(), []))["external_percent"] == 0.0
     with pytest.raises(ValueError, match="period_start"):
         await fetch_operations_dashboard(
-            EmptyConnection(), [], date(2026, 9, 1), date(2026, 8, 31)
+            EmptyConnection(), [], [], date(2026, 9, 1), date(2026, 8, 31)
         )
 
 

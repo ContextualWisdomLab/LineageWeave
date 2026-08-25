@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import hashlib
 from typing import Any, Protocol
 
+from backend.app.post_content_queue import source_body_sha256
 from lineageweave.operations_case_analysis import OperationsCase
 
 
@@ -24,7 +24,7 @@ class _Connection(Protocol):
 
 def source_body_digest(body: str) -> str:
     """Return the digest that binds inference to an exact source body."""
-    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+    return source_body_sha256(body)
 
 
 async def persist_operations_cases(

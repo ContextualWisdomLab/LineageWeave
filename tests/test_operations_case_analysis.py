@@ -32,3 +32,16 @@ def test_rejects_unknown_codes_and_malformed_json() -> None:
     """Closed vocabularies prevent provider prose from entering persistence."""
     assert parse_operations_case_response("not json", "body") is None
     assert parse_operations_case_response('[{"case_kind_code":"other"}]', "body") is None
+
+
+def test_rejects_duplicate_case_kinds_and_blank_evidence() -> None:
+    """One normalized key has one grounded classification, never an empty span."""
+    duplicate = [
+        {"case_kind_code": "repeat_issue", "summary_text": "First", "evidence_text": "body", "facts": []},
+        {"case_kind_code": "repeat_issue", "summary_text": "Second", "evidence_text": "body", "facts": []},
+    ]
+    blank = [
+        {"case_kind_code": "repeat_issue", "summary_text": "Blank", "evidence_text": "", "facts": []}
+    ]
+    assert parse_operations_case_response(json.dumps(duplicate), "body") is None
+    assert parse_operations_case_response(json.dumps(blank), "body") is None

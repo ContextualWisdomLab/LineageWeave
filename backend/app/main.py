@@ -769,7 +769,11 @@ async def operations_dashboard(
     async with pool.acquire() as conn:
         try:
             return await fetch_operations_dashboard(
-                conn, account.corporate_entity_ids, period_start, period_end
+                conn,
+                account.corporate_entity_ids,
+                account.process_unit_ids,
+                period_start,
+                period_end,
             )
         except ValueError as exc:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc

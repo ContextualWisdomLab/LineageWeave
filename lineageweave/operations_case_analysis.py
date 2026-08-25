@@ -83,13 +83,17 @@ def parse_operations_case_response(content: str, source_body: str) -> tuple[Oper
     if not isinstance(payload, list):
         return None
     cases: list[OperationsCase] = []
+    seen_case_kinds: set[str] = set()
     for item in payload:
         if not isinstance(item, dict) or item.get("case_kind_code") not in CASE_KINDS:
             return None
+        if item["case_kind_code"] in seen_case_kinds:
+            return None
+        seen_case_kinds.add(item["case_kind_code"])
         summary = item.get("summary_text")
         evidence = item.get("evidence_text")
         facts = item.get("facts")
-        if not isinstance(summary, str) or not summary.strip() or not isinstance(evidence, str) or evidence not in source_body or not isinstance(facts, list):
+        if not isinstance(summary, str) or not summary.strip() or not isinstance(evidence, str) or not evidence.strip() or evidence not in source_body or not isinstance(facts, list):
             return None
         parsed_facts: list[OperationsCaseFact] = []
         for fact in facts:
@@ -97,7 +101,7 @@ def parse_operations_case_response(content: str, source_body: str) -> tuple[Oper
                 return None
             value = fact.get("value_text")
             fact_evidence = fact.get("evidence_text")
-            if not isinstance(value, str) or not value.strip() or not isinstance(fact_evidence, str) or fact_evidence not in source_body:
+            if not isinstance(value, str) or not value.strip() or not isinstance(fact_evidence, str) or not fact_evidence.strip() or fact_evidence not in source_body:
                 return None
             parsed_facts.append(OperationsCaseFact(fact["fact_type_code"], value.strip(), fact_evidence))
         cases.append(OperationsCase(item["case_kind_code"], summary.strip(), evidence, tuple(parsed_facts)))

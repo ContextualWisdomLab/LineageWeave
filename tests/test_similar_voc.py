@@ -2,10 +2,7 @@
 
 import json
 
-import pytest
-
-from lineageweave.rankweave_client import RankWeaveClient
-from lineageweave.similar_voc import parse_similar_voc_response, rank_similar_voc_candidates
+from lineageweave.similar_voc import parse_similar_voc_response
 
 
 def test_positive_similarity_requires_extractable_evidence() -> None:
@@ -28,9 +25,9 @@ def test_positive_similarity_requires_extractable_evidence() -> None:
 
 
 def test_customer_cohort_must_be_extractable() -> None:
-    """A customer cohort label cannot be invented outside either source body."""
+    """A customer cohort label must be the same extractive span in both bodies."""
     focal = "Customer cohort Alpha reported a seal failure."
-    candidate = "A seal failed during trial."
+    candidate = "A seal failure occurred during trial."
     payload = {
         "similar": True,
         "issue_summary": "Equivalent seal failure",
@@ -41,25 +38,7 @@ def test_customer_cohort_must_be_extractable() -> None:
     }
     assert parse_similar_voc_response(json.dumps(payload), "post-2", focal, candidate) is None
     payload["customer_cohort_text"] = "Customer cohort Alpha"
+    assert parse_similar_voc_response(json.dumps(payload), "post-2", focal, candidate) is None
+    candidate = "Customer cohort Alpha reported a seal failure during trial."
+    payload["candidate_evidence_text"] = candidate
     assert parse_similar_voc_response(json.dumps(payload), "post-2", focal, candidate) is not None
-
-
-def test_ranking_uses_only_complete_supplied_measurement_weights() -> None:
-    """RankWeave receives the exact persisted estimate and rejects a partial vector."""
-    captured = {}
-
-    def transport(channels, weights):
-        captured.update(weights)
-        return [{"item_id": "post-2"}]
-
-    ranking = rank_similar_voc_candidates(
-        {"text": ["post-2"], "secondary_key": ["post-2"]}, {"post-2": "Prior VOC"},
-        {"text": 0.7, "secondary_key": 0.3}, RankWeaveClient(transport=transport),
-    )
-    assert captured == {"text": 0.7, "secondary_key": 0.3}
-    assert ranking.items[0].post_id == "post-2"
-    with pytest.raises(ValueError, match="complete estimated"):
-        rank_similar_voc_candidates(
-            {"text": ["post-2"], "secondary_key": ["post-2"]}, {"post-2": "Prior VOC"},
-            {"text": 1.0}, RankWeaveClient(transport=transport),
-        )

@@ -7,23 +7,23 @@ type Props = {
   error?: string | null;
   onOpenPost: (postId: string) => void;
   onLoadMore?: (() => void) | null;
+  loadingMore?: boolean;
 };
 
 /** Shows semantically adjudicated prior VOCs and their source-supported actions. */
-export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore }: Props) {
+export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore, loadingMore = false }: Props) {
   return (
     <section className="similar-voc" aria-labelledby="similar-voc-heading">
       <header>
         <h3 id="similar-voc-heading">유사 VOC · 고객군 확인</h3>
         <p>같은 문제 유형으로 판정된 과거 근거와 조치 이력을 확인하세요.</p>
       </header>
-      {error ? (
-        <p role="alert">{error}</p>
-      ) : items === null ? (
+      {error ? <p role="alert">{error}</p> : null}
+      {items === null && !error ? (
         <p role="status">유사 VOC 근거를 판정하고 있습니다.</p>
-      ) : items.length === 0 ? (
+      ) : items?.length === 0 && !error ? (
         <p role="status">같은 문제 유형으로 판정된 과거 VOC가 없습니다.</p>
-      ) : (
+      ) : items && items.length > 0 ? (
         <ol>
           {items.map((item) => (
             <li key={item.post_id}>
@@ -44,8 +44,12 @@ export function SimilarVocPanel({ items, error, onOpenPost, onLoadMore }: Props)
             </li>
           ))}
         </ol>
-      )}
-      {items?.length && onLoadMore ? <button type="button" onClick={onLoadMore}>이전 VOC 더 보기</button> : null}
+      ) : null}
+      {onLoadMore ? (
+        <button type="button" onClick={onLoadMore} disabled={loadingMore}>
+          {loadingMore ? "이전 VOC를 불러오는 중..." : "이전 VOC 더 보기"}
+        </button>
+      ) : null}
     </section>
   );
 }

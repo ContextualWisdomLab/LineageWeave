@@ -119,6 +119,7 @@ describe("App, authenticated", () => {
     organizationAliases?: boolean;
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
+    askDelivery?: boolean;
     lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
@@ -1791,6 +1792,21 @@ describe("App, authenticated", () => {
                   truncated: false,
                 }
               : { nodes: [], edges: [], truncated: false },
+            delivery: options?.askDelivery ? {
+              contract_version: "1.0",
+              report: {
+                media_type: "text/markdown",
+                body: "Answer",
+                source_documents: [{
+                  post_id: "post-2", title: "Linked post", api_path: "/api/posts/post-2",
+                  resource_uri: "lineageweave://posts/post-2", evidence_facts: [],
+                }],
+              },
+              alert: {
+                trigger_code: "cited_evidence_changed", delivery_status_code: "not_subscribed",
+                eligible: true, watched_resource_uris: ["lineageweave://posts/post-2"],
+              },
+            } : undefined,
             },
           }),
         );
@@ -1944,6 +1960,20 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Semantic project", { exact: true })).toBeInTheDocument();
     expect(screen.getByText(/project: Semantic project \| evidence: Body evidence/)).toBeInTheDocument();
     expect(screen.queryByText(/ontology_iri|contextual_orchestrator/i)).not.toBeInTheDocument();
+  });
+
+  it("localizes Ask delivery copy instead of rendering Korean literals in English", async () => {
+    stubBackend({ askDelivery: true });
+    render(<App />);
+    expect(await screen.findByRole("button", { name: "View post: Public post" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Ask Agent" }));
+    await userEvent.type(screen.getByRole("textbox", { name: "Ask a question" }), "Which project?");
+    await userEvent.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(await screen.findByRole("complementary", { name: "Report · alert · MCP" })).toHaveTextContent(
+      "1 evidence documents are linked to this report.",
+    );
+    expect(screen.queryByText(/근거 문서/)).not.toBeInTheDocument();
   });
 
   it("renders every cited lineage thread as its own git-branch-style graph", async () => {
