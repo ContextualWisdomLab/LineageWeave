@@ -53,6 +53,34 @@ const RETIRED_LIGHT_ONLY_HEX = [
   "#721c24",
 ];
 
+// WCAG 2.x relative luminance / contrast ratio (SC 1.4.3).
+function relativeLuminance(hex: string): number {
+  const rgb = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const [r, g, b] = rgb.map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+function contrastRatio(hexA: string, hexB: string): number {
+  const lA = relativeLuminance(hexA);
+  const lB = relativeLuminance(hexB);
+  const [lighter, darker] = lA > lB ? [lA, lB] : [lB, lA];
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function readToken(block: string, token: string): string {
+  // Safe regex: `token` is always a hardcoded CSS custom-property name
+  // literal passed by the call sites below (e.g. "--color-footer-bg"), and
+  // escapeRegExp() neutralizes any regex metacharacters before
+  // interpolation, so no caller-controlled input reaches RegExp unescaped.
+  const match = block.match(new RegExp(`${escapeRegExp(token)}:\\s*(#[0-9a-fA-F]{6})`)); // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
+  if (!match) throw new Error(`${token} not found as a hex value`);
+  return match[1];
+}
+
 // Secondary <details>/<summary> disclosure toggles (advanced tools,
 // evidence-extraction actions, related-post/hint expanders) must meet the
 // same --size-control-min touch target as primary controls like
@@ -67,6 +95,13 @@ const DISCLOSURE_TOGGLE_SELECTORS = [
 ];
 
 describe("design tokens", () => {
+  it("keeps footer text at or above the WCAG AA 4.5:1 contrast minimum (SC 1.4.3)", () => {
+    const footerBg = readToken(lightBlock, "--color-footer-bg");
+    const footerText = readToken(lightBlock, "--color-footer-text");
+    expect(contrastRatio(footerBg, footerText)).toBeGreaterThanOrEqual(4.5);
+  });
+
+
   it("defines every badge/accent token in both the light and dark blocks", () => {
     for (const token of BADGE_AND_ACCENT_TOKENS) {
       expect(lightBlock, `${token} missing from the light :root block`).toContain(`${token}:`);

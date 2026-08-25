@@ -90,7 +90,8 @@ import { OntologyExplorer } from "./components/OntologyExplorer";
 import { AskEvidenceLayerPopup } from "./components/AskEvidenceLayerPopup";
 import { PopupCloseButton } from "./components/PopupCloseButton";
 import { chatEvidenceKindLabel } from "./evidenceKindLabels";
-import { BuyerNav, type BuyerDestination } from "./components/BuyerNav";
+import { WorkspaceNav, type WorkspaceDestination } from "./components/WorkspaceNav";
+import { CALENDAR_CONSUME_UNAVAILABLE } from "./gnbChrome";
 import { LineageDag } from "./LineageDag";
 import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
@@ -4388,10 +4389,10 @@ function CustomerMasterPanel({
   }
 
   return (
-    <section className="buyer-destination" aria-labelledby="customer-master-heading">
+    <section className="workspace-destination" aria-labelledby="customer-master-heading">
       <p className="section-eyebrow">{t("Authorized customer scope")}</p>
       <h2 id="customer-master-heading">{t("Customer master")}</h2>
-      <p className="buyer-destination-intro">{t("Customer entities available to this account.")}</p>
+      <p className="workspace-destination-intro">{t("Customer entities available to this account.")}</p>
       {error ? <p className="error">{error}</p> : null}
       {master === null && !error ? <p role="status">{t("Loading customer master...")}</p> : null}
       {master?.corporate_entities.length === 0 ? (
@@ -4416,7 +4417,7 @@ function CustomerMasterPanel({
       {master && (master.relationship_network ?? []).length > 0 ? (
         <section className="customer-keymen" aria-labelledby="relationship-network-heading">
           <h3 id="relationship-network-heading">{t("Relationship network")}</h3>
-          <p className="buyer-destination-intro">
+          <p className="workspace-destination-intro">
             {t("A counterparty can hold more than one role over time -- a customer in one post can be a competitor, supplier, or partner in another. Every role observed for a name is listed, not just the most frequent.")}
           </p>
           <ul className="customer-master-list">
@@ -4439,7 +4440,7 @@ function CustomerMasterPanel({
       {master && master.source_customer_hints.length > 0 ? (
         <section className="customer-keymen" aria-labelledby="observed-customer-evidence-heading">
           <h3 id="observed-customer-evidence-heading">{t("Observed customer evidence")}</h3>
-          <p className="buyer-destination-intro">
+          <p className="workspace-destination-intro">
             {t("Source identifiers are hints only; ontology and semantic evidence must resolve them before binding a customer.")}
           </p>
           {master.source_customer_hints.length > HINT_RENDER_LIMIT && (
@@ -4590,10 +4591,10 @@ function AskAgentPanel({
   }
 
   return (
-    <section className="buyer-destination" aria-labelledby="ask-agent-heading">
+    <section className="workspace-destination" aria-labelledby="ask-agent-heading">
       <p className="section-eyebrow">{t("Evidence-grounded questions")}</p>
       <h2 id="ask-agent-heading">{t("Ask Agent")}</h2>
-      <p className="buyer-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
+      <p className="workspace-destination-intro">{t("Questions use authorized posts and their evidence.")}</p>
       {error ? <p className="error">{error}</p> : null}
       <label className="ask-agent-source">
         <span>{t("Ask a question")}</span>
@@ -4687,7 +4688,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   useLocale();
   const [brandName, setBrandName] = useState("LineageWeave");
   const auth = useAuth();
-  const [destination, setDestination] = useState<BuyerDestination>("board");
+  const [destination, setDestination] = useState<WorkspaceDestination>("board");
   const [postToOpen, setPostToOpen] = useState<string | null>(() => {
     if (typeof window === "undefined") return null;
     return new URLSearchParams(window.location.search).get("post");
@@ -4784,7 +4785,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           <button className="btn-secondary" onClick={() => auth.signoutRedirect()}>{t("Log out")}</button>
         </div>
       </header>
-      <BuyerNav
+      <WorkspaceNav
         destination={destination}
         onChange={setDestination}
         tools={<LanguageSwitcher accessToken={accessToken} />}
@@ -4808,13 +4809,10 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           />
         ) : null}
         {destination === "calendar" ? (
-          <CalendarPanel
-            accessToken={accessToken}
-            onSelectPost={(postId) => {
-              setPostToOpen(postId);
-              setDestination("board");
-            }}
-          />
+          <section className="workspace-destination" aria-labelledby="calendar-heading">
+            <h2 id="calendar-heading">달력</h2>
+            <p role="status">{CALENDAR_CONSUME_UNAVAILABLE}</p>
+          </section>
         ) : null}
         {destination === "ask" ? (
           <AskAgentPanel
