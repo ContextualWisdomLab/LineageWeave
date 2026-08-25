@@ -131,6 +131,15 @@ All notable changes to this project are documented here. Format follows
   on the cited evidence. Open that cited post to read which clock
   matched. Never invent a theta or an event date.
 
+## [2.15.1] - 2026-08-25
+
+### Added
+
+- Event Lineage edges now name the Allen (1983) interval relation between
+  posts' observed UTC creation-day points. Mutable ticket due dates do not
+  rewrite Event Lineage evidence; directed relation rows open the other post,
+  while indirect Keyman links remain unlabeled (ADR 0161).
+
 ## [2.15.0] - 2026-08-25
 
 ### Changed

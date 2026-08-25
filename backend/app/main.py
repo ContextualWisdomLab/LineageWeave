@@ -177,6 +177,7 @@ from backend.app.knowledge_graph import (
 )
 from backend.app.lineage_ingestion import (
     ChannelWeightsNotEstimated,
+    interval_relations_for_post,
     rebuild_lineage,
     visible_lineage_graph,
 )
@@ -2321,22 +2322,27 @@ async def read_post_lineage(
                 list(candidate_ids),
             )
             rows = {str(row["post_id"]): row for row in fetched}
+        direct_intervals = await interval_relations_for_post(conn, post_id)
 
-    def _visible_summaries(ids: frozenset[str]) -> list[dict[str, Any]]:
-        return [
-            {
+    def _visible_summaries(ids: frozenset[str], with_intervals: bool = False) -> list[dict[str, Any]]:
+        summaries = []
+        for post_id_ in ids:
+            if post_id_ not in rows or not _can_see_post(account, rows[post_id_]):
+                continue
+            summary = {
                 "post_id": post_id_,
                 "post_title": rows[post_id_]["post_title"],
                 "post_body_excerpt": rows[post_id_].get("post_body_excerpt"),
                 "post_body_truncated": rows[post_id_].get("post_body_truncated", False),
             }
-            for post_id_ in ids
-            if post_id_ in rows and _can_see_post(account, rows[post_id_])
-        ]
+            if with_intervals:
+                summary.update(direct_intervals.get(post_id_, {}))
+            summaries.append(summary)
+        return summaries
 
     return {
         "post_id": post_id,
-        "direct": _visible_summaries(linked.direct),
+        "direct": _visible_summaries(linked.direct, with_intervals=True),
         "indirect": _visible_summaries(linked.indirect),
     }
 

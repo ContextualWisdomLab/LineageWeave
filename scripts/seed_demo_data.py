@@ -49,8 +49,8 @@ DEMO_TEPP_IDEMPOTENCY_KEY = "demo-tepp-seed-2026-w02"
 DEMO_TOPIC_LINEAGE_IDEMPOTENCY_KEY = "demo-topic-lineage-seed-2026-w02"
 DEMO_REPORT_IDEMPOTENCY_KEY = "demo-report-seed-2026-w02"
 
-# (post_title, ticket_title, due_date) -- Event Lineage fixtures a report
-# member click opens. Activity seed uses the same titles so Valkey matches.
+# (post_title, ticket_title, due_date) -- report/calendar fixture tickets.
+# Activity seed uses the same titles so Valkey matches.
 FIXTURE_TICKET_SPECS = (
     (
         "Pricing renegotiation follow-up",
@@ -140,6 +140,7 @@ def seed(
             cur.execute((migrations / "0131_analysis_run_topic_lineage_kind.sql").read_text())
             cur.execute((migrations / "0024_source_post_revision.sql").read_text())
             cur.execute((migrations / "0025_role_person_catalog_identity.sql").read_text())
+            cur.execute((migrations / "0140_post_lineage_interval_relation.sql").read_text())
             cur.execute(
                 """
                 insert into common_lookup_value (lookup_category, lookup_code, lookup_label, display_order) values
@@ -171,7 +172,20 @@ def seed(
                     ('entity_relationship_type', 'rel_vos', 'Voice of Supplier', 5),
                     ('ticket_status', 'open', 'Open', 0),
                     ('ticket_status', 'in_progress', 'In progress', 1),
-                    ('ticket_status', 'closed', 'Closed', 2)
+                    ('ticket_status', 'closed', 'Closed', 2),
+                    ('interval_relation', 'interval_before', 'Before', 0),
+                    ('interval_relation', 'interval_after', 'After', 1),
+                    ('interval_relation', 'interval_meets', 'Meets', 2),
+                    ('interval_relation', 'interval_met_by', 'Met by', 3),
+                    ('interval_relation', 'interval_overlaps', 'Overlaps', 4),
+                    ('interval_relation', 'interval_overlapped_by', 'Overlapped by', 5),
+                    ('interval_relation', 'interval_starts', 'Starts', 6),
+                    ('interval_relation', 'interval_started_by', 'Started by', 7),
+                    ('interval_relation', 'interval_during', 'During', 8),
+                    ('interval_relation', 'interval_contains', 'Contains', 9),
+                    ('interval_relation', 'interval_finishes', 'Finishes', 10),
+                    ('interval_relation', 'interval_finished_by', 'Finished by', 11),
+                    ('interval_relation', 'interval_equals', 'Equals', 12)
                 on conflict (lookup_code) do nothing
                 """
             )
@@ -432,6 +446,7 @@ def seed(
             _seed_fixture_chats(cur)
             _seed_fixture_evaluations(cur)
             _seed_fixture_tickets(cur)
+            _seed_lineage_interval_relations(cur)
             _seed_fixture_ticket_activity(cur, account_ids["demo.analyst"], valkey_url)
             _seed_demo_period_report(
                 cur,
@@ -625,8 +640,9 @@ def _seed_reconstructed_lineage(cur, author_account_id, corporate_entity_id, pro
     )
     for edge in lineage_edge_specs(persisted, weights=estimate.weights):
         cur.execute(
-            "insert into post_lineage_edge (parent_post_id, child_post_id, fused_score) "
-            "values (%s, %s, %s) on conflict do nothing",
+            "insert into post_lineage_edge "
+            "(parent_post_id, child_post_id, fused_score, interval_relation_code) "
+            "values (%s, %s, %s, 'interval_before') on conflict do nothing",
             (edge.parent_id, edge.child_id, edge.fused_score),
         )
 
@@ -1060,6 +1076,36 @@ def _seed_fixture_tickets(cur) -> None:
             "values (%s, 'open', %s, %s)",
             (post_id, ticket_title, due_date),
         )
+
+
+def _seed_lineage_interval_relations(cur) -> None:
+    """Name Allen relations from observed post creation-day points (ADR 0161)."""
+    from lineageweave.interval_relation import (
+        allen_interval_relation,
+        interval_from_post,
+    )
+
+    cur.execute(
+        """
+        select edge.parent_post_id, edge.child_post_id,
+               parent_post.created_at, child_post.created_at
+          from post_lineage_edge as edge
+          join source_post as parent_post on parent_post.post_id = edge.parent_post_id
+          join source_post as child_post on child_post.post_id = edge.child_post_id
+        """
+    )
+    rows = list(cur.fetchall())
+    for parent_id, child_id, parent_created, child_created in rows:
+        code = allen_interval_relation(
+            interval_from_post(parent_created),
+            interval_from_post(child_created),
+        )
+        cur.execute(
+            "update post_lineage_edge set interval_relation_code = %s "
+            "where parent_post_id = %s and child_post_id = %s",
+            (code, parent_id, child_id),
+        )
+
 
 
 def _seed_fixture_ticket_activity(cur, actor_account_id, valkey_url: str) -> None:
