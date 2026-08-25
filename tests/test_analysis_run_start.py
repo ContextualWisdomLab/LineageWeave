@@ -174,9 +174,12 @@ def test_topic_lineage_run_request_is_the_published_wire_shape() -> None:
 
 def test_topic_lineage_submit_outcome_drops_a_missing_transport() -> None:
     """A missing TEPP transport is Failed, never a fabricated topic model."""
-    status, failure = tepp_submit_outcome(TeppClient(), _topic_lineage_request())
+    status, failure, envelope = topic_lineage_submit_outcome(
+        TeppClient(), _topic_lineage_request()
+    )
     assert status == "analysis_status_failed"
     assert failure == "tepp_not_available"
+    assert envelope is None
 
 
 def test_topic_lineage_submit_outcome_does_not_persist_an_empty_envelope() -> None:
@@ -186,8 +189,11 @@ def test_topic_lineage_submit_outcome_does_not_persist_an_empty_envelope() -> No
         def __init__(self) -> None:
             super().__init__(transport=lambda _payload: {"status": "accepted"})
 
-    status, failure = tepp_submit_outcome(_Accepting(), _topic_lineage_request())
+    status, failure, envelope = topic_lineage_submit_outcome(
+        _Accepting(), _topic_lineage_request()
+    )
     assert status == "analysis_status_failed"
+    assert envelope is None
     assert failure == "tepp_result_not_persisted"
 
 
@@ -237,6 +243,36 @@ def test_topic_lineage_submit_outcome_accepts_the_versioned_topic_envelope() -> 
     assert status == "analysis_status_succeeded"
     assert failure == ""
     assert envelope is not None
+
+
+@pytest.mark.parametrize("invalid_version", [True, False, 0, 2, "1"])
+def test_topic_lineage_submit_outcome_rejects_unsupported_envelope_version(
+    invalid_version: object,
+) -> None:
+    """Only integer envelope version 1 is the published contract."""
+
+    class _WrongVersion(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(
+                transport=lambda _payload: {
+                    "status": "completed",
+                    "analysis_run_id": "r-1",
+                    "result": {
+                        "envelope_version": invalid_version,
+                        "topic_identity": [{"topic_id": "t-1"}],
+                        "chronos_status": "evidence",
+                    },
+                }
+            )
+
+    status, failure, envelope = topic_lineage_submit_outcome(
+        _WrongVersion(), _topic_lineage_request()
+    )
+    assert (status, failure, envelope) == (
+        "analysis_status_failed",
+        "tepp_topic_contract_unavailable",
+        None,
+    )
 
 
 def test_configured_tepp_client_stays_unavailable_without_http() -> None:

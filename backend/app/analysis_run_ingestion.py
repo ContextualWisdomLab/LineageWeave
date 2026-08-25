@@ -407,6 +407,21 @@ async def fetch_visible_analysis_run(
     if digest is not None:
         detail["reconstruction_result_sha256"] = digest
     detail["reconstructed_edges"] = edges
+    if row["run_kind_code"] == _TOPIC_LINEAGE_RUN_KIND:
+        topic_result = await conn.fetchrow(
+            """
+            select result_json, result_sha256
+              from analysis_run_topic_lineage_result
+             where analysis_run_id = $1
+            """,
+            analysis_run_id,
+        )
+        if topic_result is not None:
+            envelope = topic_result["result_json"]
+            detail["topic_lineage_result"] = (
+                json.loads(envelope) if isinstance(envelope, str) else envelope
+            )
+            detail["topic_lineage_result_sha256"] = topic_result["result_sha256"]
     return detail
 
 

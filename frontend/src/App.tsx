@@ -2490,7 +2490,7 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
         case "analysis_run_tepp":
           return "Open this run to see why it failed, then connect the measurement service and re-run.";
         case "analysis_run_topic_lineage":
-          return "Open this run to see why it failed, then connect the topic-lineage service and re-run.";
+          return "Open this run to see why it failed, then connect the TEPP transport and re-run.";
         case "analysis_run_lineage":
           return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
         case "analysis_run_report":
@@ -2555,13 +2555,14 @@ function analysisRunCorpusHint(run: AnalysisRun): string | null {
   const isTopicLineage = run.run_kind_code === "analysis_run_topic_lineage";
   if (run.run_kind_code !== "analysis_run_tepp" && !isTopicLineage) return null;
   const service = isTopicLineage ? "topic-lineage" : "TEPP";
+  const result = isTopicLineage ? "a topic-identity result" : "a calibrated result";
   const verb = isTopicLineage ? "thread" : "measure";
   const verbPast = isTopicLineage ? "threaded" : "measured";
   switch (run.status_code) {
     case "analysis_status_failed":
       return (
-        `These posts are the cutoff corpus ${service} would ${verb}. Connect a ${service} ` +
-        "transport, then re-run, to replace Failed with a calibrated result."
+        `These posts are the cutoff corpus ${service} would ${verb}. Connect a TEPP ` +
+        `transport, then re-run, to replace Failed with ${result}.`
       );
     case "analysis_status_succeeded":
       return `These posts are the cutoff corpus this ${service} run ${verbPast}.`;
@@ -2571,7 +2572,7 @@ function analysisRunCorpusHint(run: AnalysisRun): string | null {
     case "analysis_status_cancelled":
       return (
         `These posts are the cutoff corpus this ${service} run would have ${verbPast}. ` +
-        "The run was cancelled before a calibrated result."
+        `The run was cancelled before ${result}.`
       );
     case null:
       return `These posts are the cutoff corpus attached to this ${service} run.`;
@@ -2996,7 +2997,7 @@ function AnalysisRunsPanel({
           {analysisRunCanRequestTeppRetry(selected) && (
             <p className="post-meta">
               {selected.run_kind_code === "analysis_run_topic_lineage"
-                ? "Connect a topic-lineage transport from this Failed row. Request a " +
+                ? "Connect a TEPP transport from this Failed row. Request a " +
                   "lineage reconstruction does not invent a topic model."
                 : "Connect a TEPP transport from this Failed row. Request a lineage " +
                   "reconstruction does not invent a measurement."}

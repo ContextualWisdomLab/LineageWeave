@@ -117,6 +117,21 @@ _PROJECT_BOUND_EVENT_MIGRATION = (
 _TENANT_SETTINGS_MIGRATION = (
     Path(__file__).resolve().parents[2] / "migrations" / "0103_tenant_settings.sql"
 )
+_TOPIC_LINEAGE_KIND_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0131_analysis_run_topic_lineage_kind.sql"
+)
+_TOPIC_LINEAGE_RESULT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0132_analysis_run_topic_lineage_result.sql"
+)
+_TOPIC_LINEAGE_VALIDATE_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0204_validate_topic_lineage_kind.sql"
+)
 _CHANNEL_WEIGHT_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -266,6 +281,9 @@ def seeded_db(demo_analyst_token):
             cur.execute(_PROJECT_BOUND_ACTION_MIGRATION.read_text())
             cur.execute(_PROJECT_BOUND_EVENT_MIGRATION.read_text())
             cur.execute(_TENANT_SETTINGS_MIGRATION.read_text())
+            cur.execute(_TOPIC_LINEAGE_KIND_MIGRATION.read_text())
+            cur.execute(_TOPIC_LINEAGE_RESULT_MIGRATION.read_text())
+            cur.execute(_TOPIC_LINEAGE_VALIDATE_MIGRATION.read_text())
             cur.execute(_CHANNEL_WEIGHT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
@@ -687,6 +705,82 @@ def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(
     assert "post_body" not in posts_by_title["Edited own-corp private post"]
     assert "postgresql://" not in str(body)
     assert "visible_posts" not in visible
+
+
+def test_topic_lineage_detail_returns_authoritative_envelope(
+    client, demo_analyst_token, seeded_db
+) -> None:
+    """An authorized successful run exposes TEPP's opaque envelope and digest."""
+    envelope = {
+        "status": "completed",
+        "analysis_run_id": "remote-topic-1",
+        "result": {
+            "envelope_version": 1,
+            "topic_identity": [{"topic_id": "synthetic-topic-1"}],
+            "chronos_status": "evidence",
+        },
+    }
+    digest = "a" * 64
+    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
+        cur.execute(
+            """
+            insert into analysis_run
+                (analysis_source_snapshot_id, run_kind_code, idempotency_key,
+                 requested_by_account_id, knowledge_cutoff,
+                 configuration_schema_version, configuration_sha256,
+                 code_revision_sha, requested_at)
+            select analysis_source_snapshot_id, 'analysis_run_topic_lineage',
+                   'synthetic-topic-detail', requested_by_account_id,
+                   knowledge_cutoff, 'topic-lineage-run-v1', %s, %s, requested_at
+              from analysis_run where analysis_run_id = %s
+            returning analysis_run_id
+            """,
+            ("b" * 64, "c" * 40, seeded_db["visible_run_id"]),
+        )
+        run_id = str(cur.fetchone()[0])
+        cur.execute(
+            """
+            insert into analysis_run_scope
+                (analysis_run_id, scope_kind_code, corporate_entity_id)
+            values (%s, 'analysis_scope_corporate_entity', %s)
+            """,
+            (run_id, seeded_db["own_corp_id"]),
+        )
+        for ordinal, status_code in enumerate(
+            (
+                "analysis_status_pending",
+                "analysis_status_running",
+                "analysis_status_succeeded",
+            ),
+            start=1,
+        ):
+            cur.execute(
+                """
+                insert into analysis_run_status_event
+                    (analysis_run_id, status_ordinal, status_code, occurred_at)
+                values (%s, %s, %s,
+                        '2026-01-12T12:34:00Z'::timestamptz + interval '1 second' * %s)
+                """,
+                (run_id, ordinal, status_code, ordinal),
+            )
+        cur.execute(
+            """
+            insert into analysis_run_topic_lineage_result
+                (analysis_run_id, remote_run_id, result_json, result_sha256)
+            values (%s, 'remote-topic-1', %s::jsonb, %s)
+            """,
+            (run_id, __import__("json").dumps(envelope), digest),
+        )
+        conn.commit()
+
+    response = client.get(
+        f"/api/analysis-runs/{run_id}",
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()["topic_lineage_result"] == envelope
+    assert response.json()["topic_lineage_result_sha256"] == digest
 
     hidden = client.get(
         f"/api/analysis-runs/{seeded_db['hidden_run_id']}",

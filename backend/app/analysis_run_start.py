@@ -212,7 +212,9 @@ def _topic_lineage_envelope_is_valid(envelope: dict[str, Any]) -> bool:
     result = envelope.get("result")
     if not isinstance(result, dict):
         return False
-    if not isinstance(result.get("envelope_version"), int):
+    if type(result.get("envelope_version")) is not int:  # bool is not a version
+        return False
+    if result["envelope_version"] != 1:
         return False
     topic_identity = result.get("topic_identity")
     if not isinstance(topic_identity, (list, dict)) or not topic_identity:

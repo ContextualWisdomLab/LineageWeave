@@ -44,7 +44,7 @@ export function EvidenceStatusMark({ status }: { status: EvidenceStatus }) {
   return (
     <span
       className={`evidence-status-mark evidence-status-${status}`}
-      role="status"
+      role="img"
       aria-label={`${label}: ${description}`}
       title={description}
     >

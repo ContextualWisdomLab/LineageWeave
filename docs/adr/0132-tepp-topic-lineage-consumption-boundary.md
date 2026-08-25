@@ -60,7 +60,8 @@ substitute" ADR 0084 and the tepp-readiness discipline already forbid.
    versioned topic-identity/CHRONOS-status envelope, appends Failed with a
    machine-readable reason (`tepp_not_available` /
    `tepp_topic_contract_unavailable`), mirroring ADR 0022. Failed is
-   terminal; the operator reconnects TEPP and re-requests.
+   terminal; the operator reconnects TEPP and retries the existing Failed row
+   through `POST /api/analysis-runs/{id}/start`.
 4. When TEPP does publish the topic-identity and CHRONOS-status envelope,
    LineageWeave persists it into a new topic-identity-thread projection
    (3NF, two-word snake_case, partitioned by corporate-entity + observed
@@ -87,8 +88,9 @@ sequenceDiagram
     participant TeppClient
     participant Registry
     Operator->>API: POST /api/analysis-runs (kind=topic_lineage)
-    API->>Registry: create Pending topic_lineage run
-    Operator->>API: POST /api/analysis-runs/{id}/start
+    API-->>Operator: 422; no Pending topic-lineage row is created
+    Note over Operator,Registry: Existing Failed rows come from the governed seed/import boundary
+    Operator->>API: Connect TEPP; POST /api/analysis-runs/{id}/start
     Registry->>Registry: Running
     API->>TeppClient: TopicLineageRequest v1 (TRSL-TM + CHRONOS/TDT)
     alt TeppNotAvailable
@@ -112,8 +114,8 @@ color, satisfying WCAG 1.4.1 with redundant, testable channels (see its
 Storybook stories and `EvidenceStatusMark.test.tsx`). It is presentational
 only — every call site must supply `status` from a real TEPP-sourced
 envelope; the component never infers or invents one. Wiring it into
-`LineageDag`'s topic-thread overlay is the remaining step once TEPP issue
-#156 publishes the topic-identity/CHRONOS-status envelope this ADR's
+`LineageDag`'s topic-thread overlay is the remaining step once TEPP issue 156
+publishes the topic-identity/CHRONOS-status envelope this ADR's
 decision 3-4 depend on; until then, no topic-lineage run reaches Succeeded,
 so there is no envelope to source a `status` prop from.
 

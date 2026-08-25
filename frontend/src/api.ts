@@ -1170,6 +1170,8 @@ export interface AnalysisRun {
   visible_posts?: AnalysisRunVisiblePost[];
   reconstructed_edges?: AnalysisRunReconstructedEdge[];
   reconstruction_result_sha256?: string;
+  topic_lineage_result?: Record<string, unknown>;
+  topic_lineage_result_sha256?: string;
   code_revision_sha?: string;
   configuration_sha256?: string;
 }

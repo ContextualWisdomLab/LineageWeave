@@ -126,6 +126,7 @@ def test_migrate_sh_replays_topic_lineage_migrations_on_existing_volumes() -> No
     for migration_name in (
         "0131_analysis_run_topic_lineage_kind.sql",
         "0132_analysis_run_topic_lineage_result.sql",
+        "0204_validate_topic_lineage_kind.sql",
     ):
         migration_path = Path(__file__).resolve().parents[1] / "migrations" / migration_name
         assert migration_path.exists()

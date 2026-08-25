@@ -135,6 +135,7 @@ def seed(
             cur.execute((migrations / "0021_analysis_run_reconstruction.sql").read_text())
             cur.execute((migrations / "0022_analysis_source_snapshot_member.sql").read_text())
             cur.execute((migrations / "0023_analysis_run_outbox.sql").read_text())
+            cur.execute((migrations / "0131_analysis_run_topic_lineage_kind.sql").read_text())
             cur.execute((migrations / "0024_source_post_revision.sql").read_text())
             cur.execute((migrations / "0025_role_person_catalog_identity.sql").read_text())
             cur.execute(

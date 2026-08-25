@@ -16,28 +16,32 @@ values
 on conflict (lookup_code) do nothing;
 
 alter table analysis_run
-    drop constraint if exists analysis_run_kind_check;
-alter table analysis_run
-    add constraint analysis_run_kind_check
+    add constraint analysis_run_kind_check_topic_lineage
         check (run_kind_code in (
             'analysis_run_lineage',
             'analysis_run_report',
             'analysis_run_tepp',
             'analysis_run_topic_lineage'
-        ));
+        )) not valid;
+alter table analysis_run drop constraint if exists analysis_run_kind_check;
+alter table analysis_run rename constraint analysis_run_kind_check_topic_lineage
+    to analysis_run_kind_check;
 
 do $$
 begin
     if to_regclass('public.analysis_run_outbox') is not null then
         alter table analysis_run_outbox
-            drop constraint if exists analysis_run_outbox_kind_check;
-        alter table analysis_run_outbox
-            add constraint analysis_run_outbox_kind_check
+            add constraint analysis_run_outbox_kind_check_topic_lineage
                 check (work_kind_code in (
                     'analysis_run_lineage',
                     'analysis_run_tepp',
                     'analysis_run_topic_lineage'
-                ));
+                )) not valid;
+        alter table analysis_run_outbox
+            drop constraint if exists analysis_run_outbox_kind_check;
+        alter table analysis_run_outbox
+            rename constraint analysis_run_outbox_kind_check_topic_lineage
+            to analysis_run_outbox_kind_check;
     end if;
 end
 $$;
