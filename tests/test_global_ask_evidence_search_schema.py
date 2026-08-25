@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-
 MIGRATION = Path("migrations/0210_global_ask_evidence_search_indexes.sql")
 ROLLBACK = Path("migrations/rollback/0210_global_ask_evidence_search_indexes.sql")
 
@@ -23,7 +22,7 @@ def test_evidence_search_indexes_cover_every_normalized_owner_table() -> None:
         "knowledge_graph_edge",
     ):
         assert f"on {table_name}" in sql
-    assert sql.count("create index if not exists") == 9
+    assert sql.count("create index concurrently if not exists") == 9
     assert "create table" not in sql.lower()
 
 
@@ -32,11 +31,11 @@ def test_evidence_search_indexes_have_a_replay_safe_rollback() -> None:
     forward = MIGRATION.read_text(encoding="utf-8")
     rollback = ROLLBACK.read_text(encoding="utf-8")
     index_names = [
-        line.split()[5]
+        line.split()[6]
         for line in forward.splitlines()
-        if line.startswith("create index if not exists ")
+        if line.startswith("create index concurrently if not exists ")
     ]
 
     assert len(index_names) == 9
     for index_name in index_names:
-        assert f"drop index if exists {index_name};" in rollback
+        assert f"drop index concurrently if exists {index_name};" in rollback

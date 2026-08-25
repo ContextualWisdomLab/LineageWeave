@@ -138,7 +138,7 @@ def decode_access_token(
             key=_signing_key(settings, token),
             algorithms=["RS256"],
             issuer=settings.oidc_issuer,
-            audience=audience or settings.oidc_audience,
+            audience=settings.oidc_audience if audience is None else audience,
             leeway=settings.oidc_clock_skew_seconds,
             options={"require": required_claims},
         )

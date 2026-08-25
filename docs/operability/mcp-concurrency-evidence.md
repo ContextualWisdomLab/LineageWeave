@@ -12,9 +12,8 @@ per 60 seconds; this value is not a deployment recommendation. The committed
 `scripts/k6_mcp_e2e.js` initialized an MCP session per VU, submitted one durable
 Global Ask job, and concurrently read that job through the MCP tool contract.
 
-```text
-k6 run --vus 5 --duration 5s
-REQUEST_TIMEOUT=20s
+```shell
+REQUEST_TIMEOUT=20s k6 run --vus 5 --duration 5s scripts/k6_mcp_e2e.js
 ```
 
 | Observation | Result |

@@ -1006,7 +1006,12 @@ def test_landing_lineage_applies_abac_and_limit_in_database() -> None:
 
 def test_landing_lineage_does_not_optimize_with_incomplete_abac_scope() -> None:
     """A future caller cannot make corporate scope imply every process unit."""
-    connection = _RecordingConnection()
+    class FetchRecordingConnection(_RecordingConnection):
+        async def fetch(self, query: str, *args):
+            self.statements.append((query, args))
+            return []
+
+    connection = FetchRecordingConnection()
     asyncio.run(
         visible_lineage_graph(
             connection,
@@ -1015,6 +1020,7 @@ def test_landing_lineage_does_not_optimize_with_incomplete_abac_scope() -> None:
         )
     )
 
+    assert connection.statements
     assert not any("any($1::text[])" in query for query, _ in connection.statements)
 
 

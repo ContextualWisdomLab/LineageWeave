@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AskAgentPanel } from "./App";
 
@@ -24,7 +24,7 @@ describe("AskAgentPanel public verification", () => {
             job_status_code: "succeeded",
             answer: {
               answer_text: "Apollo is described by the internal cited post.",
-              cited_post_ids: ["post-1"],
+              cited_post_ids: ["post-1", "post-2"],
               cited_posts: [{
                 post_id: "post-1",
                 post_title: "Internal Apollo post",
@@ -33,6 +33,14 @@ describe("AskAgentPanel public verification", () => {
                 knowledge_cutoff: "2026-01-15T03:00:00Z",
                 live_changed_after_cutoff: true,
                 unavailable_channels: ["knowledge_graph"],
+              }, {
+                post_id: "post-2",
+                post_title: "Retained post without timestamp",
+                source_post_revision_id: "revision-2",
+                evidence_available_at: null,
+                knowledge_cutoff: "2026-01-15T03:00:00Z",
+                live_changed_after_cutoff: false,
+                unavailable_channels: [],
               }],
               cited_post_evidence: [],
               source_post_ids: ["post-1"],
@@ -88,10 +96,18 @@ describe("AskAgentPanel public verification", () => {
       "href",
       "https://example.com/apollo",
     );
-    expect(screen.getByText("Internal Apollo post")).toBeInTheDocument();
+    const timestampedPost = screen.getByText("Internal Apollo post").closest("li");
+    expect(timestampedPost).not.toBeNull();
     expect(screen.getByText(/Fully cutoff-grounded/)).toBeInTheDocument();
-    expect(screen.getByText(/Retained revision/)).toHaveTextContent(
+    expect(within(timestampedPost!).getByText(/Retained revision/)).toHaveTextContent(
       "Live source changed later",
+    );
+    const missingTimestampPost = screen
+      .getByText("Retained post without timestamp")
+      .closest("li");
+    expect(missingTimestampPost).not.toBeNull();
+    expect(within(missingTimestampPost!).getByText("Retained revision").textContent).toBe(
+      "Retained revision",
     );
   });
 });

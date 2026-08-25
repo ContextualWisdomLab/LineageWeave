@@ -1,4 +1,4 @@
-.PHONY: up down logs smoke seed ps load-http
+.PHONY: up down logs smoke seed ps load-http load-mcp
 
 # Keep provider credentials outside the repository. Compose interpolation must
 # read the same home env file as the orchestrator container's env_file.

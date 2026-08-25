@@ -18,8 +18,9 @@ thread kept the event loop responsive but did not release the pool resource.
 Resolve and validate the question embedding before acquiring an asyncpg
 connection. Acquire the pool only for the bounded persisted-vector query and
 release it before answer generation. An unavailable, empty, unbound, or
-zero-norm embedding remains a fail-closed no-source result; LineageWeave does
-not substitute lexical retrieval, a local model, or an invented vector.
+zero-norm embedding disables the embedding channel. Persisted semantic and
+Knowledge Graph evidence retrieval remains available; LineageWeave does not
+substitute lexical retrieval, a local model, or an invented vector.
 
 The same boundary applies to future provider work: a provider call must not
 run inside a pooled-connection context unless one atomic database operation

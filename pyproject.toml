@@ -50,7 +50,7 @@ backend = [
   "pyjwt[crypto]>=2.8.0",
   # Speaks RESP; works against Valkey (a Redis-protocol-compatible fork)
   # as well as real Redis. Used for the post-activity event stream.
-  "redis>=5.0.0",
+  "redis>=5.0.1",
   # Authenticated Streamable HTTP resource server (ADR 0218).
   "mcp==2.0.0",
   # LLM-as-a-Judge -> IRT -> Fixed-Item Parameter Calibration for the
