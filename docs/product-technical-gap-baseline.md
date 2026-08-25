@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-25 21:34 KST. Protected `main` was
-> `d7d5eeb310b055b5e138060cf2dfb929b03090a6`. This local branch is not
+> Dashboard delivery snapshot: 2026-08-25 23:47 KST. Protected `main` was
+> `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
@@ -60,18 +60,20 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 3 open PRs and 11 open issues. Exact observed heads
-were `#628 d07d212f` (this branch's observed parent), `#627 9e0528a6`, and
-`#579 1c209c85`. PR #579 is open; its ADR 0211 reservation is why this branch's
-filter-option decision is ADR 0212. PRs #612, #614, #615, #616, and #626
-reached protected `main`; the superseded baseline PR #613 closed without merge
-and its PRD was recreated on protected main. The open heads remain blocked on
-hosted gates and/or independent review. These
+At this snapshot there were 6 open PRs. Exact observed heads were
+`#639 b62b061c`, `#636 575891a7`, `#632 bb680329`, `#631 c0022c97`,
+`#629 ac38c652`, and `#579 689a21b6`. PR #639 removes the duplicate Running
+Start action required by ADR 0021 and repairs exact-path Compose blockers found
+during its authenticated synthetic screenshot audit: pinned pnpm policy was
+not copied before install, Keyverse build arguments did not match the browser
+bundle, two Global Ask migrations could not survive required replay, and the
+backend read a TEPP transport credential absent from immutable settings. The
+open heads remain blocked on hosted gates and/or independent review. These
 observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-25 21:34 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 23:47 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -80,17 +82,20 @@ lifecycle claim.
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `d7d5eeb310b055b5e138060cf2dfb929b03090a6`
-when this baseline was refreshed. The live queue contained 3 open PRs and 11
-open issues. The exact-head inventory below supersedes older per-PR snapshots
+The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
+when this baseline was refreshed. The live queue contained 6 open PRs. The
+exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #628 | `d07d212f` (observed parent) | this row is updated by #628 itself, so its exact head advances after the snapshot is encoded; ADR 0212 combines complete ABAC-visible filter options into one database round trip, while hosted gates and independent review remain required |
-| #627 | `9e0528a6` | repairs k6 lifecycle evidence preservation; hosted gates remain required |
-| #579 | `1c209c85` | persists leftover interaction-map coordinates and owns ADR 0211; hosted gates and independent review remain required |
+| #639 | `b62b061c` (observed parent) | removes the duplicate Running Start action and repairs the Compose path proven by an authenticated synthetic screenshot; this row advances when this baseline commit is pushed |
+| #636 | `575891a7` | publishes the calibrated external-lineage contract; hosted gates and independent review remain required |
+| #632 | `bb680329` | preserves graph-fact source provenance and authorization; hosted gates and independent review remain required |
+| #631 | `c0022c97` | current-main gap decomposition and queue baseline; hosted gates and independent review remain required |
+| #629 | `ac38c652` | releases provider work from database leases and bounds landing reads; hosted gates and independent review remain required |
+| #579 | `689a21b6` | delegates leftover interaction-map arithmetic to fast-mlsirm and persists only the consumer projection; hosted gates and independent review remain required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
