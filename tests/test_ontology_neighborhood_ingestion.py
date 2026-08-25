@@ -176,14 +176,18 @@ def test_visible_post_ids_for_each_focus_type() -> None:
             lambda row: True,
         )
     ) == [POST_ID]
+    project_focus_conn = ScriptedConn({"from post_project_mention mention": [post_row]})
     assert asyncio.run(
         visible_post_ids_for_focus(
-            ScriptedConn({"from post_project_mention mention": [post_row]}),
+            project_focus_conn,
             NODE_PROJECT,
             PROJECT_ID,
             lambda row: True,
+            knowledge_cutoff=T0,
+            snapshot_at=T0,
         )
     ) == [POST_ID]
+    assert project_focus_conn.calls[-1][1] == (PROJECT_ID, T0, T0)
     assert asyncio.run(
         visible_post_ids_for_focus(
             ScriptedConn({"person_affiliation affiliation": [post_row]}),
@@ -319,6 +323,8 @@ def test_load_facts_skos_and_labels() -> None:
                 }
             ),
             [mention, team_fact, affiliation, project_fact],
+            knowledge_cutoff=T0,
+            snapshot_at=T0,
         )
     )
     assert labels[(NODE_PERSON, PERSON_ID)] == "Test Person"
@@ -326,6 +332,21 @@ def test_load_facts_skos_and_labels() -> None:
     assert labels[(NODE_CORPORATE_ENTITY, CORP_ID)] == "Demo Corp"
     assert labels[(NODE_TEAM, TEAM_ID)] == "Demo Team"
     assert labels[(NODE_PROJECT, PROJECT_ID)] == "Demo Project"
+    bounded_label_conn = ScriptedConn({"group by project_key": []})
+    asyncio.run(
+        _load_labels(
+            bounded_label_conn,
+            [project_fact],
+            knowledge_cutoff=T0,
+            snapshot_at=T0,
+        )
+    )
+    assert bounded_label_conn.calls[-1][1] == (
+        [PROJECT_ID],
+        [POST_ID],
+        T0,
+        T0,
+    )
     empty_labels = asyncio.run(_load_labels(ScriptedConn({}), []))
     assert empty_labels == {}
 

@@ -125,6 +125,9 @@ async def visible_post_ids_for_focus(
     focus_node_type_code: str,
     focus_node_id: str,
     can_see_post: Callable[[asyncpg.Record], bool],
+    *,
+    knowledge_cutoff: datetime | None = None,
+    snapshot_at: datetime | None = None,
 ) -> list[str]:
     """Visible evidence posts that authorize the requested focus node."""
     if focus_node_type_code == NODE_POST:
@@ -156,8 +159,14 @@ async def visible_post_ids_for_focus(
               join source_post post on post.post_id = mention.post_id
              where mention.project_key = $1
                and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+               and ($2::timestamptz is null
+                    or greatest(post.created_at, mention.created_at) <= $2::timestamptz)
+               and ($3::timestamptz is null
+                    or greatest(post.created_at, mention.created_at) <= $3::timestamptz)
             """,
             focus_node_id,
+            knowledge_cutoff,
+            snapshot_at,
         )
         return [str(row["post_id"]) for row in rows if can_see_post(row)]
     raise OntologyNeighborhoodError("unknown_node_type", f"unknown node type {focus_node_type_code!r}")
@@ -527,7 +536,11 @@ async def _load_skos_facts(
 
 
 async def _load_labels(
-    conn: asyncpg.Connection, facts: list[NeighborhoodFact]
+    conn: asyncpg.Connection,
+    facts: list[NeighborhoodFact],
+    *,
+    knowledge_cutoff: datetime | None = None,
+    snapshot_at: datetime | None = None,
 ) -> dict[tuple[str, str], str]:
     """Load only non-empty buyer-visible labels for fact endpoints."""
     ids_by_type = _node_ids_by_type(facts)
@@ -583,13 +596,17 @@ async def _load_labels(
                        case when count(distinct project_name) = 1
                             then min(project_name)
                             else project_key end as display_label
-                  from post_project_mention
+                 from post_project_mention
                  where project_key = any($1::text[])
                    and post_id = any($2::uuid[])
+                   and ($3::timestamptz is null or created_at <= $3::timestamptz)
+                   and ($4::timestamptz is null or created_at <= $4::timestamptz)
                  group by project_key
                 """,
                 project_ids,
                 evidence_post_ids,
+                knowledge_cutoff,
+                snapshot_at,
             ):
                 if row["display_label"]:
                     labels[(NODE_PROJECT, str(row["project_key"]))] = str(
@@ -730,11 +747,6 @@ async def visible_ontology_neighborhood(
         focus_node_id = str(UUID(focus_node_id))
     if not await focus_catalog_exists(conn, focus_node_type_code, focus_node_id):
         raise OntologyNeighborhoodError("unknown_node_type", "focus node not found")
-    visible_post_ids = await visible_post_ids_for_focus(
-        conn, focus_node_type_code, focus_node_id, can_see_post
-    )
-    if not visible_post_ids:
-        raise OntologyNeighborhoodError("focus_not_visible", "focus node is not visible")
     secret = source_cursor_secret_from_env(source_cursor_secret)
     snapshot_at = datetime.now(timezone.utc)
     after_key: OntologySourceKey | None = None
@@ -762,6 +774,16 @@ async def visible_ontology_neighborhood(
         after_key = source_cursor_claims.last_key
     elif cursor is not None and not cursor.startswith("after:"):
         raise OntologyNeighborhoodError("malformed_cursor", "cursor must be an opaque after: or source token")
+    visible_post_ids = await visible_post_ids_for_focus(
+        conn,
+        focus_node_type_code,
+        focus_node_id,
+        can_see_post,
+        knowledge_cutoff=knowledge_cutoff,
+        snapshot_at=snapshot_at,
+    )
+    if not visible_post_ids:
+        raise OntologyNeighborhoodError("focus_not_visible", "focus node is not visible")
     fact_window = await _load_facts(
         conn,
         visible_post_ids,
@@ -931,7 +953,12 @@ async def visible_ontology_neighborhood(
         if authorized:
             authorized_facts.append(fact)
     facts = authorized_facts
-    labels = await _load_labels(conn, facts)
+    labels = await _load_labels(
+        conn,
+        facts,
+        knowledge_cutoff=knowledge_cutoff,
+        snapshot_at=snapshot_at,
+    )
     if hasattr(conn, "fetchval"):
         if focus_node_type_code == NODE_POST:
             title = await conn.fetchval("select post_title from source_post where post_id = $1", focus_node_id)
