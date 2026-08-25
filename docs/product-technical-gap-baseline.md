@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 00:05 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-26 01:10 KST. Protected `main` was
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
@@ -66,14 +66,14 @@ only aggregate, non-identifying evidence to this repository.
 ### Exact open-PR boundary
 
 At this snapshot there were 7 open PRs and 10 open issues. Exact observed heads
-were `#640 4677052c`, `#639 aee02dca`, `#636 eeeb23c6`, `#632 3851c7cf`,
+were `#640 41527fa9`, `#639 aee02dca`, `#636 eeeb23c6`, `#632 bfeaecd9`,
 `#631 c0022c97`, `#629 0f4665b5`, and `#579 689a21b6`. All remain blocked on
 hosted gates and/or independent review. These
 observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 00:05 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 01:10 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -90,10 +90,10 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #640 | `4677052c` | quantifies dashboard case metrics, preserves confidence-ranked project labels, and keeps scoped external evidence honest; hosted gates and independent review remain required |
+| #640 | `41527fa9` | quantifies dashboard case metrics, preserves confidence-ranked project labels, and keeps scoped external evidence honest; hosted gates and independent review remain required |
 | #639 | `aee02dca` | repairs Running-action, Compose, and TEPP configuration contracts; hosted gates and independent review remain required |
 | #636 | `eeeb23c6` | publishes the calibrated external-lineage contract without a redundant explicit-child filter; hosted gates and independent review remain required |
-| #632 | `3851c7cf` | preserves graph-fact source provenance and authorization with a static landing-query contract; hosted gates and independent review remain required |
+| #632 | `bfeaecd9` | preserves graph-fact source provenance and authorization with a static landing-query contract; hosted gates and independent review remain required |
 | #631 | `c0022c97` | decomposes ADR gaps and queue baseline; hosted gates and independent review remain required |
 | #629 | `0f4665b5` | releases provider work from database leases and bounds landing reads; hosted gates and independent review remain required |
 | #579 | `689a21b6` | delegates leftover interaction-map arithmetic to fast-mlsirm and persists only the consumer projection; hosted gates and independent review remain required |
