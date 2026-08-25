@@ -5,6 +5,7 @@ from __future__ import annotations
 import pytest
 
 from backend.app import analysis_run_worker
+from backend.app.analysis_run_start import AnalysisRunStartError
 from lineageweave.adjudication_client import NullAdjudicationClient
 from lineageweave.tepp_client import TeppClient
 
@@ -84,3 +85,48 @@ async def test_consumer_forwards_valid_event_and_skips_malformed_event(monkeypat
             "valkey_stream_entry_id": "1-0",
         }
     ]
+
+
+class _TwoRunsValkey:
+    async def xread(self, _streams, *, count, block):
+        del count, block
+        return [
+            (
+                "analysis-run-outbox",
+                [
+                    ("2-0", {"analysis_run_id": "00000000-0000-0000-0000-000000000001"}),
+                    ("2-1", {"analysis_run_id": "00000000-0000-0000-0000-000000000002"}),
+                ],
+            )
+        ]
+
+
+@pytest.mark.anyio
+async def test_one_refused_delivery_does_not_end_the_worker(monkeypatch):
+    """A fail-closed refusal (e.g. channel weights not estimated, ADR 0145)
+    on one run must advance the cursor and still deliver the next run --
+    a raised refusal would otherwise end the worker task and halt every
+    later run's delivery.
+    """
+    delivered = []
+
+    async def fake_deliver(conn, **kwargs):
+        del conn
+        if kwargs["analysis_run_id"].endswith("1"):
+            raise AnalysisRunStartError(
+                503, "Channel weights are not estimated yet."
+            )
+        delivered.append(kwargs["analysis_run_id"])
+
+    monkeypatch.setattr(analysis_run_worker, "deliver_queued_analysis_run", fake_deliver)
+
+    last_id = await analysis_run_worker.consume_analysis_run_stream_once(
+        _TwoRunsValkey(),
+        _Pool(),
+        last_id="0-0",
+        tepp_client=TeppClient(),
+        adjudication_client=NullAdjudicationClient(),
+    )
+
+    assert last_id == "2-1"
+    assert delivered == ["00000000-0000-0000-0000-000000000002"]

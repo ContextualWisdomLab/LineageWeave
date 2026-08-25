@@ -20,7 +20,7 @@ def lineage_edge_specs(
     records: Sequence[Record],
     *,
     llm: AdjudicationClient | None = None,
-    weights: dict[str, float] | None = None,
+    weights: dict[str, float],
 ) -> list[Edge]:
     """Run reconstruct and return every resulting parent→child edge.
 
@@ -35,12 +35,11 @@ def lineage_edge_specs(
     faked) -- callers that want the highest-weighted reasoning channel
     actually contributing to real reconstructions must pass a real one.
 
-    ``weights`` defaults to ``None``, keeping ``reconstruct()``'s
-    documented fallback constants; callers with a persisted
-    psychometric estimate (ADR 0145) pass it here.
+    ``weights`` is required and always a psychometric estimate (ADR
+    0145, second amendment): the persisted fast-mlsirm corpus estimate
+    on product paths, or the demo-design estimate from
+    :func:`~lineageweave.channel_weight_estimation.estimate_fixture_channel_weights`.
+    No hand-picked default exists anywhere.
     """
-    if weights is None:
-        trees = reconstruct(list(records), llm=llm)
-    else:
-        trees = reconstruct(list(records), llm=llm, weights=weights)
+    trees = reconstruct(list(records), llm=llm, weights=weights)
     return [edge for tree in trees for edge in tree.edges]

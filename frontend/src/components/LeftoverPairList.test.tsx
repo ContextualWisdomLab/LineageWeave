@@ -73,7 +73,13 @@ describe("LeftoverPairList", () => {
     );
 
     await userEvent.click(closest);
-    expect(onSelectPost).toHaveBeenCalledWith("post-demo-public");
+    expect(onSelectPost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pair_kind: "closest",
+        post_id: "post-demo-public",
+        criterion_code: "sales_lead_quality",
+      }),
+    );
   });
 
   it("keeps residual guidance for an older payload without rank or Y/E", () => {

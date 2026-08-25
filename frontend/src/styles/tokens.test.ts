@@ -119,6 +119,15 @@ describe("design tokens", () => {
     }
   });
 
+  it("does not dim .post-meta with opacity -- it fails WCAG AA in both themes and carries role=\"status\" next-action text", () => {
+    const match = appCss.match(/\.post-meta\s*\{([^}]*)\}/);
+    expect(match, ".post-meta rule not found in App.css").not.toBeNull();
+    expect(match?.[1] ?? "").not.toMatch(/opacity\s*:/);
+    // Dropping the dimming must not also drop the size: the meta line
+    // stays visually secondary through font-size, not through opacity.
+    expect(match?.[1] ?? "").toContain("font-size: 0.85rem");
+  });
+
   it("gives .citation-chip a real 24px minimum touch target", () => {
     const citationChipBlock = appCss.match(/\.citation-chip\s*\{[^}]*\}/)?.[0] ?? "";
     expect(citationChipBlock, ".citation-chip rule not found in App.css").not.toBe("");
