@@ -129,12 +129,10 @@ class ContextualOrchestratorOrganizationNameResolutionClient:
 
     available = True
 
-    # 2026-08-22 live finding (same root cause as
-    # keyman_extraction.ContextualOrchestratorKeymanExtractionClient):
-    # mode="auto" can route to deep multi-agent orchestration past 30s.
-    # Reproduced directly: this call's asyncio.to_thread raised
-    # TimeoutError while resolving one organization name for a real post,
-    # blocking the whole Keyman-extraction chain on a downstream step.
+    # mode="auto" can route to deep multi-agent orchestration past 30s. This
+    # downstream step reproduced that timeout in the synchronous Keyman chain,
+    # so it uses the existing post-structure client's bounded ten-minute
+    # orchestration window.
     def __init__(
         self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float = 600.0
     ) -> None:

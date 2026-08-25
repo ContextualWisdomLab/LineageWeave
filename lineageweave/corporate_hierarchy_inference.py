@@ -148,11 +148,10 @@ class ContextualOrchestratorHierarchyInferenceClient:
 
     available = True
 
-    # 2026-08-22: same root cause as ContextualOrchestratorKeymanExtractionClient
-    # and ContextualOrchestratorOrganizationNameResolutionClient -- mode="auto"
-    # can route to deep multi-agent orchestration past 30s, and this call sits
-    # in the same synchronous Keyman-extraction chain that reproduced a real
-    # TimeoutError here.
+    # mode="auto" can route to deep multi-agent orchestration past 30s. This
+    # client sits in the synchronous Keyman chain where that failure was
+    # reproduced, so it uses the existing post-structure client's bounded
+    # ten-minute orchestration window.
     def __init__(
         self, base_url: str, api_key: str, *, reasoning_effort: str = "auto", timeout: float = 600.0
     ) -> None:
