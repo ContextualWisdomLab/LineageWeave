@@ -60,6 +60,8 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Structure adjudication now rejects malformed or duplicate unit indexes before
+  calling the orchestrator.
 - Event Lineage's DAG no longer leaves a linear (no-branch) reconstruct
   chain unexplained. `is_branch_point` is only `true` when a post has 2+
   children -- correct reconstruct behavior, not a bug -- but the graph
