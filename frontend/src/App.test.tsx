@@ -103,6 +103,7 @@ describe("App, authenticated", () => {
     failedLineageRun?: boolean;
     runningLineageRun?: boolean;
     failedReportRun?: boolean;
+    emptyLeftoverMap?: boolean;
     succeededReportRun?: boolean;
     succeededTeppRun?: boolean;
     pendingTeppRun?: boolean;
@@ -119,6 +120,7 @@ describe("App, authenticated", () => {
     organizationAliases?: boolean;
     askLineageGraph?: boolean;
     askImageCitation?: boolean;
+    lineageIsolationReason?: "comparison_candidates_available" | "no_comparison_group";
   }): ReturnType<typeof vi.fn> & { releaseMe: () => void; releasePostOne: () => void } {
     const statusLabel: Record<string, string> = {
       open: "Open",
@@ -1007,6 +1009,16 @@ describe("App, authenticated", () => {
                     leftover_map_reconstruction: -0.85,
                   },
                 ],
+                leftover_map_persons: options?.emptyLeftoverMap
+                  ? []
+                  : [
+                      { post_id: "post-1", post_title: "Public post", axis_one: 0.2, axis_two: 0.4 },
+                    ],
+                leftover_map_items: options?.emptyLeftoverMap
+                  ? []
+                  : [
+                      { criterion_code: "sales_lead_specificity", axis_one: -0.1, axis_two: 0.3 },
+                    ],
                 leftover_map_axes: [
                   {
                     axis_index: 1,
@@ -1058,6 +1070,16 @@ describe("App, authenticated", () => {
         return Promise.resolve(jsonResponse({ group_count: 1 }));
       }
       if (url.includes("/api/lineage") && method === "GET") {
+        if (options?.lineageIsolationReason) {
+          return Promise.resolve(
+            jsonResponse({
+              nodes: [],
+              edges: [],
+              truncated: false,
+              isolation_reason: options.lineageIsolationReason,
+            }),
+          );
+        }
         return Promise.resolve(
           jsonResponse({
             nodes: [
@@ -1644,7 +1666,7 @@ describe("App, authenticated", () => {
         return Promise.resolve(
           jsonResponse({
             post_id: "post-1",
-            direct: [
+            direct: options?.lineageIsolationReason ? [] : [
               {
                 post_id: "rec-003",
                 post_title: "Pricing renegotiation: revised quote sent",
@@ -1653,7 +1675,9 @@ describe("App, authenticated", () => {
                 interval_is_parent: true,
               },
             ],
-            indirect: [{ post_id: "post-2", post_title: "Linked post" }],
+            indirect: options?.lineageIsolationReason
+              ? []
+              : [{ post_id: "post-2", post_title: "Linked post" }],
           }),
         );
       }
@@ -2232,6 +2256,23 @@ describe("App, authenticated", () => {
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
     expect(screen.getByRole("dialog", { name: "Linked post" })).toHaveFocus();
+  });
+
+  it.each([
+    [
+      "comparison_candidates_available" as const,
+      "Other visible posts share this comparison group, but no Event Lineage link is available. Read Keyman and evaluation next.",
+    ],
+    [
+      "no_comparison_group" as const,
+      "No other visible posts share this comparison group yet. Request reconstruction after more posts arrive, or read Keyman and evaluation.",
+    ],
+  ])("explains an empty focused Event Lineage graph: %s", async (lineageIsolationReason, message) => {
+    stubBackend({ lineageIsolationReason });
+    render(<App showLabPanels />);
+    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    expect(await screen.findByText(message)).toBeInTheDocument();
+    expect(screen.queryByText("No linked posts yet.")).not.toBeInTheDocument();
   });
 
   it("shows an embedded invoice image instead of the raw base64 string", async () => {
@@ -3922,6 +3963,16 @@ describe("App, authenticated", () => {
     );
   });
 
+  it("keeps report-level leftover metadata when no authorized map points remain", async () => {
+    stubBackend({ emptyLeftoverMap: true });
+    render(<App showLabPanels />);
+
+    await screen.findAllByText(/mean θ 0.42/);
+    expect(screen.getByLabelText("Leftover map coverage")).toBeInTheDocument();
+    expect(screen.getByLabelText("Leftover-map axis share")).toBeInTheDocument();
+    expect(screen.getByText(/leftover axis 1 82%/)).toBeInTheDocument();
+  });
+
   it("shows the grouping comparison strip and switches grouping on click", async () => {
     const fetchMock = stubBackend();
     render(<App showLabPanels />);
@@ -4098,12 +4149,13 @@ describe("App, authenticated", () => {
     expect(nav).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "게시판" })).toHaveAttribute("aria-current", "page");
     expect(within(nav).getAllByRole("button").map((button) => button.textContent)).toEqual([
+      "Dashboard",
       "게시판",
       "고객 마스터",
       "달력",
       "Ask Agent",
     ]);
-    expect(nav.textContent).not.toMatch(/Buyer|Cubee|Board|Customer master/i);
+    expect(nav.textContent).not.toMatch(/Buyer|Cubee|\bBoard\b|Customer master/i);
     expect(within(nav).queryByRole("button", { name: /Admin|관리자/i })).not.toBeInTheDocument();
     expect(screen.queryByText("Advanced review tools")).not.toBeInTheDocument();
   });

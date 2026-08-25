@@ -61,11 +61,8 @@ longer part of the open queue. That merge also left a standalone conflict
 marker and duplicated stale tail in `CLAUDE.md`; #594 repaired it through
 protected `main` as `241be2dddf657f854cb8be54fe11d4ef48d37976`.
 
-Protected main currently imports the ADR 0109 OIDC return helpers but bypasses
-them at login, dropping the URL fragment and failing the production build on
-unused imports. Exact-main PRs #600 and #605 restore
-`returnUrlFromLocation()` then `rememberOidcReturnUrl()` before
-`signinRedirect`; this is branch evidence only until one passes the protected
+Protected main now calls the ADR 0109 OIDC return helpers before
+`signinRedirect`; #600 and #605 delivered the repair through the protected
 gate. The authenticated-only `accessToken` narrowing remains present.
 
 Three systemic gates currently dominate the queue:
@@ -110,6 +107,11 @@ Recent protected-default-branch delivery evidence (squash merges onto
 
 | PR | Merged (UTC) | Delivered |
 | ---: | --- | --- |
+| #468 | 2026-08-25 08:44 | fast-mlsirm, Keyverse, orchestrator, and TEPP integration boundaries |
+| #493 | 2026-08-25 08:44 | ABAC-safe focused Event Lineage isolation reasons in the backend; buyer copy continues on #609 |
+| #600 | 2026-08-25 08:44 | non-identifying live gap baseline and ADR 0109 login-helper repair |
+| #605 | 2026-08-25 08:44 | modal focus containment/refocus, readable evidence labels, and OIDC return context |
+| #608 | 2026-08-25 08:43 | Naruon projection wired into Workspace Calendar |
 | #603 | 2026-08-25 07:24 | short analysis-run transactions, session advisory locking, package-marker/privacy repair, and provider-work lease release |
 | #602 | 2026-08-25 07:24 | post-detail modal semantics, Escape close, initial focus, and opener restoration; navigation-refocus edge case continues on #605 |
 | #582 | 2026-08-25 07:24 | bounded batched cited-lineage graph fetch |
@@ -297,7 +299,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 8 open PRs at snapshot; the queue is split between mergeable exact-main heads and older conflicting work, while the former #607 is preserved inside #606 | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Protected release | 5 open PRs at snapshot; #609 is mergeable with auto-merge, #606/#579/#490 conflict, and #387 retains changes requested | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
 | Evidence-grounded operations workspace | The former #607 implements persisted operational cases, an authenticated dashboard, citation-first actions, report/alert delivery metadata, tokens, Storybook, and regression coverage inside #606; authenticated production backfill and the similar-VOC live endpoint remain unavailable | Clear #606 normally on its exact combined head, perform authenticated desktop/mobile acceptance with aggregate evidence, and confirm a protected merge SHA |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
@@ -313,7 +315,7 @@ this file per §3.5 of the prior snapshot).
 | Scientific measurement | Durable accepted TEPP receipts are protected (`main`). `fast-mlsirm` PR #1387 was merged into the non-default #1279 stack, whose exact head `4495aa4f` now owns residual, complete-case, Gabriel factorization, coordinates, inertia, distance, reconstruction, unexplained-residual, and cross-share arithmetic in Rust. The pending #579 amendment consumes that immutable head and deletes the duplicate NumPy implementation. Neither the upstream stack nor #579 is protected delivery yet. #387 removes inferred/default persistence weights, but older reconstruction tests still pass hand-authored numeric weight dictionaries; those constants are not estimator evidence | Land `ContextualWisdomLab/fast-mlsirm` #1279 through its protected gate before #579. Keep LineageWeave limited to IDs, authorization, persistence, deterministic product selection, and presentation. Continue replacing remaining fusion-test constants with provenance-bearing upstream estimates over synthetic fixtures; unrelated tests bypass weighting. Retain true-parameter RMSE recovery as the upstream acceptance bar |
 | Asynchronous authorization | Protected `main` rebuilds Global Ask worker scope after the bearer token leaves the request; #468 now persists exact Keyverse organization/process-unit scope in 3NF child tables and intersects it with current affiliations | Land #468 through the protected gate; prove a second affiliation and a revoked process unit cannot widen delayed-job evidence |
 | Planned-facility intent | Planned-facility relationship intent rides on open #490 (`d0cad030`), whose earlier stack-only merges were not protected delivery | Settle #490 exact-head checks plus independent approval, then land through protected `main` before a release claim |
-| Accessibility and responsive UX | #602 delivered base post-detail modal semantics; #605 adds selected-post refocus, collapsed/hidden/inert/CSS-invisible focus exclusion across both modal types, readable evidence separators, focused tests, and desktop/mobile Storybook screenshots | Land #605 through the protected gate, then complete screen-reader and authenticated Playwright acceptance on the exact release head |
+| Accessibility and responsive UX | #602 and protected-main #605 deliver modal semantics, selected-post refocus, collapsed/hidden/inert/CSS-invisible focus exclusion, and readable evidence separators | Complete screen-reader and authenticated Playwright acceptance on one exact release head |
 | Design tokens and repeated objects | Token extraction started; sanitized Figma Event Lineage desktop/mobile frames exist, while other repeated product surfaces remain incomplete | Tokens in CSS + Storybook stories for board, popup, DAG, Ask, calendar, forms, charts; same-viewport Figma/runtime visual comparison before release |
 | External integrations | Search, Zotero, calendar, Keyverse, orchestrator, RankWeave, ThreadWeave, TEPP, disksage, wardnet | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
 | MSA / modular reuse | LineageWeave must run standalone and as a consumer of org packages | Do not reimplement RankWeave/TEPP/orchestrator/ThreadWeave/Keyverse; fix upstream and PR there |

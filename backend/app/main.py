@@ -24,7 +24,7 @@ import json
 import logging
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Literal
 from uuid import UUID
 
@@ -160,6 +160,7 @@ from backend.app.issue_ticket_ingestion import (
     update_ticket,
     upsert_commitment_ticket,
 )
+from backend.app.operations_dashboard import fetch_operations_dashboard
 from backend.app.keyman_ingestion import ingest_post_keymen
 from backend.app.knowledge_graph import (
     corporate_entity_exists,
@@ -741,6 +742,24 @@ async def read_me(
         "permission_codes": sorted(account.permission_codes),
         "corporate_entities": entities,
     }
+
+
+@app.get("/api/dashboard")
+async def operations_dashboard(
+    period_start: date | None = Query(None),
+    period_end: date | None = Query(None),
+    account: CurrentAccount = Depends(get_current_account),
+    pool: asyncpg.Pool = Depends(get_pool),
+) -> dict[str, Any]:
+    """Show quantified operational cases backed by visible source evidence."""
+    _require_post_read(account)
+    async with pool.acquire() as conn:
+        try:
+            return await fetch_operations_dashboard(
+                conn, account.corporate_entity_ids, period_start, period_end
+            )
+        except ValueError as exc:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
 
 
 class LocalePreferenceRequest(BaseModel):
@@ -2626,7 +2645,17 @@ async def read_period_reports(
             for pair in leftover_pairs
         ]
         leftover_map_persons = [
-            {key: value for key, value in person.items() if key != "has_real_source_context"}
+            {
+                key: value
+                for key, value in person.items()
+                if key
+                not in {
+                    "has_real_source_context",
+                    "visibility_code",
+                    "corporate_entity_id",
+                    "process_unit_id",
+                }
+            }
             for person in leftover_map_persons
         ]
         leftover_map_items = list(report.get("leftover_map_items", []))

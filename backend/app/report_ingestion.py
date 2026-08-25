@@ -700,7 +700,7 @@ async def fetch_period_reports(
     leftover_map_persons = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
         f"""
         select lp.grouping_key, lp.post_id, lp.axis_one, lp.axis_two, p.post_title,
-               p.visibility_code, p.corporate_entity_id,
+               p.visibility_code, p.corporate_entity_id, p.process_unit_id,
                ({_SOURCE_CONTEXT_PRESENT_SQL}) as has_real_source_context
         from report_leftover_map_person lp
         join source_post p on p.post_id = lp.post_id
@@ -888,6 +888,9 @@ async def fetch_period_reports(
                         "axis_two": float(row["axis_two"]),
                         "visibility_code": row["visibility_code"],
                         "corporate_entity_id": str(row["corporate_entity_id"]),
+                        "process_unit_id": (
+                            None if row["process_unit_id"] is None else str(row["process_unit_id"])
+                        ),
                         "has_real_source_context": bool(row["has_real_source_context"]),
                     }
                     for row in leftover_persons_by_group.get(header["grouping_key"], [])
