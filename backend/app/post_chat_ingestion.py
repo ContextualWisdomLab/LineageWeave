@@ -448,9 +448,11 @@ async def gather_global_chat_sources(
     resolved_time_range = resolve_korean_relative_time(
         question or "", today=today or _seoul_today()
     )
-    if not (question and question.strip() and embedding_client.available):
+    if not (question and question.strip()):
         return []
     if question_embedding is None:
+        if not embedding_client.available:
+            return []
         question_embedding = await prepare_global_question_embedding(
             question, embedding_client
         )
