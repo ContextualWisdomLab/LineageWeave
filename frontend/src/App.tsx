@@ -4828,6 +4828,10 @@ export function AskAgentPanel({
   const [verifyExternal, setVerifyExternal] = useState(false);
   const [knowledgeCutoff, setKnowledgeCutoff] = useState("");
   const [evidenceLayerPostId, setEvidenceLayerPostId] = useState<string | null>(null);
+  const now = new Date();
+  const localKnowledgeCutoffMax = new Date(
+    now.getTime() - now.getTimezoneOffset() * 60_000,
+  ).toISOString().slice(0, 16);
 
   async function handleAsk() {
     const normalized = question.trim();
@@ -4880,7 +4884,7 @@ export function AskAgentPanel({
           <input
             type="datetime-local"
             value={knowledgeCutoff}
-            max={new Date().toISOString().slice(0, 16)}
+            max={localKnowledgeCutoffMax}
             onChange={(event) => setKnowledgeCutoff(event.target.value)}
           />
         </label>
