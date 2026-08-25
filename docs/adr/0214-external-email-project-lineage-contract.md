@@ -47,7 +47,9 @@ Evidence becoming available after the cutoff is excluded even when it describes 
 - Naruon can eventually consume a released artifact without exposing credentials or application tables.
 - RFC reply/thread evidence stays distinguishable from semantic lineage.
 - Caller-observed children are never disclosed to an optional model merely to calculate an inferred edge that would be discarded.
-- The optional LLM channel is explicit as `not_requested`, `unavailable`, or `completed`; missing output is never zero.
+- The optional LLM channel is explicit as `not_requested`, `unavailable`,
+  `not_used`, or `completed`; admission without a provider call is never
+  reported as completion, and missing output is never zero.
 - A missing or malformed calibrated weight vector fails closed before scoring.
 - A calibrated vector containing an inactive channel fails closed instead of
   being repaired or renormalized into a different measurement.

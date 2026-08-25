@@ -6,7 +6,9 @@ import pytest
 
 from lineageweave.channel_weight_estimation import estimate_fixture_channel_weights
 from lineageweave.external_lineage_analysis import (
+    _BoundedAdjudicationClient,
     _channel_evidence,
+    _selected_llm,
 )
 from lineageweave.external_lineage_analysis import (
     analyze_external_lineage as _analyze_external_lineage,
@@ -21,6 +23,14 @@ from lineageweave.external_lineage_contract import (
 _FIXTURE_ESTIMATE = estimate_fixture_channel_weights()
 assert _FIXTURE_ESTIMATE is not None
 _FIXTURE_WEIGHTS = dict(_FIXTURE_ESTIMATE.weights)
+# Four identical-information synthetic items have equal normalized expected
+# information; this vector is test truth, never a production fallback.
+_EQUAL_INFORMATION_WEIGHTS = {
+    "temporal": 0.25,
+    "secondary_key": 0.25,
+    "text": 0.25,
+    "llm": 0.25,
+}
 
 
 def analyze_external_lineage(request, *, llm=None):
@@ -98,6 +108,80 @@ class CountingLlm:
 
         self.call_count += 1
         return 0.5
+
+
+@pytest.mark.parametrize(
+    "weights",
+    [
+        {"temporal": 0.5, "secondary_key": 0.25, "text": 0.25, "unknown": 0.1},
+        {"temporal": True, "secondary_key": 0.5, "text": 0.5},
+        {"temporal": float("nan"), "secondary_key": 0.5, "text": 0.5},
+        {"temporal": 0.0, "secondary_key": 0.5, "text": 0.5},
+        {"temporal": 0.2, "secondary_key": 0.2, "text": 0.2},
+    ],
+)
+def test_external_analysis_rejects_malformed_calibrated_weights(weights) -> None:
+    """Malformed host vectors fail closed without repair or renormalization."""
+    request = _request([_record("email:001", "One", "2026-08-20T09:00:00Z")])
+    with pytest.raises(LineageContractError, match="channel_weights"):
+        _analyze_external_lineage(request, channel_weights=weights)
+
+
+@pytest.mark.parametrize(
+    ("client", "code"),
+    [
+        (InvalidLlm(), "channel_score_out_of_bounds"),
+        (TextLlm(), "channel_score_out_of_bounds"),
+        (BrokenProviderLlm(), "llm_channel_error"),
+    ],
+)
+def test_bounded_llm_rejects_unusable_scores(client, code: str) -> None:
+    """The calibrated-channel wrapper exposes only stable contract errors."""
+    with pytest.raises(LineageContractError) as captured:
+        _BoundedAdjudicationClient(client).judge("Parent", "Child")
+    assert captured.value.code == code
+
+
+def test_selected_llm_marks_an_admitted_calibrated_channel_not_used() -> None:
+    """Admission alone is not reported as a completed provider call."""
+    request = _request(
+        [_record("email:001", "Same parent", "2026-08-20T09:00:00Z")],
+        allow_llm=True,
+    )
+    client, status = _selected_llm(request, AvailableLlm(), {"llm": 1.0})
+    assert client.judge("Same parent", "Same child") == 0.9
+    assert status == "not_used"
+
+
+def test_analysis_distinguishes_admitted_not_used_from_completed_llm() -> None:
+    """Completion requires at least one actual adjudicator call."""
+    single = _request(
+        [_record("email:001", "Same parent", "2026-08-20T09:00:00Z")],
+        allow_llm=True,
+    )
+    unused = _analyze_external_lineage(
+        single,
+        channel_weights=_EQUAL_INFORMATION_WEIGHTS,
+        llm=AvailableLlm(),
+    )
+    assert unused.llm_status_code == "not_used"
+
+    pair = _request(
+        [
+            _record("email:001", "Same parent", "2026-08-20T09:00:00Z"),
+            _record("email:002", "Same child", "2026-08-20T09:01:00Z"),
+        ],
+        allow_llm=True,
+    )
+    completed = _analyze_external_lineage(
+        pair,
+        channel_weights=_EQUAL_INFORMATION_WEIGHTS,
+        llm=AvailableLlm(),
+    )
+    assert completed.llm_status_code == "completed"
+    assert "llm" in {
+        channel.channel_code for channel in completed.edges[0].channel_evidence
+    }
 
 
 def _record(
