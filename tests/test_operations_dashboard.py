@@ -302,8 +302,19 @@ async def test_external_information_projects_a_typed_prov_o_relation() -> None:
     """A cited semantic target becomes RDF reification, never a KG alias."""
 
     class ExternalConnection(_Connection):
+        async def fetchrow(self, query: str, *args: object) -> dict[str, object]:
+            if "tepp_posterior_persisted" in query:
+                self.queries.append((query, args))
+                return {
+                    "tepp_posterior_persisted": False,
+                    "fast_mlsirm_influence_persisted": False,
+                }
+            return await super().fetchrow(query, *args)
+
         async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
             self.queries.append((query, args))
+            if "from topic_post_context_influence influence" in query:
+                return []
             if "operations_case_fact fact" in query:
                 return [{
                     "post_id": "00000000-0000-0000-0000-000000000001",
