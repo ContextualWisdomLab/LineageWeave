@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 10:54 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 11:33 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -10,34 +10,35 @@
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `1e72636dcb3807b5ce129001f189791df6ed2194`
-when this baseline was refreshed. The live queue contained 23 open PRs and 22
+when this baseline was refreshed. The live queue contained 24 open PRs and 22
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #596 | `79bfa2db` | raises only the two orchestrator-backed hierarchy/name-resolution client timeouts to the existing 600-second deep-work boundary; exact-head checks and review pending |
+| #597 | `8b6b7f4c` | keeps Customer Master related-post detail in the customer's current workspace instead of routing to Board; exact-head checks and independent review pending |
+| #596 | `edb24472` | aligns the two orchestrator-backed hierarchy/name-resolution clients with the existing bounded 600-second deep-work window and verifies both defaults; exact-head checks and independent review pending |
 | #595 | `9378c04f` | restores the audited no-draft-dimension import door and nullable updated-at fallback orphaned by the prior stack race; result typing repaired, 24 focused tests passed, auto-merge armed |
-| #591 | `28db0257` | canonical current-queue baseline reconciled with protected main; exact-head checks and independent review pending |
-| #588 | `dc60a08e` | ADR 0201 repair reconciled with current main; auto-merge armed, checks restarted |
+| #591 | `8c6da209` | canonical current-queue baseline reconciled with protected main; arbitrary test-weight gap disclosed, exact-head checks and independent review pending |
+| #588 | `91d8e4f5` | ADR 0201 repair reconciled with current main; auto-merge armed, checks restarted |
 | #585 | `ffe1290b` | only locally-authored bounded job errors may persist; transport errors remain generic; auto-merge armed, checks restarted |
 | #584 | `17068ec3` | current-main ADR collision repaired; auto-merge armed, checks restarted |
 | #582 | `3992302f` | batched Ask lineage graph reconciled with current main and the conflict-tail repair; auto-merge armed, checks restarted |
-| #581 | `bc70e4bf` | event-time Ask filtering reconciled with current main; 90 backend tests and 10 frontend interaction/story tests passed; auto-merge armed |
-| #579 | `1aa69d29` | interaction-map and ADR 0202 coverage composed with the grouping strip; 41 backend and 7 frontend tests passed; auto-merge armed |
-| #564 | `62d3e124` | current-main reconciliation pushed; checks restarted |
-| #563 | `47c1f593` | cross share reconciled to the ADR 0182 raw-residual identity `R² = R̂² + U² + 2R̂U`; 54 backend and 58 targeted frontend tests plus lint passed; auto-merge armed |
-| #539 | `69ae025e` | current-main reconciliation pushed; checks restarted |
+| #581 | `c1b424eb` | concurrent exact-head update observed after event-time Ask reconciliation; checks and review pending |
+| #579 | `380944d6` | SQL-suppression inventory repaired after the interaction-map merge; focused contract tests passed, current-main reconciliation pending |
+| #564 | `212b55a9` | concurrent exact-head update observed; checks and review pending |
+| #563 | `353b7470` | concurrent exact-head update observed after raw-residual identity repair; checks and review pending |
+| #539 | `e4dffe63` | concurrent exact-head update observed; checks and review pending |
 | #537 | `ebfd712b` | current-main reconciliation pushed; checks restarted |
-| #493 | `2412640d` | concurrent exact-head update observed; dirty against current main, required checks running |
+| #493 | `64e5f1b8` | concurrent exact-head update observed; checks and review pending |
 | #490 | `73413d0b` | code-quality findings repaired; current-main reconciliation remains before checks can settle |
-| #484 | `b1a8e766` | Allen interval relations reconciled without synthetic fusion weights; the chronology test uses its known synthetic edge pairs directly, focused backend/frontend checks and lint passed, auto-merge armed |
+| #484 | `fa898bc5` | concurrent exact-head update observed after Allen interval reconciliation; checks and review pending |
 | #482 | `b0e737d3` | concurrent exact-head update observed after the corroborated-SKOS reconciliation; exact-head checks and review pending |
 | #468 | `d8e255d0` | concurrent exact-head update observed; integration and required checks restarted |
 | #434 | `d7766b39` | current-main reconciliation pushed; checks restarted |
 | #394 | `1f1667f2` | blocked; required checks pending |
-| #387 | `2b95a8be` | persistence and active-channel weight lookup repaired; auto-merge armed, checks and independent review pending |
+| #387 | `754f8c22` | budgeted LLM selection now precedes exact-channel weight lookup; persistence tests use fast-mlsirm estimates, merged Ask evidence is grouped by thread, 37 backend tests plus frontend interaction/lint/build passed; auto-merge armed |
 | #383 | `d1a4ff24` | concurrent exact-head update observed on reader-safe OTel diagnostics; checks and independent review pending |
 | #355 | `761fdfeb` | Naruon ADR allocated as 0203 after empty-body repair; auto-merge armed, checks and independent review pending |
 
@@ -274,7 +275,7 @@ this file per §3.5 of the prior snapshot).
 | Calendar / Naruon | Pseudo-CalDAV remains on `main`; #355 carries the projection contract | Naruon-owned projection, issue #336/#338 acceptance, no invented events |
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
 | Event Lineage evidence | Channel evidence and Allen relations live on #387 / #484 | Persist channel scores, explain them in the popup, never invent a fused score |
-| Scientific measurement | Durable accepted TEPP receipts and fail-closed production weighting are protected (`main`); #468 binds fast-mlsirm/Keyverse/orchestrator/TEPP integration tests and remains open pending gates. Production channel weights flow from fast-mlsirm estimation after #544/#559, but several unit tests still pass hand-authored numeric weight dictionaries; those constants are not estimator evidence | Replace reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures; tests unrelated to fusion must bypass weighting entirely, as #484 now does. Land #468/#417 through the standard gate and retain true-parameter RMSE recovery as the acceptance bar |
+| Scientific measurement | Durable accepted TEPP receipts and fail-closed production weighting are protected (`main`); #468 binds fast-mlsirm/Keyverse/orchestrator/TEPP integration tests and remains open pending gates. #387 removes inferred/default persistence weights and converts its 3/4-channel evidence tests to fast-mlsirm estimates, but several older reconstruction tests still pass hand-authored numeric weight dictionaries; those constants are not estimator evidence | Continue replacing remaining reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures; tests unrelated to fusion must bypass weighting entirely, as #484 does. Land #387/#468/#417 through the standard gate and retain true-parameter RMSE recovery as the acceptance bar |
 | Planned-facility intent | Planned-facility relationship intent rides on open #490 (`d0cad030`), whose earlier stack-only merges were not protected delivery | Settle #490 exact-head checks plus independent approval, then land through protected `main` before a release claim |
 | Accessibility and responsive UX | Unit coverage exists for major surfaces; Storybook inventory incomplete | Keyboard, screen-reader, mobile, and authenticated Playwright acceptance on the exact release head |
 | Design tokens and repeated objects | Token extraction started; sanitized Figma Event Lineage desktop/mobile frames exist, while other repeated product surfaces remain incomplete | Tokens in CSS + Storybook stories for board, popup, DAG, Ask, calendar, forms, charts; same-viewport Figma/runtime visual comparison before release |
