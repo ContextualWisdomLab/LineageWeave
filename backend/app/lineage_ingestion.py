@@ -47,6 +47,15 @@ _SUPPORTED_ANCHOR_METHOD_CODES: frozenset[str] = frozenset(
     {"tepp_lineage_criterion_v1"}
 )
 
+_LINEAGE_LANDING_SQL = (
+    "select post_id, post_title, voc_type_code, visibility_code, "
+    "corporate_entity_id, process_unit_id, thread_group_key, created_at "
+    "from source_post where {eligibility} and "
+    "(visibility_code = 'public' or (corporate_entity_id::text = any($1::text[]) "
+    "and (cardinality($2::text[]) = 0 or process_unit_id::text = any($2::text[])))) "
+    "order by created_at desc, post_id desc limit $3"
+).format(eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post"))
+
 
 def estimated_weight_channels(llm: AdjudicationClient | None) -> set[str]:
     """Return the channels that one live reconstruction can actually use."""
@@ -533,13 +542,7 @@ async def _fetch_lineage_landing_rows(
 ):
     """Fetch only the authorized, bounded landing projection in PostgreSQL."""
     posts = await conn.fetch(
-        "select post_id, post_title, voc_type_code, visibility_code, "
-        "corporate_entity_id, process_unit_id, thread_group_key, created_at "
-        "from source_post where "
-        f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')} and "
-        "(visibility_code = 'public' or (corporate_entity_id::text = any($1::text[]) "
-        "and (cardinality($2::text[]) = 0 or process_unit_id::text = any($2::text[])))) "
-        "order by created_at desc, post_id desc limit $3",
+        _LINEAGE_LANDING_SQL,
         list(corporate_entity_ids),
         list(process_unit_ids),
         limit + 1,
