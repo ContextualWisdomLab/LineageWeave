@@ -26,7 +26,9 @@ class BoundedRequestBodyApp:
 
         content_lengths = _header_values(scope, b"content-length")
         transfer_encodings = _header_values(scope, b"transfer-encoding")
-        declared_length = _parse_content_length(content_lengths, transfer_encodings)
+        declared_length = _parse_content_length(
+            content_lengths, transfer_encodings, self._maximum_bytes
+        )
         if declared_length is _INVALID_LENGTH:
             await _send_error(send, 400, "mcp_invalid_content_length")
             return
@@ -91,6 +93,7 @@ def _header_values(scope: Scope, name: bytes) -> tuple[bytes, ...]:
 def _parse_content_length(
     content_lengths: Sequence[bytes],
     transfer_encodings: Sequence[bytes],
+    maximum_bytes: int,
 ) -> int | None | _InvalidLength:
     """Return an unambiguous nonnegative length, absence, or invalid sentinel."""
     if len(content_lengths) > 1 or (content_lengths and transfer_encodings):
@@ -103,10 +106,13 @@ def _parse_content_length(
         return _INVALID_LENGTH
     if not decoded or not decoded.isdecimal():
         return _INVALID_LENGTH
-    try:
-        return int(decoded, 10)
-    except ValueError:
-        return _INVALID_LENGTH
+    normalized = decoded.lstrip("0") or "0"
+    maximum = str(maximum_bytes)
+    if len(normalized) > len(maximum) or (
+        len(normalized) == len(maximum) and normalized > maximum
+    ):
+        return maximum_bytes + 1
+    return int(normalized, 10)
 
 
 async def _send_error(send: Send, status_code: int, error_code: str) -> None:

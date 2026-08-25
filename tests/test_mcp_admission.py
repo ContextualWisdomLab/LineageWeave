@@ -88,7 +88,7 @@ async def test_bounded_body_replays_exact_bytes() -> None:
         ),
         ([(b"content-length", b"-1")], [], 400, "mcp_invalid_content_length"),
         ([(b"content-length", b"\xff")], [], 400, "mcp_invalid_content_length"),
-        ([(b"content-length", b"9" * 5000)], [], 400, "mcp_invalid_content_length"),
+        ([(b"content-length", b"9" * 5000)], [], 413, "mcp_request_too_large"),
         (
             [(b"content-length", b"4")],
             [{"type": "http.request", "body": b"123", "more_body": False}],
@@ -128,6 +128,17 @@ async def test_non_post_traffic_passes_through() -> None:
     )
     assert status == 204
     assert downstream.body["body"] == b""
+
+
+@pytest.mark.anyio
+async def test_leading_zero_length_uses_the_declared_numeric_value() -> None:
+    """A valid zero-padded length is compared without unbounded integer parsing."""
+    status, payload, downstream = await invoke(
+        [(b"content-length", b"0005")],
+        [{"type": "http.request", "body": b"12345", "more_body": False}],
+    )
+    assert (status, payload) == (204, {})
+    assert downstream.body["body"] == b"12345"
 
 
 @pytest.mark.anyio
