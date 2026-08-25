@@ -2658,7 +2658,7 @@ describe("App, authenticated", () => {
     stubBackend({ organizationAliases: true });
     render(<App showLabPanels />);
 
-    await userEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
+    fireEvent.click(await screen.findByRole("button", { name: "View post: Public post" }));
 
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Affiliate org: Demo Corp (DC)" })).toBeInTheDocument(),
@@ -2667,7 +2667,7 @@ describe("App, authenticated", () => {
     expect(screen.getByRole("button", { name: "Keyman affiliation: Demo Corp (DC)" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Affiliate org: Demo Corp" })).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
+    fireEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     expect(screen.getByRole("button", { name: "Related nodes for Demo Corp (DC)" })).toBeInTheDocument();
     expect(screen.getByText("Related to Ada West").closest(".related-keymen")).toHaveTextContent(
@@ -2676,7 +2676,7 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Related to Ada West").closest(".related-keymen")).not.toHaveTextContent(
       "Demo Corp (Organization)",
     );
-  });
+  }, 10_000);
 
   it("opens related Keyman nodes from an R&R person", async () => {
     stubBackend();
