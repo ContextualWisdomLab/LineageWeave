@@ -4392,16 +4392,19 @@ function CustomerRelatedPostCard({
 
 function CustomerMasterPanel({
   accessToken,
-  onOpenPost,
 }: {
   accessToken: string;
-  onOpenPost: (postId: string) => void;
 }) {
   const [master, setMaster] = useState<CustomerMasterResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
   const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
   const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
+  // Opening a customer's related post stays IN this panel (the Board
+  // hand-off was the reported bug: clicking a customer's post jumped the
+  // whole workspace to the Board instead of showing the post here).
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [selectedPostGraph, setSelectedPostGraph] = useState<LineageGraph | null>(null);
   const [resolvingHint, setResolvingHint] = useState<string | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
   // Fetched independently, same pattern as PostList's own canRebuild --
@@ -4434,6 +4437,28 @@ function CustomerMasterPanel({
     setMaster(null);
     void loadMaster();
   }, [loadMaster]);
+
+  useEffect(() => {
+    if (!selectedPostId) {
+      setSelectedPostGraph(null);
+      return;
+    }
+    let active = true;
+    fetchLineageGraph(accessToken, selectedPostId)
+      .then((nextGraph) => {
+        if (active) setSelectedPostGraph(nextGraph);
+      })
+      .catch(() => {
+        if (active) setSelectedPostGraph({ nodes: [], edges: [] });
+      });
+    return () => {
+      active = false;
+    };
+  }, [accessToken, selectedPostId]);
+
+  function openPost(postId: string) {
+    setSelectedPostId(postId);
+  }
 
   async function handleResolveHint(hintCode: string) {
     setResolvingHint(hintCode);
@@ -4487,7 +4512,7 @@ function CustomerMasterPanel({
               relatedByEntity={relatedByEntity}
               relatedLoading={relatedLoading}
               onToggle={toggleEntity}
-              onOpenPost={onOpenPost}
+              onOpenPost={openPost}
             />
           ))}
         </ul>
@@ -4557,7 +4582,7 @@ function CustomerMasterPanel({
                             postTitle={post.post_title}
                             postBodyExcerpt={post.post_body_excerpt}
                             postBodyTruncated={post.post_body_truncated}
-                            onOpenPost={onOpenPost}
+                            onOpenPost={openPost}
                           />
                         </li>
                       ))}
@@ -4610,7 +4635,7 @@ function CustomerMasterPanel({
                             postTitle={post.post_title}
                             postBodyExcerpt={post.post_body_excerpt}
                             postBodyTruncated={post.post_body_truncated}
-                            onOpenPost={onOpenPost}
+                            onOpenPost={openPost}
                           />
                         </li>
                       ))}
@@ -4636,6 +4661,16 @@ function CustomerMasterPanel({
           </ul>
         </section>
       ) : null}
+      {selectedPostId && (
+        <PostDetailPopup
+          postId={selectedPostId}
+          accessToken={accessToken}
+          canExtract={canResolveHints}
+          graph={selectedPostGraph}
+          onClose={() => setSelectedPostId(null)}
+          onSelectPost={openPost}
+        />
+      )}
     </section>
   );
 }
@@ -4878,13 +4913,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           />
         ) : null}
         {destination === "customers" ? (
-          <CustomerMasterPanel
-            accessToken={accessToken}
-            onOpenPost={(postId) => {
-              setPostToOpen(postId);
-              setDestination("board");
-            }}
-          />
+          <CustomerMasterPanel accessToken={accessToken} />
         ) : null}
         {destination === "calendar" ? (
           <section className="workspace-destination" aria-labelledby="calendar-heading">
