@@ -60,6 +60,21 @@ def test_interval_relation_backfill_uses_utc_created_day() -> None:
     assert "created_at at time zone 'UTC'" in sql
 
 
+def test_interval_relation_foreign_key_validation_is_separate() -> None:
+    """Installing the FK must not scan a large existing edge table."""
+
+    migrations = Path(__file__).resolve().parents[1] / "migrations"
+    install_sql = (migrations / "0140_post_lineage_interval_relation.sql").read_text(
+        encoding="utf-8"
+    )
+    validate_sql = (
+        migrations / "0205_validate_post_lineage_interval_relation.sql"
+    ).read_text(encoding="utf-8")
+
+    assert "not valid" in install_sql.lower()
+    assert "validate constraint post_lineage_edge_interval_relation_code_fkey" in validate_sql
+
+
 def test_migrate_sh_replays_leftover_map_axis_migration_on_existing_volumes() -> None:
     """migrate.sh's replay window must cover 0169 (report_leftover_map_axis).
 

@@ -18,7 +18,23 @@ insert into common_lookup_value (lookup_category, lookup_code, lookup_label, dis
 on conflict (lookup_code) do nothing;
 
 alter table post_lineage_edge
-    add column if not exists interval_relation_code text references common_lookup_value (lookup_code);
+    add column if not exists interval_relation_code text;
+
+do $$
+begin
+    if not exists (
+        select 1 from pg_constraint
+         where conrelid = 'post_lineage_edge'::regclass
+           and conname = 'post_lineage_edge_interval_relation_code_fkey'
+    ) then
+        alter table post_lineage_edge
+            add constraint post_lineage_edge_interval_relation_code_fkey
+            foreign key (interval_relation_code)
+            references common_lookup_value (lookup_code)
+            not valid;
+    end if;
+end
+$$;
 
 update post_lineage_edge as edge
    set interval_relation_code = case
