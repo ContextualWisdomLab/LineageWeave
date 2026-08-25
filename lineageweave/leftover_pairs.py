@@ -21,14 +21,13 @@ pair. Each pair also names unexplained leftover ``U = R − R̂`` after
 two-axis Gabriel reconstruction ``R̂ = ξ_{1:2} · ζ_{1:2}`` so the
 leftover cell the map does not reconstruct is not confused with
 leftover residual ``R`` or leftover-map distance ``d``. Each pair
-further names leftover-map cross share ``x = 2 R̂_c U_c / R̃²`` of the
-*centered* leftover after that same truncated two-axis reconstruction,
+further names leftover-map cross share ``x = 2 R̂ U / R²`` of the raw
+residual after that same truncated two-axis reconstruction,
 so the identity remainder left by the truncation is not confused with
 leftover residual ``R``, leftover-map distance ``d``, or unexplained
-leftover ``U``. Explained leftover share ``e = R̂_c² / R̃²`` and
-unexplained leftover share ``s = U_c² / R̃²`` are not persisted.
-Reconstruction ``R̂`` / ``R̂_c`` and centered unexplained leftover
-``U_c`` stay internal and are not persisted. ``x`` may be negative
+leftover ``U``. Explained leftover share ``e = R̂² / R²`` and
+unexplained leftover share ``s = U² / R²`` are not persisted.
+Reconstruction ``R̂`` stays internal and is not persisted. ``x`` may be negative
 when reconstruction and unexplained leftover have opposite signs.
 """
 
@@ -100,10 +99,9 @@ def leftover_pairs_from_residual(
     of Gabriel singular values above the floor. When Gabriel coordinates
     exist, unexplained leftover ``U = R − R̂`` names the leftover cell
     the two-axis map does not reconstruct, and leftover-map cross share
-    ``x = 2 R̂_c U_c / R̃²`` names the identity remainder of *centered*
-    leftover ``R̃ = R − center`` after two-axis reconstruction
-    ``R̂_c = ξ_{1:2} · ζ_{1:2}`` and centered unexplained leftover
-    ``U_c = R̃ − R̂_c``. ``R̂``, ``R̂_c``, and ``U_c`` stay internal and
+    ``x = 2 R̂ U / R²`` names the identity remainder of raw residual
+    ``R`` after two-axis reconstruction ``R̂ = ξ_{1:2} · ζ_{1:2}`` and
+    unexplained leftover ``U = R − R̂``. ``R̂`` stays internal and
     are never persisted. Without a complete-case map there is no pair
     to name (ADR 0168); the caller reads coverage counts instead of a
     center-distance stand-in pair.
@@ -175,9 +173,9 @@ def leftover_map_from_residual(
             reconstruction = float(
                 np.dot(person_xy[local_person[person]], item_xy[local_item[item]])
             )
-            filled = float(residual[person, item]) - center
-            unexplained = _unexplained_leftover(float(residual[person, item]), reconstruction)
-            share = _leftover_map_cross_share(filled, reconstruction)
+            residual_cell = float(residual[person, item])
+            unexplained = _unexplained_leftover(residual_cell, reconstruction)
+            share = _leftover_map_cross_share(residual_cell, reconstruction)
             candidates.append(
                 _candidate_row(
                     post_ids,
@@ -216,26 +214,25 @@ def _unexplained_leftover(residual: float, reconstruction: float) -> float | Non
     return float(unexplained)
 
 
-def _leftover_map_cross_share(filled: float, reconstruction: float) -> float | None:
-    """Return ``x = 2 R̂_c U_c / R̃²`` when both terms are finite; otherwise omit.
+def _leftover_map_cross_share(residual: float, reconstruction: float) -> float | None:
+    """Return ``x = 2 R̂ U / R²`` when both terms are finite; otherwise omit.
 
-    ``filled`` is centered leftover ``R̃ = R − center``. Centered
-    unexplained leftover ``U_c = R̃ − R̂_c`` is computed internally.
+    Unexplained leftover ``U = R − R̂`` is computed internally.
     Truncated two-axis reconstruction of a higher-rank cell keeps a
-    cross term ``2 R̂_c U_c``, so per-cell ``e + s ≠ 1``. The identity
-    remainder ``x`` names that cross term as a share of centered
-    leftover. ``x`` may be negative when reconstruction and unexplained
+    cross term ``2 R̂ U``, so per-cell ``e + s ≠ 1``. The identity
+    remainder ``x`` names that cross term as a share of raw residual.
+    ``x`` may be negative when reconstruction and unexplained
     leftover have opposite signs; a negative finite share is stored,
     not omitted.
     """
-    if not np.isfinite(filled) or not np.isfinite(reconstruction):
+    if not np.isfinite(residual) or not np.isfinite(reconstruction):
         return None
-    unexplained = float(filled - reconstruction)
+    unexplained = float(residual - reconstruction)
     # Threshold on absolute magnitudes, not squares: squaring first makes the
     # effective floor sqrt(1e-12) = 1e-6 and collapses small-but-finite cells
-    # (e.g. R-tilde = 1e-7 with a valid cross term) to an omitted badge.
-    if abs(filled) > _LEFTOVER_SINGULAR_FLOOR:
-        share = float(2.0 * reconstruction * unexplained / (filled * filled))
+    # (e.g. R = 1e-7 with a valid cross term) to an omitted badge.
+    if abs(residual) > _LEFTOVER_SINGULAR_FLOOR:
+        share = float(2.0 * reconstruction * unexplained / (residual * residual))
         return share if np.isfinite(share) else None
     if abs(reconstruction) <= _LEFTOVER_SINGULAR_FLOOR and abs(unexplained) <= _LEFTOVER_SINGULAR_FLOOR:
         return 0.0

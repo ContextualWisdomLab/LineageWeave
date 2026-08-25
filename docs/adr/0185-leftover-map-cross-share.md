@@ -12,34 +12,31 @@ ADR 0048 already persists leftover-map distance `d = ‖ξ_p − ζ_i‖` and
 leftover residual `R = Y − E[Y|θ, item]` on `report_leftover_pair`.
 ADR 0049 already renders closest and farthest pairs above the member
 list and opens the named post. Distance is the Jeon et al. (2021,
-eq. 3) map gap. Gabriel (1971) reconstructs a *centered* matrix from
-the biplot as the inner product of person and item coordinates. The
-leftover map buyers read is two-axis: unused axes pad with zero, and
-hidden SVD axes after the second are dropped. Two-axis reconstruction
-`R̂_c = ξ_{1:2} · ζ_{1:2}` therefore recovers centered leftover
-`R̃ = R − center`, not raw residual `R`. Truncated two-axis
-reconstruction of a higher-rank cell keeps unexplained leftover
-`U_c = R̃ − R̂_c` and a cross term `2 R̂_c U_c`. The cell identity
-`R̃² = R̂_c² + U_c² + 2 R̂_c U_c` therefore yields
-`e + s + x = 1` with explained leftover share `e = R̂_c² / R̃²`,
-unexplained leftover share `s = U_c² / R̃²`, and leftover-map cross
-share `x = 2 R̂_c U_c / R̃²`. Hiding `x` lets a buyer read `e + s`
+eq. 3) map gap. Gabriel (1971) derives coordinates from the centered
+matrix, while ADR 0182 defines the auditable cell reconstruction as
+`R̂ = ξ_{1:2} · ζ_{1:2}` and unexplained leftover as `U = R − R̂`.
+The leftover map is two-axis: unused axes pad with zero, and hidden SVD
+axes after the second are dropped. The raw-residual cell identity
+`R² = R̂² + U² + 2 R̂ U` therefore yields
+`e + s + x = 1` with explained leftover share `e = R̂² / R²`,
+unexplained leftover share `s = U² / R²`, and leftover-map cross
+share `x = 2 R̂ U / R²`. Hiding `x` lets a buyer read `e + s`
 as a complete leftover partition even though the truncated map leaves
 an identity remainder. `x` may be negative when reconstruction and
 unexplained leftover have opposite signs; a nonnegative CHECK would
 reject a mathematically honest cell.
 
-This increment does not persist leftover-map reconstruction `R̂` or
-`R̂_c`, does not persist leftover-map unexplained leftover `U` or
-`U_c`, does not persist leftover-map unexplained leftover share `s`,
+This increment does not persist leftover-map reconstruction `R̂`, does
+not add another unexplained-leftover column, does not persist
+leftover-map unexplained leftover share `s`,
 does not persist leftover-map explained leftover share `e`, does not
 persist leftover-map coordinates, does not name leftover-map inner
 product, cosine, or length, does not name observed `Y` / expected
 `E`, does not name leftover-map rank, does not split leftover-map
 distance onto two axes, and does not land Post quality on the leftover
 criterion. Leftover-map distance stays full-rank Euclidean.
-Reconstruction `R̂_c` and unexplained leftover `U_c` are computed
-internally so `x` is honest, then discarded.
+Reconstruction `R̂` is computed internally so `x` reconciles with the
+persisted raw residual and ADR 0182 unexplained leftover.
 
 The unprotected-stack reconstructions for neighbouring leftover facts
 use 0162–0184. This protected-main increment uses **0185** so it does
@@ -56,26 +53,27 @@ leftover interaction-map persistence (0121).
 ## Decision
 
 Each leftover pair names `leftover_map_cross_share` — leftover-map
-cross share `x = 2 R̂_c U_c / R̃²` of centered leftover after
-two-axis Gabriel reconstruction `R̂_c = ξ_{1:2} · ζ_{1:2}` and
-unexplained leftover `U_c = R̃ − R̂_c`. Migration `0185` is the
+cross share `x = 2 R̂ U / R²` of raw residual after
+two-axis Gabriel reconstruction `R̂ = ξ_{1:2} · ζ_{1:2}` and
+unexplained leftover `U = R − R̂`. Migration `0185` is the
 single source of the column on every install path, fresh or existing
 -- shipped migrations (`0001` / `0012`) are never edited after the
 fact. The column is nullable so older leftover rows keep distance and
 residual without fabricating a share. Fallback pairs that have no
 complete-case leftover map omit the value rather than inventing one.
-A rank-0 origin map stores `0.0` (`R̃ = 0`, `R̂_c = 0`, `U_c = 0`),
-not a missing value. A fully reconstructed rank-1 cell stores `0.0`
-because `U_c = 0`. A non-finite share stores null rather than
+A rank-0 origin cell stores `0.0` when `R = R̂ = U = 0`, not a missing
+value. A rank-1 cell may retain a nonzero raw-residual cross term when
+centering removed a nonzero mean. A non-finite share stores null rather than
 inventing a leftover score. A finite negative share is stored; do not
-add a nonnegative CHECK. Do not persist
-`leftover_map_explained_share`, `leftover_map_unexplained_share`,
-`leftover_map_unexplained`, or `leftover_map_reconstruction`.
+add a nonnegative CHECK. This increment does not introduce
+`leftover_map_explained_share`, `leftover_map_unexplained_share`, or
+`leftover_map_reconstruction`; ADR 0182 remains authoritative for
+`leftover_map_unexplained`.
 
-The pair button shows `2R̂U/R̃² {share}` next to leftover-map
+The pair button shows `2R̂U/R² {share}` next to leftover-map
 distance `d` when the value is a finite number, including a signed
 negative remainder. Next action: two leftover-map axes leave identity
-remainder `x` of centered leftover after IRT main effects; open this
+remainder `x` of raw residual after IRT main effects; open this
 post to read the named criterion. A missing or non-finite share omits
 the badge and keeps the existing closest/farthest next action. Do not
 invent a leftover score. Do not invent a theta.
@@ -84,7 +82,7 @@ invent a leftover score. Do not invent a theta.
 
 `GET /api/reports/{grouping}/{period}` returns
 `leftover_map_cross_share`. After `make seed`, closest and farthest
-leftover pairs sit above the member list with named `2R̂U/R̃²` next
+leftover pairs sit above the member list with named `2R̂U/R²` next
 to `d`; click opens that post. Hidden posts stay hidden.
 
 ## Related

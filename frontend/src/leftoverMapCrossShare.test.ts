@@ -3,9 +3,9 @@ import { formatLeftoverMapCrossShare } from "./leftoverMapCrossShare";
 
 describe("formatLeftoverMapCrossShare", () => {
   it("names leftover-map cross share without inventing a leftover score", () => {
-    expect(formatLeftoverMapCrossShare(0.12)).toBe("2R\u0302U/R\u0303\u00b2 0.12");
-    expect(formatLeftoverMapCrossShare(0)).toBe("2R\u0302U/R\u0303\u00b2 0.00");
-    expect(formatLeftoverMapCrossShare(-0.24)).toBe("2R\u0302U/R\u0303\u00b2 -0.24");
+    expect(formatLeftoverMapCrossShare(0.12)).toBe("2R\u0302U/R\u00b2 0.12");
+    expect(formatLeftoverMapCrossShare(0)).toBe("2R\u0302U/R\u00b2 0.00");
+    expect(formatLeftoverMapCrossShare(-0.24)).toBe("2R\u0302U/R\u00b2 -0.24");
   });
 
   it("omits the badge when leftover-map cross share is missing or non-finite", () => {

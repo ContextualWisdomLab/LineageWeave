@@ -30,8 +30,8 @@ export type LeftoverPairListProps = {
  * ``R = Y − E[Y|θ, item]`` (Jeon et al., 2021, eq. 3 input). Unexplained
  * leftover ``U = R − R̂`` after two-axis Gabriel reconstruction (ADR 0182)
  * takes priority over the residual/observed-expected/rank next action
- * when finite. When leftover-map cross share ``x = 2 R̂_c U_c / R̃²`` of
- * centered leftover is also present (ADR 0185), it names the next action
+ * when finite. When leftover-map cross share ``x = 2 R̂ U / R²`` of
+ * raw residual is also present (ADR 0185), it names the next action
  * instead of unexplained leftover; a missing or non-finite value falls
  * back in order — cross share, then unexplained leftover, then the
  * existing residual/rank/observed-expected next action. Every badge

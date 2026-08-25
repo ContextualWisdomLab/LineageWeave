@@ -3729,23 +3729,23 @@ describe("App, authenticated", () => {
     // Leftover-map cross share is present, so it names the next action
     // instead of the rank/observed-expected chain (ADR 0185).
     expect(closestPair).toHaveTextContent(
-      "Two leftover-map axes leave identity remainder 0.12 of centered leftover after IRT main effects. Open this post to read sales-lead.",
+      "Two leftover-map axes leave identity remainder 0.12 of raw residual after IRT main effects. Open this post to read sales-lead.",
     );
     expect(closestPair).toHaveTextContent("R +0.40");
     expect(closestPair).toHaveTextContent("Y 2.40 · E 2.00");
     expect(closestPair).toHaveTextContent("rank 1");
     expect(closestPair).toHaveTextContent("U +0.05");
-    expect(closestPair).toHaveTextContent("2R̂U/R̃² 0.12");
+    expect(closestPair).toHaveTextContent("2R̂U/R² 0.12");
     expect(closestPair).toHaveTextContent("d 0.12");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
-      "Two leftover-map axes leave identity remainder -0.24 of centered leftover after IRT main effects. Open this post to read negative.",
+      "Two leftover-map axes leave identity remainder -0.24 of raw residual after IRT main effects. Open this post to read negative.",
     );
     expect(farthestPair).toHaveTextContent("R −1.10");
     expect(farthestPair).toHaveTextContent("Y 0.90 · E 2.00");
     expect(farthestPair).toHaveTextContent("rank 1");
     expect(farthestPair).toHaveTextContent("U −0.25");
-    expect(farthestPair).toHaveTextContent("2R̂U/R̃² -0.24");
+    expect(farthestPair).toHaveTextContent("2R̂U/R² -0.24");
     expect(farthestPair).toHaveTextContent("d 1.84");
     const memberButton = screen.getByRole("button", { name: /open report post: public post/i });
     expect(coverageCaption.compareDocumentPosition(closestPair) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
