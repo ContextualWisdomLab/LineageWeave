@@ -90,7 +90,7 @@ context only.
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `a59a2023` | TEPP lifecycle persistence; BLOCKED with review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
-| #643 | `7fb4d18c` | accessible status notices; BLOCKED with review required |
+| #643 | `3453ab08` | accessible status notices; BLOCKED with review required |
 | #640 | `bc4a251d` | operations-dashboard evidence touch-target and temporal-producer prerequisite updates; BLOCKED with review required |
 | #639 | `8da485d3` | running-action/config repair; BLOCKED with review required |
 | #632 | `cad4debf` | graph-fact provenance repair; BLOCKED with review required |
