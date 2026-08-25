@@ -58,3 +58,6 @@ next action, not only the distance.
 Depends on [ADR 0048](0048-persist-lsirm-leftover-pairs.md) and
 [ADR 0003](0003-fast-mlsirm-report-integration.md). Complete-case
 coverage of the leftover map is [ADR 0168](0168-leftover-map-complete-case-coverage.md).
+
+[ADR 0003](0003-fast-mlsirm-report-integration.md). The grouping
+comparison strip reuses this leftover store ([ADR 0149](0149-leftover-pairs-on-comparison-strip.md)).
