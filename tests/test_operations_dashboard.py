@@ -4,7 +4,7 @@ from datetime import UTC, date, datetime, timezone
 
 import pytest
 
-from backend.app.operations_dashboard import fetch_operations_dashboard
+from backend.app.operations_dashboard import _project_lifecycles, fetch_operations_dashboard
 
 
 class _Connection:
@@ -89,6 +89,26 @@ class _Connection:
                     "event_count": 2,
             }
         ]
+
+
+def test_projected_start_with_unavailable_end_remains_open() -> None:
+    """A hidden end citation cannot make an observed start look absent."""
+    start = {
+        "milestone_type_code": "claim_received",
+        "milestone_type_label": "클레임 접수",
+        "evidence_text": "Synthetic claim received",
+        "evidence_post_id": "synthetic-start",
+        "observed_at": "2026-08-01T09:00:00+00:00",
+        "time_axis_code": "event_occurred_at",
+        "time_axis_label": "Event 발생일",
+    }
+
+    lifecycle = _project_lifecycles("claim_investigation", [start], set())[0]
+
+    assert lifecycle["status_code"] == "open"
+    assert lifecycle["start_milestone"] == start
+    assert lifecycle["end_milestone"] is None
+    assert lifecycle["next_action_text"] == "원인 확정 Event 근거를 연결하세요."
 
 
 @pytest.mark.anyio

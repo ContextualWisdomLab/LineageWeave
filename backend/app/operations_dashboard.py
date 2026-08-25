@@ -461,7 +461,7 @@ def _project_lifecycles(
             elapsed_seconds = int((datetime.fromisoformat(end["observed_at"]) - datetime.fromisoformat(start["observed_at"])).total_seconds())
             status_code = "resolved"
             next_action = "시작·종료 Event 근거를 열어 경과 시간을 검토하세요."
-        elif start and end_code in missing_milestones:
+        elif start:
             elapsed_seconds = None
             status_code = "open"
             next_action = f"{MILESTONE_TYPE_LABELS[end_code]} Event 근거를 연결하세요."
