@@ -221,6 +221,7 @@ from lineageweave.http_client import HttpClientError
 
 _POST_READ = "post_read"
 _POST_ADMIN = "post_admin"
+_SIMILAR_VOC_PAGE_SIZE = 8
 
 
 @asynccontextmanager
@@ -274,7 +275,6 @@ async def lifespan(app: FastAPI):
                     timeout=load_settings().orchestrator_answer_timeout_seconds
                 ),
                 embedding_factory=_embedding_client,
-                embedding_model_code=settings.embedding_model,
             )
         )
         app.state.global_ask_worker = global_ask_worker
@@ -1793,6 +1793,7 @@ async def _load_visible_post(
 @app.get("/api/posts/{post_id}/similar-voc")
 async def read_similar_voc(
     post_id: str,
+    offset: int = Query(0, ge=0),
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
 ) -> dict[str, Any]:
@@ -1813,19 +1814,28 @@ async def read_similar_voc(
         rows = await conn.fetch(
             """
             select post.post_id, post.post_title, post.post_body,
-                   post.visibility_code, post.corporate_entity_id,
+                   post.visibility_code, post.corporate_entity_id, post.process_unit_id,
                    coalesce(post.event_occurred_at, post.created_at) as occurred_at
               from operations_case_classification classification
               join source_post post on post.post_id = classification.post_id
              where classification.case_kind_code = 'repeat_issue'
                and post.post_id <> $1
                and post.post_body <> ''
+               and (post.visibility_code = 'public'
+                    or (post.corporate_entity_id::text = any($2::text[])
+                        and (cardinality($3::text[]) = 0
+                             or post.process_unit_id::text = any($3::text[]))))
                and """
             f"{SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')} "
-            "order by coalesce(post.event_occurred_at, post.created_at) desc, post.post_id",
+            "order by coalesce(post.event_occurred_at, post.created_at) desc, post.post_id "
+            "offset $4 limit $5",
             post_id,
+            list(account.corporate_entity_ids),
+            list(account.process_unit_ids),
+            offset,
+            _SIMILAR_VOC_PAGE_SIZE + 1,
         )
-    candidates = [row for row in rows if _can_see_post(account, row)]
+    candidates = [row for row in rows[:_SIMILAR_VOC_PAGE_SIZE] if _can_see_post(account, row)]
 
     async def _adjudicate(candidate: asyncpg.Record):
         with use_llm_metadata(build_post_llm_metadata(post_id, focal)):
@@ -1855,7 +1865,12 @@ async def read_similar_voc(
                 "occurred_at": candidate["occurred_at"].isoformat(),
             }
         )
-    return {"items": items}
+    return {
+        "items": items,
+        "next_offset": offset + _SIMILAR_VOC_PAGE_SIZE
+        if len(rows) > _SIMILAR_VOC_PAGE_SIZE
+        else None,
+    }
 
 
 async def _load_post_semantic_hints(conn: asyncpg.Connection, post_id: str) -> str:

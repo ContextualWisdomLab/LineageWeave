@@ -392,7 +392,6 @@ async def gather_global_chat_sources(
     authorized_process_unit_ids: Iterable[str] = (),
     vision_client: ImageContentClient | None = None,
     embedding_client: EmbeddingClient | None = None,
-    embedding_model_code: str = "",
     *,
     question: str | None = None,
     limit: int = 4,
@@ -428,13 +427,16 @@ async def gather_global_chat_sources(
     resolved_time_range = resolve_korean_relative_time(
         question or "", today=today or _seoul_today()
     )
-    if not (question and question.strip() and embedding_client.available and embedding_model_code):
+    if not (question and question.strip() and embedding_client.available):
         return []
     try:
         question_vector = await asyncio.to_thread(embedding_client.embed, question)
     except (OSError, RuntimeError, ValueError):
         return []
     if not question_vector:
+        return []
+    embedding_model_code = embedding_client.resolved_model
+    if not embedding_model_code:
         return []
     question_norm = sum(value * value for value in question_vector) ** 0.5
     if question_norm == 0.0:

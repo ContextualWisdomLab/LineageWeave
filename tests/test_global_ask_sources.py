@@ -9,6 +9,7 @@ from lineageweave.ask_time_axis import TIME_AXIS_CREATED, TIME_AXIS_EVENT
 
 class _EmbeddingClient:
     available = True
+    resolved_model = "test-embedding"
 
     def embed(self, _text: str) -> list[float]:
         return [1.0, 0.0]
@@ -17,7 +18,6 @@ class _EmbeddingClient:
 def gather_global_chat_sources(*args, **kwargs):
     """Exercise Global Ask with an available deterministic semantic channel."""
     kwargs.setdefault("embedding_client", _EmbeddingClient())
-    kwargs.setdefault("embedding_model_code", "test-embedding")
     return _gather_global_chat_sources(*args, **kwargs)
 
 
@@ -317,7 +317,6 @@ def test_global_sources_fail_closed_when_embedding_is_unavailable() -> None:
             lambda _row: True,
             question="semantic question",
             embedding_client=UnavailableEmbedding(),
-            embedding_model_code="test-embedding",
         )
     )
 
