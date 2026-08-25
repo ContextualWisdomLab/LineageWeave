@@ -10,6 +10,7 @@ from backend.app.mcp_rate_limit import (
     McpRateLimiterUnavailable,
     McpRateLimitExceeded,
     ValkeyMcpRateLimiter,
+    build_mcp_rate_limiter,
 )
 
 
@@ -75,3 +76,14 @@ async def test_limiter_fails_closed_for_valkey_error() -> None:
     )
     with pytest.raises(McpRateLimiterUnavailable):
         await limiter.consume("account")
+
+
+def test_builder_uses_shared_valkey_factory(monkeypatch) -> None:
+    """The production builder wires the configured shared Valkey URL."""
+    client = FakeValkey([1, 60])
+    monkeypatch.setattr(
+        "backend.app.mcp_rate_limit.create_valkey_client",
+        lambda url: client if url == "redis://shared" else None,
+    )
+    limiter = build_mcp_rate_limiter("redis://shared", 2, 60)
+    assert limiter._client is client

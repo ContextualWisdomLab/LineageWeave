@@ -5,8 +5,12 @@ from __future__ import annotations
 import json
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+from mcp.client import Client
+from mcp.server.auth.provider import AccessToken
+from starlette.testclient import TestClient
 
 from backend.app.config import load_settings
 
@@ -72,6 +76,30 @@ async def test_mcp_verifier_uses_exact_resource_audience(monkeypatch) -> None:
     assert observed == [("token", settings, settings.mcp_audience)]
 
 
+@pytest.mark.anyio
+async def test_mcp_verifier_rejects_invalid_or_unbound_claims(monkeypatch) -> None:
+    """Decoder failures and missing client identity remain unauthenticated."""
+    monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "10")
+    monkeypatch.setenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")
+    from fastapi import HTTPException
+
+    from backend.app import mcp_auth
+
+    settings = load_settings()
+    monkeypatch.setattr(
+        mcp_auth,
+        "decode_access_token",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(HTTPException(401)),
+    )
+    assert await mcp_auth.KeyverseMcpTokenVerifier(settings).verify_token("bad") is None
+    monkeypatch.setattr(
+        mcp_auth, "decode_access_token", lambda *_args, **_kwargs: {"sub": "subject"}
+    )
+    assert await mcp_auth.KeyverseMcpTokenVerifier(settings).verify_token("bad") is None
+    assert mcp_auth._scopes_from_claim(["one", 2, "two"]) == ["one", "two"]
+    assert mcp_auth._scopes_from_claim(None) == []
+
+
 @pytest.mark.parametrize(
     "name", ["MCP_RATE_LIMIT_REQUESTS", "MCP_RATE_LIMIT_WINDOW_SECONDS"]
 )
@@ -97,3 +125,348 @@ def test_local_keycloak_and_mcp_service_share_exact_fixed_audience() -> None:
     assert f"MCP_RESOURCE_URL: {audience}" in compose
     assert f"MCP_AUDIENCE: {audience}" in compose
     assert '"18001:8001"' in compose
+
+
+class FakePool:
+    """Record MCP lifespan closure without opening PostgreSQL."""
+
+    def __init__(self) -> None:
+        self.closed = False
+
+    async def close(self) -> None:
+        """Record pool closure."""
+        self.closed = True
+
+
+class FakeLimiter:
+    """Record each authenticated tool quota consumption."""
+
+    def __init__(self, error=None) -> None:
+        self.accounts = []
+        self.closed = False
+        self.error = error
+
+    async def consume(self, account_id: str) -> None:
+        """Record one consumed account unit."""
+        self.accounts.append(account_id)
+        if self.error:
+            raise self.error
+
+    async def close(self) -> None:
+        """Record limiter closure."""
+        self.closed = True
+
+
+@pytest.mark.anyio
+async def test_mcp_tools_delegate_to_current_service_once(monkeypatch) -> None:
+    """Both tools share account resolution, quota, and durable service calls."""
+    monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "10")
+    monkeypatch.setenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")
+    from backend.app import mcp_server
+    from backend.app.auth import CurrentAccount
+
+    settings = load_settings()
+    pool = FakePool()
+    limiter = FakeLimiter()
+    account = CurrentAccount(
+        "account-1",
+        "subject-1",
+        "Analyst",
+        None,
+        frozenset({"entity-1"}),
+        frozenset({"unit-1"}),
+        frozenset({"post_read"}),
+    )
+
+    async def resolve(candidate_pool, claims, candidate_settings):
+        assert (candidate_pool, claims["sub"], candidate_settings) == (
+            pool,
+            "subject-1",
+            settings,
+        )
+        return account
+
+    submitted = []
+
+    async def submit(**kwargs):
+        submitted.append(kwargs)
+        return {
+            "ask_job_id": "00000000-0000-0000-0000-000000000123",
+            "job_status_code": "queued",
+        }
+
+    async def read(**kwargs):
+        assert kwargs["account"] is account
+        return {"ask_job_id": str(kwargs["ask_job_id"]), "job_status_code": "running"}
+
+    monkeypatch.setattr(mcp_server, "submit_global_ask_service", submit)
+    monkeypatch.setattr(mcp_server, "read_global_ask_job_service", read)
+    token = AccessToken(
+        token="token",
+        client_id="client-1",
+        scopes=[],
+        subject="subject-1",
+        resource=settings.mcp_audience,
+        claims={"sub": "subject-1"},
+    )
+    server = mcp_server.build_mcp_server(
+        settings,
+        pool_factory=lambda _url: _return(pool),
+        valkey_factory=lambda _url: object(),
+        limiter_factory=lambda _client, _requests, _window: limiter,
+        account_resolver=resolve,
+        access_token_provider=lambda: token,
+    )
+    async with Client(server) as client:
+        listed = await client.list_tools()
+        assert {tool.name for tool in listed.tools} == {
+            "submit_global_ask",
+            "read_global_ask_job",
+        }
+        queued = await client.call_tool(
+            "submit_global_ask",
+            {
+                "question": "What changed?",
+                "verify_external": True,
+                "knowledge_cutoff": "2026-08-25T00:00:00Z",
+            },
+        )
+        assert queued.is_error is False
+        running = await client.call_tool(
+            "read_global_ask_job",
+            {"ask_job_id": "00000000-0000-0000-0000-000000000123"},
+        )
+        assert running.is_error is False
+        invalid = await client.call_tool(
+            "read_global_ask_job", {"ask_job_id": "not-a-uuid"}
+        )
+        assert invalid.is_error is True
+    assert submitted[0]["account"] is account
+    assert submitted[0]["verify_external"] is True
+    assert limiter.accounts == ["account-1", "account-1", "account-1"]
+    assert pool.closed and limiter.closed
+
+
+def test_http_boundary_rejects_host_before_oauth(monkeypatch) -> None:
+    """A hostile Host receives no OAuth challenge and invokes no tool."""
+    monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "10")
+    monkeypatch.setenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")
+    from backend.app import mcp_server
+
+    settings = replace(load_settings(), mcp_allowed_hosts=["testserver"])
+    pool = FakePool()
+    limiter = FakeLimiter()
+    server = mcp_server.build_mcp_server(
+        settings,
+        pool_factory=lambda _url: _return(pool),
+        valkey_factory=lambda _url: object(),
+        limiter_factory=lambda *_args: limiter,
+    )
+    app = mcp_server.build_mcp_http_app(server, settings)
+    with TestClient(app) as client:
+        response = client.post(
+            "/mcp",
+            headers={"Host": "attacker.example", "MCP-Protocol-Version": "2025-11-25"},
+            json={"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},
+        )
+    assert response.status_code == 421
+    assert "www-authenticate" not in response.headers
+    assert pool.closed and limiter.closed
+
+
+def test_http_boundary_rejects_origin_and_challenges_trusted_host(monkeypatch) -> None:
+    """Origin rejection precedes OAuth while a trusted no-Origin client is challenged."""
+    monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "10")
+    monkeypatch.setenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")
+    from backend.app import mcp_server
+
+    settings = replace(
+        load_settings(),
+        mcp_allowed_hosts=["testserver"],
+        mcp_allowed_origins=["https://trusted.example"],
+    )
+    pool = FakePool()
+    limiter = FakeLimiter()
+    server = mcp_server.build_mcp_server(
+        settings,
+        pool_factory=lambda _url: _return(pool),
+        valkey_factory=lambda _url: object(),
+        limiter_factory=lambda *_args: limiter,
+    )
+    app = mcp_server.build_mcp_http_app(server, settings)
+    payload = {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}}
+    with TestClient(app) as client:
+        rejected = client.post(
+            "/mcp", headers={"Origin": "https://attacker.example"}, json=payload
+        )
+        challenged = client.post("/mcp", json=payload)
+    assert rejected.status_code == 403
+    assert rejected.headers["vary"] == "Origin"
+    assert challenged.status_code == 401
+
+
+@pytest.mark.anyio
+async def test_retry_after_wrapper_replaces_existing_header(monkeypatch) -> None:
+    """Quota exhaustion exposes only the bounded current retry interval."""
+    monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "10")
+    monkeypatch.setenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")
+    from backend.app import mcp_server
+
+    async def downstream(scope, _receive, send):
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 200,
+                "headers": [(b"retry-after", b"999")],
+            }
+        )
+        await send({"type": "http.response.body", "body": b""})
+
+    sent = []
+    scope = {"type": "http", "state": {mcp_server._RETRY_AFTER_STATE_KEY: 7}}
+
+    async def send(message):
+        """Capture one wrapped ASGI response message."""
+        sent.append(message)
+
+    await mcp_server.McpRetryAfterHeaderApp(downstream)(
+        scope, lambda: _return({"type": "http.disconnect"}), send
+    )
+    assert (b"retry-after", b"7") in sent[0]["headers"]
+    assert (b"retry-after", b"999") not in sent[0]["headers"]
+
+
+@pytest.mark.anyio
+@pytest.mark.parametrize(
+    "mode", ["missing_token", "permission", "exceeded", "unavailable"]
+)
+async def test_tool_auth_and_quota_fail_closed(monkeypatch, mode) -> None:
+    """Unauthenticated, unauthorized, exhausted, and unavailable calls never submit."""
+    monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "10")
+    monkeypatch.setenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")
+    from backend.app import mcp_server
+    from backend.app.auth import CurrentAccount
+    from backend.app.mcp_rate_limit import (
+        McpRateLimiterUnavailable,
+        McpRateLimitExceeded,
+    )
+
+    settings = load_settings()
+    pool = FakePool()
+    error = {
+        "exceeded": McpRateLimitExceeded(7),
+        "unavailable": McpRateLimiterUnavailable(),
+    }.get(mode)
+    limiter = FakeLimiter(error)
+    permissions = frozenset() if mode == "permission" else frozenset({"post_read"})
+    account = CurrentAccount(
+        "account-1",
+        "subject-1",
+        "Analyst",
+        None,
+        frozenset({"entity-1"}),
+        frozenset({"unit-1"}),
+        permissions,
+    )
+
+    async def resolve(*_args):
+        return account
+
+    token = (
+        None
+        if mode == "missing_token"
+        else AccessToken(
+            token="token",
+            client_id="client",
+            scopes=[],
+            subject="subject-1",
+            resource=settings.mcp_audience,
+            claims={"sub": "subject-1"},
+        )
+    )
+    server = mcp_server.build_mcp_server(
+        settings,
+        pool_factory=lambda _url: _return(pool),
+        valkey_factory=lambda _url: object(),
+        limiter_factory=lambda *_args: limiter,
+        account_resolver=resolve,
+        access_token_provider=lambda: token,
+    )
+    async with Client(server) as client:
+        if mode in {"exceeded", "unavailable"}:
+            from mcp.shared.exceptions import MCPError
+
+            with pytest.raises(MCPError):
+                await client.call_tool("submit_global_ask", {"question": "question"})
+        else:
+            result = await client.call_tool(
+                "submit_global_ask", {"question": "question"}
+            )
+            assert result.is_error is True
+
+
+def test_production_limiter_factory_uses_validated_values(monkeypatch) -> None:
+    """The server's default limiter factory forwards measured inputs unchanged."""
+    from backend.app import mcp_server
+
+    client = object()
+    limiter = mcp_server._build_limiter(client, 3, 17)
+    assert limiter._client is client
+    assert limiter._request_limit == 3
+    assert limiter._window_seconds == 17
+
+
+@pytest.mark.anyio
+async def test_exhausted_http_tool_marks_request_retry_state(monkeypatch) -> None:
+    """HTTP quota exhaustion carries its bounded delay to response middleware."""
+    monkeypatch.setenv("MCP_RATE_LIMIT_REQUESTS", "10")
+    monkeypatch.setenv("MCP_RATE_LIMIT_WINDOW_SECONDS", "60")
+    from mcp.shared.exceptions import MCPError
+    from starlette.requests import Request
+
+    from backend.app import mcp_server
+    from backend.app.auth import CurrentAccount
+    from backend.app.mcp_rate_limit import McpRateLimitExceeded
+
+    settings = load_settings()
+    account = CurrentAccount(
+        "account-1",
+        "subject-1",
+        "Analyst",
+        None,
+        frozenset(),
+        frozenset(),
+        frozenset({"post_read"}),
+    )
+    limiter = FakeLimiter(McpRateLimitExceeded(7))
+    request = Request({"type": "http", "method": "POST", "path": "/mcp", "headers": []})
+    context = SimpleNamespace(
+        request_context=SimpleNamespace(
+            lifespan_context=SimpleNamespace(
+                pool=object(), limiter=limiter, settings=settings
+            ),
+            request=request,
+        )
+    )
+
+    async def resolve(*_args):
+        return account
+
+    token = AccessToken(
+        token="token",
+        client_id="client",
+        scopes=[],
+        subject="subject-1",
+        resource=settings.mcp_audience,
+        claims={"sub": "subject-1"},
+    )
+    with pytest.raises(MCPError):
+        await mcp_server._account(
+            context, access_token_provider=lambda: token, account_resolver=resolve
+        )
+    assert request.scope["state"][mcp_server._RETRY_AFTER_STATE_KEY] == 7
+
+
+async def _return(value):
+    """Return a value from an awaitable factory."""
+    return value

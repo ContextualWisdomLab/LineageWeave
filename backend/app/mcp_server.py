@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from typing import Any
@@ -11,6 +11,7 @@ from uuid import UUID
 
 from mcp.server import MCPServer
 from mcp.server.auth.middleware.auth_context import get_access_token
+from mcp.server.auth.provider import AccessToken, TokenVerifier
 from mcp.server.auth.settings import AuthSettings
 from mcp.server.mcpserver import Context
 from mcp.server.transport_security import (
@@ -140,13 +141,30 @@ def _validate_mcp_settings(settings: Settings) -> tuple[int, int]:
     return settings.mcp_rate_limit_requests, settings.mcp_rate_limit_window_seconds
 
 
-async def _account(ctx: Context[McpAppContext, Any]) -> CurrentAccount:
+PoolFactory = Callable[[str], Awaitable[Any]]
+ValkeyFactory = Callable[[str], Any]
+LimiterFactory = Callable[[Any, int, int], ValkeyMcpRateLimiter]
+AccountResolver = Callable[[Any, dict, Settings], Awaitable[CurrentAccount]]
+AccessTokenProvider = Callable[[], AccessToken | None]
+
+
+def _build_limiter(client: Any, requests: int, window: int) -> ValkeyMcpRateLimiter:
+    """Build the production shared limiter from validated inputs."""
+    return ValkeyMcpRateLimiter(client, request_limit=requests, window_seconds=window)
+
+
+async def _account(
+    ctx: Context[McpAppContext, Any],
+    *,
+    access_token_provider: AccessTokenProvider,
+    account_resolver: AccountResolver,
+) -> CurrentAccount:
     """Resolve the authenticated token to one provisioned database account."""
-    token = get_access_token()
+    token = access_token_provider()
     if token is None or not token.subject or not isinstance(token.claims, dict):
         raise PermissionError("authenticated MCP principal is unavailable")
     dependencies = ctx.request_context.lifespan_context
-    account = await resolve_current_account(
+    account = await account_resolver(
         dependencies.pool, token.claims, dependencies.settings
     )
     if not account.has_permission("post_read"):
@@ -169,7 +187,16 @@ async def _account(ctx: Context[McpAppContext, Any]) -> CurrentAccount:
     return account
 
 
-def build_mcp_server(settings: Settings | None = None) -> MCPServer[McpAppContext]:
+def build_mcp_server(
+    settings: Settings | None = None,
+    *,
+    pool_factory: PoolFactory = create_pool,
+    valkey_factory: ValkeyFactory = create_valkey_client,
+    limiter_factory: LimiterFactory = _build_limiter,
+    token_verifier: TokenVerifier | None = None,
+    account_resolver: AccountResolver = resolve_current_account,
+    access_token_provider: AccessTokenProvider = get_access_token,
+) -> MCPServer[McpAppContext]:
     """Build the authenticated MCP server over the current durable Ask contract."""
     resolved = settings or load_settings()
     request_limit, window_seconds = _validate_mcp_settings(resolved)
@@ -177,11 +204,9 @@ def build_mcp_server(settings: Settings | None = None) -> MCPServer[McpAppContex
     @asynccontextmanager
     async def lifespan(_: MCPServer) -> AsyncIterator[McpAppContext]:
         """Open and close process-wide database and quota clients."""
-        pool = await create_pool(resolved.database_url)
-        valkey = create_valkey_client(resolved.valkey_url)
-        limiter = ValkeyMcpRateLimiter(
-            valkey, request_limit=request_limit, window_seconds=window_seconds
-        )
+        pool = await pool_factory(resolved.database_url)
+        valkey = valkey_factory(resolved.valkey_url)
+        limiter = limiter_factory(valkey, request_limit, window_seconds)
         chat_client = (
             ContextualOrchestratorPostChatClient(
                 base_url=resolved.orchestrator_base_url,
@@ -202,7 +227,7 @@ def build_mcp_server(settings: Settings | None = None) -> MCPServer[McpAppContex
         description="Authenticated provenance-bearing lineage intelligence.",
         version="2.18.0",
         lifespan=lifespan,
-        token_verifier=KeyverseMcpTokenVerifier(resolved),
+        token_verifier=token_verifier or KeyverseMcpTokenVerifier(resolved),
         auth=AuthSettings(
             issuer_url=AnyHttpUrl(resolved.oidc_issuer),
             resource_server_url=AnyHttpUrl(resolved.mcp_resource_url),
@@ -225,7 +250,11 @@ def build_mcp_server(settings: Settings | None = None) -> MCPServer[McpAppContex
     ) -> dict[str, Any]:
         """Queue one current-contract Global Ask job without blocking transport."""
         dependencies = ctx.request_context.lifespan_context
-        account = await _account(ctx)
+        account = await _account(
+            ctx,
+            access_token_provider=access_token_provider,
+            account_resolver=account_resolver,
+        )
         return await submit_global_ask_service(
             pool=dependencies.pool,
             valkey=dependencies.valkey,
@@ -247,7 +276,11 @@ def build_mcp_server(settings: Settings | None = None) -> MCPServer[McpAppContex
         ask_job_id: str, ctx: Context[McpAppContext, Any]
     ) -> dict[str, Any]:
         """Read one current-contract Global Ask job and its persisted answer."""
-        account = await _account(ctx)
+        account = await _account(
+            ctx,
+            access_token_provider=access_token_provider,
+            account_resolver=account_resolver,
+        )
         try:
             parsed_job_id = UUID(ask_job_id)
         except ValueError as exc:

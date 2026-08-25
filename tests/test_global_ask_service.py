@@ -143,6 +143,17 @@ async def test_permission_and_owner_scope_fail_closed() -> None:
             pool=Pool(Connection(row)), account=account(), ask_job_id=UUID(int=1)
         )
     assert absent.value.status_code == 404
+    with pytest.raises(HTTPException) as submit_denied:
+        await global_ask_service.submit_global_ask(
+            pool=Pool(Connection()),
+            valkey=object(),
+            account=account(permitted=False),
+            question="question",
+            verify_external=False,
+            knowledge_cutoff=None,
+            service_available=True,
+        )
+    assert submit_denied.value.status_code == 403
 
 
 @pytest.mark.anyio

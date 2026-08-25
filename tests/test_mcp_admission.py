@@ -12,12 +12,16 @@ from backend.app.mcp_admission import BoundedRequestBodyApp
 class Recorder:
     """Capture the single replayed body."""
 
-    def __init__(self) -> None:
+    def __init__(self, *, read_twice: bool = False) -> None:
         self.body = None
+        self.read_twice = read_twice
+        self.terminal = None
 
     async def __call__(self, _scope, receive, send) -> None:
         """Read once and return an empty success response."""
         self.body = await receive()
+        if self.read_twice:
+            self.terminal = await receive()
         await send({"type": "http.response.start", "status": 204, "headers": []})
         await send({"type": "http.response.body", "body": b""})
 
@@ -83,6 +87,8 @@ async def test_bounded_body_replays_exact_bytes() -> None:
             "mcp_invalid_content_length",
         ),
         ([(b"content-length", b"-1")], [], 400, "mcp_invalid_content_length"),
+        ([(b"content-length", b"\xff")], [], 400, "mcp_invalid_content_length"),
+        ([(b"content-length", b"9" * 5000)], [], 400, "mcp_invalid_content_length"),
         (
             [(b"content-length", b"4")],
             [{"type": "http.request", "body": b"123", "more_body": False}],
@@ -122,3 +128,22 @@ async def test_non_post_traffic_passes_through() -> None:
     )
     assert status == 204
     assert downstream.body["body"] == b""
+
+
+@pytest.mark.anyio
+async def test_replay_reports_disconnect_after_one_body() -> None:
+    """The SDK cannot re-read or duplicate an admitted request body."""
+    downstream = Recorder(read_twice=True)
+    app = BoundedRequestBodyApp(downstream, maximum_bytes=8)
+    sent = []
+
+    async def receive():
+        """Supply one admitted body."""
+        return {"type": "http.request", "body": b"123", "more_body": False}
+
+    async def send(message):
+        """Capture the response."""
+        sent.append(message)
+
+    await app({"type": "http", "method": "POST", "headers": []}, receive, send)
+    assert downstream.terminal == {"type": "http.disconnect"}
