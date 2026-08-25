@@ -1,11 +1,13 @@
 import { useEffect, useId, useRef } from "react";
 import { chatEvidenceKindLabel } from "../evidenceKindLabels";
+import { isFocusableVisible } from "../focusVisibility";
 import { t, tf } from "../i18n";
 import { PopupCloseButton } from "./PopupCloseButton";
 
 const FOCUSABLE_SELECTOR = [
   "a[href]",
   "button:not([disabled])",
+  "summary",
   "input:not([disabled])",
   "select:not([disabled])",
   "textarea:not([disabled])",
@@ -75,9 +77,9 @@ export function AskEvidenceLayerPopup({
 
       const panel = panelRef.current;
       if (!panel) return;
-      const focusable = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-        (element) => !element.hasAttribute("hidden") && element.getAttribute("aria-hidden") !== "true",
-      );
+      const focusable = Array.from(
+        panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      ).filter(isFocusableVisible);
       if (focusable.length === 0) {
         event.preventDefault();
         panel.focus();
@@ -135,7 +137,7 @@ export function AskEvidenceLayerPopup({
             <ul className="post-evidence-list" aria-labelledby={`${headingId} ${factsHeadingId}`}>
               {facts.map((fact, index) => (
                 <li key={`${fact.kind}:${fact.text}:${index}`}>
-                  <span>{chatEvidenceKindLabel(fact.kind)}</span>
+                  <span>{chatEvidenceKindLabel(fact.kind)}: </span>
                   <span>{fact.text}</span>
                 </li>
               ))}
@@ -149,8 +151,8 @@ export function AskEvidenceLayerPopup({
               {images.map((image) => (
                 <li key={image.unit_index}>
                   <span>{image.caption?.trim() ? image.caption : t("Untitled image")}</span>
-                  {image.extracted_text ? <span>{image.extracted_text}</span> : null}
-                  {image.tags.length ? <span>{t("Image tags")}: {image.tags.join(", ")}</span> : null}
+                  {image.extracted_text ? <span> · {image.extracted_text}</span> : null}
+                  {image.tags.length ? <span> · {t("Image tags")}: {image.tags.join(", ")}</span> : null}
                 </li>
               ))}
             </ul>

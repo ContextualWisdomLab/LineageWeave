@@ -94,7 +94,7 @@ def test_orchestrator_embedding_client_submits_and_polls_batch(monkeypatch) -> N
 
     def fake_post_json(url, payload, *, headers, timeout):
         calls.append(("post", url, payload, headers))
-        return {"batch_id": "synthetic-batch", "status": "queued"}
+        return {"batch_id": "synthetic-batch", "status": "queued", "model": "resolved-embedding"}
 
     def fake_get_json(url, *, headers, timeout, service_peer_name):
         assert service_peer_name == "contextual-orchestrator"
@@ -102,6 +102,7 @@ def test_orchestrator_embedding_client_submits_and_polls_batch(monkeypatch) -> N
         return {
             "batch_id": "synthetic-batch",
             "status": "completed",
+            "model": "resolved-embedding",
             "embeddings": [
                 {"index": 1, "embedding": [2.0, 3.0]},
                 {"index": 0, "embedding": [0.0, 1.0]},
@@ -111,9 +112,14 @@ def test_orchestrator_embedding_client_submits_and_polls_batch(monkeypatch) -> N
     monkeypatch.setattr("lineageweave.embedding_client.post_json", fake_post_json)
     monkeypatch.setattr("lineageweave.embedding_client.get_json", fake_get_json)
     client = ContextualOrchestratorEmbeddingClient(
-        "http://orchestrator:8000", "synthetic-token", "synthetic-embedding", poll_interval=0
+        "http://orchestrator:8000", "synthetic-token", poll_interval=0
     )
 
     assert client.embed_many(["first", "second"]) == [[0.0, 1.0], [2.0, 3.0]]
     assert calls[0][1] == "http://orchestrator:8000/v1/batch/embeddings"
     assert calls[0][3] == {"authorization": "Bearer synthetic-token"}
+    assert "model" not in calls[0][2]
+    assert client.resolved_model == "resolved-embedding"
+
+    assert client.embed_many(["third", "fourth"]) == [[0.0, 1.0], [2.0, 3.0]]
+    assert calls[2][2]["model"] == "resolved-embedding"

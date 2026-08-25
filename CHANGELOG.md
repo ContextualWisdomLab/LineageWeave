@@ -8,6 +8,12 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Buyer Calendar now consumes the Naruon calendar projection beside
+  post-grounded commitments (ADR 0203 step 2 / #336). Observed occurrences
+  stay evidence-only; a commitment still opens that post. The 달력
+  destination fail-closes with `이 범위의 일정을 아직 받을 수 없습니다`
+  when the Naruon audience is missing. `CALDAV_BASE_URL` is not a fallback.
+
 - Registered the `analysis_run_topic_lineage` analysis-run kind (migrations
   0131/0132, ADR 0132), the LineageWeave-side consumption boundary for
   TEPP's Temporal Relational Shared-Latent Topic Measurement (TRSL-TM,

@@ -24,7 +24,7 @@ import json
 import logging
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Any, Literal
 from uuid import UUID
 
@@ -41,10 +41,6 @@ from lineageweave.adjudication_client import (
 from lineageweave.commitment_extraction import (
     ContextualOrchestratorCommitmentExtractionClient,
     NullCommitmentExtractionClient,
-)
-from lineageweave.caldav_client import (
-    CALDAV_UNAVAILABLE_NEXT_ACTION,
-    build_caldav_client,
 )
 from lineageweave.entity_relationship_classification import (
     ContextualOrchestratorEntityRelationshipClient,
@@ -94,6 +90,11 @@ from lineageweave.semantic_hints import customer_hint_trust, format_semantic_hin
 from lineageweave.similar_voc import ContextualOrchestratorSimilarVocAnalysisClient
 from lineageweave.ontology import LW
 from lineageweave.rankweave_client import build_rankweave_client
+from lineageweave.naruon_calendar_workspace import (
+    build_workspace_naruon_client,
+    default_calendar_window,
+    load_observed_calendar_events,
+)
 
 from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
@@ -471,7 +472,6 @@ def _embedding_client():
     return orchestrator_embedding_client(
         settings.orchestrator_base_url,
         settings.orchestrator_api_key,
-        settings.embedding_model,
     )
 
 
@@ -501,10 +501,16 @@ def _rankweave_client():
 
 
 def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
-    """ABAC: public rows are visible; private rows require same-corp affiliation."""
+    """ABAC: public rows are visible; private rows require the bound local scope."""
     if post["visibility_code"] == "public":
         return True
-    return str(post["corporate_entity_id"]) in account.corporate_entity_ids
+    return (
+        str(post["corporate_entity_id"]) in account.corporate_entity_ids
+        and (
+            not account.process_unit_ids
+            or str(post["process_unit_id"]) in account.process_unit_ids
+        )
+    )
 
 
 def _is_synthetic_demo_member(member: dict[str, Any], demo_entity_ids: set[str]) -> bool:
@@ -627,7 +633,9 @@ async def _lookup_post_labels(conn: asyncpg.Connection, rows: list[asyncpg.Recor
 
 
 async def _post_filter_options(
-    conn: asyncpg.Connection, corporate_entity_ids: frozenset[str]
+    conn: asyncpg.Connection,
+    corporate_entity_ids: frozenset[str],
+    process_unit_ids: frozenset[str],
 ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
     """Return every authorized filter value, not only values on the current page."""
     visibility_sql = f"""
@@ -639,7 +647,9 @@ async def _post_filter_options(
             on lookup.lookup_category = 'post_visibility'
            and lookup.lookup_code = post.visibility_code
          where (post.visibility_code = 'public'
-            or post.corporate_entity_id::text = any($1::text[]))
+            or (post.corporate_entity_id::text = any($1::text[])
+                and (cardinality($2::text[]) = 0
+                     or post.process_unit_id::text = any($2::text[]))))
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
     """
@@ -652,17 +662,19 @@ async def _post_filter_options(
             on lookup.lookup_category = 'voc_type'
            and lookup.lookup_code = post.voc_type_code
          where (post.visibility_code = 'public'
-            or post.corporate_entity_id::text = any($1::text[]))
+            or (post.corporate_entity_id::text = any($1::text[])
+                and (cardinality($2::text[]) = 0
+                     or post.process_unit_id::text = any($2::text[]))))
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
          order by display_order, code
     """
     # Safe SQL: both query strings are closed lookup statements; entity ids remain asyncpg parameters.
     visibility_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        visibility_sql, list(corporate_entity_ids)
+        visibility_sql, list(corporate_entity_ids), list(process_unit_ids)
     )
     # Safe SQL: both query strings are closed lookup statements; entity ids remain asyncpg parameters.
     type_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        type_sql, list(corporate_entity_ids)
+        type_sql, list(corporate_entity_ids), list(process_unit_ids)
     )
     return (
         [{"code": row["code"], "label": row["label"]} for row in type_rows],
@@ -821,7 +833,10 @@ async def read_customer_master(
                   from source_post
                  where (nullif(btrim(source_customer_code), '') is not null
                         or nullif(btrim(source_customer_name), '') is not null)
-                   and (visibility_code = 'public' or corporate_entity_id = any($1::uuid[]))
+                   and (visibility_code = 'public' or (
+                        corporate_entity_id = any($1::uuid[])
+                        and (cardinality($2::uuid[]) = 0
+                             or process_unit_id = any($2::uuid[]))))
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
             ), ranked as (
                 select scoped.*,
@@ -867,6 +882,7 @@ async def read_customer_master(
              order by top_groups.post_count desc, top_groups.customer_code, top_groups.customer_name
             """,
             list(account.corporate_entity_ids),
+            list(account.process_unit_ids),
         )
         # Safe SQL: the evidence query uses only closed schema fragments; authorized entity ids are bound.
         source_author_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
@@ -887,7 +903,10 @@ async def read_customer_master(
                   join user_account author on author.user_account_id = post.author_account_id
                  where post.source_author_code is not null
                    and btrim(post.source_author_code) <> ''
-                   and (post.visibility_code = 'public' or post.corporate_entity_id = any($1::uuid[]))
+                   and (post.visibility_code = 'public' or (
+                        post.corporate_entity_id = any($1::uuid[])
+                        and (cardinality($2::uuid[]) = 0
+                             or post.process_unit_id = any($2::uuid[]))))
                    and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
             ), ranked as (
                 select scoped.*,
@@ -1004,6 +1023,7 @@ async def read_customer_master(
              order by top_groups.post_count desc, top_groups.author_code
             """,
             list(account.corporate_entity_ids),
+            list(account.process_unit_ids),
         )
         entity_rows = await conn.fetch(
             """
@@ -1254,7 +1274,7 @@ async def list_posts(
     search_term = search.strip() if search and search.strip() else None
     async with pool.acquire() as conn:
         voc_type_options, visibility_options = await _post_filter_options(
-            conn, account.corporate_entity_ids
+            conn, account.corporate_entity_ids, account.process_unit_ids
         )
         body_search_ids: list[str] = []
         if search_term:
@@ -1295,7 +1315,7 @@ async def list_posts(
                        post.source_project_code, post.source_project_name,
                        post.source_system_code,
                        post.source_record_key,
-                       post.corporate_entity_id, post.created_at,
+                       post.corporate_entity_id, post.process_unit_id, post.created_at,
                        case
                            when $1::text is null then 0
                            when lower(coalesce(post.post_title, '')) like '%' || lower($1) || '%' then 0
@@ -1305,7 +1325,9 @@ async def list_posts(
                        count(*) over() as total_count
                   from source_post post
              where (post.visibility_code = 'public'
-                or post.corporate_entity_id::text = any($2::text[]))
+                or (post.corporate_entity_id::text = any($2::text[])
+                    and (cardinality($9::text[]) = 0
+                         or post.process_unit_id::text = any($9::text[]))))
                and {SOURCE_POST_ELIGIBILITY_SQL.format(alias="post")}
                and (
                     $1::text is null
@@ -1503,6 +1525,7 @@ async def list_posts(
             offset,
             limit,
             sort,
+            list(account.process_unit_ids),
         )
         visible = [row for row in rows if _can_see_post(account, row)]
         labels = await _lookup_post_labels(conn, visible)
@@ -1553,7 +1576,7 @@ async def read_post(
                 "source_sales_pool_code, source_sales_pool_name, "
                 "source_customer_code, source_customer_name, source_project_code, source_project_name, "
                 "source_system_code, source_record_key, "
-            "corporate_entity_id, created_at "
+            "corporate_entity_id, process_unit_id, created_at "
             f"from source_post where post_id = $1 and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
             post_id,
         )
@@ -1616,7 +1639,10 @@ async def read_post_content(
             content_complete = await post_content_is_complete(
                 conn,
                 post_id,
-                embedding_model_code=load_settings().embedding_model,
+                require_embedding=bool(
+                    load_settings().orchestrator_base_url
+                    and load_settings().orchestrator_api_key
+                ),
                 require_structure=bool(
                     load_settings().orchestrator_base_url
                     and load_settings().orchestrator_api_key
@@ -1744,7 +1770,7 @@ async def _load_visible_post(
             select source_post.post_id, source_post.post_title, source_post.post_body,
                    source_post.voc_type_code,
                    source_post.visibility_code, source_post.corporate_entity_id,
-                   source_post.created_at, source_post.author_account_id,
+                   source_post.process_unit_id, source_post.created_at, source_post.author_account_id,
                    source_post.source_process_unit_code, source_post.source_author_code,
                    source_post.source_company_code, source_post.source_customer_code,
                    source_post.source_project_code, source_post.source_sales_pool_code,
@@ -2417,7 +2443,7 @@ async def read_post_lineage(
         if candidate_ids:
             # Safe SQL: the eligibility predicate is an immutable schema fragment; candidate ids are bound.
             fetched = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-                "select post_id, post_title, visibility_code, corporate_entity_id, "
+                "select post_id, post_title, visibility_code, corporate_entity_id, process_unit_id, "
                 "btrim(left(source_post_search_text(post_body), 420)) as post_body_excerpt, "
                 "char_length(coalesce(post_body, '')) > 420 as post_body_truncated "
                 f"from source_post where post_id = any($1::uuid[]) and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}",
@@ -2577,7 +2603,17 @@ async def compare_period_groupings(
             and not _is_synthetic_demo_member(pair, demo_entity_ids)
         ]
         leftover_pairs = [
-            {key: value for key, value in pair.items() if key != "has_real_source_context"}
+            {
+                key: value
+                for key, value in pair.items()
+                if key
+                not in {
+                    "has_real_source_context",
+                    "visibility_code",
+                    "corporate_entity_id",
+                    "process_unit_id",
+                }
+            }
             for pair in leftover_pairs
         ]
         visible.append(
@@ -2657,11 +2693,31 @@ async def read_period_reports(
             and not _is_synthetic_demo_member(pair, demo_entity_ids)
         ]
         members = [
-            {key: value for key, value in member.items() if key != "has_real_source_context"}
+            {
+                key: value
+                for key, value in member.items()
+                if key
+                not in {
+                    "has_real_source_context",
+                    "visibility_code",
+                    "corporate_entity_id",
+                    "process_unit_id",
+                }
+            }
             for member in members
         ]
         leftover_pairs = [
-            {key: value for key, value in pair.items() if key != "has_real_source_context"}
+            {
+                key: value
+                for key, value in pair.items()
+                if key
+                not in {
+                    "has_real_source_context",
+                    "visibility_code",
+                    "corporate_entity_id",
+                    "process_unit_id",
+                }
+            }
             for pair in leftover_pairs
         ]
         leftover_map_axes = list(report.get("leftover_map_axes", []))
@@ -2802,7 +2858,10 @@ async def read_post_summary(
         content_complete = await post_content_is_complete(
             conn,
             post_id,
-            embedding_model_code=load_settings().embedding_model,
+            require_embedding=bool(
+                load_settings().orchestrator_base_url
+                and load_settings().orchestrator_api_key
+            ),
             require_structure=bool(
                 load_settings().orchestrator_base_url
                 and load_settings().orchestrator_api_key
@@ -3009,6 +3068,8 @@ async def ask_agent(
             valkey,
             requesting_account_id=account.user_account_id,
             question_text=question,
+            corporate_entity_ids=account.corporate_entity_ids,
+            process_unit_ids=account.process_unit_ids,
         )
     return {"ask_job_id": job_id, "job_status_code": "queued"}
 
@@ -3472,25 +3533,33 @@ async def read_analysis_run(
 async def read_calendar(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    window_start: str | None = Query(default=None),
+    window_end: str | None = Query(default=None),
 ) -> dict[str, Any]:
-    """Return independent CalDAV events alongside authorized commitments.
+    """Return Naruon observed events beside authorized commitments.
 
-    An unavailable optional CalDAV source never hides the internal to-do
-    projection and never creates a synthetic event.
+    A missing or malformed Naruon audience never hides the internal to-do
+    projection and never creates a synthetic event. The end-user bearer
+    token is not forwarded.
     """
     _require_post_read(account)
-    caldav = build_caldav_client(load_settings().caldav_base_url)
-    events = []
-    caldav_available = caldav.available
-    caldav_next_action = None
-    if caldav.available:
-        try:
-            events = [asdict(event) for event in caldav.list_events()]
-        except (HttpClientError, OSError, ValueError):
-            caldav_available = False
-            caldav_next_action = CALDAV_UNAVAILABLE_NEXT_ACTION
-    else:
-        caldav_next_action = CALDAV_UNAVAILABLE_NEXT_ACTION
+    if (window_start is None) ^ (window_end is None):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "window_start and window_end must be supplied together",
+        )
+    settings = load_settings()
+    if window_start is None or window_end is None:
+        window_start, window_end = default_calendar_window(datetime.now(timezone.utc))
+    naruon = load_observed_calendar_events(
+        build_workspace_naruon_client(
+            settings.naruon_calendar_base_url,
+            settings.naruon_calendar_service_token,
+        ),
+        window_start,
+        window_end,
+    )
+    events = [asdict(event) for event in naruon.events]
     async with pool.acquire() as conn:
         commitments = await fetch_upcoming_commitments(conn)
         demo_entity_ids: set[str] = set()
@@ -3504,13 +3573,13 @@ async def read_calendar(
             c for c in visible if not _is_synthetic_demo_member(c, demo_entity_ids)
         ]
     for c in visible:
-        del c["visibility_code"], c["corporate_entity_id"], c["has_real_source_context"]
+        del c["visibility_code"], c["corporate_entity_id"], c["process_unit_id"], c["has_real_source_context"]
     return {
         "events": events,
         "commitments": visible,
         "calendar_sources": {
-            "caldav_available": caldav_available,
-            "caldav_next_action": caldav_next_action,
+            "naruon_available": naruon.available,
+            "naruon_next_action": naruon.next_action,
         },
     }
 

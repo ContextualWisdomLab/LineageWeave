@@ -70,9 +70,10 @@ async def test_delivery_releases_pool_during_provider_work_and_closes_run_lock(m
     class LockConnection:
         closed = False
 
-        async def fetchval(self, query, lock_key):
+        async def fetchval(self, query, run_id):
             assert "pg_try_advisory_lock" in query
-            assert lock_key.endswith("00000000-0000-0000-0000-000000000001")
+            assert "lineageweave:analysis-run:" in query
+            assert run_id == "00000000-0000-0000-0000-000000000001"
             return True
 
         async def close(self):

@@ -773,6 +773,7 @@ describe("App, authenticated", () => {
       if (url.endsWith("/api/calendar")) {
         return Promise.resolve(
           jsonResponse({
+            events: [],
             commitments:
               options?.calendarCommitments ?? [
                 {
@@ -802,6 +803,11 @@ describe("App, authenticated", () => {
                   post_title: "Specification revision requested",
                 },
               ],
+            calendar_sources: {
+              naruon_available: false,
+              naruon_next_action:
+                "Connect the Naruon calendar projection. Open a commitment below to read that post.",
+            },
           }),
         );
       }
@@ -2222,6 +2228,7 @@ describe("App, authenticated", () => {
     await waitFor(() =>
       expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
     );
+    expect(screen.getByRole("dialog", { name: "Linked post" })).toHaveFocus();
   });
 
   it("shows an embedded invoice image instead of the raw base64 string", async () => {
@@ -2291,9 +2298,17 @@ describe("App, authenticated", () => {
     const dialog = await screen.findByRole("dialog", { name: "Public post" });
     expect(dialog).toHaveFocus();
 
+    const collapsed = document.createElement("details");
+    const collapsedButton = document.createElement("button");
+    collapsedButton.textContent = "Collapsed action";
+    collapsed.append(collapsedButton);
+    dialog.append(collapsed);
     await userEvent.tab({ shift: true });
-    const focusable = within(dialog).getAllByRole("button").filter((button) => !button.hasAttribute("disabled"));
+    const focusable = within(dialog)
+      .getAllByRole("button")
+      .filter((button) => !button.hasAttribute("disabled") && !button.closest("details:not([open])"));
     expect(focusable.at(-1)).toHaveFocus();
+    expect(collapsedButton).not.toHaveFocus();
     await userEvent.tab();
     const closeButton = within(dialog).getByRole("button", { name: "Close" });
     expect(closeButton).toHaveFocus();
@@ -4087,13 +4102,22 @@ describe("App, authenticated", () => {
     expect(screen.queryByText("Advanced review tools")).not.toBeInTheDocument();
   });
 
-  it("fails closed on the calendar destination when CalendarWeave consume is unwired", async () => {
+  it("fails closed on the calendar destination when Naruon consume is unwired", async () => {
     stubBackend();
     render(<App />);
 
     await userEvent.click(await screen.findByRole("button", { name: "달력" }));
     expect(screen.getByRole("heading", { name: "달력" })).toBeInTheDocument();
     expect(screen.getByText("이 범위의 일정을 아직 받을 수 없습니다")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Observed calendar events" })).toBeInTheDocument();
+    expect(screen.queryByText(/CalDAV/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Buyer|Cubee/i)).not.toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole("button", { name: /open commitment for: public post/i }),
+    );
+    expect(await screen.findByRole("button", { name: "게시판" })).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 });

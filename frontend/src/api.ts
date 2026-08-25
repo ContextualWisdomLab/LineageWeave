@@ -400,18 +400,28 @@ export interface CalendarEntry extends IssueTicket {
   post_title: string;
 }
 
-export interface CalDavEvent {
-  event_id: string;
-  summary: string;
+export interface NaruonCalendarEvent {
+  occurrence_reference: string;
+  event_reference: string;
+  source_reference: string;
+  display_text: string;
   starts_at: string;
+  ends_at: string;
+  all_day: boolean;
+  time_zone: string;
+  status_code: string;
+  disclosure_code: string;
+  truth_status_code: string;
+  observed_at: string;
+  provider_revision: string;
 }
 
 export interface CalendarResponse {
-  events: CalDavEvent[];
+  events: NaruonCalendarEvent[];
   commitments: CalendarEntry[];
   calendar_sources: {
-    caldav_available: boolean;
-    caldav_next_action: string | null;
+    naruon_available: boolean;
+    naruon_next_action: string | null;
   };
 }
 

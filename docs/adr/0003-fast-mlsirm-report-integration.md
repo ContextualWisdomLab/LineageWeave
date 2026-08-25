@@ -104,6 +104,9 @@ than one large PR:
    0049): after IRT main effects, persist closest and farthest
    post–criterion pairs from the residual leftover map. Do not fork LSIRM or
    invent a leftover-pair API inside `fast-mlsirm` in this slice.
+   Category probabilities and expected responses must use `fast-mlsirm`'s
+   public Rust-backed prediction API (upstream PR #1279); LineageWeave must
+   not reproduce GRM/GPCM parameter conventions locally.
 8. **Leftover evidence extensions:** unexplained leftover shipped in 2.12.26
    (ADR 0182), cross-share evidence shipped in 2.12.29 (ADR 0185), and
    reconstruction evidence is Unreleased for 2.12.31 (ADR 0201). Do not

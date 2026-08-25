@@ -27,7 +27,10 @@ If a source produces zero or one unit, it falls back to one whole-text
 embedding because there is no meaningful pairwise chunk comparison. Persisted
 `post_content_unit` rows are the provenance anchor for unit-level embeddings;
 `post_content_embedding` and its value rows retain model and dimension
-identity.
+identity. The model identity is selected and returned by
+contextual-orchestrator, then bound across the remaining batches for that
+client and persisted as provenance; LineageWeave does not select it from a
+provider-specific environment variable.
 
 No local heuristic vector or whole-document replacement is allowed when the
 configured embedding channel is unavailable.

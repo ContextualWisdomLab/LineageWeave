@@ -165,7 +165,13 @@ def configured_tepp_client(transport_url: str = "", api_key: str = "") -> TeppCl
     def transport(payload: dict[str, Any]) -> dict[str, Any]:
         """POST the TEPP wire payload to `url`, raising TeppNotAvailable on any transport failure."""
         try:
-            headers = {"authorization": f"Bearer {api_key}"} if api_key.strip() else {}
+            headers = {
+                "idempotency-key": str(payload["idempotency_key"]),
+                "tepp-consumer": "lineageweave",
+                "tepp-contract-version": str(payload["contract_version"]),
+            }
+            if api_key.strip():
+                headers["authorization"] = f"Bearer {api_key}"
             return post_json(
                 url,
                 payload,
@@ -822,8 +828,9 @@ async def deliver_queued_analysis_run(
     lock_conn = await asyncpg.connect(database_url)
     try:
         acquired = await lock_conn.fetchval(
-            "select pg_try_advisory_lock(hashtextextended($1, 0))",
-            f"lineageweave:analysis-run:{analysis_run_id}",
+            "select pg_try_advisory_lock("
+            "hashtextextended('lineageweave:analysis-run:' || $1, 0))",
+            analysis_run_id,
         )
         if not acquired:
             async with pool.acquire() as conn:

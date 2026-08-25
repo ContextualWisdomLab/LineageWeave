@@ -28,6 +28,9 @@ from lineageweave.interval_relation import (
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge, Record
 
+ISOLATION_NO_COMPARISON_GROUP = "no_comparison_group"
+ISOLATION_COMPARISON_CANDIDATES_AVAILABLE = "comparison_candidates_available"
+
 # ADR 0205 authorizes only a completed, persisted TEPP criterion anchor.
 _SUPPORTED_ANCHOR_METHOD_CODES: frozenset[str] = frozenset(
     {"tepp_lineage_criterion_v1"}
@@ -47,6 +50,42 @@ def reconstruct_group_key(row: Mapping[str, Any]) -> str:
     """
     stored_group = (row.get("thread_group_key") or "").strip()
     return stored_group or str(row["process_unit_id"] or row["corporate_entity_id"])
+
+
+def focused_isolation_reason(
+    focus_post_id: str | None,
+    visible_posts: list[Mapping[str, Any]],
+    node_count: int,
+) -> str | None:
+    """Why a focused Event Lineage DAG is empty (ADR 0143).
+
+    Count only ABAC-visible group members. A hidden sibling must not
+    flip ``no_comparison_group`` into candidate availability. Import
+    backfills ``thread_group_key`` from process-unit code, so key
+    presence is not evidence a real comparison group existed.
+    """
+    if focus_post_id is None or node_count > 0:
+        return None
+    focus_id = str(focus_post_id)
+    focus_row = next(
+        (row for row in visible_posts if str(row["post_id"]) == focus_id),
+        None,
+    )
+    if focus_row is None:
+        return None
+    group_key = reconstruct_group_key(focus_row)
+    visible_group_size = sum(
+        1 for row in visible_posts if reconstruct_group_key(row) == group_key
+    )
+    if visible_group_size <= 1:
+        return ISOLATION_NO_COMPARISON_GROUP
+    # Multiple current members do not prove that the published projection
+    # was rebuilt after they arrived. Report only candidate availability,
+    # never a completed-comparison or no-relation conclusion.
+    return ISOLATION_COMPARISON_CANDIDATES_AVAILABLE
+
+
+
 
 
 def records_from_source_posts(rows: list[Mapping[str, Any]]) -> list[Record]:
@@ -467,7 +506,11 @@ async def visible_lineage_graph(
         )
         truncated = False
 
-    return _lineage_graph_payload(visible, edge_rows, truncated)
+    payload = _lineage_graph_payload(visible, edge_rows, truncated)
+    payload["isolation_reason"] = focused_isolation_reason(
+        focus_post_id, visible_all, len(visible)
+    )
+    return payload
 
 
 async def interval_relations_for_post(

@@ -11,15 +11,15 @@ from lineageweave.operations_case_analysis import OperationsCase
 class _Connection(Protocol):
     def transaction(self) -> Any:
         """Open an atomic database transaction."""
-        ...
+        pass
 
     async def execute(self, query: str, *args: object) -> Any:
         """Execute one parameterized statement."""
-        ...
+        pass
 
     async def executemany(self, query: str, args: list[tuple[object, ...]]) -> Any:
         """Execute one parameterized statement for several rows."""
-        ...
+        pass
 
 
 def source_body_digest(body: str) -> str:

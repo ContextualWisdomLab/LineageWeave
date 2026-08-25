@@ -45,6 +45,7 @@ class Settings:
     oidc_discovery_uri: str
     oidc_jwks_uri_override: str
     oidc_clock_skew_seconds: int
+    keyverse_claim_binding_required: bool
     # Exact browser origins allowed by CORS. Comma-separated FRONTEND_ORIGINS;
     # never a wildcard -- the backend only serves the product UI.
     frontend_origins: list[str]
@@ -55,12 +56,12 @@ class Settings:
     # call — hanging up earlier discards an answer the orchestrator has
     # already paid to generate (observed live as a BrokenPipe on its side).
     orchestrator_answer_timeout_seconds: float
-    embedding_model: str
     valkey_url: str
     searxng_base_url: str
     tepp_transport_url: str
-    tepp_api_key: str
     caldav_base_url: str
+    naruon_calendar_base_url: str
+    naruon_calendar_service_token: str
     rankweave_disabled: bool
     ontology_source_cursor_secret: str
 
@@ -156,6 +157,7 @@ def load_settings() -> Settings:
             )
         ),
         oidc_clock_skew_seconds=oidc_clock_skew_seconds,
+        keyverse_claim_binding_required=bool(keyverse_issuer),
         frontend_origins=[
             origin.strip()
             for origin in os.environ.get("FRONTEND_ORIGINS", "http://localhost:5173").split(",")
@@ -166,12 +168,14 @@ def load_settings() -> Settings:
         orchestrator_answer_timeout_seconds=_validated_answer_timeout(
             os.environ.get("ORCHESTRATOR_ANSWER_TIMEOUT_SECONDS", "570")
         ),
-        embedding_model=os.environ.get("LLM_GATEWAY_EMBEDDING_MODEL", "").strip(),
         valkey_url=os.environ.get("VALKEY_URL", "redis://localhost:16379/0"),
         searxng_base_url=os.environ.get("SEARXNG_BASE_URL", ""),
         tepp_transport_url=os.environ.get("TEPP_TRANSPORT_URL", ""),
-        tepp_api_key=os.environ.get("TEPP_API_KEY", ""),
         caldav_base_url=os.environ.get("CALDAV_BASE_URL", "").strip(),
+        naruon_calendar_base_url=os.environ.get("NARUON_CALENDAR_BASE_URL", "").strip(),
+        naruon_calendar_service_token=os.environ.get(
+            "NARUON_CALENDAR_SERVICE_TOKEN", ""
+        ).strip(),
         rankweave_disabled=os.environ.get("RANKWEAVE_DISABLED", "")
         .strip()
         .lower()

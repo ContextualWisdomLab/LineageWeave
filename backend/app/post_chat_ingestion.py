@@ -340,7 +340,7 @@ async def gather_chat_sources(
         return sources
 
     rows = await conn.fetch(
-        "select post_id, post_title, post_body, visibility_code, corporate_entity_id, "
+        "select post_id, post_title, post_body, visibility_code, corporate_entity_id, process_unit_id, "
         "source_system_code, source_record_key, source_author_code, source_author_name, "
         "source_company_code, source_company_name, source_process_unit_code, "
         "source_process_unit_name, source_sales_pool_code, source_sales_pool_name, "
@@ -389,6 +389,7 @@ async def gather_global_chat_sources(
     conn: asyncpg.Connection,
     can_see_post: Callable[[asyncpg.Record], bool],
     authorized_corporate_entity_ids: Iterable[str] = (),
+    authorized_process_unit_ids: Iterable[str] = (),
     vision_client: ImageContentClient | None = None,
     embedding_client: EmbeddingClient | None = None,
     embedding_model_code: str = "",
@@ -462,10 +463,12 @@ async def gather_global_chat_sources(
              where embedding.embedding_model_code = $3
                and embedding.embedding_dimension_count = cardinality($1::double precision[])
                and (post.visibility_code = 'public'
-                    or post.corporate_entity_id::text = any($4::text[]))
+                    or (post.corporate_entity_id::text = any($4::text[])
+                        and (cardinality($5::text[]) = 0
+                             or post.process_unit_id::text = any($5::text[]))))
                and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
-               and ($5::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date >= $5)
-               and ($6::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date <= $6)
+               and ($6::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date >= $6)
+               and ($7::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date <= $7)
              group by unit.post_id, embedding.post_content_embedding_id
             having count(*) = cardinality($1::double precision[])
         )
@@ -475,12 +478,13 @@ async def gather_global_chat_sources(
           join source_post post on post.post_id = similarity.post_id
          group by similarity.post_id
          order by semantic_score desc, event_clock desc, similarity.post_id desc
-         limit $7
+         limit $8
         """,
         question_vector,
         question_norm,
         embedding_model_code,
         list(authorized_corporate_entity_ids),
+        list(authorized_process_unit_ids),
         resolved_time_range[0] if resolved_time_range else None,
         resolved_time_range[1] if resolved_time_range else None,
         limit,
@@ -518,7 +522,7 @@ async def gather_global_chat_sources(
 
     rows = await conn.fetch(
         f"""
-        select post_id, post_title, post_body, visibility_code, corporate_entity_id,
+        select post_id, post_title, post_body, visibility_code, corporate_entity_id, process_unit_id,
                source_system_code, source_record_key, source_author_code, source_author_name,
                source_company_code, source_company_name, source_process_unit_code,
                source_process_unit_name, source_sales_pool_code, source_sales_pool_name,
@@ -527,15 +531,18 @@ async def gather_global_chat_sources(
                created_at, event_occurred_at
           from source_post
          where (visibility_code = 'public'
-            or corporate_entity_id::text = any($1::text[]))
+            or (corporate_entity_id::text = any($1::text[])
+                and (cardinality($2::text[]) = 0
+                     or process_unit_id::text = any($2::text[]))))
            and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}
-           and ($4::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $4)
-           and ($5::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $5)
-         order by array_position($2::uuid[], post_id) nulls last,
+           and ($5::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $5)
+           and ($6::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $6)
+         order by array_position($3::uuid[], post_id) nulls last,
                   coalesce(event_occurred_at, created_at) desc, post_id desc
-         limit $3
+         limit $4
         """,
         list(authorized_corporate_entity_ids),
+        list(authorized_process_unit_ids),
         candidate_ids,
         limit,
         resolved_time_range[0] if resolved_time_range else None,
