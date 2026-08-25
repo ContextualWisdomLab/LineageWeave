@@ -15,6 +15,11 @@ class _Connection:
 
     async def fetchrow(self, query: str, *args: object) -> dict[str, int]:
         self.queries.append((query, args))
+        if "tepp_posterior_persisted" in query:
+            return {
+                "tepp_posterior_persisted": False,
+                "fast_mlsirm_influence_persisted": False,
+            }
         return {
             "total_post_count": 4,
             "total_event_count": 3,
@@ -43,6 +48,8 @@ class _Connection:
                 "case_kind_code": "claim_investigation",
                 "fact_type_code": "sales_pool",
             }]
+        if "from topic_post_context_influence influence" in query:
+            return []
         return [
             {
                 "post_id": "00000000-0000-0000-0000-000000000001",
@@ -124,7 +131,9 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
             ],
         }
     ]
-    assert len(conn.queries) == 4
+    assert result["topic_context"]["status_code"] == "unavailable"
+    assert result["topic_context"]["reason_code"] == "tepp_topic_posterior_not_persisted"
+    assert len(conn.queries) == 6
     for query, args in conn.queries:
         assert "visibility_code = 'public'" in query
         assert "corporate_entity_id::text = any($1::text[])" in query
@@ -137,12 +146,110 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
 
 
 @pytest.mark.anyio
+async def test_dashboard_projects_exact_topic_influence_without_local_scoring() -> None:
+    """Accepted rows retain ties, membership evidence, and producer identity."""
+
+    class TopicConnection(_Connection):
+        async def fetchrow(self, query: str, *args: object) -> dict[str, object]:
+            if "tepp_posterior_persisted" in query:
+                self.queries.append((query, args))
+                return {
+                    "tepp_posterior_persisted": True,
+                    "fast_mlsirm_influence_persisted": True,
+                }
+            return await super().fetchrow(query, *args)
+
+        async def fetch(self, query: str, *args: object) -> list[dict[str, object]]:
+            if "from topic_post_context_influence influence" not in query:
+                return await super().fetch(query, *args)
+            self.queries.append((query, args))
+            common = {
+                "topic_model_run_id": "model-1",
+                "tepp_run_id": "tepp-1",
+                "tepp_snapshot_id": "tepp-snapshot-1",
+                "tepp_schema_version": "tepp.topic_context_posterior.v1",
+                "tepp_model_contract_version": "trsl-tm-1",
+                "tepp_artifact_sha256": "a" * 64,
+                "posterior_draw_set_id": "draws-1",
+                "posterior_draw_count": 32,
+                "topic_count": 2,
+                "source_snapshot_sha256": "b" * 64,
+                "knowledge_cutoff": datetime(2026, 8, 20, tzinfo=timezone.utc),
+                "topic_influence_run_id": "influence-1",
+                "fast_mlsirm_schema_version": "fast_mlsirm.topic_context_influence.v1",
+                "fast_mlsirm_version": "0.1.0",
+                "fast_mlsirm_code_revision": "c" * 40,
+                "fast_mlsirm_artifact_sha256": "d" * 64,
+                "compute_backend_code": "rust_gpu",
+                "precision_code": "f64",
+                "membership_fingerprint_sha256": "e" * 64,
+                "topic_index": 0,
+                "state_code": "reactivated",
+                "activity_valid_from": datetime(2026, 8, 1, tzinfo=timezone.utc),
+                "activity_valid_to": datetime(2026, 9, 1, tzinfo=timezone.utc),
+                "dimension_code": "team",
+                "context_id": "team-synthetic",
+                "context_label": "Synthetic Service Team",
+                "membership_weight": 0.5,
+                "membership_evidence_sha256": "f" * 64,
+                "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
+                "influence_value": 4.25,
+                "uncertainty_method_code": "posterior_interval",
+                "uncertainty_lower_value": 3.5,
+                "uncertainty_upper_value": 5.0,
+                "diagnostic_status_code": "accepted",
+                "lineage_events": '[{"event_code":"birth","source_topic_index":0,"target_topic_index":null,"event_time":"2026-08-01T00:00:00+00:00","evidence_sha256":"' + "1" * 64 + '"}]',
+            }
+            return [
+                {**common, "source_post_id": "00000000-0000-0000-0000-000000000001"},
+                {
+                    **common,
+                    "source_post_id": "00000000-0000-0000-0000-000000000002",
+                    "lineage_events": [{"event_code": "birth"}],
+                },
+            ]
+
+    result = await fetch_operations_dashboard(TopicConnection(), [])
+    topic_context = result["topic_context"]
+    assert topic_context["status_code"] == "accepted"
+    assert topic_context["model_run"]["compute_backend_code"] == "rust_gpu"
+    influences = topic_context["topics"][0]["contexts"][0]["influences"]
+    assert [item["model_influence"] for item in influences] == [4.25, 4.25]
+    assert influences[0]["membership_weight"] == 0.5
+    assert topic_context["topics"][0]["lineage_events"][0]["event_code"] == "birth"
+
+
+@pytest.mark.anyio
+async def test_dashboard_names_missing_fast_result_after_tepp_persistence() -> None:
+    """A persisted TEPP membership never becomes a fabricated influence value."""
+
+    class TeppOnlyConnection(_Connection):
+        async def fetchrow(self, query: str, *args: object) -> dict[str, object]:
+            if "tepp_posterior_persisted" in query:
+                self.queries.append((query, args))
+                return {
+                    "tepp_posterior_persisted": True,
+                    "fast_mlsirm_influence_persisted": False,
+                }
+            return await super().fetchrow(query, *args)
+
+    result = await fetch_operations_dashboard(TeppOnlyConnection(), [])
+    assert result["topic_context"]["reason_code"] == "fast_mlsirm_influence_not_persisted"
+    assert result["topic_context"]["topics"] == []
+
+
+@pytest.mark.anyio
 async def test_dashboard_zero_denominator_and_invalid_period() -> None:
     """An empty corpus has 0%, while an inverted interval fails closed."""
 
     class EmptyConnection(_Connection):
         async def fetchrow(self, query: str, *args: object) -> dict[str, int]:
             self.queries.append((query, args))
+            if "tepp_posterior_persisted" in query:
+                return {
+                    "tepp_posterior_persisted": False,
+                    "fast_mlsirm_influence_persisted": False,
+                }
             return dict.fromkeys(
                 ("total_post_count", "total_event_count", "external_post_count", "pending_analysis_count", "failed_analysis_count"),
                 0,
@@ -155,6 +262,8 @@ async def test_dashboard_zero_denominator_and_invalid_period() -> None:
     empty = await fetch_operations_dashboard(EmptyConnection(), [])
     assert empty["external_percent"] == 0.0
     assert all(metric["event_count"] == metric["post_count"] == 0 for metric in empty["case_metrics"])
+    assert (await fetch_operations_dashboard(EmptyConnection(), [], [], date(2026, 8, 1)))["period_label"] == "2026-08-01 이후 · Event 발생일"
+    assert (await fetch_operations_dashboard(EmptyConnection(), [], [], None, date(2026, 8, 31)))["period_label"] == "2026-08-31 이전 · Event 발생일"
     with pytest.raises(ValueError, match="period_start"):
         await fetch_operations_dashboard(
             EmptyConnection(), [], [], date(2026, 9, 1), date(2026, 8, 31)

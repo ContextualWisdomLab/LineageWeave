@@ -18,6 +18,14 @@ export const EvidenceReady: Story = {
         { case_kind_code: "external_information", case_kind_label: "발주 공고 · 시장 동향", event_count: 9, post_count: 9 },
         { case_kind_code: "repeat_issue", case_kind_label: "반복 이슈", event_count: 2, post_count: 2 },
       ],
+      topic_context: {
+        status_code: "unavailable", reason_code: "tepp_topic_posterior_not_persisted",
+        next_action: "TEPP posterior topic 계약 결과를 먼저 완료하세요.", model_run: null, topics: [],
+        required_contracts: [
+          { authority: "TEPP", schema_version: "tepp.topic_context_posterior.v1", state_code: "not_persisted" },
+          { authority: "fast-mlsirm", schema_version: "fast_mlsirm.topic_context_influence.v1", state_code: "not_persisted" },
+        ],
+      },
       failed_analysis_count: 0,
       cases: [
         { post_id: "synthetic-post-1", case_kind_code: "claim_investigation", case_kind_label: "클레임 원인 역추적", project_name: "Synthetic Transformer Renewal", summary_text: "사양 변경 이후 원인 수주와 Pool을 확인", evidence_text: "Revision B originated in order SO-100 from pool SP-20.", evidence_post_id: "synthetic-post-1", occurred_at: "2026-08-04T00:00:00Z", facts: [{ fact_type_code: "originating_order", fact_type_label: "원인 수주", value_text: "SO-100 · SP-20", evidence_text: "order SO-100 from pool SP-20", evidence_post_id: "synthetic-post-1" }], missing_facts: [{ fact_type_code: "order", fact_type_label: "발생 수주" }, { fact_type_code: "specification_change", fact_type_label: "사양 변경" }, { fact_type_code: "sales_pool", fact_type_label: "수주 Pool" }] },
@@ -33,6 +41,59 @@ export const EvidenceReady: Story = {
     await expect(canvas.getByText("9건 · 22.5%")).toBeInTheDocument();
     await expect(canvas.getByText("7 Event · 5글")).toBeVisible();
     await expect(canvas.getAllByRole("button", { name: "분류 근거 글 열기" })[0]).toBeVisible();
+  },
+};
+
+export const TopicInfluenceAccepted: Story = {
+  args: {
+    ...EvidenceReady.args,
+    data: {
+      ...EvidenceReady.args!.data!,
+      topic_context: {
+        status_code: "accepted", reason_code: null,
+        next_action: "Topic과 조직 수준을 선택해 model influence와 근거 글을 확인하세요.",
+        required_contracts: [
+          { authority: "TEPP", schema_version: "tepp.topic_context_posterior.v1", state_code: "persisted" },
+          { authority: "fast-mlsirm", schema_version: "fast_mlsirm.topic_context_influence.v1", state_code: "persisted" },
+        ],
+        model_run: {
+          tepp_run_id: "synthetic-tepp-run", tepp_snapshot_id: "synthetic-tepp-snapshot", source_snapshot_sha256: "a".repeat(64),
+          knowledge_cutoff: "2026-08-20T00:00:00Z", tepp_model_contract_version: "trsl-tm-1",
+          tepp_artifact_sha256: "b".repeat(64), posterior_draw_set_id: "synthetic-draws",
+          posterior_draw_count: 32, topic_count: 2, fast_mlsirm_version: "0.1.0",
+          fast_mlsirm_code_revision: "c".repeat(40), fast_mlsirm_artifact_sha256: "d".repeat(64),
+          compute_backend_code: "rust_gpu", precision_code: "f64", membership_fingerprint_sha256: "e".repeat(64),
+        },
+        topics: [{
+          topic_index: 0,
+          activity_intervals: [
+            { state_code: "dormant", valid_from: "2026-08-01T00:00:00Z", valid_to: "2026-08-10T00:00:00Z" },
+            { state_code: "reactivated", valid_from: "2026-08-10T00:00:00Z", valid_to: "2026-09-01T00:00:00Z" },
+          ],
+          lineage_events: [{ event_code: "birth", source_topic_index: 0, target_topic_index: null, event_time: "2026-08-01T00:00:00Z", evidence_sha256: "f".repeat(64) }],
+          contexts: [
+            {
+              dimension_code: "business_unit", context_id: "bu-synthetic", context_label: "Synthetic Energy Division",
+              influences: [{ post_id: "synthetic-post-1", occurred_at: "2026-08-12T00:00:00Z", topic_state_code: "reactivated", model_influence: 4.25, uncertainty_method_code: "posterior_interval", uncertainty_lower_value: 3.5, uncertainty_upper_value: 5, diagnostic_status_code: "accepted", membership_weight: 0.6, membership_evidence_sha256: "1".repeat(64) }],
+            },
+            {
+              dimension_code: "team", context_id: "team-synthetic", context_label: "Synthetic Service Team",
+              influences: [
+                { post_id: "synthetic-post-1", occurred_at: "2026-08-12T00:00:00Z", topic_state_code: "reactivated", model_influence: 4.25, uncertainty_method_code: "posterior_interval", uncertainty_lower_value: 3.5, uncertainty_upper_value: 5, diagnostic_status_code: "accepted", membership_weight: 0.4, membership_evidence_sha256: "2".repeat(64) },
+                { post_id: "synthetic-post-2", occurred_at: "2026-08-13T00:00:00Z", topic_state_code: "reactivated", model_influence: 4.25, uncertainty_method_code: "posterior_interval", uncertainty_lower_value: 3.4, uncertainty_upper_value: 5.1, diagnostic_status_code: "accepted", membership_weight: 1, membership_evidence_sha256: "3".repeat(64) },
+              ],
+            },
+          ],
+        }],
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole("heading", { name: "시간 흐름별 Topic model influence" })).toBeVisible();
+    await expect(canvas.getByText(/휴면 \/ 재활성/)).toBeVisible();
+    await expect(canvas.getAllByText("4.25")).toHaveLength(3);
+    await expect(canvas.getByText(/순번이나 임의 가중치를 추가하지 않습니다/)).toBeVisible();
   },
 };
 
