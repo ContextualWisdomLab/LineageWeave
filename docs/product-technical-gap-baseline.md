@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 04:46 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-26 05:01 KST. Protected `main` was
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
@@ -60,14 +60,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 17 open PRs and 10 open issues. The exact-head
+At this snapshot there were 16 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 04:46 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 05:01 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -77,18 +77,17 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 17 open PRs and 10
+when this baseline was refreshed. The live queue contained 16 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #664 | `b2e48d5b` (observed parent) | explicit persisted semantic unit kinds from source boundaries, stacked on #660's runtime-contract repair; this documentation commit advances the head after capture |
-| #663 | `b39cf5f9` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels |
+| #663 | `be361f10` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels |
 | #662 | `92534118` | fail-closed injectable TEPP status/read boundary; the owning executable HTTP route remains unavailable |
 | #661 | `11206c58` | Rust-estimated reconstruction fixture weights replace hand-authored reconstruction-test dictionaries |
-| #660 | `7d0d3ef7` | backend runtime and integration contract repairs |
+| #660 | `c10cae01` (observed parent) | backend runtime repair plus the #664 semantic-unit stack; this documentation commit advances the head after capture |
 | #659 | `e948bd27` | ontology node readability and tokenized UI fills |
 | #658 | `fe830b0a` | evidence-honest Global Ask cutoff with revision-interval live-after semantics |
 | #657 | `64f48679` | Dashboard case-metric contract work |
@@ -97,7 +96,7 @@ context only.
 | #640 | `2d50fa01` | operations-dashboard contract alignment |
 | #639 | `aee02dca` | terminal checks observed; exact-head independent approval still required |
 | #636 | `f7b9a65f` | terminal checks observed; exact-head independent approval still required |
-| #632 | `cf7df7bf` | active semantic provenance repair head; hosted checks and independent review required |
+| #632 | `32c7d359` | active semantic provenance repair head; hosted checks and independent review required |
 | #631 | `c0022c97` | terminal checks observed; exact-head independent approval still required |
 | #629 | `4b4d6707` | terminal checks observed; exact-head independent approval still required |
 | #579 | `689a21b6` | leftover interaction-map coordinate persistence; exact-head independent approval still required |
@@ -106,6 +105,10 @@ No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
+
+PR #664 merged as `b2e48d5b0db59f5aa434e2a293cd182ee810c019`
+into #660's non-default branch. Its semantic-unit implementation is therefore
+stack evidence only until #660 passes the protected-`main` gate.
 
 PR #607 first merged as `61fd631c7bb3c57113fd19763c2c43161eeb2824`
 into #606's non-default branch. PR #606 subsequently passed the protected gate,
