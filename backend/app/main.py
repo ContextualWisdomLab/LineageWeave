@@ -89,6 +89,10 @@ from lineageweave.relation_verification import NullRelationVerificationClient, S
 from lineageweave.semantic_hints import customer_hint_trust, format_semantic_hints
 from lineageweave.ontology import LW
 from lineageweave.rankweave_client import build_rankweave_client
+from lineageweave.naruon_calendar_projection import (
+    NaruonCalendarContractError,
+    validate_calendar_window,
+)
 from lineageweave.naruon_calendar_workspace import (
     build_workspace_naruon_client,
     default_calendar_window,
@@ -3390,7 +3394,12 @@ async def read_calendar(
     settings = load_settings()
     if window_start is None or window_end is None:
         window_start, window_end = default_calendar_window(datetime.now(timezone.utc))
-    naruon = load_observed_calendar_events(
+    try:
+        window_start, window_end = validate_calendar_window(window_start, window_end)
+    except (ValueError, NaruonCalendarContractError) as exc:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(exc)) from exc
+    naruon = await asyncio.to_thread(
+        load_observed_calendar_events,
         build_workspace_naruon_client(
             settings.naruon_calendar_base_url,
             settings.naruon_calendar_service_token,

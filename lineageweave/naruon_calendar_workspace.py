@@ -1,4 +1,4 @@
-"""Fail-closed Buyer Calendar consume of Naruon observed occurrences.
+"""Fail-closed workspace calendar consume of Naruon observed occurrences.
 
 LineageWeave commitments stay available when this channel is missing or
 malformed. Observed events are never promoted into issue tickets and the
@@ -25,7 +25,7 @@ _DEFAULT_WINDOW = timedelta(days=31)
 
 @dataclass(frozen=True)
 class NaruonCalendarWorkspaceEvent:
-    """Buyer-visible observed occurrence; not a LineageWeave commitment."""
+    """Workspace-visible observed occurrence; not a LineageWeave commitment."""
 
     occurrence_reference: str
     event_reference: str
@@ -44,7 +44,7 @@ class NaruonCalendarWorkspaceEvent:
 
 @dataclass(frozen=True)
 class NaruonCalendarWorkspaceResult:
-    """Fail-closed observation page for the Buyer Calendar."""
+    """Fail-closed observation page for the workspace calendar."""
 
     available: bool
     next_action: str | None
@@ -71,7 +71,7 @@ def default_calendar_window(now: datetime) -> tuple[str, str]:
 def occurrence_to_workspace_event(
     occurrence: NaruonCalendarOccurrence,
 ) -> NaruonCalendarWorkspaceEvent:
-    """Copy one validated occurrence into the Buyer Calendar payload."""
+    """Copy one validated occurrence into the workspace calendar payload."""
 
     return NaruonCalendarWorkspaceEvent(
         occurrence_reference=occurrence.occurrence_reference,

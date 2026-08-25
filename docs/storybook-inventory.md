@@ -1,14 +1,15 @@
 # Storybook inventory
 
 Open the catalog after `cd frontend && pnpm run storybook`. Each story is a
-buyer-facing control you can click before changing product CSS.
+operator-facing control you can click before changing product CSS.
 
-| Story | Buyer next action | Token / module |
+| Story | Operator next action | Token / module |
 |---|---|---|
 | `Evidence/CitationChip` | Click a cited title to open that source post. | `--color-chip-border`, `--radius-chip`, `CitationChip` |
 | `Evidence/OrganizationAliasChip` | Click a cataloged org; the parenthetical is the unique corroborated SKOS companion. | `--color-chip-border`, `--radius-chip`, `OrganizationAliasChip` |
 | `AnalysisRun/CutoffKnownBody` | Read the cutoff-known sentence, then compare it with the live body below. | `--color-accent-border`, `--space-panel-block`, `--radius-panel`, `CutoffKnownBody` |
 | `Analysis/LineageEntityPicker` | Choose which corp to reconstruct, then click Request a lineage reconstruction. | `--space-control-gap`, `--size-control-min`, `--radius-control`, `LineageEntityPicker` |
+| `Chrome/PopupCloseButton` | Close the current overlay and return focus to its opener. | `--size-control-min`, `--radius-control`, `PopupCloseButton` |
 | `Workspace/WorkspaceCalendar` | Read observed Naruon events, or open a commitment to land on that post. Fail-closed copy stays `이 범위의 일정을 아직 받을 수 없습니다`. | `--color-chip-border`, `WorkspaceCalendar`, `EvidenceStatusMark` |
 
 Repeated web objects must use `frontend/src/styles/tokens.css` and a module

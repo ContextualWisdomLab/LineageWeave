@@ -4709,6 +4709,25 @@ def test_calendar_window_requires_both_bounds(client, demo_analyst_token, seeded
     assert "together" in response.json()["detail"]
 
 
+@pytest.mark.parametrize(
+    ("window_start", "window_end"),
+    (
+        ("not-a-time", "2026-08-26T00:00:00Z"),
+        ("2026-08-26T00:00:00Z", "2026-08-25T00:00:00Z"),
+        ("2026-01-01T00:00:00Z", "2027-01-03T00:00:00Z"),
+    ),
+)
+def test_calendar_rejects_malformed_windows(
+    client, demo_analyst_token, seeded_db, window_start, window_end
+) -> None:
+    response = client.get(
+        "/api/calendar",
+        params={"window_start": window_start, "window_end": window_end},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 422
+
+
 def test_calendar_does_not_treat_caldav_url_as_naruon(
     client, demo_analyst_token, seeded_db, monkeypatch
 ) -> None:

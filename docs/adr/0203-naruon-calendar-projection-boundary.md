@@ -8,7 +8,7 @@
 ## Context
 
 LineageWeave derives customer commitments from authorized post evidence and
-stores them as issue tickets with due dates. The Buyer Calendar can therefore
+stores them as issue tickets with due dates. The workspace calendar can therefore
 show two different kinds of records:
 
 1. LineageWeave-authoritative commitments and To Do records; and
@@ -144,7 +144,7 @@ completed Naruon connector.
 
 ### Costs and limitations
 
-- The Buyer Calendar will not show external events until Naruon implements and
+- The workspace calendar will not show external events until Naruon implements and
   releases the corresponding read projection.
 - The two repositories require provider/consumer contract tests before runtime
   activation.
@@ -159,7 +159,7 @@ Runtime activation requires all of the following:
 
 1. Naruon publishes the matching endpoint, media type, service audience, and
    conformance fixtures;
-2. LineageWeave wires configuration and the Buyer API without forwarding an
+2. LineageWeave wires configuration and the workspace API without forwarding an
    end-user token;
 3. provider/consumer fixtures pass against immutable released artifacts;
 4. degraded, timeout, retry, revision, and reconciliation behavior is tested;

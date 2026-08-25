@@ -1,4 +1,4 @@
-"""Buyer Calendar consume stays fail-closed and never invents events."""
+"""Workspace calendar consume stays fail-closed and never invents events."""
 
 from __future__ import annotations
 

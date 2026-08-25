@@ -12,7 +12,7 @@ export type WorkspaceCalendarProps = {
 };
 
 /**
- * Buyer Calendar: observed Naruon occurrences stay separate from
+ * Workspace Calendar: observed Naruon occurrences stay separate from
  * post-grounded commitments. Click a commitment to open that post.
  */
 export function WorkspaceCalendar({

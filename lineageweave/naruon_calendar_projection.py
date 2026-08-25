@@ -34,6 +34,30 @@ _RFC3339_PATTERN = re.compile(
     r"^[0-9]{4}-[0-9]{2}-[0-9]{2}[Tt][0-9]{2}:"
     r"[0-9]{2}:[0-9]{2}(?:\.[0-9]+)?(?:[Zz]|[+-][0-9]{2}:[0-9]{2})$"
 )
+
+
+def validate_calendar_window(window_start: str, window_end: str) -> tuple[str, str]:
+    """Return one bounded, ordered RFC 3339 calendar window."""
+
+    start_text = _bounded_text(
+        window_start,
+        field_name="window_start",
+        maximum_length=64,
+        allow_internal_whitespace=False,
+    )
+    end_text = _bounded_text(
+        window_end,
+        field_name="window_end",
+        maximum_length=64,
+        allow_internal_whitespace=False,
+    )
+    starts_at = _parse_rfc3339(start_text, field_name="window_start")
+    ends_at = _parse_rfc3339(end_text, field_name="window_end")
+    if ends_at <= starts_at:
+        raise ValueError("window_end must be after window_start")
+    if ends_at - starts_at > _MAX_WINDOW:
+        raise ValueError("calendar window must not exceed 366 days")
+    return start_text, end_text
 _OCCURRENCE_FIELDS = frozenset(
     {
         "event_reference",
@@ -456,24 +480,7 @@ class NaruonCalendarProjectionClient:
     ) -> NaruonCalendarPage:
         """Return one authorized event page within an offset-aware window."""
 
-        start_text = _bounded_text(
-            window_start,
-            field_name="window_start",
-            maximum_length=64,
-            allow_internal_whitespace=False,
-        )
-        end_text = _bounded_text(
-            window_end,
-            field_name="window_end",
-            maximum_length=64,
-            allow_internal_whitespace=False,
-        )
-        starts_at = _parse_rfc3339(start_text, field_name="window_start")
-        ends_at = _parse_rfc3339(end_text, field_name="window_end")
-        if ends_at <= starts_at:
-            raise ValueError("window_end must be after window_start")
-        if ends_at - starts_at > _MAX_WINDOW:
-            raise ValueError("calendar window must not exceed 366 days")
+        start_text, end_text = validate_calendar_window(window_start, window_end)
         fields = {
             "window_start": start_text,
             "window_end": end_text,
