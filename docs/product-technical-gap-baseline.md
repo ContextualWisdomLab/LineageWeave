@@ -296,7 +296,7 @@ evidence across heads. The org merge scheduler merges only when
 | ---: | --- | --- | --- |
 | #258 | `f0b5234d` | Workspace evidence board and source-grounded ontology surface (root stack) | Largest surface; historical CHANGES_REQUESTED is stale relative to current head |
 | #349 | `bef4a858` | Bounded ontology and provenance explorer (v2.13.0) | Issue #341 |
-| #355 | `2f3f308c` | Naruon event projection contract | Issues #336/#338 |
+| #355 | `2f3f308c` | Naruon calendar event projection contract | Issue #336 |
 | #387 | `5ef0f2e6` | Persist and explain Event Lineage channel evidence | Issue #274 |
 | #405 | `ec62d9f0` | Persisted image-region locations (v2.12.8) | VISION region provenance |
 | #484 | `878c4a87` | Allen interval relations on Event Lineage edges (v2.15.0) | Temporal modeling; Allen (1983) |
@@ -366,16 +366,16 @@ this file per §3.5 of the prior snapshot).
 | ---: | --- | --- |
 | #79 | Milestone 2: port verified direct-PostgreSQL analysis into the protected architecture | analysis-run registry on `main`; remaining runtime bridge |
 | #87 | Milestone 2.1 normalized runtime-analysis schema bridge | related analysis-run work |
-| #269 | Authenticated Global Ask MCP browser-safe and admission-bounded | Ask stack |
-| #271 | Evidence-honest knowledge-cutoff scope on Global Ask | Ask stack |
-| #272 | Verify Global Ask KG/ontology/semantic claims with public SearXNG evidence | Ask stack |
+| #269 | Authenticated Global Ask MCP browser-safe and admission-bounded | #632; protected-main delivery pending |
+| #271 | Evidence-honest knowledge-cutoff scope on Global Ask | #658; protected-main delivery pending |
+| #272 | Verify Global Ask KG/ontology/semantic claims with public SearXNG evidence | #632; protected-main delivery pending |
 | #274 | Persist and explain Event Lineage channel evidence | #387 |
-| #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #468, #417 |
+| #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #657; provider HTTP status route remains external |
 | #280 | Full project-lifecycle history and handover intervals | Tracked with issue #284; no active delivery PR confirmed |
 | #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
 | #289 | Activate the optional lineage LLM channel through a bounded asynchronous rebuild | #434 |
 | #336 | Replace pseudo-CalDAV feed with a Naruon-owned calendar projection | Contract on `main` (#355); operator consume wiring in historical branch `feat/naruon-calendar-buyer-wiring-v2170` |
-| #338 | Evidence-bounded email/project lineage contract for Naruon consumption | #355 |
+| #338 | Evidence-bounded email/project lineage contract for Naruon consumption | #636; protected-main delivery and immutable artifact pending |
 | #341 | Heterogeneous ontology and provenance explorer separate from Event Lineage | Protected `main` via #349; issue closed |
 | #358 | Batch reauthorize persisted post-Ask evidence without N+1 queries | Ask stack |
 | #359 | Centralize Global Ask session storage access | Ask stack |
@@ -395,6 +395,7 @@ this file per §3.5 of the prior snapshot).
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419), but current runtime acceptance has not yet proved table-image structure, complete region coverage, or summary/image readiness together | Orchestrator-backed rendered workflow, original/derived asset provenance, region-before-OCR processing, and honest unsupported states; reconcile ADR 0052's image-bearing summary readiness with ADR 0098 before changing sequencing |
 | Semantic source rendering | Paragraph, table, list, formula, and indentation work exists across stacks (#394, #427, #448–#450); #515 adds synthetic backend/frontend parity for deterministic rows/cells, footnote boundaries, and encoded scripts | Land the #427 → #515 stack, then gather authenticated browser evidence that list nesting, continuation alignment, and formula units render without authoring-layout artifacts |
 | Event and project semantics | Multi-project mentions, project-bound actions, 5W1H, requester/processor, and semantic relations exist in ADR 0036/0052/0100/0111/0129 and active stacks | Aggregate authenticated evidence must show distinct projects and events, explicit requester/processor and real R&R, normalized relative time, and product/entity relations without promoting attendance or co-occurrence |
+| External email/project lineage | PR #636 recreates the historical non-main provider work as a bounded, store-agnostic contract for issue #338. It keeps observed RFC/provider parent relations distinct from inferred continuation and proposed project projections, requires a calibrated exact active-channel weight vector, and grants neither database nor provider-action authority | Land #636 through protected gates, publish an immutable LineageWeave artifact with digest/SBOM/provenance, then run Naruon #1437 consumer conformance and failure-path fixtures before enabling the connector |
 | Knowledge Graph prompt provenance | PR #632 maps every ontology-annotated graph fact to the visible post recorded in `knowledge_graph_edge_evidence` and drops post endpoints outside the same authorized source window before label hydration; the current public-verification candidate is stacked on that provenance boundary | Exact-head tests must prove post chat and Global Ask attach each fact only to its evidencing source, never hydrate a hidden/out-of-window post endpoint, retain ABAC and prompt bounds, and merge through protected `main` |
 | Semantic/KG candidate nomination | PR #637 is merged into exact-head #632 (`6b99489e`): normalized project, R&R, Keyman, Knowledge Graph endpoint/edge, and canonical ontology-IRI evidence now nominate candidates through replay-safe indexes, with parameter-free RankWeave RRF and evidence-only operation when embeddings are unavailable. Live PostgreSQL tests cover project-only, endpoint-only, and ontology-IRI-only retrieval; issue #272 remains open for its separate external-verification slice | Exact-head checks must prove ABAC/eligibility/event-time filters run before each channel limit and again at hydration, duplicate hits deduplicate, hidden endpoint labels do not leak, missing RankWeave drops only the added channel, and protected `main` contains #632's merge SHA before the candidate-nomination gap is marked delivered |
 | Public semantic/KG claim verification | This candidate persists an explicit opt-in, restricts external nomination to cited public semantic/KG facts, uses bounded SearXNG retrieval plus contextual-orchestrator `verify` adjudication, and renders FEVER-style supported/refuted/not-enough-information states separately from internal citations. Synthetic Storybook desktop/mobile inspection and backend/API tests cover private, uncited, unavailable, and three-way states | Land the candidate and its #632 provenance base through protected `main`; then perform aggregate authenticated acceptance showing that opt-out/private/uncited inputs emit zero external queries and that external URLs never replace internal evidence |
@@ -448,7 +449,7 @@ of leverage; open connector PRs there when the defect is upstream:
 4. **TEPP** — calibrated measurement; persist receipts; no local reimplementation.
 5. **fast-mlsirm** — GRM/GPCM/CAT/FIPC recovery tests (#451–#454) must stay true-parameter RMSE.
 6. **ThreadWeave** — tree assembly.
-7. **Naruon** — calendar and email/project lineage projection (#336, #338, #355).
+7. **Naruon** — calendar projection (#336/#355) and the separately governed email/project lineage provider contract (#338/#636).
 8. **DiskSage / wardnet** — storage and network policy as needed.
 9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and the atomic LineageWeave hourly caller (#1288, still awaiting a current-head OpenCode decision). If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile` is pnpm 11.3) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
 
@@ -525,7 +526,7 @@ review latency are never blockers — keep working while they settle.
 - Orchestrator / paper-grounded models: ADR 0015, ADR 0076 (Fugu, TRINITY, Conductor)
 - Ontology / PROV-O / SKOS: ADR 0004, ADR 0011, issue #372
 - Analysis runs / TEPP: ADR 0013–0023, issue #79 / #277
-- Calendar / Naruon: issues #336 / #338, PR #355, operator consumption v2.17.0
+- Calendar / Naruon: issue #336 and PR #355; email/project lineage: issue #338 and PR #636
 - Ask Agent: issues #269–#272, #358–#363
 
 Citations in doctoring and ADRs use APA 7th. Do not invent a heuristic where
