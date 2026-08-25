@@ -93,6 +93,15 @@ producer contracts. Both viewports had one `main`, one navigation landmark,
 zero unnamed controls, visible first-tab focus, no document horizontal
 overflow, no console errors, and no HTTP 4xx/5xx. Screenshots remain local and
 uncommitted.
+The same candidate then ran the complete Python/backend suite with
+`DeprecationWarning` promoted to an error: 1,372 tests passed and 17 declared
+integration/provider tests skipped. The run exposed one stale async-queue test
+that implicitly depended on unavailable semantic retrieval; the repaired test
+injects the queue computation boundary, while dedicated retrieval tests retain
+the no-keyword, fail-closed embedding contract. Starlette's maintained
+`httpx2` TestClient dependency and FastAPI's RFC 9110 422 constant remove the
+observed deprecations without suppression. This remains local exact-head
+regression evidence, not hosted-gate or protected-main evidence.
 
 ### Exact open-PR boundary
 

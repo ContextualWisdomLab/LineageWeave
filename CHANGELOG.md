@@ -6,6 +6,13 @@ All notable changes to this project are documented here. Format follows
 
 ## [Unreleased]
 
+### Changed
+
+- Async Ask queue tests now isolate queue settlement from semantic retrieval,
+  and the development test stack follows Starlette's maintained `httpx2`
+  `TestClient` contract. FastAPI 422 responses use the RFC 9110 constant, so
+  deprecation failures are repaired rather than suppressed.
+
 ### Added
 
 - ADR 0210's Dashboard consumer now persists a normalized, exact-provenance

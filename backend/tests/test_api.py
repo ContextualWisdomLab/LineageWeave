@@ -5088,18 +5088,21 @@ def test_ask_queues_a_job_and_polls_it_to_a_settled_answer(
     """
     import time as _time
 
-    from lineageweave.post_chat import ChatAnswer
-
     class _FakeChatClient:
         available = True
 
-        def answer(self, question, sources):  # noqa: ARG002 - contract shape
-            return ChatAnswer(
-                answer_text="A settled asynchronous answer.",
-                cited_post_ids=(sources[0].post_id,),
-            )
+    async def _fake_compute_answer(*_args, **_kwargs):
+        return {
+            "answer_text": "A settled asynchronous answer.",
+            "cited_post_ids": [seeded_db["public_post_id"]],
+            "lineage_graph": {"nodes": [], "edges": [], "truncated": False},
+            "cited_post_images": [],
+        }
 
     monkeypatch.setattr("backend.app.main._post_chat_client", lambda **_kwargs: _FakeChatClient())
+    monkeypatch.setattr(
+        "backend.app.global_ask_queue.compute_global_ask_answer", _fake_compute_answer
+    )
     headers = {"Authorization": f"Bearer {demo_analyst_token}"}
     submitted = client.post(
         "/api/ask", json={"question": "What happened with the public post?"}, headers=headers
