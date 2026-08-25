@@ -292,7 +292,8 @@ def _validate_publication_state(
         if mapping.draft is not None or excluded_draft_values:
             raise ValueError(
                 "--no-draft-dimension-evidence cannot be combined with a "
-                "mapped draft column; pick one publication-state door"
+                "mapped draft column or --exclude-draft-value; pick one "
+                "publication-state door"
             )
         if len(evidence) < 40:
             raise ValueError(
