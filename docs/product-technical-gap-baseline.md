@@ -10,14 +10,13 @@
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `98e37fe08c347165448daa4c730bc6e92a2ea264`
-when this baseline was refreshed. The live queue contained 27 open PRs and 19
+when this baseline was refreshed. The live queue contained 26 open PRs and 19
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #593 | `e6d74efd` | blocked; exact-head checks and independent review pending |
 | #592 | `f33e64ee` | blocked; ADR 0200 fail-closed weight delivery checks pending |
 | #590 | `2f033ba3` | blocked; required checks running |
 | #588 | `2f5e197e` | ADR collision repaired as 0201; auto-merge armed, checks and independent review pending |
@@ -42,6 +41,7 @@ context only.
 | #434 | `d7766b39` | current-main reconciliation pushed; checks restarted |
 | #394 | `1f1667f2` | blocked; required checks pending |
 | #387 | `519d0e63` | estimated fusion-weight persistence repaired; auto-merge armed, checks and independent review pending |
+| #383 | `17341fe8` | queued Ask diagnostics composed into the canonical OTel PR; auto-merge armed, checks and independent review pending |
 | #355 | `0a2a72c5` | deterministic empty-body failure repaired; auto-merge armed, exact-head checks and independent review pending |
 
 No row above is merge evidence. Immediately before any lifecycle action,
