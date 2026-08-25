@@ -57,8 +57,9 @@ value. A non-finite reconstruction stores null rather than inventing
 a leftover score. A finite negative reconstruction is stored; do not
 add a nonnegative CHECK. Do not persist
 `leftover_map_explained_share`, `leftover_map_unexplained_share`,
-`leftover_map_unexplained`, `leftover_map_cross_share`, or leftover-map
-coordinates.
+`leftover_map_cross_share`, or leftover-map coordinates. The signed
+`leftover_map_unexplained` value `U = R - R̂` remains persisted under ADR
+0182; it is evidence, not one of the prohibited derived share aliases.
 
 The pair button shows `R̂ {reconstruction}` next to leftover-map
 distance `d` when the value is a finite number, including a signed
