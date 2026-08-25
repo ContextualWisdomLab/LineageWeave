@@ -23,12 +23,15 @@ displaying any other citation's evidence. It reuses the app's existing
 `.popup-backdrop`/`.popup-panel` visual language (`PostDetailPopup`'s own
 classes) rather than introducing a new modal style.
 
-Its dialog semantics are stricter than `PostDetailPopup`'s: `role="dialog"`,
-`aria-modal="true"`, `aria-labelledby` naming the cited post's title,
-Escape-to-close, backdrop-click-to-close, and initial focus moved onto the
-panel on mount. `PostDetailPopup` has none of these today; this decision
-does not retrofit them there -- a focused follow-up, not silently expanded
-scope of this change.
+Both evidence and post-detail layers use `role="dialog"`, `aria-modal="true"`,
+an accessible title, Escape-to-close, backdrop-click-to-close, focus
+containment, and opener focus restoration. Post-detail navigation moves focus
+back to the same dialog for the newly selected post. Native DOM visibility
+and disclosure state exclude collapsed, hidden, inert, and CSS-invisible
+controls from both focus orders.
+
+Each evidence row separates its type, value, OCR text, and image tags with
+visible punctuation. Adjacent spans must not collapse into ambiguous text.
 
 `chatEvidenceKindLabel` (previously a private `App.tsx` helper) moved to
 `frontend/src/evidenceKindLabels.ts` so both `App.tsx` and the new

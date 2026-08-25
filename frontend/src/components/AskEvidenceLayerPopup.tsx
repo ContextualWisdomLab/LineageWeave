@@ -76,7 +76,10 @@ export function AskEvidenceLayerPopup({
       const panel = panelRef.current;
       if (!panel) return;
       const focusable = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-        (element) => !element.hasAttribute("hidden") && element.getAttribute("aria-hidden") !== "true",
+        (element) =>
+          element.closest('details:not([open]), [hidden], [aria-hidden="true"], [inert]') === null &&
+          (typeof element.checkVisibility !== "function" ||
+            element.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })),
       );
       if (focusable.length === 0) {
         event.preventDefault();
@@ -135,7 +138,7 @@ export function AskEvidenceLayerPopup({
             <ul className="post-evidence-list" aria-labelledby={`${headingId} ${factsHeadingId}`}>
               {facts.map((fact, index) => (
                 <li key={`${fact.kind}:${fact.text}:${index}`}>
-                  <span>{chatEvidenceKindLabel(fact.kind)}</span>
+                  <span>{chatEvidenceKindLabel(fact.kind)}: </span>
                   <span>{fact.text}</span>
                 </li>
               ))}
@@ -149,8 +152,8 @@ export function AskEvidenceLayerPopup({
               {images.map((image) => (
                 <li key={image.unit_index}>
                   <span>{image.caption?.trim() ? image.caption : t("Untitled image")}</span>
-                  {image.extracted_text ? <span>{image.extracted_text}</span> : null}
-                  {image.tags.length ? <span>{t("Image tags")}: {image.tags.join(", ")}</span> : null}
+                  {image.extracted_text ? <span> · {image.extracted_text}</span> : null}
+                  {image.tags.length ? <span> · {t("Image tags")}: {image.tags.join(", ")}</span> : null}
                 </li>
               ))}
             </ul>
