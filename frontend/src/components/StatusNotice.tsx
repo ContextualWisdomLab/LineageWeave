@@ -54,7 +54,7 @@ export function StatusNotice({
     <section
       className={`status-notice status-notice-kind-${kind}`}
       role={isRetry ? "alert" : "region"}
-      aria-label={`${label}: ${description}`}
+      aria-label={isRetry ? undefined : `${label}: ${description}`}
     >
       <p className="status-notice-heading">
         <span className="status-notice-glyph" aria-hidden="true">

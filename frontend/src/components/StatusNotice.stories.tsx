@@ -55,7 +55,9 @@ export const Retry: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     const notice = canvas.getByRole("alert");
+    await expect(notice).not.toHaveAttribute("aria-label");
     await expect(notice).toHaveTextContent("Retry needed");
+    await expect(notice).toHaveTextContent("Dashboard 근거를 불러오지 못했습니다.");
     await userEvent.click(canvas.getByRole("button", { name: "Retry" }));
     await expect(args.onRetry).toHaveBeenCalledTimes(1);
   },

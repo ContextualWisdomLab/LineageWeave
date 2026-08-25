@@ -9,7 +9,7 @@ describe("StatusNotice", () => {
     setLocale("en");
   });
 
-  it("gives success, unavailable, and retry each a distinct accessible name", () => {
+  it("names passive regions and leaves retry alert content exposed", () => {
     const { rerender } = render(
       <StatusNotice kind="success" message="Observed events loaded." />,
     );
@@ -19,12 +19,14 @@ describe("StatusNotice", () => {
     const unavailable = screen.getByRole("region").getAttribute("aria-label");
 
     rerender(<StatusNotice kind="retry" message="Dashboard evidence did not load." />);
-    const retry = screen.getByRole("alert").getAttribute("aria-label");
+    const retry = screen.getByRole("alert");
 
-    expect(new Set([success, unavailable, retry]).size).toBe(3);
+    expect(new Set([success, unavailable]).size).toBe(2);
     expect(success).toMatch(/^Ready:/);
     expect(unavailable).toMatch(/^Unavailable:/);
-    expect(retry).toMatch(/^Retry needed:/);
+    expect(retry).not.toHaveAttribute("aria-label");
+    expect(retry).toHaveTextContent("Retry needed");
+    expect(retry).toHaveTextContent("Dashboard evidence did not load.");
   });
 
   it("keeps success and unavailable on a named region and retry on role=alert", () => {
