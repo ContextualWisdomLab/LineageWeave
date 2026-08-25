@@ -92,7 +92,7 @@ context only.
 | #657 | `a59a2023` | TEPP lifecycle persistence; BLOCKED with review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
 | #643 | `3453ab08` | accessible status notices; BLOCKED with review required |
-| #640 | `4ce167d1` | operations-dashboard evidence touch-target, scoped metrics, changelog repair, and Rust residual interaction-map consumption; BLOCKED with hosted checks queued and no independent approval |
+| #640 | `fa604e79` | operations-dashboard evidence touch-target, scoped metrics, changelog repair, and Rust residual interaction-map consumption; BLOCKED with hosted checks queued and no independent approval |
 | #639 | `8da485d3` | running-action/config repair; BLOCKED with review required |
 | #632 | `cad4debf` | graph-fact provenance repair; BLOCKED with review required |
 | #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
