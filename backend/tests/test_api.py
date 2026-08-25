@@ -168,6 +168,11 @@ _LEFTOVER_MAP_UNEXPLAINED_MIGRATION = (
     / "migrations"
     / "0182_report_leftover_map_unexplained.sql"
 )
+_EVENT_OCCURRED_AT_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0183_source_post_event_occurred_at.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -309,6 +314,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
+            cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
