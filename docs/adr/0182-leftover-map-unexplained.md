@@ -3,7 +3,7 @@
 **Decision status:** Accepted
 **Date:** 2026-08-24
 
-**Amended by:** [ADR 0183](0183-leftover-map-reconstruction.md)
+**Amended by:** [ADR 0201](0201-leftover-map-reconstruction.md)
 (two-axis reconstruction R̂)
 
 Amends [ADR 0048](0048-persist-lsirm-leftover-pairs.md) and

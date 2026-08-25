@@ -1,4 +1,4 @@
-# ADR 0183 — Name leftover-map reconstruction on period-report pair rows
+# ADR 0201 — Name leftover-map reconstruction on period-report pair rows
 
 **Decision status:** Accepted
 **Date:** 2026-08-25

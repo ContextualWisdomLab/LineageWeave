@@ -29,7 +29,7 @@ export type LeftoverPairListProps = {
  * Distance is the two-axis leftover-map Euclidean gap. Residual is
  * ``R = Y − E[Y|θ, item]`` (Jeon et al., 2021, eq. 3 input). Unexplained
  * leftover ``U = R − R̂`` after two-axis Gabriel reconstruction (ADR 0182)
- * and reconstruction ``R̂ = ξ_{1:2} · ζ_{1:2}`` (ADR 0183) so
+ * and reconstruction ``R̂ = ξ_{1:2} · ζ_{1:2}`` (ADR 0201) so
  * ``U + R̂ = R`` stays auditable. Reconstruction takes priority over the
  * unexplained/residual/observed-expected/rank next action when finite;
  * every badge still renders together before opening the named post.

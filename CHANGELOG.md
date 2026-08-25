@@ -10,7 +10,7 @@ All notable changes to this project are documented here. Format follows
 
 - Period leftover pair rows now name leftover-map reconstruction
   `R̂ = ξ_{1:2} · ζ_{1:2}` next to leftover-map distance `d`, then open
-  that post (Gabriel, 1971; Jeon et al., 2021, eq. 3; ADR 0183). A missing
+  that post (Gabriel, 1971; Jeon et al., 2021, eq. 3; ADR 0201). A missing
   reconstruction omits the badge rather than inventing a leftover score.
   Signed reconstruction is stored, never clamped. Identity `U + R̂ = R`
   stays auditable.

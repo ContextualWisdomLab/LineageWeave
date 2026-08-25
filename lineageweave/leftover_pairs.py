@@ -1,7 +1,7 @@
 """Jeon leftover post–criterion pairs after a main-effect IRT.
 
 Implements ADR 0048 as amended by ADR 0119, ADR 0163, ADR 0164, ADR 0168,
-ADR 0182, and ADR 0183.
+ADR 0182, and ADR 0201.
 
 Does not import ``fast_mlsirm`` or ``period_report``. A Gabriel biplot
 of the residual ``R = Y − E[Y|θ, item]`` supplies person and item

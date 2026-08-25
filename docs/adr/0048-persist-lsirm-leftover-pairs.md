@@ -6,7 +6,7 @@
 [ADR 0163](0163-leftover-observed-expected.md) (observed Y and expected E);
 [ADR 0164](0164-leftover-map-rank.md) (full map rank);
 [ADR 0182](0182-leftover-map-unexplained.md) (unexplained leftover U);
-[ADR 0183](0183-leftover-map-reconstruction.md) (two-axis reconstruction R̂)
+[ADR 0201](0201-leftover-map-reconstruction.md) (two-axis reconstruction R̂)
 
 ## Context
 
@@ -43,7 +43,7 @@ leftover row also names unexplained leftover `U = R − R̂` when
 Gabriel coordinates exist so the leftover cell the two-axis map does
 not reconstruct is not read as leftover residual `R` or leftover-map
 distance `d` (ADR 0182). Two-axis reconstruction `R̂ = ξ_{1:2} · ζ_{1:2}`
-is persisted so `U + R̂ = R` stays auditable (ADR 0183). Do not
+is persisted so `U + R̂ = R` stays auditable (ADR 0201). Do not
 substitute a separately centered reconstruction.
 
 Cascade the rows with `report_period_score`. A leftover post must
