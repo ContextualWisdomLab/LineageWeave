@@ -671,15 +671,11 @@ backend = [
 dev = [
     { name = "coverage" },
     { name = "httpx" },
+    { name = "httpx2" },
     { name = "psycopg2-binary" },
     { name = "pyjwt", extra = ["crypto"] },
     { name = "pyshacl" },
     { name = "pytest" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "httpx2" },
 ]
 
 [package.metadata]
@@ -691,6 +687,7 @@ requires-dist = [
     { name = "fast-mlsirm", marker = "extra == 'backend'", git = "https://github.com/ContextualWisdomLab/fast-mlsirm.git?rev=d025b7d237d8db7ca97a5611606c6285d5870895" },
     { name = "fastapi", marker = "extra == 'backend'", specifier = ">=0.115.0" },
     { name = "httpx", marker = "extra == 'dev'", specifier = ">=0.27.0" },
+    { name = "httpx2", marker = "extra == 'dev'", specifier = ">=2.12.0" },
     { name = "opentelemetry-api", specifier = ">=1.30.0" },
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.30.0" },
     { name = "opentelemetry-sdk", specifier = ">=1.30.0" },
@@ -707,9 +704,6 @@ requires-dist = [
     { name = "uvicorn", extras = ["standard"], marker = "extra == 'backend'", specifier = ">=0.30.0" },
 ]
 provides-extras = ["dev", "backend"]
-
-[package.metadata.requires-dev]
-dev = [{ name = "httpx2", specifier = ">=2.12.0" }]
 
 [[package]]
 name = "numpy"
