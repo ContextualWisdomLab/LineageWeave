@@ -310,6 +310,9 @@ def seeded_db(demo_analyst_token):
 
     db_dsn = _POSTGRES_ADMIN_DSN.rsplit("/", 1)[0] + f"/{db_name}"
     conn = psycopg2.connect(db_dsn)
+    # CREATE INDEX CONCURRENTLY in the production migration stream is
+    # intentionally applied outside a transaction (psql -X per file).
+    conn.autocommit = True
     try:
         with conn.cursor() as cur:
             cur.execute(_MIGRATION_PATH.read_text())
@@ -429,6 +432,8 @@ def seeded_db(demo_analyst_token):
                 "('prov_agent_type', 'prov_organization', 'Organization'), "
                 "('prov_agent_type', 'prov_team', 'Team')"
             )
+            conn.commit()
+            conn.autocommit = False
             cur.execute(
                 "insert into corporate_entity (corporate_entity_code, entity_name, entity_level_code) "
                 "values ('TEST-GROUP', 'Test Group', 'group') returning corporate_entity_id"

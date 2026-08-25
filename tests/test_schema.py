@@ -145,6 +145,10 @@ def schema_db():
         parsed_admin_dsn = urlsplit(_ADMIN_DSN)
         db_dsn = urlunsplit(parsed_admin_dsn._replace(path=f"/{db_name}"))
         conn = psycopg2.connect(db_dsn)
+        # Production migration runs each file through psql -X, so concurrent
+        # indexes are outside a transaction. Keep this integration fixture's
+        # execution semantics identical to that path.
+        conn.autocommit = True
         try:
             with conn.cursor() as cur:
                 cur.execute(_MIGRATION_PATH.read_text())
@@ -170,7 +174,6 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
                 cur.execute(_SOURCE_EVENT_TIME_MIGRATION.read_text())
                 cur.execute(_GLOBAL_ASK_EVIDENCE_SEARCH_MIGRATION.read_text())
-            conn.commit()
             yield conn
         finally:
             conn.close()
