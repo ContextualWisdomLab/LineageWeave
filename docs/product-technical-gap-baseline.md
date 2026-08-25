@@ -81,9 +81,9 @@ remain local audit evidence and are not committed.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 10 open PRs and 10 open issues. Exact observed heads
-were `#654 ff096c18`, `#644 c1018a0a`, `#643 041ec13b`, `#640 6f421191`,
-`#639 aee02dca`, `#636 f7b9a65f`, `#632 d227edce`, `#631 c0022c97`,
+At this snapshot there were 9 open PRs and 10 open issues. Exact observed heads
+were `#644 c1018a0a`, `#643 041ec13b`, `#640 8750638c`,
+`#639 aee02dca`, `#636 f7b9a65f`, `#632 a946f879`, `#631 c0022c97`,
 `#629 4b4d6707`, and `#579 689a21b6`. All remain blocked on
 hosted gates and/or independent review. These
 observations are not merge readiness. Re-fetch exact heads,
@@ -100,20 +100,19 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 10 open PRs and 10
+when this baseline was refreshed. The live queue contained 9 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #654 | `ff096c18` | repairs long ontology labels; hosted gates and independent review remain required |
 | #644 | `c1018a0a` | splits conditional frontend surfaces and preserves keyed recovery; hosted gates and independent review remain required |
 | #643 | `041ec13b` | shares token-backed success/unavailable/retry status notices for the Calendar surface; hosted gates and independent review remain required |
-| #640 | `b045a6e5` | quantifies dashboard cases, persists explicit missing facts and observed lifecycle milestones, consumes producer-owned topic influence without local arithmetic, and repairs runtime evidence-query joins/bind arity; hosted gates and independent review must run on this exact head |
+| #640 | `8750638c` | quantifies dashboard cases, persists explicit missing facts and observed lifecycle milestones, consumes producer-owned topic influence without local arithmetic, and repairs runtime evidence-query joins/bind arity; hosted gates and independent review must run on this exact head |
 | #639 | `aee02dca` | repairs Running-action, Compose, and TEPP configuration contracts; hosted gates and independent review remain required |
 | #636 | `f7b9a65f` | publishes the calibrated external-lineage contract without a redundant explicit-child filter and repairs test import hygiene; hosted gates and independent review remain required |
-| #632 | `d227edce` | preserves graph-fact source provenance and authorization with a static landing-query contract and shared RankWeave disable switch; hosted gates and independent review remain required |
+| #632 | `a946f879` | preserves graph-fact source provenance and authorization with a static landing-query contract and shared RankWeave disable switch; hosted gates and independent review remain required |
 | #631 | `c0022c97` | decomposes ADR gaps and queue baseline; hosted gates and independent review remain required |
 | #629 | `4b4d6707` | releases provider work from database leases and bounds landing reads; hosted gates and independent review remain required |
 | #579 | `689a21b6` | delegates leftover interaction-map arithmetic to fast-mlsirm and persists only the consumer projection; hosted gates and independent review remain required |
