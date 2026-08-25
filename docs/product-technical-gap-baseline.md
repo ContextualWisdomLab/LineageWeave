@@ -84,8 +84,8 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #667 | `3bf57fed` | baseline refresh branch exact head observed before this documentation update; BLOCKED with review required |
-| #668 | `5ef8db83` | evidence-bound project history projection; BLOCKED with review required |
+| #667 | `c7550b5c` | baseline refresh branch exact head at this snapshot; BLOCKED with review required |
+| #668 | `97c5d397` | evidence-bound project history projection; BLOCKED with review required |
 | #663 | `7ac1483e` | project ontology traversal, cutoff-snapshot project focus, bounded MCP admission, and migration-fixture/worker startup repair; BLOCKED with review required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
 | #657 | `a59a2023` | TEPP lifecycle persistence; BLOCKED with review required |
