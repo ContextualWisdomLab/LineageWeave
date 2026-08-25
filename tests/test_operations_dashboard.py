@@ -377,15 +377,19 @@ async def test_topic_readiness_uses_projection_temporal_windows() -> None:
     assert "visible_post.occurred_at < activity.valid_to" in readiness_query
 
 @pytest.mark.anyio
-async def test_external_scope_is_bound_in_every_dashboard_query() -> None:
-    """The external destination restricts data at the API query boundary."""
+async def test_external_scope_filters_cases_without_changing_total_population() -> None:
+    """External-only cases retain whole authorized-corpus metric denominators."""
     conn = _Connection()
     await fetch_operations_dashboard(
         conn, ["corp"], ["pu"], date(2026, 8, 1), date(2026, 8, 31), external_only=True
     )
     assert conn.queries
-    assert all("$5::boolean" in query for query, _ in conn.queries)
-    assert all(args[-1] is True for _, args in conn.queries)
+    metrics_query, metrics_args = conn.queries[0]
+    assert "$5::boolean" not in metrics_query
+    assert len(metrics_args) == 4
+    for query, args in conn.queries[1:]:
+        assert "$5::boolean" in query
+        assert args[-1] is True
 
 
 @pytest.mark.anyio

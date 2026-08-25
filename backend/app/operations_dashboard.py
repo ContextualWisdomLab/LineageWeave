@@ -169,12 +169,6 @@ async def fetch_operations_dashboard(
             select post.post_id
               from source_post post
              where {visible}
-               and ($5::boolean is false or exists (
-                   select 1
-                     from operations_case_classification scoped_classification
-                    where scoped_classification.post_id = post.post_id
-                      and scoped_classification.case_kind_code = 'external_information'
-               ))
         ), classified as (
             select classification.post_id, classification.case_kind_code
               from operations_case_classification classification
@@ -208,7 +202,7 @@ async def fetch_operations_dashboard(
                          and job.status_code = 'post_content_ingestion_failed'
                   )) as failed_analysis_count
         """,
-        *args,
+        *args[:4],
     )
     case_rows = await conn.fetch(
         f"""
