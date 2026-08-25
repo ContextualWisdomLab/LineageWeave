@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 17:25 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 17:30 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -10,15 +10,14 @@
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `4f53190bf5baf5e2ab1c7f944aac474b8deae77a`
-when this baseline was refreshed. The live queue contained 9 open PRs and 17
+when this baseline was refreshed. The live queue contained 8 open PRs and 17
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #607 | `e9ca1d0c` | operations-dashboard implementation stacked on #606 rather than `main`; branch-reported focused backend/frontend, lint/build/Storybook, and desktop/mobile audits passed, while hosted tests are running and the similar-VOC live endpoint plus authenticated production backfill remain explicitly unavailable |
-| #606 | `f40ecef4` | TEPP criterion-anchor gate stacked directly on `main`; mergeable with auto-merge enabled, but hosted checks and two independent exact-head approvals remain outstanding |
+| #606 | `61fd631c` | TEPP criterion-anchor gate plus the operations-dashboard stack; #607 merged only into this non-default branch, so the combined head remains mergeable with auto-merge enabled but awaits hosted checks and two independent exact-head approvals before protected delivery |
 | #605 | `9460af9c` | exact-main follow-up for post-navigation refocus, cross-browser visibility-aware modal focus order including native disclosure summaries, readable evidence separators, and validated OIDC return context; focused regressions, lint, and build passed locally; auto-merge awaits hosted gates and independent review |
 | #600 | `f1b4ff62` | this baseline's pre-amendment head; the current documentation commit necessarily supersedes its own observed SHA, so checks and review restart on the resulting head |
 | #579 | `acd44dfe` | interaction-map coordinates now compose protected main, return no false axes or criteria-only map, preserve the validated OIDC return path, and retain successful backend/frontend/build plus desktop/mobile Storybook evidence; auto-merge awaits hosted gates and independent review |
@@ -31,6 +30,11 @@ No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
+
+PR #607 merged as `61fd631c7bb3c57113fd19763c2c43161eeb2824`
+into #606's non-default branch. That stack merge preserves its implementation
+but is not protected-`main` evidence; only #606's eventual protected merge can
+deliver the combined TEPP-anchor and operations-dashboard work.
 
 PR #604 was closed unmerged after its exact OIDC repair was composed into #605;
 its green or pending checks are not delivery evidence. PR #482 merged as
@@ -279,8 +283,8 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 9 open PRs at snapshot; the queue is split between exact-main heads, #607 stacked on #606, and older conflicting work | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
-| Evidence-grounded operations workspace | #607 implements persisted operational cases, an authenticated dashboard, citation-first actions, report/alert delivery metadata, tokens, Storybook, and regression coverage on a non-default stack; authenticated production backfill and the similar-VOC live endpoint remain unavailable | First clear #606 normally, restack #607 onto protected `main`, re-run exact-head gates and authenticated desktop/mobile acceptance with aggregate evidence, then confirm a protected merge SHA |
+| Protected release | 8 open PRs at snapshot; the queue is split between mergeable exact-main heads and older conflicting work, while the former #607 is preserved inside #606 | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Evidence-grounded operations workspace | The former #607 implements persisted operational cases, an authenticated dashboard, citation-first actions, report/alert delivery metadata, tokens, Storybook, and regression coverage inside #606; authenticated production backfill and the similar-VOC live endpoint remain unavailable | Clear #606 normally on its exact combined head, perform authenticated desktop/mobile acceptance with aggregate evidence, and confirm a protected merge SHA |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
