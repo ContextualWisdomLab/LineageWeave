@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-25 21:34 KST. Protected `main` was
-> `d7d5eeb310b055b5e138060cf2dfb929b03090a6`. This local branch is not
+> Dashboard delivery snapshot: 2026-08-26 04:46 KST. Protected `main` was
+> `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
@@ -60,18 +60,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 3 open PRs and 11 open issues. Exact observed heads
-were `#628 d07d212f` (this branch's observed parent), `#627 9e0528a6`, and
-`#579 1c209c85`. PR #579 is open; its ADR 0211 reservation is why this branch's
-filter-option decision is ADR 0212. PRs #612, #614, #615, #616, and #626
-reached protected `main`; the superseded baseline PR #613 closed without merge
-and its PRD was recreated on protected main. The open heads remain blocked on
-hosted gates and/or independent review. These
-observations are not merge readiness. Re-fetch exact heads,
+At this snapshot there were 17 open PRs and 10 open issues. The exact-head
+inventory in section 1 is authoritative for this snapshot. Every open head
+remained blocked on hosted gates and/or independent review. These observations
+are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-25 21:34 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 04:46 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -80,17 +76,31 @@ lifecycle claim.
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `d7d5eeb310b055b5e138060cf2dfb929b03090a6`
-when this baseline was refreshed. The live queue contained 3 open PRs and 11
+The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
+when this baseline was refreshed. The live queue contained 17 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #628 | `d07d212f` (observed parent) | this row is updated by #628 itself, so its exact head advances after the snapshot is encoded; ADR 0212 combines complete ABAC-visible filter options into one database round trip, while hosted gates and independent review remain required |
-| #627 | `9e0528a6` | repairs k6 lifecycle evidence preservation; hosted gates remain required |
-| #579 | `1c209c85` | persists leftover interaction-map coordinates and owns ADR 0211; hosted gates and independent review remain required |
+| #664 | `a18cfe65` (observed parent) | explicit persisted semantic unit kinds from source boundaries; this documentation commit advances the head after capture |
+| #663 | `b39cf5f9` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels |
+| #662 | `92534118` | fail-closed injectable TEPP status/read boundary; the owning executable HTTP route remains unavailable |
+| #661 | `11206c58` | Rust-estimated reconstruction fixture weights replace hand-authored reconstruction-test dictionaries |
+| #660 | `7d0d3ef7` | backend runtime and integration contract repairs |
+| #659 | `e948bd27` | ontology node readability and tokenized UI fills |
+| #658 | `fe830b0a` | evidence-honest Global Ask cutoff with revision-interval live-after semantics |
+| #657 | `64f48679` | Dashboard case-metric contract work |
+| #644 | `d9ff9980` | native-surface code splitting with modal-focus regression coverage |
+| #643 | `0a1f8ec1` | accessible status-notice surfaces |
+| #640 | `2d50fa01` | operations-dashboard contract alignment |
+| #639 | `aee02dca` | terminal checks observed; exact-head independent approval still required |
+| #636 | `f7b9a65f` | terminal checks observed; exact-head independent approval still required |
+| #632 | `cf7df7bf` | active semantic provenance repair head; hosted checks and independent review required |
+| #631 | `c0022c97` | terminal checks observed; exact-head independent approval still required |
+| #629 | `4b4d6707` | terminal checks observed; exact-head independent approval still required |
+| #579 | `689a21b6` | leftover interaction-map coordinate persistence; exact-head independent approval still required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -369,7 +379,7 @@ this file per §3.5 of the prior snapshot).
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
 | Concurrent web responsiveness | ADR 0204 releases pooled transactions during provider work, and the synthetic Compose boundary has an authenticated k6 E2E harness for Ask enqueue, concurrent reads, and job polling. An older-image local observation found repeated post-filter queries while `/api/posts` exceeded 30 seconds; ADR 0212 combines two authorized filter-option queries into one round trip without narrowing ABAC-visible options. The observation is not exact-head evidence or a product guarantee, and no physical scan reduction is claimed without an exact-head plan | Rebuild an exact-head application image, run `make load-http` with declared environment concurrency/window, and retain raw distributions and resource configuration. Compare the post-list database plan and latency with ADR 0212 while preserving the complete authorized filter set; set no SLO until representative capacity evidence is approved |
 | Image understanding | Region, OCR, and description work exists across active heads (#405, #419), but current runtime acceptance has not yet proved table-image structure, complete region coverage, or summary/image readiness together | Orchestrator-backed rendered workflow, original/derived asset provenance, region-before-OCR processing, and honest unsupported states; reconcile ADR 0052's image-bearing summary readiness with ADR 0098 before changing sequencing |
-| Semantic source rendering | Paragraph, table, list, formula, and indentation work exists across stacks (#394, #427, #448–#450); #515 adds synthetic backend/frontend parity for deterministic rows/cells, footnote boundaries, and encoded scripts | Land the #427 → #515 stack, then gather authenticated browser evidence that list nesting, continuation alignment, and formula units render without authoring-layout artifacts |
+| Semantic source rendering | ADR 0223 and migration 0221 give new paragraph, list, table, MathML formula, and caller-parsed conversation-turn units explicit persisted kinds without rewriting historical rows; image regions remain ordered normalized children under ADR 0091. This branch is candidate evidence, not protected-main delivery | Land the exact-head candidate, then prove an authorized semantic-only query retrieves each persisted unit kind and gather authenticated browser evidence that nesting, continuation alignment, formula units, and image regions retain source order |
 | Event and project semantics | Multi-project mentions, project-bound actions, 5W1H, requester/processor, and semantic relations exist in ADR 0036/0052/0100/0111/0129 and active stacks | Aggregate authenticated evidence must show distinct projects and events, explicit requester/processor and real R&R, normalized relative time, and product/entity relations without promoting attendance or co-occurrence |
 | Knowledge Graph readability | The black evidence-node root cause is an undefined-token fallback; the design-token repair and long-label/evidence-table coverage remain only on closed, unmerged #490, not protected `main` | Recreate the token repair on a current base and deliver it through protected `main`, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |

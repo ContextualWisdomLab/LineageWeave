@@ -33,6 +33,21 @@ _BatchKey = TypeVar("_BatchKey")
 _LOGGER = logging.getLogger(__name__)
 
 
+def _persisted_unit_kind(chunk: Chunk) -> str:
+    """Map explicit source boundaries onto the governed semantic-unit vocabulary."""
+    if chunk.unit_type in {"image", "conversation_turn"}:
+        return chunk.unit_type
+    if chunk.label == "math":
+        return "formula"
+    if chunk.label in {"tr", "w:tr"}:
+        return "table"
+    if chunk.label == "li":
+        return "list"
+    if chunk.unit_type in {"plain_text", "paragraph"} or chunk.label in {"p", "w:p"}:
+        return "paragraph"
+    return "dom"
+
+
 def _bounded_unit_batches(  # noqa: UP047 - retain Python 3.10 compatibility.
     units: list[tuple[_BatchKey, str | dict[str, object]]],
 ) -> list[list[tuple[_BatchKey, str | dict[str, object]]]]:
@@ -112,15 +127,18 @@ async def persist_post_content(
     normalized_result: Any | None = None,
     structure_client: PostStructureClient | None = None,
     post_title: str = "",
+    semantic_units: list[Chunk] | None = None,
 ) -> int:
     """Replace one post's normalized content artifacts and return unit count.
 
     Provider calls happen before the short database transaction. A failed or
     unavailable embedding call writes no vector row; it never writes a zero or
     guessed vector. The raw body remains in ``source_post`` for future retry.
+    ``semantic_units`` admits caller-parsed source boundaries such as RFC 5322
+    conversation turns without inferring them from an opaque body string.
     """
     normalized = normalized_result or normalize_post_body(body, vision_client)
-    chunks = chunk_by_source_body(body)
+    chunks = semantic_units if semantic_units is not None else chunk_by_source_body(body)
     image_results = {result.chunk_index: result for result in normalized.image_results}
     formatting = {hint.chunk_index: hint.style for hint in normalized.formatting_hints}
 
@@ -300,7 +318,7 @@ async def persist_post_content(
                 """,
                 post_id,
                 chunk.index,
-                chunk.unit_type,
+                _persisted_unit_kind(chunk),
                 chunk.label,
                 unit_text,
                 style,
