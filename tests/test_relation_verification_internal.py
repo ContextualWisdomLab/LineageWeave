@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-
 from backend.app.relation_verification_ingestion import (
     verify_post_relations,
     verify_post_relations_from_pool,
