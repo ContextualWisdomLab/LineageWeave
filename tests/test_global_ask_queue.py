@@ -265,6 +265,37 @@ def test_invalid_semantic_rewrite_retains_the_original_question(monkeypatch) -> 
     assert payload["source_post_ids"] == []
 
 
+def test_unexpected_semantic_rewrite_error_retains_the_original_question(monkeypatch) -> None:
+    """An unexpected optional-rewriter defect cannot fail the Ask job."""
+    pool = _Pool(_Connection(None))
+
+    class BrokenSemanticQueryClient:
+        available = True
+
+        def rewrite(self, _question: str) -> tuple[str, ...]:
+            raise RuntimeError("unexpected provider envelope")
+
+    async def fake_gather(_conn, *_args, **kwargs):
+        assert kwargs["search_phrases"] == ("What changed?",)
+        return []
+
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", fake_gather)
+
+    payload = asyncio.run(
+        global_ask_queue.compute_global_ask_answer(
+            pool,
+            question_text="What changed?",
+            corporate_entity_ids=set(),
+            process_unit_ids=set(),
+            process_scope_limited=False,
+            chat_client=_AvailableClient(),
+            semantic_query_client=BrokenSemanticQueryClient(),
+        )
+    )
+
+    assert payload["source_post_ids"] == []
+
+
 def test_unavailable_question_embedding_is_not_called(monkeypatch) -> None:
     """An unavailable embedding is dropped while persisted evidence still runs."""
     connection = _Connection(None)

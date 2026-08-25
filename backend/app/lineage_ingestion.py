@@ -20,7 +20,10 @@ from typing import Any
 
 import asyncpg
 
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.post_eligibility import (
+    SOURCE_POST_ELIGIBILITY_SQL,
+    source_post_scope_sql,
+)
 from lineageweave.adjudication_client import AdjudicationClient
 from lineageweave.interval_relation import (
     INTERVAL_RELATION_LABELS,
@@ -50,11 +53,12 @@ _SUPPORTED_ANCHOR_METHOD_CODES: frozenset[str] = frozenset(
 _LINEAGE_LANDING_SQL = (
     "select post_id, post_title, voc_type_code, visibility_code, "
     "corporate_entity_id, process_unit_id, thread_group_key, created_at "
-    "from source_post where {eligibility} and "
-    "(visibility_code = 'public' or (corporate_entity_id::text = any($1::text[]) "
-    "and (cardinality($2::text[]) = 0 or process_unit_id::text = any($2::text[])))) "
+    "from source_post where {eligibility} and {visibility} "
     "order by created_at desc, post_id desc limit $3"
-).format(eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post"))
+).format(
+    eligibility=SOURCE_POST_ELIGIBILITY_SQL.format(alias="source_post"),
+    visibility=source_post_scope_sql("source_post"),
+)
 
 def estimated_weight_channels(llm: AdjudicationClient | None) -> set[str]:
     """Return the channels that one live reconstruction can actually use."""

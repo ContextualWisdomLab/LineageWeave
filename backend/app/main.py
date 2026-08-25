@@ -142,7 +142,7 @@ from backend.app.post_content_queue import (
     publish_post_content_event,
 )
 from backend.app.post_content_worker import run_post_content_worker
-from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
+from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL, source_post_visible
 from backend.app.post_evaluation_ingestion import (
     fetch_post_evaluation,
     ingest_post_evaluation,
@@ -567,14 +567,8 @@ def _rankweave_client():
 
 def _can_see_post(account: CurrentAccount, post: asyncpg.Record) -> bool:
     """ABAC: public rows are visible; private rows require the bound local scope."""
-    if post["visibility_code"] == "public":
-        return True
-    return (
-        str(post["corporate_entity_id"]) in account.corporate_entity_ids
-        and (
-            not account.process_unit_ids
-            or str(post["process_unit_id"]) in account.process_unit_ids
-        )
+    return source_post_visible(
+        post, account.corporate_entity_ids, account.process_unit_ids
     )
 
 
