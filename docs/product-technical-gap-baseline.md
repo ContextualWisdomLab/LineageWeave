@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 14:25 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 14:32 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -20,7 +20,7 @@ context only.
 | #601 | `5ce88969` | PROV-O ADR APA 7th references are mergeable; exact-head checks and independent review remain pending |
 | #600 | `df645d3a` | this baseline's pre-amendment observed head; mergeable with review/check evidence pending |
 | #588 | `6185f2ae` | raw-residual reconstruction, rank-zero identity, API presence, and comparison-strip contracts reconciled with current main; focused backend/frontend/schema checks passed; auto-merge armed |
-| #582 | `edca49bb` | batched cited-lineage fetch previously passed 37 focused tests but now conflicts with advanced main; restack semantically before re-arming |
+| #582 | `cab04063` | batched cited-lineage fetch was semantically composed with current main while retaining ADR 0161 interval relations; 27 focused lineage/documentation checks passed, no review threads remain, and auto-merge is armed pending hosted checks and independent review |
 | #579 | `08554951` | interaction-map coordinate branch is conflicting; ADR 0202 traceability was repaired, 20 focused documentation/schema checks passed, and all review threads are resolved; semantic composition with current main remains |
 | #493 | `a7a050ef` | empty-DAG reasons and explicit double-failure alert previously passed focused frontend/lint/build/docs checks but now conflicts with advanced main |
 | #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
