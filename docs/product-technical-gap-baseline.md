@@ -17,7 +17,7 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #602 | `36f05476` | Post-detail modal semantics, focus containment/restoration, and Escape close are mergeable; exact-head review repaired rerender-driven focus theft and added its regression test; focused tests, lint, production build, and authenticated desktop/mobile rendering passed locally; all threads are resolved and auto-merge is armed pending hosted checks and independent review |
+| #602 | `36f05476` | Post-detail modal semantics, focus containment/restoration, and Escape close are mergeable; the valid rerender focus-steal review was repaired with a mount-only focus lifecycle and regression test, all threads are resolved, and auto-merge remains armed pending exact-head hosted checks and independent review |
 | #601 | `5ce88969` | draft PROV-O ADR APA 7th references are mergeable and checks are progressing, but the PR's explicit owner contract says not to mark Ready or merge |
 | #600 | `b0a448bf` | this baseline's pre-amendment observed head; mergeable with review/check evidence pending |
 | #588 | `6185f2ae` | raw-residual reconstruction, rank-zero identity, API presence, and comparison-strip contracts reconciled with current main; focused backend/frontend/schema checks passed, all review threads are resolved, and auto-merge is armed |
