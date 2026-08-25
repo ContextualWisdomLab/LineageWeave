@@ -1,4 +1,4 @@
-# ADR 0183: Consume calendar observations through Naruon
+# ADR 0203: Consume calendar observations through Naruon
 
 - Status: Accepted
 - Date: 2026-08-21

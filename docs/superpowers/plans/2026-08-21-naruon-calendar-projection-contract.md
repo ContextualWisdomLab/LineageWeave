@@ -8,7 +8,7 @@
 
 **Tech Stack:** Python 3.12+, dataclasses, JSON Schema Draft 2020-12, RFC 3339, pytest, coverage.py, shared bounded HTTP client.
 
-**Spec:** `docs/adr/0183-naruon-calendar-projection-boundary.md`
+**Spec:** `docs/adr/0203-naruon-calendar-projection-boundary.md`
 
 ## Global Constraints
 
@@ -57,7 +57,7 @@
 
 **Files:**
 - Modify: `docs/adr/0038-calendar-source-contract.md`
-- Create: `docs/adr/0183-naruon-calendar-projection-boundary.md`
+- Create: `docs/adr/0203-naruon-calendar-projection-boundary.md`
 - Create: `docs/contracts/naruon-calendar-projection-v1.schema.json`
 - Create: `docs/doctoring/NARUON_CALENDAR_PROJECTION_REFERENCES.md`
 - Create: `CHANGELOG.d/naruon-calendar-projection-contract.md`
