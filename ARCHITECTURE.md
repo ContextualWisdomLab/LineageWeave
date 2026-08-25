@@ -79,7 +79,7 @@ flowchart LR
 | `post_chat.py` | Pluggable in-popup chat's reason-and-cite step (retrieve step lives in `backend/app/post_chat_ingestion.py`) |
 | `commitment_extraction.py` | Pluggable LLM derivation of a customer commitment (promise + deadline) from a post; `Null` default, `ContextualOrchestrator` real impl |
 | `temporal_expressions.py` | Pure Korean relative-time resolver for Global Ask (ADR 0150) |
-| `ask_time_axis.py` | Event-time vs ingestion-time clock choice for that window (ADR 0201) |
+| `ask_time_axis.py` | Event-time vs ingestion-time clock choice for that window (ADR 0202) |
 | `ontology.py` | Loads `docs/ontology/lineageweave-kg.ttl`, the formal OWL 2/RDFS/SKOS vocabulary for the Knowledge Graph's node/edge types (ADR 0004) |
 | `ontology_neighborhood.py` | Bounded typed ontology/provenance neighborhood (ADR 0184); PostgreSQL stays authoritative, OWL subclass is not an instance edge |
 | `ontology_source_cursor.py` | Opaque HMAC source-window continuation (ADR 0124); keyset pagination, never OFFSET |
@@ -609,7 +609,8 @@ many scored posts entered the factorization. Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
-`GET /api/reports/compare/{period}` is the home-page grouping strip;
+`GET /api/reports/compare/{period}` is the home-page grouping strip
+and carries the same ABAC-filtered leftover pairs (ADR 0149);
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared
@@ -622,6 +623,9 @@ closest/farthest pairs (signed residual `R`, observed `Y`, expected
 effects) above the member list, leftover-map axis share for residual
 SVD axes 1 and 2, and complete-case coverage captions (map used N of M
 scored posts), plus the
+
+closest/farthest pairs above the member list, leftover pairs on the
+grouping comparison strip, and the
 PU / corp / thread comparison -- never a placeholder. TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer

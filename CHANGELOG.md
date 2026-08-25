@@ -43,6 +43,13 @@ All notable changes to this project are documented here. Format follows
   (complete-case)”; incomplete rows stay excluded, never filled with
   zero.
 
+- The grouping comparison strip now names leftover post–criterion
+  pairs on each visible row (ADR 0149). After `make seed`, open a
+  leftover pair on A-100 from the strip to read that post. A leftover
+  pair for a hidden post is omitted. Distances come from the same
+  authorized leftover store as the period-report list; they do not
+  invent a leftover score.
+
 ### Fixed
 
 - Event Lineage's DAG no longer leaves a linear (no-branch) reconstruct
@@ -85,7 +92,7 @@ All notable changes to this project are documented here. Format follows
   is cited as a W3C Candidate Recommendation Draft.
 - Global Ask relative-time filters bind to `event_occurred_at` (the
   source-system event instant) and fall back to `created_at` only when
-  that event clock is missing (ADR 0201 / #569). After `make seed`,
+  that event clock is missing (ADR 0202 / #569). After `make seed`,
   leftover closest/farthest pairs still sit above the member list; a
   click still opens that post. Ask **어제 무슨 일이 있었나요?** on
   bulk-imported fixtures that share one ingest day keeps the post whose

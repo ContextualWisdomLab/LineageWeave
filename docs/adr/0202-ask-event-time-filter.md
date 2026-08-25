@@ -1,4 +1,4 @@
-# ADR 0201 — Global Ask relative-time filters bind to event time
+# ADR 0202 — Global Ask relative-time filters bind to event time
 
 **Decision status:** Accepted
 **Date:** 2026-08-24

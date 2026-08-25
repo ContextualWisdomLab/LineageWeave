@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-22
-- Related: [0047](0047-global-ask-semantic-retrieval.md), [0090](0090-global-ask-lineage-timeline-expansion.md), [0201](0201-ask-event-time-filter.md)
+- Related: [0047](0047-global-ask-semantic-retrieval.md), [0090](0090-global-ask-lineage-timeline-expansion.md), [0202](0202-ask-event-time-filter.md)
 
 ## Context
 
@@ -27,7 +27,7 @@ bound -- the reader has explicitly declined to name one, which is the same
 retrieval behavior as finding no expression at all.
 
 `gather_global_chat_sources` applies the resolved window as an additional
-event-time bound on its final ABAC-filtered candidate query (ADR 0201:
+event-time bound on its final ABAC-filtered candidate query (ADR 0202:
 `coalesce(event_occurred_at, created_at)`), additive to the existing
 keyword-match ranking -- it narrows the already-ranked candidate set, it
 does not replace ranking with a date filter. Cited sources name which
