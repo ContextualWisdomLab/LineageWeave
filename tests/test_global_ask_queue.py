@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from contextlib import asynccontextmanager
+from datetime import UTC, datetime
 
 from backend.app import global_ask_queue
 from backend.app.global_ask_queue import load_job_visibility
@@ -232,6 +233,38 @@ def test_question_embedding_finishes_before_global_ask_acquires_a_pool_slot(
 
     assert payload["source_post_ids"] == []
     assert pool.active == 0
+
+
+def test_cutoff_global_ask_does_not_request_a_live_embedding(monkeypatch) -> None:
+    """Cutoff retrieval must not call a channel it cannot use."""
+    pool = _Pool(_Connection(None))
+
+    class RejectEmbedding:
+        available = True
+
+        def embed(self, _text: str) -> list[float]:
+            raise AssertionError("cutoff retrieval must not request an embedding")
+
+    async def fake_gather(_conn, *_args, **kwargs):
+        assert kwargs["question_embedding"] is None
+        return []
+
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", fake_gather)
+
+    payload = asyncio.run(
+        global_ask_queue.compute_global_ask_answer(
+            pool,
+            question_text="What was known?",
+            corporate_entity_ids=set(),
+            process_unit_ids=set(),
+            process_scope_limited=False,
+            chat_client=_AvailableClient(),
+            embedding_client=RejectEmbedding(),
+            knowledge_cutoff=datetime(2026, 1, 15, tzinfo=UTC),
+        )
+    )
+
+    assert payload["source_post_ids"] == []
 
 
 def test_invalid_semantic_rewrite_retains_the_original_question(monkeypatch) -> None:

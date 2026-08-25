@@ -323,8 +323,12 @@ async def compute_global_ask_answer(
                 # or envelope defect retains the original authorized query;
                 # cancellation remains outside Exception and still propagates.
                 log_provider_unavailable("global_ask_query_rewrite", exc)
-        question_embedding = await prepare_global_question_embedding(
-            question_text, embedding_client or NullEmbeddingClient()
+        question_embedding = (
+            None
+            if knowledge_cutoff is not None
+            else await prepare_global_question_embedding(
+                question_text, embedding_client or NullEmbeddingClient()
+            )
         )
         async with pool.acquire() as conn:
             sources = await gather_global_chat_sources(
