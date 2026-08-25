@@ -79,6 +79,8 @@ async def consume_analysis_run_stream_once(
                         exc.status_code,
                         exc.detail,
                     )
+                except Exception:
+                    logger.exception("analysis-run %s delivery failed", analysis_run_id)
             last_id = str(entry_id)
     return last_id
 

@@ -15,7 +15,7 @@ from __future__ import annotations
 import re
 from typing import Protocol
 
-from .http_client import chat_completion_content, post_json
+from .http_client import HttpClientError, chat_completion_content, post_json
 
 
 class AdjudicationClient(Protocol):
@@ -53,9 +53,11 @@ def judge_prompt(candidate_label: str, record_label: str) -> str:
 
 
 def parse_confidence(content: str) -> float:
-    """Clamp the judge's numeric reply into [0, 1]; no number reads as 0."""
+    """Clamp a numeric reply into ``[0, 1]`` or fail without inventing zero."""
     parsed = parse_confidence_or_none(content)
-    return 0.0 if parsed is None else parsed
+    if parsed is None:
+        raise HttpClientError("adjudication response had no confidence score")
+    return parsed
 
 
 def parse_confidence_or_none(content: str) -> float | None:
@@ -102,4 +104,8 @@ class ContextualOrchestratorAdjudicationClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        return parse_confidence(chat_completion_content(body))
+        try:
+            content = chat_completion_content(body)
+        except (TypeError, ValueError) as exc:
+            raise HttpClientError("adjudication response did not contain text") from exc
+        return parse_confidence(content)
