@@ -9,5 +9,6 @@ from lineageweave.channel_weight_estimation import estimate_fixture_channel_weig
 def estimated_fixture_weights() -> dict[str, float]:
     """Return one Rust-backed estimate for reconstruction tests."""
     estimate = estimate_fixture_channel_weights()
-    assert estimate is not None
+    if estimate is None:
+        pytest.skip("fast_mlsirm unavailable -- install the Rust-backed org package")
     return estimate.weights
