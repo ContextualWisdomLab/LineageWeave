@@ -7,3 +7,5 @@
   persists the complete outcome in a second short transaction. PostgreSQL
   session advisory locks serialize the HTTP and worker paths without an
   invented lease timeout.
+- Removed conflict markers accidentally delivered in the Python and frontend
+  package-version metadata, restoring deterministic dependency and UI builds.
