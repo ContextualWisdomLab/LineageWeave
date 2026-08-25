@@ -26,6 +26,11 @@ from lineageweave.knowledge_graph import (
 from lineageweave.models import Record
 from lineageweave.reconstruct import reconstruct
 
+# Synthetic unit-test fusion weights (org policy allows synthetic data
+# in unit tests); product paths load persisted fast-mlsirm estimates
+# and fail closed otherwise (ADR 0145, second amendment).
+_SYNTHETIC_WEIGHTS = {"temporal": 0.5, "secondary_key": 0.34, "text": 0.16}
+
 _SHARED_PERSON_ID = "person-shared-keyman"
 
 
@@ -59,7 +64,7 @@ def test_reconstruct_never_links_posts_in_different_groups() -> None:
     compared, so there is categorically no edge between them, by design.
     """
     records = _unrelated_posts()
-    trees = reconstruct(records)
+    trees = reconstruct(records, weights=_SYNTHETIC_WEIGHTS)
 
     tree_by_group = {tree.group_key: tree for tree in trees}
     assert set(tree_by_group) == {"group-transformers", "group-switchgear"}
