@@ -47,6 +47,12 @@ export interface OperationsDashboardFact {
   value_text: string;
   evidence_text: string;
   evidence_post_id: string;
+  ontology_class_iri?: string;
+  provenance_relation_iri?: string;
+  relation_target_kind_code?: "order" | "project" | "sales" | "business_management";
+  relation_target_kind_label?: string;
+  relation_target_class_iri?: string;
+  relation_predicate_iri?: string;
 }
 
 export interface OperationsDashboardCase {
@@ -61,6 +67,9 @@ export interface OperationsDashboardCase {
   occurred_at: string;
   facts: OperationsDashboardFact[];
   missing_facts: Array<{ fact_type_code: string; fact_type_label: string }>;
+  ontology_class_iri?: string;
+  provenance_relation_iri?: string;
+  semantic_projection?: Record<string, unknown>;
 }
 
 export interface OperationsDashboardResponse {

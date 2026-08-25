@@ -433,3 +433,61 @@
 :semanticConfidence a owl:DatatypeProperty ;
     rdfs:domain :ProjectMention ;
     rdfs:range xsd:decimal .
+
+#################################################################
+# Evidence-grounded operations Dashboard (ADR 0206).
+#
+# These are governed read-projection terms over operations_case_* rows,
+# not knowledge_graph_edge aliases. Each reified fact retains its cited
+# source post through prov:wasDerivedFrom. Untyped legacy external-relation
+# rows stay outside the typed relation projection.
+#################################################################
+
+:OperationsCase a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Operations case"@en .
+
+:ClaimInvestigation a owl:Class ;
+    rdfs:subClassOf :OperationsCase ;
+    rdfs:label "Claim investigation"@en .
+
+:RebidHandover a owl:Class ;
+    rdfs:subClassOf :OperationsCase ;
+    rdfs:label "Rebid or handover"@en .
+
+:ExternalInformation a owl:Class ;
+    rdfs:subClassOf :OperationsCase ;
+    rdfs:label "External information"@en .
+
+:RepeatIssue a owl:Class ;
+    rdfs:subClassOf :OperationsCase ;
+    rdfs:label "Repeat issue"@en .
+
+:OperationsCaseFact a owl:Class ;
+    rdfs:subClassOf rdf:Statement, prov:Entity ;
+    rdfs:label "Operations case fact"@en .
+
+:Order a owl:Class ; rdfs:label "Order"@en .
+:SalesContext a owl:Class ; rdfs:label "Sales context"@en .
+:BusinessManagementContext a owl:Class ; rdfs:label "Business-management context"@en .
+
+:relatesToOrder a owl:ObjectProperty ;
+    rdfs:domain :ExternalInformation ; rdfs:range :Order .
+
+:relatesToProject a owl:ObjectProperty ;
+    rdfs:domain :ExternalInformation ; rdfs:range :Project .
+
+:relatesToSales a owl:ObjectProperty ;
+    rdfs:domain :ExternalInformation ; rdfs:range :SalesContext .
+
+:relatesToBusinessManagement a owl:ObjectProperty ;
+    rdfs:domain :ExternalInformation ; rdfs:range :BusinessManagementContext .
+
+:hasOperationsFact a owl:ObjectProperty ;
+    rdfs:domain :OperationsCase ; rdfs:range :OperationsCaseFact .
+
+:factTypeCode a owl:DatatypeProperty ;
+    rdfs:domain :OperationsCaseFact ; rdfs:range xsd:string .
+
+:factValue a owl:DatatypeProperty ;
+    rdfs:domain :OperationsCaseFact ; rdfs:range xsd:string .

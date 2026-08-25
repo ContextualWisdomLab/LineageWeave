@@ -114,6 +114,14 @@ provenance.
    authorized, and that rank is never a psychometric measure or substitute for
    TEPP. Missing estimates remain unavailable; no hand-picked weight is
    introduced.
+15. Operations classifications and facts have a governed OWL/JSON-LD read
+   projection. Each case is a `prov:Entity`; each fact is an RDF-reified
+   `prov:Entity` linked to its exact cited Post by `prov:wasDerivedFrom`.
+   External-information relations carry a provider-returned, closed semantic
+   target type (`order`, `project`, `sales`, or `business_management`) and map
+   to typed ontology properties. This is not a `knowledge_graph_edge` alias:
+   PostgreSQL operations tables remain authoritative, and an older untyped
+   relation remains absent from the typed projection until re-analysis.
 
 ## Consequences
 
