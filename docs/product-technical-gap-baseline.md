@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 05:28 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-26 05:31 KST. Protected `main` was
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
@@ -77,14 +77,14 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 13 open PRs and 10
+when this baseline was refreshed. The live queue contained 12 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #663 | `e1f24762` (observed parent) | project ontology traversal plus RDFS/SKOS label alignment; this baseline commit advances the head, after which replacement hosted checks and independent approvals are required |
+| #663 | `e0cf4a20` (observed parent) | project ontology traversal plus complete RDFS/SKOS lookup-label invariant; this baseline commit advances the head, after which replacement hosted checks and independent approvals are required |
 | #660 | `24fda085` | backend runtime and integration contract repairs; hosted checks still active |
 | #659 | `e948bd27` | ontology node readability and tokenized UI fills |
 | #658 | `fe830b0a` | evidence-honest Global Ask knowledge cutoff with client validation; hosted checks still active |
@@ -93,10 +93,9 @@ context only.
 | #643 | `0a1f8ec1` | accessible status-notice surfaces |
 | #640 | `2d50fa01` | operations-dashboard contract alignment |
 | #639 | `aee02dca` | terminal checks observed; exact-head independent approval still required |
-| #632 | `f6a487a8` | graph-fact provenance repair; replacement hosted checks and independent review required |
+| #632 | `3584340c` | graph-fact provenance repair; replacement hosted checks and independent review required |
 | #631 | `c0022c97` | terminal checks observed; exact-head independent approval still required |
 | #629 | `4b4d6707` | terminal checks observed; exact-head independent approval still required |
-| #579 | `689a21b6` | leftover interaction-map coordinate persistence; exact-head independent approval still required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -115,6 +114,12 @@ calculation path. Requiring caller-supplied calibrated weights did not remove
 its local channel-score, candidate-budget, and fusion-input calculations. A
 replacement remains unavailable until the owning Rust-backed libraries publish
 versioned contracts; only a fail-closed, non-calculating adapter belongs here.
+
+PR #579 closed unmerged because residual equality, selected-pair/rank,
+coverage, and fixed-axis calculations still remained in LineageWeave Python.
+The owning fast-mlsirm contract must publish those results in a complete,
+versioned Rust envelope before this repository can add a fail-closed
+structure/provenance adapter and reuse the validated UI/persistence material.
 
 The open-path collision audit found overlapping Global Ask migrations and
 ADRs across #629/#632/#639/#640/#658; those branches require reconciliation in
