@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef } from "react";
 import { chatEvidenceKindLabel } from "../evidenceKindLabels";
+import { isFocusableVisible } from "../focusVisibility";
 import { t, tf } from "../i18n";
 import { PopupCloseButton } from "./PopupCloseButton";
 
@@ -75,12 +76,9 @@ export function AskEvidenceLayerPopup({
 
       const panel = panelRef.current;
       if (!panel) return;
-      const focusable = Array.from(panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-        (element) =>
-          element.closest('details:not([open]), [hidden], [aria-hidden="true"], [inert]') === null &&
-          (typeof element.checkVisibility !== "function" ||
-            element.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })),
-      );
+      const focusable = Array.from(
+        panel.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      ).filter(isFocusableVisible);
       if (focusable.length === 0) {
         event.preventDefault();
         panel.focus();
