@@ -372,7 +372,13 @@ export interface AskAgentResponse {
     report: {
       media_type: string;
       body: string;
-      source_documents: Array<{ post_id: string; title: string; api_path: string; resource_uri: string }>;
+      source_documents: Array<{
+        post_id: string;
+        title: string;
+        api_path: string;
+        resource_uri: string;
+        evidence_facts: CitedPostEvidenceFact[];
+      }>;
     };
     alert: {
       trigger_code: string;
@@ -510,6 +516,7 @@ export interface LineageGraph {
   nodes: LineageGraphNode[];
   edges: LineageGraphEdge[];
   truncated?: boolean;
+  isolation_reason?: "comparison_candidates_available" | "no_comparison_group" | null;
 }
 
 export function fetchLineageGraph(accessToken: string, postId?: string): Promise<LineageGraph> {

@@ -489,11 +489,17 @@ function EventLineageSection({
   const scoped = graph ? subgraphForPost(graph, postId) : { nodes: [], edges: [] };
   const hasLinks = lineage.direct.length > 0 || lineage.indirect.length > 0;
   if (scoped.nodes.length === 0) {
+    const isolationMessage =
+      graph.isolation_reason === "comparison_candidates_available"
+        ? t("Other visible posts share this comparison group, but no Event Lineage link is available. Read Keyman and evaluation next.")
+        : graph.isolation_reason === "no_comparison_group"
+          ? t("No other visible posts share this comparison group yet. Request reconstruction after more posts arrive, or read Keyman and evaluation.")
+          : t("No linked posts yet.");
     return (
       <p className="lineage-empty">
         {hasLinks
           ? t("The linked records are listed above. The graph is not available for this view.")
-          : t("No linked posts yet.")}
+          : isolationMessage}
       </p>
     );
   }
@@ -1809,6 +1815,8 @@ function PostDetailPopup({
   const [similarVoc, setSimilarVoc] = useState<SimilarVocItem[] | null>(null);
   const [similarVocError, setSimilarVocError] = useState<string | null>(null);
   const [similarVocNextOffset, setSimilarVocNextOffset] = useState<number | null>(null);
+  const [similarVocLoadingMore, setSimilarVocLoadingMore] = useState(false);
+  const similarVocLoadingMoreRef = useRef(false);
   const [evaluation, setEvaluation] = useState<EvaluationResponse[] | null>(null);
   const [focusPerson, setFocusPerson] = useState<{ personId: string; personName: string } | null>(null);
   const [focusEntity, setFocusEntity] = useState<{ entityId: string; entityName: string } | null>(null);
@@ -1910,6 +1918,8 @@ function PostDetailPopup({
     setSimilarVoc(null);
     setSimilarVocError(null);
     setSimilarVocNextOffset(null);
+    setSimilarVocLoadingMore(false);
+    similarVocLoadingMoreRef.current = false;
     setEvaluation(null);
     setFocusPerson(null);
     setFocusEntity(null);
@@ -2484,13 +2494,22 @@ function PostDetailPopup({
               items={similarVoc}
               error={similarVocError}
               onOpenPost={(candidatePostId) => onSelectPost?.(candidatePostId)}
+              loadingMore={similarVocLoadingMore}
               onLoadMore={similarVocNextOffset === null ? null : () => {
+                if (similarVocLoadingMoreRef.current) return;
+                similarVocLoadingMoreRef.current = true;
+                setSimilarVocLoadingMore(true);
+                setSimilarVocError(null);
                 fetchSimilarVoc(accessToken, postId, similarVocNextOffset)
                   .then((result) => {
                     setSimilarVoc((current) => [...(current ?? []), ...result.items]);
                     setSimilarVocNextOffset(result.next_offset);
                   })
-                  .catch(() => setSimilarVocError("이전 VOC를 더 불러오지 못했습니다. 다시 시도하세요."));
+                  .catch(() => setSimilarVocError("이전 VOC를 더 불러오지 못했습니다. 다시 시도하세요."))
+                  .finally(() => {
+                    similarVocLoadingMoreRef.current = false;
+                    setSimilarVocLoadingMore(false);
+                  });
               }}
             />
 
@@ -4826,13 +4845,15 @@ function AskAgentPanel({
           {answer.answer_text ? <p>{answer.answer_text}</p> : null}
           {answer.next_action ? <p className="post-meta">{t(answer.next_action)}</p> : null}
           {answer.delivery ? (
-            <aside className="ask-delivery" aria-label="리포트 · 알림 · MCP">
-              <h4>리포트 · 알림 · MCP</h4>
+            <aside className="ask-delivery" aria-label={t("Report · alert · MCP")}>
+              <h4>{t("Report · alert · MCP")}</h4>
               <p>
-                근거 문서 {answer.delivery.report.source_documents.length}건이 리포트에 연결됐습니다.
+                {tf("{count} evidence documents are linked to this report.", {
+                  count: answer.delivery.report.source_documents.length,
+                })}
                 {answer.delivery.alert.eligible
-                  ? " 근거 변경 알림을 구독할 수 있습니다."
-                  : " 근거가 연결되면 변경 알림을 구독할 수 있습니다."}
+                  ? ` ${t("You can subscribe to evidence-change alerts.")}`
+                  : ` ${t("Connect evidence to enable change-alert subscriptions.")}`}
               </p>
               <code>{answer.delivery.report.source_documents[0]?.resource_uri ?? "lineageweave://posts"}</code>
             </aside>
