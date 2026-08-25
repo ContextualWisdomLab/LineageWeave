@@ -343,7 +343,7 @@ this file per §3.5 of the prior snapshot).
 | #79 | Milestone 2: port verified direct-PostgreSQL analysis into the protected architecture | analysis-run registry on `main`; remaining runtime bridge |
 | #87 | Milestone 2.1 normalized runtime-analysis schema bridge | related analysis-run work |
 | #269 | Authenticated Global Ask MCP browser-safe and admission-bounded | Ask stack |
-| #271 | Evidence-honest knowledge-cutoff scope on Global Ask | Ask stack |
+| #271 | Evidence-honest knowledge-cutoff scope on Global Ask | Missing on protected `main`: `GlobalAskRequest` accepts only `question`; #301 merged into a non-default stack and is not release evidence |
 | #272 | Verify Global Ask KG/ontology/semantic claims with public SearXNG evidence | Ask stack |
 | #274 | Persist and explain Event Lineage channel evidence | #387 |
 | #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #468, #417 |
