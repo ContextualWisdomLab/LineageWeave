@@ -68,6 +68,7 @@ _DOM_BLOCK_TAGS = frozenset(
         "ol",
         "ul",
         "li",
+        "math",
         "footnote",
         "endnote",
         "w:footnote",
