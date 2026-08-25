@@ -9,25 +9,24 @@
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `98e37fe08c347165448daa4c730bc6e92a2ea264`
-when this baseline was refreshed. The live queue contained 26 open PRs and 19
+The protected default branch was `d048ae4e8fb708ffe1a21aa0e9fb632e0ad562da`
+when this baseline was refreshed. The live queue contained 25 open PRs and 19
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #592 | `f33e64ee` | blocked; ADR 0200 fail-closed weight delivery checks pending |
+| #591 | `1186ae9f` | canonical current-queue baseline; exact-head checks and independent review pending |
 | #590 | `2f033ba3` | blocked; required checks running |
 | #588 | `2f5e197e` | ADR collision repaired as 0201; auto-merge armed, checks and independent review pending |
 | #585 | `235cd6d7` | blocked; core suite green, review gates running |
-| #584 | `bd28a91b` | dirty; Full suite and Strix failed |
+| #584 | `17068ec3` | current-main ADR collision repaired; auto-merge armed, checks restarted |
 | #582 | `f062acd4` | current-main reconciliation pushed; checks restarted |
 | #581 | `c4f41dc0` | current-main reconciliation pushed; checks restarted |
 | #579 | `57b6ae83` | blocked; Full suite and Strix failed |
-| #565 | `870d0114` | blocked; completed checks green, approval absent |
 | #564 | `62d3e124` | current-main reconciliation pushed; checks restarted |
-| #563 | `ae74349d` | dirty; Strix failed |
+| #563 | `0b599ad0` | current-main reconciliation pushed; auto-merge armed, checks restarted |
 | #553 | `04969132` | blocked; auto-merge armed, review/checks pending |
 | #539 | `53c91cae` | current-main reconciliation pushed; checks restarted |
 | #537 | `ebfd712b` | current-main reconciliation pushed; checks restarted |
@@ -48,6 +47,10 @@ No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
+
+PR #592 merged as `3b3af3b4fe9c439354433a43444e05f37ab24ea3`
+into #590's non-default stack base at `2f033ba3`; it is not protected-`main`
+delivery until #590 itself passes the protected gate and merges.
 
 The former protected-`main` login defect (unauthenticated `AdminPanel` render
 plus unused OIDC return-url helpers failing `tsc -b`) is repaired on
