@@ -351,7 +351,7 @@ this file per §3.5 of the prior snapshot).
 | #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
 | #289 | Activate the optional lineage LLM channel through a bounded asynchronous rebuild | #434 |
 | #336 | Replace pseudo-CalDAV feed with a Naruon-owned calendar projection | Contract on `main` (#355); operator consume wiring in historical branch `feat/naruon-calendar-buyer-wiring-v2170` |
-| #338 | Evidence-bounded email/project lineage contract for Naruon consumption | #355 |
+| #338 | Evidence-bounded email/project lineage contract for Naruon consumption | Missing on protected `main`; #343 merged only into a non-default stack, while #355 is a distinct calendar-consumer contract and is not delivery evidence for email/project lineage |
 | #341 | Heterogeneous ontology and provenance explorer separate from Event Lineage | Protected `main` via #349; issue closed |
 | #358 | Batch reauthorize persisted post-Ask evidence without N+1 queries | Ask stack |
 | #359 | Centralize Global Ask session storage access | Ask stack |
