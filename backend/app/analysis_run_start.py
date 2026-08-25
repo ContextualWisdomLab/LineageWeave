@@ -344,7 +344,8 @@ async def _persist_tepp_result(
                 and isinstance(anchor, dict)
             ):
                 try:
-                    estimation_run_id = str(UUID(str(anchor["estimation_run_id"])))
+                    raw_estimation_run_id = str(anchor["estimation_run_id"])
+                    estimation_run_id = str(UUID(raw_estimation_run_id))
                     anchor_cutoff = datetime.fromisoformat(
                         str(anchor["knowledge_cutoff"]).replace("Z", "+00:00")
                     )
@@ -356,6 +357,7 @@ async def _persist_tepp_result(
                 if anchor is not None and (
                     anchor.get("anchor_kind_code") != "lineage_pair_criterion"
                     or anchor.get("contract_version") != 1
+                    or raw_estimation_run_id != estimation_run_id
                     or anchor.get("source_snapshot_sha256") != expected_snapshot_sha256
                     or anchor_cutoff != expected_cutoff
                     or anchor.get("criterion_validity_status") != "accepted"

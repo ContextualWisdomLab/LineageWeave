@@ -318,6 +318,20 @@ def test_tepp_anchor_projection_accepts_only_the_published_result_contract() -> 
     )
     assert not any("lineage_weight_tepp_anchor" in query for query, _ in conn.queries)
 
+    conn = _Connection()
+    envelope["result_schema_version"] = "tepp.lineage_criterion_anchor.v1"
+    envelope["result"]["estimation_run_id"] = "018f47e77b5b7cc098c615fdf9e3d9b1"
+    assert asyncio.run(
+        _persist_tepp_result(
+            conn,
+            analysis_run_id="11111111-1111-1111-1111-111111111111",
+            envelope=envelope,
+            expected_snapshot_sha256="ab" * 32,
+            expected_knowledge_cutoff=cutoff,
+        )
+    )
+    assert not any("lineage_weight_tepp_anchor" in query for query, _ in conn.queries)
+
 
 def _topic_lineage_request() -> AnalysisRunRequest:
     return topic_lineage_run_request(
