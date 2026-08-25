@@ -479,24 +479,34 @@ async def gather_global_chat_sources(
             """
             select post_id, matched_in
               from (
-                   (select post_id, created_at, 'title' as matched_in
+                   (select post_id, coalesce(event_occurred_at, created_at) as event_clock,
+                           'title' as matched_in
                       from source_post
                      where post_title ilike '%' || $1 || '%'
+                       and ($2::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $2)
+                       and ($3::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $3)
                      limit 32)
                     union all
-                   (select post_id, created_at, 'body' as matched_in
+                   (select post_id, coalesce(event_occurred_at, created_at) as event_clock,
+                           'body' as matched_in
                       from source_post
                      where lower(left(source_post_search_text(post_body), 16384))
                                like '%' || lower($1) || '%'
+                       and ($2::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $2)
+                       and ($3::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $3)
                      limit 32)
                     union all
-                   (select post_id, created_at, 'body' as matched_in
+                   (select post_id, coalesce(event_occurred_at, created_at) as event_clock,
+                           'body' as matched_in
                       from source_post
                      where to_tsvector('simple', source_post_search_text(post_body))
                                @@ plainto_tsquery('simple', $1)
+                       and ($2::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $2)
+                       and ($3::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $3)
                      limit 32)
                     union all
-                   (select post_id, created_at, 'source_field' as matched_in
+                   (select post_id, coalesce(event_occurred_at, created_at) as event_clock,
+                           'source_field' as matched_in
                       from source_post
                      where concat_ws(' ', source_system_code, source_record_key,
                                       source_author_code, source_author_name,
@@ -506,12 +516,16 @@ async def gather_global_chat_sources(
                                       source_customer_code, source_customer_name,
                                       source_project_code, source_project_name)
                                ilike '%' || $1 || '%'
+                       and ($2::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date >= $2)
+                       and ($3::date is null or (coalesce(event_occurred_at, created_at) at time zone 'Asia/Seoul')::date <= $3)
                      limit 32)
                    ) matches
-             order by created_at desc, post_id desc
+             order by event_clock desc, post_id desc
             limit 32
             """,
             term,
+            resolved_time_range[0] if resolved_time_range else None,
+            resolved_time_range[1] if resolved_time_range else None,
         )
         for row in candidate_rows:
             post_id = str(row["post_id"])

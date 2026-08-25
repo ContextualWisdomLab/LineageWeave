@@ -396,6 +396,12 @@ def test_global_sources_resolve_relative_time_against_seoul_calendar_day(
     assert "at time zone 'Asia/Seoul'" in source_query
     assert source_args[3] == date(2026, 8, 21)
     assert source_args[4] == date(2026, 8, 21)
+    candidate_calls = [(query, args) for query, args in calls if "matched_in" in query]
+    assert all("event_clock" in query for query, _args in candidate_calls)
+    assert all(
+        args[1:] == (date(2026, 8, 21), date(2026, 8, 21))
+        for _query, args in candidate_calls
+    )
 
 
 def test_global_sources_drop_particle_attached_temporal_words_from_search_terms() -> None:
@@ -524,4 +530,3 @@ def test_global_sources_name_created_at_fallback_when_event_clock_is_missing(
 
     assert [source.post_id for source in sources] == ["ingest-yesterday"]
     assert TIME_AXIS_CREATED in sources[0].evidence_facts
-
