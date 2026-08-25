@@ -112,6 +112,12 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
             <h3>{item.summary_text}</h3>
             <blockquote>{item.evidence_text}</blockquote>
             <dl>{item.facts.map((fact) => <div key={`${fact.fact_type_code}-${fact.value_text}`}><dt>{fact.fact_type_label}</dt><dd>{fact.value_text} <button type="button" className="btn-link" onClick={() => onOpenPost(fact.evidence_post_id)}>{fact.fact_type_label} 근거 열기</button></dd></div>)}</dl>
+            {item.missing_facts.length ? (
+              <section className="dashboard-missing-facts" aria-label="추가 확인이 필요한 항목">
+                <h4>추가 확인 필요</h4>
+                <ul>{item.missing_facts.map((fact) => <li key={fact.fact_type_code}>{fact.fact_type_label}: 권한 범위 내 근거가 없습니다. 관련 원문을 연결하세요.</li>)}</ul>
+              </section>
+            ) : null}
             <button type="button" className="btn-secondary" onClick={() => onOpenPost(item.evidence_post_id)}>분류 근거 글 열기</button>
           </article>
         ))}

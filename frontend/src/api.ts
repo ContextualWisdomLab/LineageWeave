@@ -60,6 +60,7 @@ export interface OperationsDashboardCase {
   evidence_post_id: string;
   occurred_at: string;
   facts: OperationsDashboardFact[];
+  missing_facts: Array<{ fact_type_code: string; fact_type_label: string }>;
 }
 
 export interface OperationsDashboardResponse {

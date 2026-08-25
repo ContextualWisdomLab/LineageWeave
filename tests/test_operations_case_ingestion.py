@@ -57,3 +57,26 @@ def test_persists_supported_empty_analysis() -> None:
     asyncio.run(persist_operations_cases(conn, "post-1", "ordinary", "session-1", ()))
     assert len(conn.calls) == 2
     assert conn.batches == []
+
+
+def test_persists_missing_required_facts_without_invented_evidence() -> None:
+    """Unsupported answers use the normalized missing-fact relation only."""
+    conn = _Connection()
+    case = OperationsCase(
+        "claim_investigation",
+        "Claim",
+        "source",
+        (),
+        "post-1",
+        "a" * 64,
+        ("order", "specification_change", "originating_order", "sales_pool"),
+    )
+
+    asyncio.run(persist_operations_cases(conn, "post-1", "source", "session-1", (case,)))
+
+    assert conn.batches == [[
+        ("post-1", "claim_investigation", "order"),
+        ("post-1", "claim_investigation", "specification_change"),
+        ("post-1", "claim_investigation", "originating_order"),
+        ("post-1", "claim_investigation", "sales_pool"),
+    ]]

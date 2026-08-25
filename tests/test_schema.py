@@ -86,6 +86,15 @@ _LEFTOVER_MAP_UNEXPLAINED_MIGRATION = (
     / "migrations"
     / "0182_report_leftover_map_unexplained.sql"
 )
+_OPERATIONS_CASE_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0208_operations_case_analysis.sql"
+)
+_OPERATIONS_CASE_EVIDENCE_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0209_operations_case_evidence_source.sql"
+)
+_OPERATIONS_CASE_MISSING_MIGRATION = (
+    Path(__file__).resolve().parents[1] / "migrations" / "0211_operations_case_missing_fact.sql"
+)
 
 
 def _postgres_available() -> bool:
@@ -131,6 +140,9 @@ def schema_db():
                 cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_CROSS_SHARE_MIGRATION.read_text())
                 cur.execute(_LEFTOVER_MAP_RECONSTRUCTION_MIGRATION.read_text())
+                cur.execute(_OPERATIONS_CASE_MIGRATION.read_text())
+                cur.execute(_OPERATIONS_CASE_EVIDENCE_MIGRATION.read_text())
+                cur.execute(_OPERATIONS_CASE_MISSING_MIGRATION.read_text())
             conn.commit()
             yield conn
         finally:
@@ -185,6 +197,10 @@ def test_migration_applies_cleanly(schema_db) -> None:
         "post_summary_action",
         "post_chat_result",
         "post_chat_citation",
+        "operations_case_analysis",
+        "operations_case_classification",
+        "operations_case_fact",
+        "operations_case_missing_fact",
     }
     assert expected <= tables
 
