@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 15:33 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 15:43 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -19,7 +19,7 @@ context only.
 | ---: | --- | --- |
 | #602 | `36f05476` | Post-detail modal semantics, focus containment/restoration, and Escape close are mergeable; the valid rerender focus-steal review was repaired with a mount-only focus lifecycle and regression test, all threads are resolved, and auto-merge remains armed pending exact-head hosted checks and independent review |
 | #601 | `5ce88969` | draft PROV-O ADR APA 7th references are mergeable and checks are progressing, but the PR's explicit owner contract says not to mark Ready or merge |
-| #600 | `b0a448bf` | this baseline's pre-amendment observed head; mergeable with review/check evidence pending |
+| #600 | `cb5eff38` | this baseline's pre-amendment observed head; mergeable with review/check evidence pending |
 | #588 | `6185f2ae` | raw-residual reconstruction, rank-zero identity, API presence, and comparison-strip contracts reconciled with current main; focused backend/frontend/schema checks passed, all review threads are resolved, and auto-merge is armed |
 | #582 | `cab04063` | batched cited-lineage fetch was semantically composed with current main while retaining ADR 0161 interval relations; 27 focused lineage/documentation checks passed, no review threads remain, and auto-merge is armed pending hosted checks and independent review |
 | #579 | `bfefe98e` | interaction-map coordinates were semantically composed with current main's cross-share and interval work; the ADR 0168/0202 collision was repaired, all threads are resolved, 69 focused scientific/schema checks plus the focused live API contract passed, and 163 frontend tests, lint, app/Storybook builds, and desktop/mobile rendered audits passed; auto-merge is armed pending hosted checks and independent review |
@@ -59,23 +59,24 @@ Three systemic gates currently dominate the queue:
 1. **Strix visibility lookup failure (org control plane).** PR #600 exact head
    `7580bdc9` failed before scanning because the required-workflow token could
    not resolve this public repository after six API retries. The root repair is
-   ContextualWisdomLab/.github#1320 at `92bb94c5`: ordinary PR, push, and
+   ContextualWisdomLab/.github#1320 at `5f00b765`: ordinary PR, push, and
    schedule runs use trusted event visibility; cross-repository dispatch keeps
-   bounded API validation; private and internal repositories remain on
-   private-capable providers. The exact head also composes the previously
-   separate executable fallback-contract repair; 1,406 central tests, the
-   full Strix quick gate, actionlint, shell syntax, and diff checks passed
-   locally. It is blocked on hosted exact-head gates and independent review,
-   so no repaired protected-main Strix runtime evidence exists yet.
+   authoritative public/private/internal visibility; private and internal
+   repositories remain on private-capable providers. The exact head also
+   composes the executable fallback contract and classifies bounded NVIDIA
+   `ServiceUnavailableError` overload evidence as retryable across configured
+   distinct models without weakening exhaustion or vulnerability fail-close.
+   The full Strix quick-gate harness passed, and the composed head passed the
+   overload path plus 12 visibility-contract tests. It remains blocked on
+   hosted exact-head gates and independent review, so no repaired
+   protected-main Strix runtime evidence exists yet.
 2. **Strix provider unavailability (org control plane).** The central required
-   Strix scan fails across ~28 unrelated LineageWeave PRs with "could not
-   complete authoritative vulnerability analysis because its provider/backend
-   was unavailable": `nvidia_nim/nvidia/nemotron-3-super-120b-a12b` exits
-   after ~70 s and `openai-direct/gpt-5.6-luna` after ~5 s. This is an
-   infrastructure failure, not a code finding. The durable repair is
-   ContextualWisdomLab/.github#1263 (executable Azure and cross-provider
-   fallbacks). Its exact head is `ab3d7645`, remains open/conflicting, and has
-   not delivered a control-plane repair to protected `.github` main.
+   Strix scan on .github#1320 failed when NVIDIA returned `Service temporarily
+   overloaded`; the gate correctly failed closed but did not try its configured
+   distinct fallbacks because the service-unavailable classifier excluded the
+   NVIDIA provider. Exact head `5f00b765` repairs that execution path and keeps
+   incomplete exhaustion non-passing. This is still an unmerged control-plane
+   proposal, not protected-main or downstream runtime evidence.
 3. **Current-head independent approval.** The org merge scheduler requires
    `reviewDecision == APPROVED` plus complete Strix evidence on the exact
    head. Bot review evidence regenerates per push, so any repair push resets
