@@ -273,7 +273,7 @@ in Post quality (ADR 0158). Two-axis reconstruction `R̂` is not
 persisted. Leftover-map axis share (ADR 0148) is Gabriel inertia of
 residual SVD axes 1 and 2 and persists to `report_leftover_map_axis`.
 Rank-0 residuals emit two zero-share axes; the shares are report-level
-and are not a leftover score. Complete-case coverage (ADR 0168) persists to
+and are not a leftover score. Complete-case coverage (ADR 0202) persists to
 `report_leftover_map_coverage` and captions the pair list with how
 many scored posts entered the map.
 

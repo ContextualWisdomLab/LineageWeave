@@ -596,16 +596,15 @@ on those same fixed parameters (Kim, 2006 FIPC). After scoring,
 information at the group's mean θ (Lord, 1980 max-info CAT). Rankings
 persist to `report_item_information`. After those IRT main effects,
 residual SVD leftover pairs on two Gabriel axes (Jeon et al., 2021;
-ADR 0017 / 0048 / 0049 / 0119 / 0121 / 0126 / 0148 / 0158 / 0162 / 0163 /
-0164 / 0182 /
-0183) persist to `report_leftover_pair` with signed residual `R`,
-observed `Y`, expected `E[Y|θ, item]`, full leftover-map rank, and
-unexplained leftover `U = R − R̂` named on the pair row. Complete-case
-leftover-map coordinates persist to `report_leftover_map_person` /
-`report_leftover_map_item`. Leftover-map axis share (Gabriel inertia of
-residual SVD axes 1 and 2; ADR 0148) persists to
+ADR 0017 / 0048 / 0049 / 0119 / 0126 / 0158 / 0162 / 0163 / 0164 / 0182)
+persist to `report_leftover_pair` with signed residual `R`, observed `Y`,
+expected `E[Y|θ, item]`, full leftover-map rank, and unexplained leftover
+`U = R − R̂` named on the pair row. Complete-case leftover-map
+coordinates persist to `report_leftover_map_person` /
+`report_leftover_map_item` (ADR 0121). Leftover-map axis share (Gabriel
+inertia of residual SVD axes 1 and 2; ADR 0148) persists to
 `report_leftover_map_axis`. Complete-case leftover-map coverage (ADR
-0183) persists to `report_leftover_map_coverage` so readers see how
+0202) persists to `report_leftover_map_coverage` so readers see how
 many scored posts entered the factorization -- without a complete-case
 rectangle neither a pair nor a coordinate is persisted either. Results
 persist to
