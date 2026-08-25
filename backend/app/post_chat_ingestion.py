@@ -390,6 +390,8 @@ async def prepare_global_question_embedding(
     embedding_client: EmbeddingClient,
 ) -> tuple[list[float], str, float] | None:
     """Resolve one question embedding without holding a database connection."""
+    if not question.strip() or not embedding_client.available:
+        return None
     try:
         question_vector = await asyncio.to_thread(embedding_client.embed, question)
     except (OSError, RuntimeError, ValueError):
