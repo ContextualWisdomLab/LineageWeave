@@ -406,6 +406,54 @@ def test_rebuild_drops_llm_before_candidate_pair_budget_is_exceeded(monkeypatch)
     assert captured["llm"] is None
 
 
+def test_rebuild_drops_llm_before_estimated_weight_lookup(monkeypatch) -> None:
+    """Never load a four-channel estimate for a three-channel reconstruction."""
+
+    records = [
+        Record(f"record-{index}", "shared-group", f"Record {index}", datetime(2026, 1, index + 1))
+        for index in range(3)
+    ]
+    captured: dict[str, object] = {}
+
+    class FakeTransaction:
+        async def __aenter__(self):
+            return None
+
+        async def __aexit__(self, *_args):
+            return None
+
+    class FakeConnection:
+        def transaction(self):
+            return FakeTransaction()
+
+    async def fake_load_records(_conn):
+        return records
+
+    async def fake_load_weights(_conn, channels):
+        captured["channels"] = channels
+        return None
+
+    async def fake_reconstruct(_records, llm, _weights):
+        captured["llm"] = llm
+        return []
+
+    async def fake_persist(_conn, _edges, _weights):
+        return None
+
+    monkeypatch.setattr(ingestion, "MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS", 1)
+    monkeypatch.setattr(ingestion, "_load_lineage_records", fake_load_records)
+    monkeypatch.setattr(ingestion, "load_estimated_channel_weights", fake_load_weights)
+    monkeypatch.setattr(ingestion, "_reconstruct_lineage_records", fake_reconstruct)
+    monkeypatch.setattr(ingestion, "persist_lineage_edges", fake_persist)
+
+    asyncio.run(rebuild_lineage(FakeConnection(), llm=type("LLM", (), {"available": True})()))
+
+    assert captured == {
+        "channels": {"temporal", "secondary_key", "text"},
+        "llm": None,
+    }
+
+
 def test_pooled_rebuild_releases_the_connection_during_reconstruction(monkeypatch) -> None:
     """Keep provider work outside the pool and transaction, then replace atomically."""
     events: list[str] = []

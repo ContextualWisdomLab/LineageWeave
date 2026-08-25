@@ -254,20 +254,27 @@ async def _load_lineage_records(conn: asyncpg.Connection) -> list[Record]:
     return records_from_source_posts(rows)
 
 
+def _budgeted_llm(
+    records: list[Record], llm: AdjudicationClient | None
+) -> AdjudicationClient | None:
+    """Drop adjudication before weight lookup when the pair budget is exceeded."""
+    pair_count = 0
+    records_per_group: defaultdict[str, int] = defaultdict(int)
+    for record in records:
+        pair_count += min(records_per_group[record.group_key], DEFAULT_CANDIDATE_WINDOW)
+        if pair_count > MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS:
+            return None
+        records_per_group[record.group_key] += 1
+    return llm
+
+
 async def _reconstruct_lineage_records(
     records: list[Record],
     llm: AdjudicationClient | None,
     weights: dict[str, float] | None = None,
 ) -> list[Edge]:
     """Run the CPU/provider reconstruction without blocking the event loop."""
-    pair_count = 0
-    records_per_group: defaultdict[str, int] = defaultdict(int)
-    for record in records:
-        pair_count += min(records_per_group[record.group_key], DEFAULT_CANDIDATE_WINDOW)
-        if pair_count > MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS:
-            llm = None
-            break
-        records_per_group[record.group_key] += 1
+    llm = _budgeted_llm(records, llm)
     if weights is None:
         return await asyncio.to_thread(lineage_edge_specs, records, llm=llm)
     return await asyncio.to_thread(lineage_edge_specs, records, llm=llm, weights=weights)
@@ -289,6 +296,7 @@ async def rebuild_lineage(
     back to the default channel weights until one is.
     """
     records = await _load_lineage_records(conn)
+    llm = _budgeted_llm(records, llm)
     weights = await load_estimated_channel_weights(conn, estimated_weight_channels(llm))
     edges = await _reconstruct_lineage_records(records, llm, weights)
     async with conn.transaction():
@@ -309,6 +317,7 @@ async def rebuild_lineage_from_pool(
     """
     async with pool.acquire() as conn:
         records = await _load_lineage_records(conn)
+        llm = _budgeted_llm(records, llm)
         weights = await load_estimated_channel_weights(conn, estimated_weight_channels(llm))
     edges = await _reconstruct_lineage_records(records, llm, weights)
     async with pool.acquire() as conn, conn.transaction():

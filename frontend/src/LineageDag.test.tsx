@@ -70,6 +70,38 @@ const graph: LineageGraph = {
 };
 
 describe("LineageDag channel evidence", () => {
+  it("groups connection evidence by thread in a merged graph", () => {
+    const secondGroup: LineageGraph = {
+      nodes: graph.nodes.map((node) => ({
+        ...node,
+        id: `second-${node.id}`,
+        group: "B-200",
+        label: `Second ${node.label}`,
+      })),
+      edges: graph.edges.map((edge) => ({
+        ...edge,
+        source: `second-${edge.source}`,
+        target: `second-${edge.target}`,
+      })),
+    };
+
+    render(
+      <LineageDag
+        graph={{
+          nodes: [...graph.nodes, ...secondGroup.nodes],
+          edges: [...graph.edges, ...secondGroup.edges],
+        }}
+        onSelectPost={vi.fn()}
+      />,
+    );
+
+    const firstEvidence = screen.getByRole("region", { name: "A-100" });
+    const secondEvidence = screen.getByRole("region", { name: "B-200" });
+    expect(firstEvidence).toHaveTextContent("Kickoff recap follows Pricing follow-up");
+    expect(firstEvidence).not.toHaveTextContent("Second Kickoff recap");
+    expect(secondEvidence).toHaveTextContent("Second Kickoff recap follows Second Pricing follow-up");
+  });
+
   it("discloses exact inferred values without hover-only interaction", async () => {
     render(<LineageDag graph={graph} onSelectPost={vi.fn()} />);
     const disclosure = screen.getByText(/fused score 0.700000/).closest("details");

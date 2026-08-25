@@ -188,12 +188,15 @@ export function LineageDag({
             </div>
           </dl>
         ) : null}
-        {graph.edges.map((edge) => {
-          const key = edgeKey(edge);
-          const evidence = edge.channel_evidence ?? [];
-          const fromLabel = labelById[edge.source] ?? edge.source;
-          const toLabel = labelById[edge.target] ?? edge.target;
-          return (
+        {groups.map((group) => (
+          <section key={group.group} aria-label={group.heading}>
+            <h4>{group.heading}</h4>
+            {group.edges.map((edge) => {
+              const key = edgeKey(edge);
+              const evidence = edge.channel_evidence ?? [];
+              const fromLabel = labelById[edge.source] ?? edge.source;
+              const toLabel = labelById[edge.target] ?? edge.target;
+              return (
             <details
               key={key}
               className="lineage-edge-evidence-item"
@@ -242,9 +245,11 @@ export function LineageDag({
                   </tbody>
                 </table>
               ) : null}
-            </details>
-          );
-        })}
+              </details>
+              );
+            })}
+          </section>
+        ))}
       </section>
     </div>
   );
