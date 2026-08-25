@@ -43,6 +43,10 @@ describe("WorkspaceCalendar", () => {
 
     expect(screen.getByRole("heading", { name: "달력" })).toBeInTheDocument();
     expect(screen.getByText(CALENDAR_CONSUME_UNAVAILABLE)).toBeInTheDocument();
+    const notice = screen.getByRole("region", { name: /^Unavailable:/ });
+    expect(notice).toHaveTextContent(CALENDAR_CONSUME_UNAVAILABLE);
+    expect(notice).toHaveTextContent("Connect the Naruon calendar projection");
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(screen.queryByText(/CalDAV/i)).not.toBeInTheDocument();
     await userEvent.click(
       screen.getByRole("button", { name: /open commitment for: public post/i }),

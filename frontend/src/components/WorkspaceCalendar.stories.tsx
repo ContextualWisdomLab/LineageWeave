@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { expect, within } from "storybook/test";
 import { WorkspaceCalendar } from "./WorkspaceCalendar";
 import type { CalendarResponse } from "../api";
+import "../App.css";
 
 const unavailable: CalendarResponse = {
   events: [],
@@ -63,7 +65,17 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const NaruonUnavailable: Story = {};
+export const NaruonUnavailable: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const notice = canvas.getByRole("region", { name: /^Unavailable:/ });
+    await expect(notice).toHaveTextContent("이 범위의 일정을 아직 받을 수 없습니다");
+    await expect(notice).toHaveTextContent("Connect the Naruon calendar projection");
+    await expect(
+      canvas.getByRole("button", { name: /open commitment for: public post/i }),
+    ).toBeVisible();
+  },
+};
 
 export const ObservedOccurrence: Story = {
   args: { calendar: observed },

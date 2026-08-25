@@ -75,6 +75,15 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No upcoming commitments. Derive one from a post, or create a ticket with a due date.":
       "예정된 약속이 없습니다. 글에서 약속을 찾거나 기한이 있는 티켓을 만드세요.",
     "Open commitment for:": "약속 열기:",
+    Ready: "준비됨",
+    Unavailable: "사용할 수 없음",
+    "Retry needed": "다시 시도 필요",
+    "This evidence is ready to use.": "이 근거를 사용할 수 있습니다.",
+    "This evidence is unavailable. Follow the next action.":
+      "이 근거를 아직 사용할 수 없습니다. 다음 조치를 진행하세요.",
+    "This request failed. Retry the same action.":
+      "요청이 실패했습니다. 같은 조치를 다시 시도하세요.",
+    Retry: "다시 시도",
     "Advanced review tools": "고급 검토 도구",
     "Evidence operations": "증거 처리",
     "Evidence provenance": "근거 출처",
@@ -634,6 +643,14 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No upcoming commitments. Derive one from a post, or create a ticket with a due date.":
       "没有即将到来的承诺。请从文章中查找承诺，或创建带截止日期的工单。",
     "Open commitment for:": "打开承诺：",
+    Ready: "已就绪",
+    Unavailable: "不可用",
+    "Retry needed": "需要重试",
+    "This evidence is ready to use.": "可以使用该证据。",
+    "This evidence is unavailable. Follow the next action.":
+      "该证据尚不可用。请按下一步操作继续。",
+    "This request failed. Retry the same action.": "请求失败。请重试同一操作。",
+    Retry: "重试",
     "Advanced review tools": "高级审查工具",
     "Evidence operations": "证据操作",
     "Evidence provenance": "证据来源",
@@ -1209,6 +1226,15 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No upcoming commitments. Derive one from a post, or create a ticket with a due date.":
       "今後のコミットメントはありません。投稿から検索するか、期限付きのチケットを作成してください。",
     "Open commitment for:": "コミットメントを開く：",
+    Ready: "利用可能",
+    Unavailable: "利用できません",
+    "Retry needed": "再試行が必要",
+    "This evidence is ready to use.": "この根拠を利用できます。",
+    "This evidence is unavailable. Follow the next action.":
+      "この根拠はまだ利用できません。次の操作に進んでください。",
+    "This request failed. Retry the same action.":
+      "要求が失敗しました。同じ操作を再試行してください。",
+    Retry: "再試行",
     "Advanced review tools": "高度なレビュー ツール",
     "Evidence operations": "証拠操作",
     "Evidence provenance": "証拠の出所",
@@ -1763,6 +1789,15 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "No upcoming commitments. Derive one from a post, or create a ticket with a due date.":
       "Không có cam kết sắp tới. Hãy tìm cam kết từ bài viết hoặc tạo phiếu có hạn hoàn thành.",
     "Open commitment for:": "Mở cam kết:",
+    Ready: "Sẵn sàng",
+    Unavailable: "Không khả dụng",
+    "Retry needed": "Cần thử lại",
+    "This evidence is ready to use.": "Có thể dùng bằng chứng này.",
+    "This evidence is unavailable. Follow the next action.":
+      "Bằng chứng này chưa khả dụng. Hãy làm bước tiếp theo.",
+    "This request failed. Retry the same action.":
+      "Yêu cầu thất bại. Hãy thử lại cùng thao tác.",
+    Retry: "Thử lại",
     "Advanced review tools": "Công cụ rà soát nâng cao",
     "Evidence operations": "Thao tác bằng chứng",
     "Evidence provenance": "Nguồn gốc bằng chứng",
