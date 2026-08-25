@@ -2,15 +2,18 @@
 
 ADR 0021 reconstructs lineage. ADR 0022 starts TEPP through
 ``tepp_client`` only. ADR 0023 enqueues that work on a durable outbox
-so a crash after Running does not lose the item. Period-report stays
+so a crash after Running does not lose the item. ADR 0204 keeps provider
+work outside database transactions and pool leases. Period-report stays
 another path. Neither start invents a theta or a calibrated report
 score.
 """
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
@@ -82,6 +85,31 @@ class _ProviderBoundaryAdjudication:
             return self._inner.judge(candidate_label, record_label)
         except (HttpClientError, OSError, ValueError, TypeError) as exc:
             raise _AdjudicationProviderError(str(exc)) from exc
+
+
+@dataclass(frozen=True)
+class _DeliveryPlan:
+    """Frozen provider input materialized by the short claim transaction."""
+
+    work_kind_code: str
+    started_at: datetime
+    locked: dict[str, Any]
+    records: tuple[Any, ...] = ()
+    weights: dict[str, float] | None = None
+
+
+@dataclass(frozen=True)
+class _DeliveryOutcome:
+    """Provider result ready for one short atomic persistence transaction."""
+
+    work_kind_code: str
+    started_at: datetime
+    edges: tuple[Edge, ...] = ()
+    status_code: str = _SUCCEEDED
+    failure_code: str = ""
+    envelope: dict[str, Any] | None = None
+    source_snapshot_sha256: str | None = None
+    knowledge_cutoff: datetime | None = None
 
 
 def reconstruction_result_digest(edges: list[Edge]) -> str:
@@ -168,7 +196,7 @@ def tepp_run_request(
         idempotency_key=idempotency_key,
         tenant_workspace_id=str(corporate_entity_id),
         snapshot_id=snapshot_sha256,
-        knowledge_cutoff=cutoff.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        knowledge_cutoff=cutoff.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
         model_contract_version=_TEPP_MODEL_CONTRACT,
         output_profile=_TEPP_OUTPUT_PROFILE,
     )
@@ -196,7 +224,7 @@ def topic_lineage_run_request(
         idempotency_key=idempotency_key,
         tenant_workspace_id=str(corporate_entity_id),
         snapshot_id=snapshot_sha256,
-        knowledge_cutoff=cutoff.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        knowledge_cutoff=cutoff.astimezone(timezone.utc).isoformat().replace("+00:00", "Z"),
         model_contract_version=_TOPIC_LINEAGE_MODEL_CONTRACT,
         output_profile=_TOPIC_LINEAGE_OUTPUT_PROFILE,
     )
@@ -752,8 +780,9 @@ async def enqueue_pending_analysis_run(
 
 
 async def deliver_queued_analysis_run(
-    conn: asyncpg.Connection,
+    pool: asyncpg.Pool,
     *,
+    database_url: str,
     analysis_run_id: str,
     account_id: str,
     affiliated_entity_ids: list[str],
@@ -761,28 +790,86 @@ async def deliver_queued_analysis_run(
     adjudication_client: AdjudicationClient | None = None,
     valkey_stream_entry_id: str | None = None,
 ) -> dict[str, Any]:
-    """Claim the outbox row and finish ThreadWeave or TEPP.
+    """Claim, compute without a pool slot, then atomically persist delivery.
 
     A delivered row replays the stored result. Missing work is 409.
     TEPP stays Failed when the transport is missing or the envelope is
-    not persistable. No theta is invented.
+    not persistable. A dedicated PostgreSQL session owns the run-level
+    advisory lock; it carries no transaction and is not a pool slot.
     """
     try:
         UUID(analysis_run_id)
     except ValueError as exc:
         raise AnalysisRunStartError(404, "This analysis run is not visible.") from exc
 
+    lock_conn = await asyncpg.connect(database_url)
+    try:
+        acquired = await lock_conn.fetchval(
+            "select pg_try_advisory_lock(hashtextextended($1, 0))",
+            f"lineageweave:analysis-run:{analysis_run_id}",
+        )
+        if not acquired:
+            async with pool.acquire() as conn:
+                current = await _visible_or_404(
+                    conn, analysis_run_id, account_id, affiliated_entity_ids
+                )
+            if current["status_code"] == _SUCCEEDED:
+                return current
+            raise AnalysisRunStartError(
+                409,
+                "Open this run. Delivery is already running; refresh to read its result.",
+            )
+
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                plan_or_result = await _claim_delivery_plan(
+                    conn,
+                    analysis_run_id=analysis_run_id,
+                    account_id=account_id,
+                    affiliated_entity_ids=affiliated_entity_ids,
+                    adjudication_client=adjudication_client,
+                    valkey_stream_entry_id=valkey_stream_entry_id,
+                )
+        if isinstance(plan_or_result, dict):
+            return plan_or_result
+
+        outcome = await asyncio.to_thread(
+            _execute_delivery_plan,
+            plan_or_result,
+            tepp_client or TeppClient(),
+            adjudication_client,
+        )
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                return await _persist_delivery_outcome(
+                    conn,
+                    analysis_run_id=analysis_run_id,
+                    account_id=account_id,
+                    affiliated_entity_ids=affiliated_entity_ids,
+                    outcome=outcome,
+                    valkey_stream_entry_id=valkey_stream_entry_id,
+                )
+    finally:
+        await lock_conn.close()
+
+
+async def _claim_delivery_plan(
+    conn: asyncpg.Connection,
+    *,
+    analysis_run_id: str,
+    account_id: str,
+    affiliated_entity_ids: list[str],
+    adjudication_client: AdjudicationClient | None,
+    valkey_stream_entry_id: str | None,
+) -> _DeliveryPlan | dict[str, Any]:
+    """Commit the claim and materialize immutable provider input."""
     current = await fetch_visible_analysis_run(
-        conn,
-        analysis_run_id,
-        account_id,
-        affiliated_entity_ids,
+        conn, analysis_run_id, account_id, affiliated_entity_ids
     )
     if current is None:
         raise AnalysisRunStartError(404, "This analysis run is not visible.")
     if current["status_code"] == _SUCCEEDED:
         return current
-
     outbox = await conn.fetchrow(
         """
         select outbox.analysis_run_id, outbox.work_kind_code,
@@ -810,124 +897,35 @@ async def deliver_queued_analysis_run(
         return await _visible_or_404(
             conn, analysis_run_id, account_id, affiliated_entity_ids
         )
-    now = datetime.now(timezone.utc)
-    try:
-        if not latest_outbox_delivery_is_claimed(latest):
+    started_at = datetime.now(timezone.utc)
+    if not latest_outbox_delivery_is_claimed(latest):
+        try:
             await _append_outbox_delivery(
                 conn,
                 analysis_run_id,
                 await _next_outbox_delivery_ordinal(conn, analysis_run_id),
                 "analysis_outbox_claimed",
-                now,
+                started_at,
                 valkey_stream_entry_id,
             )
-        if outbox["work_kind_code"] == _TEPP_KIND:
-            await _deliver_tepp_measurement(
-                conn,
-                analysis_run_id=analysis_run_id,
-                locked=outbox,
-                tepp_client=tepp_client or TeppClient(),
-            )
-        elif outbox["work_kind_code"] == _TOPIC_LINEAGE_KIND:
-            await _deliver_topic_lineage_measurement(
-                conn,
-                analysis_run_id=analysis_run_id,
-                locked=outbox,
-                tepp_client=tepp_client or TeppClient(),
-            )
-        else:
-            await _deliver_lineage_reconstruction(
-                conn,
-                analysis_run_id=analysis_run_id,
-                locked=outbox,
-                affiliated_entity_ids=affiliated_entity_ids,
-                adjudication_client=adjudication_client,
-            )
-        finished = datetime.now(timezone.utc)
-        if finished < now:
-            finished = now
-        await _append_outbox_delivery(
-            conn,
-            analysis_run_id,
-            await _next_outbox_delivery_ordinal(conn, analysis_run_id),
-            "analysis_outbox_delivered",
-            finished,
-            valkey_stream_entry_id,
-        )
-    except asyncpg.UniqueViolationError as exc:
-        raise start_write_conflict_error() from exc
-    return await _visible_or_404(
-        conn, analysis_run_id, account_id, affiliated_entity_ids
-    )
+        except asyncpg.UniqueViolationError as exc:
+            raise start_write_conflict_error() from exc
+    locked = dict(outbox)
+    if outbox["work_kind_code"] != _LINEAGE_KIND:
+        return _DeliveryPlan(str(outbox["work_kind_code"]), started_at, locked)
 
-
-async def start_pending_analysis_run(
-    conn: asyncpg.Connection,
-    *,
-    analysis_run_id: str,
-    account_id: str,
-    affiliated_entity_ids: list[str],
-    tepp_client: TeppClient | None = None,
-    adjudication_client: AdjudicationClient | None = None,
-    valkey_stream_entry_id: str | None = None,
-) -> dict[str, Any]:
-    """Enqueue then deliver on one connection.
-
-    The HTTP start path commits the outbox before this delivery so a
-    crash leaves Running plus a durable work item. Callers that wrap
-    both steps in one transaction keep the older all-or-nothing
-    behavior.
-    """
-    queued = await enqueue_pending_analysis_run(
-        conn,
-        analysis_run_id=analysis_run_id,
-        account_id=account_id,
-        affiliated_entity_ids=affiliated_entity_ids,
-    )
-    if queued["status_code"] == _SUCCEEDED:
-        return queued
-    return await deliver_queued_analysis_run(
-        conn,
-        analysis_run_id=analysis_run_id,
-        account_id=account_id,
-        affiliated_entity_ids=affiliated_entity_ids,
-        tepp_client=tepp_client,
-        adjudication_client=adjudication_client,
-        valkey_stream_entry_id=valkey_stream_entry_id,
-    )
-
-
-async def _deliver_lineage_reconstruction(
-    conn: asyncpg.Connection,
-    *,
-    analysis_run_id: str,
-    locked: asyncpg.Record,
-    affiliated_entity_ids: list[str],
-    adjudication_client: AdjudicationClient | None = None,
-) -> None:
-    """Persist ThreadWeave parent choices for the frozen bag."""
-    now = datetime.now(timezone.utc)
     member_rows = await _snapshot_member_posts(
-        conn,
-        locked["analysis_source_snapshot_id"],
+        conn, outbox["analysis_source_snapshot_id"]
     )
-    if member_rows:
-        rows = member_rows
-    else:
-        rows = await _cutoff_source_posts(
-            conn,
-            corporate_entity_id=locked["corporate_entity_id"],
-            knowledge_cutoff=locked["knowledge_cutoff"],
-            affiliated_entity_ids=affiliated_entity_ids,
-        )
-    # ADR 0200 point 1: weights are measurement output only -- the
-    # activated fast-mlsirm set matching this run's active channels
-    # (four when the adjudication client is available, three
-    # deterministic otherwise). A missing set fails the start with a
-    # next-action message instead of reconstructing on constants.
+    rows = member_rows or await _cutoff_source_posts(
+        conn,
+        corporate_entity_id=outbox["corporate_entity_id"],
+        knowledge_cutoff=outbox["knowledge_cutoff"],
+        affiliated_entity_ids=affiliated_entity_ids,
+    )
     active_channels = {"temporal", "secondary_key", "text"}
     if adjudication_client is not None and getattr(adjudication_client, "available", False):
-        active_channels = active_channels | {"llm"}
+        active_channels.add("llm")
     weights = await load_estimated_channel_weights(conn, active_channels)
     if weights is None:
         raise AnalysisRunStartError(
@@ -936,30 +934,148 @@ async def _deliver_lineage_reconstruction(
             f"channels ({', '.join(sorted(active_channels))}). Run "
             "scripts/estimate_channel_weights.py, then start this run again.",
         )
-    # The provider boundary is exactly llm.judge() -- wrapping the whole
-    # pipeline would disguise a reconstruction code bug as a retryable
-    # provider outage. The enclosing transaction rolls back either way,
-    # so no partial graph persists (issue #289 RED 4/6).
-    guarded_client = (
-        _ProviderBoundaryAdjudication(adjudication_client)
-        if "llm" in active_channels
-        else adjudication_client
+    return _DeliveryPlan(
+        _LINEAGE_KIND,
+        started_at,
+        locked,
+        tuple(records_from_source_posts(rows)),
+        dict(weights),
     )
-    try:
-        edges = lineage_edge_specs(
-            records_from_source_posts(rows), llm=guarded_client, weights=weights
+
+
+def _execute_delivery_plan(
+    plan: _DeliveryPlan,
+    tepp_client: TeppClient,
+    adjudication_client: AdjudicationClient | None,
+) -> _DeliveryOutcome:
+    """Run provider or reconstruction work with no database resource."""
+    if plan.work_kind_code == _LINEAGE_KIND:
+        guarded_client = (
+            _ProviderBoundaryAdjudication(adjudication_client)
+            if plan.weights is not None and "llm" in plan.weights
+            else adjudication_client
         )
-    except _AdjudicationProviderError as exc:
-        raise AnalysisRunStartError(
-            503,
-            "The adjudication provider failed mid-reconstruction; nothing "
-            "was persisted. Check the contextual-orchestrator transport, "
-            "then start this run again.",
-        ) from exc
+        try:
+            edges = lineage_edge_specs(
+                list(plan.records), llm=guarded_client, weights=plan.weights or {}
+            )
+        except _AdjudicationProviderError as exc:
+            raise AnalysisRunStartError(
+                503,
+                "The adjudication provider failed mid-reconstruction; nothing "
+                "was persisted. Check the contextual-orchestrator transport, "
+                "then start this run again.",
+            ) from exc
+        return _DeliveryOutcome(plan.work_kind_code, plan.started_at, tuple(edges))
+
+    request_factory = (
+        topic_lineage_run_request
+        if plan.work_kind_code == _TOPIC_LINEAGE_KIND
+        else tepp_run_request
+    )
+    request = request_factory(
+        idempotency_key=str(plan.locked["idempotency_key"]),
+        snapshot_sha256=str(plan.locked["snapshot_sha256"]),
+        knowledge_cutoff=plan.locked["knowledge_cutoff"],
+        corporate_entity_id=str(plan.locked["corporate_entity_id"]),
+    )
+    if plan.work_kind_code == _TOPIC_LINEAGE_KIND:
+        status_code, failure_code, envelope = topic_lineage_submit_outcome(
+            tepp_client, request
+        )
+    else:
+        status_code, failure_code, envelope = _tepp_submission(tepp_client, request)
+    return _DeliveryOutcome(
+        plan.work_kind_code,
+        plan.started_at,
+        status_code=status_code,
+        failure_code=failure_code,
+        envelope=envelope,
+        source_snapshot_sha256=str(plan.locked["snapshot_sha256"]),
+        knowledge_cutoff=plan.locked["knowledge_cutoff"],
+    )
+
+
+async def _persist_delivery_outcome(
+    conn: asyncpg.Connection,
+    *,
+    analysis_run_id: str,
+    account_id: str,
+    affiliated_entity_ids: list[str],
+    outcome: _DeliveryOutcome,
+    valkey_stream_entry_id: str | None,
+) -> dict[str, Any]:
+    """Persist one complete outcome and delivered event atomically."""
+    outbox = await conn.fetchrow(
+        "select analysis_run_id from analysis_run_outbox where analysis_run_id = $1 for update",
+        analysis_run_id,
+    )
+    if outbox is None:
+        raise AnalysisRunStartError(409, "Open this run. Its queued work no longer exists.")
+    latest = await _latest_outbox_delivery(conn, analysis_run_id)
+    if latest_outbox_delivery_is_delivered(latest):
+        return await _visible_or_404(
+            conn, analysis_run_id, account_id, affiliated_entity_ids
+        )
+    finished = max(datetime.now(timezone.utc), outcome.started_at)
+    status_code = outcome.status_code
+    failure_code = outcome.failure_code
+    if outcome.work_kind_code == _LINEAGE_KIND:
+        await _persist_lineage_reconstruction(
+            conn, analysis_run_id=analysis_run_id, edges=outcome.edges, finished=finished
+        )
+    elif outcome.status_code == _SUCCEEDED and outcome.envelope is not None:
+        if outcome.work_kind_code == _TOPIC_LINEAGE_KIND:
+            persisted = await _persist_topic_lineage_result(
+                conn, analysis_run_id=analysis_run_id, envelope=outcome.envelope
+            )
+        elif (
+            outcome.source_snapshot_sha256 is not None
+            and outcome.knowledge_cutoff is not None
+        ):
+            persisted = await _persist_tepp_result(
+                conn,
+                analysis_run_id=analysis_run_id,
+                envelope=outcome.envelope,
+                expected_snapshot_sha256=outcome.source_snapshot_sha256,
+                expected_knowledge_cutoff=outcome.knowledge_cutoff,
+            )
+        else:
+            persisted = False
+        if not persisted:
+            status_code = _FAILED
+            failure_code = "tepp_result_not_persisted"
+    if outcome.work_kind_code != _LINEAGE_KIND:
+        await _append_status(
+            conn,
+            analysis_run_id,
+            await _next_status_ordinal(conn, analysis_run_id),
+            status_code,
+            finished,
+            failure_code,
+        )
+    await _append_outbox_delivery(
+        conn,
+        analysis_run_id,
+        await _next_outbox_delivery_ordinal(conn, analysis_run_id),
+        "analysis_outbox_delivered",
+        finished,
+        valkey_stream_entry_id,
+    )
+    return await _visible_or_404(
+        conn, analysis_run_id, account_id, affiliated_entity_ids
+    )
+
+
+async def _persist_lineage_reconstruction(
+    conn: asyncpg.Connection,
+    *,
+    analysis_run_id: str,
+    edges: tuple[Edge, ...],
+    finished: datetime,
+) -> None:
+    """Persist complete ThreadWeave parent choices in the completion transaction."""
     digest = reconstruction_result_digest(edges)
-    finished = datetime.now(timezone.utc)
-    if finished < now:
-        finished = now
     await conn.execute(
         """
         insert into analysis_run_reconstruction
@@ -990,85 +1106,4 @@ async def _deliver_lineage_reconstruction(
         await _next_status_ordinal(conn, analysis_run_id),
         _SUCCEEDED,
         finished,
-    )
-
-
-async def _deliver_tepp_measurement(
-    conn: asyncpg.Connection,
-    *,
-    analysis_run_id: str,
-    locked: asyncpg.Record,
-    tepp_client: TeppClient,
-) -> None:
-    """Submit the frozen snapshot through ``tepp_client``. Never persist a theta."""
-    now = datetime.now(timezone.utc)
-    request = tepp_run_request(
-        idempotency_key=str(locked["idempotency_key"]),
-        snapshot_sha256=str(locked["snapshot_sha256"]),
-        knowledge_cutoff=locked["knowledge_cutoff"],
-        corporate_entity_id=str(locked["corporate_entity_id"]),
-    )
-    status_code, failure_code, envelope = _tepp_submission(tepp_client, request)
-    if status_code == _SUCCEEDED and envelope is not None:
-        if not await _persist_tepp_result(
-            conn,
-            analysis_run_id=analysis_run_id,
-            envelope=envelope,
-            expected_snapshot_sha256=str(locked["snapshot_sha256"]),
-            expected_knowledge_cutoff=locked["knowledge_cutoff"],
-        ):
-            status_code = _FAILED
-            failure_code = "tepp_result_not_persisted"
-    finished = datetime.now(timezone.utc)
-    if finished < now:
-        finished = now
-    await _append_status(
-        conn,
-        analysis_run_id,
-        await _next_status_ordinal(conn, analysis_run_id),
-        status_code,
-        finished,
-        failure_code,
-    )
-
-
-async def _deliver_topic_lineage_measurement(
-    conn: asyncpg.Connection,
-    *,
-    analysis_run_id: str,
-    locked: asyncpg.Record,
-    tepp_client: TeppClient,
-) -> None:
-    """Submit the frozen snapshot through ``tepp_client`` for topic-lineage.
-
-    Mirrors :func:`_deliver_tepp_measurement` (ADR 0022) with the
-    topic-lineage model contract (ADR 0132). Never persists a locally
-    computed topic identity or CHRONOS/TDT event prediction.
-    """
-    now = datetime.now(timezone.utc)
-    request = topic_lineage_run_request(
-        idempotency_key=str(locked["idempotency_key"]),
-        snapshot_sha256=str(locked["snapshot_sha256"]),
-        knowledge_cutoff=locked["knowledge_cutoff"],
-        corporate_entity_id=str(locked["corporate_entity_id"]),
-    )
-    status_code, failure_code, envelope = topic_lineage_submit_outcome(tepp_client, request)
-    if status_code == _SUCCEEDED and envelope is not None:
-        if not await _persist_topic_lineage_result(
-            conn,
-            analysis_run_id=analysis_run_id,
-            envelope=envelope,
-        ):
-            status_code = _FAILED
-            failure_code = "tepp_result_not_persisted"
-    finished = datetime.now(timezone.utc)
-    if finished < now:
-        finished = now
-    await _append_status(
-        conn,
-        analysis_run_id,
-        await _next_status_ordinal(conn, analysis_run_id),
-        status_code,
-        finished,
-        failure_code,
     )

@@ -1,0 +1,8 @@
+-- ADR 0201: persist leftover-map reconstruction R̂ = ξ_{1:2} · ζ_{1:2}
+-- so unexplained leftover U = R − R̂ stays auditable as U + R̂ = R.
+-- Distance stays Euclidean leftover-map d. No nonnegative CHECK: a signed
+-- reconstruction is stored, never clamped. The nullable upgrade preserves
+-- older rows without fabricating reconstruction.
+
+alter table report_leftover_pair
+    add column if not exists leftover_map_reconstruction numeric;

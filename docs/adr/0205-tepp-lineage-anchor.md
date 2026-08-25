@@ -33,6 +33,10 @@ vector activates only when one normalized `lineage_weight_tepp_anchor` row:
    cutoff, and validated pair count as every weight in the vector; and
 4. matches the TEPP analysis run's immutable snapshot and cutoff exactly.
 
+The RFC 3339 request preserves the database cutoff's fractional-second
+precision; truncating it would make an otherwise valid exact anchor
+permanently unavailable.
+
 The loader also continues to require the exact active-channel set, one
 fast-mlsirm run, expected-information method, official estimator version,
 finite positive weights summing to one, and complete provenance. Any missing

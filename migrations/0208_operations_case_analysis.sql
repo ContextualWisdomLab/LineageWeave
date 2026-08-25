@@ -1,4 +1,4 @@
--- Evidence-grounded operational case inference (ADR 0204). Replay-safe.
+-- Evidence-grounded operational case inference (ADR 0206). Replay-safe.
 create table if not exists operations_case_analysis (
     post_id uuid primary key references source_post(post_id) on delete cascade,
     source_body_sha256 text not null check (source_body_sha256 ~ '^[0-9a-f]{64}$'),

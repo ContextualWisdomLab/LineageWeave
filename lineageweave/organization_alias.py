@@ -1,0 +1,143 @@
+"""Buyer-facing SKOS companion labels for corroborated organization names.
+
+[ADR 0008](docs/adr/0008-organization-abbreviation-resolution.md) already
+persists a search-corroborated ``skos:altLabel`` / ``skos:prefLabel`` pair
+(Miles & Bechhofer, 2009) in ``organization_name_resolution``. Catalog
+resolution still compares mentions to ``corporate_entity.entity_name``, so
+a chip that only prints that name hides the short form the source used.
+
+This module does not invent aliases. It returns the *other* label only when the
+displayed record already carries the corroborated pair's unique catalog id,
+and stays silent on a miss, an unbound record, identical labels, or a tie.
+
+Synthetic fixtures only: ``DC`` / ``Demo Corp``, ``AGP`` / ``Aurora Grid
+Power``. Real organization names must not appear here.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Mapping, MutableMapping, Sequence
+from dataclasses import dataclass
+from typing import Any
+
+
+@dataclass(frozen=True)
+class OrganizationNameAlias:
+    """One corroborated SKOS alt/pref pair.
+
+    Attributes:
+        alt_label: the abbreviated or slang form (``skos:altLabel``).
+        pref_label: the preferred catalog form (``skos:prefLabel``).
+        corporate_entity_id: unique existing catalog target, otherwise ``None``.
+    """
+
+    alt_label: str
+    pref_label: str
+    corporate_entity_id: str | None
+
+
+def _normalize_alias_label(name: str) -> str:
+    """Normalize presentation labels without erasing legal-entity identity."""
+    return " ".join(name.strip().lower().translate(str.maketrans("", "", ".,")).split())
+
+
+def companion_organization_alias(
+    display_name: str,
+    corporate_entity_id: str | None,
+    aliases: Sequence[OrganizationNameAlias],
+) -> str | None:
+    """Return the other corroborated label, or ``None``.
+
+    A display name that matches neither side, matches both sides of one
+    pair (identical labels), or matches two distinct companions is a
+    miss. Callers must not invent a parenthetical in those cases.
+    """
+    normalized = _normalize_alias_label(display_name)
+    if not normalized or not corporate_entity_id:
+        return None
+
+    companions: list[str] = []
+    seen: set[str] = set()
+    for alias in aliases:
+        if alias.corporate_entity_id != corporate_entity_id:
+            continue
+        alt = _normalize_alias_label(alias.alt_label)
+        pref = _normalize_alias_label(alias.pref_label)
+        if not alt or not pref or alt == pref:
+            continue
+        companion: str | None = None
+        if normalized == pref:
+            companion = alias.alt_label.strip()
+        elif normalized == alt:
+            companion = alias.pref_label.strip()
+        if companion is None:
+            continue
+        key = _normalize_alias_label(companion)
+        if key in seen:
+            continue
+        seen.add(key)
+        companions.append(companion)
+    if len(companions) != 1:
+        return None
+    return companions[0]
+
+
+def organization_alias_caption(
+    display_name: str,
+    organization_alias: str | None,
+) -> str:
+    """Visible chip text: ``Demo Corp (DC)`` when an alias is present."""
+    alias = (organization_alias or "").strip()
+    if not alias:
+        return display_name
+    return f"{display_name} ({alias})"
+
+
+def attach_organization_alias(
+    record: MutableMapping[str, Any],
+    aliases: Sequence[OrganizationNameAlias],
+    *,
+    name_key: str = "entity_name",
+    entity_id_key: str = "corporate_entity_id",
+) -> None:
+    """Write ``organization_alias`` onto one JSON record when unique."""
+    name = record.get(name_key)
+    if not isinstance(name, str):
+        return
+    entity_id = record.get(entity_id_key)
+    companion = companion_organization_alias(
+        name,
+        str(entity_id) if entity_id is not None else None,
+        aliases,
+    )
+    if companion:
+        record["organization_alias"] = companion
+
+
+def attach_organization_aliases(
+    records: Sequence[Mapping[str, Any]] | Sequence[MutableMapping[str, Any]],
+    aliases: Sequence[OrganizationNameAlias],
+    *,
+    name_key: str = "entity_name",
+    entity_id_key: str = "corporate_entity_id",
+    children_key: str = "children",
+) -> None:
+    """Write ``organization_alias`` onto a forest or a flat record list."""
+    for record in records:
+        if not isinstance(record, MutableMapping):
+            continue
+        attach_organization_alias(
+            record,
+            aliases,
+            name_key=name_key,
+            entity_id_key=entity_id_key,
+        )
+        children = record.get(children_key)
+        if isinstance(children, list):
+            attach_organization_aliases(
+                children,
+                aliases,
+                name_key=name_key,
+                entity_id_key=entity_id_key,
+                children_key=children_key,
+            )

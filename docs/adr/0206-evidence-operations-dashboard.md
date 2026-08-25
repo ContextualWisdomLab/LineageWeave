@@ -1,4 +1,4 @@
-# ADR 0204: Evidence-grounded operations dashboard
+# ADR 0206: Evidence-grounded operations dashboard
 
 - Status: Accepted
 - Date: 2026-08-25

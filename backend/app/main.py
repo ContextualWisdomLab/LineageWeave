@@ -241,6 +241,7 @@ async def lifespan(app: FastAPI):
             run_analysis_run_worker(
                 valkey,
                 pool,
+                database_url=settings.database_url,
                 tepp_client=configured_tepp_client(
                     settings.tepp_transport_url,
                     settings.tepp_api_key,
@@ -3339,23 +3340,22 @@ async def start_analysis_run(
             work_kind_code=str(queued.get("run_kind_code") or ""),
             request_sha256=request_digest,
         )
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            try:
-                started = await deliver_queued_analysis_run(
-                    conn,
-                    analysis_run_id=analysis_run_id,
-                    account_id=account.user_account_id,
-                    affiliated_entity_ids=list(account.corporate_entity_ids),
-                    tepp_client=configured_tepp_client(
-                        settings.tepp_transport_url,
-                        settings.tepp_api_key,
-                    ),
-                    adjudication_client=_adjudication_client(),
-                    valkey_stream_entry_id=stream_id,
-                )
-            except AnalysisRunStartError as exc:
-                raise HTTPException(exc.status_code, exc.detail) from exc
+    try:
+        started = await deliver_queued_analysis_run(
+            pool,
+            database_url=settings.database_url,
+            analysis_run_id=analysis_run_id,
+            account_id=account.user_account_id,
+            affiliated_entity_ids=list(account.corporate_entity_ids),
+            tepp_client=configured_tepp_client(
+                settings.tepp_transport_url,
+                settings.tepp_api_key,
+            ),
+            adjudication_client=_adjudication_client(),
+            valkey_stream_entry_id=stream_id,
+        )
+    except AnalysisRunStartError as exc:
+        raise HTTPException(exc.status_code, exc.detail) from exc
     return started
 
 
