@@ -472,7 +472,7 @@ review latency are never blockers — keep working while they settle.
 3. After the queue drains, resume user-visible gaps from §5 in leverage order:
    issue #272 external semantic verification, Naruon calendar (#355/#336), and
    authenticated operations/ontology publication acceptance.
-5. Rename remaining `[Buyer Gap]` issue titles to neutral product-object
+4. Rename remaining `[Buyer Gap]` issue titles to neutral product-object
    naming per repository convention (no "Buyer" for internal objects).
 6. Keep psychometric tests as true-parameter recovery (RMSE); never fixture
    tautologies, invented theta, or hand-authored numeric weights. Remove
