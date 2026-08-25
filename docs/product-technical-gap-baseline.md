@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 06:20 KST. Protected `main` was
-> `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
+> Dashboard delivery snapshot: 2026-08-26 07:45 KST. Protected `main` was
+> `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
@@ -11,7 +11,7 @@
 | Claim cause delay: order, specification change, originating order, sales pool, Event/post counts | ADR 0206; contextual-orchestrator case classification with cited spans; Event Lineage context | Candidate implementation; authenticated runtime acceptance pending |
 | Rebid/handover: discussion, counterparties, our owner, decisions, Event/post counts | ADR 0206; normalized case facts plus persisted summary actions/roles | Candidate implementation; corpus backfill pending |
 | External information count/rate and sales/project relation | ADR 0206; semantic `external_information` classification inside Dashboard GNB | Candidate implementation; no separate Board by product decision |
-| Project-specific journey | Explicit source/semantic project membership plus event-time ordering | Candidate API and ordered journey UI implemented; authenticated runtime acceptance pending |
+| Project-specific journey | ADR 0224; exact source/semantic project membership, source-post clock disclosure, responsibility evidence, and non-causal Event Lineage paths | PR #668 candidate API and post-detail timeline; exact-head review, protected merge, and authenticated runtime acceptance pending |
 | Repeat issue to design improvement | `repeat_issue`, `issue_pattern`, and `improvement_action` cited facts | Candidate semantic contract; design-system connector acceptance pending |
 | Natural-language Ask with evidence, report, alert, MCP | Persisted semantic-unit embeddings plus versioned delivery/resource contract | Candidate implementation uses whole-question embedding retrieval with no lexical fallback; authenticated runtime acceptance pending |
 | Similar VOC, customer cohort, prior action | Persisted repeat-issue candidate semantics plus orchestrator pair adjudication and extractive evidence | Candidate live post endpoint and post-detail UI implemented; authenticated runtime acceptance pending |
@@ -60,14 +60,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 11 open PRs and 10 open issues. The exact-head
+At this snapshot there were 12 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 06:20 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 07:45 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -76,26 +76,26 @@ lifecycle claim.
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
-when this baseline was refreshed. The live queue contained 11 open PRs and 10
+The protected default branch was `494b54e2245040bcf02b45376f221c37cd437e76`
+when this baseline was refreshed. The live queue contained 12 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #663 | `ab330a0f` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels; exact-head checks/review required |
-| #660 | `24fda085` | backend runtime repair plus semantic-unit stack; exact-head checks/review required |
-| #659 | `0739b9d7` | ontology node readability and tokenized UI fills; branch is DIRTY against current main and requires conflict repair |
+| #668 | `5ef8db83` | ADR 0224 evidence-bound project-history API and post-detail timeline; exact-head checks/review required |
+| #667 | `3bf57fed` | gap-baseline refresh; exact-head checks/review required |
+| #663 | `d5edd2b9` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels; exact-head checks/review required |
 | #658 | `fe830b0a` | evidence-honest Global Ask cutoff with revision-interval live-after semantics; exact-head checks/review required |
-| #657 | `64f48679` | Dashboard case-metric contract work; exact-head checks/review required |
-| #644 | `d9ff9980` | native-surface code splitting with modal-focus regression coverage; exact-head checks/review required |
-| #643 | `0a1f8ec1` | accessible status-notice surfaces; exact-head checks/review required |
-| #640 | `2d50fa01` | operations-dashboard contract alignment; exact-head checks/review required |
-| #639 | `aee02dca` | exact-head checks/review required |
-| #632 | `a4059113` | active semantic provenance repair head; exact-head checks/review required |
-| #631 | `1d9ac825` | documentation decomposition; branch is DIRTY against current main and requires conflict repair |
-| #629 | `4b4d6707` | exact-head checks/review required |
+| #657 | `a59a2023` | TEPP asynchronous lifecycle evidence; exact-head checks/review required |
+| #644 | `ed8d97f3` | native-surface code splitting with modal-focus regression coverage; exact-head checks/review required |
+| #643 | `7fb4d18c` | accessible status-notice surfaces; exact-head checks/review required |
+| #640 | `361641ec` | operations-dashboard contract alignment; exact-head checks/review required |
+| #639 | `8da485d3` | exact-head checks/review required |
+| #632 | `cad4debf` | active semantic provenance repair head; exact-head checks/review required |
+| #631 | `e6b4f0c4` | documentation decomposition; exact-head checks/review required |
+| #629 | `48496ff6` | provider-work release and bounded landing reads; exact-head checks/review required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -356,8 +356,8 @@ this file per §3.5 of the prior snapshot).
 | #272 | Verify Global Ask KG/ontology/semantic claims with public SearXNG evidence | Ask stack |
 | #274 | Persist and explain Event Lineage channel evidence | #387 |
 | #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #468, #417 |
-| #280 | Full project-lifecycle history and handover intervals | Tracked with issue #284; no active delivery PR confirmed |
-| #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
+| #280 | Evidence-bound project history with responsibility changes and related prior paths | #668; read projection only, exact-head protected delivery pending |
+| #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No owned source-adapter contract or active delivery PR; ADR 0224 forbids the read projection from inventing this authority |
 | #289 | Activate the optional lineage LLM channel through a bounded asynchronous rebuild | #434 |
 | #336 | Replace pseudo-CalDAV feed with a Naruon-owned calendar projection | Contract on `main` (#355); operator consume wiring in historical branch `feat/naruon-calendar-buyer-wiring-v2170` |
 | #338 | Evidence-bounded email/project lineage contract for Naruon consumption | #355 |
