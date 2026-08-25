@@ -360,6 +360,22 @@ async def test_dashboard_names_missing_fast_result_after_tepp_persistence() -> N
     assert result["topic_context"]["reason_code"] == "fast_mlsirm_influence_not_persisted"
     assert result["topic_context"]["topics"] == []
 
+
+@pytest.mark.anyio
+async def test_topic_readiness_uses_projection_temporal_windows() -> None:
+    """Readiness cannot count influence rows the projection must reject by time."""
+    conn = _Connection()
+    await fetch_operations_dashboard(conn, [])
+    readiness_query = next(
+        query for query, _args in conn.queries if "tepp_posterior_persisted" in query
+    )
+    assert "coalesce(post.event_occurred_at, post.created_at) as occurred_at" in readiness_query
+    assert "visible_post.occurred_at >= membership.valid_from" in readiness_query
+    assert "visible_post.occurred_at < membership.valid_to" in readiness_query
+    assert "join topic_activity_interval activity" in readiness_query
+    assert "visible_post.occurred_at >= activity.valid_from" in readiness_query
+    assert "visible_post.occurred_at < activity.valid_to" in readiness_query
+
 @pytest.mark.anyio
 async def test_external_scope_is_bound_in_every_dashboard_query() -> None:
     """The external destination restricts data at the API query boundary."""

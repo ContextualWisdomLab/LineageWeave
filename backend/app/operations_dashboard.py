@@ -501,7 +501,8 @@ async def _fetch_topic_context_dashboard(
     readiness = await conn.fetchrow(
         f"""
         with visible_post as (
-            select post.post_id
+            select post.post_id,
+                   coalesce(post.event_occurred_at, post.created_at) as occurred_at
               from source_post post
              where {visible_post_sql}
         )
@@ -513,7 +514,9 @@ async def _fetch_topic_context_dashboard(
                      join analysis_run analysis on analysis.analysis_run_id = model.analysis_run_id
                      join analysis_run_scope scope on scope.analysis_run_id = analysis.analysis_run_id
                      join visible_post on visible_post.post_id = membership.source_post_id
-                    where {authorized_model_scope}
+                    where visible_post.occurred_at >= membership.valid_from
+                      and visible_post.occurred_at < membership.valid_to
+                      and {authorized_model_scope}
                ) as tepp_posterior_persisted,
                exists (
                    select 1
@@ -526,7 +529,14 @@ async def _fetch_topic_context_dashboard(
                      join analysis_run analysis on analysis.analysis_run_id = model.analysis_run_id
                      join analysis_run_scope scope on scope.analysis_run_id = analysis.analysis_run_id
                      join visible_post on visible_post.post_id = membership.source_post_id
-                    where {authorized_model_scope}
+                     join topic_activity_interval activity
+                       on activity.topic_model_run_id = influence.topic_model_run_id
+                      and activity.topic_index = influence.topic_index
+                      and visible_post.occurred_at >= activity.valid_from
+                      and visible_post.occurred_at < activity.valid_to
+                    where visible_post.occurred_at >= membership.valid_from
+                      and visible_post.occurred_at < membership.valid_to
+                      and {authorized_model_scope}
                ) as fast_mlsirm_influence_persisted
         """,
         *args,
