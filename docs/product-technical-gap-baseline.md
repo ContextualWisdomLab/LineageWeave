@@ -381,7 +381,7 @@ this file per §3.5 of the prior snapshot).
 | Event and project semantics | Multi-project mentions, project-bound actions, 5W1H, requester/processor, and semantic relations exist in ADR 0036/0052/0100/0111/0129 and active stacks | Aggregate authenticated evidence must show distinct projects and events, explicit requester/processor and real R&R, normalized relative time, and product/entity relations without promoting attendance or co-occurrence |
 | Knowledge Graph readability | PR #659 is protected-main delivery in `main@494b54e2`: ontology node types use semantic-family light/dark tokens while shape and text remain non-color channels; exact-value tables retain full labels | Complete authenticated rendered acceptance for light/dark contrast, keyboard graph navigation, full labels, and evidence tables |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
-| Calendar / Naruon | #355 delivered the projection contract; v2.17.0 wires operator consumption without forwarding the end-user token. Naruon producer, provider/consumer fixtures, and protected merge remain open (#336) | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |
+| Calendar / Naruon | #355 and closed issue #336 delivered the consumer projection and v2.17.0 operator wiring without forwarding the end-user token. Cross-repository email/project lineage issue #338 remains open; producer/consumer runtime fixtures are not protected release evidence | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
 | Event Lineage evidence | Channel evidence and Allen relations live on #387 / #484 | Persist channel scores, explain them in the popup, never invent a fused score |
 | Scientific measurement | Durable accepted TEPP receipts and LineageWeave #614's exact accepted snapshot/cutoff/run/pair-count consumer are protected; TEPP #237 remains open, so no registered producer artifact exists yet. #387 removes inferred/default persistence weights, but several older reconstruction tests still pass hand-authored numeric dictionaries that are not estimator evidence | Land TEPP #237 through its protected gate, then replace remaining reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures. Retain true-parameter RMSE recovery as the acceptance bar |
@@ -406,7 +406,7 @@ before a commercial release claim. Figma File ID `1Su3lDRmiZdcUs47t1QwIX`.
 | --- | --- | --- |
 | Accessibility | Partial labels/roles on board, popup, login | WCAG 2.2 AA on login, board, popup, Ask, calendar, admin; focus order; live regions |
 | Touch & Interaction | Click-first popup and lists | 44px targets, swipe/escape to dismiss popup, no hover-only actions |
-| Performance | Board caps and hint render limits exist | Interaction-to-next-paint on board search, DAG, Ask; no N+1 (#358) |
+| Performance | Board caps exist, and closed issue #358 delivered batched persisted-Ask reauthorization | Measure interaction-to-next-paint on board search, DAG, and Ask against an exact-head authenticated workload |
 | Style Selection | Korean UI standards merged (#347) | Tokenized light/dark; Anti-Slop-UI density; no decorative noise |
 | Layout & Responsive | Desktop popup shell | 402px-class phone layout; stacked GNB; readable DAG |
 | Typography & Color | Badge tokens extracted | Contrast on badges, links, error/status; no raw hex in components |
@@ -426,7 +426,7 @@ of leverage; open connector PRs there when the defect is upstream:
 4. **TEPP** — calibrated measurement; persist receipts; no local reimplementation.
 5. **fast-mlsirm** — GRM/GPCM/CAT/FIPC recovery tests (#451–#454) must stay true-parameter RMSE.
 6. **ThreadWeave** — tree assembly.
-7. **Naruon** — calendar and email/project lineage projection (#336, #338, #355).
+7. **Naruon** — calendar projection delivered through #355/closed #336; email/project lineage projection remains open as #338.
 8. **DiskSage / wardnet** — storage and network policy as needed.
 9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and the LineageWeave hourly caller (#1259). If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile` is pnpm 11.3) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
 
@@ -472,7 +472,7 @@ review latency are never blockers — keep working while they settle.
 2. Merge #387 and #618–#621 only after each exact head shows terminal
    green required checks plus current-head independent approval.
 3. After the queue drains, resume user-visible gaps from §5 in leverage order:
-   Event Lineage evidence (#387/#274), Naruon calendar (#355/#336), and
+   Event Lineage evidence (#387/closed #274), Naruon calendar (#355/closed #336), and
    authenticated operations/ontology publication acceptance.
 5. Rename remaining `[Buyer Gap]` issue titles to neutral product-object
    naming per repository convention (no "Buyer" for internal objects).
@@ -494,8 +494,8 @@ review latency are never blockers — keep working while they settle.
 - Orchestrator / paper-grounded models: ADR 0015, ADR 0076 (Fugu, TRINITY, Conductor)
 - Ontology / PROV-O / SKOS: ADR 0004, ADR 0011, issue #372
 - Analysis runs / TEPP: ADR 0013–0023, issue #79 / #277
-- Calendar / Naruon: issues #336 / #338, PR #355, operator consumption v2.17.0
-- Ask Agent: issues #269–#272, #358–#363
+- Calendar / Naruon: closed issue #336, open issue #338, PR #355, operator consumption v2.17.0
+- Ask Agent: open issues #269–#272; closed performance/ontology issues #358 and #363 are delivery history, not active work
 
 Citations in doctoring and ADRs use APA 7th. Do not invent a heuristic where
 the papers leave the decision undecided.
