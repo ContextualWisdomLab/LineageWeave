@@ -22,7 +22,6 @@ from .adjudication_client import AdjudicationClient
 from .models import Edge, Record
 from .reconstruct import (
     DEFAULT_CANDIDATE_WINDOW,
-    DEFAULT_CHANNEL_WEIGHTS,
     DEFAULT_MIN_FUSED_SCORE,
     reconstruct,
 )
@@ -54,7 +53,7 @@ def lineage_edge_specs(
     records: Sequence[Record],
     *,
     llm: AdjudicationClient | None = None,
-    weights: dict[str, float] | None = None,
+    weights: dict[str, float],
 ) -> list[Edge]:
     """Run reconstruct and return every resulting parent→child edge.
 
@@ -70,14 +69,13 @@ def lineage_edge_specs(
     faked) -- callers that want the highest-weighted reasoning channel
     actually contributing to real reconstructions must pass a real one.
 
-    ``weights`` defaults to ``None``, keeping ``reconstruct()``'s
-    documented fallback constants; callers with a persisted
-    psychometric estimate (ADR 0145) pass it here.
+    ``weights`` is required and always a psychometric estimate (ADR
+    0145, second amendment): the persisted fast-mlsirm corpus estimate
+    on product paths, or the demo-design estimate from
+    :func:`~lineageweave.channel_weight_estimation.estimate_fixture_channel_weights`.
+    No hand-picked default exists anywhere.
     """
-    if weights is None:
-        trees = reconstruct(list(records), llm=llm)
-    else:
-        trees = reconstruct(list(records), llm=llm, weights=weights)
+    trees = reconstruct(list(records), llm=llm, weights=weights)
     return [edge for tree in trees for edge in tree.edges]
 
 
@@ -99,32 +97,6 @@ def quantize_signal_value(value: float) -> float:
     return float(quantized)
 
 
-def weights_for_channel_scores(channel_scores: Mapping[str, float]) -> dict[str, float]:
-    """Return the normalized active weights implied by recorded channel scores.
-
-    Channels absent from ``channel_scores`` (including ``llm`` when the
-    adjudication client was unavailable) are dropped and the remainder is
-    renormalized. This is the same rule ``reconstruct.active_weights``
-    applies at fusion time.
-    """
-    active = {
-        name: DEFAULT_CHANNEL_WEIGHTS[name]
-        for name in channel_scores
-        if name in DEFAULT_CHANNEL_WEIGHTS
-    }
-    total = sum(active.values())
-    if total <= 0:
-        return {}
-    return {name: weight / total for name, weight in active.items()}
-
-
-def default_no_llm_weights() -> dict[str, float]:
-    """Normalized default weights when the LLM channel did not participate."""
-    return weights_for_channel_scores(
-        {name: 0.0 for name in LINEAGE_SIGNAL_ORDER if name != "llm"}
-    )
-
-
 @dataclass(frozen=True)
 class LineageRebuildSpec:
     """Rows one atomic Event Lineage rebuild writes besides the edge list."""
@@ -138,7 +110,7 @@ class LineageRebuildSpec:
 
 def channel_signal_rows(
     edge: Edge,
-    weights: Mapping[str, float] | None = None,
+    weights: Mapping[str, float],
 ) -> list[dict[str, object]]:
     """Build persistable signal rows for one reconstructed edge.
 
@@ -151,7 +123,7 @@ def channel_signal_rows(
             ``edge.fused_score`` after accounting for one half quantum per
             persisted channel and a small floating-point guard.
     """
-    active_weights = dict(weights) if weights is not None else weights_for_channel_scores(edge.channel_scores)
+    active_weights = dict(weights)
     rows: list[dict[str, object]] = []
     contribution_sum = 0.0
     for channel in LINEAGE_SIGNAL_ORDER:
@@ -226,28 +198,18 @@ def llm_participated(evidence: Sequence[Mapping[str, object]]) -> bool:
 def lineage_rebuild_spec(
     edges: Sequence[Edge],
     *,
-    weights: Mapping[str, float] | None = None,
+    weights: Mapping[str, float],
     min_fused_score: float = DEFAULT_MIN_FUSED_SCORE,
     candidate_window: int = DEFAULT_CANDIDATE_WINDOW,
     package_version: str | None = None,
 ) -> LineageRebuildSpec:
     """Assemble the rebuild metadata and signal rows for ``edges``.
 
-    ``weights`` defaults to the normalized active weights implied by the
-    first edge that recorded channel scores, or the no-LLM default when
-    the rebuild produced no edges. Every signal row uses that same
-    profile so a later audit can see the weights that actually fused the
-    graph.
+    ``weights`` is the provenance-bearing psychometric estimate that fused
+    the graph. Every signal row uses that same profile so a later audit can
+    reproduce the active measurement contract.
     """
-    active_weights = dict(weights) if weights is not None else {}
-    if not active_weights:
-        for edge in edges:
-            inferred = weights_for_channel_scores(edge.channel_scores)
-            if inferred:
-                active_weights = inferred
-                break
-    if not active_weights:
-        active_weights = default_no_llm_weights()
+    active_weights = dict(weights)
 
     signal_rows: list[dict[str, object]] = []
     for edge in edges:

@@ -33,9 +33,15 @@ from lineageweave.reconstruct import DEFAULT_CANDIDATE_WINDOW
 
 MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS = 5_000
 
-# ADR 0145 rejected the unanchored estimator. A future accepted ADR must add
-# its independently validated method code here before persisted weights can run.
-_SUPPORTED_ANCHOR_METHOD_CODES: frozenset[str] = frozenset()
+# Accepted ADR 0200 (points 2-3) authorizes exactly one anchor method:
+# expected-information estimates honestly labeled as validated by the
+# channels' internal response structure only, pending the TEPP
+# criterion-validity gate. When that gate exists, a set that fails it is
+# retired and this stays the only place an anchor method is ever added
+# -- ADR-first, per ADR 0145's original condition.
+_SUPPORTED_ANCHOR_METHOD_CODES: frozenset[str] = frozenset(
+    {"unanchored_internal_structure"}
+)
 
 
 def estimated_weight_channels(llm: AdjudicationClient | None) -> set[str]:
@@ -244,6 +250,26 @@ async def load_estimated_channel_weights(
     return persisted
 
 
+class ChannelWeightsNotEstimated(RuntimeError):
+    """No activated estimated weight set exists for the active channels.
+
+    Product reconstruction treats fusion weights as measurement output
+    only (ADR 0200 point 1): estimated by fast-mlsirm, provenance-gated,
+    never hand-picked constants. No hand-picked default exists anywhere
+    -- the library demo estimates its weights from its declared design,
+    and tests use provenance-bearing estimates.
+    """
+
+    def __init__(self, active_channels: set[str]) -> None:
+        super().__init__(
+            "no activated fast-mlsirm channel weight estimate exists for "
+            f"active channels {sorted(active_channels)}; run "
+            "scripts/estimate_channel_weights.py first -- product "
+            "reconstruction never falls back to hand-picked weights"
+        )
+        self.active_channels = active_channels
+
+
 async def _load_lineage_records(conn: asyncpg.Connection) -> list[Record]:
     """Load the eligible source snapshot used by one reconstruction."""
     rows = await conn.fetch(
@@ -271,12 +297,10 @@ def _budgeted_llm(
 async def _reconstruct_lineage_records(
     records: list[Record],
     llm: AdjudicationClient | None,
-    weights: dict[str, float] | None = None,
+    weights: dict[str, float],
 ) -> list[Edge]:
     """Run the CPU/provider reconstruction without blocking the event loop."""
     llm = _budgeted_llm(records, llm)
-    if weights is None:
-        return await asyncio.to_thread(lineage_edge_specs, records, llm=llm)
     return await asyncio.to_thread(lineage_edge_specs, records, llm=llm, weights=weights)
 
 
@@ -287,17 +311,17 @@ async def rebuild_lineage(
 ) -> list[Edge]:
     """Reconstruct lineage for every ``source_post`` and persist the edges.
 
-    A configured contextual-orchestrator client is passed through only when
-    the exact candidate-pair work fits the ADR 0172 budget. Larger snapshots
-    drop the optional channel before any provider call and preserve one
-    fail-closed three-channel profile across the rebuild. A persisted ADR
-    0145 weight vector is applied when an anchor method has been approved;
-    ``_SUPPORTED_ANCHOR_METHOD_CODES`` is empty today, so this always falls
-    back to the default channel weights until one is.
+    The adjudication channel is dropped before weight lookup when the exact
+    candidate-pair work exceeds the ADR 0172 budget. The resulting active
+    channel set must have a provenance-gated fast-mlsirm estimate; there is no
+    hand-picked fallback (ADR 0200).
     """
     records = await _load_lineage_records(conn)
     llm = _budgeted_llm(records, llm)
-    weights = await load_estimated_channel_weights(conn, estimated_weight_channels(llm))
+    active_channels = estimated_weight_channels(llm)
+    weights = await load_estimated_channel_weights(conn, active_channels)
+    if weights is None:
+        raise ChannelWeightsNotEstimated(active_channels)
     edges = await _reconstruct_lineage_records(records, llm, weights)
     async with conn.transaction():
         await persist_lineage_edges(conn, edges, weights)
@@ -318,7 +342,10 @@ async def rebuild_lineage_from_pool(
     async with pool.acquire() as conn:
         records = await _load_lineage_records(conn)
         llm = _budgeted_llm(records, llm)
-        weights = await load_estimated_channel_weights(conn, estimated_weight_channels(llm))
+        active_channels = estimated_weight_channels(llm)
+        weights = await load_estimated_channel_weights(conn, active_channels)
+        if weights is None:
+            raise ChannelWeightsNotEstimated(active_channels)
     edges = await _reconstruct_lineage_records(records, llm, weights)
     async with pool.acquire() as conn, conn.transaction():
         await persist_lineage_edges(conn, edges, weights)

@@ -357,6 +357,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Related next action": "관련 대상 다음 작업",
     "Ask next action": "Ask 다음 작업",
     "Keyman next action": "Keyman 다음 작업",
+    "Leftover criterion next action": "잔여 기준 다음 작업",
+    "Open this post so the leftover criterion is current in Post quality.":
+      "이 글을 열어 잔여 기준이 게시글 품질에서 현재 항목이 되게 하세요.",
+    "{criterion} is the leftover criterion this post sat closest to after main effects. Read that Post quality score next.":
+      "{criterion}은(는) 주효과 이후 이 글이 가장 가까웠던 잔여 기준입니다. 다음으로 그 게시글 품질 점수를 읽으세요.",
+    "{criterion} is the leftover criterion this post sat farthest from after main effects. Read that Post quality score next.":
+      "{criterion}은(는) 주효과 이후 이 글이 가장 멀었던 잔여 기준입니다. 다음으로 그 게시글 품질 점수를 읽으세요.",
     "Ask seeded question: {question}": "시드 질문: {question}",
     "{post} is current in Event Lineage. Read Keyman and evaluation next.":
       "{post}은(는) 이벤트 계보의 현재 항목입니다. 다음으로 Keyman과 평가를 읽으세요.",
@@ -823,6 +830,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Related next action": "相关节点操作",
     "Ask next action": "Ask 操作",
     "Keyman next action": "关键联系人操作",
+    "Leftover criterion next action": "残差标准操作",
+    "Open this post so the leftover criterion is current in Post quality.":
+      "打开此文章，使残差标准成为文章质量中的当前项。",
+    "{criterion} is the leftover criterion this post sat closest to after main effects. Read that Post quality score next.":
+      "{criterion} 是主效应后此文章最接近的残差标准。接下来查看该文章质量分数。",
+    "{criterion} is the leftover criterion this post sat farthest from after main effects. Read that Post quality score next.":
+      "{criterion} 是主效应后此文章最远离的残差标准。接下来查看该文章质量分数。",
     "Ask seeded question: {question}": "种子问题：{question}",
     "{post} is current in Event Lineage. Read Keyman and evaluation next.":
       "{post} 是事件谱系中的当前记录。接下来查看关键联系人和评估。",
@@ -1290,6 +1304,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Related next action": "関連ノードの操作",
     "Ask next action": "Askの操作",
     "Keyman next action": "キーパーソンの操作",
+    "Leftover criterion next action": "残差基準の操作",
+    "Open this post so the leftover criterion is current in Post quality.":
+      "この投稿を開き、残差基準を投稿品質の現在の項目にしてください。",
+    "{criterion} is the leftover criterion this post sat closest to after main effects. Read that Post quality score next.":
+      "{criterion}は主効果後にこの投稿が最も近かった残差基準です。次にその投稿品質スコアを確認してください。",
+    "{criterion} is the leftover criterion this post sat farthest from after main effects. Read that Post quality score next.":
+      "{criterion}は主効果後にこの投稿が最も遠かった残差基準です。次にその投稿品質スコアを確認してください。",
     "Ask seeded question: {question}": "シードされた質問: {question}",
     "{post} is current in Event Lineage. Read Keyman and evaluation next.":
       "{post}はイベント系譜の現在の記録です。次にキーパーソンと評価を確認してください。",
@@ -1758,6 +1779,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Related next action": "Thao tác nút liên quan",
     "Ask next action": "Thao tác Ask",
     "Keyman next action": "Thao tác người liên hệ chính",
+    "Leftover criterion next action": "Thao tác tiêu chí phần dư",
+    "Open this post so the leftover criterion is current in Post quality.":
+      "Mở bài viết này để tiêu chí phần dư trở thành mục hiện tại trong Chất lượng bài viết.",
+    "{criterion} is the leftover criterion this post sat closest to after main effects. Read that Post quality score next.":
+      "{criterion} là tiêu chí phần dư mà bài viết này nằm gần nhất sau hiệu ứng chính. Hãy xem điểm Chất lượng bài viết đó tiếp theo.",
+    "{criterion} is the leftover criterion this post sat farthest from after main effects. Read that Post quality score next.":
+      "{criterion} là tiêu chí phần dư mà bài viết này nằm xa nhất sau hiệu ứng chính. Hãy xem điểm Chất lượng bài viết đó tiếp theo.",
     "Ask seeded question: {question}": "Câu hỏi mồi: {question}",
     "{post} is current in Event Lineage. Read Keyman and evaluation next.":
       "{post} là bản ghi hiện tại trong Dòng sự kiện. Hãy xem người liên hệ chính và đánh giá tiếp theo.",

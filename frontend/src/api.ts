@@ -964,6 +964,7 @@ export interface GroupingComparisonRow {
   mean_theta: number;
   post_count: number;
   link_method: string;
+  leftover_pairs?: LeftoverPair[];
 }
 
 export interface PeriodComparison {

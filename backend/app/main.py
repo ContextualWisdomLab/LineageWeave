@@ -170,6 +170,7 @@ from backend.app.knowledge_graph import (
     visible_team_mention_post_ids,
 )
 from backend.app.lineage_ingestion import (
+    ChannelWeightsNotEstimated,
     lineage_graphs_for_posts,
     rebuild_lineage_from_pool,
     visible_lineage_graph,
@@ -369,12 +370,11 @@ def _post_summary_client():
 def _adjudication_client():
     """Live orchestrator client when configured; otherwise the unavailable null.
 
-    reconstruct.py's DEFAULT_CHANNEL_WEIGHTS gives this channel the most
-    weight (0.40) of the four -- it is the only one that reasons about
-    content instead of approximating it (ADR 0064). The same client is
-    shared by analysis-run reconstruction and the administrator-triggered
-    live graph rebuild; an unconfigured gateway remains an explicit
-    three-channel fallback.
+    The llm channel is the only one that reasons about content instead
+    of approximating it (ADR 0064). Its fusion weight -- like every
+    channel's -- is a fast-mlsirm estimate (ADR 0200): with this client
+    available, a four-channel run uses the persisted
+    `channel_set_with_llm` estimate and fails closed until one exists.
     """
     settings = load_settings()
     if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
@@ -1170,6 +1170,12 @@ async def rebuild_lineage_graph(
     _require_post_admin(account)
     try:
         edges = await rebuild_lineage_from_pool(pool, llm=_adjudication_client())
+    except ChannelWeightsNotEstimated as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Channel weights are not estimated yet. Run "
+            "scripts/estimate_channel_weights.py, then rebuild again.",
+        ) from exc
     except (HttpClientError, OSError) as exc:
         # This can issue up to MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS sequential
         # adjudication calls across the whole corpus (lineage_ingestion.py);
@@ -2440,7 +2446,24 @@ async def compare_period_groupings(
         ]
         if not members:
             continue
-        visible.append({**row, "members": [], "post_count": len(members)})
+        leftover_pairs = [
+            pair
+            for pair in row.get("leftover_pairs", [])
+            if _can_see_post(account, pair)
+            and not _is_synthetic_demo_member(pair, demo_entity_ids)
+        ]
+        leftover_pairs = [
+            {key: value for key, value in pair.items() if key != "has_real_source_context"}
+            for pair in leftover_pairs
+        ]
+        visible.append(
+            {
+                **row,
+                "members": [],
+                "leftover_pairs": leftover_pairs,
+                "post_count": len(members),
+            }
+        )
     return {"period_code": period_code, "groupings": visible}
 
 

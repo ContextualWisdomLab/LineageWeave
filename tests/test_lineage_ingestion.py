@@ -5,10 +5,13 @@ from __future__ import annotations
 import asyncio
 import math
 from datetime import UTC, datetime, timezone
+from functools import lru_cache
+
+import pytest
 
 import backend.app.lineage_ingestion as ingestion
 from backend.app.lineage_ingestion import (
-    _reconstruct_lineage_records,
+    _budgeted_llm,
     lineage_graphs_for_posts,
     persist_lineage_edges,
     rebuild_lineage,
@@ -17,9 +20,18 @@ from backend.app.lineage_ingestion import (
     records_from_source_posts,
     visible_lineage_graph,
 )
+from lineageweave.channel_weight_estimation import estimate_fixture_channel_weights
 from lineageweave.fixtures import sample_records
-from lineageweave.lineage_persistence import lineage_edge_specs
+from lineageweave.lineage_persistence import lineage_edge_specs, quantize_signal_value
 from lineageweave.models import Record
+
+
+@lru_cache(maxsize=1)
+def _fixture_weights() -> dict[str, float]:
+    """Return the fast-mlsirm estimate for the declared synthetic design."""
+    estimate = estimate_fixture_channel_weights()
+    assert estimate is not None
+    return estimate.weights
 
 
 def test_missing_weight_table_is_detected_without_an_aborting_query() -> None:
@@ -57,9 +69,8 @@ def test_unapproved_weight_provenance_is_never_activated() -> None:
                 "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
             }
             return [
-                {**provenance, "channel_code": "temporal", "weight_value": 0.2},
-                {**provenance, "channel_code": "secondary_key", "weight_value": 0.3},
-                {**provenance, "channel_code": "text", "weight_value": 0.5},
+                {**provenance, "channel_code": channel, "weight_value": weight}
+                for channel, weight in _fixture_weights().items()
             ]
 
     assert asyncio.run(
@@ -67,6 +78,41 @@ def test_unapproved_weight_provenance_is_never_activated() -> None:
             StoredWeightConnection(), {"temporal", "secondary_key", "text"}
         )
     ) is None
+
+
+def test_adr_0200_authorized_anchor_activates_a_complete_vector() -> None:
+    """Accepted ADR 0200: 'unanchored_internal_structure' is the one
+    authorized anchor method -- a complete, single-run,
+    integrity-passing vector under it activates, with no monkeypatching
+    of the authorized set. The rejected estimator's code
+    ('unanchored_channel_covariance', previous test) stays refused.
+    """
+
+    class StoredWeightConnection:
+        async def fetchval(self, _query: str):
+            return True
+
+        async def fetch(self, _query: str):
+            provenance = {
+                "channel_set_code": "channel_set_deterministic",
+                "estimation_run_id": "00000000-0000-0000-0000-000000000001",
+                "estimation_method_code": "mls2plm_expected_information",
+                "estimator_version": "1.0.0",
+                "anchor_method_code": "unanchored_internal_structure",
+                "source_snapshot_sha256": "a" * 64,
+                "sample_pair_count": 600,
+                "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
+            }
+            return [
+                {**provenance, "channel_code": channel, "weight_value": weight}
+                for channel, weight in _fixture_weights().items()
+            ]
+
+    assert asyncio.run(
+        ingestion.load_estimated_channel_weights(
+            StoredWeightConnection(), {"temporal", "secondary_key", "text"}
+        )
+    ) == _fixture_weights()
 
 
 def test_incomplete_persisted_weight_vector_is_unavailable() -> None:
@@ -339,9 +385,13 @@ def test_rebuild_passes_the_configured_adjudication_client(monkeypatch) -> None:
     client = object()
     captured: dict[str, object] = {}
 
-    def fake_lineage_edge_specs(_records, *, llm=None):
+    def fake_lineage_edge_specs(_records, *, llm=None, weights=None):
         captured["llm"] = llm
+        captured["weights"] = weights
         return []
+
+    async def fake_load_weights(_conn, _channels):
+        return _fixture_weights()
 
     async def fake_persist_lineage_edges(_conn, _edges, _weights=None):
         events.append("persist")
@@ -358,10 +408,14 @@ def test_rebuild_passes_the_configured_adjudication_client(monkeypatch) -> None:
     monkeypatch.setattr(
         "backend.app.lineage_ingestion.persist_lineage_edges", fake_persist_lineage_edges
     )
+    monkeypatch.setattr(
+        "backend.app.lineage_ingestion.load_estimated_channel_weights", fake_load_weights
+    )
     monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
     asyncio.run(rebuild_lineage(FakeConnection(), llm=client))
 
     assert captured["llm"] is client
+    assert captured["weights"] == _fixture_weights()
     assert captured["offloaded_function"] is fake_lineage_edge_specs
     assert events == ["fetch", "reconstruct", "transaction_enter", "persist", "transaction_exit"]
 
@@ -388,22 +442,11 @@ def test_rebuild_drops_llm_before_candidate_pair_budget_is_exceeded(monkeypatch)
         Record(f"record-{index}", "shared-group", f"Record {index}", datetime(2026, 1, index + 1))
         for index in range(3)
     ]
-    captured: dict[str, object] = {}
-
-    def fake_lineage_edge_specs(_records, *, llm=None):
-        captured["llm"] = llm
-        return []
-
     monkeypatch.setattr(
         "backend.app.lineage_ingestion.MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS", 1
     )
-    monkeypatch.setattr(
-        "backend.app.lineage_ingestion.lineage_edge_specs", fake_lineage_edge_specs
-    )
 
-    asyncio.run(_reconstruct_lineage_records(records, object()))
-
-    assert captured["llm"] is None
+    assert _budgeted_llm(records, object()) is None
 
 
 def test_rebuild_drops_llm_before_estimated_weight_lookup(monkeypatch) -> None:
@@ -431,7 +474,7 @@ def test_rebuild_drops_llm_before_estimated_weight_lookup(monkeypatch) -> None:
 
     async def fake_load_weights(_conn, channels):
         captured["channels"] = channels
-        return None
+        return _fixture_weights()
 
     async def fake_reconstruct(_records, llm, _weights):
         captured["llm"] = llm
@@ -509,9 +552,15 @@ def test_pooled_rebuild_releases_the_connection_during_reconstruction(monkeypatc
         assert events[-1] == "transaction-enter"
         events.append("persist")
 
+    async def fake_load_weights(_conn, _channels):
+        return _fixture_weights()
+
     monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
     monkeypatch.setattr(
         "backend.app.lineage_ingestion.persist_lineage_edges", fake_persist
+    )
+    monkeypatch.setattr(
+        "backend.app.lineage_ingestion.load_estimated_channel_weights", fake_load_weights
     )
 
     asyncio.run(rebuild_lineage_from_pool(pool))
@@ -584,15 +633,22 @@ def test_seed_shaped_rows_rebuild_to_the_designed_a100_fork() -> None:
                 "created_at": rec.occurred_at,
             }
         )
-    edges = lineage_edge_specs(records_from_source_posts(rows))
+    edges = lineage_edge_specs(
+        records_from_source_posts(rows),
+        weights=_fixture_weights(),
+    )
     pairs = {(edge.parent_id, edge.child_id) for edge in edges}
     assert ("rec-002", "rec-003") in pairs
     assert ("rec-002", "rec-004") in pairs
     assert "rec-006" not in {edge.child_id for edge in edges}
 
 
-def test_rebuild_persists_the_synthetic_fork_without_estimated_weights() -> None:
-    """A missing weight table keeps deterministic reconstruction operational."""
+def test_rebuild_fails_closed_without_an_activated_weight_estimate() -> None:
+    """ADR 0200 point 1: no activated estimate -> no reconstruction on
+    constants. The raised message names the next action (run the
+    estimation script) so the operator is never left guessing, and
+    nothing is written.
+    """
     rows = [
         {
             "post_id": rec.record_id,
@@ -625,6 +681,71 @@ def test_rebuild_persists_the_synthetic_fork_without_estimated_weights() -> None
         async def fetchval(self, query: str):
             assert "to_regclass('public.lineage_channel_weight')" in query
             return False
+
+        async def executemany(self, query: str, args) -> None:
+            for row in args:
+                self.executions.append((query, row))
+
+        def transaction(self):
+            return FakeTransaction()
+
+    connection = FakeConnection()
+    with pytest.raises(ingestion.ChannelWeightsNotEstimated) as raised:
+        asyncio.run(ingestion.rebuild_lineage(connection))
+    assert "estimate_channel_weights" in str(raised.value)
+    assert connection.executions == []
+
+
+def test_rebuild_reconstructs_with_an_activated_estimate() -> None:
+    """With an activated estimate the designed fork persists as before."""
+    rows = [
+        {
+            "post_id": rec.record_id,
+            "process_unit_id": "shared-pu",
+            "corporate_entity_id": "shared-corp",
+            "post_title": rec.label,
+            "voc_type_code": "voc" if rec.secondary_key else "vom",
+            "thread_group_key": rec.group_key,
+            "secondary_grouping_key": rec.secondary_key,
+            "created_at": rec.occurred_at,
+        }
+        for rec in sample_records()
+    ]
+    weight_rows = [
+        {
+            "channel_set_code": "channel_set_deterministic",
+            "channel_code": channel,
+            "weight_value": weight,
+            "estimation_run_id": "00000000-0000-0000-0000-000000000001",
+            "estimation_method_code": "mls2plm_expected_information",
+            "estimator_version": "1.0.0",
+            "anchor_method_code": "unanchored_internal_structure",
+            "source_snapshot_sha256": "a" * 64,
+            "sample_pair_count": 600,
+            "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
+        }
+        for channel, weight in _fixture_weights().items()
+    ]
+
+    class FakeTransaction:
+        async def __aenter__(self):
+            return None
+
+        async def __aexit__(self, *_args):
+            return None
+
+    class FakeConnection:
+        def __init__(self) -> None:
+            self.executions: list[tuple[str, tuple[object, ...]]] = []
+
+        async def fetch(self, query: str):
+            if "lineage_channel_weight" in query:
+                return weight_rows
+            assert "from source_post" in query
+            return rows
+
+        async def fetchval(self, _query: str):
+            return True
 
         async def execute(self, query: str, *args: object) -> None:
             self.executions.append((query, args))
@@ -768,24 +889,24 @@ def test_visible_graph_attaches_ranked_channel_evidence() -> None:
                 "child_post_id": "post-b",
                 "signal_code": "lineage_signal_text",
                 "signal_score": 0.5,
-                "signal_weight": 0.5,
-                "signal_contribution": 0.25,
+                "signal_weight": _fixture_weights()["text"],
+                "signal_contribution": _fixture_weights()["text"] * 0.5,
             },
             {
                 "parent_post_id": "post-a",
                 "child_post_id": "post-b",
                 "signal_code": "lineage_signal_temporal",
                 "signal_score": 0.8,
-                "signal_weight": 0.25,
-                "signal_contribution": 0.2,
+                "signal_weight": _fixture_weights()["temporal"],
+                "signal_contribution": _fixture_weights()["temporal"] * 0.8,
             },
             {
                 "parent_post_id": "post-a",
                 "child_post_id": "post-b",
                 "signal_code": "lineage_signal_secondary_key",
                 "signal_score": 1.0,
-                "signal_weight": 0.25,
-                "signal_contribution": 0.25,
+                "signal_weight": _fixture_weights()["secondary_key"],
+                "signal_contribution": _fixture_weights()["secondary_key"],
             },
         ]
         rebuilds = [
@@ -797,8 +918,12 @@ def test_visible_graph_attaches_ranked_channel_evidence() -> None:
             }
         ]
         rebuild_channels = [
-            {"signal_code": "lineage_signal_temporal", "signal_weight": 0.25},
-            {"signal_code": "lineage_signal_text", "signal_weight": 0.5},
+            {
+                "signal_code": f"lineage_signal_{channel}",
+                "signal_weight": weight,
+            }
+            for channel in ("temporal", "secondary_key", "text")
+            for weight in (_fixture_weights()[channel],)
         ]
 
         async def fetch(self, query: str, *_args):
@@ -814,7 +939,7 @@ def test_visible_graph_attaches_ranked_channel_evidence() -> None:
     connection = FakeConnection()
     graph = asyncio.run(visible_lineage_graph(connection, lambda row: True))
     evidence = graph["edges"][0]["channel_evidence"]
-    assert [item["signal_code"] for item in evidence] == ["secondary_key", "text", "temporal"]
+    assert {item["signal_code"] for item in evidence} == {"secondary_key", "text", "temporal"}
     assert [item["rank"] for item in evidence] == [1, 2, 3]
     assert "llm" not in {item["signal_code"] for item in evidence}
     assert graph["reconstruction"]["reconstruction_version"] == "lineageweave.reconstruct/2.14.0"
@@ -860,8 +985,8 @@ def test_abac_never_reveals_channel_evidence_for_an_invisible_endpoint() -> None
                 "child_post_id": "post-secret",
                 "signal_code": "lineage_signal_text",
                 "signal_score": 0.9,
-                "signal_weight": 0.5,
-                "signal_contribution": 0.45,
+                "signal_weight": _fixture_weights()["text"],
+                "signal_contribution": _fixture_weights()["text"] * 0.9,
             }
         ]
         rebuilds = []
@@ -937,7 +1062,7 @@ def test_persist_lineage_edges_replaces_signals_atomically_without_llm() -> None
     from lineageweave.models import Edge
 
     scores = {"temporal": 0.8, "secondary_key": 1.0, "text": 0.5}
-    weights = {"temporal": 0.25, "secondary_key": 0.25, "text": 0.5}
+    weights = _fixture_weights()
     fused = sum(weights[name] * scores[name] for name in scores)
     edge = Edge(
         "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
@@ -963,11 +1088,10 @@ def test_persist_lineage_edges_replaces_signals_atomically_without_llm() -> None
     ]
     assert [len(rows) for _query, rows in connection.batches] == [3, 1, 3]
     assert connection.batches[0][1] == [
-        ("lineage_signal_temporal", 0.25),
-        ("lineage_signal_secondary_key", 0.25),
-        ("lineage_signal_text", 0.5),
+        (f"lineage_signal_{channel}", quantize_signal_value(weights[channel]))
+        for channel in ("temporal", "secondary_key", "text")
     ]
-    spec = lineage_rebuild_spec([edge], package_version="2.14.0")
+    spec = lineage_rebuild_spec([edge], weights=weights, package_version="2.14.0")
     assert spec.reconstruction_version == "lineageweave.reconstruct/2.14.0"
 
 
@@ -975,7 +1099,7 @@ def test_duplicate_rebuild_replays_the_same_delete_insert_sequence() -> None:
     from lineageweave.models import Edge
 
     scores = {"temporal": 0.8, "secondary_key": 1.0, "text": 0.5}
-    weights = {"temporal": 0.25, "secondary_key": 0.25, "text": 0.5}
+    weights = _fixture_weights()
     fused = sum(weights[name] * scores[name] for name in scores)
     edge = Edge(
         "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
@@ -985,8 +1109,8 @@ def test_duplicate_rebuild_replays_the_same_delete_insert_sequence() -> None:
     )
     first = _RecordingConnection()
     second = _RecordingConnection()
-    asyncio.run(persist_lineage_edges(first, [edge]))
-    asyncio.run(persist_lineage_edges(second, [edge]))
+    asyncio.run(persist_lineage_edges(first, [edge], weights))
+    asyncio.run(persist_lineage_edges(second, [edge], weights))
     assert [sql for sql, _args in first.statements] == [sql for sql, _args in second.statements]
     assert [args for _sql, args in first.statements] == [args for _sql, args in second.statements]
 

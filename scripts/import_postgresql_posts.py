@@ -26,7 +26,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from backend.app.lineage_ingestion import rebuild_lineage
+from backend.app.lineage_ingestion import ChannelWeightsNotEstimated, rebuild_lineage
 from lineageweave.adjudication_client import (
     ContextualOrchestratorAdjudicationClient,
     NullAdjudicationClient,
@@ -591,12 +591,28 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                 )
             imported += 1
         cleanup = await cleanup_synthetic_seed(target, apply=True)
-        edges = await rebuild_lineage(target, llm=adjudication_client)
+        # A fresh corpus has no activated estimate yet (chicken-and-egg:
+        # estimation samples the imported corpus), and product
+        # reconstruction never falls back to hand-picked constants
+        # (ADR 0200 point 1). Skip the rebuild with a next-action note
+        # instead of failing the whole import.
+        try:
+            edges = await rebuild_lineage(target, llm=adjudication_client)
+            lineage_summary: dict[str, object] = {"lineage_edges": len(edges)}
+        except ChannelWeightsNotEstimated as exc:
+            lineage_summary = {
+                "lineage_edges": None,
+                "lineage_rebuild_skipped": (
+                    f"{exc} -- after this import, run "
+                    "scripts/estimate_channel_weights.py and then "
+                    "POST /api/lineage/rebuild"
+                ),
+        }
         return {
             "source_rows": len(rows),
             "imported_rows": imported,
             "skipped_rows": skipped,
-            "lineage_edges": len(edges),
+            **lineage_summary,
             **cleanup,
         }
     finally:

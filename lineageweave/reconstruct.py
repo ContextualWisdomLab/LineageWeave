@@ -20,10 +20,13 @@ from .adjudication_client import AdjudicationClient, NullAdjudicationClient
 from .channels import secondary_key_match_score, temporal_score, text_similarity_score
 from .models import Edge, Record, Tree
 
-# Legacy compatibility weights when every channel is available. These constants
-# are not calibrated measurement evidence (ADR 0145); unavailable channels are
-# dropped and the remainder renormalized by active_weights().
-DEFAULT_CHANNEL_WEIGHTS = {"temporal": 0.15, "secondary_key": 0.15, "text": 0.30, "llm": 0.40}
+# No default channel weights exist (ADR 0145, second amendment): fusion
+# weights are always estimated by a psychometric model (fast-mlsirm
+# today, TEPP when integrated) -- product paths load the persisted
+# corpus estimate, and the library demo estimates from its declared
+# generative design (channel_weight_estimation.estimate_fixture_channel_weights).
+# Every reconstruct() caller passes weights explicitly; the llm entry
+# renormalizes away when no client is configured (see active_weights()).
 
 # ponytail: only the most recent WINDOW prior records in a group are
 # considered as candidate parents, bounding per-group cost to O(n*window)
@@ -42,7 +45,7 @@ DEFAULT_MIN_FUSED_SCORE = 0.3
 
 
 def active_weights(
-    llm: AdjudicationClient, weights: dict[str, float] = DEFAULT_CHANNEL_WEIGHTS
+    llm: AdjudicationClient, weights: dict[str, float]
 ) -> dict[str, float]:
     """Drop and renormalize the llm channel's weight when no client is configured."""
     active = dict(weights)
@@ -146,7 +149,7 @@ def reconstruct(
     records: list[Record],
     *,
     llm: AdjudicationClient | None = None,
-    weights: dict[str, float] = DEFAULT_CHANNEL_WEIGHTS,
+    weights: dict[str, float],
     candidate_window: int = DEFAULT_CANDIDATE_WINDOW,
     min_fused_score: float = DEFAULT_MIN_FUSED_SCORE,
 ) -> list[Tree]:
@@ -158,7 +161,11 @@ def reconstruct(
             :class:`~lineageweave.adjudication_client.NullAdjudicationClient`
             (the llm channel is then dropped, not faked).
         weights: per-channel fusion weights before llm-availability
-            renormalization; see :data:`DEFAULT_CHANNEL_WEIGHTS`.
+            renormalization. Required, and always a psychometric
+            estimate (ADR 0145, second amendment): the persisted
+            fast-mlsirm corpus estimate on product paths, or
+            :func:`~lineageweave.channel_weight_estimation.estimate_fixture_channel_weights`
+            for the library demo. No hand-picked default exists.
         candidate_window: how many recent prior records to consider as
             candidate parents per record; see :data:`DEFAULT_CANDIDATE_WINDOW`.
         min_fused_score: candidates scoring below this become a new root
