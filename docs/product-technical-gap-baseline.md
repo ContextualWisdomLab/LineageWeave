@@ -60,7 +60,7 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 11 open PRs and 10 open issues. The exact-head
+At this snapshot there were 12 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
@@ -377,7 +377,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | Protected `main@494b54e2` includes the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Eleven PRs remain open; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, two independent exact-head approvals including last-push approval, protected squash-merge SHA |
+| Protected release | Protected `main@494b54e2` includes the #660/#664 semantic-unit/backend stack and #659 ontology readability/token repair. Twelve PRs remain open; every candidate still requires exact-head checks, unresolved-thread review, and independent approval before merge | Terminal exact-head checks, no unresolved threads, two independent exact-head approvals including last-push approval, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
