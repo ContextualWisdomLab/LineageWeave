@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-25 21:34 KST. Protected `main` was
-> `d7d5eeb310b055b5e138060cf2dfb929b03090a6`. This local branch is not
+> Dashboard delivery snapshot: 2026-08-25 21:47 KST. Protected `main` was
+> `7403a4528c4a68a4e2636449b9497d0619c47c82`. This local branch is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
@@ -60,18 +60,18 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 3 open PRs and 11 open issues. Exact observed heads
-were `#628 d07d212f` (this branch's observed parent), `#627 9e0528a6`, and
-`#579 1c209c85`. PR #579 is open; its ADR 0211 reservation is why this branch's
-filter-option decision is ADR 0212. PRs #612, #614, #615, #616, and #626
-reached protected `main`; the superseded baseline PR #613 closed without merge
-and its PRD was recreated on protected main. The open heads remain blocked on
-hosted gates and/or independent review. These
+At this snapshot there were 3 open PRs and 10 open issues. Exact observed heads
+were `#631 09b6f330` (this branch's observed parent), `#629 3d69ea4f`, and
+`#579 f079ff1c`. PR #579 is open; its ADR 0211 reservation is why protected
+main's filter-option decision is ADR 0212. PRs #627 and #628 reached protected
+`main`; #629 remains an open asynchronous-pool follow-up and is not release
+evidence. The open heads remain blocked on hosted gates and/or independent
+review. These
 observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-25 21:34 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 21:47 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -80,17 +80,17 @@ lifecycle claim.
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `d7d5eeb310b055b5e138060cf2dfb929b03090a6`
-when this baseline was refreshed. The live queue contained 3 open PRs and 11
+The protected default branch was `7403a4528c4a68a4e2636449b9497d0619c47c82`
+when this baseline was refreshed. The live queue contained 3 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #628 | `d07d212f` (observed parent) | this row is updated by #628 itself, so its exact head advances after the snapshot is encoded; ADR 0212 combines complete ABAC-visible filter options into one database round trip, while hosted gates and independent review remain required |
-| #627 | `9e0528a6` | repairs k6 lifecycle evidence preservation; hosted gates remain required |
-| #579 | `1c209c85` | persists leftover interaction-map coordinates and owns ADR 0211; hosted gates and independent review remain required |
+| #631 | `09b6f330` (observed parent) | decomposes closed PR #490 without replaying it; this row advances when the snapshot correction is committed, and hosted gates plus independent review remain required |
+| #629 | `3d69ea4f` | releases the Global Ask pool before embedding-provider work; hosted gates and independent review remain required |
+| #579 | `f079ff1c` | persists leftover interaction-map coordinates through the fast-mlsirm owner contract and owns ADR 0211; hosted gates and independent review remain required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -357,6 +357,7 @@ this file per §3.5 of the prior snapshot).
 | #359 | Centralize Global Ask session storage access | Ask stack |
 | #363 | Continue ontology neighborhoods beyond the bounded source window | Protected `main` via #349; issue closed |
 | #372 | Reconcile lowercase and repository-case public namespace IRIs | Protected `main` via #616; issue closed, with term-kind hardening on #618 |
+| #611 | Decompose closed PR #490 ADR 0133–0137 evidence without transferring stale branch state | #631 supplies the current-main inventory only; focused implementation PRs and tests for every unmet criterion are still required |
 
 ## 5. Open product and technical gaps
 
@@ -398,15 +399,17 @@ this delivery matrix:
 
 | Closed-branch decision | Current-main classification | Smallest remaining delivery |
 | --- | --- | --- |
-| ADR 0133 source-reference research | Missing: no post-scoped research-lead, retrieval, judgment, or citation persistence/read workflow exists | One SSRF-safe SearXNG retrieval slice through contextual-orchestrator, with normalized citations and explicit unavailable outcomes |
+| ADR 0133 source-reference research | Partial foundation: protected `main` has the self-hosted SearXNG relation-verification client and fail-closed configuration, but it verifies an already extracted relation. It has no source-unit/image-region lead, cited-resource retrieval, claim judgment, or normalized research citation workflow | One post-scoped lead-to-citation slice that reuses the self-hosted SearXNG search boundary, adds public-target SSRF/redirect rejection for result retrieval, and judges through contextual-orchestrator with explicit unavailable outcomes |
 | ADR 0134 token-backed exception messages | Partial: sanitized next-action failures exist, but no shared token-backed exception component or complete Storybook error inventory exists | Migrate one existing unavailable flow to one shared accessible alert and verify its success, unavailable, and retry states |
-| ADR 0135 kind/status-exact analysis actions | Partial: normative analysis-run, TEPP, cutoff-body, and channel-evidence contracts exist; the closed branch's unified guidance function does not | Audit the current run-kind/status matrix and add only a demonstrably missing combination with one interaction test |
-| ADR 0136 per-post Ask history | Missing: persisted post chat exists, but no account-and-post-scoped session/turn contract or conversation picker exists | Define the 3NF account/post session boundary, bounded batch reauthorization, and one authorized list/load/write path before UI work |
-| ADR 0137 cross-post customer identity | Missing: no normalized customer-identity judgment, binding, or name-history workflow exists | Add only after external corroboration, orchestrator judgment, TEPP ordering, and unique-catalog fail-close can be verified together; never promote a one-post hint |
+| ADR 0135 kind/status-exact analysis actions | Partial: protected `main` has kind-aware start/retry controls plus normative analysis-run, TEPP, cutoff-body, and channel-evidence contracts; it does not contain the closed branch's unified guidance component or its full kind × status interaction inventory | Test the current run-kind/status matrix first, then add only a proven missing state/control pair rather than copying the closed-branch function |
+| ADR 0136 per-post Ask history | Partial: `post_chat_result` / `post_chat_citation`, the authorized post Chat API, and its linear exchange history are on protected `main`. Account-and-post-scoped sessions, ordered turns, list/select/new controls, and batched citation reauthorization are not | Define the 3NF account/post session boundary, bounded batch reauthorization, and one authorized list/load/write path before adding the conversation picker |
+| ADR 0137 cross-post customer identity | Partial foundation: protected `main` preserves source customer hints and has corporate-catalog unique/miss/tie safeguards, but it has no normalized cross-post customer-identity judgment, supporting-post binding, or corporate-name-history workflow | Add only after external corroboration, orchestrator judgment, TEPP ordering, and unique-catalog fail-close can be verified together; never promote a one-post hint |
 
-Each missing row requires its own current-main PR and focused regression
-evidence. This matrix satisfies the decomposition requirement without
-transferring stale checks, reviews, or implementation from #490.
+This matrix satisfies only #611's current-main inventory step. Issue #611
+remains open: every unmet criterion above still needs a focused regression test
+and exact-head current-main implementation PR before its acceptance criteria
+are satisfied. No stale check, review, or implementation is transferred from
+#490.
 
 ## 6. UI-UX acceptance inventory (must be defined, reviewed, applied, audited)
 
