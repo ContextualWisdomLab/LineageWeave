@@ -39,7 +39,12 @@ from lineageweave.adjudication_client import AdjudicationClient
 from lineageweave.http_client import HttpClientError, get_json, post_json
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge
-from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
+from lineageweave.tepp_client import (
+    ANALYSIS_RUN_CONTRACT_VERSION,
+    AnalysisRunRequest,
+    TeppClient,
+    TeppNotAvailable,
+)
 
 _LINEAGE_KIND = "analysis_run_lineage"
 _TEPP_KIND = "analysis_run_tepp"
@@ -190,7 +195,7 @@ def configured_tepp_client(transport_url: str = "", api_key: str = "") -> TeppCl
         try:
             headers = {
                 "tepp-consumer": "lineageweave",
-                "tepp-contract-version": "1",
+                "tepp-contract-version": str(ANALYSIS_RUN_CONTRACT_VERSION),
             }
             if api_key.strip():
                 headers["authorization"] = f"Bearer {api_key}"

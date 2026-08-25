@@ -18,6 +18,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable
 
+ANALYSIS_RUN_CONTRACT_VERSION = 1
+
 
 class TeppNotAvailable(RuntimeError):
     """Raised by the default transport: TEPP has no live REST API yet."""
@@ -51,7 +53,7 @@ class AnalysisRunRequest:
     knowledge_cutoff: str
     model_contract_version: str
     output_profile: str
-    contract_version: int = 1
+    contract_version: int = ANALYSIS_RUN_CONTRACT_VERSION
 
     def to_json(self) -> dict[str, Any]:
         """Serialize the accepted TEPP result into its wire representation."""
