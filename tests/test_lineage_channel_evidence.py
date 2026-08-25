@@ -29,26 +29,12 @@ from lineageweave.models import Edge
 _ROOT = Path(__file__).resolve().parents[1]
 
 
-@lru_cache(maxsize=2)
-def _estimated_weights(include_llm: bool = False) -> dict[str, float]:
+@lru_cache(maxsize=1)
+def _estimated_weights() -> dict[str, float]:
     """Return fast-mlsirm estimates for the declared synthetic design."""
-    if not include_llm:
-        estimate = estimate_fixture_channel_weights()
-    else:
-        pair_scores, group_ids = simulate_fixture_pair_scores()
-        estimate = estimate_channel_weights(
-            [{**scores, "llm": scores["text"]} for scores in pair_scores],
-            group_ids,
-        )
+    estimate = estimate_fixture_channel_weights()
     assert estimate is not None
     return estimate.weights
-
-
-def _four_channel_edge() -> Edge:
-    scores = {"temporal": 0.8, "secondary_key": 1.0, "text": 0.5, "llm": 0.9}
-    weights = _estimated_weights(include_llm=True)
-    fused = sum(weights[name] * scores[name] for name in scores)
-    return Edge("parent-a", "child-b", fused, scores)
 
 
 def _no_llm_edge() -> Edge:
@@ -58,18 +44,17 @@ def _no_llm_edge() -> Edge:
     return Edge("parent-a", "child-b", fused, scores)
 
 
-def test_four_channel_edge_round_trips_scores_and_normalized_weights() -> None:
-    edge = _four_channel_edge()
-    weights = _estimated_weights(include_llm=True)
+def test_grounded_edge_round_trips_scores_and_normalized_weights() -> None:
+    edge = _no_llm_edge()
+    weights = _estimated_weights()
     rows = channel_signal_rows(edge, weights)
     codes = [row["channel_name"] for row in rows]
-    assert codes == ["temporal", "secondary_key", "text", "llm"]
+    assert codes == ["temporal", "secondary_key", "text"]
     by_name = {row["channel_name"]: row for row in rows}
-    assert by_name["llm"]["signal_code"] == "lineage_signal_llm"
     assert by_name["temporal"]["signal_weight"] == quantize_signal_value(weights["temporal"])
     assert by_name["text"]["signal_weight"] == quantize_signal_value(weights["text"])
     evidence = rank_channel_evidence(rows)
-    assert [item["rank"] for item in evidence] == [1, 2, 3, 4]
+    assert [item["rank"] for item in evidence] == [1, 2, 3]
     assert sum(item["contribution"] for item in evidence) == pytest.approx(edge.fused_score)
 
 
@@ -88,8 +73,8 @@ def test_no_llm_reconstruction_persists_exactly_three_channels() -> None:
 
 
 def test_contributions_reconcile_to_fused_score_within_tolerance() -> None:
-    edge = _four_channel_edge()
-    rows = channel_signal_rows(edge, _estimated_weights(include_llm=True))
+    edge = _no_llm_edge()
+    rows = channel_signal_rows(edge, _estimated_weights())
     residual = abs(sum(float(row["signal_contribution"]) for row in rows) - edge.fused_score)
     assert residual <= CHANNEL_EVIDENCE_TOLERANCE
 
@@ -99,9 +84,8 @@ def test_rebuild_accepts_expected_multi_channel_quantization_error() -> None:
         "temporal": 0.1234567,
         "secondary_key": 0.2345678,
         "text": 0.3456789,
-        "llm": 0.4567891,
     }
-    weights = _estimated_weights(include_llm=True)
+    weights = _estimated_weights()
     edge = Edge(
         "parent-a",
         "child-b",
@@ -110,8 +94,20 @@ def test_rebuild_accepts_expected_multi_channel_quantization_error() -> None:
     )
 
     rows = channel_signal_rows(edge, weights)
-    assert len(rows) == 4
+    assert len(rows) == 3
     assert lineage_rebuild_spec([edge], weights=weights).signal_rows
+
+
+def test_duplicated_text_proxy_cannot_invent_an_llm_weight() -> None:
+    """A copied text score is not an independent LLM validity anchor."""
+    pair_scores, group_ids = simulate_fixture_pair_scores()
+    assert (
+        estimate_channel_weights(
+            [{**scores, "llm": scores["text"]} for scores in pair_scores],
+            group_ids,
+        )
+        is None
+    )
 
 
 def test_mismatched_fused_score_is_rejected() -> None:
