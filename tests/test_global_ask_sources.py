@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import math
 from datetime import date, datetime, timezone
 
 from backend.app.post_chat_ingestion import (
@@ -33,6 +34,33 @@ def test_prepare_global_question_embedding_rejects_blank_input_before_provider()
         )
         is None
     )
+
+
+def test_nonfinite_embeddings_fail_closed_before_database_access() -> None:
+    """Provider and precomputed vectors must remain finite."""
+
+    class NonfiniteEmbedding:
+        available = True
+        resolved_model = "synthetic-embedding"
+
+        def embed(self, _text: str) -> list[float]:
+            return [math.nan, math.inf]
+
+    class RejectDatabase:
+        async def fetch(self, _query: str, *_args):
+            raise AssertionError("nonfinite embeddings must not reach PostgreSQL")
+
+    assert asyncio.run(
+        prepare_global_question_embedding("question", NonfiniteEmbedding())
+    ) is None
+    assert asyncio.run(
+        _gather_global_chat_sources(
+            RejectDatabase(),
+            lambda _row: True,
+            question="question",
+            question_embedding=([math.inf, 0.0], "synthetic-embedding", math.inf),
+        )
+    ) == []
 
 
 def gather_global_chat_sources(*args, **kwargs):
