@@ -42,6 +42,87 @@ def _queued_row() -> dict[str, object]:
     }
 
 
+def test_question_embedding_finishes_before_global_ask_acquires_a_pool_slot(
+    monkeypatch,
+) -> None:
+    """Provider latency must not consume the shared database pool."""
+    connection = _Connection(None)
+
+    class TrackingPool(_Pool):
+        active = 0
+
+        @asynccontextmanager
+        async def acquire(self):
+            self.active += 1
+            try:
+                yield self.connection
+            finally:
+                self.active -= 1
+
+    pool = TrackingPool(connection)
+
+    class EmbeddingClient:
+        available = True
+        resolved_model = "synthetic-embedding"
+
+        def embed(self, _text: str) -> list[float]:
+            assert pool.active == 0
+            return [1.0, 0.0]
+
+    async def fake_gather(_conn, *_args, **kwargs):
+        assert pool.active == 1
+        assert kwargs["question_embedding"] == (
+            [1.0, 0.0],
+            "synthetic-embedding",
+            1.0,
+        )
+        return []
+
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", fake_gather)
+
+    payload = asyncio.run(
+        global_ask_queue.compute_global_ask_answer(
+            pool,
+            question_text="What changed?",
+            corporate_entity_ids=set(),
+            process_unit_ids=set(),
+            process_scope_limited=False,
+            chat_client=_AvailableClient(),
+            embedding_client=EmbeddingClient(),
+        )
+    )
+
+    assert payload["source_post_ids"] == []
+    assert pool.active == 0
+
+
+def test_unavailable_question_embedding_is_not_called(monkeypatch) -> None:
+    """An unavailable channel is dropped without invoking its transport."""
+    connection = _Connection(None)
+    pool = _Pool(connection)
+
+    class UnavailableEmbedding:
+        available = False
+        resolved_model = None
+
+        def embed(self, _text: str) -> list[float]:
+            raise AssertionError("unavailable embedding must not be called")
+
+    payload = asyncio.run(
+        global_ask_queue.compute_global_ask_answer(
+            pool,
+            question_text="What changed?",
+            corporate_entity_ids=set(),
+            process_unit_ids=set(),
+            process_scope_limited=False,
+            chat_client=_AvailableClient(),
+            embedding_client=UnavailableEmbedding(),
+        )
+    )
+
+    assert payload["source_post_ids"] == []
+
+
 def test_unexpected_job_failure_settles_with_a_generic_detail_not_the_raw_exception(
     monkeypatch,
 ) -> None:

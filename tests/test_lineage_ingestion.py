@@ -974,6 +974,36 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
     assert focused["edges"][0]["channel_evidence"] == []
 
 
+def test_landing_lineage_applies_abac_and_limit_in_database() -> None:
+    class FakeConnection:
+        statements: list[tuple[str, tuple]] = []
+
+        async def fetch(self, query: str, *args):
+            self.statements.append((query, args))
+            if "from source_post" in query:
+                return []
+            return []
+
+    connection = FakeConnection()
+    graph = asyncio.run(
+        visible_lineage_graph(
+            connection,
+            lambda row: True,
+            limit=500,
+            corporate_entity_ids=("corp-a",),
+            process_unit_ids=("pu-a",),
+        )
+    )
+
+    post_query, post_args = connection.statements[0]
+    assert "corporate_entity_id::text = any($1::text[])" in post_query
+    assert "process_unit_id::text = any($2::text[])" in post_query
+    assert "order by created_at desc, post_id desc limit $3" in post_query
+    assert post_args == (["corp-a"], ["pu-a"], 501)
+    assert graph["nodes"] == []
+    assert graph["truncated"] is False
+
+
 class _RecordingConnection:
     def __init__(self) -> None:
         self.statements: list[tuple[str, tuple]] = []

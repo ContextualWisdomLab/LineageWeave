@@ -18,6 +18,7 @@ chain of its own top match.
 from __future__ import annotations
 
 import asyncio
+import math
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, Callable, Iterable
@@ -401,6 +402,38 @@ async def gather_chat_sources(
     return sources
 
 
+async def prepare_global_question_embedding(
+    question: str,
+    embedding_client: EmbeddingClient,
+) -> tuple[list[float], str, float] | None:
+    """Resolve one question embedding without holding a database connection."""
+    if not question.strip() or not embedding_client.available:
+        return None
+    try:
+        question_vector = await asyncio.to_thread(embedding_client.embed, question)
+    except (OSError, RuntimeError, ValueError):
+        return None
+    return _validated_question_embedding(
+        question_vector, embedding_client.resolved_model
+    )
+
+
+def _validated_question_embedding(
+    question_vector: list[float], embedding_model_code: str | None
+) -> tuple[list[float], str, float] | None:
+    """Return a finite, non-zero embedding envelope or fail closed."""
+    if (
+        not question_vector
+        or not embedding_model_code
+        or any(not math.isfinite(value) for value in question_vector)
+    ):
+        return None
+    question_norm = math.sqrt(sum(value * value for value in question_vector))
+    if not math.isfinite(question_norm) or question_norm == 0.0:
+        return None
+    return question_vector, embedding_model_code, question_norm
+
+
 async def gather_global_chat_sources(
     conn: asyncpg.Connection,
     can_see_post: Callable[[asyncpg.Record], bool],
@@ -410,6 +443,7 @@ async def gather_global_chat_sources(
     embedding_client: EmbeddingClient | None = None,
     *,
     question: str | None = None,
+    question_embedding: tuple[list[float], str, float] | None = None,
     limit: int = 4,
     today: date | None = None,
 ) -> list[ChatSourceDocument]:
@@ -443,20 +477,22 @@ async def gather_global_chat_sources(
     resolved_time_range = resolve_korean_relative_time(
         question or "", today=today or _seoul_today()
     )
-    if not (question and question.strip() and embedding_client.available):
+    if not (question and question.strip()):
         return []
-    try:
-        question_vector = await asyncio.to_thread(embedding_client.embed, question)
-    except (OSError, RuntimeError, ValueError):
+    if question_embedding is None:
+        if not embedding_client.available:
+            return []
+        question_embedding = await prepare_global_question_embedding(
+            question, embedding_client
+        )
+    if question_embedding is None:
         return []
-    if not question_vector:
+    validated_embedding = _validated_question_embedding(
+        question_embedding[0], question_embedding[1]
+    )
+    if validated_embedding is None:
         return []
-    embedding_model_code = embedding_client.resolved_model
-    if not embedding_model_code:
-        return []
-    question_norm = sum(value * value for value in question_vector) ** 0.5
-    if question_norm == 0.0:
-        return []
+    question_vector, embedding_model_code, question_norm = validated_embedding
     # Safe SQL: the only interpolation is the repository-owned eligibility
     # expression; all request and model values remain asyncpg parameters.
     candidate_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli

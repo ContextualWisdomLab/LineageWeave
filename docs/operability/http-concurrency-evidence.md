@@ -20,7 +20,8 @@ window that match the environment under review:
 ```bash
 make up
 KEYCLOAK_ADMIN_PASSWORD=admin_dev_only make seed
-k6 run --vus <measured-concurrency> --duration <observation-window> \
+k6 run -e REQUEST_TIMEOUT=<declared-request-window> \
+  --vus <measured-concurrency> --duration <observation-window> \
   scripts/k6_http_e2e.js
 ```
 
@@ -28,6 +29,10 @@ Pass `BACKEND_URL`, `KEYCLOAK_URL`, `KEYCLOAK_REALM`, `KEYCLOAK_CLIENT_ID`,
 `K6_USERNAME`, and `K6_PASSWORD` with k6's `-e NAME=value` option to point the
 harness at another authorized synthetic environment. Never run repository
 performance evidence against identifying production records.
+
+`REQUEST_TIMEOUT` is mandatory because an unbounded request hid the first
+observed saturation behind k6's graceful-stop window. It is an operator-declared
+observation boundary, not a product latency threshold.
 
 ## Interpret the output
 
@@ -58,6 +63,37 @@ Figma and screenshot review do not apply: this is a non-UI HTTP load harness.
 
 ## Current-main verification record
 
+On 2026-08-25, the follow-up change at `a700374e` was exercised against the
+authorized local Compose PostgreSQL/Keycloak/Valkey/orchestrator stack after
+all schema migrations and index builds had completed. Only aggregate evidence
+was retained: the database held 43,189 source posts. Ten-second authenticated
+observations used the same endpoint mix and reported zero HTTP errors at 1,
+10, and 25 VUs. Before the bounded-lineage query, HTTP median/p95/p99 and
+throughput were 809.03 ms/6.18 s/6.22 s and 0.618 requests/s at 1 VU;
+4.63 s/20.10 s/20.46 s and 1.531 requests/s at 10 VUs; and
+25.35 s/33.59 s/36.30 s and 1.046 requests/s at 25 VUs. The 25-VU observation
+completed six iterations.
+
+The same observations after moving the landing lineage ABAC, ordering, node
+bound, and edge bound into PostgreSQL were 179.52 ms/3.43 s/4.17 s and 1.067
+requests/s at 1 VU; 1.88 s/20.80 s/21.04 s and 1.487 requests/s at 10 VUs;
+and 22.03 s/29.78 s/31.38 s and 2.411 requests/s at 25 VUs. The 25-VU
+observation completed 25 iterations. The 10-VU tail did not improve, so this
+evidence does not establish a latency SLO or a product capacity ceiling. It
+does establish that repeatedly loading all visible posts and all lineage edges
+before applying the 500-node contract was avoidable work; the remaining tail
+requires endpoint-tagged traces and database-pool telemetry before another
+cause is assigned.
+
+An exact-code-head 4-VU, 60-second confirmation at `a700374e` completed 36
+iterations and 110 HTTP requests with zero failed checks or requests. Overall
+HTTP median/p95/p99 were 392.15 ms/8.82 s/9.68 s at 1.644 requests/s. The
+combined posts/lineage read median/p95/p99 were 3.21 s/9.14 s/9.89 s; Ask poll
+median/p95/p99 were 41.39 ms/413.16 ms/462.65 ms. All 36 iterations observed
+the Ask lifecycle state. This confirms asynchronous Ask polling remained
+responsive in that observation while also preserving the remaining reader-tail
+gap; it is not a deployment SLO.
+
 On 2026-08-25, a worktree based on protected-main commit `48f013a2` passed
 `k6 inspect` for this script. A fresh Compose project did not reach an
 application-ready state: the build was stopped
@@ -67,6 +103,50 @@ steps ranged up to 292.3 seconds. No containers were running afterward, so no
 HTTP latency distribution was produced and no application bottleneck is
 claimed. This is local build-environment evidence only. Re-run the command
 above on an application-ready stack to obtain the product measurement.
+
+The next application-ready exercise on protected-main `d7d5eeb3` exposed two
+failures before a capacity distribution could be accepted. A clean backend
+process could not start because `Settings` omitted the already-consumed
+`tepp_api_key`, and the replay database lacked the non-idempotent 0203 Global
+Ask scope tables. After repairing those startup and replay contracts, the k6
+setup completed, but its authenticated read batch overlapped migration replay:
+PostgreSQL was still building the 0035 trigram index with a `DataFileRead` wait,
+and the not-yet-reached 0140 migration meant Event Lineage correctly failed on
+its absent interval column. This run therefore cannot attribute read latency to
+Global Ask and is not a valid steady-state capacity exercise.
+
+Independent code-path diagnosis did confirm that Global Ask resolved its
+external question embedding inside `pool.acquire()`. ADR 0213 moves that call
+before acquisition and adds a regression check that observes zero held pool
+slots during embedding. With one virtual user, a 10-second observation, and a
+declared 20-second request window, the post-fix branch then observed Ask enqueue
+at 3.11 seconds and Ask polling at 1.31 seconds while both reads failed under
+that incomplete migration state (one reached the 20-second request boundary;
+combined read duration averaged 14.13 seconds). This is replay-in-progress
+failure evidence, not a steady-state capacity result or product latency claim.
+Re-run only after migration replay completes.
+
+A subsequent exact-head run reached the 0140 interval migration but still was
+not steady state: replay stopped at migration 0165 because its queue table and
+indexes lacked the ADR 0166 replay guards, so migration 0174's edge-signal
+table was absent. With one virtual user, a 15-second observation, and the same
+20-second request window, Ask enqueue averaged 125.05 milliseconds, Ask polls
+averaged 123.41 milliseconds, and posts succeeded, but all four Event Lineage
+reads failed on that absent table. The branch now makes migration 0165
+idempotent and regression-checks both Global Ask migrations. These values are
+diagnostic evidence only.
+
+After replaying the repaired 0165–0205 range to completion, a four-VU,
+30-second observation with the declared 20-second request window completed 13
+iterations and all 39 endpoint checks without an HTTP failure. Ask enqueue was
+57.32 milliseconds, Ask polling averaged 359.91 milliseconds (p95 969.66
+milliseconds), and the combined posts/Event-Lineage read distribution averaged
+5.75 seconds (p95 11.88 seconds, maximum 12.36 seconds). A second four-VU,
+15-second diagnostic run also completed every endpoint check; concurrent
+`pg_stat_activity` samples repeatedly observed the authorized filter-option,
+post-list, and lineage-page queries as active, including `MessageQueueSend` and
+one temporary-buffer write. This identifies the measured database work to
+profile next; it does not by itself assign causality or establish an SLO.
 
 ## Older-image diagnostic observation
 
