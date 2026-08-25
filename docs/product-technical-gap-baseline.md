@@ -90,7 +90,7 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #639 | `b62b061c` (observed parent) | removes the duplicate Running Start action and repairs the Compose path proven by an authenticated synthetic screenshot; this row advances when this baseline commit is pushed |
+| #639 | `b62b061c` (observed parent) | removes the duplicate Running Start action and repairs the Compose path proven by an authenticated synthetic screenshot; a 25-VU, 30-second k6 E2E observation completed 1,561 iterations (50.90/s) with zero failed checks/HTTP requests and read p50/p90/p95/max 302.72/655.43/852.50/1,987.85 ms; no invented SLO is claimed; this row advances when this baseline commit is pushed |
 | #636 | `575891a7` | publishes the calibrated external-lineage contract; hosted gates and independent review remain required |
 | #632 | `bb680329` | preserves graph-fact source provenance and authorization; hosted gates and independent review remain required |
 | #631 | `c0022c97` | current-main gap decomposition and queue baseline; hosted gates and independent review remain required |
