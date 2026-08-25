@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 13:33 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 13:39 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -10,21 +10,18 @@
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `3ac4ff1e7387b8f243cbb0fb20e7ff3ed80f3716`
-when this baseline was refreshed. The live queue contained 15 open PRs and 21
+when this baseline was refreshed. The live queue contained 12 open PRs and 21
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #600 | `7580bdc9` | this baseline's pre-amendment observed head; mergeable and auto-merge armed, but its exact-head check rollup failed and must be revalidated after this refresh |
+| #600 | `ac351100` | this baseline's pre-amendment observed head; auto-merge armed, with exact-head required checks queued |
 | #595 | `153127f0` | audited no-draft import door, nullable updated-at fallback, and event-time import composed on current main; 24 focused tests passed; mergeable, auto-merge armed |
 | #588 | `3a67a802` | reconstruction naming branch is conflicting; six unresolved review threads remain |
 | #582 | `edca49bb` | batched cited-lineage fetch composed with current main; 37 focused tests passed; mergeable, auto-merge armed |
 | #579 | `69c05078` | interaction-map coordinate branch is conflicting; nine unresolved review threads remain |
-| #564 | `78afd5b8` | reconstruction naming branch is conflicting; exact-head checks fail and review is required |
-| #539 | `e4dffe63` | explained-share branch is conflicting and its exact-head check rollup is failing |
-| #537 | `d5ac65d8` | unexplained-share branch is conflicting; six unresolved review threads and failing exact-head checks remain |
 | #493 | `a7a050ef` | empty-DAG reasons and explicit double-failure alert composed with current main; focused frontend test, lint/build, and docs tests passed; mergeable, auto-merge armed |
 | #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
 | #484 | `c12b3b17` | Allen interval semantics and deferred FK validation are mergeable with no unresolved threads; auto-merge armed |
@@ -58,9 +55,17 @@ protected `main`; the ADR 0109 pattern (`returnUrlFromLocation()` then
 broken base still carried the defect; the shared repair was applied to each of
 them during this loop (see §3.1).
 
-Two systemic gates currently dominate the queue:
+Three systemic gates currently dominate the queue:
 
-1. **Strix provider unavailability (org control plane).** The central required
+1. **Strix visibility lookup failure (org control plane).** PR #600 exact head
+   `7580bdc9` failed before scanning because the required-workflow token could
+   not resolve this public repository after six API retries. The root repair is
+   ContextualWisdomLab/.github#1320 at `335f3870`: ordinary PR, push, and
+   schedule runs use trusted event visibility; cross-repository dispatch keeps
+   bounded API validation; private and internal repositories remain on
+   private-capable providers. It is open with auto-merge armed, so no repaired
+   Strix runtime evidence exists yet.
+2. **Strix provider unavailability (org control plane).** The central required
    Strix scan fails across ~28 unrelated LineageWeave PRs with "could not
    complete authoritative vulnerability analysis because its provider/backend
    was unavailable": `nvidia_nim/nvidia/nemotron-3-super-120b-a12b` exits
@@ -69,7 +74,7 @@ Two systemic gates currently dominate the queue:
    ContextualWisdomLab/.github#1263 (executable Azure and cross-provider
    fallbacks). Its exact head is `ab3d7645`, remains open/conflicting, and has
    not delivered a control-plane repair to protected `.github` main.
-2. **Current-head independent approval.** The org merge scheduler requires
+3. **Current-head independent approval.** The org merge scheduler requires
    `reviewDecision == APPROVED` plus complete Strix evidence on the exact
    head. Bot review evidence regenerates per push, so any repair push resets
    the review clock by design; this is expected and not a bypass target.
@@ -259,7 +264,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 16 open PRs at snapshot; the queue is split between mergeable heads awaiting independent review/checks and older conflicting stacks | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Protected release | 12 open PRs at snapshot; the queue is split between mergeable heads awaiting independent review/checks and older conflicting stacks | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
 | Authorized-corpus runtime | Repository tests use synthetic fixtures; private records remain outside git | Authenticated runtime validation returning only aggregate, non-identifying evidence |
@@ -352,8 +357,9 @@ Process every open PR in ascending number order, considering leverage; for
 each: check reviews → repair → re-verify Checks → merge → continue. Checks and
 review latency are never blockers — keep working while they settle.
 
-1. **Unblock Strix org-wide** by reconciling and landing ContextualWisdomLab/.github#1263
-   (fallbacks executable), then rerun failed strix jobs across the queue.
+1. **Unblock Strix org-wide** by landing ContextualWisdomLab/.github#1320
+   (trusted event visibility), then reconciling ContextualWisdomLab/.github#1263
+   (fallbacks executable), and rerun failed Strix jobs across the queue.
 2. Merge ascending from #258 once each head shows terminal green required
    checks plus current-head independent approval. The leftover-map ladder
    (#518–#564) merges in ascending order.
