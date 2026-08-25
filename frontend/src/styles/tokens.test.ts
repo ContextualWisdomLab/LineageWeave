@@ -44,8 +44,6 @@ const ONTOLOGY_NODE_TOKENS = [
   "--ontology-node-generic-fill",
 ];
 
-const ONTOLOGY_TYPED_NODE_TOKENS = ONTOLOGY_NODE_TOKENS.slice(0, 4);
-
 // Colors this file's dark-mode block replaced -- a regression here would
 // silently make dark mode as bright as light mode again (ADR 0099).
 const RETIRED_LIGHT_ONLY_HEX = [
@@ -65,7 +63,10 @@ const RETIRED_LIGHT_ONLY_HEX = [
 
 // WCAG 2.x relative luminance / contrast ratio (SC 1.4.3).
 function relativeLuminance(hex: string): number {
-  const rgb = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const normalized = hex.length === 4
+    ? `#${[...hex.slice(1)].map((digit) => `${digit}${digit}`).join("")}`
+    : hex;
+  const rgb = [1, 3, 5].map((i) => parseInt(normalized.slice(i, i + 2), 16) / 255);
   const [r, g, b] = rgb.map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
@@ -86,7 +87,7 @@ function readToken(block: string, token: string): string {
   // literal passed by the call sites below (e.g. "--color-footer-bg"), and
   // escapeRegExp() neutralizes any regex metacharacters before
   // interpolation, so no caller-controlled input reaches RegExp unescaped.
-  const match = block.match(new RegExp(`${escapeRegExp(token)}:\\s*(#[0-9a-fA-F]{6})`)); // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
+  const match = block.match(new RegExp(`${escapeRegExp(token)}:\\s*(#[0-9a-fA-F]{6}|#[0-9a-fA-F]{3})(?![0-9a-fA-F])`)); // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
   if (!match) throw new Error(`${token} not found as a hex value`);
   return match[1];
 }
@@ -145,11 +146,11 @@ describe("design tokens", () => {
     }
   });
 
-  it("keeps ontology node labels at WCAG AA text contrast in both color schemes", () => {
+  it("keeps ontology labels and their halo at WCAG AA contrast in both color schemes", () => {
     for (const block of [lightBlock, darkBlock]) {
-      const label = readToken(block, "--color-text-heading");
-      for (const token of ONTOLOGY_TYPED_NODE_TOKENS) {
-        expect(contrastRatio(label, readToken(block, token)), `${token} label contrast`)
+      const background = readToken(block, "--color-background");
+      for (const token of ["--color-text-heading", "--color-text"]) {
+        expect(contrastRatio(readToken(block, token), background), `${token} label contrast`)
           .toBeGreaterThanOrEqual(4.5);
       }
     }
