@@ -17,7 +17,7 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #605 | `caaa9d3d` | exact-main follow-up for post-navigation refocus, visibility-aware modal focus order, readable evidence separators, and validated OIDC return context; 10 component tests, 3 focused app tests, lint/build/Storybook, and 1440×900 plus 390×844 screenshot audits passed; auto-merge awaits hosted gates and independent review |
+| #605 | `1098f6ba` | exact-main follow-up for post-navigation refocus, visibility-aware modal focus order including native disclosure summaries, readable evidence separators, and validated OIDC return context; 12 shared/component tests, focused app tests, lint/build/Storybook, and 1440×900 plus 390×844 screenshot audits passed; auto-merge awaits hosted gates and independent review |
 | #604 | `063d7257` | independently restores the protected-main OIDC return-context/build regression; auto-merge awaits hosted gates and independent review, and overlap with #605 must be composed without dropping either focus/evidence repair |
 | #600 | `f60cff01` | this baseline's pre-amendment head; the current refresh composes protected main and supersedes the queue snapshot, so exact-head checks and review restart |
 | #579 | `acd44dfe` | interaction-map coordinates now compose protected main, return no false axes or criteria-only map, preserve the validated OIDC return path, and retain successful backend/frontend/build plus desktop/mobile Storybook evidence; auto-merge awaits hosted gates and independent review |
