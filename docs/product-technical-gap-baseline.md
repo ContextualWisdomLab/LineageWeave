@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 17:30 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 17:47 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -10,20 +10,21 @@
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `4f53190bf5baf5e2ab1c7f944aac474b8deae77a`
-when this baseline was refreshed. The live queue contained 8 open PRs and 17
+when this baseline was refreshed. The live queue contained 9 open PRs and 17
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
+| #608 | `37a27b0b` | wires the Naruon projection into Workspace Calendar without forwarding the end-user token; exact bounded RFC 3339 windows return 422 when invalid, blocking transport runs off the event loop, commitments remain available when Naruon is unavailable, and the PopupCloseButton Storybook inventory entry is preserved; focused Naruon/backend/frontend, lint, build, docstring, and hygiene checks pass; auto-merge awaits hosted gates and independent review |
 | #606 | `61fd631c` | retires the internally anchored channel-weight vector in favor of the exact TEPP#237 criterion-validity contract and now contains the former #607 operations-dashboard stack; fractional cutoffs and canonical UUIDs remain enforced, while the similar-VOC endpoint and authenticated production backfill remain unavailable; the combined non-default head awaits hosted gates and two independent approvals before protected delivery |
 | #605 | `9460af9c` | exact-main follow-up for post-navigation refocus, cross-browser visibility-aware modal focus order including native disclosure summaries, readable evidence separators, and validated OIDC return context; focused regressions, lint, build, Storybook, and desktop/mobile screenshot audits passed locally; auto-merge awaits hosted gates and independent review |
-| #600 | `f1b4ff62` | this baseline's pre-amendment head also restores the ADR 0109 OIDC return helper at login; the current documentation commit necessarily supersedes its own observed SHA, so checks and review restart on the resulting head |
+| #600 | `f5db946e` | this baseline's pre-amendment head also restores the ADR 0109 OIDC return helper at login; the current documentation commit necessarily supersedes its own observed SHA, so checks and review restart on the resulting head |
 | #579 | `acd44dfe` | interaction-map coordinates now compose protected main, return no false axes or criteria-only map, preserve the validated OIDC return path, and retain successful backend/frontend/build plus desktop/mobile Storybook evidence; auto-merge awaits hosted gates and independent review |
 | #493 | `cc3080c6` | ADR 0143 empty-DAG reasons are composed with the batched Ask graph: hidden posts cannot bridge authorized components, multi-post Ask omits the single-post reason, conflict-marker regression coverage is present, and focused backend/frontend/build checks pass; auto-merge awaits hosted gates and independent review |
 | #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
-| #468 | `5c6bc014` | fast-mlsirm v0.8.0, exact Keyverse scope, orchestrator, and TEPP boundaries are composed with current main; TEPP contract/auth headers and telemetry-safe startup were retained, but protected delivery still requires terminal hosted gates and independent exact-head approval |
+| #468 | `a648b484` | fast-mlsirm v0.8.0, exact Keyverse scope, orchestrator, and TEPP boundaries are composed with current main; the current head also restores fragment-preserving OIDC login and removes dynamic Python SQL from the advisory-lock key; focused backend/frontend, lint, and build checks pass, while protected delivery still requires terminal hosted gates and independent exact-head approval |
 | #387 | `728125c1` | channel evidence plus Ask reconstruction-profile preservation is composed with current main and has no unresolved threads; only changes-requested decisions from obsolete heads remain, so auto-merge is armed pending current-head checks and independent re-review |
 
 No row above is merge evidence. Immediately before any lifecycle action,
