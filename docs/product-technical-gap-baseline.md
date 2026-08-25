@@ -61,8 +61,8 @@ only aggregate, non-identifying evidence to this repository.
 ### Exact open-PR boundary
 
 At this snapshot there were 9 open PRs and 10 open issues. Exact observed heads
-were `#644 c1018a0a`, `#643 041ec13b`, `#640 72e0c9bb`,
-`#639 aee02dca`, `#636 f7b9a65f`, `#632 7b50fb32`, `#631 c0022c97`,
+were `#644 c1018a0a`, `#643 041ec13b`, `#640 8750638c`,
+`#639 aee02dca`, `#636 f7b9a65f`, `#632 a946f879`, `#631 c0022c97`,
 `#629 4b4d6707`, and `#579 689a21b6`. PR #654 merged its ontology-label
 readability slice into #632's provenance branch as `6c0c4370`; that stack
 merge is not protected-main delivery. The open heads remain
@@ -90,10 +90,10 @@ context only.
 | ---: | --- | --- |
 | #644 | `c1018a0a` | frontend conditional workspace splitting; checks and independent review remain required |
 | #643 | `041ec13b` | shared token-backed status notice; checks and independent review remain required |
-| #640 | `72e0c9bb` | dashboard case metrics, project journeys, restored TEPP API-key setting, and semantic-label spacing; checks and independent review remain required |
+| #640 | `8750638c` | dashboard case metrics, project journeys, restored TEPP API-key setting, and semantic-label spacing; checks and independent review remain required |
 | #639 | `aee02dca` | Running action and Compose contract repair; checks and independent review remain required |
 | #636 | `f7b9a65f` | calibrated external lineage contract; checks and independent review remain required |
-| #632 | `7b50fb32` | Global Ask provenance, public verification, knowledge cutoff, evidence-constrained query rewriting, shared ABAC/rewrite-failure review repair, and #654 ontology-label readability; checks and independent review remain required |
+| #632 | `a946f879` | Global Ask provenance, public verification, knowledge cutoff, evidence-constrained query rewriting, shared ABAC/rewrite-failure review repair, and #654 ontology-label readability; checks and independent review remain required |
 | #631 | `c0022c97` | current-main ADR stack decomposition; checks and independent review remain required |
 | #629 | `4b4d6707` | provider pool release and bounded landing reads; checks and independent review remain required |
 | #579 | `689a21b6` | leftover interaction-map persistence; checks and independent review remain required |
