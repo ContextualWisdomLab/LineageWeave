@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 10:10 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 10:13 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -18,13 +18,13 @@ context only.
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
 | #594 | `b90d3074` | removes the standalone conflict marker and duplicated stale tail introduced by #521; auto-merge armed, checks running |
-| #591 | `7a24f3eb` | canonical current-queue baseline; exact-head checks and independent review pending |
+| #591 | `e2477ec5` | canonical current-queue baseline; exact-head checks and independent review pending |
 | #588 | `dc60a08e` | ADR 0201 repair reconciled with current main; auto-merge armed, checks restarted |
 | #585 | `ffe1290b` | only locally-authored bounded job errors may persist; transport errors remain generic; auto-merge armed, checks restarted |
 | #584 | `17068ec3` | current-main ADR collision repaired; auto-merge armed, checks restarted |
 | #582 | `3992302f` | batched Ask lineage graph reconciled with current main and the conflict-tail repair; auto-merge armed, checks restarted |
 | #581 | `bc70e4bf` | event-time Ask filtering reconciled with current main; 90 backend tests and 10 frontend interaction/story tests passed; auto-merge armed |
-| #579 | `769095b2` | complete-case coverage ADR allocated as 0202; auto-merge armed, checks restarted |
+| #579 | `1aa69d29` | interaction-map and ADR 0202 coverage composed with the grouping strip; 41 backend and 7 frontend tests passed; auto-merge armed |
 | #564 | `62d3e124` | current-main reconciliation pushed; checks restarted |
 | #563 | `0b599ad0` | current-main reconciliation pushed; auto-merge armed, checks restarted |
 | #553 | `04969132` | blocked; auto-merge armed, review/checks pending |
