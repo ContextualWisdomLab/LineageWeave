@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 05:24 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-26 05:28 KST. Protected `main` was
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
@@ -454,11 +454,16 @@ of leverage; open connector PRs there when the defect is upstream:
 - Pull requests validate only. Only protected `main` may publish, and the
   generated-directory marker, linked-IRI, duplicate-fragment, symlink, and
   source-overlap checks fail closed.
-- The lowercase knowledge-graph namespace and repository-case support-profile
-  namespace remain distinct until issue #372 delivers a versioned migration
-  and compatibility decision; this publication PR rewrites neither identity.
-- Until the protected deployment and exact URL checks succeed, the public
-  ontology endpoint remains unavailable and must not be represented as live.
+- ADR 0205 resolved issue #372: the repository-case namespace is canonical,
+  while the lowercase namespace is a deprecated compatibility vocabulary with
+  explicit term-kind mappings. Historical identifiers are not silently
+  rewritten.
+- Live verification at 2026-08-26 05:28 KST returned HTTP 200 for both the
+  public ontology index and manifest. The published manifest reports source
+  SHA-256 `c5a8c147e4df6e2da31bd88d8f7441bece1f40b17e3a4a3b12baf91e9175d245`,
+  byte-identical to protected `main`'s authoritative Turtle at this snapshot.
+  PR #663's additional Project lookup bindings and label behavior remain
+  unpublished until that candidate reaches protected `main`.
 - The #663 candidate resolves runtime labels from authored `rdfs:label` and,
   for SKOS concepts, `skos:prefLabel`. This keeps the eight governed VOC and
   corporate-level lookup concepts aligned across RDF and API payloads without
