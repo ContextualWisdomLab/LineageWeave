@@ -6,7 +6,6 @@
 -- residual without fabricating a share. This migration is the single
 -- source of the column on fresh and existing installations. Do not
 -- edit shipped migrations 0001 / 0012 after the fact. Do not persist
--- leftover_map_explained_share, leftover_map_unexplained_share,
 -- leftover_map_explained_share or leftover_map_unexplained_share.
 -- Do not add a nonnegative CHECK: x may be negative when reconstruction
 -- and unexplained leftover have opposite signs.
