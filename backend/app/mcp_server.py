@@ -94,6 +94,9 @@ class McpRetryAfterHeaderApp:
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
         """Add Retry-After from the serialized quota error before headers commit."""
+        if scope["type"] != "http" or scope.get("method") != "POST":
+            await self._app(scope, receive, send)
+            return
         response_start: Message | None = None
 
         async def send_with_retry(message: Message) -> None:
