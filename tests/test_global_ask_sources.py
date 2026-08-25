@@ -345,20 +345,21 @@ def test_global_sources_fail_closed_when_embedding_is_unavailable() -> None:
     assert sources == []
 
 
-def test_global_sources_accept_a_precomputed_available_embedding() -> None:
-    """A validated precomputed vector does not re-enter its provider channel."""
-    queries: list[str] = []
+def test_global_sources_accept_valid_precomputed_embedding_without_provider() -> None:
+    """A validated embedding envelope must not depend on provider availability."""
 
     class UnavailableEmbedding:
         available = False
         resolved_model = None
 
         def embed(self, _text: str) -> list[float]:
-            raise AssertionError("precomputed embedding must not call its provider")
+            raise AssertionError("precomputed embedding must not call the provider")
+
+    calls: list[tuple[str, tuple[object, ...]]] = []
 
     class FakeConnection:
-        async def fetch(self, query: str, *_args):
-            queries.append(query)
+        async def fetch(self, query: str, *args):
+            calls.append((query, args))
             return []
 
     sources = asyncio.run(
@@ -366,13 +367,15 @@ def test_global_sources_accept_a_precomputed_available_embedding() -> None:
             FakeConnection(),
             lambda _row: True,
             question="semantic question",
-            embedding_client=UnavailableEmbedding(),
             question_embedding=([1.0, 0.0], "synthetic-embedding", 1.0),
+            embedding_client=UnavailableEmbedding(),
         )
     )
 
     assert sources == []
-    assert "with question_vector" in queries[0]
+    candidate_calls = [(query, args) for query, args in calls if "unit_similarity" in query]
+    assert len(candidate_calls) == 1
+    assert candidate_calls[0][1][:3] == ([1.0, 0.0], 1.0, "synthetic-embedding")
 
 
 def test_global_sources_fail_closed_without_a_resolved_embedding_model() -> None:
