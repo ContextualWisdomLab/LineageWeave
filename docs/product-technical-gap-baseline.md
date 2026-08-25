@@ -32,7 +32,7 @@ context only.
 | #537 | `ebfd712b` | current-main reconciliation pushed; checks restarted |
 | #521 | `43183482` | current-main ADR collision repaired; auto-merge armed, checks restarted |
 | #493 | `38018908` | dirty; required checks running |
-| #490 | `a99a69c2` | dirty; Strix and Devin failed |
+| #490 | `73413d0b` | code-quality findings repaired; current-main reconciliation remains before checks can settle |
 | #485 | `66916c97` | blocked; Strix failed |
 | #484 | `586b1eb0` | blocked; required checks pending |
 | #482 | `f5f3703f` | current-main reconciliation pushed; checks restarted |
