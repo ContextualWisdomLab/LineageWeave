@@ -1427,8 +1427,8 @@ describe("App, authenticated", () => {
               {
                 node_id: "corp-1",
                 node_type_code: "node_corporate_entity",
-                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#Organization",
-                ontology_label: "Organization",
+                ontology_iri: "https://contextualwisdomlab.github.io/LineageWeave/ontology#CorporateEntity",
+                ontology_label: "Corporate entity",
                 label: "Demo Corp",
                 relevance: 0.2,
                 ...demoOrgAlias,
@@ -2806,7 +2806,7 @@ describe("App, authenticated", () => {
     await userEvent.click(screen.getByRole("button", { name: "Related nodes for Ada West" }));
     await waitFor(() => expect(screen.getByText("Related to Ada West")).toBeInTheDocument());
     await userEvent.click(
-      screen.getByRole("button", { name: "Related nodes for Demo Corp (Organization)" }),
+      screen.getByRole("button", { name: "Related nodes for Demo Corp (Corporate entity)" }),
     );
     await waitFor(() => expect(screen.getByText("Related to Demo Corp")).toBeInTheDocument());
     expect(screen.getByText("Related to Demo Corp").closest(".related-keymen")).toHaveTextContent(
