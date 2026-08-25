@@ -478,23 +478,26 @@ Process every open PR in ascending number order, considering leverage; for
 each: check reviews → repair → re-verify Checks → merge → continue. Checks and
 review latency are never blockers — keep working while they settle.
 
-1. Revalidate Strix after protected ContextualWisdomLab/.github#1320, reconcile
-   .github#1263, and land the atomic hourly LineageWeave caller in .github#1288.
-2. Merge #387 and #618–#621 only after each exact head shows terminal
-   green required checks plus current-head independent approval.
+1. Revalidate Strix after merged ContextualWisdomLab/.github#1320, reconcile
+   open .github#1263, and land the atomic hourly LineageWeave caller in open
+   .github#1288 only through their protected gates.
+2. Process open LineageWeave PRs #579, #629, #631, and #632 only after each
+   exact head shows terminal green required checks plus current-head
+   independent approval.
 3. After the queue drains, resume user-visible gaps from §5 in leverage order:
-   Event Lineage evidence (#387/#274), Naruon calendar (#355/#336), and
-   authenticated operations/ontology publication acceptance.
-5. Rename remaining `[Buyer Gap]` issue titles to neutral product-object
+   external semantic verification (#272), Naruon calendar (#355/#336), and
+   authenticated operations/ontology publication acceptance. Event Lineage
+   evidence shipped in merged PR #387 and closed issue #274 is not an open gap.
+4. Rename remaining `[Buyer Gap]` issue titles to neutral product-object
    naming per repository convention (no "Buyer" for internal objects).
-6. Keep psychometric tests as true-parameter recovery (RMSE); never fixture
+5. Keep psychometric tests as true-parameter recovery (RMSE); never fixture
    tautologies, invented theta, or hand-authored numeric weights. Remove
    weights from tests that do not exercise fusion; fusion tests must consume
    provenance-bearing fast-mlsirm estimates over synthetic fixtures.
-7. Run frontend lint/test/build/Storybook, backend tests, and authenticated
+6. Run frontend lint/test/build/Storybook, backend tests, and authenticated
    browser/accessibility checks on the exact candidate release head.
-8. Fix only evidence-backed failures and repeat the protected merge gate.
-9. Refresh this file each loop with the exact queue state.
+7. Fix only evidence-backed failures and repeat the protected merge gate.
+8. Refresh this file each loop with the exact queue state.
 
 ## 11. Spec pointers (derive, do not fork)
 
