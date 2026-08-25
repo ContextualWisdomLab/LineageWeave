@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import pytest
 
-import lineageweave.adjudication_client as module
 from lineageweave.adjudication_client import (
     AdjudicationClientError,
     ContextualOrchestratorAdjudicationClient,
@@ -33,8 +32,7 @@ def test_parse_confidence_response_rejects_non_text_payload() -> None:
 def test_adjudication_client_rejects_provider_score_outside_unit_interval(monkeypatch) -> None:
     """An out-of-range score is rejected instead of being clamped."""
     monkeypatch.setattr(
-        module,
-        "post_json",
+        "lineageweave.adjudication_client.post_json",
         lambda *args, **kwargs: {"choices": [{"message": {"content": "1.2"}}]},
     )
     client = ContextualOrchestratorAdjudicationClient(
