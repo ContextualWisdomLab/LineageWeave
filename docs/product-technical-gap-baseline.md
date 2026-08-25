@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-25 18:43 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-25 19:34 KST. Protected `main` was
 > `3f4734806bdc7ef5843f36c7dbbcceb62cd51b9e`. This local branch is not
 > protected-main release evidence.
 
@@ -45,15 +45,15 @@ snapshot.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 6 open PRs and 17 open issues. Exact observed heads
-were `#615 dadf2ccd`, `#614 e844aaaf`, `#613 d6e7719a`, `#612 09204a40`,
-`#579 9de161ef`, and `#387 a3acdaf0`. PR #614 was `DIRTY` before the current
-main composition; the others were blocked on hosted gates and/or independent
-review. These observations are not merge readiness. Re-fetch exact heads,
+At this snapshot there were 7 open PRs and 17 open issues. Exact observed heads
+were `#616 0906e5bb`, `#615 dadf2ccd`, `#614 43f07514`, `#613 e1b1989f`,
+`#612 1e5b7e1c`, `#579 cc29572d`, and `#387 d6b74f53`. All were blocked on
+hosted gates and/or independent review. These observations are not merge
+readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-25 18:43 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 19:34 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -63,19 +63,20 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `3f4734806bdc7ef5843f36c7dbbcceb62cd51b9e`
-when this baseline was refreshed. The live queue contained 6 open PRs and 17
+when this baseline was refreshed. The live queue contained 7 open PRs and 17
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
+| #616 | `0906e5bb` | narrows global Ask to exact resolved embedding identity; hosted gates and independent review remain required |
 | #615 | `dadf2ccd` | removes a resolved calendar placeholder's duplicate live-region role; hosted gates and independent review remain required |
-| #614 | `e844aaaf` | Dashboard/Ask/Similar-VOC candidate was dirty before this current-main composition; the next push necessarily supersedes this observed head and must regenerate every exact-head gate |
-| #613 | `d6e7719a` | exact-head baseline refresh awaits hosted gates and independent review; its snapshot does not supersede this later live inventory |
-| #612 | `09204a40` | focused graph navigation no longer falls back to stale global graph state; hosted gates and independent review remain required |
-| #579 | `9de161ef` | interaction-map coordinate persistence is composed with protected main; hosted gates and independent review remain required |
-| #387 | `a3acdaf0` | channel evidence and delivery repairs are composed, but the changes-requested decision requires independent exact-head re-review |
+| #614 | `43f07514` | Dashboard/Ask/Similar-VOC plus review repairs are composed with current main; same-head hosted gates and independent review remain required |
+| #613 | `e1b1989f` | exact-head baseline refresh awaits hosted gates and independent review; its snapshot does not supersede this later live inventory |
+| #612 | `1e5b7e1c` | focused graph navigation no longer falls back to stale global graph state; hosted gates and independent review remain required |
+| #579 | `cc29572d` | interaction-map coordinate persistence is composed with protected main; hosted gates and independent review remain required |
+| #387 | `d6b74f53` | channel evidence and delivery repairs are composed, but independent exact-head review remains required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
