@@ -503,6 +503,7 @@ async def gather_global_chat_sources(
     embedding_client: EmbeddingClient | None = None,
     *,
     question: str | None = None,
+    search_phrases: tuple[str, ...] | None = None,
     question_embedding: tuple[list[float], str, float] | None = None,
     limit: int = 4,
     today: date | None = None,
@@ -542,6 +543,7 @@ async def gather_global_chat_sources(
     )
     if not (question and question.strip()):
         return []
+    retrieval_phrases = search_phrases or (question,)
     supplied_question_embedding = question_embedding is not None
     if knowledge_cutoff is not None:
         question_embedding = None
@@ -569,7 +571,8 @@ async def gather_global_chat_sources(
         candidate_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             f"""
             with evidence_query as (
-                select websearch_to_tsquery('simple', $1) as terms
+                select websearch_to_tsquery('simple', phrase) as terms
+                  from unnest($1::text[]) as phrase
             ), evidence_post_candidates as (
                 select revision.post_id
                   from source_post_revision revision, evidence_query query
@@ -616,7 +619,7 @@ async def gather_global_chat_sources(
              order by channel_rank
              limit $8
             """,
-            question,
+            list(retrieval_phrases),
             knowledge_cutoff,
             _ontology_lookup_codes_in_question(question),
             list(authorized_corporate_entity_ids),
@@ -669,7 +672,8 @@ async def gather_global_chat_sources(
              order by semantic_score desc, event_clock desc, similarity.post_id desc
              limit $8
         ), evidence_query as (
-            select websearch_to_tsquery('simple', $9) as terms
+            select websearch_to_tsquery('simple', phrase) as terms
+              from unnest($9::text[]) as phrase
         ), matching_nodes as (
             select 'node_person'::text as node_type_code, person.person_id as node_id
               from cataloged_person person, evidence_query query
@@ -807,7 +811,7 @@ async def gather_global_chat_sources(
         resolved_time_range[0] if resolved_time_range else None,
         resolved_time_range[1] if resolved_time_range else None,
         limit,
-        question,
+        list(retrieval_phrases),
         _ontology_lookup_codes_in_question(question),
         embedding_enabled,
     )

@@ -242,6 +242,10 @@ from lineageweave.relation_verification import (
     SearxngRelationVerificationClient,
 )
 from lineageweave.semantic_hints import customer_hint_trust, format_semantic_hints
+from lineageweave.semantic_query import (
+    ContextualOrchestratorSemanticQueryClient,
+    NullSemanticQueryClient,
+)
 
 _POST_READ = "post_read"
 _POST_ADMIN = "post_admin"
@@ -300,6 +304,7 @@ async def lifespan(app: FastAPI):
                     timeout=load_settings().orchestrator_answer_timeout_seconds
                 ),
                 embedding_factory=_embedding_client,
+                semantic_query_factory=_semantic_query_client,
                 claim_verification_factory=_claim_verification_client_factory,
             )
         )
@@ -520,6 +525,16 @@ def _embedding_client():
     return orchestrator_embedding_client(
         settings.orchestrator_base_url,
         settings.orchestrator_api_key,
+    )
+
+
+def _semantic_query_client():
+    """Build the orchestrator query rewriter, or an unavailable channel."""
+    settings = load_settings()
+    if not (settings.orchestrator_base_url and settings.orchestrator_api_key):
+        return NullSemanticQueryClient()
+    return ContextualOrchestratorSemanticQueryClient(
+        settings.orchestrator_base_url, settings.orchestrator_api_key
     )
 
 

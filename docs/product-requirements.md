@@ -75,9 +75,14 @@ dangling endpoints fail closed; fixed input produces stable page boundaries.
 - Apply authorization/time/process scope before ranking and again before
   response delivery.
 - Keep internal post citations separate from external public citations.
+- Interpret natural-language retrieval through contextual-orchestrator while
+  accepting only literal question phrases; do not invent local stop-word,
+  expansion, scoring, or weighting rules.
 
 Acceptance: a semantic-only term can retrieve an authorized unit; private
-content never becomes an external query or citation.
+content never becomes an external query or citation; and multilingual
+conversational framing cannot suppress a persisted fact named by an exact
+question phrase.
 
 ### PRD-FR-5 — Evidence operations
 
@@ -199,7 +204,7 @@ A release claim requires one exact protected-main head that proves:
 - Asynchronous delivery and database-pool isolation: ADR 0204, ADR 0213.
 - Knowledge Graph, ontology, and provenance: ADR 0004, ADR 0011, ADR 0065,
   ADR 0184, ADR 0207.
-- Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0102.
+- Semantic units and retrieval: ADR 0047, ADR 0062, ADR 0102, ADR 0217.
 - LLM/model boundary: ADR 0070, ADR 0072, ADR 0076, ADR 0079.
 - Measurement: ADR 0003, ADR 0145, ADR 0200, ADR 0205.
 - UX and publication: ADR 0118, ADR 0159.

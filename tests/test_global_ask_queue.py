@@ -198,6 +198,13 @@ def test_question_embedding_finishes_before_global_ask_acquires_a_pool_slot(
             assert pool.active == 0
             return [1.0, 0.0]
 
+    class SemanticQueryClient:
+        available = True
+
+        def rewrite(self, _question: str) -> tuple[str, ...]:
+            assert pool.active == 0
+            return ("changed",)
+
     async def fake_gather(_conn, *_args, **kwargs):
         assert pool.active == 1
         assert kwargs["question_embedding"] == (
@@ -205,6 +212,7 @@ def test_question_embedding_finishes_before_global_ask_acquires_a_pool_slot(
             "synthetic-embedding",
             1.0,
         )
+        assert kwargs["search_phrases"] == ("changed",)
         return []
 
     monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", fake_gather)
@@ -218,11 +226,43 @@ def test_question_embedding_finishes_before_global_ask_acquires_a_pool_slot(
             process_scope_limited=False,
             chat_client=_AvailableClient(),
             embedding_client=EmbeddingClient(),
+            semantic_query_client=SemanticQueryClient(),
         )
     )
 
     assert payload["source_post_ids"] == []
     assert pool.active == 0
+
+
+def test_invalid_semantic_rewrite_retains_the_original_question(monkeypatch) -> None:
+    """Malformed provider output degrades to the honest database query."""
+    pool = _Pool(_Connection(None))
+
+    class InvalidSemanticQueryClient:
+        available = True
+
+        def rewrite(self, _question: str) -> tuple[str, ...]:
+            raise ValueError("invalid structured output")
+
+    async def fake_gather(_conn, *_args, **kwargs):
+        assert kwargs["search_phrases"] == ("What changed?",)
+        return []
+
+    monkeypatch.setattr(global_ask_queue, "gather_global_chat_sources", fake_gather)
+
+    payload = asyncio.run(
+        global_ask_queue.compute_global_ask_answer(
+            pool,
+            question_text="What changed?",
+            corporate_entity_ids=set(),
+            process_unit_ids=set(),
+            process_scope_limited=False,
+            chat_client=_AvailableClient(),
+            semantic_query_client=InvalidSemanticQueryClient(),
+        )
+    )
+
+    assert payload["source_post_ids"] == []
 
 
 def test_unavailable_question_embedding_is_not_called(monkeypatch) -> None:

@@ -118,7 +118,7 @@ def test_evidence_only_term_nominates_its_authorized_source() -> None:
             if "unit_similarity" in query:
                 assert "authorized_evidence_candidates" in query
                 assert query.index("authorized_evidence_candidates") < query.rindex("limit $8")
-                assert args[8] == "exclusive responsibility"
+                assert args[8] == ["exclusive responsibility"]
                 return [
                     {
                         "candidate_channel": "evidence",
@@ -136,7 +136,8 @@ def test_evidence_only_term_nominates_its_authorized_source() -> None:
         gather_global_chat_sources(
             FakeConnection(),
             lambda row: row["visibility_code"] == "public",
-            question="exclusive responsibility",
+            question="Who has exclusive responsibility for Apollo?",
+            search_phrases=("exclusive responsibility",),
             limit=4,
         )
     )
@@ -251,7 +252,8 @@ def test_global_sources_use_semantic_rank_order_and_bound_long_bodies() -> None:
         (query, args) for query, args in calls if "array_position($3::uuid[], post_id)" in query
     )
     assert "unit_similarity" in candidate_query
-    assert "websearch_to_tsquery('simple', $9)" in candidate_query
+    assert "websearch_to_tsquery('simple', phrase)" in candidate_query
+    assert "unnest($9::text[])" in candidate_query
     assert "post_project_mention" in candidate_query
     assert "knowledge_graph_edge_evidence" in candidate_query
     assert "ilike" not in candidate_query.lower()
@@ -705,7 +707,8 @@ def test_global_sources_keep_body_and_title_lexical_fallback_disabled() -> None:
     assert len(candidate_queries) == 1
     assert "ilike" not in candidate_queries[0].lower()
     assert "source_post_search_text" not in candidate_queries[0]
-    assert "websearch_to_tsquery('simple', $9)" in candidate_queries[0]
+    assert "websearch_to_tsquery('simple', phrase)" in candidate_queries[0]
+    assert "unnest($9::text[])" in candidate_queries[0]
 
 
 def test_global_sources_bind_relative_time_to_event_clock_not_ingest_cluster(
