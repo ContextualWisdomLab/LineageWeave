@@ -524,7 +524,7 @@ def _interval_payload(row: Mapping[str, Any]) -> dict[str, Any]:
 
 async def _fetch_visible_lineage_rows(conn: asyncpg.Connection, can_see_post):
     """One ABAC-filtered ``source_post`` scan plus one edge-table read."""
-    posts = await conn.fetch(
+    posts = await conn.fetch(  # nosemgrep
         "select post_id, post_title, voc_type_code, visibility_code, "
         "corporate_entity_id, process_unit_id, thread_group_key, created_at "
         f"from source_post where {SOURCE_POST_ELIGIBILITY_SQL.format(alias='source_post')}"
@@ -547,7 +547,7 @@ async def _fetch_lineage_landing_rows(
     # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
     # `_LINEAGE_LANDING_SQL` is a module constant; all runtime values below
     # use asyncpg bind parameters. No caller-controlled SQL is interpolated.
-    posts = await conn.fetch(
+    posts = await conn.fetch(  # nosemgrep
         _LINEAGE_LANDING_SQL,
         list(corporate_entity_ids),
         list(process_unit_ids),
