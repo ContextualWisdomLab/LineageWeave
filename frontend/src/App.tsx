@@ -489,11 +489,17 @@ function EventLineageSection({
   const scoped = graph ? subgraphForPost(graph, postId) : { nodes: [], edges: [] };
   const hasLinks = lineage.direct.length > 0 || lineage.indirect.length > 0;
   if (scoped.nodes.length === 0) {
+    const isolationMessage =
+      graph.isolation_reason === "comparison_candidates_available"
+        ? t("Other visible posts share this comparison group, but no Event Lineage link is available. Read Keyman and evaluation next.")
+        : graph.isolation_reason === "no_comparison_group"
+          ? t("No other visible posts share this comparison group yet. Request reconstruction after more posts arrive, or read Keyman and evaluation.")
+          : t("No linked posts yet.");
     return (
       <p className="lineage-empty">
         {hasLinks
           ? t("The linked records are listed above. The graph is not available for this view.")
-          : t("No linked posts yet.")}
+          : isolationMessage}
       </p>
     );
   }
@@ -4899,16 +4905,16 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
   useLocale();
   const [brandName, setBrandName] = useState("LineageWeave");
   const auth = useAuth();
-  const initialPostId = typeof window === "undefined"
-    ? null
-    : new URLSearchParams(window.location.search).get("post");
   const [destination, setDestination] = useState<WorkspaceDestination>(() =>
     initialWorkspaceDestination(
       typeof window === "undefined" ? "" : window.location.search,
       import.meta.env.MODE === "test",
     ),
   );
-  const [postToOpen, setPostToOpen] = useState<string | null>(initialPostId);
+  const [postToOpen, setPostToOpen] = useState<string | null>(() => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("post");
+  });
   // Test-only compatibility for legacy analysis-panel coverage; this prop
   // never forces the panels open outside Vitest. In a real build the
   // advanced-review section (ADR 0037) is gated on PostList's own

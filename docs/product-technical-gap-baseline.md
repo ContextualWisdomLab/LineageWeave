@@ -1,8 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-25 18:00 KST. Protected `main` was
-> `3d6d7188a3ae299ffef77eb991032268a4c2160d`; the stacked TEPP consumer base
-> was `61fd631c7bb3c57113fd19763c2c43161eeb2824`. This local branch is not
+> Dashboard delivery snapshot: 2026-08-25 18:43 KST. Protected `main` was
+> `3f4734806bdc7ef5843f36c7dbbcceb62cd51b9e`. This local branch is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
@@ -16,7 +15,7 @@
 | Repeat issue to design improvement | `repeat_issue`, `issue_pattern`, and `improvement_action` cited facts | Candidate semantic contract; design-system connector acceptance pending |
 | Natural-language Ask with evidence, report, alert, MCP | Persisted semantic-unit embeddings plus versioned delivery/resource contract | Candidate implementation uses whole-question embedding retrieval with no lexical fallback; authenticated runtime acceptance pending |
 | Similar VOC, customer cohort, prior action | Persisted repeat-issue candidate semantics plus orchestrator pair adjudication and extractive evidence | Candidate live post endpoint and post-detail UI implemented; authenticated runtime acceptance pending |
-| TEPP independent Event Lineage anchor | Accepted, persisted TEPP criterion bound to exact snapshot/cutoff before fast-mlsirm activation | TEPP PR #237 and consumer PR #606 define the contract; only exact accepted artifacts promote matching vectors; protected merge pending |
+| TEPP independent Event Lineage anchor | Accepted, persisted TEPP criterion bound to exact snapshot/cutoff before fast-mlsirm activation | Consumer PR #606 is on protected main; TEPP producer PR #237 remains open, so no end-to-end accepted artifact is release evidence yet |
 
 ### Technical contract and flow
 
@@ -46,14 +45,15 @@ snapshot.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 4 open PRs and 16 open issues. Exact heads were
-`#606 61fd631c`, `#579 a8e9ef9e`, `#490 73413d0b`, and `#387 ab5cf345`.
-PRs #606/#579/#490 were reported `DIRTY` against the advancing main branch;
-#387 was `BLOCKED`. These observations are not merge readiness. Re-fetch exact
-heads, unresolved threads, checks, approvals, rulesets, and merge SHA before
-any lifecycle claim.
+At this snapshot there were 6 open PRs and 17 open issues. Exact observed heads
+were `#615 dadf2ccd`, `#614 e844aaaf`, `#613 d6e7719a`, `#612 09204a40`,
+`#579 9de161ef`, and `#387 a3acdaf0`. PR #614 was `DIRTY` before the current
+main composition; the others were blocked on hosted gates and/or independent
+review. These observations are not merge readiness. Re-fetch exact heads,
+unresolved threads, checks, approvals, rulesets, and merge SHA before any
+lifecycle claim.
 
-> Audit snapshot: 2026-08-25 12:07 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 18:43 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -62,28 +62,31 @@ any lifecycle claim.
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `3d6d7188a3ae299ffef77eb991032268a4c2160d`
-when this baseline was refreshed. The live queue contained 4 open PRs and 16
+The protected default branch was `3f4734806bdc7ef5843f36c7dbbcceb62cd51b9e`
+when this baseline was refreshed. The live queue contained 6 open PRs and 17
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #606 | `61fd631c` | pre-amendment head combines the exact TEPP#237 criterion-anchor consumer and former #607 operations dashboard; current local composition adds protected main, fixes production deep-link landing and static-analysis findings, and necessarily supersedes this SHA when pushed |
-| #579 | `a8e9ef9e` | interaction-map coordinate persistence moved after its prior validated head and is conflicting with current main; recompose and repeat exact-head scientific/UI evidence before any merge claim |
-| #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
-| #387 | `ab5cf345` | channel evidence, current main, Ask reconstruction profile, isolation reasons, psychometrically estimated Storybook weights, and desktop/mobile screenshot evidence are composed; auto-merge awaits same-head hosted gates and independent re-review |
+| #615 | `dadf2ccd` | removes a resolved calendar placeholder's duplicate live-region role; hosted gates and independent review remain required |
+| #614 | `e844aaaf` | Dashboard/Ask/Similar-VOC candidate was dirty before this current-main composition; the next push necessarily supersedes this observed head and must regenerate every exact-head gate |
+| #613 | `d6e7719a` | exact-head baseline refresh awaits hosted gates and independent review; its snapshot does not supersede this later live inventory |
+| #612 | `09204a40` | focused graph navigation no longer falls back to stale global graph state; hosted gates and independent review remain required |
+| #579 | `9de161ef` | interaction-map coordinate persistence is composed with protected main; hosted gates and independent review remain required |
+| #387 | `a3acdaf0` | channel evidence and delivery repairs are composed, but the changes-requested decision requires independent exact-head re-review |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
 
-PR #607 merged as `61fd631c7bb3c57113fd19763c2c43161eeb2824`
-into #606's non-default branch. That stack merge preserves its implementation
-but is not protected-`main` evidence; only #606's eventual protected merge can
-deliver the combined TEPP-anchor and operations-dashboard work.
+PR #607 first merged as `61fd631c7bb3c57113fd19763c2c43161eeb2824`
+into #606's non-default branch. PR #606 subsequently passed the protected gate,
+so the combined TEPP-consumer and operations-dashboard implementation is now
+on `main`; the still-open TEPP producer PR #237 keeps end-to-end anchor
+acceptance unavailable.
 
 PR #604 was closed unmerged after its exact OIDC repair was composed into #605;
 its green or pending checks are not delivery evidence. PR #482 merged as

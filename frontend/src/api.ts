@@ -510,6 +510,7 @@ export interface LineageGraph {
   nodes: LineageGraphNode[];
   edges: LineageGraphEdge[];
   truncated?: boolean;
+  isolation_reason?: "comparison_candidates_available" | "no_comparison_group" | null;
 }
 
 export function fetchLineageGraph(accessToken: string, postId?: string): Promise<LineageGraph> {
