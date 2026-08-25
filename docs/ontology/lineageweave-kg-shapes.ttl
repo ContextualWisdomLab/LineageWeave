@@ -127,6 +127,7 @@
         sh:path :semanticConfidence ;
         sh:name "semantic confidence" ;
         sh:description "Extraction confidence stays inside [0.0, 1.0] inclusive." ;
+        sh:maxCount 1 ;
         sh:minInclusive 0.0 ;
         sh:maxInclusive 1.0 ;
     ] ;

@@ -8,7 +8,7 @@ verification, and this module proves it works in both directions:
 
 - the shipped shapes graph conforms to the SHACL specification itself;
 - a representative post/mention projection passes;
-- the same projection with a confidence above 1.0 -- or a missing
+- the same projection with duplicate or above-range confidence -- or a missing
   required title -- is rejected, naming the violated constraint.
 """
 
@@ -133,6 +133,17 @@ def test_representative_db_projection_passes_validation() -> None:
             ),
             "semanticConfidence",
             id="confidence-above-one",
+        ),
+        pytest.param(
+            lambda g: g.add(
+                (
+                    URIRef(LW + "mention-alpha"),
+                    URIRef(LW + "semanticConfidence"),
+                    Literal("0.5", datatype=XSD.decimal),
+                )
+            ),
+            "semanticConfidence",
+            id="duplicate-confidence",
         ),
         pytest.param(
             lambda g: g.add(
