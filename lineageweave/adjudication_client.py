@@ -25,7 +25,11 @@ class AdjudicationClient(Protocol):
 
     def judge(self, candidate_label: str, record_label: str) -> float:
         """Score the candidate and record labels for semantic adjudication."""
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover - Protocol contract
+
+
+class AdjudicationClientError(HttpClientError):
+    """The provider returned an unusable adjudication response."""
 
 
 class NullAdjudicationClient:
@@ -38,7 +42,7 @@ class NullAdjudicationClient:
         raise RuntimeError("NullAdjudicationClient has no llm channel; check .available first")
 
 
-_CONFIDENCE_PATTERN = re.compile(r"([01](?:\.\d+)?)")
+_CONFIDENCE_PATTERN = re.compile(r"(?:0(?:\.\d+)?|1(?:\.0+)?)")
 
 
 def judge_prompt(candidate_label: str, record_label: str) -> str:
@@ -53,11 +57,18 @@ def judge_prompt(candidate_label: str, record_label: str) -> str:
 
 
 def parse_confidence(content: str) -> float:
-    """Clamp a numeric reply into ``[0, 1]`` or fail without inventing zero."""
-    parsed = parse_confidence_or_none(content)
-    if parsed is None:
-        raise HttpClientError("adjudication response had no confidence score")
-    return parsed
+    """Parse a number-only unit confidence or fail without inventing a score."""
+    return parse_confidence_response(content)
+
+
+def parse_confidence_response(content: object) -> float:
+    """Parse the provider's number-only confidence response strictly."""
+    if not isinstance(content, str):
+        raise AdjudicationClientError("provider confidence response was not text")
+    normalized = content.strip()
+    if _CONFIDENCE_PATTERN.fullmatch(normalized) is None:
+        raise AdjudicationClientError("provider confidence response was not a number in 0..1")
+    return float(normalized)
 
 
 def parse_confidence_or_none(content: str) -> float | None:
@@ -67,10 +78,10 @@ def parse_confidence_or_none(content: str) -> float | None:
     "the judge failed to answer" -- persisting the latter as a confident
     zero would fabricate an unrelated verdict for an errored request.
     """
-    match = _CONFIDENCE_PATTERN.search(content)
-    if match is None:
+    try:
+        return parse_confidence_response(content)
+    except AdjudicationClientError:
         return None
-    return max(0.0, min(1.0, float(match.group(1))))
 
 
 class ContextualOrchestratorAdjudicationClient:
@@ -107,5 +118,5 @@ class ContextualOrchestratorAdjudicationClient:
         try:
             content = chat_completion_content(body)
         except (TypeError, ValueError) as exc:
-            raise HttpClientError("adjudication response did not contain text") from exc
+            raise AdjudicationClientError("provider response did not contain one chat message") from exc
         return parse_confidence(content)

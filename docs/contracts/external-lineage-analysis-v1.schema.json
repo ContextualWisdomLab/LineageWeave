@@ -1,0 +1,255 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contextualwisdomlab.org/schemas/external-lineage-analysis-v1.schema.json",
+  "title": "LineageWeave External Lineage Analysis Request v1",
+  "description": "Bounded caller-authorized evidence for store-agnostic lineage analysis. The response shape is available as $defs.LineageAnalysisResult.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "analysis_id",
+    "analysis_scope_code",
+    "policy",
+    "records"
+  ],
+  "properties": {
+    "contract_version": {"const": "1.0.0"},
+    "analysis_id": {"$ref": "#/$defs/OpaqueReference"},
+    "analysis_scope_code": {
+      "type": "string",
+      "enum": ["email_lineage", "project_history", "generic_lineage"]
+    },
+    "knowledge_cutoff": {
+      "anyOf": [
+        {"type": "string", "format": "date-time"},
+        {"type": "null"}
+      ]
+    },
+    "policy": {"$ref": "#/$defs/LineageAnalysisPolicy"},
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 500,
+      "items": {"$ref": "#/$defs/LineageEvidenceRecord"}
+    }
+  },
+  "$defs": {
+    "OpaqueReference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 160,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:@+\\-]*$"
+    },
+    "NullableOpaqueReference": {
+      "anyOf": [
+        {"$ref": "#/$defs/OpaqueReference"},
+        {"type": "null"}
+      ]
+    },
+    "ExplicitParent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence_ref", "relation_code"],
+      "properties": {
+        "evidence_ref": {"$ref": "#/$defs/OpaqueReference"},
+        "relation_code": {
+          "type": "string",
+          "enum": ["rfc_reply", "provider_reply", "manual_parent"]
+        }
+      }
+    },
+    "LineageAnalysisPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "candidate_window",
+        "maximum_pair_evaluations",
+        "minimum_fused_score",
+        "allow_llm"
+      ],
+      "properties": {
+        "candidate_window": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        },
+        "maximum_pair_evaluations": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5000
+        },
+        "minimum_fused_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "allow_llm": {"type": "boolean"}
+      }
+    },
+    "LineageEvidenceRecord": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "evidence_ref",
+        "group_ref",
+        "source_kind_code",
+        "truth_status_code",
+        "label",
+        "occurred_at",
+        "available_at"
+      ],
+      "properties": {
+        "evidence_ref": {"$ref": "#/$defs/OpaqueReference"},
+        "group_ref": {"$ref": "#/$defs/OpaqueReference"},
+        "source_kind_code": {
+          "type": "string",
+          "enum": ["email", "task", "commitment", "project_event", "generic"]
+        },
+        "truth_status_code": {
+          "type": "string",
+          "enum": ["observed", "authoritative_in_caller"]
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "occurred_at": {"type": "string", "format": "date-time"},
+        "available_at": {"type": "string", "format": "date-time"},
+        "secondary_key": {"$ref": "#/$defs/NullableOpaqueReference"},
+        "project_ref": {"$ref": "#/$defs/NullableOpaqueReference"},
+        "explicit_parent": {
+          "anyOf": [
+            {"$ref": "#/$defs/ExplicitParent"},
+            {"type": "null"}
+          ]
+        }
+      }
+    },
+    "ChannelEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["channel_code", "score", "weight", "contribution"],
+      "properties": {
+        "channel_code": {"type": "string", "minLength": 1, "maxLength": 64},
+        "score": {"type": "number", "minimum": 0, "maximum": 1},
+        "weight": {"type": "number", "minimum": 0, "maximum": 1},
+        "contribution": {"type": "number", "minimum": 0, "maximum": 1}
+      }
+    },
+    "LineageEdgeResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "parent_evidence_ref",
+        "child_evidence_ref",
+        "relation_type_code",
+        "truth_status_code",
+        "fused_score",
+        "channel_evidence"
+      ],
+      "properties": {
+        "parent_evidence_ref": {"$ref": "#/$defs/OpaqueReference"},
+        "child_evidence_ref": {"$ref": "#/$defs/OpaqueReference"},
+        "relation_type_code": {"type": "string", "minLength": 1, "maxLength": 64},
+        "truth_status_code": {
+          "type": "string",
+          "enum": ["observed", "inferred"]
+        },
+        "fused_score": {"type": "number", "minimum": 0, "maximum": 1},
+        "channel_evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/ChannelEvidence"}
+        }
+      }
+    },
+    "ProjectProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["group_ref", "project_ref", "evidence_refs", "truth_status_code"],
+      "properties": {
+        "group_ref": {"$ref": "#/$defs/OpaqueReference"},
+        "project_ref": {"$ref": "#/$defs/OpaqueReference"},
+        "evidence_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"$ref": "#/$defs/OpaqueReference"},
+          "uniqueItems": true
+        },
+        "truth_status_code": {"const": "proposed"}
+      }
+    },
+    "LineageLimitation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["limitation_code", "evidence_ref", "message"],
+      "properties": {
+        "limitation_code": {"type": "string", "minLength": 1, "maxLength": 96},
+        "evidence_ref": {"$ref": "#/$defs/NullableOpaqueReference"},
+        "message": {"type": "string", "minLength": 1, "maxLength": 500}
+      }
+    },
+    "LineageAnalysisResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "contract_version",
+        "analysis_id",
+        "analysis_scope_code",
+        "knowledge_cutoff",
+        "included_evidence_refs",
+        "excluded_evidence_refs",
+        "llm_status_code",
+        "edges",
+        "project_projections",
+        "limitations",
+        "result_digest"
+      ],
+      "properties": {
+        "contract_version": {"const": "1.0.0"},
+        "analysis_id": {"$ref": "#/$defs/OpaqueReference"},
+        "analysis_scope_code": {
+          "type": "string",
+          "enum": ["email_lineage", "project_history", "generic_lineage"]
+        },
+        "knowledge_cutoff": {
+          "anyOf": [
+            {"type": "string", "format": "date-time"},
+            {"type": "null"}
+          ]
+        },
+        "included_evidence_refs": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/OpaqueReference"},
+          "uniqueItems": true
+        },
+        "excluded_evidence_refs": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/OpaqueReference"},
+          "uniqueItems": true
+        },
+        "llm_status_code": {
+          "type": "string",
+          "enum": ["not_requested", "unavailable", "not_used", "completed"]
+        },
+        "edges": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/LineageEdgeResult"}
+        },
+        "project_projections": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/ProjectProjection"}
+        },
+        "limitations": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/LineageLimitation"}
+        },
+        "result_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        }
+      }
+    }
+  }
+}
