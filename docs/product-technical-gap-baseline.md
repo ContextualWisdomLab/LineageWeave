@@ -229,9 +229,10 @@ never force-push or delete evidence ad hoc.
 
 The Grok durable hourly loop targets this repository. The central thin GitHub
 Actions caller is not yet on `.github` protected `main`: replacement PR
-ContextualWisdomLab/.github#1288 at exact head `2f795bda` reserves minute 4 and
-calls `pr-review-fix-scheduler.yml`, but remains changes-requested with hosted
-Checks pending. Do not add a LineageWeave-local duplicate workflow and do not
+ContextualWisdomLab/.github#1288 at exact observed head `8f63a826` reserves
+minute 4 and calls `pr-review-fix-scheduler.yml`; failed Checks are exhausted,
+while a current-head OpenCode decision remains pending and an older requested-
+changes decision is not approval. Do not add a LineageWeave-local duplicate workflow and do not
 describe the hourly caller as deployed until #1288 has an independently
 approved, terminal-green protected-main merge SHA. The shared repair worker's
 direct provider/model selection also remains a separate central orchestration
