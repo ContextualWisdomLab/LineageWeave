@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Audit snapshot: 2026-08-25 12:07 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-25 12:47 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -9,38 +9,30 @@
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `965c798de5f789db245625e06e03c1563163051f`
-when this baseline was refreshed. The live queue contained 24 open PRs and 22
+The protected default branch was `b7714c5520b0e6c7f8e73af9adfc62e7841a0362`
+when this baseline was refreshed. The live queue contained 16 open PRs and 21
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #598 | `63db0854` | reads 5W1H roles/events across a stale summary contract version; exact-head checks and independent review pending |
-| #597 | `8e132b5b` | clears stale related-post graph state before opening Customer Master detail in place; auto-merge armed, exact-head checks and independent review pending |
-| #596 | `edb24472` | aligns the two orchestrator-backed hierarchy/name-resolution clients with the existing bounded 600-second deep-work window and verifies both defaults; exact-head checks and independent review pending |
-| #595 | `9378c04f` | restores the audited no-draft-dimension import door and nullable updated-at fallback orphaned by the prior stack race; result typing repaired, 24 focused tests passed, auto-merge armed |
-| #591 | `ea5e72f5` | canonical current-queue baseline; this refresh supersedes the observed head, so checks and review restart |
-| #588 | `3a67a802` | reconstruction naming reconciled with current main; auto-merge armed, checks pending |
-| #585 | `ffe1290b` | only locally-authored bounded job errors may persist; transport errors remain generic; auto-merge armed, checks restarted |
-| #584 | `17068ec3` | current-main ADR collision repaired; auto-merge armed, checks restarted |
-| #582 | `3992302f` | batched Ask lineage graph reconciled with current main and the conflict-tail repair; auto-merge armed, checks restarted |
-| #581 | `c1b424eb` | concurrent exact-head update observed after event-time Ask reconciliation; checks and review pending |
-| #579 | `69c05078` | interaction-map migration and hosted SQL-suppression inventory reconciled; auto-merge armed |
-| #564 | `212b55a9` | concurrent exact-head update observed; checks and review pending |
-| #563 | `353b7470` | concurrent exact-head update observed after raw-residual identity repair; checks and review pending |
-| #539 | `e4dffe63` | concurrent exact-head update observed; checks and review pending |
-| #537 | `d5ac65d8` | current-main reconciliation pushed; checks restarted |
-| #493 | `e9c63d56` | concurrent exact-head update observed; checks and review pending |
-| #490 | `73413d0b` | code-quality findings repaired; current-main reconciliation remains before checks can settle |
-| #484 | `fa898bc5` | concurrent exact-head update observed after Allen interval reconciliation; checks and review pending |
-| #482 | `b0e737d3` | concurrent exact-head update observed after the corroborated-SKOS reconciliation; exact-head checks and review pending |
-| #468 | `a14093a3` | exact Keyverse org/PU scope persists in 3NF job child tables and is intersected with current grants; provider-shape, completeness-gate, role-intersection, and TEPP-contract reviews repaired; current main merged, 52 focused tests passed, auto-merge armed |
-| #434 | `ff34c9b6` | stacked on #387; review findings repaired, but the stack remains conflicting until its parent delivery boundary settles |
-| #394 | `ec74eedd` | indentation evidence composed with current HTTP response-boundary protections; 56 focused tests passed, auto-merge armed |
-| #387 | `462b41fb` | budgeted LLM selection precedes exact-channel weight lookup; persistence evidence uses fast-mlsirm estimates, 37 backend tests plus frontend interaction/lint/build passed; auto-merge armed, stale changes-requested state awaits exact-head rereview |
-| #383 | `138eaad4` | reader-safe OTel diagnostics composed with current HTTP response bounds; 76 focused tests passed, auto-merge armed |
+| #599 | `205b8a51` | raw-residual cross-share documentation aligned with the implementation; no arbitrary weighting introduced; mergeable, auto-merge armed, exact-head checks/review pending |
+| #595 | `153127f0` | audited no-draft import door, nullable updated-at fallback, and event-time import composed on current main; 24 focused tests passed; mergeable, auto-merge armed |
+| #588 | `3a67a802` | reconstruction naming branch is conflicting; six unresolved review threads remain |
+| #582 | `edca49bb` | batched cited-lineage fetch composed with current main; 37 focused tests passed; mergeable, auto-merge armed |
+| #579 | `69c05078` | interaction-map coordinate branch is conflicting; nine unresolved review threads remain |
+| #564 | `78afd5b8` | reconstruction naming branch is conflicting; review is required on its exact head |
+| #539 | `e4dffe63` | explained-share branch is conflicting and its exact-head check rollup is failing |
+| #537 | `d5ac65d8` | unexplained-share branch is conflicting; six unresolved review threads and failing exact-head checks remain |
+| #493 | `d2ef6b20` | empty-DAG reasons and explicit double-failure alert composed with current main; focused frontend test, lint/build, and docs tests passed; mergeable, auto-merge armed |
+| #490 | `73413d0b` | broad historical workspace branch is conflicting with failing checks; decompose/restack rather than replaying its 931-commit merge wholesale |
+| #484 | `5a61c5f7` | Allen interval semantics and deferred FK validation are mergeable; two newly opened review threads require settlement |
+| #482 | `b0e737d3` | corroborated SKOS companion branch is conflicting; four unresolved review threads remain |
+| #468 | `49f8231a` | exact Keyverse org/PU scope, fast-mlsirm/orchestrator/TEPP boundaries, and event-time import were composed with current main; 46 focused tests passed; mergeable, auto-merge armed |
+| #434 | `ff34c9b6` | stacked on #387 and conflicting; checks fail although its review threads are settled |
+| #387 | `462b41fb` | channel-evidence branch is conflicting with five unresolved threads, failing checks, and a stale changes-requested decision |
+| #383 | `138eaad4` | reader-safe OTel branch is conflicting with six unresolved threads and failing checks |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -76,12 +68,8 @@ Two systemic gates currently dominate the queue:
    after ~70 s and `openai-direct/gpt-5.6-luna` after ~5 s. This is an
    infrastructure failure, not a code finding. The durable repair is
    ContextualWisdomLab/.github#1263 (executable Azure and cross-provider
-   fallbacks), whose first push was itself blocked by the same replay guard it
-   fixes because its prior merge commit reverted ten base-merged paths; that
-   branch was re-based over current `.github` main restoring the reverted work
-   (vulnerability-location boundary filtering, internal-warning filter,
-   requirements lock refresh, changed-path workflow state) while preserving
-   the PR's own failover changes.
+   fallbacks). Its exact head is `ab3d7645`, remains open/conflicting, and has
+   not delivered a control-plane repair to protected `.github` main.
 2. **Current-head independent approval.** The org merge scheduler requires
    `reviewDecision == APPROVED` plus complete Strix evidence on the exact
    head. Bot review evidence regenerates per push, so any repair push resets
@@ -92,6 +80,13 @@ Recent protected-default-branch delivery evidence (squash merges onto
 
 | PR | Merged (UTC) | Delivered |
 | ---: | --- | --- |
+| #598 | 2026-08-25 03:32 | 5W1H roles/events remain readable across a stale summary contract version |
+| #597 | 2026-08-25 03:32 | related posts open Customer Master detail in place without stale graph state |
+| #591 | 2026-08-25 03:32 | prior exact-head product-gap baseline snapshot |
+| #584 | 2026-08-25 03:32 | TEPP topic-lineage consumption boundary grounded in cited temporal models |
+| #581 | 2026-08-25 03:32 | relative-time Ask filtering bound to event time |
+| #596 | 2026-08-25 03:27 | hierarchy/name-resolution deep-work timeouts aligned at 600 seconds |
+| #585 | 2026-08-25 03:27 | raw Global Ask transport exceptions replaced by bounded client-safe detail |
 | #355 | 2026-08-25 02:38 | Naruon calendar projection contract and conformance fixture |
 | #562 | 2026-08-24 02:05 | parameter-free classic RRF; deleted the last hand-picked fused score |
 | #561 | 2026-08-24 01:47 | knowledge-graph precedence/hierarchy relation classification and layout order |
@@ -115,10 +110,10 @@ never force-push or delete evidence ad hoc.
 The Grok durable hourly loop and the central thin GitHub Actions caller
 ContextualWisdomLab/.github#1259 (minute 4, `pr-review-fix-scheduler.yml`)
 both target this repository. Do not add a LineageWeave-local duplicate
-workflow. OpenCode coverage-evidence currently fails pnpm 9.15.9 heads on
-`--trust-lockfile` (a pnpm 11.3 flag) and on a synthesized Vitest `--coverage`
-flag; ContextualWisdomLab/.github#1258 (`9b5dba9`) is the exact-head repair
-and has auto-merge armed pending independent OpenCode / Strix / Noema.
+workflow. ContextualWisdomLab/.github#1258 merged at exact head `897819c4` to
+repair the pnpm/coverage-evidence workflow; newly created exact PR heads must
+still prove the runtime behavior because merged workflow source alone is not
+check evidence.
 
 Figma design-system boundary (ADR 0002): File ID `1Su3lDRmiZdcUs47t1QwIX`.
 The sanitized file now contains synthetic Event Lineage desktop (`5:14`) and
@@ -163,7 +158,7 @@ evidence across heads. The org merge scheduler merges only when
 
 | Gate | Evidence | Durable repair |
 | --- | --- | --- |
-| Strix provider unavailability | `nvidia_nim/nemotron-3-super-120b-a12b` exits ~70 s, `openai-direct/gpt-5.6-luna` exits ~5 s on ~28 unrelated heads ("provider/backend was unavailable") | ContextualWisdomLab/.github#1263 — executable Azure/cross-provider fallbacks; its prior merge commit reverted ten base-merged paths, now restored over current `.github` main |
+| Strix provider unavailability | `nvidia_nim/nvidia/nemotron-3-super-120b-a12b` and `openai-direct/gpt-5.6-luna` failed authoritatively across unrelated heads | ContextualWisdomLab/.github#1263 at `ab3d7645` proposes executable Azure/cross-provider fallbacks but remains open/conflicting; repair that branch without weakening the required gate |
 | ADR 0109 login repair debt | Eight branches cut from the pre-repair base carried the unauthenticated `AdminPanel` + unused-OIDC-helper `tsc -b` failure | Same verified two-line repair applied to #521, #522, #552, #553, #554, #556, #558, #560 during this loop; frontend lint/test/build verified locally |
 
 ### 3.1 Workspace root and product surfaces
@@ -357,7 +352,7 @@ Process every open PR in ascending number order, considering leverage; for
 each: check reviews → repair → re-verify Checks → merge → continue. Checks and
 review latency are never blockers — keep working while they settle.
 
-1. **Unblock Strix org-wide** by landing ContextualWisdomLab/.github#1263
+1. **Unblock Strix org-wide** by reconciling and landing ContextualWisdomLab/.github#1263
    (fallbacks executable), then rerun failed strix jobs across the queue.
 2. Merge ascending from #258 once each head shows terminal green required
    checks plus current-head independent approval. The leftover-map ladder
