@@ -444,7 +444,7 @@ function OntologyGraph({
             x={-ONTOLOGY_NODE_LABEL_WIDTH / 2}
             y={18}
             width={ONTOLOGY_NODE_LABEL_WIDTH}
-            height={56}
+            height={layout.height - node.y}
           >
             <div aria-hidden="true">
               <span>{node.display_label}</span>

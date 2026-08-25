@@ -1190,7 +1190,7 @@
 }
 
 .ontology-node-label {
-  overflow: visible;
+  pointer-events: none;
 }
 
 .ontology-node-label div {
@@ -1200,6 +1200,11 @@
   font-size: 0.8rem;
   line-height: 1.15;
   overflow-wrap: anywhere;
+  text-shadow:
+    -1px -1px var(--color-background),
+    1px -1px var(--color-background),
+    -1px 1px var(--color-background),
+    1px 1px var(--color-background);
 }
 
 .ontology-node-label small {
