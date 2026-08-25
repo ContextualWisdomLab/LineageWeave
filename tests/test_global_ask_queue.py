@@ -8,6 +8,10 @@ from contextlib import asynccontextmanager
 from backend.app import global_ask_queue
 
 
+class _AvailableClient:
+    available = True
+
+
 class _Connection:
     def __init__(self, row: dict[str, object] | None) -> None:
         self.row = row
@@ -53,7 +57,7 @@ def test_unexpected_job_failure_settles_with_a_generic_detail_not_the_raw_except
         return {"corp-1"}, True
 
     async def _fake_compute_global_ask_answer(*_args, **_kwargs):
-        raise RuntimeError(secret_bearing_message)
+        raise ConnectionResetError(secret_bearing_message)
 
     monkeypatch.setattr(global_ask_queue, "load_account_visibility", _fake_load_account_visibility)
     monkeypatch.setattr(
@@ -64,7 +68,7 @@ def test_unexpected_job_failure_settles_with_a_generic_detail_not_the_raw_except
         global_ask_queue.process_global_ask_job(
             pool,
             job_id="job-1",
-            chat_factory=lambda: type("Client", (), {"available": True})(),
+            chat_factory=_AvailableClient,
         )
     )
 
@@ -90,7 +94,7 @@ def test_permission_and_connection_errors_keep_their_pre_authored_safe_message(
         return {"corp-1"}, True
 
     async def _fake_compute_global_ask_answer(*_args, **_kwargs):
-        raise PermissionError("account lacks the post_read permission")
+        raise global_ask_queue._SafeJobError("account lacks the post_read permission")
 
     monkeypatch.setattr(global_ask_queue, "load_account_visibility", _fake_load_account_visibility)
     monkeypatch.setattr(
@@ -101,7 +105,7 @@ def test_permission_and_connection_errors_keep_their_pre_authored_safe_message(
         global_ask_queue.process_global_ask_job(
             pool,
             job_id="job-1",
-            chat_factory=lambda: type("Client", (), {"available": True})(),
+            chat_factory=_AvailableClient,
         )
     )
 
@@ -132,7 +136,7 @@ def test_job_deadline_timeout_settles_with_a_specific_but_still_generic_detail(
         global_ask_queue.process_global_ask_job(
             pool,
             job_id="job-1",
-            chat_factory=lambda: type("Client", (), {"available": True})(),
+            chat_factory=_AvailableClient,
         )
     )
 
