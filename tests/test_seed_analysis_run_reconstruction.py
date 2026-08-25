@@ -5,6 +5,11 @@ from datetime import datetime, timezone
 from lineageweave.fixtures import sample_records
 from scripts.seed_demo_data import seed_reconstruction_edges
 
+# Synthetic unit-test fusion weights (org policy allows synthetic data
+# in unit tests); `make seed` itself passes its fast-mlsirm demo-design
+# estimate (ADR 0145, second amendment).
+_SYNTHETIC_WEIGHTS = {"temporal": 0.5, "secondary_key": 0.34, "text": 0.16}
+
 
 def _rows_from_fixtures() -> list[dict]:
     cutoff = datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc)
@@ -30,7 +35,7 @@ def _rows_from_fixtures() -> list[dict]:
 
 def test_seed_reconstruction_recovers_the_a100_fork() -> None:
     """Seed must persist the same parent choices start uses."""
-    edges, digest = seed_reconstruction_edges(_rows_from_fixtures())
+    edges, digest = seed_reconstruction_edges(_rows_from_fixtures(), _SYNTHETIC_WEIGHTS)
     children = {edge.child_id for edge in edges if edge.parent_id == "rec-002"}
     assert children >= {"rec-003", "rec-004"}
     assert "rec-006" not in {edge.child_id for edge in edges}
