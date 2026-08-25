@@ -26,9 +26,10 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 if str(REPOSITORY_ROOT) not in sys.path:
     sys.path.insert(0, str(REPOSITORY_ROOT))
 
-from backend.app.lineage_ingestion import (
-    ChannelWeightsNotEstimated,
-    rebuild_lineage,
+from backend.app.lineage_ingestion import ChannelWeightsNotEstimated, rebuild_lineage
+from lineageweave.adjudication_client import (
+    ContextualOrchestratorAdjudicationClient,
+    NullAdjudicationClient,
 )
 from lineageweave.synthetic_seed_cleanup import cleanup_synthetic_seed
 from lineageweave.embedding_client import orchestrator_embedding_client
@@ -439,6 +440,14 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
             if orchestrator_base_url and orchestrator_api_key
             else NullPostStructureClient()
         )
+        adjudication_client = (
+            ContextualOrchestratorAdjudicationClient(
+                orchestrator_base_url,
+                orchestrator_api_key,
+            )
+            if orchestrator_base_url and orchestrator_api_key
+            else NullAdjudicationClient()
+        )
         for row in rows:
             if _source_code_matches(row, mapping.draft, args.exclude_draft_value) or _source_code_matches(
                 row, mapping.deleted, args.exclude_deleted_value
@@ -601,7 +610,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
         # (ADR 0200 point 1). Skip the rebuild with a next-action note
         # instead of failing the whole import.
         try:
-            edges = await rebuild_lineage(target)
+            edges = await rebuild_lineage(target, llm=adjudication_client)
             lineage_summary: dict[str, object] = {"lineage_edges": len(edges)}
         except ChannelWeightsNotEstimated as exc:
             lineage_summary = {
@@ -611,7 +620,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, int]:
                     "scripts/estimate_channel_weights.py and then "
                     "POST /api/lineage/rebuild"
                 ),
-            }
+        }
         return {
             "source_rows": len(rows),
             "imported_rows": imported,

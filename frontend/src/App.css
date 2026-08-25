@@ -546,6 +546,99 @@
   stroke: var(--border);
   stroke-width: 1.5;
   fill: none;
+  cursor: pointer;
+}
+
+.lineage-dag-edge:focus,
+.lineage-dag-edge:focus-visible {
+  outline: 2px solid var(--color-primary, var(--text-h));
+  outline-offset: 2px;
+}
+
+.lineage-dag-edge-selected {
+  stroke: var(--text-h);
+  stroke-width: 2.5;
+}
+
+.lineage-edge-evidence {
+  margin-top: 1rem;
+}
+
+.lineage-edge-evidence h3 {
+  font-size: 1rem;
+  margin: 0 0 0.4rem;
+}
+
+.lineage-edge-evidence p {
+  margin: 0 0 0.75rem;
+}
+
+.lineage-rebuild-profile {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0 0 0.75rem;
+}
+
+.lineage-rebuild-profile div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 14rem) 1fr;
+  gap: 0.5rem;
+}
+
+.lineage-rebuild-profile dt {
+  font-weight: 600;
+}
+
+.lineage-rebuild-profile dd {
+  margin: 0;
+}
+
+.lineage-edge-evidence-item {
+  margin: 0 0 0.5rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--color-border, var(--border));
+  border-radius: var(--radius-control, 8px);
+  background: var(--surface);
+}
+
+.lineage-edge-evidence table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+}
+
+.lineage-edge-evidence caption {
+  text-align: left;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.lineage-edge-evidence th,
+.lineage-edge-evidence td {
+  padding: 0.25rem 0.4rem;
+  border-bottom: 1px solid var(--color-border, var(--border));
+}
+
+.lineage-edge-evidence th:nth-child(1),
+.lineage-edge-evidence td:nth-child(1),
+.lineage-edge-evidence th:nth-child(n + 3),
+.lineage-edge-evidence td:nth-child(n + 3) {
+  text-align: right;
+}
+
+.lineage-edge-evidence th:nth-child(2),
+.lineage-edge-evidence td:nth-child(2) {
+  text-align: left;
+}
+
+@media print {
+  .lineage-edge-evidence details {
+    display: block;
+  }
+
+  .lineage-edge-evidence details > * {
+    display: block !important;
+  }
 }
 
 .lineage-dag-node {

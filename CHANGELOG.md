@@ -8,6 +8,11 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- Event Lineage now persists each reconstructed connection's independent
+  channel scores, the normalized weights actually used, and their
+  contributions. The Event Lineage DAG discloses those exact values as inferred
+  evidence, not a causal claim, and omits the LLM channel when it did
+  not participate.
 - Registered the `analysis_run_topic_lineage` analysis-run kind (migrations
   0131/0132, ADR 0132), the LineageWeave-side consumption boundary for
   TEPP's Temporal Relational Shared-Latent Topic Measurement (TRSL-TM,
@@ -76,6 +81,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Fixed
 
+- Full-corpus Event Lineage rebuilds now count candidate pairs before provider
+  work and omit the optional LLM channel above the 5,000-pair ADR budget,
+  preventing millions of synchronous orchestrator calls while retaining one
+  auditable weight profile for the entire rebuild.
 - Structure adjudication now rejects malformed or duplicate unit indexes before
   calling the orchestrator.
 - Event Lineage's DAG no longer leaves a linear (no-branch) reconstruct

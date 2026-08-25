@@ -5,14 +5,33 @@ from __future__ import annotations
 import asyncio
 import math
 from datetime import UTC, datetime, timezone
-from unittest import mock
+from functools import lru_cache
 
 import pytest
 
 import backend.app.lineage_ingestion as ingestion
-from backend.app.lineage_ingestion import lineage_graphs_for_posts
+from backend.app.lineage_ingestion import (
+    _budgeted_llm,
+    lineage_graphs_for_posts,
+    persist_lineage_edges,
+    rebuild_lineage,
+    rebuild_lineage_from_pool,
+    reconstruct_group_key,
+    records_from_source_posts,
+    visible_lineage_graph,
+)
+from lineageweave.channel_weight_estimation import estimate_fixture_channel_weights
 from lineageweave.fixtures import sample_records
-from lineageweave.lineage_persistence import lineage_edge_specs
+from lineageweave.lineage_persistence import lineage_edge_specs, quantize_signal_value
+from lineageweave.models import Record
+
+
+@lru_cache(maxsize=1)
+def _fixture_weights() -> dict[str, float]:
+    """Return the fast-mlsirm estimate for the declared synthetic design."""
+    estimate = estimate_fixture_channel_weights()
+    assert estimate is not None
+    return estimate.weights
 
 
 def test_missing_weight_table_is_detected_without_an_aborting_query() -> None:
@@ -50,9 +69,8 @@ def test_unapproved_weight_provenance_is_never_activated() -> None:
                 "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
             }
             return [
-                {**provenance, "channel_code": "temporal", "weight_value": 0.2},
-                {**provenance, "channel_code": "secondary_key", "weight_value": 0.3},
-                {**provenance, "channel_code": "text", "weight_value": 0.5},
+                {**provenance, "channel_code": channel, "weight_value": weight}
+                for channel, weight in _fixture_weights().items()
             ]
 
     assert asyncio.run(
@@ -86,16 +104,15 @@ def test_adr_0200_authorized_anchor_activates_a_complete_vector() -> None:
                 "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
             }
             return [
-                {**provenance, "channel_code": "temporal", "weight_value": 0.5},
-                {**provenance, "channel_code": "secondary_key", "weight_value": 0.3},
-                {**provenance, "channel_code": "text", "weight_value": 0.2},
+                {**provenance, "channel_code": channel, "weight_value": weight}
+                for channel, weight in _fixture_weights().items()
             ]
 
     assert asyncio.run(
         ingestion.load_estimated_channel_weights(
             StoredWeightConnection(), {"temporal", "secondary_key", "text"}
         )
-    ) == {"temporal": 0.5, "secondary_key": 0.3, "text": 0.2}
+    ) == _fixture_weights()
 
 
 def test_incomplete_persisted_weight_vector_is_unavailable() -> None:
@@ -338,10 +355,227 @@ def test_records_use_persisted_thread_keys_not_process_unit_or_voc_type() -> Non
             "created_at": datetime(2026, 1, 6, tzinfo=timezone.utc),
         }
     ]
-    records = ingestion.records_from_source_posts(rows)
+    records = records_from_source_posts(rows)
     assert records[0].group_key == "A-100"
     assert records[0].secondary_key == "proj-alpha"
     assert records[0].occurred_at.tzinfo is None
+
+
+def test_rebuild_passes_the_configured_adjudication_client(monkeypatch) -> None:
+    events: list[str] = []
+
+    class FakeTransaction:
+        async def __aenter__(self):
+            events.append("transaction_enter")
+
+        async def __aexit__(self, *_args):
+            events.append("transaction_exit")
+
+    class FakeConnection:
+        async def fetch(self, _query: str, *_args):
+            events.append("fetch")
+            return []
+
+        async def fetchval(self, _query: str):
+            return False
+
+        def transaction(self):
+            return FakeTransaction()
+
+    client = object()
+    captured: dict[str, object] = {}
+
+    def fake_lineage_edge_specs(_records, *, llm=None, weights=None):
+        captured["llm"] = llm
+        captured["weights"] = weights
+        return []
+
+    async def fake_load_weights(_conn, _channels):
+        return _fixture_weights()
+
+    async def fake_persist_lineage_edges(_conn, _edges, _weights=None):
+        events.append("persist")
+        return None
+
+    async def fake_to_thread(function, *args, **kwargs):
+        events.append("reconstruct")
+        captured["offloaded_function"] = function
+        return function(*args, **kwargs)
+
+    monkeypatch.setattr(
+        "backend.app.lineage_ingestion.lineage_edge_specs", fake_lineage_edge_specs
+    )
+    monkeypatch.setattr(
+        "backend.app.lineage_ingestion.persist_lineage_edges", fake_persist_lineage_edges
+    )
+    monkeypatch.setattr(
+        "backend.app.lineage_ingestion.load_estimated_channel_weights", fake_load_weights
+    )
+    monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
+    asyncio.run(rebuild_lineage(FakeConnection(), llm=client))
+
+    assert captured["llm"] is client
+    assert captured["weights"] == _fixture_weights()
+    assert captured["offloaded_function"] is fake_lineage_edge_specs
+    assert events == ["fetch", "reconstruct", "transaction_enter", "persist", "transaction_exit"]
+
+
+def test_estimated_weight_channels_include_only_an_available_llm() -> None:
+    """Weight lookup must match the exact channel set reconstruction can use."""
+    assert ingestion.estimated_weight_channels(None) == {
+        "temporal",
+        "secondary_key",
+        "text",
+    }
+    assert ingestion.estimated_weight_channels(type("LLM", (), {"available": True})()) == {
+        "temporal",
+        "secondary_key",
+        "text",
+        "llm",
+    }
+
+
+def test_rebuild_drops_llm_before_candidate_pair_budget_is_exceeded(monkeypatch) -> None:
+    """Keep a large live rebuild from issuing unbounded provider calls."""
+
+    records = [
+        Record(f"record-{index}", "shared-group", f"Record {index}", datetime(2026, 1, index + 1))
+        for index in range(3)
+    ]
+    monkeypatch.setattr(
+        "backend.app.lineage_ingestion.MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS", 1
+    )
+
+    assert _budgeted_llm(records, object()) is None
+
+
+def test_rebuild_drops_llm_before_estimated_weight_lookup(monkeypatch) -> None:
+    """Never load a four-channel estimate for a three-channel reconstruction."""
+
+    records = [
+        Record(f"record-{index}", "shared-group", f"Record {index}", datetime(2026, 1, index + 1))
+        for index in range(3)
+    ]
+    captured: dict[str, object] = {}
+
+    class FakeTransaction:
+        async def __aenter__(self):
+            return None
+
+        async def __aexit__(self, *_args):
+            return None
+
+    class FakeConnection:
+        def transaction(self):
+            return FakeTransaction()
+
+    async def fake_load_records(_conn):
+        return records
+
+    async def fake_load_weights(_conn, channels):
+        captured["channels"] = channels
+        return _fixture_weights()
+
+    async def fake_reconstruct(_records, llm, _weights):
+        captured["llm"] = llm
+        return []
+
+    async def fake_persist(_conn, _edges, _weights):
+        return None
+
+    monkeypatch.setattr(ingestion, "MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS", 1)
+    monkeypatch.setattr(ingestion, "_load_lineage_records", fake_load_records)
+    monkeypatch.setattr(ingestion, "load_estimated_channel_weights", fake_load_weights)
+    monkeypatch.setattr(ingestion, "_reconstruct_lineage_records", fake_reconstruct)
+    monkeypatch.setattr(ingestion, "persist_lineage_edges", fake_persist)
+
+    asyncio.run(rebuild_lineage(FakeConnection(), llm=type("LLM", (), {"available": True})()))
+
+    assert captured == {
+        "channels": {"temporal", "secondary_key", "text"},
+        "llm": None,
+    }
+
+
+def test_pooled_rebuild_releases_the_connection_during_reconstruction(monkeypatch) -> None:
+    """Keep provider work outside the pool and transaction, then replace atomically."""
+    events: list[str] = []
+
+    class FakeTransaction:
+        async def __aenter__(self):
+            events.append("transaction-enter")
+
+        async def __aexit__(self, *_args):
+            events.append("transaction-exit")
+
+    class FakeConnection:
+        async def fetch(self, _query: str, *_args):
+            events.append("fetch")
+            return []
+
+        async def fetchval(self, _query: str):
+            return False
+
+        def transaction(self):
+            return FakeTransaction()
+
+    class FakeAcquire:
+        def __init__(self, pool):
+            self.pool = pool
+
+        async def __aenter__(self):
+            self.pool.active += 1
+            events.append("acquire")
+            return self.pool.connection
+
+        async def __aexit__(self, *_args):
+            self.pool.active -= 1
+            events.append("release")
+
+    class FakePool:
+        def __init__(self):
+            self.active = 0
+            self.connection = FakeConnection()
+
+        def acquire(self):
+            return FakeAcquire(self)
+
+    pool = FakePool()
+
+    async def fake_to_thread(function, *args, **kwargs):
+        assert pool.active == 0
+        events.append("reconstruct")
+        return function(*args, **kwargs)
+
+    async def fake_persist(_conn, _edges, _weights=None):
+        assert pool.active == 1
+        assert events[-1] == "transaction-enter"
+        events.append("persist")
+
+    async def fake_load_weights(_conn, _channels):
+        return _fixture_weights()
+
+    monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
+    monkeypatch.setattr(
+        "backend.app.lineage_ingestion.persist_lineage_edges", fake_persist
+    )
+    monkeypatch.setattr(
+        "backend.app.lineage_ingestion.load_estimated_channel_weights", fake_load_weights
+    )
+
+    asyncio.run(rebuild_lineage_from_pool(pool))
+
+    assert events == [
+        "acquire",
+        "fetch",
+        "release",
+        "reconstruct",
+        "acquire",
+        "transaction-enter",
+        "persist",
+        "transaction-exit",
+        "release",
+    ]
 
 
 def test_records_fall_back_to_corporate_entity_when_thread_keys_are_empty() -> None:
@@ -357,7 +591,7 @@ def test_records_fall_back_to_corporate_entity_when_thread_keys_are_empty() -> N
             "created_at": datetime(2026, 2, 1),
         }
     ]
-    records = ingestion.records_from_source_posts(rows)
+    records = records_from_source_posts(rows)
     assert records[0].group_key == "cccccccc-cccc-cccc-cccc-cccccccccccc"
     assert records[0].secondary_key == ""
     assert records[0].label == "Corp-only post"
@@ -375,8 +609,8 @@ def test_display_group_matches_reconstruct_group_key() -> None:
         "corporate_entity_id": "shared-corp",
         "thread_group_key": "",
     }
-    assert ingestion.reconstruct_group_key(a100) == "A-100"
-    assert ingestion.reconstruct_group_key(ungrouped) == "shared-pu"
+    assert reconstruct_group_key(a100) == "A-100"
+    assert reconstruct_group_key(ungrouped) == "shared-pu"
 
 
 def test_seed_shaped_rows_rebuild_to_the_designed_a100_fork() -> None:
@@ -400,9 +634,8 @@ def test_seed_shaped_rows_rebuild_to_the_designed_a100_fork() -> None:
             }
         )
     edges = lineage_edge_specs(
-        ingestion.records_from_source_posts(rows),
-        # Synthetic unit-test weights (ADR 0200 point 1: no library default).
-        weights={"temporal": 0.5, "secondary_key": 0.34, "text": 0.16},
+        records_from_source_posts(rows),
+        weights=_fixture_weights(),
     )
     pairs = {(edge.parent_id, edge.child_id) for edge in edges}
     assert ("rec-002", "rec-003") in pairs
@@ -430,11 +663,18 @@ def test_rebuild_fails_closed_without_an_activated_weight_estimate() -> None:
         for rec in sample_records()
     ]
 
+    class FakeTransaction:
+        async def __aenter__(self):
+            return None
+
+        async def __aexit__(self, *_args):
+            return None
+
     class FakeConnection:
         def __init__(self) -> None:
             self.executions: list[tuple[str, tuple[object, ...]]] = []
 
-        async def fetch(self, query: str):
+        async def fetch(self, query: str, *_args):
             assert "from source_post" in query
             return rows
 
@@ -442,8 +682,12 @@ def test_rebuild_fails_closed_without_an_activated_weight_estimate() -> None:
             assert "to_regclass('public.lineage_channel_weight')" in query
             return False
 
-        async def execute(self, query: str, *args: object) -> None:
-            self.executions.append((query, args))
+        async def executemany(self, query: str, args) -> None:
+            for row in args:
+                self.executions.append((query, row))
+
+        def transaction(self):
+            return FakeTransaction()
 
     connection = FakeConnection()
     with pytest.raises(ingestion.ChannelWeightsNotEstimated) as raised:
@@ -480,12 +724,15 @@ def test_rebuild_reconstructs_with_an_activated_estimate() -> None:
             "sample_pair_count": 600,
             "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
         }
-        for channel, weight in (
-            ("temporal", 0.5),
-            ("secondary_key", 0.34),
-            ("text", 0.16),
-        )
+        for channel, weight in _fixture_weights().items()
     ]
+
+    class FakeTransaction:
+        async def __aenter__(self):
+            return None
+
+        async def __aexit__(self, *_args):
+            return None
 
     class FakeConnection:
         def __init__(self) -> None:
@@ -503,13 +750,25 @@ def test_rebuild_reconstructs_with_an_activated_estimate() -> None:
         async def execute(self, query: str, *args: object) -> None:
             self.executions.append((query, args))
 
+        async def executemany(self, query: str, args) -> None:
+            for row in args:
+                self.executions.append((query, row))
+
+        def transaction(self):
+            return FakeTransaction()
+
     connection = FakeConnection()
     edges = asyncio.run(ingestion.rebuild_lineage(connection))
 
     pairs = {(edge.parent_id, edge.child_id) for edge in edges}
     assert {("rec-002", "rec-003"), ("rec-002", "rec-004")} <= pairs
     assert connection.executions[0] == ("delete from post_lineage_edge", ())
-    assert len(connection.executions) == len(edges) + 1
+    inserted_edges = [
+        row
+        for query, row in connection.executions
+        if query.startswith("insert into post_lineage_edge (")
+    ]
+    assert len(inserted_edges) == len(edges)
 
 
 def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
@@ -550,29 +809,310 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
             {"parent_post_id": "post-a", "child_post_id": "post-b", "fused_score": 0.8}
         ]
 
-        async def fetch(self, query: str):
+        async def fetch(self, query: str, *_args):
+            if "post_lineage_edge_signal" in query:
+                return getattr(self, "signals", [])
+            if "event_lineage_rebuild_channel" in query:
+                return getattr(self, "rebuild_channels", [])
+            if "event_lineage_rebuild" in query:
+                return getattr(self, "rebuilds", [])
             return self.edges if "post_lineage_edge" in query else self.posts
 
     connection = FakeConnection()
-    landing = asyncio.run(
-        ingestion.visible_lineage_graph(connection, lambda row: True, limit=1)
-    )
+    landing = asyncio.run(visible_lineage_graph(connection, lambda row: True, limit=1))
     focused = asyncio.run(
-        ingestion.visible_lineage_graph(
-            connection, lambda row: True, limit=1, focus_post_id="post-a"
-        )
+        visible_lineage_graph(connection, lambda row: True, limit=1, focus_post_id="post-a")
     )
     isolated = asyncio.run(
-        ingestion.visible_lineage_graph(
-            connection, lambda row: True, limit=1, focus_post_id="post-c"
-        )
+        visible_lineage_graph(connection, lambda row: True, limit=1, focus_post_id="post-c")
     )
 
     assert [node["id"] for node in landing["nodes"]] == ["post-c"]
     assert {node["id"] for node in focused["nodes"]} == {"post-a", "post-b"}
     assert len(focused["edges"]) == 1
     assert focused["truncated"] is False
-    assert isolated == {"nodes": [], "edges": [], "truncated": False}
+    assert isolated["nodes"] == []
+    assert isolated["edges"] == []
+    assert isolated["truncated"] is False
+    assert isolated["reconstruction"] is None
+    assert focused["edges"][0]["channel_evidence"] == []
+
+
+class _RecordingConnection:
+    def __init__(self) -> None:
+        self.statements: list[tuple[str, tuple]] = []
+        self.batches: list[tuple[str, list[tuple]]] = []
+
+    async def execute(self, query: str, *args):
+        self.statements.append((query, args))
+
+    async def executemany(self, query: str, args):
+        rows = list(args)
+        self.batches.append((query, rows))
+        self.statements.extend((query, row) for row in rows)
+
+    async def fetch(self, query: str, *_args):
+        return []
+
+
+def test_visible_graph_attaches_ranked_channel_evidence() -> None:
+    class FakeConnection:
+        def __init__(self) -> None:
+            self.queries: list[str] = []
+
+        posts = [
+            {
+                "post_id": "post-a",
+                "post_title": "A",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-a",
+                "created_at": datetime(2026, 1, 1),
+            },
+            {
+                "post_id": "post-b",
+                "post_title": "B",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-a",
+                "created_at": datetime(2026, 1, 2),
+            },
+        ]
+        edges = [{"parent_post_id": "post-a", "child_post_id": "post-b", "fused_score": 0.7}]
+        signals = [
+            {
+                "parent_post_id": "post-a",
+                "child_post_id": "post-b",
+                "signal_code": "lineage_signal_text",
+                "signal_score": 0.5,
+                "signal_weight": _fixture_weights()["text"],
+                "signal_contribution": _fixture_weights()["text"] * 0.5,
+            },
+            {
+                "parent_post_id": "post-a",
+                "child_post_id": "post-b",
+                "signal_code": "lineage_signal_temporal",
+                "signal_score": 0.8,
+                "signal_weight": _fixture_weights()["temporal"],
+                "signal_contribution": _fixture_weights()["temporal"] * 0.8,
+            },
+            {
+                "parent_post_id": "post-a",
+                "child_post_id": "post-b",
+                "signal_code": "lineage_signal_secondary_key",
+                "signal_score": 1.0,
+                "signal_weight": _fixture_weights()["secondary_key"],
+                "signal_contribution": _fixture_weights()["secondary_key"],
+            },
+        ]
+        rebuilds = [
+            {
+                "reconstruction_version": "lineageweave.reconstruct/2.14.0",
+                "generated_at": datetime(2026, 8, 21, 12, 0, 0),
+                "min_fused_score": 0.3,
+                "candidate_window": 50,
+            }
+        ]
+        rebuild_channels = [
+            {
+                "signal_code": f"lineage_signal_{channel}",
+                "signal_weight": weight,
+            }
+            for channel in ("temporal", "secondary_key", "text")
+            for weight in (_fixture_weights()[channel],)
+        ]
+
+        async def fetch(self, query: str, *_args):
+            self.queries.append(query)
+            if "post_lineage_edge_signal" in query:
+                return self.signals
+            if "event_lineage_rebuild_channel" in query:
+                return self.rebuild_channels
+            if "event_lineage_rebuild" in query:
+                return self.rebuilds
+            return self.edges if "post_lineage_edge" in query else self.posts
+
+    connection = FakeConnection()
+    graph = asyncio.run(visible_lineage_graph(connection, lambda row: True))
+    evidence = graph["edges"][0]["channel_evidence"]
+    assert {item["signal_code"] for item in evidence} == {"secondary_key", "text", "temporal"}
+    assert [item["rank"] for item in evidence] == [1, 2, 3]
+    assert "llm" not in {item["signal_code"] for item in evidence}
+    assert graph["reconstruction"]["reconstruction_version"] == "lineageweave.reconstruct/2.14.0"
+    assert graph["reconstruction"]["active_weights"][0]["signal_code"] == "temporal"
+    signal_query = next(query for query in connection.queries if "post_lineage_edge_signal" in query)
+    assert "parent_post_id = any($1::uuid[])" in signal_query
+    assert "child_post_id = any($2::uuid[])" in signal_query
+    weight_query = next(query for query in connection.queries if "event_lineage_rebuild_channel" in query)
+    assert "join common_lookup_value as lookup" in weight_query
+    assert "order by lookup.display_order, channel.signal_code" in weight_query
+
+
+def test_abac_never_reveals_channel_evidence_for_an_invisible_endpoint() -> None:
+    class FakeConnection:
+        posts = [
+            {
+                "post_id": "post-public",
+                "post_title": "Public",
+                "voc_type_code": "voc",
+                "visibility_code": "public",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-a",
+                "created_at": datetime(2026, 1, 1),
+            },
+            {
+                "post_id": "post-secret",
+                "post_title": "Secret",
+                "voc_type_code": "voc",
+                "visibility_code": "restricted",
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-a",
+                "created_at": datetime(2026, 1, 2),
+            },
+        ]
+        edges = [
+            {"parent_post_id": "post-public", "child_post_id": "post-secret", "fused_score": 0.8}
+        ]
+        signals = [
+            {
+                "parent_post_id": "post-public",
+                "child_post_id": "post-secret",
+                "signal_code": "lineage_signal_text",
+                "signal_score": 0.9,
+                "signal_weight": _fixture_weights()["text"],
+                "signal_contribution": _fixture_weights()["text"] * 0.9,
+            }
+        ]
+        rebuilds = []
+        rebuild_channels = []
+
+        async def fetch(self, query: str, *_args):
+            if "post_lineage_edge_signal" in query:
+                return self.signals
+            if "event_lineage_rebuild_channel" in query:
+                return self.rebuild_channels
+            if "event_lineage_rebuild" in query:
+                return self.rebuilds
+            return self.edges if "post_lineage_edge" in query else self.posts
+
+    graph = asyncio.run(
+        visible_lineage_graph(FakeConnection(), lambda row: row["post_id"] == "post-public")
+    )
+    assert [node["id"] for node in graph["nodes"]] == ["post-public"]
+    assert graph["edges"] == []
+    serialized = str(graph)
+    assert "post-secret" not in serialized
+    assert "0.45" not in serialized
+    assert "lineage_signal_text" not in serialized
+
+
+def test_focused_graph_cannot_bridge_through_an_invisible_post() -> None:
+    class FakeConnection:
+        posts = tuple(
+            {
+                "post_id": post_id,
+                "post_title": post_id,
+                "voc_type_code": "voc",
+                "visibility_code": visibility,
+                "corporate_entity_id": "corp",
+                "process_unit_id": "pu",
+                "thread_group_key": "thread-a",
+                "created_at": datetime(2026, 1, day, tzinfo=timezone.utc),
+            }
+            for day, post_id, visibility in (
+                (1, "post-a", "public"),
+                (2, "post-hidden", "restricted"),
+                (3, "post-b", "public"),
+            )
+        )
+        edges = (
+            {"parent_post_id": "post-a", "child_post_id": "post-hidden", "fused_score": 0.8},
+            {"parent_post_id": "post-hidden", "child_post_id": "post-b", "fused_score": 0.8},
+        )
+
+        async def fetch(self, query: str, *_args):
+            if "post_lineage_edge_signal" in query:
+                return []
+            if "event_lineage_rebuild_channel" in query:
+                return []
+            if "event_lineage_rebuild" in query:
+                return []
+            return self.edges if "post_lineage_edge" in query else self.posts
+
+    graph = asyncio.run(
+        visible_lineage_graph(
+            FakeConnection(),
+            lambda row: row["visibility_code"] == "public",
+            focus_post_id="post-a",
+        )
+    )
+
+    assert graph["nodes"] == []
+    assert graph["edges"] == []
+
+
+def test_persist_lineage_edges_replaces_signals_atomically_without_llm() -> None:
+    from lineageweave.lineage_persistence import lineage_rebuild_spec
+    from lineageweave.models import Edge
+
+    scores = {"temporal": 0.8, "secondary_key": 1.0, "text": 0.5}
+    weights = _fixture_weights()
+    fused = sum(weights[name] * scores[name] for name in scores)
+    edge = Edge(
+        "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        fused,
+        scores,
+    )
+    connection = _RecordingConnection()
+    asyncio.run(persist_lineage_edges(connection, [edge], weights))
+    statements = [sql.casefold() for sql, _args in connection.statements]
+    assert statements[0].startswith("delete from post_lineage_edge")
+    assert any("delete from event_lineage_rebuild" in sql for sql in statements)
+    assert any("insert into post_lineage_edge_signal" in sql for sql in statements)
+    inserted_codes = [
+        args[2]
+        for sql, args in connection.statements
+        if "insert into post_lineage_edge_signal" in sql.casefold()
+    ]
+    assert inserted_codes == [
+        "lineage_signal_temporal",
+        "lineage_signal_secondary_key",
+        "lineage_signal_text",
+    ]
+    assert [len(rows) for _query, rows in connection.batches] == [3, 1, 3]
+    assert connection.batches[0][1] == [
+        (f"lineage_signal_{channel}", quantize_signal_value(weights[channel]))
+        for channel in ("temporal", "secondary_key", "text")
+    ]
+    spec = lineage_rebuild_spec([edge], weights=weights, package_version="2.14.0")
+    assert spec.reconstruction_version == "lineageweave.reconstruct/2.14.0"
+
+
+def test_duplicate_rebuild_replays_the_same_delete_insert_sequence() -> None:
+    from lineageweave.models import Edge
+
+    scores = {"temporal": 0.8, "secondary_key": 1.0, "text": 0.5}
+    weights = _fixture_weights()
+    fused = sum(weights[name] * scores[name] for name in scores)
+    edge = Edge(
+        "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        fused,
+        scores,
+    )
+    first = _RecordingConnection()
+    second = _RecordingConnection()
+    asyncio.run(persist_lineage_edges(first, [edge], weights))
+    asyncio.run(persist_lineage_edges(second, [edge], weights))
+    assert [sql for sql, _args in first.statements] == [sql for sql, _args in second.statements]
+    assert [args for _sql, args in first.statements] == [args for _sql, args in second.statements]
 
 
 def test_lineage_graphs_for_posts_merges_distinct_threads_without_duplicates() -> None:
@@ -639,7 +1179,13 @@ def test_lineage_graphs_for_posts_merges_distinct_threads_without_duplicates() -
             {"parent_post_id": "post-c", "child_post_id": "post-d", "fused_score": 0.6},
         ]
 
-        async def fetch(self, query: str):
+        async def fetch(self, query: str, *_args):
+            if "post_lineage_edge_signal" in query:
+                return []
+            if "event_lineage_rebuild_channel" in query:
+                return []
+            if "event_lineage_rebuild" in query:
+                return []
             return self.edges if "post_lineage_edge" in query else self.posts
 
     connection = FakeConnection()
@@ -671,106 +1217,8 @@ def test_lineage_graphs_for_posts_merges_distinct_threads_without_duplicates() -
 
 def test_lineage_graphs_for_posts_with_no_citations_is_empty() -> None:
     class FakeConnection:
-        async def fetch(self, query: str):
+        async def fetch(self, query: str, *_args):
             return []
 
     merged = asyncio.run(lineage_graphs_for_posts(FakeConnection(), lambda row: True, []))
     assert merged == {"nodes": [], "edges": [], "truncated": False}
-
-
-def test_rebuild_wires_available_adjudication_client_into_llm_channel() -> None:
-    """An available client adds the llm channel; a null one leaves it out.
-
-    Issue #289: the corpus-wide rebuild path must pass a wired
-    adjudication client through to ``reconstruct`` so the optional LLM
-    channel actually contributes when (and only when) it is available.
-    The weight lookup must see the four-channel set -- failing closed,
-    never renormalizing a three-channel vector onto an llm run.
-    """
-    rows = [
-        {
-            "post_id": rec.record_id,
-            "process_unit_id": "shared-pu",
-            "corporate_entity_id": "shared-corp",
-            "post_title": rec.label,
-            "voc_type_code": "voc" if rec.secondary_key else "vom",
-            "thread_group_key": rec.group_key,
-            "secondary_grouping_key": rec.secondary_key,
-            "created_at": rec.occurred_at,
-        }
-        for rec in sample_records()
-    ]
-    four_channel_rows = [
-        {
-            "channel_set_code": channel_set,
-            "channel_code": channel,
-            "weight_value": weight,
-            "estimation_run_id": "00000000-0000-0000-0000-000000000001",
-            "estimation_method_code": "mls2plm_expected_information",
-            "estimator_version": "1.0.0",
-            "anchor_method_code": "unanchored_internal_structure",
-            "source_snapshot_sha256": "a" * 64,
-            "sample_pair_count": 600,
-            "knowledge_cutoff": datetime(2026, 1, 1, tzinfo=UTC),
-        }
-        for channel_set, channel, weight in (
-            ("channel_set_deterministic", "temporal", 0.49),
-            ("channel_set_deterministic", "secondary_key", 0.34),
-            ("channel_set_deterministic", "text", 0.17),
-            ("channel_set_with_llm", "temporal", 0.35),
-            ("channel_set_with_llm", "secondary_key", 0.24),
-            ("channel_set_with_llm", "text", 0.14),
-            ("channel_set_with_llm", "llm", 0.27),
-        )
-    ]
-
-    class FakeConnection:
-        async def fetch(self, query: str):
-            if "lineage_channel_weight" in query:
-                # The loader fetches every row and matches one persisted
-                # set against the active-channel set exactly.
-                return four_channel_rows
-            assert "from source_post" in query
-            return rows
-
-        async def fetchval(self, _query: str):
-            return True
-
-        async def execute(self, query: str, *args: object) -> None:
-            pass
-
-    class AvailableClient:
-        available = True
-
-        def judge(self, candidate_label: str, record_label: str) -> float:
-            return 0.9
-
-    class UnavailableClient:
-        available = False
-
-    connection = FakeConnection()
-    captured: dict[str, object] = {}
-
-    real_specs = ingestion.lineage_edge_specs
-
-    def capturing_specs(records, *, llm=None, weights):
-        captured["llm"] = llm
-        return real_specs(records, llm=llm, weights=weights)
-
-    with mock.patch.object(ingestion, "lineage_edge_specs", capturing_specs):
-        edges = asyncio.run(
-            ingestion.rebuild_lineage(connection, adjudication_client=AvailableClient())
-        )
-    assert edges
-    assert isinstance(captured["llm"], AvailableClient), (
-        "an available client must reach reconstruct as the llm channel"
-    )
-
-    # An unavailable client must leave the llm channel out entirely --
-    # reconstruct receives None and renormalizes onto three channels.
-    captured.clear()
-    with mock.patch.object(ingestion, "lineage_edge_specs", capturing_specs):
-        asyncio.run(
-            ingestion.rebuild_lineage(connection, adjudication_client=UnavailableClient())
-        )
-    assert captured["llm"] is None

@@ -171,7 +171,8 @@ from backend.app.knowledge_graph import (
 )
 from backend.app.lineage_ingestion import (
     ChannelWeightsNotEstimated,
-    rebuild_lineage,
+    lineage_graphs_for_posts,
+    rebuild_lineage_from_pool,
     visible_lineage_graph,
 )
 from backend.app.ontology_neighborhood_ingestion import (
@@ -1167,18 +1168,24 @@ async def rebuild_lineage_graph(
     post_admin only: this is a corpus-wide write. Reads stay ABAC-gated.
     """
     _require_post_admin(account)
-    async with pool.acquire() as conn:
-        async with conn.transaction():
-            try:
-                edges = await rebuild_lineage(
-                    conn, adjudication_client=_adjudication_client()
-                )
-            except ChannelWeightsNotEstimated:
-                raise HTTPException(
-                    status.HTTP_503_SERVICE_UNAVAILABLE,
-                    "Channel weights are not estimated yet. Run "
-                    "scripts/estimate_channel_weights.py, then rebuild again.",
-                )
+    try:
+        edges = await rebuild_lineage_from_pool(pool, llm=_adjudication_client())
+    except ChannelWeightsNotEstimated as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Channel weights are not estimated yet. Run "
+            "scripts/estimate_channel_weights.py, then rebuild again.",
+        ) from exc
+    except (HttpClientError, OSError) as exc:
+        # This can issue up to MAXIMUM_LIVE_LLM_PAIR_EVALUATIONS sequential
+        # adjudication calls across the whole corpus (lineage_ingestion.py);
+        # a transient orchestrator hiccup on any one of them must not
+        # discard the rest of the reconstruction as a raw 500 -- same
+        # discipline as this file's other orchestrator call sites.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Lineage rebuild is unavailable: the orchestrator did not respond",
+        ) from exc
     return {"edge_count": len(edges)}
 
 

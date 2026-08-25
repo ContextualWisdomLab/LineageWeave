@@ -391,6 +391,71 @@ describe("PostBody", () => {
     expect(screen.getByText("Panel")).toBeInTheDocument();
   });
 
+  it("keeps separator-free OCR rows in the existing image table path", () => {
+    render(
+      <PostBody
+        body={'<img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=" />'}
+        imageContent={[
+          {
+            unit_index: 0,
+            mime_type: "image/png",
+            status_code: "described",
+            extracted_text: "No. | Item\n1 | Panel",
+            caption: "A table image",
+            tags: [],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("table")).toHaveClass("post-image-text-table");
+    expect(screen.getAllByRole("row")).toHaveLength(2);
+  });
+
+  it("renders a Markdown table in the source body and keeps empty cells", () => {
+    render(
+      <PostBody
+        body={"Before\n\n| Field | Value | Note |\n| --- | --- | --- |\n| Owner | Buyer | |\n\nAfter"}
+      />,
+    );
+
+    expect(screen.getByRole("table")).toHaveClass("post-markdown-table");
+    expect(screen.getAllByRole("row")).toHaveLength(2);
+    expect(screen.getByText("Owner")).toBeInTheDocument();
+    expect(screen.getByText("Before")).toBeInTheDocument();
+    expect(screen.getByText("After")).toBeInTheDocument();
+  });
+
+  it("does not turn pipe-delimited prose into a table", () => {
+    render(<PostBody body={"Alice | manager\nBob | engineer"} />);
+
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+    expect(screen.getByText((text) => text.includes("Alice | manager"))).toBeInTheDocument();
+  });
+
+  it("renders Markdown tables when persisted text units are present", () => {
+    const table = "| Field | Value |\n| --- | --- |\n| Owner | Buyer |";
+    render(
+      <PostBody
+        body={table}
+        structureUnits={[
+          {
+            unit_index: 0,
+            unit_kind_code: "dom",
+            unit_text: table,
+            indent_level: 0,
+            indent_source_code: "unresolved",
+            indent_confidence: 0,
+            indent_evidence: "",
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("table")).toHaveClass("post-markdown-table");
+    expect(screen.getByText("Owner")).toBeInTheDocument();
+  });
+
   it("shows persisted image-region bounding ranges beside captions", () => {
     render(
       <PostBody

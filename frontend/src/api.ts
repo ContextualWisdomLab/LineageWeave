@@ -427,16 +427,35 @@ export interface LineageGraphNode {
   is_branch_point: boolean;
 }
 
+export interface LineageChannelEvidence {
+  signal_code: string;
+  signal_label: string;
+  score: number;
+  weight: number;
+  contribution: number;
+  rank: number;
+}
+
+export interface LineageRebuildProfile {
+  reconstruction_version: string;
+  generated_at: string;
+  min_fused_score: number;
+  candidate_window: number;
+  active_weights: { signal_code: string; signal_weight: number }[];
+}
+
 export interface LineageGraphEdge {
   source: string;
   target: string;
   fused_score: number;
+  channel_evidence?: LineageChannelEvidence[];
 }
 
 export interface LineageGraph {
   nodes: LineageGraphNode[];
   edges: LineageGraphEdge[];
   truncated?: boolean;
+  reconstruction?: LineageRebuildProfile | null;
 }
 
 export function fetchLineageGraph(accessToken: string, postId?: string): Promise<LineageGraph> {
