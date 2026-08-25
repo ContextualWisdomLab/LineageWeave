@@ -4691,7 +4691,36 @@ def test_derive_commitment_requires_post_admin(client, demo_analyst_token, seede
 def test_calendar_is_empty_before_any_commitment(client, demo_analyst_token, seeded_db) -> None:
     response = client.get("/api/calendar", headers={"Authorization": f"Bearer {demo_analyst_token}"})
     assert response.status_code == 200
-    assert response.json()["commitments"] == []
+    payload = response.json()
+    assert payload["commitments"] == []
+    assert payload["events"] == []
+    assert payload["calendar_sources"]["naruon_available"] is False
+    assert "Connect the Naruon calendar projection" in payload["calendar_sources"]["naruon_next_action"]
+    assert "caldav_available" not in payload["calendar_sources"]
+
+
+def test_calendar_window_requires_both_bounds(client, demo_analyst_token, seeded_db) -> None:
+    response = client.get(
+        "/api/calendar",
+        params={"window_start": "2026-08-25T00:00:00Z"},
+        headers={"Authorization": f"Bearer {demo_analyst_token}"},
+    )
+    assert response.status_code == 422
+    assert "together" in response.json()["detail"]
+
+
+def test_calendar_does_not_treat_caldav_url_as_naruon(
+    client, demo_analyst_token, seeded_db, monkeypatch
+) -> None:
+    monkeypatch.setenv("CALDAV_BASE_URL", "https://calendar.example/caldav/")
+    monkeypatch.delenv("NARUON_CALENDAR_BASE_URL", raising=False)
+    monkeypatch.delenv("NARUON_CALENDAR_SERVICE_TOKEN", raising=False)
+    response = client.get("/api/calendar", headers={"Authorization": f"Bearer {demo_analyst_token}"})
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["events"] == []
+    assert payload["calendar_sources"]["naruon_available"] is False
+    assert "caldav_available" not in payload["calendar_sources"]
 
 
 def test_calendar_hides_other_corp_private_commitments_and_sorts_by_due_date(
