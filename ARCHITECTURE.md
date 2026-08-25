@@ -611,7 +611,8 @@ persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
-`GET /api/reports/compare/{period}` is the home-page grouping strip;
+`GET /api/reports/compare/{period}` is the home-page grouping strip
+and carries the same ABAC-filtered leftover pairs (ADR 0149);
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared
@@ -621,9 +622,10 @@ open ticket title, status lookup label, and due date when one exists. The home p
 the actual mean θ, the FIPC delta, the CAT-selected item, leftover
 closest/farthest pairs (signed residual `R`, observed `Y`, expected
 `E`, full rank, and two-axis leftover-map distance `d` after IRT main
-effects) above the member list, the leftover interaction map,
-leftover-map axis share for residual SVD axes 1 and 2, complete-case
-coverage captions (map used N of M scored posts), plus the
+effects) above the member list and on the grouping comparison strip,
+the leftover interaction map, leftover-map axis share for residual SVD
+axes 1 and 2, complete-case coverage captions (map used N of M scored
+posts), plus the
 PU / corp / thread comparison -- never a placeholder. TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer
