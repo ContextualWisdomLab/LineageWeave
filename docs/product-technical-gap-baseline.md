@@ -60,7 +60,8 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 0 open PRs and 11 open issues. PRs #627 and #628
+At this snapshot there was 1 open PR and 11 open issues. Its exact observed
+head was `#630 312e1064` (this branch's observed parent). PRs #627 and #628
 reached protected `main`; PR #579 closed without merge, and its ADR 0211
 reservation remains in that branch rather than protected main. The
 filter-option decision on protected main remains ADR 0212. The superseded
@@ -79,14 +80,14 @@ lifecycle claim.
 ## 1. Exact-head and governance evidence
 
 The protected default branch was `7403a4528c4a68a4e2636449b9497d0619c47c82`
-when this baseline was refreshed. The live queue contained 0 open PRs and 11
+when this baseline was refreshed. The live queue contained 1 open PR and 11
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| None | — | The queue was empty when this snapshot was taken; creating a baseline-refresh PR necessarily advances the live queue after this observation |
+| #630 | `312e1064` (observed parent) | this row is updated by #630 itself, so its exact head advances after the snapshot is encoded; hosted gates and independent review remain required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
@@ -358,7 +359,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 0 open PRs at snapshot; #627 and #628 are protected-main delivery, while #579 closed without merge | For any subsequently created PR, require terminal exact-head checks, no unresolved threads, independent exact-head approvals, and a protected squash-merge SHA |
+| Protected release | 1 open baseline-refresh PR at snapshot; #627 and #628 are protected-main delivery, while #579 closed without merge | Require terminal exact-head checks, no unresolved threads, independent exact-head approvals, and a protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
