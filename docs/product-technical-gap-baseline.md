@@ -60,14 +60,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 11 open PRs and 10 open issues. The exact-head
+At this snapshot there were 13 open PRs and 10 open issues. The exact-head
 inventory in section 1 is authoritative for this snapshot. Every open head
 remained blocked on hosted gates and/or independent review. These observations
 are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 08:42 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 09:00 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -86,13 +86,13 @@ context only.
 | ---: | --- | --- |
 | #672 | `5387acb4` | indexed persisted semantic/KG candidate nomination (ADR 0225); exact-head checks/review required |
 | #668 | `f272f4b0` | evidence-bound project history in post detail; exact-head checks/review required |
-| #667 | `6d680a17` | current baseline refresh plus stacked cancelled-run guidance; exact-head checks/review required |
+| #667 | `e05d138c` | current baseline refresh plus stacked cancelled-run guidance; exact-head checks/review required |
 | #663 | `7ac1483e` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels; exact-head checks/review required |
 | #658 | `f497a6e8` | evidence-honest Global Ask cutoff with revision-interval live-after semantics; exact-head checks/review required |
 | #657 | `a59a2023` | TEPP asynchronous lifecycle evidence; exact-head checks/review required |
 | #644 | `ed8d97f3` | native-surface code splitting with modal-focus regression coverage; exact-head checks/review required |
 | #643 | `3453ab08` | accessible token-backed status notices; exact-head checks/review required |
-| #640 | `fa604e79` | operations-dashboard contract alignment; exact-head checks/review required |
+| #640 | `dda5cf48` | operations-dashboard contract alignment and ABAC/UUID repairs; exact-head checks/review required |
 | #639 | `8da485d3` | Running action and Compose contracts; exact-head checks/review required |
 | #632 | `cad4debf` | active semantic provenance repair head; exact-head checks/review required |
 | #631 | `e6b4f0c4` | documentation decomposition; exact-head checks/review required |
