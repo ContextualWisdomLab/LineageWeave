@@ -60,18 +60,17 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 3 open PRs and 11 open issues. Exact observed heads
-were `#628 d07d212f` (this branch's observed parent), `#627 9e0528a6`, and
-`#579 1c209c85`. PR #579 is open; its ADR 0211 reservation is why this branch's
-filter-option decision is ADR 0212. PRs #612, #614, #615, #616, and #626
-reached protected `main`; the superseded baseline PR #613 closed without merge
-and its PRD was recreated on protected main. The open heads remain blocked on
-hosted gates and/or independent review. These
+At this snapshot there were 8 open PRs and 10 open issues. Exact observed heads
+were `#641 2eac0a26` (this stacked candidate), `#640 41527fa9`,
+`#639 aee02dca`, `#636 eeeb23c6`, `#632 bfeaecd9`, `#631 c0022c97`,
+`#629 0f4665b5`, and `#579 689a21b6`. PR #641 targets #632's provenance
+branch; a stack merge is not protected-main delivery. The open heads remain
+blocked on hosted gates and/or independent review. These
 observations are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-25 21:34 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -80,17 +79,22 @@ lifecycle claim.
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `d7d5eeb310b055b5e138060cf2dfb929b03090a6`
-when this baseline was refreshed. The live queue contained 3 open PRs and 11
+The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
+when this baseline was refreshed. The live queue contained 8 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #628 | `d07d212f` (observed parent) | this row is updated by #628 itself, so its exact head advances after the snapshot is encoded; ADR 0212 combines complete ABAC-visible filter options into one database round trip, while hosted gates and independent review remain required |
-| #627 | `9e0528a6` | repairs k6 lifecycle evidence preservation; hosted gates remain required |
-| #579 | `1c209c85` | persists leftover interaction-map coordinates and owns ADR 0211; hosted gates and independent review remain required |
+| #641 | `2eac0a26` | stacked public semantic/KG claim verification candidate; checks and independent review remain required |
+| #640 | `41527fa9` | dashboard case metrics and project journeys; checks and independent review remain required |
+| #639 | `aee02dca` | Running action and Compose contract repair; checks and independent review remain required |
+| #636 | `eeeb23c6` | calibrated external lineage contract; checks and independent review remain required |
+| #632 | `bfeaecd9` | Global Ask fact provenance and semantic candidate nomination; checks and independent review remain required |
+| #631 | `c0022c97` | current-main ADR stack decomposition; checks and independent review remain required |
+| #629 | `0f4665b5` | provider pool release and bounded landing reads; checks and independent review remain required |
+| #579 | `689a21b6` | leftover interaction-map persistence; checks and independent review remain required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
