@@ -387,10 +387,10 @@ def test_support_profile_imports_prov_o_and_maps_product_classes() -> None:
     )
     profile = Graph().parse(profile_path, format="turtle")
     ontology_iri = URIRef(
-        "https://contextualwisdomlab.github.io/lineageweave/ontology/prov-o-support-profile.ttl"
+        "https://contextualwisdomlab.github.io/LineageWeave/ontology/prov-o-support-profile.ttl"
     )
-    local = Namespace("https://contextualwisdomlab.github.io/lineageweave/ontology#")
-    legacy = Namespace("https://contextualwisdomlab.github.io/LineageWeave/ontology#")
+    local = Namespace("https://contextualwisdomlab.github.io/LineageWeave/ontology#")
+    legacy = Namespace("https://contextualwisdomlab.github.io/lineageweave/ontology#")
     assert (
         ontology_iri,
         OWL.imports,
@@ -400,7 +400,7 @@ def test_support_profile_imports_prov_o_and_maps_product_classes() -> None:
         ontology_iri,
         OWL.imports,
         URIRef(
-            "https://contextualwisdomlab.github.io/lineageweave/ontology/namespace-compatibility.ttl"
+            "https://contextualwisdomlab.github.io/LineageWeave/ontology/namespace-compatibility.ttl"
         ),
     ) in profile
     assert (local.Post, RDFS.subClassOf, PROV.Entity) in profile

@@ -1,4 +1,4 @@
-@prefix : <https://contextualwisdomlab.github.io/lineageweave/ontology#> .
+@prefix : <https://contextualwisdomlab.github.io/LineageWeave/ontology#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
 @prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
@@ -13,27 +13,38 @@
 # The formal OWL 2 Full / RDFS / SKOS vocabulary for the
 # `knowledge_graph_edge` table's node/edge types, the
 # `entity_relationship_type` / `person_side` / `corporate_entity_level`
-# controlled vocabularies in migrations/0001_initial_schema.sql, and
+# / `voc_type` controlled vocabularies in migrations/, and
 # `post_summary_role.actor_type_code` (migrations/0012).
+#
+# ADR 0207 supersedes ADR 0157: the canonical namespace is the
+# repository-case spelling above -- the exact path GitHub Pages serves.
+# The lowercase namespace is a deprecated compatibility vocabulary
+# published beside this file as namespace-compatibility.ttl with
+# validated term-kind mappings; new producers must not mint lowercase
+# IRIs.
 #
 # `knowledge_graph_edge` (source_node_type_code, source_node_id) --
 # [edge_type_code] --> (target_node_type_code, target_node_id) is
 # already an RDF triple in shape (Cyganiak, Wood, & Lanthaler, 2014);
 # this file is the formal semantic layer over it -- PostgreSQL stays
 # the source of record. See docs/adr/0004-knowledge-graph-ontology.md
-# for the KG design rationale, docs/adr/0006-role-responsibility-agent-ontology.md
-# for the R&R actor-type rationale (grounded in W3C PROV-O), and
-# tests/test_ontology.py for the round-trip check that every code below
-# actually exists as a common_lookup_value row, and vice versa.
+# for the KG design rationale, docs/adr/0207-repository-case-ontology-namespace-canonical.md
+# for the namespace decision and SHACL boundary, and tests/test_ontology.py
+# for the round-trip check that every lookup code below actually exists
+# as a common_lookup_value row, and vice versa.
 #
-# Every custom term carries a :lookupCode annotation naming the exact
-# `common_lookup_value.lookup_code` it corresponds to -- that literal
-# string, not the IRI fragment, is what the relational schema stores.
+# Every controlled-vocabulary term carries a :lookupCode annotation
+# naming the exact `common_lookup_value.lookup_code` it corresponds to
+# -- that literal string, not the IRI fragment, is what the relational
+# schema stores. Column-projection datatype properties deliberately do
+# NOT carry :lookupCode: they project table columns, not governed
+# lookup rows, so there is nothing for the round-trip check to enforce
+# (the same discipline as the organization_name_resolution block below).
 #################################################################
 
-<https://contextualwisdomlab.github.io/lineageweave/ontology> a owl:Ontology ;
+<https://contextualwisdomlab.github.io/LineageWeave/ontology> a owl:Ontology ;
     rdfs:label "LineageWeave Knowledge Graph Ontology" ;
-    rdfs:comment "Formal OWL 2 Full / RDFS / SKOS vocabulary for LineageWeave's knowledge_graph_edge node and edge types, entity_relationship_type, person_side, corporate_entity_level, and post_summary_role.actor_type_code controlled vocabularies. RDF reification for semantic project evidence is interpreted with OWL 2 RDF-Based Semantics rather than OWL 2 DL." .
+    rdfs:comment "Formal OWL 2 Full / RDFS / SKOS vocabulary for LineageWeave's knowledge_graph_edge node and edge types, entity_relationship_type, person_side, corporate_entity_level, voc_type, and post_summary_role.actor_type_code controlled vocabularies. RDF reification for semantic project evidence is interpreted with OWL 2 RDF-Based Semantics rather than OWL 2 DL." .
 
 :lookupCode a owl:AnnotationProperty ;
     rdfs:label "lookup code" ;
@@ -45,7 +56,7 @@
 
 :Post a owl:Class ;
     rdfs:label "Post" ;
-    rdfs:comment "A source_post row: one VOC/VOM/VOP/VOCC/VOCO/VOS record." ;
+    rdfs:comment "A source_post row: one record typed by the voc_type scheme (:postTypeScheme) -- Voice of Customer, Customer's Customer, Competitor, Market, or Partner." ;
     :lookupCode "node_post" .
 
 :Person a owl:Class ;
@@ -62,6 +73,12 @@
     rdfs:subClassOf :Person ;
     rdfs:label "Counterparty person" ;
     :lookupCode "counterparty" .
+
+# A person side is exactly one of our-side or counterparty (the seeded
+# person_side vocabulary has no third value), so the two subclasses are
+# declared disjoint: a reasoner must never infer both from one row, and
+# the SHACL shapes graph carries the closed-world complement.
+:OurSidePerson owl:disjointWith :CounterpartyPerson .
 
 :CorporateEntity a owl:Class ;
     rdfs:subClassOf skos:Concept ;
@@ -100,6 +117,16 @@
     rdfs:label "affiliated with" ;
     rdfs:comment "A person's N:N organizational affiliation (person_affiliation)." ;
     :lookupCode "edge_affiliation" .
+
+# Bidirectional query support for affiliations: consumers can traverse
+# entity -> people without a second stored edge. Like :mentions above,
+# the inverse stays un-coded so one lookup_code keeps naming exactly one
+# stored property.
+:hasAffiliate a owl:ObjectProperty ;
+    rdfs:domain :CorporateEntity ;
+    rdfs:range :Person ;
+    rdfs:label "has affiliate" ;
+    owl:inverseOf :affiliatedWith .
 
 :coMentionedWith a owl:ObjectProperty, owl:SymmetricProperty ;
     rdfs:domain :Person ;
@@ -174,6 +201,123 @@
     :lookupCode "rel_vos" .
 
 #################################################################
+# Datatype properties -- node attribute projections.
+#
+# These project real source columns (source_post.post_title /
+# post_body / created_at / updated_at / event_occurred_at;
+# cataloged_person.person_name / last_known_job_title;
+# corporate_entity.corporate_entity_code / entity_name). No property
+# is minted for a column that does not exist. Shared timestamps carry
+# NO rdfs:domain on purpose: two rdfs:domain statements would entail
+# every subject belongs to BOTH classes -- the multi-domain trap the
+# cross-post edge block above already avoids. Per-class cardinality
+# and datatype constraints live in the SHACL shapes graph
+# (lineageweave-kg-shapes.ttl), which validates projected data
+# closed-world where OWL's open world deliberately will not
+# (Knublauch & Kontokostas, 2017).
+#################################################################
+
+:postTitle a owl:DatatypeProperty ;
+    rdfs:domain :Post ;
+    rdfs:range xsd:string ;
+    rdfs:label "post title" ;
+    rdfs:comment "source_post.post_title -- the authoring application's title text." .
+
+:postBody a owl:DatatypeProperty ;
+    rdfs:domain :Post ;
+    rdfs:range xsd:string ;
+    rdfs:label "post body" ;
+    rdfs:comment "source_post.post_body -- the preserved source representation, never flattened into one opaque string by derived views." .
+
+:eventOccurredAt a owl:DatatypeProperty ;
+    rdfs:domain :Post ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "event occurred at" ;
+    rdfs:comment "source_post.event_occurred_at (migrations 0183) -- the business event instant Global Ask time filters bind to, falling back to created_at only when missing (ADR 0150)." .
+
+:personName a owl:DatatypeProperty ;
+    rdfs:domain :Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "person name" ;
+    rdfs:comment "cataloged_person.person_name -- Keyman extraction tests the raw organization name before any abbreviation rewrite so a rewrite cannot turn an existing tie into an apparent creation miss (ADR 0026)." .
+
+:lastKnownJobTitle a owl:DatatypeProperty ;
+    rdfs:domain :Person ;
+    rdfs:range xsd:string ;
+    rdfs:label "last known job title" ;
+    rdfs:comment "cataloged_person.last_known_job_title (migrations 0013) -- a stated title is real same-name disambiguation evidence even when no affiliation row exists." .
+
+:entityName a owl:DatatypeProperty ;
+    rdfs:domain :CorporateEntity ;
+    rdfs:range xsd:string ;
+    rdfs:label "entity name" ;
+    rdfs:comment "corporate_entity.entity_name -- the human-readable hierarchy label; corporate similarity results stay unique/miss/tie over this name (ADR 0026)." .
+
+:entityCode a owl:DatatypeProperty ;
+    rdfs:domain :CorporateEntity ;
+    rdfs:range xsd:string ;
+    rdfs:label "entity code" ;
+    rdfs:comment "corporate_entity.corporate_entity_code -- the short corp code carried at login time, distinct from the display name." .
+
+# Shared record timestamps apply to every KG node kind, so they declare
+# no domain (see the block comment above); the shapes graph pins them
+# per class.
+:createdAt a owl:DatatypeProperty ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "created at" ;
+    rdfs:comment "Record creation instant shared across node kinds (each source table's created_at); no rdfs:domain because multiple domains would entail impossible co-membership." .
+
+:updatedAt a owl:DatatypeProperty ;
+    rdfs:range xsd:dateTime ;
+    rdfs:label "updated at" ;
+    rdfs:comment "Record last-write instant shared across node kinds (e.g. source_post.updated_at); null updated-at falls back to created_at at import boundaries." .
+
+#################################################################
+# SKOS -- voc_type (post type classification)
+#
+# The five-value VOC source vocabulary migrations/0042 governs. There
+# are exactly five seeded codes: vos exists only as a relationship type
+# (rel_vos above), never as a post type, so no Voice-of-Supplier concept
+# belongs here. Adding "voc_type" to the ontology-covered categories
+# puts these codes under tests/test_ontology.py's round-trip check --
+# closing the previously documented expected gap.
+#################################################################
+
+:postTypeScheme a skos:ConceptScheme ;
+    rdfs:label "Post type scheme" ;
+    rdfs:comment "Voice-based classification of what a source post records, per the governed five-value voc_type lookup category (migrations/0042)." .
+
+:voiceOfCustomerType a skos:Concept ;
+    skos:inScheme :postTypeScheme ;
+    skos:prefLabel "Voice of Customer"@en ;
+    rdfs:comment "A customer's own voice about their experience." ;
+    :lookupCode "voc" .
+
+:voiceOfCustomersCustomerType a skos:Concept ;
+    skos:inScheme :postTypeScheme ;
+    skos:prefLabel "Voice of Customer's Customer"@en ;
+    rdfs:comment "The voice of the customer's downstream customer." ;
+    :lookupCode "vocc" .
+
+:voiceOfCompetitorType a skos:Concept ;
+    skos:inScheme :postTypeScheme ;
+    skos:prefLabel "Voice of Competitor"@en ;
+    rdfs:comment "Market intelligence sourced from a competitor." ;
+    :lookupCode "voco" .
+
+:voiceOfMarketType a skos:Concept ;
+    skos:inScheme :postTypeScheme ;
+    skos:prefLabel "Voice of Market"@en ;
+    rdfs:comment "General market signal not attributable to one account or partner." ;
+    :lookupCode "vom" .
+
+:voiceOfPartnerType a skos:Concept ;
+    skos:inScheme :postTypeScheme ;
+    skos:prefLabel "Voice of Partner"@en ;
+    rdfs:comment "A partner organization's voice." ;
+    :lookupCode "vop" .
+
+#################################################################
 # SKOS -- corporate_entity_level (Group -> Company -> Plant)
 #################################################################
 
@@ -222,6 +366,11 @@
 # (Reynolds, 2014) does: org:OrganizationalUnit, "used to represent
 # division of a particular organization into sub-organizational units,"
 # linked to its parent via org:unitOf. See docs/adr/0007-team-actor-type.md.
+#
+# Keyman job titles and industry sectors remain free-text columns with
+# no governed lookup category, so no SKOS scheme is invented for them
+# here (ADR 0207 decision 8 tracks that gap rather than fabricating
+# vocabulary).
 #################################################################
 
 :RoleActorPerson a owl:Class ;

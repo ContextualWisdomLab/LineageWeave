@@ -32,11 +32,23 @@ class _Connection:
 def test_digest_and_atomic_normalized_persistence() -> None:
     """The parent, classifications, and facts retain exact-body lineage."""
     conn = _Connection()
-    cases = (OperationsCase("claim_investigation", "Claim", "source", (OperationsCaseFact("order", "A-1", "source"),)),)
+    digest = "a" * 64
+    cases = (
+        OperationsCase(
+            "claim_investigation",
+            "Claim",
+            "source",
+            (OperationsCaseFact("order", "A-1", "source", "post-1", digest),),
+            "post-1",
+            digest,
+        ),
+    )
     asyncio.run(persist_operations_cases(conn, "post-1", "source", "session-1", cases))
     assert len(source_body_digest("source")) == 64
     assert "delete from operations_case_analysis" in conn.calls[0][0]
-    assert conn.batches == [[("post-1", "claim_investigation", 0, "order", "A-1", "source")]]
+    assert conn.batches == [
+        [("post-1", "claim_investigation", 0, "order", "A-1", "source", "post-1", digest)]
+    ]
 
 
 def test_persists_supported_empty_analysis() -> None:

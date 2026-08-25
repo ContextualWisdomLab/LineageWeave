@@ -46,6 +46,7 @@ export interface OperationsDashboardFact {
   fact_type_label: string;
   value_text: string;
   evidence_text: string;
+  evidence_post_id: string;
 }
 
 export interface OperationsDashboardCase {
@@ -55,6 +56,7 @@ export interface OperationsDashboardCase {
   project_name: string | null;
   summary_text: string;
   evidence_text: string;
+  evidence_post_id: string;
   occurred_at: string;
   facts: OperationsDashboardFact[];
 }
@@ -66,11 +68,20 @@ export interface OperationsDashboardResponse {
   external_post_count: number;
   external_percent: number;
   pending_analysis_count: number;
+  failed_analysis_count: number;
   cases: OperationsDashboardCase[];
 }
 
-export function fetchOperationsDashboard(accessToken: string): Promise<OperationsDashboardResponse> {
-  return backendFetch("/api/dashboard", accessToken);
+export function fetchOperationsDashboard(
+  accessToken: string,
+  periodStart = "",
+  periodEnd = "",
+): Promise<OperationsDashboardResponse> {
+  const query = new URLSearchParams();
+  if (periodStart) query.set("period_start", periodStart);
+  if (periodEnd) query.set("period_end", periodEnd);
+  const suffix = query.size ? `?${query}` : "";
+  return backendFetch(`/api/dashboard${suffix}`, accessToken);
 }
 
 export interface PostFilterOption {
@@ -364,7 +375,13 @@ export interface AskAgentResponse {
     report: {
       media_type: string;
       body: string;
-      source_documents: Array<{ post_id: string; title: string; api_path: string; resource_uri: string }>;
+      source_documents: Array<{
+        post_id: string;
+        title: string;
+        api_path: string;
+        resource_uri: string;
+        evidence_facts: CitedPostEvidenceFact[];
+      }>;
     };
     alert: {
       trigger_code: string;
@@ -747,6 +764,26 @@ export function fetchPostAffiliateTree(
 
 export function fetchPostVocEvidence(accessToken: string, postId: string): Promise<VocEvidence> {
   return backendFetch(`/api/posts/${postId}/voc-evidence`, accessToken);
+}
+
+export interface SimilarVocItem {
+  post_id: string;
+  post_title: string;
+  issue_summary: string;
+  focal_evidence_text: string;
+  candidate_evidence_text: string;
+  customer_cohort_text: string | null;
+  action_history: string[];
+  occurred_at: string;
+}
+
+export function fetchSimilarVoc(
+  accessToken: string,
+  postId: string,
+  offset = 0,
+): Promise<{ items: SimilarVocItem[]; next_offset: number | null }> {
+  const query = offset ? `?offset=${offset}` : "";
+  return backendFetch(`/api/posts/${postId}/similar-voc${query}`, accessToken);
 }
 
 export interface PersonRoleHistoryEntry {

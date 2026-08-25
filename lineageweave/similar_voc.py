@@ -1,13 +1,12 @@
-"""Evidence-gated similar-VOC adjudication and RankWeave ordering."""
+"""Evidence-gated similar-VOC adjudication."""
 
 from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import Mapping, Protocol, Sequence
+from typing import Protocol
 
 from .http_client import chat_completion_content, post_json
-from .rankweave_client import RankWeaveClient, RankingList
 
 
 @dataclass(frozen=True)
@@ -41,8 +40,8 @@ and outcome. Return ONLY JSON with `similar` (boolean). If false, return only th
 If true, also return issue_summary, focal_evidence_text (verbatim from focal body),
 candidate_evidence_text (verbatim from candidate body), customer_cohort_text (string or null),
 and action_history (an array containing only source-supported past actions, each verbatim from
-the candidate body). Customer cohort may be stated only when the records explicitly identify
-the same cataloged or source customer; otherwise use null.
+the candidate body). Customer cohort must be the same verbatim span present in both bodies and
+may be stated only when both records explicitly identify that source customer; otherwise use null.
 
 Focal title: {focal_title}
 Focal body: {focal_body}
@@ -70,7 +69,15 @@ def parse_similar_voc_response(
         not isinstance(summary, str) or not summary.strip()
         or not isinstance(focal_evidence, str) or focal_evidence not in focal_body
         or not isinstance(candidate_evidence, str) or candidate_evidence not in candidate_body
-        or (cohort is not None and (not isinstance(cohort, str) or not cohort.strip()))
+        or (
+            cohort is not None
+            and (
+                not isinstance(cohort, str)
+                or not cohort.strip()
+                or cohort not in focal_body
+                or cohort not in candidate_body
+            )
+        )
         or not isinstance(actions, list)
         or any(not isinstance(action, str) or action not in candidate_body for action in actions)
     ):
@@ -107,19 +114,3 @@ class ContextualOrchestratorSimilarVocAnalysisClient:
         return parse_similar_voc_response(
             chat_completion_content(response), candidate_post_id, focal_body, candidate_body,
         )
-
-
-def rank_similar_voc_candidates(
-    channel_ranks: Mapping[str, Sequence[str]], titles_by_id: Mapping[str, str],
-    estimated_weights: Mapping[str, float], rankweave: RankWeaveClient,
-) -> RankingList:
-    """Fuse semantic, customer, and temporal ranks using an exact estimated vector.
-
-    The caller must load the vector through ``load_estimated_channel_weights``.
-    Missing or partial vectors fail closed instead of receiving equal or local weights.
-    """
-    channels = {name: list(ids) for name, ids in channel_ranks.items() if ids}
-    weights = {name: float(estimated_weights[name]) for name in channels if name in estimated_weights}
-    if not channels or set(weights) != set(channels) or any(value <= 0 for value in weights.values()):
-        raise ValueError("similar VOC ranking requires a complete estimated channel-weight vector")
-    return rankweave.fuse_rankings(channels, titles_by_id, weights=weights)

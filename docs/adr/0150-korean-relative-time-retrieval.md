@@ -8,11 +8,8 @@
 
 A question like "어제 무슨 일이 있었나요?" ("what happened yesterday?") names a
 time window the reader already has in mind. Before this decision,
-`gather_global_chat_sources`'s keyword retrieval (ADR 0047) had no way to
-use that window: "어제" only ever became a literal search token against
-post titles and bodies, indistinguishable from any other two-character
-term. A fresh, unrelated post that happened to rank highest on unrelated
-keyword overlap could outrank the post the reader actually meant.
+`gather_global_chat_sources` had no way to use that window. A fresh,
+unrelated post could outrank the post the reader actually meant.
 
 ## Decision
 
@@ -29,17 +26,16 @@ retrieval behavior as finding no expression at all.
 `gather_global_chat_sources` applies the resolved window as an additional
 event-time bound on its final ABAC-filtered candidate query (ADR 0202:
 `coalesce(event_occurred_at, created_at)`), additive to the existing
-keyword-match ranking -- it narrows the already-ranked candidate set, it
-does not replace ranking with a date filter. Cited sources name which
-clock matched. Matched temporal literals are excluded from keyword-term
-extraction (`TEMPORAL_STOPWORDS`) so a resolved expression does not also
-become a near-meaningless literal search term.
+semantic-unit embedding ranking -- it narrows the already-ranked candidate
+set, it does not replace ranking with a date filter. Cited sources name which
+clock matched. The complete question is embedded once; no temporal-token
+removal or keyword extraction occurs.
 
 ## Considered alternatives
 
-- Send the raw question to an LLM to extract a date range: rejected for the
-  same reason ADR 0047's keyword step avoids ungrounded LLM inference at
-  the retrieval boundary -- a hallucinated date range would silently
+- Send the raw question to an LLM to extract a date range: rejected because
+  ungrounded LLM inference at the retrieval boundary could hallucinate a
+  date range that would silently
   narrow (or widen) the candidate set with no way for the reader to verify
   it, and every extra provider round-trip is retrieval latency the reader
   pays before seeing an answer.
@@ -55,9 +51,9 @@ become a near-meaningless literal search term.
   term itself acting as retrieval noise.
 - The resolver is locale-specific (Korean only); a question in another
   supported UI locale (ADR on i18n scope, `frontend/src/i18n.ts`) that
-  names a relative time in that language still falls back to keyword-only
-  retrieval. Extending to additional locales is a follow-up, not required
-  by this decision.
+  names a relative time in that language receives semantic retrieval without
+  a date bound. Extending deterministic date resolution to additional locales
+  is a follow-up, not required by this decision.
 - `today` is always passed explicitly by the caller (server-local date);
   the resolver itself never reads the wall clock, keeping it a pure,
   trivially unit-testable function.

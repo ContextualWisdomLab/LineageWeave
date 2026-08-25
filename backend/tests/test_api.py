@@ -156,6 +156,11 @@ _PAIR_JUDGMENT_MIGRATION = (
     / "migrations"
     / "0201_lineage_pair_judgment.sql"
 )
+_TEPP_LINEAGE_ANCHOR_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0207_lineage_weight_tepp_anchor.sql"
+)
 _LEFTOVER_OBSERVED_EXPECTED_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
@@ -332,6 +337,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_INTERVAL_RELATION_MIGRATION.read_text())
             cur.execute(_CHANNEL_WEIGHT_UNION_MIGRATION.read_text())
             cur.execute(_PAIR_JUDGMENT_MIGRATION.read_text())
+            cur.execute(_TEPP_LINEAGE_ANCHOR_MIGRATION.read_text())
             # Product reconstruction fails closed without an ACTIVATED
             # estimate (ADR 0200 points 1+3); this synthetic fixture set
             # under the authorized anchor stands in for a fast-mlsirm
@@ -343,14 +349,14 @@ def seeded_db(demo_analyst_token):
                 " anchor_method_code, source_snapshot_sha256, sample_pair_count, "
                 " knowledge_cutoff) values "
                 "('channel_set_deterministic', 'temporal', 0.5, "
-                " '00000000-0000-0000-0000-000000000001', 'test_fixture', 'test', "
-                " 'unanchored_internal_structure', repeat('a', 64), 600, now()), "
+                " '00000000-0000-0000-0000-000000000001', 'mls2plm_expected_information', 'test', "
+                " 'tepp_lineage_criterion_v1', repeat('a', 64), 600, '2026-01-12T00:00:00Z'), "
                 "('channel_set_deterministic', 'secondary_key', 0.34, "
-                " '00000000-0000-0000-0000-000000000001', 'test_fixture', 'test', "
-                " 'unanchored_internal_structure', repeat('a', 64), 600, now()), "
+                " '00000000-0000-0000-0000-000000000001', 'mls2plm_expected_information', 'test', "
+                " 'tepp_lineage_criterion_v1', repeat('a', 64), 600, '2026-01-12T00:00:00Z'), "
                 "('channel_set_deterministic', 'text', 0.16, "
-                " '00000000-0000-0000-0000-000000000001', 'test_fixture', 'test', "
-                " 'unanchored_internal_structure', repeat('a', 64), 600, now())"
+                " '00000000-0000-0000-0000-000000000001', 'mls2plm_expected_information', 'test', "
+                " 'tepp_lineage_criterion_v1', repeat('a', 64), 600, '2026-01-12T00:00:00Z')"
             )
             cur.execute(_LEFTOVER_OBSERVED_EXPECTED_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
@@ -426,6 +432,45 @@ def seeded_db(demo_analyst_token):
                 (subject,),
             )
             account_id = cur.fetchone()[0]
+            cur.execute(
+                """
+                with snapshot as (
+                    insert into analysis_source_snapshot
+                        (snapshot_sha256, source_contract_version,
+                         maximum_available_time, captured_at)
+                    values (repeat('a', 64), 'synthetic-anchor-v1',
+                            '2026-01-11T23:00:00Z', '2026-01-11T23:30:00Z')
+                    returning analysis_source_snapshot_id
+                ), tepp_run as (
+                    insert into analysis_run
+                        (analysis_source_snapshot_id, run_kind_code,
+                         requested_by_account_id, idempotency_key, knowledge_cutoff,
+                         configuration_schema_version, configuration_sha256,
+                         code_revision_sha, requested_at)
+                    select analysis_source_snapshot_id, 'analysis_run_tepp', %s,
+                           'synthetic-lineage-anchor', '2026-01-12T00:00:00Z',
+                           'tepp-lineage-criterion-v1', repeat('b', 64),
+                           repeat('c', 40), '2026-01-12T00:30:00Z'
+                      from snapshot
+                    returning analysis_run_id
+                ), tepp_result as (
+                    insert into analysis_run_tepp_result
+                        (analysis_run_id, remote_run_id, result_json, result_sha256)
+                    select analysis_run_id, 'synthetic-tepp-anchor', '{}'::jsonb, repeat('d', 64)
+                      from tepp_run
+                    returning analysis_run_id
+                )
+                insert into lineage_weight_tepp_anchor
+                    (estimation_run_id, tepp_analysis_run_id, anchor_kind_code,
+                     anchor_contract_version, source_snapshot_sha256, knowledge_cutoff,
+                     criterion_validity_status_code, validated_pair_count)
+                select '00000000-0000-0000-0000-000000000001', analysis_run_id,
+                       'lineage_pair_criterion', 1, repeat('a', 64),
+                       '2026-01-12T00:00:00Z', 'accepted', 600
+                  from tepp_result
+                """,
+                (account_id,),
+            )
             cur.execute(
                 "insert into account_affiliation (user_account_id, corporate_entity_id) values (%s, %s)",
                 (account_id, own_corp_id),
@@ -1839,7 +1884,7 @@ def test_post_detail_exposes_explicit_and_semantic_project_evidence(
                     "Semantic project",
                     "project was described in the body",
                     0.82,
-                    "https://contextualwisdomlab.github.io/lineageweave/ontology#Project",
+                    "https://contextualwisdomlab.github.io/LineageWeave/ontology#Project",
                     "contextual_orchestrator_semantic",
                 ),
             )

@@ -12,6 +12,7 @@ from urllib.parse import unquote
 
 from rdflib import Graph
 from rdflib.compare import isomorphic
+from rdflib.plugins.parsers.jsonld import to_rdf
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "scripts" / "build_ontology_site.py"
@@ -69,6 +70,9 @@ def test_build_publishes_dereferenceable_html_and_machine_formats(tmp_path: Path
     assert (ontology_dir / "namespace-compatibility.ttl").read_bytes() == (
         ROOT / "docs" / "ontology" / "namespace-compatibility.ttl"
     ).read_bytes()
+    assert (ontology_dir / "lineageweave-kg-shapes.ttl").read_bytes() == (
+        ROOT / "docs" / "ontology" / "lineageweave-kg-shapes.ttl"
+    ).read_bytes()
 
     html = (ontology_dir / "index.html").read_text(encoding="utf-8")
     assert '<link rel="canonical" href="https://contextualwisdomlab.github.io/LineageWeave/ontology">' in html
@@ -79,6 +83,7 @@ def test_build_publishes_dereferenceable_html_and_machine_formats(tmp_path: Path
     assert "ontology.ttl" in html
     assert "ontology.jsonld" in html
     assert "ontology.nt" in html
+    assert "lineageweave-kg-shapes.ttl" in html
 
 
 def test_render_term_escapes_untrusted_ontology_text() -> None:
@@ -159,7 +164,8 @@ def test_serializations_round_trip_to_the_source_graph(tmp_path: Path) -> None:
     builder.build_site(ROOT, output)
 
     source = Graph().parse(ROOT / "docs" / "ontology" / "lineageweave-kg.ttl", format="turtle")
-    jsonld = Graph().parse(output / "ontology" / "ontology.jsonld", format="json-ld")
+    jsonld = Graph()
+    to_rdf(json.loads((output / "ontology" / "ontology.jsonld").read_text()), jsonld)
     ntriples = Graph().parse(output / "ontology" / "ontology.nt", format="nt")
     compatibility_source = Graph().parse(
         ROOT / "docs" / "ontology" / "namespace-compatibility.ttl", format="turtle"
@@ -196,6 +202,7 @@ def test_metadata_manifest_has_source_digest_and_no_build_clock(tmp_path: Path) 
     assert manifest["documentation_url"] == "https://contextualwisdomlab.github.io/LineageWeave/ontology"
     assert manifest["generated_artifacts"] == [
         "index.html",
+        "lineageweave-kg-shapes.ttl",
         "manifest.json",
         "namespace-compatibility.ttl",
         "ontology.jsonld",
@@ -203,6 +210,7 @@ def test_metadata_manifest_has_source_digest_and_no_build_clock(tmp_path: Path) 
         "ontology.ttl",
         "prov-o-support-profile.ttl",
     ]
+    assert manifest["shapes_path"] == "docs/ontology/lineageweave-kg-shapes.ttl"
 
 
 def test_helpers_cover_slash_fragments_json_lists_and_missing_ontology() -> None:
@@ -281,6 +289,17 @@ def test_builder_fails_closed_for_missing_sources_and_rejects_existing_output(tm
 
     (ontology_dir / "namespace-compatibility.ttl").write_bytes(
         (ROOT / "docs" / "ontology" / "namespace-compatibility.ttl").read_bytes()
+    )
+
+    try:
+        builder.build_site(repository, output)
+    except FileNotFoundError as exc:
+        assert "SHACL shapes graph" in str(exc)
+    else:
+        raise AssertionError("missing SHACL shapes graph was accepted")
+
+    (ontology_dir / "lineageweave-kg-shapes.ttl").write_bytes(
+        (ROOT / "docs" / "ontology" / "lineageweave-kg-shapes.ttl").read_bytes()
     )
 
     try:

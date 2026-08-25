@@ -81,3 +81,18 @@ decision uses ADR 0157. PR #485 now owns ADR `0158` at exact head
 file uses `0159`, so the publication decision in this stack uses ADR 0159.
 Recheck immediately before integration; neither number is a global allocator
 reservation.
+
+## Resolution (ADR 0207, 2026-08-25)
+
+The product owner directed the opposite canonicalization: the
+repository-case namespace
+`https://contextualwisdomlab.github.io/LineageWeave/ontology#` is now
+canonical ([ADR 0207](../adr/0207-repository-case-ontology-namespace-canonical.md),
+superseding [ADR 0157](../adr/0157-public-ontology-namespace-identity.md),
+resolving issue #372). The lowercase form is a deprecated compatibility
+vocabulary; both documents stay dereferenceable through the published
+site with validated term-kind mappings, and stored values migrate via
+`scripts/migrate_legacy_namespace.py` with its dry-run/refusal
+discipline (direction reversed: lowercase rows rewrite to
+repository-case). The inventory above remains the historical evidence
+for why both forms were treated as externally durable.
