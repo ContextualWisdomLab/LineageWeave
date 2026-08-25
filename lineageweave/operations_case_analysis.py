@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass
 from typing import Protocol
@@ -27,6 +28,8 @@ class OperationsCaseFact:
     fact_type_code: str
     value_text: str
     evidence_text: str
+    evidence_post_id: str = ""
+    evidence_input_sha256: str = ""
 
 
 @dataclass(frozen=True)
@@ -37,6 +40,22 @@ class OperationsCase:
     summary_text: str
     evidence_text: str
     facts: tuple[OperationsCaseFact, ...]
+    evidence_post_id: str = ""
+    evidence_input_sha256: str = ""
+
+
+@dataclass(frozen=True)
+class OperationsEvidenceSource:
+    """One authorized source document supplied to case analysis."""
+
+    post_id: str
+    title: str
+    text: str
+
+    @property
+    def input_sha256(self) -> str:
+        """Digest the exact evidence text submitted to the orchestrator."""
+        return hashlib.sha256(self.text.encode("utf-8")).hexdigest()
 
 
 class OperationsCaseAnalysisClient(Protocol):
@@ -44,7 +63,9 @@ class OperationsCaseAnalysisClient(Protocol):
 
     available: bool
 
-    def analyze(self, title: str, body: str, context: str) -> tuple[OperationsCase, ...]:
+    def analyze(
+        self, sources: tuple[OperationsEvidenceSource, ...], context: str
+    ) -> tuple[OperationsCase, ...]:
         """Return every source-supported case and its facts."""
         raise NotImplementedError
 
@@ -54,7 +75,9 @@ class NullOperationsCaseAnalysisClient:
 
     available = False
 
-    def analyze(self, title: str, body: str, context: str) -> tuple[OperationsCase, ...]:
+    def analyze(
+        self, sources: tuple[OperationsEvidenceSource, ...], context: str
+    ) -> tuple[OperationsCase, ...]:
         """Refuse to fabricate a case when the orchestrator is unavailable."""
         raise RuntimeError("operations case analysis is unavailable")
 
@@ -62,20 +85,26 @@ class NullOperationsCaseAnalysisClient:
 _PROMPT = """Analyze this business record semantically. Do not use keyword matching.
 Return ONLY a JSON array. Each item must have case_kind_code (one of
 claim_investigation, rebid_handover, external_information, repeat_issue), summary_text,
-evidence_text (a verbatim span from the body), and facts. Each fact has
+evidence_post_id, evidence_text (a verbatim span from that numbered source), and facts. Each fact has
 fact_type_code (one of order, specification_change, originating_order,
 sales_pool, discussion, counterparty, our_owner, decision, external_relation,
-issue_pattern, improvement_action), value_text, and evidence_text (a verbatim body span). Return [] only when the
+issue_pattern, improvement_action), value_text, evidence_post_id, and evidence_text (a verbatim span from that source). Return [] only when the
 record supports none of the case kinds. Never fill an unsupported fact.
 
 Stored context (hints, not proof): {context}
-Title: {title}
-Body: {body}
+Authorized numbered sources:
+{sources}
 """
 
 
-def parse_operations_case_response(content: str, source_body: str) -> tuple[OperationsCase, ...] | None:
-    """Validate a JSON response and require every evidence span to occur in the source."""
+def parse_operations_case_response(
+    content: str, sources: tuple[OperationsEvidenceSource, ...] | str
+) -> tuple[OperationsCase, ...] | None:
+    """Require every evidence span and post id to match an authorized source."""
+    legacy_focal = isinstance(sources, str)
+    if legacy_focal:
+        sources = (OperationsEvidenceSource("focal", "focal", sources),)
+    sources_by_id = {source.post_id: source for source in sources}
     try:
         payload = json.loads(content.strip())
     except json.JSONDecodeError:
@@ -92,8 +121,10 @@ def parse_operations_case_response(content: str, source_body: str) -> tuple[Oper
         seen_case_kinds.add(item["case_kind_code"])
         summary = item.get("summary_text")
         evidence = item.get("evidence_text")
+        evidence_post_id = item.get("evidence_post_id") or ("focal" if legacy_focal else None)
         facts = item.get("facts")
-        if not isinstance(summary, str) or not summary.strip() or not isinstance(evidence, str) or not evidence.strip() or evidence not in source_body or not isinstance(facts, list):
+        evidence_source = sources_by_id.get(evidence_post_id)
+        if not isinstance(summary, str) or not summary.strip() or not isinstance(evidence, str) or not evidence.strip() or evidence_source is None or evidence not in evidence_source.text or not isinstance(facts, list):
             return None
         parsed_facts: list[OperationsCaseFact] = []
         for fact in facts:
@@ -101,10 +132,12 @@ def parse_operations_case_response(content: str, source_body: str) -> tuple[Oper
                 return None
             value = fact.get("value_text")
             fact_evidence = fact.get("evidence_text")
-            if not isinstance(value, str) or not value.strip() or not isinstance(fact_evidence, str) or not fact_evidence.strip() or fact_evidence not in source_body:
+            fact_post_id = fact.get("evidence_post_id") or ("focal" if legacy_focal else None)
+            fact_source = sources_by_id.get(fact_post_id)
+            if not isinstance(value, str) or not value.strip() or not isinstance(fact_evidence, str) or not fact_evidence.strip() or fact_source is None or fact_evidence not in fact_source.text:
                 return None
-            parsed_facts.append(OperationsCaseFact(fact["fact_type_code"], value.strip(), fact_evidence))
-        cases.append(OperationsCase(item["case_kind_code"], summary.strip(), evidence, tuple(parsed_facts)))
+            parsed_facts.append(OperationsCaseFact(fact["fact_type_code"], value.strip(), fact_evidence, fact_source.post_id, fact_source.input_sha256))
+        cases.append(OperationsCase(item["case_kind_code"], summary.strip(), evidence, tuple(parsed_facts), evidence_source.post_id, evidence_source.input_sha256))
     return tuple(cases)
 
 
@@ -118,15 +151,17 @@ class ContextualOrchestratorOperationsCaseAnalysisClient:
         self._api_key = api_key
         self._timeout = timeout
 
-    def analyze(self, title: str, body: str, context: str) -> tuple[OperationsCase, ...]:
+    def analyze(
+        self, sources: tuple[OperationsEvidenceSource, ...], context: str
+    ) -> tuple[OperationsCase, ...]:
         """Classify cases and reject any uncited or malformed result."""
         response = post_json(
             f"{self._base_url}/v1/chat/completions",
-            {"messages": [{"role": "user", "content": _PROMPT.format(context=context, title=title, body=body)}], "mode": "auto", "reasoning_effort": "auto"},
+            {"messages": [{"role": "user", "content": _PROMPT.format(context=context, sources="\n\n".join(f"[Source {index}] post_id={source.post_id}\nTitle: {source.title}\n{source.text}" for index, source in enumerate(sources, 1)))}], "mode": "auto", "reasoning_effort": "auto"},
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
-        parsed = parse_operations_case_response(chat_completion_content(response), body)
+        parsed = parse_operations_case_response(chat_completion_content(response), sources)
         if parsed is None:
             raise ValueError("operations case response did not match the evidence contract")
         return parsed

@@ -23,7 +23,7 @@ class _Connection(Protocol):
 
 
 def source_body_digest(body: str) -> str:
-    """Return the digest that binds inference to an exact source body."""
+    """Return the digest that binds inference to an exact focal source body."""
     return source_body_sha256(body)
 
 
@@ -40,22 +40,24 @@ async def persist_operations_cases(
         await conn.execute(
             "insert into operations_case_analysis (post_id, source_body_sha256, orchestrator_session_id) values ($1, $2, $3)",
             post_id,
-            source_body_digest(source_body),
+            source_body_sha256(source_body),
             orchestrator_session_id,
         )
         for case in cases:
             await conn.execute(
-                "insert into operations_case_classification (post_id, case_kind_code, summary_text, evidence_text) values ($1, $2, $3, $4)",
+                "insert into operations_case_classification (post_id, case_kind_code, summary_text, evidence_text, evidence_post_id, evidence_input_sha256) values ($1, $2, $3, $4, $5, $6)",
                 post_id,
                 case.case_kind_code,
                 case.summary_text,
                 case.evidence_text,
+                case.evidence_post_id,
+                case.evidence_input_sha256,
             )
             if case.facts:
                 await conn.executemany(
-                    "insert into operations_case_fact (post_id, case_kind_code, fact_ordinal, fact_type_code, value_text, evidence_text) values ($1, $2, $3, $4, $5, $6)",
+                    "insert into operations_case_fact (post_id, case_kind_code, fact_ordinal, fact_type_code, value_text, evidence_text, evidence_post_id, evidence_input_sha256) values ($1, $2, $3, $4, $5, $6, $7, $8)",
                     [
-                        (post_id, case.case_kind_code, ordinal, fact.fact_type_code, fact.value_text, fact.evidence_text)
+                        (post_id, case.case_kind_code, ordinal, fact.fact_type_code, fact.value_text, fact.evidence_text, fact.evidence_post_id, fact.evidence_input_sha256)
                         for ordinal, fact in enumerate(case.facts)
                     ],
                 )

@@ -46,6 +46,7 @@ export interface OperationsDashboardFact {
   fact_type_label: string;
   value_text: string;
   evidence_text: string;
+  evidence_post_id: string;
 }
 
 export interface OperationsDashboardCase {
@@ -55,6 +56,7 @@ export interface OperationsDashboardCase {
   project_name: string | null;
   summary_text: string;
   evidence_text: string;
+  evidence_post_id: string;
   occurred_at: string;
   facts: OperationsDashboardFact[];
 }

@@ -33,6 +33,7 @@ class _Connection:
                     "fact_type_code": "originating_order",
                     "value_text": "Synthetic order 7",
                     "evidence_text": "Synthetic cited sentence",
+                    "evidence_post_id": "00000000-0000-0000-0000-000000000002",
                     "fact_ordinal": 0,
                 }
             ]
@@ -42,6 +43,7 @@ class _Connection:
                 "case_kind_code": "claim_investigation",
                 "summary_text": "원인 수주가 연결됨",
                 "evidence_text": "Synthetic cited sentence",
+                "evidence_post_id": "00000000-0000-0000-0000-000000000002",
                 "project_name": "Synthetic Project",
                 "occurred_at": datetime(2026, 8, 12, tzinfo=timezone.utc),
             }
@@ -72,6 +74,7 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
             "project_name": "Synthetic Project",
             "summary_text": "원인 수주가 연결됨",
             "evidence_text": "Synthetic cited sentence",
+            "evidence_post_id": "00000000-0000-0000-0000-000000000002",
             "occurred_at": "2026-08-12T00:00:00+00:00",
             "facts": [
                 {
@@ -79,6 +82,7 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
                     "fact_type_label": "원인 수주",
                     "value_text": "Synthetic order 7",
                     "evidence_text": "Synthetic cited sentence",
+                    "evidence_post_id": "00000000-0000-0000-0000-000000000002",
                 }
             ],
         }

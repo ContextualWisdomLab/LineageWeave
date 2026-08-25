@@ -97,8 +97,8 @@ export function OperationsDashboardView({ data, externalOnly = false, onOpenPost
             <div className="dashboard-case-title"><span>{item.case_kind_label}</span><strong>{item.project_name ?? "프로젝트 연결 분석 중"}</strong></div>
             <h3>{item.summary_text}</h3>
             <blockquote>{item.evidence_text}</blockquote>
-            <dl>{item.facts.map((fact) => <div key={`${fact.fact_type_code}-${fact.value_text}`}><dt>{fact.fact_type_label}</dt><dd>{fact.value_text}</dd></div>)}</dl>
-            <button type="button" className="btn-secondary" onClick={() => onOpenPost(item.post_id)}>근거 글 열기</button>
+            <dl>{item.facts.map((fact) => <div key={`${fact.fact_type_code}-${fact.value_text}`}><dt>{fact.fact_type_label}</dt><dd>{fact.value_text} <button type="button" className="btn-link" onClick={() => onOpenPost(fact.evidence_post_id)}>{fact.fact_type_label} 근거 열기</button></dd></div>)}</dl>
+            <button type="button" className="btn-secondary" onClick={() => onOpenPost(item.evidence_post_id)}>분류 근거 글 열기</button>
           </article>
         ))}
       </div>

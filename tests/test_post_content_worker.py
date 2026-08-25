@@ -14,6 +14,7 @@ from backend.app.post_content_queue import (
     RUNNING,
     SUCCEEDED,
 )
+from lineageweave.operations_case_analysis import OperationsEvidenceSource
 
 
 class _Transaction:
@@ -76,6 +77,36 @@ def test_worker_starts_after_historical_stream_tail() -> None:
             return [("123-0", {})]
 
     assert asyncio.run(post_content_worker._stream_tail(Client())) == "123-0"
+
+
+def test_operations_sources_apply_focal_entity_and_process_scope(monkeypatch) -> None:
+    """Private linked evidence outside the focal PU never reaches the orchestrator."""
+    decisions: list[bool] = []
+
+    async def gather(_conn, _post_id, can_see, _vision):
+        decisions.extend(
+            can_see(row)
+            for row in (
+                {"visibility_code": "private", "corporate_entity_id": "corp", "process_unit_id": "pu"},
+                {"visibility_code": "private", "corporate_entity_id": "corp", "process_unit_id": "other"},
+                {"visibility_code": "private", "corporate_entity_id": "other", "process_unit_id": "pu"},
+                {"visibility_code": "public", "corporate_entity_id": "other", "process_unit_id": "other"},
+            )
+        )
+        return []
+
+    monkeypatch.setattr(post_content_worker, "gather_chat_sources", gather)
+    sources = asyncio.run(
+        post_content_worker._operations_evidence_sources(
+            _Pool(_Connection()),
+            "post-1",
+            {"corporate_entity_id": "corp", "process_unit_id": "pu"},
+            SimpleNamespace(available=False),
+        )
+    )
+
+    assert sources == ()
+    assert decisions == [True, False, False, True]
 
 
 def test_terminal_failed_job_ignores_a_stale_duplicate_wakeup() -> None:
@@ -179,12 +210,16 @@ def test_incomplete_provider_output_is_requeued_with_a_failure_code(monkeypatch)
         "normalize_post_body",
         lambda *_args: SimpleNamespace(text="synthetic source body"),
     )
+    async def evidence_sources(*_args, **_kwargs):
+        return (OperationsEvidenceSource("post-1", "Synthetic", "A synthetic post body with a retrieval unit."),)
+
+    monkeypatch.setattr(post_content_worker, "_operations_evidence_sources", evidence_sources)
     analyzed_bodies: list[str] = []
     monkeypatch.setattr(
         post_content_worker,
         "ContextualOrchestratorOperationsCaseAnalysisClient",
         lambda *_args: SimpleNamespace(
-            analyze=lambda _title, body, _context: analyzed_bodies.append(body) or ()
+            analyze=lambda sources, _context: analyzed_bodies.append(sources[0].text) or ()
         ),
     )
     monkeypatch.setattr(post_content_worker, "persist_operations_cases", persist)

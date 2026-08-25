@@ -2,7 +2,7 @@
 
 import json
 
-from lineageweave.operations_case_analysis import parse_operations_case_response
+from lineageweave.operations_case_analysis import OperationsEvidenceSource, parse_operations_case_response
 
 
 def test_parses_multiple_cases_and_grounded_facts() -> None:
@@ -45,3 +45,31 @@ def test_rejects_duplicate_case_kinds_and_blank_evidence() -> None:
     ]
     assert parse_operations_case_response(json.dumps(duplicate), "body") is None
     assert parse_operations_case_response(json.dumps(blank), "body") is None
+
+
+def test_linked_fact_retains_its_authorized_source_post_and_input_digest() -> None:
+    """A linked specification fact is never attributed to the focal record."""
+    sources = (
+        OperationsEvidenceSource("focal", "Claim", "A claim was received."),
+        OperationsEvidenceSource("linked", "Specification", "Specification S2 replaced S1."),
+    )
+    payload = [{
+        "case_kind_code": "claim_investigation",
+        "summary_text": "Specification changed before the claim",
+        "evidence_post_id": "focal",
+        "evidence_text": "A claim was received.",
+        "facts": [{
+            "fact_type_code": "specification_change",
+            "value_text": "S2 replaced S1",
+            "evidence_post_id": "linked",
+            "evidence_text": "Specification S2 replaced S1.",
+        }],
+    }]
+
+    result = parse_operations_case_response(json.dumps(payload), sources)
+
+    assert result is not None
+    assert result[0].facts[0].evidence_post_id == "linked"
+    assert result[0].facts[0].evidence_input_sha256 == sources[1].input_sha256
+    payload[0]["facts"][0]["evidence_post_id"] = "unauthorized"
+    assert parse_operations_case_response(json.dumps(payload), sources) is None

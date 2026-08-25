@@ -103,6 +103,7 @@ async def fetch_operations_dashboard(
         f"""
         select classification.post_id, classification.case_kind_code,
                classification.summary_text, classification.evidence_text,
+               classification.evidence_post_id,
                coalesce(post.event_occurred_at, post.created_at) as occurred_at,
                coalesce(nullif(btrim(post.source_project_name), ''), project.project_name)
                    as project_name
@@ -124,7 +125,8 @@ async def fetch_operations_dashboard(
     fact_rows = await conn.fetch(
         f"""
         select fact.post_id, fact.case_kind_code, fact.fact_type_code,
-               fact.value_text, fact.evidence_text, fact.fact_ordinal
+               fact.value_text, fact.evidence_text, fact.evidence_post_id,
+               fact.fact_ordinal
           from operations_case_fact fact
           join source_post post on post.post_id = fact.post_id
          where {visible}
@@ -141,6 +143,7 @@ async def fetch_operations_dashboard(
                 "fact_type_label": FACT_TYPE_LABELS[row["fact_type_code"]],
                 "value_text": row["value_text"],
                 "evidence_text": row["evidence_text"],
+                "evidence_post_id": str(row["evidence_post_id"]),
             }
         )
     total = int(metrics["total_post_count"])
@@ -161,6 +164,7 @@ async def fetch_operations_dashboard(
                 "project_name": row["project_name"],
                 "summary_text": row["summary_text"],
                 "evidence_text": row["evidence_text"],
+                "evidence_post_id": str(row["evidence_post_id"]),
                 "occurred_at": row["occurred_at"].isoformat(),
                 "facts": facts.get((str(row["post_id"]), row["case_kind_code"]), []),
             }

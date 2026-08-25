@@ -56,6 +56,13 @@ provenance.
    When the focal post lacks an answer, the orchestrator follows authorized
    Event Lineage and semantic project evidence before concluding the fact is
    absent from the authorized corpus.
+   The analysis input reuses the post-chat source assembler: focal post first,
+   then bounded Event Lineage and semantic-neighborhood posts after the same
+   corporate-entity/process-unit ABAC check. Every classification and fact
+   persists its evidence post id and the SHA-256 of the exact numbered input
+   document. A span that does not occur in that identified document rejects
+   the whole provider response; linked evidence is never rewritten as focal
+   post evidence.
 8. Claim-investigation and rebid/handover panels include positively classified
    cases and show extracted answers plus cited spans. A required answer that
    the source does not support is stored as an explicit missing fact, so the

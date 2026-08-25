@@ -26,12 +26,16 @@ from backend.app.post_content_queue import (
     transition_post_content_job,
 )
 from backend.app.operations_case_ingestion import persist_operations_cases
+from backend.app.post_chat_ingestion import gather_chat_sources
 from lineageweave.embedding_client import EmbeddingClient
 from lineageweave.http_client import HttpClientError
 from lineageweave.image_content import ImageContentClient
 from lineageweave.llm_context import build_post_llm_metadata, use_llm_metadata
 from lineageweave.observability import record_server_failure, traced
-from lineageweave.operations_case_analysis import ContextualOrchestratorOperationsCaseAnalysisClient
+from lineageweave.operations_case_analysis import (
+    ContextualOrchestratorOperationsCaseAnalysisClient,
+    OperationsEvidenceSource,
+)
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.post_content_persistence import persist_post_content
 from lineageweave.post_structure import PostStructureClient
@@ -43,6 +47,40 @@ _INCOMPLETE_FAILURE_CODE = "post_content_ingestion_incomplete"
 _ATTEMPT_LIMIT_FAILURE_CODE = "post_content_ingestion_attempt_limit"
 _SOURCE_BODY_MISSING_FAILURE_CODE = "post_content_source_body_missing"
 _UNEXPECTED_FAILURE_DETAIL = "post-content provider operation failed; retry the ingestion job"
+
+
+async def _operations_evidence_sources(
+    pool: asyncpg.Pool,
+    post_id: str,
+    focal_row: asyncpg.Record,
+    vision_client: ImageContentClient,
+) -> tuple[OperationsEvidenceSource, ...]:
+    """Reuse authorized lineage/semantic chat retrieval for case inference."""
+    focal_entity = str(focal_row["corporate_entity_id"])
+    focal_process = focal_row.get("process_unit_id")
+
+    def can_see(row: asyncpg.Record) -> bool:
+        """Keep linked private evidence inside the focal entity and PU scope."""
+        return row["visibility_code"] == "public" or (
+            str(row["corporate_entity_id"]) == focal_entity
+            and row.get("process_unit_id") == focal_process
+        )
+
+    async with pool.acquire() as conn:
+        sources = await gather_chat_sources(conn, post_id, can_see, vision_client)
+    return tuple(
+        OperationsEvidenceSource(
+            source.post_id,
+            source.post_title,
+            source.post_body
+            + (
+                "\nPersisted semantic evidence:\n" + "\n".join(source.evidence_facts)
+                if source.evidence_facts
+                else ""
+            ),
+        )
+        for source in sources
+    )
 
 
 async def _stream_tail(client: redis.Redis) -> str:
@@ -302,10 +340,12 @@ async def process_post_content_job(
                     )
                     if row.get(name) is not None and str(row[name]).strip()
                 )
+                evidence_sources = await _operations_evidence_sources(
+                    pool, post_id, row, vision_client
+                )
                 cases = await asyncio.to_thread(
                     case_client.analyze,
-                    str(row["post_title"]),
-                    raw_body,
+                    evidence_sources,
                     context,
                 )
                 async with pool.acquire() as conn:
