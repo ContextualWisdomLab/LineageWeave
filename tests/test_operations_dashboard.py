@@ -122,6 +122,9 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
         assert "process_unit_id::text = any($2::text[])" in query
         assert "coalesce(post.event_occurred_at, post.created_at)" in query
         assert args[1:] == (["00000000-0000-0000-0000-000000000008"], date(2026, 8, 1), date(2026, 8, 31))
+    case_query = conn.queries[1][0]
+    assert "order by primary_mention.confidence desc" in case_query
+    assert "coalesce(nullif(btrim(post.source_project_name), ''), project.primary_project_name)" in case_query
 
 
 @pytest.mark.anyio

@@ -105,13 +105,22 @@ async def fetch_operations_dashboard(
                classification.summary_text, classification.evidence_text,
                classification.evidence_post_id,
                coalesce(post.event_occurred_at, post.created_at) as occurred_at,
-               coalesce(nullif(btrim(post.source_project_name), ''), project.project_names[1])
+               coalesce(nullif(btrim(post.source_project_name), ''), project.primary_project_name)
                    as project_name,
                coalesce(project.project_names, array[]::text[]) as project_names
           from operations_case_classification classification
           join source_post post on post.post_id = classification.post_id
           left join lateral (
-              select array_agg(names.project_name order by names.project_name) as project_names
+              select array_agg(names.project_name order by names.project_name) as project_names,
+                     (
+                         select nullif(btrim(primary_mention.project_name), '')
+                           from post_project_mention primary_mention
+                          where primary_mention.post_id = post.post_id
+                            and nullif(btrim(primary_mention.project_name), '') is not null
+                          order by primary_mention.confidence desc,
+                                   primary_mention.project_name
+                          limit 1
+                     ) as primary_project_name
                 from (
                     select nullif(btrim(post.source_project_name), '') as project_name
                     union

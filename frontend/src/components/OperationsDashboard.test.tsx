@@ -43,7 +43,9 @@ describe("OperationsDashboardView", () => {
 
   it("shows an actionable empty external-information state", () => {
     render(<OperationsDashboardView data={data} externalOnly onOpenPost={() => undefined} />);
-    expect(screen.getByRole("status")).toHaveTextContent("분석 대기 건부터 처리하세요");
+    expect(screen.getByRole("status")).toHaveTextContent("기간이나 접근 범위를 확인하세요");
+    expect(screen.queryByText("분석 대기")).not.toBeInTheDocument();
+    expect(screen.queryByText("분석 실패")).not.toBeInTheDocument();
   });
 
   it("places multi-project evidence in every explicit journey and orders events oldest first", () => {
