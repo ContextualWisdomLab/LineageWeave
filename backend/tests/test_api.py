@@ -12,12 +12,15 @@ HTTP to Keycloak goes through ``lineageweave.http_client``.
 
 from __future__ import annotations
 
+import asyncio
 import math
 import os
 import uuid
 from contextlib import closing
 from pathlib import Path
+from types import SimpleNamespace
 
+import asyncpg
 import jwt
 import psycopg2
 import pytest
@@ -177,6 +180,11 @@ _GLOBAL_ASK_JOB_MIGRATION = (
     Path(__file__).resolve().parents[2]
     / "migrations"
     / "0165_global_ask_job.sql"
+)
+_GLOBAL_ASK_SCOPE_MIGRATION = (
+    Path(__file__).resolve().parents[2]
+    / "migrations"
+    / "0203_global_ask_authorization_scope.sql"
 )
 _LEFTOVER_MAP_AXIS_MIGRATION = (
     Path(__file__).resolve().parents[2]
@@ -343,6 +351,7 @@ def seeded_db(demo_analyst_token):
             cur.execute(_LEFTOVER_MAP_RANK_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_COVERAGE_MIGRATION.read_text())
             cur.execute(_GLOBAL_ASK_JOB_MIGRATION.read_text())
+            cur.execute(_GLOBAL_ASK_SCOPE_MIGRATION.read_text())
             cur.execute(_EVENT_OCCURRED_AT_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_AXIS_MIGRATION.read_text())
             cur.execute(_LEFTOVER_MAP_UNEXPLAINED_MIGRATION.read_text())
@@ -700,6 +709,76 @@ def client(seeded_db):
 
     with TestClient(app) as test_client:
         yield test_client
+
+
+def test_keyverse_account_resolves_exact_scope_and_role_intersection(
+    monkeypatch: pytest.MonkeyPatch, seeded_db, demo_analyst_token
+) -> None:
+    """Verified claims select one live DB affiliation; DB roles retain authority."""
+    subject = jwt.decode(demo_analyst_token, options={"verify_signature": False})["sub"]
+    with closing(psycopg2.connect(seeded_db["dsn"])) as conn, conn.cursor() as cur:
+        cur.execute(
+            "insert into process_unit (corporate_entity_id, process_unit_code, process_unit_name) "
+            "values (%s, 'workspace-a', 'Synthetic Workspace') returning process_unit_id",
+            (seeded_db["own_corp_id"],),
+        )
+        process_unit_id = str(cur.fetchone()[0])
+        cur.execute(
+            "update account_affiliation set process_unit_id = %s "
+            "where user_account_id = (select user_account_id from user_account where external_subject_id = %s)",
+            (process_unit_id, subject),
+        )
+        cur.execute(
+            "insert into access_role (role_code, role_name) values ('member', 'Member') "
+            "returning access_role_id"
+        )
+        role_id = cur.fetchone()[0]
+        cur.execute(
+            "insert into common_lookup_value (lookup_category, lookup_code, lookup_label) "
+            "values ('permission', 'post_admin', 'Administer posts') "
+            "on conflict (lookup_code) do nothing"
+        )
+        cur.execute(
+            "insert into role_permission (access_role_id, permission_code) values (%s, 'post_admin')",
+            (role_id,),
+        )
+        cur.execute(
+            "insert into account_role_assignment (user_account_id, access_role_id) "
+            "select user_account_id, %s from user_account where external_subject_id = %s",
+            (role_id, subject),
+        )
+        conn.commit()
+
+    from backend.app import auth
+
+    monkeypatch.setattr(
+        auth,
+        "load_settings",
+        lambda: SimpleNamespace(keyverse_claim_binding_required=True),
+    )
+    monkeypatch.setattr(
+        auth,
+        "_decode_access_token",
+        lambda *_args: {
+            "sub": subject,
+            "org": "TEST-CORP",
+            "workspace": "workspace-a",
+            "role": ["member"],
+        },
+    )
+
+    async def resolve_account():
+        pool = await asyncpg.create_pool(seeded_db["dsn"], min_size=1, max_size=1)
+        try:
+            return await auth.get_current_account(SimpleNamespace(credentials="token"), pool)
+        finally:
+            await pool.close()
+
+    account = asyncio.run(resolve_account())
+
+    assert account.corporate_entity_ids == frozenset({seeded_db["own_corp_id"]})
+    assert account.process_unit_ids == frozenset({process_unit_id})
+    assert account.permission_codes == frozenset({"post_admin"})
 
 
 def test_analysis_runs_are_labeled_aggregates_and_hide_other_scopes(
@@ -4757,6 +4836,7 @@ def test_calendar_hides_other_corp_private_commitments_and_sorts_by_due_date(
     assert commitments[0]["commitment_summary"] == "Send the revised quote"
     assert "visibility_code" not in commitments[0]
     assert "corporate_entity_id" not in commitments[0]
+    assert "process_unit_id" not in commitments[0]
 
 
 def test_calendar_keeps_real_ticket_when_demo_code_is_shared(
@@ -5368,10 +5448,18 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert high_report["link_method"] == "fipc"
     assert high_report["selected_model"] in {"grm", "gpcm"}
     assert high_report["delta_mean_theta"] is None
+    assert all(
+        {"visibility_code", "corporate_entity_id", "process_unit_id"}.isdisjoint(member)
+        for member in high_report["members"]
+    )
     leftover_kinds = {pair["pair_kind"] for pair in high_report.get("leftover_pairs", [])}
     assert leftover_kinds <= {"closest", "farthest"}
     assert all(pair["post_title"] for pair in high_report.get("leftover_pairs", []))
     assert all(pair["leftover_distance"] >= 0 for pair in high_report.get("leftover_pairs", []))
+    assert all(
+        {"visibility_code", "corporate_entity_id", "process_unit_id"}.isdisjoint(pair)
+        for pair in high_report.get("leftover_pairs", [])
+    )
     assert all(
         "leftover_map_reconstruction" in pair
         for pair in high_report.get("leftover_pairs", [])
@@ -5452,6 +5540,10 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
     assert leftover_kinds <= {"closest", "farthest"}
     assert all(pair["post_title"] for pair in leftover_thread.get("leftover_pairs", []))
     assert all(pair["leftover_distance"] >= 0 for pair in leftover_thread.get("leftover_pairs", []))
+    assert all(
+        {"visibility_code", "corporate_entity_id", "process_unit_id"}.isdisjoint(pair)
+        for pair in leftover_thread.get("leftover_pairs", [])
+    )
     assert all(
         pair.get("leftover_map_reconstruction") is None
         or isinstance(pair["leftover_map_reconstruction"], (int, float))

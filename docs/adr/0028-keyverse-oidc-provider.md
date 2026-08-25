@@ -19,8 +19,10 @@ must not be presented as one.
    `jwks_uri` for RS256 verification. `KEYVERSE_DISCOVERY_URI` and
    `KEYVERSE_JWKS_URI` are explicit overrides for deployments where discovery
    is proxied.
-3. The verified `sub` is still resolved to a provisioned `user_account`; the
-   database remains authoritative for corporation affiliations and permissions.
+3. The verified `sub` is resolved to a provisioned `user_account`; the database
+   remains authoritative for affiliations and permissions. ADR 0156 further
+   requires the production Keyverse `org`, `workspace`, and `role` claims to
+   select one matching local scope before either authority is used.
 4. Compose uses its existing local Keycloak realm only when no Keyverse issuer
    is configured. It does not add a Keyverse-shaped identity implementation.
 

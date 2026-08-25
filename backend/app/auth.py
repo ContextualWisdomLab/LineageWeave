@@ -117,6 +117,7 @@ class CurrentAccount:
     display_name: str
     preferred_locale: str | None
     corporate_entity_ids: frozenset[str]
+    process_unit_ids: frozenset[str]
     permission_codes: frozenset[str]
 
     def has_permission(self, permission_code: str) -> bool:
@@ -126,6 +127,9 @@ class CurrentAccount:
 
 def _decode_access_token(token: str, settings: Settings) -> dict:
     """Validate signature, issuer, resource audience, time claims, and subject."""
+    required_claims = ["exp", "sub"]
+    if settings.keyverse_claim_binding_required:
+        required_claims.insert(1, "iat")
     try:
         claims = jwt.decode(
             token,
@@ -134,6 +138,7 @@ def _decode_access_token(token: str, settings: Settings) -> dict:
             issuer=settings.oidc_issuer,
             audience=settings.oidc_audience,
             leeway=settings.oidc_clock_skew_seconds,
+            options={"require": required_claims},
         )
     except HTTPException:
         raise
@@ -145,6 +150,33 @@ def _decode_access_token(token: str, settings: Settings) -> dict:
     return claims
 
 
+def _keyverse_account_claims(claims: dict) -> tuple[str, str, list[str]]:
+    """Return Keyverse's atomic account scope, rejecting ambiguous wire shapes."""
+    organization = claims.get("org")
+    workspace = claims.get("workspace")
+    roles = claims.get("role")
+    valid_roles = (
+        isinstance(roles, list)
+        and bool(roles)
+        and all(isinstance(role, str) and role.strip() for role in roles)
+        and len({role.strip() for role in roles}) == len(roles)
+    )
+    if not (
+        isinstance(organization, str)
+        and organization.strip()
+        and organization == organization.strip()
+        and isinstance(workspace, str)
+        and workspace.strip()
+        and workspace == workspace.strip()
+        and valid_roles
+    ):
+        raise HTTPException(
+            status.HTTP_401_UNAUTHORIZED,
+            "Keyverse token must contain one org, one workspace, and unique roles",
+        )
+    return organization, workspace, [role.strip() for role in roles]
+
+
 async def get_current_account(
     credentials: HTTPAuthorizationCredentials = Depends(_bearer_scheme),
     pool: asyncpg.Pool = Depends(get_pool),
@@ -153,12 +185,41 @@ async def get_current_account(
     settings = load_settings()
     claims = _decode_access_token(credentials.credentials, settings)
     subject = claims["sub"]
+    keyverse_scope = (
+        _keyverse_account_claims(claims)
+        if settings.keyverse_claim_binding_required
+        else None
+    )
 
     async with pool.acquire() as conn:
-        account_row = await conn.fetchrow(
-            "select user_account_id, display_name, preferred_locale from user_account where external_subject_id = $1",
-            subject,
-        )
+        if keyverse_scope:
+            organization, workspace, token_roles = keyverse_scope
+            account_row = await conn.fetchrow(
+                """
+                select account.user_account_id, account.display_name,
+                       account.preferred_locale, affiliation.corporate_entity_id,
+                       affiliation.process_unit_id
+                  from user_account account
+                  join account_affiliation affiliation
+                    on affiliation.user_account_id = account.user_account_id
+                  join corporate_entity entity
+                    on entity.corporate_entity_id = affiliation.corporate_entity_id
+                  join process_unit process
+                    on process.process_unit_id = affiliation.process_unit_id
+                   and process.corporate_entity_id = entity.corporate_entity_id
+                 where account.external_subject_id = $1
+                   and entity.corporate_entity_code = $2
+                   and process.process_unit_code = $3
+                """,
+                subject,
+                organization,
+                workspace,
+            )
+        else:
+            account_row = await conn.fetchrow(
+                "select user_account_id, display_name, preferred_locale from user_account where external_subject_id = $1",
+                subject,
+            )
         if account_row is None:
             raise HTTPException(
                 status.HTTP_403_FORBIDDEN,
@@ -166,19 +227,38 @@ async def get_current_account(
                 "(run scripts/seed_demo_data.py, or provision the account, first)",
             )
 
-        entity_rows = await conn.fetch(
-            "select corporate_entity_id from account_affiliation where user_account_id = $1",
-            account_row["user_account_id"],
-        )
-        permission_rows = await conn.fetch(
-            """
-            select distinct rp.permission_code
-            from account_role_assignment ara
-            join role_permission rp on rp.access_role_id = ara.access_role_id
-            where ara.user_account_id = $1
-            """,
-            account_row["user_account_id"],
-        )
+        if keyverse_scope:
+            entity_rows = [{"corporate_entity_id": account_row["corporate_entity_id"]}]
+            process_rows = [{"process_unit_id": account_row["process_unit_id"]}]
+            permission_rows = await conn.fetch(
+                """
+                select distinct permission.permission_code
+                  from account_role_assignment assignment
+                  join access_role role
+                    on role.access_role_id = assignment.access_role_id
+                  join role_permission permission
+                    on permission.access_role_id = assignment.access_role_id
+                 where assignment.user_account_id = $1
+                   and role.role_code = any($2::text[])
+                """,
+                account_row["user_account_id"],
+                token_roles,
+            )
+        else:
+            entity_rows = await conn.fetch(
+                "select corporate_entity_id from account_affiliation where user_account_id = $1",
+                account_row["user_account_id"],
+            )
+            process_rows = []
+            permission_rows = await conn.fetch(
+                """
+                select distinct rp.permission_code
+                from account_role_assignment ara
+                join role_permission rp on rp.access_role_id = ara.access_role_id
+                where ara.user_account_id = $1
+                """,
+                account_row["user_account_id"],
+            )
 
     return CurrentAccount(
         user_account_id=str(account_row["user_account_id"]),
@@ -186,5 +266,6 @@ async def get_current_account(
         display_name=account_row["display_name"],
         preferred_locale=account_row["preferred_locale"],
         corporate_entity_ids=frozenset(str(row["corporate_entity_id"]) for row in entity_rows),
+        process_unit_ids=frozenset(str(row["process_unit_id"]) for row in process_rows),
         permission_codes=frozenset(row["permission_code"] for row in permission_rows),
     )

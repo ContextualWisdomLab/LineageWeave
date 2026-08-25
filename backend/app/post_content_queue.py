@@ -53,7 +53,8 @@ async def post_content_is_complete(
     conn: asyncpg.Connection,
     post_id: str,
     *,
-    embedding_model_code: str,
+    embedding_model_code: str | None = None,
+    require_embedding: bool = False,
     require_structure: bool = False,
 ) -> bool:
     """Require configured semantic, structure, and region evidence before ready."""
@@ -66,14 +67,14 @@ async def post_content_is_complete(
                         where unit.post_id = $1
                    )
                and (
-                   $2 = ''
+                   not $3::boolean
                        or (
                            not exists(
                                select 1
                                  from post_content_unit unit
                                  left join post_content_embedding embedding
                                    on embedding.post_content_unit_id = unit.post_content_unit_id
-                                  and embedding.embedding_model_code = $2
+                                  and ($2::text is null or embedding.embedding_model_code = $2)
                                 where unit.post_id = $1
                                   and embedding.post_content_embedding_id is null
                            )
@@ -86,7 +87,7 @@ async def post_content_is_complete(
                                    on region.post_content_image_id = image.post_content_image_id
                                  left join post_content_image_region_embedding embedding
                                    on embedding.post_content_image_region_id = region.post_content_image_region_id
-                                  and embedding.embedding_model_code = $2
+                                  and ($2::text is null or embedding.embedding_model_code = $2)
                                 where unit.post_id = $1
                                   and region.description_status_code = 'described'
                                   and embedding.post_content_image_region_embedding_id is null
@@ -94,7 +95,7 @@ async def post_content_is_complete(
                        )
                    )
                and (
-                       not $3::boolean
+                       not $4::boolean
                        or not exists(
                            select 1
                              from post_content_unit unit
@@ -111,6 +112,7 @@ async def post_content_is_complete(
             """,
             post_id,
             embedding_model_code,
+            require_embedding,
             require_structure,
         )
     )

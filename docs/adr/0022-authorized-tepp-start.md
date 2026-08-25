@@ -23,6 +23,12 @@ honest, but it is not a product. The missing work is to submit TEPP's
 published `AnalysisRunRequest` and fail closed when the transport is
 missing or the envelope is not a persistable measurement.
 
+TEPP PR #155 publishes the LineageWeave modular-consumer exchange. Its
+analysis-run listener requires `tepp-consumer: lineageweave`,
+`tepp-contract-version: 1`, and an `idempotency-key` equal to the request
+body's `idempotency_key` field. The loopback service rejects authorization, cookie, and API-key
+headers. A plain JSON POST therefore cannot interoperate with that boundary.
+
 ## Decision
 
 `POST /api/analysis-runs/{id}/start` accepts Pending TEPP as well as
@@ -36,7 +42,9 @@ authorized transaction:
    post body or a theta;
 4. submits through `TeppClient`. An empty `TEPP_TRANSPORT_URL` keeps the
    default unavailable transport. A set URL POSTs the published wire
-   payload through the http(s)-only helper. File URLs stay unavailable;
+   payload through the http(s)-only helper with TEPP's required consumer,
+   contract-version, and idempotency headers. Provider credentials are never
+   attached; file URLs and other schemes stay unavailable;
 5. appends Failed / `tepp_not_available` when the transport is missing
    or refused, or Failed / `tepp_result_not_persisted` when TEPP accepts
    an envelope this product cannot store yet.
@@ -78,7 +86,9 @@ item instead of rolling back to Pending.
 
 Demo Analyst can request a TEPP run, start it, and see Failed /
 `tepp_not_available` until a live transport is configured. Connecting
-`TEPP_TRANSPORT_URL` submits the same published payload. An accepted
+`TEPP_TRANSPORT_URL` submits the same published payload and modular-consumer
+headers. TEPP PR #155 must merge and its service must be deployed before this
+transport can accept a run. An accepted
 envelope still does not become a calibrated result. Do not invent a
 theta.
 
