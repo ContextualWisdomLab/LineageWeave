@@ -186,7 +186,7 @@ def test_topic_lineage_result_migration_is_idempotent_for_replay() -> None:
 
 def test_tepp_receipt_migration_is_replayable_and_digest_bound() -> None:
     """Accepted transport evidence survives every-start migration replay."""
-    migration_name = "0210_analysis_run_tepp_receipt.sql"
+    migration_name = "0217_analysis_run_tepp_receipt.sql"
     sql = (
         Path(__file__).resolve().parents[1] / "migrations" / migration_name
     ).read_text(encoding="utf-8").casefold()
@@ -198,3 +198,18 @@ def test_tepp_receipt_migration_is_replayable_and_digest_bound() -> None:
     assert "receipt_sha256 ~ '^[0-9a-f]{64}$'" in sql
     assert "accepted_status_code = 'accepted'" in sql
     assert "create index if not exists" in sql
+
+
+def test_tepp_receipt_read_requires_the_replayed_schema() -> None:
+    """A missing required table must fail before it poisons a claim transaction."""
+    source = (
+        Path(__file__).resolve().parents[1]
+        / "backend"
+        / "app"
+        / "analysis_run_ingestion.py"
+    ).read_text(encoding="utf-8")
+    receipt_block = source.split('if row["run_kind_code"] == _TEPP_RUN_KIND:', 1)[1]
+    receipt_block = receipt_block.split("return detail", 1)[0]
+
+    assert "from analysis_run_tepp_receipt" in receipt_block
+    assert "UndefinedTableError" not in receipt_block
