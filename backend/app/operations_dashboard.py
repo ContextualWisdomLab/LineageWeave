@@ -148,6 +148,16 @@ async def fetch_operations_dashboard(
         """,
         *args,
     )
+    missing_rows = await conn.fetch(
+        f"""
+        select missing.post_id, missing.case_kind_code, missing.fact_type_code
+          from operations_case_missing_fact missing
+          join source_post post on post.post_id = missing.post_id
+         where {visible}
+         order by missing.post_id, missing.case_kind_code, missing.fact_type_code
+        """,
+        *args,
+    )
     facts: dict[tuple[str, str], list[dict[str, str]]] = {}
     for row in fact_rows:
         key = (str(row["post_id"]), row["case_kind_code"])
@@ -158,6 +168,15 @@ async def fetch_operations_dashboard(
                 "value_text": row["value_text"],
                 "evidence_text": row["evidence_text"],
                 "evidence_post_id": str(row["evidence_post_id"]),
+            }
+        )
+    missing_facts: dict[tuple[str, str], list[dict[str, str]]] = {}
+    for row in missing_rows:
+        key = (str(row["post_id"]), row["case_kind_code"])
+        missing_facts.setdefault(key, []).append(
+            {
+                "fact_type_code": row["fact_type_code"],
+                "fact_type_label": FACT_TYPE_LABELS[row["fact_type_code"]],
             }
         )
     total = int(metrics["total_post_count"])
@@ -197,6 +216,7 @@ async def fetch_operations_dashboard(
                 "evidence_post_id": str(row["evidence_post_id"]),
                 "occurred_at": row["occurred_at"].isoformat(),
                 "facts": facts.get((str(row["post_id"]), row["case_kind_code"]), []),
+                "missing_facts": missing_facts.get((str(row["post_id"]), row["case_kind_code"]), []),
             }
             for row in case_rows
         ],

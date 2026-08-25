@@ -65,8 +65,14 @@ provenance.
    post evidence.
 8. Claim-investigation and rebid/handover panels include positively classified
    cases and show extracted answers plus cited spans. A required answer that
-   the source does not support is stored as an explicit missing fact, so the
+   the source does not support is stored in the normalized
+   `operations_case_missing_fact` relation as an explicit missing fact, so the
    next action is collection or human correction rather than keyword guessing.
+   A provider result is invalid unless every required question is represented
+   exactly once as either a cited supported fact or an explicit missing fact;
+   a fact cannot be both. Missing facts carry no invented value or evidence
+   span and inherit the analysis run and authorized-source boundary through
+   their classification parent.
 9. Project journeys group events only by an explicit source project or stored
    semantic project mention. A multi-project post may appear in multiple
    journeys. Unbound events remain visible as unassigned evidence and are not

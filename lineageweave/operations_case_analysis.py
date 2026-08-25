@@ -19,6 +19,12 @@ FACT_TYPES = frozenset(
         "issue_pattern", "improvement_action",
     }
 )
+REQUIRED_FACT_TYPES = {
+    "claim_investigation": frozenset({"order", "specification_change", "originating_order", "sales_pool"}),
+    "rebid_handover": frozenset({"discussion", "counterparty", "our_owner", "decision"}),
+    "external_information": frozenset({"external_relation"}),
+    "repeat_issue": frozenset({"issue_pattern", "improvement_action"}),
+}
 
 
 @dataclass(frozen=True)
@@ -42,6 +48,7 @@ class OperationsCase:
     facts: tuple[OperationsCaseFact, ...]
     evidence_post_id: str = ""
     evidence_input_sha256: str = ""
+    missing_fact_type_codes: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -88,8 +95,14 @@ claim_investigation, rebid_handover, external_information, repeat_issue), summar
 evidence_post_id, evidence_text (a verbatim span from that numbered source), and facts. Each fact has
 fact_type_code (one of order, specification_change, originating_order,
 sales_pool, discussion, counterparty, our_owner, decision, external_relation,
-issue_pattern, improvement_action), value_text, evidence_post_id, and evidence_text (a verbatim span from that source). Return [] only when the
-record supports none of the case kinds. Never fill an unsupported fact.
+issue_pattern, improvement_action), value_text, evidence_post_id, and evidence_text (a verbatim span from that source).
+Each item must also have missing_fact_type_codes. Put every required fact type for that case
+that is not supported anywhere in the authorized sources in this array; never invent a value or
+evidence span for it. Required types are: claim_investigation = order,
+specification_change, originating_order, sales_pool; rebid_handover = discussion,
+counterparty, our_owner, decision; external_information = external_relation;
+repeat_issue = issue_pattern, improvement_action. Return [] only when the record supports none
+of the case kinds.
 
 Stored context (hints, not proof): {context}
 Authorized numbered sources:
@@ -123,8 +136,9 @@ def parse_operations_case_response(
         evidence = item.get("evidence_text")
         evidence_post_id = item.get("evidence_post_id") or ("focal" if legacy_focal else None)
         facts = item.get("facts")
+        missing_fact_types = item.get("missing_fact_type_codes")
         evidence_source = sources_by_id.get(evidence_post_id)
-        if not isinstance(summary, str) or not summary.strip() or not isinstance(evidence, str) or not evidence.strip() or evidence_source is None or evidence not in evidence_source.text or not isinstance(facts, list):
+        if not isinstance(summary, str) or not summary.strip() or not isinstance(evidence, str) or not evidence.strip() or evidence_source is None or evidence not in evidence_source.text or not isinstance(facts, list) or not isinstance(missing_fact_types, list):
             return None
         parsed_facts: list[OperationsCaseFact] = []
         for fact in facts:
@@ -137,7 +151,15 @@ def parse_operations_case_response(
             if not isinstance(value, str) or not value.strip() or not isinstance(fact_evidence, str) or not fact_evidence.strip() or fact_source is None or fact_evidence not in fact_source.text:
                 return None
             parsed_facts.append(OperationsCaseFact(fact["fact_type_code"], value.strip(), fact_evidence, fact_source.post_id, fact_source.input_sha256))
-        cases.append(OperationsCase(item["case_kind_code"], summary.strip(), evidence, tuple(parsed_facts), evidence_source.post_id, evidence_source.input_sha256))
+        supported_types = {fact.fact_type_code for fact in parsed_facts}
+        if (
+            any(not isinstance(code, str) or code not in FACT_TYPES for code in missing_fact_types)
+            or len(set(missing_fact_types)) != len(missing_fact_types)
+            or supported_types.intersection(missing_fact_types)
+            or supported_types.union(missing_fact_types) != REQUIRED_FACT_TYPES[item["case_kind_code"]]
+        ):
+            return None
+        cases.append(OperationsCase(item["case_kind_code"], summary.strip(), evidence, tuple(parsed_facts), evidence_source.post_id, evidence_source.input_sha256, tuple(missing_fact_types)))
     return tuple(cases)
 
 

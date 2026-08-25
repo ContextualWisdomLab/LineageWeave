@@ -61,3 +61,8 @@ async def persist_operations_cases(
                         for ordinal, fact in enumerate(case.facts)
                     ],
                 )
+            if case.missing_fact_type_codes:
+                await conn.executemany(
+                    "insert into operations_case_missing_fact (post_id, case_kind_code, fact_type_code) values ($1, $2, $3)",
+                    [(post_id, case.case_kind_code, code) for code in case.missing_fact_type_codes],
+                )

@@ -37,6 +37,12 @@ class _Connection:
                     "fact_ordinal": 0,
                 }
             ]
+        if "operations_case_missing_fact missing" in query:
+            return [{
+                "post_id": "00000000-0000-0000-0000-000000000001",
+                "case_kind_code": "claim_investigation",
+                "fact_type_code": "sales_pool",
+            }]
         return [
             {
                 "post_id": "00000000-0000-0000-0000-000000000001",
@@ -113,9 +119,12 @@ async def test_dashboard_uses_abac_event_clock_and_persisted_evidence() -> None:
                     "evidence_post_id": "00000000-0000-0000-0000-000000000002",
                 }
             ],
+            "missing_facts": [
+                {"fact_type_code": "sales_pool", "fact_type_label": "수주 Pool"}
+            ],
         }
     ]
-    assert len(conn.queries) == 3
+    assert len(conn.queries) == 4
     for query, args in conn.queries:
         assert "visibility_code = 'public'" in query
         assert "corporate_entity_id::text = any($1::text[])" in query
