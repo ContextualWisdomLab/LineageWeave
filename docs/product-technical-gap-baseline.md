@@ -30,7 +30,7 @@ context only.
 | #553 | `04969132` | blocked; auto-merge armed, review/checks pending |
 | #539 | `53c91cae` | current-main reconciliation pushed; checks restarted |
 | #537 | `ebfd712b` | current-main reconciliation pushed; checks restarted |
-| #521 | `e0a4cc9f` | blocked; Full suite and Strix failed |
+| #521 | `43183482` | current-main ADR collision repaired; auto-merge armed, checks restarted |
 | #493 | `38018908` | dirty; required checks running |
 | #490 | `a99a69c2` | dirty; Strix and Devin failed |
 | #485 | `66916c97` | blocked; Strix failed |
