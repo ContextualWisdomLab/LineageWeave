@@ -14,6 +14,8 @@ from backend.app.analysis_run_start import (
     start_write_conflict_error,
     tepp_run_request,
     tepp_submit_outcome,
+    topic_lineage_run_request,
+    topic_lineage_submit_outcome,
 )
 from backend.app.lineage_ingestion import records_from_source_posts
 from lineageweave.fixtures import sample_records
@@ -100,7 +102,7 @@ def test_reconstructed_edge_hides_unaffiliated_private_titles() -> None:
 
 
 def test_period_report_start_is_unprocessable_and_tepp_is_allowed() -> None:
-    """Period-report stays 422. TEPP start is allowed so tepp_client can run."""
+    """Period-report stays 422. TEPP/topic-lineage start is allowed so tepp_client can run."""
     report = start_kind_rejection("analysis_run_report")
     assert report is not None
     assert report.status_code == 422
@@ -108,6 +110,7 @@ def test_period_report_start_is_unprocessable_and_tepp_is_allowed() -> None:
     assert "period report" in report.detail
     assert start_kind_rejection("analysis_run_lineage") is None
     assert start_kind_rejection("analysis_run_tepp") is None
+    assert start_kind_rejection("analysis_run_topic_lineage") is None
 
 
 def _tepp_request() -> AnalysisRunRequest:
@@ -149,6 +152,132 @@ def test_tepp_submit_outcome_does_not_persist_an_empty_envelope() -> None:
     status, failure = tepp_submit_outcome(_Accepting(), _tepp_request())
     assert status == "analysis_status_failed"
     assert failure == "tepp_result_not_persisted"
+
+
+def _topic_lineage_request() -> AnalysisRunRequest:
+    return topic_lineage_run_request(
+        idempotency_key="run-topic-lineage-2026-w07",
+        snapshot_sha256="ab" * 32,
+        knowledge_cutoff=datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc),
+        corporate_entity_id="11111111-1111-1111-1111-111111111111",
+    )
+
+
+def test_topic_lineage_run_request_is_the_published_wire_shape() -> None:
+    """Start builds TEPP's seven-field request for topic lineage (ADR 0132)."""
+    request = _topic_lineage_request()
+    payload = request.to_json()
+    assert payload["contract_version"] == 1
+    assert payload["idempotency_key"] == "run-topic-lineage-2026-w07"
+    assert payload["snapshot_id"] == "ab" * 32
+    assert payload["knowledge_cutoff"] == "2026-01-12T12:00:00Z"
+    assert payload["model_contract_version"] == "tepp-topic-lineage-v1"
+    assert payload["output_profile"] == "topic_identity_lineage"
+    assert "theta" not in str(payload).casefold()
+    assert "chronos" not in str(payload).casefold()
+
+
+def test_topic_lineage_submit_outcome_drops_a_missing_transport() -> None:
+    """A missing TEPP transport is Failed, never a fabricated topic model."""
+    status, failure, envelope = topic_lineage_submit_outcome(
+        TeppClient(), _topic_lineage_request()
+    )
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_not_available"
+    assert envelope is None
+
+
+def test_topic_lineage_submit_outcome_does_not_persist_an_empty_envelope() -> None:
+    """An accepted envelope is not yet a persistable topic-lineage result."""
+
+    class _Accepting(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(transport=lambda _payload: {"status": "accepted"})
+
+    status, failure, envelope = topic_lineage_submit_outcome(
+        _Accepting(), _topic_lineage_request()
+    )
+    assert status == "analysis_status_failed"
+    assert envelope is None
+    assert failure == "tepp_result_not_persisted"
+
+
+def test_topic_lineage_submit_outcome_rejects_a_contentless_completed_envelope() -> None:
+    """A 'completed' envelope missing the topic-identity/CHRONOS contract is Failed.
+
+    A syntactically valid envelope whose ``result`` lacks TRSL-TM topic
+    identity and CHRONOS/TDT status (e.g. it accidentally serves the
+    calibrated-measurement shape) must not be treated as a topic-lineage
+    success, per ADR 0132 Decision item 3.
+    """
+
+    class _EmptyResult(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(
+                transport=lambda _payload: {
+                    "status": "completed",
+                    "analysis_run_id": "r-1",
+                    "result": {},
+                }
+            )
+
+    status, failure, envelope = topic_lineage_submit_outcome(_EmptyResult(), _topic_lineage_request())
+    assert status == "analysis_status_failed"
+    assert failure == "tepp_topic_contract_unavailable"
+    assert envelope is None
+
+
+def test_topic_lineage_submit_outcome_accepts_the_versioned_topic_envelope() -> None:
+    """A completed envelope carrying the versioned topic-identity/CHRONOS contract succeeds."""
+
+    class _Completed(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(
+                transport=lambda _payload: {
+                    "status": "completed",
+                    "analysis_run_id": "r-1",
+                    "result": {
+                        "envelope_version": 1,
+                        "topic_identity": [{"topic_id": "t-1"}],
+                        "chronos_status": "evidence",
+                    },
+                }
+            )
+
+    status, failure, envelope = topic_lineage_submit_outcome(_Completed(), _topic_lineage_request())
+    assert status == "analysis_status_succeeded"
+    assert failure == ""
+    assert envelope is not None
+
+
+@pytest.mark.parametrize("invalid_version", [True, False, 0, 2, "1"])
+def test_topic_lineage_submit_outcome_rejects_unsupported_envelope_version(
+    invalid_version: object,
+) -> None:
+    """Only integer envelope version 1 is the published contract."""
+
+    class _WrongVersion(TeppClient):
+        def __init__(self) -> None:
+            super().__init__(
+                transport=lambda _payload: {
+                    "status": "completed",
+                    "analysis_run_id": "r-1",
+                    "result": {
+                        "envelope_version": invalid_version,
+                        "topic_identity": [{"topic_id": "t-1"}],
+                        "chronos_status": "evidence",
+                    },
+                }
+            )
+
+    status, failure, envelope = topic_lineage_submit_outcome(
+        _WrongVersion(), _topic_lineage_request()
+    )
+    assert (status, failure, envelope) == (
+        "analysis_status_failed",
+        "tepp_topic_contract_unavailable",
+        None,
+    )
 
 
 def test_configured_tepp_client_stays_unavailable_without_http() -> None:

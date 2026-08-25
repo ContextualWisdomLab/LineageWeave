@@ -258,8 +258,8 @@ Each accepted file runs with `psql -X -v ON_ERROR_STOP=1`, so a failure
 stops startup instead of leaving a healthy-looking partial schema, and
 application code must not compensate for a missing table.
 
-Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0162 / 0163 /
-0164 / 0182) are computed in `lineageweave/leftover_pairs.py` from the
+Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0119 / 0158 / 0162 /
+0163 / 0164 / 0182) are computed in `lineageweave/leftover_pairs.py` from the
 residual after a real GRM/GPCM score, never invented. Distances are
 Euclidean on the two-dimensional Gabriel leftover map; missing cells stay
 out of the factorization. Closest and farthest post–criterion pairs
@@ -268,13 +268,20 @@ persist to `report_leftover_pair` with signed residual `R`, observed
 plus leftover-map rank so rank 0 is not read as structure, and
 unexplained leftover `U = R − R̂` next to leftover-map distance `d`
 after two-axis Gabriel reconstruction. They sit above the member
-list so a click opens that post. Two-axis reconstruction `R̂` is not
+list so a click opens that post with the leftover criterion current
+in Post quality (ADR 0158). Two-axis reconstruction `R̂` is not
 persisted. Leftover-map axis share (ADR 0148) is Gabriel inertia of
 residual SVD axes 1 and 2 and persists to `report_leftover_map_axis`.
 Rank-0 residuals emit two zero-share axes; the shares are report-level
 and are not a leftover score. Complete-case coverage (ADR 0168) persists to
 `report_leftover_map_coverage` and captions the pair list with how
 many scored posts entered the map.
+
+Global Ask relative-time filters (ADR 0150 / 0202) bind to
+`source_post.event_occurred_at` and fall back to `created_at` only
+when the event instant is missing. Cited evidence names **Time
+axis** so the reader can open that post and see which clock
+matched. Do not invent an event date or a theta.
 
 Period leftover pairs (ADR 0017 / 0018 / 0048 / 0049 / 0149) are computed in
 `lineageweave/leftover_pairs.py` from the residual after a real

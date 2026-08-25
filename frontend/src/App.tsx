@@ -1329,18 +1329,36 @@ function KeymanPanel({
   );
 }
 
+function leftoverCriterionNextAction(
+  criterion: string,
+  pairKind: "closest" | "farthest",
+): string {
+  if (pairKind === "farthest") {
+    return tf(
+      "{criterion} is the leftover criterion this post sat farthest from after main effects. Read that Post quality score next.",
+      { criterion },
+    );
+  }
+  return tf(
+    "{criterion} is the leftover criterion this post sat closest to after main effects. Read that Post quality score next.",
+    { criterion },
+  );
+}
+
 function EvaluationPanel({
   postId,
   accessToken,
   responses,
   canExtract,
   onEvaluated,
+  leftoverFocus,
 }: {
   postId: string;
   accessToken: string;
   responses: EvaluationResponse[] | null;
   canExtract: boolean;
   onEvaluated: (rows: EvaluationResponse[]) => void;
+  leftoverFocus?: { pairKind: "closest" | "farthest"; criterionCode: string } | null;
 }) {
   const [evaluating, setEvaluating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1370,7 +1388,9 @@ function EvaluationPanel({
   return (
     <section className="popup-section">
       <div className="lineage-home-header">
-        <h3>{t("Post quality (IRT)")}</h3>
+        <h3 id="post-quality" tabIndex={-1}>
+          {t("Post quality (IRT)")}
+        </h3>
         {canExtract && !orchestratorOff && (
           <details className="operator-action-tools">
             <summary>{t("Evidence operations")}</summary>
@@ -1380,6 +1400,14 @@ function EvaluationPanel({
           </details>
         )}
       </div>
+      {leftoverFocus ? (
+        <p className="post-meta" role="status" aria-label={t("Leftover criterion next action")}>
+          {leftoverCriterionNextAction(
+            criterionShortLabel(leftoverFocus.criterionCode),
+            leftoverFocus.pairKind,
+          )}
+        </p>
+      ) : null}
       {error && <p className="error">{error}</p>}
       {responses === null ? (
         <p role="status">{t("Loading evaluation...")}</p>
@@ -1388,7 +1416,13 @@ function EvaluationPanel({
       ) : (
         <ul>
           {responses.map((row) => (
-            <li key={row.criterion_code}>
+            <li
+              key={row.criterion_code}
+              className="evaluation-criterion"
+              aria-current={
+                leftoverFocus?.criterionCode === row.criterion_code ? "true" : undefined
+              }
+            >
               {row.criterion_label ?? row.criterion_code}: {row.response_category}
             </li>
           ))}
@@ -1712,6 +1746,7 @@ function PostDetailPopup({
   liveBodyWarning,
   knowledgeCutoff,
   focusEventLineage,
+  leftoverFocus,
   onClose,
   onSelectPost,
   onSearch,
@@ -1723,6 +1758,7 @@ function PostDetailPopup({
   liveBodyWarning?: string | null;
   knowledgeCutoff?: string | null;
   focusEventLineage?: boolean;
+  leftoverFocus?: { pairKind: "closest" | "farthest"; criterionCode: string } | null;
   onClose: () => void;
   onSelectPost?: (postId: string) => void;
   onSearch?: (query: string) => void;
@@ -1922,6 +1958,15 @@ function PostDetailPopup({
     heading?.focus();
     heading?.scrollIntoView?.({ block: "nearest" });
   }, [focusEventLineage, post]);
+
+  useEffect(() => {
+    if (!leftoverFocus || !post) {
+      return;
+    }
+    const heading = document.getElementById("post-quality");
+    heading?.focus();
+    heading?.scrollIntoView?.({ block: "nearest" });
+  }, [leftoverFocus, post]);
 
   return (
     <div className="popup-backdrop" onClick={onClose}>
@@ -2318,6 +2363,7 @@ function PostDetailPopup({
                 responses={evaluation}
                 canExtract={canExtract}
                 onEvaluated={(rows) => setEvaluation(rows)}
+                leftoverFocus={leftoverFocus}
               />
             )}
 
@@ -2370,6 +2416,7 @@ function PostDetailPopup({
                       responses={evaluation}
                       canExtract={canExtract}
                       onEvaluated={(rows) => setEvaluation(rows)}
+                      leftoverFocus={leftoverFocus}
                     />
                     {keymen?.[0] ? (
                       <p className="post-meta" role="status" aria-label={t("Keyman next action")}>
@@ -2476,6 +2523,8 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
           return "Open this run, then start reconstruction. Reconstruction has not started yet.";
         case "analysis_run_tepp":
           return "Open this run to confirm which posts TEPP will measure. Measurement has not started yet — this is not a calibrated result.";
+        case "analysis_run_topic_lineage":
+          return "Open this run to confirm which posts TEPP will thread into topic lineage. Topic-lineage analysis has not started yet — this is not a calibrated topic result.";
         case "analysis_run_report":
           return "Open this run to confirm which posts the period report will use. The report has not been built yet.";
         default: {
@@ -2487,6 +2536,8 @@ function analysisRunNextAction(run: AnalysisRun): string | null {
       switch (run.run_kind_code) {
         case "analysis_run_tepp":
           return "Open this run to see why it failed, then connect the measurement service and re-run.";
+        case "analysis_run_topic_lineage":
+          return "Open this run to see why it failed, then connect the TEPP transport and re-run.";
         case "analysis_run_lineage":
           return "Open this run to see why it failed, then retry reconstruction from a current snapshot.";
         case "analysis_run_report":
@@ -2519,6 +2570,11 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
         "No posts were available at this cutoff for TEPP to measure. " +
         "Open a later run, or ask an administrator to capture a newer snapshot."
       );
+    case "analysis_run_topic_lineage":
+      return (
+        "No posts were available at this cutoff for topic-lineage analysis. " +
+        "Open a later run, or ask an administrator to capture a newer snapshot."
+      );
     case "analysis_run_lineage":
       return (
         "No posts were available at this cutoff for reconstruction. " +
@@ -2537,31 +2593,36 @@ function analysisRunEmptyPostsHint(run: AnalysisRun): string {
 }
 
 /**
- * Corpus copy for a TEPP run that already has cutoff posts.
+ * Corpus copy for a TEPP or topic-lineage run that already has cutoff posts.
  *
  * Those titles are the measurement bag, not a reconstruction result.
- * Pending or running must not claim a calibrated measurement.
+ * Pending or running must not claim a calibrated measurement or topic.
  */
 function analysisRunCorpusHint(run: AnalysisRun): string | null {
-  if (run.run_kind_code !== "analysis_run_tepp") return null;
+  const isTopicLineage = run.run_kind_code === "analysis_run_topic_lineage";
+  if (run.run_kind_code !== "analysis_run_tepp" && !isTopicLineage) return null;
+  const service = isTopicLineage ? "topic-lineage" : "TEPP";
+  const result = isTopicLineage ? "a topic-identity result" : "a calibrated result";
+  const verb = isTopicLineage ? "thread" : "measure";
+  const verbPast = isTopicLineage ? "threaded" : "measured";
   switch (run.status_code) {
     case "analysis_status_failed":
       return (
-        "These posts are the cutoff corpus TEPP would measure. Connect a TEPP " +
-        "transport, then re-run, to replace Failed with a calibrated result."
+        `These posts are the cutoff corpus ${service} would ${verb}. Connect a TEPP ` +
+        `transport, then re-run, to replace Failed with ${result}.`
       );
     case "analysis_status_succeeded":
-      return "These posts are the cutoff corpus this TEPP run measured.";
+      return `These posts are the cutoff corpus this ${service} run ${verbPast}.`;
     case "analysis_status_pending":
     case "analysis_status_running":
-      return "These posts are the cutoff corpus TEPP will measure once this run finishes.";
+      return `These posts are the cutoff corpus ${service} will ${verb} once this run finishes.`;
     case "analysis_status_cancelled":
       return (
-        "These posts are the cutoff corpus this TEPP run would have measured. " +
-        "The run was cancelled before a calibrated result."
+        `These posts are the cutoff corpus this ${service} run would have ${verbPast}. ` +
+        `The run was cancelled before ${result}.`
       );
     case null:
-      return "These posts are the cutoff corpus attached to this TEPP run.";
+      return `These posts are the cutoff corpus attached to this ${service} run.`;
     default: {
       const unexpected: never = run.status_code;
       return unexpected;
@@ -2576,10 +2637,16 @@ function analysisRunDigestPrefix(digest: string): string {
   return digest.slice(0, ANALYSIS_RUN_DIGEST_PREFIX_LENGTH);
 }
 
+type LeftoverPairFocus = {
+  pairKind: "closest" | "farthest";
+  criterionCode: string;
+};
+
 type SelectPostOptions = {
   liveAfterCutoff?: boolean;
   knowledgeCutoff?: string;
   fromReportMember?: boolean;
+  fromLeftoverPair?: LeftoverPairFocus;
 };
 
 /**
@@ -2671,21 +2738,31 @@ function AnalysisRunReproducibilityDigests({
  */
 function analysisRunCanStart(run: AnalysisRun): boolean {
   return (
-    (run.run_kind_code === "analysis_run_lineage" || run.run_kind_code === "analysis_run_tepp") &&
+    (run.run_kind_code === "analysis_run_lineage" ||
+      run.run_kind_code === "analysis_run_tepp" ||
+      run.run_kind_code === "analysis_run_topic_lineage") &&
     (run.status_code === "analysis_status_pending" ||
       run.status_code === "analysis_status_running")
   );
 }
 
 function analysisRunStartLabel(run: AnalysisRun): string {
-  return run.run_kind_code === "analysis_run_tepp"
-    ? "Start TEPP measurement"
-    : "Start reconstruction";
+  if (run.run_kind_code === "analysis_run_tepp") {
+    return "Start TEPP measurement";
+  }
+  if (run.run_kind_code === "analysis_run_topic_lineage") {
+    return "Start topic lineage";
+  }
+  return "Start reconstruction";
 }
 
-/** Failed TEPP is terminal. Create cannot invent a Pending TEPP row. */
+/** Failed TEPP/topic-lineage is terminal. Create cannot invent a Pending row. */
 function analysisRunCanRequestTeppRetry(run: AnalysisRun): boolean {
-  return run.run_kind_code === "analysis_run_tepp" && run.status_code === "analysis_status_failed";
+  return (
+    (run.run_kind_code === "analysis_run_tepp" ||
+      run.run_kind_code === "analysis_run_topic_lineage") &&
+    run.status_code === "analysis_status_failed"
+  );
 }
 
 const REPORT_PERIOD_KEY = /^\d{4}-W\d{2}$/;
@@ -2964,14 +3041,19 @@ function AnalysisRunsPanel({
               {starting
                 ? selected.run_kind_code === "analysis_run_tepp"
                   ? "Submitting the TEPP request..."
-                  : "Reconstructing the cutoff bag..."
+                  : selected.run_kind_code === "analysis_run_topic_lineage"
+                    ? "Submitting the topic-lineage request..."
+                    : "Reconstructing the cutoff bag..."
                 : analysisRunStartLabel(selected)}
             </button>
           )}
           {analysisRunCanRequestTeppRetry(selected) && (
             <p className="post-meta">
-              Connect a TEPP transport from this Failed row. Request a lineage
-              reconstruction does not invent a measurement.
+              {selected.run_kind_code === "analysis_run_topic_lineage"
+                ? "Connect a TEPP transport from this Failed row. Request a " +
+                  "lineage reconstruction does not invent a topic model."
+                : "Connect a TEPP transport from this Failed row. Request a lineage " +
+                  "reconstruction does not invent a measurement."}
             </p>
           )}
           {analysisRunReportPeriod(selected) && onSelectReportPeriod && (
@@ -3485,7 +3567,14 @@ function ReportsPanel({
               <LeftoverPairList
                 pairs={report.leftover_pairs}
                 criterionLabel={criterionShortLabel}
-                onSelectPost={(postId) => onSelectPost(postId)}
+                onSelectPost={(pair) => {
+                  onSelectPost(pair.post_id, {
+                    fromLeftoverPair: {
+                      pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
+                      criterionCode: pair.criterion_code,
+                    },
+                  });
+                }}
               />
             )}
             {report.members.length > 0 && (
@@ -3606,7 +3695,18 @@ function ReportsPanel({
                         <button
                           className="post-list-item"
                           aria-label={`Open leftover ${pair.pair_kind} pair from comparison: ${pair.post_title} · ${criterion}`}
-                          onClick={() => onSelectPost(pair.post_id)}
+                          onClick={() =>
+                            // Same promise, same landing: the badge tells the
+                            // reader the criterion will be current in Post
+                            // quality, exactly like the report-panel pairs
+                            // (ADR 0158), so the strip carries the same focus.
+                            onSelectPost(pair.post_id, {
+                              fromLeftoverPair: {
+                                pairKind: pair.pair_kind === "farthest" ? "farthest" : "closest",
+                                criterionCode: pair.criterion_code,
+                              },
+                            })
+                          }
                         >
                           <span className="ticket-title">
                             {kindLabel}: {pair.post_title} · {criterion}
@@ -3695,6 +3795,7 @@ function PostList({
   const [openedGroupingLabel, setOpenedGroupingLabel] = useState<string | null>(null);
   const [landOnComparison, setLandOnComparison] = useState(false);
   const [openedFromReportMember, setOpenedFromReportMember] = useState(false);
+  const [openedLeftoverPair, setOpenedLeftoverPair] = useState<LeftoverPairFocus | null>(null);
   const [corporateEntities, setCorporateEntities] = useState<CorporateEntityRef[] | null>(null);
   const [entitiesLoadError, setEntitiesLoadError] = useState<string | null>(null);
   const [totalPosts, setTotalPosts] = useState(0);
@@ -3747,6 +3848,7 @@ function PostList({
     setOpenedAfterCutoff(Boolean(options?.liveAfterCutoff));
     setOpenedCutoffIso(options?.knowledgeCutoff ?? null);
     setOpenedFromReportMember(Boolean(options?.fromReportMember));
+    setOpenedLeftoverPair(options?.fromLeftoverPair ?? null);
   }
 
   useEffect(() => {
@@ -3760,6 +3862,7 @@ function PostList({
     setOpenedAfterCutoff(false);
     setOpenedCutoffIso(null);
     setOpenedFromReportMember(false);
+    setOpenedLeftoverPair(null);
     const url = new URL(window.location.href);
     if (url.searchParams.has("post")) {
       url.searchParams.delete("post");
@@ -4164,6 +4267,7 @@ function PostList({
           }
           knowledgeCutoff={openedAfterCutoff ? openedCutoffIso : null}
           focusEventLineage={openedFromReportMember}
+          leftoverFocus={openedLeftoverPair}
           onClose={closeSelectedPost}
           onSelectPost={selectPost}
           onSearch={searchBoard}
@@ -4317,16 +4421,19 @@ function CustomerRelatedPostCard({
 
 function CustomerMasterPanel({
   accessToken,
-  onOpenPost,
 }: {
   accessToken: string;
-  onOpenPost: (postId: string) => void;
 }) {
   const [master, setMaster] = useState<CustomerMasterResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expandedEntityId, setExpandedEntityId] = useState<string | null>(null);
   const [relatedByEntity, setRelatedByEntity] = useState<Record<string, RelatedNode[]>>({});
   const [relatedLoading, setRelatedLoading] = useState<string | null>(null);
+  // Opening a customer's related post stays IN this panel (the Board
+  // hand-off was the reported bug: clicking a customer's post jumped the
+  // whole workspace to the Board instead of showing the post here).
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
+  const [selectedPostGraph, setSelectedPostGraph] = useState<LineageGraph | null>(null);
   const [resolvingHint, setResolvingHint] = useState<string | null>(null);
   const [resolveError, setResolveError] = useState<string | null>(null);
   // Fetched independently, same pattern as PostList's own canRebuild --
@@ -4359,6 +4466,29 @@ function CustomerMasterPanel({
     setMaster(null);
     void loadMaster();
   }, [loadMaster]);
+
+  useEffect(() => {
+    if (!selectedPostId) {
+      setSelectedPostGraph(null);
+      return;
+    }
+    let active = true;
+    fetchLineageGraph(accessToken, selectedPostId)
+      .then((nextGraph) => {
+        if (active) setSelectedPostGraph(nextGraph);
+      })
+      .catch(() => {
+        if (active) setSelectedPostGraph({ nodes: [], edges: [] });
+      });
+    return () => {
+      active = false;
+    };
+  }, [accessToken, selectedPostId]);
+
+  function openPost(postId: string) {
+    setSelectedPostGraph(null);
+    setSelectedPostId(postId);
+  }
 
   async function handleResolveHint(hintCode: string) {
     setResolvingHint(hintCode);
@@ -4412,7 +4542,7 @@ function CustomerMasterPanel({
               relatedByEntity={relatedByEntity}
               relatedLoading={relatedLoading}
               onToggle={toggleEntity}
-              onOpenPost={onOpenPost}
+              onOpenPost={openPost}
             />
           ))}
         </ul>
@@ -4482,7 +4612,7 @@ function CustomerMasterPanel({
                             postTitle={post.post_title}
                             postBodyExcerpt={post.post_body_excerpt}
                             postBodyTruncated={post.post_body_truncated}
-                            onOpenPost={onOpenPost}
+                            onOpenPost={openPost}
                           />
                         </li>
                       ))}
@@ -4535,7 +4665,7 @@ function CustomerMasterPanel({
                             postTitle={post.post_title}
                             postBodyExcerpt={post.post_body_excerpt}
                             postBodyTruncated={post.post_body_truncated}
-                            onOpenPost={onOpenPost}
+                            onOpenPost={openPost}
                           />
                         </li>
                       ))}
@@ -4561,6 +4691,16 @@ function CustomerMasterPanel({
           </ul>
         </section>
       ) : null}
+      {selectedPostId && (
+        <PostDetailPopup
+          postId={selectedPostId}
+          accessToken={accessToken}
+          canExtract={canResolveHints}
+          graph={selectedPostGraph}
+          onClose={() => setSelectedPostId(null)}
+          onSelectPost={openPost}
+        />
+      )}
     </section>
   );
 }
@@ -4803,13 +4943,7 @@ export default function App({ showLabPanels = false }: { showLabPanels?: boolean
           />
         ) : null}
         {destination === "customers" ? (
-          <CustomerMasterPanel
-            accessToken={accessToken}
-            onOpenPost={(postId) => {
-              setPostToOpen(postId);
-              setDestination("board");
-            }}
-          />
+          <CustomerMasterPanel accessToken={accessToken} />
         ) : null}
         {destination === "calendar" ? (
           <section className="workspace-destination" aria-labelledby="calendar-heading">

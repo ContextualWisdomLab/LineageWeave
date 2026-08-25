@@ -52,12 +52,19 @@ runtime, with masking enabled; the repository contains no provider secret.
 The contextual-orchestrator service remains the only LLM boundary. LineageWeave
 does not call the provider gateway directly and does not create a fallback
 local score, summary, extraction, or answer when the gateway is unavailable.
+Provider response envelopes and exceptions are also a trust boundary: clients
+extract only the expected content and expose stable, next-action-safe error
+messages. Raw provider response bodies, exception text, prompts, and secrets
+must never be returned through a buyer-facing API or persisted failure detail.
 
 ## Consequences
 
 - Provider changes are deployment configuration, not source changes.
 - A missing or invalid gateway credential fails at the orchestrator boundary;
   it must not be replaced by a fabricated channel result.
+- A provider failure is logged with internal correlation context where
+  operational logging permits, but the buyer receives a stable unavailable
+  message that tells them to retry or restore the provider configuration.
 - `CONTEXTUAL_ORCHESTRATOR_ALLOWED_PROVIDER_HOSTS` must explicitly allow the
   hostname selected by `LLM_GATEWAY_API_URL`; wildcard allowlists are forbidden.
 - Local Compose development permits only the explicitly enumerated

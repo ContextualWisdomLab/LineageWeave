@@ -31,87 +31,97 @@ class HttpClientError(RuntimeError):
     """The remote endpoint failed, returned a non-success status, or invalid JSON."""
 
 
-def _request(
-    method: str,
-    url: str,
+def json_request_body(payload: dict) -> bytes:
+    """Serialize the exact JSON body sent by :func:`post_json`."""
+    request_payload = payload
+    request_metadata = current_llm_metadata()
+    if request_metadata:
+        request_payload = dict(payload)
+        existing_metadata = request_payload.get("metadata")
+        if existing_metadata is None:
+            request_payload["metadata"] = request_metadata
+        elif isinstance(existing_metadata, dict):
+            request_payload["metadata"] = {**existing_metadata, **request_metadata}
+        else:
+            raise ValueError("metadata must be an object")
+    return json.dumps(request_payload).encode("utf-8")
+
+
+def _validated_response_limit(value: int | None) -> int | None:
+    """Return a positive byte limit or reject ambiguous numeric values."""
+
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ValueError("maximum_response_bytes must be a positive integer")
+    return value
+
+
+def _validated_expected_media_type(value: str | None) -> str | None:
+    """Return one exact lower-case type/subtype without parameters."""
+
+    if value is None:
+        return None
+    if (
+        not isinstance(value, str)
+        or value != value.strip()
+        or not value
+        or value != value.lower()
+        or ";" in value
+        or value.count("/") != 1
+        or any(character.isspace() for character in value)
+        or any(ord(character) < 32 or ord(character) == 127 for character in value)
+    ):
+        raise ValueError(
+            "expected_response_media_type must be an exact lower-case type/subtype"
+        )
+    return value
+
+
+def _read_response_body(
+    response: http.client.HTTPResponse,
     *,
-    body: bytes | None,
-    headers: dict[str, str],
-    timeout: float,
-) -> tuple[int, bytes]:
-    """Perform one exchange without exposing provider transport exception details."""
-    parsed = urlparse(url)
-    if parsed.scheme not in _ALLOWED_SCHEMES:
-        raise ValueError(f"refusing non-http(s) URL scheme: {parsed.scheme!r}")
-    if not parsed.hostname:
-        raise ValueError("URL is missing a hostname")
+    maximum_response_bytes: int | None,
+) -> bytes:
+    """Read one response without allocating beyond an admitted byte limit."""
 
-    path = parsed.path or "/"
-    if parsed.query:
-        path = f"{path}?{parsed.query}"
-
-    # HTTPConnection + an explicit wrap keeps TLS verification on the
-    # certifi-backed context we already built. HTTPSConnection is not used:
-    # Semgrep's httpsconnection-detected rule still warns about pre-3.4.3
-    # defaults, which this project (requires-python >= 3.10) never hits.
-    default_port = 443 if parsed.scheme == "https" else 80
-    port = parsed.port if parsed.port is not None else default_port
-    connection = http.client.HTTPConnection(parsed.hostname, port, timeout=timeout)
-
-    try:
+    limit = _validated_response_limit(maximum_response_bytes)
+    length_header = response.getheader("Content-Length")
+    if length_header is not None:
         try:
-            if parsed.scheme == "https":
-                connection.connect()
-                if connection.sock is None:
-                    raise HttpClientError(f"no socket after connect to {parsed.hostname}")
-                connection.sock = _SSL_CONTEXT.wrap_socket(
-                    connection.sock, server_hostname=parsed.hostname
-                )
-            connection.request(method, path, body=body, headers=headers)
-            response = connection.getresponse()
-            length_header = response.getheader("Content-Length")
-            raw = response.read(int(length_header)) if length_header is not None else response.read()
-            return response.status, raw
-        except (OSError, ValueError, http.client.HTTPException) as exc:
-            # Chain internally for operator logging; the exposed
-            # message stays generic/hostname-only, never the raw exception text.
-            raise HttpClientError("provider transport unavailable") from exc
-    finally:
-        connection.close()
+            declared_length = int(length_header)
+        except ValueError as exc:
+            raise HttpClientError("invalid Content-Length from remote endpoint") from exc
+        if declared_length < 0:
+            raise HttpClientError("invalid Content-Length from remote endpoint")
+        if limit is not None and declared_length > limit:
+            raise HttpClientError(
+                f"response exceeds maximum_response_bytes={limit}"
+            )
+        raw = response.read(declared_length)
+    elif limit is None:
+        raw = response.read()
+    else:
+        raw = response.read(limit + 1)
+
+    if limit is not None and len(raw) > limit:
+        raise HttpClientError(
+            f"response exceeds maximum_response_bytes={limit}"
+        )
+    return raw
 
 
-def _decode_json(raw: bytes, hostname: str) -> object:
-    """Implement the _decode_json operation for this channel."""
-    try:
-        return json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise HttpClientError(f"non-JSON response from {hostname}") from exc
+def _response_media_type(response: http.client.HTTPResponse) -> str:
+    """Return the normalized media type without optional parameters."""
 
-
-def _decode_json_object(raw: bytes, hostname: str) -> dict:
-    """Implement the _decode_json_object operation for this channel."""
-    decoded = _decode_json(raw, hostname)
-    if not isinstance(decoded, dict):
-        raise HttpClientError(f"JSON object expected from {hostname}")
-    return decoded
-
-
-def _decode_json_list(raw: bytes, hostname: str) -> list:
-    """Implement the _decode_json_list operation for this channel."""
-    decoded = _decode_json(raw, hostname)
-    if not isinstance(decoded, list):
-        raise HttpClientError(f"JSON array expected from {hostname}")
-    return decoded
+    header = response.getheader("Content-Type")
+    if header is None:
+        return ""
+    return header.split(";", 1)[0].strip().lower()
 
 
 def chat_completion_content(body: object) -> str:
-    """Extract text from a provider chat-completion envelope safely.
-
-    Provider error bodies and malformed success bodies must never be echoed by
-    a consumer through ``KeyError`` or a repr of the response.  The caller
-    receives only a stable validation error and can translate it at its own
-    product boundary.
-    """
+    """Extract text from a provider chat envelope without echoing its body."""
     if not isinstance(body, dict):
         raise TypeError("provider response was not an object")
     choices = body.get("choices")
@@ -129,6 +139,107 @@ def chat_completion_content(body: object) -> str:
     return content
 
 
+def _request(
+    method: str,
+    url: str,
+    *,
+    body: bytes | None,
+    headers: dict[str, str],
+    timeout: float,
+    maximum_response_bytes: int | None = None,
+    expected_response_media_type: str | None = None,
+) -> tuple[int, bytes]:
+    """Perform one bounded HTTP(S) request without exposing provider transport exception details."""
+
+    limit = _validated_response_limit(maximum_response_bytes)
+    expected_media_type = _validated_expected_media_type(
+        expected_response_media_type
+    )
+    parsed = urlparse(url)
+    if parsed.scheme not in _ALLOWED_SCHEMES:
+        raise ValueError(
+            f"refusing non-http(s) URL scheme: {parsed.scheme!r}"
+        )
+    if not parsed.hostname:
+        raise ValueError("URL is missing a hostname")
+
+    path = parsed.path or "/"
+    if parsed.query:
+        path = f"{path}?{parsed.query}"
+
+    # HTTPConnection + an explicit wrap keeps TLS verification on the
+    # certifi-backed context we already built. HTTPSConnection is not used:
+    # Semgrep's httpsconnection-detected rule still warns about pre-3.4.3
+    # defaults, which this project (requires-python >= 3.10) never hits.
+    default_port = 443 if parsed.scheme == "https" else 80
+    port = parsed.port if parsed.port is not None else default_port
+    connection = http.client.HTTPConnection(
+        parsed.hostname,
+        port,
+        timeout=timeout,
+    )
+
+    try:
+        try:
+            if parsed.scheme == "https":
+                connection.connect()
+                if connection.sock is None:
+                    raise HttpClientError(
+                        f"no socket after connect to {parsed.hostname}"
+                    )
+                connection.sock = _SSL_CONTEXT.wrap_socket(
+                    connection.sock,
+                    server_hostname=parsed.hostname,
+                )
+            connection.request(method, path, body=body, headers=headers)
+            response = connection.getresponse()
+            if (
+                expected_media_type is not None
+                and _response_media_type(response) != expected_media_type
+            ):
+                raise HttpClientError(
+                    f"unexpected response media type from {parsed.hostname}"
+                )
+            raw = _read_response_body(
+                response,
+                maximum_response_bytes=limit,
+            )
+            return response.status, raw
+        except (OSError, ValueError, http.client.HTTPException) as exc:
+            # Chain internally for operator logging; the exposed
+            # message stays generic/hostname-only, never the raw exception text.
+            raise HttpClientError("provider transport unavailable") from exc
+    finally:
+        connection.close()
+
+
+def _decode_json(raw: bytes, hostname: str) -> object:
+    """Decode UTF-8 JSON without exposing response content in errors."""
+
+    try:
+        return json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise HttpClientError(f"non-JSON response from {hostname}") from exc
+
+
+def _decode_json_object(raw: bytes, hostname: str) -> dict:
+    """Decode one JSON object and reject arrays or scalar payloads."""
+
+    decoded = _decode_json(raw, hostname)
+    if not isinstance(decoded, dict):
+        raise HttpClientError(f"JSON object expected from {hostname}")
+    return decoded
+
+
+def _decode_json_list(raw: bytes, hostname: str) -> list:
+    """Decode one JSON array and reject objects or scalar payloads."""
+
+    decoded = _decode_json(raw, hostname)
+    if not isinstance(decoded, list):
+        raise HttpClientError(f"JSON array expected from {hostname}")
+    return decoded
+
+
 def post_json(
     url: str,
     payload: dict,
@@ -142,21 +253,10 @@ def post_json(
         ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
         HttpClientError: the server responded with HTTP >= 400 or non-JSON.
     """
-    request_payload = payload
-    request_metadata = current_llm_metadata()
-    if request_metadata:
-        request_payload = dict(payload)
-        existing_metadata = request_payload.get("metadata")
-        if existing_metadata is None:
-            request_payload["metadata"] = request_metadata
-        elif isinstance(existing_metadata, dict):
-            request_payload["metadata"] = {**existing_metadata, **request_metadata}
-        else:
-            raise ValueError("metadata must be an object")
     status, raw = _request(
         "POST",
         url,
-        body=json.dumps(request_payload).encode("utf-8"),
+        body=json_request_body(payload),
         headers={"content-type": "application/json", **headers},
         timeout=timeout,
     )
@@ -178,11 +278,15 @@ def post_form(
     Used by the OIDC smoke test (resource-owner password grant). Same
     scheme allowlist as ``post_json`` -- never ``urllib.request.urlopen``.
     """
+
     status, raw = _request(
         "POST",
         url,
         body=urlencode(fields).encode("utf-8"),
-        headers={"content-type": "application/x-www-form-urlencoded", **(headers or {})},
+        headers={
+            "content-type": "application/x-www-form-urlencoded",
+            **(headers or {}),
+        },
         timeout=timeout,
     )
     hostname = urlparse(url).hostname or url
@@ -196,14 +300,33 @@ def get_json(
     *,
     headers: dict[str, str] | None = None,
     timeout: float,
+    maximum_response_bytes: int | None = None,
+    expected_response_media_type: str | None = None,
 ) -> dict:
-    """GET ``url`` and return the decoded JSON object.
+    """GET ``url`` and return a decoded JSON object.
+
+    Args:
+        url: Operator-configured HTTP(S) endpoint.
+        headers: Optional request headers.
+        timeout: Socket timeout in seconds.
+        maximum_response_bytes: Optional strict response-body byte ceiling.
+        expected_response_media_type: Optional exact lower-case type/subtype.
 
     Raises:
-        ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
-        HttpClientError: the server responded with HTTP >= 400 or non-JSON.
+        ValueError: The URL, byte limit, or expected media type is invalid.
+        HttpClientError: The response is too large, has the wrong media type,
+            returns HTTP >= 400, or is not a JSON object.
     """
-    status, raw = _request("GET", url, body=None, headers=headers or {}, timeout=timeout)
+
+    status, raw = _request(
+        "GET",
+        url,
+        body=None,
+        headers=headers or {},
+        timeout=timeout,
+        maximum_response_bytes=maximum_response_bytes,
+        expected_response_media_type=expected_response_media_type,
+    )
     hostname = urlparse(url).hostname or url
     if status >= 400:
         raise HttpClientError(f"HTTP {status} from {hostname}")
@@ -225,7 +348,14 @@ def get_json_list(
         ValueError: ``url`` is not an ``http`` / ``https`` URL with a host.
         HttpClientError: the server responded with HTTP >= 400 or non-array JSON.
     """
-    status, raw = _request("GET", url, body=None, headers=headers or {}, timeout=timeout)
+
+    status, raw = _request(
+        "GET",
+        url,
+        body=None,
+        headers=headers or {},
+        timeout=timeout,
+    )
     hostname = urlparse(url).hostname or url
     if status >= 400:
         raise HttpClientError(f"HTTP {status} from {hostname}")
