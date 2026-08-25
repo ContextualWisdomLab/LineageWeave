@@ -17,7 +17,7 @@ from types import ModuleType
 from urllib.parse import urlsplit
 
 from rdflib import Graph, URIRef
-from rdflib.namespace import OWL, RDF, RDFS, SKOS
+from rdflib.namespace import OWL, RDF, RDFS, SH, SKOS
 
 try:
     from scripts.ontology_site_contract import public_fragment
@@ -28,8 +28,11 @@ OUTPUT_MARKER = ".lineageweave-ontology-site"
 SOURCE_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg.ttl")
 PROV_PROFILE_RELATIVE_PATH = Path("docs/ontology/prov-o-support-profile.ttl")
 COMPATIBILITY_RELATIVE_PATH = Path("docs/ontology/namespace-compatibility.ttl")
-CANONICAL_NAMESPACE = "https://contextualwisdomlab.github.io/lineageweave/ontology#"
-DEPRECATED_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
+SHAPES_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg-shapes.ttl")
+#: ADR 0205: the repository-case namespace is canonical and the
+#: lowercase form is the deprecated compatibility vocabulary.
+CANONICAL_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
+DEPRECATED_NAMESPACE = "https://contextualwisdomlab.github.io/lineageweave/ontology#"
 
 _MAPPING_FOR_KIND = {
     OWL.Class: OWL.equivalentClass,
@@ -131,6 +134,58 @@ def validate_compatibility_graph(
             raise ValueError("namespace compatibility mapping uses the wrong predicate")
 
 
+def validate_shapes_graph(shapes: Graph, canonical: Graph) -> None:
+    """Reject SHACL shapes whose targets dangle outside the ontology.
+
+    A shape that targets a class absent from the canonical graph, or
+    constrains a path never declared there, would silently validate
+    nothing -- the publication boundary refuses it instead (ADR 0205
+    decision 10). Only URI-valued targets and paths are checked;
+    literal sh:path values are not part of this contract.
+    """
+    if not any(shapes.triples((None, RDF.type, SH.NodeShape))):
+        raise ValueError("SHACL shapes graph declares no sh:NodeShape")
+    for predicate in (SH.targetClass, SH.path):
+        for value in shapes.objects(None, predicate):
+            if not isinstance(value, URIRef) or str(value).startswith(
+                CANONICAL_NAMESPACE
+            ):
+                continue
+            kind = "targetClass" if predicate == SH.targetClass else "path"
+            raise ValueError(
+                f"SHACL {kind} target outside the canonical namespace: {value}"
+            )
+    declared = {
+        subject
+        for subject in canonical.subjects(RDF.type, OWL.Class)
+        if isinstance(subject, URIRef)
+    }
+    declared.update(
+        subject
+        for subject in canonical.subjects(RDF.type, SKOS.Concept)
+        if isinstance(subject, URIRef)
+    )
+    declared.update(
+        subject
+        for subject in canonical.subjects(RDF.type, OWL.ObjectProperty)
+        if isinstance(subject, URIRef)
+    )
+    declared.update(
+        subject
+        for subject in canonical.subjects(RDF.type, OWL.DatatypeProperty)
+        if isinstance(subject, URIRef)
+    )
+    # Entailed classes: anything with a subclass assertion is a class.
+    declared.update(str(subject) for subject, _ in canonical.subject_objects(RDFS.subClassOf))
+    declared = {str(subject) for subject in declared}
+    for target in shapes.objects(None, SH.targetClass):
+        if str(target) not in declared:
+            raise ValueError(f"SHACL targetClass is not an ontology class: {target}")
+    for path in shapes.objects(None, SH.path):
+        if str(path) not in declared:
+            raise ValueError(f"SHACL property path is not an ontology term: {path}")
+
+
 def _validate_output_directory(output_dir: Path, source: Path, profile: Path) -> Path:
     """Resolve an output path and ensure replacement cannot delete source data."""
     requested = output_dir.expanduser()
@@ -150,6 +205,7 @@ def publish_site(repository_root: Path, output_dir: Path) -> None:
     source = root / SOURCE_RELATIVE_PATH
     profile = root / PROV_PROFILE_RELATIVE_PATH
     compatibility_source = root / COMPATIBILITY_RELATIVE_PATH
+    shapes_source = root / SHAPES_RELATIVE_PATH
     if not source.is_file():
         raise FileNotFoundError(f"ontology source is missing: {source}")
     if not profile.is_file():
@@ -158,14 +214,18 @@ def publish_site(repository_root: Path, output_dir: Path) -> None:
         raise FileNotFoundError(
             f"namespace compatibility vocabulary is missing: {compatibility_source}"
         )
+    if not shapes_source.is_file():
+        raise FileNotFoundError(f"SHACL shapes graph is missing: {shapes_source}")
 
     output = _validate_output_directory(output_dir, source, profile)
     renderer = _load_renderer(root)
     graph = Graph().parse(source, format="turtle")
     Graph().parse(profile, format="turtle")
     compatibility_graph = Graph().parse(compatibility_source, format="turtle")
+    shapes_graph = Graph().parse(shapes_source, format="turtle")
     validate_public_graph(graph, renderer)
     validate_compatibility_graph(graph, compatibility_graph)
+    validate_shapes_graph(shapes_graph, graph)
 
     if output.exists():
         shutil.rmtree(output)

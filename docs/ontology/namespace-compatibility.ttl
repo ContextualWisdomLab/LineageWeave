@@ -1,13 +1,19 @@
-@prefix canonical: <https://contextualwisdomlab.github.io/lineageweave/ontology#> .
+@prefix canonical: <https://contextualwisdomlab.github.io/LineageWeave/ontology#> .
 @prefix dcterms: <http://purl.org/dc/terms/> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
-@prefix legacy: <https://contextualwisdomlab.github.io/LineageWeave/ontology#> .
+@prefix legacy: <https://contextualwisdomlab.github.io/lineageweave/ontology#> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
-<https://contextualwisdomlab.github.io/LineageWeave/ontology>
+# ADR 0205 supersedes ADR 0157: the repository-case namespace above is
+# canonical and the lowercase namespace below is the deprecated
+# compatibility vocabulary. Both documents stay dereferenceable with
+# validated mappings; scripts/publish_ontology_site.py verifies local-
+# name equality and RDF term kind fail-closed before publication.
+
+<https://contextualwisdomlab.github.io/lineageweave/ontology>
     a owl:Ontology ;
     owl:deprecated "true"^^xsd:boolean ;
-    dcterms:isReplacedBy <https://contextualwisdomlab.github.io/lineageweave/ontology> .
+    dcterms:isReplacedBy <https://contextualwisdomlab.github.io/LineageWeave/ontology> .
 
 legacy:Post a owl:Class .
 legacy:Person a owl:Class .

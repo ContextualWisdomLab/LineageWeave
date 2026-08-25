@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""Migrate stored ``post_project_mention.ontology_iri`` values off the
-deprecated repository-case namespace onto the canonical lowercase one.
+"""Migrate stored ``post_project_mention.ontology_iri`` values onto the
+canonical repository-case namespace.
 
-ADR 0157 keeps ``https://contextualwisdomlab.github.io/lineageweave/ontology#``
-canonical and demotes ``https://contextualwisdomlab.github.io/LineageWeave/ontology#``
-to a deprecated compatibility namespace. New writes mint only canonical
-IRIs (``lineageweave.ontology`` loads the lowercase graph), but rows written
-before the decision can still carry repository-case IRIs. RDF consumers treat
-the two spellings as different resources, so leaving them split makes
+ADR 0205 supersedes ADR 0157 and makes
+``https://contextualwisdomlab.github.io/LineageWeave/ontology#`` canonical
+-- the exact project path GitHub Pages serves -- while demoting
+``https://contextualwisdomlab.github.io/lineageweave/ontology#`` to a
+deprecated compatibility namespace. New writes mint only canonical IRIs
+(``lineageweave.ontology`` loads the repository-case graph), but rows
+written before this decision can still carry lowercase IRIs. RDF consumers
+treat the two spellings as different resources, so leaving them split makes
 downstream joins miss mentions that are semantically identical.
 
 This tool is deliberately *not* silent:
@@ -16,10 +18,12 @@ This tool is deliberately *not* silent:
 - ``--apply`` performs exactly the printed rewrites inside one transaction;
 - the extraction provenance columns (``extraction_method``, confidence,
   evidence text) are never touched -- only the IRI spelling moves, so the
-  evidence chain of who extracted what remains intact per ADR 0157's
+  evidence chain of who extracted what remains intact per ADR 0205's
   "do not silently rewrite historical evidence" rule;
 - any IRI outside the two known namespaces is reported and left alone so an
-  unexpected third spelling cannot be bulk-mangled.
+  unexpected third spelling cannot be bulk-mangled;
+- the operation is idempotent -- rerunning on a migrated database reports
+  ``no legacy namespace rows remain`` and writes nothing.
 
 Usage::
 
@@ -34,8 +38,8 @@ import sys
 
 import asyncpg
 
-CANONICAL_NAMESPACE = "https://contextualwisdomlab.github.io/lineageweave/ontology#"
-LEGACY_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
+CANONICAL_NAMESPACE = "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
+LEGACY_NAMESPACE = "https://contextualwisdomlab.github.io/lineageweave/ontology#"
 
 
 def canonicalize(iri: str) -> str | None:

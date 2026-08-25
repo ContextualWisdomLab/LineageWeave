@@ -28,6 +28,13 @@ from rdflib.namespace import OWL, RDF, RDFS, SKOS
 
 PUBLIC_BASE_URL = "https://contextualwisdomlab.github.io/LineageWeave"
 DOCUMENTATION_URL = f"{PUBLIC_BASE_URL}/ontology"
+#: ADR 0205: the canonical namespace is the repository-case spelling --
+#: the exact project path GitHub Pages serves. The lowercase form is a
+#: deprecated compatibility vocabulary published beside the ontology.
+CANONICAL_LOOKUP_PREDICATE = (
+    "https://contextualwisdomlab.github.io/LineageWeave/ontology#lookupCode"
+)
+SHAPES_RELATIVE_PATH = Path("docs/ontology/lineageweave-kg-shapes.ttl")
 CANONICAL_LINK_SUPPRESSION = (
     "<!-- nosemgrep: html.security.audit.missing-integrity.missing-integrity "
     "-- canonical metadata fetches no subresource -->"
@@ -156,9 +163,7 @@ def _render_term(graph: Graph, subject: URIRef, ontology_subjects: set[URIRef]) 
         or raw_fragment
     )
     comment = _preferred_literal(graph, subject, RDFS.comment)
-    lookup_predicate = URIRef(
-        "https://contextualwisdomlab.github.io/lineageweave/ontology#lookupCode"
-    )
+    lookup_predicate = URIRef(CANONICAL_LOOKUP_PREDICATE)
     lookup_codes = sorted(str(value) for value in graph.objects(subject, lookup_predicate))
     type_values = sorted(
         (value for value in graph.objects(subject, RDF.type) if isinstance(value, URIRef)),
@@ -352,6 +357,7 @@ def _render_ontology_page(graph: Graph, source_sha256: str) -> tuple[str, int]:
         '<a href="ontology.nt" type="application/n-triples">N-Triples <small>generated equivalent</small></a>'
         '<a href="prov-o-support-profile.ttl" type="text/turtle">PROV-O support profile</a>'
         '<a href="namespace-compatibility.ttl" type="text/turtle">Deprecated namespace compatibility</a>'
+        '<a href="lineageweave-kg-shapes.ttl" type="text/turtle">SHACL shapes</a>'
         '<a href="manifest.json" type="application/json">Build manifest</a>'
         "</div></section>"
         '<section class="summary-grid" aria-label="Ontology publication summary">'
@@ -359,7 +365,7 @@ def _render_ontology_page(graph: Graph, source_sha256: str) -> tuple[str, int]:
         f'<div class="summary-card"><strong>{len(graph)}</strong><br>RDF triples</div>'
         f'<div class="summary-card"><strong><code>{html.escape(source_sha256[:12])}</code></strong><br>Source SHA-256 prefix</div>'
         "</section>"
-        '<p class="notice"><strong>Identity boundary:</strong> this project page is the stable documentation endpoint requested for the repository. The source ontology IRI shown above remains the semantic identifier until an explicit versioned namespace-migration ADR says otherwise.</p>'
+        '<p class="notice"><strong>Identity boundary:</strong> this project page is the stable documentation endpoint requested for the repository. Per ADR 0205 the repository-case ontology IRI shown above is the canonical semantic identifier; the lowercase namespace remains a deprecated compatibility vocabulary with validated mappings.</p>'
         '<nav class="on-this-page" aria-label="Ontology term categories"><strong>Term categories</strong><ul>'
         f"{nav}</ul></nav>"
         f"{term_sections}"
@@ -400,6 +406,7 @@ def _write_manifest(
         "documentation_url": DOCUMENTATION_URL,
         "generated_artifacts": [
             "index.html",
+            "lineageweave-kg-shapes.ttl",
             "manifest.json",
             "namespace-compatibility.ttl",
             "ontology.jsonld",
@@ -407,6 +414,7 @@ def _write_manifest(
             "ontology.ttl",
             "prov-o-support-profile.ttl",
         ],
+        "shapes_path": SHAPES_RELATIVE_PATH.as_posix(),
         "ontology_triple_count": len(graph),
         "ontology_unique_term_count": term_count,
         "source_path": SOURCE_RELATIVE_PATH.as_posix(),
@@ -425,12 +433,15 @@ def build_site(repository_root: Path, output_dir: Path) -> None:
     source = root / SOURCE_RELATIVE_PATH
     prov_profile = root / PROV_PROFILE_RELATIVE_PATH
     compatibility = root / COMPATIBILITY_RELATIVE_PATH
+    shapes = root / SHAPES_RELATIVE_PATH
     if not source.is_file():
         raise FileNotFoundError(f"ontology source is missing: {source}")
     if not prov_profile.is_file():
         raise FileNotFoundError(f"PROV-O support profile is missing: {prov_profile}")
     if not compatibility.is_file():
         raise FileNotFoundError(f"namespace compatibility vocabulary is missing: {compatibility}")
+    if not shapes.is_file():
+        raise FileNotFoundError(f"SHACL shapes graph is missing: {shapes}")
 
     if output.exists():
         raise FileExistsError(
@@ -450,6 +461,7 @@ def build_site(repository_root: Path, output_dir: Path) -> None:
     shutil.copyfile(source, ontology_dir / "ontology.ttl")
     shutil.copyfile(prov_profile, ontology_dir / "prov-o-support-profile.ttl")
     shutil.copyfile(compatibility, ontology_dir / "namespace-compatibility.ttl")
+    shutil.copyfile(shapes, ontology_dir / "lineageweave-kg-shapes.ttl")
     _write_serializations(graph, ontology_dir)
     _write_manifest(ontology_dir, source, graph, term_count)
     (output / "robots.txt").write_text(

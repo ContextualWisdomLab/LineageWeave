@@ -372,7 +372,15 @@ The ontology namespace publishes as a deterministic GitHub Pages artifact
 bytes -- no build timestamps, source SHA-256 manifest) and deploy only
 through the fail-closed `scripts/publish_ontology_site.py` from `main`.
 A manual dispatch from another ref is not a publication path. The
-lowercase and repository-case public namespace IRIs remain a tracked
-interoperability gap ([ADR 0157](docs/adr/0157-public-ontology-namespace-identity.md),
-issue #372): do not silently rewrite either form; any namespace migration
-is a versioned ADR with compatibility mappings first.
+repository-case public namespace
+`https://contextualwisdomlab.github.io/LineageWeave/ontology#` is
+canonical ([ADR 0205](docs/adr/0205-repository-case-ontology-namespace-canonical.md),
+superseding ADR 0157, resolving issue #372); the lowercase form is a
+deprecated compatibility vocabulary with validated term-kind mappings.
+New runtime values, exports, fixtures, and database rows mint only
+repository-case IRIs; `scripts/migrate_legacy_namespace.py` rewrites
+stored lowercase IRIs (dry-run by default, never touching provenance
+columns). Do not silently rewrite either historical form. The SHACL
+shapes graph (`docs/ontology/lineageweave-kg-shapes.ttl`) is the
+closed-world data-validation boundary for DB-to-RDF projections and is
+published beside the ontology.

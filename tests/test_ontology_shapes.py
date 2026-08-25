@@ -1,0 +1,189 @@
+"""Closed-world SHACL validation of the LineageWeave knowledge-graph
+ontology (ADR 0205 decision 10).
+
+OWL's open-world semantics infers; it does not verify that projected
+data arrived complete and in range (Knublauch & Kontokostas, 2017).
+`docs/ontology/lineageweave-kg-shapes.ttl` carries exactly that
+verification, and this module proves it works in both directions:
+
+- the shipped shapes graph conforms to the SHACL specification itself;
+- a representative post/mention projection passes;
+- the same projection with a confidence above 1.0 -- or a missing
+  required title -- is rejected, naming the violated constraint.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+import pytest
+from rdflib import Graph, Literal, Namespace, URIRef
+from rdflib.namespace import RDF, XSD
+from pyshacl import validate as shacl_validate
+
+ROOT = Path(__file__).resolve().parents[1]
+KG_PATH = ROOT / "docs" / "ontology" / "lineageweave-kg.ttl"
+SHAPES_PATH = ROOT / "docs" / "ontology" / "lineageweave-kg-shapes.ttl"
+
+LW = "https://contextualwisdomlab.github.io/LineageWeave/ontology#"
+
+
+def _load_kg() -> Graph:
+    """Parse the source ontology graph fresh."""
+    return Graph().parse(KG_PATH, format="turtle")
+
+
+def _load_shapes() -> Graph:
+    """Parse the SHACL shapes graph fresh."""
+    return Graph().parse(SHAPES_PATH, format="turtle")
+
+
+def _conforms(data: Graph) -> tuple[bool, str]:
+    """Run pyshacl over ``data`` against the shipped shapes; return the
+    verdict plus the human-readable report text for assertions."""
+    conforms, _, report_text = shacl_validate(
+        data_graph=data,
+        shacl_graph=_load_shapes(),
+        ont_graph=_load_kg(),
+        inference="none",
+        advanced=True,
+    )
+    return bool(conforms), report_text
+
+
+def _representative_projection() -> Graph:
+    """Build one minimal but realistic DB-to-RDF projection: a post with
+    every required attribute, a person, an entity, an our-side person,
+    and a project mention whose evidence chain is intact.
+    """
+    data = _load_kg()
+    LWn = Namespace(LW)
+    post = URIRef(LW + "post-alpha")
+    data.add((post, RDF.type, LWn.Post))
+    data.add((post, LWn.postTitle, Literal("Line 3 downtime window")))
+    data.add((post, LWn.postBody, Literal("Customer reported a stoppage after changeover.")))
+    data.add(
+        (
+            post,
+            LWn.createdAt,
+            Literal("2026-08-25T01:23:45+00:00", datatype=XSD.dateTime),
+        )
+    )
+    person = URIRef(LW + "person-okonkwo")
+    data.add((person, RDF.type, LWn.Person))
+    data.add((person, LWn.personName, Literal("Sam Okonkwo")))
+    entity = URIRef(LW + "entity-acme")
+    data.add((entity, RDF.type, LWn.CorporateEntity))
+    data.add((entity, LWn.entityName, Literal("Acme Electronics Korea")))
+    data.add((entity, LWn.entityCode, Literal("ACME-KR")))
+    our_side = URIRef(LW + "person-our-side")
+    data.add((our_side, RDF.type, LWn.OurSidePerson))
+    # Our-side persons are SHACL instances of :Person through the
+    # subclass chain, so the required name applies to them as well --
+    # exactly like cataloged_person.person_name's NOT NULL.
+    data.add((our_side, LWn.personName, Literal("Dana Whitfield")))
+    mention = URIRef(LW + "mention-alpha")
+    data.add((mention, RDF.type, LWn.ProjectMention))
+    data.add(
+        (
+            mention,
+            LWn.semanticConfidence,
+            Literal("0.87", datatype=XSD.decimal),
+        )
+    )
+    data.add((mention, LWn.projectEvidence, Literal("proj-alpha kickoff cited verbatim.")))
+    return data
+
+
+def test_shipped_shapes_conform_to_shacl_specification() -> None:
+    """The shapes artifact itself must be valid SHACL before it may gate
+    anything else -- validated with no data graph attached to it.
+    """
+    conforms, report_text = _conforms(_load_shapes())
+    assert conforms, report_text
+
+
+def test_representative_db_projection_passes_validation() -> None:
+    """A realistic projection of real schema rows validates cleanly."""
+    conforms, report_text = _conforms(_representative_projection())
+    assert conforms, report_text
+
+
+@pytest.mark.parametrize(
+    ("mutation", "expected_fragment"),
+    [
+        pytest.param(
+            lambda g: g.remove(
+                (
+                    URIRef(LW + "post-alpha"),
+                    URIRef(LW + "postTitle"),
+                    None,
+                )
+            ),
+            "postTitle",
+            id="missing-required-post-title",
+        ),
+        pytest.param(
+            lambda g: g.set(
+                (
+                    URIRef(LW + "mention-alpha"),
+                    URIRef(LW + "semanticConfidence"),
+                    Literal("1.5", datatype=XSD.decimal),
+                )
+            ),
+            "semanticConfidence",
+            id="confidence-above-one",
+        ),
+        pytest.param(
+            lambda g: g.add(
+                (
+                    URIRef(LW + "person-our-side"),
+                    RDF.type,
+                    URIRef(LW + "CounterpartyPerson"),
+                )
+            ),
+            "OurSidePersonShape",
+            id="disjoint-person-side",
+        ),
+        pytest.param(
+            lambda g: g.remove(
+                (
+                    URIRef(LW + "entity-acme"),
+                    URIRef(LW + "entityCode"),
+                    None,
+                )
+            ),
+            "entityCode",
+            id="missing-entity-code",
+        ),
+    ],
+)
+def test_violations_are_rejected_with_the_right_constraint_name(
+    mutation, expected_fragment: str
+) -> None:
+    """Each broken projection fails closed and the report names the
+    property or shape that was violated, so operators see which column
+    projection drifted instead of a bare boolean.
+    """
+    data = _representative_projection()
+    mutation(data)
+    conforms, report_text = _conforms(data)
+    assert not conforms
+    assert expected_fragment in report_text
+
+
+def test_confidence_boundary_values_are_inclusive() -> None:
+    """Exactly 0.0 and 1.0 are legal -- the bound is [0.0, 1.0]
+    inclusive per ADR 0205 decision 10.
+    """
+    for value in ("0.0", "1.0"):
+        data = _representative_projection()
+        data.set(
+            (
+                URIRef(LW + "mention-alpha"),
+                URIRef(LW + "semanticConfidence"),
+                Literal(value, datatype=XSD.decimal),
+            )
+        )
+        conforms, report_text = _conforms(data)
+        assert conforms, f"{value} rejected:\n{report_text}"

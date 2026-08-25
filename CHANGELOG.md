@@ -8,6 +8,29 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
+- The repository-case public ontology namespace
+  `https://contextualwisdomlab.github.io/LineageWeave/ontology#` is canonical
+  (ADR 0205, superseding ADR 0157, resolving issue #372); the lowercase form
+  is a deprecated compatibility vocabulary with validated mappings and a
+  dry-run migration tool for stored values.
+- Closed-world SHACL validation (`docs/ontology/lineageweave-kg-shapes.ttl`,
+  pyshacl in tests): required post title/body/timestamp, project-mention
+  confidence bounded to `[0.0, 1.0]`, required person/entity names and entity
+  code, and the our-side/counterparty disjointness complement; published with
+  the ontology site and guarded against dangling shape targets.
+- Node-attribute datatype properties grounded only in real schema columns
+  (`postTitle`, `postBody`, `eventOccurredAt`, `personName`,
+  `lastKnownJobTitle`, `entityName`, `entityCode`, shared domain-free
+  `createdAt`/`updatedAt`), a SKOS post-type scheme formalizing the governed
+  five-value `voc_type` vocabulary under the round-trip check, and logical
+  constraints: `OurSidePerson owl:disjointWith CounterpartyPerson` plus the
+  `hasAffiliate` inverse of `affiliatedWith` (ADR 0205).
+
+### Changed
+
+- Ontology publication artifacts now include the SHACL shapes graph; the
+  manifest lists it deterministically and the documentation page links it.
+
 - Registered the `analysis_run_topic_lineage` analysis-run kind (migrations
   0131/0132, ADR 0132), the LineageWeave-side consumption boundary for
   TEPP's Temporal Relational Shared-Latent Topic Measurement (TRSL-TM,
