@@ -5073,6 +5073,15 @@ def test_seed_period_report_surfaces_on_get_reports(client, demo_analyst_token, 
         if row["grouping_kind"] == "thread_group"
     }
     assert threads["A-100"] > threads["B-200"]
+    leftover_thread = next(
+        row
+        for row in compare.json()["groupings"]
+        if row["grouping_kind"] == "thread_group" and row["grouping_label"] == "A-100"
+    )
+    leftover_kinds = {pair["pair_kind"] for pair in leftover_thread.get("leftover_pairs", [])}
+    assert leftover_kinds <= {"closest", "farthest"}
+    assert all(pair["post_title"] for pair in leftover_thread.get("leftover_pairs", []))
+    assert all(pair["leftover_distance"] >= 0 for pair in leftover_thread.get("leftover_pairs", []))
 
 
 def test_seed_period_report_includes_fixture_event_lineage_posts(

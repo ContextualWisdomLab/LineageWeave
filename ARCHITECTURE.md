@@ -608,7 +608,8 @@ many scored posts entered the factorization. Results persist to
 `report_period_score` / `report_member_score`.
 `GET /api/reports/{grouping}` lists the trend;
 `GET /api/reports/{grouping}/{period}` is ABAC-filtered;
-`GET /api/reports/compare/{period}` is the home-page grouping strip;
+`GET /api/reports/compare/{period}` is the home-page grouping strip
+and carries the same ABAC-filtered leftover pairs (ADR 0149);
 `POST .../rebuild` scores every grouping kind (post_admin). `make seed`
 folds A-100/B-200 Event Lineage fixtures (and the Riverbend calendar
 post) that already have constructed IRT cells into the same shared
@@ -621,6 +622,9 @@ closest/farthest pairs (signed residual `R`, observed `Y`, expected
 effects) above the member list, leftover-map axis share for residual
 SVD axes 1 and 2, and complete-case coverage captions (map used N of M
 scored posts), plus the
+
+closest/farthest pairs above the member list, leftover pairs on the
+grouping comparison strip, and the
 PU / corp / thread comparison -- never a placeholder. TEPP is unchanged.
 
 ## Phase 6b: Knowledge Graph as a real Ontology + Semantic Layer

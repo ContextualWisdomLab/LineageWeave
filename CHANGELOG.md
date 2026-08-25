@@ -49,6 +49,13 @@ All notable changes to this project are documented here. Format follows
   (complete-case)”; incomplete rows stay excluded, never filled with
   zero.
 
+- The grouping comparison strip now names leftover post–criterion
+  pairs on each visible row (ADR 0149). After `make seed`, open a
+  leftover pair on A-100 from the strip to read that post. A leftover
+  pair for a hidden post is omitted. Distances come from the same
+  authorized leftover store as the period-report list; they do not
+  invent a leftover score.
+
 ### Fixed
 
 - Event Lineage's DAG no longer leaves a linear (no-branch) reconstruct
