@@ -140,7 +140,7 @@ def ask_grounding_status(
 
     if knowledge_cutoff is None:
         return "live_only"
-    if any(source.historical_body_unavailable for source in sources):
+    if not sources or any(source.historical_body_unavailable for source in sources):
         return "partially_cutoff_grounded"
     return "fully_cutoff_grounded"
 

@@ -143,3 +143,9 @@ def test_cutoff_citation_identifies_revision_clock_and_limitations() -> None:
     assert cutoff["live_changed_after_cutoff"] is True
     assert live == {"post_id": "live-post", "post_title": "Live"}
     assert ask_grounding_status([cutoff_source], _CUTOFF.isoformat()) == "fully_cutoff_grounded"
+
+
+def test_empty_cutoff_sources_never_claim_full_grounding() -> None:
+    """A cutoff answer with no evidence cannot be fully grounded."""
+
+    assert ask_grounding_status([], _CUTOFF.isoformat()) == "partially_cutoff_grounded"
