@@ -200,7 +200,7 @@ export function OntologyExplorer({
           <h3>{t("Typed relations, not Event Lineage")}</h3>
           <p>
             {t("This is an ontology neighborhood, not Event Lineage.")}{" "}
-            {t("Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, and posts.")}
+            {t("Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, projects, and posts.")}
           </p>
         </div>
         <div className="ontology-explorer-actions">

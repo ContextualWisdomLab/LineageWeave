@@ -455,8 +455,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Typed relations, not Event Lineage": "유형 관계이며 이벤트 계보가 아닙니다",
     "This is an ontology neighborhood, not Event Lineage.":
       "이벤트 계보가 아니라 온톨로지 이웃입니다.",
-    "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, and posts.":
-      "이벤트 계보는 복원된 글-글 부모 링크입니다. 이 그래프는 유형이 있는 사람, 조직, 팀, 글을 보여 줍니다.",
+    "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, projects, and posts.":
+      "이벤트 계보는 복원된 글-글 부모 링크입니다. 이 그래프는 유형이 있는 사람, 조직, 팀, 프로젝트, 글을 보여 줍니다.",
     "Loading ontology neighborhood...": "온톨로지 이웃을 불러오는 중...",
     "No visible ontology relations for this focus. Open a Keyman or affiliated organization next.":
       "이 초점에 표시할 온톨로지 관계가 없습니다. 다음으로 Keyman이나 소속 조직을 여세요.",
@@ -970,8 +970,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     Post: "文章",
     "Typed relations, not Event Lineage": "这是类型化关系，不是事件谱系",
     "This is an ontology neighborhood, not Event Lineage.": "这是本体邻域，不是事件谱系。",
-    "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, and posts.":
-      "事件谱系显示重建的文章父子链接。此图显示带类型的人员、组织、团队和文章。",
+    "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, projects, and posts.":
+      "事件谱系显示重建的文章父子链接。此图显示带类型的人员、组织、团队、项目和文章。",
     "Loading ontology neighborhood...": "正在加载本体邻域...",
     "No visible ontology relations for this focus. Open a Keyman or affiliated organization next.":
       "此焦点没有可见的本体关系。接下来打开关键联系人或所属组织。",
@@ -1488,8 +1488,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Typed relations, not Event Lineage": "型付き関係であり、イベント系譜ではありません",
     "This is an ontology neighborhood, not Event Lineage.":
       "これはイベント系譜ではなく、オントロジー近傍です。",
-    "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, and posts.":
-      "イベント系譜は復元された投稿間の親子リンクです。このグラフは型付きの人・組織・チーム・投稿を示します。",
+    "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, projects, and posts.":
+      "イベント系譜は復元された投稿間の親子リンクです。このグラフは型付きの人・組織・チーム・プロジェクト・投稿を示します。",
     "Loading ontology neighborhood...": "オントロジー近傍を読み込んでいます...",
     "No visible ontology relations for this focus. Open a Keyman or affiliated organization next.":
       "この焦点に表示できるオントロジー関係はありません。次にキーパーソンまたは所属組織を開いてください。",
@@ -2006,8 +2006,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Typed relations, not Event Lineage": "Quan hệ có kiểu, không phải Dòng sự kiện",
     "This is an ontology neighborhood, not Event Lineage.":
       "Đây là lân cận bản thể, không phải Dòng sự kiện.",
-    "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, and posts.":
-      "Dòng sự kiện hiện liên kết cha-con đã tái tạo giữa các bài viết. Đồ thị này hiện người, tổ chức, nhóm và bài viết có kiểu.",
+    "Event Lineage shows reconstructed post-to-post parents. This graph shows typed people, organizations, teams, projects, and posts.":
+      "Dòng sự kiện hiện liên kết cha-con đã tái tạo giữa các bài viết. Đồ thị này hiện người, tổ chức, nhóm, dự án và bài viết có kiểu.",
     "Loading ontology neighborhood...": "Đang tải lân cận bản thể...",
     "No visible ontology relations for this focus. Open a Keyman or affiliated organization next.":
       "Không có quan hệ bản thể hiển thị cho tiêu điểm này. Hãy mở Keyman hoặc tổ chức liên kết tiếp theo.",
