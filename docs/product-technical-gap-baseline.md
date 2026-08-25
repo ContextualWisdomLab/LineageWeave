@@ -1,5 +1,20 @@
 # Product & Technical Gap Baseline
 
+> TEPP lifecycle continuation snapshot: 2026-08-26. Protected `main` is
+> `04e6b610655d0db91d5f7ba9486bdda1440e0b19`; the nine open main-target PRs
+> are #644, #643, #640, #639, #636, #632, #631, #629, and #579. Eight were
+> auto-merge armed; updated #632 (`679df1d7`) had fresh checks queued and no
+> auto-merge request at the exact-head refresh. None had the required
+> independent exact-head approval. ADR 0213 now carries
+> the current-main implementation of issue #277 after TEPP PR #157 published
+> the terminal DTO. TEPP issue #249 owns the still-missing executable HTTP
+> status service. No protected merge or live measurement is claimed here.
+> Focused backend lifecycle/authorization/schema verification is 76 passed;
+> frontend verification is 382 passed plus lint and production build. The
+> broader backend run reached 1,195 passed and 17 skipped before 127 existing
+> live-PostgreSQL fixture errors (duplicate seeded snapshot digest) prevented a
+> green full-suite claim.
+
 > Dashboard delivery snapshot: 2026-08-25 21:34 KST. Protected `main` was
 > `d7d5eeb310b055b5e138060cf2dfb929b03090a6`. This local branch is not
 > protected-main release evidence.
@@ -346,7 +361,7 @@ this file per §3.5 of the prior snapshot).
 | #271 | Evidence-honest knowledge-cutoff scope on Global Ask | Ask stack |
 | #272 | Verify Global Ask KG/ontology/semantic claims with public SearXNG evidence | Ask stack |
 | #274 | Persist and explain Event Lineage channel evidence | #387 |
-| #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #468, #417 |
+| #277 | TEPP: persist accepted receipts, read completed results, keep measurement authority distinct | ADR 0213 current-main continuation; provider HTTP route tracked by TEPP #249 |
 | #280 | Full project-lifecycle history and handover intervals | Tracked with issue #284; no active delivery PR confirmed |
 | #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
 | #289 | Activate the optional lineage LLM channel through a bounded asynchronous rebuild | #434 |

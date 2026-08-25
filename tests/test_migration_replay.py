@@ -182,3 +182,19 @@ def test_topic_lineage_result_migration_is_idempotent_for_replay() -> None:
 
     assert "create table if not exists analysis_run_topic_lineage_result" in migration
     assert "create index if not exists" in migration
+
+
+def test_tepp_receipt_migration_is_replayable_and_digest_bound() -> None:
+    """Accepted transport evidence survives every-start migration replay."""
+    migration_name = "0210_analysis_run_tepp_receipt.sql"
+    sql = (
+        Path(__file__).resolve().parents[1] / "migrations" / migration_name
+    ).read_text(encoding="utf-8").casefold()
+
+    assert re.fullmatch(r"[0-9]{4}_.+\.sql", migration_name)
+    assert "create table if not exists analysis_run_tepp_receipt" in sql
+    assert "remote_run_id text not null unique" in sql
+    assert "request_sha256 ~ '^[0-9a-f]{64}$'" in sql
+    assert "receipt_sha256 ~ '^[0-9a-f]{64}$'" in sql
+    assert "accepted_status_code = 'accepted'" in sql
+    assert "create index if not exists" in sql

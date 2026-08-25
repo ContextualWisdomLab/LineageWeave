@@ -38,7 +38,12 @@ from lineageweave.adjudication_client import AdjudicationClient
 from lineageweave.http_client import HttpClientError, post_json
 from lineageweave.lineage_persistence import lineage_edge_specs
 from lineageweave.models import Edge
-from lineageweave.tepp_client import AnalysisRunRequest, TeppClient, TeppNotAvailable
+from lineageweave.tepp_client import (
+    AnalysisRunRequest,
+    TeppClient,
+    TeppInvalidResponse,
+    TeppNotAvailable,
+)
 
 _LINEAGE_KIND = "analysis_run_lineage"
 _TEPP_KIND = "analysis_run_tepp"
@@ -110,6 +115,8 @@ class _DeliveryOutcome:
     envelope: dict[str, Any] | None = None
     source_snapshot_sha256: str | None = None
     knowledge_cutoff: datetime | None = None
+    request: AnalysisRunRequest | None = None
+    persist_receipt: bool = False
 
 
 def reconstruction_result_digest(edges: list[Edge]) -> str:
@@ -252,14 +259,92 @@ def _tepp_submission(
         return _FAILED, "tepp_not_available", None
     if not isinstance(response, dict):
         return _FAILED, "tepp_result_not_persisted", None
-    if response.get("status") not in {"completed", "succeeded"}:
+    state = response.get("status") or response.get("run_state")
+    remote_run_id = response.get("analysis_run_id") or response.get("run_id")
+    if state == "accepted":
+        if (
+            set(response)
+            == {"contract_version", "run_id", "run_state", "idempotency_key"}
+            and response["contract_version"] == 1
+            and response["idempotency_key"] == request.idempotency_key
+            and isinstance(remote_run_id, str)
+            and remote_run_id.strip()
+        ):
+            return _RUNNING, "", response
+        return _FAILED, "tepp_result_not_persisted", None
+    if state not in {"completed", "succeeded"}:
         return _FAILED, "tepp_result_not_persisted", None
     if not isinstance(response.get("result"), dict):
         return _FAILED, "tepp_result_not_persisted", None
-    remote_run_id = response.get("analysis_run_id") or response.get("run_id")
     if not isinstance(remote_run_id, str) or not remote_run_id.strip():
         return _FAILED, "tepp_result_not_persisted", None
     return _SUCCEEDED, "", response
+
+
+def _tepp_status(
+    client: TeppClient,
+    request: AnalysisRunRequest,
+    remote_run_id: str,
+) -> tuple[str, str, dict[str, Any] | None]:
+    """Read one strict provider status; unavailable reads remain retryable."""
+    try:
+        response = client.read_analysis_run_status(remote_run_id, request)
+    except TeppNotAvailable:
+        return _RUNNING, "", None
+    except TeppInvalidResponse:
+        return _FAILED, "tepp_result_not_persisted", None
+    if response["run_state"] in {"accepted", "running"}:
+        return _RUNNING, "", response
+    terminal = response["terminal_result"]
+    if response["run_state"] == "failed":
+        return _FAILED, str(terminal["failure_code"]), terminal
+    return _SUCCEEDED, "", terminal
+
+
+async def _persist_tepp_receipt(
+    conn: asyncpg.Connection,
+    *,
+    analysis_run_id: str,
+    request: AnalysisRunRequest,
+    envelope: dict[str, Any],
+) -> bool:
+    """Persist TEPP acceptance as transport evidence, never measurement."""
+    remote_run_id = envelope.get("analysis_run_id") or envelope.get("run_id")
+    state = envelope.get("status") or envelope.get("run_state")
+    if not isinstance(remote_run_id, str) or state != "accepted":
+        return False
+    request_json = json.dumps(request.to_json(), separators=(",", ":"), sort_keys=True)
+    receipt_json = json.dumps(envelope, separators=(",", ":"), sort_keys=True)
+    request_sha256 = hashlib.sha256(request_json.encode()).hexdigest()
+    receipt_sha256 = hashlib.sha256(receipt_json.encode()).hexdigest()
+    existing = await conn.fetchrow(
+        """
+        select remote_run_id, request_sha256, receipt_sha256
+        from analysis_run_tepp_receipt
+        where analysis_run_id = $1
+        """,
+        analysis_run_id,
+    )
+    if existing is not None:
+        return (
+            str(existing["remote_run_id"]) == remote_run_id
+            and str(existing["request_sha256"]) == request_sha256
+            and str(existing["receipt_sha256"]) == receipt_sha256
+        )
+    await conn.execute(
+        """
+        insert into analysis_run_tepp_receipt
+            (analysis_run_id, remote_run_id, request_sha256, receipt_sha256,
+             accepted_status_code)
+        values ($1, $2, $3, $4, $5)
+        """,
+        analysis_run_id,
+        remote_run_id,
+        request_sha256,
+        receipt_sha256,
+        state,
+    )
+    return True
 
 
 def tepp_submit_outcome(
@@ -332,6 +417,19 @@ async def _persist_tepp_result(
     result_sha256 = hashlib.sha256(result_json.encode("utf-8")).hexdigest()
     try:
         async with conn.transaction():
+            existing = await conn.fetchrow(
+                """
+                select remote_run_id, result_sha256
+                from analysis_run_tepp_result
+                where analysis_run_id = $1
+                """,
+                analysis_run_id,
+            )
+            if existing is not None:
+                return (
+                    str(existing["remote_run_id"]) == remote_run_id
+                    and str(existing["result_sha256"]) == result_sha256
+                )
             await conn.execute(
                 """
                 insert into analysis_run_tepp_result
@@ -899,12 +997,14 @@ async def _claim_delivery_plan(
         select outbox.analysis_run_id, outbox.work_kind_code,
                run.knowledge_cutoff, run.idempotency_key,
                run.analysis_source_snapshot_id, snapshot.snapshot_sha256,
-               scope.corporate_entity_id
+               scope.corporate_entity_id, receipt.remote_run_id
         from analysis_run_outbox outbox
         join analysis_run run on run.analysis_run_id = outbox.analysis_run_id
         join analysis_run_scope scope on scope.analysis_run_id = run.analysis_run_id
         join analysis_source_snapshot snapshot
           on snapshot.analysis_source_snapshot_id = run.analysis_source_snapshot_id
+        left join analysis_run_tepp_receipt receipt
+          on receipt.analysis_run_id = run.analysis_run_id
         where outbox.analysis_run_id = $1
         for update of outbox
         """,
@@ -1003,12 +1103,18 @@ def _execute_delivery_plan(
         knowledge_cutoff=plan.locked["knowledge_cutoff"],
         corporate_entity_id=str(plan.locked["corporate_entity_id"]),
     )
+    persist_receipt = False
     if plan.work_kind_code == _TOPIC_LINEAGE_KIND:
         status_code, failure_code, envelope = topic_lineage_submit_outcome(
             tepp_client, request
         )
+    elif plan.locked.get("remote_run_id"):
+        status_code, failure_code, envelope = _tepp_status(
+            tepp_client, request, str(plan.locked["remote_run_id"])
+        )
     else:
         status_code, failure_code, envelope = _tepp_submission(tepp_client, request)
+        persist_receipt = status_code == _RUNNING and envelope is not None
     return _DeliveryOutcome(
         plan.work_kind_code,
         plan.started_at,
@@ -1017,6 +1123,8 @@ def _execute_delivery_plan(
         envelope=envelope,
         source_snapshot_sha256=str(plan.locked["snapshot_sha256"]),
         knowledge_cutoff=plan.locked["knowledge_cutoff"],
+        request=request,
+        persist_receipt=persist_receipt,
     )
 
 
@@ -1044,6 +1152,29 @@ async def _persist_delivery_outcome(
     finished = max(datetime.now(timezone.utc), outcome.started_at)
     status_code = outcome.status_code
     failure_code = outcome.failure_code
+    if outcome.work_kind_code == _TEPP_KIND and outcome.status_code == _RUNNING:
+        if outcome.persist_receipt:
+            persisted_receipt = (
+                outcome.envelope is not None
+                and outcome.request is not None
+                and await _persist_tepp_receipt(
+                    conn,
+                    analysis_run_id=analysis_run_id,
+                    request=outcome.request,
+                    envelope=outcome.envelope,
+                )
+            )
+            if not persisted_receipt:
+                status_code = _FAILED
+                failure_code = "tepp_receipt_not_persisted"
+            else:
+                return await _visible_or_404(
+                    conn, analysis_run_id, account_id, affiliated_entity_ids
+                )
+        else:
+            return await _visible_or_404(
+                conn, analysis_run_id, account_id, affiliated_entity_ids
+            )
     if outcome.work_kind_code == _LINEAGE_KIND:
         await _persist_lineage_reconstruction(
             conn, analysis_run_id=analysis_run_id, edges=outcome.edges, finished=finished

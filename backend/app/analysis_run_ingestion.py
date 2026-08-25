@@ -422,6 +422,24 @@ async def fetch_visible_analysis_run(
                 json.loads(envelope) if isinstance(envelope, str) else envelope
             )
             detail["topic_lineage_result_sha256"] = topic_result["result_sha256"]
+    if row["run_kind_code"] == _TEPP_RUN_KIND:
+        try:
+            receipt = await conn.fetchrow(
+                """
+                select remote_run_id, accepted_status_code, received_at
+                from analysis_run_tepp_receipt
+                where analysis_run_id = $1
+                """,
+                analysis_run_id,
+            )
+        except asyncpg.UndefinedTableError:
+            receipt = None
+        if receipt is not None:
+            detail["tepp_accepted_receipt"] = {
+                "remote_run_id": str(receipt["remote_run_id"]),
+                "accepted_status_code": str(receipt["accepted_status_code"]),
+                "received_at": _iso(receipt["received_at"]),
+            }
     return detail
 
 

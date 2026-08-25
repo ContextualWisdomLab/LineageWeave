@@ -10,6 +10,7 @@ from backend.app import analysis_run_start
 from backend.app.analysis_run_ingestion import reconstructed_edge_is_visible
 from backend.app.analysis_run_start import (
     AnalysisRunStartError,
+    _persist_tepp_receipt,
     _persist_tepp_result,
     configured_tepp_client,
     reconstruction_member_ids,
@@ -216,6 +217,121 @@ def _tepp_request() -> AnalysisRunRequest:
     )
 
 
+def test_tepp_delivery_separates_acceptance_from_terminal_measurement() -> None:
+    locked = {
+        "idempotency_key": "buyer-tepp-2026-w07",
+        "snapshot_sha256": "ab" * 32,
+        "knowledge_cutoff": datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc),
+        "corporate_entity_id": "11111111-1111-1111-1111-111111111111",
+        "remote_run_id": None,
+    }
+    plan = analysis_run_start._DeliveryPlan(
+        "analysis_run_tepp", datetime(2026, 1, 12, tzinfo=timezone.utc), locked
+    )
+    accepted = analysis_run_start._execute_delivery_plan(
+        plan,
+        TeppClient(
+            transport=lambda _payload: {
+                "contract_version": 1,
+                "run_id": "remote-run-1",
+                "run_state": "accepted",
+                "idempotency_key": "buyer-tepp-2026-w07",
+            }
+        ),
+        None,
+    )
+
+    assert accepted.status_code == "analysis_status_running"
+    assert accepted.persist_receipt
+    assert accepted.request == _tepp_request()
+
+
+def test_tepp_delivery_reads_a_stored_remote_run_without_resubmitting() -> None:
+    request = _tepp_request()
+    status = {
+        "contract_version": 1,
+        "run_id": "remote-run-1",
+        "run_state": "running",
+        "idempotency_key": request.idempotency_key,
+        "terminal_result": None,
+    }
+    locked = {
+        "idempotency_key": request.idempotency_key,
+        "snapshot_sha256": request.snapshot_id,
+        "knowledge_cutoff": datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc),
+        "corporate_entity_id": request.tenant_workspace_id,
+        "remote_run_id": "remote-run-1",
+    }
+    outcome = analysis_run_start._execute_delivery_plan(
+        analysis_run_start._DeliveryPlan(
+            "analysis_run_tepp", datetime(2026, 1, 12, tzinfo=timezone.utc), locked
+        ),
+        TeppClient(
+            transport=lambda _payload: pytest.fail("accepted work was resubmitted"),
+            status_transport=lambda _run_id: status,
+        ),
+        None,
+    )
+
+    assert outcome.status_code == "analysis_status_running"
+    assert not outcome.persist_receipt
+
+
+def test_tepp_acceptance_receipt_replay_must_match() -> None:
+    """A provider replay cannot replace the remote identity or evidence digest."""
+
+    class _Connection:
+        def __init__(self) -> None:
+            self.existing = None
+            self.inserted: tuple[object, ...] | None = None
+
+        async def fetchrow(self, _query: str, *_args: object):
+            return self.existing
+
+        async def execute(self, _query: str, *args: object):
+            self.inserted = args
+
+    request = _tepp_request()
+    receipt = {
+        "contract_version": 1,
+        "run_id": "remote-run-1",
+        "run_state": "accepted",
+        "idempotency_key": request.idempotency_key,
+    }
+    conn = _Connection()
+    assert asyncio.run(
+        _persist_tepp_receipt(
+            conn,
+            analysis_run_id="11111111-1111-1111-1111-111111111111",
+            request=request,
+            envelope=receipt,
+        )
+    )
+    assert conn.inserted is not None
+    conn.existing = {
+        "remote_run_id": conn.inserted[1],
+        "request_sha256": conn.inserted[2],
+        "receipt_sha256": conn.inserted[3],
+    }
+    assert asyncio.run(
+        _persist_tepp_receipt(
+            conn,
+            analysis_run_id="11111111-1111-1111-1111-111111111111",
+            request=request,
+            envelope=receipt,
+        )
+    )
+    conn.existing["remote_run_id"] = "changed-run"
+    assert not asyncio.run(
+        _persist_tepp_receipt(
+            conn,
+            analysis_run_id="11111111-1111-1111-1111-111111111111",
+            request=request,
+            envelope=receipt,
+        )
+    )
+
+
 def test_tepp_run_request_is_the_published_wire_shape() -> None:
     """Start builds TEPP's seven-field request from the frozen run."""
     request = _tepp_request()
@@ -278,6 +394,9 @@ def test_tepp_anchor_projection_accepts_only_the_published_result_contract() -> 
 
         async def execute(self, query: str, *args: object):
             self.queries.append((query, args))
+
+        async def fetchrow(self, _query: str, *_args: object):
+            return None
 
     cutoff = datetime(2026, 1, 12, 12, 0, tzinfo=timezone.utc)
     conn = _Connection()
