@@ -104,6 +104,14 @@ re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
 
+The exact-head Strix check for PR #631 (`c0022c97`) failed at run
+`32855289561` with `STRIX_PROVIDER_UNAVAILABLE`; the check annotation reports
+provider/backend unavailability rather than a repository vulnerability. The
+historical workflow run is no longer retrievable through the Actions API, so it
+cannot be rerun from that run id. This remains an unresolved hosted-gate
+condition, not evidence that the PR is merge-ready; re-fetch a new exact-head
+run before any merge claim.
+
 PR #607 first merged as `61fd631c7bb3c57113fd19763c2c43161eeb2824`
 into #606's non-default branch. PR #606 subsequently passed the protected gate,
 so the combined TEPP-consumer and operations-dashboard implementation is now
