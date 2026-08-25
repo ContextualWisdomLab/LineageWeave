@@ -90,7 +90,7 @@ API run independently proved the Dashboard endpoint with the isolated issuer.
 ### Exact open-PR boundary
 
 At this snapshot there were 9 open PRs and 10 open issues. Exact observed heads
-were `#644 c1018a0a`, `#643 041ec13b`, `#640 6b195171`,
+were `#644 c1018a0a`, `#643 041ec13b`, `#640 90995cea` (observed parent),
 `#639 aee02dca`, `#636 f7b9a65f`, `#632 a946f879`, `#631 c0022c97`,
 `#629 4b4d6707`, and `#579 689a21b6`. All remain blocked on
 hosted gates and/or independent review. These
@@ -117,7 +117,7 @@ context only.
 | ---: | --- | --- |
 | #644 | `c1018a0a` | splits conditional frontend surfaces and preserves keyed recovery; hosted gates and independent review remain required |
 | #643 | `041ec13b` | shares token-backed success/unavailable/retry status notices for the Calendar surface; hosted gates and independent review remain required |
-| #640 | `6b195171` | quantifies dashboard cases, persists explicit missing facts and observed lifecycle milestones, consumes producer-owned topic influence without local arithmetic, repairs runtime evidence-query joins/bind arity, and restores mobile GNB reachability; hosted gates and independent review must run on this exact head |
+| #640 | `90995cea` (observed parent) | quantifies dashboard cases, persists explicit missing facts and observed lifecycle milestones, consumes producer-owned topic influence without local arithmetic, repairs runtime evidence-query joins/bind arity, restores mobile GNB reachability, and enforces coordinate/provenance/lifecycle contracts; this baseline refresh advances the head, so hosted gates and independent review must run again |
 | #639 | `aee02dca` | repairs Running-action, Compose, and TEPP configuration contracts; hosted gates and independent review remain required |
 | #636 | `f7b9a65f` | publishes the calibrated external-lineage contract without a redundant explicit-child filter and repairs test import hygiene; hosted gates and independent review remain required |
 | #632 | `a946f879` | preserves graph-fact source provenance and authorization with a static landing-query contract and shared RankWeave disable switch; hosted gates and independent review remain required |
