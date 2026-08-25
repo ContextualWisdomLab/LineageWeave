@@ -389,6 +389,25 @@ this file per §3.5 of the prior snapshot).
 | PII | Masking would paralyze the product; ADR 0001 forbids identifying artifacts in git | ABAC + authorized runtime; synthetic fixtures in git; no mask-in-place that drops names the operator must read |
 | Database | PostgreSQL, 3NF, snake_case ≥ two words, hot-partition and lock policy | No file DBs; read/write split if lock management fails; whitelist every migration |
 
+### 5.1 Closed PR #490 decomposition (issue #611)
+
+Protected `main` at `7403a452` has no open PR. PR #490 remains closed,
+unmerged branch evidence; its ADR 0133–0137 files are not normative and its
+321-file tree must not be replayed. Current-main code and schema searches give
+this delivery matrix:
+
+| Closed-branch decision | Current-main classification | Smallest remaining delivery |
+| --- | --- | --- |
+| ADR 0133 source-reference research | Missing: no post-scoped research-lead, retrieval, judgment, or citation persistence/read workflow exists | One SSRF-safe SearXNG retrieval slice through contextual-orchestrator, with normalized citations and explicit unavailable outcomes |
+| ADR 0134 token-backed exception messages | Partial: sanitized next-action failures exist, but no shared token-backed exception component or complete Storybook error inventory exists | Migrate one existing unavailable flow to one shared accessible alert and verify its success, unavailable, and retry states |
+| ADR 0135 kind/status-exact analysis actions | Partial: normative analysis-run, TEPP, cutoff-body, and channel-evidence contracts exist; the closed branch's unified guidance function does not | Audit the current run-kind/status matrix and add only a demonstrably missing combination with one interaction test |
+| ADR 0136 per-post Ask history | Missing: persisted post chat exists, but no account-and-post-scoped session/turn contract or conversation picker exists | Define the 3NF account/post session boundary, bounded batch reauthorization, and one authorized list/load/write path before UI work |
+| ADR 0137 cross-post customer identity | Missing: no normalized customer-identity judgment, binding, or name-history workflow exists | Add only after external corroboration, orchestrator judgment, TEPP ordering, and unique-catalog fail-close can be verified together; never promote a one-post hint |
+
+Each missing row requires its own current-main PR and focused regression
+evidence. This matrix satisfies the decomposition requirement without
+transferring stale checks, reviews, or implementation from #490.
+
 ## 6. UI-UX acceptance inventory (must be defined, reviewed, applied, audited)
 
 Each item needs a Storybook scene, an edge-case story, and an automated check
