@@ -226,7 +226,7 @@ def test_missing_source_body_is_not_reported_as_a_provider_failure(monkeypatch, 
 
     updates = [args for query, args in connection.executed if "set status_code" in query]
     assert any(
-        args[1] == QUEUED
+        args[1] == FAILED
         and args[6] == "post_content_source_body_missing"
         and args[7] == "source post has no body"
         for args in updates

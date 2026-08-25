@@ -236,9 +236,10 @@ async def process_post_content_job(
             "post content ingestion skipped: source post has no body",
             extra={"post_id": post_id},
         )
-        await _finish_failed_job(
+        await _finish_job(
             pool,
             post_id,
+            FAILED,
             failure_code=_SOURCE_BODY_MISSING_FAILURE_CODE,
             detail_text="source post has no body",
             expected_attempt_count=attempt_count,
