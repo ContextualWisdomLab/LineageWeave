@@ -148,7 +148,9 @@ def test_selected_llm_marks_an_admitted_calibrated_channel_not_used() -> None:
         [_record("email:001", "Same parent", "2026-08-20T09:00:00Z")],
         allow_llm=True,
     )
-    client, status = _selected_llm(request, AvailableLlm(), {"llm": 1.0})
+    client, status = _selected_llm(
+        request, AvailableLlm(), _EQUAL_INFORMATION_WEIGHTS
+    )
     assert client.judge("Same parent", "Same child") == 0.9
     assert status == "not_used"
 
