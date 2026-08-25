@@ -7,6 +7,10 @@ import { describe, expect, it } from "vitest";
 const here = dirname(fileURLToPath(import.meta.url));
 const tokensCss = readFileSync(join(here, "tokens.css"), "utf-8");
 const appCss = readFileSync(join(here, "..", "App.css"), "utf-8");
+const publicClaimCss = readFileSync(
+  join(here, "..", "components", "PublicClaimVerification.css"),
+  "utf-8",
+);
 
 const [lightBlock, darkBlock] = tokensCss.split("@media (prefers-color-scheme: dark)");
 
@@ -142,6 +146,18 @@ describe("design tokens", () => {
     // the top of the box once min-height grows past the line height.
     expect(citationChipBlock).toContain("display: inline-flex");
     expect(citationChipBlock).toContain("align-items: center");
+  });
+
+  it("keeps public-verification layout on shared tokens", () => {
+    expect(publicClaimCss).not.toMatch(/#[0-9a-fA-F]{3,8}/);
+    for (const token of [
+      "--space-panel-block",
+      "--space-control-gap",
+      "--color-border",
+      "--size-control-min",
+    ]) {
+      expect(publicClaimCss).toContain(`var(${token})`);
+    }
   });
 });
 

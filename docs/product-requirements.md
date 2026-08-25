@@ -90,6 +90,22 @@ content never becomes an external query or citation.
 Acceptance: each state tells the user the next valid action and never displays
 stale evidence from a previously opened post.
 
+### PRD-FR-5A — Opt-in public claim verification
+
+- Persist an explicit per-question opt-in before any external search begins.
+- Nominate only cited, public semantic/KG facts; source bodies, private facts,
+  personal facts, and measurement outputs never become external queries.
+- Retrieve bounded public evidence through SearXNG and adjudicate through
+  contextual-orchestrator's verification mode.
+- Report supported, refuted, and not-enough-information outcomes without
+  promoting public pages to internal ontology authority.
+- Keep external URLs visually and structurally separate from authorized
+  internal post citations.
+
+Acceptance: leaving the control off causes no public request; hidden or
+uncited facts cause no public request; unavailable services fail closed; and
+each displayed public judgment retains its originating internal evidence IDs.
+
 ### PRD-FR-6 — Measurement boundary
 
 - Consume TEPP accepted/completed wire contracts and fast-mlsirm outputs; do
