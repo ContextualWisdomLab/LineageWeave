@@ -16,8 +16,10 @@ describe("isFocusableVisible", () => {
 
   it("excludes controls inside collapsed disclosure content", () => {
     const details = document.createElement("details");
+    const summary = document.createElement("summary");
     const button = document.createElement("button");
-    details.append(button);
+    details.append(summary, button);
+    expect(isFocusableVisible(summary)).toBe(true);
     expect(isFocusableVisible(button)).toBe(false);
   });
 });

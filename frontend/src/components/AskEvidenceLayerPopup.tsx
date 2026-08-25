@@ -7,6 +7,7 @@ import { PopupCloseButton } from "./PopupCloseButton";
 const FOCUSABLE_SELECTOR = [
   "a[href]",
   "button:not([disabled])",
+  "summary",
   "input:not([disabled])",
   "select:not([disabled])",
   "textarea:not([disabled])",
