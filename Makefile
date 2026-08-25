@@ -1,4 +1,4 @@
-.PHONY: up down logs smoke seed ps
+.PHONY: up down logs smoke seed ps load-http
 
 # Keep provider credentials outside the repository. Compose interpolation must
 # read the same home env file as the orchestrator container's env_file.
@@ -29,3 +29,10 @@ smoke:
 seed:
 	@test -n "$${KEYCLOAK_ADMIN_PASSWORD:-}" || { echo "KEYCLOAK_ADMIN_PASSWORD is required" >&2; exit 1; }; \
 	uv run --locked python scripts/seed_demo_data.py
+
+# Authenticated Compose measurement with no invented pass/fail threshold.
+# The operator must supply a representative concurrency and observation window.
+load-http:
+	@test -n "$${LINEAGEWEAVE_VUS:-}" || { echo "LINEAGEWEAVE_VUS is required" >&2; exit 1; }
+	@test -n "$${LINEAGEWEAVE_DURATION:-}" || { echo "LINEAGEWEAVE_DURATION is required" >&2; exit 1; }
+	k6 run --vus "$${LINEAGEWEAVE_VUS}" --duration "$${LINEAGEWEAVE_DURATION}" scripts/k6_http_e2e.js
