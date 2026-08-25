@@ -25,7 +25,7 @@ distances on that map (Jeon et al., 2021, eq. 3). fast-mlsirm's
 ``residual_interaction_map`` owns residual, complete-case admission, Gabriel
 coordinates, distance, axis inertia, reconstruction, unexplained residual,
 and cross share. This module maps those results to product identifiers and
-selects the persisted closest/farthest cells (ADR 0207); it does not fork the
+selects the persisted closest/farthest cells (ADR 0211); it does not fork the
 calculation or invent a second IRT fit.
 
 This module is pure compute. Persistence lives in

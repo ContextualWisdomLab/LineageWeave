@@ -15,7 +15,7 @@ closest or farthest, or where the other complete-case posts and
 criteria sit on the same leftover map.
 
 fast-mlsirm now exposes the Rust-backed residual interaction-map contract
-adopted by ADR 0207. LineageWeave must not fork that calculation, invent a
+adopted by ADR 0211. LineageWeave must not fork that calculation, invent a
 second IRT fit, or treat a missing residual cell as a zero residual.
 
 ## Decision
