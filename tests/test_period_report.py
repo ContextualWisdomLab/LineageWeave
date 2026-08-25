@@ -10,7 +10,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-import lineageweave.period_report as period_report_module
+from lineageweave import period_report as period_report_module
 
 from lineageweave.period_report import (
     LINK_METHOD_FIPC,
