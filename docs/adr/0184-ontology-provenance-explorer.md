@@ -1,4 +1,4 @@
-# ADR 0168: Heterogeneous ontology and provenance explorer
+# ADR 0184: Heterogeneous ontology and provenance explorer
 
 **Status:** Accepted
 **Date:** 2026-08-21
