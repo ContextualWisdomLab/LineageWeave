@@ -149,7 +149,7 @@ def interval_relation_code_for_edge(
 async def persist_lineage_edges(
     conn: asyncpg.Connection,
     edges: list[Edge],
-    weights: dict[str, float] | None = None,
+    weights: dict[str, float],
     points_by_post_id: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> None:
     """Replace live Event Lineage with edges, channel evidence, and intervals.

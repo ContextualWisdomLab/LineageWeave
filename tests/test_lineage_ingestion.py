@@ -654,10 +654,11 @@ def test_persist_requires_observed_points_before_replacing_edges() -> None:
 
     with pytest.raises(ValueError, match="child"):
         asyncio.run(
-            persist_lineage_edges(
-                connection,
-                [edge],
-                points_by_post_id={"parent": {"created_at": datetime(2026, 1, 1)}},
+                persist_lineage_edges(
+                    connection,
+                    [edge],
+                    {},
+                    points_by_post_id={"parent": {"created_at": datetime(2026, 1, 1)}},
             )
         )
     assert connection.calls == []

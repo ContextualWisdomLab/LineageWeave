@@ -35,9 +35,12 @@ function markFootnoteTags(markup: string): string {
     if (!match) return tag;
     const closing = Boolean(match[1]);
     const name = match[2].toLowerCase();
-    const hasFootnoteLabel = [...tag.matchAll(/\b(?:class|role)\s*=\s*(["'])(.*?)\1/gi)].some(
-      (attribute) =>
-        /\b(?:footnotes?|endnotes?|msofootnotetext|msoendnotetext)\b/i.test(attribute[2]),
+    const hasFootnoteLabel = [...tag.matchAll(
+      /\b(?:class|role)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"']+))/gi,
+    )].some((attribute) =>
+      /\b(?:footnotes?|endnotes?|msofootnotetext|msoendnotetext)\b/i.test(
+        attribute[1] ?? attribute[2] ?? attribute[3] ?? "",
+      ),
     );
     const isContainer =
       hasFootnoteLabel && (name === "div" || name === "ol" || name === "ul");

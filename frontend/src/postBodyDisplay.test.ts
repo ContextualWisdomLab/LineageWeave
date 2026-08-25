@@ -103,6 +103,12 @@ describe("splitPostBody", () => {
     ]);
   });
 
+  it("labels unquoted HTML footnote attributes", () => {
+    expect(splitPostBody("<ol class=footnotes><li>Unquoted footnote</li></ol>")).toEqual([
+      { kind: "text", text: "Unquoted footnote", role: "footnote" },
+    ]);
+  });
+
   it("stops labeling ordinary content after an HTML footnote list", () => {
     expect(
       splitPostBody(

@@ -336,6 +336,7 @@ async def test_one_unexpected_delivery_failure_does_not_end_the_worker(monkeypat
         _TwoRunsValkey(),
         _Pool(),
         last_id="0-0",
+        database_url="postgresql://synthetic",
         tepp_client=TeppClient(),
         adjudication_client=NullAdjudicationClient(),
     )

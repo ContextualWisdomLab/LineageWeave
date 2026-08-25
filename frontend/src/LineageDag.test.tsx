@@ -95,11 +95,11 @@ describe("LineageDag channel evidence", () => {
       />,
     );
 
-    const firstEvidence = screen.getByRole("region", { name: "A-100" });
-    const secondEvidence = screen.getByRole("region", { name: "B-200" });
-    expect(firstEvidence).toHaveTextContent("Kickoff recap follows Pricing follow-up");
+    const firstEvidence = screen.getByRole("region", { name: "A-100 lineage viewport" });
+    const secondEvidence = screen.getByRole("region", { name: "B-200 lineage viewport" });
+    expect(firstEvidence).toHaveTextContent("Pricing follow-up follows Kickoff recap");
     expect(firstEvidence).not.toHaveTextContent("Second Kickoff recap");
-    expect(secondEvidence).toHaveTextContent("Second Kickoff recap follows Second Pricing follow-up");
+    expect(secondEvidence).toHaveTextContent("Second Pricing follow-up follows Second Kickoff recap");
   });
 
   it("discloses exact inferred values without hover-only interaction", async () => {
