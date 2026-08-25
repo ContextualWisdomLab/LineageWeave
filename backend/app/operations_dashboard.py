@@ -32,11 +32,11 @@ FACT_TYPE_LABELS = {
 class _Connection(Protocol):
     async def fetchrow(self, query: str, *args: object) -> Any:
         """Fetch one projected row."""
-        ...
+        pass
 
     async def fetch(self, query: str, *args: object) -> list[Any]:
         """Fetch projected rows."""
-        ...
+        pass
 
 
 def _visible_period_sql(alias: str = "post") -> str:

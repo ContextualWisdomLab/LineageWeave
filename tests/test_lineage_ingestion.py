@@ -672,7 +672,12 @@ def test_focused_lineage_graph_includes_a_post_outside_landing_limit() -> None:
     assert {node["id"] for node in focused["nodes"]} == {"post-a", "post-b"}
     assert len(focused["edges"]) == 1
     assert focused["truncated"] is False
-    assert isolated == {"nodes": [], "edges": [], "truncated": False}
+    assert isolated == {
+        "nodes": [],
+        "edges": [],
+        "truncated": False,
+        "isolation_reason": "no_comparison_group",
+    }
     assert [node["id"] for node in hidden_neighbor["nodes"]] == ["post-a"]
     assert hidden_neighbor["edges"] == []
 
@@ -941,3 +946,107 @@ def test_lineage_graphs_for_posts_names_truncation_and_keeps_cited_posts() -> No
         edge["source"] in node_ids and edge["target"] in node_ids
         for edge in merged["edges"]
     )
+
+
+def _post(
+    post_id: str,
+    title: str,
+    thread_group_key: str,
+    created_at: datetime,
+) -> dict[str, object]:
+    return {
+        "post_id": post_id,
+        "post_title": title,
+        "voc_type_code": "voc",
+        "visibility_code": "public",
+        "corporate_entity_id": "corp",
+        "process_unit_id": "pu",
+        "thread_group_key": thread_group_key,
+        "created_at": created_at,
+    }
+
+
+class FakeConnection:
+    def __init__(self, posts: list[dict[str, object]], edges: list[dict[str, object]]) -> None:
+        self.posts = posts
+        self.edges = edges
+        self.executions: list[tuple[object, ...]] = []
+
+    async def fetch(self, query: str):
+        return self.edges if "post_lineage_edge" in query else self.posts
+
+    async def fetchval(self, query: str):
+        assert "to_regclass('public.lineage_channel_weight')" in query
+        return False
+
+    async def execute(self, *args: object) -> None:
+        self.executions.append(args)
+
+
+def test_two_visible_group_members_report_comparison_candidates_available() -> None:
+    connection = FakeConnection(
+        [
+            _post("post-a", "A", "thread-a", datetime(2026, 1, 1)),
+            _post("post-b", "B", "thread-a", datetime(2026, 1, 2)),
+        ],
+        [],
+    )
+    focused = asyncio.run(
+        visible_lineage_graph(connection, lambda row: True, focus_post_id="post-a")
+    )
+    assert focused == {
+        "nodes": [],
+        "edges": [],
+        "truncated": False,
+        "isolation_reason": "comparison_candidates_available",
+    }
+
+
+def test_hidden_sibling_does_not_flip_isolation_to_candidates_available() -> None:
+    """ABAC-hidden siblings must not leak through candidate availability."""
+    connection = FakeConnection(
+        [
+            _post("post-c", "C", "thread-c", datetime(2026, 1, 3)),
+            _post("post-d", "D", "thread-c", datetime(2026, 1, 4)),
+        ],
+        [],
+    )
+    isolated = asyncio.run(
+        visible_lineage_graph(
+            connection,
+            lambda row: str(row["post_id"]) != "post-d",
+            focus_post_id="post-c",
+        )
+    )
+    assert isolated["isolation_reason"] == "no_comparison_group"
+    assert isolated["nodes"] == []
+
+
+def test_inaccessible_focus_does_not_report_an_isolation_reason() -> None:
+    connection = FakeConnection(
+        [_post("post-a", "A", "thread-a", datetime(2026, 1, 1))],
+        [],
+    )
+    hidden = asyncio.run(
+        visible_lineage_graph(
+            connection,
+            lambda row: False,
+            focus_post_id="post-a",
+        )
+    )
+    assert hidden == {
+        "nodes": [],
+        "edges": [],
+        "truncated": False,
+        "isolation_reason": None,
+    }
+
+
+def test_landing_graph_never_reports_an_isolation_reason() -> None:
+    connection = FakeConnection(
+        [_post("post-c", "C", "thread-c", datetime(2026, 1, 3))],
+        [],
+    )
+    landing = asyncio.run(visible_lineage_graph(connection, lambda row: True))
+    assert landing["isolation_reason"] is None
+    assert [node["id"] for node in landing["nodes"]] == ["post-c"]

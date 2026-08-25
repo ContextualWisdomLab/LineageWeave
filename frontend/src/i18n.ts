@@ -50,9 +50,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Ranking evidence for {title}": "{title}의 순위 근거",
     "{label} rank {rank}, contribution {contribution}":
       "{label} 순위 {rank}, 기여 {contribution}",
-    "CalDAV events": "CalDAV 이벤트",
-    "No CalDAV events are available.": "사용할 수 있는 CalDAV 이벤트가 없습니다.",
-    "CalDAV is not connected.": "CalDAV가 연결되지 않았습니다.",
+    "Observed calendar events": "관측된 달력 일정",
+    "No observed calendar events are available.": "관측된 달력 일정이 없습니다.",
+    "Open this observed occurrence. It is not a LineageWeave commitment.":
+      "이 관측 일정을 확인하세요. LineageWeave 약속이 아닙니다.",
     "Upcoming commitments": "예정된 약속",
     "No upcoming commitments.": "예정된 약속이 없습니다.",
     "No upcoming commitments. Derive one from a post, or create a ticket with a due date.":
@@ -528,9 +529,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Ranking evidence for {title}": "{title} 的排名证据",
     "{label} rank {rank}, contribution {contribution}":
       "{label} 排名 {rank}，贡献 {contribution}",
-    "CalDAV events": "CalDAV 事件",
-    "No CalDAV events are available.": "没有可用的 CalDAV 事件。",
-    "CalDAV is not connected.": "CalDAV 尚未连接。",
+    "Observed calendar events": "已观察的日历事件",
+    "No observed calendar events are available.": "没有可用的已观察日历事件。",
+    "Open this observed occurrence. It is not a LineageWeave commitment.":
+      "打开此已观察事件。它不是 LineageWeave 承诺。",
     "Upcoming commitments": "即将到来的承诺",
     "No upcoming commitments.": "没有即将到来的承诺。",
     "No upcoming commitments. Derive one from a post, or create a ticket with a due date.":
@@ -1028,9 +1030,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Ranking evidence for {title}": "{title} の順位根拠",
     "{label} rank {rank}, contribution {contribution}":
       "{label} 順位 {rank}、寄与 {contribution}",
-    "CalDAV events": "CalDAV イベント",
-    "No CalDAV events are available.": "利用できる CalDAV イベントはありません。",
-    "CalDAV is not connected.": "CalDAV が接続されていません。",
+    "Observed calendar events": "観測されたカレンダー予定",
+    "No observed calendar events are available.": "利用できる観測カレンダー予定はありません。",
+    "Open this observed occurrence. It is not a LineageWeave commitment.":
+      "この観測予定を開きます。LineageWeave のコミットメントではありません。",
     "Upcoming commitments": "今後のコミットメント",
     "No upcoming commitments.": "今後のコミットメントはありません。",
     "No upcoming commitments. Derive one from a post, or create a ticket with a due date.":
@@ -1505,9 +1508,10 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Ranking evidence for {title}": "Bằng chứng xếp hạng cho {title}",
     "{label} rank {rank}, contribution {contribution}":
       "{label} hạng {rank}, đóng góp {contribution}",
-    "CalDAV events": "Sự kiện CalDAV",
-    "No CalDAV events are available.": "Không có sự kiện CalDAV nào khả dụng.",
-    "CalDAV is not connected.": "CalDAV chưa được kết nối.",
+    "Observed calendar events": "Sự kiện lịch đã quan sát",
+    "No observed calendar events are available.": "Không có sự kiện lịch đã quan sát nào khả dụng.",
+    "Open this observed occurrence. It is not a LineageWeave commitment.":
+      "Mở lần xuất hiện đã quan sát này. Đây không phải cam kết LineageWeave.",
     "Upcoming commitments": "Cam kết sắp tới",
     "No upcoming commitments.": "Không có cam kết sắp tới.",
     "No upcoming commitments. Derive one from a post, or create a ticket with a due date.":

@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 import types
 from pathlib import Path
+
+import pytest
 
 
 def _load_start_module():
@@ -52,7 +55,17 @@ def test_gateway_api_key_accepts_local_compatibility_alias(monkeypatch) -> None:
     assert module._pop_first_env("LLM_GATEWAY_API_KEY", "LLM_API_KEY") == "compatibility-key"
 
 
-def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch) -> None:
+def test_provider_key_is_not_aliased_as_gateway_transport(monkeypatch) -> None:
+    module = _load_start_module()
+    for name in ("LLM_GATEWAY_API_KEY", "LLM_API_KEY"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setenv("NVIDIA_NIM_API_KEY", "provider-only-key")
+
+    with pytest.raises(SystemExit, match="LLM_GATEWAY_API_KEY or LLM_API_KEY"):
+        module.main()
+
+
+def test_bootstrap_leaves_embedding_selection_to_the_orchestrator(monkeypatch) -> None:
     module = _load_start_module()
     captured: dict[str, object] = {}
 
@@ -90,6 +103,12 @@ def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch
     monkeypatch.setattr(module, "Path", FakePath)
     monkeypatch.setattr(sys, "argv", ["start.py"])
     monkeypatch.setenv("LLM_GATEWAY_API_KEY", "provider-key")
+    monkeypatch.setenv("LLM_API_KEY", "legacy-provider-key")
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-key")
+    monkeypatch.setenv("OPENROUTER_API_KEY", "openrouter-key")
+    monkeypatch.setenv("NVIDIA_NIM_API_KEY", "nim-key")
+    monkeypatch.setenv("NVIDIA_NIM_API_KEY_SUB", "nim-sub-key")
+    monkeypatch.setenv("BYTEZ_API_KEY", "bytez-key")
     monkeypatch.setenv("CONTEXTUAL_ORCHESTRATOR_TOKEN", "orchestrator-token")
     monkeypatch.setenv("LLM_GATEWAY_API_URL", "https://gateway.example")
     monkeypatch.setenv("LLM_GATEWAY_EMBEDDING_MODEL", "embedding-model")
@@ -101,20 +120,23 @@ def test_bootstrap_registers_embedding_agent_before_deleting_secrets(monkeypatch
     assert "--embedding-provider-url" not in argv
     assert "--embedding-model" not in argv
     assert captured["credentials"] == [
-        ("NVIDIA_NIM_API_KEY", "provider-key"),
         ("LLM_GATEWAY_API_KEY", "provider-key"),
+        ("OPENAI_API_KEY", "openai-key"),
+        ("OPENROUTER_API_KEY", "openrouter-key"),
+        ("NVIDIA_NIM_API_KEY", "nim-key"),
+        ("NVIDIA_NIM_API_KEY_SUB", "nim-sub-key"),
+        ("BYTEZ_API_KEY", "bytez-key"),
     ]
+    assert not {
+        "LLM_GATEWAY_API_KEY",
+        "LLM_API_KEY",
+        "OPENAI_API_KEY",
+        "OPENROUTER_API_KEY",
+        "NVIDIA_NIM_API_KEY",
+        "NVIDIA_NIM_API_KEY_SUB",
+        "BYTEZ_API_KEY",
+    } & os.environ.keys()
     agents = captured["agents"]
     assert isinstance(agents, dict)
-    embedding_agents = [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])]
-    assert embedding_agents == [
-        {
-            "id": "llm_gateway_embedding_agent",
-            "model": "embedding-model",
-            "base_url": "https://gateway.example/v1",
-            "credential_key": "LLM_GATEWAY_API_KEY",
-            "provider_protocol": "auto",
-            "tags": ["embedding"],
-            "priority": 0,
-        }
-    ]
+    assert not [agent for agent in agents["agents"] if "embedding" in agent.get("tags", [])]
+    assert "LLM_GATEWAY_EMBEDDING_MODEL" not in os.environ

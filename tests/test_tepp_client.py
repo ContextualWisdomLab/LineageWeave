@@ -52,7 +52,7 @@ def test_custom_transport_receives_the_exact_wire_payload() -> None:
     assert received["snapshot_id"] == "demo-snapshot-1"
 
 
-def test_configured_transport_sends_optional_bearer_key(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_configured_transport_sends_tepp_consumer_contract_headers(monkeypatch: pytest.MonkeyPatch) -> None:
     received = {}
 
     def fake_post_json(
@@ -73,11 +73,15 @@ def test_configured_transport_sends_optional_bearer_key(monkeypatch: pytest.Monk
         return {"status": "accepted"}
 
     monkeypatch.setattr("backend.app.analysis_run_start.post_json", fake_post_json)
-    client = configured_tepp_client("https://tepp.example/v1/analysis-runs", "test-key")
+    client = configured_tepp_client("https://tepp.example/v1/analysis-runs")
 
     client.submit_analysis_run(_sample_request())
 
-    assert received["headers"] == {"authorization": "Bearer test-key"}
+    assert received["headers"] == {
+        "idempotency-key": "demo-run-1",
+        "tepp-consumer": "lineageweave",
+        "tepp-contract-version": "1",
+    }
     assert received["payload"] == _sample_request().to_json()
     assert received["service_peer_name"] == "tepp"
 
