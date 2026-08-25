@@ -1,7 +1,7 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-25 21:34 KST. Protected `main` was
-> `d7d5eeb310b055b5e138060cf2dfb929b03090a6`. This local branch is not
+> Dashboard delivery snapshot: 2026-08-26 04:31 KST. Protected `main` was
+> `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
 ## Operations Dashboard PRD/TRD traceability
@@ -60,18 +60,14 @@ only aggregate, non-identifying evidence to this repository.
 
 ### Exact open-PR boundary
 
-At this snapshot there were 3 open PRs and 11 open issues. Exact observed heads
-were `#628 d07d212f` (this branch's observed parent), `#627 9e0528a6`, and
-`#579 1c209c85`. PR #579 is open; its ADR 0211 reservation is why this branch's
-filter-option decision is ADR 0212. PRs #612, #614, #615, #616, and #626
-reached protected `main`; the superseded baseline PR #613 closed without merge
-and its PRD was recreated on protected main. The open heads remain blocked on
-hosted gates and/or independent review. These
-observations are not merge readiness. Re-fetch exact heads,
+At this snapshot there were 16 open PRs and 10 open issues. The exact-head
+inventory in section 1 is authoritative for this snapshot. Every open head
+remained blocked on hosted gates and/or independent review. These observations
+are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-25 21:34 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 04:31 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -80,17 +76,30 @@ lifecycle claim.
 
 ## 1. Exact-head and governance evidence
 
-The protected default branch was `d7d5eeb310b055b5e138060cf2dfb929b03090a6`
-when this baseline was refreshed. The live queue contained 3 open PRs and 11
+The protected default branch was `04e6b610655d0db91d5f7ba9486bdda1440e0b19`
+when this baseline was refreshed. The live queue contained 16 open PRs and 10
 open issues. The exact-head inventory below supersedes older per-PR snapshots
 elsewhere in this document; those older rows remain useful historical delivery
 context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #628 | `d07d212f` (observed parent) | this row is updated by #628 itself, so its exact head advances after the snapshot is encoded; ADR 0212 combines complete ABAC-visible filter options into one database round trip, while hosted gates and independent review remain required |
-| #627 | `9e0528a6` | repairs k6 lifecycle evidence preservation; hosted gates remain required |
-| #579 | `1c209c85` | persists leftover interaction-map coordinates and owns ADR 0211; hosted gates and independent review remain required |
+| #663 | `55bd4b04` (observed parent) | project ontology traversal plus cutoff/snapshot-frozen project focus and labels; this documentation commit advances the head after capture |
+| #662 | `92534118` | fail-closed injectable TEPP status/read boundary; the owning executable HTTP route remains unavailable |
+| #661 | `11206c58` | Rust-estimated reconstruction fixture weights replace hand-authored reconstruction-test dictionaries |
+| #660 | `7d0d3ef7` | backend runtime and integration contract repairs |
+| #659 | `e948bd27` | ontology node readability and tokenized UI fills |
+| #658 | `b681bd53` | evidence-honest Global Ask knowledge cutoff with client validation |
+| #657 | `64f48679` | Dashboard case-metric contract work |
+| #644 | `d9ff9980` | native-surface code splitting with modal-focus regression coverage |
+| #643 | `0a1f8ec1` | accessible status-notice surfaces |
+| #640 | `2d50fa01` | operations-dashboard contract alignment |
+| #639 | `aee02dca` | terminal checks observed; exact-head independent approval still required |
+| #636 | `f7b9a65f` | terminal checks observed; exact-head independent approval still required |
+| #632 | `1025a942` | active stacked repair head; hosted checks and independent review required |
+| #631 | `c0022c97` | terminal checks observed; exact-head independent approval still required |
+| #629 | `4b4d6707` | terminal checks observed; exact-head independent approval still required |
+| #579 | `689a21b6` | leftover interaction-map coordinate persistence; exact-head independent approval still required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
