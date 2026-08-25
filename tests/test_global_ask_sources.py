@@ -3,7 +3,10 @@ from __future__ import annotations
 import asyncio
 from datetime import date, datetime, timezone
 
-from backend.app.post_chat_ingestion import gather_global_chat_sources as _gather_global_chat_sources
+from backend.app.post_chat_ingestion import (
+    gather_global_chat_sources as _gather_global_chat_sources,
+    prepare_global_question_embedding,
+)
 from lineageweave.ask_time_axis import TIME_AXIS_CREATED, TIME_AXIS_EVENT
 
 
@@ -13,6 +16,23 @@ class _EmbeddingClient:
 
     def embed(self, _text: str) -> list[float]:
         return [1.0, 0.0]
+
+
+def test_prepare_global_question_embedding_rejects_blank_input_before_provider() -> None:
+    """A blank question must fail closed without crossing the provider boundary."""
+
+    class RejectCallsEmbedding:
+        resolved_model = "synthetic-embedding"
+
+        def embed(self, _text: str) -> list[float]:
+            raise AssertionError("blank question must not call the embedding provider")
+
+    assert (
+        asyncio.run(
+            prepare_global_question_embedding(" \t\n", RejectCallsEmbedding())
+        )
+        is None
+    )
 
 
 def gather_global_chat_sources(*args, **kwargs):
