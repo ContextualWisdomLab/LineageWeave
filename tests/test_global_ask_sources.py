@@ -166,6 +166,14 @@ def test_global_sources_carry_source_and_semantic_evidence() -> None:
             if "from source_post" in query:
                 return rows
             if "from post_project_mention" in query:
+                if "project_name, ontology_iri" in query:
+                    return [
+                        {
+                            "post_id": "semantic-post",
+                            "project_name": "semantic project",
+                            "ontology_iri": "urn:test",
+                        }
+                    ]
                 return [
                     {
                         "post_id": "semantic-post",

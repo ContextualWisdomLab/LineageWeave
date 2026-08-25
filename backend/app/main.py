@@ -34,6 +34,11 @@ from fastapi import Depends, FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from lineageweave.claim_verification import (
+    NullClaimVerificationClient,
+    SearxngOrchestratedClaimVerificationClient,
+)
+
 from backend.app.activity_stream import (
     create_valkey_client,
     get_valkey,
@@ -295,6 +300,7 @@ async def lifespan(app: FastAPI):
                     timeout=load_settings().orchestrator_answer_timeout_seconds
                 ),
                 embedding_factory=_embedding_client,
+                claim_verification_factory=lambda: _claim_verification_client(),
             )
         )
         app.state.global_ask_worker = global_ask_worker
@@ -369,6 +375,23 @@ def _relation_verification_client():
     if not settings.searxng_base_url:
         return NullRelationVerificationClient()
     return SearxngRelationVerificationClient(base_url=settings.searxng_base_url)
+
+
+def _claim_verification_client():
+    """Return the public-evidence verifier, or its unavailable null channel."""
+
+    settings = load_settings()
+    if not (
+        settings.searxng_base_url
+        and settings.orchestrator_base_url
+        and settings.orchestrator_api_key
+    ):
+        return NullClaimVerificationClient()
+    return SearxngOrchestratedClaimVerificationClient(
+        settings.searxng_base_url,
+        settings.orchestrator_base_url,
+        settings.orchestrator_api_key,
+    )
 
 
 def _organization_name_resolution_client():
@@ -2960,6 +2983,7 @@ class GlobalAskRequest(BaseModel):
     """JSON body for the buyer's source-grounded Global Ask Agent."""
 
     question: str
+    verify_external: bool = False
 
 
 @app.get("/api/posts/{post_id}/chat")
@@ -3117,6 +3141,7 @@ async def ask_agent(
             valkey,
             requesting_account_id=account.user_account_id,
             question_text=question,
+            verify_external_requested=request.verify_external,
             corporate_entity_ids=account.corporate_entity_ids,
             process_unit_ids=account.process_unit_ids,
         )

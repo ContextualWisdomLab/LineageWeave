@@ -7,6 +7,8 @@ from contextlib import asynccontextmanager
 
 from backend.app import global_ask_queue
 from backend.app.global_ask_queue import load_job_visibility
+from lineageweave import claim_verification as cv
+from lineageweave.post_chat import ChatSourceDocument
 
 
 class _AvailableClient:
@@ -39,7 +41,108 @@ def _queued_row() -> dict[str, object]:
     return {
         "requesting_account_id": "00000000-0000-0000-0000-000000000001",
         "question_text": "What happened last week?",
+        "verify_external_requested": False,
     }
+
+
+class _VerificationClient:
+    available = True
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def verify(self, claim: cv.PublicClaimCandidate) -> cv.ClaimVerificationResult:
+        self.calls += 1
+        return cv.ClaimVerificationResult(
+            claim_text=claim.claim_text,
+            claim_kind=claim.claim_kind,
+            status_code=cv.CLAIM_SUPPORTED,
+            rationale="Public evidence supports this claim.",
+            source_post_ids=claim.source_post_ids,
+            evidence=(
+                cv.ExternalEvidenceDocument(
+                    "Public source", "https://example.com/evidence", "Evidence"
+                ),
+            ),
+        )
+
+
+def test_public_verification_requires_public_capability_and_internal_citation() -> None:
+    """Private facts and uncited public facts never reach external search."""
+
+    client = _VerificationClient()
+    private_source = ChatSourceDocument(
+        "private-post",
+        "Private",
+        "Private body",
+        evidence_facts=("project: Apollo | evidence: private",),
+    )
+    public_source = cv.GlobalAskSourceDocument(
+        "public-post",
+        "Public",
+        "Public body",
+        external_claims=(
+            cv.PublicClaimCandidate(
+                "Project Apollo is public",
+                "semantic_project",
+                ("public-post",),
+            ),
+        ),
+    )
+
+    private_status, private_results = asyncio.run(
+        global_ask_queue._verify_public_claims(
+            [private_source],
+            ["private-post"],
+            verify_external=True,
+            client=client,
+        )
+    )
+    uncited_status, uncited_results = asyncio.run(
+        global_ask_queue._verify_public_claims(
+            [public_source],
+            [],
+            verify_external=True,
+            client=client,
+        )
+    )
+
+    assert private_status == cv.VERIFICATION_NO_PUBLIC_CLAIMS
+    assert uncited_status == cv.VERIFICATION_NO_PUBLIC_CLAIMS
+    assert private_results == uncited_results == ()
+    assert client.calls == 0
+
+
+def test_public_verification_keeps_external_urls_out_of_internal_citations() -> None:
+    """A verified URL remains external evidence, never a cited post id."""
+
+    client = _VerificationClient()
+    source = cv.GlobalAskSourceDocument(
+        "public-post",
+        "Public",
+        "Public body",
+        external_claims=(
+            cv.PublicClaimCandidate(
+                "Project Apollo is public",
+                "semantic_project",
+                ("public-post",),
+            ),
+        ),
+    )
+
+    status_code, results = asyncio.run(
+        global_ask_queue._verify_public_claims(
+            [source],
+            ["public-post"],
+            verify_external=True,
+            client=client,
+        )
+    )
+
+    assert status_code == cv.VERIFICATION_COMPLETED
+    assert results[0].source_post_ids == ("public-post",)
+    assert results[0].evidence[0].url == "https://example.com/evidence"
+    assert results[0].evidence[0].url not in results[0].source_post_ids
 
 
 def test_unexpected_job_failure_settles_with_a_generic_detail_not_the_raw_exception(

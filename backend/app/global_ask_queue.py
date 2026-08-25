@@ -29,10 +29,22 @@ import redis.asyncio as redis
 from fastapi import HTTPException, status
 
 from lineageweave.ask_delivery import build_ask_delivery
+from lineageweave.claim_verification import (
+    CLAIM_NOT_ENOUGH_INFORMATION,
+    VERIFICATION_COMPLETED,
+    VERIFICATION_NO_PUBLIC_CLAIMS,
+    VERIFICATION_SKIPPED,
+    VERIFICATION_UNAVAILABLE,
+    ClaimVerificationClient,
+    ClaimVerificationResult,
+    NullClaimVerificationClient,
+    public_claim_candidates,
+)
 from lineageweave.embedding_client import EmbeddingClient, NullEmbeddingClient
 from lineageweave.http_client import HttpClientError
 from lineageweave.observability import record_server_failure
 from lineageweave.post_chat import (
+    ChatSourceDocument,
     PostChatClient,
     cited_post_evidence,
     cited_post_summaries,
@@ -92,6 +104,7 @@ async def enqueue_global_ask_job(
     *,
     requesting_account_id: str,
     question_text: str,
+    verify_external_requested: bool,
     corporate_entity_ids: frozenset[str],
     process_unit_ids: frozenset[str],
 ) -> str:
@@ -104,11 +117,13 @@ async def enqueue_global_ask_job(
     async with conn.transaction():
         job_id = await conn.fetchval(
             """
-            insert into global_ask_job (requesting_account_id, question_text)
-            values ($1, $2) returning global_ask_job_id
+            insert into global_ask_job
+                (requesting_account_id, question_text, verify_external_requested)
+            values ($1, $2, $3) returning global_ask_job_id
             """,
             requesting_account_id,
             question_text,
+            verify_external_requested,
         )
         await conn.executemany(
             """
@@ -139,6 +154,54 @@ async def enqueue_global_ask_job(
         # pollable job id instead of a 500 for a lost wake-up.
         _logger.exception("global ask wake-up publish failed for job_id=%s", job_id)
     return str(job_id)
+
+
+def _verification_next_action(status_code: str) -> str:
+    """Name the next evidence action without promoting web results to authority."""
+
+    return {
+        VERIFICATION_SKIPPED: "Enable public verification to check eligible public claims.",
+        VERIFICATION_UNAVAILABLE: "Configure public search and contextual-orchestrator, then retry.",
+        VERIFICATION_NO_PUBLIC_CLAIMS: "Inspect the internal cited posts; no public claim was eligible.",
+        VERIFICATION_COMPLETED: "Inspect public evidence separately before any governed graph review.",
+        CLAIM_NOT_ENOUGH_INFORMATION: "Collect stronger authoritative evidence before accepting the claim.",
+    }.get(status_code, "Inspect the authorized cited posts and their evidence.")
+
+
+async def _verify_public_claims(
+    sources: list[ChatSourceDocument],
+    cited_post_ids: list[str],
+    *,
+    verify_external: bool,
+    client: ClaimVerificationClient,
+) -> tuple[str, tuple[ClaimVerificationResult, ...]]:
+    """Verify only cited claims explicitly marked safe for public egress."""
+
+    if not verify_external:
+        return VERIFICATION_SKIPPED, ()
+    cited_ids = frozenset(cited_post_ids)
+    claims = tuple(
+        claim
+        for claim in public_claim_candidates(sources)
+        if set(claim.source_post_ids).issubset(cited_ids)
+    )
+    if not claims:
+        return VERIFICATION_NO_PUBLIC_CLAIMS, ()
+    if not client.available:
+        return VERIFICATION_UNAVAILABLE, ()
+    try:
+        results = tuple(
+            await asyncio.gather(
+                *(asyncio.to_thread(client.verify, claim) for claim in claims)
+            )
+        )
+    except (HttpClientError, KeyError, OSError, TypeError, ValueError):
+        return VERIFICATION_UNAVAILABLE, ()
+    return VERIFICATION_COMPLETED, tuple(
+        result
+        for result in results
+        if set(result.source_post_ids).issubset(cited_ids)
+    )
 
 
 async def load_job_visibility(
@@ -215,6 +278,8 @@ async def compute_global_ask_answer(
     process_scope_limited: bool,
     chat_client: PostChatClient,
     embedding_client: EmbeddingClient | None = None,
+    verify_external: bool = False,
+    claim_verification_client: ClaimVerificationClient | None = None,
 ) -> dict[str, Any]:
     """Assemble one complete Ask answer payload from authorized evidence.
 
@@ -254,7 +319,14 @@ async def compute_global_ask_answer(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Ask Agent is unavailable: authorized evidence could not be assembled",
         ) from exc
+    verification_client = claim_verification_client or NullClaimVerificationClient()
     if not sources:
+        verification_status, external_claims = await _verify_public_claims(
+            sources,
+            [],
+            verify_external=verify_external,
+            client=verification_client,
+        )
         delivery = build_ask_delivery("", (), ())
         return {
             "answer_text": "",
@@ -264,6 +336,8 @@ async def compute_global_ask_answer(
             "cited_post_evidence": [],
             "lineage_graph": {"nodes": [], "edges": [], "truncated": False},
             "cited_post_images": [],
+            "external_verification_status": verification_status,
+            "external_claims": [claim.to_payload() for claim in external_claims],
             "next_action": "No authorized source posts are available for this question.",
             "delivery": delivery,
         }
@@ -300,6 +374,12 @@ async def compute_global_ask_answer(
             "Ask Agent is unavailable: contextual-orchestrator could not complete the answer",
         ) from exc
     cited_ids = list(answer.cited_post_ids)
+    verification_status, external_claims = await _verify_public_claims(
+        sources,
+        cited_ids,
+        verify_external=verify_external,
+        client=verification_client,
+    )
     async with pool.acquire() as conn:
         lineage_graph = await lineage_graphs_for_posts(conn, can_see, cited_ids)
         images = await cited_post_images(conn, cited_ids)
@@ -314,6 +394,9 @@ async def compute_global_ask_answer(
         "source_post_ids": [source.post_id for source in sources],
         "lineage_graph": lineage_graph,
         "delivery": build_ask_delivery(answer.answer_text, cited_posts, cited_evidence),
+        "external_verification_status": verification_status,
+        "external_claims": [claim.to_payload() for claim in external_claims],
+        "next_action": _verification_next_action(verification_status),
     }
 
 
@@ -350,6 +433,9 @@ async def process_global_ask_job(
     job_id: str,
     chat_factory: Callable[[], PostChatClient],
     embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
+    claim_verification_factory: Callable[
+        [], ClaimVerificationClient
+    ] = NullClaimVerificationClient,
 ) -> None:
     """Claim, answer, and settle one Ask job.
 
@@ -363,7 +449,7 @@ async def process_global_ask_job(
             """
             update global_ask_job set job_status_code = $2, updated_at = now()
             where global_ask_job_id = $1 and job_status_code = $3
-            returning requesting_account_id, question_text
+            returning requesting_account_id, question_text, verify_external_requested
             """,
             job_id,
             RUNNING,
@@ -397,6 +483,8 @@ async def process_global_ask_job(
                 process_scope_limited=process_scope_limited,
                 chat_client=chat_client,
                 embedding_client=embedding_factory(),
+                verify_external=bool(row["verify_external_requested"]),
+                claim_verification_client=claim_verification_factory(),
             ),
             timeout=JOB_DEADLINE_SECONDS,
         )
@@ -511,6 +599,7 @@ async def consume_global_ask_stream_once(
     last_id: str,
     chat_factory: Callable[[], PostChatClient],
     embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
+    claim_verification_factory: Callable[[], ClaimVerificationClient] = NullClaimVerificationClient,
     limiter: asyncio.Semaphore | None = None,
     tasks: set[asyncio.Task] | None = None,
 ) -> str:
@@ -535,6 +624,7 @@ async def consume_global_ask_stream_once(
                         job_id=job_id,
                         chat_factory=chat_factory,
                         embedding_factory=embedding_factory,
+                        claim_verification_factory=claim_verification_factory,
                     )
                 else:
                     await limiter.acquire()
@@ -544,6 +634,7 @@ async def consume_global_ask_stream_once(
                             job_id=job_id,
                             chat_factory=chat_factory,
                             embedding_factory=embedding_factory,
+                            claim_verification_factory=claim_verification_factory,
                             limiter=limiter,
                         )
                     )
@@ -560,6 +651,7 @@ async def _process_and_release(
     job_id: str,
     chat_factory: Callable[[], PostChatClient],
     embedding_factory: Callable[[], EmbeddingClient],
+    claim_verification_factory: Callable[[], ClaimVerificationClient],
     limiter: asyncio.Semaphore,
 ) -> None:
     """Run one dispatched job and free its concurrency slot afterwards."""
@@ -569,6 +661,7 @@ async def _process_and_release(
             job_id=job_id,
             chat_factory=chat_factory,
             embedding_factory=embedding_factory,
+            claim_verification_factory=claim_verification_factory,
         )
     finally:
         limiter.release()
@@ -590,6 +683,7 @@ async def run_global_ask_worker(
     *,
     chat_factory: Callable[[], PostChatClient],
     embedding_factory: Callable[[], EmbeddingClient] = NullEmbeddingClient,
+    claim_verification_factory: Callable[[], ClaimVerificationClient] = NullClaimVerificationClient,
 ) -> None:
     """Run the at-least-once Ask consumer with periodic queued-row recovery."""
     last_id = await _stream_tail(client)
@@ -609,6 +703,7 @@ async def run_global_ask_worker(
                     last_id=last_id,
                     chat_factory=chat_factory,
                     embedding_factory=embedding_factory,
+                    claim_verification_factory=claim_verification_factory,
                     limiter=limiter,
                     tasks=tasks,
                 )
