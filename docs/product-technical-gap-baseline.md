@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 07:18 KST. Protected `main` is
+> Dashboard delivery snapshot: 2026-08-26 07:32 KST. Protected `main` is
 > `494b54e2245040bcf02b45376f221c37cd437e76`. This local branch is not
 > protected-main release evidence.
 
@@ -67,7 +67,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 07:18 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 07:32 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -84,17 +84,17 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #667 | `89df50a3` | baseline refresh plus semantic delivery evidence; BLOCKED with review required |
-| #663 | `d3bb9348` | project ontology traversal plus cutoff/snapshot-frozen project focus and labels; BLOCKED with review required |
-| #658 | `f007a5ed` | evidence-honest Global Ask cutoff; BLOCKED with review required |
-| #657 | `2d9b43b7` | TEPP lifecycle persistence; BLOCKED with review required |
+| #667 | `425de329` | baseline refresh plus semantic delivery evidence; BLOCKED with review required |
+| #663 | `d5edd2b9` | project ontology traversal plus cutoff-snapshot project focus, labels, and explicit MCP admission bounds; BLOCKED with review required |
+| #658 | `f497a6e8` | evidence-honest Global Ask cutoff with robust revision timestamps; BLOCKED with review required |
+| #657 | `a59a2023` | TEPP lifecycle persistence; BLOCKED with review required |
 | #644 | `ed8d97f3` | native-surface code splitting; BLOCKED with review required |
 | #643 | `7fb4d18c` | accessible status notices; BLOCKED with review required |
 | #640 | `dd134e77` | operations-dashboard contract alignment; BLOCKED with review required |
 | #639 | `8da485d3` | running-action/config repair; BLOCKED with review required |
-| #632 | `4e3c6272` | graph-fact provenance repair; BLOCKED with review required |
+| #632 | `cad4debf` | graph-fact provenance repair; BLOCKED with review required |
 | #631 | `e6b4f0c4` | ADR decomposition documentation; BLOCKED with review required |
-| #629 | `0138db5f` | provider-work release and bounded reads; BLOCKED with review required |
+| #629 | `48496ff6` | provider-work release, bounded reads, and UUID tie-break ordering; BLOCKED with review required |
 
 No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
