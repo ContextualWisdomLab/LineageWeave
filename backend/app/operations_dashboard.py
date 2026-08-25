@@ -251,7 +251,18 @@ async def fetch_operations_dashboard(
         """,
         *args,
     )
-    topic_context = await _fetch_topic_context_dashboard(conn, visible, args)
+    topic_context = (
+        {
+            "status_code": "not_applicable",
+            "reason_code": "external_information_view",
+            "next_action": "전체 Dashboard로 전환해 Topic model influence를 확인하세요.",
+            "required_contracts": [],
+            "model_run": None,
+            "topics": [],
+        }
+        if external_only
+        else await _fetch_topic_context_dashboard(conn, visible, args)
+    )
     facts: dict[tuple[str, str], list[dict[str, str]]] = {}
     for row in fact_rows:
         key = (str(row["post_id"]), row["case_kind_code"])

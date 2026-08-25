@@ -253,7 +253,7 @@ async def test_dashboard_names_missing_fast_result_after_tepp_persistence() -> N
     assert result["topic_context"]["reason_code"] == "fast_mlsirm_influence_not_persisted"
     assert result["topic_context"]["topics"] == []
 
-
+@pytest.mark.anyio
 async def test_external_scope_is_bound_in_every_dashboard_query() -> None:
     """The external destination restricts data at the API query boundary."""
     conn = _Connection()
