@@ -189,6 +189,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic project": "의미 기반 프로젝트",
     "Semantic role": "의미 기반 역할",
     "Semantic Keyman": "의미 기반 핵심 담당자",
+    "Time axis": "시간 축",
     "No authorized source posts are available for this question.": "이 질문에 사용할 수 있는 권한 있는 원문이 없습니다.",
     "Choose an authorized post before asking a question.": "질문하기 전에 권한이 있는 글을 선택하세요.",
     "Loading source posts...": "질문할 원문을 불러오는 중...",
@@ -337,6 +338,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Related next action": "관련 대상 다음 작업",
     "Ask next action": "Ask 다음 작업",
     "Keyman next action": "Keyman 다음 작업",
+    "Leftover criterion next action": "잔여 기준 다음 작업",
+    "Open this post so the leftover criterion is current in Post quality.":
+      "이 글을 열어 잔여 기준이 게시글 품질에서 현재 항목이 되게 하세요.",
+    "{criterion} is the leftover criterion this post sat closest to after main effects. Read that Post quality score next.":
+      "{criterion}은(는) 주효과 이후 이 글이 가장 가까웠던 잔여 기준입니다. 다음으로 그 게시글 품질 점수를 읽으세요.",
+    "{criterion} is the leftover criterion this post sat farthest from after main effects. Read that Post quality score next.":
+      "{criterion}은(는) 주효과 이후 이 글이 가장 멀었던 잔여 기준입니다. 다음으로 그 게시글 품질 점수를 읽으세요.",
     "Ask seeded question: {question}": "시드 질문: {question}",
     "{post} is current in Event Lineage. Read Keyman and evaluation next.":
       "{post}은(는) 이벤트 계보의 현재 항목입니다. 다음으로 Keyman과 평가를 읽으세요.",
@@ -456,6 +464,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "주효과 이후 가장 멀리 앉은 기준을 읽으려면 이 글을 여세요.",
     "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.":
       "잔여 지도가 IRT 주효과 이후 설명되지 않은 U {value}을(를) 남깁니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
+    "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
+      "잔여 지도의 두 축이 IRT 주효과 이후 원시 잔차의 항등식 나머지 {value}을(를) 남깁니다. {criterion} 기준을 읽으려면 이 글을 여세요.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "IRT 주효과 이후 관측 Y {observed}와 기대 E {expected}를 읽은 다음, 이 글을 여세요.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -638,6 +648,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic project": "语义项目",
     "Semantic role": "语义角色",
     "Semantic Keyman": "语义关键人员",
+    "Time axis": "时间轴",
     "No authorized source posts are available for this question.": "没有可用于此问题的已授权来源文章。",
     "Choose an authorized post before asking a question.": "提问前请选择有权限查看的文章。",
     "Loading source posts...": "正在加载问题来源文章...",
@@ -785,6 +796,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Related next action": "相关节点操作",
     "Ask next action": "Ask 操作",
     "Keyman next action": "关键联系人操作",
+    "Leftover criterion next action": "残差标准操作",
+    "Open this post so the leftover criterion is current in Post quality.":
+      "打开此文章，使残差标准成为文章质量中的当前项。",
+    "{criterion} is the leftover criterion this post sat closest to after main effects. Read that Post quality score next.":
+      "{criterion} 是主效应后此文章最接近的残差标准。接下来查看该文章质量分数。",
+    "{criterion} is the leftover criterion this post sat farthest from after main effects. Read that Post quality score next.":
+      "{criterion} 是主效应后此文章最远离的残差标准。接下来查看该文章质量分数。",
     "Ask seeded question: {question}": "种子问题：{question}",
     "{post} is current in Event Lineage. Read Keyman and evaluation next.":
       "{post} 是事件谱系中的当前记录。接下来查看关键联系人和评估。",
@@ -903,6 +921,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "打开这篇帖子，阅读主效应后距离最远的准则。",
     "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.":
       "残差图在 IRT 主效应后留下未解释的 U {value}。打开这篇帖子阅读 {criterion}。",
+    "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
+      "残差图的两个轴在 IRT 主效应后留下原始残差的恒等式余项 {value}。打开这篇帖子阅读 {criterion}。",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "阅读 IRT 主效应后的观测 Y {observed} 与期望 E {expected}，然后打开这篇帖子。",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -1109,6 +1129,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic project": "意味的なプロジェクト",
     "Semantic role": "意味的な役割",
     "Semantic Keyman": "意味的なキーパーソン",
+    "Time axis": "時間軸",
     "No authorized source posts are available for this question.": "この質問に利用できる許可済みの原文投稿はありません。",
     "Choose an authorized post before asking a question.": "質問する前に閲覧権限のある投稿を選択してください。",
     "Loading source posts...": "質問の原文を読み込んでいます...",
@@ -1232,6 +1253,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Related next action": "関連ノードの操作",
     "Ask next action": "Askの操作",
     "Keyman next action": "キーパーソンの操作",
+    "Leftover criterion next action": "残差基準の操作",
+    "Open this post so the leftover criterion is current in Post quality.":
+      "この投稿を開き、残差基準を投稿品質の現在の項目にしてください。",
+    "{criterion} is the leftover criterion this post sat closest to after main effects. Read that Post quality score next.":
+      "{criterion}は主効果後にこの投稿が最も近かった残差基準です。次にその投稿品質スコアを確認してください。",
+    "{criterion} is the leftover criterion this post sat farthest from after main effects. Read that Post quality score next.":
+      "{criterion}は主効果後にこの投稿が最も遠かった残差基準です。次にその投稿品質スコアを確認してください。",
     "Ask seeded question: {question}": "シードされた質問: {question}",
     "{post} is current in Event Lineage. Read Keyman and evaluation next.":
       "{post}はイベント系譜の現在の記録です。次にキーパーソンと評価を確認してください。",
@@ -1351,6 +1379,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "主効果後に最も遠くなった基準を読むには、この投稿を開いてください。",
     "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.":
       "残差マップはIRT主効果後の未説明 U {value} を残します。この投稿を開いて {criterion} を読んでください。",
+    "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
+      "残差マップの2軸はIRT主効果後の生の残差の恒等式の余り {value} を残します。この投稿を開いて {criterion} を読んでください。",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "IRT主効果後の観測 Y {observed} と期待 E {expected} を読んでから、この投稿を開いてください。",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":
@@ -1557,6 +1587,7 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Semantic project": "Dự án ngữ nghĩa",
     "Semantic role": "Vai trò ngữ nghĩa",
     "Semantic Keyman": "Keyman ngữ nghĩa",
+    "Time axis": "Trục thời gian",
     "No authorized source posts are available for this question.": "Không có bài viết nguồn được cấp quyền cho câu hỏi này.",
     "Choose an authorized post before asking a question.": "Hãy chọn một bài viết được cấp quyền trước khi đặt câu hỏi.",
     "Loading source posts...": "Đang tải bài viết nguồn cho câu hỏi...",
@@ -1680,6 +1711,13 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
     "Related next action": "Thao tác nút liên quan",
     "Ask next action": "Thao tác Ask",
     "Keyman next action": "Thao tác người liên hệ chính",
+    "Leftover criterion next action": "Thao tác tiêu chí phần dư",
+    "Open this post so the leftover criterion is current in Post quality.":
+      "Mở bài viết này để tiêu chí phần dư trở thành mục hiện tại trong Chất lượng bài viết.",
+    "{criterion} is the leftover criterion this post sat closest to after main effects. Read that Post quality score next.":
+      "{criterion} là tiêu chí phần dư mà bài viết này nằm gần nhất sau hiệu ứng chính. Hãy xem điểm Chất lượng bài viết đó tiếp theo.",
+    "{criterion} is the leftover criterion this post sat farthest from after main effects. Read that Post quality score next.":
+      "{criterion} là tiêu chí phần dư mà bài viết này nằm xa nhất sau hiệu ứng chính. Hãy xem điểm Chất lượng bài viết đó tiếp theo.",
     "Ask seeded question: {question}": "Câu hỏi mồi: {question}",
     "{post} is current in Event Lineage. Read Keyman and evaluation next.":
       "{post} là bản ghi hiện tại trong Dòng sự kiện. Hãy xem người liên hệ chính và đánh giá tiếp theo.",
@@ -1799,6 +1837,8 @@ const TRANSLATIONS: Partial<Record<Locale, Record<string, string>>> = {
       "Mở bài viết này để đọc tiêu chí nằm xa nhất sau hiệu ứng chính.",
     "Leftover map leaves unexplained U {value} after IRT main effects. Open this post to read {criterion}.":
       "Bản đồ phần dư để lại U {value} chưa giải thích sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
+    "Two leftover-map axes leave identity remainder {value} of raw residual after IRT main effects. Open this post to read {criterion}.":
+      "Hai trục của bản đồ phần dư để lại phần giao {value} của phần dư thô sau hiệu ứng chính IRT. Mở bài viết này để đọc {criterion}.",
     "Read observed Y {observed} and expected E {expected} after IRT main effects, then open this post.":
       "Đọc Y quan sát {observed} và E kỳ vọng {expected} sau hiệu ứng chính IRT, rồi mở bài viết này.",
     "Leftover map has no leftover structure after IRT main effects. Open this post.":

@@ -974,8 +974,9 @@ class ContextualOrchestratorPostSummaryClient:
             headers={"authorization": f"Bearer {self._api_key}"},
             timeout=self._timeout,
         )
+        details_content = chat_completion_content(details_body)
         details = _parse_plain_summary_details(
-            chat_completion_content(details_body),
+            details_content,
             post_title=post_title,
             context_hints=context_hints,
         )

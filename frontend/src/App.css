@@ -279,6 +279,12 @@
   box-shadow: inset 0 0 0 1px var(--color-accent-info);
 }
 
+.evaluation-criterion[aria-current="true"] {
+  outline: 2px solid var(--color-accent-info);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
 .post-badge {
   font-size: 0.75rem;
   opacity: 0.7;
@@ -322,8 +328,10 @@
 }
 
 /* Posts & Evidence */
+/* No opacity dimming here: this class also carries the app's role="status"
+   next-action announcements, and opacity: 0.7 dropped their contrast below
+   WCAG AA (~3.03:1 light / ~4.09:1 dark) against --bg in both themes. */
 .post-meta {
-  opacity: 0.7;
   font-size: 0.85rem;
 }
 
@@ -657,6 +665,37 @@
 .verification-verify_uncorroborated {
   background: var(--badge-status-danger-bg);
   color: var(--badge-status-danger-text);
+}
+
+.evidence-status-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.6rem;
+  border-radius: var(--radius-chip);
+  font-size: var(--font-size-badge);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.evidence-status-glyph {
+  font-size: 0.7em;
+  line-height: 1;
+}
+
+.evidence-status-evidence {
+  background: var(--badge-status-evidence-bg);
+  color: var(--badge-status-evidence-text);
+}
+
+.evidence-status-inference {
+  background: var(--badge-status-inference-bg);
+  color: var(--badge-status-inference-text);
+}
+
+.evidence-status-prediction {
+  background: var(--badge-status-prediction-bg);
+  color: var(--badge-status-prediction-text);
 }
 
 .keyman-select {

@@ -28,6 +28,12 @@ const BADGE_AND_ACCENT_TOKENS = [
   "--badge-status-success-text",
   "--badge-status-danger-bg",
   "--badge-status-danger-text",
+  "--badge-status-evidence-bg",
+  "--badge-status-evidence-text",
+  "--badge-status-inference-bg",
+  "--badge-status-inference-text",
+  "--badge-status-prediction-bg",
+  "--badge-status-prediction-text",
 ];
 
 // Colors this file's dark-mode block replaced -- a regression here would
@@ -117,6 +123,15 @@ describe("design tokens", () => {
     for (const token of BADGE_AND_ACCENT_TOKENS) {
       expect(appCss, `App.css never references var(${token})`).toContain(`var(${token})`);
     }
+  });
+
+  it("does not dim .post-meta with opacity -- it fails WCAG AA in both themes and carries role=\"status\" next-action text", () => {
+    const match = appCss.match(/\.post-meta\s*\{([^}]*)\}/);
+    expect(match, ".post-meta rule not found in App.css").not.toBeNull();
+    expect(match?.[1] ?? "").not.toMatch(/opacity\s*:/);
+    // Dropping the dimming must not also drop the size: the meta line
+    // stays visually secondary through font-size, not through opacity.
+    expect(match?.[1] ?? "").toContain("font-size: 0.85rem");
   });
 
   it("gives .citation-chip a real 24px minimum touch target", () => {

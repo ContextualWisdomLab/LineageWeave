@@ -71,6 +71,7 @@ class ColumnMapping:
     body: str
     created_at: str
     updated_at: str | None
+    event_occurred_at: str | None
     voc_type: str | None
     visibility: str | None
     stage: str | None
@@ -111,6 +112,10 @@ def _parser() -> argparse.ArgumentParser:
     parser.add_argument("--body-column", required=True)
     parser.add_argument("--created-at-column", required=True)
     parser.add_argument("--updated-at-column")
+    parser.add_argument(
+        "--event-occurred-at-column",
+        help="optional source-system event instant; Global Ask falls back to created_at when omitted",
+    )
     parser.add_argument("--voc-type-column")
     parser.add_argument("--visibility-column")
     parser.add_argument("--stage-column")
@@ -417,6 +422,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
         body=args.body_column,
         created_at=args.created_at_column,
         updated_at=args.updated_at_column,
+        event_occurred_at=args.event_occurred_at_column,
         voc_type=args.voc_type_column,
         visibility=args.visibility_column,
         stage=args.stage_column,
@@ -485,6 +491,10 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
             updated_at = (
                 created_at if raw_updated_at is None else _timestamp(raw_updated_at)
             )
+            event_raw = (
+                _value(row, mapping.event_occurred_at) if mapping.event_occurred_at else None
+            )
+            event_occurred_at = _timestamp(event_raw) if event_raw is not None else None
             post_id = _source_post_id(row, mapping, args.source_system_code, record_key)
             title = str(_value(row, mapping.title, "") or "")
             body = str(_value(row, mapping.body, "") or "")
@@ -517,8 +527,9 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
                      source_project_code, source_project_name,
                      source_system_code, source_record_key,
                      source_thread_group_key, source_secondary_grouping_key,
-                     thread_group_key, secondary_grouping_key, created_at, updated_at)
-                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32)
+                     thread_group_key, secondary_grouping_key, created_at, updated_at,
+                     event_occurred_at)
+                values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33)
                 on conflict (post_id) do update set
                     author_account_id = excluded.author_account_id,
                     corporate_entity_id = excluded.corporate_entity_id,
@@ -551,7 +562,8 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
                     thread_group_key = excluded.thread_group_key,
                     secondary_grouping_key = excluded.secondary_grouping_key,
                     created_at = excluded.created_at,
-                    updated_at = excluded.updated_at
+                    updated_at = excluded.updated_at,
+                    event_occurred_at = excluded.event_occurred_at
                 """,
                 post_id,
                 account_id,
@@ -585,6 +597,7 @@ async def import_rows(args: argparse.Namespace) -> dict[str, object]:
                 secondary_grouping_key,
                 created_at,
                 updated_at,
+                event_occurred_at,
             )
             await target.execute(
                 """
