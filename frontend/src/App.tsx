@@ -100,7 +100,7 @@ import { PostBody } from "./PostBody";
 import { decodeHtmlEntities } from "./postBodyDisplay";
 import { FiveW1H } from "./components/FiveW1H";
 import { subgraphForPost } from "./lineageLayout";
-import { rememberOidcReturnUrl, returnUrlFromLocation, stripOidcCallbackParams } from "./oidcReturnUrl";
+import { stripOidcCallbackParams } from "./oidcReturnUrl";
 import {
   isSupportedLocale,
   LOCALE_LABELS,
