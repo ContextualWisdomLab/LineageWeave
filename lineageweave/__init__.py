@@ -10,7 +10,12 @@ from .affiliate_tree import build_affiliate_forest
 from .corporate_hierarchy_resolution import resolve_corporate_entity
 from .entity_relationship_classification import OrganizationRelationship
 from .knowledge_graph import random_walk_with_restart, select_related_nodes
-from .lineage_persistence import lineage_edge_specs
+from .lineage_persistence import (
+    CHANNEL_EVIDENCE_TOLERANCE,
+    lineage_edge_specs,
+    rank_channel_evidence,
+    reconstruction_version,
+)
 from .models import Edge, Record, Tree
 from .naruon_calendar_projection import (
     NARUON_CALENDAR_MEDIA_TYPE,
@@ -36,8 +41,8 @@ from .prov_o import (
     PROV,
     PROV_CLASSES,
     PROV_QUALIFICATIONS,
-    PROV_RELATIONS,
     PROV_RECOMMENDED_INVERSES,
+    PROV_RELATIONS,
     ProvAssertion,
     ProvGraph,
     ProvLiteral,
@@ -47,8 +52,7 @@ from .reconstruct import reconstruct
 from .voc_evidence import sentence_excerpts
 
 __all__ = [
-    "ChatAnswer",
-    "Edge",
+    "CHANNEL_EVIDENCE_TOLERANCE",
     "NARUON_CALENDAR_MEDIA_TYPE",
     "NARUON_CALENDAR_SCHEMA_VERSION",
     "NARUON_CALENDAR_UNAVAILABLE_NEXT_ACTION",
@@ -58,12 +62,14 @@ __all__ = [
     "NaruonCalendarProjectionClient",
     "NaruonCalendarWorkspaceEvent",
     "NaruonCalendarWorkspaceResult",
-    "OrganizationRelationship",
     "PROV",
     "PROV_CLASSES",
     "PROV_QUALIFICATIONS",
-    "PROV_RELATIONS",
     "PROV_RECOMMENDED_INVERSES",
+    "PROV_RELATIONS",
+    "ChatAnswer",
+    "Edge",
+    "OrganizationRelationship",
     "PostSummary",
     "ProvAssertion",
     "ProvGraph",
@@ -80,7 +86,9 @@ __all__ = [
     "occurrence_to_workspace_event",
     "parse_naruon_calendar_page",
     "random_walk_with_restart",
+    "rank_channel_evidence",
     "reconstruct",
+    "reconstruction_version",
     "resolve_corporate_entity",
     "select_related_nodes",
     "sentence_excerpts",

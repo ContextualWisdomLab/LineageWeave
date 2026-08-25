@@ -48,9 +48,14 @@ const a100Graph: LineageGraph = {
     {
       source: "rec-002",
       target: "rec-003",
-      fused_score: 0.9,
+      fused_score: 0.797623792218737,
       interval_relation_code: "interval_contains",
       interval_relation_label: "Contains",
+      channel_evidence: [
+        { signal_code: "temporal", signal_label: "Temporal proximity", score: 0.8, weight: 0.5306114573429468, contribution: 0.4244891658743575, rank: 1 },
+        { signal_code: "secondary_key", signal_label: "Secondary key", score: 1, weight: 0.27688071002092646, contribution: 0.27688071002092646, rank: 2 },
+        { signal_code: "text", signal_label: "Text similarity", score: 0.5, weight: 0.1925078326361269, contribution: 0.09625391631806345, rank: 3 },
+      ],
     },
     {
       source: "rec-002",
@@ -60,6 +65,18 @@ const a100Graph: LineageGraph = {
       interval_relation_label: "Overlaps",
     },
   ],
+  reconstruction: {
+    reconstruction_version: "lineageweave.reconstruct/2.14.0",
+    generated_at: "2026-08-21T12:00:00+00:00",
+    min_fused_score: 0.3,
+    candidate_window: 50,
+    active_weights: [
+      // fast-mlsirm estimate_fixture_channel_weights(), not hand-picked UI weights.
+      { signal_code: "secondary_key", signal_weight: 0.27688071002092646 },
+      { signal_code: "temporal", signal_weight: 0.5306114573429468 },
+      { signal_code: "text", signal_weight: 0.1925078326361269 },
+    ],
+  },
 };
 
 const meta = {
@@ -76,6 +93,9 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
+export const ConnectionEvidence: Story = {};
+
+export const NoLlmChannel: Story = {};
 export const ContainsAndOverlaps: Story = {};
 
 // Edge case: no reconstructed lineage yet -- must not render an empty SVG.

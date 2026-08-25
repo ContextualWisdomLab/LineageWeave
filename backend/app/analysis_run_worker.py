@@ -9,18 +9,17 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from uuid import UUID
 
 import asyncpg
 import redis.asyncio as redis
-from uuid import UUID
-
-from lineageweave.adjudication_client import AdjudicationClient
-from lineageweave.observability import traced
-from lineageweave.tepp_client import TeppClient
 
 from backend.app.analysis_run_ingestion import AnalysisRunCreateError
 from backend.app.analysis_run_outbox import OUTBOX_STREAM_KEY
 from backend.app.analysis_run_start import deliver_queued_analysis_run
+from lineageweave.adjudication_client import AdjudicationClient
+from lineageweave.observability import traced
+from lineageweave.tepp_client import TeppClient
 
 _BROKER_RECOVERY_DELAY_SECONDS = 1.0
 _worker_logger = logging.getLogger(__name__)
@@ -77,17 +76,17 @@ async def consume_analysis_run_stream_once(
                     # transaction rolls back, the durable outbox row stays
                     # available, and an explicit HTTP start retries the run
                     # once the operator resolves the named next action.
-                    try:
-                        async with pool.acquire() as conn:
-                            owner = await conn.fetchrow(
-                                """
-                                select requested_by_account_id
-                                from analysis_run
-                                where analysis_run_id = $1::uuid
-                                """,
-                                analysis_run_id,
-                            )
-                        if owner is not None:
+                    async with pool.acquire() as conn:
+                        owner = await conn.fetchrow(
+                            """
+                            select requested_by_account_id
+                            from analysis_run
+                            where analysis_run_id = $1::uuid
+                            """,
+                            analysis_run_id,
+                        )
+                    if owner is not None:
+                        try:
                             await deliver_queued_analysis_run(
                                 pool,
                                 database_url=database_url,
@@ -98,13 +97,19 @@ async def consume_analysis_run_stream_once(
                                 adjudication_client=adjudication_client,
                                 valkey_stream_entry_id=str(entry_id),
                             )
-                    except AnalysisRunCreateError as exc:
-                        _worker_logger.warning(
-                            "analysis-run %s delivery refused (%s): %s",
-                            analysis_run_id,
-                            exc.status_code,
-                            exc.detail,
-                        )
+                        except AnalysisRunCreateError as exc:
+                            _worker_logger.warning(
+                                "analysis-run %s delivery refused (%s): %s",
+                                analysis_run_id,
+                                exc.status_code,
+                                exc.detail,
+                            )
+                        except Exception as exc:
+                            _worker_logger.warning(
+                                "analysis-run %s delivery failed (error_type=%s)",
+                                analysis_run_id,
+                                type(exc).__name__,
+                            )
                 last_id = str(entry_id)
     return last_id
 
