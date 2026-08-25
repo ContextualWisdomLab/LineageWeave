@@ -345,6 +345,36 @@ def test_global_sources_fail_closed_when_embedding_is_unavailable() -> None:
     assert sources == []
 
 
+def test_global_sources_accept_a_precomputed_available_embedding() -> None:
+    """A validated precomputed vector does not re-enter its provider channel."""
+    queries: list[str] = []
+
+    class UnavailableEmbedding:
+        available = False
+        resolved_model = None
+
+        def embed(self, _text: str) -> list[float]:
+            raise AssertionError("precomputed embedding must not call its provider")
+
+    class FakeConnection:
+        async def fetch(self, query: str, *_args):
+            queries.append(query)
+            return []
+
+    sources = asyncio.run(
+        _gather_global_chat_sources(
+            FakeConnection(),
+            lambda _row: True,
+            question="semantic question",
+            embedding_client=UnavailableEmbedding(),
+            question_embedding=([1.0, 0.0], "synthetic-embedding", 1.0),
+        )
+    )
+
+    assert sources == []
+    assert "with question_vector" in queries[0]
+
+
 def test_global_sources_fail_closed_without_a_resolved_embedding_model() -> None:
     """A vector without its orchestrator-resolved model cannot match persisted rows."""
 
