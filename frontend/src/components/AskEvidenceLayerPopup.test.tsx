@@ -36,6 +36,24 @@ describe("AskEvidenceLayerPopup", () => {
     ).toBeInTheDocument();
   });
 
+  it("names the event-time axis so a click still opens that post", () => {
+    render(
+      <AskEvidenceLayerPopup
+        {...baseProps}
+        facts={[{ kind: "time_axis", text: "time axis: event occurred at" }]}
+        images={[]}
+        onClose={vi.fn()}
+        onOpenPost={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Time axis")).toBeInTheDocument();
+    expect(screen.getByText("time axis: event occurred at")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Open post: Checkout error follow-up" }),
+    ).toBeInTheDocument();
+  });
+
   it("shows an explicit placeholder when the citation has no persisted evidence", () => {
     render(
       <AskEvidenceLayerPopup {...baseProps} facts={[]} images={[]} onClose={vi.fn()} onOpenPost={vi.fn()} />,

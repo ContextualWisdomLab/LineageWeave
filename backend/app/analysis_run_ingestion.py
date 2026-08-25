@@ -34,11 +34,13 @@ from lineageweave import __version__ as PACKAGE_VERSION
 _LINEAGE_RUN_KIND = "analysis_run_lineage"
 _TEPP_RUN_KIND = "analysis_run_tepp"
 _REPORT_RUN_KIND = "analysis_run_report"
+_TOPIC_LINEAGE_RUN_KIND = "analysis_run_topic_lineage"
 _CORPORATE_SCOPE = "analysis_scope_corporate_entity"
 _CAPTURE_CONTRACT_VERSION = "analysis-run-capture-v1"
 _KIND_SCHEMA_VERSION = {
     "analysis_run_lineage": "lineage-run-v1",
     "analysis_run_tepp": "tepp-run-v1",
+    "analysis_run_topic_lineage": "topic-lineage-run-v1",
 }
 
 _RUN_LIST_SQL = f"""
@@ -405,6 +407,21 @@ async def fetch_visible_analysis_run(
     if digest is not None:
         detail["reconstruction_result_sha256"] = digest
     detail["reconstructed_edges"] = edges
+    if row["run_kind_code"] == _TOPIC_LINEAGE_RUN_KIND:
+        topic_result = await conn.fetchrow(
+            """
+            select result_json, result_sha256
+              from analysis_run_topic_lineage_result
+             where analysis_run_id = $1
+            """,
+            analysis_run_id,
+        )
+        if topic_result is not None:
+            envelope = topic_result["result_json"]
+            detail["topic_lineage_result"] = (
+                json.loads(envelope) if isinstance(envelope, str) else envelope
+            )
+            detail["topic_lineage_result_sha256"] = topic_result["result_sha256"]
     return detail
 
 
@@ -613,17 +630,24 @@ class AnalysisRunCreateError(Exception):
 
 
 def _require_lineage_create_kind(run_kind_code: str) -> None:
-    """Reject TEPP and report writes so this path cannot fake those products.
+    """Reject TEPP, topic-lineage, and report writes so this path cannot fake those products.
 
-    TEPP stays a ``tepp_client`` wire path. Period reports stay on the
-    Reports panel rebuild. A Pending TEPP row that never called the
-    transport is a fabricated measurement request.
+    TEPP and topic-lineage stay ``tepp_client`` wire paths (ADR 0022 /
+    ADR 0132). Period reports stay on the Reports panel rebuild. A Pending
+    TEPP or topic-lineage row that never called the transport is a
+    fabricated measurement request.
     """
     if run_kind_code == _TEPP_RUN_KIND:
         raise AnalysisRunCreateError(
             422,
             "Connect a TEPP transport from a Failed TEPP row; this endpoint "
             "does not invent a measurement.",
+        )
+    if run_kind_code == _TOPIC_LINEAGE_RUN_KIND:
+        raise AnalysisRunCreateError(
+            422,
+            "Connect a TEPP transport from a Failed topic-lineage row; this "
+            "endpoint does not invent a topic model.",
         )
     if run_kind_code == _REPORT_RUN_KIND:
         raise AnalysisRunCreateError(
