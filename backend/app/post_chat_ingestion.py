@@ -18,6 +18,7 @@ chain of its own top match.
 from __future__ import annotations
 
 import asyncio
+import math
 from dataclasses import dataclass
 from datetime import date, datetime
 from typing import Any, Callable, Iterable
@@ -36,6 +37,7 @@ from lineageweave.knowledge_graph import (
     random_walk_with_restart,
     select_related_nodes,
 )
+from lineageweave.ontology import all_declared_lookup_codes, ontology_annotations
 from lineageweave.post_chat import (
     CANONICAL_CHAT_QUESTION,
     CANONICAL_COMMITMENT_QUESTION,
@@ -44,11 +46,11 @@ from lineageweave.post_chat import (
     normalize_chat_question,
 )
 from lineageweave.post_content_normalization import normalize_post_body
+from lineageweave.rankweave_client import RankWeaveNotAvailable, build_rankweave_client
 from lineageweave.temporal_expressions import resolve_korean_relative_time
 
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
 from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
-from lineageweave.ontology import ontology_annotations
 
 
 @dataclass(frozen=True)
@@ -417,6 +419,69 @@ async def gather_chat_sources(
     return sources
 
 
+async def prepare_global_question_embedding(
+    question: str,
+    embedding_client: EmbeddingClient,
+) -> tuple[list[float], str, float] | None:
+    """Resolve one question embedding without holding a database connection."""
+    if not question.strip() or not embedding_client.available:
+        return None
+    try:
+        question_vector = await asyncio.to_thread(embedding_client.embed, question)
+    except (OSError, RuntimeError, ValueError):
+        return None
+    return _validated_question_embedding(
+        question_vector, embedding_client.resolved_model
+    )
+
+
+def _validated_question_embedding(
+    question_vector: list[float], embedding_model_code: str | None
+) -> tuple[list[float], str, float] | None:
+    """Return a finite, non-zero embedding envelope or fail closed."""
+    if (
+        not question_vector
+        or not embedding_model_code
+        or any(not math.isfinite(value) for value in question_vector)
+    ):
+        return None
+    question_norm = math.sqrt(sum(value * value for value in question_vector))
+    if not math.isfinite(question_norm) or question_norm == 0.0:
+        return None
+    return question_vector, embedding_model_code, question_norm
+
+
+def _ontology_lookup_codes_in_question(question: str) -> list[str]:
+    """Return ontology lookup codes whose complete canonical IRI is cited."""
+    folded_question = question.casefold()
+    matched: list[str] = []
+    for lookup_code in sorted(all_declared_lookup_codes()):
+        ontology_iri = ontology_annotations(lookup_code).get("ontology_iri")
+        if ontology_iri and ontology_iri.casefold() in folded_question:
+            matched.append(lookup_code)
+    return matched
+
+
+def _fuse_global_candidate_ids(
+    embedding_ids: list[str], evidence_ids: list[str], limit: int
+) -> list[str]:
+    """Fuse two owned rank lists with RankWeave parameter-free RRF."""
+    if not embedding_ids:
+        return evidence_ids[:limit]
+    if not evidence_ids:
+        return embedding_ids[:limit]
+    channels = {"embedding": embedding_ids, "evidence": evidence_ids}
+    titles_by_id = {
+        post_id: post_id
+        for post_id in dict.fromkeys([*embedding_ids, *evidence_ids])
+    }
+    try:
+        fused = build_rankweave_client().fuse_rankings(channels, titles_by_id)
+    except RankWeaveNotAvailable:
+        return embedding_ids[:limit]
+    return [item.post_id for item in fused.items[:limit]]
+
+
 async def gather_global_chat_sources(
     conn: asyncpg.Connection,
     can_see_post: Callable[[asyncpg.Record], bool],
@@ -426,6 +491,7 @@ async def gather_global_chat_sources(
     embedding_client: EmbeddingClient | None = None,
     *,
     question: str | None = None,
+    question_embedding: tuple[list[float], str, float] | None = None,
     limit: int = 4,
     today: date | None = None,
 ) -> list[ChatSourceDocument]:
@@ -444,11 +510,9 @@ async def gather_global_chat_sources(
     or no expression at all applies no date filter. Cited sources name
     which clock matched (ADR 0202).
 
-    Candidates are ranked by the maximum cosine similarity between the
-    question embedding and each post's persisted semantic-unit embeddings.
-    The embedding model and dimension must match exactly.  An unavailable
-    channel or incomplete persisted vectors returns no source instead of
-    falling back to lexical matching.
+    Embedding candidates use maximum cosine similarity with exact model and
+    dimension agreement. Persisted semantic/KG evidence remains available
+    when that channel is unavailable; title/body lexical fallback does not.
     """
     if limit <= 0:
         return []
@@ -459,20 +523,26 @@ async def gather_global_chat_sources(
     resolved_time_range = resolve_korean_relative_time(
         question or "", today=today or _seoul_today()
     )
-    if not (question and question.strip() and embedding_client.available):
+    if not (question and question.strip()):
         return []
-    try:
-        question_vector = await asyncio.to_thread(embedding_client.embed, question)
-    except (OSError, RuntimeError, ValueError):
+    supplied_question_embedding = question_embedding is not None
+    if question_embedding is None:
+        question_embedding = await prepare_global_question_embedding(
+            question, embedding_client
+        )
+    validated_embedding = (
+        _validated_question_embedding(question_embedding[0], question_embedding[1])
+        if question_embedding is not None
+        else None
+    )
+    embedding_enabled = validated_embedding is not None
+    if supplied_question_embedding and not embedding_enabled:
         return []
-    if not question_vector:
-        return []
-    embedding_model_code = embedding_client.resolved_model
-    if not embedding_model_code:
-        return []
-    question_norm = sum(value * value for value in question_vector) ** 0.5
-    if question_norm == 0.0:
-        return []
+    question_vector, embedding_model_code, question_norm = validated_embedding or (
+        [],
+        "",
+        1.0,
+    )
     # Safe SQL: the only interpolation is the repository-owned eligibility
     # expression; all request and model values remain asyncpg parameters.
     candidate_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
@@ -496,7 +566,8 @@ async def gather_global_chat_sources(
                 on value.post_content_embedding_id = embedding.post_content_embedding_id
               join question_vector question
                 on question.dimension_index = value.dimension_index
-             where embedding.embedding_model_code = $3
+             where $11::boolean
+               and embedding.embedding_model_code = $3
                and embedding.embedding_dimension_count = cardinality($1::double precision[])
                and (post.visibility_code = 'public'
                     or (post.corporate_entity_id::text = any($4::text[])
@@ -507,14 +578,145 @@ async def gather_global_chat_sources(
                and ($7::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date <= $7)
              group by unit.post_id, embedding.post_content_embedding_id
             having count(*) = cardinality($1::double precision[])
+        ), embedding_candidates as (
+            select similarity.post_id,
+                   max(similarity.cosine_similarity) as semantic_score,
+                   max(coalesce(post.event_occurred_at, post.created_at)) as event_clock
+              from unit_similarity similarity
+              join source_post post on post.post_id = similarity.post_id
+             group by similarity.post_id
+             order by semantic_score desc, event_clock desc, similarity.post_id desc
+             limit $8
+        ), evidence_query as (
+            select websearch_to_tsquery('simple', $9) as terms
+        ), matching_nodes as (
+            select 'node_person'::text as node_type_code, person.person_id as node_id
+              from cataloged_person person, evidence_query query
+             where to_tsvector(
+                       'simple',
+                       coalesce(person.person_name, '') || ' ' ||
+                       coalesce(person.last_known_job_title, '')
+                   ) @@ query.terms
+            union
+            select 'node_corporate_entity', entity.corporate_entity_id
+              from corporate_entity entity, evidence_query query
+             where to_tsvector(
+                       'simple',
+                       coalesce(entity.corporate_entity_code, '') || ' ' ||
+                       coalesce(entity.entity_name, '')
+                   ) @@ query.terms
+            union
+            select 'node_team', team.team_id
+              from cataloged_team team, evidence_query query
+             where to_tsvector(
+                       'simple',
+                       coalesce(team.team_name, '') || ' ' ||
+                       coalesce(team.affiliated_organization_name, '')
+                   ) @@ query.terms
+            union
+            select 'node_post', endpoint.post_id
+              from source_post endpoint, evidence_query query
+             where to_tsvector('simple', coalesce(endpoint.post_title, '')) @@ query.terms
+               and (endpoint.visibility_code = 'public'
+                    or (endpoint.corporate_entity_id::text = any($4::text[])
+                        and (cardinality($5::text[]) = 0
+                             or endpoint.process_unit_id::text = any($5::text[]))))
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='endpoint')}
+        ), matching_edges as (
+            select edge.knowledge_graph_edge_id
+              from knowledge_graph_edge edge
+              join common_lookup_value lookup
+                on lookup.lookup_code = edge.edge_type_code
+              cross join evidence_query query
+             where to_tsvector(
+                       'simple',
+                       coalesce(lookup.lookup_code, '') || ' ' ||
+                       coalesce(lookup.lookup_label, '')
+                   ) @@ query.terms
+            union
+            select edge.knowledge_graph_edge_id
+              from knowledge_graph_edge edge
+             where edge.edge_type_code = any($10::text[])
+            union
+            select edge.knowledge_graph_edge_id
+              from knowledge_graph_edge edge
+              join matching_nodes node
+                on node.node_type_code = edge.source_node_type_code
+               and node.node_id = edge.source_node_id
+            union
+            select edge.knowledge_graph_edge_id
+              from knowledge_graph_edge edge
+              join matching_nodes node
+                on node.node_type_code = edge.target_node_type_code
+               and node.node_id = edge.target_node_id
+        ), evidence_post_candidates as (
+            select project.post_id
+              from post_project_mention project, evidence_query query
+             where to_tsvector(
+                       'simple',
+                       coalesce(project.project_name, '') || ' ' ||
+                       coalesce(project.evidence_text, '') || ' ' ||
+                       coalesce(project.ontology_iri, '')
+                   ) @@ query.terms
+            union
+            select role.post_id
+              from post_summary_role role, evidence_query query
+             where to_tsvector(
+                       'simple',
+                       coalesce(role.actor_name, '') || ' ' ||
+                       coalesce(role.responsibility, '') || ' ' ||
+                       coalesce(role.affiliated_organization_name, '')
+                   ) @@ query.terms
+            union
+            select mention.post_id
+              from combined_post_person_mention mention
+              join cataloged_person person on person.person_id = mention.person_id
+              cross join evidence_query query
+             where to_tsvector(
+                       'simple',
+                       coalesce(person.person_name, '') || ' ' ||
+                       coalesce(person.last_known_job_title, '')
+                   ) @@ query.terms
+            union
+            select mention.post_id
+              from combined_post_person_mention mention
+              join person_affiliation affiliation
+                on affiliation.person_id = mention.person_id
+              cross join evidence_query query
+             where to_tsvector(
+                       'simple',
+                       coalesce(affiliation.affiliated_organization_name, '') || ' ' ||
+                       coalesce(affiliation.role_title, '')
+                   ) @@ query.terms
+            union
+            select evidence.evidence_post_id
+              from matching_edges edge
+              join knowledge_graph_edge_evidence evidence
+                on evidence.knowledge_graph_edge_id = edge.knowledge_graph_edge_id
+        ), authorized_evidence_candidates as (
+            select candidate.post_id,
+                   max(coalesce(post.event_occurred_at, post.created_at)) as event_clock
+              from evidence_post_candidates candidate
+              join source_post post on post.post_id = candidate.post_id
+             where (post.visibility_code = 'public'
+                    or (post.corporate_entity_id::text = any($4::text[])
+                        and (cardinality($5::text[]) = 0
+                             or post.process_unit_id::text = any($5::text[]))))
+               and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
+               and ($6::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date >= $6)
+               and ($7::date is null or (coalesce(post.event_occurred_at, post.created_at) at time zone 'Asia/Seoul')::date <= $7)
+             group by candidate.post_id
+             order by event_clock desc, candidate.post_id desc
+             limit $8
         )
-        select similarity.post_id, max(similarity.cosine_similarity) as semantic_score,
-               max(coalesce(post.event_occurred_at, post.created_at)) as event_clock
-          from unit_similarity similarity
-          join source_post post on post.post_id = similarity.post_id
-         group by similarity.post_id
-         order by semantic_score desc, event_clock desc, similarity.post_id desc
-         limit $8
+        select 'embedding'::text as candidate_channel, post_id,
+               row_number() over (order by semantic_score desc, event_clock desc, post_id desc) as channel_rank
+          from embedding_candidates
+        union all
+        select 'evidence', post_id,
+               row_number() over (order by event_clock desc, post_id desc) as channel_rank
+          from authorized_evidence_candidates
+         order by candidate_channel, channel_rank
         """,
         question_vector,
         question_norm,
@@ -524,8 +726,25 @@ async def gather_global_chat_sources(
         resolved_time_range[0] if resolved_time_range else None,
         resolved_time_range[1] if resolved_time_range else None,
         limit,
+        question,
+        _ontology_lookup_codes_in_question(question),
+        embedding_enabled,
     )
-    candidate_ids = [str(row["post_id"]) for row in candidate_rows]
+    embedding_candidate_ids: list[str] = []
+    evidence_candidate_ids: list[str] = []
+    for row in candidate_rows:
+        channel = (
+            str(row["candidate_channel"])
+            if "candidate_channel" in row
+            else "embedding"
+        )
+        target = (
+            evidence_candidate_ids if channel == "evidence" else embedding_candidate_ids
+        )
+        target.append(str(row["post_id"]))
+    candidate_ids = _fuse_global_candidate_ids(
+        embedding_candidate_ids, evidence_candidate_ids, limit
+    )
     candidate_id_set = frozenset(candidate_ids)
 
     # One semantic match is still only one event snapshot. Expand the

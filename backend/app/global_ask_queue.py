@@ -46,6 +46,7 @@ from .post_chat_ingestion import (
     _seoul_today,
     cited_post_images,
     gather_global_chat_sources,
+    prepare_global_question_embedding,
 )
 
 GLOBAL_ASK_STREAM_KEY = "global_ask_request_stream"
@@ -237,6 +238,9 @@ async def compute_global_ask_answer(
 
     today = _seoul_today()
     try:
+        question_embedding = await prepare_global_question_embedding(
+            question_text, embedding_client or NullEmbeddingClient()
+        )
         async with pool.acquire() as conn:
             sources = await gather_global_chat_sources(
                 conn,
@@ -244,8 +248,9 @@ async def compute_global_ask_answer(
                 corporate_entity_ids,
                 process_unit_ids,
                 question=question_text,
+                question_embedding=question_embedding,
                 today=today,
-                embedding_client=embedding_client,
+                embedding_client=NullEmbeddingClient(),
             )
     except Exception as exc:
         log_internal_fault("global_ask", exc)

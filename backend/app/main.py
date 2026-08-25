@@ -148,7 +148,7 @@ from backend.app.post_summary_ingestion import (
     require_summary_source_body,
 )
 from backend.app.ranking_ingestion import load_visible_ranking_posts
-from backend.app.relation_verification_ingestion import verify_post_relations
+from backend.app.relation_verification_ingestion import verify_post_relations_from_pool
 from backend.app.report_ingestion import (
     GROUPING_KINDS,
     fetch_period_comparison,
@@ -1251,6 +1251,8 @@ async def read_lineage_graph(
             lambda row: _can_see_post(account, row),
             limit=limit,
             focus_post_id=post_id,
+            corporate_entity_ids=account.corporate_entity_ids,
+            process_unit_ids=account.process_unit_ids,
         )
 
 
@@ -2310,28 +2312,25 @@ async def verify_post_entity_relationships(
             status.HTTP_503_SERVICE_UNAVAILABLE,
             "Relation verification is unavailable: set SEARXNG_BASE_URL",
         )
-    async with pool.acquire() as conn:
-        try:
-            verified = await verify_post_relations(
-                conn,
-                client,
-                post_id,
-                visible_corporate_entity_ids=account.corporate_entity_ids,
-            )
-        except (HttpClientError, OSError) as exc:
-            # verify_post_relations() deliberately raises on a failed search
-            # (a failed search is not "searched and found nothing" -- see
-            # its docstring); this is the one caller, so it is the right
-            # place to turn that into a clean 503 instead of a raw 500.
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Relation verification is unavailable: the search provider did not respond",
-            ) from exc
-        except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
-            raise HTTPException(
-                status.HTTP_503_SERVICE_UNAVAILABLE,
-                "Relation verification is unavailable: the search provider did not respond",
-            ) from exc
+    try:
+        verified = await verify_post_relations_from_pool(
+            pool,
+            client,
+            post_id,
+            visible_corporate_entity_ids=account.corporate_entity_ids,
+        )
+    except (HttpClientError, OSError) as exc:
+        # A failed search is not "searched and found nothing"; turn the
+        # provider failure into a clean 503 rather than persisting a miss.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Relation verification is unavailable: the search provider did not respond",
+        ) from exc
+    except Exception as exc:  # noqa: BLE001 - provider boundary is fail-closed.
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "Relation verification is unavailable: the search provider did not respond",
+        ) from exc
     await publish_activity_event(
         valkey,
         post_id,
@@ -3386,7 +3385,12 @@ async def derive_post_commitment(
             # Friday" in a January post must resolve to that January, not to the
             # Friday after the operator clicked Derive.
             reference_date = post["created_at"].date().isoformat()
-            commitment = client.extract(post["post_title"], normalized_body, reference_date)
+            commitment = await asyncio.to_thread(
+                client.extract,
+                post["post_title"],
+                normalized_body,
+                reference_date,
+            )
         except (HttpClientError, KeyError, OSError, TypeError, ValueError, RuntimeError) as exc:
             raise HTTPException(
                 status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -3600,7 +3604,8 @@ async def read_calendar(
     settings = load_settings()
     if window_start is None or window_end is None:
         window_start, window_end = default_calendar_window(datetime.now(timezone.utc))
-    naruon = load_observed_calendar_events(
+    naruon = await asyncio.to_thread(
+        load_observed_calendar_events,
         build_workspace_naruon_client(
             settings.naruon_calendar_base_url,
             settings.naruon_calendar_service_token,
