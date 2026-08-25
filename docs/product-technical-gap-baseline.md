@@ -360,18 +360,11 @@ this file per §3.5 of the prior snapshot).
 | #269 | Authenticated Global Ask MCP browser-safe and admission-bounded | Ask stack |
 | #271 | Evidence-honest knowledge-cutoff scope on Global Ask | Ask stack |
 | #272 | Verify Global Ask KG/ontology/semantic claims with public SearXNG evidence | Ask stack |
-| #274 | Persist and explain Event Lineage channel evidence | #387 |
 | #277 | TEPP: persist accepted receipts, poll completed results, keep measurement authority distinct | #468, #417 |
 | #280 | Full project-lifecycle history and handover intervals | Tracked with issue #284; no active delivery PR confirmed |
 | #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
-| #289 | Activate the optional lineage LLM channel through a bounded asynchronous rebuild | #434 |
-| #336 | Replace pseudo-CalDAV feed with a Naruon-owned calendar projection | Contract on `main` (#355); operator consume wiring in historical branch `feat/naruon-calendar-buyer-wiring-v2170` |
 | #338 | Evidence-bounded email/project lineage contract for Naruon consumption | #355 |
-| #341 | Heterogeneous ontology and provenance explorer separate from Event Lineage | Protected `main` via #349; issue closed |
-| #358 | Batch reauthorize persisted post-Ask evidence without N+1 queries | Ask stack |
-| #359 | Centralize Global Ask session storage access | Ask stack |
-| #363 | Continue ontology neighborhoods beyond the bounded source window | Protected `main` via #349; issue closed |
-| #372 | Reconcile lowercase and repository-case public namespace IRIs | Protected `main` via #616; issue closed, with term-kind hardening on #618 |
+| #611 | Decompose unshipped ADR 0133–0137 acceptance evidence from PR #490 | No active delivery PR confirmed |
 
 ## 5. Open product and technical gaps
 
