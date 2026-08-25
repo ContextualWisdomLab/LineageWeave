@@ -144,6 +144,7 @@ class SearxngRelationVerificationClient:
         body = get_json(
             f"{self._base_url}/search?q={quote(query, safe='')}&format=json",
             timeout=self._timeout,
+            service_peer_name="searxng",
         )
         results = body.get("results")
         if not isinstance(results, list):

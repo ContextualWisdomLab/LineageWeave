@@ -32,7 +32,7 @@ explicitly names no leftover structure, and unexplained leftover names
 "leftover map leaves unexplained `U` after IRT main effects; open this
 post to read the named criterion" when present. When leftover-map cross
 share is also present, the next action instead names the identity
-remainder `x` two leftover-map axes leave of centered leftover after
+remainder `x` two leftover-map axes leave in raw residual after
 IRT main effects. A missing or non-finite value falls back in order —
 cross share, then unexplained leftover, then the existing
 closest/farthest next action. Clicking the button opens that post with

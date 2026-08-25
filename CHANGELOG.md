@@ -131,6 +131,15 @@ All notable changes to this project are documented here. Format follows
   on the cited evidence. Open that cited post to read which clock
   matched. Never invent a theta or an event date.
 
+## [2.15.1] - 2026-08-25
+
+### Added
+
+- Event Lineage edges now name the Allen (1983) interval relation between
+  posts' observed UTC creation-day points. Mutable ticket due dates do not
+  rewrite Event Lineage evidence; directed relation rows open the other post,
+  while indirect Keyman links remain unlabeled (ADR 0161).
+
 ## [2.15.0] - 2026-08-25
 
 ### Changed
@@ -156,6 +165,15 @@ All notable changes to this project are documented here. Format follows
   first when the graph exceeds the landing node bound, and names
   **truncated** so a click still opens that cited post (ADR 0169 / #568).
   Do not invent a theta.
+
+## [2.13.2] - 2026-08-24
+
+### Added
+
+- Reader-safe Global Ask and post-chat failures now carry bounded
+  OpenTelemetry metrics, traces, and structured server diagnostics for
+  GRC consumption. Failure logs carry the active TraceId and SpanId so
+  another agent can join the Error span to the audit record.
 
 ## [2.12.26] - 2026-08-24
 
