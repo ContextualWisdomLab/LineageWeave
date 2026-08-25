@@ -71,14 +71,16 @@ def test_global_sources_apply_process_scope_before_sql_limit() -> None:
     class FakeConnection:
         async def fetch(self, query: str, *args):
             calls.append((query, args))
+            if "candidate_post" in query:
+                return [{"post_id": "semantic-post"}]
             return []
 
     asyncio.run(
         gather_global_chat_sources(
             FakeConnection(),
             lambda _row: True,
-            {"corp-demo"},
-            {"process-demo"},
+            (value for value in ["corp-demo"]),
+            (value for value in ["process-demo"]),
             question="synthetic process evidence",
         )
     )
@@ -112,6 +114,8 @@ def test_global_sources_use_semantic_rank_order_and_bound_long_bodies() -> None:
     class FakeConnection:
         async def fetch(self, query: str, *args):
             calls.append((query, args))
+            if "candidate_post" in query:
+                return []
             return rows if "from source_post" in query else []
 
     sources = asyncio.run(
@@ -123,7 +127,9 @@ def test_global_sources_use_semantic_rank_order_and_bound_long_bodies() -> None:
         )
     )
 
-    candidate_query, candidate_args = calls[0]
+    candidate_query, candidate_args = next(
+        (query, args) for query, args in calls if "unit_similarity" in query
+    )
     source_query, source_args = next(
         (query, args) for query, args in calls if "array_position($3::uuid[], post_id)" in query
     )
@@ -187,6 +193,8 @@ def test_global_sources_embed_identifier_question_without_tokenizing() -> None:
     class FakeConnection:
         async def fetch(self, query: str, *args):
             calls.append((query, args))
+            if "candidate_post" in query:
+                return [{"post_id": "semantic-post"}]
             return []
 
     asyncio.run(
@@ -209,6 +217,8 @@ def test_global_sources_embed_localized_question_once() -> None:
     class FakeConnection:
         async def fetch(self, query: str, *args):
             calls.append((query, args))
+            if "candidate_post" in query:
+                return [{"post_id": "semantic-post"}]
             return []
 
     asyncio.run(
@@ -310,8 +320,9 @@ def test_global_sources_fail_closed_when_embedding_is_unavailable() -> None:
             raise AssertionError("unavailable embedding must not be called")
 
     class FakeConnection:
-        async def fetch(self, _query: str, *_args):
-            raise AssertionError("lexical fallback must not query the corpus")
+        async def fetch(self, query: str, *_args):
+            assert "candidate_post" in query
+            return []
 
     sources = asyncio.run(
         _gather_global_chat_sources(
@@ -336,8 +347,9 @@ def test_global_sources_fail_closed_without_a_resolved_embedding_model() -> None
             return [1.0, 0.0]
 
     class FakeConnection:
-        async def fetch(self, _query: str, *_args):
-            raise AssertionError("an unbound vector must not query persisted embeddings")
+        async def fetch(self, query: str, *_args):
+            assert "candidate_post" in query
+            return []
 
     sources = asyncio.run(
         _gather_global_chat_sources(
@@ -459,6 +471,8 @@ def test_global_sources_resolve_relative_time_against_seoul_calendar_day(
     class FakeConnection:
         async def fetch(self, query: str, *args):
             calls.append((query, args))
+            if "candidate_post" in query:
+                return [{"post_id": "semantic-post"}]
             return []
 
     asyncio.run(

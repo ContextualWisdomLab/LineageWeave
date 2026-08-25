@@ -36,6 +36,7 @@ from lineageweave.knowledge_graph import (
     random_walk_with_restart,
     select_related_nodes,
 )
+from lineageweave.ontology import ontology_annotations
 from lineageweave.post_chat import (
     CANONICAL_CHAT_QUESTION,
     CANONICAL_COMMITMENT_QUESTION,
@@ -46,9 +47,9 @@ from lineageweave.post_chat import (
 from lineageweave.post_content_normalization import normalize_post_body
 from lineageweave.temporal_expressions import resolve_korean_relative_time
 
+from .global_ask_semantic_candidates import semantic_candidate_post_ids
 from .knowledge_graph import hydrate_related_nodes, load_visible_subgraph
 from .post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
-from lineageweave.ontology import ontology_annotations
 
 
 @dataclass(frozen=True)
@@ -412,11 +413,12 @@ async def gather_global_chat_sources(
     or no expression at all applies no date filter. Cited sources name
     which clock matched (ADR 0202).
 
-    Candidates are ranked by the maximum cosine similarity between the
-    question embedding and each post's persisted semantic-unit embeddings.
-    The embedding model and dimension must match exactly.  An unavailable
-    channel or incomplete persisted vectors returns no source instead of
-    falling back to lexical matching.
+    Exact PostgreSQL full-text matches over persisted project, responsibility,
+    person, organization, team, and KG-code evidence nominate post IDs before
+    semantic-unit cosine candidates. Nomination grants no access: the final
+    source query repeats ABAC, eligibility, and time filtering. The embedding
+    model and dimension must match exactly; an unavailable embedding channel
+    drops only that channel and never fabricates a score.
     """
     if limit <= 0:
         return []
@@ -424,27 +426,36 @@ async def gather_global_chat_sources(
         vision_client = NullImageContentClient()
     if embedding_client is None:
         embedding_client = NullEmbeddingClient()
+    authorized_corporate_entity_id_list = list(authorized_corporate_entity_ids)
+    authorized_process_unit_id_list = list(authorized_process_unit_ids)
     resolved_time_range = resolve_korean_relative_time(
         question or "", today=today or _seoul_today()
     )
-    if not (question and question.strip() and embedding_client.available):
+    if not (question and question.strip()):
         return []
-    try:
-        question_vector = await asyncio.to_thread(embedding_client.embed, question)
-    except (OSError, RuntimeError, ValueError):
-        return []
-    if not question_vector:
-        return []
+    semantic_candidate_ids = await semantic_candidate_post_ids(
+        conn,
+        question,
+        maximum_candidates=limit,
+        authorized_corporate_entity_ids=authorized_corporate_entity_id_list,
+        authorized_process_unit_ids=authorized_process_unit_id_list,
+        date_from=resolved_time_range[0] if resolved_time_range else None,
+        date_to=resolved_time_range[1] if resolved_time_range else None,
+    )
+    question_vector: list[float] = []
+    if embedding_client.available:
+        try:
+            question_vector = await asyncio.to_thread(embedding_client.embed, question)
+        except (OSError, RuntimeError, ValueError):
+            question_vector = []
     embedding_model_code = embedding_client.resolved_model
-    if not embedding_model_code:
-        return []
     question_norm = sum(value * value for value in question_vector) ** 0.5
-    if question_norm == 0.0:
-        return []
-    # Safe SQL: the only interpolation is the repository-owned eligibility
-    # expression; all request and model values remain asyncpg parameters.
-    candidate_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
-        f"""
+    candidate_rows = []
+    if question_vector and embedding_model_code and question_norm:
+        # Safe SQL: the only interpolation is the repository-owned eligibility
+        # expression; all request and model values remain asyncpg parameters.
+        candidate_rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
+            f"""
         with question_vector as (
             select ordinality - 1 as dimension_index, dimension_value
               from unnest($1::double precision[]) with ordinality
@@ -483,17 +494,21 @@ async def gather_global_chat_sources(
          group by similarity.post_id
          order by semantic_score desc, event_clock desc, similarity.post_id desc
          limit $8
-        """,
-        question_vector,
-        question_norm,
-        embedding_model_code,
-        list(authorized_corporate_entity_ids),
-        list(authorized_process_unit_ids),
-        resolved_time_range[0] if resolved_time_range else None,
-        resolved_time_range[1] if resolved_time_range else None,
-        limit,
-    )
-    candidate_ids = [str(row["post_id"]) for row in candidate_rows]
+            """,
+            question_vector,
+            question_norm,
+            embedding_model_code,
+            authorized_corporate_entity_id_list,
+            authorized_process_unit_id_list,
+            resolved_time_range[0] if resolved_time_range else None,
+            resolved_time_range[1] if resolved_time_range else None,
+            limit,
+        )
+    candidate_ids = list(
+        dict.fromkeys(
+            [*semantic_candidate_ids, *(str(row["post_id"]) for row in candidate_rows)]
+        )
+    )[:limit]
     candidate_id_set = frozenset(candidate_ids)
 
     # One semantic match is still only one event snapshot. Expand the
@@ -521,7 +536,7 @@ async def gather_global_chat_sources(
             dict.fromkeys([lineage_anchor_id, *lineage_neighbor_ids, *candidate_ids[1:]])
         )[:limit]
     else:
-        candidate_ids = []
+        return []
     lineage_neighbor_id_set = frozenset(lineage_neighbor_ids)
 
     # Safe SQL: the only interpolation is the repository-owned eligibility
@@ -548,8 +563,8 @@ async def gather_global_chat_sources(
                   coalesce(event_occurred_at, created_at) desc, post_id desc
          limit $4
         """,
-        list(authorized_corporate_entity_ids),
-        list(authorized_process_unit_ids),
+        authorized_corporate_entity_id_list,
+        authorized_process_unit_id_list,
         candidate_ids,
         limit,
         resolved_time_range[0] if resolved_time_range else None,
