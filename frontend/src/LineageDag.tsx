@@ -263,8 +263,8 @@ export function LineageDag({
             >
               <summary>
                 {tf("{from} follows {to}, fused score {score}", {
-                  from: fromLabel,
-                  to: toLabel,
+                  from: toLabel,
+                  to: fromLabel,
                   score: formatExact(edge.fused_score),
                 })}
               </summary>
