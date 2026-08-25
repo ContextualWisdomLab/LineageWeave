@@ -102,8 +102,9 @@ flowchart LR
 ## Design decisions worth naming
 
 - **Pluggable, never faked, channels.** `NullEmbeddingClient` and
-  `NullAdjudicationClient` make a channel *unavailable* (dropped and
-  renormalized in `active_weights()`), never silently scored as 0. A
+  `NullAdjudicationClient` make a channel *unavailable*. The caller loads the
+  calibrated vector for that exact active-channel set; `active_weights()`
+  rejects a mismatched vector instead of repairing or renormalizing it. A
   missing signal and a confidently-negative signal are different things and
   must not be conflated.
 - **A minimum fused-score floor** (`DEFAULT_MIN_FUSED_SCORE`). Without it,

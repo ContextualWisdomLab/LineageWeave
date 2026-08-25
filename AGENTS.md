@@ -190,8 +190,9 @@ contextual-orchestrator owns model discovery and selection.
 `NullKeymanExtractionClient`, `NullEntityRelationshipClient`,
 `NullPostSummaryClient`, `NullPostChatClient`, and
 `NullCommitmentExtractionClient` (and any new channel client you add)
-must set `available = False` and make their channel dropped +
-renormalized (`reconstruct.active_weights`), never silently return a
+must set `available = False`. The calling reconstruction drops that channel and
+loads the separately calibrated vector for the exact active-channel set;
+`reconstruct.active_weights` fails closed on any mismatch. Never silently return a
 placeholder score, invented Keyman, guessed relationship, fabricated
 summary/chat, or invented commitment. A missing signal and a
 confidently-negative signal are different things. Keyman extraction,
