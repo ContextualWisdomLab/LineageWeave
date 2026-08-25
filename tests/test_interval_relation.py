@@ -83,7 +83,11 @@ def test_inverted_bounds_fail_closed() -> None:
 def test_a100_lineage_uses_observed_creation_day_points() -> None:
     """Mutable ticket dates do not alter the designed fork's chronology."""
     records = {record.record_id: record for record in sample_records()}
-    edges = lineage_edge_specs(sample_records())
+    edges = lineage_edge_specs(
+        sample_records(),
+        # Synthetic fixture estimate; production fails closed without an activated run (ADR 0200).
+        weights={"temporal": 0.5, "secondary_key": 0.34, "text": 0.16},
+    )
     relations = {
         (edge.parent_id, edge.child_id): allen_interval_relation(
             interval_from_post(records[edge.parent_id].occurred_at),

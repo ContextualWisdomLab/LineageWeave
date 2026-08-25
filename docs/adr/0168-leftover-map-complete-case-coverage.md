@@ -1,4 +1,4 @@
-# ADR 0169 — Name leftover complete-case coverage
+# ADR 0168 — Name leftover complete-case coverage
 
 **Decision status:** Accepted
 **Date:** 2026-08-24
@@ -54,11 +54,7 @@ not a visibility-filtered recount.
 Rebuild and seed write coverage in the same transaction as leftover
 pairs. Migration `0168_report_leftover_map_coverage.sql` upgrades
 volumes that already applied `0001`. `migrate.sh` replays `0168_*`
-on existing volumes. Renumbered from the originally landed ADR
-`0168` after a collision was found with
-`docs/adr/0168-ontology-provenance-explorer.md` (PR #349); the
-migration file keeps its own `0168` number since migration and ADR
-numbers are independent sequences.
+on existing volumes.
 
 ## References
 

@@ -38,7 +38,7 @@ All notable changes to this project are documented here. Format follows
 - The PROV-O support profile now mints its product class mappings only in the
   canonical lowercase namespace while importing the legacy compatibility map.
 - Period leftover maps now persist how many scored posts entered the
-  complete-case Gabriel factorization (ADR 0169). The leftover pair
+  complete-case Gabriel factorization (ADR 0168). The leftover pair
   list is captioned “Leftover map used N of M scored posts
   (complete-case)”; incomplete rows stay excluded, never filled with
   zero.
@@ -95,11 +95,10 @@ All notable changes to this project are documented here. Format follows
 
 ### Added
 
-- Event Lineage edges now name the Allen (1983) interval between the two
+- Event Lineage edges now name the Allen (1983) interval relation between
   posts' observed UTC creation-day points. Mutable ticket due dates do not
-  rewrite Event Lineage evidence. After `make seed`, the A-100 pricing
-  follow-up is **Before** the revised quote and delivery question. Directed
-  relation rows open the other post; indirect Keyman links stay unlabeled.
+  rewrite Event Lineage evidence; directed relation rows open the other post,
+  while indirect Keyman links remain unlabeled (ADR 0161).
 
 ## [2.15.0] - 2026-08-25
 
@@ -195,6 +194,17 @@ All notable changes to this project are documented here. Format follows
   Rank-0 and rank-1 maps still pad unused axes with zero, so seed
   leftover pairs above the member list still open that post. Never
   invent a leftover score or a theta.
+
+## [2.12.8] - 2026-08-23
+
+### Changed
+
+- Clicking a leftover closest or farthest pair now opens that post with
+  the leftover criterion current in Post quality (IRT). The Post quality
+  heading is focused, the named criterion row is `aria-current`, and the
+  next action names the leftover score to read (Jeon leftover map,
+  ADR 0158). Home-list and report-member opens do not carry leftover
+  focus.
 
 ## [2.12.6] - 2026-08-20
 

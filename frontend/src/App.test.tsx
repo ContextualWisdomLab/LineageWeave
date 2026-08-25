@@ -1100,20 +1100,8 @@ describe("App, authenticated", () => {
             ],
             edges: [
               { source: "post-1", target: "post-2", fused_score: 0.8 },
-              {
-                source: "rec-002",
-                target: "rec-003",
-                fused_score: 0.9,
-                interval_relation_code: "interval_contains",
-                interval_relation_label: "Contains",
-              },
-              {
-                source: "rec-002",
-                target: "rec-004",
-                fused_score: 0.85,
-                interval_relation_code: "interval_overlaps",
-                interval_relation_label: "Overlaps",
-              },
+              { source: "rec-002", target: "rec-003", fused_score: 0.9 },
+              { source: "rec-002", target: "rec-004", fused_score: 0.85 },
             ],
           }),
         );
@@ -2202,7 +2190,6 @@ describe("App, authenticated", () => {
     expect(screen.getByText("Sales-lead specificity: 3")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Related posts" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Open related post: Linked post" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open related post: Pricing renegotiation: revised quote sent" })).toBeInTheDocument();
     expect(screen.queryByText("Not yet evaluated.")).not.toBeInTheDocument();
   });
 
@@ -2312,11 +2299,6 @@ describe("App, authenticated", () => {
     expect(within(relatedPosts as HTMLElement).getByText("Direct relation")).toBeInTheDocument();
     expect(within(relatedPosts as HTMLElement).getByText("Contains")).toBeInTheDocument();
     expect(relatedPosts).toHaveTextContent("Linked post");
-    expect(
-      screen.getByRole("button", {
-        name: "Pricing renegotiation follow-up relates to Pricing renegotiation: revised quote sent as Contains; open Pricing renegotiation: revised quote sent",
-      }),
-    ).toBeInTheDocument();
     // The Event Lineage DAG belongs to the opened post, not the list surface.
     expect(screen.getAllByLabelText("A-100 lineage")).toHaveLength(1);
     expect(screen.getAllByLabelText("Open post: Pricing renegotiation follow-up")).toHaveLength(1);
@@ -3760,6 +3742,7 @@ describe("App, authenticated", () => {
     expect(closestPair).toHaveTextContent("rank 1");
     expect(closestPair).toHaveTextContent("U +0.05");
     expect(closestPair).toHaveTextContent("d 0.12");
+    expect(closestPair).toHaveAccessibleName("Open leftover closest pair: Public post · sales-lead");
     expect(farthestPair).toHaveTextContent("Farthest leftover: Specification revision requested · negative");
     expect(farthestPair).toHaveTextContent(
       "Leftover map leaves unexplained U −0.25 after IRT main effects. Open this post to read negative.",
@@ -3845,6 +3828,37 @@ describe("App, authenticated", () => {
       await screen.findByRole("button", { name: /open leftover closest pair: public post/i }),
     );
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(await screen.findByRole("heading", { name: "Post quality (IRT)" })).toHaveFocus();
+    expect(await screen.findByRole("status", { name: "Leftover criterion next action" })).toHaveTextContent(
+      "sales-lead is the leftover criterion this post sat closest to after main effects. Read that Post quality score next.",
+    );
+    expect((await screen.findByText("Sales-lead specificity: 3")).closest("li")).toHaveAttribute(
+      "aria-current",
+      "true",
+    );
+    expect(screen.getByText("Constructive stance: 2").closest("li")).not.toHaveAttribute("aria-current");
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(
+      await screen.findByRole("button", {
+        name: /open leftover farthest pair: specification revision requested/i,
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.getByText("The evidence panel should show exactly this text.")).toBeInTheDocument(),
+    );
+    expect(await screen.findByRole("heading", { name: "Post quality (IRT)" })).toHaveFocus();
+    expect(await screen.findByRole("status", { name: "Leftover criterion next action" })).toHaveTextContent(
+      "negative is the leftover criterion this post sat farthest from after main effects. Read that Post quality score next.",
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Close" }));
+    await userEvent.click(await screen.findByRole("button", { name: /open report post: public post/i }));
+    await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
+    expect(screen.queryByRole("status", { name: "Leftover criterion next action" })).not.toBeInTheDocument();
+    expect((await screen.findByText("Sales-lead specificity: 3")).closest("li")).not.toHaveAttribute(
+      "aria-current",
+    );
   });
 
   it("opens Event Lineage, Keyman, and evaluation from a report member click", async () => {
@@ -3854,6 +3868,7 @@ describe("App, authenticated", () => {
     await userEvent.click(await screen.findByRole("button", { name: /open report post: public post/i }));
     await waitFor(() => expect(screen.getByText("The full body text.")).toBeInTheDocument());
     expect(screen.getByText("Constructive stance: 2")).toBeInTheDocument();
+    expect(screen.queryByRole("status", { name: "Leftover criterion next action" })).not.toBeInTheDocument();
     expect(screen.getAllByText(/Ada West/).length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText("A-100 lineage")).toHaveLength(1);
     expect(screen.getByRole("status", { name: "Event Lineage next action" })).toHaveTextContent(

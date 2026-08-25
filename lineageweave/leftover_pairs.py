@@ -13,7 +13,7 @@ zero rather than inventing a second component, and hidden SVD axes
 after the second are dropped. Each pair also names the full leftover-map
 rank so a rank-0 collapse is not read as leftover structure. Axis share
 is the Gabriel inertia of the first two leftover-map axes (ADR 0148).
-Complete-case coverage (ADR 0169) names how many scored posts entered
+Complete-case coverage (ADR 0168) names how many scored posts entered
 that rectangle. Each pair also names unexplained leftover ``U = R − R̂``
 after two-axis Gabriel reconstruction ``R̂ = ξ_{1:2} · ζ_{1:2}`` so the
 leftover cell the map does not reconstruct is not confused with
@@ -171,7 +171,7 @@ def leftover_map_from_residual(
                 )
             )
     if not candidates:
-        # ADR 0169: without a complete-case Gabriel map there is no
+        # ADR 0168: without a complete-case Gabriel map there is no
         # leftover pair to name. The report carries coverage counts
         # instead of a center-distance stand-in pair.
         return (), ()

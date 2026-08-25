@@ -52,7 +52,7 @@ the IRT matrix is unusable. A rank-0 residual still emits a
 stable pair so `make seed` is not empty; the stored distance is
 then zero, not a fabricated interaction.
 
-The UI contract is ADR 0049. Complete-case coverage is ADR 0169.
+The UI contract is ADR 0049. Complete-case coverage is ADR 0168.
 
 ## Consequences
 
