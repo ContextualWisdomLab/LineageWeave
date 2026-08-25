@@ -17,6 +17,7 @@ const clientId = __ENV.KEYCLOAK_CLIENT_ID || "lineageweave-frontend";
 const username = __ENV.K6_USERNAME || "demo.analyst";
 const password = __ENV.K6_PASSWORD || "lineageweave-demo-only";
 const requestTimeout = __ENV.REQUEST_TIMEOUT;
+const unitlessDuration = /^\d+(?:\.\d+)?$/;
 
 const askEnqueueDuration = new Trend("lineageweave_ask_enqueue_duration", true);
 const readDuration = new Trend("lineageweave_read_duration", true);
@@ -69,6 +70,9 @@ function readBatch(token, askJobId) {
 export function setup() {
   if (!requestTimeout) {
     fail("REQUEST_TIMEOUT is required");
+  }
+  if (unitlessDuration.test(requestTimeout)) {
+    fail("REQUEST_TIMEOUT must include a duration unit, for example 20s");
   }
   const token = authenticate();
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
