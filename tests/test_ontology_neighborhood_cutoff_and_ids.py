@@ -65,6 +65,7 @@ def test_visible_neighborhood_canonicalizes_uppercase_uuid_before_traversal(
         node_type: str,
         node_id: str,
         _can_see_post: object,
+        **_kwargs: object,
     ) -> list[str]:
         seen["visible"] = (node_type, node_id)
         return [POST_ID]

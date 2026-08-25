@@ -5,7 +5,7 @@ import { OntologyExplorer } from "./OntologyExplorer";
 const POST_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1";
 const PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1";
 const CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1";
-const PROJECT_ID = "demo-project";
+const PROJECT_ID = `${POST_ID}/demo-project`;
 
 const demoNeighborhood: OntologyNeighborhoodPayload = {
   focus_node_id: POST_ID,

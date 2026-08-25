@@ -515,6 +515,9 @@ function OntologyExactValueTable({
               <th>{t("Property")}</th>
               <th>{t("Target")}</th>
               <th>{t("Truth status")}</th>
+              <th>{t("Valid from")}</th>
+              <th>{t("Valid to")}</th>
+              <th>{t("Evidence")}</th>
               <th>{t("Recorded at")}</th>
             </tr>
           </thead>
@@ -529,6 +532,9 @@ function OntologyExactValueTable({
                 <td>{row.property_label}</td>
                 <td>{row.target_label}</td>
                 <td>{t(TRUTH_LABEL[row.truth_status_code] ?? row.truth_status_code)}</td>
+                <td>{row.valid_from.slice(0, 10) || t("Unknown")}</td>
+                <td>{row.valid_to.slice(0, 10) || t("Unknown")}</td>
+                <td>{row.evidence_count}</td>
                 <td>{row.recorded_at.slice(0, 10)}</td>
               </tr>
             ))}

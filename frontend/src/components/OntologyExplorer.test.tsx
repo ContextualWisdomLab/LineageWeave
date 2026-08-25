@@ -140,7 +140,7 @@ describe("OntologyExplorer", () => {
     const payload = neighborhood();
     const projectNode = {
       ...payload.nodes[0],
-      node_id: "demo-project",
+      node_id: `${POST_ID}/demo-project`,
       node_type_code: "node_project",
       ontology_class_iri: "https://example.test/Project",
       display_label: "Demo Project",
@@ -150,7 +150,7 @@ describe("OntologyExplorer", () => {
     const { container } = render(
       <OntologyExplorer
         focusNodeType="node_project"
-        focusNodeId="demo-project"
+        focusNodeId={`${POST_ID}/demo-project`}
         neighborhood={{ ...payload, nodes: [projectNode], edges: [], exact_value_rows: [] }}
       />,
     );
@@ -259,6 +259,9 @@ describe("OntologyExplorer", () => {
     expect(
       screen.getByText(/This is an ontology neighborhood, not Event Lineage/),
     ).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Valid from" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Valid to" })).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Evidence" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Select node: Post Demo public post" }));
     expect(screen.getByRole("heading", { name: "Demo public post" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Open evidence post" }));
@@ -298,7 +301,7 @@ describe("OntologyExplorer", () => {
     const payload = neighborhood();
     const projectNode = {
       ...payload.nodes[0],
-      node_id: "demo-project",
+      node_id: `${POST_ID}/demo-project`,
       node_type_code: "node_project",
       ontology_class_iri: "https://example.test/Project",
       display_label: "Demo Project",

@@ -69,6 +69,8 @@ JSONLD_CONTEXT = {
     "owl": "http://www.w3.org/2002/07/owl#",
     "prov": "http://www.w3.org/ns/prov#",
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "time": "http://www.w3.org/2006/time#",
+    "xsd": "http://www.w3.org/2001/XMLSchema#",
 }
 
 KNOWN_NODE_TYPES = frozenset(
@@ -248,14 +250,14 @@ class OntologyNeighborhood:
         """JSON-LD 1.1 projection of the visible neighborhood only."""
         graph: list[dict[str, object]] = []
         for node in self.nodes:
-            graph.append(
-                {
-                    "@id": f"lw:node/{node.node_type_code}/{node.node_id}",
-                    "@type": node.ontology_class_iri,
-                    "rdfs:label": node.display_label,
-                    "lw:nodeType": node.node_type_code,
-                }
-            )
+            item: dict[str, object] = {
+                "@id": f"lw:node/{node.node_type_code}/{node.node_id}",
+                "@type": node.ontology_class_iri,
+                "rdfs:label": node.display_label,
+                "lw:nodeType": node.node_type_code,
+            }
+            _add_jsonld_times(item, node.recorded_at, node.valid_from, node.valid_to)
+            graph.append(item)
             if node.truth_status_code is not None:
                 graph[-1]["lw:truthStatus"] = node.truth_status_code
         for edge in self.edges:
@@ -273,8 +275,37 @@ class OntologyNeighborhood:
                     "@id": f"lw:node/{_node_type_for(self.nodes, edge.source_node_type_code, edge.source_node_id)}/{edge.source_node_id}"
                 },
             }
+            _add_jsonld_times(item, edge.recorded_at, edge.valid_from, edge.valid_to)
             graph.append(item)
         return {"@context": JSONLD_CONTEXT, "@graph": graph}
+
+
+def _add_jsonld_times(
+    item: dict[str, object],
+    recorded_at: datetime | None,
+    valid_from: datetime | None,
+    valid_to: datetime | None,
+) -> None:
+    """Add only available PROV-O system time and OWL-Time validity bounds."""
+
+    def _instant(value: datetime) -> dict[str, object]:
+        return {
+            "@type": "time:Instant",
+            "time:inXSDDateTimeStamp": {
+                "@value": value.isoformat(),
+                "@type": "xsd:dateTimeStamp",
+            },
+        }
+
+    if recorded_at is not None:
+        item["prov:generatedAtTime"] = {
+            "@value": recorded_at.isoformat(),
+            "@type": "xsd:dateTimeStamp",
+        }
+    if valid_from is not None:
+        item["time:hasBeginning"] = _instant(valid_from)
+    if valid_to is not None:
+        item["time:hasEnd"] = _instant(valid_to)
 
 
 def _node_type_for(
@@ -603,6 +634,18 @@ def assemble_ontology_neighborhood(
         next_cursor = f"after:{_edge_id(page_edges[-1])}"
 
     catalog_metadata = node_metadata or {}
+    for metadata in catalog_metadata.values():
+        if (
+            metadata.truth_status_code is not None
+            and metadata.truth_status_code not in TRUTH_STATUS_CODES
+        ):
+            raise OntologyNeighborhoodError(
+                "unknown_truth_status", "node truth status is not governed"
+            )
+        if metadata.recorded_at is not None and metadata.recorded_at.tzinfo is None:
+            raise OntologyNeighborhoodError(
+                "naive_timestamp", "node recorded_at must be offset-aware"
+            )
     node_evidence: dict[str, set[str]] = defaultdict(set)
     node_meta: dict[str, tuple[str, str, str | None, datetime | None]] = {}
     focus_label = labels[(focus_node_type_code, focus_node_id)]

@@ -45,6 +45,8 @@ edge exposes the same authorized endpoints and evidence through API and UI.
 - Project typed Post, Person, CorporateEntity, Team, Project, and governed
   relationship evidence from PostgreSQL without creating a second mutable
   source of truth.
+- Keep name-derived Project candidates scoped to their evidence Post until a
+  governed catalog resolution supplies a stable cross-record identity.
 - Preserve truth status, valid/system time, provenance, and evidence
   references.
 - Validate DB-to-RDF projections with SHACL, including complete reified

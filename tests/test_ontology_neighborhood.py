@@ -124,6 +124,40 @@ def test_post_mentions_person_affiliated_with_corporate_entity_round_trips() -> 
     assert all(row["source_label"] and row["target_label"] for row in rows)
 
 
+def test_jsonld_preserves_available_system_and_valid_times() -> None:
+    fact = NeighborhoodFact(
+        source_node_type_code=NODE_PERSON,
+        source_node_id=PERSON_ID,
+        target_node_type_code=NODE_CORPORATE_ENTITY,
+        target_node_id=CORP_ID,
+        property_code=PROPERTY_AFFILIATED_WITH,
+        truth_status_code=TRUTH_OBSERVED,
+        recorded_at=T0,
+        valid_from=T0,
+        valid_to=T_LATE,
+        evidence_references=(POST_ID,),
+    )
+    neighborhood = assemble_ontology_neighborhood(
+        focus_node_type_code=NODE_PERSON,
+        focus_node_id=PERSON_ID,
+        facts=[fact],
+        labels=_labels(),
+        node_metadata={
+            (NODE_PERSON, PERSON_ID): OntologyNodeMetadata(recorded_at=T0),
+        },
+    )
+
+    document = neighborhood.jsonld_document()
+    assert document["@context"]["time"] == "http://www.w3.org/2006/time#"
+    node_item = next(item for item in document["@graph"] if item["@id"].endswith(PERSON_ID))
+    assert node_item["prov:generatedAtTime"]["@value"] == T0.isoformat()
+    assert "time:hasBeginning" not in node_item
+    edge_item = next(item for item in document["@graph"] if item["@id"].startswith("lw:edge/"))
+    assert edge_item["prov:generatedAtTime"]["@type"] == "xsd:dateTimeStamp"
+    assert edge_item["time:hasBeginning"]["time:inXSDDateTimeStamp"]["@value"] == T0.isoformat()
+    assert edge_item["time:hasEnd"]["time:inXSDDateTimeStamp"]["@value"] == T_LATE.isoformat()
+
+
 def test_post_mentions_project_round_trips_as_proposed_evidence() -> None:
     fact = fact_from_knowledge_graph_edge(
         source_node_type_code=NODE_POST,
@@ -434,6 +468,33 @@ def test_node_metadata_is_catalog_owned_and_missing_values_stay_absent() -> None
     )
     assert without_metadata.nodes[0].truth_status_code is None
     assert without_metadata.nodes[0].recorded_at is None
+
+    with pytest.raises(OntologyNeighborhoodError, match="node recorded_at"):
+        assemble_ontology_neighborhood(
+            focus_node_type_code=NODE_PERSON,
+            focus_node_id=PERSON_ID,
+            facts=[],
+            labels=_labels(),
+            node_metadata={
+                (NODE_PERSON, PERSON_ID): OntologyNodeMetadata(
+                    recorded_at=datetime(2026, 1, 10, 12, 0)
+                )
+            },
+        )
+
+    with pytest.raises(OntologyNeighborhoodError) as unknown_truth:
+        assemble_ontology_neighborhood(
+            focus_node_type_code=NODE_PERSON,
+            focus_node_id=PERSON_ID,
+            facts=[],
+            labels=_labels(),
+            node_metadata={
+                (NODE_PERSON, PERSON_ID): OntologyNodeMetadata(
+                    truth_status_code="truth_unregistered"
+                )
+            },
+        )
+    assert unknown_truth.value.code == "unknown_truth_status"
 
 
 def test_truncation_is_flagged_without_omission_counts() -> None:

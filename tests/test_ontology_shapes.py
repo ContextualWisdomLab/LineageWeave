@@ -137,16 +137,19 @@ def test_schema_shaped_project_row_projection_passes_validation() -> None:
     mention = URIRef(
         LW + "statement/project-mention/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1/grid-upgrade"
     )
+    project = URIRef(
+        LW + "node/node_project/aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1/grid-upgrade"
+    )
     assert (mention, RDF.subject, None) in data
     assert (mention, RDF.predicate, LWn.mentionsProject) in data
-    assert (mention, RDF.object, None) in data
+    assert (mention, RDF.object, project) in data
 
 
 @pytest.mark.parametrize(
     ("override", "message"),
     [
         ({"post_id": "not-a-uuid"}, "badly formed"),
-        ({"project_key": "Grid Upgrade"}, "already be canonical"),
+        ({"project_key": "Grid Upgrade"}, "already be normalized"),
         ({"evidence_text": " "}, "evidence_text must be non-empty"),
         (
             {"post_created_at": datetime(2026, 8, 25, 1, 23, 45)},

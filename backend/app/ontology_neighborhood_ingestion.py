@@ -18,7 +18,7 @@ from backend.app.knowledge_graph import (
     visible_team_mention_post_ids,
 )
 from backend.app.post_eligibility import SOURCE_POST_ELIGIBILITY_SQL
-from lineageweave.post_summary import normalize_project_key
+from lineageweave.post_summary import parse_project_candidate_node_id
 from lineageweave.knowledge_graph import (
     NODE_CORPORATE_ENTITY,
     NODE_PERSON,
@@ -173,6 +173,7 @@ async def visible_post_ids_for_focus(
         admitted = {str(row["post_id"]) for row in rows}
         return [post_id for post_id in candidate_post_ids if post_id in admitted]
     if focus_node_type_code == NODE_PROJECT:
+        project_post_id, project_key = parse_project_candidate_node_id(focus_node_id)
         # Safe SQL: eligibility is an immutable schema fragment and the alias is
         # fixed here; all request-derived values remain asyncpg parameters.
         project_posts_sql = f"""
@@ -180,16 +181,18 @@ async def visible_post_ids_for_focus(
                    post.process_unit_id
               from post_project_mention mention
               join source_post post on post.post_id = mention.post_id
-             where mention.project_key = $1
+             where mention.post_id = $1::uuid
+               and mention.project_key = $2
                and {SOURCE_POST_ELIGIBILITY_SQL.format(alias='post')}
-               and ($2::timestamptz is null
-                    or greatest(post.created_at, mention.created_at) <= $2::timestamptz)
                and ($3::timestamptz is null
                     or greatest(post.created_at, mention.created_at) <= $3::timestamptz)
+               and ($4::timestamptz is null
+                    or greatest(post.created_at, mention.created_at) <= $4::timestamptz)
             """
         rows = await conn.fetch(  # nosemgrep: python.lang.security.audit.sqli.asyncpg-sqli.asyncpg-sqli
             project_posts_sql,
-            focus_node_id,
+            project_post_id,
+            project_key,
             knowledge_cutoff,
             snapshot_at,
         )
@@ -289,10 +292,10 @@ async def _visible_post_ids_by_nodes(
             """
             select post.post_id, post.visibility_code,
                    post.corporate_entity_id, post.process_unit_id,
-                   mention.project_key as node_id
+                   mention.post_id::text || '/' || mention.project_key as node_id
               from post_project_mention mention
               join source_post post on post.post_id = mention.post_id
-             where mention.project_key = any($1::text[])
+             where mention.post_id::text || '/' || mention.project_key = any($1::text[])
                and {eligibility}
                and ($2::timestamptz is null
                     or greatest(post.created_at, mention.created_at) <= $2::timestamptz)
@@ -332,9 +335,11 @@ async def focus_catalog_exists(
 ) -> bool:
     """True when the focus id exists in its governed relational source."""
     if focus_node_type_code == NODE_PROJECT:
+        project_post_id, project_key = parse_project_candidate_node_id(focus_node_id)
         row = await conn.fetchrow(
-            "select 1 from post_project_mention where project_key = $1 limit 1",
-            focus_node_id,
+            "select 1 from post_project_mention where post_id = $1::uuid and project_key = $2",
+            project_post_id,
+            project_key,
         )
         return row is not None
     if not _is_uuid(focus_node_id):
@@ -394,7 +399,7 @@ async def _load_facts(
             select 'node_post'::text as source_node_type_code,
                    mention.post_id::text as source_node_id,
                    'node_project'::text as target_node_type_code,
-                   mention.project_key as target_node_id,
+                   mention.post_id::text || '/' || mention.project_key as target_node_id,
                    'edge_mention_project'::text as edge_type_code,
                    'truth_proposed'::text as truth_status_code,
                    greatest(post.created_at, mention.created_at) as available_at,
@@ -634,19 +639,17 @@ async def _load_labels(
         if evidence_post_ids:
             for row in await conn.fetch(
                 """
-                select project_key,
-                       case when count(distinct project_name) = 1
-                            then min(project_name)
-                            else project_key end as display_label
+                select mention.post_id::text || '/' || mention.project_key as node_id,
+                       mention.project_name as display_label
                   from post_project_mention mention
                   join source_post post on post.post_id = mention.post_id
-                 where mention.project_key = any($1::text[])
+                 where mention.post_id::text || '/' || mention.project_key = any($1::text[])
                    and mention.post_id = any($2::uuid[])
                    and ($3::timestamptz is null
                         or greatest(post.created_at, mention.created_at) <= $3::timestamptz)
                    and ($4::timestamptz is null
                         or greatest(post.created_at, mention.created_at) <= $4::timestamptz)
-                 group by mention.project_key
+                 group by mention.post_id, mention.project_key, mention.project_name
                 """,
                 project_ids,
                 evidence_post_ids,
@@ -654,7 +657,7 @@ async def _load_labels(
                 snapshot_at,
             ):
                 if row["display_label"]:
-                    labels[(NODE_PROJECT, str(row["project_key"]))] = str(
+                    labels[(NODE_PROJECT, str(row["node_id"]))] = str(
                         row["display_label"]
                     )
     return labels
@@ -782,10 +785,12 @@ async def visible_ontology_neighborhood(
     if not focus_node_id or focus_node_id.strip() != focus_node_id:
         raise OntologyNeighborhoodError("invalid_focus_id", "focus node id is empty or malformed")
     if focus_node_type_code == NODE_PROJECT:
-        if normalize_project_key(focus_node_id) != focus_node_id:
+        try:
+            parse_project_candidate_node_id(focus_node_id)
+        except ValueError as exc:
             raise OntologyNeighborhoodError(
-                "invalid_focus_id", "project focus id is not a canonical project key"
-            )
+                "invalid_focus_id", "project focus id is not a post-scoped candidate id"
+            ) from exc
     else:
         if not _is_uuid(focus_node_id):
             raise OntologyNeighborhoodError("invalid_focus_id", "focus node id is not a UUID")

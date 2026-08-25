@@ -45,7 +45,8 @@ PERSON_ID = "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1"
 CORP_ID = "cccccccc-cccc-cccc-cccc-ccccccccccc1"
 GROUP_ID = "dddddddd-dddd-dddd-dddd-ddddddddddd1"
 TEAM_ID = "ffffffff-ffff-ffff-ffff-fffffffffff1"
-PROJECT_ID = "demo-project"
+PROJECT_KEY = "demo-project"
+PROJECT_ID = f"{POST_ID}/{PROJECT_KEY}"
 T0 = datetime(2026, 1, 10, 12, 0, tzinfo=timezone.utc)
 
 
@@ -200,7 +201,7 @@ def test_visible_post_ids_for_each_focus_type() -> None:
             snapshot_at=T0,
         )
     ) == [POST_ID]
-    assert project_focus_conn.calls[-1][1] == (PROJECT_ID, T0, T0)
+    assert project_focus_conn.calls[-1][1] == (POST_ID, PROJECT_KEY, T0, T0)
     assert "greatest(post.created_at, mention.created_at)" in project_focus_conn.calls[-1][0]
     assert asyncio.run(
         visible_post_ids_for_focus(
@@ -262,6 +263,7 @@ def test_load_facts_skos_and_labels() -> None:
     )
     facts = asyncio.run(_load_facts(conn, [POST_ID]))
     assert "with recursive" in conn.calls[0][0].lower()
+    assert "mention.post_id::text || '/' || mention.project_key" in conn.calls[0][0]
     assert facts[0].property_code == "mentions"
     assert facts[0].source_node_id == POST_ID
     assert facts[1].evidence_references == ()
@@ -331,8 +333,8 @@ def test_load_facts_skos_and_labels() -> None:
                         {"corporate_entity_id": CORP_ID, "entity_name": "Demo Corp"}
                     ],
                     "from cataloged_team": [{"team_id": TEAM_ID, "team_name": "Demo Team"}],
-                        "group by mention.project_key": [
-                        {"project_key": PROJECT_ID, "display_label": "Demo Project"}
+                    "group by mention.post_id": [
+                        {"node_id": PROJECT_ID, "display_label": "Demo Project"}
                     ],
                 }
             ),
@@ -346,7 +348,7 @@ def test_load_facts_skos_and_labels() -> None:
     assert labels[(NODE_CORPORATE_ENTITY, CORP_ID)] == "Demo Corp"
     assert labels[(NODE_TEAM, TEAM_ID)] == "Demo Team"
     assert labels[(NODE_PROJECT, PROJECT_ID)] == "Demo Project"
-    bounded_label_conn = ScriptedConn({"group by project_key": []})
+    bounded_label_conn = ScriptedConn({"group by mention.post_id": []})
     asyncio.run(
         _load_labels(
             bounded_label_conn,

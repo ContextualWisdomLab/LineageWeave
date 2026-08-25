@@ -28,7 +28,7 @@ from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import OWL, PROV, RDF, RDFS, SKOS, XSD
 from rdflib.term import Identifier
 
-from .post_summary import normalize_project_key
+from .post_summary import normalize_project_key, project_candidate_node_id
 
 #: The ontology's own namespace -- every class/property IRI below is
 #: this prefix plus the term's local name (e.g. LW.Post). ADR 0207 made
@@ -125,7 +125,7 @@ def project_project_mention_rdf(
     """
     canonical_post_id = str(UUID(post_id))
     if normalize_project_key(project_key) != project_key:
-        raise ValueError("project_key must already be canonical")
+        raise ValueError("project_key must already be normalized")
     for field_name, value in (
         ("post_title", post_title),
         ("post_body", post_body),
@@ -148,7 +148,8 @@ def project_project_mention_rdf(
         raise ValueError("confidence must be a decimal between zero and one")
 
     post = URIRef(LW[f"node/node_post/{canonical_post_id}"])
-    project = URIRef(LW[f"node/node_project/{quote(project_key, safe='')}"])
+    candidate_id = project_candidate_node_id(canonical_post_id, project_key)
+    project = URIRef(LW[f"node/node_project/{quote(candidate_id, safe='/')}"])
     mention = URIRef(
         LW[f"statement/project-mention/{canonical_post_id}/{quote(project_key, safe='')}"]
     )
