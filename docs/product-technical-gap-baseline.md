@@ -250,7 +250,7 @@ this file per §3.5 of the prior snapshot).
 | #280 | Full project-lifecycle history and handover intervals | Tracked with issue #284; no active delivery PR confirmed |
 | #284 | Authoritative lifecycle ingestion and idempotent reconciliation | No active delivery PR confirmed |
 | #289 | Activate the optional lineage LLM channel through a bounded asynchronous rebuild | #434 |
-| #336 | Replace pseudo-CalDAV feed with a Naruon-owned calendar projection | #355 |
+| #336 | Replace pseudo-CalDAV feed with a Naruon-owned calendar projection | Contract on `main` (#355); Buyer consume wiring in `feat/naruon-calendar-buyer-wiring-v2170` |
 | #338 | Evidence-bounded email/project lineage contract for Naruon consumption | #355 |
 | #341 | Heterogeneous ontology and provenance explorer separate from Event Lineage | #349 |
 | #358 | Batch reauthorize persisted post-Ask evidence without N+1 queries | Ask stack |
@@ -273,7 +273,7 @@ this file per §3.5 of the prior snapshot).
 | Event and project semantics | Multi-project mentions, project-bound actions, 5W1H, requester/processor, and semantic relations exist in ADR 0036/0052/0100/0111/0129 and active stacks | Aggregate authenticated evidence must show distinct projects and events, explicit requester/processor and real R&R, normalized relative time, and product/entity relations without promoting attendance or co-occurrence |
 | Knowledge Graph readability | The black evidence-node root cause is an undefined-token fallback; the design-token repair and long-label/evidence-table coverage are present on #490, not protected `main` | Deliver the token repair through protected `main`, then verify light/dark contrast, keyboard graph navigation, full labels, and evidence tables in the authenticated rendered surface |
 | Source-code lookup UX | Source state/detail codes remain evidence-bearing machine values and current detail presentation is dense | Catalog-backed display labels with raw-code provenance, compact 5W1H/source-detail hierarchy, keyboard access, and no unsupported customer/project binding |
-| Calendar / Naruon | #355 delivered the Naruon-owned projection contract and conformance fixture to protected `main`; live consumer acceptance is not yet evidenced | Verify Naruon consumption against the published schema and issues #336/#338 without invented events |
+| Calendar / Naruon | #355 delivered the projection contract; v2.17.0 wires Buyer consume without forwarding the end-user token. Naruon producer, provider/consumer fixtures, and protected merge remain open (#336) | Verify observed events against the published schema without invented events; keep commitments available when the channel is unwired |
 | SKOS organization aliases | Catalog binding and chip caption live on #480 / #482 | One catalog row per corroborated org; companion caption is hint-only until bound |
 | Event Lineage evidence | Channel evidence and Allen relations live on #387 / #484 | Persist channel scores, explain them in the popup, never invent a fused score |
 | Scientific measurement | Durable accepted TEPP receipts and fail-closed production weighting are protected (`main`); #468 binds fast-mlsirm/Keyverse/orchestrator/TEPP integration tests and now fails closed on upstream probability-axis drift. #387 removes inferred/default persistence weights and converts its 3/4-channel evidence tests to fast-mlsirm estimates, but several older reconstruction tests still pass hand-authored numeric weight dictionaries; those constants are not estimator evidence | Continue replacing remaining reconstruction-test constants with provenance-bearing fast-mlsirm estimates over synthetic fixtures; tests unrelated to fusion must bypass weighting entirely, as #484 does. Land #387/#468/#417 through the standard gate and retain true-parameter RMSE recovery as the acceptance bar |
@@ -387,7 +387,7 @@ review latency are never blockers — keep working while they settle.
 - Orchestrator / paper-grounded models: ADR 0015, ADR 0076 (Fugu, TRINITY, Conductor)
 - Ontology / PROV-O / SKOS: ADR 0004, ADR 0011, issue #372
 - Analysis runs / TEPP: ADR 0013–0023, issue #79 / #277
-- Calendar / Naruon: issues #336 / #338, PR #355
+- Calendar / Naruon: issues #336 / #338, PR #355, Buyer consume v2.17.0
 - Ask Agent: issues #269–#272, #358–#363
 
 Citations in doctoring and ADRs use APA 7th. Do not invent a heuristic where

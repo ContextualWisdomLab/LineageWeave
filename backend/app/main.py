@@ -24,7 +24,7 @@ import json
 import logging
 from contextlib import asynccontextmanager
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Literal
 from uuid import UUID
 
@@ -41,10 +41,6 @@ from lineageweave.adjudication_client import (
 from lineageweave.commitment_extraction import (
     ContextualOrchestratorCommitmentExtractionClient,
     NullCommitmentExtractionClient,
-)
-from lineageweave.caldav_client import (
-    CALDAV_UNAVAILABLE_NEXT_ACTION,
-    build_caldav_client,
 )
 from lineageweave.entity_relationship_classification import (
     ContextualOrchestratorEntityRelationshipClient,
@@ -93,6 +89,11 @@ from lineageweave.relation_verification import NullRelationVerificationClient, S
 from lineageweave.semantic_hints import customer_hint_trust, format_semantic_hints
 from lineageweave.ontology import LW
 from lineageweave.rankweave_client import build_rankweave_client
+from lineageweave.naruon_calendar_workspace import (
+    build_workspace_naruon_client,
+    default_calendar_window,
+    load_observed_calendar_events,
+)
 
 from backend.app.analysis_run_ingestion import (
     AnalysisRunCreateError,
@@ -3371,25 +3372,33 @@ async def read_analysis_run(
 async def read_calendar(
     account: CurrentAccount = Depends(get_current_account),
     pool: asyncpg.Pool = Depends(get_pool),
+    window_start: str | None = Query(default=None),
+    window_end: str | None = Query(default=None),
 ) -> dict[str, Any]:
-    """Return independent CalDAV events alongside authorized commitments.
+    """Return Naruon observed events beside authorized commitments.
 
-    An unavailable optional CalDAV source never hides the internal to-do
-    projection and never creates a synthetic event.
+    A missing or malformed Naruon audience never hides the internal to-do
+    projection and never creates a synthetic event. The end-user bearer
+    token is not forwarded.
     """
     _require_post_read(account)
-    caldav = build_caldav_client(load_settings().caldav_base_url)
-    events = []
-    caldav_available = caldav.available
-    caldav_next_action = None
-    if caldav.available:
-        try:
-            events = [asdict(event) for event in caldav.list_events()]
-        except (HttpClientError, OSError, ValueError):
-            caldav_available = False
-            caldav_next_action = CALDAV_UNAVAILABLE_NEXT_ACTION
-    else:
-        caldav_next_action = CALDAV_UNAVAILABLE_NEXT_ACTION
+    if (window_start is None) ^ (window_end is None):
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            "window_start and window_end must be supplied together",
+        )
+    settings = load_settings()
+    if window_start is None or window_end is None:
+        window_start, window_end = default_calendar_window(datetime.now(timezone.utc))
+    naruon = load_observed_calendar_events(
+        build_workspace_naruon_client(
+            settings.naruon_calendar_base_url,
+            settings.naruon_calendar_service_token,
+        ),
+        window_start,
+        window_end,
+    )
+    events = [asdict(event) for event in naruon.events]
     async with pool.acquire() as conn:
         commitments = await fetch_upcoming_commitments(conn)
         demo_entity_ids: set[str] = set()
@@ -3408,8 +3417,8 @@ async def read_calendar(
         "events": events,
         "commitments": visible,
         "calendar_sources": {
-            "caldav_available": caldav_available,
-            "caldav_next_action": caldav_next_action,
+            "naruon_available": naruon.available,
+            "naruon_next_action": naruon.next_action,
         },
     }
 
