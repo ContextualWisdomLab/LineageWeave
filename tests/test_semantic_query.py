@@ -68,3 +68,21 @@ def test_null_rewriter_is_explicitly_unavailable() -> None:
     assert client.available is False
     with pytest.raises(RuntimeError):
         client.rewrite("Apollo")
+
+
+def test_rewriter_enforces_the_local_phrase_bound(monkeypatch) -> None:
+    """A provider cannot bypass the schema's bounded retrieval contract."""
+    phrases = [f"p{index}" for index in range(33)]
+    content = (
+        '{"search_phrases":[' + ",".join(f'"{phrase}"' for phrase in phrases) + "]}"
+    )
+    monkeypatch.setattr(
+        "lineageweave.semantic_query.post_json",
+        lambda *_args, **_kwargs: {"choices": [{"message": {"content": content}}]},
+    )
+    client = ContextualOrchestratorSemanticQueryClient(
+        "https://orchestrator.test", "secret"
+    )
+
+    with pytest.raises(ValueError, match="too many"):
+        client.rewrite(" ".join(phrases))
