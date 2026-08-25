@@ -1,4 +1,4 @@
-# ADR 0223: pnpm build-script allowlist
+# ADR 0224: pnpm build-script allowlist
 
 **Status:** Accepted  
 **Date:** 2026-08-26

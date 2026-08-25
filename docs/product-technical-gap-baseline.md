@@ -1,6 +1,6 @@
 # Product & Technical Gap Baseline
 
-> Dashboard delivery snapshot: 2026-08-26 04:31 KST. Protected `main` was
+> Dashboard delivery snapshot: 2026-08-26 05:02 KST. Protected `main` was
 > `04e6b610655d0db91d5f7ba9486bdda1440e0b19`. This local branch is not
 > protected-main release evidence.
 
@@ -67,7 +67,7 @@ are not merge readiness. Re-fetch exact heads,
 unresolved threads, checks, approvals, rulesets, and merge SHA before any
 lifecycle claim.
 
-> Audit snapshot: 2026-08-26 04:31 KST (refreshed by the autonomous merge
+> Audit snapshot: 2026-08-26 05:02 KST (refreshed by the autonomous merge
 > loop). This repository records synthetic fixtures and aggregate,
 > non-identifying runtime evidence only. Open PRs and local checks are not
 > protected-default-branch release evidence. Identifying post identifiers,
@@ -84,19 +84,19 @@ context only.
 
 | PR | Exact observed head | Merge/check state at this snapshot |
 | ---: | --- | --- |
-| #663 | `55bd4b04` (observed parent) | project ontology traversal plus cutoff/snapshot-frozen project focus and labels; this documentation commit advances the head after capture |
+| #663 | `ab6bd80f` (observed parent) | project ontology traversal; review findings resolved; this baseline/collision commit advances the head, after which replacement checks and two independent approvals are required |
 | #662 | `92534118` | fail-closed injectable TEPP status/read boundary; the owning executable HTTP route remains unavailable |
 | #661 | `11206c58` | Rust-estimated reconstruction fixture weights replace hand-authored reconstruction-test dictionaries |
-| #660 | `7d0d3ef7` | backend runtime and integration contract repairs |
+| #660 | `be3e28cc` | backend runtime and integration contract repairs; hosted checks still active |
 | #659 | `e948bd27` | ontology node readability and tokenized UI fills |
-| #658 | `b681bd53` | evidence-honest Global Ask knowledge cutoff with client validation |
-| #657 | `64f48679` | Dashboard case-metric contract work |
+| #658 | `fe830b0a` | evidence-honest Global Ask knowledge cutoff with client validation; hosted checks still active |
+| #657 | `64f48679` | persisted TEPP asynchronous lifecycle evidence |
 | #644 | `d9ff9980` | native-surface code splitting with modal-focus regression coverage |
 | #643 | `0a1f8ec1` | accessible status-notice surfaces |
 | #640 | `2d50fa01` | operations-dashboard contract alignment |
 | #639 | `aee02dca` | terminal checks observed; exact-head independent approval still required |
 | #636 | `f7b9a65f` | terminal checks observed; exact-head independent approval still required |
-| #632 | `1025a942` | active stacked repair head; hosted checks and independent review required |
+| #632 | `32c7d359` | graph-fact provenance repair; hosted checks and independent review required |
 | #631 | `c0022c97` | terminal checks observed; exact-head independent approval still required |
 | #629 | `4b4d6707` | terminal checks observed; exact-head independent approval still required |
 | #579 | `689a21b6` | leftover interaction-map coordinate persistence; exact-head independent approval still required |
@@ -105,6 +105,12 @@ No row above is merge evidence. Immediately before any lifecycle action,
 re-fetch the head, unresolved threads, formal reviews, rulesets, and same-head
 check conclusions. In particular, queued checks are infrastructure state and
 do not transfer evidence from an earlier SHA.
+
+The open-path collision audit found overlapping Global Ask migrations and
+ADRs across #629/#632/#639/#640/#658; those branches require reconciliation in
+dependency order rather than independent merges. It also found two different
+ADR 0223 proposals on #660 and #663. This head assigns the pnpm policy to ADR
+0224, leaving #660's semantic-unit ADR 0223 authoritative for that number.
 
 PR #607 first merged as `61fd631c7bb3c57113fd19763c2c43161eeb2824`
 into #606's non-default branch. PR #606 subsequently passed the protected gate,
@@ -373,7 +379,7 @@ this file per §3.5 of the prior snapshot).
 
 | Gap | Current evidence | Acceptance requirement |
 | --- | --- | --- |
-| Protected release | 3 open PRs at snapshot: #627 and #628 are current-main performance follow-ups, while reopened #579 retains hosted and independent-review gates | Terminal exact-head checks, no unresolved threads, independent exact-head approvals, protected squash-merge SHA |
+| Protected release | 16 open PRs at this snapshot; all lack the two required independent approvals, while several replacement heads still have active hosted checks | Terminal exact-head checks, no unresolved threads, two independent exact-head approvals including last-push approval, protected squash-merge SHA |
 | Evidence-grounded operations workspace | Protected-main #614 delivers governed semantic Ask, live Similar VOC, disjoint pending/failed analysis metrics, full Storybook state inventory, and current desktop/mobile screenshot evidence. Authorized-corpus backfill acceptance remains unavailable | Perform authenticated authorized-corpus acceptance with aggregate evidence and retain fail-closed no-match behavior |
 | Shared frontend gate | The ADR 0109 login repair is on protected `main`; eight older branches carried the defect and received the same verified repair this loop (#521–#560) | Keep every future branch cut from post-repair bases; re-verify with frontend lint/test/build before push |
 | Identifying baseline regression | `main` gap file listed real post identifiers; separately, closed #506 and pre-existing public history contain a private runtime source-table identifier, while current `main` and #507 trees are clean | Land this non-identifying rewrite, then coordinate ADR 0001 history remediation with security/privacy owners; do not reproduce the value, force-push, or delete evidence ad hoc |
@@ -394,7 +400,7 @@ this file per §3.5 of the prior snapshot).
 | Accessibility and responsive UX | #602 delivered base post-detail modal semantics; #605 adds selected-post refocus, collapsed/hidden/inert/CSS-invisible focus exclusion across both modal types, readable evidence separators, focused tests, and desktop/mobile Storybook screenshots | Land #605 through the protected gate, then complete screen-reader and authenticated Playwright acceptance on the exact release head |
 | Design tokens and repeated objects | Token extraction started; sanitized Figma Event Lineage desktop/mobile frames exist, while other repeated product surfaces remain incomplete | Tokens in CSS + Storybook stories for board, popup, DAG, Ask, calendar, forms, charts; same-viewport Figma/runtime visual comparison before release |
 | Frontend delivery performance | A current production build succeeds but emits Vite's >500 kB chunk warning (`539.27 kB` minified); raising the warning limit would conceal rather than reduce delivery cost | Measure module contribution on an exact head, split one real route/surface boundary with native dynamic import, then prove the warning is absent and loading/error states remain accessible |
-| External integrations | Search, Zotero, calendar, Keyverse, orchestrator, RankWeave, ThreadWeave, TEPP, DiskSage, wardnet | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
+| External integrations | Search, Zotero, calendar, Keyverse, orchestrator, RankWeave, ThreadWeave, TEPP, `ContextualWisdomLab/disksage`, wardnet | Provider conformance, failure/reconciliation behavior, and provenance-bearing integration evidence |
 | MSA / modular reuse | LineageWeave must run standalone and as a consumer of org packages | Do not reimplement RankWeave/TEPP/orchestrator/ThreadWeave/Keyverse; fix upstream and PR there |
 | Product contract authority | This branch recreates the first LineageWeave PRD after superseded #613 closed without merge and records an exact-case ecosystem authority register; TEPP, fast-mlsirm, keyverse, and ThreadWeave have standalone PRDs, while contextual-orchestrator, RankWeave, DiskSage, and wardnet currently rely on product-planning/architecture documents and naruon has only a scoped Topic Intelligence PRD | Land the LineageWeave PRD, keep ADRs normative, and add standalone PRDs in each owning repository before making cross-product release claims beyond its documented boundary |
 | Release quality | Local focused/full suites have passed on individual PR heads | Repository-wide coverage, docstrings, Storybook, security, browser, and release evidence on one exact head |
@@ -431,7 +437,7 @@ of leverage; open connector PRs there when the defect is upstream:
 5. **fast-mlsirm** — GRM/GPCM/CAT/FIPC recovery tests (#451–#454) must stay true-parameter RMSE.
 6. **ThreadWeave** — tree assembly.
 7. **Naruon** — calendar and email/project lineage projection (#336, #338, #355).
-8. **DiskSage / wardnet** — storage and network policy as needed.
+8. **`ContextualWisdomLab/disksage` / wardnet** — storage and network policy as needed.
 9. **ContextualWisdomLab/.github** — required review workflows (OpenCode, Strix, Noema) and the candidate LineageWeave hourly caller (ContextualWisdomLab/.github#1288). The earlier ContextualWisdomLab/.github#1259 closed unmerged. If stacked PRs miss central review or coverage-evidence fails on pnpm 9 (`--trust-lockfile` is pnpm 11.3) or a missing Vitest coverage provider, fix the org workflow (#1258), not a local bypass.
 
 ## 8. Public ontology publication boundary
