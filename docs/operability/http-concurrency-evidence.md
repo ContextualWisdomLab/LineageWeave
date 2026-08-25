@@ -70,6 +70,18 @@ above on an application-ready stack to obtain the product measurement.
 
 ## Older-image diagnostic observation
 
+On 2026-08-26, the same non-exact local Compose boundary completed an
+authenticated 4-VU, 30-second run over 43,189 aggregate synthetic
+`source_post` rows: 87 full iterations, 263 HTTP requests, and 261/261 endpoint
+checks succeeded. Ask enqueue was 57.25 ms. Ask polling was 56.83 ms mean,
+233.37 ms p95, and 765.24 ms maximum. The combined post/lineage reader metric
+was 842.14 ms mean, 1.53 s p95, and 2.80 s maximum. The host exposed 10 logical
+CPUs and 32 GiB RAM; Compose imposed no explicit backend CPU or memory limit.
+The backend container came from image `sha256:28234aa5db0e` created on
+2026-08-24, not the current PR head. These distributions show that concurrent
+readers remained responsive on that image; they do not validate an exact-head
+regression, identify a causal bottleneck, or establish an SLO.
+
 On 2026-08-25, an application-ready local Compose stack configured with four
 worker VUs completed zero full iterations in two observations. In the second
 30-second observation, Ask enqueue took 2.69 seconds, the maximum completed
